@@ -1,6 +1,6 @@
 module test
 
-import brew_runtime
+import ruby
 import homebrew
 import os
 import time
@@ -20,7 +20,7 @@ pub:
 fn git_repository_spec_run(arguments []string, chdir string) !string {
 	mut argv := ['git']
 	argv << arguments
-	result := brew_runtime.run_captured_command(argv, brew_runtime.CapturedCommandOptions{
+	result := ruby.run_captured_command(argv, ruby.CapturedCommandOptions{
 		chdir: chdir
 	})!
 	if result.exit_code != 0 {
@@ -71,14 +71,14 @@ pub fn (context GitRepositorySpecContext) cleanup() {
 }
 
 fn git_repository_spec_unexpected_runner(_ homebrew.GitRepository, arguments []string,
-	_ homebrew.GitPopenOptions) !brew_runtime.CapturedCommandResult {
+	_ homebrew.GitPopenOptions) !ruby.CapturedCommandResult {
 	if arguments.len > 0 && arguments[0] in ['rev-parse', 'symbolic-ref'] {
-		return brew_runtime.CapturedCommandResult{
+		return ruby.CapturedCommandResult{
 			exit_code: 0
 			stdout: 'refs/tags/main\n'
 		}
 	}
-	return brew_runtime.CapturedCommandResult{ exit_code: 1 }
+	return ruby.CapturedCommandResult{ exit_code: 1 }
 }
 
 // Ruby subject `subject(:git_repo) { described_class.new(clone_path) }` at line 7.

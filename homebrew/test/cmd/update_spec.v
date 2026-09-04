@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 import os
 import time
 
@@ -22,7 +22,7 @@ pub fn (result UpdateSpecScenarioResult) diagnostic() string {
 	return 'exit=${result.exit_code}\nstdout=${result.stdout}\nstderr=${result.stderr}\n${result.details}'
 }
 
-fn update_spec_repository(args []brew_runtime.Value) string {
+fn update_spec_repository(args []ruby.Value) string {
 	if args.len > 0 && args[0].as_string() != '' {
 		return args[0].as_string()
 	}
@@ -45,7 +45,7 @@ pub fn update_spec_create_test_root(repository_root string, label string) !strin
 }
 
 fn update_spec_environment(overrides map[string]string, unset_names []string) map[string]string {
-	mut environment := brew_runtime.environment()
+	mut environment := ruby.environment()
 	for name in environment.keys() {
 		if name.starts_with('HOMEBREW_') {
 			environment.delete(name)
@@ -61,8 +61,8 @@ fn update_spec_environment(overrides map[string]string, unset_names []string) ma
 }
 
 pub fn update_spec_run_update_shell(script string, overrides map[string]string,
-	unset_names []string) !brew_runtime.CapturedCommandResult {
-	return brew_runtime.run_captured_command(['/bin/bash', '-c', script], brew_runtime.CapturedCommandOptions{
+	unset_names []string) !ruby.CapturedCommandResult {
+	return ruby.run_captured_command(['/bin/bash', '-c', script], ruby.CapturedCommandOptions{
 		environment: update_spec_environment(overrides, unset_names)
 	})
 }
@@ -78,7 +78,7 @@ pub fn update_spec_setup_update_utils(test_root string, repository_root string) 
 	return update_spec_utility_names.clone()
 }
 
-fn update_spec_result(passed bool, command brew_runtime.CapturedCommandResult,
+fn update_spec_result(passed bool, command ruby.CapturedCommandResult,
 	details string) UpdateSpecScenarioResult {
 	return UpdateSpecScenarioResult{
 		passed: passed
@@ -358,41 +358,41 @@ pub fn update_spec_metadata_only_for_taps(repository_root string) !UpdateSpecSce
 	return update_spec_redirect_scenario(repository_root, 'force')
 }
 
-fn update_spec_shell_result_value(result brew_runtime.CapturedCommandResult) brew_runtime.Value {
-	status := brew_runtime.structured_value('Process::Status', result.exit_code.str(), {
+fn update_spec_shell_result_value(result ruby.CapturedCommandResult) ruby.Value {
+	status := ruby.structured_value('Process::Status', result.exit_code.str(), {
 		'exit_code': result.exit_code.str()
 		'success':   (result.exit_code == 0).str()
 	})
-	return brew_runtime.array_value([
-		brew_runtime.string_value(result.stdout),
-		brew_runtime.string_value(result.stderr),
+	return ruby.array_value([
+		ruby.string_value(result.stdout),
+		ruby.string_value(result.stderr),
 		status,
 	])
 }
 
 // Ruby let `let(:update_script) { repository_root/"Library/Homebrew/cmd/update.sh" }` at line 10.
-pub fn ruby_update_spec_l10_d1_update_script(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Pathname', update_spec_script(update_spec_repository(args)))
+pub fn ruby_update_spec_l10_d1_update_script(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Pathname', update_spec_script(update_spec_repository(args)))
 }
 
 // Ruby let `let(:test_root) do` at line 11.
-pub fn ruby_update_spec_l11_d2_test_root(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_spec_l11_d2_test_root(args ...ruby.Value) ruby.Value {
 	repository_root := update_spec_repository(args)
 	path := update_spec_create_test_root(repository_root, 'boundary') or {
-		return brew_runtime.object_value('IOError', err.msg())
+		return ruby.object_value('IOError', err.msg())
 	}
-	return brew_runtime.object_value('Pathname', path)
+	return ruby.object_value('Pathname', path)
 }
 
 // Ruby let `let(:repository_root) { Pathname(T.must(__dir__)).parent.parent.parent.parent }` at line 15.
-pub fn ruby_update_spec_l15_d3_repository_root(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Pathname', update_spec_repository(args))
+pub fn ruby_update_spec_l15_d3_repository_root(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Pathname', update_spec_repository(args))
 }
 
 // Ruby method `run_update_shell(script, env)` at line 23.
-pub fn ruby_update_spec_l23_d4_run_update_shell(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_spec_l23_d4_run_update_shell(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'script is required')
+		return ruby.object_value('ArgumentError', 'script is required')
 	}
 	mut overrides := map[string]string{}
 	mut unset_names := []string{}
@@ -406,69 +406,69 @@ pub fn ruby_update_spec_l23_d4_run_update_shell(args ...brew_runtime.Value) brew
 		}
 	}
 	result := update_spec_run_update_shell(args[0].as_string(), overrides, unset_names) or {
-		return brew_runtime.object_value('IOError', err.msg())
+		return ruby.object_value('IOError', err.msg())
 	}
 	return update_spec_shell_result_value(result)
 }
 
 // Ruby method `setup_update_utils` at line 29.
-pub fn ruby_update_spec_l29_d5_setup_update_utils(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_spec_l29_d5_setup_update_utils(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'test root is required')
+		return ruby.object_value('ArgumentError', 'test root is required')
 	}
 	repository_root := if args.len > 1 { args[1].as_string() } else { update_spec_repository([]) }
 	names := update_spec_setup_update_utils(args[0].as_string(), repository_root) or {
-		return brew_runtime.object_value('IOError', err.msg())
+		return ruby.object_value('IOError', err.msg())
 	}
-	return brew_runtime.string_array_value(names)
+	return ruby.string_array_value(names)
 }
 
 // Ruby it `it "retries a failed conditional API download without the time condition" do` at line 38.
-pub fn ruby_update_spec_l38_d6_retries(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_spec_l38_d6_retries(args ...ruby.Value) ruby.Value {
 	result := update_spec_retry_conditional_download(update_spec_repository(args)) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(result.passed)
+	return ruby.bool_value(result.passed)
 }
 
 // Ruby it `it "passes all arguments through to delegated upgrades" do` at line 77.
-pub fn ruby_update_spec_l77_d7_passes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_spec_l77_d7_passes(args ...ruby.Value) ruby.Value {
 	result := update_spec_delegated_upgrade_arguments(update_spec_repository(args)) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(result.passed)
+	return ruby.bool_value(result.passed)
 }
 
 // Ruby it `it "passes `--auto-update` through to `update-report`" do` at line 106.
-pub fn ruby_update_spec_l106_d8_passes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_spec_l106_d8_passes(args ...ruby.Value) ruby.Value {
 	result := update_spec_auto_update_report_arguments(update_spec_repository(args)) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(result.passed)
+	return ruby.bool_value(result.passed)
 }
 
 // Ruby it `it "does not query redirected remote metadata for no-op tap updates" do` at line 147.
-pub fn ruby_update_spec_l147_d9_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_spec_l147_d9_does(args ...ruby.Value) ruby.Value {
 	result := update_spec_noop_redirect(update_spec_repository(args)) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(result.passed)
+	return ruby.bool_value(result.passed)
 }
 
 // Ruby it `it "treats redirected tap SHA API checks as updates" do` at line 252.
-pub fn ruby_update_spec_l252_d10_treats(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_spec_l252_d10_treats(args ...ruby.Value) ruby.Value {
 	result := update_spec_redirected_sha(update_spec_repository(args)) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(result.passed)
+	return ruby.bool_value(result.passed)
 }
 
 // Ruby it `it "queries redirected remote metadata only for taps" do` at line 366.
-pub fn ruby_update_spec_l366_d11_queries(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_spec_l366_d11_queries(args ...ruby.Value) ruby.Value {
 	result := update_spec_metadata_only_for_taps(update_spec_repository(args)) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(result.passed)
+	return ruby.bool_value(result.passed)
 }
 
 // Original Ruby source (line-for-line):

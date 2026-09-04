@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `dev-cmd/lgtm.rb`.
@@ -161,36 +161,36 @@ pub:
 	options LgtmCommandOptions
 }
 
-pub fn lgtm_command_input_boundary(input &LgtmCommandInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::Lgtm::Input', '', {
+pub fn lgtm_command_input_boundary(input &LgtmCommandInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::Lgtm::Input', '', {
 		'lgtm_command_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn lgtm_command_input_from_value(value brew_runtime.Value) &LgtmCommandInput {
+fn lgtm_command_input_from_value(value ruby.Value) &LgtmCommandInput {
 	address := value.attributes['lgtm_command_input_address'] or { panic('invalid Lgtm command input') }
 	return unsafe { &LgtmCommandInput(voidptr(address.u64())) }
 }
 
-fn lgtm_command_result_value(result LgtmCommandResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'bundler_groups':   brew_runtime.string_array_value(result.bundler_groups)
-		'commands':         brew_runtime.array_value(result.commands.map(brew_runtime.string_array_value(it)))
-		'ohai':             brew_runtime.string_array_value(result.ohai)
-		'warnings':         brew_runtime.string_array_value(result.warnings)
-		'blank_lines':      brew_runtime.int_value(result.blank_lines)
-		'changed_formulae': brew_runtime.string_array_value(result.changed_formulae)
-		'new_formulae':     brew_runtime.string_array_value(result.new_formulae)
-		'changed_casks':    brew_runtime.string_array_value(result.changed_casks)
-		'new_casks':        brew_runtime.string_array_value(result.new_casks)
-		'formulae_to_test': brew_runtime.string_array_value(result.formulae_to_test)
+fn lgtm_command_result_value(result LgtmCommandResult) ruby.Value {
+	return ruby.map_value({
+		'bundler_groups':   ruby.string_array_value(result.bundler_groups)
+		'commands':         ruby.array_value(result.commands.map(ruby.string_array_value(it)))
+		'ohai':             ruby.string_array_value(result.ohai)
+		'warnings':         ruby.string_array_value(result.warnings)
+		'blank_lines':      ruby.int_value(result.blank_lines)
+		'changed_formulae': ruby.string_array_value(result.changed_formulae)
+		'new_formulae':     ruby.string_array_value(result.new_formulae)
+		'changed_casks':    ruby.string_array_value(result.changed_casks)
+		'new_casks':        ruby.string_array_value(result.new_casks)
+		'formulae_to_test': ruby.string_array_value(result.formulae_to_test)
 	})
 }
 
 // Ruby method `run` at line 23.
-pub fn ruby_lgtm_l23_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lgtm_l23_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'command input is required')
+		return ruby.object_value('ArgumentError', 'command input is required')
 	}
 	return lgtm_command_result_value(run_lgtm_command(lgtm_command_input_from_value(args[0]).options))
 }

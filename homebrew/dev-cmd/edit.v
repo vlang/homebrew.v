@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `dev-cmd/edit.rb`.
@@ -527,58 +527,58 @@ pub fn run_edit(options EditOptions) !EditResult {
 	}
 }
 
-pub fn edit_input_boundary(input &EditInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::Edit::Input', '', {
+pub fn edit_input_boundary(input &EditInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::Edit::Input', '', {
 		'edit_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn edit_input_from_value(value brew_runtime.Value) &EditInput {
+fn edit_input_from_value(value ruby.Value) &EditInput {
 	address := value.attributes['edit_input_address'] or { panic('invalid Edit input') }
 	return unsafe { &EditInput(voidptr(address.u64())) }
 }
 
-pub fn edit_missing_path_input_boundary(input &EditMissingPathInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::Edit::MissingPathInput', '', {
+pub fn edit_missing_path_input_boundary(input &EditMissingPathInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::Edit::MissingPathInput', '', {
 		'edit_missing_path_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn edit_missing_path_input_from_value(value brew_runtime.Value) &EditMissingPathInput {
+fn edit_missing_path_input_from_value(value ruby.Value) &EditMissingPathInput {
 	address := value.attributes['edit_missing_path_input_address'] or {
 		panic('invalid Edit missing-path input')
 	}
 	return unsafe { &EditMissingPathInput(voidptr(address.u64())) }
 }
 
-fn edit_tap_install_value(install EditTapInstall) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'name':           brew_runtime.string_value(install.name)
-		'force':          brew_runtime.bool_value(install.force)
-		'requested_name': brew_runtime.string_value(install.requested_name)
+fn edit_tap_install_value(install EditTapInstall) ruby.Value {
+	return ruby.map_value({
+		'name':           ruby.string_value(install.name)
+		'force':          ruby.bool_value(install.force)
+		'requested_name': ruby.string_value(install.requested_name)
 	})
 }
 
-fn edit_result_value(result EditResult) brew_runtime.Value {
-	mut environment := map[string]brew_runtime.Value{}
+fn edit_result_value(result EditResult) ruby.Value {
+	mut environment := map[string]ruby.Value{}
 	for name, value in result.environment {
-		environment[name] = brew_runtime.string_value(value)
+		environment[name] = ruby.string_value(value)
 	}
-	return brew_runtime.map_value({
-		'paths':             brew_runtime.string_array_value(result.paths)
-		'selected_editor':   brew_runtime.string_value(result.selected_editor)
-		'editor_command':    brew_runtime.string_array_value(result.editor_command)
-		'editor_invoked':    brew_runtime.bool_value(result.editor_invoked)
-		'tap_installs':      brew_runtime.array_value(result.tap_installs.map(edit_tap_install_value(it)))
-		'environment':       brew_runtime.map_value(environment)
-		'unset_environment': brew_runtime.string_array_value(result.unset_environment)
-		'stdout':            brew_runtime.string_value(result.stdout)
-		'stderr':            brew_runtime.string_value(result.stderr)
-		'hint':              brew_runtime.string_value(result.hint)
+	return ruby.map_value({
+		'paths':             ruby.string_array_value(result.paths)
+		'selected_editor':   ruby.string_value(result.selected_editor)
+		'editor_command':    ruby.string_array_value(result.editor_command)
+		'editor_invoked':    ruby.bool_value(result.editor_invoked)
+		'tap_installs':      ruby.array_value(result.tap_installs.map(edit_tap_install_value(it)))
+		'environment':       ruby.map_value(environment)
+		'unset_environment': ruby.string_array_value(result.unset_environment)
+		'stdout':            ruby.string_value(result.stdout)
+		'stderr':            ruby.string_value(result.stderr)
+		'hint':              ruby.string_value(result.hint)
 	})
 }
 
-fn edit_boundary_error(edit_error EditCommandError) brew_runtime.Value {
+fn edit_boundary_error(edit_error EditCommandError) ruby.Value {
 	type_name := match edit_error.kind {
 		.option_constraint { 'Homebrew::CLI::OptionConstraintError' }
 		.fatal { 'FatalError' }
@@ -586,58 +586,58 @@ fn edit_boundary_error(edit_error EditCommandError) brew_runtime.Value {
 		.usage { 'UsageError' }
 		.editor { 'ErrorDuringExecution' }
 	}
-	return brew_runtime.object_value(type_name, edit_error.message)
+	return ruby.object_value(type_name, edit_error.message)
 }
 
 // Ruby method `run` at line 28.
-pub fn ruby_edit_l28_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_edit_l28_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'command input is required')
+		return ruby.object_value('ArgumentError', 'command input is required')
 	}
 	return edit_result_value(run_edit(edit_input_from_value(args[0]).options) or {
 		if err is EditCommandError {
 			return edit_boundary_error(err)
 		}
-		return brew_runtime.object_value('Error', err.msg())
+		return ruby.object_value('Error', err.msg())
 	})
 }
 
 // Ruby method `core_formula_path?(path)` at line 99.
-pub fn ruby_edit_l99_d2_core_formula_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_edit_l99_d2_core_formula_path(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'path is required')
+		return ruby.object_value('ArgumentError', 'path is required')
 	}
-	return brew_runtime.bool_value(edit_core_formula_path(args[0].as_string()))
+	return ruby.bool_value(edit_core_formula_path(args[0].as_string()))
 }
 
 // Ruby method `core_cask_path?(path)` at line 104.
-pub fn ruby_edit_l104_d3_core_cask_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_edit_l104_d3_core_cask_path(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'path is required')
+		return ruby.object_value('ArgumentError', 'path is required')
 	}
-	return brew_runtime.bool_value(edit_core_cask_path(args[0].as_string()))
+	return ruby.bool_value(edit_core_cask_path(args[0].as_string()))
 }
 
 // Ruby method `core_formula_tap?(path)` at line 109.
-pub fn ruby_edit_l109_d4_core_formula_tap(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_edit_l109_d4_core_formula_tap(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'path and core tap path are required')
+		return ruby.object_value('ArgumentError', 'path and core tap path are required')
 	}
-	return brew_runtime.bool_value(edit_core_formula_tap(args[0].as_string(), args[1].as_string()))
+	return ruby.bool_value(edit_core_formula_tap(args[0].as_string(), args[1].as_string()))
 }
 
 // Ruby method `core_cask_tap?(path)` at line 114.
-pub fn ruby_edit_l114_d5_core_cask_tap(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_edit_l114_d5_core_cask_tap(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'path and core cask tap path are required')
+		return ruby.object_value('ArgumentError', 'path and core cask tap path are required')
 	}
-	return brew_runtime.bool_value(edit_core_cask_tap(args[0].as_string(), args[1].as_string()))
+	return ruby.bool_value(edit_core_cask_tap(args[0].as_string(), args[1].as_string()))
 }
 
 // Ruby method `raise_with_message!(path, cask)` at line 119.
-pub fn ruby_edit_l119_d6_raise_with_message(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_edit_l119_d6_raise_with_message(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'missing-path input is required')
+		return ruby.object_value('ArgumentError', 'missing-path input is required')
 	}
 	input := edit_missing_path_input_from_value(args[0])
 	return edit_boundary_error(edit_missing_path_error(input.options, input.path, input.cask))

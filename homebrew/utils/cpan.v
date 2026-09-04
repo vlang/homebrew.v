@@ -1,6 +1,6 @@
 module utils
 
-import brew_runtime
+import ruby
 import x.json2
 
 // Translated from Homebrew/brew `utils/cpan.rb`.
@@ -305,15 +305,15 @@ pub fn update_perl_resources(formula CpanFormula, options CpanUpdateOptions,
 	}
 }
 
-fn cpan_package_value(package &CpanPackage) brew_runtime.Value {
-	return brew_runtime.structured_value('CPAN::Package', package.resource_name, {
+fn cpan_package_value(package &CpanPackage) ruby.Value {
+	return ruby.structured_value('CPAN::Package', package.resource_name, {
 		'cpan_package_address': u64(voidptr(package)).str()
 		'resource_name':        package.resource_name
 		'resource_url':         package.resource_url
 	})
 }
 
-fn cpan_package_from_value(value brew_runtime.Value) &CpanPackage {
+fn cpan_package_from_value(value ruby.Value) &CpanPackage {
 	address := value.attribute('cpan_package_address') or { panic('invalid CPAN::Package receiver') }
 	return unsafe { &CpanPackage(voidptr(address.u64())) }
 }
@@ -322,22 +322,22 @@ fn cpan_boundary_fetch(_ string) !string {
 	return error('MetaCPAN response was not supplied')
 }
 
-fn cpan_info_value(info CpanInfoLookup) brew_runtime.Value {
+fn cpan_info_value(info CpanInfoLookup) ruby.Value {
 	if info.found {
 		release := info.info
-		return brew_runtime.string_array_value([release.name, release.download_url, release.checksum,
+		return ruby.string_array_value([release.name, release.download_url, release.checksum,
 			release.version])
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
-fn cpan_option_bool(values map[string]brew_runtime.Value, name string) bool {
+fn cpan_option_bool(values map[string]ruby.Value, name string) bool {
 	value := values[name] or { return false }
 	return value.type_name == 'Bool' && value.bool_data
 }
 
 // Ruby method `initialize(resource_name, resource_url)` at line 17.
-pub fn ruby_cpan_l17_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cpan_l17_d1_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('CPAN::Package#initialize requires resource name and URL')
 	}
@@ -345,26 +345,26 @@ pub fn ruby_cpan_l17_d1_initialize(args ...brew_runtime.Value) brew_runtime.Valu
 }
 
 // Ruby method `name` at line 25.
-pub fn ruby_cpan_l25_d2_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(cpan_package_from_value(args[0]).name())
+pub fn ruby_cpan_l25_d2_name(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(cpan_package_from_value(args[0]).name())
 }
 
 // Ruby method `current_version` at line 30.
-pub fn ruby_cpan_l30_d3_current_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cpan_l30_d3_current_version(args ...ruby.Value) ruby.Value {
 	mut package := cpan_package_from_value(args[0])
 	if version := package.current_version() {
-		return brew_runtime.string_value(version)
+		return ruby.string_value(version)
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `valid_cpan_package?` at line 36.
-pub fn ruby_cpan_l36_d4_valid_cpan_package(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(cpan_package_from_value(args[0]).valid())
+pub fn ruby_cpan_l36_d4_valid_cpan_package(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(cpan_package_from_value(args[0]).valid())
 }
 
 // Ruby method `latest_cpan_info` at line 42.
-pub fn ruby_cpan_l42_d5_latest_cpan_info(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cpan_l42_d5_latest_cpan_info(args ...ruby.Value) ruby.Value {
 	mut package := cpan_package_from_value(args[0])
 	if args.len > 1 && args[1].type_name == 'String' {
 		payload := args[1].as_string()
@@ -376,17 +376,17 @@ pub fn ruby_cpan_l42_d5_latest_cpan_info(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `to_s` at line 66.
-pub fn ruby_cpan_l66_d6_to_s(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cpan_l66_d6_to_s(args ...ruby.Value) ruby.Value {
 	return ruby_cpan_l25_d2_name(...args)
 }
 
 // Ruby method `extract_version_from_url` at line 73.
-pub fn ruby_cpan_l73_d7_extract_version_from_url(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cpan_l73_d7_extract_version_from_url(args ...ruby.Value) ruby.Value {
 	return ruby_cpan_l30_d3_current_version(...args)
 }
 
 // Ruby method `self.update_perl_resources!(formula, print_only: false, quiet: false, verbose: false, ignore_errors: false)` at line 93.
-pub fn ruby_cpan_l93_d8_self_update_perl_resources(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cpan_l93_d8_self_update_perl_resources(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('CPAN.update_perl_resources! requires a formula descriptor')
 	}
@@ -402,7 +402,7 @@ pub fn ruby_cpan_l93_d8_self_update_perl_resources(args ...brew_runtime.Value) b
 		source: formula_value.attribute('source') or { '' }
 		resources: resources
 	}
-	option_values := if args.len > 1 { args[1].map_data } else { map[string]brew_runtime.Value{} }
+	option_values := if args.len > 1 { args[1].map_data } else { map[string]ruby.Value{} }
 	options := CpanUpdateOptions{
 		print_only: cpan_option_bool(option_values, 'print_only')
 		quiet: cpan_option_bool(option_values, 'quiet')
@@ -416,7 +416,7 @@ pub fn ruby_cpan_l93_d8_self_update_perl_resources(args ...brew_runtime.Value) b
 		}
 		return payload
 	}) or { panic(err) }
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'CPAN::UpdateResult'
 		repr: result.resource_section
 		string_array_data: result.messages.clone()

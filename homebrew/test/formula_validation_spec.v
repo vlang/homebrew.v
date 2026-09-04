@@ -1,6 +1,6 @@
 module test
 
-import brew_runtime
+import ruby
 import homebrew
 import homebrew.api
 
@@ -92,8 +92,8 @@ pub fn formula_validation_fails_with_invalid(result FormulaValidationResult, att
 		&& result.attr == attr.trim_left(':')
 }
 
-fn formula_validation_result_value(result FormulaValidationResult) brew_runtime.Value {
-	return brew_runtime.structured_value('FormulaValidationResult', result.message, {
+fn formula_validation_result_value(result FormulaValidationResult) ruby.Value {
+	return ruby.structured_value('FormulaValidationResult', result.message, {
 		'valid':      result.valid.str()
 		'error_kind': result.error_kind
 		'attr':       result.attr
@@ -104,7 +104,7 @@ fn formula_validation_result_value(result FormulaValidationResult) brew_runtime.
 	})
 }
 
-fn formula_validation_result_from_value(value brew_runtime.Value) FormulaValidationResult {
+fn formula_validation_result_from_value(value ruby.Value) FormulaValidationResult {
 	return FormulaValidationResult{
 		valid: (value.attributes['valid'] or { 'false' }) == 'true'
 		error_kind: value.attributes['error_kind'] or { '' }
@@ -130,59 +130,59 @@ fn formula_validation_invalid_fixture(attr string) FormulaValidationResult {
 }
 
 // Ruby matcher `matcher :fail_with_invalid do |attr|` at line 8.
-pub fn ruby_formula_validation_spec_l8_d1_fail_with_invalid(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_validation_spec_l8_d1_fail_with_invalid(args ...ruby.Value) ruby.Value {
 	attr := if args.len > 0 { args[0].as_string().trim_left(':') } else { 'name' }
 	result := if args.len > 1 {
 		formula_validation_result_from_value(args[1])
 	} else {
 		formula_validation_invalid_fixture(attr)
 	}
-	return brew_runtime.bool_value(formula_validation_fails_with_invalid(result, attr))
+	return ruby.bool_value(formula_validation_fails_with_invalid(result, attr))
 }
 
 // Ruby method `supports_block_expectations?` at line 18.
-pub fn ruby_formula_validation_spec_l18_d2_supports_block_expectations(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_validation_spec_l18_d2_supports_block_expectations(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
 // Ruby it `it "can't override the `brew` method" do` at line 23.
-pub fn ruby_formula_validation_spec_l23_d3_can(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_validation_spec_l23_d3_can(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := formula_validation_check(FormulaValidationInput{
 		overrides_brew: true
 	})
-	return brew_runtime.bool_value(!result.valid && result.error_kind == 'RuntimeError'
+	return ruby.bool_value(!result.valid && result.error_kind == 'RuntimeError'
 		&& (result.message == 'Formula subclasses cannot override `brew`.'
 			|| result.message.contains('was declared as final')))
 }
 
 // Ruby method `brew; end` at line 27.
-pub fn ruby_formula_validation_spec_l27_d4_brew(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_validation_spec_l27_d4_brew(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby it `it "validates the `name`" do` at line 38.
-pub fn ruby_formula_validation_spec_l38_d5_validates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_validation_spec_l38_d5_validates(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := formula_validation_check(FormulaValidationInput{
 		name: 'name with spaces'
 	})
-	return brew_runtime.bool_value(formula_validation_fails_with_invalid(result, 'name'))
+	return ruby.bool_value(formula_validation_fails_with_invalid(result, 'name'))
 }
 
 // Ruby it `it "validates the `url`" do` at line 48.
-pub fn ruby_formula_validation_spec_l48_d6_validates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_validation_spec_l48_d6_validates(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := formula_validation_check(FormulaValidationInput{
 		url: ''
 	})
-	return brew_runtime.bool_value(formula_validation_fails_with_invalid(result, 'url'))
+	return ruby.bool_value(formula_validation_fails_with_invalid(result, 'url'))
 }
 
 // Ruby it `it "validates the `version`" do` at line 58.
-pub fn ruby_formula_validation_spec_l58_d7_validates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_validation_spec_l58_d7_validates(args ...ruby.Value) ruby.Value {
 	_ = args
 	with_spaces := formula_validation_check(FormulaValidationInput{
 		version: 'version with spaces'
@@ -194,13 +194,13 @@ pub fn ruby_formula_validation_spec_l58_d7_validates(args ...brew_runtime.Value)
 		version: ''
 		version_present: false
 	})
-	return brew_runtime.bool_value(formula_validation_fails_with_invalid(with_spaces, 'version')
+	return ruby.bool_value(formula_validation_fails_with_invalid(with_spaces, 'version')
 		&& formula_validation_fails_with_invalid(empty, 'version')
 		&& formula_validation_fails_with_invalid(nil_version, 'version'))
 }
 
 // Ruby specify `specify "HEAD-only is valid" do` at line 84.
-pub fn ruby_formula_validation_spec_l84_d8_head_only(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_validation_spec_l84_d8_head_only(args ...ruby.Value) ruby.Value {
 	_ = args
 	input := FormulaValidationInput{
 		stable_declared: false
@@ -209,20 +209,20 @@ pub fn ruby_formula_validation_spec_l84_d8_head_only(args ...brew_runtime.Value)
 		head_url: 'foo'
 	}
 	result := formula_validation_check(input)
-	formula := formula_validation_formula(input) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(result.valid && result.head && result.head_only && formula.head()
+	formula := formula_validation_formula(input) or { return ruby.bool_value(false) }
+	return ruby.bool_value(result.valid && result.head && result.head_only && formula.head()
 		&& formula.head_only())
 }
 
 // Ruby it `it "fails when Formula is empty" do` at line 93.
-pub fn ruby_formula_validation_spec_l93_d9_fails(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_validation_spec_l93_d9_fails(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := formula_validation_check(FormulaValidationInput{
 		stable_declared: false
 		version_present: false
 		head_declared: false
 	})
-	return brew_runtime.bool_value(!result.valid
+	return ruby.bool_value(!result.valid
 		&& result.error_kind == 'FormulaSpecificationError')
 }
 

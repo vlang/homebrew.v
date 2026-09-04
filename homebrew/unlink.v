@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `unlink.rb`.
@@ -95,7 +95,7 @@ pub fn unlink_link_overwrite_formulae(formula UnlinkFormula, verbose bool,
 	return results
 }
 
-fn unlink_keg_from_value(value brew_runtime.Value) UnlinkKeg {
+fn unlink_keg_from_value(value ruby.Value) UnlinkKeg {
 	return UnlinkKeg{
 		name: value.attributes['name'] or { value.as_string() }
 		path: value.attributes['path'] or { value.as_string() }
@@ -106,7 +106,7 @@ fn unlink_keg_from_value(value brew_runtime.Value) UnlinkKeg {
 	}
 }
 
-fn unlink_formula_from_value(value brew_runtime.Value) UnlinkFormula {
+fn unlink_formula_from_value(value ruby.Value) UnlinkFormula {
 	mut overwrite_formulae := []LinkOverwriteFormula{}
 	for overwrite in value.array_data {
 		overwrite_formulae << LinkOverwriteFormula{
@@ -122,8 +122,8 @@ fn unlink_formula_from_value(value brew_runtime.Value) UnlinkFormula {
 	}
 }
 
-fn unlink_results_value(results []UnlinkResult) brew_runtime.Value {
-	return brew_runtime.array_value(results.map(brew_runtime.structured_value('UnlinkResult', it.output, {
+fn unlink_results_value(results []UnlinkResult) ruby.Value {
+	return ruby.array_value(results.map(ruby.structured_value('UnlinkResult', it.output, {
 		'keg_name': it.keg_name
 		'count':    it.count.str()
 		'output':   it.output
@@ -131,26 +131,26 @@ fn unlink_results_value(results []UnlinkResult) brew_runtime.Value {
 }
 
 // Ruby method `self.unlink_link_overwrite_formulae(formula, verbose: false)` at line 8.
-pub fn ruby_unlink_l8_d1_self_unlink_link_overwrite_formulae(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unlink_l8_d1_self_unlink_link_overwrite_formulae(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.array_value([])
+		return ruby.array_value([])
 	}
 	verbose := if args.len > 1 { args[1].as_bool() or { false } } else { false }
-	results := unlink_link_overwrite_formulae(unlink_formula_from_value(args[0]), verbose, unlink_managed_symlinks) or { return brew_runtime.object_value('Error', err.msg()) }
+	results := unlink_link_overwrite_formulae(unlink_formula_from_value(args[0]), verbose, unlink_managed_symlinks) or { return ruby.object_value('Error', err.msg()) }
 	return unlink_results_value(results)
 }
 
 // Ruby method `self.unlink(keg, dry_run: false, verbose: false)` at line 20.
-pub fn ruby_unlink_l20_d2_self_unlink(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unlink_l20_d2_self_unlink(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('Error', 'missing keg')
+		return ruby.object_value('Error', 'missing keg')
 	}
 	options := UnlinkOptions{
 		dry_run: if args.len > 1 { args[1].as_bool() or { false } } else { false }
 		verbose: if args.len > 2 { args[2].as_bool() or { false } } else { false }
 	}
 	result := unlink_keg(unlink_keg_from_value(args[0]), options, unlink_managed_symlinks) or {
-		return brew_runtime.object_value('Error', err.msg())
+		return ruby.object_value('Error', err.msg())
 	}
 	return unlink_results_value([result])
 }

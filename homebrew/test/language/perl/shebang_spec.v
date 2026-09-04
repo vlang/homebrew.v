@@ -1,6 +1,6 @@
 module perl
 
-import brew_runtime
+import ruby
 import homebrew.utils
 import os
 import time
@@ -73,17 +73,17 @@ fn perl_shebang_temp_path(label string) string {
 	return os.join_path(os.temp_dir(), 'brew-v-perl-shebang-${label}-${os.getpid()}-${time.now().unix_micro()}')
 }
 
-fn perl_spec_file(args []brew_runtime.Value, broken bool) brew_runtime.Value {
+fn perl_spec_file(args []ruby.Value, broken bool) ruby.Value {
 	path := if args.len > 0 { args[0].as_string() } else { perl_shebang_temp_path('file') }
 	os.write_file(path, perl_shebang_contents(broken)) or {
-		return brew_runtime.object_value('IOError', err.msg())
+		return ruby.object_value('IOError', err.msg())
 	}
-	return brew_runtime.structured_value('Tempfile', path, {
+	return ruby.structured_value('Tempfile', path, {
 		'path': path
 	})
 }
 
-fn perl_spec_prefix(args []brew_runtime.Value) string {
+fn perl_spec_prefix(args []ruby.Value) string {
 	return if args.len > 0 { args[0].as_string().trim_right('/') } else { '/opt/homebrew' }
 }
 
@@ -111,18 +111,18 @@ fn perl_spec_rewrites(prefix string, dependencies []PerlShebangDependency, broke
 }
 
 // Ruby let `let(:file) { Tempfile.new("perl-shebang") }` at line 8.
-pub fn ruby_shebang_spec_l8_d1_file(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shebang_spec_l8_d1_file(args ...ruby.Value) ruby.Value {
 	return perl_spec_file(args, false)
 }
 
 // Ruby let `let(:broken_file) { Tempfile.new("perl-shebang") }` at line 9.
-pub fn ruby_shebang_spec_l9_d2_broken_file(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shebang_spec_l9_d2_broken_file(args ...ruby.Value) ruby.Value {
 	return perl_spec_file(args, true)
 }
 
 // Ruby let `let(:f) do` at line 10.
-pub fn ruby_shebang_spec_l10_d3_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.structured_value('PerlShebangFixtures', 'perl', {
+pub fn ruby_shebang_spec_l10_d3_f(args ...ruby.Value) ruby.Value {
+	return ruby.structured_value('PerlShebangFixtures', 'perl', {
 		'perl':            'perl'
 		'depends_on':      'perl'
 		'uses_from_macos': 'perl'
@@ -131,26 +131,26 @@ pub fn ruby_shebang_spec_l10_d3_f(args ...brew_runtime.Value) brew_runtime.Value
 }
 
 // Ruby it `it "can be used to replace Perl shebangs when depends_on \"perl\" is used" do` at line 60.
-pub fn ruby_shebang_spec_l60_d4_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(perl_spec_rewrites(perl_spec_prefix(args), perl_shebang_fixtures().depends_on, false))
+pub fn ruby_shebang_spec_l60_d4_can(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(perl_spec_rewrites(perl_spec_prefix(args), perl_shebang_fixtures().depends_on, false))
 }
 
 // Ruby it `it "can be used to replace Perl shebangs when uses_from_macos \"perl\" is used" do` at line 72.
-pub fn ruby_shebang_spec_l72_d5_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(perl_spec_rewrites(perl_spec_prefix(args), perl_shebang_fixtures().uses_from_macos, false))
+pub fn ruby_shebang_spec_l72_d5_can(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(perl_spec_rewrites(perl_spec_prefix(args), perl_shebang_fixtures().uses_from_macos, false))
 }
 
 // Ruby it `it "can fix broken shebang like `#!perl`" do` at line 90.
-pub fn ruby_shebang_spec_l90_d6_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(perl_spec_rewrites(perl_spec_prefix(args), perl_shebang_fixtures().uses_from_macos, true))
+pub fn ruby_shebang_spec_l90_d6_can(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(perl_spec_rewrites(perl_spec_prefix(args), perl_shebang_fixtures().uses_from_macos, true))
 }
 
 // Ruby it `it "errors if formula doesn't depend on perl" do` at line 109.
-pub fn ruby_shebang_spec_l109_d7_errors(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shebang_spec_l109_d7_errors(args ...ruby.Value) ruby.Value {
 	if _ := detected_perl_shebang(perl_shebang_fixtures().no_dependencies, perl_spec_prefix(args), perl_spec_preferred_version) {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	} else {
-		return brew_runtime.bool_value(err.msg() == 'Cannot detect Perl shebang: formula does not depend on Perl.')
+		return ruby.bool_value(err.msg() == 'Cannot detect Perl shebang: formula does not depend on Perl.')
 	}
 }
 

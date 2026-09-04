@@ -1,16 +1,16 @@
 module subcommand
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `bundle/subcommand/edit.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `run` at line 21.
-pub fn ruby_edit_l21_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_edit_l21_d1_run(args ...ruby.Value) ruby.Value {
 	path := if args.len > 0 { args[0].as_string() } else { 'Brewfile' }
 	editor := if args.len > 1 { args[1].as_string() } else { '' }
 	plan := run_bundle_edit(path, editor)
-	return brew_runtime.structured_value('Bundle::EditSubcommand::Plan', plan.path, {
+	return ruby.structured_value('Bundle::EditSubcommand::Plan', plan.path, {
 		'path':   plan.path
 		'editor': plan.editor
 	})

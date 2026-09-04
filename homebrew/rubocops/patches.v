@@ -1,6 +1,6 @@
 module rubocops
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `rubocops/patches.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -513,21 +513,21 @@ pub fn audit_formula_patches(context FormulaPatchesContext) FormulaPatchesAnalys
 	}
 }
 
-fn formula_patch_analysis_value(analysis FormulaPatchesAnalysis) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'offenses':  brew_runtime.array_value(analysis.offenses.map(brew_runtime.structured_value('RuboCop::Cop::Offense', it.message, {
+fn formula_patch_analysis_value(analysis FormulaPatchesAnalysis) ruby.Value {
+	return ruby.map_value({
+		'offenses':  ruby.array_value(analysis.offenses.map(ruby.structured_value('RuboCop::Cop::Offense', it.message, {
 			'begin_pos': it.begin_pos.str()
 			'end_pos':   it.end_pos.str()
 			'message':   it.message
 		})))
-		'corrected': brew_runtime.string_value(analysis.corrected)
+		'corrected': ruby.string_value(analysis.corrected)
 	})
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 17.
-pub fn ruby_patches_l17_d1_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_patches_l17_d1_audit_formula(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'source is required')
+		return ruby.object_value('ArgumentError', 'source is required')
 	}
 	return formula_patch_analysis_value(audit_formula_patches(FormulaPatchesContext{
 		source: args[0].as_string()
@@ -535,7 +535,7 @@ pub fn ruby_patches_l17_d1_audit_formula(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `patch_problems(patch_url_node, sha256_node)` at line 58.
-pub fn ruby_patches_l58_d2_patch_problems(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_patches_l58_d2_patch_problems(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return formula_patch_analysis_value(FormulaPatchesAnalysis{})
 	}
@@ -565,7 +565,7 @@ pub fn ruby_patches_l58_d2_patch_problems(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby method `resolves_problems(node)` at line 143.
-pub fn ruby_patches_l143_d3_resolves_problems(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_patches_l143_d3_resolves_problems(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return formula_patch_analysis_value(FormulaPatchesAnalysis{})
 	}
@@ -585,7 +585,7 @@ pub fn ruby_patches_l143_d3_resolves_problems(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby method `type_problems(node)` at line 168.
-pub fn ruby_patches_l168_d4_type_problems(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_patches_l168_d4_type_problems(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return formula_patch_analysis_value(FormulaPatchesAnalysis{})
 	}
@@ -604,7 +604,7 @@ pub fn ruby_patches_l168_d4_type_problems(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby method `inline_patch_problems(patch)` at line 176.
-pub fn ruby_patches_l176_d5_inline_patch_problems(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_patches_l176_d5_inline_patch_problems(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	return formula_patch_analysis_value(audit_formula_patches(FormulaPatchesContext{
 		source: source
@@ -612,27 +612,27 @@ pub fn ruby_patches_l176_d5_inline_patch_problems(args ...brew_runtime.Value) br
 }
 
 // Ruby def_node_search `def_node_search :patch_data?, <<~AST` at line 183.
-pub fn ruby_patches_l183_d6_patch_data(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(args.len > 0 && lines_find_calls(args[0].as_string(), 'patch').any(it.arguments.len > 0 && it.arguments[0].trim_space() == ':DATA'))
+pub fn ruby_patches_l183_d6_patch_data(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(args.len > 0 && lines_find_calls(args[0].as_string(), 'patch').any(it.arguments.len > 0 && it.arguments[0].trim_space() == ':DATA'))
 }
 
 // Ruby method `patch_end?` at line 188.
-pub fn ruby_patches_l188_d7_patch_end(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(args.len > 0 && formula_patch_end(args[0].as_string()))
+pub fn ruby_patches_l188_d7_patch_end(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(args.len > 0 && formula_patch_end(args[0].as_string()))
 }
 
 // Ruby method `offending_patch_end_node(node)` at line 193.
-pub fn ruby_patches_l193_d8_offending_patch_end_node(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_patches_l193_d8_offending_patch_end_node(args ...ruby.Value) ruby.Value {
 	if args.len > 0 {
 		if node := formula_patch_end_node(args[0].as_string()) {
-			return brew_runtime.structured_value('Parser::Source::Range', node.source, {
+			return ruby.structured_value('Parser::Source::Range', node.source, {
 				'begin_pos':   node.begin_pos.str()
 				'end_pos':     node.end_pos.str()
 				'line_length': '7'
 			})
 		}
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Original Ruby source (line-for-line):

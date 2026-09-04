@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 import os
 
 pub struct BrewException {
@@ -8,8 +8,8 @@ pub:
 	kind string
 pub mut:
 	message string
-	fields  map[string]brew_runtime.Value
-	lists   map[string][]brew_runtime.Value
+	fields  map[string]ruby.Value
+	lists   map[string][]ruby.Value
 }
 
 pub fn (exception BrewException) msg() string {
@@ -61,17 +61,17 @@ pub:
 }
 
 pub fn new_brew_exception(kind string, message string,
-	fields map[string]brew_runtime.Value) BrewException {
+	fields map[string]ruby.Value) BrewException {
 	return BrewException{
 		kind: kind
 		message: message
 		fields: fields.clone()
-		lists: map[string][]brew_runtime.Value{}
+		lists: map[string][]ruby.Value{}
 	}
 }
 
-fn exception_with_lists(kind string, message string, fields map[string]brew_runtime.Value,
-	lists map[string][]brew_runtime.Value) BrewException {
+fn exception_with_lists(kind string, message string, fields map[string]ruby.Value,
+	lists map[string][]ruby.Value) BrewException {
 	return BrewException{
 		kind: kind
 		message: message
@@ -80,12 +80,12 @@ fn exception_with_lists(kind string, message string, fields map[string]brew_runt
 	}
 }
 
-pub fn brew_exception_value(exception BrewException) brew_runtime.Value {
+pub fn brew_exception_value(exception BrewException) ruby.Value {
 	mut data := exception.fields.clone()
 	for key, values in exception.lists {
-		data[key] = brew_runtime.array_value(values)
+		data[key] = ruby.array_value(values)
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: exception.kind
 		repr: exception.message
 		map_data: data
@@ -96,9 +96,9 @@ pub fn brew_exception_value(exception BrewException) brew_runtime.Value {
 	}
 }
 
-pub fn brew_exception_from_value(value brew_runtime.Value) BrewException {
+pub fn brew_exception_from_value(value ruby.Value) BrewException {
 	mut fields := value.map_data.clone()
-	mut lists := map[string][]brew_runtime.Value{}
+	mut lists := map[string][]ruby.Value{}
 	for key, child in value.map_data {
 		if child.type_name == 'Array' {
 			lists[key] = child.array_data.clone()
@@ -113,26 +113,26 @@ pub fn brew_exception_from_value(value brew_runtime.Value) BrewException {
 	}
 }
 
-fn exception_nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn exception_nil_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-fn exception_field(value brew_runtime.Value, name string) brew_runtime.Value {
+fn exception_field(value ruby.Value, name string) ruby.Value {
 	return value.map_data[name] or { exception_nil_value() }
 }
 
-fn exception_set_field(value brew_runtime.Value, name string,
-	new_value brew_runtime.Value) brew_runtime.Value {
+fn exception_set_field(value ruby.Value, name string,
+	new_value ruby.Value) ruby.Value {
 	mut exception := brew_exception_from_value(value)
 	exception.fields[name] = new_value
 	return brew_exception_value(exception)
 }
 
-fn exception_string(value brew_runtime.Value) string {
+fn exception_string(value ruby.Value) string {
 	return if value.type_name == 'NilClass' { '' } else { value.as_string() }
 }
 
-fn exception_inspect(value brew_runtime.Value) string {
+fn exception_inspect(value ruby.Value) string {
 	return match value.type_name {
 		'String' { '"${value.as_string()}"' }
 		'Symbol' { value.as_string() }
@@ -141,11 +141,11 @@ fn exception_inspect(value brew_runtime.Value) string {
 	}
 }
 
-fn exception_bool_attribute(value brew_runtime.Value, name string) bool {
+fn exception_bool_attribute(value ruby.Value, name string) bool {
 	return value.attribute(name) or { 'false' } == 'true'
 }
 
-fn exception_class_entries(values []brew_runtime.Value) []FormulaClassEntry {
+fn exception_class_entries(values []ruby.Value) []FormulaClassEntry {
 	return values.map(FormulaClassEntry{
 		name: it.attribute('name') or { it.as_string().split('::').last() }
 		derived_formula: exception_bool_attribute(it, 'derived_formula')
@@ -156,7 +156,7 @@ pub fn usage_exception(reason string) BrewException {
 	message := if reason.len > 0 { 'Invalid usage: ${reason}' } else { 'Invalid usage' }
 	return new_brew_exception('UsageError', message, {
 		'reason': if reason.len > 0 {
-			brew_runtime.string_value(reason)
+			ruby.string_value(reason)
 		} else {
 			exception_nil_value()
 		}
@@ -169,9 +169,9 @@ pub fn no_such_keg_exception(name string, tap string, cellar string) BrewExcepti
 		message += ' from tap ${tap}'
 	}
 	return new_brew_exception('NoSuchKegError', message, {
-		'name': brew_runtime.string_value(name)
+		'name': ruby.string_value(name)
 		'tap':  if tap.len > 0 {
-			brew_runtime.object_value('Tap', tap)
+			ruby.object_value('Tap', tap)
 		} else {
 			exception_nil_value()
 		}
@@ -186,10 +186,10 @@ pub fn formula_unavailable_exception(name string, similar []string, auto_without
 		message += '\nA full git tap clone is required to use this command on core packages.'
 	}
 	return new_brew_exception('FormulaOrCaskUnavailableError', message, {
-		'name':             brew_runtime.string_value(name)
-		'similar':          brew_runtime.string_array_value(similar)
-		'auto_without_api': brew_runtime.bool_value(auto_without_api)
-		'core_installed':   brew_runtime.bool_value(core_installed)
+		'name':             ruby.string_value(name)
+		'similar':          ruby.string_array_value(similar)
+		'auto_without_api': ruby.bool_value(auto_without_api)
+		'core_installed':   ruby.bool_value(core_installed)
 	})
 }
 
@@ -245,9 +245,9 @@ pub fn formula_class_exception(base BrewException, path string, class_name strin
 	entries []FormulaClassEntry, kind string) BrewException {
 	message := '${base.message}\nIn formula file: ${path}\nExpected to find class ${class_name}, but ${formula_class_list_message(entries)}.'
 	mut fields := base.fields.clone()
-	fields['path'] = brew_runtime.string_value(path)
-	fields['class_name'] = brew_runtime.string_value(class_name)
-	list := entries.map(brew_runtime.structured_value('Class', it.name, {
+	fields['path'] = ruby.string_value(path)
+	fields['class_name'] = ruby.string_value(class_name)
+	list := entries.map(ruby.structured_value('Class', it.name, {
 		'name':            it.name
 		'derived_formula': it.derived_formula.str()
 	}))
@@ -260,7 +260,7 @@ pub fn tap_unavailable_exception(name string, core_taps []string) BrewException 
 	command := if name in core_taps { 'brew tap --force ${name}' } else { 'brew tap-new ${name}' }
 	action := if name in core_taps { 'tap ${name}' } else { 'create a new ${name} tap' }
 	return new_brew_exception('TapUnavailableError', 'No available tap ${name}.\nRun ${command} to ${action}!\n', {
-		'name': brew_runtime.string_value(name)
+		'name': ruby.string_value(name)
 	})
 }
 
@@ -276,13 +276,13 @@ pub fn remote_mismatch_exception(name string, expected string, actual string,
 	} else {
 		'TapRemoteMismatchError'
 	}, message, {
-		'name':            brew_runtime.string_value(name)
+		'name':            ruby.string_value(name)
 		'expected_remote': if expected.len > 0 {
-			brew_runtime.string_value(expected)
+			ruby.string_value(expected)
 		} else {
 			exception_nil_value()
 		}
-		'actual_remote':   brew_runtime.string_value(actual)
+		'actual_remote':   ruby.string_value(actual)
 	})
 }
 
@@ -299,7 +299,7 @@ pub fn operation_in_progress_exception(path string, waited ?int, command string,
 	} else {
 		'brew'
 	}}` process has already locked ${path}.${context}\n${advice}\n', {
-		'locked_path': brew_runtime.string_value(path)
+		'locked_path': ruby.string_value(path)
 	})
 }
 
@@ -317,12 +317,12 @@ pub fn formula_conflict_exception(formula string, conflicts []ExceptionFormulaCo
 	}
 	messages << ''
 	messages << "Please `brew unlink ${conflicts.map(it.name).join(' ')}` before continuing.\n\nUnlinking removes a formula's symlinks from ${prefix}. You can\nlink the formula again after the install finishes. You can `--force` this\ninstall, but the build may fail or cause obscure side effects in the\nresulting software.\n"
-	values := conflicts.map(brew_runtime.structured_value('Formula::FormulaConflict', it.name, {
+	values := conflicts.map(ruby.structured_value('Formula::FormulaConflict', it.name, {
 		'name':   it.name
 		'reason': it.reason
 	}))
 	return exception_with_lists('FormulaConflictError', messages.join('\n'), {
-		'formula': brew_runtime.object_value('Formula', formula)
+		'formula': ruby.object_value('Formula', formula)
 	}, {
 		'conflicts': values
 	})
@@ -373,14 +373,14 @@ fn signal_name(signal int) string {
 	}
 }
 
-pub fn build_exception(formula brew_runtime.Value, command brew_runtime.Value,
-	arguments []brew_runtime.Value, environment map[string]brew_runtime.Value) BrewException {
+pub fn build_exception(formula ruby.Value, command ruby.Value,
+	arguments []ruby.Value, environment map[string]ruby.Value) BrewException {
 	pretty := arguments.map(escape_build_argument(it.as_string())).join(' ')
 	message := 'Failed executing: ${command.as_string()} ${pretty}'.trim_space()
 	return exception_with_lists('BuildError', message, {
 		'formula': formula
 		'cmd':     command
-		'env':     brew_runtime.map_value(environment)
+		'env':     ruby.map_value(environment)
 		'options': exception_nil_value()
 	}, {
 		'args': arguments
@@ -389,7 +389,7 @@ pub fn build_exception(formula brew_runtime.Value, command brew_runtime.Value,
 
 pub fn execution_exception(command []string, status ExecutionStatus,
 	output []ExecutionOutputLine, secrets []string) !BrewException {
-	return execution_exception_with_terminal(command, status, output, secrets, brew_runtime.stdout_is_terminal(), os.getenv('HOMEBREW_NO_COLOR') != '', os.getenv('HOMEBREW_COLOR') != '')
+	return execution_exception_with_terminal(command, status, output, secrets, ruby.stdout_is_terminal(), os.getenv('HOMEBREW_NO_COLOR') != '', os.getenv('HOMEBREW_COLOR') != '')
 }
 
 // Supplies the terminal facts used by Formatter.error while keeping the
@@ -421,19 +421,19 @@ pub fn execution_exception_with_terminal(command []string, status ExecutionStatu
 			message += '\n'
 		}
 	}
-	lines := output.map(brew_runtime.structured_value('OutputLine', it.line, {
+	lines := output.map(ruby.structured_value('OutputLine', it.line, {
 		'type': it.kind
 	}))
 	return exception_with_lists('ErrorDuringExecution', message, {
-		'cmd':        brew_runtime.string_array_value(command)
+		'cmd':        ruby.string_array_value(command)
 		'status':     execution_status_value(status)
 		'exitstatus': if status.has_exitstatus {
-			brew_runtime.int_value(status.exitstatus)
+			ruby.int_value(status.exitstatus)
 		} else {
 			exception_nil_value()
 		}
 		'termsig':    if status.has_termsig {
-			brew_runtime.int_value(status.termsig)
+			ruby.int_value(status.termsig)
 		} else {
 			exception_nil_value()
 		}
@@ -442,8 +442,8 @@ pub fn execution_exception_with_terminal(command []string, status ExecutionStatu
 	})
 }
 
-fn execution_status_value(status ExecutionStatus) brew_runtime.Value {
-	return brew_runtime.structured_value('Process::Status', if status.has_exitstatus {
+fn execution_status_value(status ExecutionStatus) ruby.Value {
+	return ruby.structured_value('Process::Status', if status.has_exitstatus {
 		status.exitstatus.str()
 	} else {
 		'signal ${status.termsig}'
@@ -453,7 +453,7 @@ fn execution_status_value(status ExecutionStatus) brew_runtime.Value {
 	})
 }
 
-fn execution_status_from_value(value brew_runtime.Value) ExecutionStatus {
+fn execution_status_from_value(value ruby.Value) ExecutionStatus {
 	if value.type_name == 'Integer' {
 		return ExecutionStatus{ has_exitstatus: true, exitstatus: int(value.int_data) }
 	}
@@ -496,7 +496,7 @@ pub fn checksum_html_hint(path string, is_path bool, cache string) string {
 	return '\nThe start of the downloaded file is HTML/XML, not a binary.\nThe server may have returned a bot-protection, rate-limit or\nerror page instead. Delete the file and retry:\n  ${command}\n'
 }
 
-fn exception_output_lines(value brew_runtime.Value) []ExecutionOutputLine {
+fn exception_output_lines(value ruby.Value) []ExecutionOutputLine {
 	return value.array_data.map(ExecutionOutputLine{
 		kind: it.attribute('type') or { '' }
 		line: it.as_string()
@@ -507,55 +507,55 @@ fn exception_output_lines(value brew_runtime.Value) []ExecutionOutputLine {
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby attr_reader `attr_reader :reason` at line 14.
-pub fn ruby_exceptions_l14_d1_reason(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l14_d1_reason(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('reason requires exception') }
 	return exception_field(args[0], 'reason')
 }
 
 // Ruby method `initialize(reason = nil)` at line 17.
-pub fn ruby_exceptions_l17_d2_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l17_d2_initialize(args ...ruby.Value) ruby.Value {
 	reason := if args.len > 0 { exception_string(args[0]) } else { '' }
 	return brew_exception_value(usage_exception(reason))
 }
 
 // Ruby method `to_s` at line 24.
-pub fn ruby_exceptions_l24_d3_to_s(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l24_d3_to_s(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('to_s requires exception') }
-	return brew_runtime.string_value(brew_exception_from_value(args[0]).message)
+	return ruby.string_value(brew_exception_from_value(args[0]).message)
 }
 
 // Ruby method `initialize` at line 34.
-pub fn ruby_exceptions_l34_d4_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l34_d4_initialize(args ...ruby.Value) ruby.Value {
 	return brew_exception_value(usage_exception('this command requires a formula argument'))
 }
 
 // Ruby method `initialize` at line 42.
-pub fn ruby_exceptions_l42_d5_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l42_d5_initialize(args ...ruby.Value) ruby.Value {
 	return brew_exception_value(usage_exception('this command requires a formula or cask argument'))
 }
 
 // Ruby method `initialize` at line 50.
-pub fn ruby_exceptions_l50_d6_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l50_d6_initialize(args ...ruby.Value) ruby.Value {
 	return brew_exception_value(usage_exception('this command requires a keg argument'))
 }
 
 // Ruby attr_reader `attr_reader :name` at line 67.
-pub fn ruby_exceptions_l67_d7_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l67_d7_name(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('name requires exception') }
 	return exception_field(args[0], 'name')
 }
 
 // Ruby attr_reader `attr_reader :tap` at line 70.
-pub fn ruby_exceptions_l70_d8_tap(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l70_d8_tap(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('tap requires exception') }
 	return exception_field(args[0], 'tap')
 }
 
 // Ruby method `initialize(name, tap: nil)` at line 73.
-pub fn ruby_exceptions_l73_d9_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l73_d9_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('NoSuchKegError requires name') }
 	tap := if args.len > 1 { exception_string(args[1]) } else { '' }
-	mut cellar := brew_runtime.environment_value('HOMEBREW_CELLAR')
+	mut cellar := ruby.environment_value('HOMEBREW_CELLAR')
 	if cellar.len == 0 {
 		cellar = '/opt/homebrew/Cellar'
 	}
@@ -563,19 +563,19 @@ pub fn ruby_exceptions_l73_d9_initialize(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby attr_reader `attr_reader :attr` at line 85.
-pub fn ruby_exceptions_l85_d10_attr(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l85_d10_attr(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('attr requires exception') }
 	return exception_field(args[0], 'attr')
 }
 
 // Ruby attr_reader `attr_reader :formula` at line 88.
-pub fn ruby_exceptions_l88_d11_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l88_d11_formula(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('formula requires exception') }
 	return exception_field(args[0], 'formula')
 }
 
 // Ruby method `initialize(formula, attr, value)` at line 91.
-pub fn ruby_exceptions_l91_d12_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l91_d12_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 3 { panic('FormulaValidationError requires formula, attr, and value') }
 	return brew_exception_value(new_brew_exception('FormulaValidationError', "invalid attribute for formula '${args[0].as_string()}': ${args[1].as_string()} (${exception_inspect(args[2])})", {
 		'formula': args[0]
@@ -584,13 +584,13 @@ pub fn ruby_exceptions_l91_d12_initialize(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby attr_reader `attr_reader :attr` at line 100.
-pub fn ruby_exceptions_l100_d13_attr(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l100_d13_attr(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('attr requires exception') }
 	return exception_field(args[0], 'attr')
 }
 
 // Ruby method `initialize(attr, value)` at line 103.
-pub fn ruby_exceptions_l103_d14_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l103_d14_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('LegacyDSLError requires attr and value') }
 	return brew_exception_value(new_brew_exception('LegacyDSLError', 'A legacy DSL was used: ${args[0].as_string()} (${exception_inspect(args[1])})', {
 		'attr': args[0]
@@ -598,25 +598,25 @@ pub fn ruby_exceptions_l103_d14_initialize(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby attr_accessor `attr_accessor :issues_url` at line 114.
-pub fn ruby_exceptions_l114_d15_issues_url(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l114_d15_issues_url(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('issues_url requires exception') }
 	return exception_field(args[0], 'issues_url')
 }
 
 // Ruby attr_accessor `attr_accessor :issues_url` at line 114.
-pub fn ruby_exceptions_l114_d16_issues_url(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l114_d16_issues_url(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('issues_url= requires exception and value') }
 	return exception_set_field(args[0], 'issues_url', args[1])
 }
 
 // Ruby attr_reader `attr_reader :name` at line 120.
-pub fn ruby_exceptions_l120_d17_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l120_d17_name(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('name requires exception') }
 	return exception_field(args[0], 'name')
 }
 
 // Ruby method `initialize(name)` at line 123.
-pub fn ruby_exceptions_l123_d18_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l123_d18_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('FormulaOrCaskUnavailableError requires name') }
 	similar := if args.len > 1 { args[1].string_array_data } else { []string{} }
 	auto := if args.len > 2 { args[2].bool_data } else { false }
@@ -625,10 +625,10 @@ pub fn ruby_exceptions_l123_d18_initialize(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `did_you_mean` at line 136.
-pub fn ruby_exceptions_l136_d19_did_you_mean(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l136_d19_did_you_mean(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('did_you_mean requires exception') }
 	similar := exception_field(args[0], 'similar').string_array_data
-	return brew_runtime.string_value(if similar.len == 0 {
+	return ruby.string_value(if similar.len == 0 {
 		''
 	} else {
 		'Did you mean ${sentence_or(similar)}?'
@@ -636,19 +636,19 @@ pub fn ruby_exceptions_l136_d19_did_you_mean(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby method `to_s` at line 146.
-pub fn ruby_exceptions_l146_d20_to_s(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l146_d20_to_s(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('to_s requires exception') }
-	return brew_runtime.string_value(brew_exception_from_value(args[0]).message)
+	return ruby.string_value(brew_exception_from_value(args[0]).message)
 }
 
 // Ruby attr_reader `attr_reader :tap` at line 158.
-pub fn ruby_exceptions_l158_d21_tap(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l158_d21_tap(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('tap requires exception') }
 	return exception_field(args[0], 'tap')
 }
 
 // Ruby method `initialize(tap, name)` at line 161.
-pub fn ruby_exceptions_l161_d22_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l161_d22_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('TapFormulaOrCaskUnavailableError requires tap and name') }
 	tap := args[0].as_string()
 	base := formula_unavailable_exception('${tap}/${args[1].as_string()}', []string{}, false, true)
@@ -659,19 +659,19 @@ pub fn ruby_exceptions_l161_d22_initialize(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `to_s` at line 167.
-pub fn ruby_exceptions_l167_d23_to_s(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l167_d23_to_s(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('to_s requires exception') }
-	return brew_runtime.string_value(brew_exception_from_value(args[0]).message)
+	return ruby.string_value(brew_exception_from_value(args[0]).message)
 }
 
 // Ruby attr_accessor `attr_accessor :dependent` at line 182.
-pub fn ruby_exceptions_l182_d24_dependent(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l182_d24_dependent(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('dependent requires exception') }
 	return exception_field(args[0], 'dependent')
 }
 
 // Ruby attr_accessor `attr_accessor :dependent` at line 182.
-pub fn ruby_exceptions_l182_d25_dependent(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l182_d25_dependent(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('dependent= requires exception and value') }
 	mut exception := brew_exception_from_value(exception_set_field(args[0], 'dependent', args[1]))
 	name := exception_string(exception.fields['name'] or { exception_nil_value() })
@@ -682,85 +682,85 @@ pub fn ruby_exceptions_l182_d25_dependent(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby method `dependent_s` at line 185.
-pub fn ruby_exceptions_l185_d26_dependent_s(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l185_d26_dependent_s(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('dependent_s requires exception') }
 	name := exception_string(exception_field(args[0], 'name'))
 	dependent := exception_string(exception_field(args[0], 'dependent'))
 	suffix := formula_dependent_suffix(name, dependent)
-	return if suffix.len > 0 { brew_runtime.string_value(suffix) } else { exception_nil_value() }
+	return if suffix.len > 0 { ruby.string_value(suffix) } else { exception_nil_value() }
 }
 
 // Ruby method `to_s` at line 190.
-pub fn ruby_exceptions_l190_d27_to_s(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l190_d27_to_s(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('to_s requires exception') }
 	exception := brew_exception_from_value(args[0])
 	name := exception_string(exception.fields['name'] or { exception_nil_value() })
 	dependent := exception_string(exception.fields['dependent'] or { exception_nil_value() })
-	similar := exception.fields['similar'] or { brew_runtime.string_array_value([]string{}) }
+	similar := exception.fields['similar'] or { ruby.string_array_value([]string{}) }
 	suggestion := if similar.string_array_data.len > 0 {
 		'Did you mean ${sentence_or(similar.string_array_data)}?'
 	} else {
 		''
 	}
-	return brew_runtime.string_value('No available formula with the name "${name}"${formula_dependent_suffix(name, dependent)}. ${suggestion}'.trim_space())
+	return ruby.string_value('No available formula with the name "${name}"${formula_dependent_suffix(name, dependent)}. ${suggestion}'.trim_space())
 }
 
 // Ruby method `path; end` at line 202.
-pub fn ruby_exceptions_l202_d28_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l202_d28_path(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('path requires exception') }
 	return exception_field(args[0], 'path')
 }
 
 // Ruby method `class_name; end` at line 205.
-pub fn ruby_exceptions_l205_d29_class_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l205_d29_class_name(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('class_name requires exception') }
 	return exception_field(args[0], 'class_name')
 }
 
 // Ruby method `class_list; end` at line 208.
-pub fn ruby_exceptions_l208_d30_class_list(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l208_d30_class_list(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('class_list requires exception') }
-	return args[0].map_data['class_list'] or { brew_runtime.array_value([]brew_runtime.Value{}) }
+	return args[0].map_data['class_list'] or { ruby.array_value([]ruby.Value{}) }
 }
 
 // Ruby method `to_s` at line 211.
-pub fn ruby_exceptions_l211_d31_to_s(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l211_d31_to_s(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('to_s requires exception') }
-	return brew_runtime.string_value(brew_exception_from_value(args[0]).message)
+	return ruby.string_value(brew_exception_from_value(args[0]).message)
 }
 
 // Ruby method `class_list_s` at line 221.
-pub fn ruby_exceptions_l221_d32_class_list_s(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l221_d32_class_list_s(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('class_list_s requires exception') }
-	return brew_runtime.string_value(formula_class_list_message(exception_class_entries((args[0].map_data['class_list'] or { brew_runtime.array_value([]brew_runtime.Value{}) }).array_data)))
+	return ruby.string_value(formula_class_list_message(exception_class_entries((args[0].map_data['class_list'] or { ruby.array_value([]ruby.Value{}) }).array_data)))
 }
 
 // Ruby method `format_list(class_list)` at line 233.
-pub fn ruby_exceptions_l233_d33_format_list(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l233_d33_format_list(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('format_list requires class list') }
-	return brew_runtime.string_value(exception_class_entries(args[args.len - 1].array_data).map(it.name).join(', '))
+	return ruby.string_value(exception_class_entries(args[args.len - 1].array_data).map(it.name).join(', '))
 }
 
 // Ruby attr_reader `attr_reader :path` at line 243.
-pub fn ruby_exceptions_l243_d34_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l243_d34_path(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('path requires exception') }
 	return exception_field(args[0], 'path')
 }
 
 // Ruby attr_reader `attr_reader :class_name` at line 246.
-pub fn ruby_exceptions_l246_d35_class_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l246_d35_class_name(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('class_name requires exception') }
 	return exception_field(args[0], 'class_name')
 }
 
 // Ruby attr_reader `attr_reader :class_list` at line 249.
-pub fn ruby_exceptions_l249_d36_class_list(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l249_d36_class_list(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('class_list requires exception') }
-	return args[0].map_data['class_list'] or { brew_runtime.array_value([]brew_runtime.Value{}) }
+	return args[0].map_data['class_list'] or { ruby.array_value([]ruby.Value{}) }
 }
 
 // Ruby method `initialize(name, path, class_name, class_list)` at line 255.
-pub fn ruby_exceptions_l255_d37_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l255_d37_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 4 {
 		panic('FormulaClassUnavailableError requires name, path, class name, and class list')
 	}
@@ -771,26 +771,26 @@ pub fn ruby_exceptions_l255_d37_initialize(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `formula_error; end` at line 271.
-pub fn ruby_exceptions_l271_d38_formula_error(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l271_d38_formula_error(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('formula_error requires exception') }
 	return exception_field(args[0], 'formula_error')
 }
 
 // Ruby method `to_s` at line 274.
-pub fn ruby_exceptions_l274_d39_to_s(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l274_d39_to_s(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('to_s requires exception') }
 	exception := brew_exception_from_value(args[0])
-	return brew_runtime.string_value('${exception_string(exception.fields['name'] or { exception_nil_value() })}: ${exception_string(exception.fields['formula_error'] or { exception_nil_value() })}')
+	return ruby.string_value('${exception_string(exception.fields['name'] or { exception_nil_value() })}: ${exception_string(exception.fields['formula_error'] or { exception_nil_value() })}')
 }
 
 // Ruby attr_reader `attr_reader :formula_error` at line 284.
-pub fn ruby_exceptions_l284_d40_formula_error(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l284_d40_formula_error(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('formula_error requires exception') }
 	return exception_field(args[0], 'formula_error')
 }
 
 // Ruby method `initialize(name, error)` at line 287.
-pub fn ruby_exceptions_l287_d41_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l287_d41_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('FormulaUnreadableError requires name and error') }
 	return brew_exception_value(new_brew_exception('FormulaUnreadableError', '${args[0].as_string()}: ${args[1].as_string()}', {
 		'name':          args[0]
@@ -799,62 +799,62 @@ pub fn ruby_exceptions_l287_d41_initialize(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby attr_reader `attr_reader :tap` at line 297.
-pub fn ruby_exceptions_l297_d42_tap(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l297_d42_tap(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('tap requires exception') }
 	return exception_field(args[0], 'tap')
 }
 
 // Ruby attr_reader `attr_reader :user` at line 300.
-pub fn ruby_exceptions_l300_d43_user(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l300_d43_user(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('user requires exception') }
 	return exception_field(args[0], 'user')
 }
 
 // Ruby attr_reader `attr_reader :repository` at line 303.
-pub fn ruby_exceptions_l303_d44_repository(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l303_d44_repository(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('repository requires exception') }
 	return exception_field(args[0], 'repository')
 }
 
 // Ruby method `initialize(tap, name)` at line 306.
-pub fn ruby_exceptions_l306_d45_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l306_d45_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('TapFormulaUnavailableError requires tap and name') }
 	tap := args[0].as_string()
 	base := formula_unavailable_exception('${tap}/${args[1].as_string()}', []string{}, false, true)
 	installed := exception_bool_attribute(args[0], 'installed')
 	mut fields := base.fields.clone()
 	fields['tap'] = args[0]
-	fields['user'] = brew_runtime.string_value(args[0].attribute('user') or { tap.all_before('/') })
-	fields['repository'] = brew_runtime.string_value(args[0].attribute('repository') or { tap.all_after('/') })
+	fields['user'] = ruby.string_value(args[0].attribute('user') or { tap.all_before('/') })
+	fields['repository'] = ruby.string_value(args[0].attribute('repository') or { tap.all_after('/') })
 	return brew_exception_value(new_brew_exception('TapFormulaUnavailableError', tap_required_message('No available formula with the name "${tap}/${args[1].as_string()}".', tap, installed), fields))
 }
 
 // Ruby method `to_s` at line 314.
-pub fn ruby_exceptions_l314_d46_to_s(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l314_d46_to_s(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('to_s requires exception') }
-	return brew_runtime.string_value(brew_exception_from_value(args[0]).message)
+	return ruby.string_value(brew_exception_from_value(args[0]).message)
 }
 
 // Ruby attr_reader `attr_reader :path` at line 329.
-pub fn ruby_exceptions_l329_d47_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l329_d47_path(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('path requires exception') }
 	return exception_field(args[0], 'path')
 }
 
 // Ruby attr_reader `attr_reader :class_name` at line 332.
-pub fn ruby_exceptions_l332_d48_class_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l332_d48_class_name(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('class_name requires exception') }
 	return exception_field(args[0], 'class_name')
 }
 
 // Ruby attr_reader `attr_reader :class_list` at line 335.
-pub fn ruby_exceptions_l335_d49_class_list(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l335_d49_class_list(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('class_list requires exception') }
-	return args[0].map_data['class_list'] or { brew_runtime.array_value([]brew_runtime.Value{}) }
+	return args[0].map_data['class_list'] or { ruby.array_value([]ruby.Value{}) }
 }
 
 // Ruby method `initialize(tap, name, path, class_name, class_list)` at line 341.
-pub fn ruby_exceptions_l341_d50_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l341_d50_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 5 {
 		panic('TapFormulaClassUnavailableError requires tap, name, path, class name, and class list')
 	}
@@ -863,13 +863,13 @@ pub fn ruby_exceptions_l341_d50_initialize(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby attr_reader `attr_reader :formula_error` at line 354.
-pub fn ruby_exceptions_l354_d51_formula_error(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l354_d51_formula_error(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('formula_error requires exception') }
 	return exception_field(args[0], 'formula_error')
 }
 
 // Ruby method `initialize(tap, name, error)` at line 357.
-pub fn ruby_exceptions_l357_d52_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l357_d52_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 3 { panic('TapFormulaUnreadableError requires tap, name, and error') }
 	tap_error := brew_exception_from_value(ruby_exceptions_l306_d45_initialize(args[0], args[1]))
 	mut fields := tap_error.fields.clone()
@@ -878,28 +878,28 @@ pub fn ruby_exceptions_l357_d52_initialize(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby attr_reader `attr_reader :name` at line 367.
-pub fn ruby_exceptions_l367_d53_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l367_d53_name(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('name requires exception') }
 	return exception_field(args[0], 'name')
 }
 
 // Ruby attr_reader `attr_reader :taps` at line 370.
-pub fn ruby_exceptions_l370_d54_taps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l370_d54_taps(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('taps requires exception') }
-	return args[0].map_data['taps'] or { brew_runtime.array_value([]brew_runtime.Value{}) }
+	return args[0].map_data['taps'] or { ruby.array_value([]ruby.Value{}) }
 }
 
 // Ruby attr_reader `attr_reader :loaders` at line 373.
-pub fn ruby_exceptions_l373_d55_loaders(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l373_d55_loaders(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('loaders requires exception') }
-	return args[0].map_data['loaders'] or { brew_runtime.array_value([]brew_runtime.Value{}) }
+	return args[0].map_data['loaders'] or { ruby.array_value([]ruby.Value{}) }
 }
 
 // Ruby method `initialize(name, loaders)` at line 376.
-pub fn ruby_exceptions_l376_d56_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l376_d56_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('TapFormulaAmbiguityError requires name and loaders') }
 	loaders := args[1].array_data
-	mut taps := []brew_runtime.Value{}
+	mut taps := []ruby.Value{}
 	for loader in loaders {
 		if tap := loader.map_data['tap'] {
 			if tap.type_name != 'NilClass' { taps << tap }
@@ -921,13 +921,13 @@ pub fn ruby_exceptions_l376_d56_initialize(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby attr_reader `attr_reader :name` at line 395.
-pub fn ruby_exceptions_l395_d57_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l395_d57_name(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('name requires exception') }
 	return exception_field(args[0], 'name')
 }
 
 // Ruby method `initialize(name)` at line 398.
-pub fn ruby_exceptions_l398_d58_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l398_d58_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('TapUnavailableError requires name') }
 	core := if args.len > 1 {
 		args[1].string_array_data
@@ -938,51 +938,51 @@ pub fn ruby_exceptions_l398_d58_initialize(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby attr_reader `attr_reader :name` at line 420.
-pub fn ruby_exceptions_l420_d59_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l420_d59_name(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('name requires exception') }
 	return exception_field(args[0], 'name')
 }
 
 // Ruby attr_reader `attr_reader :expected_remote` at line 423.
-pub fn ruby_exceptions_l423_d60_expected_remote(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l423_d60_expected_remote(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('expected_remote requires exception') }
 	return exception_field(args[0], 'expected_remote')
 }
 
 // Ruby attr_reader `attr_reader :actual_remote` at line 426.
-pub fn ruby_exceptions_l426_d61_actual_remote(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l426_d61_actual_remote(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('actual_remote requires exception') }
 	return exception_field(args[0], 'actual_remote')
 }
 
 // Ruby method `initialize(name, expected_remote, actual_remote)` at line 429.
-pub fn ruby_exceptions_l429_d62_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l429_d62_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 3 { panic('TapRemoteMismatchError requires name, expected, and actual') }
 	return brew_exception_value(remote_mismatch_exception(args[0].as_string(), exception_string(args[1]), args[2].as_string(), false))
 }
 
 // Ruby method `message` at line 438.
-pub fn ruby_exceptions_l438_d63_message(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l438_d63_message(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('message requires exception') }
 	exception := brew_exception_from_value(args[0])
-	return brew_runtime.string_value(remote_mismatch_exception(exception_string(exception.fields['name'] or { exception_nil_value() }), exception_string(exception.fields['expected_remote'] or { exception_nil_value() }), exception_string(exception.fields['actual_remote'] or { exception_nil_value() }), false).message)
+	return ruby.string_value(remote_mismatch_exception(exception_string(exception.fields['name'] or { exception_nil_value() }), exception_string(exception.fields['expected_remote'] or { exception_nil_value() }), exception_string(exception.fields['actual_remote'] or { exception_nil_value() }), false).message)
 }
 
 // Ruby method `message` at line 449.
-pub fn ruby_exceptions_l449_d64_message(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l449_d64_message(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('message requires exception') }
 	exception := brew_exception_from_value(args[0])
-	return brew_runtime.string_value(remote_mismatch_exception(exception_string(exception.fields['name'] or { exception_nil_value() }), exception_string(exception.fields['expected_remote'] or { exception_nil_value() }), exception_string(exception.fields['actual_remote'] or { exception_nil_value() }), true).message)
+	return ruby.string_value(remote_mismatch_exception(exception_string(exception.fields['name'] or { exception_nil_value() }), exception_string(exception.fields['expected_remote'] or { exception_nil_value() }), exception_string(exception.fields['actual_remote'] or { exception_nil_value() }), true).message)
 }
 
 // Ruby attr_reader `attr_reader :name` at line 461.
-pub fn ruby_exceptions_l461_d65_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l461_d65_name(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('name requires exception') }
 	return exception_field(args[0], 'name')
 }
 
 // Ruby method `initialize(name)` at line 464.
-pub fn ruby_exceptions_l464_d66_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l464_d66_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('TapAlreadyTappedError requires name') }
 	return brew_exception_value(new_brew_exception('TapAlreadyTappedError', 'Tap ${args[0].as_string()} already tapped.\n', {
 		'name': args[0]
@@ -990,13 +990,13 @@ pub fn ruby_exceptions_l464_d66_initialize(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby attr_reader `attr_reader :name` at line 476.
-pub fn ruby_exceptions_l476_d67_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l476_d67_name(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('name requires exception') }
 	return exception_field(args[0], 'name')
 }
 
 // Ruby method `initialize(name)` at line 479.
-pub fn ruby_exceptions_l479_d68_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l479_d68_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('TapNoCustomRemoteError requires name') }
 	return brew_exception_value(new_brew_exception('TapNoCustomRemoteError', 'Tap ${args[0].as_string()} with option `--custom-remote` but without a remote URL.\n', {
 		'name': args[0]
@@ -1004,7 +1004,7 @@ pub fn ruby_exceptions_l479_d68_initialize(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `initialize(locked_path, waited: nil)` at line 494.
-pub fn ruby_exceptions_l494_d69_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l494_d69_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('OperationInProgressError requires locked path') }
 	waited := if args.len > 1 && args[1].type_name != 'NilClass' {
 		?int(int(args[1].int_data))
@@ -1017,7 +1017,7 @@ pub fn ruby_exceptions_l494_d69_initialize(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `initialize(formula)` at line 518.
-pub fn ruby_exceptions_l518_d70_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l518_d70_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('FormulaInstallationAlreadyAttemptedError requires formula') }
 	full_name := args[0].attribute('full_name') or { args[0].as_string() }
 	return brew_exception_value(new_brew_exception('FormulaInstallationAlreadyAttemptedError', 'Formula installation already attempted: ${full_name}', {
@@ -1026,7 +1026,7 @@ pub fn ruby_exceptions_l518_d70_initialize(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `initialize(reqs)` at line 526.
-pub fn ruby_exceptions_l526_d71_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l526_d71_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('UnsatisfiedRequirements requires requirements') }
 	count := args[0].array_data.len
 	message := if count == 1 {
@@ -1034,27 +1034,27 @@ pub fn ruby_exceptions_l526_d71_initialize(args ...brew_runtime.Value) brew_runt
 	} else {
 		'Unsatisfied requirements failed this build.'
 	}
-	return brew_exception_value(new_brew_exception('UnsatisfiedRequirements', message, map[string]brew_runtime.Value{}))
+	return brew_exception_value(new_brew_exception('UnsatisfiedRequirements', message, map[string]ruby.Value{}))
 }
 
 // Ruby attr_reader `attr_reader :formula` at line 538.
-pub fn ruby_exceptions_l538_d72_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l538_d72_formula(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('formula requires exception') }
 	return exception_field(args[0], 'formula')
 }
 
 // Ruby attr_reader `attr_reader :conflicts` at line 541.
-pub fn ruby_exceptions_l541_d73_conflicts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l541_d73_conflicts(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('conflicts requires exception') }
-	return args[0].map_data['conflicts'] or { brew_runtime.array_value([]brew_runtime.Value{}) }
+	return args[0].map_data['conflicts'] or { ruby.array_value([]ruby.Value{}) }
 }
 
 // Ruby method `initialize(formula, conflicts)` at line 544.
-pub fn ruby_exceptions_l544_d74_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l544_d74_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('FormulaConflictError requires formula and conflicts') }
 	formula := args[0].attribute('full_name') or { args[0].as_string() }
 	conflicts := args[1].array_data.map(ExceptionFormulaConflict{ name: it.attribute('name') or { it.as_string() }, reason: it.attribute('reason') or { '' } })
-	mut prefix := brew_runtime.environment_value('HOMEBREW_PREFIX')
+	mut prefix := ruby.environment_value('HOMEBREW_PREFIX')
 	if prefix.len == 0 {
 		prefix = '/opt/homebrew'
 	}
@@ -1062,7 +1062,7 @@ pub fn ruby_exceptions_l544_d74_initialize(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `conflict_message(conflict)` at line 551.
-pub fn ruby_exceptions_l551_d75_conflict_message(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l551_d75_conflict_message(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('conflict_message requires conflict') }
 	conflict := args[args.len - 1]
 	name := conflict.attribute('name') or { conflict.as_string() }
@@ -1071,17 +1071,17 @@ pub fn ruby_exceptions_l551_d75_conflict_message(args ...brew_runtime.Value) bre
 	if reason.len > 0 {
 		message += ': because ${reason}'
 	}
-	return brew_runtime.string_value(message)
+	return ruby.string_value(message)
 }
 
 // Ruby method `message` at line 559.
-pub fn ruby_exceptions_l559_d76_message(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l559_d76_message(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('message requires exception') }
-	return brew_runtime.string_value(brew_exception_from_value(args[0]).message)
+	return ruby.string_value(brew_exception_from_value(args[0]).message)
 }
 
 // Ruby method `initialize(formula)` at line 578.
-pub fn ruby_exceptions_l578_d77_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l578_d77_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('FormulaUnknownPythonError requires formula') }
 	name := args[0].attribute('full_name') or { args[0].as_string() }
 	message := 'The version of Python to use with the virtualenv in the `${name}` formula\ncannot be guessed automatically because a recognised Python dependency could not be found.\n\nIf you are using a non-standard Python dependency, please add `:using => "python@x.y"`\nto \'virtualenv_install_with_resources\' to resolve the issue manually.\n'
@@ -1091,7 +1091,7 @@ pub fn ruby_exceptions_l578_d77_initialize(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `initialize(formula)` at line 592.
-pub fn ruby_exceptions_l592_d78_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l592_d78_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('FormulaAmbiguousPythonError requires formula') }
 	name := args[0].attribute('full_name') or { args[0].as_string() }
 	message := 'The version of Python to use with the virtualenv in the `${name}` formula\ncannot be guessed automatically.\n\nIf the simultaneous use of multiple Pythons is intentional, please add `:using => "python@x.y"`\nto \'virtualenv_install_with_resources\' to resolve the ambiguity manually.\n'
@@ -1101,75 +1101,75 @@ pub fn ruby_exceptions_l592_d78_initialize(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby attr_reader `attr_reader :cmd` at line 608.
-pub fn ruby_exceptions_l608_d79_cmd(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l608_d79_cmd(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('cmd requires exception') }
 	return exception_field(args[0], 'cmd')
 }
 
 // Ruby attr_reader `attr_reader :args` at line 611.
-pub fn ruby_exceptions_l611_d80_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l611_d80_args(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('args requires exception') }
-	return args[0].map_data['args'] or { brew_runtime.array_value([]brew_runtime.Value{}) }
+	return args[0].map_data['args'] or { ruby.array_value([]ruby.Value{}) }
 }
 
 // Ruby attr_reader `attr_reader :env` at line 614.
-pub fn ruby_exceptions_l614_d81_env(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l614_d81_env(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('env requires exception') }
 	return exception_field(args[0], 'env')
 }
 
 // Ruby attr_accessor `attr_accessor :formula` at line 617.
-pub fn ruby_exceptions_l617_d82_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l617_d82_formula(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('formula requires exception') }
 	return exception_field(args[0], 'formula')
 }
 
 // Ruby attr_accessor `attr_accessor :formula` at line 617.
-pub fn ruby_exceptions_l617_d83_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l617_d83_formula(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('formula= requires exception and value') }
 	return exception_set_field(args[0], 'formula', args[1])
 }
 
 // Ruby attr_accessor `attr_accessor :options` at line 620.
-pub fn ruby_exceptions_l620_d84_options(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l620_d84_options(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('options requires exception') }
 	return exception_field(args[0], 'options')
 }
 
 // Ruby attr_accessor `attr_accessor :options` at line 620.
-pub fn ruby_exceptions_l620_d85_options(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l620_d85_options(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('options= requires exception and value') }
 	return exception_set_field(args[0], 'options', args[1])
 }
 
 // Ruby method `initialize(formula, cmd, args, env)` at line 631.
-pub fn ruby_exceptions_l631_d86_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l631_d86_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 4 { panic('BuildError requires formula, command, arguments, and env') }
 	return brew_exception_value(build_exception(args[0], args[1], args[2].array_data, args[3].map_data))
 }
 
 // Ruby method `issues` at line 642.
-pub fn ruby_exceptions_l642_d87_issues(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l642_d87_issues(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('issues requires exception') }
-	return args[0].map_data['issues'] or { brew_runtime.array_value([]brew_runtime.Value{}) }
+	return args[0].map_data['issues'] or { ruby.array_value([]ruby.Value{}) }
 }
 
 // Ruby method `fetch_issues` at line 647.
-pub fn ruby_exceptions_l647_d88_fetch_issues(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l647_d88_fetch_issues(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('fetch_issues requires exception') }
-	if brew_runtime.environment_value('HOMEBREW_NO_BUILD_ERROR_ISSUES').len > 0 {
-		return brew_runtime.array_value([]brew_runtime.Value{})
+	if ruby.environment_value('HOMEBREW_NO_BUILD_ERROR_ISSUES').len > 0 {
+		return ruby.array_value([]ruby.Value{})
 	}
-	return args[0].map_data['fetched_issues'] or { brew_runtime.array_value([]brew_runtime.Value{}) }
+	return args[0].map_data['fetched_issues'] or { ruby.array_value([]ruby.Value{}) }
 }
 
 // Ruby method `dump(verbose: false)` at line 660.
-pub fn ruby_exceptions_l660_d89_dump(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l660_d89_dump(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('dump requires exception') }
 	exception := brew_exception_from_value(args[0])
-	formula := exception.fields['formula'] or { return brew_runtime.string_value('') }
+	formula := exception.fields['formula'] or { return ruby.string_value('') }
 	if formula.type_name == 'NilClass' {
-		return brew_runtime.string_value('')
+		return ruby.string_value('')
 	}
 	verbose := if args.len > 1 { args[1].bool_data } else { false }
 	mut lines := []string{}
@@ -1191,16 +1191,16 @@ pub fn ruby_exceptions_l660_d89_dump(args ...brew_runtime.Value) brew_runtime.Va
 	} else {
 		lines << 'If reporting this issue please do so to (not Homebrew/* repositories):\n  ${tap}'
 	}
-	issues := args[0].map_data['issues'] or { brew_runtime.array_value([]brew_runtime.Value{}) }
+	issues := args[0].map_data['issues'] or { ruby.array_value([]ruby.Value{}) }
 	if issues.array_data.len > 0 {
 		lines << 'These open issues may also help:'
 		lines << issues.array_data.map('${it.attribute('title') or { '' }} ${it.attribute('html_url') or { '' }}').join('\n')
 	}
-	return brew_runtime.string_value(lines.join('\n'))
+	return ruby.string_value(lines.join('\n'))
 }
 
 // Ruby method `initialize(formulae)` at line 737.
-pub fn ruby_exceptions_l737_d90_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l737_d90_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('UnbottledError requires formulae') }
 	names := args[0].array_data.map(it.attribute('full_name') or { it.as_string() })
 	plural := if names.len == 1 { 'formula' } else { 'formulae' }
@@ -1209,11 +1209,11 @@ pub fn ruby_exceptions_l737_d90_initialize(args ...brew_runtime.Value) brew_runt
 	if args.len > 1 && args[1].as_string().len > 0 {
 		message += '${args[1].as_string()}\n'
 	}
-	return brew_exception_value(new_brew_exception('UnbottledError', message, map[string]brew_runtime.Value{}))
+	return brew_exception_value(new_brew_exception('UnbottledError', message, map[string]ruby.Value{}))
 }
 
 // Ruby method `initialize(flags, bottled: true)` at line 756.
-pub fn ruby_exceptions_l756_d91_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l756_d91_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('BuildFlagsError requires flags') }
 	flags := args[0].string_array_data
 	bottled := if args.len > 1 { args[1].bool_data } else { true }
@@ -1236,7 +1236,7 @@ pub fn ruby_exceptions_l756_d91_initialize(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `initialize(formula)` at line 786.
-pub fn ruby_exceptions_l786_d92_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l786_d92_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('CompilerSelectionError requires formula') }
 	name := args[0].attribute('full_name') or { args[0].as_string() }
 	instructions := if args.len > 1 { args[1].as_string() } else { 'Install a supported compiler.' }
@@ -1246,23 +1246,23 @@ pub fn ruby_exceptions_l786_d92_initialize(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby attr_reader `attr_reader :cause` at line 797.
-pub fn ruby_exceptions_l797_d93_cause(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l797_d93_cause(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('cause requires exception') }
 	return exception_field(args[0], 'cause')
 }
 
 // Ruby method `initialize(downloadable, cause)` at line 800.
-pub fn ruby_exceptions_l800_d94_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l800_d94_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('DownloadError requires downloadable and cause') }
 	name := args[0].attribute('download_queue_name') or { exception_inspect(args[0]) }
-	return brew_exception_value(new_brew_exception('DownloadError', 'Failed to download resource ${exception_inspect(brew_runtime.string_value(name))}\n${args[1].as_string()}\n', {
+	return brew_exception_value(new_brew_exception('DownloadError', 'Failed to download resource ${exception_inspect(ruby.string_value(name))}\n${args[1].as_string()}\n', {
 		'downloadable': args[0]
 		'cause':        args[1]
 	}))
 }
 
 // Ruby method `initialize(url, details = nil)` at line 813.
-pub fn ruby_exceptions_l813_d95_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l813_d95_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('CurlDownloadStrategyError requires URL') }
 	url := args[0].as_string()
 	details := if args.len > 1 { exception_string(args[1]) } else { '' }
@@ -1278,38 +1278,38 @@ pub fn ruby_exceptions_l813_d95_initialize(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `initialize(url)` at line 827.
-pub fn ruby_exceptions_l827_d96_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l827_d96_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('HomebrewCurlDownloadStrategyError requires URL') }
 	url := 'Homebrew-installed `curl` is not installed for: ${args[0].as_string()}'
-	return ruby_exceptions_l813_d95_initialize(brew_runtime.string_value(url))
+	return ruby_exceptions_l813_d95_initialize(ruby.string_value(url))
 }
 
 // Ruby attr_reader `attr_reader :cmd` at line 835.
-pub fn ruby_exceptions_l835_d97_cmd(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l835_d97_cmd(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('cmd requires exception') }
 	return exception_field(args[0], 'cmd')
 }
 
 // Ruby attr_reader `attr_reader :exitstatus` at line 838.
-pub fn ruby_exceptions_l838_d98_exitstatus(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l838_d98_exitstatus(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('exitstatus requires exception') }
 	return exception_field(args[0], 'exitstatus')
 }
 
 // Ruby attr_reader `attr_reader :status` at line 841.
-pub fn ruby_exceptions_l841_d99_status(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l841_d99_status(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('status requires exception') }
 	return exception_field(args[0], 'status')
 }
 
 // Ruby attr_reader `attr_reader :termsig` at line 844.
-pub fn ruby_exceptions_l844_d100_termsig(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l844_d100_termsig(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('termsig requires exception') }
 	return exception_field(args[0], 'termsig')
 }
 
 // Ruby attr_reader `attr_reader :output` at line 847.
-pub fn ruby_exceptions_l847_d101_output(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l847_d101_output(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('output requires exception') }
 	if nil_flag := args[0].map_data['output_nil'] {
 		if nil_flag.bool_data {
@@ -1320,7 +1320,7 @@ pub fn ruby_exceptions_l847_d101_output(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby method `initialize(cmd, status:, output: nil, secrets: [])` at line 857.
-pub fn ruby_exceptions_l857_d102_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l857_d102_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('ErrorDuringExecution requires command and status') }
 	command := if args[0].string_array_data.len > 0 {
 		args[0].string_array_data
@@ -1334,32 +1334,32 @@ pub fn ruby_exceptions_l857_d102_initialize(args ...brew_runtime.Value) brew_run
 	}
 	secrets := if args.len > 3 { args[3].string_array_data } else { []string{} }
 	mut exception := execution_exception(command, execution_status_from_value(args[1]), output, secrets) or { panic(err) }
-	exception.fields['output_nil'] = brew_runtime.bool_value(args.len <= 2 || args[2].type_name == 'NilClass')
+	exception.fields['output_nil'] = ruby.bool_value(args.len <= 2 || args[2].type_name == 'NilClass')
 	return brew_exception_value(exception)
 }
 
 // Ruby method `stderr` at line 917.
-pub fn ruby_exceptions_l917_d103_stderr(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l917_d103_stderr(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('stderr requires exception') }
-	output := args[0].map_data['output'] or { return brew_runtime.string_value('') }
-	return brew_runtime.string_value(exception_output_lines(output).filter(it.kind.trim_left(':') == 'stderr').map(it.line).join(''))
+	output := args[0].map_data['output'] or { return ruby.string_value('') }
+	return ruby.string_value(exception_output_lines(output).filter(it.kind.trim_left(':') == 'stderr').map(it.line).join(''))
 }
 
 // Ruby attr_reader `attr_reader :expected` at line 928.
-pub fn ruby_exceptions_l928_d104_expected(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l928_d104_expected(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('expected requires exception') }
 	return exception_field(args[0], 'expected')
 }
 
 // Ruby method `initialize(path, expected, actual)` at line 931.
-pub fn ruby_exceptions_l931_d105_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l931_d105_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 3 { panic('ChecksumMismatchError requires path, expected, and actual') }
 	path := args[0].as_string()
 	is_path := args[0].type_name == 'Pathname'
 	cache := if args.len > 3 {
 		args[3].as_string()
 	} else {
-		brew_runtime.environment_value('HOMEBREW_CACHE')
+		ruby.environment_value('HOMEBREW_CACHE')
 	}
 	hint := checksum_html_hint(path, is_path, cache)
 	message := 'SHA-256 mismatch\nExpected: ${args[1].as_string()}\n  Actual: ${args[2].as_string()}\n    File: ${path}\nTo retry an incomplete download, remove the file above.${hint}\n'
@@ -1371,18 +1371,18 @@ pub fn ruby_exceptions_l931_d105_initialize(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby method `self.html_hint(path)` at line 947.
-pub fn ruby_exceptions_l947_d106_self_html_hint(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l947_d106_self_html_hint(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('html_hint requires path') }
 	cache := if args.len > 1 {
 		args[1].as_string()
 	} else {
-		brew_runtime.environment_value('HOMEBREW_CACHE')
+		ruby.environment_value('HOMEBREW_CACHE')
 	}
-	return brew_runtime.string_value(checksum_html_hint(args[0].as_string(), args[0].type_name == 'Pathname', cache))
+	return ruby.string_value(checksum_html_hint(args[0].as_string(), args[0].type_name == 'Pathname', cache))
 }
 
 // Ruby method `initialize(formula, resource)` at line 976.
-pub fn ruby_exceptions_l976_d107_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l976_d107_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('ResourceMissingError requires formula and resource') }
 	formula := if args[0].type_name == 'NilClass' {
 		''
@@ -1396,7 +1396,7 @@ pub fn ruby_exceptions_l976_d107_initialize(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby method `initialize(resource)` at line 984.
-pub fn ruby_exceptions_l984_d108_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l984_d108_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('DuplicateResourceError requires resource') }
 	return brew_exception_value(new_brew_exception('DuplicateResourceError', 'Resource ${exception_inspect(args[0])} is defined more than once', {
 		'resource': args[0]
@@ -1404,7 +1404,7 @@ pub fn ruby_exceptions_l984_d108_initialize(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby method `initialize(bottle_path, formula_path)` at line 995.
-pub fn ruby_exceptions_l995_d109_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l995_d109_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('BottleFormulaUnavailableError requires bottle and formula paths') }
 	return brew_exception_value(new_brew_exception('BottleFormulaUnavailableError', 'This bottle does not contain the formula file:\n  ${args[0].as_string()}\n  ${args[1].as_string()}\n', {
 		'bottle_path':  args[0]
@@ -1413,13 +1413,13 @@ pub fn ruby_exceptions_l995_d109_initialize(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby attr_reader `attr_reader :status` at line 1007.
-pub fn ruby_exceptions_l1007_d110_status(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l1007_d110_status(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('status requires exception') }
 	return exception_field(args[0], 'status')
 }
 
 // Ruby method `initialize(status)` at line 1010.
-pub fn ruby_exceptions_l1010_d111_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l1010_d111_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('ChildProcessError requires status') }
 	return brew_exception_value(new_brew_exception('ChildProcessError', 'Forked child process failed: ${args[0].as_string()}', {
 		'status': args[0]
@@ -1427,7 +1427,7 @@ pub fn ruby_exceptions_l1010_d111_initialize(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby method `initialize(type, reason)` at line 1020.
-pub fn ruby_exceptions_l1020_d112_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l1020_d112_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('ShebangDetectionError requires type and reason') }
 	return brew_exception_value(new_brew_exception('ShebangDetectionError', 'Cannot detect ${args[0].as_string()} shebang: ${args[1].as_string()}.', {
 		'type':   args[0]
@@ -1436,7 +1436,7 @@ pub fn ruby_exceptions_l1020_d112_initialize(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby method `initialize(strongly_connected_components)` at line 1028.
-pub fn ruby_exceptions_l1028_d113_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l1028_d113_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('CyclicDependencyError requires components') }
 	mut cycles := []string{}
 	for component in args[0].array_data {

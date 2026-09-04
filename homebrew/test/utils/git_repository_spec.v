@@ -1,96 +1,96 @@
 module utils
 
-import brew_runtime
+import ruby
 import homebrew.utils as brew_utils
 
 // Translated from Homebrew/brew `test/utils/git_repository_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:commit_message) { "File added" }` at line 7.
-pub fn ruby_git_repository_spec_l7_d1_commit_message(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('File added')
+pub fn ruby_git_repository_spec_l7_d1_commit_message(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('File added')
 }
 
 // Ruby let `let(:branch_name) { "test-branch" }` at line 8.
-pub fn ruby_git_repository_spec_l8_d2_branch_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('test-branch')
+pub fn ruby_git_repository_spec_l8_d2_branch_name(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('test-branch')
 }
 
 // Ruby let `let(:head_revision) { HOMEBREW_CACHE.cd { `git rev-parse HEAD`.chomp } }` at line 9.
-pub fn ruby_git_repository_spec_l9_d3_head_revision(args ...brew_runtime.Value) brew_runtime.Value {
-	if args.len == 0 { return brew_runtime.object_value('NilClass', '') }
-	return brew_runtime.string_value(brew_utils.git_head(args[0].as_string(), none, true) or {
-		return brew_runtime.object_value('NilClass', '')
+pub fn ruby_git_repository_spec_l9_d3_head_revision(args ...ruby.Value) ruby.Value {
+	if args.len == 0 { return ruby.object_value('NilClass', '') }
+	return ruby.string_value(brew_utils.git_head(args[0].as_string(), none, true) or {
+		return ruby.object_value('NilClass', '')
 	})
 }
 
 // Ruby let `let(:short_head_revision) { HOMEBREW_CACHE.cd { `git rev-parse --short HEAD`.chomp } }` at line 10.
-pub fn ruby_git_repository_spec_l10_d4_short_head_revision(args ...brew_runtime.Value) brew_runtime.Value {
-	if args.len == 0 { return brew_runtime.object_value('NilClass', '') }
-	return brew_runtime.string_value(brew_utils.git_short_head(args[0].as_string(), none, true) or {
-		return brew_runtime.object_value('NilClass', '')
+pub fn ruby_git_repository_spec_l10_d4_short_head_revision(args ...ruby.Value) ruby.Value {
+	if args.len == 0 { return ruby.object_value('NilClass', '') }
+	return ruby.string_value(brew_utils.git_short_head(args[0].as_string(), none, true) or {
+		return ruby.object_value('NilClass', '')
 	})
 }
 
 // Ruby it `it "returns nil if `safe` parameter is `false`" do` at line 14.
-pub fn ruby_git_repository_spec_l14_d5_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_git_repository_spec_l14_d5_returns(args ...ruby.Value) ruby.Value {
 	repo := if args.len > 0 { args[0].as_string() } else { '/not-a-git-repository' }
-	return brew_runtime.bool_value(brew_utils.git_head(repo, none, false) or { 'unexpected' } == '')
+	return ruby.bool_value(brew_utils.git_head(repo, none, false) or { 'unexpected' } == '')
 }
 
 // Ruby it `it "raises an error if `safe` parameter is `true`" do` at line 18.
-pub fn ruby_git_repository_spec_l18_d6_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_git_repository_spec_l18_d6_raises(args ...ruby.Value) ruby.Value {
 	repo := if args.len > 0 { args[0].as_string() } else { '/not-a-git-repository' }
 	if _ := brew_utils.git_head(repo, none, true) {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	} else {
-		return brew_runtime.bool_value(err.msg() == 'Not a Git repository: ${repo}')
+		return ruby.bool_value(err.msg() == 'Not a Git repository: ${repo}')
 	}
 }
 
 // Ruby it `it "returns nil if `safe` parameter is `false`" do` at line 29.
-pub fn ruby_git_repository_spec_l29_d7_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_git_repository_spec_l29_d7_returns(args ...ruby.Value) ruby.Value {
 	repo := if args.len > 0 { args[0].as_string() } else { '.' }
-	return brew_runtime.bool_value(brew_utils.git_head_with_executable(repo, none, false, '') or {
+	return ruby.bool_value(brew_utils.git_head_with_executable(repo, none, false, '') or {
 		'unexpected'
 	} == '')
 }
 
 // Ruby it `it "raises an error if `safe` parameter is `true`" do` at line 33.
-pub fn ruby_git_repository_spec_l33_d8_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_git_repository_spec_l33_d8_raises(args ...ruby.Value) ruby.Value {
 	repo := if args.len > 0 { args[0].as_string() } else { '.' }
 	if _ := brew_utils.git_head_with_executable(repo, none, true, '') {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	} else {
-		return brew_runtime.bool_value(err.msg() == 'Git is unavailable')
+		return ruby.bool_value(err.msg() == 'Git is unavailable')
 	}
 }
 
 // Ruby it `it "returns the revision at HEAD" do` at line 51.
-pub fn ruby_git_repository_spec_l51_d9_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	if args.len == 0 { return brew_runtime.bool_value(false) }
+pub fn ruby_git_repository_spec_l51_d9_returns(args ...ruby.Value) ruby.Value {
+	if args.len == 0 { return ruby.bool_value(false) }
 	repo := args[0].as_string()
-	head := brew_utils.git_head(repo, none, true) or { return brew_runtime.bool_value(false) }
-	short := brew_utils.git_head(repo, 5, true) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(head.len == 40 && short == head[..5])
+	head := brew_utils.git_head(repo, none, true) or { return ruby.bool_value(false) }
+	short := brew_utils.git_head(repo, 5, true) or { return ruby.bool_value(false) }
+	return ruby.bool_value(head.len == 40 && short == head[..5])
 }
 
 // Ruby it `it "returns the short revision at HEAD" do` at line 64.
-pub fn ruby_git_repository_spec_l64_d10_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	if args.len == 0 { return brew_runtime.bool_value(false) }
+pub fn ruby_git_repository_spec_l64_d10_returns(args ...ruby.Value) ruby.Value {
+	if args.len == 0 { return ruby.bool_value(false) }
 	repo := args[0].as_string()
-	head := brew_utils.git_head(repo, none, true) or { return brew_runtime.bool_value(false) }
+	head := brew_utils.git_head(repo, none, true) or { return ruby.bool_value(false) }
 	short := brew_utils.git_short_head(repo, none, true) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	exact := brew_utils.git_short_head(repo, 5, true) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(short.len > 0 && head.starts_with(short) && exact == head[..5])
+	exact := brew_utils.git_short_head(repo, 5, true) or { return ruby.bool_value(false) }
+	return ruby.bool_value(short.len > 0 && head.starts_with(short) && exact == head[..5])
 }
 
 // Ruby it `it "returns the current Git branch" do` at line 79.
-pub fn ruby_git_repository_spec_l79_d11_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	if args.len == 0 { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(brew_utils.git_branch(args[0].as_string(), true) or { '' } == 'test-branch')
+pub fn ruby_git_repository_spec_l79_d11_returns(args ...ruby.Value) ruby.Value {
+	if args.len == 0 { return ruby.bool_value(false) }
+	return ruby.bool_value(brew_utils.git_branch(args[0].as_string(), true) or { '' } == 'test-branch')
 }
 
 // Original Ruby source (line-for-line):

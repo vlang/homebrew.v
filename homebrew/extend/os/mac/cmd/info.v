@@ -1,13 +1,13 @@
 module cmd
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `extend/os/mac/cmd/info.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `requirement_for_other_os?(requirement)` at line 11.
-pub fn ruby_info_l11_d1_requirement_for_other_os(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(args.len > 0 && requirement_for_other_os(args[0].type_name))
+pub fn ruby_info_l11_d1_requirement_for_other_os(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(args.len > 0 && requirement_for_other_os(args[0].type_name))
 }
 
 pub fn requirement_for_other_os(requirement_type string) bool {

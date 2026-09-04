@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `dev-cmd/debugger.rb`.
@@ -54,35 +54,35 @@ pub fn debugger_plan(options DebuggerOptions) !DebuggerPlan {
 	}
 }
 
-pub fn debugger_input_boundary(input &DebuggerInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::Debugger::Input', '', {
+pub fn debugger_input_boundary(input &DebuggerInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::Debugger::Input', '', {
 		'debugger_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn debugger_input_from_value(value brew_runtime.Value) &DebuggerInput {
+fn debugger_input_from_value(value ruby.Value) &DebuggerInput {
 	address := value.attributes['debugger_input_address'] or { panic('invalid Debugger input') }
 	return unsafe { &DebuggerInput(voidptr(address.u64())) }
 }
 
-fn debugger_plan_value(plan DebuggerPlan) brew_runtime.Value {
-	mut environment := map[string]brew_runtime.Value{}
+fn debugger_plan_value(plan DebuggerPlan) ruby.Value {
+	mut environment := map[string]ruby.Value{}
 	for name, value in plan.environment {
-		environment[name] = brew_runtime.string_value(value)
+		environment[name] = ruby.string_value(value)
 	}
-	return brew_runtime.map_value({
-		'command':     brew_runtime.string_array_value(plan.command)
-		'environment': brew_runtime.map_value(environment)
+	return ruby.map_value({
+		'command':     ruby.string_array_value(plan.command)
+		'environment': ruby.map_value(environment)
 	})
 }
 
 // Ruby method `run` at line 21.
-pub fn ruby_debugger_l21_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_debugger_l21_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'command input is required')
+		return ruby.object_value('ArgumentError', 'command input is required')
 	}
 	return debugger_plan_value(debugger_plan(debugger_input_from_value(args[0]).options) or {
-		return brew_runtime.object_value('UsageError', err.msg())
+		return ruby.object_value('UsageError', err.msg())
 	})
 }
 

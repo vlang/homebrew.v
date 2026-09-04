@@ -1,14 +1,14 @@
 module lines
 
-import brew_runtime
+import ruby
 import homebrew.rubocops as line_cops
 
 // Translated from Homebrew/brew `test/rubocops/lines/full_dependency_check_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
-pub fn ruby_full_dependency_check_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::FullDependencyCheck', 'FullDependencyCheck')
+pub fn ruby_full_dependency_check_spec_l7_d1_cop(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('RuboCop::Cop::FormulaAudit::FullDependencyCheck', 'FullDependencyCheck')
 }
 
 fn full_dependency_spec(source string, tap string, count int, dependency string) bool {
@@ -17,18 +17,18 @@ fn full_dependency_spec(source string, tap string, count int, dependency string)
 }
 
 // Ruby it `it "reports an offense when a formula depends on a -full formula" do` at line 10.
-pub fn ruby_full_dependency_check_spec_l10_d2_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(full_dependency_spec('depends_on "bar-full"', 'homebrew-core', 1, 'bar-full'))
+pub fn ruby_full_dependency_check_spec_l10_d2_reports(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(full_dependency_spec('depends_on "bar-full"', 'homebrew-core', 1, 'bar-full'))
 }
 
 // Ruby it `it "reports an offense when a formula uses a -full build dependency" do` at line 22.
-pub fn ruby_full_dependency_check_spec_l22_d3_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(full_dependency_spec('depends_on "baz-full" => :build', 'homebrew-core', 1, 'baz-full'))
+pub fn ruby_full_dependency_check_spec_l22_d3_reports(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(full_dependency_spec('depends_on "baz-full" => :build', 'homebrew-core', 1, 'baz-full'))
 }
 
 // Ruby it `it "reports no offenses for -full dependencies" do` at line 36.
-pub fn ruby_full_dependency_check_spec_l36_d4_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(full_dependency_spec('depends_on "bar-full"', 'homebrew-cask', 0, ''))
+pub fn ruby_full_dependency_check_spec_l36_d4_reports(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(full_dependency_spec('depends_on "bar-full"', 'homebrew-cask', 0, ''))
 }
 
 // Original Ruby source (line-for-line):

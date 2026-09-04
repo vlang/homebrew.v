@@ -1,6 +1,6 @@
 module test_bot
 
-import brew_runtime
+import ruby
 
 pub struct DownloadedArtifactFixture {
 pub:
@@ -18,8 +18,8 @@ pub mut:
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:test_formulae) do` at line 8.
-pub fn ruby_test_formulae_spec_l8_d1_test_formulae(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::TestBot::TestFormulae', 'TestFormulae', {
+pub fn ruby_test_formulae_spec_l8_d1_test_formulae(args ...ruby.Value) ruby.Value {
+	return ruby.structured_value('Homebrew::TestBot::TestFormulae', 'TestFormulae', {
 		'dry_run':                      'false'
 		'fail_fast':                    'false'
 		'verbose':                      'false'
@@ -28,7 +28,7 @@ pub fn ruby_test_formulae_spec_l8_d1_test_formulae(args ...brew_runtime.Value) b
 }
 
 // Ruby it `it "does not raise KeyError when accessing downloaded_artifacts for a new SHA" do` at line 13.
-pub fn ruby_test_formulae_spec_l13_d2_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_formulae_spec_l13_d2_does(args ...ruby.Value) ruby.Value {
 	sha := if args.len > 0 {
 		args[0].as_string()
 	} else {
@@ -40,7 +40,7 @@ pub fn ruby_test_formulae_spec_l13_d2_does(args ...brew_runtime.Value) brew_runt
 		url: 'https://example.com/artifact'
 		id: 1
 	}])
-	return brew_runtime.bool_value('bottles' in downloaded_artifacts_for_sha(mut fixture, sha))
+	return ruby.bool_value('bottles' in downloaded_artifacts_for_sha(mut fixture, sha))
 }
 
 pub fn downloaded_artifacts_for_sha(mut fixture TestFormulaeFixture, sha string) []string {

@@ -1,77 +1,77 @@
 module install_steps
 
-import brew_runtime
+import ruby
 import homebrew
 
-fn formula_action_nil_value() brew_runtime.Value {
-	return brew_runtime.Value{
+fn formula_action_nil_value() ruby.Value {
+	return ruby.Value{
 		type_name: 'NilClass'
 		repr: 'nil'
 	}
 }
 
-fn formula_action_error_value(message string) brew_runtime.Value {
-	return brew_runtime.structured_value('ArgumentError', message, {
+fn formula_action_error_value(message string) ruby.Value {
+	return ruby.structured_value('ArgumentError', message, {
 		'message': message
 	})
 }
 
-fn formula_action_run(kind string, args []brew_runtime.Value) brew_runtime.Value {
+fn formula_action_run(kind string, args []ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return formula_action_error_value('${kind} requires a Runner receiver')
 	}
-	mut fields := map[string]brew_runtime.Value{}
-	fields['type'] = brew_runtime.string_value(kind)
+	mut fields := map[string]ruby.Value{}
+	fields['type'] = ruby.string_value(kind)
 	if kind == 'install_gzipped_executable' {
 		if args.len < 2 {
 			return formula_action_error_value('run_install_gzipped_executable requires a step')
 		}
 		fields = args[1].map_data.clone()
-		fields['type'] = brew_runtime.string_value(kind)
+		fields['type'] = ruby.string_value(kind)
 	} else if kind == 'bootstrap_pypy' {
 		if args.len < 2 {
 			return formula_action_error_value('run_bootstrap_pypy requires an ABI version')
 		}
-		fields['abi_version'] = brew_runtime.string_value(args[1].repr)
+		fields['abi_version'] = ruby.string_value(args[1].repr)
 	}
-	return homebrew.ruby_install_steps_l954_d75_run_install_step(args[0], brew_runtime.map_value(fields))
+	return homebrew.ruby_install_steps_l954_d75_run_install_step(args[0], ruby.map_value(fields))
 }
 
 // Translated from Homebrew/brew `install_steps/formula_actions.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `run_configure_gcc_runtime` at line 10.
-pub fn ruby_formula_actions_l10_d1_run_configure_gcc_runtime(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_actions_l10_d1_run_configure_gcc_runtime(args ...ruby.Value) ruby.Value {
 	return formula_action_run('configure_gcc_runtime', args)
 }
 
 // Ruby method `run_install_gzipped_executable(step)` at line 66.
-pub fn ruby_formula_actions_l66_d2_run_install_gzipped_executable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_actions_l66_d2_run_install_gzipped_executable(args ...ruby.Value) ruby.Value {
 	return formula_action_run('install_gzipped_executable', args)
 }
 
 // Ruby method `run_configure_glibc_runtime` at line 90.
-pub fn ruby_formula_actions_l90_d3_run_configure_glibc_runtime(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_actions_l90_d3_run_configure_glibc_runtime(args ...ruby.Value) ruby.Value {
 	return formula_action_run('configure_glibc_runtime', args)
 }
 
 // Ruby method `run_configure_clang_system` at line 120.
-pub fn ruby_formula_actions_l120_d4_run_configure_clang_system(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_actions_l120_d4_run_configure_clang_system(args ...ruby.Value) ruby.Value {
 	return formula_action_run('configure_clang_system', args)
 }
 
 // Ruby method `run_configure_php` at line 141.
-pub fn ruby_formula_actions_l141_d5_run_configure_php(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_actions_l141_d5_run_configure_php(args ...ruby.Value) ruby.Value {
 	return formula_action_run('configure_php', args)
 }
 
 // Ruby method `run_bootstrap_cpython` at line 200.
-pub fn ruby_formula_actions_l200_d6_run_bootstrap_cpython(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_actions_l200_d6_run_bootstrap_cpython(args ...ruby.Value) ruby.Value {
 	return formula_action_run('bootstrap_cpython', args)
 }
 
 // Ruby method `make_cpython_venv_activation_scripts_writable(lib_cellar)` at line 273.
-pub fn ruby_formula_actions_l273_d7_make_cpython_venv_activation_scripts_writable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_actions_l273_d7_make_cpython_venv_activation_scripts_writable(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		return formula_action_error_value('make_cpython_venv_activation_scripts_writable requires lib_cellar')
 	}
@@ -82,7 +82,7 @@ pub fn ruby_formula_actions_l273_d7_make_cpython_venv_activation_scripts_writabl
 }
 
 // Ruby method `run_bootstrap_pypy(abi_version)` at line 280.
-pub fn ruby_formula_actions_l280_d8_run_bootstrap_pypy(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_actions_l280_d8_run_bootstrap_pypy(args ...ruby.Value) ruby.Value {
 	return formula_action_run('bootstrap_pypy', args)
 }
 

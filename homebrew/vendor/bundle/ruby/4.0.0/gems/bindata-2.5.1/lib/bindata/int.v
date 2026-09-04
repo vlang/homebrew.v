@@ -1,6 +1,6 @@
 module bindata
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/bindata-2.5.1/lib/bindata/int.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -303,16 +303,16 @@ pub fn integer_from_binary(data []u8, spec IntegerClass) !i64 {
 	return i64(raw)
 }
 
-fn int_endian_from_value(value brew_runtime.Value) IntEndian {
+fn int_endian_from_value(value ruby.Value) IntEndian {
 	return if value.as_string().trim_left(':') == 'big' { .big } else { .little }
 }
 
-fn int_signedness_from_value(value brew_runtime.Value) IntSignedness {
+fn int_signedness_from_value(value ruby.Value) IntSignedness {
 	return if value.as_string().trim_left(':') == 'signed' { .signed } else { .unsigned }
 }
 
-fn integer_class_value(spec IntegerClass) brew_runtime.Value {
-	return brew_runtime.structured_value('BinData::IntegerClass', spec.name, {
+fn integer_class_value(spec IntegerClass) ruby.Value {
+	return ruby.structured_value('BinData::IntegerClass', spec.name, {
 		'name':   spec.name
 		'nbits':  spec.nbits.str()
 		'endian': spec.endian.str()
@@ -320,7 +320,7 @@ fn integer_class_value(spec IntegerClass) brew_runtime.Value {
 	})
 }
 
-fn integer_class_from_value(value brew_runtime.Value) IntegerClass {
+fn integer_class_from_value(value ruby.Value) IntegerClass {
 	if value.type_name == 'BinData::IntegerClass' {
 		return define_integer_class(value.attribute('name') or { '' }, (value.attribute('nbits') or {
 			'0'
@@ -336,7 +336,7 @@ fn integer_class_from_value(value brew_runtime.Value) IntegerClass {
 }
 
 // Ruby method `define_class(name, nbits, endian, signed)` at line 12.
-pub fn ruby_int_l12_d1_define_class(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_int_l12_d1_define_class(args ...ruby.Value) ruby.Value {
 	if args.len < 4 {
 		panic('Int.define_class requires name, nbits, endian and signedness')
 	}
@@ -345,12 +345,12 @@ pub fn ruby_int_l12_d1_define_class(args ...brew_runtime.Value) brew_runtime.Val
 }
 
 // Ruby define_method `Int.define_methods(new_class, nbits, endian.to_sym, signed.to_sym)` at line 16.
-pub fn ruby_int_l16_d2_s_new_class(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_int_l16_d2_s_new_class(args ...ruby.Value) ruby.Value {
 	return ruby_int_l26_d3_define_methods(...args)
 }
 
 // Ruby method `define_methods(int_class, nbits, endian, signed)` at line 26.
-pub fn ruby_int_l26_d3_define_methods(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_int_l26_d3_define_methods(args ...ruby.Value) ruby.Value {
 	if args.len < 4 {
 		panic('Int.define_methods requires a class, nbits, endian and signedness')
 	}
@@ -360,159 +360,159 @@ pub fn ruby_int_l26_d3_define_methods(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby method `assign(val)` at line 30.
-pub fn ruby_int_l30_d4_assign(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_int_l30_d4_assign(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('integer assign requires a receiver and value')
 	}
 	spec := integer_class_from_value(args[0])
-	return brew_runtime.int_value(clamp_integer(args[1].as_int() or { panic(err) }, spec.nbits, spec.signed) or { panic(err) })
+	return ruby.int_value(clamp_integer(args[1].as_int() or { panic(err) }, spec.nbits, spec.signed) or { panic(err) })
 }
 
 // Ruby method `do_num_bytes` at line 35.
-pub fn ruby_int_l35_d5_do_num_bytes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_int_l35_d5_do_num_bytes(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('integer do_num_bytes requires a receiver')
 	}
-	return brew_runtime.int_value(integer_class_from_value(args[0]).nbits / 8)
+	return ruby.int_value(integer_class_from_value(args[0]).nbits / 8)
 }
 
 // Ruby method `sensible_default` at line 42.
-pub fn ruby_int_l42_d6_sensible_default(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(0)
+pub fn ruby_int_l42_d6_sensible_default(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(0)
 }
 
 // Ruby method `value_to_binary_string(val)` at line 46.
-pub fn ruby_int_l46_d7_value_to_binary_string(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_int_l46_d7_value_to_binary_string(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('integer value_to_binary_string requires a receiver and value')
 	}
-	return brew_runtime.string_value(integer_to_binary(args[1].as_int() or { panic(err) }, integer_class_from_value(args[0])) or { panic(err) }.bytestr())
+	return ruby.string_value(integer_to_binary(args[1].as_int() or { panic(err) }, integer_class_from_value(args[0])) or { panic(err) }.bytestr())
 }
 
 // Ruby method `read_and_return_value(io)` at line 51.
-pub fn ruby_int_l51_d8_read_and_return_value(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_int_l51_d8_read_and_return_value(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('integer read_and_return_value requires a receiver and bytes')
 	}
-	return brew_runtime.int_value(integer_from_binary(args[1].as_string().bytes(), integer_class_from_value(args[0])) or { panic(err) })
+	return ruby.int_value(integer_from_binary(args[1].as_string().bytes(), integer_class_from_value(args[0])) or { panic(err) })
 }
 
 // Ruby method `create_clamp_code(nbits, signed)` at line 60.
-pub fn ruby_int_l60_d9_create_clamp_code(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_int_l60_d9_create_clamp_code(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('create_clamp_code requires nbits and signedness')
 	}
-	return brew_runtime.string_value(integer_clamp_code(int(args[0].as_int() or { panic(err) }), int_signedness_from_value(args[1])))
+	return ruby.string_value(integer_clamp_code(int(args[0].as_int() or { panic(err) }), int_signedness_from_value(args[1])))
 }
 
 // Ruby method `create_read_code(nbits, endian, signed)` at line 72.
-pub fn ruby_int_l72_d10_create_read_code(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_int_l72_d10_create_read_code(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('create_read_code requires nbits, endian and signedness')
 	}
-	return brew_runtime.string_value(integer_read_code(int(args[0].as_int() or { panic(err) }), int_endian_from_value(args[1]), int_signedness_from_value(args[2])))
+	return ruby.string_value(integer_read_code(int(args[0].as_int() or { panic(err) }), int_endian_from_value(args[1]), int_signedness_from_value(args[2])))
 }
 
 // Ruby method `create_raw_read_code(nbits, endian, signed)` at line 82.
-pub fn ruby_int_l82_d11_create_raw_read_code(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_int_l82_d11_create_raw_read_code(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('create_raw_read_code requires nbits, endian and signedness')
 	}
-	return brew_runtime.string_value(integer_raw_read_code(int(args[0].as_int() or { panic(err) }), int_endian_from_value(args[1]), int_signedness_from_value(args[2])))
+	return ruby.string_value(integer_raw_read_code(int(args[0].as_int() or { panic(err) }), int_endian_from_value(args[1]), int_signedness_from_value(args[2])))
 }
 
 // Ruby method `create_read_unpack_code(nbits, endian, signed)` at line 94.
-pub fn ruby_int_l94_d12_create_read_unpack_code(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_int_l94_d12_create_read_unpack_code(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('create_read_unpack_code requires nbits, endian and signedness')
 	}
-	return brew_runtime.string_value(integer_read_unpack_code(int(args[0].as_int() or { panic(err) }), int_endian_from_value(args[1]), int_signedness_from_value(args[2])))
+	return ruby.string_value(integer_read_unpack_code(int(args[0].as_int() or { panic(err) }), int_endian_from_value(args[1]), int_signedness_from_value(args[2])))
 }
 
 // Ruby method `create_read_assemble_code(nbits, endian)` at line 101.
-pub fn ruby_int_l101_d13_create_read_assemble_code(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_int_l101_d13_create_read_assemble_code(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('create_read_assemble_code requires nbits and endian')
 	}
-	return brew_runtime.string_value(integer_read_assemble_code(int(args[0].as_int() or {
+	return ruby.string_value(integer_read_assemble_code(int(args[0].as_int() or {
 		panic(err)
 	}), int_endian_from_value(args[1])))
 }
 
 // Ruby method `create_to_binary_s_code(nbits, endian, signed)` at line 115.
-pub fn ruby_int_l115_d14_create_to_binary_s_code(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_int_l115_d14_create_to_binary_s_code(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('create_to_binary_s_code requires nbits, endian and signedness')
 	}
-	return brew_runtime.string_value(integer_to_binary_code(int(args[0].as_int() or { panic(err) }), int_endian_from_value(args[1]), int_signedness_from_value(args[2])))
+	return ruby.string_value(integer_to_binary_code(int(args[0].as_int() or { panic(err) }), int_endian_from_value(args[1]), int_signedness_from_value(args[2])))
 }
 
 // Ruby method `val_as_packed_words(nbits, endian)` at line 130.
-pub fn ruby_int_l130_d15_val_as_packed_words(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_int_l130_d15_val_as_packed_words(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('val_as_packed_words requires nbits and endian')
 	}
-	return brew_runtime.string_value(integer_packed_words_code(int(args[0].as_int() or {
+	return ruby.string_value(integer_packed_words_code(int(args[0].as_int() or {
 		panic(err)
 	}), int_endian_from_value(args[1])))
 }
 
 // Ruby method `create_int2uint_code(nbits)` at line 142.
-pub fn ruby_int_l142_d16_create_int2uint_code(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_int_l142_d16_create_int2uint_code(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('create_int2uint_code requires nbits')
 	}
-	return brew_runtime.string_value(integer_int_to_uint_code(int(args[0].as_int() or { panic(err) })))
+	return ruby.string_value(integer_int_to_uint_code(int(args[0].as_int() or { panic(err) })))
 }
 
 // Ruby method `create_uint2int_code(nbits)` at line 146.
-pub fn ruby_int_l146_d17_create_uint2int_code(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_int_l146_d17_create_uint2int_code(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('create_uint2int_code requires nbits')
 	}
-	return brew_runtime.string_value(integer_uint_to_int_code(int(args[0].as_int() or { panic(err) })))
+	return ruby.string_value(integer_uint_to_int_code(int(args[0].as_int() or { panic(err) })))
 }
 
 // Ruby method `bits_per_word(nbits)` at line 150.
-pub fn ruby_int_l150_d18_bits_per_word(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_int_l150_d18_bits_per_word(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('bits_per_word requires nbits')
 	}
-	return brew_runtime.int_value(integer_bits_per_word(int(args[0].as_int() or { panic(err) })))
+	return ruby.int_value(integer_bits_per_word(int(args[0].as_int() or { panic(err) })))
 }
 
 // Ruby method `pack_directive(nbits, endian, signed)` at line 157.
-pub fn ruby_int_l157_d19_pack_directive(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_int_l157_d19_pack_directive(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('pack_directive requires nbits, endian and signedness')
 	}
-	return brew_runtime.string_value(integer_pack_directive(int(args[0].as_int() or { panic(err) }), int_endian_from_value(args[1]), int_signedness_from_value(args[2])))
+	return ruby.string_value(integer_pack_directive(int(args[0].as_int() or { panic(err) }), int_endian_from_value(args[1]), int_signedness_from_value(args[2])))
 }
 
 // Ruby method `need_signed_conversion_code?(nbits, signed)` at line 172.
-pub fn ruby_int_l172_d20_need_signed_conversion_code(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_int_l172_d20_need_signed_conversion_code(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('need_signed_conversion_code? requires nbits and signedness')
 	}
-	return brew_runtime.bool_value(integer_needs_signed_conversion(int(args[0].as_int() or {
+	return ruby.bool_value(integer_needs_signed_conversion(int(args[0].as_int() or {
 		panic(err)
 	}), int_signedness_from_value(args[1])))
 }
 
 // Ruby define_method `Int.define_methods(self, 8, :little, :unsigned)` at line 181.
-pub fn ruby_int_l181_d21_s_self(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_int_l181_d21_s_self(args ...ruby.Value) ruby.Value {
 	return integer_class_value(define_integer_class('Uint8', 8, .little, .unsigned) or {
 		panic(err)
 	})
 }
 
 // Ruby define_method `Int.define_methods(self, 8, :little, :signed)` at line 186.
-pub fn ruby_int_l186_d22_s_self(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_int_l186_d22_s_self(args ...ruby.Value) ruby.Value {
 	return integer_class_value(define_integer_class('Int8', 8, .little, .signed) or { panic(err) })
 }
 
 // Ruby method `const_missing(name)` at line 191.
-pub fn ruby_int_l191_d23_const_missing(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_int_l191_d23_const_missing(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('const_missing requires a class name')
 	}

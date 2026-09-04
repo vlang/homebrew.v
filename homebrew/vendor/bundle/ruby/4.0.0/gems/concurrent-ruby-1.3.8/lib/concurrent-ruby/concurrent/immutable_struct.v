@@ -1,6 +1,6 @@
 module concurrent
 
-import brew_runtime
+import ruby
 import math
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/immutable_struct.rb`.
@@ -12,13 +12,13 @@ pub enum ConcurrentStructKind {
 	settable
 }
 
-pub type ConcurrentStructPredicate = fn(brew_runtime.Value) bool
+pub type ConcurrentStructPredicate = fn(ruby.Value) bool
 
-pub type ConcurrentStructEach = fn(brew_runtime.Value)
+pub type ConcurrentStructEach = fn(ruby.Value)
 
-pub type ConcurrentStructEachPair = fn(string, brew_runtime.Value)
+pub type ConcurrentStructEachPair = fn(string, ruby.Value)
 
-pub type ConcurrentStructMergeResolver = fn(string, brew_runtime.Value, brew_runtime.Value) brew_runtime.Value
+pub type ConcurrentStructMergeResolver = fn(string, ruby.Value, ruby.Value) ruby.Value
 
 @[heap]
 pub struct ConcurrentStructDefinition {
@@ -32,16 +32,16 @@ pub:
 struct ConcurrentStructCore {
 	definition &ConcurrentStructDefinition
 mut:
-	values []brew_runtime.Value
+	values []ruby.Value
 	frozen bool
 }
 
-fn concurrent_struct_nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn concurrent_struct_nil_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-fn concurrent_struct_clone_value(value brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.Value{
+fn concurrent_struct_clone_value(value ruby.Value) ruby.Value {
+	return ruby.Value{
 		type_name: value.type_name
 		repr: value.repr
 		bool_data: value.bool_data
@@ -54,7 +54,7 @@ fn concurrent_struct_clone_value(value brew_runtime.Value) brew_runtime.Value {
 	}
 }
 
-fn concurrent_struct_value_equal(left brew_runtime.Value, right brew_runtime.Value) bool {
+fn concurrent_struct_value_equal(left ruby.Value, right ruby.Value) bool {
 	if left.type_name in ['Integer', 'Float'] && right.type_name in ['Integer', 'Float'] {
 		left_number := left.as_float() or { return false }
 		right_number := right.as_float() or { return false }
@@ -93,7 +93,7 @@ fn define_concurrent_struct(kind ConcurrentStructKind, name string, members []st
 	}
 }
 
-fn (definition &ConcurrentStructDefinition) new_core(values []brew_runtime.Value) !&ConcurrentStructCore {
+fn (definition &ConcurrentStructDefinition) new_core(values []ruby.Value) !&ConcurrentStructCore {
 	if values.len > definition.members.len {
 		return error('struct size differs')
 	}
@@ -115,12 +115,12 @@ fn (core &ConcurrentStructCore) members() []string {
 	return core.definition.members.clone()
 }
 
-fn (core &ConcurrentStructCore) values_copy() []brew_runtime.Value {
+fn (core &ConcurrentStructCore) values_copy() []ruby.Value {
 	return core.values.clone()
 }
 
-fn (core &ConcurrentStructCore) values_at(indexes []int) ![]brew_runtime.Value {
-	mut selected := []brew_runtime.Value{cap: indexes.len}
+fn (core &ConcurrentStructCore) values_at(indexes []int) ![]ruby.Value {
+	mut selected := []ruby.Value{cap: indexes.len}
 	for requested in indexes {
 		index := if requested < 0 { core.values.len + requested } else { requested }
 		if index < 0 || index >= core.values.len {
@@ -131,15 +131,15 @@ fn (core &ConcurrentStructCore) values_at(indexes []int) ![]brew_runtime.Value {
 	return selected
 }
 
-fn (core &ConcurrentStructCore) to_h() map[string]brew_runtime.Value {
-	mut result := map[string]brew_runtime.Value{}
+fn (core &ConcurrentStructCore) to_h() map[string]ruby.Value {
+	mut result := map[string]ruby.Value{}
 	for index, member in core.definition.members {
 		result[member] = core.values[index]
 	}
 	return result
 }
 
-fn (core &ConcurrentStructCore) get_index(requested int) !brew_runtime.Value {
+fn (core &ConcurrentStructCore) get_index(requested int) !ruby.Value {
 	index := if requested < 0 { core.values.len + requested } else { requested }
 	if index < 0 || index >= core.values.len {
 		return error('offset ${requested} too large for struct(size:${core.values.len})')
@@ -147,7 +147,7 @@ fn (core &ConcurrentStructCore) get_index(requested int) !brew_runtime.Value {
 	return core.values[index]
 }
 
-fn (core &ConcurrentStructCore) get_member(member string) !brew_runtime.Value {
+fn (core &ConcurrentStructCore) get_member(member string) !ruby.Value {
 	clean_member := member.trim_left(':')
 	index := core.definition.members.index(clean_member)
 	if index < 0 {
@@ -196,7 +196,7 @@ fn (core &ConcurrentStructCore) inspect(parent string) string {
 	return '#<${concurrent_struct_underscore(parent)}${class_name} {${pairs.join(', ')}}>'
 }
 
-fn (core &ConcurrentStructCore) merged_values(other map[string]brew_runtime.Value) ![]brew_runtime.Value {
+fn (core &ConcurrentStructCore) merged_values(other map[string]ruby.Value) ![]ruby.Value {
 	mut merged := core.values_copy()
 	for member, value in other {
 		index := core.definition.members.index(member.trim_left(':'))
@@ -208,7 +208,7 @@ fn (core &ConcurrentStructCore) merged_values(other map[string]brew_runtime.Valu
 	return merged
 }
 
-fn (core &ConcurrentStructCore) merged_values_with(other map[string]brew_runtime.Value, resolver ConcurrentStructMergeResolver) ![]brew_runtime.Value {
+fn (core &ConcurrentStructCore) merged_values_with(other map[string]ruby.Value, resolver ConcurrentStructMergeResolver) ![]ruby.Value {
 	mut merged := core.values_copy()
 	for member, value in other {
 		index := core.definition.members.index(member.trim_left(':'))
@@ -245,7 +245,7 @@ pub fn define_immutable_struct(name string, members []string) !&ImmutableStructC
 	}
 }
 
-pub fn (definition &ImmutableStructClass) new_instance(values ...brew_runtime.Value) !&ImmutableStruct {
+pub fn (definition &ImmutableStructClass) new_instance(values ...ruby.Value) !&ImmutableStruct {
 	return &ImmutableStruct{
 		core: definition.definition.new_core(values)!
 	}
@@ -263,15 +263,15 @@ pub fn (instance &ImmutableStruct) members() []string {
 	return instance.core.members()
 }
 
-pub fn (instance &ImmutableStruct) values() []brew_runtime.Value {
+pub fn (instance &ImmutableStruct) values() []ruby.Value {
 	return instance.core.values_copy()
 }
 
-pub fn (instance &ImmutableStruct) to_a() []brew_runtime.Value {
+pub fn (instance &ImmutableStruct) to_a() []ruby.Value {
 	return instance.values()
 }
 
-pub fn (instance &ImmutableStruct) values_at(indexes ...int) ![]brew_runtime.Value {
+pub fn (instance &ImmutableStruct) values_at(indexes ...int) ![]ruby.Value {
 	return instance.core.values_at(indexes)
 }
 
@@ -283,15 +283,15 @@ pub fn (instance &ImmutableStruct) str() string {
 	return instance.inspect()
 }
 
-pub fn (instance &ImmutableStruct) to_h() map[string]brew_runtime.Value {
+pub fn (instance &ImmutableStruct) to_h() map[string]ruby.Value {
 	return instance.core.to_h()
 }
 
-pub fn (instance &ImmutableStruct) get_index(index int) !brew_runtime.Value {
+pub fn (instance &ImmutableStruct) get_index(index int) !ruby.Value {
 	return instance.core.get_index(index)
 }
 
-pub fn (instance &ImmutableStruct) get_member(member string) !brew_runtime.Value {
+pub fn (instance &ImmutableStruct) get_member(member string) !ruby.Value {
 	return instance.core.get_member(member)
 }
 
@@ -311,8 +311,8 @@ pub fn (instance &ImmutableStruct) each_pair(action ConcurrentStructEachPair) {
 	}
 }
 
-pub fn (instance &ImmutableStruct) select(predicate ConcurrentStructPredicate) []brew_runtime.Value {
-	mut selected := []brew_runtime.Value{}
+pub fn (instance &ImmutableStruct) select(predicate ConcurrentStructPredicate) []ruby.Value {
+	mut selected := []ruby.Value{}
 	for value in instance.values() {
 		if predicate(value) {
 			selected << value
@@ -321,13 +321,13 @@ pub fn (instance &ImmutableStruct) select(predicate ConcurrentStructPredicate) [
 	return selected
 }
 
-pub fn (instance &ImmutableStruct) merge(other map[string]brew_runtime.Value) !&ImmutableStruct {
+pub fn (instance &ImmutableStruct) merge(other map[string]ruby.Value) !&ImmutableStruct {
 	return &ImmutableStruct{
 		core: instance.core.definition.new_core(instance.core.merged_values(other)!)!
 	}
 }
 
-pub fn (instance &ImmutableStruct) merge_with(other map[string]brew_runtime.Value, resolver ConcurrentStructMergeResolver) !&ImmutableStruct {
+pub fn (instance &ImmutableStruct) merge_with(other map[string]ruby.Value, resolver ConcurrentStructMergeResolver) !&ImmutableStruct {
 	return &ImmutableStruct{
 		core: instance.core.definition.new_core(instance.core.merged_values_with(other, resolver)!)!
 	}
@@ -347,13 +347,13 @@ pub fn (instance &ImmutableStruct) is_frozen() bool {
 	return instance.core.frozen
 }
 
-fn immutable_struct_class_boundary(definition &ImmutableStructClass) brew_runtime.Value {
-	return brew_runtime.structured_value('Class', definition.definition.name, {
+fn immutable_struct_class_boundary(definition &ImmutableStructClass) ruby.Value {
+	return ruby.structured_value('Class', definition.definition.name, {
 		'immutable_struct_class_address': u64(voidptr(definition)).str()
 	})
 }
 
-fn immutable_struct_class_boundary_receiver(args []brew_runtime.Value) &ImmutableStructClass {
+fn immutable_struct_class_boundary_receiver(args []ruby.Value) &ImmutableStructClass {
 	if args.len == 0 {
 		panic('ImmutableStruct class method requires a receiver')
 	}
@@ -361,13 +361,13 @@ fn immutable_struct_class_boundary_receiver(args []brew_runtime.Value) &Immutabl
 	return unsafe { &ImmutableStructClass(voidptr(address)) }
 }
 
-fn immutable_struct_boundary(instance &ImmutableStruct) brew_runtime.Value {
-	return brew_runtime.structured_value('Concurrent::ImmutableStruct', instance.inspect(), {
+fn immutable_struct_boundary(instance &ImmutableStruct) ruby.Value {
+	return ruby.structured_value('Concurrent::ImmutableStruct', instance.inspect(), {
 		'immutable_struct_address': u64(voidptr(instance)).str()
 	})
 }
 
-fn immutable_struct_boundary_receiver(args []brew_runtime.Value) &ImmutableStruct {
+fn immutable_struct_boundary_receiver(args []ruby.Value) &ImmutableStruct {
 	if args.len == 0 {
 		panic('ImmutableStruct method requires a receiver')
 	}
@@ -375,11 +375,11 @@ fn immutable_struct_boundary_receiver(args []brew_runtime.Value) &ImmutableStruc
 	return unsafe { &ImmutableStruct(voidptr(address)) }
 }
 
-fn concurrent_struct_boundary_indexes(values []brew_runtime.Value) []int {
+fn concurrent_struct_boundary_indexes(values []ruby.Value) []int {
 	return values.map(int(it.as_int() or { panic(err) }))
 }
 
-fn immutable_struct_definition_from_boundary(args []brew_runtime.Value) &ImmutableStructClass {
+fn immutable_struct_definition_from_boundary(args []ruby.Value) &ImmutableStructClass {
 	mut offset := 0
 	mut name := ''
 	if args.len > 0 && args[0].type_name == 'String' {
@@ -394,43 +394,43 @@ fn immutable_struct_definition_from_boundary(args []brew_runtime.Value) &Immutab
 }
 
 // Ruby method `self.included(base)` at line 12.
-pub fn ruby_immutable_struct_l12_d1_self_included(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_immutable_struct_l12_d1_self_included(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('ImmutableStruct.included requires a base')
 	}
-	return brew_runtime.structured_value(args[0].type_name, args[0].repr, {
+	return ruby.structured_value(args[0].type_name, args[0].repr, {
 		'safe_initialization': 'true'
 	})
 }
 
 // Ruby method `values` at line 17.
-pub fn ruby_immutable_struct_l17_d2_values(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.array_value(immutable_struct_boundary_receiver(args).values())
+pub fn ruby_immutable_struct_l17_d2_values(args ...ruby.Value) ruby.Value {
+	return ruby.array_value(immutable_struct_boundary_receiver(args).values())
 }
 
 // Ruby alias_method `alias_method :to_a, :values` at line 21.
-pub fn ruby_immutable_struct_l21_d3_to_a(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_immutable_struct_l21_d3_to_a(args ...ruby.Value) ruby.Value {
 	return ruby_immutable_struct_l17_d2_values(...args)
 }
 
 // Ruby method `values_at(*indexes)` at line 24.
-pub fn ruby_immutable_struct_l24_d4_values_at(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_immutable_struct_l24_d4_values_at(args ...ruby.Value) ruby.Value {
 	instance := immutable_struct_boundary_receiver(args)
-	return brew_runtime.array_value(instance.values_at(...concurrent_struct_boundary_indexes(args[1..])) or { panic(err) })
+	return ruby.array_value(instance.values_at(...concurrent_struct_boundary_indexes(args[1..])) or { panic(err) })
 }
 
 // Ruby method `inspect` at line 29.
-pub fn ruby_immutable_struct_l29_d5_inspect(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(immutable_struct_boundary_receiver(args).inspect())
+pub fn ruby_immutable_struct_l29_d5_inspect(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(immutable_struct_boundary_receiver(args).inspect())
 }
 
 // Ruby alias_method `alias_method :to_s, :inspect` at line 33.
-pub fn ruby_immutable_struct_l33_d6_to_s(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_immutable_struct_l33_d6_to_s(args ...ruby.Value) ruby.Value {
 	return ruby_immutable_struct_l29_d5_inspect(...args)
 }
 
 // Ruby method `merge(other, &block)` at line 36.
-pub fn ruby_immutable_struct_l36_d7_merge(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_immutable_struct_l36_d7_merge(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('ImmutableStruct#merge requires a hash')
 	}
@@ -438,12 +438,12 @@ pub fn ruby_immutable_struct_l36_d7_merge(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby method `to_h` at line 41.
-pub fn ruby_immutable_struct_l41_d8_to_h(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.map_value(immutable_struct_boundary_receiver(args).to_h())
+pub fn ruby_immutable_struct_l41_d8_to_h(args ...ruby.Value) ruby.Value {
+	return ruby.map_value(immutable_struct_boundary_receiver(args).to_h())
 }
 
 // Ruby method `[](member)` at line 46.
-pub fn ruby_immutable_struct_l46_d9_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_immutable_struct_l46_d9_anonymous(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('ImmutableStruct#[] requires a member')
 	}
@@ -456,45 +456,45 @@ pub fn ruby_immutable_struct_l46_d9_anonymous(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby method `==(other)` at line 51.
-pub fn ruby_immutable_struct_l51_d10_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_immutable_struct_l51_d10_anonymous(args ...ruby.Value) ruby.Value {
 	if args.len < 2 || 'immutable_struct_address' !in args[1].attributes {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(immutable_struct_boundary_receiver(args).equal(immutable_struct_boundary_receiver(args[1..])))
+	return ruby.bool_value(immutable_struct_boundary_receiver(args).equal(immutable_struct_boundary_receiver(args[1..])))
 }
 
 // Ruby method `each(&block)` at line 56.
-pub fn ruby_immutable_struct_l56_d11_each(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_immutable_struct_l56_d11_each(args ...ruby.Value) ruby.Value {
 	return ruby_immutable_struct_l17_d2_values(...args)
 }
 
 // Ruby method `each_pair(&block)` at line 62.
-pub fn ruby_immutable_struct_l62_d12_each_pair(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_immutable_struct_l62_d12_each_pair(args ...ruby.Value) ruby.Value {
 	return ruby_immutable_struct_l41_d8_to_h(...args)
 }
 
 // Ruby method `select(&block)` at line 68.
-pub fn ruby_immutable_struct_l68_d13_select(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_immutable_struct_l68_d13_select(args ...ruby.Value) ruby.Value {
 	// Typed callers execute a V predicate; generic adapters carry selected values.
 	return if args.len > 1 {
-		brew_runtime.array_value(args[1..].clone())
+		ruby.array_value(args[1..].clone())
 	} else {
-		brew_runtime.array_value([])
+		ruby.array_value([])
 	}
 }
 
 // Ruby method `initialize_copy(original)` at line 76.
-pub fn ruby_immutable_struct_l76_d14_initialize_copy(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_immutable_struct_l76_d14_initialize_copy(args ...ruby.Value) ruby.Value {
 	return immutable_struct_boundary(immutable_struct_boundary_receiver(args).duplicate(false))
 }
 
 // Ruby method `self.new(*args, &block)` at line 82.
-pub fn ruby_immutable_struct_l82_d15_self_new(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_immutable_struct_l82_d15_self_new(args ...ruby.Value) ruby.Value {
 	return immutable_struct_class_boundary(immutable_struct_definition_from_boundary(args))
 }
 
 // Ruby method `define_struct(name, members, &block)` at line 93.
-pub fn ruby_immutable_struct_l93_d16_define_struct(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_immutable_struct_l93_d16_define_struct(args ...ruby.Value) ruby.Value {
 	return immutable_struct_class_boundary(immutable_struct_definition_from_boundary(args))
 }
 

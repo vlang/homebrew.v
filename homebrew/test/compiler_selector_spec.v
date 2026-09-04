@@ -1,6 +1,6 @@
 module test
 
-import brew_runtime
+import ruby
 import homebrew
 import homebrew.compilers as compiler_model
 
@@ -24,22 +24,22 @@ fn compiler_selector_spec_versions_model() compiler_model.StaticCompilerVersions
 	}
 }
 
-fn compiler_selector_spec_versions_value() brew_runtime.Value {
-	return brew_runtime.map_value({
-		'gcc-12':              brew_runtime.object_value('Version', '12.1')
-		'gcc-11':              brew_runtime.object_value('Version', '11.1')
-		'gcc-10':              brew_runtime.object_value('Version', '10.1')
-		'gcc-9':               brew_runtime.object_value('Version', '9.1')
-		'clang_build_version': brew_runtime.object_value('Version', '600')
+fn compiler_selector_spec_versions_value() ruby.Value {
+	return ruby.map_value({
+		'gcc-12':              ruby.object_value('Version', '12.1')
+		'gcc-11':              ruby.object_value('Version', '11.1')
+		'gcc-10':              ruby.object_value('Version', '10.1')
+		'gcc-9':               ruby.object_value('Version', '9.1')
+		'clang_build_version': ruby.object_value('Version', '600')
 	})
 }
 
-fn compiler_selector_spec_formula() brew_runtime.Value {
-	return brew_runtime.Value{
+fn compiler_selector_spec_formula() ruby.Value {
+	return ruby.Value{
 		type_name: 'SoftwareSpec'
 		repr: '#<SoftwareSpec>'
 		map_data: {
-			'compiler_failures': brew_runtime.array_value([])
+			'compiler_failures': ruby.array_value([])
 		}
 	}
 }
@@ -70,40 +70,40 @@ fn compiler_selector_spec_select(failures []&compiler_model.CompilerFailure, pre
 	return selector.compiler() or { return none }
 }
 
-fn compiler_selector_spec_result(value bool) brew_runtime.Value {
-	return brew_runtime.bool_value(value)
+fn compiler_selector_spec_result(value bool) ruby.Value {
+	return ruby.bool_value(value)
 }
 
 // Ruby subject `subject(:selector) { described_class.new(software_spec, versions, compilers) }` at line 8.
-pub fn ruby_compiler_selector_spec_l8_d1_selector(args ...brew_runtime.Value) brew_runtime.Value {
-	return compiler_model.ruby_compiler_selector_l57_initialize(compiler_selector_spec_formula(), compiler_selector_spec_versions_value(), brew_runtime.string_array_value([
+pub fn ruby_compiler_selector_spec_l8_d1_selector(args ...ruby.Value) ruby.Value {
+	return compiler_model.ruby_compiler_selector_l57_initialize(compiler_selector_spec_formula(), compiler_selector_spec_versions_value(), ruby.string_array_value([
 		'clang',
 		'gnu',
 	]))
 }
 
 // Ruby let `let(:compilers) { [:clang, :gnu] }` at line 10.
-pub fn ruby_compiler_selector_spec_l10_d2_compilers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(['clang', 'gnu'])
+pub fn ruby_compiler_selector_spec_l10_d2_compilers(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(['clang', 'gnu'])
 }
 
 // Ruby let `let(:software_spec) { SoftwareSpec.new }` at line 11.
-pub fn ruby_compiler_selector_spec_l11_d3_software_spec(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_compiler_selector_spec_l11_d3_software_spec(args ...ruby.Value) ruby.Value {
 	return compiler_selector_spec_formula()
 }
 
 // Ruby let `let(:cc) { :clang }` at line 12.
-pub fn ruby_compiler_selector_spec_l12_d4_cc(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Symbol', 'clang')
+pub fn ruby_compiler_selector_spec_l12_d4_cc(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Symbol', 'clang')
 }
 
 // Ruby let `let(:versions) { class_double(DevelopmentTools, clang_build_version: Version.new("600")) }` at line 13.
-pub fn ruby_compiler_selector_spec_l13_d5_versions(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_compiler_selector_spec_l13_d5_versions(args ...ruby.Value) ruby.Value {
 	return compiler_selector_spec_versions_value()
 }
 
 // Ruby it `it "defaults to cc" do` at line 28.
-pub fn ruby_compiler_selector_spec_l28_d6_defaults(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_compiler_selector_spec_l28_d6_defaults(args ...ruby.Value) ruby.Value {
 	selected := compiler_selector_spec_select([], '', false) or {
 		return compiler_selector_spec_result(false)
 	}
@@ -111,7 +111,7 @@ pub fn ruby_compiler_selector_spec_l28_d6_defaults(args ...brew_runtime.Value) b
 }
 
 // Ruby it `it "returns clang if it fails with non-Apple gcc" do` at line 32.
-pub fn ruby_compiler_selector_spec_l32_d7_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_compiler_selector_spec_l32_d7_returns(args ...ruby.Value) ruby.Value {
 	selected := compiler_selector_spec_select([
 		compiler_selector_spec_gcc_failure('12', ''),
 	], '', false) or { return compiler_selector_spec_result(false) }
@@ -119,7 +119,7 @@ pub fn ruby_compiler_selector_spec_l32_d7_returns(args ...brew_runtime.Value) br
 }
 
 // Ruby it `it "still returns gcc-12 if it fails with gcc without a specific version" do` at line 37.
-pub fn ruby_compiler_selector_spec_l37_d8_still(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_compiler_selector_spec_l37_d8_still(args ...ruby.Value) ruby.Value {
 	selected := compiler_selector_spec_select([
 		compiler_selector_spec_symbol_failure('clang'),
 	], '', false) or { return compiler_selector_spec_result(false) }
@@ -127,7 +127,7 @@ pub fn ruby_compiler_selector_spec_l37_d8_still(args ...brew_runtime.Value) brew
 }
 
 // Ruby it `it "returns gcc-11 if gcc formula offers gcc-11 on mac", :needs_macos do` at line 42.
-pub fn ruby_compiler_selector_spec_l42_d9_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_compiler_selector_spec_l42_d9_returns(args ...ruby.Value) ruby.Value {
 	selected := compiler_selector_spec_select([
 		compiler_selector_spec_symbol_failure('clang'),
 	], '11.0', true) or { return compiler_selector_spec_result(false) }
@@ -135,7 +135,7 @@ pub fn ruby_compiler_selector_spec_l42_d9_returns(args ...brew_runtime.Value) br
 }
 
 // Ruby it `it "returns gcc-10 if gcc formula offers gcc-10 on linux", :needs_linux do` at line 50.
-pub fn ruby_compiler_selector_spec_l50_d10_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_compiler_selector_spec_l50_d10_returns(args ...ruby.Value) ruby.Value {
 	selected := compiler_selector_spec_select([
 		compiler_selector_spec_symbol_failure('clang'),
 	], '10.0', true) or { return compiler_selector_spec_result(false) }
@@ -143,7 +143,7 @@ pub fn ruby_compiler_selector_spec_l50_d10_returns(args ...brew_runtime.Value) b
 }
 
 // Ruby it `it "returns gcc-11 if gcc formula offers gcc-10 and fails with gcc-10 and gcc-12 on linux", :needs_linux do` at line 58.
-pub fn ruby_compiler_selector_spec_l58_d11_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_compiler_selector_spec_l58_d11_returns(args ...ruby.Value) ruby.Value {
 	selected := compiler_selector_spec_select([
 		compiler_selector_spec_symbol_failure('clang'),
 		compiler_selector_spec_gcc_failure('10', ''),
@@ -153,7 +153,7 @@ pub fn ruby_compiler_selector_spec_l58_d11_returns(args ...brew_runtime.Value) b
 }
 
 // Ruby it `it "returns gcc-12 if gcc formula offers gcc-11 and fails with gcc <= 11 on linux", :needs_linux do` at line 68.
-pub fn ruby_compiler_selector_spec_l68_d12_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_compiler_selector_spec_l68_d12_returns(args ...ruby.Value) ruby.Value {
 	mut gcc_failure := compiler_selector_spec_symbol_failure('gcc')
 	gcc_failure.set_version('11') or { return compiler_selector_spec_result(false) }
 	selected := compiler_selector_spec_select([
@@ -164,7 +164,7 @@ pub fn ruby_compiler_selector_spec_l68_d12_returns(args ...brew_runtime.Value) b
 }
 
 // Ruby it `it "returns gcc-12 if gcc-12 is version 12.1 but spec fails with gcc-12 <= 12.0" do` at line 77.
-pub fn ruby_compiler_selector_spec_l77_d13_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_compiler_selector_spec_l77_d13_returns(args ...ruby.Value) ruby.Value {
 	selected := compiler_selector_spec_select([
 		compiler_selector_spec_symbol_failure('clang'),
 		compiler_selector_spec_gcc_failure('12', '12.0'),
@@ -173,7 +173,7 @@ pub fn ruby_compiler_selector_spec_l77_d13_returns(args ...brew_runtime.Value) b
 }
 
 // Ruby it `it "returns gcc-11 if gcc-12 is version 12.1 but spec fails with gcc-12 <= 12.1" do` at line 83.
-pub fn ruby_compiler_selector_spec_l83_d14_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_compiler_selector_spec_l83_d14_returns(args ...ruby.Value) ruby.Value {
 	selected := compiler_selector_spec_select([
 		compiler_selector_spec_symbol_failure('clang'),
 		compiler_selector_spec_gcc_failure('12', '12.1'),
@@ -182,7 +182,7 @@ pub fn ruby_compiler_selector_spec_l83_d14_returns(args ...brew_runtime.Value) b
 }
 
 // Ruby it `it "raises an error when gcc or llvm is missing (hash syntax)" do` at line 89.
-pub fn ruby_compiler_selector_spec_l89_d15_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_compiler_selector_spec_l89_d15_raises(args ...ruby.Value) ruby.Value {
 	selector := compiler_selector_spec_selector([
 		compiler_selector_spec_symbol_failure('clang'),
 		compiler_selector_spec_gcc_failure('12', ''),
@@ -195,7 +195,7 @@ pub fn ruby_compiler_selector_spec_l89_d15_raises(args ...brew_runtime.Value) br
 }
 
 // Ruby it `it "raises an error when gcc or llvm is missing (symbol syntax)" do` at line 99.
-pub fn ruby_compiler_selector_spec_l99_d16_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_compiler_selector_spec_l99_d16_raises(args ...ruby.Value) ruby.Value {
 	selector := compiler_selector_spec_selector([
 		compiler_selector_spec_symbol_failure('clang'),
 		compiler_selector_spec_symbol_failure('gcc'),

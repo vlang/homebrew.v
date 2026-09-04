@@ -1,6 +1,6 @@
 module livecheck
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `livecheck/strategic.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -10,26 +10,26 @@ pub:
 	url     string
 	regex   string
 	content string
-	options brew_runtime.Value
+	options ruby.Value
 }
 
 // Strategic is intentionally only an interface, matching the Ruby source: each
 // built-in or third-party livecheck strategy supplies both operations.
 pub interface Strategic {
 	match_url(url string) bool
-	find_versions(request StrategicFindVersionsRequest) map[string]brew_runtime.Value
+	find_versions(request StrategicFindVersionsRequest) map[string]ruby.Value
 }
 
 // Ruby method `match?(url); end` at line 18.
-pub fn ruby_strategic_l18_d1_match(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_strategic_l18_d1_match(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.object_value('AbstractMethodError', 'Strategic#match? must be implemented by a livecheck strategy')
+	return ruby.object_value('AbstractMethodError', 'Strategic#match? must be implemented by a livecheck strategy')
 }
 
 // Ruby method `find_versions(url:, regex: nil, content: nil, options: Options.new, &block); end` at line 37.
-pub fn ruby_strategic_l37_d2_find_versions(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_strategic_l37_d2_find_versions(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.object_value('AbstractMethodError', 'Strategic#find_versions must be implemented by a livecheck strategy')
+	return ruby.object_value('AbstractMethodError', 'Strategic#find_versions must be implemented by a livecheck strategy')
 }
 
 // Original Ruby source (line-for-line):

@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `development_tools.rb`.
@@ -272,110 +272,110 @@ pub fn (tools DevelopmentTools) build_system_info() map[string]string {
 	}
 }
 
-fn development_tools_value(tools &DevelopmentTools) brew_runtime.Value {
-	return brew_runtime.structured_value('DevelopmentTools', '', {
+fn development_tools_value(tools &DevelopmentTools) ruby.Value {
+	return ruby.structured_value('DevelopmentTools', '', {
 		'development_tools_address': u64(voidptr(tools)).str()
 	})
 }
 
-fn development_tools_from_args(args []brew_runtime.Value) (&DevelopmentTools, int) {
+fn development_tools_from_args(args []ruby.Value) (&DevelopmentTools, int) {
 	if args.len > 0 && 'development_tools_address' in args[0].attributes {
 		return unsafe { &DevelopmentTools(voidptr(args[0].attributes['development_tools_address'].u64())) }, 1
 	}
 	return new_development_tools(os.getenv('HOMEBREW_PREFIX')), 0
 }
 
-pub fn development_tools_boundary(tools &DevelopmentTools) brew_runtime.Value {
+pub fn development_tools_boundary(tools &DevelopmentTools) ruby.Value {
 	return development_tools_value(tools)
 }
 
-fn development_tools_version_value(version string) brew_runtime.Value {
+fn development_tools_version_value(version string) ruby.Value {
 	return if version == '' {
-		brew_runtime.object_value('Version::NULL', '')
+		ruby.object_value('Version::NULL', '')
 	} else {
-		brew_runtime.object_value('Version', version)
+		ruby.object_value('Version', version)
 	}
 }
 
 // Ruby method `locate(tool)` at line 15.
-pub fn ruby_development_tools_l15_d1_locate(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_development_tools_l15_d1_locate(args ...ruby.Value) ruby.Value {
 	mut tools, offset := development_tools_from_args(args)
 	if args.len <= offset {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	path := tools.locate(args[offset].as_string()) or {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
-	return brew_runtime.object_value('Pathname', path)
+	return ruby.object_value('Pathname', path)
 }
 
 // Ruby method `installed?` at line 30.
-pub fn ruby_development_tools_l30_d2_installed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_development_tools_l30_d2_installed(args ...ruby.Value) ruby.Value {
 	mut tools, _ := development_tools_from_args(args)
-	return brew_runtime.bool_value(tools.installed())
+	return ruby.bool_value(tools.installed())
 }
 
 // Ruby method `installation_instructions` at line 35.
-pub fn ruby_development_tools_l35_d3_installation_instructions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(development_tools_installation_instructions())
+pub fn ruby_development_tools_l35_d3_installation_instructions(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(development_tools_installation_instructions())
 }
 
 // Ruby method `custom_installation_instructions` at line 40.
-pub fn ruby_development_tools_l40_d4_custom_installation_instructions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(development_tools_installation_instructions())
+pub fn ruby_development_tools_l40_d4_custom_installation_instructions(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(development_tools_installation_instructions())
 }
 
 // Ruby method `insecure_download_warning(resource)` at line 45.
-pub fn ruby_development_tools_l45_d5_insecure_download_warning(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_development_tools_l45_d5_insecure_download_warning(args ...ruby.Value) ruby.Value {
 	_, offset := development_tools_from_args(args)
 	resource := if args.len > offset { args[offset].as_string() } else { '' }
-	return brew_runtime.string_value(development_tools_insecure_download_warning(resource))
+	return ruby.string_value(development_tools_insecure_download_warning(resource))
 }
 
 // Ruby method `default_compiler` at line 56.
-pub fn ruby_development_tools_l56_d6_default_compiler(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Symbol', 'clang')
+pub fn ruby_development_tools_l56_d6_default_compiler(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Symbol', 'clang')
 }
 
 // Ruby method `ld64_version` at line 61.
-pub fn ruby_development_tools_l61_d7_ld64_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Version::NULL', '')
+pub fn ruby_development_tools_l61_d7_ld64_version(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Version::NULL', '')
 }
 
 // Ruby method `clang_version_output` at line 66.
-pub fn ruby_development_tools_l66_d8_clang_version_output(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_development_tools_l66_d8_clang_version_output(args ...ruby.Value) ruby.Value {
 	mut tools, _ := development_tools_from_args(args)
 	output := tools.clang_version_output() or {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
-	return brew_runtime.string_value(output)
+	return ruby.string_value(output)
 }
 
 // Ruby method `clang_version` at line 78.
-pub fn ruby_development_tools_l78_d9_clang_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_development_tools_l78_d9_clang_version(args ...ruby.Value) ruby.Value {
 	mut tools, _ := development_tools_from_args(args)
 	return development_tools_version_value(tools.clang_version())
 }
 
 // Ruby method `clang_build_version` at line 92.
-pub fn ruby_development_tools_l92_d10_clang_build_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_development_tools_l92_d10_clang_build_version(args ...ruby.Value) ruby.Value {
 	mut tools, _ := development_tools_from_args(args)
 	return development_tools_version_value(tools.clang_build_version())
 }
 
 // Ruby method `llvm_clang_build_version` at line 106.
-pub fn ruby_development_tools_l106_d11_llvm_clang_build_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_development_tools_l106_d11_llvm_clang_build_version(args ...ruby.Value) ruby.Value {
 	mut tools, _ := development_tools_from_args(args)
 	return development_tools_version_value(tools.llvm_clang_build_version())
 }
 
 // Ruby method `host_gcc_path` at line 120.
-pub fn ruby_development_tools_l120_d12_host_gcc_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Pathname', development_tools_host_gcc_path())
+pub fn ruby_development_tools_l120_d12_host_gcc_path(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Pathname', development_tools_host_gcc_path())
 }
 
 // Ruby method `gcc_version(cc = host_gcc_path.to_s)` at line 128.
-pub fn ruby_development_tools_l128_d13_gcc_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_development_tools_l128_d13_gcc_version(args ...ruby.Value) ruby.Value {
 	mut tools, offset := development_tools_from_args(args)
 	cc := if args.len > offset {
 		args[offset].as_string()
@@ -386,57 +386,57 @@ pub fn ruby_development_tools_l128_d13_gcc_version(args ...brew_runtime.Value) b
 }
 
 // Ruby method `clear_version_cache` at line 143.
-pub fn ruby_development_tools_l143_d14_clear_version_cache(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_development_tools_l143_d14_clear_version_cache(args ...ruby.Value) ruby.Value {
 	mut tools, _ := development_tools_from_args(args)
 	tools.clear_version_cache()
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `needs_build_formulae?` at line 150.
-pub fn ruby_development_tools_l150_d15_needs_build_formulae(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(false)
+pub fn ruby_development_tools_l150_d15_needs_build_formulae(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(false)
 }
 
 // Ruby method `needs_libc_formula?` at line 155.
-pub fn ruby_development_tools_l155_d16_needs_libc_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(false)
+pub fn ruby_development_tools_l155_d16_needs_libc_formula(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(false)
 }
 
 // Ruby method `needs_compiler_formula?` at line 160.
-pub fn ruby_development_tools_l160_d17_needs_compiler_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(false)
+pub fn ruby_development_tools_l160_d17_needs_compiler_formula(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(false)
 }
 
 // Ruby method `ca_file_handles_most_https_certificates?` at line 165.
-pub fn ruby_development_tools_l165_d18_ca_file_handles_most_https_certificates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_development_tools_l165_d18_ca_file_handles_most_https_certificates(args ...ruby.Value) ruby.Value {
 	tools, _ := development_tools_from_args(args)
-	return brew_runtime.bool_value(tools.ca_file_handles_most_https_certificates())
+	return ruby.bool_value(tools.ca_file_handles_most_https_certificates())
 }
 
 // Ruby method `curl_handles_most_https_certificates?` at line 172.
-pub fn ruby_development_tools_l172_d19_curl_handles_most_https_certificates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(true)
+pub fn ruby_development_tools_l172_d19_curl_handles_most_https_certificates(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(true)
 }
 
 // Ruby method `ca_file_substitution_required?` at line 177.
-pub fn ruby_development_tools_l177_d20_ca_file_substitution_required(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_development_tools_l177_d20_ca_file_substitution_required(args ...ruby.Value) ruby.Value {
 	tools, _ := development_tools_from_args(args)
-	return brew_runtime.bool_value(tools.ca_file_substitution_required())
+	return ruby.bool_value(tools.ca_file_substitution_required())
 }
 
 // Ruby method `curl_substitution_required?` at line 183.
-pub fn ruby_development_tools_l183_d21_curl_substitution_required(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(false)
+pub fn ruby_development_tools_l183_d21_curl_substitution_required(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(false)
 }
 
 // Ruby method `build_system_info` at line 188.
-pub fn ruby_development_tools_l188_d22_build_system_info(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_development_tools_l188_d22_build_system_info(args ...ruby.Value) ruby.Value {
 	tools, _ := development_tools_from_args(args)
-	mut result := map[string]brew_runtime.Value{}
+	mut result := map[string]ruby.Value{}
 	for key, value in tools.build_system_info() {
-		result[key] = brew_runtime.string_value(value)
+		result[key] = ruby.string_value(value)
 	}
-	return brew_runtime.map_value(result)
+	return ruby.map_value(result)
 }
 
 // Original Ruby source (line-for-line):

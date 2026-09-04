@@ -1,26 +1,26 @@
 module test
 
-import brew_runtime
+import ruby
 import homebrew
 import os
 import time
 
-fn completions_spec_bool(value bool) brew_runtime.Value {
-	return brew_runtime.bool_value(value)
+fn completions_spec_bool(value bool) ruby.Value {
+	return ruby.bool_value(value)
 }
 
-fn completions_spec_repository(args []brew_runtime.Value) string {
+fn completions_spec_repository(args []ruby.Value) string {
 	if args.len > 0 && args[0].as_string() != '' {
 		return args[0].as_string()
 	}
-	repository := brew_runtime.environment_value('HOMEBREW_REPOSITORY')
-	return if repository == '' { brew_runtime.real_path('.') } else { repository }
+	repository := ruby.environment_value('HOMEBREW_REPOSITORY')
+	return if repository == '' { ruby.real_path('.') } else { repository }
 }
 
 fn completions_spec_temp_repository(label string) !string {
 	root := os.join_path(os.temp_dir(), 'brew-v-completions-spec-${label}-${os.getpid()}-${time.now().unix_micro()}')
 	os.mkdir_all(root)!
-	result := brew_runtime.run_command('git', ['-C', root, 'init', '--quiet'])
+	result := ruby.run_command('git', ['-C', root, 'init', '--quiet'])
 	if result.exit_code != 0 {
 		return error(result.output)
 	}
@@ -153,30 +153,30 @@ fn completions_spec_command(name string) homebrew.CompletionCommand {
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:completions_dir) { HOMEBREW_REPOSITORY/"completions" }` at line 7.
-pub fn ruby_completions_spec_l7_d1_completions_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(os.join_path(completions_spec_repository(args), 'completions'))
+pub fn ruby_completions_spec_l7_d1_completions_dir(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(os.join_path(completions_spec_repository(args), 'completions'))
 }
 
 // Ruby let `let(:internal_path) { HOMEBREW_REPOSITORY/"Library/Taps/homebrew/homebrew-bar" }` at line 8.
-pub fn ruby_completions_spec_l8_d2_internal_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(os.join_path(completions_spec_repository(args), 'Library', 'Taps', 'homebrew', 'homebrew-bar'))
+pub fn ruby_completions_spec_l8_d2_internal_path(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(os.join_path(completions_spec_repository(args), 'Library', 'Taps', 'homebrew', 'homebrew-bar'))
 }
 
 // Ruby let `let(:external_path) { HOMEBREW_REPOSITORY/"Library/Taps/foo/homebrew-bar" }` at line 9.
-pub fn ruby_completions_spec_l9_d3_external_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(os.join_path(completions_spec_repository(args), 'Library', 'Taps', 'foo', 'homebrew-bar'))
+pub fn ruby_completions_spec_l9_d3_external_path(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(os.join_path(completions_spec_repository(args), 'Library', 'Taps', 'foo', 'homebrew-bar'))
 }
 
 // Ruby method `setup_completions(external:)` at line 29.
-pub fn ruby_completions_spec_l29_d4_setup_completions(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_spec_l29_d4_setup_completions(args ...ruby.Value) ruby.Value {
 	repository := completions_spec_repository(args)
 	external := if args.len > 1 { args[1].as_bool() or { false } } else { false }
 	completions_spec_taps(repository, external) or { panic(err) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `setup_completions_setting(state, setting: "linkcompletions")` at line 43.
-pub fn ruby_completions_spec_l43_d5_setup_completions_setting(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_spec_l43_d5_setup_completions_setting(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('setup_completions_setting requires state')
 	}
@@ -184,76 +184,76 @@ pub fn ruby_completions_spec_l43_d5_setup_completions_setting(args ...brew_runti
 	setting := if args.len > 2 { args[2].as_string() } else { 'linkcompletions' }
 	mut settings := homebrew.new_settings(repository)
 	settings.write(setting, args[0].as_string()) or { panic(err) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `read_completions_setting(setting: "linkcompletions")` at line 49.
-pub fn ruby_completions_spec_l49_d6_read_completions_setting(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_spec_l49_d6_read_completions_setting(args ...ruby.Value) ruby.Value {
 	repository := completions_spec_repository(args)
 	setting := if args.len > 1 { args[1].as_string() } else { 'linkcompletions' }
 	mut settings := homebrew.new_settings(repository)
 	if value := settings.read(setting) {
-		return brew_runtime.string_value(value)
+		return ruby.string_value(value)
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `delete_completions_setting(setting: "linkcompletions")` at line 55.
-pub fn ruby_completions_spec_l55_d7_delete_completions_setting(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_spec_l55_d7_delete_completions_setting(args ...ruby.Value) ruby.Value {
 	repository := completions_spec_repository(args)
 	setting := if args.len > 1 { args[1].as_string() } else { 'linkcompletions' }
 	mut settings := homebrew.new_settings(repository)
 	settings.delete(setting) or { panic(err) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby it `it "sets homebrew.linkcompletions to true" do` at line 62.
-pub fn ruby_completions_spec_l62_d8_sets(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_spec_l62_d8_sets(args ...ruby.Value) ruby.Value {
 	return completions_spec_bool(completions_spec_setting_case(true, 'false'))
 }
 
 // Ruby it `it "sets homebrew.linkcompletions to true if unset" do` at line 68.
-pub fn ruby_completions_spec_l68_d9_sets(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_spec_l68_d9_sets(args ...ruby.Value) ruby.Value {
 	return completions_spec_bool(completions_spec_setting_case(true, 'unset'))
 }
 
 // Ruby it `it "keeps homebrew.linkcompletions set to true" do` at line 74.
-pub fn ruby_completions_spec_l74_d10_keeps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_spec_l74_d10_keeps(args ...ruby.Value) ruby.Value {
 	return completions_spec_bool(completions_spec_setting_case(true, 'true'))
 }
 
 // Ruby it `it "sets homebrew.linkcompletions to false" do` at line 82.
-pub fn ruby_completions_spec_l82_d11_sets(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_spec_l82_d11_sets(args ...ruby.Value) ruby.Value {
 	return completions_spec_bool(completions_spec_setting_case(false, 'true'))
 }
 
 // Ruby it `it "sets homebrew.linkcompletions to false if unset" do` at line 88.
-pub fn ruby_completions_spec_l88_d12_sets(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_spec_l88_d12_sets(args ...ruby.Value) ruby.Value {
 	return completions_spec_bool(completions_spec_setting_case(false, 'unset'))
 }
 
 // Ruby it `it "keeps homebrew.linkcompletions set to false" do` at line 94.
-pub fn ruby_completions_spec_l94_d13_keeps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_spec_l94_d13_keeps(args ...ruby.Value) ruby.Value {
 	return completions_spec_bool(completions_spec_setting_case(false, 'false'))
 }
 
 // Ruby it `it "returns true if homebrew.linkcompletions is true" do` at line 102.
-pub fn ruby_completions_spec_l102_d14_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_spec_l102_d14_returns(args ...ruby.Value) ruby.Value {
 	return completions_spec_bool(completions_spec_link_enabled('true'))
 }
 
 // Ruby it `it "returns false if homebrew.linkcompletions is false" do` at line 107.
-pub fn ruby_completions_spec_l107_d15_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_spec_l107_d15_returns(args ...ruby.Value) ruby.Value {
 	return completions_spec_bool(!completions_spec_link_enabled('false'))
 }
 
 // Ruby it `it "returns false if homebrew.linkcompletions is not set" do` at line 112.
-pub fn ruby_completions_spec_l112_d16_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_spec_l112_d16_returns(args ...ruby.Value) ruby.Value {
 	return completions_spec_bool(!completions_spec_link_enabled('unset'))
 }
 
 // Ruby it `it "returns false if only internal taps have completions" do` at line 118.
-pub fn ruby_completions_spec_l118_d17_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_spec_l118_d17_returns(args ...ruby.Value) ruby.Value {
 	repository := completions_spec_temp_repository('internal') or { return completions_spec_bool(false) }
 	defer {
 		os.rmdir_all(repository) or {}
@@ -263,7 +263,7 @@ pub fn ruby_completions_spec_l118_d17_returns(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby it `it "returns true if external taps have completions" do` at line 123.
-pub fn ruby_completions_spec_l123_d18_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_spec_l123_d18_returns(args ...ruby.Value) ruby.Value {
 	repository := completions_spec_temp_repository('external') or { return completions_spec_bool(false) }
 	defer {
 		os.rmdir_all(repository) or {}
@@ -273,29 +273,29 @@ pub fn ruby_completions_spec_l123_d18_returns(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby it `it "doesn't show the message if there are no completions to link" do` at line 130.
-pub fn ruby_completions_spec_l130_d19_doesn(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_spec_l130_d19_doesn(args ...ruby.Value) ruby.Value {
 	return completions_spec_bool(completions_spec_message(false, false) == '')
 }
 
 // Ruby it `it "doesn't show the message if there are completions to link but the message has already been shown" do` at line 136.
-pub fn ruby_completions_spec_l136_d20_doesn(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_spec_l136_d20_doesn(args ...ruby.Value) ruby.Value {
 	return completions_spec_bool(completions_spec_message(true, true) == '')
 }
 
 // Ruby it `it "shows the message if there are completions to link and the message hasn't already been shown" do` at line 142.
-pub fn ruby_completions_spec_l142_d21_shows(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_spec_l142_d21_shows(args ...ruby.Value) ruby.Value {
 	return completions_spec_bool(completions_spec_message(true, false).contains('Homebrew completions for external commands are unlinked by default!'))
 }
 
 // Ruby let `let(:nested_completion_command) { "subcommand-test" }` at line 163.
-pub fn ruby_completions_spec_l163_d22_nested_completion_command(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('subcommand-test')
+pub fn ruby_completions_spec_l163_d22_nested_completion_command(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('subcommand-test')
 }
 
 // Ruby let `let(:nested_completion_subcommands) do` at line 164.
-pub fn ruby_completions_spec_l164_d23_nested_completion_subcommands(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_spec_l164_d23_nested_completion_subcommands(args ...ruby.Value) ruby.Value {
 	command := completions_spec_nested_command()
-	return brew_runtime.array_value(command.subcommands.map(brew_runtime.structured_value('Subcommand', it.name, {
+	return ruby.array_value(command.subcommands.map(ruby.structured_value('Subcommand', it.name, {
 		'name':        it.name
 		'aliases':     it.aliases.join(',')
 		'description': it.description
@@ -304,9 +304,9 @@ pub fn ruby_completions_spec_l164_d23_nested_completion_subcommands(args ...brew
 }
 
 // Ruby method `stub_nested_completion_command(command, subcommands)` at line 185.
-pub fn ruby_completions_spec_l185_d24_stub_nested_completion_command(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_spec_l185_d24_stub_nested_completion_command(args ...ruby.Value) ruby.Value {
 	command := completions_spec_nested_command()
-	return brew_runtime.structured_value('CompletionCommand', command.name, {
+	return ruby.structured_value('CompletionCommand', command.name, {
 		'name':        command.name
 		'description': command.description
 		'subcommands': command.subcommands.map(it.name).join(',')
@@ -314,32 +314,32 @@ pub fn ruby_completions_spec_l185_d24_stub_nested_completion_command(args ...bre
 }
 
 // Ruby it `it "escapes single quotes" do` at line 218.
-pub fn ruby_completions_spec_l218_d25_escapes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_spec_l218_d25_escapes(args ...ruby.Value) ruby.Value {
 	return completions_spec_bool(homebrew.completion_format_description("Homebrew's", false) == "Homebrew'\\''s")
 }
 
 // Ruby it `it "escapes single quotes for fish" do` at line 222.
-pub fn ruby_completions_spec_l222_d26_escapes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_spec_l222_d26_escapes(args ...ruby.Value) ruby.Value {
 	return completions_spec_bool(homebrew.completion_format_description("Homebrew's", true) == "Homebrew\\'s")
 }
 
 // Ruby it `it "removes angle brackets" do` at line 226.
-pub fn ruby_completions_spec_l226_d27_removes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_spec_l226_d27_removes(args ...ruby.Value) ruby.Value {
 	return completions_spec_bool(homebrew.completion_format_description('<formula>', false) == 'formula')
 }
 
 // Ruby it `it "replaces newlines with spaces" do` at line 230.
-pub fn ruby_completions_spec_l230_d28_replaces(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_spec_l230_d28_replaces(args ...ruby.Value) ruby.Value {
 	return completions_spec_bool(homebrew.completion_format_description('Homebrew\ncommand', false) == 'Homebrew command')
 }
 
 // Ruby it `it "removes trailing period" do` at line 234.
-pub fn ruby_completions_spec_l234_d29_removes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_spec_l234_d29_removes(args ...ruby.Value) ruby.Value {
 	return completions_spec_bool(homebrew.completion_format_description('Homebrew.', false) == 'Homebrew')
 }
 
 // Ruby it `it "returns an array of options for a ruby command" do` at line 240.
-pub fn ruby_completions_spec_l240_d30_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_spec_l240_d30_returns(args ...ruby.Value) ruby.Value {
 	options := homebrew.completion_command_options(completions_spec_command('missing').options)
 	return completions_spec_bool(options == {
 		'--debug':   'Display any debugging information.'
@@ -351,7 +351,7 @@ pub fn ruby_completions_spec_l240_d30_returns(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby it `it "returns an array of options for a shell command" do` at line 252.
-pub fn ruby_completions_spec_l252_d31_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_spec_l252_d31_returns(args ...ruby.Value) ruby.Value {
 	options := homebrew.completion_command_options(completions_spec_command('update').options)
 	return completions_spec_bool(options == {
 		'--auto-update': 'Run on auto-updates (e.g. before `brew install`). Skips some slower steps.'
@@ -364,29 +364,29 @@ pub fn ruby_completions_spec_l252_d31_returns(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby it `it "handles --[no]- options correctly" do` at line 264.
-pub fn ruby_completions_spec_l264_d32_handles(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_spec_l264_d32_handles(args ...ruby.Value) ruby.Value {
 	options := homebrew.completion_command_options(completions_spec_command('audit').options)
 	return completions_spec_bool('--signing' !in options && '--no-signing' !in options)
 }
 
 // Ruby it `it "return an empty array if command is not found" do` at line 269.
-pub fn ruby_completions_spec_l269_d33_return(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_spec_l269_d33_return(args ...ruby.Value) ruby.Value {
 	return completions_spec_bool(completions_spec_command('foobar').options.len == 0)
 }
 
 // Ruby it `it "return an empty array for a command with no options" do` at line 273.
-pub fn ruby_completions_spec_l273_d34_return(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_spec_l273_d34_return(args ...ruby.Value) ruby.Value {
 	return completions_spec_bool(completions_spec_command('help').options.len == 0)
 }
 
 // Ruby it `it "overrides global options with local descriptions" do` at line 277.
-pub fn ruby_completions_spec_l277_d35_overrides(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_spec_l277_d35_overrides(args ...ruby.Value) ruby.Value {
 	options := homebrew.completion_command_options(completions_spec_command('upgrade').options)
 	return completions_spec_bool(options['--verbose'] or { '' } == 'Print the verification and post-install steps.')
 }
 
 // Ruby it `it "returns options for a nested subcommand" do` at line 282.
-pub fn ruby_completions_spec_l282_d36_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_spec_l282_d36_returns(args ...ruby.Value) ruby.Value {
 	command := completions_spec_nested_command()
 	root := homebrew.completion_command_options(command.options)
 	info := homebrew.completion_command_options(command.subcommands[1].options)
@@ -395,30 +395,30 @@ pub fn ruby_completions_spec_l282_d36_returns(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby it `it "returns true for a non-cask command with options" do` at line 299.
-pub fn ruby_completions_spec_l299_d37_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_spec_l299_d37_returns(args ...ruby.Value) ruby.Value {
 	command := completions_spec_command('install')
 	return completions_spec_bool(homebrew.completion_command_gets_completions(command.options, command.subcommands))
 }
 
 // Ruby it `it "returns false for a non-cask command with no options" do` at line 303.
-pub fn ruby_completions_spec_l303_d38_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_spec_l303_d38_returns(args ...ruby.Value) ruby.Value {
 	command := completions_spec_command('help')
 	return completions_spec_bool(!homebrew.completion_command_gets_completions(command.options, command.subcommands))
 }
 
 // Ruby it `it "returns false for a cask command" do` at line 307.
-pub fn ruby_completions_spec_l307_d39_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_spec_l307_d39_returns(args ...ruby.Value) ruby.Value {
 	command := completions_spec_command('cask install')
 	return completions_spec_bool(!homebrew.completion_command_gets_completions(command.options, command.subcommands))
 }
 
 // Ruby it `it "returns nil if completions aren't needed" do` at line 313.
-pub fn ruby_completions_spec_l313_d40_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_spec_l313_d40_returns(args ...ruby.Value) ruby.Value {
 	return completions_spec_bool(homebrew.completion_generate_bash_command(completions_spec_command('help')) == none)
 }
 
 // Ruby it `it "returns appropriate completion for a ruby command" do` at line 317.
-pub fn ruby_completions_spec_l317_d41_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_spec_l317_d41_returns(args ...ruby.Value) ruby.Value {
 	completion := homebrew.completion_generate_bash_command(completions_spec_command('missing')) or {
 		return completions_spec_bool(false)
 	}
@@ -426,7 +426,7 @@ pub fn ruby_completions_spec_l317_d41_returns(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby it `it "returns appropriate completion for a shell command" do` at line 341.
-pub fn ruby_completions_spec_l341_d42_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_spec_l341_d42_returns(args ...ruby.Value) ruby.Value {
 	completion := homebrew.completion_generate_bash_command(completions_spec_command('update')) or {
 		return completions_spec_bool(false)
 	}
@@ -434,7 +434,7 @@ pub fn ruby_completions_spec_l341_d42_returns(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby it `it "returns appropriate completion for a command with multiple named arg types" do` at line 364.
-pub fn ruby_completions_spec_l364_d43_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_spec_l364_d43_returns(args ...ruby.Value) ruby.Value {
 	completion := homebrew.completion_generate_bash_command(completions_spec_command('upgrade')) or {
 		return completions_spec_bool(false)
 	}
@@ -442,7 +442,7 @@ pub fn ruby_completions_spec_l364_d43_returns(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby it `it "returns appropriate completion for a command with nested subcommands" do` at line 369.
-pub fn ruby_completions_spec_l369_d44_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_spec_l369_d44_returns(args ...ruby.Value) ruby.Value {
 	completion := homebrew.completion_generate_bash_command(completions_spec_nested_command()) or {
 		return completions_spec_bool(false)
 	}
@@ -450,19 +450,19 @@ pub fn ruby_completions_spec_l369_d44_returns(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby it `it "returns the correct completion file" do` at line 384.
-pub fn ruby_completions_spec_l384_d45_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_spec_l384_d45_returns(args ...ruby.Value) ruby.Value {
 	file := homebrew.completion_generate_bash_file(['install', 'missing', 'update'].map(completions_spec_command(it)))
 	return completions_spec_bool(file.contains('_brew_install() {') && file.contains('_brew_missing() {') && file.contains('_brew_update() {') && file.contains('install) _brew_install ;;') && file.contains('missing) _brew_missing ;;') && file.contains('update) _brew_update ;;') && file.ends_with('complete -o bashdefault -o default -F _brew brew\n'))
 }
 
 // Ruby it `it "doesn't add internal aliases to command completions" do` at line 398.
-pub fn ruby_completions_spec_l398_d46_doesn(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_spec_l398_d46_doesn(args ...ruby.Value) ruby.Value {
 	file := homebrew.completion_generate_bash_file(['install', 'missing', 'up', 'update'].map(completions_spec_command(it)))
 	return completions_spec_bool(!file.contains('_brew_up() {') && file.contains('up) echo "update" ;;') && file.contains('update) _brew_update ;;') && file.contains('user_aliases="\$(__brew_list_aliases)"') && file.contains('local pattern="alias: brew ([^[:space:]]+)"') && file.contains('alias_name="\${file##*/}"') && file.contains('if read -r line && [[ \${line} =~ \${pattern} ]]; then') && file.contains('[[ \$(__brew_internal_command_alias "\${line}") == "\${line}" ]] || continue') && file.contains('compgen -W "\${cmds} \${maintainer_cmds} \${user_aliases}" -- "\${cur}"'))
 }
 
 // Ruby it `it "keeps argument completions for commands hidden from the manpage" do` at line 414.
-pub fn ruby_completions_spec_l414_d47_keeps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_spec_l414_d47_keeps(args ...ruby.Value) ruby.Value {
 	file := homebrew.completion_generate_bash_file([
 		completions_spec_command('generate-internal-api'),
 	])
@@ -470,12 +470,12 @@ pub fn ruby_completions_spec_l414_d47_keeps(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby it `it "returns nil if completions aren't needed" do` at line 424.
-pub fn ruby_completions_spec_l424_d48_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_spec_l424_d48_returns(args ...ruby.Value) ruby.Value {
 	return completions_spec_bool(homebrew.completion_generate_zsh_command(completions_spec_command('help')) == none)
 }
 
 // Ruby it `it "returns appropriate completion for a ruby command" do` at line 428.
-pub fn ruby_completions_spec_l428_d49_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_spec_l428_d49_returns(args ...ruby.Value) ruby.Value {
 	completion := homebrew.completion_generate_zsh_command(completions_spec_command('missing')) or {
 		return completions_spec_bool(false)
 	}
@@ -483,7 +483,7 @@ pub fn ruby_completions_spec_l428_d49_returns(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby it `it "returns appropriate completion for a shell command" do` at line 447.
-pub fn ruby_completions_spec_l447_d50_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_spec_l447_d50_returns(args ...ruby.Value) ruby.Value {
 	completion := homebrew.completion_generate_zsh_command(completions_spec_command('update')) or {
 		return completions_spec_bool(false)
 	}
@@ -491,7 +491,7 @@ pub fn ruby_completions_spec_l447_d50_returns(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby it `it "returns appropriate completion for a command with multiple named arg types" do` at line 463.
-pub fn ruby_completions_spec_l463_d51_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_spec_l463_d51_returns(args ...ruby.Value) ruby.Value {
 	completion := homebrew.completion_generate_zsh_command(completions_spec_command('livecheck')) or {
 		return completions_spec_bool(false)
 	}
@@ -499,7 +499,7 @@ pub fn ruby_completions_spec_l463_d51_returns(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby it `it "returns appropriate completion for a command with nested subcommands" do` at line 473.
-pub fn ruby_completions_spec_l473_d52_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_spec_l473_d52_returns(args ...ruby.Value) ruby.Value {
 	completion := homebrew.completion_generate_zsh_command(completions_spec_nested_command()) or {
 		return completions_spec_bool(false)
 	}
@@ -507,19 +507,19 @@ pub fn ruby_completions_spec_l473_d52_returns(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby it `it "doesn't generate internal alias completion functions" do` at line 489.
-pub fn ruby_completions_spec_l489_d53_doesn(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_spec_l489_d53_doesn(args ...ruby.Value) ruby.Value {
 	file := homebrew.completion_generate_zsh_file(['up', 'update'].map(completions_spec_command(it)))
 	return completions_spec_bool(!file.contains('# brew up\n') && !file.contains('_brew_up() {') && file.contains('    up update') && file.contains('__brew_user_aliases() {') && file.contains('local pattern="alias: brew ([^[:space:]]+)"') && file.contains('alias_name="\${file:t}"') && file.contains("'user-aliases:alias:__brew_user_aliases'") && file.contains('local command_or_alias') && file.contains('local completion_func="_brew_\${command//-/_}"'))
 }
 
 // Ruby it `it "returns the correct completion file" do` at line 505.
-pub fn ruby_completions_spec_l505_d54_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_spec_l505_d54_returns(args ...ruby.Value) ruby.Value {
 	file := homebrew.completion_generate_zsh_file(['install', 'missing', 'update'].map(completions_spec_command(it)))
 	return completions_spec_bool(file.starts_with('#compdef brew') && file.contains("'install:Install a formula or cask'") && file.contains("'missing:Check the given formula kegs and cask installations for") && file.contains("'update:Fetch the newest version of Homebrew") && file.contains('_brew_install() {') && file.ends_with('_brew "\$@"\n'))
 }
 
 // Ruby it `it "maintainer-gates command completions but keeps argument completions for commands hidden from the manpage" do` at line 520.
-pub fn ruby_completions_spec_l520_d55_maintainer_gates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_spec_l520_d55_maintainer_gates(args ...ruby.Value) ruby.Value {
 	file := homebrew.completion_generate_zsh_file([
 		completions_spec_command('generate-internal-api'),
 	])
@@ -527,12 +527,12 @@ pub fn ruby_completions_spec_l520_d55_maintainer_gates(args ...brew_runtime.Valu
 }
 
 // Ruby it `it "returns nil if completions aren't needed" do` at line 530.
-pub fn ruby_completions_spec_l530_d56_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_spec_l530_d56_returns(args ...ruby.Value) ruby.Value {
 	return completions_spec_bool(homebrew.completion_generate_fish_command(completions_spec_command('help')) == none)
 }
 
 // Ruby it `it "returns appropriate completion for a ruby command" do` at line 534.
-pub fn ruby_completions_spec_l534_d57_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_spec_l534_d57_returns(args ...ruby.Value) ruby.Value {
 	completion := homebrew.completion_generate_fish_command(completions_spec_command('missing')) or {
 		return completions_spec_bool(false)
 	}
@@ -540,7 +540,7 @@ pub fn ruby_completions_spec_l534_d57_returns(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby it `it "returns appropriate completion for a shell command" do` at line 548.
-pub fn ruby_completions_spec_l548_d58_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_spec_l548_d58_returns(args ...ruby.Value) ruby.Value {
 	completion := homebrew.completion_generate_fish_command(completions_spec_command('update')) or {
 		return completions_spec_bool(false)
 	}
@@ -548,7 +548,7 @@ pub fn ruby_completions_spec_l548_d58_returns(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby it `it "returns appropriate completion for a command with multiple named arg types" do` at line 561.
-pub fn ruby_completions_spec_l561_d59_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_spec_l561_d59_returns(args ...ruby.Value) ruby.Value {
 	completion := homebrew.completion_generate_fish_command(completions_spec_command('upgrade')) or {
 		return completions_spec_bool(false)
 	}
@@ -556,7 +556,7 @@ pub fn ruby_completions_spec_l561_d59_returns(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby it `it "returns appropriate completion for a command with nested subcommands" do` at line 572.
-pub fn ruby_completions_spec_l572_d60_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_spec_l572_d60_returns(args ...ruby.Value) ruby.Value {
 	completion := homebrew.completion_generate_fish_command(completions_spec_nested_command()) or {
 		return completions_spec_bool(false)
 	}
@@ -564,7 +564,7 @@ pub fn ruby_completions_spec_l572_d60_returns(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby it `it "maintainer-gates command completions but keeps argument completions for commands hidden from the manpage" do` at line 587.
-pub fn ruby_completions_spec_l587_d61_maintainer_gates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_spec_l587_d61_maintainer_gates(args ...ruby.Value) ruby.Value {
 	completion := homebrew.completion_generate_fish_command(completions_spec_command('generate-internal-api')) or {
 		return completions_spec_bool(false)
 	}
@@ -572,13 +572,13 @@ pub fn ruby_completions_spec_l587_d61_maintainer_gates(args ...brew_runtime.Valu
 }
 
 // Ruby it `it "returns the correct completion file" do` at line 596.
-pub fn ruby_completions_spec_l596_d62_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_spec_l596_d62_returns(args ...ruby.Value) ruby.Value {
 	file := homebrew.completion_generate_fish_file(['install', 'missing', 'update'].map(completions_spec_command(it)))
 	return completions_spec_bool(file.contains('function __fish_brew_complete_cmd') && file.contains("__fish_brew_complete_cmd 'install' 'Install a formula or cask'") && file.contains("__fish_brew_complete_cmd 'missing'") && file.contains("__fish_brew_complete_cmd 'update'"))
 }
 
 // Ruby it `it "omits internal aliases from command completions" do` at line 604.
-pub fn ruby_completions_spec_l604_d63_omits(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_spec_l604_d63_omits(args ...ruby.Value) ruby.Value {
 	file := homebrew.completion_generate_fish_file(['up', 'update'].map(completions_spec_command(it)))
 	return completions_spec_bool(!file.contains("__fish_brew_complete_cmd 'up'") && !file.contains("__fish_brew_complete_arg 'up'") && file.contains("case 'up'\n            echo 'update'") && file.contains('set -l cmd (__fish_brew_expand_alias \$args[1])') && file.contains("__fish_brew_complete_cmd 'update'"))
 }
@@ -588,9 +588,9 @@ pub fn completions_spec_all_boundaries() []bool {
 	defer {
 		os.rmdir_all(repository) or {}
 	}
-	repository_value := brew_runtime.string_value(repository)
-	ruby_completions_spec_l29_d4_setup_completions(repository_value, brew_runtime.bool_value(true))
-	ruby_completions_spec_l43_d5_setup_completions_setting(brew_runtime.bool_value(true), repository_value)
+	repository_value := ruby.string_value(repository)
+	ruby_completions_spec_l29_d4_setup_completions(repository_value, ruby.bool_value(true))
+	ruby_completions_spec_l43_d5_setup_completions_setting(ruby.bool_value(true), repository_value)
 	settings_read := ruby_completions_spec_l49_d6_read_completions_setting(repository_value)
 	ruby_completions_spec_l55_d7_delete_completions_setting(repository_value)
 	return [

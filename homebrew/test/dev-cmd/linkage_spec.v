@@ -1,23 +1,23 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `test/dev-cmd/linkage_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "works when no arguments are provided", :integration_test do` at line 10.
-pub fn ruby_linkage_spec_l10_d1_works(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_linkage_spec_l10_d1_works(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := run_linkage_command(LinkageCommandOptions{})
-	return brew_runtime.bool_value(result.kegs.len == 0 && result.output.len == 0 && !result.failed)
+	return ruby.bool_value(result.kegs.len == 0 && result.output.len == 0 && !result.failed)
 }
 
 // Ruby it `it "accepts no_linkage dependency tag" do` at line 17.
-pub fn ruby_linkage_spec_l17_d2_accepts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_linkage_spec_l17_d2_accepts(args ...ruby.Value) ruby.Value {
 	tags := if args.len > 0 { args[0].as_string_array() or { []string{} } } else { [
 		'no_linkage',
 	] }
-	return brew_runtime.bool_value('no_linkage' in tags)
+	return ruby.bool_value('no_linkage' in tags)
 }
 
 // Original Ruby source (line-for-line):

@@ -1,16 +1,16 @@
 module homebrew
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `lazy_object.rb`.
 // The original source is retained below until every stub has a typed V body.
-pub type LazyValueFactory = fn() !brew_runtime.Value
+pub type LazyValueFactory = fn() !ruby.Value
 
 pub struct LazyObject {
 mut:
 	callable    LazyValueFactory @[required]
 	getobj_set  bool
-	object      brew_runtime.Value
+	object      ruby.Value
 	evaluations int
 }
 
@@ -30,7 +30,7 @@ pub fn ruby_lazy_object_l9_d1_initialize(callable LazyValueFactory) LazyObject {
 }
 
 // Ruby method `__getobj__(&_blk)` at line 17.
-pub fn ruby_lazy_object_l17_d2_getobj(mut object LazyObject) !brew_runtime.Value {
+pub fn ruby_lazy_object_l17_d2_getobj(mut object LazyObject) !ruby.Value {
 	if object.getobj_set {
 		return object.object
 	}
@@ -44,7 +44,7 @@ pub fn ruby_lazy_object_l17_d2_getobj(mut object LazyObject) !brew_runtime.Value
 pub fn ruby_lazy_object_l26_d3_setobj(mut object LazyObject, callable LazyValueFactory) {
 	object.callable = callable
 	object.getobj_set = false
-	object.object = brew_runtime.Value{}
+	object.object = ruby.Value{}
 }
 
 // Ruby method `is_a?(klass)` at line 36.
@@ -71,7 +71,7 @@ pub fn lazy_object_not(mut object LazyObject) !bool {
 	return false
 }
 
-pub fn lazy_object_equals(mut object LazyObject, other brew_runtime.Value) !bool {
+pub fn lazy_object_equals(mut object LazyObject, other ruby.Value) !bool {
 	value := ruby_lazy_object_l17_d2_getobj(mut object)!
 	return value.type_name == other.type_name && value.repr == other.repr
 }

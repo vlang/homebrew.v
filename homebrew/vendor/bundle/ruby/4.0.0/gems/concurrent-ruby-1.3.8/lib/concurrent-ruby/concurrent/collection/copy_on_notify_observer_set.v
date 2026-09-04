@@ -1,22 +1,22 @@
 module collection
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/collection/copy_on_notify_observer_set.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `initialize` at line 14.
-pub fn ruby_copy_on_notify_observer_set_l14_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_copy_on_notify_observer_set_l14_d1_initialize(args ...ruby.Value) ruby.Value {
 	return observer_boundary_new(.on_notify, 'Concurrent::Collection::CopyOnNotifyObserverSet')
 }
 
 // Ruby method `add_observer(observer = nil, func = :update, &block)` at line 20.
-pub fn ruby_copy_on_notify_observer_set_l20_d2_add_observer(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_copy_on_notify_observer_set_l20_d2_add_observer(args ...ruby.Value) ruby.Value {
 	return observer_boundary_add(args)
 }
 
 // Ruby method `delete_observer(observer)` at line 39.
-pub fn ruby_copy_on_notify_observer_set_l39_d3_delete_observer(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_copy_on_notify_observer_set_l39_d3_delete_observer(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('delete_observer requires observer')
 	}
@@ -25,54 +25,54 @@ pub fn ruby_copy_on_notify_observer_set_l39_d3_delete_observer(args ...brew_runt
 }
 
 // Ruby method `delete_observers` at line 47.
-pub fn ruby_copy_on_notify_observer_set_l47_d4_delete_observers(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_copy_on_notify_observer_set_l47_d4_delete_observers(args ...ruby.Value) ruby.Value {
 	mut set := observer_boundary_receiver(args)
 	set.delete_observers()
 	return args[0]
 }
 
 // Ruby method `count_observers` at line 55.
-pub fn ruby_copy_on_notify_observer_set_l55_d5_count_observers(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_copy_on_notify_observer_set_l55_d5_count_observers(args ...ruby.Value) ruby.Value {
 	mut set := observer_boundary_receiver(args)
-	return brew_runtime.int_value(set.count_observers())
+	return ruby.int_value(set.count_observers())
 }
 
 // Ruby method `notify_observers(*args, &block)` at line 62.
-pub fn ruby_copy_on_notify_observer_set_l62_d6_notify_observers(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_copy_on_notify_observer_set_l62_d6_notify_observers(args ...ruby.Value) ruby.Value {
 	mut set := observer_boundary_receiver(args)
 	set.notify(args[1..], false) or { panic(err) }
 	return args[0]
 }
 
 // Ruby method `notify_and_delete_observers(*args, &block)` at line 72.
-pub fn ruby_copy_on_notify_observer_set_l72_d7_notify_and_delete_observers(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_copy_on_notify_observer_set_l72_d7_notify_and_delete_observers(args ...ruby.Value) ruby.Value {
 	mut set := observer_boundary_receiver(args)
 	set.notify(args[1..], true) or { panic(err) }
 	return args[0]
 }
 
 // Ruby method `ns_initialize` at line 80.
-pub fn ruby_copy_on_notify_observer_set_l80_d8_ns_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_copy_on_notify_observer_set_l80_d8_ns_initialize(args ...ruby.Value) ruby.Value {
 	mut set := observer_boundary_receiver(args)
 	set.delete_observers()
 	return args[0]
 }
 
 // Ruby method `duplicate_and_clear_observers` at line 86.
-pub fn ruby_copy_on_notify_observer_set_l86_d9_duplicate_and_clear_observers(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_copy_on_notify_observer_set_l86_d9_duplicate_and_clear_observers(args ...ruby.Value) ruby.Value {
 	mut set := observer_boundary_receiver(args)
 	return observer_entries_value(set.snapshot(true))
 }
 
 // Ruby method `duplicate_observers` at line 94.
-pub fn ruby_copy_on_notify_observer_set_l94_d10_duplicate_observers(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_copy_on_notify_observer_set_l94_d10_duplicate_observers(args ...ruby.Value) ruby.Value {
 	mut set := observer_boundary_receiver(args)
 	return observer_entries_value(set.snapshot(false))
 }
 
 // Ruby method `notify_to(observers, *args)` at line 98.
-pub fn ruby_copy_on_notify_observer_set_l98_d11_notify_to(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+pub fn ruby_copy_on_notify_observer_set_l98_d11_notify_to(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Original Ruby source (line-for-line):

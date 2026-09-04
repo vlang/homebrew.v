@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `dev-cmd/linkage.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -72,34 +72,34 @@ pub fn run_linkage_command(options LinkageCommandOptions) LinkageCommandResult {
 	}
 }
 
-pub fn linkage_command_input_boundary(input &LinkageCommandInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::Linkage::Input', '', {
+pub fn linkage_command_input_boundary(input &LinkageCommandInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::Linkage::Input', '', {
 		'linkage_command_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn linkage_command_input_from_value(value brew_runtime.Value) &LinkageCommandInput {
+fn linkage_command_input_from_value(value ruby.Value) &LinkageCommandInput {
 	address := value.attributes['linkage_command_input_address'] or {
 		panic('invalid Linkage command input')
 	}
 	return unsafe { &LinkageCommandInput(voidptr(address.u64())) }
 }
 
-fn linkage_command_result_value(result LinkageCommandResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'kegs':       brew_runtime.string_array_value(result.kegs)
-		'output':     brew_runtime.string_array_value(result.output)
-		'mode':       brew_runtime.object_value('Symbol', result.mode)
-		'cache_name': brew_runtime.object_value('Symbol', result.cache_name)
-		'cached':     brew_runtime.bool_value(result.cached)
-		'failed':     brew_runtime.bool_value(result.failed)
+fn linkage_command_result_value(result LinkageCommandResult) ruby.Value {
+	return ruby.map_value({
+		'kegs':       ruby.string_array_value(result.kegs)
+		'output':     ruby.string_array_value(result.output)
+		'mode':       ruby.object_value('Symbol', result.mode)
+		'cache_name': ruby.object_value('Symbol', result.cache_name)
+		'cached':     ruby.bool_value(result.cached)
+		'failed':     ruby.bool_value(result.failed)
 	})
 }
 
 // Ruby method `run` at line 33.
-pub fn ruby_linkage_l33_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_linkage_l33_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'command input is required')
+		return ruby.object_value('ArgumentError', 'command input is required')
 	}
 	return linkage_command_result_value(run_linkage_command(linkage_command_input_from_value(args[0]).options))
 }

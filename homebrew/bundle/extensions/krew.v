@@ -1,6 +1,6 @@
 module extensions
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `bundle/extensions/krew.rb`.
@@ -163,91 +163,91 @@ pub fn (mut state KrewState) cleanup(items []string) {
 	state.output << 'Uninstalled ${items.len} ${krew_definition().banner_name}${suffix}'
 }
 
-fn krew_state_value(state &KrewState) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::Bundle::Krew', '', {
+fn krew_state_value(state &KrewState) ruby.Value {
+	return ruby.structured_value('Homebrew::Bundle::Krew', '', {
 		'krew_state_address': u64(voidptr(state)).str()
 	})
 }
 
-fn krew_state_from_args(args []brew_runtime.Value, method string) &KrewState {
+fn krew_state_from_args(args []ruby.Value, method string) &KrewState {
 	if args.len == 0 || 'krew_state_address' !in args[0].attributes {
 		panic('Krew.${method} requires translated Krew state')
 	}
 	return unsafe { &KrewState(voidptr(args[0].attributes['krew_state_address'].u64())) }
 }
 
-pub fn krew_state_boundary(state &KrewState) brew_runtime.Value {
+pub fn krew_state_boundary(state &KrewState) ruby.Value {
 	return krew_state_value(state)
 }
 
 // Ruby method `type = :krew` at line 11.
-pub fn ruby_krew_l11_d1_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_krew_l11_d1_type(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.object_value('Symbol', 'krew')
+	return ruby.object_value('Symbol', 'krew')
 }
 
 // Ruby method `check_label = "Krew Plugin"` at line 14.
-pub fn ruby_krew_l14_d2_check_label(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_krew_l14_d2_check_label(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value(krew_definition().check_label)
+	return ruby.string_value(krew_definition().check_label)
 }
 
 // Ruby method `banner_name = "Krew plugins"` at line 17.
-pub fn ruby_krew_l17_d3_banner_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_krew_l17_d3_banner_name(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value(krew_definition().banner_name)
+	return ruby.string_value(krew_definition().banner_name)
 }
 
 // Ruby method `reset!` at line 20.
-pub fn ruby_krew_l20_d4_reset(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_krew_l20_d4_reset(args ...ruby.Value) ruby.Value {
 	mut state := krew_state_from_args(args, 'reset!')
 	state.reset()
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `cleanup_heading` at line 27.
-pub fn ruby_krew_l27_d5_cleanup_heading(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_krew_l27_d5_cleanup_heading(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value(krew_definition().cleanup_heading or { '' })
+	return ruby.string_value(krew_definition().cleanup_heading or { '' })
 }
 
 // Ruby method `package_manager_executable` at line 32.
-pub fn ruby_krew_l32_d6_package_manager_executable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_krew_l32_d6_package_manager_executable(args ...ruby.Value) ruby.Value {
 	state := krew_state_from_args(args, 'package_manager_executable')
 	return if state.executable == '' {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	} else {
-		brew_runtime.object_value('Pathname', state.executable)
+		ruby.object_value('Pathname', state.executable)
 	}
 }
 
 // Ruby method `packages` at line 37.
-pub fn ruby_krew_l37_d7_packages(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_krew_l37_d7_packages(args ...ruby.Value) ruby.Value {
 	mut state := krew_state_from_args(args, 'packages')
-	return brew_runtime.string_array_value(state.discover_packages())
+	return ruby.string_array_value(state.discover_packages())
 }
 
 // Ruby method `install_package!(name, with: nil, verbose: false)` at line 57.
-pub fn ruby_krew_l57_d8_install_package(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_krew_l57_d8_install_package(args ...ruby.Value) ruby.Value {
 	mut state := krew_state_from_args(args, 'install_package!')
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'name is required')
+		return ruby.object_value('ArgumentError', 'name is required')
 	}
 	result := if args.len > 4 { args[4].bool_data } else { false }
-	return brew_runtime.bool_value(state.install_package(args[1].as_string(), result) or {
-		return brew_runtime.object_value('RuntimeError', err.msg())
+	return ruby.bool_value(state.install_package(args[1].as_string(), result) or {
+		return ruby.object_value('RuntimeError', err.msg())
 	})
 }
 
 // Ruby method `installed_packages` at line 66.
-pub fn ruby_krew_l66_d9_installed_packages(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_krew_l66_d9_installed_packages(args ...ruby.Value) ruby.Value {
 	mut state := krew_state_from_args(args, 'installed_packages')
-	return brew_runtime.string_array_value(state.discover_installed_packages())
+	return ruby.string_array_value(state.discover_installed_packages())
 }
 
 // Ruby method `parse_plugin_list(output)` at line 74.
-pub fn ruby_krew_l74_d10_parse_plugin_list(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(krew_parse_plugin_list(if args.len > 0 {
+pub fn ruby_krew_l74_d10_parse_plugin_list(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(krew_parse_plugin_list(if args.len > 0 {
 		args[0].as_string()
 	} else {
 		''
@@ -255,14 +255,14 @@ pub fn ruby_krew_l74_d10_parse_plugin_list(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `uninstall_package!(name, executable: Pathname.new(""))` at line 86.
-pub fn ruby_krew_l86_d11_uninstall_package(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_krew_l86_d11_uninstall_package(args ...ruby.Value) ruby.Value {
 	mut state := krew_state_from_args(args, 'uninstall_package!')
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'name is required')
+		return ruby.object_value('ArgumentError', 'name is required')
 	}
 	executable := if args.len > 2 { args[2].as_string() } else { '' }
 	state.uninstall(args[1].as_string(), executable)
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Original Ruby source (line-for-line):

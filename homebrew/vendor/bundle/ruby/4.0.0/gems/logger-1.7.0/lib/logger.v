@@ -1,6 +1,6 @@
 module lib
 
-import brew_runtime
+import ruby
 import os
 import sync
 import time
@@ -18,7 +18,7 @@ pub const logger_version = '1.7.0'
 const severity_labels = ['DEBUG', 'INFO', 'WARN', 'ERROR', 'FATAL', 'ANY']
 const logger_datetime_format = '%Y-%m-%dT%H:%M:%S.%6N'
 
-pub type LoggerFormatter = fn(string, time.Time, string, brew_runtime.Value) string
+pub type LoggerFormatter = fn(string, time.Time, string, ruby.Value) string
 
 pub struct LoggerOptions {
 pub:
@@ -168,7 +168,7 @@ fn format_logger_time(value time.Time, format string) string {
 	return value.strftime(selected.replace('%6N', placeholder)).replace(placeholder, '${value.nanosecond / 1_000:06}')
 }
 
-fn logger_message_string(message brew_runtime.Value) string {
+fn logger_message_string(message ruby.Value) string {
 	if message.type_name == 'String' {
 		return message.as_string()
 	}
@@ -181,12 +181,12 @@ fn logger_message_string(message brew_runtime.Value) string {
 	return message.as_string()
 }
 
-fn (logger &Logger) default_format_message(severity string, at time.Time, progname string, message brew_runtime.Value) string {
+fn (logger &Logger) default_format_message(severity string, at time.Time, progname string, message ruby.Value) string {
 	initial := if severity.len > 0 { severity[..1] } else { '' }
 	return '${initial}, [${format_logger_time(at, logger.datetime_format)} #${os.getpid()}] ${severity:5} -- ${progname}: ${logger_message_string(message)}\n'
 }
 
-pub fn (logger &Logger) format_message(severity string, at time.Time, progname string, message brew_runtime.Value) string {
+pub fn (logger &Logger) format_message(severity string, at time.Time, progname string, message ruby.Value) string {
 	if formatter := logger.formatter {
 		return formatter(severity, at, progname, message)
 	}
@@ -231,7 +231,7 @@ pub fn (mut logger Logger) reopen(logdev string, shift_age int, shift_size u64, 
 	return &logger
 }
 
-pub fn (mut logger Logger) add(severity int, message ?brew_runtime.Value, entry_progname ?string) bool {
+pub fn (mut logger Logger) add(severity int, message ?ruby.Value, entry_progname ?string) bool {
 	if logger.logdev.len == 0 || logger.closed || severity < logger.level() {
 		return true
 	}
@@ -239,13 +239,13 @@ pub fn (mut logger Logger) add(severity int, message ?brew_runtime.Value, entry_
 	if supplied_progname := entry_progname {
 		progname = supplied_progname
 	}
-	mut actual_message := brew_runtime.string_value(progname)
+	mut actual_message := ruby.string_value(progname)
 	if supplied_message := message {
 		actual_message = supplied_message
 	} else if _ := entry_progname {
 		// Ruby uses the explicit progname as the message, then restores the
 		// logger's default program name.
-		actual_message = brew_runtime.string_value(progname)
+		actual_message = ruby.string_value(progname)
 		progname = logger.progname
 	}
 	line := logger.format_message(logger.format_severity(severity), time.now(), progname, actual_message)
@@ -273,14 +273,14 @@ pub fn (mut logger Logger) add(severity int, message ?brew_runtime.Value, entry_
 	return true
 }
 
-pub fn (mut logger Logger) add_lazy(severity int, entry_progname ?string, producer fn() brew_runtime.Value) bool {
+pub fn (mut logger Logger) add_lazy(severity int, entry_progname ?string, producer fn() ruby.Value) bool {
 	if logger.logdev.len == 0 || logger.closed || severity < logger.level() {
 		return true
 	}
 	return logger.add(severity, producer(), entry_progname)
 }
 
-pub fn (mut logger Logger) log(severity int, message ?brew_runtime.Value, progname ?string) bool {
+pub fn (mut logger Logger) log(severity int, message ?ruby.Value, progname ?string) bool {
 	return logger.add(severity, message, progname)
 }
 
@@ -298,27 +298,27 @@ pub fn (mut logger Logger) write_raw(message string) int {
 	return written
 }
 
-pub fn (mut logger Logger) debug(message ?brew_runtime.Value, progname ?string) bool {
+pub fn (mut logger Logger) debug(message ?ruby.Value, progname ?string) bool {
 	return logger.add(logger_debug, message, progname)
 }
 
-pub fn (mut logger Logger) info(message ?brew_runtime.Value, progname ?string) bool {
+pub fn (mut logger Logger) info(message ?ruby.Value, progname ?string) bool {
 	return logger.add(logger_info, message, progname)
 }
 
-pub fn (mut logger Logger) warn(message ?brew_runtime.Value, progname ?string) bool {
+pub fn (mut logger Logger) warn(message ?ruby.Value, progname ?string) bool {
 	return logger.add(logger_warn, message, progname)
 }
 
-pub fn (mut logger Logger) error(message ?brew_runtime.Value, progname ?string) bool {
+pub fn (mut logger Logger) error(message ?ruby.Value, progname ?string) bool {
 	return logger.add(logger_error, message, progname)
 }
 
-pub fn (mut logger Logger) fatal(message ?brew_runtime.Value, progname ?string) bool {
+pub fn (mut logger Logger) fatal(message ?ruby.Value, progname ?string) bool {
 	return logger.add(logger_fatal, message, progname)
 }
 
-pub fn (mut logger Logger) unknown(message ?brew_runtime.Value, progname ?string) bool {
+pub fn (mut logger Logger) unknown(message ?ruby.Value, progname ?string) bool {
 	return logger.add(logger_unknown, message, progname)
 }
 
@@ -432,7 +432,7 @@ fn logger_previous_period_end(now time.Time, shift_age string) !time.Time {
 	})
 }
 
-fn coerce_logger_severity(value brew_runtime.Value) !int {
+fn coerce_logger_severity(value ruby.Value) !int {
 	if value.type_name == 'Integer' {
 		return int(value.as_int()!)
 	}
@@ -447,7 +447,7 @@ fn coerce_logger_severity(value brew_runtime.Value) !int {
 	}
 }
 
-fn logger_from_value(value brew_runtime.Value) Logger {
+fn logger_from_value(value ruby.Value) Logger {
 	return Logger{
 		base_level: (value.attribute('level') or { '0' }).int()
 		progname: value.attribute('progname') or { '' }
@@ -465,8 +465,8 @@ fn logger_from_value(value brew_runtime.Value) Logger {
 	}
 }
 
-fn logger_value(logger &Logger) brew_runtime.Value {
-	return brew_runtime.structured_value('Logger', '#<Logger>', {
+fn logger_value(logger &Logger) ruby.Value {
+	return ruby.structured_value('Logger', '#<Logger>', {
 		'level':                logger.base_level.str()
 		'progname':             logger.progname
 		'datetime_format':      logger.datetime_format
@@ -483,41 +483,41 @@ fn logger_value(logger &Logger) brew_runtime.Value {
 	})
 }
 
-fn wrapper_logger(args []brew_runtime.Value) Logger {
+fn wrapper_logger(args []ruby.Value) Logger {
 	if args.len == 0 { panic('Logger method requires a logger') }
 	return logger_from_value(args[0])
 }
 
-fn wrapper_optional_value(args []brew_runtime.Value, index int) ?brew_runtime.Value {
+fn wrapper_optional_value(args []ruby.Value, index int) ?ruby.Value {
 	if args.len <= index || args[index].type_name == 'NilClass' {
 		return none
 	}
 	return args[index]
 }
 
-fn wrapper_optional_string(args []brew_runtime.Value, index int) ?string {
+fn wrapper_optional_string(args []ruby.Value, index int) ?string {
 	if args.len <= index || args[index].type_name == 'NilClass' {
 		return none
 	}
 	return args[index].as_string()
 }
 
-fn logger_shorthand(args []brew_runtime.Value, severity int) brew_runtime.Value {
+fn logger_shorthand(args []ruby.Value, severity int) ruby.Value {
 	if args.len == 0 { panic('Logger severity method requires a logger') }
 	mut logger := logger_from_value(args[0])
 	// Ruby's shorthand argument is a progname and its block supplies the
 	// message. Boundary callers may pass the block result as the second value.
 	message := wrapper_optional_value(args, 1)
-	return brew_runtime.bool_value(logger.add(severity, message, none))
+	return ruby.bool_value(logger.add(severity, message, none))
 }
 
 // Ruby method `level` at line 383.
-pub fn ruby_logger_l383_d1_level(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(wrapper_logger(args).level())
+pub fn ruby_logger_l383_d1_level(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(wrapper_logger(args).level())
 }
 
 // Ruby method `level=(severity)` at line 399.
-pub fn ruby_logger_l399_d2_level(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_logger_l399_d2_level(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Logger#level= requires a logger and severity') }
 	mut logger := logger_from_value(args[0])
 	logger.set_level(coerce_logger_severity(args[1]) or { panic(err) })
@@ -525,7 +525,7 @@ pub fn ruby_logger_l399_d2_level(args ...brew_runtime.Value) brew_runtime.Value 
 }
 
 // Ruby method `with_level(severity)` at line 408.
-pub fn ruby_logger_l408_d3_with_level(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_logger_l408_d3_with_level(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Logger#with_level requires a logger and severity') }
 	// Boundary calls carry an already evaluated block result. The typed API
 	// above performs the scoped override while executing its callback.
@@ -534,12 +534,12 @@ pub fn ruby_logger_l408_d3_with_level(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby attr_accessor `attr_accessor :progname` at line 422.
-pub fn ruby_logger_l422_d4_progname(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(wrapper_logger(args).progname)
+pub fn ruby_logger_l422_d4_progname(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(wrapper_logger(args).progname)
 }
 
 // Ruby attr_accessor `attr_accessor :progname` at line 422.
-pub fn ruby_logger_l422_d5_progname(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_logger_l422_d5_progname(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Logger#progname= requires a logger and program name') }
 	mut logger := logger_from_value(args[0])
 	logger.progname = args[1].as_string()
@@ -547,7 +547,7 @@ pub fn ruby_logger_l422_d5_progname(args ...brew_runtime.Value) brew_runtime.Val
 }
 
 // Ruby method `datetime_format=(datetime_format)` at line 432.
-pub fn ruby_logger_l432_d6_datetime_format(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_logger_l432_d6_datetime_format(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Logger#datetime_format= requires a logger and format') }
 	mut logger := logger_from_value(args[0])
 	logger.datetime_format = args[1].as_string()
@@ -555,21 +555,21 @@ pub fn ruby_logger_l432_d6_datetime_format(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `datetime_format` at line 438.
-pub fn ruby_logger_l438_d7_datetime_format(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(wrapper_logger(args).datetime_format)
+pub fn ruby_logger_l438_d7_datetime_format(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(wrapper_logger(args).datetime_format)
 }
 
 // Ruby attr_accessor `attr_accessor :formatter` at line 473.
-pub fn ruby_logger_l473_d8_formatter(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_logger_l473_d8_formatter(args ...ruby.Value) ruby.Value {
 	logger := wrapper_logger(args)
 	if _ := logger.formatter {
-		return brew_runtime.object_value('Proc', '#<Proc:Logger::formatter>')
+		return ruby.object_value('Proc', '#<Proc:Logger::formatter>')
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby attr_accessor `attr_accessor :formatter` at line 473.
-pub fn ruby_logger_l473_d9_formatter(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_logger_l473_d9_formatter(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Logger#formatter= requires a logger and formatter') }
 	// Function values cannot cross Value; typed callers set `Logger.formatter`
 	// directly. Retain the logger state for nil/default boundary assignments.
@@ -577,79 +577,79 @@ pub fn ruby_logger_l473_d9_formatter(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby alias `alias sev_threshold level` at line 475.
-pub fn ruby_logger_l475_d10_sev_threshold(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_logger_l475_d10_sev_threshold(args ...ruby.Value) ruby.Value {
 	return ruby_logger_l383_d1_level(...args)
 }
 
 // Ruby alias `alias sev_threshold= level=` at line 476.
-pub fn ruby_logger_l476_d11_sev_threshold(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_logger_l476_d11_sev_threshold(args ...ruby.Value) ruby.Value {
 	return ruby_logger_l399_d2_level(...args)
 }
 
 // Ruby method `debug?; level <= DEBUG; end` at line 482.
-pub fn ruby_logger_l482_d12_debug(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(wrapper_logger(args).debug_enabled())
+pub fn ruby_logger_l482_d12_debug(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(wrapper_logger(args).debug_enabled())
 }
 
 // Ruby method `debug!; self.level = DEBUG; end` at line 487.
-pub fn ruby_logger_l487_d13_debug(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_logger_l487_d13_debug(args ...ruby.Value) ruby.Value {
 	mut logger := wrapper_logger(args)
 	logger.debug_bang()
 	return logger_value(&logger)
 }
 
 // Ruby method `info?; level <= INFO; end` at line 493.
-pub fn ruby_logger_l493_d14_info(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(wrapper_logger(args).info_enabled())
+pub fn ruby_logger_l493_d14_info(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(wrapper_logger(args).info_enabled())
 }
 
 // Ruby method `info!; self.level = INFO; end` at line 498.
-pub fn ruby_logger_l498_d15_info(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_logger_l498_d15_info(args ...ruby.Value) ruby.Value {
 	mut logger := wrapper_logger(args)
 	logger.info_bang()
 	return logger_value(&logger)
 }
 
 // Ruby method `warn?; level <= WARN; end` at line 504.
-pub fn ruby_logger_l504_d16_warn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(wrapper_logger(args).warn_enabled())
+pub fn ruby_logger_l504_d16_warn(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(wrapper_logger(args).warn_enabled())
 }
 
 // Ruby method `warn!; self.level = WARN; end` at line 509.
-pub fn ruby_logger_l509_d17_warn(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_logger_l509_d17_warn(args ...ruby.Value) ruby.Value {
 	mut logger := wrapper_logger(args)
 	logger.warn_bang()
 	return logger_value(&logger)
 }
 
 // Ruby method `error?; level <= ERROR; end` at line 515.
-pub fn ruby_logger_l515_d18_error(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(wrapper_logger(args).error_enabled())
+pub fn ruby_logger_l515_d18_error(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(wrapper_logger(args).error_enabled())
 }
 
 // Ruby method `error!; self.level = ERROR; end` at line 520.
-pub fn ruby_logger_l520_d19_error(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_logger_l520_d19_error(args ...ruby.Value) ruby.Value {
 	mut logger := wrapper_logger(args)
 	logger.error_bang()
 	return logger_value(&logger)
 }
 
 // Ruby method `fatal?; level <= FATAL; end` at line 526.
-pub fn ruby_logger_l526_d20_fatal(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(wrapper_logger(args).fatal_enabled())
+pub fn ruby_logger_l526_d20_fatal(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(wrapper_logger(args).fatal_enabled())
 }
 
 // Ruby method `fatal!; self.level = FATAL; end` at line 531.
-pub fn ruby_logger_l531_d21_fatal(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_logger_l531_d21_fatal(args ...ruby.Value) ruby.Value {
 	mut logger := wrapper_logger(args)
 	logger.fatal_bang()
 	return logger_value(&logger)
 }
 
 // Ruby method `initialize(logdev, shift_age = 0, shift_size = 1048576, level: DEBUG,` at line 598.
-pub fn ruby_logger_l598_d22_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_logger_l598_d22_initialize(args ...ruby.Value) ruby.Value {
 	logdev := if args.len > 0 { args[0].as_string() } else { '' }
-	shift_age_value := if args.len > 1 { args[1] } else { brew_runtime.int_value(0) }
+	shift_age_value := if args.len > 1 { args[1] } else { ruby.int_value(0) }
 	shift_age := if shift_age_value.type_name == 'Integer' {
 		int(shift_age_value.as_int() or { 0 })
 	} else {
@@ -678,7 +678,7 @@ pub fn ruby_logger_l598_d22_initialize(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby method `reopen(logdev = nil, shift_age = nil, shift_size = nil, shift_period_suffix: nil, binmode: nil)` at line 642.
-pub fn ruby_logger_l642_d23_reopen(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_logger_l642_d23_reopen(args ...ruby.Value) ruby.Value {
 	mut logger := wrapper_logger(args)
 	logdev := if args.len > 1 { args[1].as_string() } else { '' }
 	shift_age := if args.len > 2 {
@@ -698,87 +698,87 @@ pub fn ruby_logger_l642_d23_reopen(args ...brew_runtime.Value) brew_runtime.Valu
 }
 
 // Ruby method `add(severity, message = nil, progname = nil)` at line 675.
-pub fn ruby_logger_l675_d24_add(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_logger_l675_d24_add(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Logger#add requires a logger and severity') }
 	mut logger := logger_from_value(args[0])
 	severity := int(args[1].as_int() or { logger_unknown })
-	return brew_runtime.bool_value(logger.add(severity, wrapper_optional_value(args, 2), wrapper_optional_string(args, 3)))
+	return ruby.bool_value(logger.add(severity, wrapper_optional_value(args, 2), wrapper_optional_string(args, 3)))
 }
 
 // Ruby alias `alias log add` at line 695.
-pub fn ruby_logger_l695_d25_log(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_logger_l695_d25_log(args ...ruby.Value) ruby.Value {
 	return ruby_logger_l675_d24_add(...args)
 }
 
 // Ruby method `<<(msg)` at line 708.
-pub fn ruby_logger_l708_d26_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_logger_l708_d26_anonymous(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Logger#<< requires a logger and message') }
 	mut logger := logger_from_value(args[0])
-	return brew_runtime.int_value(logger.write_raw(args[1].as_string()))
+	return ruby.int_value(logger.write_raw(args[1].as_string()))
 }
 
 // Ruby method `debug(progname = nil, &block)` at line 714.
-pub fn ruby_logger_l714_d27_debug(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_logger_l714_d27_debug(args ...ruby.Value) ruby.Value {
 	return logger_shorthand(args, logger_debug)
 }
 
 // Ruby method `info(progname = nil, &block)` at line 720.
-pub fn ruby_logger_l720_d28_info(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_logger_l720_d28_info(args ...ruby.Value) ruby.Value {
 	return logger_shorthand(args, logger_info)
 }
 
 // Ruby method `warn(progname = nil, &block)` at line 726.
-pub fn ruby_logger_l726_d29_warn(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_logger_l726_d29_warn(args ...ruby.Value) ruby.Value {
 	return logger_shorthand(args, logger_warn)
 }
 
 // Ruby method `error(progname = nil, &block)` at line 732.
-pub fn ruby_logger_l732_d30_error(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_logger_l732_d30_error(args ...ruby.Value) ruby.Value {
 	return logger_shorthand(args, logger_error)
 }
 
 // Ruby method `fatal(progname = nil, &block)` at line 738.
-pub fn ruby_logger_l738_d31_fatal(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_logger_l738_d31_fatal(args ...ruby.Value) ruby.Value {
 	return logger_shorthand(args, logger_fatal)
 }
 
 // Ruby method `unknown(progname = nil, &block)` at line 744.
-pub fn ruby_logger_l744_d32_unknown(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_logger_l744_d32_unknown(args ...ruby.Value) ruby.Value {
 	return logger_shorthand(args, logger_unknown)
 }
 
 // Ruby method `close` at line 755.
-pub fn ruby_logger_l755_d33_close(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_logger_l755_d33_close(args ...ruby.Value) ruby.Value {
 	mut logger := wrapper_logger(args)
 	logger.close()
 	return logger_value(&logger)
 }
 
 // Ruby method `format_severity(severity)` at line 764.
-pub fn ruby_logger_l764_d34_format_severity(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_logger_l764_d34_format_severity(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Logger#format_severity requires a severity') }
 	if args.len == 1 {
-		return brew_runtime.string_value(Logger{}.format_severity(int(args[0].as_int() or { logger_unknown })))
+		return ruby.string_value(Logger{}.format_severity(int(args[0].as_int() or { logger_unknown })))
 	}
-	return brew_runtime.string_value(wrapper_logger(args).format_severity(int(args[1].as_int() or {
+	return ruby.string_value(wrapper_logger(args).format_severity(int(args[1].as_int() or {
 		logger_unknown
 	})))
 }
 
 // Ruby method `level_override` at line 769.
-pub fn ruby_logger_l769_d35_level_override(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_logger_l769_d35_level_override(args ...ruby.Value) ruby.Value {
 	logger := wrapper_logger(args)
 	overrides := logger.level_overrides[sync.thread_id()]
-	return brew_runtime.array_value(overrides.map(brew_runtime.int_value(it)))
+	return ruby.array_value(overrides.map(ruby.int_value(it)))
 }
 
 // Ruby method `level_key` at line 782.
-pub fn ruby_logger_l782_d36_level_key(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(i64(sync.thread_id()))
+pub fn ruby_logger_l782_d36_level_key(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(i64(sync.thread_id()))
 }
 
 // Ruby method `format_message(severity, datetime, progname, msg)` at line 786.
-pub fn ruby_logger_l786_d37_format_message(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_logger_l786_d37_format_message(args ...ruby.Value) ruby.Value {
 	if args.len < 5 {
 		panic('Logger#format_message requires a logger, severity, time, progname, and message')
 	}
@@ -788,7 +788,7 @@ pub fn ruby_logger_l786_d37_format_message(args ...brew_runtime.Value) brew_runt
 	} else {
 		time.parse_iso8601(args[2].as_string()) or { panic(err) }
 	}
-	return brew_runtime.string_value(logger.format_message(args[1].as_string(), at, args[3].as_string(), args[4]))
+	return ruby.string_value(logger.format_message(args[1].as_string(), at, args[3].as_string(), args[4]))
 }
 
 // Original Ruby source (line-for-line):

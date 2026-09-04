@@ -1,17 +1,17 @@
 module abstract
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/private/abstract/declare.rb`.
 // The original source is retained below until every stub has a typed V body.
 pub struct AbstractDeclaration {
 pub:
-	mod             brew_runtime.Value
+	mod             ruby.Value
 	abstract_type   string
 	is_final        bool
 	has_own_new     bool
 	is_class        bool
-	singleton_class brew_runtime.Value
+	singleton_class ruby.Value
 }
 
 pub fn declare_abstract(declaration AbstractDeclaration) ! {
@@ -28,26 +28,26 @@ pub fn declare_abstract(declaration AbstractDeclaration) ! {
 	if declaration.is_class && declaration.has_own_new {
 		return error('You must call `abstract!` *before* defining a `new` method')
 	}
-	data.set(declaration.mod, 'can_have_abstract_methods', brew_runtime.bool_value(true))
-	data.set(declaration.singleton_class, 'can_have_abstract_methods', brew_runtime.bool_value(true))
-	data.set(declaration.mod, 'abstract_type', brew_runtime.object_value('Symbol', ':${declaration.abstract_type.trim_string_left(':')}'))
-	data.set(declaration.mod, 'abstract_hooks', brew_runtime.bool_value(true))
+	data.set(declaration.mod, 'can_have_abstract_methods', ruby.bool_value(true))
+	data.set(declaration.singleton_class, 'can_have_abstract_methods', ruby.bool_value(true))
+	data.set(declaration.mod, 'abstract_type', ruby.object_value('Symbol', ':${declaration.abstract_type.trim_string_left(':')}'))
+	data.set(declaration.mod, 'abstract_hooks', ruby.bool_value(true))
 }
 
-pub fn construct_abstract(module_name string, result brew_runtime.Value,
-	is_exact_instance bool) !brew_runtime.Value {
+pub fn construct_abstract(module_name string, result ruby.Value,
+	is_exact_instance bool) !ruby.Value {
 	if is_exact_instance {
 		return error('${module_name} is declared as abstract; it cannot be instantiated')
 	}
 	return result
 }
 
-fn abstract_declaration_from_args(args []brew_runtime.Value) AbstractDeclaration {
+fn abstract_declaration_from_args(args []ruby.Value) AbstractDeclaration {
 	if args.len < 2 {
 		panic('Abstract::Declare.declare_abstract requires a module and type')
 	}
 	mod := args[0]
-	singleton := brew_runtime.structured_value('Class', '#<Class:${mod.as_string()}>', {
+	singleton := ruby.structured_value('Class', '#<Class:${mod.as_string()}>', {
 		'object_id': '${abstract_object_id(mod)}:singleton'
 	})
 	return AbstractDeclaration{
@@ -61,13 +61,13 @@ fn abstract_declaration_from_args(args []brew_runtime.Value) AbstractDeclaration
 }
 
 // Ruby method `self.declare_abstract(mod, type:)` at line 8.
-pub fn ruby_declare_l8_d1_self_declare_abstract(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_declare_l8_d1_self_declare_abstract(args ...ruby.Value) ruby.Value {
 	declare_abstract(abstract_declaration_from_args(args)) or { panic(err.msg()) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby define_singleton_method `mod.send(:define_singleton_method, :new) do |*args, &blk|` at line 36.
-pub fn ruby_declare_l36_d2_new(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_declare_l36_d2_new(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('abstract new wrapper requires a module and constructed result')
 	}
@@ -80,9 +80,9 @@ pub fn ruby_declare_l36_d2_new(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby alias_method `mod.singleton_class.send(:alias_method, :new, :new)` at line 46.
-pub fn ruby_declare_l46_d3_new(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_declare_l46_d3_new(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	return args[0]
 }

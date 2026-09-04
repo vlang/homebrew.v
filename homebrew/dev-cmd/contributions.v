@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 import crypto.sha256
 import json2
 import os
@@ -169,31 +169,31 @@ fn contribution_empty_counts() map[string]int {
 	return counts
 }
 
-fn contribution_nil() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', '')
+fn contribution_nil() ruby.Value {
+	return ruby.object_value('NilClass', '')
 }
 
-fn contribution_error(message string) brew_runtime.Value {
-	return brew_runtime.structured_value('Error', message, {
+fn contribution_error(message string) ruby.Value {
+	return ruby.structured_value('Error', message, {
 		'message': message
 	})
 }
 
-fn contribution_map_string(values map[string]brew_runtime.Value, key string, fallback string) string {
-	return (values[key] or { brew_runtime.string_value(fallback) }).as_string()
+fn contribution_map_string(values map[string]ruby.Value, key string, fallback string) string {
+	return (values[key] or { ruby.string_value(fallback) }).as_string()
 }
 
-fn contribution_map_bool(values map[string]brew_runtime.Value, key string, fallback bool) bool {
+fn contribution_map_bool(values map[string]ruby.Value, key string, fallback bool) bool {
 	value := values[key] or { return fallback }
 	return if value.type_name == 'Bool' { value.bool_data } else { fallback }
 }
 
-fn contribution_map_int(values map[string]brew_runtime.Value, key string, fallback int) int {
+fn contribution_map_int(values map[string]ruby.Value, key string, fallback int) int {
 	value := values[key] or { return fallback }
 	return if value.type_name == 'Integer' { int(value.int_data) } else { fallback }
 }
 
-fn contribution_string_map_from_value(value brew_runtime.Value) map[string]string {
+fn contribution_string_map_from_value(value ruby.Value) map[string]string {
 	mut output := map[string]string{}
 	for key, item in value.map_data {
 		output[key] = item.as_string()
@@ -201,7 +201,7 @@ fn contribution_string_map_from_value(value brew_runtime.Value) map[string]strin
 	return output
 }
 
-fn contribution_string_array_map_from_value(value brew_runtime.Value) map[string][]string {
+fn contribution_string_array_map_from_value(value ruby.Value) map[string][]string {
 	mut output := map[string][]string{}
 	for key, item in value.map_data {
 		output[key] = item.string_array_data.clone()
@@ -209,7 +209,7 @@ fn contribution_string_array_map_from_value(value brew_runtime.Value) map[string
 	return output
 }
 
-fn contribution_bool_map_from_value(value brew_runtime.Value) map[string]bool {
+fn contribution_bool_map_from_value(value ruby.Value) map[string]bool {
 	mut output := map[string]bool{}
 	for key, item in value.map_data {
 		output[key] = item.bool_data
@@ -217,7 +217,7 @@ fn contribution_bool_map_from_value(value brew_runtime.Value) map[string]bool {
 	return output
 }
 
-fn contribution_counts_from_value(value brew_runtime.Value) map[string]int {
+fn contribution_counts_from_value(value ruby.Value) map[string]int {
 	mut output := map[string]int{}
 	for key, item in value.map_data {
 		output[key] = int(item.int_data)
@@ -225,15 +225,15 @@ fn contribution_counts_from_value(value brew_runtime.Value) map[string]int {
 	return output
 }
 
-fn contribution_counts_value(counts map[string]int) brew_runtime.Value {
-	mut output := map[string]brew_runtime.Value{}
+fn contribution_counts_value(counts map[string]int) ruby.Value {
+	mut output := map[string]ruby.Value{}
 	for key, count in counts {
-		output[key] = brew_runtime.int_value(count)
+		output[key] = ruby.int_value(count)
 	}
-	return brew_runtime.map_value(output)
+	return ruby.map_value(output)
 }
 
-fn contribution_totals_from_value(value brew_runtime.Value) map[string]map[string]int {
+fn contribution_totals_from_value(value ruby.Value) map[string]map[string]int {
 	mut output := map[string]map[string]int{}
 	for key, item in value.map_data {
 		output[key] = contribution_counts_from_value(item)
@@ -241,29 +241,29 @@ fn contribution_totals_from_value(value brew_runtime.Value) map[string]map[strin
 	return output
 }
 
-fn contribution_totals_value(totals map[string]map[string]int) brew_runtime.Value {
-	mut output := map[string]brew_runtime.Value{}
+fn contribution_totals_value(totals map[string]map[string]int) ruby.Value {
+	mut output := map[string]ruby.Value{}
 	for key, counts in totals {
 		output[key] = contribution_counts_value(counts)
 	}
-	return brew_runtime.map_value(output)
+	return ruby.map_value(output)
 }
 
-fn contribution_pull_request_value(pull_request ContributionPullRequest) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'number':     brew_runtime.int_value(pull_request.number)
-		'repository': brew_runtime.string_value(pull_request.repository)
+fn contribution_pull_request_value(pull_request ContributionPullRequest) ruby.Value {
+	return ruby.map_value({
+		'number':     ruby.int_value(pull_request.number)
+		'repository': ruby.string_value(pull_request.repository)
 	})
 }
 
-fn contribution_pull_request_from_value(value brew_runtime.Value) ContributionPullRequest {
+fn contribution_pull_request_from_value(value ruby.Value) ContributionPullRequest {
 	return ContributionPullRequest{
 		number: contribution_map_int(value.map_data, 'number', -1)
 		repository: contribution_map_string(value.map_data, 'repository', '')
 	}
 }
 
-fn contribution_pull_request_map_from_value(value brew_runtime.Value) map[string][]ContributionPullRequest {
+fn contribution_pull_request_map_from_value(value ruby.Value) map[string][]ContributionPullRequest {
 	mut output := map[string][]ContributionPullRequest{}
 	for key, item in value.map_data {
 		output[key] = item.array_data.map(contribution_pull_request_from_value(it))
@@ -271,16 +271,16 @@ fn contribution_pull_request_map_from_value(value brew_runtime.Value) map[string
 	return output
 }
 
-fn contribution_change_value(change ContributionMaintainerChange) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'commit':        brew_runtime.string_value(change.commit)
-		'date':          brew_runtime.string_value(change.date)
-		'readme':        brew_runtime.string_value(change.readme)
-		'parent_readme': brew_runtime.string_value(change.parent_readme)
+fn contribution_change_value(change ContributionMaintainerChange) ruby.Value {
+	return ruby.map_value({
+		'commit':        ruby.string_value(change.commit)
+		'date':          ruby.string_value(change.date)
+		'readme':        ruby.string_value(change.readme)
+		'parent_readme': ruby.string_value(change.parent_readme)
 	})
 }
 
-fn contribution_change_from_value(value brew_runtime.Value) ContributionMaintainerChange {
+fn contribution_change_from_value(value ruby.Value) ContributionMaintainerChange {
 	return ContributionMaintainerChange{
 		commit: contribution_map_string(value.map_data, 'commit', '')
 		date: contribution_map_string(value.map_data, 'date', '')
@@ -289,26 +289,26 @@ fn contribution_change_from_value(value brew_runtime.Value) ContributionMaintain
 	}
 }
 
-fn contribution_repository_ref_value(reference ContributionRepositoryRef) brew_runtime.Value {
-	return brew_runtime.Value{
+fn contribution_repository_ref_value(reference ContributionRepositoryRef) ruby.Value {
+	return ruby.Value{
 		type_name: 'RepositoryRef'
 		repr: reference.repository
 		map_data: {
-			'repository':     brew_runtime.string_value(reference.repository)
-			'path':           brew_runtime.string_value(reference.path)
-			'ref':            brew_runtime.string_value(reference.ref)
-			'exists':         brew_runtime.bool_value(reference.exists)
-			'tap_available':  brew_runtime.bool_value(reference.tap_available)
-			'deprecated':     brew_runtime.bool_value(reference.deprecated)
-			'git_log':        brew_runtime.string_value(reference.git_log)
-			'readme':         brew_runtime.string_value(reference.readme)
-			'maintainer_log': brew_runtime.array_value(reference.maintainer_log.map(contribution_change_value(it)))
+			'repository':     ruby.string_value(reference.repository)
+			'path':           ruby.string_value(reference.path)
+			'ref':            ruby.string_value(reference.ref)
+			'exists':         ruby.bool_value(reference.exists)
+			'tap_available':  ruby.bool_value(reference.tap_available)
+			'deprecated':     ruby.bool_value(reference.deprecated)
+			'git_log':        ruby.string_value(reference.git_log)
+			'readme':         ruby.string_value(reference.readme)
+			'maintainer_log': ruby.array_value(reference.maintainer_log.map(contribution_change_value(it)))
 		}
 	}
 }
 
-fn contribution_repository_ref_from_value(value brew_runtime.Value) ContributionRepositoryRef {
-	changes := (value.map_data['maintainer_log'] or { brew_runtime.array_value([]) }).array_data.map(contribution_change_from_value(it))
+fn contribution_repository_ref_from_value(value ruby.Value) ContributionRepositoryRef {
+	changes := (value.map_data['maintainer_log'] or { ruby.array_value([]) }).array_data.map(contribution_change_from_value(it))
 	return ContributionRepositoryRef{
 		repository: contribution_map_string(value.map_data, 'repository', value.repr)
 		path: contribution_map_string(value.map_data, 'path', '')
@@ -322,39 +322,39 @@ fn contribution_repository_ref_from_value(value brew_runtime.Value) Contribution
 	}
 }
 
-fn contribution_repository_counts_value(result ContributionRepositoryCounts) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'repository': brew_runtime.string_value(result.repository)
+fn contribution_repository_counts_value(result ContributionRepositoryCounts) ruby.Value {
+	return ruby.map_value({
+		'repository': ruby.string_value(result.repository)
 		'counts':     contribution_counts_value(result.counts)
 	})
 }
 
-fn contribution_repository_counts_from_value(value brew_runtime.Value) ContributionRepositoryCounts {
+fn contribution_repository_counts_from_value(value ruby.Value) ContributionRepositoryCounts {
 	return ContributionRepositoryCounts{
 		repository: contribution_map_string(value.map_data, 'repository', '')
-		counts: contribution_counts_from_value(value.map_data['counts'] or { brew_runtime.map_value({}) })
+		counts: contribution_counts_from_value(value.map_data['counts'] or { ruby.map_value({}) })
 	}
 }
 
-fn contribution_user_result_value(result ContributionUserResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'user':         brew_runtime.string_value(result.user)
-		'repositories': brew_runtime.array_value(result.repositories.map(contribution_repository_counts_value(it)))
+fn contribution_user_result_value(result ContributionUserResult) ruby.Value {
+	return ruby.map_value({
+		'user':         ruby.string_value(result.user)
+		'repositories': ruby.array_value(result.repositories.map(contribution_repository_counts_value(it)))
 	})
 }
 
-fn contribution_user_result_from_value(value brew_runtime.Value) ContributionUserResult {
+fn contribution_user_result_from_value(value ruby.Value) ContributionUserResult {
 	return ContributionUserResult{
 		user: contribution_map_string(value.map_data, 'user', '')
-		repositories: (value.map_data['repositories'] or { brew_runtime.array_value([]) }).array_data.map(contribution_repository_counts_from_value(it))
+		repositories: (value.map_data['repositories'] or { ruby.array_value([]) }).array_data.map(contribution_repository_counts_from_value(it))
 	}
 }
 
-fn contribution_results_value(results []ContributionUserResult) brew_runtime.Value {
-	return brew_runtime.array_value(results.map(contribution_user_result_value(it)))
+fn contribution_results_value(results []ContributionUserResult) ruby.Value {
+	return ruby.array_value(results.map(contribution_user_result_value(it)))
 }
 
-fn contribution_results_from_value(value brew_runtime.Value) []ContributionUserResult {
+fn contribution_results_from_value(value ruby.Value) []ContributionUserResult {
 	return value.array_data.map(contribution_user_result_from_value(it))
 }
 
@@ -1241,11 +1241,11 @@ pub fn run_contributions(request ContributionRunRequest) !ContributionRunResult 
 	}
 }
 
-fn contribution_run_request_from_value(value brew_runtime.Value) ContributionRunRequest {
+fn contribution_run_request_from_value(value ruby.Value) ContributionRunRequest {
 	values := value.map_data.clone()
 	return ContributionRunRequest{
 		maintainer_report_csv: contribution_map_string(values, 'maintainer_report_csv', '')
-		requested_users: (values['requested_users'] or { brew_runtime.string_array_value([]) }).string_array_data.clone()
+		requested_users: (values['requested_users'] or { ruby.string_array_value([]) }).string_array_data.clone()
 		no_github_api: contribution_map_bool(values, 'no_github_api', false)
 		csv: contribution_map_bool(values, 'csv', false)
 		quarter: contribution_map_int(values, 'quarter', 0)
@@ -1255,41 +1255,41 @@ fn contribution_run_request_from_value(value brew_runtime.Value) ContributionRun
 		verbose: contribution_map_bool(values, 'verbose', false)
 		organisation: contribution_map_string(values, 'organisation', '')
 		team: contribution_map_string(values, 'team', '')
-		users: contribution_string_map_from_value(values['users'] or { brew_runtime.map_value({}) })
-		repositories: (values['repositories'] or { brew_runtime.string_array_value([]) }).string_array_data.clone()
-		organisation_repos: (values['organisation_repos'] or { brew_runtime.string_array_value([]) }).string_array_data.clone()
-		repository_sources: (values['repository_sources'] or { brew_runtime.array_value([]) }).array_data.map(contribution_repository_ref_from_value(it))
-		github_users: contribution_string_map_from_value(values['github_users'] or { brew_runtime.map_value({}) })
-		github_email_matches: contribution_string_array_map_from_value(values['github_email_matches'] or { brew_runtime.map_value({}) })
-		authored_pull_requests: contribution_pull_request_map_from_value(values['authored_pull_requests'] or { brew_runtime.map_value({}) })
-		approved_pull_requests: contribution_pull_request_map_from_value(values['approved_pull_requests'] or { brew_runtime.map_value({}) })
+		users: contribution_string_map_from_value(values['users'] or { ruby.map_value({}) })
+		repositories: (values['repositories'] or { ruby.string_array_value([]) }).string_array_data.clone()
+		organisation_repos: (values['organisation_repos'] or { ruby.string_array_value([]) }).string_array_data.clone()
+		repository_sources: (values['repository_sources'] or { ruby.array_value([]) }).array_data.map(contribution_repository_ref_from_value(it))
+		github_users: contribution_string_map_from_value(values['github_users'] or { ruby.map_value({}) })
+		github_email_matches: contribution_string_array_map_from_value(values['github_email_matches'] or { ruby.map_value({}) })
+		authored_pull_requests: contribution_pull_request_map_from_value(values['authored_pull_requests'] or { ruby.map_value({}) })
+		approved_pull_requests: contribution_pull_request_map_from_value(values['approved_pull_requests'] or { ruby.map_value({}) })
 		current_year: contribution_map_int(values, 'current_year', 0)
 		current_date: contribution_map_string(values, 'current_date', '')
 	}
 }
 
-fn contribution_run_result_value(result ContributionRunResult) brew_runtime.Value {
-	mut users := map[string]brew_runtime.Value{}
+fn contribution_run_result_value(result ContributionRunResult) ruby.Value {
+	mut users := map[string]ruby.Value{}
 	for user, name in result.users {
-		users[user] = brew_runtime.string_value(name)
+		users[user] = ruby.string_value(name)
 	}
-	return brew_runtime.map_value({
-		'from':         brew_runtime.string_value(result.from)
-		'to':           brew_runtime.string_value(result.to)
-		'organisation': brew_runtime.string_value(result.organisation)
-		'users':        brew_runtime.map_value(users)
-		'repositories': brew_runtime.string_array_value(result.repositories)
+	return ruby.map_value({
+		'from':         ruby.string_value(result.from)
+		'to':           ruby.string_value(result.to)
+		'organisation': ruby.string_value(result.organisation)
+		'users':        ruby.map_value(users)
+		'repositories': ruby.string_array_value(result.repositories)
 		'results':      contribution_results_value(result.results)
 		'grand_totals': contribution_totals_value(result.grand_totals)
-		'summaries':    brew_runtime.string_array_value(result.summaries)
-		'csv':          brew_runtime.string_value(result.csv)
-		'output_name':  brew_runtime.string_value(result.output_name)
-		'progress':     brew_runtime.string_array_value(result.progress)
+		'summaries':    ruby.string_array_value(result.summaries)
+		'csv':          ruby.string_value(result.csv)
+		'output_name':  ruby.string_value(result.output_name)
+		'progress':     ruby.string_array_value(result.progress)
 	})
 }
 
 // Ruby method `run` at line 98.
-pub fn ruby_contributions_l98_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_contributions_l98_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return contribution_error('missing contributions request')
 	}
@@ -1300,7 +1300,7 @@ pub fn ruby_contributions_l98_d1_run(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby method `maintainer_report_users(repository_refs, to)` at line 241.
-pub fn ruby_contributions_l241_d2_maintainer_report_users(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_contributions_l241_d2_maintainer_report_users(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return contribution_error('missing repository references')
 	}
@@ -1314,47 +1314,47 @@ pub fn ruby_contributions_l241_d2_maintainer_report_users(args ...brew_runtime.V
 	result := contribution_maintainer_report_users(references, requested, matches) or {
 		return contribution_error(err.msg())
 	}
-	mut names := map[string]brew_runtime.Value{}
-	mut leads := map[string]brew_runtime.Value{}
-	mut since := map[string]brew_runtime.Value{}
+	mut names := map[string]ruby.Value{}
+	mut leads := map[string]ruby.Value{}
+	mut since := map[string]ruby.Value{}
 	for user, name in result.user_names {
-		names[user] = brew_runtime.string_value(name)
+		names[user] = ruby.string_value(name)
 	}
 	for user, lead in result.lead_maintainers {
-		leads[user] = brew_runtime.bool_value(lead)
+		leads[user] = ruby.bool_value(lead)
 	}
 	for user, date in result.maintainer_since_dates {
-		since[user] = if date == '' { contribution_nil() } else { brew_runtime.string_value(date) }
+		since[user] = if date == '' { contribution_nil() } else { ruby.string_value(date) }
 	}
-	return brew_runtime.array_value([brew_runtime.map_value(names), brew_runtime.map_value(leads),
-		brew_runtime.map_value(since)])
+	return ruby.array_value([ruby.map_value(names), ruby.map_value(leads),
+		ruby.map_value(since)])
 }
 
 // Ruby method `maintainer_since(repository_path, ref, user, name)` at line 298.
-pub fn ruby_contributions_l298_d3_maintainer_since(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_contributions_l298_d3_maintainer_since(args ...ruby.Value) ruby.Value {
 	if args.len < 4 {
 		return contribution_nil()
 	}
 	date := contribution_maintainer_since(contribution_repository_ref_from_value(args[0]), args[2].as_string(), args[3].as_string()) or { return contribution_nil() }
-	return brew_runtime.string_value(date)
+	return ruby.string_value(date)
 }
 
 // Ruby method `scan_contributions(organisation, repositories, repository_refs, users, from:, to:,` at line 335.
-pub fn ruby_contributions_l335_d4_scan_contributions(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_contributions_l335_d4_scan_contributions(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return contribution_results_value([])
 	}
 	values := args[0].map_data.clone()
 	request := ContributionScanRequest{
 		organisation: contribution_map_string(values, 'organisation', '')
-		repositories: (values['repositories'] or { brew_runtime.string_array_value([]) }).string_array_data.clone()
-		repository_refs: (values['repository_refs'] or { brew_runtime.array_value([]) }).array_data.map(contribution_repository_ref_from_value(it))
-		users: contribution_string_map_from_value(values['users'] or { brew_runtime.map_value({}) })
+		repositories: (values['repositories'] or { ruby.string_array_value([]) }).string_array_data.clone()
+		repository_refs: (values['repository_refs'] or { ruby.array_value([]) }).array_data.map(contribution_repository_ref_from_value(it))
+		users: contribution_string_map_from_value(values['users'] or { ruby.map_value({}) })
 		from: contribution_map_string(values, 'from', '')
 		to: contribution_map_string(values, 'to', '')
-		github_users: contribution_string_map_from_value(values['github_users'] or { brew_runtime.map_value({}) })
-		authored_pull_requests: contribution_pull_request_map_from_value(values['authored_pull_requests'] or { brew_runtime.map_value({}) })
-		approved_pull_requests: contribution_pull_request_map_from_value(values['approved_pull_requests'] or { brew_runtime.map_value({}) })
+		github_users: contribution_string_map_from_value(values['github_users'] or { ruby.map_value({}) })
+		authored_pull_requests: contribution_pull_request_map_from_value(values['authored_pull_requests'] or { ruby.map_value({}) })
+		approved_pull_requests: contribution_pull_request_map_from_value(values['approved_pull_requests'] or { ruby.map_value({}) })
 		skip_reviews_if_lead_met: contribution_map_bool(values, 'skip_reviews_if_lead_met', false)
 		progress: contribution_map_bool(values, 'progress', false)
 	}
@@ -1362,7 +1362,7 @@ pub fn ruby_contributions_l335_d4_scan_contributions(args ...brew_runtime.Value)
 }
 
 // Ruby method `github_username_for(user, to:)` at line 471.
-pub fn ruby_contributions_l471_d5_github_username_for(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_contributions_l471_d5_github_username_for(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return contribution_nil()
 	}
@@ -1370,11 +1370,11 @@ pub fn ruby_contributions_l471_d5_github_username_for(args ...brew_runtime.Value
 	username := contribution_github_username_for(args[0].as_string(), matches) or {
 		return contribution_nil()
 	}
-	return brew_runtime.string_value(username)
+	return ruby.string_value(username)
 }
 
 // Ruby method `github_search_with_rate_limit(cache_key, to:, &block)` at line 498.
-pub fn ruby_contributions_l498_d6_github_search_with_rate_limit(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_contributions_l498_d6_github_search_with_rate_limit(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return contribution_error('missing cache request')
 	}
@@ -1384,53 +1384,53 @@ pub fn ruby_contributions_l498_d6_github_search_with_rate_limit(args ...brew_run
 		to: contribution_map_string(values, 'to', '')
 		today: contribution_map_string(values, 'today', '')
 		cache_dir: contribution_map_string(values, 'cache_dir', '')
-		results: (values['results'] or { brew_runtime.string_array_value([]) }).string_array_data.clone()
+		results: (values['results'] or { ruby.string_array_value([]) }).string_array_data.clone()
 	}) or { return contribution_error(err.msg()) }
-	return brew_runtime.string_array_value(results)
+	return ruby.string_array_value(results)
 }
 
 // Ruby method `parse_git_log(output, users, authored_pull_requests: nil, merged_pull_requests: nil)` at line 532.
-pub fn ruby_contributions_l532_d7_parse_git_log(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_contributions_l532_d7_parse_git_log(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		return contribution_totals_value({})
 	}
 	result := contribution_parse_git_log(args[0].as_string(), contribution_string_map_from_value(args[1]))
-	mut authored := map[string]brew_runtime.Value{}
-	mut merged := map[string]brew_runtime.Value{}
+	mut authored := map[string]ruby.Value{}
+	mut merged := map[string]ruby.Value{}
 	for user, ids in result.authored {
-		authored[user] = brew_runtime.string_array_value(ids)
+		authored[user] = ruby.string_array_value(ids)
 	}
 	for user, ids in result.merged {
-		merged[user] = brew_runtime.string_array_value(ids)
+		merged[user] = ruby.string_array_value(ids)
 	}
-	return brew_runtime.map_value({
+	return ruby.map_value({
 		'counts':   contribution_totals_value(result.counts)
-		'authored': brew_runtime.map_value(authored)
-		'merged':   brew_runtime.map_value(merged)
+		'authored': ruby.map_value(authored)
+		'merged':   ruby.map_value(merged)
 	})
 }
 
 // Ruby method `generate_maintainer_report_csv(results, grand_totals, user_names, lead_maintainers, maintainer_since_dates,` at line 620.
-pub fn ruby_contributions_l620_d8_generate_maintainer_report_csv(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_contributions_l620_d8_generate_maintainer_report_csv(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_value('')
+		return ruby.string_value('')
 	}
 	values := args[0].map_data.clone()
 	request := ContributionReportRequest{
-		results: contribution_results_from_value(values['results'] or { brew_runtime.array_value([]) })
-		grand_totals: contribution_totals_from_value(values['grand_totals'] or { brew_runtime.map_value({}) })
-		user_names: contribution_string_map_from_value(values['user_names'] or { brew_runtime.map_value({}) })
-		lead_maintainers: contribution_bool_map_from_value(values['lead_maintainers'] or { brew_runtime.map_value({}) })
-		maintainer_since_dates: contribution_string_map_from_value(values['maintainer_since_dates'] or { brew_runtime.map_value({}) })
+		results: contribution_results_from_value(values['results'] or { ruby.array_value([]) })
+		grand_totals: contribution_totals_from_value(values['grand_totals'] or { ruby.map_value({}) })
+		user_names: contribution_string_map_from_value(values['user_names'] or { ruby.map_value({}) })
+		lead_maintainers: contribution_bool_map_from_value(values['lead_maintainers'] or { ruby.map_value({}) })
+		maintainer_since_dates: contribution_string_map_from_value(values['maintainer_since_dates'] or { ruby.map_value({}) })
 		to: contribution_map_string(values, 'to', '')
 	}
-	return brew_runtime.string_value(contribution_generate_maintainer_report_csv(request))
+	return ruby.string_value(contribution_generate_maintainer_report_csv(request))
 }
 
 // Ruby method `prepare_contribution_repositories(repositories, required:)` at line 693.
-pub fn ruby_contributions_l693_d9_prepare_contribution_repositories(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_contributions_l693_d9_prepare_contribution_repositories(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.array_value([])
+		return ruby.array_value([])
 	}
 	repositories := args[0].string_array_data
 	sources := args[1].array_data.map(contribution_repository_ref_from_value(it))
@@ -1438,33 +1438,33 @@ pub fn ruby_contributions_l693_d9_prepare_contribution_repositories(args ...brew
 	prepared := contribution_prepare_repositories(repositories, sources, required) or {
 		return contribution_error(err.msg())
 	}
-	return brew_runtime.array_value(prepared.map(contribution_repository_ref_value(it)))
+	return ruby.array_value(prepared.map(contribution_repository_ref_value(it)))
 }
 
 // Ruby method `readme_mentions?(readme, user, name)` at line 723.
-pub fn ruby_contributions_l723_d10_readme_mentions(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_contributions_l723_d10_readme_mentions(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(contribution_readme_mentions(args[0].as_string(), args[1].as_string(), args[2].as_string()))
+	return ruby.bool_value(contribution_readme_mentions(args[0].as_string(), args[1].as_string(), args[2].as_string()))
 }
 
 // Ruby method `add_merged_pull_request_id(pull_request, authored_pull_requests, merged_pull_requests)` at line 735.
-pub fn ruby_contributions_l735_d11_add_merged_pull_request_id(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_contributions_l735_d11_add_merged_pull_request_id(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		return contribution_nil()
 	}
 	mut authored := args[1].string_array_data.clone()
 	mut merged := args[2].string_array_data.clone()
 	contribution_add_merged_pull_request_id(contribution_pull_request_from_value(args[0]), mut authored, mut merged)
-	return brew_runtime.map_value({
-		'authored': brew_runtime.string_array_value(authored)
-		'merged':   brew_runtime.string_array_value(merged)
+	return ruby.map_value({
+		'authored': ruby.string_array_value(authored)
+		'merged':   ruby.string_array_value(merged)
 	})
 }
 
 // Ruby method `update_merged_pull_request_counts(counts, authored_pull_requests, merged_pull_requests)` at line 751.
-pub fn ruby_contributions_l751_d12_update_merged_pull_request_counts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_contributions_l751_d12_update_merged_pull_request_counts(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		return contribution_counts_value({})
 	}
@@ -1474,16 +1474,16 @@ pub fn ruby_contributions_l751_d12_update_merged_pull_request_counts(args ...bre
 }
 
 // Ruby method `user_for_git_identity(name, email, identity_users)` at line 763.
-pub fn ruby_contributions_l763_d13_user_for_git_identity(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_contributions_l763_d13_user_for_git_identity(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		return contribution_nil()
 	}
 	user := contribution_user_for_git_identity(args[0].as_string(), args[1].as_string(), contribution_string_map_from_value(args[2])) or { return contribution_nil() }
-	return brew_runtime.string_value(user)
+	return ruby.string_value(user)
 }
 
 // Ruby method `increment_contribution_count(counts, type)` at line 770.
-pub fn ruby_contributions_l770_d14_increment_contribution_count(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_contributions_l770_d14_increment_contribution_count(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		return contribution_counts_value({})
 	}
@@ -1493,9 +1493,9 @@ pub fn ruby_contributions_l770_d14_increment_contribution_count(args ...brew_run
 }
 
 // Ruby method `repository_path_and_tap(repository)` at line 776.
-pub fn ruby_contributions_l776_d15_repository_path_and_tap(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_contributions_l776_d15_repository_path_and_tap(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.array_value([contribution_nil(), contribution_nil()])
+		return ruby.array_value([contribution_nil(), contribution_nil()])
 	}
 	location := contribution_repository_path_and_tap(args[0].as_string(), if args.len > 1 {
 		args[1].as_string()
@@ -1507,37 +1507,37 @@ pub fn ruby_contributions_l776_d15_repository_path_and_tap(args ...brew_runtime.
 		[]string{}
 	})
 	if !location.found {
-		return brew_runtime.array_value([contribution_nil(), contribution_nil()])
+		return ruby.array_value([contribution_nil(), contribution_nil()])
 	}
-	return brew_runtime.array_value([brew_runtime.string_value(location.path),
-		if location.tap == '' { contribution_nil() } else { brew_runtime.string_value(location.tap) }])
+	return ruby.array_value([ruby.string_value(location.path),
+		if location.tap == '' { contribution_nil() } else { ruby.string_value(location.tap) }])
 }
 
 // Ruby method `time_period(from:, to:)` at line 788.
-pub fn ruby_contributions_l788_d16_time_period(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_contributions_l788_d16_time_period(args ...ruby.Value) ruby.Value {
 	from := if args.len > 0 && args[0].type_name != 'NilClass' { args[0].as_string() } else { '' }
 	to := if args.len > 1 && args[1].type_name != 'NilClass' { args[1].as_string() } else { '' }
-	return brew_runtime.string_value(contribution_time_period(from, to))
+	return ruby.string_value(contribution_time_period(from, to))
 }
 
 // Ruby method `generate_csv(totals)` at line 801.
-pub fn ruby_contributions_l801_d17_generate_csv(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_contributions_l801_d17_generate_csv(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_value(contribution_generate_csv({}))
+		return ruby.string_value(contribution_generate_csv({}))
 	}
-	return brew_runtime.string_value(contribution_generate_csv(contribution_totals_from_value(args[0])))
+	return ruby.string_value(contribution_generate_csv(contribution_totals_from_value(args[0])))
 }
 
 // Ruby method `grand_total_row(user, grand_total)` at line 815.
-pub fn ruby_contributions_l815_d18_grand_total_row(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_contributions_l815_d18_grand_total_row(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.string_array_value([])
+		return ruby.string_array_value([])
 	}
-	return brew_runtime.string_array_value(contribution_grand_total_row(args[0].as_string(), contribution_counts_from_value(args[1])))
+	return ruby.string_array_value(contribution_grand_total_row(args[0].as_string(), contribution_counts_from_value(args[1])))
 }
 
 // Ruby method `total(results)` at line 822.
-pub fn ruby_contributions_l822_d19_total(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_contributions_l822_d19_total(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return contribution_counts_value({})
 	}
@@ -1546,24 +1546,24 @@ pub fn ruby_contributions_l822_d19_total(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `contribution_count(contributions)` at line 836.
-pub fn ruby_contributions_l836_d20_contribution_count(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_contributions_l836_d20_contribution_count(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.int_value(0)
+		return ruby.int_value(0)
 	}
-	return brew_runtime.int_value(contribution_count(contribution_counts_from_value(args[0])))
+	return ruby.int_value(contribution_count(contribution_counts_from_value(args[0])))
 }
 
 // Ruby method `lead_activity_met?(repositories)` at line 841.
-pub fn ruby_contributions_l841_d21_lead_activity_met(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_contributions_l841_d21_lead_activity_met(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	repositories := args[0].array_data.map(contribution_repository_counts_from_value(it))
-	return brew_runtime.bool_value(contribution_lead_activity_met(repositories))
+	return ruby.bool_value(contribution_lead_activity_met(repositories))
 }
 
 // Ruby method `reporting_quarter_dates(quarter, current_year = Date.today.year)` at line 848.
-pub fn ruby_contributions_l848_d22_reporting_quarter_dates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_contributions_l848_d22_reporting_quarter_dates(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return contribution_error('missing quarter')
 	}
@@ -1571,7 +1571,7 @@ pub fn ruby_contributions_l848_d22_reporting_quarter_dates(args ...brew_runtime.
 	dates := contribution_reporting_quarter_dates(int(args[0].int_data), year) or {
 		return contribution_error(err.msg())
 	}
-	return brew_runtime.string_array_value(dates)
+	return ruby.string_array_value(dates)
 }
 
 // Original Ruby source (line-for-line):

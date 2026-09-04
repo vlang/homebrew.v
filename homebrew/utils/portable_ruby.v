@@ -1,6 +1,6 @@
 module utils
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `utils/portable_ruby.rb`.
@@ -24,10 +24,10 @@ pub fn sync_bundler_version(library_path string, pkg_version string) !string {
 	bundler_version := bundler_basename['bundler-'.len..]
 
 	ruby_sh := os.join_path(library_path, 'utils', 'ruby.sh')
-	original := brew_runtime.read_file(ruby_sh)!
+	original := ruby.read_file(ruby_sh)!
 	updated := replace_bundler_version_export(original, bundler_version)
 	if original != updated {
-		brew_runtime.atomic_write_file(ruby_sh, updated)!
+		ruby.atomic_write_file(ruby_sh, updated)!
 	}
 	return bundler_version
 }
@@ -49,16 +49,16 @@ fn replace_bundler_version_export(contents string, bundler_version string) strin
 }
 
 // Ruby method `self.sync_bundler_version!(pkg_version)` at line 14.
-pub fn ruby_portable_ruby_l14_d1_self_sync_bundler_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_portable_ruby_l14_d1_self_sync_bundler_version(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || args[0].type_name != 'String' {
 		panic('self.sync_bundler_version! requires a package version')
 	}
-	library_path := brew_runtime.environment_value('HOMEBREW_LIBRARY_PATH')
+	library_path := ruby.environment_value('HOMEBREW_LIBRARY_PATH')
 	if library_path == '' {
 		panic('HOMEBREW_LIBRARY_PATH is not set')
 	}
 	version := sync_bundler_version(library_path, args[0].as_string()) or { panic(err) }
-	return brew_runtime.string_value(version)
+	return ruby.string_value(version)
 }
 
 // Original Ruby source (line-for-line):

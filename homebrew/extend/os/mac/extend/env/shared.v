@@ -1,6 +1,6 @@
 module env
 
-import brew_runtime
+import ruby
 
 pub fn mac_setup_shared_build_environment(base map[string]string,
 	preferred_perl_version string) map[string]string {
@@ -17,7 +17,7 @@ pub fn mac_no_fixup_chains_support(ld64_version int) bool {
 	return ld64_version >= 711
 }
 
-fn mac_string_map_from_value(value brew_runtime.Value) !map[string]string {
+fn mac_string_map_from_value(value ruby.Value) !map[string]string {
 	values := value.as_map()!
 	mut result := map[string]string{}
 	for key, item in values {
@@ -26,19 +26,19 @@ fn mac_string_map_from_value(value brew_runtime.Value) !map[string]string {
 	return result
 }
 
-fn mac_string_map_value(values map[string]string) brew_runtime.Value {
-	mut mapped := map[string]brew_runtime.Value{}
+fn mac_string_map_value(values map[string]string) ruby.Value {
+	mut mapped := map[string]ruby.Value{}
 	for key, value in values {
-		mapped[key] = brew_runtime.string_value(value)
+		mapped[key] = ruby.string_value(value)
 	}
-	return brew_runtime.map_value(mapped)
+	return ruby.map_value(mapped)
 }
 
 // Translated from Homebrew/brew `extend/os/mac/extend/ENV/shared.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `setup_build_environment(formula: nil, cc: nil, build_bottle: false, bottle_arch: nil,` at line 21.
-pub fn ruby_shared_l21_d1_setup_build_environment(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shared_l21_d1_setup_build_environment(args ...ruby.Value) ruby.Value {
 	base := if args.len > 0 {
 		mac_string_map_from_value(args[0]) or { panic(err) }
 	} else {
@@ -49,15 +49,15 @@ pub fn ruby_shared_l21_d1_setup_build_environment(args ...brew_runtime.Value) br
 }
 
 // Ruby method `no_weak_imports_support?` at line 32.
-pub fn ruby_shared_l32_d2_no_weak_imports_support(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shared_l32_d2_no_weak_imports_support(args ...ruby.Value) ruby.Value {
 	compiler := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.bool_value(mac_no_weak_imports_support(compiler))
+	return ruby.bool_value(mac_no_weak_imports_support(compiler))
 }
 
 // Ruby method `no_fixup_chains_support?` at line 37.
-pub fn ruby_shared_l37_d3_no_fixup_chains_support(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shared_l37_d3_no_fixup_chains_support(args ...ruby.Value) ruby.Value {
 	version := if args.len > 0 { int(args[0].as_int() or { panic(err) }) } else { 0 }
-	return brew_runtime.bool_value(mac_no_fixup_chains_support(version))
+	return ruby.bool_value(mac_no_fixup_chains_support(version))
 }
 
 // Original Ruby source (line-for-line):

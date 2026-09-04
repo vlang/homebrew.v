@@ -1,6 +1,6 @@
 module patchelf
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/patchelf-1.6.2/lib/patchelf/saver.rb`.
@@ -15,7 +15,7 @@ pub:
 	in_file  string
 	out_file string
 pub mut:
-	set map[string]brew_runtime.Value
+	set map[string]ruby.Value
 mut:
 	elf               &AltSaver
 	working_tags      []AltDynamicTag
@@ -25,19 +25,19 @@ mut:
 	interpreter_dirty bool
 }
 
-fn saver_nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn saver_nil_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-fn saver_value(saver &Saver) brew_runtime.Value {
-	return brew_runtime.structured_value('PatchELF::Saver', 'Saver(${saver.in_file})', {
+fn saver_value(saver &Saver) ruby.Value {
+	return ruby.structured_value('PatchELF::Saver', 'Saver(${saver.in_file})', {
 		'saver_address': u64(voidptr(saver)).str()
 		'in_file':       saver.in_file
 		'out_file':      saver.out_file
 	})
 }
 
-fn saver_from_args(args []brew_runtime.Value) &Saver {
+fn saver_from_args(args []ruby.Value) &Saver {
 	if args.len == 0 {
 		panic('PatchELF::Saver method requires a receiver')
 	}
@@ -45,7 +45,7 @@ fn saver_from_args(args []brew_runtime.Value) &Saver {
 	return unsafe { &Saver(voidptr(address.u64())) }
 }
 
-fn saver_require(args []brew_runtime.Value, count int, name string) {
+fn saver_require(args []ruby.Value, count int, name string) {
 	if args.len < count {
 		panic('${name} requires ${count} argument(s), including receiver')
 	}
@@ -57,7 +57,7 @@ fn saver_dynstr_bytes(elf &AltSaver) ![]u8 {
 	return elf.buffer[int(section.header.sh_offset)..int(section.header.sh_offset + section.header.sh_size)].clone()
 }
 
-pub fn new_saver_from_bytes(in_file string, out_file string, set map[string]brew_runtime.Value,
+pub fn new_saver_from_bytes(in_file string, out_file string, set map[string]ruby.Value,
 	data []u8) !&Saver {
 	elf := new_alt_saver_from_bytes(in_file, out_file, set, data)!
 	return &Saver{
@@ -71,7 +71,7 @@ pub fn new_saver_from_bytes(in_file string, out_file string, set map[string]brew
 	}
 }
 
-pub fn new_saver(in_file string, out_file string, set map[string]brew_runtime.Value) !&Saver {
+pub fn new_saver(in_file string, out_file string, set map[string]ruby.Value) !&Saver {
 	return new_saver_from_bytes(in_file, out_file, set, os.read_bytes(in_file)!)
 }
 
@@ -314,17 +314,17 @@ pub fn (mut saver Saver) save() ! {
 }
 
 // Ruby attr_reader `attr_reader :in_file` at line 22.
-pub fn ruby_saver_l22_d1_in_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(saver_from_args(args).in_file)
+pub fn ruby_saver_l22_d1_in_file(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(saver_from_args(args).in_file)
 }
 
 // Ruby attr_reader `attr_reader :out_file` at line 23.
-pub fn ruby_saver_l23_d2_out_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(saver_from_args(args).out_file)
+pub fn ruby_saver_l23_d2_out_file(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(saver_from_args(args).out_file)
 }
 
 // Ruby method `initialize(in_file, out_file, set)` at line 29.
-pub fn ruby_saver_l29_d3_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_saver_l29_d3_initialize(args ...ruby.Value) ruby.Value {
 	saver_require(args, 3, 'Saver#initialize')
 	saver := new_saver(args[0].as_string(), args[1].as_string(), alt_set_from_value(args[2])) or {
 		panic(err)
@@ -333,35 +333,35 @@ pub fn ruby_saver_l29_d3_initialize(args ...brew_runtime.Value) brew_runtime.Val
 }
 
 // Ruby method `save!` at line 46.
-pub fn ruby_saver_l46_d4_save(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_saver_l46_d4_save(args ...ruby.Value) ruby.Value {
 	mut saver := saver_from_args(args)
 	saver.save() or { panic(err) }
 	return saver_nil_value()
 }
 
 // Ruby method `patch_interpreter` at line 62.
-pub fn ruby_saver_l62_d5_patch_interpreter(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_saver_l62_d5_patch_interpreter(args ...ruby.Value) ruby.Value {
 	mut saver := saver_from_args(args)
 	saver.patch_interpreter() or { panic(err) }
 	return saver_nil_value()
 }
 
 // Ruby method `patch_dynamic` at line 97.
-pub fn ruby_saver_l97_d6_patch_dynamic(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_saver_l97_d6_patch_dynamic(args ...ruby.Value) ruby.Value {
 	mut saver := saver_from_args(args)
 	saver.patch_dynamic() or { panic(err) }
 	return saver_nil_value()
 }
 
 // Ruby method `patch_soname` at line 112.
-pub fn ruby_saver_l112_d7_patch_soname(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_saver_l112_d7_patch_soname(args ...ruby.Value) ruby.Value {
 	mut saver := saver_from_args(args)
 	saver.patch_soname() or { panic(err) }
 	return saver_nil_value()
 }
 
 // Ruby method `patch_runpath(sym = :runpath)` at line 120.
-pub fn ruby_saver_l120_d8_patch_runpath(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_saver_l120_d8_patch_runpath(args ...ruby.Value) ruby.Value {
 	mut saver := saver_from_args(args)
 	name := if args.len > 1 { args[1].as_string() } else { 'runpath' }
 	saver.patch_runpath(name) or { panic(err) }
@@ -369,14 +369,14 @@ pub fn ruby_saver_l120_d8_patch_runpath(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby method `patch_needed` at line 128.
-pub fn ruby_saver_l128_d9_patch_needed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_saver_l128_d9_patch_needed(args ...ruby.Value) ruby.Value {
 	mut saver := saver_from_args(args)
 	saver.patch_needed() or { panic(err) }
 	return saver_nil_value()
 }
 
 // Ruby method `lazy_dyn(sym)` at line 157.
-pub fn ruby_saver_l157_d10_lazy_dyn(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_saver_l157_d10_lazy_dyn(args ...ruby.Value) ruby.Value {
 	saver_require(args, 2, 'Saver#lazy_dyn')
 	mut saver := saver_from_args(args)
 	index := saver.lazy_dyn(args[1].as_string()) or { panic(err) }
@@ -384,33 +384,33 @@ pub fn ruby_saver_l157_d10_lazy_dyn(args ...brew_runtime.Value) brew_runtime.Val
 }
 
 // Ruby method `expand_dynamic!` at line 165.
-pub fn ruby_saver_l165_d11_expand_dynamic(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_saver_l165_d11_expand_dynamic(args ...ruby.Value) ruby.Value {
 	mut saver := saver_from_args(args)
 	saver.expand_dynamic() or { panic(err) }
 	return saver_nil_value()
 }
 
 // Ruby method `malloc_strtab!` at line 186.
-pub fn ruby_saver_l186_d12_malloc_strtab(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_saver_l186_d12_malloc_strtab(args ...ruby.Value) ruby.Value {
 	mut saver := saver_from_args(args)
 	saver.malloc_strtab() or { panic(err) }
 	return saver_nil_value()
 }
 
 // Ruby method `reg_str_table(str, &block)` at line 215.
-pub fn ruby_saver_l215_d13_reg_str_table(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_saver_l215_d13_reg_str_table(args ...ruby.Value) ruby.Value {
 	saver_require(args, 2, 'Saver#reg_str_table')
 	mut saver := saver_from_args(args)
-	return brew_runtime.int_value(saver.reg_str_table(args[1].as_string()))
+	return ruby.int_value(saver.reg_str_table(args[1].as_string()))
 }
 
 // Ruby method `strtab_string` at line 224.
-pub fn ruby_saver_l224_d14_strtab_string(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(saver_from_args(args).strtab_string())
+pub fn ruby_saver_l224_d14_strtab_string(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(saver_from_args(args).strtab_string())
 }
 
 // Ruby method `inline_patch(off, str)` at line 245.
-pub fn ruby_saver_l245_d15_inline_patch(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_saver_l245_d15_inline_patch(args ...ruby.Value) ruby.Value {
 	saver_require(args, 3, 'Saver#inline_patch')
 	mut saver := saver_from_args(args)
 	saver.inline_patch(int(args[1].as_int() or { panic(err) }), args[2].as_string()) or { panic(err) }
@@ -418,7 +418,7 @@ pub fn ruby_saver_l245_d15_inline_patch(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby method `patch_out(out_file)` at line 250.
-pub fn ruby_saver_l250_d16_patch_out(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_saver_l250_d16_patch_out(args ...ruby.Value) ruby.Value {
 	mut saver := saver_from_args(args)
 	out_file := if args.len > 1 { args[1].as_string() } else { saver.out_file }
 	saver.patch_out(out_file) or { panic(err) }
@@ -426,14 +426,14 @@ pub fn ruby_saver_l250_d16_patch_out(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby method `section_header(name)` at line 278.
-pub fn ruby_saver_l278_d17_section_header(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_saver_l278_d17_section_header(args ...ruby.Value) ruby.Value {
 	saver_require(args, 2, 'Saver#section_header')
 	header := saver_from_args(args).section_header(args[1].as_string()) or { return saver_nil_value() }
 	return alt_section_header_value(header)
 }
 
 // Ruby method `dynamic` at line 285.
-pub fn ruby_saver_l285_d18_dynamic(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_saver_l285_d18_dynamic(args ...ruby.Value) ruby.Value {
 	section := saver_from_args(args).dynamic() or { return saver_nil_value() }
 	return alt_section_value(section)
 }

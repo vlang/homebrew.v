@@ -1,25 +1,25 @@
 module extend
 
-import brew_runtime
+import ruby
 import homebrew.extend.blank
 
 // Translated from Homebrew/brew `extend/blank.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `blank?` at line 21.
-pub fn ruby_blank_l21_d1_blank(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_blank_l21_d1_blank(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Object#blank? requires a receiver') }
-	return brew_runtime.bool_value(blank.value_is_blank(args[0]))
+	return ruby.bool_value(blank.value_is_blank(args[0]))
 }
 
 // Ruby method `present? = !blank?` at line 27.
-pub fn ruby_blank_l27_d2_present(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_blank_l27_d2_present(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Object#present? requires a receiver') }
-	return brew_runtime.bool_value(blank.value_is_present(args[0]))
+	return ruby.bool_value(blank.value_is_present(args[0]))
 }
 
 // Ruby method `presence` at line 47.
-pub fn ruby_blank_l47_d3_presence(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_blank_l47_d3_presence(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Object#presence requires a receiver') }
 	return blank.value_presence(args[0])
 }

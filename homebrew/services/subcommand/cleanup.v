@@ -1,6 +1,6 @@
 module subcommand
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `services/subcommand/cleanup.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -154,15 +154,15 @@ pub fn service_restart(request ServiceSubcommandRequest) !ServiceSubcommandResul
 	}
 }
 
-pub fn service_subcommand_request_from_args(args []brew_runtime.Value) !ServiceSubcommandRequest {
+pub fn service_subcommand_request_from_args(args []ruby.Value) !ServiceSubcommandRequest {
 	if args.len == 0 {
 		return ServiceSubcommandRequest{}
 	}
 	values := args[0].as_map()!
 	target_values := if value := values['targets'] {
-		value.as_array() or { []brew_runtime.Value{} }
+		value.as_array() or { []ruby.Value{} }
 	} else {
-		[]brew_runtime.Value{}
+		[]ruby.Value{}
 	}
 	mut targets := []ServiceSubcommandTarget{}
 	for value in target_values {
@@ -199,26 +199,26 @@ pub fn service_subcommand_request_from_args(args []brew_runtime.Value) !ServiceS
 	}
 }
 
-pub fn service_subcommand_result_to_value(result ServiceSubcommandResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'operation': brew_runtime.string_value(result.operation)
-		'checked':   brew_runtime.string_array_value(result.checked)
-		'cleaned':   brew_runtime.string_array_value(result.cleaned)
-		'stopped':   brew_runtime.string_array_value(result.stopped)
-		'started':   brew_runtime.string_array_value(result.started)
-		'ran':       brew_runtime.string_array_value(result.ran)
-		'killed':    brew_runtime.string_array_value(result.killed)
-		'output':    brew_runtime.string_value(result.output)
-		'no_wait':   brew_runtime.bool_value(result.no_wait)
-		'max_wait':  brew_runtime.float_value(result.max_wait)
-		'keep':      brew_runtime.bool_value(result.keep)
+pub fn service_subcommand_result_to_value(result ServiceSubcommandResult) ruby.Value {
+	return ruby.map_value({
+		'operation': ruby.string_value(result.operation)
+		'checked':   ruby.string_array_value(result.checked)
+		'cleaned':   ruby.string_array_value(result.cleaned)
+		'stopped':   ruby.string_array_value(result.stopped)
+		'started':   ruby.string_array_value(result.started)
+		'ran':       ruby.string_array_value(result.ran)
+		'killed':    ruby.string_array_value(result.killed)
+		'output':    ruby.string_value(result.output)
+		'no_wait':   ruby.bool_value(result.no_wait)
+		'max_wait':  ruby.float_value(result.max_wait)
+		'keep':      ruby.bool_value(result.keep)
 	})
 }
 
 // Ruby method `run` at line 20.
-pub fn ruby_cleanup_l20_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cleanup_l20_d1_run(args ...ruby.Value) ruby.Value {
 	request := service_subcommand_request_from_args(args) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	return service_subcommand_result_to_value(service_cleanup(request))
 }

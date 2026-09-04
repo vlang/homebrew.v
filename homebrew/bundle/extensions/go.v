@@ -1,6 +1,6 @@
 module extensions
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `bundle/extensions/go.rb`.
@@ -200,84 +200,84 @@ pub fn (mut state GoState) cleanup(items []string) !int {
 	return removed
 }
 
-fn go_state_value(state &GoState) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::Bundle::Go', '', {
+fn go_state_value(state &GoState) ruby.Value {
+	return ruby.structured_value('Homebrew::Bundle::Go', '', {
 		'go_state_address': u64(voidptr(state)).str()
 	})
 }
 
-fn go_state_from_args(args []brew_runtime.Value, method string) &GoState {
+fn go_state_from_args(args []ruby.Value, method string) &GoState {
 	if args.len == 0 || 'go_state_address' !in args[0].attributes {
 		panic('Go.${method} requires translated Go state')
 	}
 	return unsafe { &GoState(voidptr(args[0].attributes['go_state_address'].u64())) }
 }
 
-pub fn go_state_boundary(state &GoState) brew_runtime.Value {
+pub fn go_state_boundary(state &GoState) ruby.Value {
 	return go_state_value(state)
 }
 
 // Ruby method `type = :go` at line 11.
-pub fn ruby_go_l11_d1_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_go_l11_d1_type(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.object_value('Symbol', 'go')
+	return ruby.object_value('Symbol', 'go')
 }
 
 // Ruby method `check_label = "Go Package"` at line 14.
-pub fn ruby_go_l14_d2_check_label(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_go_l14_d2_check_label(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value(go_definition().check_label)
+	return ruby.string_value(go_definition().check_label)
 }
 
 // Ruby method `banner_name = "Go packages"` at line 17.
-pub fn ruby_go_l17_d3_banner_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_go_l17_d3_banner_name(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value(go_definition().banner_name)
+	return ruby.string_value(go_definition().banner_name)
 }
 
 // Ruby method `reset!` at line 20.
-pub fn ruby_go_l20_d4_reset(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_go_l20_d4_reset(args ...ruby.Value) ruby.Value {
 	mut state := go_state_from_args(args, 'reset!')
 	state.reset()
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `cleanup_heading` at line 26.
-pub fn ruby_go_l26_d5_cleanup_heading(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_go_l26_d5_cleanup_heading(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value(go_definition().cleanup_heading or { '' })
+	return ruby.string_value(go_definition().cleanup_heading or { '' })
 }
 
 // Ruby method `packages` at line 31.
-pub fn ruby_go_l31_d6_packages(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_go_l31_d6_packages(args ...ruby.Value) ruby.Value {
 	mut state := go_state_from_args(args, 'packages')
-	return brew_runtime.string_array_value(state.discover_packages())
+	return ruby.string_array_value(state.discover_packages())
 }
 
 // Ruby method `install_package!(name, with: nil, verbose: false)` at line 82.
-pub fn ruby_go_l82_d7_install_package(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_go_l82_d7_install_package(args ...ruby.Value) ruby.Value {
 	mut state := go_state_from_args(args, 'install_package!')
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'name is required')
+		return ruby.object_value('ArgumentError', 'name is required')
 	}
 	result := if args.len > 4 { args[4].bool_data } else { false }
-	return brew_runtime.bool_value(state.install_package(args[1].as_string(), result) or {
-		return brew_runtime.object_value('RuntimeError', err.msg())
+	return ruby.bool_value(state.install_package(args[1].as_string(), result) or {
+		return ruby.object_value('RuntimeError', err.msg())
 	})
 }
 
 // Ruby method `installed_packages` at line 91.
-pub fn ruby_go_l91_d8_installed_packages(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_go_l91_d8_installed_packages(args ...ruby.Value) ruby.Value {
 	mut state := go_state_from_args(args, 'installed_packages')
-	return brew_runtime.string_array_value(state.discover_installed_packages())
+	return ruby.string_array_value(state.discover_installed_packages())
 }
 
 // Ruby method `cleanup!(items)` at line 99.
-pub fn ruby_go_l99_d9_cleanup(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_go_l99_d9_cleanup(args ...ruby.Value) ruby.Value {
 	mut state := go_state_from_args(args, 'cleanup!')
 	items := if args.len > 1 { args[1].as_string_array() or { [] } } else { [] }
-	state.cleanup(items) or { return brew_runtime.object_value('SystemCallError', err.msg()) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	state.cleanup(items) or { return ruby.object_value('SystemCallError', err.msg()) }
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Original Ruby source (line-for-line):

@@ -1,6 +1,6 @@
 module cask
 
-import brew_runtime
+import ruby
 
 pub fn mac_cask_dsl_os_version(full_version string) ?string {
 	if full_version == '' {
@@ -13,12 +13,12 @@ pub fn mac_cask_dsl_os_version(full_version string) ?string {
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `os_version` at line 15.
-pub fn ruby_dsl_l15_d1_os_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l15_d1_os_version(args ...ruby.Value) ruby.Value {
 	full_version := if args.len > 0 { args[0].as_string() } else { '' }
 	version := mac_cask_dsl_os_version(full_version) or {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
-	return brew_runtime.structured_value('MacOSVersion', version, {
+	return ruby.structured_value('MacOSVersion', version, {
 		'version': version
 	})
 }

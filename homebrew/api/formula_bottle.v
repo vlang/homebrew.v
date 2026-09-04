@@ -1,6 +1,6 @@
 module api
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `api/formula_bottle.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -57,7 +57,7 @@ pub fn formula_bottle(name string, formula FormulaBottleStruct, bottle_tag strin
 	}
 }
 
-fn formula_bottle_struct_from_value(value brew_runtime.Value) FormulaBottleStruct {
+fn formula_bottle_struct_from_value(value ruby.Value) FormulaBottleStruct {
 	return FormulaBottleStruct{
 		stable: (value.attributes['stable'] or { 'false' }).bool()
 		bottle: (value.attributes['bottle'] or { 'false' }).bool()
@@ -73,9 +73,9 @@ fn formula_bottle_struct_from_value(value brew_runtime.Value) FormulaBottleStruc
 }
 
 // Ruby method `self.bottle(name:, formula_struct:, bottle_tag: Utils::Bottles.tag)` at line 19.
-pub fn ruby_formula_bottle_l19_self_bottle(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_bottle_l19_self_bottle(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('NilClass', '')
+		return ruby.object_value('NilClass', '')
 	}
 	name := args[0].as_string()
 	tag := if args.len > 2 { args[2].as_string() } else { '' }
@@ -85,8 +85,8 @@ pub fn ruby_formula_bottle_l19_self_bottle(args ...brew_runtime.Value) brew_runt
 		'https://ghcr.io/v2/homebrew/core'
 	}
 	custom_domain := if args.len > 4 { args[4].as_string() } else { '' }
-	bottle := formula_bottle(name, formula_bottle_struct_from_value(args[1]), tag, default_domain, custom_domain) or { return brew_runtime.object_value('NilClass', '') }
-	return brew_runtime.structured_value('Bottle', bottle.name, {
+	bottle := formula_bottle(name, formula_bottle_struct_from_value(args[1]), tag, default_domain, custom_domain) or { return ruby.object_value('NilClass', '') }
+	return ruby.structured_value('Bottle', bottle.name, {
 		'name':        bottle.name
 		'pkg_version': bottle.pkg_version
 		'tag':         bottle.tag

@@ -1,6 +1,6 @@
 module test
 
-import brew_runtime
+import ruby
 import homebrew
 
 // Translated from Homebrew/brew `test/dependable_spec.rb`.
@@ -20,14 +20,14 @@ fn dependable_spec_no_linkage() homebrew.Dependency {
 	return dependable_spec_dependency([':no_linkage'])
 }
 
-fn dependable_spec_value(dependency homebrew.Dependency) brew_runtime.Value {
-	return brew_runtime.structured_value('DependableSpecSubject', dependency.name, {
+fn dependable_spec_value(dependency homebrew.Dependency) ruby.Value {
+	return ruby.structured_value('DependableSpecSubject', dependency.name, {
 		'name': dependency.name
 		'tags': dependency.tags.map(it.boundary_string()).join(dependable_spec_tag_separator)
 	})
 }
 
-fn dependable_spec_from_value(value brew_runtime.Value) homebrew.Dependency {
+fn dependable_spec_from_value(value ruby.Value) homebrew.Dependency {
 	name := value.attributes['name'] or { value.repr }
 	encoded_tags := value.attributes['tags'] or { '' }
 	tags := if encoded_tags == '' {
@@ -39,51 +39,51 @@ fn dependable_spec_from_value(value brew_runtime.Value) homebrew.Dependency {
 }
 
 // Ruby alias_matcher `alias_matcher :be_a_build_dependency, :be_build` at line 7.
-pub fn ruby_dependable_spec_l7_d1_be_a_build_dependency(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependable_spec_l7_d1_be_a_build_dependency(args ...ruby.Value) ruby.Value {
 	dependency := if args.len > 0 {
 		dependable_spec_from_value(args[0])
 	} else {
 		dependable_spec_default()
 	}
-	return brew_runtime.bool_value(dependency.build())
+	return ruby.bool_value(dependency.build())
 }
 
 // Ruby subject `subject(:dependable) do` at line 9.
-pub fn ruby_dependable_spec_l9_d2_dependable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependable_spec_l9_d2_dependable(args ...ruby.Value) ruby.Value {
 	return ruby_dependable_spec_l13_d3_initialize(...args)
 }
 
 // Ruby method `initialize` at line 13.
-pub fn ruby_dependable_spec_l13_d3_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependable_spec_l13_d3_initialize(args ...ruby.Value) ruby.Value {
 	_ = args
 	return dependable_spec_value(dependable_spec_default())
 }
 
 // Ruby specify `specify do` at line 19.
-pub fn ruby_dependable_spec_l19_d4_do(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependable_spec_l19_d4_do(args ...ruby.Value) ruby.Value {
 	_ = args
 	dependency := dependable_spec_default()
 	flags := dependency.options().as_flags().sorted()
-	return brew_runtime.bool_value(flags == ['--bar', '--foo'] && dependency.build()
+	return ruby.bool_value(flags == ['--bar', '--foo'] && dependency.build()
 		&& !dependency.optional() && !dependency.recommended() && !dependency.no_linkage())
 }
 
 // Ruby subject `subject(:dependable_no_linkage) do` at line 28.
-pub fn ruby_dependable_spec_l28_d5_dependable_no_linkage(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependable_spec_l28_d5_dependable_no_linkage(args ...ruby.Value) ruby.Value {
 	return ruby_dependable_spec_l32_d6_initialize(...args)
 }
 
 // Ruby method `initialize` at line 32.
-pub fn ruby_dependable_spec_l32_d6_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependable_spec_l32_d6_initialize(args ...ruby.Value) ruby.Value {
 	_ = args
 	return dependable_spec_value(dependable_spec_no_linkage())
 }
 
 // Ruby specify `specify do` at line 38.
-pub fn ruby_dependable_spec_l38_d7_do(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependable_spec_l38_d7_do(args ...ruby.Value) ruby.Value {
 	_ = args
 	dependency := dependable_spec_no_linkage()
-	return brew_runtime.bool_value(dependency.no_linkage() && dependency.required())
+	return ruby.bool_value(dependency.no_linkage() && dependency.required())
 }
 
 // Original Ruby source (line-for-line):

@@ -1,7 +1,7 @@
 module dev_cmd
 
 import crypto.sha256
-import brew_runtime
+import ruby
 import homebrew.dev_cmd as production_dev_cmd
 import os
 import time
@@ -91,26 +91,26 @@ fn bump_formula_pr_spec_versions(current string,
 	}
 }
 
-fn bump_formula_pr_spec_bool(value bool) brew_runtime.Value {
-	return brew_runtime.bool_value(value)
+fn bump_formula_pr_spec_bool(value bool) ruby.Value {
+	return ruby.bool_value(value)
 }
 
 // Ruby subject `subject(:bump_formula_pr) { described_class.new(["test"]) }` at line 9.
-pub fn ruby_bump_formula_pr_spec_l9_d1_bump_formula_pr(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_formula_pr_spec_l9_d1_bump_formula_pr(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.structured_value('Homebrew::DevCmd::BumpFormulaPr', 'test', {
+	return ruby.structured_value('Homebrew::DevCmd::BumpFormulaPr', 'test', {
 		'named': 'test'
 	})
 }
 
 // Ruby let `let(:f) do` at line 11.
-pub fn ruby_bump_formula_pr_spec_l11_d2_f(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_formula_pr_spec_l11_d2_f(args ...ruby.Value) ruby.Value {
 	_ = args
 	return production_dev_cmd.bump_formula_value(bump_formula_pr_spec_formula())
 }
 
 // Ruby it `it "adds updated mirrors as string literals" do` at line 21.
-pub fn ruby_bump_formula_pr_spec_l21_d3_adds(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_formula_pr_spec_l21_d3_adds(args ...ruby.Value) ruby.Value {
 	_ = args
 	root := os.join_path(os.temp_dir(), 'brew-v-bump-formula-pr-spec-${os.getpid()}-${time.now().unix_micro()}')
 	os.mkdir_all(root) or { return bump_formula_pr_spec_bool(false) }
@@ -153,52 +153,52 @@ pub fn ruby_bump_formula_pr_spec_l21_d3_adds(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby let `let(:tap) { Tap.fetch("test", "tap") }` at line 66.
-pub fn ruby_bump_formula_pr_spec_l66_d4_tap(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_formula_pr_spec_l66_d4_tap(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.structured_value('Tap', 'test/tap', {
+	return ruby.structured_value('Tap', 'test/tap', {
 		'user':       'test'
 		'repository': 'tap'
 	})
 }
 
 // Ruby let `let(:f_throttle) do` at line 68.
-pub fn ruby_bump_formula_pr_spec_l68_d5_f_throttle(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_formula_pr_spec_l68_d5_f_throttle(args ...ruby.Value) ruby.Value {
 	_ = args
 	return production_dev_cmd.bump_formula_value(bump_formula_pr_spec_throttle_formula('throttle-test', 5, none, true))
 }
 
 // Ruby let `let(:f_throttle_days) do` at line 79.
-pub fn ruby_bump_formula_pr_spec_l79_d6_f_throttle_days(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_formula_pr_spec_l79_d6_f_throttle_days(args ...ruby.Value) ruby.Value {
 	_ = args
 	return production_dev_cmd.bump_formula_value(bump_formula_pr_spec_throttle_formula('throttle-days-test', none, 1, true))
 }
 
 // Ruby let `let(:f_throttle_rate_and_days) do` at line 90.
-pub fn ruby_bump_formula_pr_spec_l90_d7_f_throttle_rate_and_days(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_formula_pr_spec_l90_d7_f_throttle_rate_and_days(args ...ruby.Value) ruby.Value {
 	_ = args
 	return production_dev_cmd.bump_formula_value(bump_formula_pr_spec_throttle_formula('throttle-rate-and-days-test', 5, 1, true))
 }
 
 // Ruby let `let(:throttle_error) { "Error: throttle-test should only be updated every 5 releases on multiples of 5\n" }` at line 101.
-pub fn ruby_bump_formula_pr_spec_l101_d8_throttle_error(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_formula_pr_spec_l101_d8_throttle_error(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('Error: throttle-test should only be updated every 5 releases on multiples of 5\n')
+	return ruby.string_value('Error: throttle-test should only be updated every 5 releases on multiples of 5\n')
 }
 
 // Ruby let `let(:throttle_days_error) { "Error: throttle-days-test should only be updated every 1 day\n" }` at line 102.
-pub fn ruby_bump_formula_pr_spec_l102_d9_throttle_days_error(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_formula_pr_spec_l102_d9_throttle_days_error(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('Error: throttle-days-test should only be updated every 1 day\n')
+	return ruby.string_value('Error: throttle-days-test should only be updated every 1 day\n')
 }
 
 // Ruby let `let(:throttle_rate_days_error) do` at line 103.
-pub fn ruby_bump_formula_pr_spec_l103_d10_throttle_rate_days_error(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_formula_pr_spec_l103_d10_throttle_rate_days_error(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('Error: throttle-rate-and-days-test should only be updated every 5 releases on multiples of 5 or 1 day\n')
+	return ruby.string_value('Error: throttle-rate-and-days-test should only be updated every 5 releases on multiples of 5 or 1 day\n')
 }
 
 // Ruby it `it "outputs nothing" do` at line 108.
-pub fn ruby_bump_formula_pr_spec_l108_d11_outputs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_formula_pr_spec_l108_d11_outputs(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut formula := bump_formula_pr_spec_formula()
 	formula = production_dev_cmd.BumpFormula{
@@ -210,21 +210,21 @@ pub fn ruby_bump_formula_pr_spec_l108_d11_outputs(args ...brew_runtime.Value) br
 }
 
 // Ruby it `it "does not throttle" do` at line 116.
-pub fn ruby_bump_formula_pr_spec_l116_d12_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_formula_pr_spec_l116_d12_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := production_dev_cmd.bump_formula_check_throttle(bump_formula_pr_spec_formula(), '1.2.4')
 	return bump_formula_pr_spec_bool(result.allowed && result.error == '' && result.output.len == 0)
 }
 
 // Ruby it `it "does not throttle" do` at line 124.
-pub fn ruby_bump_formula_pr_spec_l124_d13_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_formula_pr_spec_l124_d13_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := production_dev_cmd.bump_formula_check_throttle(bump_formula_pr_spec_throttle_formula('throttle-test', 5, none, true), '1.2.5')
 	return bump_formula_pr_spec_bool(result.allowed && result.error == '' && result.output.len == 0)
 }
 
 // Ruby it `it "throttles version" do` at line 132.
-pub fn ruby_bump_formula_pr_spec_l132_d14_throttles(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_formula_pr_spec_l132_d14_throttles(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := production_dev_cmd.bump_formula_check_throttle(bump_formula_pr_spec_throttle_formula('throttle-test', 5, none, false), '1.2.4')
 	stderr := if result.error == '' { '' } else { 'Error: ${result.error}\n' }
@@ -233,7 +233,7 @@ pub fn ruby_bump_formula_pr_spec_l132_d14_throttles(args ...brew_runtime.Value) 
 }
 
 // Ruby it `it "throttles version when throttle interval has not elapsed" do` at line 148.
-pub fn ruby_bump_formula_pr_spec_l148_d15_throttles(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_formula_pr_spec_l148_d15_throttles(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := production_dev_cmd.bump_formula_check_throttle(bump_formula_pr_spec_throttle_formula('throttle-rate-and-days-test', 5, 1, false), '1.2.4')
 	stderr := if result.error == '' { '' } else { 'Error: ${result.error}\n' }
@@ -242,14 +242,14 @@ pub fn ruby_bump_formula_pr_spec_l148_d15_throttles(args ...brew_runtime.Value) 
 }
 
 // Ruby it `it "does not throttle when throttle interval has elapsed" do` at line 158.
-pub fn ruby_bump_formula_pr_spec_l158_d16_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_formula_pr_spec_l158_d16_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := production_dev_cmd.bump_formula_check_throttle(bump_formula_pr_spec_throttle_formula('throttle-rate-and-days-test', 5, 1, true), '1.2.4')
 	return bump_formula_pr_spec_bool(result.allowed && result.error == '' && result.output.len == 0)
 }
 
 // Ruby it `it "throttles version when throttle interval has not elapsed" do` at line 170.
-pub fn ruby_bump_formula_pr_spec_l170_d17_throttles(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_formula_pr_spec_l170_d17_throttles(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := production_dev_cmd.bump_formula_check_throttle(bump_formula_pr_spec_throttle_formula('throttle-days-test', none, 1, false), '1.2.4')
 	stderr := if result.error == '' { '' } else { 'Error: ${result.error}\n' }
@@ -258,32 +258,32 @@ pub fn ruby_bump_formula_pr_spec_l170_d17_throttles(args ...brew_runtime.Value) 
 }
 
 // Ruby it `it "does not throttle when throttle interval has elapsed" do` at line 180.
-pub fn ruby_bump_formula_pr_spec_l180_d18_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_formula_pr_spec_l180_d18_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := production_dev_cmd.bump_formula_check_throttle(bump_formula_pr_spec_throttle_formula('throttle-days-test', none, 1, true), '1.2.4')
 	return bump_formula_pr_spec_bool(result.allowed && result.error == '' && result.output.len == 0)
 }
 
 // Ruby let `let(:f) do` at line 191.
-pub fn ruby_bump_formula_pr_spec_l191_d19_f(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_formula_pr_spec_l191_d19_f(args ...ruby.Value) ruby.Value {
 	_ = args
 	return production_dev_cmd.bump_formula_value(bump_formula_pr_spec_matching_formula())
 }
 
 // Ruby let `let(:resource) { f.resource("parent") }` at line 208.
-pub fn ruby_bump_formula_pr_spec_l208_d20_resource(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_formula_pr_spec_l208_d20_resource(args ...ruby.Value) ruby.Value {
 	_ = args
 	return production_dev_cmd.bump_formula_resource_value(bump_formula_pr_spec_matching_formula().resources[0])
 }
 
 // Ruby let `let(:version) { "1.2.4" }` at line 209.
-pub fn ruby_bump_formula_pr_spec_l209_d21_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_formula_pr_spec_l209_d21_version(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('1.2.4')
+	return ruby.string_value('1.2.4')
 }
 
 // Ruby it `it "only updates `:parent` resource" do` at line 211.
-pub fn ruby_bump_formula_pr_spec_l211_d22_only(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_formula_pr_spec_l211_d22_only(args ...ruby.Value) ruby.Value {
 	_ = args
 	updates := production_dev_cmd.bump_formula_update_matching_version_resources(bump_formula_pr_spec_matching_formula(), '1.2.4', map[string]production_dev_cmd.BumpFormulaResourceVersion{})
 	return bump_formula_pr_spec_bool(updates.statuses == {
@@ -294,7 +294,7 @@ pub fn ruby_bump_formula_pr_spec_l211_d22_only(args ...brew_runtime.Value) brew_
 }
 
 // Ruby it `it "does not update `:parent` resource if set in `--resource-versions`" do` at line 216.
-pub fn ruby_bump_formula_pr_spec_l216_d23_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_formula_pr_spec_l216_d23_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	updates := production_dev_cmd.bump_formula_update_matching_version_resources(bump_formula_pr_spec_matching_formula(), '1.2.4', {
 		'parent': production_dev_cmd.BumpFormulaResourceVersion{
@@ -307,19 +307,19 @@ pub fn ruby_bump_formula_pr_spec_l216_d23_does(args ...brew_runtime.Value) brew_
 }
 
 // Ruby let `let(:f) do` at line 224.
-pub fn ruby_bump_formula_pr_spec_l224_d24_f(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_formula_pr_spec_l224_d24_f(args ...ruby.Value) ruby.Value {
 	_ = args
 	return production_dev_cmd.bump_formula_value(bump_formula_pr_spec_resource_formula())
 }
 
 // Ruby let `let(:r) { f.resource("foo") }` at line 234.
-pub fn ruby_bump_formula_pr_spec_l234_d25_r(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_formula_pr_spec_l234_d25_r(args ...ruby.Value) ruby.Value {
 	_ = args
 	return production_dev_cmd.bump_formula_resource_value(bump_formula_pr_spec_resource_formula().resources[0])
 }
 
 // Ruby it `it "updates to requested version" do` at line 236.
-pub fn ruby_bump_formula_pr_spec_l236_d26_updates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_formula_pr_spec_l236_d26_updates(args ...ruby.Value) ruby.Value {
 	_ = args
 	updates := production_dev_cmd.bump_formula_update_resources(bump_formula_pr_spec_resource_formula(), bump_formula_pr_spec_versions('1.2.3', '2.1.0'))
 	return bump_formula_pr_spec_bool(updates.statuses == {
@@ -329,7 +329,7 @@ pub fn ruby_bump_formula_pr_spec_l236_d26_updates(args ...brew_runtime.Value) br
 }
 
 // Ruby it `it "downgrades to requested version" do` at line 243.
-pub fn ruby_bump_formula_pr_spec_l243_d27_downgrades(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_formula_pr_spec_l243_d27_downgrades(args ...ruby.Value) ruby.Value {
 	_ = args
 	updates := production_dev_cmd.bump_formula_update_resources(bump_formula_pr_spec_resource_formula(), bump_formula_pr_spec_versions('1.2.3', '0.1.2'))
 	return bump_formula_pr_spec_bool(updates.statuses == {
@@ -339,7 +339,7 @@ pub fn ruby_bump_formula_pr_spec_l243_d27_downgrades(args ...brew_runtime.Value)
 }
 
 // Ruby it `it "returns update failures" do` at line 250.
-pub fn ruby_bump_formula_pr_spec_l250_d28_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_formula_pr_spec_l250_d28_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	formula := bump_formula_pr_spec_resource_formula()
 	unchanged := production_dev_cmd.BumpFormula{

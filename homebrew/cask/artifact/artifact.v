@@ -1,6 +1,6 @@
 module artifact
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `cask/artifact/artifact.rb`.
@@ -42,8 +42,8 @@ pub fn resolve_artifact_target(target string, base_dir ?string) string {
 	return target
 }
 
-pub fn generic_artifact_value(artifact GenericArtifact) brew_runtime.Value {
-	return brew_runtime.structured_value('Cask::Artifact::Artifact', artifact.source, {
+pub fn generic_artifact_value(artifact GenericArtifact) ruby.Value {
+	return ruby.structured_value('Cask::Artifact::Artifact', artifact.source, {
 		'cask_token': artifact.cask_token
 		'source':     artifact.source
 		'target':     artifact.target
@@ -51,14 +51,14 @@ pub fn generic_artifact_value(artifact GenericArtifact) brew_runtime.Value {
 }
 
 // Ruby method `self.english_name` at line 11.
-pub fn ruby_artifact_l11_d1_self_english_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('Generic Artifact')
+pub fn ruby_artifact_l11_d1_self_english_name(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('Generic Artifact')
 }
 
 // Ruby method `self.from_args(cask, source, options = nil)` at line 22.
-pub fn ruby_artifact_l22_d2_self_from_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_artifact_l22_d2_self_from_args(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'Artifact.from_args requires cask and source')
+		return ruby.object_value('ArgumentError', 'Artifact.from_args requires cask and source')
 	}
 	mut options := map[string]string{}
 	if args.len > 2 && args[2].type_name == 'Hash' {
@@ -67,22 +67,22 @@ pub fn ruby_artifact_l22_d2_self_from_args(args ...brew_runtime.Value) brew_runt
 		}
 	}
 	artifact := new_generic_artifact(args[0].as_string(), args[1].as_string(), options) or {
-		return brew_runtime.object_value('CaskInvalidError', err.msg())
+		return ruby.object_value('CaskInvalidError', err.msg())
 	}
 	return generic_artifact_value(artifact)
 }
 
 // Ruby method `resolve_target(target, base_dir: nil)` at line 33.
-pub fn ruby_artifact_l33_d3_resolve_target(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_artifact_l33_d3_resolve_target(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'Artifact#resolve_target requires a target')
+		return ruby.object_value('ArgumentError', 'Artifact#resolve_target requires a target')
 	}
 	base_dir := if args.len > 1 && args[1].type_name != 'NilClass' {
 		?string(args[1].as_string())
 	} else {
 		none
 	}
-	return brew_runtime.string_value(resolve_artifact_target(args[0].as_string(), base_dir))
+	return ruby.string_value(resolve_artifact_target(args[0].as_string(), base_dir))
 }
 
 // Original Ruby source (line-for-line):

@@ -1,6 +1,6 @@
 module rubocops
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `rubocops/safe_navigation_with_blank.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -121,8 +121,8 @@ pub fn correct_safe_navigation_with_blank(source string) string {
 	return corrected
 }
 
-fn safe_navigation_blank_value(matched SafeNavigationBlankMatch, type_name string) brew_runtime.Value {
-	return brew_runtime.structured_value(type_name, matched.condition, {
+fn safe_navigation_blank_value(matched SafeNavigationBlankMatch, type_name string) ruby.Value {
+	return ruby.structured_value(type_name, matched.condition, {
 		'begin_pos': matched.begin_pos.str()
 		'end_pos':   matched.end_pos.str()
 		'dot_pos':   matched.dot_pos.str()
@@ -132,7 +132,7 @@ fn safe_navigation_blank_value(matched SafeNavigationBlankMatch, type_name strin
 }
 
 // Ruby def_node_matcher `def_node_matcher :safe_navigation_blank_in_conditional?, <<~PATTERN` at line 35.
-pub fn ruby_safe_navigation_with_blank_l35_d1_safe_navigation_blank_in_conditional(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_safe_navigation_with_blank_l35_d1_safe_navigation_blank_in_conditional(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	input := if source.contains(' if ') || source.contains(' unless ') || source.trim_space().starts_with('if ') || source.trim_space().starts_with('unless ') {
 		source
@@ -141,18 +141,18 @@ pub fn ruby_safe_navigation_with_blank_l35_d1_safe_navigation_blank_in_condition
 	}
 	matches := audit_safe_navigation_with_blank(input)
 	return if matches.len == 0 {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	} else {
 		safe_navigation_blank_value(matches[0], 'RuboCop::AST::NodeMatch')
 	}
 }
 
 // Ruby method `on_if(node)` at line 40.
-pub fn ruby_safe_navigation_with_blank_l40_d2_on_if(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_safe_navigation_with_blank_l40_d2_on_if(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	matches := audit_safe_navigation_with_blank(source)
 	return if matches.len == 0 {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	} else {
 		safe_navigation_blank_value(matches[0], 'RuboCop::Cop::Offense')
 	}

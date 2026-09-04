@@ -1,42 +1,42 @@
 module hash
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `extend/hash/deep_transform_values.rb`.
 // The original source is retained below until every stub has a typed V body.
 
-pub fn deep_transform_values(object brew_runtime.Value,
-	transform fn (brew_runtime.Value) brew_runtime.Value) brew_runtime.Value {
+pub fn deep_transform_values(object ruby.Value,
+	transform fn (ruby.Value) ruby.Value) ruby.Value {
 	if object.type_name == 'Hash' {
 		values := object.as_map() or { return transform(object) }
-		mut transformed := map[string]brew_runtime.Value{}
+		mut transformed := map[string]ruby.Value{}
 		for key, value in values {
 			transformed[key] = deep_transform_values(value, transform)
 		}
-		return brew_runtime.map_value(transformed)
+		return ruby.map_value(transformed)
 	}
 	if object.type_name == 'Array' {
 		values := object.as_array() or { return transform(object) }
-		return brew_runtime.array_value(values.map(deep_transform_values(it, transform)))
+		return ruby.array_value(values.map(deep_transform_values(it, transform)))
 	}
 	return transform(object)
 }
 
 // Ruby method `deep_transform_values(&block) = _deep_transform_values_in_object(self, &block)` at line 17.
-pub fn ruby_deep_transform_values_l17_d1_deep_transform_values(object brew_runtime.Value,
-	transform fn (brew_runtime.Value) brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_deep_transform_values_l17_d1_deep_transform_values(object ruby.Value,
+	transform fn (ruby.Value) ruby.Value) ruby.Value {
 	return deep_transform_values(object, transform)
 }
 
 // Ruby method `_deep_transform_values_in_object(object, &block)` at line 23.
-pub fn ruby_deep_transform_values_l23_d2_deep_transform_values_in_object(object brew_runtime.Value,
-	transform fn (brew_runtime.Value) brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_deep_transform_values_l23_d2_deep_transform_values_in_object(object ruby.Value,
+	transform fn (ruby.Value) ruby.Value) ruby.Value {
 	return deep_transform_values(object, transform)
 }
 
 // Ruby method `_deep_transform_values_in_object!(object, &block)` at line 35.
-pub fn ruby_deep_transform_values_l35_d3_deep_transform_values_in_object(object brew_runtime.Value,
-	transform fn (brew_runtime.Value) brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_deep_transform_values_l35_d3_deep_transform_values_in_object(object ruby.Value,
+	transform fn (ruby.Value) ruby.Value) ruby.Value {
 	return deep_transform_values(object, transform)
 }
 

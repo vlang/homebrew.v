@@ -1,6 +1,6 @@
 module rubocops
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `rubocops/api_name_membership.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -174,8 +174,8 @@ pub fn correct_api_name_memberships(source string) string {
 	return corrected
 }
 
-fn api_name_membership_value(membership ApiNameMembershipMatch, type_name string) brew_runtime.Value {
-	return brew_runtime.structured_value(type_name, membership.replacement, {
+fn api_name_membership_value(membership ApiNameMembershipMatch, type_name string) ruby.Value {
+	return ruby.structured_value(type_name, membership.replacement, {
 		'api':         membership.api
 		'list':        membership.list
 		'argument':    membership.argument
@@ -187,20 +187,20 @@ fn api_name_membership_value(membership ApiNameMembershipMatch, type_name string
 }
 
 // Ruby def_node_matcher `def_node_matcher :api_name_membership?, <<~PATTERN` at line 34.
-pub fn ruby_api_name_membership_l34_d1_api_name_membership(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_name_membership_l34_d1_api_name_membership(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	membership := match_api_name_membership(source, 0) or {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	return api_name_membership_value(membership, 'RuboCop::AST::NodeMatch')
 }
 
 // Ruby method `on_send(node)` at line 42.
-pub fn ruby_api_name_membership_l42_d2_on_send(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_name_membership_l42_d2_on_send(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	matches := audit_api_name_memberships(source)
 	return if matches.len == 0 {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	} else {
 		api_name_membership_value(matches[0], 'RuboCop::Cop::Offense')
 	}

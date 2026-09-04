@@ -1,6 +1,6 @@
 module compilers
 
-import brew_runtime
+import ruby
 import homebrew.rubocops.cask.constants as stanza_constants
 
 // Translated from Homebrew/brew `sorbet/tapioca/compilers/rubocop_cask_ast_stanza.rb`.
@@ -32,29 +32,29 @@ pub fn stanza_compiler_decoration(constant_name string) TapiocaDecoration {
 	}
 }
 
-fn tapioca_decoration_value(decoration TapiocaDecoration) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'constant_name': brew_runtime.string_value(decoration.constant_name)
-		'kind':          brew_runtime.string_value(decoration.kind)
-		'methods':       brew_runtime.array_value(decoration.methods.map(brew_runtime.map_value({
-			'name':         brew_runtime.string_value(it.name)
-			'return_type':  brew_runtime.string_value(it.return_type)
-			'class_method': brew_runtime.bool_value(it.class_method)
-			'parameters':   brew_runtime.string_array_value(it.parameters)
+fn tapioca_decoration_value(decoration TapiocaDecoration) ruby.Value {
+	return ruby.map_value({
+		'constant_name': ruby.string_value(decoration.constant_name)
+		'kind':          ruby.string_value(decoration.kind)
+		'methods':       ruby.array_value(decoration.methods.map(ruby.map_value({
+			'name':         ruby.string_value(it.name)
+			'return_type':  ruby.string_value(it.return_type)
+			'class_method': ruby.bool_value(it.class_method)
+			'parameters':   ruby.string_array_value(it.parameters)
 		})))
 	})
 }
 
 // Ruby method `self.gather_constants = [::RuboCop::Cask::AST::Stanza]` at line 13.
-pub fn ruby_rubocop_cask_ast_stanza_l13_d1_self_gather_constants(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_rubocop_cask_ast_stanza_l13_d1_self_gather_constants(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.array_value([
-		brew_runtime.object_value('Module', 'RuboCop::Cask::AST::Stanza'),
+	return ruby.array_value([
+		ruby.object_value('Module', 'RuboCop::Cask::AST::Stanza'),
 	])
 }
 
 // Ruby method `decorate` at line 16.
-pub fn ruby_rubocop_cask_ast_stanza_l16_d2_decorate(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_rubocop_cask_ast_stanza_l16_d2_decorate(args ...ruby.Value) ruby.Value {
 	constant_name := if args.len > 0 { args[0].as_string() } else { 'RuboCop::Cask::AST::Stanza' }
 	return tapioca_decoration_value(stanza_compiler_decoration(constant_name))
 }

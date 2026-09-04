@@ -1,20 +1,20 @@
 module mac
 
-import brew_runtime
+import ruby
 import homebrew
 import homebrew.extend.os.mac as dependency_collector_mac
 
-fn mac_dependency_collector_spec_bool(value bool) brew_runtime.Value {
-	return brew_runtime.bool_value(value)
+fn mac_dependency_collector_spec_bool(value bool) ruby.Value {
+	return ruby.bool_value(value)
 }
 
-fn mac_dependency_collector_resource(url string, strategy string) brew_runtime.Value {
+fn mac_dependency_collector_resource(url string, strategy string) ruby.Value {
 	mut collector := dependency_collector_mac.mac_dependency_collector(map[string]bool{})
 	result := homebrew.collector_add_resource(mut collector, homebrew.CollectorResource{
 		url: url
 		strategy: strategy
 	}, []string{}) or { return mac_dependency_collector_spec_bool(false) }
-	return brew_runtime.structured_value('CollectorResult', result.kind.str(), {
+	return ruby.structured_value('CollectorResult', result.kind.str(), {
 		'kind': result.kind.str()
 		'name': result.dependency.name
 		'tags': result.dependency.tags.map(it.boundary_string()).join(',')
@@ -25,38 +25,38 @@ fn mac_dependency_collector_resource(url string, strategy string) brew_runtime.V
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:collector) { described_class.new }` at line 7.
-pub fn ruby_dependency_collector_spec_l7_d1_collector(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_collector_spec_l7_d1_collector(args ...ruby.Value) ruby.Value {
 	return homebrew.dependency_collector_value(dependency_collector_mac.mac_dependency_collector(map[string]bool{}))
 }
 
 // Ruby alias_matcher `alias_matcher :need_tar_xz_dependency, :be_tar_needs_xz_dependency` at line 9.
-pub fn ruby_dependency_collector_spec_l9_d2_need_tar_xz_dependency(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_collector_spec_l9_d2_need_tar_xz_dependency(args ...ruby.Value) ruby.Value {
 	collector := dependency_collector_mac.mac_dependency_collector(map[string]bool{})
-	return brew_runtime.bool_value(collector.archive_dep_if_needed('xz', []string{}) != none)
+	return ruby.bool_value(collector.archive_dep_if_needed('xz', []string{}) != none)
 }
 
 // Ruby specify `specify "Resource dependency from a '.xz' URL" do` at line 11.
-pub fn ruby_dependency_collector_spec_l11_d3_resource(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_collector_spec_l11_d3_resource(args ...ruby.Value) ruby.Value {
 	return mac_dependency_collector_spec_bool(mac_dependency_collector_resource('https://brew.sh/foo.tar.xz', 'curl').attributes['kind'] == 'nil_value')
 }
 
 // Ruby specify `specify "Resource dependency from a '.zip' URL" do` at line 17.
-pub fn ruby_dependency_collector_spec_l17_d4_resource(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_collector_spec_l17_d4_resource(args ...ruby.Value) ruby.Value {
 	return mac_dependency_collector_spec_bool(mac_dependency_collector_resource('https://brew.sh/foo.zip', 'curl').attributes['kind'] == 'nil_value')
 }
 
 // Ruby specify `specify "Resource dependency from a '.bz2' URL" do` at line 23.
-pub fn ruby_dependency_collector_spec_l23_d5_resource(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_collector_spec_l23_d5_resource(args ...ruby.Value) ruby.Value {
 	return mac_dependency_collector_spec_bool(mac_dependency_collector_resource('https://brew.sh/foo.tar.bz2', 'curl').attributes['kind'] == 'nil_value')
 }
 
 // Ruby specify `specify "Resource dependency from a '.git' URL" do` at line 29.
-pub fn ruby_dependency_collector_spec_l29_d6_resource(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_collector_spec_l29_d6_resource(args ...ruby.Value) ruby.Value {
 	return mac_dependency_collector_spec_bool(mac_dependency_collector_resource('git://brew.sh/foo/bar.git', 'git').attributes['kind'] == 'nil_value')
 }
 
 // Ruby specify `specify "Resource dependency from a Subversion URL" do` at line 35.
-pub fn ruby_dependency_collector_spec_l35_d7_resource(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_collector_spec_l35_d7_resource(args ...ruby.Value) ruby.Value {
 	result := mac_dependency_collector_resource('svn://brew.sh/foo/bar', 'subversion')
 	return mac_dependency_collector_spec_bool(result.attributes['kind'] == 'dependency' && result.attributes['name'] == 'subversion' && result.attributes['tags'] == ':build,:test,:implicit')
 }

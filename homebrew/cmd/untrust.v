@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `cmd/untrust.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -167,7 +167,7 @@ pub fn run_untrust(store UntrustStore, targets []UntrustTarget,
 	}
 }
 
-fn untrust_target_from_value(value brew_runtime.Value) UntrustTarget {
+fn untrust_target_from_value(value ruby.Value) UntrustTarget {
 	kind := match value.attribute('kind') or { 'tap' } {
 		'formula' { UntrustEntryType.formula }
 		'cask' { UntrustEntryType.cask }
@@ -177,14 +177,14 @@ fn untrust_target_from_value(value brew_runtime.Value) UntrustTarget {
 	return UntrustTarget{
 		kind: kind
 		name: value.attribute('name') or { value.as_string() }
-		aliases: (value.map_data['aliases'] or { brew_runtime.string_array_value([]) }).as_string_array() or { [] }
+		aliases: (value.map_data['aliases'] or { ruby.string_array_value([]) }).as_string_array() or { [] }
 		official: (value.attribute('official') or { 'false' }) == 'true'
 		remote_reference: (value.attribute('remote_reference') or { 'false' }) == 'true'
 	}
 }
 
-pub fn untrust_target_value(target UntrustTarget) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn untrust_target_value(target UntrustTarget) ruby.Value {
+	return ruby.Value{
 		type_name: 'UntrustTarget'
 		repr: target.name
 		attributes: {
@@ -194,12 +194,12 @@ pub fn untrust_target_value(target UntrustTarget) brew_runtime.Value {
 			'remote_reference': target.remote_reference.str()
 		}
 		map_data: {
-			'aliases': brew_runtime.string_array_value(target.aliases)
+			'aliases': ruby.string_array_value(target.aliases)
 		}
 	}
 }
 
-fn untrust_store_from_value(value brew_runtime.Value) UntrustStore {
+fn untrust_store_from_value(value ruby.Value) UntrustStore {
 	mut trusted := map[string][]string{}
 	if stored := value.map_data['trusted'] {
 		for key, entries in stored.map_data {
@@ -207,12 +207,12 @@ fn untrust_store_from_value(value brew_runtime.Value) UntrustStore {
 		}
 	}
 	mut taps := []UntrustedTapSnapshot{}
-	for tap in (value.map_data['untrusted_taps'] or { brew_runtime.array_value([]) }).as_array() or { [] } {
+	for tap in (value.map_data['untrusted_taps'] or { ruby.array_value([]) }).as_array() or { [] } {
 		taps << UntrustedTapSnapshot{
 			name: tap.attribute('name') or { tap.as_string() }
-			formulae: (tap.map_data['formulae'] or { brew_runtime.string_array_value([]) }).as_string_array() or { [] }
-			casks: (tap.map_data['casks'] or { brew_runtime.string_array_value([]) }).as_string_array() or { [] }
-			commands: (tap.map_data['commands'] or { brew_runtime.string_array_value([]) }).as_string_array() or { [] }
+			formulae: (tap.map_data['formulae'] or { ruby.string_array_value([]) }).as_string_array() or { [] }
+			casks: (tap.map_data['casks'] or { ruby.string_array_value([]) }).as_string_array() or { [] }
+			commands: (tap.map_data['commands'] or { ruby.string_array_value([]) }).as_string_array() or { [] }
 		}
 	}
 	return UntrustStore{
@@ -221,49 +221,49 @@ fn untrust_store_from_value(value brew_runtime.Value) UntrustStore {
 	}
 }
 
-pub fn untrust_store_value(store UntrustStore) brew_runtime.Value {
-	mut trusted := map[string]brew_runtime.Value{}
+pub fn untrust_store_value(store UntrustStore) ruby.Value {
+	mut trusted := map[string]ruby.Value{}
 	for key, entries in store.trusted {
-		trusted[key] = brew_runtime.string_array_value(entries)
+		trusted[key] = ruby.string_array_value(entries)
 	}
-	mut taps := []brew_runtime.Value{}
+	mut taps := []ruby.Value{}
 	for tap in store.untrusted_taps {
-		taps << brew_runtime.Value{
+		taps << ruby.Value{
 			type_name: 'Tap'
 			repr: tap.name
 			attributes: {
 				'name': tap.name
 			}
 			map_data: {
-				'formulae': brew_runtime.string_array_value(tap.formulae)
-				'casks':    brew_runtime.string_array_value(tap.casks)
-				'commands': brew_runtime.string_array_value(tap.commands)
+				'formulae': ruby.string_array_value(tap.formulae)
+				'casks':    ruby.string_array_value(tap.casks)
+				'commands': ruby.string_array_value(tap.commands)
 			}
 		}
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'UntrustStore'
 		repr: 'untrust store'
 		map_data: {
-			'trusted':        brew_runtime.map_value(trusted)
-			'untrusted_taps': brew_runtime.array_value(taps)
+			'trusted':        ruby.map_value(trusted)
+			'untrusted_taps': ruby.array_value(taps)
 		}
 	}
 }
 
-fn untrust_result_value(result UntrustResult) brew_runtime.Value {
-	return brew_runtime.Value{
+fn untrust_result_value(result UntrustResult) ruby.Value {
+	return ruby.Value{
 		type_name: 'UntrustResult'
 		repr: '${result.messages.join('\n')}\n'
 		map_data: {
 			'store':    untrust_store_value(result.store)
-			'messages': brew_runtime.string_array_value(result.messages)
+			'messages': ruby.string_array_value(result.messages)
 		}
 	}
 }
 
 // Ruby method `run` at line 31.
-pub fn ruby_untrust_l31_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_untrust_l31_d1_run(args ...ruby.Value) ruby.Value {
 	store := if args.len > 0 { untrust_store_from_value(args[0]) } else { UntrustStore{} }
 	targets := if args.len > 1 {
 		(args[1].as_array() or { [] }).map(untrust_target_from_value(it))
@@ -279,15 +279,15 @@ pub fn ruby_untrust_l31_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `selected_type` at line 105.
-pub fn ruby_untrust_l105_d2_selected_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_untrust_l105_d2_selected_type(args ...ruby.Value) ruby.Value {
 	tap := args.len > 0 && (args[0].as_bool() or { false })
 	formula := args.len > 1 && (args[1].as_bool() or { false })
 	cask := args.len > 2 && (args[2].as_bool() or { false })
 	command := args.len > 3 && (args[3].as_bool() or { false })
 	if kind := selected_untrust_type(tap, formula, cask, command) {
-		return brew_runtime.string_value(untrust_type_key(kind))
+		return ruby.string_value(untrust_type_key(kind))
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Original Ruby source (line-for-line):

@@ -1,6 +1,6 @@
 module atomic
 
-import brew_runtime
+import ruby
 import sync
 import time
 
@@ -107,14 +107,14 @@ pub fn (mut latch CountDownLatch) ns_initialize(count i64) ! {
 	latch.state.mutex.unlock()
 }
 
-fn latch_boundary_new(count i64, type_name string) brew_runtime.Value {
+fn latch_boundary_new(count i64, type_name string) ruby.Value {
 	latch := new_count_down_latch(count) or { panic(err) }
-	return brew_runtime.structured_value(type_name, '#<${type_name}>', {
+	return ruby.structured_value(type_name, '#<${type_name}>', {
 		'latch_address': u64(voidptr(latch)).str()
 	})
 }
 
-fn latch_boundary_receiver(args []brew_runtime.Value) &CountDownLatch {
+fn latch_boundary_receiver(args []ruby.Value) &CountDownLatch {
 	if args.len == 0 {
 		panic('CountDownLatch method requires a receiver')
 	}
@@ -124,14 +124,14 @@ fn latch_boundary_receiver(args []brew_runtime.Value) &CountDownLatch {
 	return unsafe { &CountDownLatch(voidptr(address)) }
 }
 
-fn latch_boundary_count(args []brew_runtime.Value, index int, default_count i64) i64 {
+fn latch_boundary_count(args []ruby.Value, index int, default_count i64) i64 {
 	if index >= args.len {
 		return default_count
 	}
 	return validate_latch_count(args[index].as_int() or { panic(err) }) or { panic(err) }
 }
 
-fn latch_boundary_timeout(args []brew_runtime.Value, index int) ?time.Duration {
+fn latch_boundary_timeout(args []ruby.Value, index int) ?time.Duration {
 	if index >= args.len || args[index].type_name == 'NilClass' {
 		return none
 	}
@@ -140,31 +140,31 @@ fn latch_boundary_timeout(args []brew_runtime.Value, index int) ?time.Duration {
 }
 
 // Ruby method `initialize(count = 1)` at line 12.
-pub fn ruby_mutex_count_down_latch_l12_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mutex_count_down_latch_l12_d1_initialize(args ...ruby.Value) ruby.Value {
 	return latch_boundary_new(latch_boundary_count(args, 0, 1), 'Concurrent::MutexCountDownLatch')
 }
 
 // Ruby method `wait(timeout = nil)` at line 21.
-pub fn ruby_mutex_count_down_latch_l21_d2_wait(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mutex_count_down_latch_l21_d2_wait(args ...ruby.Value) ruby.Value {
 	mut latch := latch_boundary_receiver(args)
-	return brew_runtime.bool_value(latch.wait(latch_boundary_timeout(args, 1)))
+	return ruby.bool_value(latch.wait(latch_boundary_timeout(args, 1)))
 }
 
 // Ruby method `count_down` at line 26.
-pub fn ruby_mutex_count_down_latch_l26_d3_count_down(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mutex_count_down_latch_l26_d3_count_down(args ...ruby.Value) ruby.Value {
 	mut latch := latch_boundary_receiver(args)
 	latch.count_down()
 	return args[0]
 }
 
 // Ruby method `count` at line 34.
-pub fn ruby_mutex_count_down_latch_l34_d4_count(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mutex_count_down_latch_l34_d4_count(args ...ruby.Value) ruby.Value {
 	mut latch := latch_boundary_receiver(args)
-	return brew_runtime.int_value(latch.count())
+	return ruby.int_value(latch.count())
 }
 
 // Ruby method `ns_initialize(count)` at line 40.
-pub fn ruby_mutex_count_down_latch_l40_d5_ns_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mutex_count_down_latch_l40_d5_ns_initialize(args ...ruby.Value) ruby.Value {
 	mut latch := latch_boundary_receiver(args)
 	if args.len < 2 {
 		panic('CountDownLatch#ns_initialize requires count')

@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 import homebrew.cli as brew_cli
 import os
 
@@ -62,8 +62,8 @@ pub type CommandTrustChecker = fn (path string, command string) !
 
 fn permit_command(_ string, _ string) ! {}
 
-fn nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', '')
+fn nil_value() ruby.Value {
+	return ruby.object_value('NilClass', '')
 }
 
 fn sorted_distinct(values []string) []string {
@@ -79,14 +79,14 @@ fn sorted_distinct(values []string) []string {
 	return result
 }
 
-fn string_list_value(values []string) brew_runtime.Value {
-	return brew_runtime.string_array_value(values)
+fn string_list_value(values []string) ruby.Value {
+	return ruby.string_array_value(values)
 }
 
-fn option_list_value(options []CommandOption) brew_runtime.Value {
-	return brew_runtime.array_value(options.map(brew_runtime.array_value([
-		brew_runtime.string_value(it.option),
-		brew_runtime.string_value(it.description),
+fn option_list_value(options []CommandOption) ruby.Value {
+	return ruby.array_value(options.map(ruby.array_value([
+		ruby.string_value(it.option),
+		ruby.string_value(it.description),
 	])))
 }
 
@@ -135,8 +135,8 @@ pub fn developer_command_path() string {
 
 pub fn internal_cmd_path_in(path string, command string) ?string {
 	for extension in ['.v', '.sh'] {
-		candidate := brew_runtime.join_path(path, '${command}${extension}')
-		if brew_runtime.is_file(candidate) {
+		candidate := ruby.join_path(path, '${command}${extension}')
+		if ruby.is_file(candidate) {
 			return candidate
 		}
 	}
@@ -168,10 +168,10 @@ pub fn valid_ruby_cmd(command string) bool {
 
 pub fn find_commands(path string) []string {
 	mut found := []string{}
-	entries := brew_runtime.list_dir(path) or { return found }
+	entries := ruby.list_dir(path) or { return found }
 	for entry in entries {
-		candidate := brew_runtime.join_path(path, entry)
-		if brew_runtime.is_file(candidate) {
+		candidate := ruby.join_path(path, entry)
+		if ruby.is_file(candidate) {
 			found << candidate
 		}
 	}
@@ -184,8 +184,8 @@ pub fn find_internal_commands(path string) ![]string {
 }
 
 pub fn find_internal_commands_in(path string, official_paths []string) ![]string {
-	real_path := brew_runtime.real_path(path)
-	if !official_paths.any(brew_runtime.real_path(it) == real_path) {
+	real_path := ruby.real_path(path)
+	if !official_paths.any(ruby.real_path(it) == real_path) {
 		return error('${path} is not an official command path')
 	}
 	mut names := []string{}
@@ -234,9 +234,9 @@ pub fn tap_cmd_directories_in(tap_directory string) []string {
 }
 
 pub fn tap_cmd_directories() []string {
-	mut directory := brew_runtime.environment_value('HOMEBREW_TAP_DIRECTORY')
+	mut directory := ruby.environment_value('HOMEBREW_TAP_DIRECTORY')
 	if directory == '' {
-		repository := brew_runtime.environment_value('HOMEBREW_REPOSITORY')
+		repository := ruby.environment_value('HOMEBREW_REPOSITORY')
 		if repository != '' {
 			directory = os.join_path(repository, 'Library', 'Taps')
 		}
@@ -290,13 +290,13 @@ pub fn external_cmd_path_in(command string, path_value string, tap_directories [
 
 pub fn external_cmd_path(command string) ?string {
 	directories := tap_cmd_directories()
-	tap_directory := brew_runtime.environment_value('HOMEBREW_TAP_DIRECTORY')
-	if ruby_path := external_ruby_cmd_path_in(command, brew_runtime.environment_value('PATH'), directories, tap_directory, permit_command) {
+	tap_directory := ruby.environment_value('HOMEBREW_TAP_DIRECTORY')
+	if ruby_path := external_ruby_cmd_path_in(command, ruby.environment_value('PATH'), directories, tap_directory, permit_command) {
 		if ruby_path != '' {
 			return ruby_path
 		}
 	}
-	if path := external_cmd_path_in(command, brew_runtime.environment_value('PATH'), directories, tap_directory, permit_command) {
+	if path := external_cmd_path_in(command, ruby.environment_value('PATH'), directories, tap_directory, permit_command) {
 		if path != '' {
 			return path
 		}
@@ -327,7 +327,7 @@ pub fn resolve_command_path(command string, internal_path string, developer_path
 }
 
 pub fn command_file_path(command string) ?string {
-	path := resolve_command_path(command, command_path(), developer_command_path(), tap_cmd_directories(), brew_runtime.environment_value('PATH'), brew_runtime.environment_value('HOMEBREW_TAP_DIRECTORY'), permit_command) or { return none }
+	path := resolve_command_path(command, command_path(), developer_command_path(), tap_cmd_directories(), ruby.environment_value('PATH'), ruby.environment_value('HOMEBREW_TAP_DIRECTORY'), permit_command) or { return none }
 	return if path == '' { none } else { path }
 }
 
@@ -748,7 +748,7 @@ pub fn rebuild_internal_commands_completion_list_at(repository string, internal_
 	result = sorted_distinct(result).filter(it !in command_completion_exclusions)
 	destination := os.join_path(repository, 'completions', 'internal_commands_list.txt')
 	os.mkdir_all(os.dir(destination))!
-	brew_runtime.atomic_write_file(destination, '${result.join('\n')}\n')!
+	ruby.atomic_write_file(destination, '${result.join('\n')}\n')!
 	return result
 }
 
@@ -760,142 +760,142 @@ pub fn rebuild_commands_completion_list_at(cache string, internal []string, deve
 	all = sorted_distinct(all).filter(it !in command_completion_exclusions)
 	external_commands_sorted := sorted_distinct(external)
 	os.mkdir_all(cache)!
-	brew_runtime.atomic_write_file(os.join_path(cache, 'all_commands_list.txt'), '${all.join('\n')}\n')!
-	brew_runtime.atomic_write_file(os.join_path(cache, 'external_commands_list.txt'), '${external_commands_sorted.join('\n')}\n')!
+	ruby.atomic_write_file(os.join_path(cache, 'all_commands_list.txt'), '${all.join('\n')}\n')!
+	ruby.atomic_write_file(os.join_path(cache, 'external_commands_list.txt'), '${external_commands_sorted.join('\n')}\n')!
 	return all
 }
 
 // Ruby method `self.valid_internal_cmd?(cmd)` at line 42.
-pub fn ruby_commands_l42_d1_self_valid_internal_cmd(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(valid_internal_cmd(args[0].as_string()))
+pub fn ruby_commands_l42_d1_self_valid_internal_cmd(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(valid_internal_cmd(args[0].as_string()))
 }
 
 // Ruby method `self.valid_internal_dev_cmd?(cmd)` at line 47.
-pub fn ruby_commands_l47_d2_self_valid_internal_dev_cmd(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(valid_internal_dev_cmd(args[0].as_string()))
+pub fn ruby_commands_l47_d2_self_valid_internal_dev_cmd(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(valid_internal_dev_cmd(args[0].as_string()))
 }
 
 // Ruby method `self.valid_ruby_cmd?(cmd)` at line 52.
-pub fn ruby_commands_l52_d3_self_valid_ruby_cmd(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(args.len > 0 && valid_ruby_cmd(args[0].as_string()))
+pub fn ruby_commands_l52_d3_self_valid_ruby_cmd(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(args.len > 0 && valid_ruby_cmd(args[0].as_string()))
 }
 
 // Ruby method `self.method_name(cmd)` at line 58.
-pub fn ruby_commands_l58_d4_self_method_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(method_name(args[0].as_string()))
+pub fn ruby_commands_l58_d4_self_method_name(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(method_name(args[0].as_string()))
 }
 
 // Ruby method `self.args_method_name(cmd_path)` at line 66.
-pub fn ruby_commands_l66_d5_self_args_method_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(args_method_name(args[0].as_string()))
+pub fn ruby_commands_l66_d5_self_args_method_name(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(args_method_name(args[0].as_string()))
 }
 
 // Ruby method `self.internal_cmd_path(cmd)` at line 73.
-pub fn ruby_commands_l73_d6_self_internal_cmd_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_commands_l73_d6_self_internal_cmd_path(args ...ruby.Value) ruby.Value {
 	path := internal_cmd_path(args[0].as_string()) or {
-		return brew_runtime.object_value('NilClass', '')
+		return ruby.object_value('NilClass', '')
 	}
-	return brew_runtime.string_value(path)
+	return ruby.string_value(path)
 }
 
 // Ruby method `self.internal_dev_cmd_path(cmd)` at line 81.
-pub fn ruby_commands_l81_d7_self_internal_dev_cmd_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_commands_l81_d7_self_internal_dev_cmd_path(args ...ruby.Value) ruby.Value {
 	path := internal_dev_cmd_path(args[0].as_string()) or {
-		return brew_runtime.object_value('NilClass', '')
+		return ruby.object_value('NilClass', '')
 	}
-	return brew_runtime.string_value(path)
+	return ruby.string_value(path)
 }
 
 // Ruby method `self.external_ruby_v2_cmd_path(cmd)` at line 90.
-pub fn ruby_commands_l90_d8_self_external_ruby_v2_cmd_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_commands_l90_d8_self_external_ruby_v2_cmd_path(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return nil_value()
 	}
-	path := external_ruby_v2_cmd_path_in(args[0].as_string(), tap_cmd_directories(), brew_runtime.environment_value('HOMEBREW_TAP_DIRECTORY'), permit_command) or { return nil_value() }
-	return if path == '' { nil_value() } else { brew_runtime.string_value(path) }
+	path := external_ruby_v2_cmd_path_in(args[0].as_string(), tap_cmd_directories(), ruby.environment_value('HOMEBREW_TAP_DIRECTORY'), permit_command) or { return nil_value() }
+	return if path == '' { nil_value() } else { ruby.string_value(path) }
 }
 
 // Ruby method `self.external_ruby_cmd_path(cmd)` at line 98.
-pub fn ruby_commands_l98_d9_self_external_ruby_cmd_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_commands_l98_d9_self_external_ruby_cmd_path(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return nil_value()
 	}
-	path := external_ruby_cmd_path_in(args[0].as_string(), brew_runtime.environment_value('PATH'), tap_cmd_directories(), brew_runtime.environment_value('HOMEBREW_TAP_DIRECTORY'), permit_command) or { return nil_value() }
-	return if path == '' { nil_value() } else { brew_runtime.string_value(path) }
+	path := external_ruby_cmd_path_in(args[0].as_string(), ruby.environment_value('PATH'), tap_cmd_directories(), ruby.environment_value('HOMEBREW_TAP_DIRECTORY'), permit_command) or { return nil_value() }
+	return if path == '' { nil_value() } else { ruby.string_value(path) }
 }
 
 // Ruby method `self.external_cmd_path(cmd)` at line 105.
-pub fn ruby_commands_l105_d10_self_external_cmd_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_commands_l105_d10_self_external_cmd_path(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return nil_value()
 	}
 	path := external_cmd_path(args[0].as_string()) or { return nil_value() }
-	return brew_runtime.string_value(path)
+	return ruby.string_value(path)
 }
 
 // Ruby method `self.require_trusted_command!(path, cmd)` at line 112.
-pub fn ruby_commands_l112_d11_self_require_trusted_command(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_commands_l112_d11_self_require_trusted_command(args ...ruby.Value) ruby.Value {
 	if args.len > 1 {
-		require_trusted_command_with(args[0].as_string(), args[1].as_string(), brew_runtime.environment_value('HOMEBREW_TAP_DIRECTORY'), permit_command) or {
-			return brew_runtime.bool_value(false)
+		require_trusted_command_with(args[0].as_string(), args[1].as_string(), ruby.environment_value('HOMEBREW_TAP_DIRECTORY'), permit_command) or {
+			return ruby.bool_value(false)
 		}
 	}
 	return nil_value()
 }
 
 // Ruby method `self.path(cmd)` at line 121.
-pub fn ruby_commands_l121_d12_self_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_commands_l121_d12_self_path(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return nil_value()
 	}
 	path := command_file_path(args[0].as_string()) or { return nil_value() }
-	return brew_runtime.string_value(path)
+	return ruby.string_value(path)
 }
 
 // Ruby method `self.commands(external: true, aliases: false)` at line 132.
-pub fn ruby_commands_l132_d13_self_commands(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_commands_l132_d13_self_commands(args ...ruby.Value) ruby.Value {
 	include_external := if args.len > 0 { args[0].as_bool() or { true } } else { true }
 	include_aliases := if args.len > 1 { args[1].as_bool() or { false } } else { false }
 	return string_list_value(commands(include_external, include_aliases))
 }
 
 // Ruby method `self.suggestion_message(cmd)` at line 141.
-pub fn ruby_commands_l141_d14_self_suggestion_message(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(suggestion_message(args[0].as_string()))
+pub fn ruby_commands_l141_d14_self_suggestion_message(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(suggestion_message(args[0].as_string()))
 }
 
 // Ruby method `self.tap_cmd_directories` at line 153.
-pub fn ruby_commands_l153_d15_self_tap_cmd_directories(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_commands_l153_d15_self_tap_cmd_directories(args ...ruby.Value) ruby.Value {
 	return string_list_value(tap_cmd_directories())
 }
 
 // Ruby method `self.internal_commands_paths` at line 158.
-pub fn ruby_commands_l158_d16_self_internal_commands_paths(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_commands_l158_d16_self_internal_commands_paths(args ...ruby.Value) ruby.Value {
 	return string_list_value(find_commands(command_path()))
 }
 
 // Ruby method `self.internal_developer_commands_paths` at line 163.
-pub fn ruby_commands_l163_d17_self_internal_developer_commands_paths(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_commands_l163_d17_self_internal_developer_commands_paths(args ...ruby.Value) ruby.Value {
 	return string_list_value(find_commands(developer_command_path()))
 }
 
 // Ruby method `self.internal_commands` at line 168.
-pub fn ruby_commands_l168_d18_self_internal_commands(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Array[String]', internal_commands().join(','))
+pub fn ruby_commands_l168_d18_self_internal_commands(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Array[String]', internal_commands().join(','))
 }
 
 // Ruby method `self.internal_developer_commands` at line 173.
-pub fn ruby_commands_l173_d19_self_internal_developer_commands(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Array[String]', internal_developer_commands().join(','))
+pub fn ruby_commands_l173_d19_self_internal_developer_commands(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Array[String]', internal_developer_commands().join(','))
 }
 
 // Ruby method `self.internal_commands_aliases` at line 178.
-pub fn ruby_commands_l178_d20_self_internal_commands_aliases(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Array[String]', internal_commands_aliases().join(','))
+pub fn ruby_commands_l178_d20_self_internal_commands_aliases(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Array[String]', internal_commands_aliases().join(','))
 }
 
 // Ruby method `self.find_internal_commands(path)` at line 183.
-pub fn ruby_commands_l183_d21_self_find_internal_commands(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_commands_l183_d21_self_find_internal_commands(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return string_list_value([])
 	}
@@ -903,17 +903,17 @@ pub fn ruby_commands_l183_d21_self_find_internal_commands(args ...brew_runtime.V
 }
 
 // Ruby method `self.external_commands` at line 194.
-pub fn ruby_commands_l194_d22_self_external_commands(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_commands_l194_d22_self_external_commands(args ...ruby.Value) ruby.Value {
 	return string_list_value(external_commands())
 }
 
 // Ruby method `self.basename_without_extension(path)` at line 209.
-pub fn ruby_commands_l209_d23_self_basename_without_extension(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(basename_without_extension(args[0].as_string()))
+pub fn ruby_commands_l209_d23_self_basename_without_extension(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(basename_without_extension(args[0].as_string()))
 }
 
 // Ruby method `self.find_commands(path)` at line 214.
-pub fn ruby_commands_l214_d24_self_find_commands(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_commands_l214_d24_self_find_commands(args ...ruby.Value) ruby.Value {
 	return if args.len == 0 {
 		string_list_value([])
 	} else {
@@ -922,29 +922,29 @@ pub fn ruby_commands_l214_d24_self_find_commands(args ...brew_runtime.Value) bre
 }
 
 // Ruby method `self.rebuild_internal_commands_completion_list` at line 221.
-pub fn ruby_commands_l221_d25_self_rebuild_internal_commands_completion_list(args ...brew_runtime.Value) brew_runtime.Value {
-	repository := brew_runtime.environment_value('HOMEBREW_REPOSITORY')
+pub fn ruby_commands_l221_d25_self_rebuild_internal_commands_completion_list(args ...ruby.Value) ruby.Value {
+	repository := ruby.environment_value('HOMEBREW_REPOSITORY')
 	if repository == '' {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	rebuild_internal_commands_completion_list_at(repository, command_path(), developer_command_path()) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	return nil_value()
 }
 
 // Ruby method `self.rebuild_commands_completion_list` at line 235.
-pub fn ruby_commands_l235_d26_self_rebuild_commands_completion_list(args ...brew_runtime.Value) brew_runtime.Value {
-	cache := brew_runtime.environment_value('HOMEBREW_CACHE')
+pub fn ruby_commands_l235_d26_self_rebuild_commands_completion_list(args ...ruby.Value) ruby.Value {
+	cache := ruby.environment_value('HOMEBREW_CACHE')
 	if cache == '' {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	rebuild_commands_completion_list_at(cache, internal_commands(), internal_developer_commands(), external_commands()) or { return brew_runtime.bool_value(false) }
+	rebuild_commands_completion_list_at(cache, internal_commands(), internal_developer_commands(), external_commands()) or { return ruby.bool_value(false) }
 	return nil_value()
 }
 
 // Ruby method `self.command_options(command, subcommand: nil)` at line 252.
-pub fn ruby_commands_l252_d27_self_command_options(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_commands_l252_d27_self_command_options(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || args[0].as_string() == 'help' {
 		return nil_value()
 	}
@@ -954,31 +954,31 @@ pub fn ruby_commands_l252_d27_self_command_options(args ...brew_runtime.Value) b
 }
 
 // Ruby method `self.command_description(command, short: false)` at line 287.
-pub fn ruby_commands_l287_d28_self_command_description(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_commands_l287_d28_self_command_description(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return nil_value()
 	}
 	path := command_file_path(args[0].as_string()) or { return nil_value() }
 	short := if args.len > 1 { args[1].as_bool() or { false } } else { false }
 	description := command_description_for_path(path, short) or { return nil_value() }
-	return if description == '' { nil_value() } else { brew_runtime.string_value(description) }
+	return if description == '' { nil_value() } else { ruby.string_value(description) }
 }
 
 // Ruby method `self.command_subcommands(command)` at line 317.
-pub fn ruby_commands_l317_d29_self_command_subcommands(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_commands_l317_d29_self_command_subcommands(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.array_value([])
+		return ruby.array_value([])
 	}
-	path := command_file_path(args[0].as_string()) or { return brew_runtime.array_value([]) }
-	subcommands := command_subcommands_for_path(path) or { return brew_runtime.array_value([]) }
-	return brew_runtime.array_value(subcommands.map(brew_runtime.structured_value('Subcommand', it.name, {
+	path := command_file_path(args[0].as_string()) or { return ruby.array_value([]) }
+	subcommands := command_subcommands_for_path(path) or { return ruby.array_value([]) }
+	return ruby.array_value(subcommands.map(ruby.structured_value('Subcommand', it.name, {
 		'name':        it.name
 		'description': it.description
 	})))
 }
 
 // Ruby method `self.named_args_type(command, subcommand: nil)` at line 331.
-pub fn ruby_commands_l331_d30_self_named_args_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_commands_l331_d30_self_named_args_type(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return nil_value()
 	}
@@ -988,7 +988,7 @@ pub fn ruby_commands_l331_d30_self_named_args_type(args ...brew_runtime.Value) b
 }
 
 // Ruby method `self.option_conflicts(command, option)` at line 348.
-pub fn ruby_commands_l348_d31_self_option_conflicts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_commands_l348_d31_self_option_conflicts(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		return nil_value()
 	}

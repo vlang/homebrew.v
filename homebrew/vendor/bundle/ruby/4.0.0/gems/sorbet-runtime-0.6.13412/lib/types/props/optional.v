@@ -1,6 +1,6 @@
 module props
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/props/optional.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -10,7 +10,7 @@ pub struct OptionalDecoratorState {
 pub:
 	class_name string
 pub mut:
-	rules       map[string]map[string]brew_runtime.Value
+	rules       map[string]map[string]ruby.Value
 	definitions map[string]PropDefinition
 }
 
@@ -18,19 +18,19 @@ pub fn optional_valid_rule_key(super_valid bool, key string) bool {
 	return super_valid || key.trim_left(':') in ['default', 'factory']
 }
 
-pub fn compute_derived_rules(mut rules map[string]brew_runtime.Value) {
-	rules['fully_optional'] = brew_runtime.bool_value(!need_nil_write_check(rules))
-	rules['need_nil_read_check'] = brew_runtime.bool_value(need_nil_read_check(rules))
+pub fn compute_derived_rules(mut rules map[string]ruby.Value) {
+	rules['fully_optional'] = ruby.bool_value(!need_nil_write_check(rules))
+	rules['need_nil_read_check'] = ruby.bool_value(need_nil_read_check(rules))
 }
 
-fn default_setter_value(definition PropDefinition) brew_runtime.Value {
-	mut data := map[string]brew_runtime.Value{}
+fn default_setter_value(definition PropDefinition) ruby.Value {
+	mut data := map[string]ruby.Value{}
 	if definition.has_factory {
 		data['factory'] = definition.factory_value
 	} else {
 		data['default'] = definition.default_value
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'T::Props::Private::ApplyDefault'
 		repr: definition.name
 		map_data: data
@@ -40,7 +40,7 @@ fn default_setter_value(definition PropDefinition) brew_runtime.Value {
 	}
 }
 
-fn definition_from_rules(prop string, rules map[string]brew_runtime.Value) !PropDefinition {
+fn definition_from_rules(prop string, rules map[string]ruby.Value) !PropDefinition {
 	has_default_value := prop_rule(rules, 'default') != none
 	has_factory_value := prop_rule(rules, 'factory') != none
 	if has_default_value && has_factory_value {
@@ -51,7 +51,7 @@ fn definition_from_rules(prop string, rules map[string]brew_runtime.Value) !Prop
 	}
 	return PropDefinition{
 		name: prop
-		expected_type: prop_rule(rules, 'type') or { brew_runtime.string_value('') }.as_string()
+		expected_type: prop_rule(rules, 'type') or { ruby.string_value('') }.as_string()
 		required: need_nil_write_check(rules)
 		has_default: has_default_value
 		default_value: prop_rule(rules, 'default') or { props_nil_value() }
@@ -61,7 +61,7 @@ fn definition_from_rules(prop string, rules map[string]brew_runtime.Value) !Prop
 }
 
 pub fn optional_add_prop_definition(mut state OptionalDecoratorState, prop string,
-	mut rules map[string]brew_runtime.Value) ! {
+	mut rules map[string]ruby.Value) ! {
 	compute_derived_rules(mut rules)
 	definition := definition_from_rules(prop, rules)!
 	state.definitions[prop] = definition
@@ -96,44 +96,44 @@ pub fn optional_props_without_defaults(state OptionalDecoratorState) map[string]
 	return result
 }
 
-pub fn optional_validate_definition(rules map[string]brew_runtime.Value) ! {
+pub fn optional_validate_definition(rules map[string]ruby.Value) ! {
 	if prop_rule(rules, 'default') != none && prop_rule(rules, 'factory') != none {
 		return error('Setting both :default and :factory is invalid. See: go/chalk-docs')
 	}
 }
 
-pub fn optional_has_default(rules map[string]brew_runtime.Value) bool {
+pub fn optional_has_default(rules map[string]ruby.Value) bool {
 	return prop_rule(rules, optional_default_setter_rule_key) != none
 }
 
-pub fn optional_get_default(rules map[string]brew_runtime.Value) brew_runtime.Value {
+pub fn optional_get_default(rules map[string]ruby.Value) ruby.Value {
 	setter := prop_rule(rules, optional_default_setter_rule_key) or { return props_nil_value() }
 	return setter.map_data['default'] or { setter.map_data['factory'] or { props_nil_value() } }
 }
 
-fn optional_rules_value(definitions map[string]PropDefinition, with_defaults bool) brew_runtime.Value {
-	mut result := map[string]brew_runtime.Value{}
+fn optional_rules_value(definitions map[string]PropDefinition, with_defaults bool) ruby.Value {
+	mut result := map[string]ruby.Value{}
 	for name, definition in definitions {
 		if (definition.has_default || definition.has_factory) == with_defaults {
 			result[name] = if with_defaults {
 				default_setter_value(definition)
 			} else {
-				brew_runtime.structured_value('BoundSetterProc', name, {
+				ruby.structured_value('BoundSetterProc', name, {
 					'prop': name
 				})
 			}
 		}
 	}
-	return brew_runtime.map_value(result)
+	return ruby.map_value(result)
 }
 
-fn optional_state_from_value(value brew_runtime.Value) OptionalDecoratorState {
+fn optional_state_from_value(value ruby.Value) OptionalDecoratorState {
 	mut definitions := map[string]PropDefinition{}
 	for definition_value in value.array_data {
 		definition := prop_definition_from_value(definition_value)
 		definitions[definition.name] = definition
 	}
-	mut rules := map[string]map[string]brew_runtime.Value{}
+	mut rules := map[string]map[string]ruby.Value{}
 	for prop, rule_value in value.map_data {
 		if rule_value.type_name == 'Hash' {
 			rules[prop] = rule_value.map_data.clone()
@@ -147,34 +147,34 @@ fn optional_state_from_value(value brew_runtime.Value) OptionalDecoratorState {
 }
 
 // Ruby method `valid_rule_key?(key)` at line 32.
-pub fn ruby_optional_l32_d1_valid_rule_key(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_optional_l32_d1_valid_rule_key(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Optional#valid_rule_key? requires a key')
 	}
 	super_valid := args[0].attribute('super_valid') or { 'false' } == 'true'
-	return brew_runtime.bool_value(optional_valid_rule_key(super_valid, args[1].as_string()))
+	return ruby.bool_value(optional_valid_rule_key(super_valid, args[1].as_string()))
 }
 
 // Ruby method `prop_optional?(prop)` at line 36.
-pub fn ruby_optional_l36_d2_prop_optional(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_optional_l36_d2_prop_optional(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Optional#prop_optional? requires a prop')
 	}
-	return brew_runtime.bool_value(optional_prop_is_optional(optional_state_from_value(args[0]), args[1].as_string()))
+	return ruby.bool_value(optional_prop_is_optional(optional_state_from_value(args[0]), args[1].as_string()))
 }
 
 // Ruby method `compute_derived_rules(rules)` at line 40.
-pub fn ruby_optional_l40_d3_compute_derived_rules(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_optional_l40_d3_compute_derived_rules(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Optional#compute_derived_rules requires rules')
 	}
 	mut rules := args[1].as_map() or { panic(err) }
 	compute_derived_rules(mut rules)
-	return brew_runtime.map_value(rules)
+	return ruby.map_value(rules)
 }
 
 // Ruby attr_reader `attr_reader :props_with_defaults` at line 47.
-pub fn ruby_optional_l47_d4_props_with_defaults(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_optional_l47_d4_props_with_defaults(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Optional#props_with_defaults requires a receiver')
 	}
@@ -183,7 +183,7 @@ pub fn ruby_optional_l47_d4_props_with_defaults(args ...brew_runtime.Value) brew
 }
 
 // Ruby attr_reader `attr_reader :props_without_defaults` at line 51.
-pub fn ruby_optional_l51_d5_props_without_defaults(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_optional_l51_d5_props_without_defaults(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Optional#props_without_defaults requires a receiver')
 	}
@@ -192,18 +192,18 @@ pub fn ruby_optional_l51_d5_props_without_defaults(args ...brew_runtime.Value) b
 }
 
 // Ruby method `add_prop_definition(prop, rules)` at line 53.
-pub fn ruby_optional_l53_d6_add_prop_definition(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_optional_l53_d6_add_prop_definition(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('Optional#add_prop_definition requires a prop and rules')
 	}
 	mut state := optional_state_from_value(args[0])
 	mut rules := args[2].as_map() or { panic(err) }
 	optional_add_prop_definition(mut state, args[1].as_string(), mut rules) or { panic(err) }
-	return brew_runtime.map_value(rules)
+	return ruby.map_value(rules)
 }
 
 // Ruby method `prop_validate_definition!(name, cls, rules, type)` at line 72.
-pub fn ruby_optional_l72_d7_prop_validate_definition(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_optional_l72_d7_prop_validate_definition(args ...ruby.Value) ruby.Value {
 	if args.len < 5 {
 		panic('Optional#prop_validate_definition! requires name, class, rules, and type')
 	}
@@ -212,15 +212,15 @@ pub fn ruby_optional_l72_d7_prop_validate_definition(args ...brew_runtime.Value)
 }
 
 // Ruby method `has_default?(rules)` at line 82.
-pub fn ruby_optional_l82_d8_has_default(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_optional_l82_d8_has_default(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Optional#has_default? requires rules')
 	}
-	return brew_runtime.bool_value(optional_has_default(args[1].as_map() or { panic(err) }))
+	return ruby.bool_value(optional_has_default(args[1].as_map() or { panic(err) }))
 }
 
 // Ruby method `get_default(rules, instance_class)` at line 86.
-pub fn ruby_optional_l86_d9_get_default(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_optional_l86_d9_get_default(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Optional#get_default requires rules')
 	}

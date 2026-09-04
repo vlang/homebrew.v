@@ -1,6 +1,6 @@
 module text
 
-import brew_runtime
+import ruby
 import homebrew.rubocops as line_cops
 
 // Translated from Homebrew/brew `test/rubocops/text/macos_on_linux_spec.rb`.
@@ -27,67 +27,67 @@ fn macos_on_linux_spec_accepts(source string) bool {
 }
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
-pub fn ruby_macos_on_linux_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::MacOSOnLinux', 'MacOSOnLinux')
+pub fn ruby_macos_on_linux_spec_l7_d1_cop(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('RuboCop::Cop::FormulaAudit::MacOSOnLinux', 'MacOSOnLinux')
 }
 
 // Ruby it `it "reports an offense when `MacOS` is used in the `Formula` class" do` at line 9.
-pub fn ruby_macos_on_linux_spec_l9_d2_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_macos_on_linux_spec_l9_d2_reports(args ...ruby.Value) ruby.Value {
 	source := macos_on_linux_spec_formula('if MacOS::Xcode.version >= "12.0"\n  url \'https://brew.sh/linux-1.0.tgz\'\nend')
-	return brew_runtime.bool_value(macos_on_linux_spec_reports(source))
+	return ruby.bool_value(macos_on_linux_spec_reports(source))
 }
 
 // Ruby it `it "reports an offense when `MacOS` is used in a `resource` block" do` at line 21.
-pub fn ruby_macos_on_linux_spec_l21_d3_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_macos_on_linux_spec_l21_d3_reports(args ...ruby.Value) ruby.Value {
 	source := macos_on_linux_spec_formula('resource "foo" do\n  url "https://brew.sh/linux-1.0.tgz" if MacOS::full_version >= "12.0"\nend')
-	return brew_runtime.bool_value(macos_on_linux_spec_reports(source))
+	return ruby.bool_value(macos_on_linux_spec_reports(source))
 }
 
 // Ruby it `it "reports an offense when `MacOS` is used in an `on_linux` block" do` at line 35.
-pub fn ruby_macos_on_linux_spec_l35_d4_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_macos_on_linux_spec_l35_d4_reports(args ...ruby.Value) ruby.Value {
 	source := macos_on_linux_spec_formula('on_linux do\n  if MacOS::Xcode.version >= "12.0"\n    url \'https://brew.sh/linux-1.0.tgz\'\n  end\nend')
-	return brew_runtime.bool_value(macos_on_linux_spec_reports(source))
+	return ruby.bool_value(macos_on_linux_spec_reports(source))
 }
 
 // Ruby it `it "reports an offense when `MacOS` is used in an `on_arm` block" do` at line 49.
-pub fn ruby_macos_on_linux_spec_l49_d5_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_macos_on_linux_spec_l49_d5_reports(args ...ruby.Value) ruby.Value {
 	source := macos_on_linux_spec_formula('on_arm do\n  if MacOS::Xcode.version >= "12.0"\n    url \'https://brew.sh/linux-1.0.tgz\'\n  end\nend')
-	return brew_runtime.bool_value(macos_on_linux_spec_reports(source))
+	return ruby.bool_value(macos_on_linux_spec_reports(source))
 }
 
 // Ruby it `it "reports an offense when `MacOS` is used in an `on_intel` block" do` at line 63.
-pub fn ruby_macos_on_linux_spec_l63_d6_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_macos_on_linux_spec_l63_d6_reports(args ...ruby.Value) ruby.Value {
 	source := macos_on_linux_spec_formula('on_intel do\n  if MacOS::Xcode.version >= "12.0"\n    url \'https://brew.sh/linux-1.0.tgz\'\n  end\nend')
-	return brew_runtime.bool_value(macos_on_linux_spec_reports(source))
+	return ruby.bool_value(macos_on_linux_spec_reports(source))
 }
 
 // Ruby it `it "reports no offenses when `MacOS` is used in an `on_macos` block" do` at line 77.
-pub fn ruby_macos_on_linux_spec_l77_d7_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_macos_on_linux_spec_l77_d7_reports(args ...ruby.Value) ruby.Value {
 	source := macos_on_linux_spec_formula('on_macos do\n  if MacOS::Xcode.version >= "12.0"\n    url \'https://brew.sh/linux-1.0.tgz\'\n  end\nend')
-	return brew_runtime.bool_value(macos_on_linux_spec_accepts(source))
+	return ruby.bool_value(macos_on_linux_spec_accepts(source))
 }
 
 // Ruby it `it "reports no offenses when `MacOS` is used in an `on_ventura` block" do` at line 90.
-pub fn ruby_macos_on_linux_spec_l90_d8_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_macos_on_linux_spec_l90_d8_reports(args ...ruby.Value) ruby.Value {
 	source := macos_on_linux_spec_formula('on_ventura :or_older do\n  if MacOS::Xcode.version >= "12.0"\n    url \'https://brew.sh/linux-1.0.tgz\'\n  end\nend')
-	return brew_runtime.bool_value(macos_on_linux_spec_accepts(source))
+	return ruby.bool_value(macos_on_linux_spec_accepts(source))
 }
 
 // Ruby it `it "reports no offenses when `MacOS` is used in the `install` method" do` at line 103.
-pub fn ruby_macos_on_linux_spec_l103_d9_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_macos_on_linux_spec_l103_d9_reports(args ...ruby.Value) ruby.Value {
 	source := macos_on_linux_spec_formula('def install\n  MacOS.version\nend')
-	return brew_runtime.bool_value(macos_on_linux_spec_accepts(source))
+	return ruby.bool_value(macos_on_linux_spec_accepts(source))
 }
 
 // Ruby method `install` at line 109.
-pub fn ruby_macos_on_linux_spec_l109_d10_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('def install\n  MacOS.version\nend')
+pub fn ruby_macos_on_linux_spec_l109_d10_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('def install\n  MacOS.version\nend')
 }
 
 // Ruby it `it "reports no offenses when `MacOS` is used in the `test` block" do` at line 116.
-pub fn ruby_macos_on_linux_spec_l116_d11_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_macos_on_linux_spec_l116_d11_reports(args ...ruby.Value) ruby.Value {
 	source := macos_on_linux_spec_formula('test do\n  MacOS.version\nend')
-	return brew_runtime.bool_value(macos_on_linux_spec_accepts(source))
+	return ruby.bool_value(macos_on_linux_spec_accepts(source))
 }
 
 // Original Ruby source (line-for-line):

@@ -1,6 +1,6 @@
 module executor
 
-import brew_runtime
+import ruby
 import os
 import sync
 import time
@@ -211,7 +211,7 @@ pub fn (mut timer TimerSet) process_tasks() {
 
 @[heap]
 struct BoundaryTimerSetTask {
-	result brew_runtime.Value
+	result ruby.Value
 mut:
 	fired bool
 }
@@ -222,20 +222,20 @@ fn dispatch_boundary_timer_set_task(context voidptr) bool {
 	return true
 }
 
-fn timer_set_boundary_value(timer &TimerSet) brew_runtime.Value {
-	return brew_runtime.structured_value('Concurrent::TimerSet', '#<Concurrent::TimerSet>', {
+fn timer_set_boundary_value(timer &TimerSet) ruby.Value {
+	return ruby.structured_value('Concurrent::TimerSet', '#<Concurrent::TimerSet>', {
 		'timer_set_address': u64(voidptr(timer)).str()
 	})
 }
 
-pub fn timer_set_from_value(value brew_runtime.Value) &TimerSet {
+pub fn timer_set_from_value(value ruby.Value) &TimerSet {
 	address := (value.attribute('timer_set_address') or {
 		panic('${value.type_name} has no translated TimerSet state')
 	}).u64()
 	return unsafe { &TimerSet(voidptr(address)) }
 }
 
-fn timer_set_task_from_value(value brew_runtime.Value) TimerSetTask {
+fn timer_set_task_from_value(value ruby.Value) TimerSetTask {
 	address := (value.attribute('timer_set_task_address') or {
 		panic('${value.type_name} has no translated TimerSet task state')
 	}).u64()
@@ -243,25 +243,25 @@ fn timer_set_task_from_value(value brew_runtime.Value) TimerSetTask {
 	return *task
 }
 
-fn boundary_timer_task_value(task &TimerSetTask) brew_runtime.Value {
-	return brew_runtime.structured_value('Concurrent::ScheduledTask', '#<Concurrent::ScheduledTask>', {
+fn boundary_timer_task_value(task &TimerSetTask) ruby.Value {
+	return ruby.structured_value('Concurrent::ScheduledTask', '#<Concurrent::ScheduledTask>', {
 		'timer_set_task_address': u64(voidptr(task)).str()
 	})
 }
 
 // Ruby method `initialize(opts = {})` at line 30.
-pub fn ruby_timer_set_l30_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_timer_set_l30_d1_initialize(args ...ruby.Value) ruby.Value {
 	return timer_set_boundary_value(new_timer_set())
 }
 
 // Ruby method `post(delay, *args, &task)` at line 48.
-pub fn ruby_timer_set_l48_d2_post(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_timer_set_l48_d2_post(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('ArgumentError: no block given')
 	}
 	mut timer := timer_set_from_value(args[0])
 	if !timer.is_running() {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	delay := args[1].as_float() or { panic(err) }
 	if delay < 0 {
@@ -277,19 +277,19 @@ pub fn ruby_timer_set_l48_d2_post(args ...brew_runtime.Value) brew_runtime.Value
 		dispatch: dispatch_boundary_timer_set_task
 	}
 	if !timer.post_task(*task) {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	return boundary_timer_task_value(task)
 }
 
 // Ruby method `kill` at line 62.
-pub fn ruby_timer_set_l62_d3_kill(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_timer_set_l62_d3_kill(args ...ruby.Value) ruby.Value {
 	mut timer := timer_set_from_value(args[0])
-	return brew_runtime.bool_value(timer.kill())
+	return ruby.bool_value(timer.kill())
 }
 
 // Ruby method `ns_initialize(opts)` at line 75.
-pub fn ruby_timer_set_l75_d4_ns_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_timer_set_l75_d4_ns_initialize(args ...ruby.Value) ruby.Value {
 	if args.len > 0 {
 		_ := args[0].attribute('timer_set_address') or {
 			return timer_set_boundary_value(new_timer_set())
@@ -300,46 +300,46 @@ pub fn ruby_timer_set_l75_d4_ns_initialize(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `post_task(task)` at line 90.
-pub fn ruby_timer_set_l90_d5_post_task(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_timer_set_l90_d5_post_task(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('TimerSet#post_task requires a task')
 	}
 	mut timer := timer_set_from_value(args[0])
-	return brew_runtime.bool_value(timer.post_task(timer_set_task_from_value(args[1])))
+	return ruby.bool_value(timer.post_task(timer_set_task_from_value(args[1])))
 }
 
 // Ruby method `ns_post_task(task)` at line 95.
-pub fn ruby_timer_set_l95_d6_ns_post_task(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_timer_set_l95_d6_ns_post_task(args ...ruby.Value) ruby.Value {
 	return ruby_timer_set_l90_d5_post_task(...args)
 }
 
 // Ruby method `remove_task(task)` at line 116.
-pub fn ruby_timer_set_l116_d7_remove_task(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_timer_set_l116_d7_remove_task(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('TimerSet#remove_task requires a task')
 	}
 	mut timer := timer_set_from_value(args[0])
-	return brew_runtime.bool_value(timer.remove_task(timer_set_task_from_value(args[1])))
+	return ruby.bool_value(timer.remove_task(timer_set_task_from_value(args[1])))
 }
 
 // Ruby method `ns_shutdown_execution` at line 123.
-pub fn ruby_timer_set_l123_d8_ns_shutdown_execution(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_timer_set_l123_d8_ns_shutdown_execution(args ...ruby.Value) ruby.Value {
 	mut timer := timer_set_from_value(args[0])
-	return brew_runtime.bool_value(timer.shutdown())
+	return ruby.bool_value(timer.shutdown())
 }
 
 // Ruby method `ns_reset_if_forked` at line 132.
-pub fn ruby_timer_set_l132_d9_ns_reset_if_forked(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_timer_set_l132_d9_ns_reset_if_forked(args ...ruby.Value) ruby.Value {
 	mut timer := timer_set_from_value(args[0])
 	timer.reset_if_forked()
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `process_tasks` at line 146.
-pub fn ruby_timer_set_l146_d10_process_tasks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_timer_set_l146_d10_process_tasks(args ...ruby.Value) ruby.Value {
 	mut timer := timer_set_from_value(args[0])
 	timer.process_tasks()
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Original Ruby source (line-for-line):

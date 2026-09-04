@@ -1,55 +1,55 @@
 module artifact
 
-import brew_runtime
+import ruby
 import homebrew.cask.artifact as core
 
 // Translated from Homebrew/brew `test/cask/artifact/abstract_artifact_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "includes generated and platform-specific artifacts" do` at line 6.
-pub fn ruby_abstract_artifact_spec_l6_d1_includes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_artifact_spec_l6_d1_includes(args ...ruby.Value) ruby.Value {
 	_ = args
 	order := core.abstract_artifact_sort_order()
 	generated_between_completions_and_postflight := order['Cask::Artifact::GeneratedCompletion'] > order['Cask::Artifact::ZshCompletion'] && order['Cask::Artifact::GeneratedCompletion'] < order['Cask::Artifact::PostflightSteps']
 	includes_generated_and_platform_specific := ['CommandWrapper', 'GeneratedScript', 'PreflightSteps',
 		'PostflightSteps', 'UninstallPreflightSteps', 'UninstallPostflightSteps'].all('Cask::Artifact::${it}' in order)
 	same_app_order := order['Cask::Artifact::AppImage'] == order['Cask::Artifact::App']
-	return brew_runtime.bool_value(includes_generated_and_platform_specific && same_app_order && generated_between_completions_and_postflight)
+	return ruby.bool_value(includes_generated_and_platform_specific && same_app_order && generated_between_completions_and_postflight)
 }
 
 // Ruby let `let(:stanza) { :installer }` at line 27.
-pub fn ruby_abstract_artifact_spec_l27_d2_stanza(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_artifact_spec_l27_d2_stanza(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.object_value('Symbol', 'installer')
+	return ruby.object_value('Symbol', 'installer')
 }
 
 // Ruby it `it "accepts a string and uses it as the executable" do` at line 29.
-pub fn ruby_abstract_artifact_spec_l29_d3_accepts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_artifact_spec_l29_d3_accepts(args ...ruby.Value) ruby.Value {
 	_ = args
-	result := core.read_abstract_artifact_script_arguments(brew_runtime.string_value('something'), 'installer', {}, {}, '') or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(result.has_executable && result.executable == 'something' && result.arguments.len == 0)
+	result := core.read_abstract_artifact_script_arguments(ruby.string_value('something'), 'installer', {}, {}, '') or { return ruby.bool_value(false) }
+	return ruby.bool_value(result.has_executable && result.executable == 'something' && result.arguments.len == 0)
 }
 
 // Ruby it `it "accepts a hash with an executable" do` at line 35.
-pub fn ruby_abstract_artifact_spec_l35_d4_accepts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_artifact_spec_l35_d4_accepts(args ...ruby.Value) ruby.Value {
 	_ = args
-	result := core.read_abstract_artifact_script_arguments(brew_runtime.map_value({
-		'executable': brew_runtime.string_value('something')
-	}), 'installer', {}, {}, '') or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(result.has_executable && result.executable == 'something' && result.arguments.len == 0)
+	result := core.read_abstract_artifact_script_arguments(ruby.map_value({
+		'executable': ruby.string_value('something')
+	}), 'installer', {}, {}, '') or { return ruby.bool_value(false) }
+	return ruby.bool_value(result.has_executable && result.executable == 'something' && result.arguments.len == 0)
 }
 
 // Ruby it `it "does not mutate the original arguments in place" do` at line 41.
-pub fn ruby_abstract_artifact_spec_l41_d5_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_artifact_spec_l41_d5_does(args ...ruby.Value) ruby.Value {
 	_ = args
-	original := brew_runtime.map_value({
-		'executable': brew_runtime.string_value('something')
+	original := ruby.map_value({
+		'executable': ruby.string_value('something')
 	})
 	before := original.map_data.clone()
 	core.read_abstract_artifact_script_arguments(original, 'installer', {}, {}, '') or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(original.map_data == before)
+	return ruby.bool_value(original.map_data == before)
 }
 
 // Original Ruby source (line-for-line):

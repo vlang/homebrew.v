@@ -1,6 +1,6 @@
 module artifact
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `cask/artifact/generated_script.rb`.
@@ -51,11 +51,11 @@ pub fn install_generated_script(artifact GeneratedScriptArtifact) ! {
 	os.chmod(artifact.path, 0o755)!
 }
 
-pub fn generated_script_to_args(artifact GeneratedScriptArtifact) brew_runtime.Value {
-	return brew_runtime.array_value([
-		brew_runtime.string_value(artifact.path_string),
-		brew_runtime.map_value({
-			'content': brew_runtime.string_value(artifact.content)
+pub fn generated_script_to_args(artifact GeneratedScriptArtifact) ruby.Value {
+	return ruby.array_value([
+		ruby.string_value(artifact.path_string),
+		ruby.map_value({
+			'content': ruby.string_value(artifact.content)
 		}),
 	])
 }
@@ -78,7 +78,7 @@ pub fn ruby_generated_script_l39_d3_install_phase(artifact GeneratedScriptArtifa
 }
 
 // Ruby method `to_args` at line 54.
-pub fn ruby_generated_script_l54_d4_to_args(artifact GeneratedScriptArtifact) brew_runtime.Value {
+pub fn ruby_generated_script_l54_d4_to_args(artifact GeneratedScriptArtifact) ruby.Value {
 	return generated_script_to_args(artifact)
 }
 

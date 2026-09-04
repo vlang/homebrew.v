@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 import os
 import x.json2
 
@@ -456,7 +456,7 @@ fn (trust &Trust) write_trust_store(store map[string][]string) ! {
 		}
 		return
 	}
-	brew_runtime.atomic_write_file(write_path, trust_store_json(store))!
+	ruby.atomic_write_file(write_path, trust_store_json(store))!
 	os.chmod(write_path, 0o600)!
 }
 

@@ -1,6 +1,6 @@
 module api
 
-import brew_runtime
+import ruby
 import homebrew.api as package_api
 import os
 import x.json2
@@ -9,37 +9,37 @@ import x.json2
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:cache_dir) { mktmpdir }` at line 7.
-pub fn ruby_packages_index_spec_l7_d1_cache_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(packages_spec_root('cache-dir'))
+pub fn ruby_packages_index_spec_l7_d1_cache_dir(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(packages_spec_root('cache-dir'))
 }
 
 // Ruby let `let(:target) { cache_dir/"packages.arm64_test.jws.json" }` at line 8.
-pub fn ruby_packages_index_spec_l8_d2_target(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_packages_index_spec_l8_d2_target(args ...ruby.Value) ruby.Value {
 	root := if args.len > 0 { args[0].as_string() } else { packages_spec_root('target') }
-	return brew_runtime.string_value(os.join_path(root, 'packages.arm64_test.jws.json'))
+	return ruby.string_value(os.join_path(root, 'packages.arm64_test.jws.json'))
 }
 
 // Ruby let `let(:parsed) do` at line 9.
-pub fn ruby_packages_index_spec_l9_d3_parsed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_packages_index_spec_l9_d3_parsed(args ...ruby.Value) ruby.Value {
 	return packages_spec_parsed()
 }
 
 // Ruby let `let(:payload) { JSON.generate(parsed) }` at line 22.
-pub fn ruby_packages_index_spec_l22_d4_payload(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_packages_index_spec_l22_d4_payload(args ...ruby.Value) ruby.Value {
 	parsed := if args.len > 0 { args[0] } else { packages_spec_parsed() }
-	return brew_runtime.string_value(json2.encode(brew_runtime.json_any_from_value(parsed)))
+	return ruby.string_value(json2.encode(ruby.json_any_from_value(parsed)))
 }
 
 // Ruby method `write_index!` at line 24.
-pub fn ruby_packages_index_spec_l24_d5_write_index(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_packages_index_spec_l24_d5_write_index(args ...ruby.Value) ruby.Value {
 	root := packages_spec_root('write-helper')
 	defer { os.rmdir_all(root) or {} }
 	_, _, ok := packages_spec_write_index(root)
-	return brew_runtime.bool_value(ok)
+	return ruby.bool_value(ok)
 }
 
 // Ruby method `load_index` at line 29.
-pub fn ruby_packages_index_spec_l29_d6_load_index(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_packages_index_spec_l29_d6_load_index(args ...ruby.Value) ruby.Value {
 	root := packages_spec_root('load-helper')
 	defer { os.rmdir_all(root) or {} }
 	target, payload, ok := packages_spec_write_index(root)
@@ -51,7 +51,7 @@ pub fn ruby_packages_index_spec_l29_d6_load_index(args ...brew_runtime.Value) br
 }
 
 // Ruby it `it "serves entries and top-level values from a written index" do` at line 33.
-pub fn ruby_packages_index_spec_l33_d7_serves(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_packages_index_spec_l33_d7_serves(args ...ruby.Value) ruby.Value {
 	root := packages_spec_root('serves')
 	defer { os.rmdir_all(root) or {} }
 	target, payload, ok := packages_spec_write_index(root)
@@ -80,7 +80,7 @@ pub fn ruby_packages_index_spec_l33_d7_serves(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby it `it "does not load an index whose source envelope changed" do` at line 49.
-pub fn ruby_packages_index_spec_l49_d8_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_packages_index_spec_l49_d8_does(args ...ruby.Value) ruby.Value {
 	root := packages_spec_root('source-changed')
 	defer { os.rmdir_all(root) or {} }
 	target, payload, ok := packages_spec_write_index(root)
@@ -94,7 +94,7 @@ pub fn ruby_packages_index_spec_l49_d8_does(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby it `it "does not load an index built for a different payload" do` at line 56.
-pub fn ruby_packages_index_spec_l56_d9_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_packages_index_spec_l56_d9_does(args ...ruby.Value) ruby.Value {
 	root := packages_spec_root('different-payload')
 	defer { os.rmdir_all(root) or {} }
 	target, payload, ok := packages_spec_write_index(root)
@@ -106,7 +106,7 @@ pub fn ruby_packages_index_spec_l56_d9_does(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby it `it "raises on lookups whose recorded offsets do not match the payload" do` at line 62.
-pub fn ruby_packages_index_spec_l62_d10_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_packages_index_spec_l62_d10_raises(args ...ruby.Value) ruby.Value {
 	root := packages_spec_root('wrong-offset')
 	defer { os.rmdir_all(root) or {} }
 	target, payload, ok := packages_spec_write_index(root)
@@ -114,14 +114,14 @@ pub fn ruby_packages_index_spec_l62_d10_raises(args ...brew_runtime.Value) brew_
 		return packages_spec_bool(false)
 	}
 	index_path := package_api.packages_index_path_for(target)
-	data := brew_runtime.parse_json_value(os.read_file(index_path) or { return packages_spec_bool(false) }) or {
+	data := ruby.parse_json_value(os.read_file(index_path) or { return packages_spec_bool(false) }) or {
 		return packages_spec_bool(false)
 	}
 	mut root_values := data.map_data.clone()
 	mut formulae := (root_values['formulae'] or { return packages_spec_bool(false) }).map_data.clone()
 	formulae['foo'] = formulae['bar'] or { return packages_spec_bool(false) }
-	root_values['formulae'] = brew_runtime.map_value(formulae)
-	packages_spec_write_json(index_path, brew_runtime.map_value(root_values)) or {
+	root_values['formulae'] = ruby.map_value(formulae)
+	packages_spec_write_json(index_path, ruby.map_value(root_values)) or {
 		return packages_spec_bool(false)
 	}
 	stat := package_api.packages_source_stat(target) or { return packages_spec_bool(false) }
@@ -133,7 +133,7 @@ pub fn ruby_packages_index_spec_l62_d10_raises(args ...brew_runtime.Value) brew_
 }
 
 // Ruby it `it "raises on lookups remapped to a matching key in another section" do` at line 72.
-pub fn ruby_packages_index_spec_l72_d11_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_packages_index_spec_l72_d11_raises(args ...ruby.Value) ruby.Value {
 	root := packages_spec_root('cross-section')
 	defer { os.rmdir_all(root) or {} }
 	target, payload, ok := packages_spec_write_index(root)
@@ -141,15 +141,15 @@ pub fn ruby_packages_index_spec_l72_d11_raises(args ...brew_runtime.Value) brew_
 		return packages_spec_bool(false)
 	}
 	index_path := package_api.packages_index_path_for(target)
-	data := brew_runtime.parse_json_value(os.read_file(index_path) or { return packages_spec_bool(false) }) or {
+	data := ruby.parse_json_value(os.read_file(index_path) or { return packages_spec_bool(false) }) or {
 		return packages_spec_bool(false)
 	}
 	mut root_values := data.map_data.clone()
 	mut formulae := (root_values['formulae'] or { return packages_spec_bool(false) }).map_data.clone()
 	casks := (root_values['casks'] or { return packages_spec_bool(false) }).map_data.clone()
 	formulae['foo'] = casks['foo'] or { return packages_spec_bool(false) }
-	root_values['formulae'] = brew_runtime.map_value(formulae)
-	packages_spec_write_json(index_path, brew_runtime.map_value(root_values)) or {
+	root_values['formulae'] = ruby.map_value(formulae)
+	packages_spec_write_json(index_path, ruby.map_value(root_values)) or {
 		return packages_spec_bool(false)
 	}
 	stat := package_api.packages_source_stat(target) or { return packages_spec_bool(false) }
@@ -161,7 +161,7 @@ pub fn ruby_packages_index_spec_l72_d11_raises(args ...brew_runtime.Value) brew_
 }
 
 // Ruby it `it "does not load an index whose top-level spans do not tile the payload" do` at line 82.
-pub fn ruby_packages_index_spec_l82_d12_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_packages_index_spec_l82_d12_does(args ...ruby.Value) ruby.Value {
 	root := packages_spec_root('top-level-span')
 	defer { os.rmdir_all(root) or {} }
 	target, payload, ok := packages_spec_write_index(root)
@@ -169,7 +169,7 @@ pub fn ruby_packages_index_spec_l82_d12_does(args ...brew_runtime.Value) brew_ru
 		return packages_spec_bool(false)
 	}
 	index_path := package_api.packages_index_path_for(target)
-	data := brew_runtime.parse_json_value(os.read_file(index_path) or { return packages_spec_bool(false) }) or {
+	data := ruby.parse_json_value(os.read_file(index_path) or { return packages_spec_bool(false) }) or {
 		return packages_spec_bool(false)
 	}
 	mut root_values := data.map_data.clone()
@@ -177,38 +177,38 @@ pub fn ruby_packages_index_spec_l82_d12_does(args ...brew_runtime.Value) brew_ru
 	mut formula_location := (top_level['formulae'] or { return packages_spec_bool(false) }).as_array() or {
 		return packages_spec_bool(false)
 	}
-	formula_location[1] = brew_runtime.int_value(i64(payload.len) - formula_location[0].int_data - 1)
-	top_level['formulae'] = brew_runtime.array_value(formula_location)
-	root_values['top_level'] = brew_runtime.map_value(top_level)
-	packages_spec_write_json(index_path, brew_runtime.map_value(root_values)) or {
+	formula_location[1] = ruby.int_value(i64(payload.len) - formula_location[0].int_data - 1)
+	top_level['formulae'] = ruby.array_value(formula_location)
+	root_values['top_level'] = ruby.map_value(top_level)
+	packages_spec_write_json(index_path, ruby.map_value(root_values)) or {
 		return packages_spec_bool(false)
 	}
 	stat := package_api.packages_source_stat(target) or { return packages_spec_bool(false) }
 	return packages_spec_bool(package_api.packages_index_load(target, payload, stat) == none)
 }
 
-fn packages_spec_parsed() brew_runtime.Value {
-	return brew_runtime.map_value({
-		'formulae':             brew_runtime.map_value({
-			'foo': brew_runtime.map_value({
-				'desc':           brew_runtime.string_value('Foo formula')
-				'stable_version': brew_runtime.string_value('1.0.0')
+fn packages_spec_parsed() ruby.Value {
+	return ruby.map_value({
+		'formulae':             ruby.map_value({
+			'foo': ruby.map_value({
+				'desc':           ruby.string_value('Foo formula')
+				'stable_version': ruby.string_value('1.0.0')
 			})
-			'bar': brew_runtime.map_value({
-				'desc':           brew_runtime.string_value('Bar‑formula')
-				'stable_version': brew_runtime.string_value('0.4.0')
-			})
-		})
-		'casks':                brew_runtime.map_value({
-			'foo': brew_runtime.map_value({
-				'desc':    brew_runtime.string_value('Foo cask')
-				'version': brew_runtime.string_value('2.0.0')
+			'bar': ruby.map_value({
+				'desc':           ruby.string_value('Bar‑formula')
+				'stable_version': ruby.string_value('0.4.0')
 			})
 		})
-		'formula_aliases':      brew_runtime.map_value({
-			'foo-alias': brew_runtime.string_value('foo')
+		'casks':                ruby.map_value({
+			'foo': ruby.map_value({
+				'desc':    ruby.string_value('Foo cask')
+				'version': ruby.string_value('2.0.0')
+			})
 		})
-		'formula_tap_git_head': brew_runtime.string_value('b871900717ccbb3508ca93fa56e128940b9bd371')
+		'formula_aliases':      ruby.map_value({
+			'foo-alias': ruby.string_value('foo')
+		})
+		'formula_tap_git_head': ruby.string_value('b871900717ccbb3508ca93fa56e128940b9bd371')
 	})
 }
 
@@ -216,7 +216,7 @@ fn packages_spec_write_index(root string) (string, string, bool) {
 	target := os.join_path(root, 'packages.arm64_test.jws.json')
 	os.write_file(target, '{}') or { return target, '', false }
 	parsed := packages_spec_parsed()
-	payload := json2.encode(brew_runtime.json_any_from_value(parsed))
+	payload := json2.encode(ruby.json_any_from_value(parsed))
 	stat := package_api.packages_source_stat(target) or { return target, payload, false }
 	package_api.packages_index_write(target, payload, parsed, stat, false) or {
 		return target, payload, false
@@ -224,12 +224,12 @@ fn packages_spec_write_index(root string) (string, string, bool) {
 	return target, payload, os.is_file(package_api.packages_index_path_for(target))
 }
 
-fn packages_spec_write_json(path string, value brew_runtime.Value) ! {
-	os.write_file(path, json2.encode(brew_runtime.json_any_from_value(value)))!
+fn packages_spec_write_json(path string, value ruby.Value) ! {
+	os.write_file(path, json2.encode(ruby.json_any_from_value(value)))!
 }
 
-fn packages_spec_bool(value bool) brew_runtime.Value {
-	return brew_runtime.bool_value(value)
+fn packages_spec_bool(value bool) ruby.Value {
+	return ruby.bool_value(value)
 }
 
 fn packages_spec_root(name string) string {

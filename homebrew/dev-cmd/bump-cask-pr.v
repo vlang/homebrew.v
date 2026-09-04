@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 import homebrew
 import homebrew.livecheck
 import homebrew.utils
@@ -102,11 +102,11 @@ pub:
 	error          string
 }
 
-fn bump_cask_bool(value brew_runtime.Value, fallback bool) bool {
+fn bump_cask_bool(value ruby.Value, fallback bool) bool {
 	return if value.type_name == 'Bool' { value.bool_data } else { fallback }
 }
 
-fn bump_cask_optional_string(values map[string]brew_runtime.Value, key string) ?string {
+fn bump_cask_optional_string(values map[string]ruby.Value, key string) ?string {
 	value := values[key] or { return none }
 	if value.type_name in ['Nil', 'NilClass'] {
 		return none
@@ -114,7 +114,7 @@ fn bump_cask_optional_string(values map[string]brew_runtime.Value, key string) ?
 	return value.as_string()
 }
 
-fn bump_cask_optional_int(values map[string]brew_runtime.Value, key string) ?int {
+fn bump_cask_optional_int(values map[string]ruby.Value, key string) ?int {
 	value := values[key] or { return none }
 	if value.type_name in ['Nil', 'NilClass'] {
 		return none
@@ -122,7 +122,7 @@ fn bump_cask_optional_int(values map[string]brew_runtime.Value, key string) ?int
 	return int(value.int_data)
 }
 
-fn bump_cask_optional_i64(values map[string]brew_runtime.Value, key string) ?i64 {
+fn bump_cask_optional_i64(values map[string]ruby.Value, key string) ?i64 {
 	value := values[key] or { return none }
 	if value.type_name in ['Nil', 'NilClass'] {
 		return none
@@ -130,7 +130,7 @@ fn bump_cask_optional_i64(values map[string]brew_runtime.Value, key string) ?i64
 	return value.int_data
 }
 
-fn bump_cask_optional_bool(values map[string]brew_runtime.Value, key string) ?bool {
+fn bump_cask_optional_bool(values map[string]ruby.Value, key string) ?bool {
 	value := values[key] or { return none }
 	if value.type_name in ['Nil', 'NilClass'] {
 		return none
@@ -138,68 +138,68 @@ fn bump_cask_optional_bool(values map[string]brew_runtime.Value, key string) ?bo
 	return bump_cask_bool(value, false)
 }
 
-pub fn bump_cask_pr_cask_value(cask BumpCaskPrCask) brew_runtime.Value {
+pub fn bump_cask_pr_cask_value(cask BumpCaskPrCask) ruby.Value {
 	mut values := {
-		'token':                  brew_runtime.string_value(cask.token)
-		'contents':               brew_runtime.string_value(cask.contents)
-		'version':                brew_runtime.string_value(cask.version)
-		'sourcefile_path':        brew_runtime.string_value(cask.sourcefile_path)
-		'tap_present':            brew_runtime.bool_value(cask.tap_present)
-		'tap_name':               brew_runtime.string_value(cask.tap_name)
-		'tap_remote_repository':  brew_runtime.string_value(cask.tap_remote_repository)
-		'tap_official':           brew_runtime.bool_value(cask.tap_official)
-		'tap_git':                brew_runtime.bool_value(cask.tap_git)
-		'allow_bump':             brew_runtime.bool_value(cask.allow_bump)
-		'too_many_open_prs':      brew_runtime.bool_value(cask.too_many_open_prs)
-		'on_system_blocks_exist': brew_runtime.bool_value(cask.on_system_blocks_exist)
-		'depends_on_arch':        brew_runtime.string_array_value(cask.depends_on_arch)
-		'supports_macos':         brew_runtime.bool_value(cask.supports_macos)
-		'supports_linux':         brew_runtime.bool_value(cask.supports_linux)
-		'languages':              brew_runtime.string_array_value(cask.languages)
+		'token':                  ruby.string_value(cask.token)
+		'contents':               ruby.string_value(cask.contents)
+		'version':                ruby.string_value(cask.version)
+		'sourcefile_path':        ruby.string_value(cask.sourcefile_path)
+		'tap_present':            ruby.bool_value(cask.tap_present)
+		'tap_name':               ruby.string_value(cask.tap_name)
+		'tap_remote_repository':  ruby.string_value(cask.tap_remote_repository)
+		'tap_official':           ruby.bool_value(cask.tap_official)
+		'tap_git':                ruby.bool_value(cask.tap_git)
+		'allow_bump':             ruby.bool_value(cask.allow_bump)
+		'too_many_open_prs':      ruby.bool_value(cask.too_many_open_prs)
+		'on_system_blocks_exist': ruby.bool_value(cask.on_system_blocks_exist)
+		'depends_on_arch':        ruby.string_array_value(cask.depends_on_arch)
+		'supports_macos':         ruby.bool_value(cask.supports_macos)
+		'supports_linux':         ruby.bool_value(cask.supports_linux)
+		'languages':              ruby.string_array_value(cask.languages)
 	}
 	if value := cask.throttle_rate {
-		values['throttle_rate'] = brew_runtime.int_value(value)
+		values['throttle_rate'] = ruby.int_value(value)
 	}
 	if value := cask.throttle_days {
-		values['throttle_days'] = brew_runtime.int_value(value)
+		values['throttle_days'] = ruby.int_value(value)
 	}
 	if value := cask.last_updated_timestamp {
-		values['last_updated_timestamp'] = brew_runtime.int_value(value)
+		values['last_updated_timestamp'] = ruby.int_value(value)
 	}
 	if value := cask.throttle_interval_elapsed {
-		values['throttle_interval_elapsed'] = brew_runtime.bool_value(value)
+		values['throttle_interval_elapsed'] = ruby.bool_value(value)
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'Cask::Cask'
 		repr: cask.token
 		map_data: values.clone()
 	}
 }
 
-pub fn bump_cask_pr_cask_from_value(value brew_runtime.Value) !BumpCaskPrCask {
+pub fn bump_cask_pr_cask_from_value(value ruby.Value) !BumpCaskPrCask {
 	if value.type_name !in ['Cask::Cask', 'BumpCaskPrCask', 'Hash'] {
 		return error('expected Cask::Cask, got ${value.type_name}')
 	}
 	values := value.map_data.clone()
-	contents := (values['contents'] or { brew_runtime.string_value('') }).as_string()
+	contents := (values['contents'] or { ruby.string_value('') }).as_string()
 	parsed := bump_cask_parse(contents)
 	return BumpCaskPrCask{
-		token: (values['token'] or { brew_runtime.string_value(parsed.token) }).as_string()
+		token: (values['token'] or { ruby.string_value(parsed.token) }).as_string()
 		contents: contents
-		version: (values['version'] or { brew_runtime.string_value(parsed.version) }).as_string()
-		sourcefile_path: (values['sourcefile_path'] or { brew_runtime.string_value(parsed.sourcefile_path) }).as_string()
-		tap_present: bump_cask_bool(values['tap_present'] or { brew_runtime.bool_value(false) }, false)
-		tap_name: (values['tap_name'] or { brew_runtime.string_value('') }).as_string()
-		tap_remote_repository: (values['tap_remote_repository'] or { brew_runtime.string_value('') }).as_string()
-		tap_official: bump_cask_bool(values['tap_official'] or { brew_runtime.bool_value(false) }, false)
-		tap_git: bump_cask_bool(values['tap_git'] or { brew_runtime.bool_value(true) }, true)
-		allow_bump: bump_cask_bool(values['allow_bump'] or { brew_runtime.bool_value(true) }, true)
-		too_many_open_prs: bump_cask_bool(values['too_many_open_prs'] or { brew_runtime.bool_value(false) }, false)
-		on_system_blocks_exist: bump_cask_bool(values['on_system_blocks_exist'] or { brew_runtime.bool_value(parsed.on_system_blocks_exist) }, parsed.on_system_blocks_exist)
-		depends_on_arch: (values['depends_on_arch'] or { brew_runtime.string_array_value(parsed.depends_on_arch) }).as_string_array() or { parsed.depends_on_arch }
-		supports_macos: bump_cask_bool(values['supports_macos'] or { brew_runtime.bool_value(parsed.supports_macos) }, parsed.supports_macos)
-		supports_linux: bump_cask_bool(values['supports_linux'] or { brew_runtime.bool_value(parsed.supports_linux) }, parsed.supports_linux)
-		languages: (values['languages'] or { brew_runtime.string_array_value([]) }).as_string_array() or { [] }
+		version: (values['version'] or { ruby.string_value(parsed.version) }).as_string()
+		sourcefile_path: (values['sourcefile_path'] or { ruby.string_value(parsed.sourcefile_path) }).as_string()
+		tap_present: bump_cask_bool(values['tap_present'] or { ruby.bool_value(false) }, false)
+		tap_name: (values['tap_name'] or { ruby.string_value('') }).as_string()
+		tap_remote_repository: (values['tap_remote_repository'] or { ruby.string_value('') }).as_string()
+		tap_official: bump_cask_bool(values['tap_official'] or { ruby.bool_value(false) }, false)
+		tap_git: bump_cask_bool(values['tap_git'] or { ruby.bool_value(true) }, true)
+		allow_bump: bump_cask_bool(values['allow_bump'] or { ruby.bool_value(true) }, true)
+		too_many_open_prs: bump_cask_bool(values['too_many_open_prs'] or { ruby.bool_value(false) }, false)
+		on_system_blocks_exist: bump_cask_bool(values['on_system_blocks_exist'] or { ruby.bool_value(parsed.on_system_blocks_exist) }, parsed.on_system_blocks_exist)
+		depends_on_arch: (values['depends_on_arch'] or { ruby.string_array_value(parsed.depends_on_arch) }).as_string_array() or { parsed.depends_on_arch }
+		supports_macos: bump_cask_bool(values['supports_macos'] or { ruby.bool_value(parsed.supports_macos) }, parsed.supports_macos)
+		supports_linux: bump_cask_bool(values['supports_linux'] or { ruby.bool_value(parsed.supports_linux) }, parsed.supports_linux)
+		languages: (values['languages'] or { ruby.string_array_value([]) }).as_string_array() or { [] }
 		throttle_rate: bump_cask_optional_int(values, 'throttle_rate')
 		throttle_days: bump_cask_optional_int(values, 'throttle_days')
 		last_updated_timestamp: bump_cask_optional_i64(values, 'last_updated_timestamp')
@@ -306,22 +306,22 @@ pub fn bump_cask_generate_system_options(cask BumpCaskPrCask,
 	return result
 }
 
-fn bump_cask_symbol(value string) brew_runtime.Value {
-	return brew_runtime.Value{
+fn bump_cask_symbol(value string) ruby.Value {
+	return ruby.Value{
 		type_name: 'Symbol'
 		repr: ':${value.trim_left(':')}'
 	}
 }
 
-fn bump_cask_stanza_value(value string) brew_runtime.Value {
+fn bump_cask_stanza_value(value string) ruby.Value {
 	return if value in ['latest', 'no_check', ':latest', ':no_check'] {
 		bump_cask_symbol(value)
 	} else {
-		brew_runtime.string_value(value)
+		ruby.string_value(value)
 	}
 }
 
-fn bump_cask_stanza_value_present(ast utils.CaskAst, name string, value brew_runtime.Value,
+fn bump_cask_stanza_value_present(ast utils.CaskAst, name string, value ruby.Value,
 	within ?string) bool {
 	for node in utils.ast_cask_stanzas(ast, name, within) {
 		if node.arguments.any(it.value.type_name == value.type_name && it.value.repr == value.repr) {
@@ -398,7 +398,7 @@ pub fn bump_cask_split_root_version_and_checksum(new_version homebrew.BumpVersio
 	return ast.contents
 }
 
-fn bump_cask_first_stanza_value(contents string, name string, scope ?string) ?brew_runtime.Value {
+fn bump_cask_first_stanza_value(contents string, name string, scope ?string) ?ruby.Value {
 	ast := utils.CaskAst{
 		contents: contents
 	}
@@ -406,7 +406,7 @@ fn bump_cask_first_stanza_value(contents string, name string, scope ?string) ?br
 	return if value.type_name == 'NilClass' { none } else { value }
 }
 
-fn bump_cask_checksum_value(contents string, os_name string, arch string) ?brew_runtime.Value {
+fn bump_cask_checksum_value(contents string, os_name string, arch string) ?ruby.Value {
 	ast := utils.CaskAst{
 		contents: contents
 	}
@@ -434,7 +434,7 @@ fn bump_cask_checksum_value(contents string, os_name string, arch string) ?brew_
 	return none
 }
 
-fn bump_cask_value_text(value brew_runtime.Value) string {
+fn bump_cask_value_text(value ruby.Value) string {
 	return if value.type_name == 'Symbol' { value.repr.trim_left(':') } else { value.as_string() }
 }
 
@@ -448,7 +448,7 @@ pub fn bump_cask_parse(contents string) BumpCaskPrCask {
 		}
 	}
 	version_value := bump_cask_first_stanza_value(contents, 'version', none) or {
-		brew_runtime.string_value('')
+		ruby.string_value('')
 	}
 	mut arches := []string{}
 	if contents.contains('depends_on arch: :x86_64') {
@@ -672,70 +672,70 @@ pub fn bump_cask_run_style(cask BumpCaskPrCask, old_contents string,
 	}
 }
 
-fn bump_cask_system_options_value(options []BumpCaskSystemOption) brew_runtime.Value {
-	return brew_runtime.array_value(options.map(brew_runtime.array_value([
+fn bump_cask_system_options_value(options []BumpCaskSystemOption) ruby.Value {
+	return ruby.array_value(options.map(ruby.array_value([
 		bump_cask_symbol(it.os),
 		bump_cask_symbol(it.arch),
 	])))
 }
 
-fn bump_cask_check_result_value(result BumpCaskCheckResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'allowed': brew_runtime.bool_value(result.allowed)
-		'error':   brew_runtime.string_value(result.error)
-		'output':  brew_runtime.string_array_value(result.output)
+fn bump_cask_check_result_value(result BumpCaskCheckResult) ruby.Value {
+	return ruby.map_value({
+		'allowed': ruby.bool_value(result.allowed)
+		'error':   ruby.string_value(result.error)
+		'output':  ruby.string_array_value(result.output)
 	})
 }
 
-fn bump_cask_command_options_from_value(value brew_runtime.Value) BumpCaskCommandOptions {
+fn bump_cask_command_options_from_value(value ruby.Value) BumpCaskCommandOptions {
 	values := value.map_data.clone()
 	return BumpCaskCommandOptions{
-		dry_run: bump_cask_bool(values['dry_run'] or { brew_runtime.bool_value(false) }, false)
-		disabled: bump_cask_bool(values['disabled'] or { brew_runtime.bool_value(false) }, false)
-		succeeded: bump_cask_bool(values['succeeded'] or { brew_runtime.bool_value(true) }, true)
+		dry_run: bump_cask_bool(values['dry_run'] or { ruby.bool_value(false) }, false)
+		disabled: bump_cask_bool(values['disabled'] or { ruby.bool_value(false) }, false)
+		succeeded: bump_cask_bool(values['succeeded'] or { ruby.bool_value(true) }, true)
 	}
 }
 
-fn bump_cask_command_result_value(result BumpCaskCommandResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'output':   brew_runtime.string_array_value(result.output)
-		'reverted': brew_runtime.bool_value(result.reverted)
-		'error':    brew_runtime.string_value(result.error)
+fn bump_cask_command_result_value(result BumpCaskCommandResult) ruby.Value {
+	return ruby.map_value({
+		'output':   ruby.string_array_value(result.output)
+		'reverted': ruby.bool_value(result.reverted)
+		'error':    ruby.string_value(result.error)
 	})
 }
 
-fn bump_cask_pull_request_checks_value(checks []BumpCaskPullRequestCheck) brew_runtime.Value {
-	return brew_runtime.array_value(checks.map(brew_runtime.map_value({
-		'version':      brew_runtime.string_value(it.version)
-		'remote':       brew_runtime.string_value(it.remote)
-		'file':         brew_runtime.string_value(it.file)
-		'quiet':        brew_runtime.bool_value(it.quiet)
-		'official_tap': brew_runtime.bool_value(it.official_tap)
+fn bump_cask_pull_request_checks_value(checks []BumpCaskPullRequestCheck) ruby.Value {
+	return ruby.array_value(checks.map(ruby.map_value({
+		'version':      ruby.string_value(it.version)
+		'remote':       ruby.string_value(it.remote)
+		'file':         ruby.string_value(it.file)
+		'quiet':        ruby.bool_value(it.quiet)
+		'official_tap': ruby.bool_value(it.official_tap)
 	})))
 }
 
-fn bump_cask_run_result_value(result BumpCaskPrRunResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'contents':       brew_runtime.string_value(result.contents)
-		'branch_name':    brew_runtime.string_value(result.branch_name)
-		'commit_message': brew_runtime.string_value(result.commit_message)
+fn bump_cask_run_result_value(result BumpCaskPrRunResult) ruby.Value {
+	return ruby.map_value({
+		'contents':       ruby.string_value(result.contents)
+		'branch_name':    ruby.string_value(result.branch_name)
+		'commit_message': ruby.string_value(result.commit_message)
 		'audit':          bump_cask_command_result_value(result.audit)
 		'style':          bump_cask_command_result_value(result.style)
-		'pull_request':   brew_runtime.string_value(result.pull_request)
-		'browser_url':    brew_runtime.string_value(result.browser_url)
-		'printed_url':    brew_runtime.string_value(result.printed_url)
-		'error':          brew_runtime.string_value(result.error)
+		'pull_request':   ruby.string_value(result.pull_request)
+		'browser_url':    ruby.string_value(result.browser_url)
+		'printed_url':    ruby.string_value(result.printed_url)
+		'error':          ruby.string_value(result.error)
 	})
 }
 
-fn bump_cask_run_request_from_args(args []brew_runtime.Value) !BumpCaskPrRunRequest {
+fn bump_cask_run_request_from_args(args []ruby.Value) !BumpCaskPrRunRequest {
 	if args.len == 0 {
 		return error('run request is required')
 	}
 	values := if args[0].type_name == 'Hash' {
 		args[0].map_data.clone()
 	} else {
-		map[string]brew_runtime.Value{}
+		map[string]ruby.Value{}
 	}
 	cask_value := if args[0].type_name == 'Hash' {
 		values['cask'] or { return error('run request cask is required') }
@@ -756,20 +756,20 @@ fn bump_cask_run_request_from_args(args []brew_runtime.Value) !BumpCaskPrRunRequ
 		new_version: parser
 		new_hash: bump_cask_optional_string(values, 'new_hash')
 		new_url: bump_cask_optional_string(values, 'new_url')
-		current_os: (values['current_os'] or { brew_runtime.string_value('linux') }).as_string().trim_left(':')
-		newest_macos: (values['newest_macos'] or { brew_runtime.string_value('tahoe') }).as_string().trim_left(':')
-		dry_run: bump_cask_bool(values['dry_run'] or { brew_runtime.bool_value(false) }, false)
-		write_only: bump_cask_bool(values['write_only'] or { brew_runtime.bool_value(false) }, false)
-		commit: bump_cask_bool(values['commit'] or { brew_runtime.bool_value(false) }, false)
-		no_audit: bump_cask_bool(values['no_audit'] or { brew_runtime.bool_value(false) }, false)
-		no_style: bump_cask_bool(values['no_style'] or { brew_runtime.bool_value(false) }, false)
-		no_fork: bump_cask_bool(values['no_fork'] or { brew_runtime.bool_value(false) }, false)
-		no_browse: bump_cask_bool(values['no_browse'] or { brew_runtime.bool_value(false) }, false)
-		message: (values['message'] or { brew_runtime.string_value('') }).as_string()
-		audit_succeeded: bump_cask_bool(values['audit_succeeded'] or { brew_runtime.bool_value(true) }, true)
-		style_succeeded: bump_cask_bool(values['style_succeeded'] or { brew_runtime.bool_value(true) }, true)
-		pr_url: (values['pr_url'] or { brew_runtime.string_value('') }).as_string()
-		now: (values['now'] or { brew_runtime.int_value(0) }).int_data
+		current_os: (values['current_os'] or { ruby.string_value('linux') }).as_string().trim_left(':')
+		newest_macos: (values['newest_macos'] or { ruby.string_value('tahoe') }).as_string().trim_left(':')
+		dry_run: bump_cask_bool(values['dry_run'] or { ruby.bool_value(false) }, false)
+		write_only: bump_cask_bool(values['write_only'] or { ruby.bool_value(false) }, false)
+		commit: bump_cask_bool(values['commit'] or { ruby.bool_value(false) }, false)
+		no_audit: bump_cask_bool(values['no_audit'] or { ruby.bool_value(false) }, false)
+		no_style: bump_cask_bool(values['no_style'] or { ruby.bool_value(false) }, false)
+		no_fork: bump_cask_bool(values['no_fork'] or { ruby.bool_value(false) }, false)
+		no_browse: bump_cask_bool(values['no_browse'] or { ruby.bool_value(false) }, false)
+		message: (values['message'] or { ruby.string_value('') }).as_string()
+		audit_succeeded: bump_cask_bool(values['audit_succeeded'] or { ruby.bool_value(true) }, true)
+		style_succeeded: bump_cask_bool(values['style_succeeded'] or { ruby.bool_value(true) }, true)
+		pr_url: (values['pr_url'] or { ruby.string_value('') }).as_string()
+		now: (values['now'] or { ruby.int_value(0) }).int_data
 	}
 }
 
@@ -839,7 +839,7 @@ pub fn bump_cask_run(request BumpCaskPrRunRequest) BumpCaskPrRunResult {
 		mut ast := utils.CaskAst{
 			contents: contents
 		}
-		utils.ast_cask_replace_first(mut ast, 'url', brew_runtime.string_value(url))
+		utils.ast_cask_replace_first(mut ast, 'url', ruby.string_value(url))
 		contents = ast.contents
 		commit_message = '${request.cask.token}: update URL'
 	}
@@ -945,32 +945,32 @@ pub fn bump_cask_run(request BumpCaskPrRunRequest) BumpCaskPrRunResult {
 }
 
 // Ruby method `run` at line 62.
-pub fn ruby_bump_cask_pr_l62_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_cask_pr_l62_d1_run(args ...ruby.Value) ruby.Value {
 	request := bump_cask_run_request_from_args(args) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	return bump_cask_run_result_value(bump_cask_run(request))
 }
 
 // Ruby method `generate_system_options(cask, new_version)` at line 220.
-pub fn ruby_bump_cask_pr_l220_d2_generate_system_options(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_cask_pr_l220_d2_generate_system_options(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'cask and new version are required')
+		return ruby.object_value('ArgumentError', 'cask and new version are required')
 	}
-	cask := bump_cask_pr_cask_from_value(args[0]) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
-	parser := homebrew.bump_version_parser_from_value(args[1]) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+	cask := bump_cask_pr_cask_from_value(args[0]) or { return ruby.object_value('ArgumentError', err.msg()) }
+	parser := homebrew.bump_version_parser_from_value(args[1]) or { return ruby.object_value('ArgumentError', err.msg()) }
 	current_os := if args.len > 2 { args[2].as_string().trim_left(':') } else { 'linux' }
 	newest_macos := if args.len > 3 { args[3].as_string().trim_left(':') } else { 'tahoe' }
 	return bump_cask_system_options_value(bump_cask_generate_system_options(cask, parser, current_os, newest_macos))
 }
 
 // Ruby method `replace_version_and_checksum(cask, new_hash, new_version, contents)` at line 284.
-pub fn ruby_bump_cask_pr_l284_d3_replace_version_and_checksum(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_cask_pr_l284_d3_replace_version_and_checksum(args ...ruby.Value) ruby.Value {
 	if args.len < 4 {
-		return brew_runtime.object_value('ArgumentError', 'cask, hash, version, and contents are required')
+		return ruby.object_value('ArgumentError', 'cask, hash, version, and contents are required')
 	}
-	cask := bump_cask_pr_cask_from_value(args[0]) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
-	parser := homebrew.bump_version_parser_from_value(args[2]) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+	cask := bump_cask_pr_cask_from_value(args[0]) or { return ruby.object_value('ArgumentError', err.msg()) }
+	parser := homebrew.bump_version_parser_from_value(args[2]) or { return ruby.object_value('ArgumentError', err.msg()) }
 	hash := if args[1].type_name in ['Nil', 'NilClass'] {
 		?string(none)
 	} else {
@@ -981,15 +981,15 @@ pub fn ruby_bump_cask_pr_l284_d3_replace_version_and_checksum(args ...brew_runti
 	} else {
 		'linux'
 	}, if args.len > 5 { args[5].as_string().trim_left(':') } else { 'tahoe' }) or {
-		return brew_runtime.object_value('Cask::CaskError', err.msg())
+		return ruby.object_value('Cask::CaskError', err.msg())
 	}
-	return brew_runtime.string_value(result)
+	return ruby.string_value(result)
 }
 
 // Ruby method `replace_cask_stanza_value(contents, name, old_value, new_value, within: nil)` at line 384.
-pub fn ruby_bump_cask_pr_l384_d4_replace_cask_stanza_value(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_cask_pr_l384_d4_replace_cask_stanza_value(args ...ruby.Value) ruby.Value {
 	if args.len < 4 {
-		return brew_runtime.object_value('ArgumentError', 'contents, name, old value, and new value are required')
+		return ruby.object_value('ArgumentError', 'contents, name, old value, and new value are required')
 	}
 	within := if args.len > 4 && args[4].type_name !in ['Nil', 'NilClass'] {
 		?string(args[4].as_string().trim_left(':'))
@@ -997,98 +997,98 @@ pub fn ruby_bump_cask_pr_l384_d4_replace_cask_stanza_value(args ...brew_runtime.
 		none
 	}
 	result := bump_cask_replace_stanza_value(args[0].as_string(), args[1].as_string().trim_left(':'), args[2].as_string().trim_left(':'), args[3].as_string().trim_left(':'), within) or {
-		return brew_runtime.object_value('RuntimeError', err.msg())
+		return ruby.object_value('RuntimeError', err.msg())
 	}
-	return brew_runtime.string_value(result)
+	return ruby.string_value(result)
 }
 
 // Ruby method `check_throttle(cask, new_version:)` at line 402.
-pub fn ruby_bump_cask_pr_l402_d5_check_throttle(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_cask_pr_l402_d5_check_throttle(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'cask and new version are required')
+		return ruby.object_value('ArgumentError', 'cask and new version are required')
 	}
-	cask := bump_cask_pr_cask_from_value(args[0]) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
-	parser := homebrew.bump_version_parser_from_value(args[1]) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+	cask := bump_cask_pr_cask_from_value(args[0]) or { return ruby.object_value('ArgumentError', err.msg()) }
+	parser := homebrew.bump_version_parser_from_value(args[1]) or { return ruby.object_value('ArgumentError', err.msg()) }
 	result := bump_cask_check_throttle(cask, parser, if args.len > 2 { args[2].int_data } else { 0 })
 	return bump_cask_check_result_value(result)
 }
 
 // Ruby method `shortened_version(version, cask:)` at line 424.
-pub fn ruby_bump_cask_pr_l424_d6_shortened_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_cask_pr_l424_d6_shortened_version(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'version and cask are required')
+		return ruby.object_value('ArgumentError', 'version and cask are required')
 	}
-	cask := bump_cask_pr_cask_from_value(args[1]) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
-	return brew_runtime.string_value(bump_cask_shortened_version(args[0].as_string(), cask.version))
+	cask := bump_cask_pr_cask_from_value(args[1]) or { return ruby.object_value('ArgumentError', err.msg()) }
+	return ruby.string_value(bump_cask_shortened_version(args[0].as_string(), cask.version))
 }
 
 // Ruby method `split_root_version_and_checksum(new_version, contents)` at line 438.
-pub fn ruby_bump_cask_pr_l438_d7_split_root_version_and_checksum(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_cask_pr_l438_d7_split_root_version_and_checksum(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'version and contents are required')
+		return ruby.object_value('ArgumentError', 'version and contents are required')
 	}
-	parser := homebrew.bump_version_parser_from_value(args[0]) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
-	return brew_runtime.string_value(bump_cask_split_root_version_and_checksum(parser, args[1].as_string()))
+	parser := homebrew.bump_version_parser_from_value(args[0]) or { return ruby.object_value('ArgumentError', err.msg()) }
+	return ruby.string_value(bump_cask_split_root_version_and_checksum(parser, args[1].as_string()))
 }
 
 // Ruby method `arch_specific_version_bump?(new_version)` at line 463.
-pub fn ruby_bump_cask_pr_l463_d8_arch_specific_version_bump(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_cask_pr_l463_d8_arch_specific_version_bump(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'version is required')
+		return ruby.object_value('ArgumentError', 'version is required')
 	}
-	parser := homebrew.bump_version_parser_from_value(args[0]) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
-	return brew_runtime.bool_value(bump_cask_arch_specific_version_bump(parser))
+	parser := homebrew.bump_version_parser_from_value(args[0]) or { return ruby.object_value('ArgumentError', err.msg()) }
+	return ruby.bool_value(bump_cask_arch_specific_version_bump(parser))
 }
 
 // Ruby method `default_cask_os` at line 468.
-pub fn ruby_bump_cask_pr_l468_d9_default_cask_os(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_cask_pr_l468_d9_default_cask_os(args ...ruby.Value) ruby.Value {
 	current_os := if args.len > 0 { args[0].as_string().trim_left(':') } else { 'linux' }
 	newest_macos := if args.len > 1 { args[1].as_string().trim_left(':') } else { 'tahoe' }
 	return bump_cask_symbol(bump_cask_default_os(current_os, newest_macos))
 }
 
 // Ruby method `unsupported_nested_arch_stanza?(contents, name, arch)` at line 476.
-pub fn ruby_bump_cask_pr_l476_d10_unsupported_nested_arch_stanza(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_cask_pr_l476_d10_unsupported_nested_arch_stanza(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
-		return brew_runtime.object_value('ArgumentError', 'contents, name, and arch are required')
+		return ruby.object_value('ArgumentError', 'contents, name, and arch are required')
 	}
-	return brew_runtime.bool_value(bump_cask_unsupported_nested_arch_stanza(args[0].as_string(), args[1].as_string().trim_left(':'), args[2].as_string().trim_left(':')))
+	return ruby.bool_value(bump_cask_unsupported_nested_arch_stanza(args[0].as_string(), args[1].as_string().trim_left(':'), args[2].as_string().trim_left(':')))
 }
 
 // Ruby method `cask_stanza_scope(contents, name, arch)` at line 484.
-pub fn ruby_bump_cask_pr_l484_d11_cask_stanza_scope(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_cask_pr_l484_d11_cask_stanza_scope(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
-		return brew_runtime.object_value('ArgumentError', 'contents, name, and arch are required')
+		return ruby.object_value('ArgumentError', 'contents, name, and arch are required')
 	}
 	if scope := bump_cask_stanza_scope(args[0].as_string(), args[1].as_string().trim_left(':'), args[2].as_string().trim_left(':')) {
 		return bump_cask_symbol(scope)
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `check_pull_requests(cask, new_version:)` at line 492.
-pub fn ruby_bump_cask_pr_l492_d12_check_pull_requests(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_cask_pr_l492_d12_check_pull_requests(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'cask and new version are required')
+		return ruby.object_value('ArgumentError', 'cask and new version are required')
 	}
-	cask := bump_cask_pr_cask_from_value(args[0]) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
-	parser := homebrew.bump_version_parser_from_value(args[1]) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+	cask := bump_cask_pr_cask_from_value(args[0]) or { return ruby.object_value('ArgumentError', err.msg()) }
+	parser := homebrew.bump_version_parser_from_value(args[1]) or { return ruby.object_value('ArgumentError', err.msg()) }
 	checks := bump_cask_check_pull_requests(cask, parser, if args.len > 2 {
 		bump_cask_bool(args[2], false)
 	} else {
 		false
 	}) or {
-		return brew_runtime.object_value('RuntimeError', err.msg())
+		return ruby.object_value('RuntimeError', err.msg())
 	}
 	return bump_cask_pull_request_checks_value(checks)
 }
 
 // Ruby method `run_cask_audit(cask, old_contents, audit_exceptions = [])` at line 520.
-pub fn ruby_bump_cask_pr_l520_d13_run_cask_audit(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_cask_pr_l520_d13_run_cask_audit(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'cask and old contents are required')
+		return ruby.object_value('ArgumentError', 'cask and old contents are required')
 	}
-	cask := bump_cask_pr_cask_from_value(args[0]) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+	cask := bump_cask_pr_cask_from_value(args[0]) or { return ruby.object_value('ArgumentError', err.msg()) }
 	exceptions := if args.len > 2 { args[2].as_string_array() or { [] } } else { [] }
 	options := if args.len > 3 {
 		bump_cask_command_options_from_value(args[3])
@@ -1099,11 +1099,11 @@ pub fn ruby_bump_cask_pr_l520_d13_run_cask_audit(args ...brew_runtime.Value) bre
 }
 
 // Ruby method `run_cask_style(cask, old_contents)` at line 547.
-pub fn ruby_bump_cask_pr_l547_d14_run_cask_style(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_cask_pr_l547_d14_run_cask_style(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'cask and old contents are required')
+		return ruby.object_value('ArgumentError', 'cask and old contents are required')
 	}
-	cask := bump_cask_pr_cask_from_value(args[0]) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+	cask := bump_cask_pr_cask_from_value(args[0]) or { return ruby.object_value('ArgumentError', err.msg()) }
 	options := if args.len > 2 {
 		bump_cask_command_options_from_value(args[2])
 	} else {

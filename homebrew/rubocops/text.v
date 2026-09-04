@@ -1,6 +1,6 @@
 module rubocops
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `rubocops/text.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -494,7 +494,7 @@ pub fn audit_formula_text_strict(context FormulaTextContext) LinesAnalysis {
 	return lines_analysis(formula_text_lines_context(context), offenses)
 }
 
-fn formula_text_context_from_args(args []brew_runtime.Value) ?FormulaTextContext {
+fn formula_text_context_from_args(args []ruby.Value) ?FormulaTextContext {
 	if args.len == 0 {
 		return none
 	}
@@ -505,8 +505,8 @@ fn formula_text_context_from_args(args []brew_runtime.Value) ?FormulaTextContext
 	}
 }
 
-fn formula_text_matches_value(matches []FormulaTextPathMatch) brew_runtime.Value {
-	return brew_runtime.array_value(matches.map(brew_runtime.structured_value('RuboCop::AST::Node', it.source, {
+fn formula_text_matches_value(matches []FormulaTextPathMatch) ruby.Value {
+	return ruby.array_value(matches.map(ruby.structured_value('RuboCop::AST::Node', it.source, {
 		'path':      it.path
 		'begin_pos': it.begin_pos.str()
 		'end_pos':   it.end_pos.str()
@@ -514,32 +514,32 @@ fn formula_text_matches_value(matches []FormulaTextPathMatch) brew_runtime.Value
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 14.
-pub fn ruby_text_l14_d1_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	context := formula_text_context_from_args(args) or { return brew_runtime.object_value('ArgumentError', 'source is required') }
+pub fn ruby_text_l14_d1_audit_formula(args ...ruby.Value) ruby.Value {
+	context := formula_text_context_from_args(args) or { return ruby.object_value('ArgumentError', 'source is required') }
 	return lines_analysis_value(audit_formula_text(context))
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 135.
-pub fn ruby_text_l135_d2_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	context := formula_text_context_from_args(args) or { return brew_runtime.object_value('ArgumentError', 'source is required') }
+pub fn ruby_text_l135_d2_audit_formula(args ...ruby.Value) ruby.Value {
+	context := formula_text_context_from_args(args) or { return ruby.object_value('ArgumentError', 'source is required') }
 	return lines_analysis_value(audit_formula_text_strict(context))
 }
 
 // Ruby method `path_starts_with?(path, starts_with, bin: false)` at line 172.
-pub fn ruby_text_l172_d3_path_starts_with(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_text_l172_d3_path_starts_with(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(formula_text_path_starts_with(args[0].as_string(), args[1].as_string(), args.len > 2 && args[2].type_name == 'Bool' && args[2].bool_data))
+	return ruby.bool_value(formula_text_path_starts_with(args[0].as_string(), args[1].as_string(), args.len > 2 && args[2].type_name == 'Bool' && args[2].bool_data))
 }
 
 // Ruby method `path_starts_with_bin?(path, starts_with)` at line 178.
-pub fn ruby_text_l178_d4_path_starts_with_bin(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(args.len >= 2 && formula_text_path_starts_with_bin(args[0].as_string(), args[1].as_string()))
+pub fn ruby_text_l178_d4_path_starts_with_bin(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(args.len >= 2 && formula_text_path_starts_with_bin(args[0].as_string(), args[1].as_string()))
 }
 
 // Ruby def_node_search `def_node_search :interpolated_share_path_starts_with, <<~EOS` at line 185.
-pub fn ruby_text_l185_d5_interpolated_share_path_starts_with(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_text_l185_d5_interpolated_share_path_starts_with(args ...ruby.Value) ruby.Value {
 	return formula_text_matches_value(if args.len >= 2 {
 		formula_text_interpolated_path_matches(args[0].as_string(), 'share', args[1].as_string(), false)
 	} else {
@@ -548,7 +548,7 @@ pub fn ruby_text_l185_d5_interpolated_share_path_starts_with(args ...brew_runtim
 }
 
 // Ruby def_node_search `def_node_search :interpolated_bin_path_starts_with, <<~EOS` at line 190.
-pub fn ruby_text_l190_d6_interpolated_bin_path_starts_with(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_text_l190_d6_interpolated_bin_path_starts_with(args ...ruby.Value) ruby.Value {
 	return formula_text_matches_value(if args.len >= 2 {
 		formula_text_interpolated_path_matches(args[0].as_string(), 'bin', args[1].as_string(), true)
 	} else {
@@ -557,7 +557,7 @@ pub fn ruby_text_l190_d6_interpolated_bin_path_starts_with(args ...brew_runtime.
 }
 
 // Ruby def_node_search `def_node_search :share_path_starts_with, <<~EOS` at line 195.
-pub fn ruby_text_l195_d7_share_path_starts_with(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_text_l195_d7_share_path_starts_with(args ...ruby.Value) ruby.Value {
 	return formula_text_matches_value(if args.len >= 2 {
 		formula_text_share_path_matches(args[0].as_string(), args[1].as_string())
 	} else {

@@ -1,6 +1,6 @@
 module text
 
-import brew_runtime
+import ruby
 import homebrew.rubocops as text_cops
 
 // Translated from Homebrew/brew `test/rubocops/text/strict_spec.rb`.
@@ -37,24 +37,24 @@ fn strict_spec_single_offense(source string, tap string, formula_name string, me
 }
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
-pub fn ruby_strict_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('RuboCop::Cop::FormulaAuditStrict::Text', 'Text')
+pub fn ruby_strict_spec_l7_d1_cop(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('RuboCop::Cop::FormulaAuditStrict::Text', 'Text')
 }
 
 // Ruby it `it "reports an offense if `env :userpaths` is present" do` at line 10.
-pub fn ruby_strict_spec_l10_d2_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_strict_spec_l10_d2_reports(args ...ruby.Value) ruby.Value {
 	source := 'class Foo < Formula\n  url "https://brew.sh/foo-1.0.tgz"\n\n  env :userpaths\nend'
-	return brew_runtime.bool_value(strict_spec_single_offense(source, '', '', '`env :userpaths` in homebrew/core formulae is deprecated'))
+	return ruby.bool_value(strict_spec_single_offense(source, '', '', '`env :userpaths` in homebrew/core formulae is deprecated'))
 }
 
 // Ruby it `it "reports an offense if `env :std` is present in homebrew/core" do` at line 21.
-pub fn ruby_strict_spec_l21_d3_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_strict_spec_l21_d3_reports(args ...ruby.Value) ruby.Value {
 	source := 'class Foo < Formula\n  url "https://brew.sh/foo-1.0.tgz"\n\n  env :std\nend'
-	return brew_runtime.bool_value(strict_spec_single_offense(source, 'homebrew-core', '', '`env :std` in homebrew/core formulae is deprecated'))
+	return ruby.bool_value(strict_spec_single_offense(source, 'homebrew-core', '', '`env :std` in homebrew/core formulae is deprecated'))
 }
 
 // Ruby it `it %Q(reports an offense if "\#{share}/<formula name>" is present) do` at line 32.
-pub fn ruby_strict_spec_l32_d4_q_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_strict_spec_l32_d4_q_reports(args ...ruby.Value) ruby.Value {
 	cases := {
 		'foo':       ['#{share}/foo', '#{share}/foo/bar']
 		'foolibc++': ['#{share}/foolibc++']
@@ -63,30 +63,30 @@ pub fn ruby_strict_spec_l32_d4_q_reports(args ...brew_runtime.Value) brew_runtim
 		for path in paths {
 			source := strict_spec_formula(strict_spec_install('ohai "${path}"'))
 			if !strict_spec_single_offense(source, 'homebrew-core', formula_name, 'Use `#{pkgshare}` instead of `#{share}/${formula_name}`') {
-				return brew_runtime.bool_value(false)
+				return ruby.bool_value(false)
 			}
 		}
 	}
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
 // Ruby method `install` at line 35.
-pub fn ruby_strict_spec_l35_d5_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(strict_spec_install('ohai "#{share}/foo"'))
+pub fn ruby_strict_spec_l35_d5_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(strict_spec_install('ohai "#{share}/foo"'))
 }
 
 // Ruby method `install` at line 44.
-pub fn ruby_strict_spec_l44_d6_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(strict_spec_install('ohai "#{share}/foo/bar"'))
+pub fn ruby_strict_spec_l44_d6_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(strict_spec_install('ohai "#{share}/foo/bar"'))
 }
 
 // Ruby method `install` at line 53.
-pub fn ruby_strict_spec_l53_d7_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(strict_spec_install('ohai "#{share}/foolibc++"'))
+pub fn ruby_strict_spec_l53_d7_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(strict_spec_install('ohai "#{share}/foolibc++"'))
 }
 
 // Ruby it `it 'reports an offense if `share/"<formula name>"` is present' do` at line 61.
-pub fn ruby_strict_spec_l61_d8_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_strict_spec_l61_d8_reports(args ...ruby.Value) ruby.Value {
 	cases := {
 		'foo':       ['foo', 'foo/bar']
 		'foolibc++': ['foolibc++']
@@ -95,94 +95,94 @@ pub fn ruby_strict_spec_l61_d8_reports(args ...brew_runtime.Value) brew_runtime.
 		for path in paths {
 			source := strict_spec_formula(strict_spec_install('ohai share/"${path}"'))
 			if !strict_spec_single_offense(source, 'homebrew-core', formula_name, 'Use `pkgshare` instead of `share/"${formula_name}"`') {
-				return brew_runtime.bool_value(false)
+				return ruby.bool_value(false)
 			}
 		}
 	}
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
 // Ruby method `install` at line 64.
-pub fn ruby_strict_spec_l64_d9_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(strict_spec_install('ohai share/"foo"'))
+pub fn ruby_strict_spec_l64_d9_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(strict_spec_install('ohai share/"foo"'))
 }
 
 // Ruby method `install` at line 73.
-pub fn ruby_strict_spec_l73_d10_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(strict_spec_install('ohai share/"foo/bar"'))
+pub fn ruby_strict_spec_l73_d10_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(strict_spec_install('ohai share/"foo/bar"'))
 }
 
 // Ruby method `install` at line 82.
-pub fn ruby_strict_spec_l82_d11_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(strict_spec_install('ohai share/"foolibc++"'))
+pub fn ruby_strict_spec_l82_d11_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(strict_spec_install('ohai share/"foolibc++"'))
 }
 
 // Ruby it `it %Q(reports no offenses if "\#{share}/<directory name>" doesn't match formula name) do` at line 90.
-pub fn ruby_strict_spec_l90_d12_q_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_strict_spec_l90_d12_q_reports(args ...ruby.Value) ruby.Value {
 	source := strict_spec_formula(strict_spec_install('ohai "#{share}/foo-bar"'))
-	return brew_runtime.bool_value(strict_spec_no_offenses(source, 'foo'))
+	return ruby.bool_value(strict_spec_no_offenses(source, 'foo'))
 }
 
 // Ruby method `install` at line 93.
-pub fn ruby_strict_spec_l93_d13_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(strict_spec_install('ohai "#{share}/foo-bar"'))
+pub fn ruby_strict_spec_l93_d13_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(strict_spec_install('ohai "#{share}/foo-bar"'))
 }
 
 // Ruby it `it 'reports no offenses if `share/"<formula name>"` is not present' do` at line 100.
-pub fn ruby_strict_spec_l100_d14_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_strict_spec_l100_d14_reports(args ...ruby.Value) ruby.Value {
 	for path in ['foo-bar', 'bar', 'bar/foo'] {
 		source := strict_spec_formula(strict_spec_install('ohai share/"${path}"'))
 		if !strict_spec_no_offenses(source, 'foo') {
-			return brew_runtime.bool_value(false)
+			return ruby.bool_value(false)
 		}
 	}
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
 // Ruby method `install` at line 103.
-pub fn ruby_strict_spec_l103_d15_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(strict_spec_install('ohai share/"foo-bar"'))
+pub fn ruby_strict_spec_l103_d15_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(strict_spec_install('ohai share/"foo-bar"'))
 }
 
 // Ruby method `install` at line 111.
-pub fn ruby_strict_spec_l111_d16_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(strict_spec_install('ohai share/"bar"'))
+pub fn ruby_strict_spec_l111_d16_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(strict_spec_install('ohai share/"bar"'))
 }
 
 // Ruby method `install` at line 119.
-pub fn ruby_strict_spec_l119_d17_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(strict_spec_install('ohai share/"bar/foo"'))
+pub fn ruby_strict_spec_l119_d17_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(strict_spec_install('ohai share/"bar/foo"'))
 }
 
 // Ruby it `it %Q(reports no offenses if formula name appears after "\#{share}/<directory name>") do` at line 126.
-pub fn ruby_strict_spec_l126_d18_q_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_strict_spec_l126_d18_q_reports(args ...ruby.Value) ruby.Value {
 	source := strict_spec_formula(strict_spec_install('ohai "#{share}/bar/foo"'))
-	return brew_runtime.bool_value(strict_spec_no_offenses(source, 'foo'))
+	return ruby.bool_value(strict_spec_no_offenses(source, 'foo'))
 }
 
 // Ruby method `install` at line 129.
-pub fn ruby_strict_spec_l129_d19_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(strict_spec_install('ohai "#{share}/bar/foo"'))
+pub fn ruby_strict_spec_l129_d19_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(strict_spec_install('ohai "#{share}/bar/foo"'))
 }
 
 // Ruby it `it 'reports an offense & autocorrects if "\#{bin}/<formula_name>" or other dashed binaries too are present' do` at line 137.
-pub fn ruby_strict_spec_l137_d20_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_strict_spec_l137_d20_reports(args ...ruby.Value) ruby.Value {
 	source := 'class Foo < Formula\n  test do\n    system "#{bin}/foo", "-v"\n    system "#{bin}/foo-bar", "-v"\n  end\nend'
 	corrected := 'class Foo < Formula\n  test do\n    system bin/"foo", "-v"\n    system bin/"foo-bar", "-v"\n  end\nend'
 	analysis := strict_spec_analysis(source, 'homebrew-core', 'foo')
-	return brew_runtime.bool_value(analysis.offenses.len == 2 && analysis.offenses[0].message == 'Use `bin/"foo"` instead of `"#{bin}/foo"`' && analysis.offenses[1].message == 'Use `bin/"foo-bar"` instead of `"#{bin}/foo-bar"`' && analysis.corrected == corrected)
+	return ruby.bool_value(analysis.offenses.len == 2 && analysis.offenses[0].message == 'Use `bin/"foo"` instead of `"#{bin}/foo"`' && analysis.offenses[1].message == 'Use `bin/"foo-bar"` instead of `"#{bin}/foo-bar"`' && analysis.corrected == corrected)
 }
 
 // Ruby it `it 'does not report an offense if \#{bin}/foo and then a space and more text' do` at line 159.
-pub fn ruby_strict_spec_l159_d21_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_strict_spec_l159_d21_does(args ...ruby.Value) ruby.Value {
 	source := 'class Foo < Formula\n  test do\n    shell_output("#{bin}/foo --version")\n    assert_match "help", shell_output("#{bin}/foo-something --help 2>&1")\n    assert_match "OK", shell_output("#{bin}/foo-something_else --check 2>&1")\n  end\nend'
-	return brew_runtime.bool_value(strict_spec_no_offenses(source, 'foo'))
+	return ruby.bool_value(strict_spec_no_offenses(source, 'foo'))
 }
 
 // Ruby it `it 'does not report an offense if "\#{bin}/foo" is in a word array' do` at line 172.
-pub fn ruby_strict_spec_l172_d22_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_strict_spec_l172_d22_does(args ...ruby.Value) ruby.Value {
 	source := 'class Foo < Formula\n  test do\n    cmd = %W[\n      #{bin}/foo\n      version\n    ]\n    assert_match version.to_s, shell_output(cmd)\n  end\nend'
-	return brew_runtime.bool_value(strict_spec_no_offenses(source, 'foo'))
+	return ruby.bool_value(strict_spec_no_offenses(source, 'foo'))
 }
 
 // Original Ruby source (line-for-line):

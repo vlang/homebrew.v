@@ -1,6 +1,6 @@
 module unpack_strategy
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `unpack_strategy/uncompressed.rb`.
@@ -41,7 +41,7 @@ pub fn uncompressed_extract_to_dir(path string, unpack_dir string, basename stri
 	if !safe_basename(name) {
 		return error('unsafe uncompressed basename: ${basename}')
 	}
-	os.cp(path, brew_runtime.join_path(unpack_dir, name))!
+	os.cp(path, ruby.join_path(unpack_dir, name))!
 }
 
 fn strip_download_digest(name string) string {

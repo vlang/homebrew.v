@@ -1,6 +1,6 @@
 module startup
 
-import brew_runtime
+import ruby
 import homebrew.startup
 import os
 
@@ -24,15 +24,15 @@ fn bootsnap_spec_environment(no_bootsnap_set bool, tests_set bool) startup.Boots
 }
 
 // Ruby it `it "does not error when the configured gem path is unavailable" do` at line 6.
-pub fn ruby_bootsnap_spec_l6_d1_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bootsnap_spec_l6_d1_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut state := startup.BootsnapState{}
-	loaded := startup.bootsnap_load(mut state, bootsnap_spec_environment(false, false), false, true) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(!loaded && state.setup_calls.len == 0)
+	loaded := startup.bootsnap_load(mut state, bootsnap_spec_environment(false, false), false, true) or { return ruby.bool_value(false) }
+	return ruby.bool_value(!loaded && state.setup_calls.len == 0)
 }
 
 // Ruby it `it "compiles caches for common command load graphs in a detached background process" do` at line 14.
-pub fn ruby_bootsnap_spec_l14_d2_compiles(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bootsnap_spec_l14_d2_compiles(args ...ruby.Value) ruby.Value {
 	_ = args
 	environment := bootsnap_spec_environment(false, false)
 	mut process := startup.BootsnapProcess{
@@ -42,57 +42,57 @@ pub fn ruby_bootsnap_spec_l14_d2_compiles(args ...brew_runtime.Value) brew_runti
 	mut expected_arguments := environment.ruby_exec_args.clone()
 	expected_arguments << ['-I', environment.load_path.join(os.path_delimiter.str()), '-rglobal',
 		'-rcmd/install', '-rcmd/fetch', '-rcmd/upgrade', '-e', '']
-	return brew_runtime.bool_value(result.spawn_attempted && result.detach_attempted
+	return ruby.bool_value(result.spawn_attempted && result.detach_attempted
 		&& result.pid == 12345 && process.spawn_requests.len == 1
 		&& process.spawn_requests[0].arguments == expected_arguments
 		&& process.spawn_requests[0].pgroup && process.detached_pids == [12345])
 }
 
 // Ruby it `it "does nothing when Bootsnap is disabled" do` at line 27.
-pub fn ruby_bootsnap_spec_l27_d3_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bootsnap_spec_l27_d3_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut process := startup.BootsnapProcess{
 		pid: 12345
 	}
 	result := startup.bootsnap_prewarm(bootsnap_spec_environment(true, false), mut process)
-	return brew_runtime.bool_value(!result.spawn_attempted && process.spawn_requests.len == 0)
+	return ruby.bool_value(!result.spawn_attempted && process.spawn_requests.len == 0)
 }
 
 // Ruby it `it "does not error when starting the prewarm process fails" do` at line 35.
-pub fn ruby_bootsnap_spec_l35_d4_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bootsnap_spec_l35_d4_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut process := startup.BootsnapProcess{
 		pid: 12345
 		spawn_error: 'resource temporarily unavailable'
 	}
 	result := startup.bootsnap_prewarm(bootsnap_spec_environment(false, false), mut process)
-	return brew_runtime.bool_value(result.spawn_attempted && !result.detach_attempted
+	return ruby.bool_value(result.spawn_attempted && !result.detach_attempted
 		&& result.suppressed_error == 'resource temporarily unavailable'
 		&& process.spawn_requests.len == 1 && process.detached_pids.len == 0)
 }
 
 // Ruby it `it "does not error when detaching the prewarm process fails" do` at line 44.
-pub fn ruby_bootsnap_spec_l44_d5_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bootsnap_spec_l44_d5_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut process := startup.BootsnapProcess{
 		pid: 12345
 		detach_error: 'no child process'
 	}
 	result := startup.bootsnap_prewarm(bootsnap_spec_environment(false, false), mut process)
-	return brew_runtime.bool_value(result.spawn_attempted && result.detach_attempted
+	return ruby.bool_value(result.spawn_attempted && result.detach_attempted
 		&& result.suppressed_error == 'no child process' && process.detached_pids == [
 		12345,
 	])
 }
 
 // Ruby it `it "does nothing in tests" do` at line 53.
-pub fn ruby_bootsnap_spec_l53_d6_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bootsnap_spec_l53_d6_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut process := startup.BootsnapProcess{
 		pid: 12345
 	}
 	result := startup.bootsnap_prewarm(bootsnap_spec_environment(false, true), mut process)
-	return brew_runtime.bool_value(!result.spawn_attempted && process.spawn_requests.len == 0)
+	return ruby.bool_value(!result.spawn_attempted && process.spawn_requests.len == 0)
 }
 
 // Original Ruby source (line-for-line):

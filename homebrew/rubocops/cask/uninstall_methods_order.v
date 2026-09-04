@@ -1,6 +1,6 @@
 module cask
 
-import brew_runtime
+import ruby
 import homebrew.rubocops.cask.constants as stanza_constants
 
 // Translated from Homebrew/brew `rubocops/cask/uninstall_methods_order.rb`.
@@ -651,8 +651,8 @@ pub fn correct_uninstall_methods_order(source string) string {
 	return corrected
 }
 
-fn uninstall_methods_order_problem_value(problem UninstallMethodsOrderProblem) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cop::Offense', problem.message, {
+fn uninstall_methods_order_problem_value(problem UninstallMethodsOrderProblem) ruby.Value {
+	return ruby.structured_value('RuboCop::Cop::Offense', problem.message, {
 		'kind':              problem.kind
 		'method':            problem.method
 		'begin_pos':         problem.begin_pos.str()
@@ -665,76 +665,76 @@ fn uninstall_methods_order_problem_value(problem UninstallMethodsOrderProblem) b
 	})
 }
 
-fn uninstall_methods_order_problem_values(problems []UninstallMethodsOrderProblem) brew_runtime.Value {
-	return brew_runtime.array_value(problems.map(uninstall_methods_order_problem_value(it)))
+fn uninstall_methods_order_problem_values(problems []UninstallMethodsOrderProblem) ruby.Value {
+	return ruby.array_value(problems.map(uninstall_methods_order_problem_value(it)))
 }
 
 // Ruby method `on_send(node)` at line 27.
-pub fn ruby_uninstall_methods_order_l27_d1_on_send(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uninstall_methods_order_l27_d1_on_send(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	return uninstall_methods_order_problem_values(audit_uninstall_methods_order(source))
 }
 
 // Ruby method `check_ordering(hash_node, comments)` at line 47.
-pub fn ruby_uninstall_methods_order_l47_d2_check_ordering(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uninstall_methods_order_l47_d2_check_ordering(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	return uninstall_methods_order_problem_values(audit_uninstall_methods_order(source).filter(it.kind == 'ordering'))
 }
 
 // Ruby method `report_and_correct_ordering_offense(method, hash_node, expected_order, comments)` at line 67.
-pub fn ruby_uninstall_methods_order_l67_d3_report_and_correct_ordering_offense(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uninstall_methods_order_l67_d3_report_and_correct_ordering_offense(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	problems := audit_uninstall_methods_order(source).filter(it.kind == 'ordering')
 	return if problems.len == 0 {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	} else {
 		uninstall_methods_order_problem_value(problems[0])
 	}
 }
 
 // Ruby method `check_metadata(hash_node, comments)` at line 86.
-pub fn ruby_uninstall_methods_order_l86_d4_check_metadata(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uninstall_methods_order_l86_d4_check_metadata(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	return uninstall_methods_order_problem_values(audit_uninstall_methods_order(source).filter(it.kind != 'ordering'))
 }
 
 // Ruby method `report_fully_invalid_metadata(on_upgrade_pair)` at line 108.
-pub fn ruby_uninstall_methods_order_l108_d5_report_fully_invalid_metadata(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uninstall_methods_order_l108_d5_report_fully_invalid_metadata(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	problems := audit_uninstall_methods_order(source).filter(it.kind == 'fully_invalid_metadata')
 	return if problems.len == 0 {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	} else {
 		uninstall_methods_order_problem_value(problems[0])
 	}
 }
 
 // Ruby method `report_and_correct_useless_metadata(` at line 121.
-pub fn ruby_uninstall_methods_order_l121_d6_report_and_correct_useless_metadata(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uninstall_methods_order_l121_d6_report_and_correct_useless_metadata(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	problems := audit_uninstall_methods_order(source).filter(it.kind == 'useless_metadata')
 	return if problems.len == 0 {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	} else {
 		uninstall_methods_order_problem_value(problems[0])
 	}
 }
 
 // Ruby method `report_partially_invalid_metadata(value_node, invalid_syms)` at line 146.
-pub fn ruby_uninstall_methods_order_l146_d7_report_partially_invalid_metadata(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uninstall_methods_order_l146_d7_report_partially_invalid_metadata(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	problems := audit_uninstall_methods_order(source).filter(it.kind == 'partially_invalid_metadata')
 	return if problems.len == 0 {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	} else {
 		uninstall_methods_order_problem_value(problems[0])
 	}
 }
 
 // Ruby method `build_uninstall_body(pairs, comments, indentation)` at line 159.
-pub fn ruby_uninstall_methods_order_l159_d8_build_uninstall_body(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uninstall_methods_order_l159_d8_build_uninstall_body(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_value('')
+		return ruby.string_value('')
 	}
 	mut entries := args[0].as_string_array() or { args[0].as_string().split('\n') }
 	if args.len > 2 {
@@ -752,19 +752,19 @@ pub fn ruby_uninstall_methods_order_l159_d8_build_uninstall_body(args ...brew_ru
 	} else {
 		''
 	}
-	return brew_runtime.string_value(entries.join(',\n${indentation}'))
+	return ruby.string_value(entries.join(',\n${indentation}'))
 }
 
 // Ruby method `on_upgrade_symbols(value_node)` at line 174.
-pub fn ruby_uninstall_methods_order_l174_d9_on_upgrade_symbols(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uninstall_methods_order_l174_d9_on_upgrade_symbols(args ...ruby.Value) ruby.Value {
 	value_source := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.string_array_value(uninstall_methods_order_on_upgrade_symbols(value_source))
+	return ruby.string_array_value(uninstall_methods_order_on_upgrade_symbols(value_source))
 }
 
 // Ruby method `method_order_index(method_node)` at line 187.
-pub fn ruby_uninstall_methods_order_l187_d10_method_order_index(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uninstall_methods_order_l187_d10_method_order_index(args ...ruby.Value) ruby.Value {
 	method := if args.len > 0 { args[0].as_string().trim_space().trim_left(':') } else { '' }
-	return brew_runtime.int_value(uninstall_method_order_index(method))
+	return ruby.int_value(uninstall_method_order_index(method))
 }
 
 // Original Ruby source (line-for-line):

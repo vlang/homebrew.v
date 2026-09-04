@@ -1,10 +1,10 @@
 module executor
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/executor/java_single_thread_executor.rb`.
 // The original source is retained below until every stub has a typed V body.
-fn validate_java_single_thread_options(options map[string]brew_runtime.Value) !ThreadPoolOptions {
+fn validate_java_single_thread_options(options map[string]ruby.Value) !ThreadPoolOptions {
 	config := single_thread_pool_options(options)
 	if config.fallback_policy !in ['abort', 'discard', 'caller_runs'] {
 		return error('${config.fallback_policy} is not a valid fallback policy')
@@ -13,14 +13,14 @@ fn validate_java_single_thread_options(options map[string]brew_runtime.Value) !T
 }
 
 // Ruby method `initialize(opts = {})` at line 15.
-pub fn ruby_java_single_thread_executor_l15_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_java_single_thread_executor_l15_d1_initialize(args ...ruby.Value) ruby.Value {
 	return thread_pool_value('Concurrent::JavaSingleThreadExecutor', validate_java_single_thread_options(thread_pool_arguments(args)) or {
 		panic(err)
 	})
 }
 
 // Ruby method `ns_initialize(opts)` at line 21.
-pub fn ruby_java_single_thread_executor_l21_d2_ns_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_java_single_thread_executor_l21_d2_ns_initialize(args ...ruby.Value) ruby.Value {
 	return thread_pool_value('Concurrent::JavaSingleThreadExecutor', validate_java_single_thread_options(thread_pool_arguments(args)) or {
 		panic(err)
 	})

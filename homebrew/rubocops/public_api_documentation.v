@@ -1,6 +1,6 @@
 module rubocops
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `rubocops/public_api_documentation.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -341,8 +341,8 @@ pub fn audit_public_api_documentation(context PublicApiDocumentationContext) []P
 	return offenses
 }
 
-fn public_api_documentation_offense_value(offense PublicApiDocumentationOffense) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cop::Offense', offense.message, {
+fn public_api_documentation_offense_value(offense PublicApiDocumentationOffense) ruby.Value {
+	return ruby.structured_value('RuboCop::Cop::Offense', offense.message, {
 		'kind':          offense.kind
 		'comment':       offense.comment
 		'line':          offense.line.str()
@@ -355,7 +355,7 @@ fn public_api_documentation_offense_value(offense PublicApiDocumentationOffense)
 }
 
 // Ruby method `on_new_investigation` at line 34.
-pub fn ruby_public_api_documentation_l34_d1_on_new_investigation(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_public_api_documentation_l34_d1_on_new_investigation(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	has_file_path := args.len > 1 && args[1].type_name != 'NilClass'
 	file_path := if has_file_path { args[1].as_string() } else { '' }
@@ -372,20 +372,20 @@ pub fn ruby_public_api_documentation_l34_d1_on_new_investigation(args ...brew_ru
 		documentation_include: documentation_include
 		has_documentation_include: has_documentation_include
 	})
-	return brew_runtime.array_value(offenses.map(public_api_documentation_offense_value(it)))
+	return ruby.array_value(offenses.map(public_api_documentation_offense_value(it)))
 }
 
 // Ruby method `api_public_comment?(comment)` at line 64.
-pub fn ruby_public_api_documentation_l64_d2_api_public_comment(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_public_api_documentation_l64_d2_api_public_comment(args ...ruby.Value) ruby.Value {
 	text := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.bool_value(public_api_comment(text))
+	return ruby.bool_value(public_api_comment(text))
 }
 
 // Ruby method `descriptive_comment_preceding?(comment)` at line 69.
-pub fn ruby_public_api_documentation_l69_d3_descriptive_comment_preceding(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_public_api_documentation_l69_d3_descriptive_comment_preceding(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	comment_line := if args.len > 1 { int(args[1].int_data) } else { 1 }
-	return brew_runtime.bool_value(public_api_descriptive_comment_preceding(source, comment_line))
+	return ruby.bool_value(public_api_descriptive_comment_preceding(source, comment_line))
 }
 
 // Original Ruby source (line-for-line):

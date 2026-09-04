@@ -1,6 +1,6 @@
 module cask
 
-import brew_runtime
+import ruby
 import homebrew.cask as cask_core
 import os
 import time
@@ -116,59 +116,59 @@ fn cask_utils_spec_removes_directory_symlink() bool {
 }
 
 // Ruby let `let(:command) { NeverSudoSystemCommand }` at line 5.
-pub fn ruby_utils_spec_l5_d1_command(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_utils_spec_l5_d1_command(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.object_value('Class', 'NeverSudoSystemCommand')
+	return ruby.object_value('Class', 'NeverSudoSystemCommand')
 }
 
 // Ruby let `let(:dir) { mktmpdir }` at line 6.
-pub fn ruby_utils_spec_l6_d2_dir(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_utils_spec_l6_d2_dir(args ...ruby.Value) ruby.Value {
 	_ = args
 	path := cask_utils_spec_root('let-dir')
-	os.mkdir_all(path) or { return brew_runtime.object_value('SystemCallError', err.msg()) }
-	return brew_runtime.string_value(path)
+	os.mkdir_all(path) or { return ruby.object_value('SystemCallError', err.msg()) }
+	return ruby.string_value(path)
 }
 
 // Ruby let `let(:path) { dir/"a/b/c" }` at line 7.
-pub fn ruby_utils_spec_l7_d3_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_utils_spec_l7_d3_path(args ...ruby.Value) ruby.Value {
 	directory := if args.len > 0 { args[0].as_string() } else { cask_utils_spec_root('let-path') }
 	if args.len == 0 {
-		os.mkdir_all(directory) or { return brew_runtime.object_value('SystemCallError', err.msg()) }
+		os.mkdir_all(directory) or { return ruby.object_value('SystemCallError', err.msg()) }
 	}
-	return brew_runtime.string_value(os.join_path(directory, 'a', 'b', 'c'))
+	return ruby.string_value(os.join_path(directory, 'a', 'b', 'c'))
 }
 
 // Ruby let `let(:link) { dir/"link" }` at line 8.
-pub fn ruby_utils_spec_l8_d4_link(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_utils_spec_l8_d4_link(args ...ruby.Value) ruby.Value {
 	directory := if args.len > 0 { args[0].as_string() } else { cask_utils_spec_root('let-link') }
 	if args.len == 0 {
-		os.mkdir_all(directory) or { return brew_runtime.object_value('SystemCallError', err.msg()) }
+		os.mkdir_all(directory) or { return ruby.object_value('SystemCallError', err.msg()) }
 	}
-	return brew_runtime.string_value(os.join_path(directory, 'link'))
+	return ruby.string_value(os.join_path(directory, 'link'))
 }
 
 // Ruby it `it "creates a directory" do` at line 11.
-pub fn ruby_utils_spec_l11_d5_creates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_utils_spec_l11_d5_creates(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(cask_utils_spec_creates_directory())
+	return ruby.bool_value(cask_utils_spec_creates_directory())
 }
 
 // Ruby it `it "creates a directory with `sudo`" do` at line 20.
-pub fn ruby_utils_spec_l20_d6_creates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_utils_spec_l20_d6_creates(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(cask_utils_spec_creates_directory_with_sudo())
+	return ruby.bool_value(cask_utils_spec_creates_directory_with_sudo())
 }
 
 // Ruby it `it "removes the symlink, not the file it points to" do` at line 43.
-pub fn ruby_utils_spec_l43_d7_removes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_utils_spec_l43_d7_removes(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(cask_utils_spec_removes_file_symlink())
+	return ruby.bool_value(cask_utils_spec_removes_file_symlink())
 }
 
 // Ruby it `it "removes the symlink, not the directory it points to" do` at line 62.
-pub fn ruby_utils_spec_l62_d8_removes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_utils_spec_l62_d8_removes(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(cask_utils_spec_removes_directory_symlink())
+	return ruby.bool_value(cask_utils_spec_removes_directory_symlink())
 }
 
 // Original Ruby source (line-for-line):

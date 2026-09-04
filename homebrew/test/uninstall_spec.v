@@ -1,6 +1,6 @@
 module test
 
-import brew_runtime
+import ruby
 import homebrew as uninstall_core
 
 // Translated from Homebrew/brew `test/uninstall_spec.rb`.
@@ -63,46 +63,46 @@ fn uninstall_spec_context() uninstall_core.InstalledDependentsContext {
 }
 
 // Ruby let `let(:dependency) do` at line 7.
-pub fn ruby_uninstall_spec_l7_d1_dependency(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uninstall_spec_l7_d1_dependency(args ...ruby.Value) ruby.Value {
 	_ = args
 	return uninstall_core.installed_dependent_formula_value(uninstall_spec_dependency_formula())
 }
 
 // Ruby let `let(:dependent_formula) do` at line 14.
-pub fn ruby_uninstall_spec_l14_d2_dependent_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uninstall_spec_l14_d2_dependent_formula(args ...ruby.Value) ruby.Value {
 	_ = args
 	return uninstall_core.installed_dependent_formula_value(uninstall_spec_dependent_formula_record())
 }
 
 // Ruby let `let(:dependent_cask) do` at line 22.
-pub fn ruby_uninstall_spec_l22_d3_dependent_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uninstall_spec_l22_d3_dependent_cask(args ...ruby.Value) ruby.Value {
 	_ = args
 	return uninstall_core.installed_dependent_cask_value(uninstall_spec_dependent_cask_record())
 }
 
 // Ruby let `let(:kegs_by_rack) { { dependency.rack => [Keg.new(dependency.latest_installed_prefix)] } }` at line 33.
-pub fn ruby_uninstall_spec_l33_d4_kegs_by_rack(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uninstall_spec_l33_d4_kegs_by_rack(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.map_value({
-		'/Cellar/dependency': brew_runtime.array_value([
+	return ruby.map_value({
+		'/Cellar/dependency': ruby.array_value([
 			uninstall_core.installed_dependent_keg_value(uninstall_spec_keg()),
 		])
 	})
 }
 
 // Ruby specify `specify "when `ignore_dependencies` is false" do` at line 57.
-pub fn ruby_uninstall_spec_l57_d5_when(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uninstall_spec_l57_d5_when(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := uninstall_core.handle_uninstall_unsatisfied_dependents(uninstall_spec_context(), false, []string{}, false)
-	return brew_runtime.bool_value(result.failed && result.output.contains('Error:')
+	return ruby.bool_value(result.failed && result.output.contains('Error:')
 		&& result.output.contains('dependent_formula') && result.output.contains('dependent_cask'))
 }
 
 // Ruby specify `specify "when `ignore_dependencies` is true" do` at line 65.
-pub fn ruby_uninstall_spec_l65_d6_when(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uninstall_spec_l65_d6_when(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := uninstall_core.handle_uninstall_unsatisfied_dependents(uninstall_spec_context(), true, []string{}, false)
-	return brew_runtime.bool_value(!result.failed && result.output == '')
+	return ruby.bool_value(!result.failed && result.output == '')
 }
 
 // Original Ruby source (line-for-line):

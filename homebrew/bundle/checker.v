@@ -1,89 +1,89 @@
 module bundle
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `bundle/checker.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `self.check(global: false, file: nil, exit_on_first_error: false, no_upgrade: false, verbose: false)` at line 37.
-pub fn ruby_checker_l37_d1_self_check(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_checker_l37_d1_self_check(args ...ruby.Value) ruby.Value {
 	state := checker_state_from_boundary(args)
 	options := checker_options_from_boundary(args, 1)
 	result := check_bundle_state(state, options) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	return checker_result_value(result)
 }
 
 // Ruby method `self.apps_to_install(exit_on_first_error: false, no_upgrade: false, verbose: false)` at line 64.
-pub fn ruby_checker_l64_d2_self_apps_to_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_checker_l64_d2_self_apps_to_install(args ...ruby.Value) ruby.Value {
 	state := checker_state_from_boundary(args)
 	options := checker_options_from_boundary(args, 1)
 	return checker_errors_value(checker_extension_errors(state, 'apps_to_install', options) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	})
 }
 
 // Ruby method `self.formulae_to_start(exit_on_first_error: false, no_upgrade: false, verbose: false)` at line 75.
-pub fn ruby_checker_l75_d3_self_formulae_to_start(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_checker_l75_d3_self_formulae_to_start(args ...ruby.Value) ruby.Value {
 	state := checker_state_from_boundary(args)
 	if !state.dsl_set {
-		return brew_runtime.object_value('ArgumentError', 'dsl is unset!')
+		return ruby.object_value('ArgumentError', 'dsl is unset!')
 	}
 	return checker_errors_value(state.formulae_to_start.clone())
 }
 
 // Ruby method `self.taps_to_tap(exit_on_first_error: false, no_upgrade: false, verbose: false)` at line 91.
-pub fn ruby_checker_l91_d4_self_taps_to_tap(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_checker_l91_d4_self_taps_to_tap(args ...ruby.Value) ruby.Value {
 	return checker_package_boundary(args, 'tap')
 }
 
 // Ruby method `self.casks_to_install(exit_on_first_error: false, no_upgrade: false, verbose: false)` at line 102.
-pub fn ruby_checker_l102_d5_self_casks_to_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_checker_l102_d5_self_casks_to_install(args ...ruby.Value) ruby.Value {
 	return checker_package_boundary(args, 'cask')
 }
 
 // Ruby method `self.formulae_to_install(exit_on_first_error: false, no_upgrade: false, verbose: false)` at line 113.
-pub fn ruby_checker_l113_d6_self_formulae_to_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_checker_l113_d6_self_formulae_to_install(args ...ruby.Value) ruby.Value {
 	return checker_package_boundary(args, 'brew')
 }
 
 // Ruby method `self.registered_extensions_to_install(exit_on_first_error: false, no_upgrade: false, verbose: false)` at line 124.
-pub fn ruby_checker_l124_d7_self_registered_extensions_to_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_checker_l124_d7_self_registered_extensions_to_install(args ...ruby.Value) ruby.Value {
 	state := checker_state_from_boundary(args)
 	options := checker_options_from_boundary(args, 1)
-	return checker_errors_value(checker_extension_errors(state, 'registered_extensions_to_install', options) or { return brew_runtime.object_value('ArgumentError', err.msg()) })
+	return checker_errors_value(checker_extension_errors(state, 'registered_extensions_to_install', options) or { return ruby.object_value('ArgumentError', err.msg()) })
 }
 
 // Ruby method `self.extension_errors(step, exit_on_first_error:, no_upgrade:, verbose:)` at line 136.
-pub fn ruby_checker_l136_d8_self_extension_errors(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_checker_l136_d8_self_extension_errors(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'check step is required')
+		return ruby.object_value('ArgumentError', 'check step is required')
 	}
 	step := args[0].as_string()
 	state := if args.len > 1 { checker_state_from_value(args[1]) } else { CheckerState{} }
 	options := checker_options_from_boundary(args, 2)
 	return checker_errors_value(checker_extension_errors(state, step, options) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	})
 }
 
 // Ruby method `self.reset!` at line 158.
-pub fn ruby_checker_l158_d9_self_reset(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_checker_l158_d9_self_reset(args ...ruby.Value) ruby.Value {
 	mut state := checker_state_from_boundary(args)
 	reset_checker_state(mut state)
 	return checker_state_value(state)
 }
 
 // Ruby method `self.package_type_errors(type, exit_on_first_error:, no_upgrade:, verbose:)` at line 172.
-pub fn ruby_checker_l172_d10_self_package_type_errors(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_checker_l172_d10_self_package_type_errors(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'package type is required')
+		return ruby.object_value('ArgumentError', 'package type is required')
 	}
 	package_type := args[0].as_string()
 	state := if args.len > 1 { checker_state_from_value(args[1]) } else { CheckerState{} }
 	return checker_errors_value(checker_package_type_errors(state, package_type) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	})
 }
 
@@ -190,23 +190,23 @@ pub fn reset_checker_state(mut state CheckerState) {
 	state.extension_reset_count++
 }
 
-pub fn checker_state_value(state CheckerState) brew_runtime.Value {
+pub fn checker_state_value(state CheckerState) ruby.Value {
 	mut values := {
-		'_dsl_set':               brew_runtime.bool_value(state.dsl_set)
-		'_formulae_to_start':     brew_runtime.string_array_value(state.formulae_to_start)
-		'_package_reset_count':   brew_runtime.int_value(state.package_reset_count)
-		'_extension_reset_count': brew_runtime.int_value(state.extension_reset_count)
+		'_dsl_set':               ruby.bool_value(state.dsl_set)
+		'_formulae_to_start':     ruby.string_array_value(state.formulae_to_start)
+		'_package_reset_count':   ruby.int_value(state.package_reset_count)
+		'_extension_reset_count': ruby.int_value(state.extension_reset_count)
 	}
 	for package_type, errors in state.package_errors {
-		values['package:${package_type}'] = brew_runtime.string_array_value(errors)
+		values['package:${package_type}'] = ruby.string_array_value(errors)
 	}
 	for index, extension in state.extensions {
-		values['extension:${index}:${extension.legacy_check_step}'] = brew_runtime.string_array_value(extension.errors)
+		values['extension:${index}:${extension.legacy_check_step}'] = ruby.string_array_value(extension.errors)
 	}
-	return brew_runtime.map_value(values)
+	return ruby.map_value(values)
 }
 
-pub fn checker_state_from_value(value brew_runtime.Value) CheckerState {
+pub fn checker_state_from_value(value ruby.Value) CheckerState {
 	values := value.as_map() or { return CheckerState{} }
 	mut state := CheckerState{
 		dsl_set: if '_dsl_set' in values { values['_dsl_set'].as_bool() or { false } } else { true }
@@ -233,11 +233,11 @@ pub fn checker_state_from_value(value brew_runtime.Value) CheckerState {
 	return state
 }
 
-fn checker_state_from_boundary(args []brew_runtime.Value) CheckerState {
+fn checker_state_from_boundary(args []ruby.Value) CheckerState {
 	return if args.len > 0 { checker_state_from_value(args[0]) } else { CheckerState{} }
 }
 
-fn checker_options_from_boundary(args []brew_runtime.Value, offset int) CheckerOptions {
+fn checker_options_from_boundary(args []ruby.Value, offset int) CheckerOptions {
 	return CheckerOptions{
 		exit_on_first_error: if args.len > offset {
 			args[offset].as_bool() or { false }} else {
@@ -249,19 +249,19 @@ fn checker_options_from_boundary(args []brew_runtime.Value, offset int) CheckerO
 	}
 }
 
-fn checker_package_boundary(args []brew_runtime.Value, package_type string) brew_runtime.Value {
+fn checker_package_boundary(args []ruby.Value, package_type string) ruby.Value {
 	state := checker_state_from_boundary(args)
 	return checker_errors_value(checker_package_type_errors(state, package_type) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	})
 }
 
-fn checker_errors_value(errors []string) brew_runtime.Value {
-	return brew_runtime.string_array_value(errors)
+fn checker_errors_value(errors []string) ruby.Value {
+	return ruby.string_array_value(errors)
 }
 
-fn checker_result_value(result CheckerResult) brew_runtime.Value {
-	return brew_runtime.structured_value('Bundle::Checker::CheckResult', result.work_to_be_done.str(), {
+fn checker_result_value(result CheckerResult) ruby.Value {
+	return ruby.structured_value('Bundle::Checker::CheckResult', result.work_to_be_done.str(), {
 		'work_to_be_done': result.work_to_be_done.str()
 		'errors':          result.errors.join('\n')
 		'checked_steps':   result.checked_steps.join('\n')

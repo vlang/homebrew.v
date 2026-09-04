@@ -1,15 +1,15 @@
 module bundle
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `bundle/remover.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `self.remove(*args, type:, global:, file:)` at line 12.
-pub fn ruby_remover_l12_d1_self_remove(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_remover_l12_d1_self_remove(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
-		return brew_runtime.object_value('ArgumentError', 'items, type, and Brewfile are required')
+		return ruby.object_value('ArgumentError', 'items, type, and Brewfile are required')
 	}
 	items := if args[0].type_name == 'Array' {
 		args[0].as_array() or { [] }.map(it.as_string())
@@ -20,49 +20,49 @@ pub fn ruby_remover_l12_d1_self_remove(args ...brew_runtime.Value) brew_runtime.
 	file := args[2].as_string()
 	packages := if args.len > 3 { bundle_packages_from_value(args[3]) } else { []BundlePackage{} }
 	result := remove_bundle_entries(file, items, entry_type, packages) or {
-		return brew_runtime.object_value('BundleRemoveError', err.msg())
+		return ruby.object_value('BundleRemoveError', err.msg())
 	}
 	return bundle_remove_result_value(result)
 }
 
 // Ruby method `self.possible_names(formula_name, raise_error: true)` at line 56.
-pub fn ruby_remover_l56_d2_self_possible_names(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_remover_l56_d2_self_possible_names(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_array_value([])
+		return ruby.string_array_value([])
 	}
 	packages := if args.len > 1 { bundle_packages_from_value(args[1]) } else { []BundlePackage{} }
 	raise_error := if args.len > 2 { args[2].as_bool() or { true } } else { true }
 	names := possible_bundle_names(args[0].as_string(), packages, raise_error) or {
-		return brew_runtime.object_value('FormulaUnavailableError', err.msg())
+		return ruby.object_value('FormulaUnavailableError', err.msg())
 	}
-	return brew_runtime.string_array_value(names)
+	return ruby.string_array_value(names)
 }
 
 // Ruby method `self.remove_package_description_comment(lines, package_name)` at line 64.
-pub fn ruby_remover_l64_d3_self_remove_package_description_comment(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_remover_l64_d3_self_remove_package_description_comment(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.string_array_value([])
+		return ruby.string_array_value([])
 	}
 	mut lines := args[0].as_string_array() or { [] }
 	packages := if args.len > 2 { bundle_packages_from_value(args[2]) } else { []BundlePackage{} }
 	remove_bundle_description_comment(mut lines, args[1].as_string(), packages)
-	return brew_runtime.string_array_value(lines)
+	return ruby.string_array_value(lines)
 }
 
 // Ruby method `self.find_formula_or_cask(name, raise_error: false)` at line 73.
-pub fn ruby_remover_l73_d4_self_find_formula_or_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_remover_l73_d4_self_find_formula_or_cask(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('NilClass', '')
+		return ruby.object_value('NilClass', '')
 	}
 	packages := if args.len > 1 { bundle_packages_from_value(args[1]) } else { []BundlePackage{} }
 	raise_error := if args.len > 2 { args[2].as_bool() or { false } } else { false }
 	package := find_bundle_formula_or_cask(args[0].as_string(), packages, raise_error) or {
-		return brew_runtime.object_value('PackageUnavailableError', err.msg())
+		return ruby.object_value('PackageUnavailableError', err.msg())
 	}
 	return if package.name != '' {
 		bundle_package_value(package)
 	} else {
-		brew_runtime.object_value('NilClass', '')
+		ruby.object_value('NilClass', '')
 	}
 }
 
@@ -196,7 +196,7 @@ pub fn remove_bundle_entries(file string, items []string, requested_type string,
 			}
 		}
 	}
-	brew_runtime.atomic_write_file(file, new_content)!
+	ruby.atomic_write_file(file, new_content)!
 	return BundleRemoveResult{
 		path: file
 		content: new_content
@@ -205,7 +205,7 @@ pub fn remove_bundle_entries(file string, items []string, requested_type string,
 	}
 }
 
-fn bundle_package_from_value(value brew_runtime.Value) BundlePackage {
+fn bundle_package_from_value(value ruby.Value) BundlePackage {
 	kind := if (value.attribute('kind') or { 'formula' }) == 'cask' {
 		BundlePackageKind.cask
 	} else {
@@ -221,12 +221,12 @@ fn bundle_package_from_value(value brew_runtime.Value) BundlePackage {
 	}
 }
 
-fn bundle_packages_from_value(value brew_runtime.Value) []BundlePackage {
+fn bundle_packages_from_value(value ruby.Value) []BundlePackage {
 	return value.as_array() or { [] }.map(bundle_package_from_value(it))
 }
 
-fn bundle_package_value(package BundlePackage) brew_runtime.Value {
-	return brew_runtime.structured_value(if package.kind == .formula { 'Formula' } else { 'Cask' }, package.full_name, {
+fn bundle_package_value(package BundlePackage) ruby.Value {
+	return ruby.structured_value(if package.kind == .formula { 'Formula' } else { 'Cask' }, package.full_name, {
 		'kind':      package.kind.str()
 		'name':      package.name
 		'full_name': package.full_name
@@ -236,8 +236,8 @@ fn bundle_package_value(package BundlePackage) brew_runtime.Value {
 	})
 }
 
-fn bundle_remove_result_value(result BundleRemoveResult) brew_runtime.Value {
-	return brew_runtime.structured_value('Bundle::Remover::Result', result.path, {
+fn bundle_remove_result_value(result BundleRemoveResult) ruby.Value {
+	return ruby.structured_value('Bundle::Remover::Result', result.path, {
 		'path':    result.path
 		'content': result.content
 		'removed': result.removed.join(',')

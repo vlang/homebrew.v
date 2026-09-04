@@ -1,14 +1,14 @@
 module rubocops
 
-import brew_runtime
+import ruby
 import homebrew.rubocops as zero_zero_zero_zero_core
 
 // Translated from Homebrew/brew `test/rubocops/zero_zero_zero_zero_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
-pub fn ruby_zero_zero_zero_zero_spec_l7_d1_cop() brew_runtime.Value {
-	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::ZeroZeroZeroZero', 'ZeroZeroZeroZero')
+pub fn ruby_zero_zero_zero_zero_spec_l7_d1_cop() ruby.Value {
+	return ruby.object_value('RuboCop::Cop::FormulaAudit::ZeroZeroZeroZero', 'ZeroZeroZeroZero')
 }
 
 // Ruby it `it "reports no offenses when 0.0.0.0 is used inside test do blocks" do` at line 9.

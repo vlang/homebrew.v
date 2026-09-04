@@ -1,6 +1,6 @@
 module cask
 
-import brew_runtime
+import ruby
 import homebrew.cask as base_cask
 import homebrew.extend.os.mac.cask as mac_cask
 import homebrew.os.mac.ffi as mac_ffi
@@ -45,74 +45,74 @@ fn quarantine_spec_context(run base_cask.QuarantineCommandRunner) base_cask.Quar
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:klass) { described_class }` at line 7.
-pub fn ruby_quarantine_spec_l7_d1_klass(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Cask::Quarantine', 'Cask::Quarantine')
+pub fn ruby_quarantine_spec_l7_d1_klass(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Cask::Quarantine', 'Cask::Quarantine')
 }
 
 // Ruby it `it "uses FFI quarantine support when xattr works" do` at line 14.
-pub fn ruby_quarantine_spec_l14_d2_uses(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_quarantine_spec_l14_d2_uses(args ...ruby.Value) ruby.Value {
 	context := quarantine_spec_context(quarantine_spec_success)
 	support := mac_cask.mac_quarantine_check_support(base_cask.quarantine_xattr_available(context))
-	return brew_runtime.bool_value(base_cask.quarantine_available(support))
+	return ruby.bool_value(base_cask.quarantine_available(support))
 }
 
 // Ruby let `let(:cask) do` at line 27.
-pub fn ruby_quarantine_spec_l27_d3_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'url':      brew_runtime.string_value('https://example.com/download')
-		'homepage': brew_runtime.string_value('https://example.com')
+pub fn ruby_quarantine_spec_l27_d3_cask(args ...ruby.Value) ruby.Value {
+	return ruby.map_value({
+		'url':      ruby.string_value('https://example.com/download')
+		'homepage': ruby.string_value('https://example.com')
 	})
 }
 
 // Ruby it `it "sets the quarantine attribute on a file in a temporary directory" do` at line 35.
-pub fn ruby_quarantine_spec_l35_d4_sets(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_quarantine_spec_l35_d4_sets(args ...ruby.Value) ruby.Value {
 	outcome := mac_cask.mac_quarantine_cask(mac_cask.MacQuarantineCask{
 		url: 'https://example.com/download'
 		homepage: 'https://example.com'
 	}, '/tmp/Test.dmg', true, mac_cask.MacQuarantineFfi{}) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(outcome.present && outcome.write.path == '/tmp/Test.dmg' && outcome.write.agent_name == 'Homebrew Cask')
+	return ruby.bool_value(outcome.present && outcome.write.path == '/tmp/Test.dmg' && outcome.write.agent_name == 'Homebrew Cask')
 }
 
 // Ruby it `it "raises when the quarantine properties cannot be written" do` at line 52.
-pub fn ruby_quarantine_spec_l52_d5_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_quarantine_spec_l52_d5_raises(args ...ruby.Value) ruby.Value {
 	mac_cask.mac_quarantine_cask(mac_cask.MacQuarantineCask{
 		url: 'https://example.com/download'
 		homepage: 'https://example.com'
 	}, '/tmp/missing.dmg', true, mac_cask.MacQuarantineFfi{
 		property_written: false
 	}) or {
-		return brew_runtime.bool_value(err.msg().contains('Failed to set quarantine properties'))
+		return ruby.bool_value(err.msg().contains('Failed to set quarantine properties'))
 	}
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 // Ruby it `it "uses FFI quarantining by default" do` at line 64.
-pub fn ruby_quarantine_spec_l64_d6_uses(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_quarantine_spec_l64_d6_uses(args ...ruby.Value) ruby.Value {
 	outcome := mac_cask.mac_quarantine_cask(mac_cask.MacQuarantineCask{
 		url: 'https://example.com/download'
 		homepage: 'https://example.com'
 	}, '/tmp/Test.dmg', true, mac_cask.MacQuarantineFfi{}) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(outcome.present && outcome.write.data_url == 'https://example.com/download' && outcome.write.origin_url == 'https://example.com')
+	return ruby.bool_value(outcome.present && outcome.write.data_url == 'https://example.com/download' && outcome.write.origin_url == 'https://example.com')
 }
 
 // Ruby it `it "uses FFI when the destination is writable" do` at line 110.
-pub fn ruby_quarantine_spec_l110_d7_uses(args ...brew_runtime.Value) brew_runtime.Value {
-	plan := mac_cask.mac_quarantine_copy_xattrs('/tmp/Source.app', '/tmp/Destination.app', true, 'ruby', [], '', '/brew/Library/Homebrew', quarantine_spec_copy, quarantine_spec_success) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(plan.executable == '' && !plan.sudo)
+pub fn ruby_quarantine_spec_l110_d7_uses(args ...ruby.Value) ruby.Value {
+	plan := mac_cask.mac_quarantine_copy_xattrs('/tmp/Source.app', '/tmp/Destination.app', true, 'ruby', [], '', '/brew/Library/Homebrew', quarantine_spec_copy, quarantine_spec_success) or { return ruby.bool_value(false) }
+	return ruby.bool_value(plan.executable == '' && !plan.sudo)
 }
 
 // Ruby it `it "uses FFI through vendored Ruby when the destination needs sudo" do` at line 125.
-pub fn ruby_quarantine_spec_l125_d8_uses(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_quarantine_spec_l125_d8_uses(args ...ruby.Value) ruby.Value {
 	plan := mac_cask.mac_quarantine_copy_xattrs('/tmp/Source.app', '/tmp/Destination.app', false, '/brew/ruby', [
 		'--disable=gems',
 	], '/brew/load', '/brew/Library/Homebrew', quarantine_spec_copy, quarantine_spec_success) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(plan.executable == '/brew/ruby' && plan.sudo && plan.args == [
+	return ruby.bool_value(plan.executable == '/brew/ruby' && plan.sudo && plan.args == [
 		'--disable=gems',
 		'-I',
 		'/brew/load',
@@ -123,106 +123,106 @@ pub fn ruby_quarantine_spec_l125_d8_uses(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby it `it "copies extended attributes when run as a standalone script" do` at line 151.
-pub fn ruby_quarantine_spec_l151_d9_copies(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_quarantine_spec_l151_d9_copies(args ...ruby.Value) ruby.Value {
 	mut store := mac_ffi.XattrStore{}
 	mac_ffi.set_xattr(mut store, '/tmp/source', 'com.homebrew.test.source', 'source') or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	mac_ffi.copy_xattrs(mut store, '/tmp/source', '/tmp/destination') or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	value := mac_ffi.get_xattr(&store, '/tmp/destination', 'com.homebrew.test.source') or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(value == 'source')
+	return ruby.bool_value(value == 'source')
 }
 
 // Ruby let `let(:file) { Pathname("/tmp/Test.app") }` at line 176.
-pub fn ruby_quarantine_spec_l176_d10_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('/tmp/Test.app')
+pub fn ruby_quarantine_spec_l176_d10_file(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('/tmp/Test.app')
 }
 
 // Ruby it `it "returns true when the user approval flag is set" do` at line 182.
-pub fn ruby_quarantine_spec_l182_d11_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_quarantine_spec_l182_d11_returns(args ...ruby.Value) ruby.Value {
 	approved := base_cask.quarantine_user_approved('/tmp/Test.app', quarantine_spec_context(quarantine_spec_status_approved)) or { false }
-	return brew_runtime.bool_value(approved)
+	return ruby.bool_value(approved)
 }
 
 // Ruby it `it "returns false when the user approval flag is not set" do` at line 188.
-pub fn ruby_quarantine_spec_l188_d12_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_quarantine_spec_l188_d12_returns(args ...ruby.Value) ruby.Value {
 	approved := base_cask.quarantine_user_approved('/tmp/Test.app', quarantine_spec_context(quarantine_spec_status_unapproved)) or { true }
-	return brew_runtime.bool_value(!approved)
+	return ruby.bool_value(!approved)
 }
 
 // Ruby let `let(:file) { Pathname("/tmp/Test.app") }` at line 196.
-pub fn ruby_quarantine_spec_l196_d13_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('/tmp/Test.app')
+pub fn ruby_quarantine_spec_l196_d13_file(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('/tmp/Test.app')
 }
 
 // Ruby let `let(:xattr) { Pathname("/usr/bin/xattr") }` at line 197.
-pub fn ruby_quarantine_spec_l197_d14_xattr(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('/usr/bin/xattr')
+pub fn ruby_quarantine_spec_l197_d14_xattr(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('/usr/bin/xattr')
 }
 
 // Ruby it `it "sets the user approval flag while preserving the quarantine metadata" do` at line 199.
-pub fn ruby_quarantine_spec_l199_d15_sets(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_quarantine_spec_l199_d15_sets(args ...ruby.Value) ruby.Value {
 	outcome := base_cask.quarantine_inherit_user_approval('/tmp/Test.app', quarantine_spec_context(quarantine_spec_status_inherit)) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(outcome.present && outcome.command.args == ['-w',
+	return ruby.bool_value(outcome.present && outcome.command.args == ['-w',
 		base_cask.quarantine_attribute, '03c1;6a51855d;;3C86362A-29CA-4D55-90E7-A6621B9CC78D',
 		'/tmp/Test.app'])
 }
 
 // Ruby let `let(:file) { Pathname("/tmp/Test.app") }` at line 221.
-pub fn ruby_quarantine_spec_l221_d16_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('/tmp/Test.app')
+pub fn ruby_quarantine_spec_l221_d16_file(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('/tmp/Test.app')
 }
 
 // Ruby let `let(:requirement) do` at line 222.
-pub fn ruby_quarantine_spec_l222_d17_requirement(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('identifier "sh.brew.test-app" and anchor apple generic and certificate leaf[subject.OU] = "ABCDE12345"')
+pub fn ruby_quarantine_spec_l222_d17_requirement(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('identifier "sh.brew.test-app" and anchor apple generic and certificate leaf[subject.OU] = "ABCDE12345"')
 }
 
 // Ruby it `it "returns the validated designated requirement without invoking codesign" do` at line 226.
-pub fn ruby_quarantine_spec_l226_d18_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_quarantine_spec_l226_d18_returns(args ...ruby.Value) ruby.Value {
 	requirement := 'identifier "sh.brew.test-app" and anchor apple generic and certificate leaf[subject.OU] = "ABCDE12345"'
 	identity := mac_cask.mac_quarantine_signing_identity('/tmp/Test.app', requirement) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(identity.requirement == requirement)
+	return ruby.bool_value(identity.requirement == requirement)
 }
 
 // Ruby it `it "returns nil when the signature cannot be verified" do` at line 233.
-pub fn ruby_quarantine_spec_l233_d19_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_quarantine_spec_l233_d19_returns(args ...ruby.Value) ruby.Value {
 	identity := mac_cask.mac_quarantine_signing_identity('/tmp/Test.app', none)
-	return brew_runtime.bool_value(identity == none)
+	return ruby.bool_value(identity == none)
 }
 
 // Ruby let `let(:file) { Pathname("/tmp/Test.app") }` at line 241.
-pub fn ruby_quarantine_spec_l241_d20_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('/tmp/Test.app')
+pub fn ruby_quarantine_spec_l241_d20_file(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('/tmp/Test.app')
 }
 
 // Ruby let `let(:requirement) { 'identifier "sh.brew.test-app" and anchor apple' }` at line 242.
-pub fn ruby_quarantine_spec_l242_d21_requirement(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('identifier "sh.brew.test-app" and anchor apple')
+pub fn ruby_quarantine_spec_l242_d21_requirement(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('identifier "sh.brew.test-app" and anchor apple')
 }
 
 // Ruby let `let(:identity) { Cask::Quarantine::SigningIdentity.new(requirement:) }` at line 243.
-pub fn ruby_quarantine_spec_l243_d22_identity(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_quarantine_spec_l243_d22_identity(args ...ruby.Value) ruby.Value {
 	requirement := 'identifier "sh.brew.test-app" and anchor apple'
-	return brew_runtime.structured_value('SigningIdentity', requirement, {
+	return ruby.structured_value('SigningIdentity', requirement, {
 		'requirement': requirement
 	})
 }
 
 // Ruby it `it "checks the new app against the previous version's designated requirement" do` at line 245.
-pub fn ruby_quarantine_spec_l245_d23_checks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_quarantine_spec_l245_d23_checks(args ...ruby.Value) ruby.Value {
 	matched := mac_cask.mac_quarantine_signing_identity_match('/tmp/Test.app', base_cask.QuarantineSigningIdentity{
 		requirement: 'identifier "sh.brew.test-app" and anchor apple'
 	}, true) or { false }
-	return brew_runtime.bool_value(matched)
+	return ruby.bool_value(matched)
 }
 
 // Original Ruby source (line-for-line):

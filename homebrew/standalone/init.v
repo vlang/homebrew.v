@@ -1,35 +1,35 @@
 module standalone
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `standalone/init.rb`.
 // The original source is retained below until every stub has a typed V body.
-pub type FastBootRequire = fn(string) !brew_runtime.Value
+pub type FastBootRequire = fn(string) !ruby.Value
 
-pub fn from_archdir(archdir string, feature string, require_fn FastBootRequire) !brew_runtime.Value {
+pub fn from_archdir(archdir string, feature string, require_fn FastBootRequire) !ruby.Value {
 	return require_fn(os.join_path(archdir, feature))
 }
 
 pub fn from_rubylibdir(rubylibdir string, feature string,
-	require_fn FastBootRequire) !brew_runtime.Value {
+	require_fn FastBootRequire) !ruby.Value {
 	return require_fn(os.join_path(rubylibdir, '${feature}.rb'))
 }
 
 // Ruby method `self.from_archdir(feature)` at line 42.
 pub fn ruby_init_l42_d1_self_from_archdir(archdir string, feature string,
-	require_fn FastBootRequire) !brew_runtime.Value {
+	require_fn FastBootRequire) !ruby.Value {
 	return from_archdir(archdir, feature, require_fn)
 }
 
 // Ruby method `self.from_rubylibdir(feature)` at line 46.
 pub fn ruby_init_l46_d2_self_from_rubylibdir(rubylibdir string, feature string,
-	require_fn FastBootRequire) !brew_runtime.Value {
+	require_fn FastBootRequire) !ruby.Value {
 	return from_rubylibdir(rubylibdir, feature, require_fn)
 }
 
 // Ruby alias_method `kernel_class.alias_method :require, :no_warning_require` at line 94.
-pub fn ruby_init_l94_d3_require(feature string, no_warning_require FastBootRequire) !brew_runtime.Value {
+pub fn ruby_init_l94_d3_require(feature string, no_warning_require FastBootRequire) !ruby.Value {
 	return no_warning_require(feature)
 }
 

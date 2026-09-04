@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `formula_assertions.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -25,7 +25,7 @@ pub fn ruby_formula_assertions_l23_d2_assertions(assertions &FormulaAssertions) 
 
 // Ruby method `assert_equal(exp, act, msg = nil)` at line 28.
 pub fn ruby_formula_assertions_l28_d3_assert_equal(mut assertions FormulaAssertions,
-	expected brew_runtime.Value, actual brew_runtime.Value, message string) !bool {
+	expected ruby.Value, actual ruby.Value, message string) !bool {
 	assertions.assertion_count++
 	if expected.type_name == actual.type_name && expected.repr == actual.repr {
 		return true
@@ -40,8 +40,8 @@ pub fn ruby_formula_assertions_l28_d3_assert_equal(mut assertions FormulaAsserti
 // Ruby method `shell_output(cmd, result = 0)` at line 39.
 pub fn ruby_formula_assertions_l39_d4_shell_output(mut assertions FormulaAssertions,
 	command string, expected_status int) !string {
-	result := brew_runtime.run_captured_command(['/bin/sh', '-c', command], brew_runtime.CapturedCommandOptions{ environment: brew_runtime.environment() })!
-	ruby_formula_assertions_l28_d3_assert_equal(mut assertions, brew_runtime.int_value(i64(expected_status)), brew_runtime.int_value(i64(result.exit_code)), 'command `${command}` exit status') or {
+	result := ruby.run_captured_command(['/bin/sh', '-c', command], ruby.CapturedCommandOptions{ environment: ruby.environment() })!
+	ruby_formula_assertions_l28_d3_assert_equal(mut assertions, ruby.int_value(i64(expected_status)), ruby.int_value(i64(result.exit_code)), 'command `${command}` exit status') or {
 		if assertions.verbose && result.stdout != '' {
 			return error('${err.msg()}\n${result.stdout}')
 		}
@@ -53,12 +53,12 @@ pub fn ruby_formula_assertions_l39_d4_shell_output(mut assertions FormulaAsserti
 // Ruby method `pipe_output(cmd, input = nil, result = nil)` at line 55.
 pub fn ruby_formula_assertions_l55_d5_pipe_output(mut assertions FormulaAssertions,
 	command string, input string, expected_status ?int) !string {
-	result := brew_runtime.run_captured_command(['/bin/sh', '-c', command], brew_runtime.CapturedCommandOptions{
-		environment: brew_runtime.environment()
+	result := ruby.run_captured_command(['/bin/sh', '-c', command], ruby.CapturedCommandOptions{
+		environment: ruby.environment()
 		input: input
 	})!
 	if status := expected_status {
-		ruby_formula_assertions_l28_d3_assert_equal(mut assertions, brew_runtime.int_value(i64(status)), brew_runtime.int_value(i64(result.exit_code)), 'command `${command}` exit status') or {
+		ruby_formula_assertions_l28_d3_assert_equal(mut assertions, ruby.int_value(i64(status)), ruby.int_value(i64(result.exit_code)), 'command `${command}` exit status') or {
 			if assertions.verbose && result.stdout != '' {
 				return error('${err.msg()}\n${result.stdout}')
 			}

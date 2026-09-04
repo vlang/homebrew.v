@@ -1,20 +1,20 @@
 module unpack_strategy
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `test/unpack_strategy/zip_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:path) { TEST_FIXTURE_DIR/"cask/MyFancyApp.zip" }` at line 7.
-pub fn ruby_zip_spec_l7_d1_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(spec_zip_fixture())
+pub fn ruby_zip_spec_l7_d1_path(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(spec_zip_fixture())
 }
 
 // Ruby let `let(:path) do` at line 16.
-pub fn ruby_zip_spec_l16_d2_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_zip_spec_l16_d2_path(args ...ruby.Value) ruby.Value {
 	path := os.join_path(spec_temp_dir('corrupt-zip'), 'test.zip')
-	return brew_runtime.string_value(spec_write_bytes(path, []u8{}))
+	return ruby.string_value(spec_write_bytes(path, []u8{}))
 }
 
 // Original Ruby source (line-for-line):

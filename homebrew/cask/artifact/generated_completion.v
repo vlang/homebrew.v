@@ -1,6 +1,6 @@
 module artifact
 
-import brew_runtime
+import ruby
 import homebrew.utils
 import os
 import time
@@ -54,7 +54,7 @@ fn generated_completion_prefix(configured string) string {
 	if configured != '' {
 		return configured
 	}
-	prefix := brew_runtime.environment_value('HOMEBREW_PREFIX')
+	prefix := ruby.environment_value('HOMEBREW_PREFIX')
 	return if prefix == '' { '/opt/homebrew' } else { prefix }
 }
 

@@ -1,6 +1,6 @@
 module unpack_strategy
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `unpack_strategy/bazaar.rb`.
@@ -17,13 +17,13 @@ pub fn ruby_bazaar_l17_d2_extract_to_dir(path string, unpack_dir string, basenam
 }
 
 pub fn bazaar_can_extract(path string) bool {
-	return directory_can_extract(path) && brew_runtime.is_dir(brew_runtime.join_path(path, '.bzr'))
+	return directory_can_extract(path) && ruby.is_dir(ruby.join_path(path, '.bzr'))
 }
 
 pub fn bazaar_extract_to_dir(path string, unpack_dir string, basename string, verbose bool) ! {
 	directory_extract_to_dir(path, unpack_dir, basename, verbose, false)!
-	metadata := brew_runtime.join_path(unpack_dir, '.bzr')
-	if brew_runtime.is_dir(metadata) { os.rmdir_all(metadata)! }
+	metadata := ruby.join_path(unpack_dir, '.bzr')
+	if ruby.is_dir(metadata) { os.rmdir_all(metadata)! }
 }
 
 // Original Ruby source (line-for-line):

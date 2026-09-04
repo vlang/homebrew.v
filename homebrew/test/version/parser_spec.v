@@ -1,6 +1,6 @@
 module version
 
-import brew_runtime
+import ruby
 import homebrew.version as version_parser
 
 // Translated from Homebrew/brew `test/version/parser_spec.rb`.
@@ -16,7 +16,7 @@ fn parser_spec_abstract_regex_parser_new(_ string) !version_parser.RegexParser {
 	return error('Version::RegexParser is declared as abstract; it cannot be instantiated')
 }
 
-fn parser_spec_pattern_from(args []brew_runtime.Value) string {
+fn parser_spec_pattern_from(args []ruby.Value) string {
 	if args.len > 0 && args[0].as_string() != '' {
 		return args[0].as_string()
 	}
@@ -24,40 +24,40 @@ fn parser_spec_pattern_from(args []brew_runtime.Value) string {
 }
 
 // Ruby specify `specify "::new" do` at line 7.
-pub fn ruby_parser_spec_l7_d1_new(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_parser_spec_l7_d1_new(args ...ruby.Value) ruby.Value {
 	_ := parser_spec_abstract_parser_new() or {
-		return brew_runtime.bool_value(err.msg() == 'Version::Parser is declared as abstract; it cannot be instantiated')
+		return ruby.bool_value(err.msg() == 'Version::Parser is declared as abstract; it cannot be instantiated')
 	}
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 // Ruby specify `specify "::new" do` at line 13.
-pub fn ruby_parser_spec_l13_d2_new(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_parser_spec_l13_d2_new(args ...ruby.Value) ruby.Value {
 	_ := parser_spec_abstract_regex_parser_new(parser_spec_pattern_from(args)) or {
-		return brew_runtime.bool_value(err.msg() == 'Version::RegexParser is declared as abstract; it cannot be instantiated')
+		return ruby.bool_value(err.msg() == 'Version::RegexParser is declared as abstract; it cannot be instantiated')
 	}
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 // Ruby specify `specify "::process_spec" do` at line 18.
-pub fn ruby_parser_spec_l18_d3_process_spec(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_parser_spec_l18_d3_process_spec(args ...ruby.Value) ruby.Value {
 	spec := if args.len > 0 { args[0].as_string() } else { '/tmp/homebrew-version-parser-spec' }
 	_ := version_parser.ruby_parser_l39_d4_self_process_spec(spec) or {
-		return brew_runtime.bool_value(err.msg() == 'Version::RegexParser.process_spec must be implemented for ${spec}')
+		return ruby.bool_value(err.msg() == 'Version::RegexParser.process_spec must be implemented for ${spec}')
 	}
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 // Ruby specify `specify "::new" do` at line 26.
-pub fn ruby_parser_spec_l26_d4_new(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_parser_spec_l26_d4_new(args ...ruby.Value) ruby.Value {
 	parser := version_parser.new_regex_parser(parser_spec_pattern_from(args), .url) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(parser.kind == .url)
+	return ruby.bool_value(parser.kind == .url)
 }
 
 // Ruby specify `specify "::process_spec" do` at line 30.
-pub fn ruby_parser_spec_l30_d5_process_spec(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_parser_spec_l30_d5_process_spec(args ...ruby.Value) ruby.Value {
 	specs := if args.len > 0 {
 		args.map(it.as_string())
 	} else {
@@ -71,22 +71,22 @@ pub fn ruby_parser_spec_l30_d5_process_spec(args ...brew_runtime.Value) brew_run
 	}
 	for spec in specs {
 		if version_parser.url_process_spec(spec) != spec {
-			return brew_runtime.bool_value(false)
+			return ruby.bool_value(false)
 		}
 	}
-	return brew_runtime.bool_value(specs.len > 0)
+	return ruby.bool_value(specs.len > 0)
 }
 
 // Ruby specify `specify "::new" do` at line 49.
-pub fn ruby_parser_spec_l49_d6_new(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_parser_spec_l49_d6_new(args ...ruby.Value) ruby.Value {
 	parser := version_parser.new_regex_parser(parser_spec_pattern_from(args), .stem) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(parser.kind == .stem)
+	return ruby.bool_value(parser.kind == .stem)
 }
 
 // Ruby it `it "works with SourceForge URLs with /download suffix" do` at line 54.
-pub fn ruby_parser_spec_l54_d7_works(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_parser_spec_l54_d7_works(args ...ruby.Value) ruby.Value {
 	specs := if args.len > 0 {
 		args.map(it.as_string())
 	} else {
@@ -96,21 +96,21 @@ pub fn ruby_parser_spec_l54_d7_works(args ...brew_runtime.Value) brew_runtime.Va
 		]
 	}
 	if specs.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(specs.all(version_parser.stem_process_spec(it) == 'foo_bar-1.21'))
+	return ruby.bool_value(specs.all(version_parser.stem_process_spec(it) == 'foo_bar-1.21'))
 }
 
 // Ruby it `it "works with URLs without file extension" do` at line 62.
-pub fn ruby_parser_spec_l62_d8_works(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_parser_spec_l62_d8_works(args ...ruby.Value) ruby.Value {
 	spec := if args.len > 0 { args[0].as_string() } else { 'https://brew.sh/testball-0.1' }
-	return brew_runtime.bool_value(version_parser.stem_process_spec(spec) == 'testball-0.1')
+	return ruby.bool_value(version_parser.stem_process_spec(spec) == 'testball-0.1')
 }
 
 // Ruby it `it "works with URLs with file extension" do` at line 66.
-pub fn ruby_parser_spec_l66_d9_works(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_parser_spec_l66_d9_works(args ...ruby.Value) ruby.Value {
 	spec := if args.len > 0 { args[0].as_string() } else { 'https://brew.sh/testball-0.1.tgz' }
-	return brew_runtime.bool_value(version_parser.stem_process_spec(spec) == 'testball-0.1')
+	return ruby.bool_value(version_parser.stem_process_spec(spec) == 'testball-0.1')
 }
 
 // Original Ruby source (line-for-line):

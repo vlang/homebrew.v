@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 import hash.fnv1a
 import homebrew.api
 import homebrew.utils
@@ -127,12 +127,12 @@ pub:
 }
 
 fn formula_environment_prefix() string {
-	return brew_runtime.environment_value('HOMEBREW_PREFIX')
+	return ruby.environment_value('HOMEBREW_PREFIX')
 }
 
 fn formula_environment_cellar(prefix string) string {
-	cellar := brew_runtime.environment_value('HOMEBREW_CELLAR')
-	return if cellar == '' { brew_runtime.join_path(prefix, 'Cellar') } else { cellar }
+	cellar := ruby.environment_value('HOMEBREW_CELLAR')
+	return if cellar == '' { ruby.join_path(prefix, 'Cellar') } else { cellar }
 }
 
 pub fn formula_from_reference(reference api.PackageReference, prefix string, cellar string) !Formula {
@@ -385,7 +385,7 @@ pub fn (formula Formula) possible_names() []string {
 }
 
 pub fn (formula Formula) rack() string {
-	return brew_runtime.join_path(formula.cellar, formula.name())
+	return ruby.join_path(formula.cellar, formula.name())
 }
 
 pub fn (formula Formula) opt_prefix() string {
@@ -393,13 +393,13 @@ pub fn (formula Formula) opt_prefix() string {
 }
 
 pub fn (formula Formula) versioned_prefix(version PkgVersion) string {
-	return brew_runtime.join_path(formula.rack(), version.to_s())
+	return ruby.join_path(formula.rack(), version.to_s())
 }
 
 pub fn (formula Formula) prefix_for(version PkgVersion) string {
 	versioned := formula.versioned_prefix(version)
 	current := formula.pkg_version() or { return versioned }
-	if version.equals(current) && brew_runtime.is_dir(versioned) {
+	if version.equals(current) && ruby.is_dir(versioned) {
 		if keg := new_keg_with_paths(versioned, formula.cellar, formula.prefix_root) {
 			if keg.optlinked() {
 				return formula.opt_prefix()
@@ -417,10 +417,10 @@ pub fn (formula Formula) prefix() string {
 pub fn (formula Formula) installed_prefixes() []string {
 	mut prefixes := []string{}
 	for possible_name in formula.possible_names() {
-		rack := brew_runtime.join_path(formula.cellar, possible_name)
-		for entry in brew_runtime.list_dir(rack) or { continue } {
-			path := brew_runtime.join_path(rack, entry)
-			if brew_runtime.is_dir(path) {
+		rack := ruby.join_path(formula.cellar, possible_name)
+		for entry in ruby.list_dir(rack) or { continue } {
+			path := ruby.join_path(rack, entry)
+			if ruby.is_dir(path) {
 				prefixes << path
 			}
 		}
@@ -440,13 +440,13 @@ pub fn (formula Formula) installed_kegs() []Keg {
 
 pub fn (formula Formula) any_installed_keg() ?Keg {
 	prefix := formula.any_installed_prefix() or { return none }
-	return new_keg_with_paths(brew_runtime.real_path(prefix), formula.cellar, formula.prefix_root) or {
+	return new_keg_with_paths(ruby.real_path(prefix), formula.cellar, formula.prefix_root) or {
 		none
 	}
 }
 
 pub fn (formula Formula) any_installed_prefix() ?string {
-	if formula.optlinked() && brew_runtime.path_exists(formula.opt_prefix()) {
+	if formula.optlinked() && ruby.path_exists(formula.opt_prefix()) {
 		return formula.opt_prefix()
 	}
 	prefixes := formula.installed_prefixes()
@@ -471,7 +471,7 @@ pub fn (formula Formula) latest_installed_prefix() string {
 	}
 	current := formula.pkg_version() or { return formula.prefix() }
 	stable_prefix := formula.versioned_prefix(current)
-	if brew_runtime.is_dir(stable_prefix) {
+	if ruby.is_dir(stable_prefix) {
 		return stable_prefix
 	}
 	if keg := formula.any_installed_keg() {
@@ -530,30 +530,30 @@ pub fn (formula Formula) latest_head_pkg_version() !PkgVersion {
 
 pub fn (formula Formula) latest_version_installed() bool {
 	path := formula.latest_installed_prefix()
-	return brew_runtime.is_dir(path) && (brew_runtime.list_dir(path) or { []string{} }).len > 0
+	return ruby.is_dir(path) && (ruby.list_dir(path) or { []string{} }).len > 0
 }
 
 pub fn (formula Formula) any_version_installed() bool {
-	return formula.installed_prefixes().any(brew_runtime.is_file(brew_runtime.join_path(it, tab_filename)))
+	return formula.installed_prefixes().any(ruby.is_file(ruby.join_path(it, tab_filename)))
 }
 
 pub fn (formula Formula) linked_keg() string {
 	linked_directory := os.join_path(formula.prefix_root, 'var', 'homebrew', 'linked')
 	for possible_name in formula.possible_names() {
-		path := brew_runtime.join_path(linked_directory, possible_name)
-		if brew_runtime.is_dir(path) {
+		path := ruby.join_path(linked_directory, possible_name)
+		if ruby.is_dir(path) {
 			return path
 		}
 	}
-	return brew_runtime.join_path(linked_directory, formula.name())
+	return ruby.join_path(linked_directory, formula.name())
 }
 
 pub fn (formula Formula) linked() bool {
-	return brew_runtime.path_exists(formula.linked_keg())
+	return ruby.path_exists(formula.linked_keg())
 }
 
 pub fn (formula Formula) optlinked() bool {
-	return brew_runtime.is_link(formula.opt_prefix())
+	return ruby.is_link(formula.opt_prefix())
 }
 
 pub fn (formula Formula) linked_version() ?PkgVersion {
@@ -571,7 +571,7 @@ pub fn (formula Formula) pin_path() string {
 }
 
 pub fn (formula Formula) pinned() bool {
-	return brew_runtime.is_link(formula.pin_path())
+	return ruby.is_link(formula.pin_path())
 }
 
 pub fn (formula Formula) pinnable() bool {
@@ -582,7 +582,7 @@ pub fn (formula Formula) pinned_version() ?PkgVersion {
 	if !formula.pinned() {
 		return none
 	}
-	keg := new_keg_with_paths(brew_runtime.real_path(formula.pin_path()), formula.cellar, formula.prefix_root) or { return none }
+	keg := new_keg_with_paths(ruby.real_path(formula.pin_path()), formula.cellar, formula.prefix_root) or { return none }
 	return keg.version() or { return none }
 }
 
@@ -594,7 +594,7 @@ pub fn (formula Formula) pin() ! {
 pub fn (formula Formula) unpin() ! {
 	if formula.pinned() { os.rm(formula.pin_path())! }
 	parent := os.dir(formula.pin_path())
-	if (brew_runtime.list_dir(parent) or { []string{} }).len == 0 { os.rmdir(parent) or {} }
+	if (ruby.list_dir(parent) or { []string{} }).len == 0 { os.rmdir(parent) or {} }
 }
 
 pub fn (formula Formula) outdated_kegs() []Keg {
@@ -683,7 +683,7 @@ pub fn (formula Formula) inspect() string {
 fn formula_path_value(formula Formula, parts ...string) string {
 	mut path := formula.prefix()
 	for part in parts {
-		path = brew_runtime.join_path(path, part)
+		path = ruby.join_path(path, part)
 	}
 	return path
 }
@@ -724,7 +724,7 @@ pub fn formula_std_cmake_args(install_prefix string, install_libdir string,
 		'-DCMAKE_BUILD_TYPE=Release',
 		'-DCMAKE_FIND_FRAMEWORK=${find_framework}',
 		'-DCMAKE_VERBOSE_MAKEFILE=ON',
-		'-DCMAKE_PROJECT_TOP_LEVEL_INCLUDES=${brew_runtime.join_path(brew_runtime.environment_value('HOMEBREW_LIBRARY_PATH'), 'cmake/trap_fetchcontent_provider.cmake')}',
+		'-DCMAKE_PROJECT_TOP_LEVEL_INCLUDES=${ruby.join_path(ruby.environment_value('HOMEBREW_LIBRARY_PATH'), 'cmake/trap_fetchcontent_provider.cmake')}',
 		'-Wno-dev',
 		'-DBUILD_TESTING=OFF',
 		'-DCCACHE_FOUND=OFF',
@@ -735,7 +735,7 @@ pub fn formula_std_configure_args(prefix string, libdir string) []string {
 	expanded_libdir := if os.is_abs_path(libdir) {
 		libdir
 	} else {
-		brew_runtime.join_path(prefix, libdir)
+		ruby.join_path(prefix, libdir)
 	}
 	return ['--disable-debug', '--disable-dependency-tracking', '--prefix=${prefix}',
 		'--libdir=${expanded_libdir}']
@@ -812,8 +812,8 @@ pub fn formula_rpath(source string, target string, prefix string) !string {
 	if !target.starts_with(prefix) {
 		return error('rpath `target` should only be used for paths inside `\$HOMEBREW_PREFIX`!')
 	}
-	source_parts := brew_runtime.absolute_path(source).trim('/').split('/')
-	target_parts := brew_runtime.absolute_path(target).trim('/').split('/')
+	source_parts := ruby.absolute_path(source).trim('/').split('/')
+	target_parts := ruby.absolute_path(target).trim('/').split('/')
 	mut common := 0
 	for common < source_parts.len && common < target_parts.len && source_parts[common] == target_parts[common] {
 		common++
@@ -829,9 +829,9 @@ pub fn formula_rpath(source string, target string, prefix string) !string {
 
 const formula_boundary_separator = '\x1e'
 
-pub fn formula_boundary_value(formula Formula) brew_runtime.Value {
+pub fn formula_boundary_value(formula Formula) ruby.Value {
 	version := formula.version() or { null_version() }
-	return brew_runtime.structured_value('Formula', formula.inspect(), {
+	return ruby.structured_value('Formula', formula.inspect(), {
 		'name':                            formula.name()
 		'full_name':                       formula.full_name()
 		'tap':                             formula.tap
@@ -932,12 +932,12 @@ pub fn formula_boundary_value(formula Formula) brew_runtime.Value {
 	})
 }
 
-fn formula_boundary_strings(value brew_runtime.Value, name string) []string {
+fn formula_boundary_strings(value ruby.Value, name string) []string {
 	text := value.attribute(name) or { '' }
 	return if text == '' { []string{} } else { text.split(formula_boundary_separator) }
 }
 
-fn formula_boundary_deprecated_options(value brew_runtime.Value) []DeprecatedOption {
+fn formula_boundary_deprecated_options(value ruby.Value) []DeprecatedOption {
 	mut deprecated := []DeprecatedOption{}
 	for encoded in formula_boundary_strings(value, 'deprecated_options') {
 		parts := encoded.split('\x1f')
@@ -946,7 +946,7 @@ fn formula_boundary_deprecated_options(value brew_runtime.Value) []DeprecatedOpt
 	return deprecated
 }
 
-pub fn formula_from_boundary(value brew_runtime.Value) Formula {
+pub fn formula_from_boundary(value ruby.Value) Formula {
 	if value.type_name != 'Formula' { panic('expected Formula, got ${value.type_name}') }
 	reference := api.PackageReference{
 		kind: .formula
@@ -1051,28 +1051,28 @@ pub fn formula_from_boundary(value brew_runtime.Value) Formula {
 	return formula
 }
 
-fn formula_receiver(args []brew_runtime.Value, method string) Formula {
+fn formula_receiver(args []ruby.Value, method string) Formula {
 	if args.len == 0 { panic('Formula#${method} requires a receiver') }
 	return formula_from_boundary(args[0])
 }
 
-fn optional_formula_string(value string, type_name string) brew_runtime.Value {
+fn optional_formula_string(value string, type_name string) ruby.Value {
 	return if value == '' {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	} else {
-		brew_runtime.object_value(type_name, value)
+		ruby.object_value(type_name, value)
 	}
 }
 
-fn formula_argument_strings(value brew_runtime.Value) []string {
+fn formula_argument_strings(value ruby.Value) []string {
 	if value.type_name == 'NilClass' {
 		return []string{}
 	}
 	return value.as_string_array() or { [value.as_string()] }
 }
 
-fn formula_pypi_boundary(formula Formula) brew_runtime.Value {
-	return brew_runtime.structured_value('PypiPackages', formula.pypi_package_name, {
+fn formula_pypi_boundary(formula Formula) ruby.Value {
+	return ruby.structured_value('PypiPackages', formula.pypi_package_name, {
 		'package_name':     formula.pypi_package_name
 		'extra_packages':   formula.pypi_extra_packages.join(formula_boundary_separator)
 		'exclude_packages': formula.pypi_exclude_packages.join(formula_boundary_separator)
@@ -1084,7 +1084,7 @@ fn formula_supported_network_phase(phase string) bool {
 	return phase in ['build', 'test', 'postinstall']
 }
 
-fn formula_keyword(args []brew_runtime.Value, key string, positional int) string {
+fn formula_keyword(args []ruby.Value, key string, positional int) string {
 	if args.len > 1 && args[1].type_name == 'Hash' {
 		values := args[1].as_map() or { return '' }
 		if value := values[key] {
@@ -1123,7 +1123,7 @@ fn formula_path_pattern_matches(pattern string, path string) bool {
 }
 
 fn formula_files_under(directory string) []string {
-	if directory == '' || !brew_runtime.is_dir(directory) {
+	if directory == '' || !ruby.is_dir(directory) {
 		return []string{}
 	}
 	mut files := os.walk_ext(directory, '.rb', hidden: true)
@@ -1143,9 +1143,9 @@ fn formula_names_from_files(files []string) []string {
 
 fn formula_racks(cellar string) []string {
 	mut racks := []string{}
-	for entry in brew_runtime.list_dir(cellar) or { return racks } {
-		path := brew_runtime.join_path(cellar, entry)
-		if brew_runtime.is_dir(path) && !brew_runtime.is_link(path) && !entry.starts_with('.') && (brew_runtime.list_dir(path) or { []string{} }).len > 0 {
+	for entry in ruby.list_dir(cellar) or { return racks } {
+		path := ruby.join_path(cellar, entry)
+		if ruby.is_dir(path) && !ruby.is_link(path) && !entry.starts_with('.') && (ruby.list_dir(path) or { []string{} }).len > 0 {
 			racks << path
 		}
 	}
@@ -1167,30 +1167,30 @@ fn formula_edit_distance(left string, right string) int {
 	return previous.last()
 }
 
-fn formula_dependency_boundary(dependency Dependency) brew_runtime.Value {
-	return brew_runtime.structured_value('Dependency', dependency.name, {
+fn formula_dependency_boundary(dependency Dependency) ruby.Value {
+	return ruby.structured_value('Dependency', dependency.name, {
 		'name': dependency.name
 		'tags': dependency.tags.map(it.boundary_string()).join(formula_boundary_separator)
 	})
 }
 
-fn formula_dependency_array(dependencies []Dependency) brew_runtime.Value {
-	return brew_runtime.array_value(dependencies.map(formula_dependency_boundary(it)))
+fn formula_dependency_array(dependencies []Dependency) ruby.Value {
+	return ruby.array_value(dependencies.map(formula_dependency_boundary(it)))
 }
 
-fn formula_nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn formula_nil_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-fn formula_optional_value(value string, type_name string) brew_runtime.Value {
+fn formula_optional_value(value string, type_name string) ruby.Value {
 	return if value == '' {
 		formula_nil_value()
 	} else {
-		brew_runtime.object_value(type_name, value)
+		ruby.object_value(type_name, value)
 	}
 }
 
-fn formula_keyword_bool(args []brew_runtime.Value, key string, fallback bool) bool {
+fn formula_keyword_bool(args []ruby.Value, key string, fallback bool) bool {
 	if args.len > 1 && args[1].type_name == 'Hash' {
 		values := args[1].as_map() or { return fallback }
 		if value := values[key] {
@@ -1200,7 +1200,7 @@ fn formula_keyword_bool(args []brew_runtime.Value, key string, fallback bool) bo
 	return fallback
 }
 
-fn formula_keyword_strings(args []brew_runtime.Value, key string) []string {
+fn formula_keyword_strings(args []ruby.Value, key string) []string {
 	if args.len > 1 && args[1].type_name == 'Hash' {
 		values := args[1].as_map() or { return []string{} }
 		if value := values[key] {
@@ -1283,7 +1283,7 @@ fn formula_runtime_dependencies(formula Formula, read_from_tab bool, undeclared 
 	return declared
 }
 
-fn formula_value_identity(value brew_runtime.Value) string {
+fn formula_value_identity(value ruby.Value) string {
 	return '${value.type_name}\x1f${value.repr}'
 }
 
@@ -1304,34 +1304,34 @@ fn formula_dependency_names(dependencies []Dependency, tag string, reject_tags [
 	return names
 }
 
-fn formula_bottle_hash_value(formula Formula) brew_runtime.Value {
+fn formula_bottle_hash_value(formula Formula) ruby.Value {
 	if formula.reference.stable_version == '' || !formula.reference.bottle_available {
-		return brew_runtime.map_value({})
+		return ruby.map_value({})
 	}
-	mut files := map[string]brew_runtime.Value{}
+	mut files := map[string]ruby.Value{}
 	mut root_url := ''
 	for tag, file in formula.reference.bottle_files {
 		if root_url == '' && file.url.contains('/') {
 			root_url = file.url[..file.url.last_index('/') or { file.url.len }]
 		}
-		files[tag] = brew_runtime.map_value({
-			'cellar': brew_runtime.string_value(file.cellar)
-			'url':    brew_runtime.string_value(file.url)
-			'sha256': brew_runtime.string_value(file.sha256)
+		files[tag] = ruby.map_value({
+			'cellar': ruby.string_value(file.cellar)
+			'url':    ruby.string_value(file.url)
+			'sha256': ruby.string_value(file.sha256)
 		})
 	}
-	return brew_runtime.map_value({
-		'rebuild':  brew_runtime.int_value(formula.reference.bottle_rebuild)
-		'root_url': brew_runtime.string_value(root_url)
-		'files':    brew_runtime.map_value(files)
+	return ruby.map_value({
+		'rebuild':  ruby.int_value(formula.reference.bottle_rebuild)
+		'root_url': ruby.string_value(root_url)
+		'files':    ruby.map_value(files)
 	})
 }
 
-fn formula_urls_hash_value(formula Formula) brew_runtime.Value {
-	mut urls := map[string]brew_runtime.Value{}
+fn formula_urls_hash_value(formula Formula) ruby.Value {
+	mut urls := map[string]ruby.Value{}
 	if formula.reference.stable_version != '' {
-		urls['stable'] = brew_runtime.map_value({
-			'url':      brew_runtime.string_value(formula.reference.source_url)
+		urls['stable'] = ruby.map_value({
+			'url':      ruby.string_value(formula.reference.source_url)
 			'tag':      formula_nil_value()
 			'revision': formula_nil_value()
 			'using':    formula_nil_value()
@@ -1339,13 +1339,13 @@ fn formula_urls_hash_value(formula Formula) brew_runtime.Value {
 		})
 	}
 	if formula.reference.head_version != '' {
-		urls['head'] = brew_runtime.map_value({
-			'url':    brew_runtime.string_value(formula.reference.source_url)
+		urls['head'] = ruby.map_value({
+			'url':    ruby.string_value(formula.reference.source_url)
 			'branch': formula_nil_value()
 			'using':  formula_nil_value()
 		})
 	}
-	return brew_runtime.map_value(urls)
+	return ruby.map_value(urls)
 }
 
 fn formula_patch_attributes(encoded string) map[string]string {
@@ -1389,120 +1389,120 @@ fn formula_patch_resolutions(attributes map[string]string) []string {
 	return extract_cves(sources)
 }
 
-fn formula_serialized_patches_value(formula Formula) brew_runtime.Value {
-	mut serialized := []brew_runtime.Value{}
+fn formula_serialized_patches_value(formula Formula) ruby.Value {
+	mut serialized := []ruby.Value{}
 	for encoded in formula.patch_values {
 		attributes := formula_patch_attributes(encoded)
 		mut patch := {
-			'strip': brew_runtime.string_value(attributes['strip'] or { 'p1' })
+			'strip': ruby.string_value(attributes['strip'] or { 'p1' })
 		}
 		if (attributes['data'] or { 'false' }) == 'true' {
-			patch['data'] = brew_runtime.bool_value(true)
+			patch['data'] = ruby.bool_value(true)
 		} else if url := attributes['url'] {
-			patch['url'] = brew_runtime.string_value(url)
+			patch['url'] = ruby.string_value(url)
 			patch['sha256'] = formula_optional_value(attributes['sha256'] or { '' }, 'String')
 			if apply := attributes['apply'] {
 				files := apply.split(',').map(it.trim_space()).filter(it != '')
 				if files.len > 0 {
-					patch['apply'] = brew_runtime.string_array_value(files)
+					patch['apply'] = ruby.string_array_value(files)
 				}
 			}
 			if directory := attributes['directory'] {
 				if directory != '' {
-					patch['directory'] = brew_runtime.string_value(directory)
+					patch['directory'] = ruby.string_value(directory)
 				}
 			}
 		} else if file := attributes['file'] {
-			patch['file'] = brew_runtime.string_value(file)
+			patch['file'] = ruby.string_value(file)
 		}
 		if patch_type := attributes['type'] {
 			if patch_type != '' {
-				patch['type'] = brew_runtime.string_value(patch_type.replace('_', '-'))
+				patch['type'] = ruby.string_value(patch_type.replace('_', '-'))
 			}
 		}
 		resolutions := formula_patch_resolutions(attributes)
 		if resolutions.len > 0 {
-			patch['resolves'] = brew_runtime.array_value(resolutions.map(brew_runtime.map_value({
-				'type': brew_runtime.string_value(resolves_type(it))
-				'id':   brew_runtime.string_value(it)
+			patch['resolves'] = ruby.array_value(resolutions.map(ruby.map_value({
+				'type': ruby.string_value(resolves_type(it))
+				'id':   ruby.string_value(it)
 			})))
 		}
-		serialized << brew_runtime.map_value(patch)
+		serialized << ruby.map_value(patch)
 	}
-	return brew_runtime.array_value(serialized)
+	return ruby.array_value(serialized)
 }
 
-fn formula_serialized_requirements_value(formula Formula) brew_runtime.Value {
-	mut requirements := []brew_runtime.Value{}
+fn formula_serialized_requirements_value(formula Formula) ruby.Value {
+	mut requirements := []ruby.Value{}
 	for encoded in formula.requirement_values {
 		parts := encoded.split('\x1f')
 		name := if parts.len > 0 { parts[0] } else { encoded }
 		version := if parts.len > 1 { parts[1] } else { '' }
 		contexts := if parts.len > 2 && parts[2] != '' { parts[2].split(',') } else { []string{} }
-		requirements << brew_runtime.map_value({
-			'name':     brew_runtime.string_value(name)
-			'cask':     brew_runtime.object_value('FalseClass', 'false')
-			'download': brew_runtime.object_value('FalseClass', 'false')
+		requirements << ruby.map_value({
+			'name':     ruby.string_value(name)
+			'cask':     ruby.object_value('FalseClass', 'false')
+			'download': ruby.object_value('FalseClass', 'false')
 			'version':  formula_optional_value(version, 'Version')
-			'contexts': brew_runtime.string_array_value(contexts)
-			'specs':    brew_runtime.string_array_value([formula.active_spec])
+			'contexts': ruby.string_array_value(contexts)
+			'specs':    ruby.string_array_value([formula.active_spec])
 		})
 	}
-	return brew_runtime.array_value(requirements)
+	return ruby.array_value(requirements)
 }
 
-fn formula_dependencies_hash_value(formula Formula) brew_runtime.Value {
+fn formula_dependencies_hash_value(formula Formula) ruby.Value {
 	dependencies := formula.deps().filter(!it.has_symbol_tag('implicit'))
-	return brew_runtime.map_value({
-		'build_dependencies':       brew_runtime.string_array_value(formula_dependency_names(dependencies, 'build', []string{}))
-		'dependencies':             brew_runtime.string_array_value(formula_dependency_names(dependencies, '', [
+	return ruby.map_value({
+		'build_dependencies':       ruby.string_array_value(formula_dependency_names(dependencies, 'build', []string{}))
+		'dependencies':             ruby.string_array_value(formula_dependency_names(dependencies, '', [
 			'build',
 			'test',
 			'optional',
 			'recommended',
 		]))
-		'test_dependencies':        brew_runtime.string_array_value(formula_dependency_names(dependencies, 'test', []string{}))
-		'recommended_dependencies': brew_runtime.string_array_value(formula_dependency_names(dependencies, 'recommended', []string{}))
-		'optional_dependencies':    brew_runtime.string_array_value(formula_dependency_names(dependencies, 'optional', []string{}))
-		'uses_from_macos':          brew_runtime.array_value([]brew_runtime.Value{})
-		'uses_from_macos_bounds':   brew_runtime.array_value([]brew_runtime.Value{})
+		'test_dependencies':        ruby.string_array_value(formula_dependency_names(dependencies, 'test', []string{}))
+		'recommended_dependencies': ruby.string_array_value(formula_dependency_names(dependencies, 'recommended', []string{}))
+		'optional_dependencies':    ruby.string_array_value(formula_dependency_names(dependencies, 'optional', []string{}))
+		'uses_from_macos':          ruby.array_value([]ruby.Value{})
+		'uses_from_macos_bounds':   ruby.array_value([]ruby.Value{})
 	})
 }
 
-fn formula_runtime_receipts_value(receipts ?[]RuntimeDependencyReceipt) brew_runtime.Value {
+fn formula_runtime_receipts_value(receipts ?[]RuntimeDependencyReceipt) ruby.Value {
 	values := receipts or { return formula_nil_value() }
-	mut result := []brew_runtime.Value{}
+	mut result := []ruby.Value{}
 	for receipt in values {
-		result << brew_runtime.map_value({
-			'full_name':             brew_runtime.string_value(receipt.full_name)
-			'version':               brew_runtime.string_value(receipt.version)
+		result << ruby.map_value({
+			'full_name':             ruby.string_value(receipt.full_name)
+			'version':               ruby.string_value(receipt.version)
 			'revision':              if receipt.has_revision {
-				brew_runtime.int_value(receipt.revision)
+				ruby.int_value(receipt.revision)
 			} else {
 				formula_nil_value()
 			}
 			'bottle_rebuild':        if receipt.has_bottle_rebuild {
-				brew_runtime.int_value(receipt.bottle_rebuild)
+				ruby.int_value(receipt.bottle_rebuild)
 			} else {
 				formula_nil_value()
 			}
-			'pkg_version':           brew_runtime.string_value(receipt.pkg_version)
+			'pkg_version':           ruby.string_value(receipt.pkg_version)
 			'declared_directly':     if receipt.has_declared_directly {
-				brew_runtime.bool_value(receipt.declared_directly)
+				ruby.bool_value(receipt.declared_directly)
 			} else {
 				formula_nil_value()
 			}
 			'compatibility_version': if receipt.has_compatibility_version {
-				brew_runtime.int_value(receipt.compatibility_version)
+				ruby.int_value(receipt.compatibility_version)
 			} else {
 				formula_nil_value()
 			}
 		})
 	}
-	return brew_runtime.array_value(result)
+	return ruby.array_value(result)
 }
 
-fn formula_installed_hash_value(formula Formula) brew_runtime.Value {
+fn formula_installed_hash_value(formula Formula) ruby.Value {
 	mut kegs := formula.installed_kegs()
 	for index in 1 .. kegs.len {
 		mut current := index
@@ -1511,69 +1511,69 @@ fn formula_installed_hash_value(formula Formula) brew_runtime.Value {
 			current--
 		}
 	}
-	mut installed := []brew_runtime.Value{}
+	mut installed := []ruby.Value{}
 	for keg in kegs {
 		tab := keg.tab() or { empty_tab() }
 		version := keg.version() or { new_pkg_version(null_version(), 0) }
-		installed << brew_runtime.map_value({
-			'version':              brew_runtime.string_value(version.to_s())
-			'used_options':         brew_runtime.string_array_value(tab.used_options().as_flags())
+		installed << ruby.map_value({
+			'version':              ruby.string_value(version.to_s())
+			'used_options':         ruby.string_array_value(tab.used_options().as_flags())
 			'built_as_bottle':      if tab.has_built_as_bottle {
-				brew_runtime.bool_value(tab.built_as_bottle)
+				ruby.bool_value(tab.built_as_bottle)
 			} else {
 				formula_nil_value()
 			}
 			'poured_from_bottle':   if tab.has_poured_from_bottle {
-				brew_runtime.bool_value(tab.poured_from_bottle)
+				ruby.bool_value(tab.poured_from_bottle)
 			} else {
 				formula_nil_value()
 			}
 			'time':                 if tab.has_time {
-				brew_runtime.int_value(tab.time)
+				ruby.int_value(tab.time)
 			} else {
 				formula_nil_value()
 			}
 			'runtime_dependencies': formula_runtime_receipts_value(tab.runtime_dependencies())
-			'installed_on_request': brew_runtime.bool_value(tab.installed_on_request)
+			'installed_on_request': ruby.bool_value(tab.installed_on_request)
 		})
 	}
-	return brew_runtime.array_value(installed)
+	return ruby.array_value(installed)
 }
 
-fn formula_json_value(value json2.Any) brew_runtime.Value {
+fn formula_json_value(value json2.Any) ruby.Value {
 	return match value {
-		string { brew_runtime.string_value(value) }
-		bool { brew_runtime.bool_value(value) }
-		int { brew_runtime.int_value(value) }
-		i64 { brew_runtime.int_value(value) }
-		u64 { brew_runtime.int_value(i64(value)) }
-		f64 { brew_runtime.float_value(value) }
-		[]json2.Any { brew_runtime.array_value(value.map(formula_json_value(it))) }
+		string { ruby.string_value(value) }
+		bool { ruby.bool_value(value) }
+		int { ruby.int_value(value) }
+		i64 { ruby.int_value(value) }
+		u64 { ruby.int_value(i64(value)) }
+		f64 { ruby.float_value(value) }
+		[]json2.Any { ruby.array_value(value.map(formula_json_value(it))) }
 		map[string]json2.Any {
-			mut converted := map[string]brew_runtime.Value{}
+			mut converted := map[string]ruby.Value{}
 			for key, entry in value {
 				converted[key] = formula_json_value(entry)
 			}
-			brew_runtime.map_value(converted)
+			ruby.map_value(converted)
 		}
 		else { formula_nil_value() }
 	}
 }
 
-fn formula_keg_array_value(kegs []Keg) brew_runtime.Value {
-	return brew_runtime.array_value(kegs.map(keg_boundary_value(it)))
+fn formula_keg_array_value(kegs []Keg) ruby.Value {
+	return ruby.array_value(kegs.map(keg_boundary_value(it)))
 }
 
-fn formula_spec_boundary(formula Formula, spec string) brew_runtime.Value {
+fn formula_spec_boundary(formula Formula, spec string) ruby.Value {
 	version := if spec == 'head' {
 		formula.reference.head_version
 	} else {
 		formula.reference.stable_version
 	}
 	if version == '' {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
-	return brew_runtime.structured_value('SoftwareSpec', version, {
+	return ruby.structured_value('SoftwareSpec', version, {
 		'spec':     spec
 		'version':  version
 		'url':      formula.url()
@@ -1581,19 +1581,19 @@ fn formula_spec_boundary(formula Formula, spec string) brew_runtime.Value {
 	})
 }
 
-fn formula_build_boundary(formula Formula) brew_runtime.Value {
-	return brew_runtime.structured_value('BuildOptions', formula.build.used_options().inspect(), {
+fn formula_build_boundary(formula Formula) ruby.Value {
+	return ruby.structured_value('BuildOptions', formula.build.used_options().inspect(), {
 		'args':    formula.build.used_options().as_flags().join(formula_boundary_separator)
 		'options': formula.options().as_flags().join(formula_boundary_separator)
 	})
 }
 
-fn formula_path_boundary(path string) brew_runtime.Value {
-	return brew_runtime.object_value('Pathname', path)
+fn formula_path_boundary(path string) ruby.Value {
+	return ruby.object_value('Pathname', path)
 }
 
-fn formula_options_boundary(options Options) brew_runtime.Value {
-	return brew_runtime.array_value(options.to_array().map(brew_runtime.structured_value('Option', it.inspect(), {
+fn formula_options_boundary(options Options) ruby.Value {
+	return ruby.array_value(options.to_array().map(ruby.structured_value('Option', it.inspect(), {
 		'name':        it.name
 		'flag':        it.flag
 		'description': it.description
@@ -1601,42 +1601,42 @@ fn formula_options_boundary(options Options) brew_runtime.Value {
 }
 
 // Ruby attr_reader `attr_reader :name` at line 115.
-pub fn ruby_formula_l115_d1_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(formula_receiver(args, 'name').name())
+pub fn ruby_formula_l115_d1_name(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(formula_receiver(args, 'name').name())
 }
 
 // Ruby attr_reader `attr_reader :alias_path` at line 120.
-pub fn ruby_formula_l120_d2_alias_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l120_d2_alias_path(args ...ruby.Value) ruby.Value {
 	return optional_formula_string(formula_receiver(args, 'alias_path').alias_path, 'Pathname')
 }
 
 // Ruby attr_reader `attr_reader :alias_name` at line 125.
-pub fn ruby_formula_l125_d3_alias_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l125_d3_alias_name(args ...ruby.Value) ruby.Value {
 	return optional_formula_string(formula_receiver(args, 'alias_name').alias_name(), 'String')
 }
 
 // Ruby attr_reader `attr_reader :full_name` at line 133.
-pub fn ruby_formula_l133_d4_full_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(formula_receiver(args, 'full_name').full_name())
+pub fn ruby_formula_l133_d4_full_name(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(formula_receiver(args, 'full_name').full_name())
 }
 
 // Ruby attr_reader `attr_reader :full_alias_name` at line 139.
-pub fn ruby_formula_l139_d5_full_alias_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l139_d5_full_alias_name(args ...ruby.Value) ruby.Value {
 	return optional_formula_string(formula_receiver(args, 'full_alias_name').full_alias_name(), 'String')
 }
 
 // Ruby attr_reader `attr_reader :path` at line 146.
-pub fn ruby_formula_l146_d6_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Pathname', formula_receiver(args, 'path').path())
+pub fn ruby_formula_l146_d6_path(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Pathname', formula_receiver(args, 'path').path())
 }
 
 // Ruby attr_accessor `attr_accessor :tap` at line 153.
-pub fn ruby_formula_l153_d7_tap(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l153_d7_tap(args ...ruby.Value) ruby.Value {
 	return optional_formula_string(formula_receiver(args, 'tap').tap, 'Tap')
 }
 
 // Ruby attr_accessor `attr_accessor :tap` at line 153.
-pub fn ruby_formula_l153_d8_tap(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l153_d8_tap(args ...ruby.Value) ruby.Value {
 	mut formula := formula_receiver(args, 'tap=')
 	if args.len < 2 { panic('Formula#tap= requires a Tap') }
 	formula.tap = if args[1].type_name == 'NilClass' { '' } else { args[1].as_string() }
@@ -1644,61 +1644,61 @@ pub fn ruby_formula_l153_d8_tap(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby attr_reader `attr_reader :stable` at line 161.
-pub fn ruby_formula_l161_d9_stable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l161_d9_stable(args ...ruby.Value) ruby.Value {
 	return formula_spec_boundary(formula_receiver(args, 'stable'), 'stable')
 }
 
 // Ruby attr_reader `attr_reader :head` at line 172.
-pub fn ruby_formula_l172_d10_head(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l172_d10_head(args ...ruby.Value) ruby.Value {
 	return formula_spec_boundary(formula_receiver(args, 'head'), 'head')
 }
 
 // Ruby attr_reader `attr_reader :active_spec` at line 177.
-pub fn ruby_formula_l177_d11_active_spec(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l177_d11_active_spec(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'active_spec')
 	return formula_spec_boundary(formula, formula.active_spec)
 }
 
 // Ruby attr_reader `attr_reader :active_spec_sym` at line 183.
-pub fn ruby_formula_l183_d12_active_spec_sym(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Symbol', ':${formula_receiver(args, 'active_spec_sym').active_spec}')
+pub fn ruby_formula_l183_d12_active_spec_sym(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Symbol', ':${formula_receiver(args, 'active_spec_sym').active_spec}')
 }
 
 // Ruby attr_reader `attr_reader :source_modified_time` at line 187.
-pub fn ruby_formula_l187_d13_source_modified_time(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l187_d13_source_modified_time(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'source_modified_time')
 	if !formula.has_source_modified_time {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
-	return brew_runtime.int_value(formula.source_modified_time)
+	return ruby.int_value(formula.source_modified_time)
 }
 
 // Ruby attr_reader `attr_reader :revision` at line 195.
-pub fn ruby_formula_l195_d14_revision(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(formula_receiver(args, 'revision').reference.revision)
+pub fn ruby_formula_l195_d14_revision(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(formula_receiver(args, 'revision').reference.revision)
 }
 
 // Ruby attr_reader `attr_reader :version_scheme` at line 202.
-pub fn ruby_formula_l202_d15_version_scheme(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(formula_receiver(args, 'version_scheme').reference.version_scheme)
+pub fn ruby_formula_l202_d15_version_scheme(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(formula_receiver(args, 'version_scheme').reference.version_scheme)
 }
 
 // Ruby attr_reader `attr_reader :compatibility_version` at line 209.
-pub fn ruby_formula_l209_d16_compatibility_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l209_d16_compatibility_version(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'compatibility_version')
 	if !formula.has_compatibility_version {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
-	return brew_runtime.int_value(formula.compatibility_version)
+	return ruby.int_value(formula.compatibility_version)
 }
 
 // Ruby attr_accessor `attr_accessor :buildpath` at line 216.
-pub fn ruby_formula_l216_d17_buildpath(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l216_d17_buildpath(args ...ruby.Value) ruby.Value {
 	return optional_formula_string(formula_receiver(args, 'buildpath').buildpath, 'Pathname')
 }
 
 // Ruby attr_accessor `attr_accessor :buildpath` at line 216.
-pub fn ruby_formula_l216_d18_buildpath(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l216_d18_buildpath(args ...ruby.Value) ruby.Value {
 	mut formula := formula_receiver(args, 'buildpath=')
 	if args.len < 2 { panic('Formula#buildpath= requires a path') }
 	formula.buildpath = if args[1].type_name == 'NilClass' { '' } else { args[1].as_string() }
@@ -1706,17 +1706,17 @@ pub fn ruby_formula_l216_d18_buildpath(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby attr_reader `attr_reader :testpath` at line 223.
-pub fn ruby_formula_l223_d19_testpath(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l223_d19_testpath(args ...ruby.Value) ruby.Value {
 	return optional_formula_string(formula_receiver(args, 'testpath').testpath, 'Pathname')
 }
 
 // Ruby attr_accessor `attr_accessor :local_bottle_path` at line 228.
-pub fn ruby_formula_l228_d20_local_bottle_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l228_d20_local_bottle_path(args ...ruby.Value) ruby.Value {
 	return optional_formula_string(formula_receiver(args, 'local_bottle_path').local_bottle_path, 'Pathname')
 }
 
 // Ruby attr_accessor `attr_accessor :local_bottle_path` at line 228.
-pub fn ruby_formula_l228_d21_local_bottle_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l228_d21_local_bottle_path(args ...ruby.Value) ruby.Value {
 	mut formula := formula_receiver(args, 'local_bottle_path=')
 	if args.len < 2 { panic('Formula#local_bottle_path= requires a path') }
 	formula.local_bottle_path = if args[1].type_name == 'NilClass' {
@@ -1728,27 +1728,27 @@ pub fn ruby_formula_l228_d21_local_bottle_path(args ...brew_runtime.Value) brew_
 }
 
 // Ruby attr_reader `attr_reader :active_log_type` at line 233.
-pub fn ruby_formula_l233_d22_active_log_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l233_d22_active_log_type(args ...ruby.Value) ruby.Value {
 	return optional_formula_string(formula_receiver(args, 'active_log_type').active_log_type, 'Symbol')
 }
 
 // Ruby attr_reader `attr_reader :build` at line 240.
-pub fn ruby_formula_l240_d23_build(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l240_d23_build(args ...ruby.Value) ruby.Value {
 	return formula_build_boundary(formula_receiver(args, 'build'))
 }
 
 // Ruby attr_reader `attr_reader :pypi_packages_info` at line 245.
-pub fn ruby_formula_l245_d24_pypi_packages_info(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l245_d24_pypi_packages_info(args ...ruby.Value) ruby.Value {
 	return formula_pypi_boundary(formula_receiver(args, 'pypi_packages_info'))
 }
 
 // Ruby attr_accessor `attr_accessor :follow_installed_alias` at line 251.
-pub fn ruby_formula_l251_d25_follow_installed_alias(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(formula_receiver(args, 'follow_installed_alias').follow_installed_alias)
+pub fn ruby_formula_l251_d25_follow_installed_alias(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(formula_receiver(args, 'follow_installed_alias').follow_installed_alias)
 }
 
 // Ruby attr_accessor `attr_accessor :follow_installed_alias` at line 251.
-pub fn ruby_formula_l251_d26_follow_installed_alias(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l251_d26_follow_installed_alias(args ...ruby.Value) ruby.Value {
 	mut formula := formula_receiver(args, 'follow_installed_alias=')
 	if args.len < 2 { panic('Formula#follow_installed_alias= requires a Boolean') }
 	formula.follow_installed_alias = args[1].as_bool() or { panic(err) }
@@ -1756,17 +1756,17 @@ pub fn ruby_formula_l251_d26_follow_installed_alias(args ...brew_runtime.Value) 
 }
 
 // Ruby alias `alias follow_installed_alias? follow_installed_alias` at line 253.
-pub fn ruby_formula_l253_d27_follow_installed_alias(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(formula_receiver(args, 'follow_installed_alias?').follow_installed_alias)
+pub fn ruby_formula_l253_d27_follow_installed_alias(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(formula_receiver(args, 'follow_installed_alias?').follow_installed_alias)
 }
 
 // Ruby attr_accessor `attr_accessor :force_bottle` at line 257.
-pub fn ruby_formula_l257_d28_force_bottle(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(formula_receiver(args, 'force_bottle').force_bottle)
+pub fn ruby_formula_l257_d28_force_bottle(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(formula_receiver(args, 'force_bottle').force_bottle)
 }
 
 // Ruby attr_accessor `attr_accessor :force_bottle` at line 257.
-pub fn ruby_formula_l257_d29_force_bottle(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l257_d29_force_bottle(args ...ruby.Value) ruby.Value {
 	mut formula := formula_receiver(args, 'force_bottle=')
 	if args.len < 2 { panic('Formula#force_bottle= requires a Boolean') }
 	formula.force_bottle = args[1].as_bool() or { panic(err) }
@@ -1774,7 +1774,7 @@ pub fn ruby_formula_l257_d29_force_bottle(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby method `initialize(name, path, spec, alias_path: nil, tap: nil, force_bottle: false)` at line 263.
-pub fn ruby_formula_l263_d30_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l263_d30_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 4 { panic('Formula.initialize requires name, path, and spec') }
 	template := if args[0].type_name == 'Formula' {
 		formula_from_boundary(args[0])
@@ -1812,7 +1812,7 @@ pub fn ruby_formula_l263_d30_initialize(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby method `active_spec=(spec_sym)` at line 317.
-pub fn ruby_formula_l317_d31_active_spec(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l317_d31_active_spec(args ...ruby.Value) ruby.Value {
 	mut formula := formula_receiver(args, 'active_spec=')
 	if args.len < 2 { panic('Formula#active_spec= requires a spec') }
 	spec := args[1].as_string().trim_left(':')
@@ -1828,7 +1828,7 @@ pub fn ruby_formula_l317_d31_active_spec(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `build=(build_options)` at line 334.
-pub fn ruby_formula_l334_d32_build(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l334_d32_build(args ...ruby.Value) ruby.Value {
 	mut formula := formula_receiver(args, 'build=')
 	if args.len < 2 { panic('Formula#build= requires BuildOptions') }
 	formula.build = build_options_from_boundary(args[1])
@@ -1836,7 +1836,7 @@ pub fn ruby_formula_l334_d32_build(args ...brew_runtime.Value) brew_runtime.Valu
 }
 
 // Ruby method `ensure_installed!(reason: "", latest: false, output_to_stderr: true, quiet: false, executable: nil,` at line 361.
-pub fn ruby_formula_l361_d33_ensure_installed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l361_d33_ensure_installed(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'ensure_installed!')
 	reason := formula_keyword(args, 'reason', 1)
 	latest := (formula_keyword(args, 'latest', 2) in ['true', '1'])
@@ -1849,45 +1849,45 @@ pub fn ruby_formula_l361_d33_ensure_installed(args ...brew_runtime.Value) brew_r
 		]
 	}
 	if executable != '' {
-		if path := brew_runtime.find_executable(executable) {
+		if path := ruby.find_executable(executable) {
 			if !latest {
 				return formula_path_boundary(path)
 			}
-			result := brew_runtime.run_command(path, version_args)
+			result := ruby.run_command(path, version_args)
 			wanted_version := formula.version() or { null_version() }
 			if result.exit_code == 0 && result.output.contains(wanted_version.to_s()) {
 				return formula_path_boundary(path)
 			}
 		}
 	}
-	brew := brew_runtime.environment_value('HOMEBREW_BREW_FILE')
+	brew := ruby.environment_value('HOMEBREW_BREW_FILE')
 	if !formula.any_version_installed() {
-		result := brew_runtime.run_command(brew, ['install', '--formula', formula.full_name()])
+		result := ruby.run_command(brew, ['install', '--formula', formula.full_name()])
 		if result.exit_code != 0 {
 			panic('Installing `${formula.name()}`${if reason == '' { '' } else { ' for \${reason}' }} failed: ${result.output}')
 		}
 	} else if latest && !formula.latest_version_installed() {
-		result := brew_runtime.run_command(brew, ['upgrade', '--formula', formula.full_name()])
+		result := ruby.run_command(brew, ['upgrade', '--formula', formula.full_name()])
 		if result.exit_code != 0 { panic('Upgrading `${formula.name()}` failed: ${result.output}') }
 	} else if (ruby_formula_l2920_d280_missing_dependencies(...args).as_array() or {
-		[]brew_runtime.Value{}}).len > 0 {
-		result := brew_runtime.run_command(brew, ['reinstall', '--formula', formula.full_name()])
+		[]ruby.Value{}}).len > 0 {
+		result := ruby.run_command(brew, ['reinstall', '--formula', formula.full_name()])
 		if result.exit_code != 0 { panic('Reinstalling `${formula.name()}` failed: ${result.output}') }
 	}
 	return if executable == '' {
 		formula_boundary_value(formula)
 	} else {
-		formula_path_boundary(brew_runtime.join_path(brew_runtime.join_path(formula.opt_prefix(), 'bin'), executable))
+		formula_path_boundary(ruby.join_path(ruby.join_path(formula.opt_prefix(), 'bin'), executable))
 	}
 }
 
 // Ruby method `preserve_rpath? = self.class.preserve_rpath?` at line 402.
-pub fn ruby_formula_l402_d34_preserve_rpath(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(formula_receiver(args, 'preserve_rpath?').preserve_rpath_value)
+pub fn ruby_formula_l402_d34_preserve_rpath(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(formula_receiver(args, 'preserve_rpath?').preserve_rpath_value)
 }
 
 // Ruby method `full_name_with_optional_tap(name)` at line 408.
-pub fn ruby_formula_l408_d35_full_name_with_optional_tap(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l408_d35_full_name_with_optional_tap(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'full_name_with_optional_tap')
 	if args.len < 2 {
 		panic('Formula#full_name_with_optional_tap requires a name')
@@ -1896,21 +1896,21 @@ pub fn ruby_formula_l408_d35_full_name_with_optional_tap(args ...brew_runtime.Va
 }
 
 // Ruby method `spec_eval(name)` at line 417.
-pub fn ruby_formula_l417_d36_spec_eval(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l417_d36_spec_eval(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'spec_eval')
 	if args.len < 2 { panic('Formula#spec_eval requires a spec') }
 	return formula_spec_boundary(formula, args[1].as_string().trim_left(':'))
 }
 
 // Ruby method `add_global_deps_to_spec(spec); end` at line 427.
-pub fn ruby_formula_l427_d37_add_global_deps_to_spec(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l427_d37_add_global_deps_to_spec(args ...ruby.Value) ruby.Value {
 	_ = formula_receiver(args, 'add_global_deps_to_spec')
 	if args.len < 2 { panic('Formula#add_global_deps_to_spec requires a spec') }
 	return args[1]
 }
 
 // Ruby method `determine_active_spec(requested)` at line 430.
-pub fn ruby_formula_l430_d38_determine_active_spec(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l430_d38_determine_active_spec(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'determine_active_spec')
 	requested := if args.len > 1 { args[1].as_string().trim_left(':') } else { '' }
 	for spec in [requested, 'stable', 'head'] {
@@ -1926,7 +1926,7 @@ pub fn ruby_formula_l430_d38_determine_active_spec(args ...brew_runtime.Value) b
 }
 
 // Ruby method `validate_attributes!` at line 436.
-pub fn ruby_formula_l436_d39_validate_attributes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l436_d39_validate_attributes(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'validate_attributes!')
 	if formula.name() == '' || formula.name().contains_any(' \t\r\n') {
 		panic('invalid formula name: ${formula.name()}')
@@ -1942,257 +1942,257 @@ pub fn ruby_formula_l436_d39_validate_attributes(args ...brew_runtime.Value) bre
 }
 
 // Ruby method `installed_alias_path` at line 456.
-pub fn ruby_formula_l456_d40_installed_alias_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l456_d40_installed_alias_path(args ...ruby.Value) ruby.Value {
 	_ = formula_receiver(args, 'installed_alias_path')
 	path := args[0].attribute('build_source_path') or { '' }
-	if !path.contains('/Aliases/') || !brew_runtime.is_link(path) {
-		return brew_runtime.object_value('NilClass', 'nil')
+	if !path.contains('/Aliases/') || !ruby.is_link(path) {
+		return ruby.object_value('NilClass', 'nil')
 	}
 	return formula_path_boundary(path)
 }
 
 // Ruby method `installed_alias_name = installed_alias_path&.basename&.to_s` at line 469.
-pub fn ruby_formula_l469_d41_installed_alias_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l469_d41_installed_alias_name(args ...ruby.Value) ruby.Value {
 	path := ruby_formula_l456_d40_installed_alias_path(...args)
 	return if path.type_name == 'NilClass' {
 		path
 	} else {
-		brew_runtime.string_value(os.base(path.as_string()))
+		ruby.string_value(os.base(path.as_string()))
 	}
 }
 
 // Ruby method `full_installed_alias_name = full_name_with_optional_tap(installed_alias_name)` at line 472.
-pub fn ruby_formula_l472_d42_full_installed_alias_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l472_d42_full_installed_alias_name(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'full_installed_alias_name')
 	name := ruby_formula_l469_d41_installed_alias_name(...args)
 	if name.type_name == 'NilClass' {
 		return name
 	}
-	return brew_runtime.string_value(formula.full_name_with_optional_tap(name.as_string()))
+	return ruby.string_value(formula.full_name_with_optional_tap(name.as_string()))
 }
 
 // Ruby method `tap!` at line 475.
-pub fn ruby_formula_l475_d43_tap(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l475_d43_tap(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'tap!')
 	if formula.tap == '' { panic('Formula tap is nil') }
-	return brew_runtime.object_value('Tap', formula.tap)
+	return ruby.object_value('Tap', formula.tap)
 }
 
 // Ruby method `tap_path` at line 480.
-pub fn ruby_formula_l480_d44_tap_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l480_d44_tap_path(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'tap_path')
 	return formula_path_boundary(formula.path())
 }
 
 // Ruby method `specified_path` at line 490.
-pub fn ruby_formula_l490_d45_specified_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l490_d45_specified_path(args ...ruby.Value) ruby.Value {
 	return formula_path_boundary(formula_receiver(args, 'specified_path').specified_path())
 }
 
 // Ruby method `reloadable_ref = loaded_from_api? ? full_name : path` at line 503.
-pub fn ruby_formula_l503_d46_reloadable_ref(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l503_d46_reloadable_ref(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'reloadable_ref')
 	return if formula.loaded_from_api() {
-		brew_runtime.string_value(formula.full_name())
+		ruby.string_value(formula.full_name())
 	} else {
 		formula_path_boundary(formula.path())
 	}
 }
 
 // Ruby method `specified_name` at line 507.
-pub fn ruby_formula_l507_d47_specified_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(formula_receiver(args, 'specified_name').specified_name())
+pub fn ruby_formula_l507_d47_specified_name(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(formula_receiver(args, 'specified_name').specified_name())
 }
 
 // Ruby method `full_specified_name` at line 513.
-pub fn ruby_formula_l513_d48_full_specified_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(formula_receiver(args, 'full_specified_name').full_specified_name())
+pub fn ruby_formula_l513_d48_full_specified_name(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(formula_receiver(args, 'full_specified_name').full_specified_name())
 }
 
 // Ruby method `full_installed_specified_name` at line 519.
-pub fn ruby_formula_l519_d49_full_installed_specified_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l519_d49_full_installed_specified_name(args ...ruby.Value) ruby.Value {
 	installed := ruby_formula_l472_d42_full_installed_alias_name(...args)
 	return if installed.type_name == 'NilClass' {
-		brew_runtime.string_value(formula_receiver(args, 'full_installed_specified_name').full_name())
+		ruby.string_value(formula_receiver(args, 'full_installed_specified_name').full_name())
 	} else {
 		installed
 	}
 }
 
 // Ruby method `stable?` at line 525.
-pub fn ruby_formula_l525_d50_stable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(formula_receiver(args, 'stable?').stable())
+pub fn ruby_formula_l525_d50_stable(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(formula_receiver(args, 'stable?').stable())
 }
 
 // Ruby method `head?` at line 531.
-pub fn ruby_formula_l531_d51_head(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(formula_receiver(args, 'head?').head())
+pub fn ruby_formula_l531_d51_head(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(formula_receiver(args, 'head?').head())
 }
 
 // Ruby method `head_only?` at line 537.
-pub fn ruby_formula_l537_d52_head_only(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(formula_receiver(args, 'head_only?').head_only())
+pub fn ruby_formula_l537_d52_head_only(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(formula_receiver(args, 'head_only?').head_only())
 }
 
 // Ruby delegate `delegate [ :bottle_defined?, :bottle_tag?, :bottled?, :bottle_specification, :downloader, ] => :active_spec` at line 541.
-pub fn ruby_formula_l541_d53_bottle_defined(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(formula_receiver(args, 'bottle_defined?').reference.bottle_available)
+pub fn ruby_formula_l541_d53_bottle_defined(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(formula_receiver(args, 'bottle_defined?').reference.bottle_available)
 }
 
 // Ruby delegate `delegate [ :bottle_defined?, :bottle_tag?, :bottled?, :bottle_specification, :downloader, ] => :active_spec` at line 541.
-pub fn ruby_formula_l541_d54_bottle_tag(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l541_d54_bottle_tag(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'bottle_tag?')
 	if args.len < 2 { panic('Formula#bottle_tag? requires a tag') }
-	return brew_runtime.bool_value(args[1].as_string() in formula.reference.bottle_tags)
+	return ruby.bool_value(args[1].as_string() in formula.reference.bottle_tags)
 }
 
 // Ruby delegate `delegate [ :bottle_defined?, :bottle_tag?, :bottled?, :bottle_specification, :downloader, ] => :active_spec` at line 541.
-pub fn ruby_formula_l541_d55_bottled(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(formula_receiver(args, 'bottled?').reference.bottle_available)
+pub fn ruby_formula_l541_d55_bottled(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(formula_receiver(args, 'bottled?').reference.bottle_available)
 }
 
 // Ruby delegate `delegate [ :bottle_defined?, :bottle_tag?, :bottled?, :bottle_specification, :downloader, ] => :active_spec` at line 541.
-pub fn ruby_formula_l541_d56_bottle_specification(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l541_d56_bottle_specification(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'bottle_specification')
-	return brew_runtime.structured_value('BottleSpecification', formula.full_name(), {
+	return ruby.structured_value('BottleSpecification', formula.full_name(), {
 		'rebuild': formula.reference.bottle_rebuild.str()
 		'tags':    formula.reference.bottle_tags.join(formula_boundary_separator)
 	})
 }
 
 // Ruby delegate `delegate [ :bottle_defined?, :bottle_tag?, :bottled?, :bottle_specification, :downloader, ] => :active_spec` at line 541.
-pub fn ruby_formula_l541_d57_downloader(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l541_d57_downloader(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'downloader')
-	return brew_runtime.structured_value('DownloadStrategy', formula.url(), {
+	return ruby.structured_value('DownloadStrategy', formula.url(), {
 		'url':             formula.url()
-		'cached_location': brew_runtime.join_path(brew_runtime.environment_value('HOMEBREW_CACHE'), os.base(formula.url().all_before('?')))
+		'cached_location': ruby.join_path(ruby.environment_value('HOMEBREW_CACHE'), os.base(formula.url().all_before('?')))
 	})
 }
 
 // Ruby method `bottle` at line 551.
-pub fn ruby_formula_l551_d58_bottle(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l551_d58_bottle(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'bottle')
 	if !formula.reference.bottle_available {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
-	return brew_runtime.structured_value('Bottle', formula.full_name(), {
+	return ruby.structured_value('Bottle', formula.full_name(), {
 		'formula': formula.full_name()
 		'tags':    formula.reference.bottle_tags.join(formula_boundary_separator)
 	})
 }
 
 // Ruby method `bottle_for_tag(tag = nil)` at line 557.
-pub fn ruby_formula_l557_d59_bottle_for_tag(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l557_d59_bottle_for_tag(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'bottle_for_tag')
 	tag := if args.len > 1 { args[1].as_string().trim_left(':') } else { '' }
 	if !formula.reference.bottle_available || (tag != '' && tag !in formula.reference.bottle_tags) {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
-	return brew_runtime.structured_value('Bottle', formula.full_name(), {
+	return ruby.structured_value('Bottle', formula.full_name(), {
 		'formula': formula.full_name()
 		'tag':     tag
 	})
 }
 
 // Ruby delegate `delegate desc: :"self.class"` at line 564.
-pub fn ruby_formula_l564_d60_desc(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l564_d60_desc(args ...ruby.Value) ruby.Value {
 	return optional_formula_string(formula_receiver(args, 'desc').description(), 'String')
 }
 
 // Ruby delegate `delegate license: :"self.class"` at line 569.
-pub fn ruby_formula_l569_d61_license(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l569_d61_license(args ...ruby.Value) ruby.Value {
 	return optional_formula_string(formula_receiver(args, 'license').license(), 'String')
 }
 
 // Ruby delegate `delegate homepage: :"self.class"` at line 574.
-pub fn ruby_formula_l574_d62_homepage(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l574_d62_homepage(args ...ruby.Value) ruby.Value {
 	return optional_formula_string(formula_receiver(args, 'homepage').homepage(), 'String')
 }
 
 // Ruby delegate `delegate homepage_browsed: :"self.class"` at line 579.
-pub fn ruby_formula_l579_d63_homepage_browsed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l579_d63_homepage_browsed(args ...ruby.Value) ruby.Value {
 	return optional_formula_string(formula_receiver(args, 'homepage_browsed').homepage_browsed_value, 'Date')
 }
 
 // Ruby delegate `delegate livecheck: :"self.class"` at line 584.
-pub fn ruby_formula_l584_d64_livecheck(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l584_d64_livecheck(args ...ruby.Value) ruby.Value {
 	return optional_formula_string(formula_receiver(args, 'livecheck').livecheck_value, 'Livecheck')
 }
 
 // Ruby delegate `delegate livecheck_defined?: :"self.class"` at line 589.
-pub fn ruby_formula_l589_d65_livecheck_defined(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(formula_receiver(args, 'livecheck_defined?').livecheck_defined_value)
+pub fn ruby_formula_l589_d65_livecheck_defined(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(formula_receiver(args, 'livecheck_defined?').livecheck_defined_value)
 }
 
 // Ruby delegate `delegate livecheckable?: :"self.class"` at line 594.
-pub fn ruby_formula_l594_d66_livecheckable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l594_d66_livecheckable(args ...ruby.Value) ruby.Value {
 	return ruby_formula_l589_d65_livecheck_defined(...args)
 }
 
 // Ruby delegate `delegate no_autobump!: :"self.class"` at line 599.
-pub fn ruby_formula_l599_d67_no_autobump(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l599_d67_no_autobump(args ...ruby.Value) ruby.Value {
 	return ruby_formula_l4881_d372_no_autobump(...args)
 }
 
 // Ruby delegate `delegate autobump?: :"self.class"` at line 604.
-pub fn ruby_formula_l604_d68_autobump(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l604_d68_autobump(args ...ruby.Value) ruby.Value {
 	return ruby_formula_l4901_d373_autobump(...args)
 }
 
 // Ruby delegate `delegate no_autobump_message: :"self.class"` at line 606.
-pub fn ruby_formula_l606_d69_no_autobump_message(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l606_d69_no_autobump_message(args ...ruby.Value) ruby.Value {
 	return ruby_formula_l4910_d374_no_autobump_message(...args)
 }
 
 // Ruby delegate `delegate service?: :"self.class"` at line 611.
-pub fn ruby_formula_l611_d70_service(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(formula_receiver(args, 'service?').service_block_value != '')
+pub fn ruby_formula_l611_d70_service(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(formula_receiver(args, 'service?').service_block_value != '')
 }
 
 // Ruby delegate `delegate version: :active_spec` at line 618.
-pub fn ruby_formula_l618_d71_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l618_d71_version(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'version')
 	version := formula.version() or { panic(err) }
-	return brew_runtime.object_value('Version', version.to_s())
+	return ruby.object_value('Version', version.to_s())
 }
 
 // Ruby delegate `delegate [ :allow_network_access!, :deny_network_access!, :network_access_allowed?, ] => :"self.class"` at line 620.
-pub fn ruby_formula_l620_d72_allow_network_access(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l620_d72_allow_network_access(args ...ruby.Value) ruby.Value {
 	return ruby_formula_l4011_d328_allow_network_access(...args)
 }
 
 // Ruby delegate `delegate [ :allow_network_access!, :deny_network_access!, :network_access_allowed?, ] => :"self.class"` at line 620.
-pub fn ruby_formula_l620_d73_deny_network_access(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l620_d73_deny_network_access(args ...ruby.Value) ruby.Value {
 	return ruby_formula_l4045_d329_deny_network_access(...args)
 }
 
 // Ruby delegate `delegate [ :allow_network_access!, :deny_network_access!, :network_access_allowed?, ] => :"self.class"` at line 620.
-pub fn ruby_formula_l620_d74_network_access_allowed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l620_d74_network_access_allowed(args ...ruby.Value) ruby.Value {
 	return ruby_formula_l4060_d330_network_access_allowed(...args)
 }
 
 // Ruby delegate `delegate loaded_from_api?: :"self.class"` at line 629.
-pub fn ruby_formula_l629_d75_loaded_from_api(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(formula_receiver(args, 'loaded_from_api?').loaded_from_api())
+pub fn ruby_formula_l629_d75_loaded_from_api(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(formula_receiver(args, 'loaded_from_api?').loaded_from_api())
 }
 
 // Ruby delegate `delegate loaded_from_internal_api?: :"self.class"` at line 634.
-pub fn ruby_formula_l634_d76_loaded_from_internal_api(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(formula_receiver(args, 'loaded_from_internal_api?').loaded_from_internal_api_value)
+pub fn ruby_formula_l634_d76_loaded_from_internal_api(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(formula_receiver(args, 'loaded_from_internal_api?').loaded_from_internal_api_value)
 }
 
 // Ruby delegate `delegate api_source: :"self.class"` at line 640.
-pub fn ruby_formula_l640_d77_api_source(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l640_d77_api_source(args ...ruby.Value) ruby.Value {
 	return optional_formula_string(formula_receiver(args, 'api_source').api_source_value, 'Hash')
 }
 
 // Ruby delegate `delegate post_install_steps: :"self.class"` at line 645.
-pub fn ruby_formula_l645_d78_post_install_steps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(formula_receiver(args, 'post_install_steps').post_install_step_values)
+pub fn ruby_formula_l645_d78_post_install_steps(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(formula_receiver(args, 'post_install_steps').post_install_step_values)
 }
 
 // Ruby method `update_head_version` at line 648.
-pub fn ruby_formula_l648_d79_update_head_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l648_d79_update_head_version(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'update_head_version')
 	if !formula.head() {
 		return formula_boundary_value(formula)
@@ -2206,60 +2206,60 @@ pub fn ruby_formula_l648_d79_update_head_version(args ...brew_runtime.Value) bre
 }
 
 // Ruby method `pkg_version = PkgVersion.new(version, revision)` at line 668.
-pub fn ruby_formula_l668_d80_pkg_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l668_d80_pkg_version(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'pkg_version')
 	version := formula.pkg_version() or { panic(err) }
-	return brew_runtime.object_value('PkgVersion', version.to_s())
+	return ruby.object_value('PkgVersion', version.to_s())
 }
 
 // Ruby method `versioned_formula? = name.include?("@")` at line 672.
-pub fn ruby_formula_l672_d81_versioned_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(formula_receiver(args, 'versioned_formula?').versioned_formula())
+pub fn ruby_formula_l672_d81_versioned_formula(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(formula_receiver(args, 'versioned_formula?').versioned_formula())
 }
 
 // Ruby method `versioned_formulae_names` at line 676.
-pub fn ruby_formula_l676_d82_versioned_formulae_names(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(formula_receiver(args, 'versioned_formulae_names').reference.versioned_formulae)
+pub fn ruby_formula_l676_d82_versioned_formulae_names(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(formula_receiver(args, 'versioned_formulae_names').reference.versioned_formulae)
 }
 
 // Ruby method `versioned_formulae` at line 698.
-pub fn ruby_formula_l698_d83_versioned_formulae(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l698_d83_versioned_formulae(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'versioned_formulae')
-	mut values := formula.reference.versioned_formulae.map(brew_runtime.structured_value('Formula', it, {
+	mut values := formula.reference.versioned_formulae.map(ruby.structured_value('Formula', it, {
 		'name': it
 	}))
 	values.sort(a.repr > b.repr)
-	return brew_runtime.array_value(values)
+	return ruby.array_value(values)
 }
 
 // Ruby method `unversioned_formula_name` at line 707.
-pub fn ruby_formula_l707_d84_unversioned_formula_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l707_d84_unversioned_formula_name(args ...ruby.Value) ruby.Value {
 	return optional_formula_string(formula_receiver(args, 'unversioned_formula_name').unversioned_formula_name(), 'String')
 }
 
 // Ruby method `formula_names_for_glob(glob)` at line 714.
-pub fn ruby_formula_l714_d85_formula_names_for_glob(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l714_d85_formula_names_for_glob(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'formula_names_for_glob')
 	if args.len < 2 { panic('Formula#formula_names_for_glob requires a glob') }
-	pattern := brew_runtime.join_path(os.dir(formula.path()), args[1].as_string())
+	pattern := ruby.join_path(os.dir(formula.path()), args[1].as_string())
 	mut names := os.glob(pattern) or { []string{} }.map(os.base(it).trim_string_right('.rb'))
 	names.sort()
-	return brew_runtime.string_array_value(names)
+	return ruby.string_array_value(names)
 }
 
 // Ruby method `full_formulae_names` at line 735.
-pub fn ruby_formula_l735_d86_full_formulae_names(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l735_d86_full_formulae_names(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'full_formulae_names')
 	sibling := if formula.name().ends_with('-full') {
 		formula.name().trim_string_right('-full')
 	} else {
 		'${formula.name()}-full'
 	}
-	return ruby_formula_l714_d85_formula_names_for_glob(args[0], brew_runtime.string_value('${sibling}.rb'))
+	return ruby_formula_l714_d85_formula_names_for_glob(args[0], ruby.string_value('${sibling}.rb'))
 }
 
 // Ruby method `link_overwrite_reason` at line 746.
-pub fn ruby_formula_l746_d87_link_overwrite_reason(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l746_d87_link_overwrite_reason(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'link_overwrite_reason')
 	mut installed := []Formula{}
 	for name in formula.reference.versioned_formulae {
@@ -2275,7 +2275,7 @@ pub fn ruby_formula_l746_d87_link_overwrite_reason(args ...brew_runtime.Value) b
 		if candidate.any_version_installed() { installed << candidate }
 	}
 	if installed.len == 0 {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	mut reason := installed.filter(it.linked())
 	status := if reason.len == 0 {
@@ -2293,11 +2293,11 @@ pub fn ruby_formula_l746_d87_link_overwrite_reason(args ...brew_runtime.Value) b
 		'${names[..names.len - 1].join(', ')}, and ${names.last()}'
 	}
 	verb := if names.len == 1 { 'is' } else { 'are' }
-	return brew_runtime.string_value('${joined} ${verb} already ${status}')
+	return ruby.string_value('${joined} ${verb} already ${status}')
 }
 
 // Ruby method `link_overwrite_related_formula_names` at line 762.
-pub fn ruby_formula_l762_d88_link_overwrite_related_formula_names(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l762_d88_link_overwrite_related_formula_names(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'link_overwrite_related_formula_names')
 	mut names := formula.reference.versioned_formulae.clone()
 	full := ruby_formula_l735_d86_full_formulae_names(...args).as_string_array() or { []string{} }
@@ -2306,91 +2306,91 @@ pub fn ruby_formula_l762_d88_link_overwrite_related_formula_names(args ...brew_r
 	}
 	unversioned := formula.unversioned_formula_name()
 	if unversioned != '' && unversioned !in names { names << unversioned }
-	return brew_runtime.string_array_value(names)
+	return ruby.string_array_value(names)
 }
 
 // Ruby method `link_overwrite_formulae_names` at line 768.
-pub fn ruby_formula_l768_d89_link_overwrite_formulae_names(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l768_d89_link_overwrite_formulae_names(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'link_overwrite_formulae_names')
 	mut names := ruby_formula_l762_d88_link_overwrite_related_formula_names(...args).as_string_array() or {
 		[]string{}
 	}
 	names = names.filter(it != formula.name())
 	names.sort()
-	return brew_runtime.string_array_value(names)
+	return ruby.string_array_value(names)
 }
 
 // Ruby method `link_overwrite_formulae` at line 796.
-pub fn ruby_formula_l796_d90_link_overwrite_formulae(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.array_value(ruby_formula_l768_d89_link_overwrite_formulae_names(...args).as_string_array() or {
+pub fn ruby_formula_l796_d90_link_overwrite_formulae(args ...ruby.Value) ruby.Value {
+	return ruby.array_value(ruby_formula_l768_d89_link_overwrite_formulae_names(...args).as_string_array() or {
 		[]string{}
-	}.map(brew_runtime.structured_value('Formula', it, {
+	}.map(ruby.structured_value('Formula', it, {
 		'name': it
 	})))
 }
 
 // Ruby method `link_overwrite_keg_name(path)` at line 805.
-pub fn ruby_formula_l805_d91_link_overwrite_keg_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l805_d91_link_overwrite_keg_name(args ...ruby.Value) ruby.Value {
 	_ = formula_receiver(args, 'link_overwrite_keg_name')
 	if args.len < 2 { panic('Formula#link_overwrite_keg_name requires a path') }
 	path := args[1].as_string()
-	keg := keg_for_path(path, brew_runtime.environment_value('HOMEBREW_CELLAR'), brew_runtime.environment_value('HOMEBREW_PREFIX')) or {
-		return brew_runtime.object_value('Symbol', ':missing')
+	keg := keg_for_path(path, ruby.environment_value('HOMEBREW_CELLAR'), ruby.environment_value('HOMEBREW_PREFIX')) or {
+		return ruby.object_value('Symbol', ':missing')
 	}
-	tab := keg.tab() or { return brew_runtime.object_value('NilClass', 'nil') }
+	tab := keg.tab() or { return ruby.object_value('NilClass', 'nil') }
 	if tab.tap_name() == '' {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
-	return brew_runtime.string_value(keg.name)
+	return ruby.string_value(keg.name)
 }
 
 // Ruby method `implied_link_overwrite?(keg_name, overwrite_formulae)` at line 822.
-pub fn ruby_formula_l822_d92_implied_link_overwrite(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l822_d92_implied_link_overwrite(args ...ruby.Value) ruby.Value {
 	_ = formula_receiver(args, 'implied_link_overwrite?')
 	if args.len < 3 { panic('Formula#implied_link_overwrite? requires keg name and formulae') }
 	if args[1].type_name == 'NilClass' || args[1].as_string() in [':missing', 'missing'] {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	keg_name := args[1].as_string()
-	formulae := args[2].as_array() or { []brew_runtime.Value{} }
+	formulae := args[2].as_array() or { []ruby.Value{} }
 	for value in formulae {
 		candidate := formula_from_boundary(value)
 		if keg_name in candidate.possible_names() {
-			return brew_runtime.bool_value(true)
+			return ruby.bool_value(true)
 		}
 	}
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 // Ruby method `synced_with_other_formulae?` at line 838.
-pub fn ruby_formula_l838_d93_synced_with_other_formulae(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l838_d93_synced_with_other_formulae(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'synced_with_other_formulae?')
 	groups := args[0].attribute('synced_versions_formulae') or { '' }
-	return brew_runtime.bool_value(groups.split(formula_boundary_separator).any(it.split('\x1f').contains(formula.name())))
+	return ruby.bool_value(groups.split(formula_boundary_separator).any(it.split('\x1f').contains(formula.name())))
 }
 
 // Ruby method `resource(name = T.unsafe(nil), klass = T.unsafe(nil), &block)` at line 863.
-pub fn ruby_formula_l863_d94_resource(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l863_d94_resource(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'resource')
 	if args.len < 2 {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	name := args[1].as_string()
 	if name !in formula.resource_values {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
-	return brew_runtime.structured_value('Resource', name, {
+	return ruby.structured_value('Resource', name, {
 		'name': name
 	})
 }
 
 // Ruby method `oldnames` at line 875.
-pub fn ruby_formula_l875_d95_oldnames(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(formula_receiver(args, 'oldnames').oldnames())
+pub fn ruby_formula_l875_d95_oldnames(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(formula_receiver(args, 'oldnames').oldnames())
 }
 
 // Ruby attr_writer `attr_writer :oldnames` at line 886.
-pub fn ruby_formula_l886_d96_oldnames(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l886_d96_oldnames(args ...ruby.Value) ruby.Value {
 	mut formula := formula_receiver(args, 'oldnames=')
 	if args.len < 2 { panic('Formula#oldnames= requires names') }
 	formula.reference = api.PackageReference{ ...formula.reference, oldnames: formula_argument_strings(args[1]) }
@@ -2398,153 +2398,153 @@ pub fn ruby_formula_l886_d96_oldnames(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby method `aliases` at line 892.
-pub fn ruby_formula_l892_d97_aliases(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(formula_receiver(args, 'aliases').aliases())
+pub fn ruby_formula_l892_d97_aliases(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(formula_receiver(args, 'aliases').aliases())
 }
 
 // Ruby def_delegator `def_delegator :"active_spec.resources", :values, :resources` at line 904.
-pub fn ruby_formula_l904_d98_resources(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.array_value(formula_receiver(args, 'resources').resource_values.map(brew_runtime.structured_value('Resource', it, {
+pub fn ruby_formula_l904_d98_resources(args ...ruby.Value) ruby.Value {
+	return ruby.array_value(formula_receiver(args, 'resources').resource_values.map(ruby.structured_value('Resource', it, {
 		'name': it
 	})))
 }
 
 // Ruby delegate `delegate deps: :active_spec` at line 909.
-pub fn ruby_formula_l909_d99_deps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l909_d99_deps(args ...ruby.Value) ruby.Value {
 	return dependency_list_boundary_value(formula_receiver(args, 'deps').deps())
 }
 
 // Ruby delegate `delegate declared_deps: :active_spec` at line 912.
-pub fn ruby_formula_l912_d100_declared_deps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l912_d100_declared_deps(args ...ruby.Value) ruby.Value {
 	return dependency_list_boundary_value(formula_receiver(args, 'declared_deps').deps())
 }
 
 // Ruby delegate `delegate requirements: :active_spec` at line 915.
-pub fn ruby_formula_l915_d101_requirements(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(formula_receiver(args, 'requirements').requirement_values)
+pub fn ruby_formula_l915_d101_requirements(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(formula_receiver(args, 'requirements').requirement_values)
 }
 
 // Ruby delegate `delegate cached_download: :active_spec` at line 918.
-pub fn ruby_formula_l918_d102_cached_download(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l918_d102_cached_download(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'cached_download')
-	return formula_path_boundary(brew_runtime.join_path(brew_runtime.environment_value('HOMEBREW_CACHE'), os.base(formula.url().all_before('?'))))
+	return formula_path_boundary(ruby.join_path(ruby.environment_value('HOMEBREW_CACHE'), os.base(formula.url().all_before('?'))))
 }
 
 // Ruby delegate `delegate clear_cache: :active_spec` at line 921.
-pub fn ruby_formula_l921_d103_clear_cache(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l921_d103_clear_cache(args ...ruby.Value) ruby.Value {
 	path := ruby_formula_l918_d102_cached_download(...args).as_string()
-	if brew_runtime.path_exists(path) { os.rm(path) or {} }
-	return brew_runtime.object_value('NilClass', 'nil')
+	if ruby.path_exists(path) { os.rm(path) or {} }
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby def_delegator `def_delegator :active_spec, :patches, :patchlist` at line 924.
-pub fn ruby_formula_l924_d104_patchlist(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(formula_receiver(args, 'patchlist').patch_values)
+pub fn ruby_formula_l924_d104_patchlist(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(formula_receiver(args, 'patchlist').patch_values)
 }
 
 // Ruby delegate `delegate options: :active_spec` at line 927.
-pub fn ruby_formula_l927_d105_options(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l927_d105_options(args ...ruby.Value) ruby.Value {
 	return formula_options_boundary(formula_receiver(args, 'options').options())
 }
 
 // Ruby delegate `delegate deprecated_options: :active_spec` at line 930.
-pub fn ruby_formula_l930_d106_deprecated_options(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l930_d106_deprecated_options(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'deprecated_options')
-	return brew_runtime.array_value(formula.deprecated_options().map(brew_runtime.structured_value('DeprecatedOption', '${it.old}=>${it.current}', {
+	return ruby.array_value(formula.deprecated_options().map(ruby.structured_value('DeprecatedOption', '${it.old}=>${it.current}', {
 		'old':     it.old
 		'current': it.current
 	})))
 }
 
 // Ruby delegate `delegate deprecated_flags: :active_spec` at line 933.
-pub fn ruby_formula_l933_d107_deprecated_flags(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l933_d107_deprecated_flags(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'deprecated_flags')
-	mut flags := map[string]brew_runtime.Value{}
+	mut flags := map[string]ruby.Value{}
 	for option in formula.deprecated_option_values {
-		flags[option.old] = brew_runtime.string_value(option.current)
+		flags[option.old] = ruby.string_value(option.current)
 	}
-	return brew_runtime.map_value(flags)
+	return ruby.map_value(flags)
 }
 
 // Ruby delegate `delegate option_defined?: :active_spec` at line 937.
-pub fn ruby_formula_l937_d108_option_defined(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l937_d108_option_defined(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'option_defined?')
 	if args.len < 2 { panic('Formula#option_defined? requires an option name') }
-	return brew_runtime.bool_value(formula.options().contains(args[1].as_string()))
+	return ruby.bool_value(formula.options().contains(args[1].as_string()))
 }
 
 // Ruby delegate `delegate compiler_failures: :active_spec` at line 940.
-pub fn ruby_formula_l940_d109_compiler_failures(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(formula_receiver(args, 'compiler_failures').compiler_failure_values)
+pub fn ruby_formula_l940_d109_compiler_failures(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(formula_receiver(args, 'compiler_failures').compiler_failure_values)
 }
 
 // Ruby method `latest_version_installed?` at line 946.
-pub fn ruby_formula_l946_d110_latest_version_installed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(formula_receiver(args, 'latest_version_installed?').latest_version_installed())
+pub fn ruby_formula_l946_d110_latest_version_installed(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(formula_receiver(args, 'latest_version_installed?').latest_version_installed())
 }
 
 // Ruby method `any_version_installed?` at line 954.
-pub fn ruby_formula_l954_d111_any_version_installed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(formula_receiver(args, 'any_version_installed?').any_version_installed())
+pub fn ruby_formula_l954_d111_any_version_installed(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(formula_receiver(args, 'any_version_installed?').any_version_installed())
 }
 
 // Ruby method `linked_keg` at line 963.
-pub fn ruby_formula_l963_d112_linked_keg(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l963_d112_linked_keg(args ...ruby.Value) ruby.Value {
 	return formula_path_boundary(formula_receiver(args, 'linked_keg').linked_keg())
 }
 
 // Ruby method `latest_head_version` at line 970.
-pub fn ruby_formula_l970_d113_latest_head_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l970_d113_latest_head_version(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'latest_head_version')
 	if version := formula.latest_head_version() {
-		return brew_runtime.object_value('PkgVersion', version.to_s())
+		return ruby.object_value('PkgVersion', version.to_s())
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `latest_head_prefix` at line 982.
-pub fn ruby_formula_l982_d114_latest_head_prefix(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l982_d114_latest_head_prefix(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'latest_head_prefix')
 	if prefix := formula.latest_head_prefix() {
 		return formula_path_boundary(prefix)
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `head_version_outdated?(version, fetch_head: false)` at line 988.
-pub fn ruby_formula_l988_d115_head_version_outdated(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l988_d115_head_version_outdated(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'head_version_outdated?')
 	if args.len < 2 { panic('Formula#head_version_outdated? requires a version') }
 	if args.len > 2 && args[2].type_name == 'Bool' && (args[2].as_bool() or { false }) {
 		if args.len > 3 && args[3].type_name != 'NilClass' {
 			fetched := parse_pkg_version(args[3].as_string()) or { panic(err) }
-			return brew_runtime.bool_value(formula.head_version_outdated(fetched))
+			return ruby.bool_value(formula.head_version_outdated(fetched))
 		}
 	}
 	version := parse_pkg_version(args[1].as_string()) or { panic(err) }
-	return brew_runtime.bool_value(formula.head_version_outdated(version))
+	return ruby.bool_value(formula.head_version_outdated(version))
 }
 
 // Ruby method `latest_head_pkg_version(fetch_head: false)` at line 1006.
-pub fn ruby_formula_l1006_d116_latest_head_pkg_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1006_d116_latest_head_pkg_version(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'latest_head_pkg_version')
 	if args.len > 1 && args[1].type_name == 'Bool' && (args[1].as_bool() or { false }) {
 		if args.len > 2 && args[2].type_name != 'NilClass' {
 			version := parse_pkg_version(args[2].as_string()) or { panic(err) }
-			return brew_runtime.object_value('PkgVersion', version.to_s())
+			return ruby.object_value('PkgVersion', version.to_s())
 		}
 	}
 	version := formula.latest_head_pkg_version() or { panic(err) }
-	return brew_runtime.object_value('PkgVersion', version.to_s())
+	return ruby.object_value('PkgVersion', version.to_s())
 }
 
 // Ruby method `latest_installed_prefix` at line 1018.
-pub fn ruby_formula_l1018_d117_latest_installed_prefix(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1018_d117_latest_installed_prefix(args ...ruby.Value) ruby.Value {
 	return formula_path_boundary(formula_receiver(args, 'latest_installed_prefix').latest_installed_prefix())
 }
 
 // Ruby method `prefix(version = pkg_version)` at line 1035.
-pub fn ruby_formula_l1035_d118_prefix(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1035_d118_prefix(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'prefix')
 	if args.len > 1 {
 		version := parse_pkg_version(args[1].as_string()) or { panic(err) }
@@ -2554,208 +2554,208 @@ pub fn ruby_formula_l1035_d118_prefix(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby method `linked? = linked_keg.exist?` at line 1050.
-pub fn ruby_formula_l1050_d119_linked(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(formula_receiver(args, 'linked?').linked())
+pub fn ruby_formula_l1050_d119_linked(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(formula_receiver(args, 'linked?').linked())
 }
 
 // Ruby method `optlinked? = opt_prefix.symlink?` at line 1054.
-pub fn ruby_formula_l1054_d120_optlinked(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(formula_receiver(args, 'optlinked?').optlinked())
+pub fn ruby_formula_l1054_d120_optlinked(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(formula_receiver(args, 'optlinked?').optlinked())
 }
 
 // Ruby method `linked_version` at line 1058.
-pub fn ruby_formula_l1058_d121_linked_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1058_d121_linked_version(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'linked_version')
 	if version := formula.linked_version() {
-		return brew_runtime.object_value('PkgVersion', version.to_s())
+		return ruby.object_value('PkgVersion', version.to_s())
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `rack = HOMEBREW_CELLAR/name` at line 1067.
-pub fn ruby_formula_l1067_d122_rack(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1067_d122_rack(args ...ruby.Value) ruby.Value {
 	return formula_path_boundary(formula_receiver(args, 'rack').rack())
 }
 
 // Ruby method `installed_prefixes = Utils::Path.formula_installed_prefixes(possible_names)` at line 1071.
-pub fn ruby_formula_l1071_d123_installed_prefixes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.array_value(formula_receiver(args, 'installed_prefixes').installed_prefixes().map(formula_path_boundary(it)))
+pub fn ruby_formula_l1071_d123_installed_prefixes(args ...ruby.Value) ruby.Value {
+	return ruby.array_value(formula_receiver(args, 'installed_prefixes').installed_prefixes().map(formula_path_boundary(it)))
 }
 
 // Ruby method `installed_kegs` at line 1075.
-pub fn ruby_formula_l1075_d124_installed_kegs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1075_d124_installed_kegs(args ...ruby.Value) ruby.Value {
 	return formula_keg_array_value(formula_receiver(args, 'installed_kegs').installed_kegs())
 }
 
 // Ruby method `bin = prefix/"bin"` at line 1099.
-pub fn ruby_formula_l1099_d125_bin(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1099_d125_bin(args ...ruby.Value) ruby.Value {
 	return formula_path_boundary(formula_path_value(formula_receiver(args, 'bin'), 'bin'))
 }
 
 // Ruby method `doc = share/"doc"/name` at line 1107.
-pub fn ruby_formula_l1107_d126_doc(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1107_d126_doc(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'doc')
 	return formula_path_boundary(formula_path_value(formula, 'share', 'doc', formula.name()))
 }
 
 // Ruby method `include = prefix/"include"` at line 1123.
-pub fn ruby_formula_l1123_d127_include(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1123_d127_include(args ...ruby.Value) ruby.Value {
 	return formula_path_boundary(formula_path_value(formula_receiver(args, 'include'), 'include'))
 }
 
 // Ruby method `info = share/"info"` at line 1131.
-pub fn ruby_formula_l1131_d128_info(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1131_d128_info(args ...ruby.Value) ruby.Value {
 	return formula_path_boundary(formula_path_value(formula_receiver(args, 'info'), 'share', 'info'))
 }
 
 // Ruby method `lib = prefix/"lib"` at line 1147.
-pub fn ruby_formula_l1147_d129_lib(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1147_d129_lib(args ...ruby.Value) ruby.Value {
 	return formula_path_boundary(formula_path_value(formula_receiver(args, 'lib'), 'lib'))
 }
 
 // Ruby method `libexec = prefix/"libexec"` at line 1164.
-pub fn ruby_formula_l1164_d130_libexec(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1164_d130_libexec(args ...ruby.Value) ruby.Value {
 	return formula_path_boundary(formula_path_value(formula_receiver(args, 'libexec'), 'libexec'))
 }
 
 // Ruby method `man = share/"man"` at line 1174.
-pub fn ruby_formula_l1174_d131_man(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1174_d131_man(args ...ruby.Value) ruby.Value {
 	return formula_path_boundary(formula_path_value(formula_receiver(args, 'man'), 'share', 'man'))
 }
 
 // Ruby method `man1 = man/"man1"` at line 1190.
-pub fn ruby_formula_l1190_d132_man1(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1190_d132_man1(args ...ruby.Value) ruby.Value {
 	return formula_path_boundary(formula_path_value(formula_receiver(args, 'man1'), 'share', 'man', 'man1'))
 }
 
 // Ruby method `man2 = man/"man2"` at line 1198.
-pub fn ruby_formula_l1198_d133_man2(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1198_d133_man2(args ...ruby.Value) ruby.Value {
 	return formula_path_boundary(formula_path_value(formula_receiver(args, 'man2'), 'share', 'man', 'man2'))
 }
 
 // Ruby method `man3 = man/"man3"` at line 1214.
-pub fn ruby_formula_l1214_d134_man3(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1214_d134_man3(args ...ruby.Value) ruby.Value {
 	return formula_path_boundary(formula_path_value(formula_receiver(args, 'man3'), 'share', 'man', 'man3'))
 }
 
 // Ruby method `man4 = man/"man4"` at line 1222.
-pub fn ruby_formula_l1222_d135_man4(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1222_d135_man4(args ...ruby.Value) ruby.Value {
 	return formula_path_boundary(formula_path_value(formula_receiver(args, 'man4'), 'share', 'man', 'man4'))
 }
 
 // Ruby method `man5 = man/"man5"` at line 1230.
-pub fn ruby_formula_l1230_d136_man5(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1230_d136_man5(args ...ruby.Value) ruby.Value {
 	return formula_path_boundary(formula_path_value(formula_receiver(args, 'man5'), 'share', 'man', 'man5'))
 }
 
 // Ruby method `man6 = man/"man6"` at line 1238.
-pub fn ruby_formula_l1238_d137_man6(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1238_d137_man6(args ...ruby.Value) ruby.Value {
 	return formula_path_boundary(formula_path_value(formula_receiver(args, 'man6'), 'share', 'man', 'man6'))
 }
 
 // Ruby method `man7 = man/"man7"` at line 1246.
-pub fn ruby_formula_l1246_d138_man7(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1246_d138_man7(args ...ruby.Value) ruby.Value {
 	return formula_path_boundary(formula_path_value(formula_receiver(args, 'man7'), 'share', 'man', 'man7'))
 }
 
 // Ruby method `man8 = man/"man8"` at line 1254.
-pub fn ruby_formula_l1254_d139_man8(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1254_d139_man8(args ...ruby.Value) ruby.Value {
 	return formula_path_boundary(formula_path_value(formula_receiver(args, 'man8'), 'share', 'man', 'man8'))
 }
 
 // Ruby method `sbin = prefix/"sbin"` at line 1263.
-pub fn ruby_formula_l1263_d140_sbin(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1263_d140_sbin(args ...ruby.Value) ruby.Value {
 	return formula_path_boundary(formula_path_value(formula_receiver(args, 'sbin'), 'sbin'))
 }
 
 // Ruby method `share = prefix/"share"` at line 1297.
-pub fn ruby_formula_l1297_d141_share(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1297_d141_share(args ...ruby.Value) ruby.Value {
 	return formula_path_boundary(formula_path_value(formula_receiver(args, 'share'), 'share'))
 }
 
 // Ruby method `pkgshare = prefix/"share"/name` at line 1314.
-pub fn ruby_formula_l1314_d142_pkgshare(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1314_d142_pkgshare(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'pkgshare')
 	return formula_path_boundary(formula_path_value(formula, 'share', formula.name()))
 }
 
 // Ruby method `elisp = prefix/"share/emacs/site-lisp"/name` at line 1329.
-pub fn ruby_formula_l1329_d143_elisp(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1329_d143_elisp(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'elisp')
 	return formula_path_boundary(formula_path_value(formula, 'share', 'emacs', 'site-lisp', formula.name()))
 }
 
 // Ruby method `frameworks = prefix/"Frameworks"` at line 1338.
-pub fn ruby_formula_l1338_d144_frameworks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1338_d144_frameworks(args ...ruby.Value) ruby.Value {
 	return formula_path_boundary(formula_path_value(formula_receiver(args, 'frameworks'), 'Frameworks'))
 }
 
 // Ruby method `kext_prefix = prefix/"Library/Extensions"` at line 1347.
-pub fn ruby_formula_l1347_d145_kext_prefix(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1347_d145_kext_prefix(args ...ruby.Value) ruby.Value {
 	return formula_path_boundary(formula_path_value(formula_receiver(args, 'kext_prefix'), 'Library', 'Extensions'))
 }
 
 // Ruby method `etc = (HOMEBREW_PREFIX/"etc").extend(InstallRenamed)` at line 1357.
-pub fn ruby_formula_l1357_d146_etc(args ...brew_runtime.Value) brew_runtime.Value {
-	return formula_path_boundary(brew_runtime.join_path(formula_receiver(args, 'etc').prefix_root, 'etc'))
+pub fn ruby_formula_l1357_d146_etc(args ...ruby.Value) ruby.Value {
+	return formula_path_boundary(ruby.join_path(formula_receiver(args, 'etc').prefix_root, 'etc'))
 }
 
 // Ruby method `pkgetc = (HOMEBREW_PREFIX/"etc"/name).extend(InstallRenamed)` at line 1366.
-pub fn ruby_formula_l1366_d147_pkgetc(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1366_d147_pkgetc(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'pkgetc')
 	return formula_path_boundary(os.join_path(formula.prefix_root, 'etc', formula.name()))
 }
 
 // Ruby method `var = HOMEBREW_PREFIX/"var"` at line 1374.
-pub fn ruby_formula_l1374_d148_var(args ...brew_runtime.Value) brew_runtime.Value {
-	return formula_path_boundary(brew_runtime.join_path(formula_receiver(args, 'var').prefix_root, 'var'))
+pub fn ruby_formula_l1374_d148_var(args ...ruby.Value) ruby.Value {
+	return formula_path_boundary(ruby.join_path(formula_receiver(args, 'var').prefix_root, 'var'))
 }
 
 // Ruby method `zsh_function = share/"zsh/site-functions"` at line 1383.
-pub fn ruby_formula_l1383_d149_zsh_function(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1383_d149_zsh_function(args ...ruby.Value) ruby.Value {
 	return formula_path_boundary(formula_path_value(formula_receiver(args, 'zsh_function'), 'share', 'zsh', 'site-functions'))
 }
 
 // Ruby method `fish_function = share/"fish/vendor_functions.d"` at line 1392.
-pub fn ruby_formula_l1392_d150_fish_function(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1392_d150_fish_function(args ...ruby.Value) ruby.Value {
 	return formula_path_boundary(formula_path_value(formula_receiver(args, 'fish_function'), 'share', 'fish', 'vendor_functions.d'))
 }
 
 // Ruby method `bash_completion = prefix/"etc/bash_completion.d"` at line 1401.
-pub fn ruby_formula_l1401_d151_bash_completion(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1401_d151_bash_completion(args ...ruby.Value) ruby.Value {
 	return formula_path_boundary(formula_path_value(formula_receiver(args, 'bash_completion'), 'etc', 'bash_completion.d'))
 }
 
 // Ruby method `zsh_completion = share/"zsh/site-functions"` at line 1410.
-pub fn ruby_formula_l1410_d152_zsh_completion(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1410_d152_zsh_completion(args ...ruby.Value) ruby.Value {
 	return formula_path_boundary(formula_path_value(formula_receiver(args, 'zsh_completion'), 'share', 'zsh', 'site-functions'))
 }
 
 // Ruby method `fish_completion = share/"fish/vendor_completions.d"` at line 1419.
-pub fn ruby_formula_l1419_d153_fish_completion(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1419_d153_fish_completion(args ...ruby.Value) ruby.Value {
 	return formula_path_boundary(formula_path_value(formula_receiver(args, 'fish_completion'), 'share', 'fish', 'vendor_completions.d'))
 }
 
 // Ruby method `pwsh_completion = share/"pwsh/completions"` at line 1428.
-pub fn ruby_formula_l1428_d154_pwsh_completion(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1428_d154_pwsh_completion(args ...ruby.Value) ruby.Value {
 	return formula_path_boundary(formula_path_value(formula_receiver(args, 'pwsh_completion'), 'share', 'pwsh', 'completions'))
 }
 
 // Ruby method `bottle_prefix = prefix/".bottle"` at line 1434.
-pub fn ruby_formula_l1434_d155_bottle_prefix(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1434_d155_bottle_prefix(args ...ruby.Value) ruby.Value {
 	return formula_path_boundary(formula_path_value(formula_receiver(args, 'bottle_prefix'), '.bottle'))
 }
 
 // Ruby method `logs = HOMEBREW_LOGS + name` at line 1438.
-pub fn ruby_formula_l1438_d156_logs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1438_d156_logs(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'logs')
-	return formula_path_boundary(brew_runtime.join_path(brew_runtime.environment_value('HOMEBREW_LOGS'), formula.name()))
+	return formula_path_boundary(ruby.join_path(ruby.environment_value('HOMEBREW_LOGS'), formula.name()))
 }
 
 // Ruby method `active_log_prefix` at line 1442.
-pub fn ruby_formula_l1442_d157_active_log_prefix(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1442_d157_active_log_prefix(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'active_log_prefix')
-	return brew_runtime.string_value(if formula.active_log_type == '' {
+	return ruby.string_value(if formula.active_log_type == '' {
 		''
 	} else {
 		'${formula.active_log_type}.'
@@ -2763,7 +2763,7 @@ pub fn ruby_formula_l1442_d157_active_log_prefix(args ...brew_runtime.Value) bre
 }
 
 // Ruby method `with_logging(log_type, &_block)` at line 1457.
-pub fn ruby_formula_l1457_d158_with_logging(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1457_d158_with_logging(args ...ruby.Value) ruby.Value {
 	mut formula := formula_receiver(args, 'with_logging')
 	if args.len < 2 { panic('Formula#with_logging requires a log type') }
 	old_log_type := formula.active_log_type
@@ -2774,42 +2774,42 @@ pub fn ruby_formula_l1457_d158_with_logging(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby method `plist_name = service.plist_name` at line 1467.
-pub fn ruby_formula_l1467_d159_plist_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1467_d159_plist_name(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'plist_name')
-	return brew_runtime.string_value('homebrew.mxcl.${formula.name()}')
+	return ruby.string_value('homebrew.mxcl.${formula.name()}')
 }
 
 // Ruby method `service_name = service.service_name` at line 1471.
-pub fn ruby_formula_l1471_d160_service_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1471_d160_service_name(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'service_name')
-	return brew_runtime.string_value('homebrew.${formula.name()}')
+	return ruby.string_value('homebrew.${formula.name()}')
 }
 
 // Ruby method `launchd_service_path = (any_installed_prefix || opt_prefix)/"#{plist_name}.plist"` at line 1475.
-pub fn ruby_formula_l1475_d161_launchd_service_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1475_d161_launchd_service_path(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'launchd_service_path')
 	base := formula.any_installed_prefix() or { formula.opt_prefix() }
-	return formula_path_boundary(brew_runtime.join_path(base, '${ruby_formula_l1467_d159_plist_name(...args).as_string()}.plist'))
+	return formula_path_boundary(ruby.join_path(base, '${ruby_formula_l1467_d159_plist_name(...args).as_string()}.plist'))
 }
 
 // Ruby method `systemd_service_path = (any_installed_prefix || opt_prefix)/"#{service_name}.service"` at line 1479.
-pub fn ruby_formula_l1479_d162_systemd_service_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1479_d162_systemd_service_path(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'systemd_service_path')
 	base := formula.any_installed_prefix() or { formula.opt_prefix() }
-	return formula_path_boundary(brew_runtime.join_path(base, '${ruby_formula_l1471_d160_service_name(...args).as_string()}.service'))
+	return formula_path_boundary(ruby.join_path(base, '${ruby_formula_l1471_d160_service_name(...args).as_string()}.service'))
 }
 
 // Ruby method `systemd_timer_path = (any_installed_prefix || opt_prefix)/"#{service_name}.timer"` at line 1483.
-pub fn ruby_formula_l1483_d163_systemd_timer_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1483_d163_systemd_timer_path(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'systemd_timer_path')
 	base := formula.any_installed_prefix() or { formula.opt_prefix() }
-	return formula_path_boundary(brew_runtime.join_path(base, '${ruby_formula_l1471_d160_service_name(...args).as_string()}.timer'))
+	return formula_path_boundary(ruby.join_path(base, '${ruby_formula_l1471_d160_service_name(...args).as_string()}.timer'))
 }
 
 // Ruby method `service` at line 1489.
-pub fn ruby_formula_l1489_d164_service(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1489_d164_service(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'service')
-	return brew_runtime.structured_value('Service', formula.full_name(), {
+	return ruby.structured_value('Service', formula.full_name(), {
 		'formula':      formula.full_name()
 		'plist_name':   'homebrew.mxcl.${formula.name()}'
 		'service_name': 'homebrew.${formula.name()}'
@@ -2818,250 +2818,250 @@ pub fn ruby_formula_l1489_d164_service(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby method `opt_prefix = formula_opt_prefix(name)` at line 1508.
-pub fn ruby_formula_l1508_d165_opt_prefix(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1508_d165_opt_prefix(args ...ruby.Value) ruby.Value {
 	return formula_path_boundary(formula_receiver(args, 'opt_prefix').opt_prefix())
 }
 
 // Ruby method `opt_bin = opt_prefix/"bin"` at line 1514.
-pub fn ruby_formula_l1514_d166_opt_bin(args ...brew_runtime.Value) brew_runtime.Value {
-	return formula_path_boundary(brew_runtime.join_path(formula_receiver(args, 'opt_bin').opt_prefix(), 'bin'))
+pub fn ruby_formula_l1514_d166_opt_bin(args ...ruby.Value) ruby.Value {
+	return formula_path_boundary(ruby.join_path(formula_receiver(args, 'opt_bin').opt_prefix(), 'bin'))
 }
 
 // Ruby method `opt_include = opt_prefix/"include"` at line 1520.
-pub fn ruby_formula_l1520_d167_opt_include(args ...brew_runtime.Value) brew_runtime.Value {
-	return formula_path_boundary(brew_runtime.join_path(formula_receiver(args, 'opt_include').opt_prefix(), 'include'))
+pub fn ruby_formula_l1520_d167_opt_include(args ...ruby.Value) ruby.Value {
+	return formula_path_boundary(ruby.join_path(formula_receiver(args, 'opt_include').opt_prefix(), 'include'))
 }
 
 // Ruby method `opt_lib = opt_prefix/"lib"` at line 1526.
-pub fn ruby_formula_l1526_d168_opt_lib(args ...brew_runtime.Value) brew_runtime.Value {
-	return formula_path_boundary(brew_runtime.join_path(formula_receiver(args, 'opt_lib').opt_prefix(), 'lib'))
+pub fn ruby_formula_l1526_d168_opt_lib(args ...ruby.Value) ruby.Value {
+	return formula_path_boundary(ruby.join_path(formula_receiver(args, 'opt_lib').opt_prefix(), 'lib'))
 }
 
 // Ruby method `opt_libexec = opt_prefix/"libexec"` at line 1532.
-pub fn ruby_formula_l1532_d169_opt_libexec(args ...brew_runtime.Value) brew_runtime.Value {
-	return formula_path_boundary(brew_runtime.join_path(formula_receiver(args, 'opt_libexec').opt_prefix(), 'libexec'))
+pub fn ruby_formula_l1532_d169_opt_libexec(args ...ruby.Value) ruby.Value {
+	return formula_path_boundary(ruby.join_path(formula_receiver(args, 'opt_libexec').opt_prefix(), 'libexec'))
 }
 
 // Ruby method `opt_sbin = opt_prefix/"sbin"` at line 1538.
-pub fn ruby_formula_l1538_d170_opt_sbin(args ...brew_runtime.Value) brew_runtime.Value {
-	return formula_path_boundary(brew_runtime.join_path(formula_receiver(args, 'opt_sbin').opt_prefix(), 'sbin'))
+pub fn ruby_formula_l1538_d170_opt_sbin(args ...ruby.Value) ruby.Value {
+	return formula_path_boundary(ruby.join_path(formula_receiver(args, 'opt_sbin').opt_prefix(), 'sbin'))
 }
 
 // Ruby method `opt_share = opt_prefix/"share"` at line 1544.
-pub fn ruby_formula_l1544_d171_opt_share(args ...brew_runtime.Value) brew_runtime.Value {
-	return formula_path_boundary(brew_runtime.join_path(formula_receiver(args, 'opt_share').opt_prefix(), 'share'))
+pub fn ruby_formula_l1544_d171_opt_share(args ...ruby.Value) ruby.Value {
+	return formula_path_boundary(ruby.join_path(formula_receiver(args, 'opt_share').opt_prefix(), 'share'))
 }
 
 // Ruby method `opt_pkgshare = opt_prefix/"share"/name` at line 1550.
-pub fn ruby_formula_l1550_d172_opt_pkgshare(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1550_d172_opt_pkgshare(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'opt_pkgshare')
 	return formula_path_boundary(os.join_path(formula.opt_prefix(), 'share', formula.name()))
 }
 
 // Ruby method `opt_elisp = opt_prefix/"share/emacs/site-lisp"/name` at line 1556.
-pub fn ruby_formula_l1556_d173_opt_elisp(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1556_d173_opt_elisp(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'opt_elisp')
 	return formula_path_boundary(os.join_path(formula.opt_prefix(), 'share', 'emacs', 'site-lisp', formula.name()))
 }
 
 // Ruby method `opt_frameworks = opt_prefix/"Frameworks"` at line 1562.
-pub fn ruby_formula_l1562_d174_opt_frameworks(args ...brew_runtime.Value) brew_runtime.Value {
-	return formula_path_boundary(brew_runtime.join_path(formula_receiver(args, 'opt_frameworks').opt_prefix(), 'Frameworks'))
+pub fn ruby_formula_l1562_d174_opt_frameworks(args ...ruby.Value) ruby.Value {
+	return formula_path_boundary(ruby.join_path(formula_receiver(args, 'opt_frameworks').opt_prefix(), 'Frameworks'))
 }
 
 // Ruby method `pour_bottle? = true` at line 1571.
-pub fn ruby_formula_l1571_d175_pour_bottle(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1571_d175_pour_bottle(args ...ruby.Value) ruby.Value {
 	_ = formula_receiver(args, 'pour_bottle?')
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
 // Ruby delegate `delegate pour_bottle_check_unsatisfied_reason: :"self.class"` at line 1573.
-pub fn ruby_formula_l1573_d176_pour_bottle_check_unsatisfied_reason(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1573_d176_pour_bottle_check_unsatisfied_reason(args ...ruby.Value) ruby.Value {
 	return optional_formula_string(formula_receiver(args, 'pour_bottle_check_unsatisfied_reason').pour_bottle_reason_value, 'String')
 }
 
 // Ruby method `post_install; end` at line 1577.
-pub fn ruby_formula_l1577_d177_post_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1577_d177_post_install(args ...ruby.Value) ruby.Value {
 	_ = formula_receiver(args, 'post_install')
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `post_install_defined?` at line 1580.
-pub fn ruby_formula_l1580_d178_post_install_defined(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1580_d178_post_install_defined(args ...ruby.Value) ruby.Value {
 	_ = formula_receiver(args, 'post_install_defined?')
-	return brew_runtime.bool_value((args[0].attribute('post_install_defined') or { 'false' }) == 'true')
+	return ruby.bool_value((args[0].attribute('post_install_defined') or { 'false' }) == 'true')
 }
 
 // Ruby method `post_install_steps_defined? = self.class.post_install_steps_defined?` at line 1585.
-pub fn ruby_formula_l1585_d179_post_install_steps_defined(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(formula_receiver(args, 'post_install_steps_defined?').post_install_steps_defined_value)
+pub fn ruby_formula_l1585_d179_post_install_steps_defined(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(formula_receiver(args, 'post_install_steps_defined?').post_install_steps_defined_value)
 }
 
 // Ruby method `install_etc_var` at line 1588.
-pub fn ruby_formula_l1588_d180_install_etc_var(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1588_d180_install_etc_var(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'install_etc_var')
 	bottle_prefix := formula_path_value(formula, '.bottle')
 	for directory in ['etc', 'var'] {
-		source := brew_runtime.join_path(bottle_prefix, directory)
-		if !brew_runtime.is_dir(source) {
+		source := ruby.join_path(bottle_prefix, directory)
+		if !ruby.is_dir(source) {
 			continue
 		}
-		destination := brew_runtime.join_path(formula.prefix_root, directory)
+		destination := ruby.join_path(formula.prefix_root, directory)
 		os.mkdir_all(destination) or { panic(err) }
-		for entry in brew_runtime.list_dir(source) or { []string{} } {
-			os.cp_all(brew_runtime.join_path(source, entry), brew_runtime.join_path(destination, entry), true) or { panic(err) }
+		for entry in ruby.list_dir(source) or { []string{} } {
+			os.cp_all(ruby.join_path(source, entry), ruby.join_path(destination, entry), true) or { panic(err) }
 		}
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `run_post_install_steps` at line 1601.
-pub fn ruby_formula_l1601_d181_run_post_install_steps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1601_d181_run_post_install_steps(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'run_post_install_steps')
-	return brew_runtime.string_array_value(formula.post_install_step_values)
+	return ruby.string_array_value(formula.post_install_step_values)
 }
 
 // Ruby method `run_post_install` at line 1617.
-pub fn ruby_formula_l1617_d182_run_post_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1617_d182_run_post_install(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'run_post_install')
-	return brew_runtime.structured_value('PostInstallRun', formula.full_name(), {
+	return ruby.structured_value('PostInstallRun', formula.full_name(), {
 		'formula': formula.full_name()
 		'steps':   formula.post_install_step_values.join(formula_boundary_separator)
-		'home':    brew_runtime.join_path(brew_runtime.environment_value('HOMEBREW_TEMP'), '${formula.name()}-postinstall')
+		'home':    ruby.join_path(ruby.environment_value('HOMEBREW_TEMP'), '${formula.name()}-postinstall')
 	})
 }
 
 // Ruby method `caveats = nil` at line 1688.
-pub fn ruby_formula_l1688_d183_caveats(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1688_d183_caveats(args ...ruby.Value) ruby.Value {
 	_ = formula_receiver(args, 'caveats')
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `keg_only?` at line 1696.
-pub fn ruby_formula_l1696_d184_keg_only(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(formula_receiver(args, 'keg_only?').keg_only())
+pub fn ruby_formula_l1696_d184_keg_only(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(formula_receiver(args, 'keg_only?').keg_only())
 }
 
 // Ruby delegate `delegate keg_only_reason: :"self.class"` at line 1702.
-pub fn ruby_formula_l1702_d185_keg_only_reason(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1702_d185_keg_only_reason(args ...ruby.Value) ruby.Value {
 	return optional_formula_string(formula_receiver(args, 'keg_only_reason').keg_only_reason_value, 'KegOnlyReason')
 }
 
 // Ruby method `skip_clean?(path)` at line 1706.
-pub fn ruby_formula_l1706_d186_skip_clean(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1706_d186_skip_clean(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'skip_clean?')
 	if args.len < 2 { panic('Formula#skip_clean? requires a path') }
 	path := args[1].as_string()
 	if path.ends_with('.la') && ':la' in formula.skip_clean_path_values {
-		return brew_runtime.bool_value(true)
+		return ruby.bool_value(true)
 	}
 	to_check := path.trim_string_left(formula.prefix().trim_right('/') + '/')
-	return brew_runtime.bool_value(to_check in formula.skip_clean_path_values)
+	return ruby.bool_value(to_check in formula.skip_clean_path_values)
 }
 
 // Ruby method `link_overwrite?(path)` at line 1716.
-pub fn ruby_formula_l1716_d187_link_overwrite(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1716_d187_link_overwrite(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'link_overwrite?')
 	if args.len < 2 { panic('Formula#link_overwrite? requires a path') }
 	path := args[1].as_string()
 	to_check := path.trim_string_left(formula.prefix_root.trim_right('/') + '/')
-	return brew_runtime.bool_value(formula.link_overwrite_path_values.any(formula_path_pattern_matches(it, to_check)))
+	return ruby.bool_value(formula.link_overwrite_path_values.any(formula_path_pattern_matches(it, to_check)))
 }
 
 // Ruby delegate `delegate deprecated?: :"self.class"` at line 1752.
-pub fn ruby_formula_l1752_d188_deprecated(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(formula_receiver(args, 'deprecated?').deprecated())
+pub fn ruby_formula_l1752_d188_deprecated(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(formula_receiver(args, 'deprecated?').deprecated())
 }
 
 // Ruby delegate `delegate deprecation_date: :"self.class"` at line 1759.
-pub fn ruby_formula_l1759_d189_deprecation_date(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1759_d189_deprecation_date(args ...ruby.Value) ruby.Value {
 	return ruby_formula_l5087_d379_deprecation_date(...args)
 }
 
 // Ruby delegate `delegate deprecation_reason: :"self.class"` at line 1766.
-pub fn ruby_formula_l1766_d190_deprecation_reason(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1766_d190_deprecation_reason(args ...ruby.Value) ruby.Value {
 	return optional_formula_string(formula_receiver(args, 'deprecation_reason').reference.deprecation_reason, 'String')
 }
 
 // Ruby delegate `delegate deprecation_replacement_formula: :"self.class"` at line 1773.
-pub fn ruby_formula_l1773_d191_deprecation_replacement_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1773_d191_deprecation_replacement_formula(args ...ruby.Value) ruby.Value {
 	return ruby_formula_l5101_d381_deprecation_replacement_formula(...args)
 }
 
 // Ruby delegate `delegate deprecation_replacement_cask: :"self.class"` at line 1780.
-pub fn ruby_formula_l1780_d192_deprecation_replacement_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1780_d192_deprecation_replacement_cask(args ...ruby.Value) ruby.Value {
 	return ruby_formula_l5108_d382_deprecation_replacement_cask(...args)
 }
 
 // Ruby delegate `delegate deprecate_args: :"self.class"` at line 1787.
-pub fn ruby_formula_l1787_d193_deprecate_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1787_d193_deprecate_args(args ...ruby.Value) ruby.Value {
 	return ruby_formula_l5116_d383_deprecate_args(...args)
 }
 
 // Ruby delegate `delegate disabled?: :"self.class"` at line 1794.
-pub fn ruby_formula_l1794_d194_disabled(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(formula_receiver(args, 'disabled?').disabled())
+pub fn ruby_formula_l1794_d194_disabled(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(formula_receiver(args, 'disabled?').disabled())
 }
 
 // Ruby delegate `delegate disable_date: :"self.class"` at line 1801.
-pub fn ruby_formula_l1801_d195_disable_date(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1801_d195_disable_date(args ...ruby.Value) ruby.Value {
 	return ruby_formula_l5201_d386_disable_date(...args)
 }
 
 // Ruby delegate `delegate disable_reason: :"self.class"` at line 1808.
-pub fn ruby_formula_l1808_d196_disable_reason(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1808_d196_disable_reason(args ...ruby.Value) ruby.Value {
 	return optional_formula_string(formula_receiver(args, 'disable_reason').reference.disable_reason, 'String')
 }
 
 // Ruby delegate `delegate disable_replacement_formula: :"self.class"` at line 1815.
-pub fn ruby_formula_l1815_d197_disable_replacement_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1815_d197_disable_replacement_formula(args ...ruby.Value) ruby.Value {
 	return ruby_formula_l5215_d388_disable_replacement_formula(...args)
 }
 
 // Ruby delegate `delegate disable_replacement_cask: :"self.class"` at line 1822.
-pub fn ruby_formula_l1822_d198_disable_replacement_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1822_d198_disable_replacement_cask(args ...ruby.Value) ruby.Value {
 	return ruby_formula_l5222_d389_disable_replacement_cask(...args)
 }
 
 // Ruby delegate `delegate disable_args: :"self.class"` at line 1829.
-pub fn ruby_formula_l1829_d199_disable_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1829_d199_disable_args(args ...ruby.Value) ruby.Value {
 	return ruby_formula_l5230_d390_disable_args(...args)
 }
 
 // Ruby method `patch` at line 1835.
-pub fn ruby_formula_l1835_d200_patch(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1835_d200_patch(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'patch')
-	return brew_runtime.array_value(formula.patch_values.map(brew_runtime.structured_value('PatchApply', it, {
+	return ruby.array_value(formula.patch_values.map(ruby.structured_value('PatchApply', it, {
 		'patch': it
 		'data':  'false'
 	})))
 }
 
 // Ruby method `selective_patch(is_data: false)` at line 1843.
-pub fn ruby_formula_l1843_d201_selective_patch(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1843_d201_selective_patch(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'selective_patch')
 	is_data := if args.len > 1 { args[1].as_bool() or { false } } else { false }
-	mut selected := []brew_runtime.Value{}
+	mut selected := []ruby.Value{}
 	for patch in formula.patch_values {
 		patch_is_data := patch.starts_with('DATA\x1f')
 		if patch_is_data == is_data {
-			selected << brew_runtime.structured_value('PatchApply', patch, {
+			selected << ruby.structured_value('PatchApply', patch, {
 				'patch': patch
 				'data':  is_data.str()
 			})
 		}
 	}
-	return brew_runtime.array_value(selected)
+	return ruby.array_value(selected)
 }
 
 // Ruby method `brew(fetch: true, keep_tmp: false, debug_symbols: false, interactive: false, &_blk)` at line 1862.
-pub fn ruby_formula_l1862_d202_brew(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1862_d202_brew(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'brew')
 	fetch := if args.len > 1 { args[1].as_bool() or { true } } else { true }
 	keep_tmp := if args.len > 2 { args[2].as_bool() or { false } } else { false }
 	debug_symbols := if args.len > 3 { args[3].as_bool() or { false } } else { false }
 	interactive := if args.len > 4 { args[4].as_bool() or { false } } else { false }
-	return brew_runtime.structured_value('FormulaBrew', formula.full_name(), {
+	return ruby.structured_value('FormulaBrew', formula.full_name(), {
 		'formula':       formula.full_name()
 		'fetch':         fetch.str()
 		'keep_tmp':      keep_tmp.str()
@@ -3072,79 +3072,79 @@ pub fn ruby_formula_l1862_d202_brew(args ...brew_runtime.Value) brew_runtime.Val
 }
 
 // Ruby method `lock` at line 1896.
-pub fn ruby_formula_l1896_d203_lock(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1896_d203_lock(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'lock')
 	mut names := [formula.name()]
 	for oldname in formula.oldnames() {
-		old_rack := brew_runtime.join_path(formula.cellar, oldname)
-		if brew_runtime.path_exists(old_rack) && brew_runtime.real_path(old_rack) == brew_runtime.real_path(formula.rack()) {
+		old_rack := ruby.join_path(formula.cellar, oldname)
+		if ruby.path_exists(old_rack) && ruby.real_path(old_rack) == ruby.real_path(formula.rack()) {
 			names << oldname
 		}
 	}
-	return brew_runtime.string_array_value(names.map(brew_runtime.join_path(brew_runtime.environment_value('HOMEBREW_LOCKS'), '${it}.formula.lock')))
+	return ruby.string_array_value(names.map(ruby.join_path(ruby.environment_value('HOMEBREW_LOCKS'), '${it}.formula.lock')))
 }
 
 // Ruby method `unlock` at line 1911.
-pub fn ruby_formula_l1911_d204_unlock(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1911_d204_unlock(args ...ruby.Value) ruby.Value {
 	_ = formula_receiver(args, 'unlock')
 	mut paths := ruby_formula_l1896_d203_lock(...args).as_string_array() or { []string{} }
 	for path in paths {
-		if brew_runtime.path_exists(path) { os.rm(path) or {} }
+		if ruby.path_exists(path) { os.rm(path) or {} }
 	}
-	return brew_runtime.string_array_value(paths)
+	return ruby.string_array_value(paths)
 }
 
 // Ruby method `oldnames_to_migrate` at line 1917.
-pub fn ruby_formula_l1917_d205_oldnames_to_migrate(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1917_d205_oldnames_to_migrate(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'oldnames_to_migrate')
 	mut names := []string{}
 	for oldname in formula.oldnames() {
-		old_rack := brew_runtime.join_path(formula.cellar, oldname)
-		mut entries := brew_runtime.list_dir(old_rack) or { continue }
+		old_rack := ruby.join_path(formula.cellar, oldname)
+		mut entries := ruby.list_dir(old_rack) or { continue }
 		if entries.len == 0 {
 			continue
 		}
 		entries.sort()
-		tab := tab_for_keg(brew_runtime.join_path(old_rack, entries[0])) or { continue }
+		tab := tab_for_keg(ruby.join_path(old_rack, entries[0])) or { continue }
 		if tab.tap_name() == formula.tap { names << oldname }
 	}
-	return brew_runtime.string_array_value(names)
+	return ruby.string_array_value(names)
 }
 
 // Ruby method `migration_needed?` at line 1928.
-pub fn ruby_formula_l1928_d206_migration_needed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1928_d206_migration_needed(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'migration_needed?')
 	oldnames := ruby_formula_l1917_d205_oldnames_to_migrate(...args).as_string_array() or { []string{} }
-	return brew_runtime.bool_value(oldnames.len > 0 && !brew_runtime.path_exists(formula.rack()))
+	return ruby.bool_value(oldnames.len > 0 && !ruby.path_exists(formula.rack()))
 }
 
 // Ruby method `outdated_kegs(fetch_head: false)` at line 1933.
-pub fn ruby_formula_l1933_d207_outdated_kegs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1933_d207_outdated_kegs(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'outdated_kegs')
 	return formula_keg_array_value(formula.outdated_kegs())
 }
 
 // Ruby method `new_formula_available?` at line 1973.
-pub fn ruby_formula_l1973_d208_new_formula_available(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1973_d208_new_formula_available(args ...ruby.Value) ruby.Value {
 	changed := ruby_formula_l1985_d210_installed_alias_target_changed(...args).as_bool() or { false }
 	if !changed {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	target := ruby_formula_l1978_d209_current_installed_alias_target(...args)
 	if target.type_name != 'Formula' {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(!formula_from_boundary(target).latest_version_installed())
+	return ruby.bool_value(!formula_from_boundary(target).latest_version_installed())
 }
 
 // Ruby method `current_installed_alias_target` at line 1978.
-pub fn ruby_formula_l1978_d209_current_installed_alias_target(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1978_d209_current_installed_alias_target(args ...ruby.Value) ruby.Value {
 	_ = formula_receiver(args, 'current_installed_alias_target')
 	name := args[0].attribute('installed_alias_target') or { '' }
 	if name == '' {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
-	return brew_runtime.structured_value('Formula', name, {
+	return ruby.structured_value('Formula', name, {
 		'name':           name
 		'full_name':      name
 		'stable_version': args[0].attribute('installed_alias_target_version') or { '0' }
@@ -3155,30 +3155,30 @@ pub fn ruby_formula_l1978_d209_current_installed_alias_target(args ...brew_runti
 }
 
 // Ruby method `installed_alias_target_changed?` at line 1985.
-pub fn ruby_formula_l1985_d210_installed_alias_target_changed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1985_d210_installed_alias_target_changed(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'installed_alias_target_changed?')
 	target := ruby_formula_l1978_d209_current_installed_alias_target(...args)
-	return brew_runtime.bool_value(target.type_name == 'Formula' && (target.attribute('name') or { '' }) != formula.name())
+	return ruby.bool_value(target.type_name == 'Formula' && (target.attribute('name') or { '' }) != formula.name())
 }
 
 // Ruby method `supersedes_an_installed_formula? = old_installed_formulae.any?` at line 1994.
-pub fn ruby_formula_l1994_d211_supersedes_an_installed_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value((ruby_formula_l2011_d214_old_installed_formulae(...args).as_array() or {
-		[]brew_runtime.Value{}
+pub fn ruby_formula_l1994_d211_supersedes_an_installed_formula(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value((ruby_formula_l2011_d214_old_installed_formulae(...args).as_array() or {
+		[]ruby.Value{}
 	}).len > 0)
 }
 
 // Ruby method `alias_changed?` at line 1999.
-pub fn ruby_formula_l1999_d212_alias_changed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l1999_d212_alias_changed(args ...ruby.Value) ruby.Value {
 	changed := ruby_formula_l1985_d210_installed_alias_target_changed(...args).as_bool() or { false }
 	supersedes := ruby_formula_l1994_d211_supersedes_an_installed_formula(...args).as_bool() or {
 		false
 	}
-	return brew_runtime.bool_value(changed || supersedes)
+	return ruby.bool_value(changed || supersedes)
 }
 
 // Ruby method `latest_formula` at line 2006.
-pub fn ruby_formula_l2006_d213_latest_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2006_d213_latest_formula(args ...ruby.Value) ruby.Value {
 	return if ruby_formula_l1985_d210_installed_alias_target_changed(...args).as_bool() or { false } {
 		ruby_formula_l1978_d209_current_installed_alias_target(...args)
 	} else {
@@ -3187,89 +3187,89 @@ pub fn ruby_formula_l2006_d213_latest_formula(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby method `old_installed_formulae` at line 2011.
-pub fn ruby_formula_l2011_d214_old_installed_formulae(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2011_d214_old_installed_formulae(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'old_installed_formulae')
 	if formula.alias_path == '' || (ruby_formula_l1985_d210_installed_alias_target_changed(...args).as_bool() or {
 		false}) {
-		return brew_runtime.array_value([]brew_runtime.Value{})
+		return ruby.array_value([]ruby.Value{})
 	}
 	values := args[0].attribute('installed_with_alias') or { '' }
-	mut result := []brew_runtime.Value{}
+	mut result := []ruby.Value{}
 	for name in values.split(formula_boundary_separator) {
 		if name == '' || name == formula.name() {
 			continue
 		}
-		result << brew_runtime.structured_value('Formula', name, {
+		result << ruby.structured_value('Formula', name, {
 			'name': name
 		})
 	}
-	return brew_runtime.array_value(result)
+	return ruby.array_value(result)
 }
 
 // Ruby method `outdated?(fetch_head: false)` at line 2024.
-pub fn ruby_formula_l2024_d215_outdated(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(formula_receiver(args, 'outdated?').outdated())
+pub fn ruby_formula_l2024_d215_outdated(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(formula_receiver(args, 'outdated?').outdated())
 }
 
 // Ruby def_delegators `def_delegators :@pin, :pinnable?, :pinned_version, :pin, :unpin` at line 2030.
-pub fn ruby_formula_l2030_d216_pinnable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(formula_receiver(args, 'pinnable?').pinnable())
+pub fn ruby_formula_l2030_d216_pinnable(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(formula_receiver(args, 'pinnable?').pinnable())
 }
 
 // Ruby def_delegators `def_delegators :@pin, :pinnable?, :pinned_version, :pin, :unpin` at line 2030.
-pub fn ruby_formula_l2030_d217_pinned_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2030_d217_pinned_version(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'pinned_version')
 	if version := formula.pinned_version() {
-		return brew_runtime.object_value('PkgVersion', version.to_s())
+		return ruby.object_value('PkgVersion', version.to_s())
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby def_delegators `def_delegators :@pin, :pinnable?, :pinned_version, :pin, :unpin` at line 2030.
-pub fn ruby_formula_l2030_d218_pin(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2030_d218_pin(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'pin')
 	formula.pin() or { panic(err) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby def_delegators `def_delegators :@pin, :pinnable?, :pinned_version, :pin, :unpin` at line 2030.
-pub fn ruby_formula_l2030_d219_unpin(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2030_d219_unpin(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'unpin')
 	formula.unpin() or { panic(err) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby delegate `delegate pinned?: :@pin` at line 2034.
-pub fn ruby_formula_l2034_d220_pinned(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(formula_receiver(args, 'pinned?').pinned())
+pub fn ruby_formula_l2034_d220_pinned(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(formula_receiver(args, 'pinned?').pinned())
 }
 
 // Ruby method `==(other)` at line 2037.
-pub fn ruby_formula_l2037_d221_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2037_d221_anonymous(args ...ruby.Value) ruby.Value {
 	if args.len < 2 || args[1].type_name != 'Formula' {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(formula_receiver(args, '==').equal(formula_from_boundary(args[1])))
+	return ruby.bool_value(formula_receiver(args, '==').equal(formula_from_boundary(args[1])))
 }
 
 // Ruby alias `alias eql? ==` at line 2042.
-pub fn ruby_formula_l2042_d222_eql(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2042_d222_eql(args ...ruby.Value) ruby.Value {
 	return ruby_formula_l2037_d221_anonymous(...args)
 }
 
 // Ruby method `hash = name.hash` at line 2045.
-pub fn ruby_formula_l2045_d223_hash(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(i64(formula_receiver(args, 'hash').hash_code()))
+pub fn ruby_formula_l2045_d223_hash(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(i64(formula_receiver(args, 'hash').hash_code()))
 }
 
 // Ruby method `<=>(other)` at line 2048.
-pub fn ruby_formula_l2048_d224_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2048_d224_anonymous(args ...ruby.Value) ruby.Value {
 	if args.len < 2 || args[1].type_name != 'Formula' {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	left := formula_receiver(args, '<=>').name()
 	right := formula_from_boundary(args[1]).name()
-	return brew_runtime.int_value(if left < right {
+	return ruby.int_value(if left < right {
 		-1
 	} else if left > right {
 		1
@@ -3279,33 +3279,33 @@ pub fn ruby_formula_l2048_d224_anonymous(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `possible_names` at line 2055.
-pub fn ruby_formula_l2055_d225_possible_names(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(formula_receiver(args, 'possible_names').possible_names())
+pub fn ruby_formula_l2055_d225_possible_names(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(formula_receiver(args, 'possible_names').possible_names())
 }
 
 // Ruby method `to_s = name` at line 2063.
-pub fn ruby_formula_l2063_d226_to_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(formula_receiver(args, 'to_s').str())
+pub fn ruby_formula_l2063_d226_to_s(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(formula_receiver(args, 'to_s').str())
 }
 
 // Ruby method `inspect` at line 2066.
-pub fn ruby_formula_l2066_d227_inspect(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(formula_receiver(args, 'inspect').inspect())
+pub fn ruby_formula_l2066_d227_inspect(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(formula_receiver(args, 'inspect').inspect())
 }
 
 // Ruby method `std_cabal_v2_args(installdir: bin)` at line 2075.
-pub fn ruby_formula_l2075_d228_std_cabal_v2_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2075_d228_std_cabal_v2_args(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'std_cabal_v2_args')
 	installdir := if args.len > 1 {
 		if args[1].type_name in ['NilClass', 'Bool'] { ?string(none) } else { args[1].as_string() }
 	} else {
 		formula_path_value(formula, 'bin')
 	}
-	return brew_runtime.string_array_value(formula_std_cabal_v2_args(installdir))
+	return ruby.string_array_value(formula_std_cabal_v2_args(installdir))
 }
 
 // Ruby method `std_cargo_args(root: prefix, path: ".", features: nil)` at line 2097.
-pub fn ruby_formula_l2097_d229_std_cargo_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2097_d229_std_cargo_args(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'std_cargo_args')
 	root := if args.len > 1 { args[1].as_string() } else { formula.prefix() }
 	path := if args.len > 2 { args[2].as_string() } else { '.' }
@@ -3314,28 +3314,28 @@ pub fn ruby_formula_l2097_d229_std_cargo_args(args ...brew_runtime.Value) brew_r
 	} else {
 		[]string{}
 	}
-	return brew_runtime.string_array_value(formula_std_cargo_args(root, path, features))
+	return ruby.string_array_value(formula_std_cargo_args(root, path, features))
 }
 
 // Ruby method `std_cmake_args(install_prefix: prefix, install_libdir: "lib", find_framework: "LAST")` at line 2117.
-pub fn ruby_formula_l2117_d230_std_cmake_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2117_d230_std_cmake_args(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'std_cmake_args')
 	prefix := if args.len > 1 { args[1].as_string() } else { formula.prefix() }
 	libdir := if args.len > 2 { args[2].as_string() } else { 'lib' }
 	framework := if args.len > 3 { args[3].as_string() } else { 'LAST' }
-	return brew_runtime.string_array_value(formula_std_cmake_args(prefix, libdir, framework))
+	return ruby.string_array_value(formula_std_cmake_args(prefix, libdir, framework))
 }
 
 // Ruby method `std_configure_args(prefix: self.prefix, libdir: "lib")` at line 2140.
-pub fn ruby_formula_l2140_d231_std_configure_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2140_d231_std_configure_args(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'std_configure_args')
 	prefix := if args.len > 1 { args[1].as_string() } else { formula.prefix() }
 	libdir := if args.len > 2 { args[2].as_string() } else { 'lib' }
-	return brew_runtime.string_array_value(formula_std_configure_args(prefix, libdir))
+	return ruby.string_array_value(formula_std_configure_args(prefix, libdir))
 }
 
 // Ruby method `std_go_args(output: bin/name, ldflags: nil, gcflags: nil, tags: nil)` at line 2166.
-pub fn ruby_formula_l2166_d232_std_go_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2166_d232_std_go_args(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'std_go_args')
 	output := if args.len > 1 {
 		args[1].as_string()
@@ -3358,91 +3358,91 @@ pub fn ruby_formula_l2166_d232_std_go_args(args ...brew_runtime.Value) brew_runt
 		[]string{}
 	}
 	debug_symbols := os.getenv('HOMEBREW_DEBUG_SYMBOLS') != ''
-	return brew_runtime.string_array_value(formula_std_go_args(output, ldflags, gcflags, tags, debug_symbols))
+	return ruby.string_array_value(formula_std_go_args(output, ldflags, gcflags, tags, debug_symbols))
 }
 
 // Ruby method `std_meson_args(prefix: self.prefix, libdir: "lib")` at line 2198.
-pub fn ruby_formula_l2198_d233_std_meson_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2198_d233_std_meson_args(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'std_meson_args')
 	prefix := if args.len > 1 { args[1].as_string() } else { formula.prefix() }
 	libdir := if args.len > 2 { args[2].as_string() } else { 'lib' }
-	return brew_runtime.string_array_value(formula_std_meson_args(prefix, libdir))
+	return ruby.string_array_value(formula_std_meson_args(prefix, libdir))
 }
 
 // Ruby method `std_npm_args(prefix: libexec, ignore_scripts: true)` at line 2208.
-pub fn ruby_formula_l2208_d234_std_npm_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2208_d234_std_npm_args(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'std_npm_args')
 	prefix := if args.len > 1 && args[1].type_name != 'Bool' {
 		?string(args[1].as_string())
 	} else if args.len > 1 { ?string(none) } else { formula_path_value(formula, 'libexec') }
 	ignore_scripts := if args.len > 2 { args[2].as_bool() or { true } } else { true }
-	return brew_runtime.string_array_value(formula_std_npm_args(prefix, ignore_scripts))
+	return ruby.string_array_value(formula_std_npm_args(prefix, ignore_scripts))
 }
 
 // Ruby method `std_pip_args(prefix: self.prefix, build_isolation: false)` at line 2223.
-pub fn ruby_formula_l2223_d235_std_pip_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2223_d235_std_pip_args(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'std_pip_args')
 	prefix := if args.len > 1 && args[1].type_name != 'Bool' {
 		?string(args[1].as_string())
 	} else if args.len > 1 { ?string(none) } else { formula.prefix() }
 	build_isolation := if args.len > 2 { args[2].as_bool() or { false } } else { false }
-	return brew_runtime.string_array_value(formula_std_pip_args(prefix, build_isolation))
+	return ruby.string_array_value(formula_std_pip_args(prefix, build_isolation))
 }
 
 // Ruby method `std_swift_args` at line 2237.
-pub fn ruby_formula_l2237_d236_std_swift_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2237_d236_std_swift_args(args ...ruby.Value) ruby.Value {
 	_ = formula_receiver(args, 'std_swift_args')
-	return brew_runtime.string_array_value(formula_std_swift_args())
+	return ruby.string_array_value(formula_std_swift_args())
 }
 
 // Ruby method `std_zig_args(prefix: self.prefix, release_mode: :fast, cpu: nil)` at line 2254.
-pub fn ruby_formula_l2254_d237_std_zig_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2254_d237_std_zig_args(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'std_zig_args')
 	prefix := if args.len > 1 { args[1].as_string() } else { formula.prefix() }
 	mode := if args.len > 2 { args[2].as_string().trim_left(':') } else { 'fast' }
 	cpu := if args.len > 3 { args[3].as_string().trim_left(':') } else { '' }
-	return brew_runtime.string_array_value(formula_std_zig_args(prefix, mode, cpu) or { panic(err) })
+	return ruby.string_array_value(formula_std_zig_args(prefix, mode, cpu) or { panic(err) })
 }
 
 // Ruby method `shared_library(name, version = nil)` at line 2287.
-pub fn ruby_formula_l2287_d238_shared_library(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2287_d238_shared_library(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Formula#shared_library requires a name') }
 	version := if args.len > 2 && args[2].type_name != 'NilClass' {
 		args[2].as_string()
 	} else {
 		''
 	}
-	return brew_runtime.string_value(formula_shared_library(args[1].as_string(), version))
+	return ruby.string_value(formula_shared_library(args[1].as_string(), version))
 }
 
 // Ruby method `rpath(source: bin, target: lib)` at line 2313.
-pub fn ruby_formula_l2313_d239_rpath(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2313_d239_rpath(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'rpath')
 	source := if args.len > 1 { args[1].as_string() } else { formula_path_value(formula, 'bin') }
 	target := if args.len > 2 { args[2].as_string() } else { formula_path_value(formula, 'lib') }
-	return brew_runtime.string_value(formula_rpath(source, target, formula.prefix_root) or { panic(err) })
+	return ruby.string_value(formula_rpath(source, target, formula.prefix_root) or { panic(err) })
 }
 
 // Ruby method `loader_path = "@loader_path"` at line 2325.
-pub fn ruby_formula_l2325_d240_loader_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2325_d240_loader_path(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('@loader_path')
+	return ruby.string_value('@loader_path')
 }
 
 // Ruby method `time` at line 2331.
-pub fn ruby_formula_l2331_d241_time(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2331_d241_time(args ...ruby.Value) ruby.Value {
 	_ = args
 	epoch := os.getenv('SOURCE_DATE_EPOCH')
 	moment := if epoch != '' { time.unix(epoch.i64()) } else { time.now() }
-	return brew_runtime.object_value('Time', moment.format_rfc3339())
+	return ruby.object_value('Time', moment.format_rfc3339())
 }
 
 // Ruby method `change_dylib_id(file, id, resolve_source: false)` at line 2358.
-pub fn ruby_formula_l2358_d242_change_dylib_id(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2358_d242_change_dylib_id(args ...ruby.Value) ruby.Value {
 	_ = formula_receiver(args, 'change_dylib_id')
 	if args.len < 3 { panic('Formula#change_dylib_id requires a file and ID') }
 	resolve_source := if args.len > 3 { args[3].as_bool() or { false } } else { false }
-	return brew_runtime.structured_value('ChangeDylibId', args[1].as_string(), {
+	return ruby.structured_value('ChangeDylibId', args[1].as_string(), {
 		'file':           args[1].as_string()
 		'id':             args[2].as_string()
 		'resolve_source': resolve_source.str()
@@ -3450,7 +3450,7 @@ pub fn ruby_formula_l2358_d242_change_dylib_id(args ...brew_runtime.Value) brew_
 }
 
 // Ruby method `deuniversalize_machos(*targets)` at line 2371.
-pub fn ruby_formula_l2371_d243_deuniversalize_machos(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2371_d243_deuniversalize_machos(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'deuniversalize_machos')
 	mut targets := []string{}
 	for index in 1 .. args.len {
@@ -3462,14 +3462,14 @@ pub fn ruby_formula_l2371_d243_deuniversalize_machos(args ...brew_runtime.Value)
 		}
 	}
 	if targets.len == 0 { panic('No universal binaries found to deuniversalize') }
-	return brew_runtime.array_value(targets.map(brew_runtime.structured_value('MachOSliceExtraction', it, {
+	return ruby.array_value(targets.map(ruby.structured_value('MachOSliceExtraction', it, {
 		'file': it
 		'arch': os.getenv('HOMEBREW_ARCH')
 	})))
 }
 
 // Ruby method `extract_macho_slice_from(file, arch = Hardware::CPU.arch)` at line 2387.
-pub fn ruby_formula_l2387_d244_extract_macho_slice_from(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2387_d244_extract_macho_slice_from(args ...ruby.Value) ruby.Value {
 	_ = formula_receiver(args, 'extract_macho_slice_from')
 	if args.len < 2 { panic('Formula#extract_macho_slice_from requires a file') }
 	arch := if args.len > 2 {
@@ -3477,14 +3477,14 @@ pub fn ruby_formula_l2387_d244_extract_macho_slice_from(args ...brew_runtime.Val
 	} else {
 		os.getenv('HOMEBREW_ARCH')
 	}
-	return brew_runtime.structured_value('MachOSliceExtraction', args[1].as_string(), {
+	return ruby.structured_value('MachOSliceExtraction', args[1].as_string(), {
 		'file': args[1].as_string()
 		'arch': arch
 	})
 }
 
 // Ruby method `generate_completions_from_executable(*commands,` at line 2543.
-pub fn ruby_formula_l2543_d245_generate_completions_from_executable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2543_d245_generate_completions_from_executable(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'generate_completions_from_executable')
 	if args.len < 2 { panic('Formula#generate_completions_from_executable requires a command') }
 	command := args[1].as_string()
@@ -3501,7 +3501,7 @@ pub fn ruby_formula_l2543_d245_generate_completions_from_executable(args ...brew
 	} else {
 		['bash', 'zsh', 'fish']
 	}
-	mut outputs := []brew_runtime.Value{}
+	mut outputs := []ruby.Value{}
 	for shell in shells {
 		path := match shell {
 			'bash' { formula_path_value(formula, 'etc/bash_completion.d', base_name) }
@@ -3512,85 +3512,85 @@ pub fn ruby_formula_l2543_d245_generate_completions_from_executable(args ...brew
 			'pwsh' { formula_path_value(formula, 'share/pwsh/completions', '_${base_name}.ps1') }
 			else { panic('Unknown completion shell: ${shell}') }
 		}
-		outputs << brew_runtime.structured_value('CompletionGeneration', path, {
+		outputs << ruby.structured_value('CompletionGeneration', path, {
 			'command': command
 			'shell':   shell
 			'format':  format
 			'path':    path
 		})
 	}
-	return brew_runtime.array_value(outputs)
+	return ruby.array_value(outputs)
 }
 
 // Ruby method `self.core_names` at line 2576.
-pub fn ruby_formula_l2576_d246_self_core_names(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2576_d246_self_core_names(args ...ruby.Value) ruby.Value {
 	_ = args
-	directory := brew_runtime.environment_value('HOMEBREW_CORE_FORMULA_DIR')
-	return brew_runtime.string_array_value(formula_names_from_files(formula_files_under(directory)))
+	directory := ruby.environment_value('HOMEBREW_CORE_FORMULA_DIR')
+	return ruby.string_array_value(formula_names_from_files(formula_files_under(directory)))
 }
 
 // Ruby method `self.tap_names` at line 2582.
-pub fn ruby_formula_l2582_d247_self_tap_names(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2582_d247_self_tap_names(args ...ruby.Value) ruby.Value {
 	_ = args
-	core := brew_runtime.environment_value('HOMEBREW_CORE_FORMULA_DIR')
-	files := formula_files_under(brew_runtime.environment_value('HOMEBREW_TAP_DIRECTORY')).filter(!it.starts_with(core))
-	return brew_runtime.string_array_value(formula_names_from_files(files))
+	core := ruby.environment_value('HOMEBREW_CORE_FORMULA_DIR')
+	files := formula_files_under(ruby.environment_value('HOMEBREW_TAP_DIRECTORY')).filter(!it.starts_with(core))
+	return ruby.string_array_value(formula_names_from_files(files))
 }
 
 // Ruby method `self.tap_files` at line 2588.
-pub fn ruby_formula_l2588_d248_self_tap_files(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2588_d248_self_tap_files(args ...ruby.Value) ruby.Value {
 	_ = args
-	core := brew_runtime.environment_value('HOMEBREW_CORE_FORMULA_DIR')
-	return brew_runtime.string_array_value(formula_files_under(brew_runtime.environment_value('HOMEBREW_TAP_DIRECTORY')).filter(!it.starts_with(core)))
+	core := ruby.environment_value('HOMEBREW_CORE_FORMULA_DIR')
+	return ruby.string_array_value(formula_files_under(ruby.environment_value('HOMEBREW_TAP_DIRECTORY')).filter(!it.starts_with(core)))
 }
 
 // Ruby method `self.names` at line 2594.
-pub fn ruby_formula_l2594_d249_self_names(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2594_d249_self_names(args ...ruby.Value) ruby.Value {
 	mut names := ruby_formula_l2576_d246_self_core_names(...args).as_string_array() or { []string{} }
 	for name in ruby_formula_l2582_d247_self_tap_names(...args).as_string_array() or { []string{} } {
 		if name !in names { names << name }
 	}
 	names.sort()
-	return brew_runtime.string_array_value(names)
+	return ruby.string_array_value(names)
 }
 
 // Ruby method `self.full_names` at line 2602.
-pub fn ruby_formula_l2602_d250_self_full_names(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2602_d250_self_full_names(args ...ruby.Value) ruby.Value {
 	return ruby_formula_l2594_d249_self_names(...args)
 }
 
 // Ruby method `self.all(eval_all: false)` at line 2609.
-pub fn ruby_formula_l2609_d251_self_all(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2609_d251_self_all(args ...ruby.Value) ruby.Value {
 	names := ruby_formula_l2602_d250_self_full_names(...args).as_string_array() or { []string{} }
-	mut formulae := []brew_runtime.Value{}
+	mut formulae := []ruby.Value{}
 	for name in names {
 		formula := formulary_factory(name, 'stable', '', false, []string{}, default_formulary_lookup_config()) or { continue }
 		formulae << formula_boundary_value(formula)
 	}
-	return brew_runtime.array_value(formulae)
+	return ruby.array_value(formulae)
 }
 
 // Ruby method `self.racks` at line 2631.
-pub fn ruby_formula_l2631_d252_self_racks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2631_d252_self_racks(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_array_value(formula_racks(brew_runtime.environment_value('HOMEBREW_CELLAR')))
+	return ruby.string_array_value(formula_racks(ruby.environment_value('HOMEBREW_CELLAR')))
 }
 
 // Ruby method `self.installed_formula_names` at line 2643.
-pub fn ruby_formula_l2643_d253_self_installed_formula_names(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value((ruby_formula_l2631_d252_self_racks(...args).as_string_array() or {
+pub fn ruby_formula_l2643_d253_self_installed_formula_names(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value((ruby_formula_l2631_d252_self_racks(...args).as_string_array() or {
 		[]string{}
 	}).map(os.base(it)))
 }
 
 // Ruby method `self.installed` at line 2649.
-pub fn ruby_formula_l2649_d254_self_installed(args ...brew_runtime.Value) brew_runtime.Value {
-	mut formulae := []brew_runtime.Value{}
-	cellar := brew_runtime.environment_value('HOMEBREW_CELLAR')
-	prefix := brew_runtime.environment_value('HOMEBREW_PREFIX')
+pub fn ruby_formula_l2649_d254_self_installed(args ...ruby.Value) ruby.Value {
+	mut formulae := []ruby.Value{}
+	cellar := ruby.environment_value('HOMEBREW_CELLAR')
+	prefix := ruby.environment_value('HOMEBREW_PREFIX')
 	for rack in formula_racks(cellar) {
 		name := os.base(rack)
-		mut versions := brew_runtime.list_dir(rack) or { continue }
+		mut versions := ruby.list_dir(rack) or { continue }
 		versions.sort()
 		version := versions.last()
 		formula := new_formula(FormulaConfig{
@@ -3600,65 +3600,65 @@ pub fn ruby_formula_l2649_d254_self_installed(args ...brew_runtime.Value) brew_r
 		}) or { continue }
 		formulae << formula_boundary_value(formula)
 	}
-	return brew_runtime.array_value(formulae)
+	return ruby.array_value(formulae)
 }
 
 // Ruby method `self.installed_with_alias_path(alias_path)` at line 2658.
-pub fn ruby_formula_l2658_d255_self_installed_with_alias_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2658_d255_self_installed_with_alias_path(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || args[0].type_name == 'NilClass' {
-		return brew_runtime.array_value([]brew_runtime.Value{})
+		return ruby.array_value([]ruby.Value{})
 	}
 	alias_path := args[0].as_string()
-	installed := ruby_formula_l2649_d254_self_installed().as_array() or { []brew_runtime.Value{} }
-	return brew_runtime.array_value(installed.filter((it.attribute('alias_path') or { '' }) == alias_path))
+	installed := ruby_formula_l2649_d254_self_installed().as_array() or { []ruby.Value{} }
+	return ruby.array_value(installed.filter((it.attribute('alias_path') or { '' }) == alias_path))
 }
 
 // Ruby method `self.core_aliases` at line 2666.
-pub fn ruby_formula_l2666_d256_self_core_aliases(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2666_d256_self_core_aliases(args ...ruby.Value) ruby.Value {
 	_ = args
-	directory := brew_runtime.environment_value('HOMEBREW_CORE_ALIAS_DIR')
-	mut aliases := brew_runtime.list_dir(directory) or { []string{} }
+	directory := ruby.environment_value('HOMEBREW_CORE_ALIAS_DIR')
+	mut aliases := ruby.list_dir(directory) or { []string{} }
 	aliases.sort()
-	return brew_runtime.string_array_value(aliases)
+	return ruby.string_array_value(aliases)
 }
 
 // Ruby method `self.tap_aliases` at line 2672.
-pub fn ruby_formula_l2672_d257_self_tap_aliases(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2672_d257_self_tap_aliases(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut aliases := []string{}
-	for path in os.walk_ext(brew_runtime.environment_value('HOMEBREW_TAP_DIRECTORY'), '',
+	for path in os.walk_ext(ruby.environment_value('HOMEBREW_TAP_DIRECTORY'), '',
 		hidden: true
 	) {
 		if path.contains('/Aliases/') { aliases << os.base(path) }
 	}
 	aliases.sort()
-	return brew_runtime.string_array_value(aliases)
+	return ruby.string_array_value(aliases)
 }
 
 // Ruby method `self.aliases` at line 2678.
-pub fn ruby_formula_l2678_d258_self_aliases(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2678_d258_self_aliases(args ...ruby.Value) ruby.Value {
 	mut aliases := ruby_formula_l2666_d256_self_core_aliases(...args).as_string_array() or { []string{} }
 	for name in ruby_formula_l2672_d257_self_tap_aliases(...args).as_string_array() or { []string{} } {
 		if name !in aliases { aliases << name }
 	}
 	aliases.sort()
-	return brew_runtime.string_array_value(aliases)
+	return ruby.string_array_value(aliases)
 }
 
 // Ruby method `self.alias_full_names` at line 2686.
-pub fn ruby_formula_l2686_d259_self_alias_full_names(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2686_d259_self_alias_full_names(args ...ruby.Value) ruby.Value {
 	return ruby_formula_l2678_d258_self_aliases(...args)
 }
 
 // Ruby method `self.fuzzy_search(name)` at line 2692.
-pub fn ruby_formula_l2692_d260_self_fuzzy_search(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2692_d260_self_fuzzy_search(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Formula.fuzzy_search requires a name') }
 	name := args[0].as_string()
 	mut candidates := ruby_formula_l2602_d250_self_full_names().as_string_array() or { []string{} }
 	candidates.sort_with_compare(fn [name] (a &string, b &string) int {
 		return formula_edit_distance(*a, name) - formula_edit_distance(*b, name)
 	})
-	return brew_runtime.string_array_value(if candidates.len > 3 {
+	return ruby.string_array_value(if candidates.len > 3 {
 		candidates[..3].clone()
 	} else {
 		candidates
@@ -3666,148 +3666,148 @@ pub fn ruby_formula_l2692_d260_self_fuzzy_search(args ...brew_runtime.Value) bre
 }
 
 // Ruby method `self.[](name)` at line 2699.
-pub fn ruby_formula_l2699_d261_self(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2699_d261_self(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Formula.[] requires a name') }
 	formula := formulary_factory(args[0].as_string(), 'stable', '', false, []string{}, default_formulary_lookup_config()) or { panic(err) }
 	return formula_boundary_value(formula)
 }
 
 // Ruby method `core_formula?` at line 2705.
-pub fn ruby_formula_l2705_d262_core_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2705_d262_core_formula(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'core_formula?')
-	return brew_runtime.bool_value(formula.reference.core_tap || formula.tap == 'homebrew/core')
+	return ruby.bool_value(formula.reference.core_tap || formula.tap == 'homebrew/core')
 }
 
 // Ruby method `tap?` at line 2711.
-pub fn ruby_formula_l2711_d263_tap(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2711_d263_tap(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'tap?')
-	return brew_runtime.bool_value(formula.tap != '' && formula.tap != 'homebrew/core')
+	return ruby.bool_value(formula.tap != '' && formula.tap != 'homebrew/core')
 }
 
 // Ruby method `valid_platform?` at line 2720.
-pub fn ruby_formula_l2720_d264_valid_platform(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2720_d264_valid_platform(args ...ruby.Value) ruby.Value {
 	macos := ruby_formula_l2725_d265_supports_macos(...args).as_bool() or { false }
 	linux := ruby_formula_l2730_d266_supports_linux(...args).as_bool() or { false }
-	return brew_runtime.bool_value(macos && linux)
+	return ruby.bool_value(macos && linux)
 }
 
 // Ruby method `supports_macos?` at line 2725.
-pub fn ruby_formula_l2725_d265_supports_macos(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2725_d265_supports_macos(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'supports_macos?')
-	return brew_runtime.bool_value('linux' !in formula.reference.dependencies)
+	return ruby.bool_value('linux' !in formula.reference.dependencies)
 }
 
 // Ruby method `supports_linux?` at line 2730.
-pub fn ruby_formula_l2730_d266_supports_linux(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2730_d266_supports_linux(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'supports_linux?')
-	return brew_runtime.bool_value('linux' in formula.reference.dependencies || 'macos' !in formula.reference.dependencies)
+	return ruby.bool_value('linux' in formula.reference.dependencies || 'macos' !in formula.reference.dependencies)
 }
 
 // Ruby method `print_tap_action(options = {})` at line 2737.
-pub fn ruby_formula_l2737_d267_print_tap_action(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2737_d267_print_tap_action(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'print_tap_action')
 	if formula.tap == '' || formula.reference.core_tap {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	verb := formula_keyword(args, 'verb', 1)
-	return brew_runtime.string_value('${if verb == '' { 'Installing' } else { verb }} ${formula.name()} from ${formula.tap}')
+	return ruby.string_value('${if verb == '' { 'Installing' } else { verb }} ${formula.name()} from ${formula.tap}')
 }
 
 // Ruby method `tap_git_head` at line 2745.
-pub fn ruby_formula_l2745_d268_tap_git_head(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2745_d268_tap_git_head(args ...ruby.Value) ruby.Value {
 	return optional_formula_string(formula_receiver(args, 'tap_git_head').reference.tap_git_head, 'String')
 }
 
 // Ruby delegate `delegate env: :"self.class"` at line 2751.
-pub fn ruby_formula_l2751_d269_env(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2751_d269_env(args ...ruby.Value) ruby.Value {
 	_ = formula_receiver(args, 'env')
-	mut environment := map[string]brew_runtime.Value{}
-	for key, value in brew_runtime.environment() {
-		environment[key] = brew_runtime.string_value(value)
+	mut environment := map[string]ruby.Value{}
+	for key, value in ruby.environment() {
+		environment[key] = ruby.string_value(value)
 	}
-	return brew_runtime.map_value(environment)
+	return ruby.map_value(environment)
 }
 
 // Ruby method `conflicts = T.must(self.class.conflicts)` at line 2758.
-pub fn ruby_formula_l2758_d270_conflicts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(formula_receiver(args, 'conflicts').conflict_values)
+pub fn ruby_formula_l2758_d270_conflicts(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(formula_receiver(args, 'conflicts').conflict_values)
 }
 
 // Ruby method `recursive_dependencies(&block)` at line 2775.
-pub fn ruby_formula_l2775_d271_recursive_dependencies(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2775_d271_recursive_dependencies(args ...ruby.Value) ruby.Value {
 	return formula_dependency_array(formula_receiver(args, 'recursive_dependencies').deps())
 }
 
 // Ruby method `recursive_requirements(&block)` at line 2800.
-pub fn ruby_formula_l2800_d272_recursive_requirements(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(formula_receiver(args, 'recursive_requirements').requirement_values)
+pub fn ruby_formula_l2800_d272_recursive_requirements(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(formula_receiver(args, 'recursive_requirements').requirement_values)
 }
 
 // Ruby method `any_installed_keg` at line 2808.
-pub fn ruby_formula_l2808_d273_any_installed_keg(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2808_d273_any_installed_keg(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'any_installed_keg')
 	if keg := formula.any_installed_keg() {
 		return keg_boundary_value(keg)
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `any_installed_prefix` at line 2819.
-pub fn ruby_formula_l2819_d274_any_installed_prefix(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2819_d274_any_installed_prefix(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'any_installed_prefix')
 	if prefix := formula.any_installed_prefix() {
 		return formula_path_boundary(prefix)
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `any_installed_version` at line 2830.
-pub fn ruby_formula_l2830_d275_any_installed_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2830_d275_any_installed_version(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'any_installed_version')
 	if version := formula.any_installed_version() {
-		return brew_runtime.object_value('PkgVersion', version.to_s())
+		return ruby.object_value('PkgVersion', version.to_s())
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `runtime_dependencies(read_from_tab: true, undeclared: true)` at line 2838.
-pub fn ruby_formula_l2838_d276_runtime_dependencies(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2838_d276_runtime_dependencies(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'runtime_dependencies')
 	return formula_dependency_array(formula_runtime_dependencies(formula, formula_keyword_bool(args, 'read_from_tab', true), formula_keyword_bool(args, 'undeclared', true)))
 }
 
 // Ruby method `runtime_formula_dependencies(read_from_tab: true, undeclared: true)` at line 2865.
-pub fn ruby_formula_l2865_d277_runtime_formula_dependencies(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2865_d277_runtime_formula_dependencies(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'runtime_formula_dependencies')
 	dependencies := formula_runtime_dependencies(formula, formula_keyword_bool(args, 'read_from_tab', true), formula_keyword_bool(args, 'undeclared', true))
-	mut formulae := []brew_runtime.Value{}
+	mut formulae := []ruby.Value{}
 	for dependency in dependencies {
 		resolved := dependency_to_formula(dependency, false, default_formulary_lookup_config()) or {
 			continue
 		}
 		formulae << formula_boundary_value(resolved)
 	}
-	return brew_runtime.array_value(formulae)
+	return ruby.array_value(formulae)
 }
 
 // Ruby method `installed_runtime_formula_dependencies(read_from_tab: true, undeclared: true)` at line 2881.
-pub fn ruby_formula_l2881_d278_installed_runtime_formula_dependencies(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2881_d278_installed_runtime_formula_dependencies(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'installed_runtime_formula_dependencies')
 	dependencies := formula_runtime_dependencies(formula, formula_keyword_bool(args, 'read_from_tab', true), formula_keyword_bool(args, 'undeclared', true))
-	mut formulae := []brew_runtime.Value{}
+	mut formulae := []ruby.Value{}
 	for dependency in dependencies {
 		resolved := dependency_to_formula(dependency, true, default_formulary_lookup_config()) or {
 			continue
 		}
 		if resolved.any_version_installed() { formulae << formula_boundary_value(resolved) }
 	}
-	return brew_runtime.array_value(formulae)
+	return ruby.array_value(formulae)
 }
 
 // Ruby method `runtime_installed_formula_dependents` at line 2896.
-pub fn ruby_formula_l2896_d279_runtime_installed_formula_dependents(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2896_d279_runtime_installed_formula_dependents(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'runtime_installed_formula_dependents')
-	mut dependents := []brew_runtime.Value{}
+	mut dependents := []ruby.Value{}
 	for rack in formula_racks(formula.cellar) {
 		candidate := formulary_resolve_default(os.base(rack)) or { continue }
 		if candidate.any_installed_keg() == none {
@@ -3818,11 +3818,11 @@ pub fn ruby_formula_l2896_d279_runtime_installed_formula_dependents(args ...brew
 			dependents << formula_boundary_value(candidate)
 		}
 	}
-	return brew_runtime.array_value(dependents)
+	return ruby.array_value(dependents)
 }
 
 // Ruby method `missing_dependencies(hide: [])` at line 2920.
-pub fn ruby_formula_l2920_d280_missing_dependencies(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2920_d280_missing_dependencies(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'missing_dependencies')
 	hide := formula_keyword_strings(args, 'hide')
 	keg := formula.any_installed_keg() or { return formula_dependency_array([]Dependency{}) }
@@ -3836,9 +3836,9 @@ pub fn ruby_formula_l2920_d280_missing_dependencies(args ...brew_runtime.Value) 
 			continue
 		}
 		base_name := receipt.full_name.split('/').last()
-		cellar_path := brew_runtime.join_path(formula.cellar, base_name)
+		cellar_path := ruby.join_path(formula.cellar, base_name)
 		opt_path := os.join_path(formula.prefix_root, 'opt', base_name)
-		if base_name !in hide && (brew_runtime.is_dir(cellar_path) || brew_runtime.is_dir(opt_path)) {
+		if base_name !in hide && (ruby.is_dir(cellar_path) || ruby.is_dir(opt_path)) {
 			continue
 		}
 		missing << new_dependency(receipt.full_name, []string{})
@@ -3847,27 +3847,27 @@ pub fn ruby_formula_l2920_d280_missing_dependencies(args ...brew_runtime.Value) 
 }
 
 // Ruby method `ruby_source_path` at line 2940.
-pub fn ruby_formula_l2940_d281_ruby_source_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2940_d281_ruby_source_path(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'ruby_source_path')
 	return optional_formula_string(formula.reference.ruby_source_path, 'String')
 }
 
 // Ruby method `ruby_source_checksum` at line 2945.
-pub fn ruby_formula_l2945_d282_ruby_source_checksum(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2945_d282_ruby_source_checksum(args ...ruby.Value) ruby.Value {
 	return optional_formula_string(formula_receiver(args, 'ruby_source_checksum').reference.ruby_source_checksum, 'Checksum')
 }
 
 // Ruby method `merge_spec_dependables(dependables)` at line 2950.
-pub fn ruby_formula_l2950_d283_merge_spec_dependables(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2950_d283_merge_spec_dependables(args ...ruby.Value) ruby.Value {
 	_ = formula_receiver(args, 'merge_spec_dependables')
 	if args.len < 2 { panic('Formula#merge_spec_dependables requires dependables') }
 	dependables := args[1].as_map() or { panic(err) }
 	mut specs := dependables.keys()
 	specs.sort()
-	mut all := []brew_runtime.Value{}
+	mut all := []ruby.Value{}
 	mut identities := map[string]bool{}
 	for spec in specs {
-		for dependable in dependables[spec].as_array() or { []brew_runtime.Value{} } {
+		for dependable in dependables[spec].as_array() or { []ruby.Value{} } {
 			identity := formula_value_identity(dependable)
 			if identity in identities {
 				continue
@@ -3876,24 +3876,24 @@ pub fn ruby_formula_l2950_d283_merge_spec_dependables(args ...brew_runtime.Value
 			all << dependable
 		}
 	}
-	mut merged := []brew_runtime.Value{}
+	mut merged := []ruby.Value{}
 	for dependable in all {
 		identity := formula_value_identity(dependable)
 		mut member_specs := []string{}
 		for spec in specs {
-			values := dependables[spec].as_array() or { []brew_runtime.Value{} }
+			values := dependables[spec].as_array() or { []ruby.Value{} }
 			if values.any(formula_value_identity(it) == identity) { member_specs << spec }
 		}
-		merged << brew_runtime.map_value({
+		merged << ruby.map_value({
 			'dependable': dependable
-			'specs':      brew_runtime.string_array_value(member_specs)
+			'specs':      ruby.string_array_value(member_specs)
 		})
 	}
-	return brew_runtime.array_value(merged)
+	return ruby.array_value(merged)
 }
 
 // Ruby method `to_hash` at line 2966.
-pub fn ruby_formula_l2966_d284_to_hash(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l2966_d284_to_hash(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'to_hash')
 	mut aliases := formula.aliases()
 	aliases.sort()
@@ -3904,32 +3904,32 @@ pub fn ruby_formula_l2966_d284_to_hash(args ...brew_runtime.Value) brew_runtime.
 		conflict_names << if parts.len > 0 { parts[0] } else { encoded }
 		conflict_reasons << if parts.len > 1 { parts[1] } else { '' }
 	}
-	mut option_values := []brew_runtime.Value{}
+	mut option_values := []ruby.Value{}
 	for option in formula.options().to_array() {
-		option_values << brew_runtime.map_value({
-			'option':      brew_runtime.string_value(option.flag)
-			'description': brew_runtime.string_value(option.description)
+		option_values << ruby.map_value({
+			'option':      ruby.string_value(option.flag)
+			'description': ruby.string_value(option.description)
 		})
 	}
-	mut bottle := map[string]brew_runtime.Value{}
+	mut bottle := map[string]ruby.Value{}
 	if formula.reference.stable_version != '' && formula.reference.bottle_available {
 		bottle['stable'] = formula_bottle_hash_value(formula)
 	}
 	mut keg_only_reason := formula_nil_value()
 	if formula.keg_only_reason_value != '' {
 		parts := formula.keg_only_reason_value.split('\x1f')
-		keg_only_reason = brew_runtime.map_value({
-			'reason':      brew_runtime.object_value('Symbol', if parts.len > 0 {
+		keg_only_reason = ruby.map_value({
+			'reason':      ruby.object_value('Symbol', if parts.len > 0 {
 				parts[0]
 			} else {
 				''
 			})
-			'explanation': brew_runtime.string_value(if parts.len > 1 { parts[1] } else { '' })
+			'explanation': ruby.string_value(if parts.len > 1 { parts[1] } else { '' })
 		})
 	}
 	caveats := args[0].attribute('caveats') or { '' }
-	prefix_placeholder := brew_runtime.environment_value('HOMEBREW_PREFIX_PLACEHOLDER')
-	cellar_placeholder := brew_runtime.environment_value('HOMEBREW_CELLAR_PLACEHOLDER')
+	prefix_placeholder := ruby.environment_value('HOMEBREW_PREFIX_PLACEHOLDER')
+	cellar_placeholder := ruby.environment_value('HOMEBREW_CELLAR_PLACEHOLDER')
 	mut serialized_caveats := caveats
 	if prefix_placeholder != '' {
 		serialized_caveats = serialized_caveats.replace(formula.prefix_root, prefix_placeholder)
@@ -3938,51 +3938,51 @@ pub fn ruby_formula_l2966_d284_to_hash(args ...brew_runtime.Value) brew_runtime.
 		serialized_caveats = serialized_caveats.replace(formula.cellar, cellar_placeholder)
 	}
 	mut hash := {
-		'name':                            brew_runtime.string_value(formula.name())
-		'full_name':                       brew_runtime.string_value(formula.full_name())
+		'name':                            ruby.string_value(formula.name())
+		'full_name':                       ruby.string_value(formula.full_name())
 		'tap':                             formula_optional_value(formula.tap, 'String')
-		'oldnames':                        brew_runtime.string_array_value(formula.oldnames())
-		'aliases':                         brew_runtime.string_array_value(aliases)
-		'versioned_formulae':              brew_runtime.string_array_value(formula.reference.versioned_formulae)
+		'oldnames':                        ruby.string_array_value(formula.oldnames())
+		'aliases':                         ruby.string_array_value(aliases)
+		'versioned_formulae':              ruby.string_array_value(formula.reference.versioned_formulae)
 		'desc':                            formula_optional_value(formula.description(), 'String')
 		'license':                         formula_optional_value(formula.license(), 'String')
 		'homepage':                        formula_optional_value(formula.homepage(), 'String')
-		'versions':                        brew_runtime.map_value({
+		'versions':                        ruby.map_value({
 			'stable': formula_optional_value(formula.reference.stable_version, 'String')
 			'head':   formula_optional_value(formula.reference.head_version, 'String')
-			'bottle': brew_runtime.bool_value(formula.reference.bottle_available)
+			'bottle': ruby.bool_value(formula.reference.bottle_available)
 		})
 		'urls':                            formula_urls_hash_value(formula)
 		'patches':                         formula_serialized_patches_value(formula)
-		'revision':                        brew_runtime.int_value(formula.reference.revision)
-		'version_scheme':                  brew_runtime.int_value(formula.reference.version_scheme)
+		'revision':                        ruby.int_value(formula.reference.revision)
+		'version_scheme':                  ruby.int_value(formula.reference.version_scheme)
 		'compatibility_version':           if formula.has_compatibility_version {
-			brew_runtime.int_value(formula.compatibility_version)
+			ruby.int_value(formula.compatibility_version)
 		} else {
 			formula_nil_value()
 		}
-		'autobump':                        brew_runtime.bool_value(formula.autobump_value)
+		'autobump':                        ruby.bool_value(formula.autobump_value)
 		'no_autobump_message':             formula_optional_value(formula.no_autobump_message_value, 'Symbol')
-		'skip_livecheck':                  brew_runtime.bool_value(false)
-		'bottle':                          brew_runtime.map_value(bottle)
+		'skip_livecheck':                  ruby.bool_value(false)
+		'bottle':                          ruby.map_value(bottle)
 		'pour_bottle_only_if':             formula_optional_value(formula.pour_bottle_only_if_value, 'String')
-		'keg_only':                        brew_runtime.bool_value(formula.keg_only())
+		'keg_only':                        ruby.bool_value(formula.keg_only())
 		'keg_only_reason':                 keg_only_reason
-		'options':                         brew_runtime.array_value(option_values)
+		'options':                         ruby.array_value(option_values)
 		'requirements':                    formula_serialized_requirements_value(formula)
-		'conflicts_with':                  brew_runtime.string_array_value(conflict_names)
-		'conflicts_with_reasons':          brew_runtime.string_array_value(conflict_reasons)
-		'link_overwrite':                  brew_runtime.string_array_value(formula.link_overwrite_path_values)
+		'conflicts_with':                  ruby.string_array_value(conflict_names)
+		'conflicts_with_reasons':          ruby.string_array_value(conflict_reasons)
+		'link_overwrite':                  ruby.string_array_value(formula.link_overwrite_path_values)
 		'caveats':                         formula_optional_value(serialized_caveats, 'String')
 		'installed':                       formula_installed_hash_value(formula)
 		'linked_keg':                      if linked := formula.linked_version() {
-			brew_runtime.string_value(linked.to_s())
+			ruby.string_value(linked.to_s())
 		} else {
 			formula_nil_value()
 		}
-		'pinned':                          brew_runtime.bool_value(formula.pinned())
-		'outdated':                        brew_runtime.bool_value(formula.outdated())
-		'deprecated':                      brew_runtime.bool_value(formula.deprecated())
+		'pinned':                          ruby.bool_value(formula.pinned())
+		'outdated':                        ruby.bool_value(formula.outdated())
+		'deprecated':                      ruby.bool_value(formula.deprecated())
 		'deprecation_date':                formula_optional_value(formula.deprecation_date_value, 'Date')
 		'deprecation_reason':              formula_optional_value(formula.deprecation_reason(), 'Symbol')
 		'deprecation_replacement_formula': formula_optional_value(formula.deprecation_replacement_formula_value, 'String')
@@ -3990,14 +3990,14 @@ pub fn ruby_formula_l2966_d284_to_hash(args ...brew_runtime.Value) brew_runtime.
 		'deprecate_args':                  if formula.deprecation_date_value == '' {
 			formula_nil_value()
 		} else {
-			brew_runtime.map_value({
-				'date':                brew_runtime.string_value(formula.deprecation_date_value)
+			ruby.map_value({
+				'date':                ruby.string_value(formula.deprecation_date_value)
 				'because':             formula_optional_value(formula.deprecation_reason(), 'Symbol')
 				'replacement_formula': formula_optional_value(formula.deprecation_replacement_formula_value, 'String')
 				'replacement_cask':    formula_optional_value(formula.deprecation_replacement_cask_value, 'String')
 			})
 		}
-		'disabled':                        brew_runtime.bool_value(formula.disabled())
+		'disabled':                        ruby.bool_value(formula.disabled())
 		'disable_date':                    formula_optional_value(formula.disable_date_value, 'Date')
 		'disable_reason':                  formula_optional_value(formula.disable_reason(), 'Symbol')
 		'disable_replacement_formula':     formula_optional_value(formula.disable_replacement_formula_value, 'String')
@@ -4005,107 +4005,107 @@ pub fn ruby_formula_l2966_d284_to_hash(args ...brew_runtime.Value) brew_runtime.
 		'disable_args':                    if formula.disable_date_value == '' {
 			formula_nil_value()
 		} else {
-			brew_runtime.map_value({
-				'date':                brew_runtime.string_value(formula.disable_date_value)
+			ruby.map_value({
+				'date':                ruby.string_value(formula.disable_date_value)
 				'because':             formula_optional_value(formula.disable_reason(), 'Symbol')
 				'replacement_formula': formula_optional_value(formula.disable_replacement_formula_value, 'String')
 				'replacement_cask':    formula_optional_value(formula.disable_replacement_cask_value, 'String')
 			})
 		}
-		'post_install_steps':              brew_runtime.string_array_value(formula.post_install_step_values)
-		'post_install_defined':            brew_runtime.bool_value((args[0].attribute('post_install_defined') or {
+		'post_install_steps':              ruby.string_array_value(formula.post_install_step_values)
+		'post_install_defined':            ruby.bool_value((args[0].attribute('post_install_defined') or {
 			'false'
 		}) == 'true')
 		'service':                         if formula.service_block_value == '' {
 			formula_nil_value()
 		} else {
-			brew_runtime.object_value('Service', formula.service_block_value)
+			ruby.object_value('Service', formula.service_block_value)
 		}
 		'tap_git_head':                    formula_optional_value(formula.reference.tap_git_head, 'String')
 		'ruby_source_path':                formula_optional_value(formula.reference.ruby_source_path, 'String')
 		'ruby_source_checksum':            if formula.reference.ruby_source_checksum == '' {
-			brew_runtime.map_value({})
+			ruby.map_value({})
 		} else {
-			brew_runtime.map_value({
-				'sha256': brew_runtime.string_value(formula.reference.ruby_source_checksum)
+			ruby.map_value({
+				'sha256': ruby.string_value(formula.reference.ruby_source_checksum)
 			})
 		}
 	}
 	for key, value in formula_dependencies_hash_value(formula).as_map() or {
-		map[string]brew_runtime.Value{}
+		map[string]ruby.Value{}
 	} {
 		hash[key] = value
 	}
-	return brew_runtime.map_value(hash)
+	return ruby.map_value(hash)
 }
 
 // Ruby method `to_hash_with_variations` at line 3062.
-pub fn ruby_formula_l3062_d285_to_hash_with_variations(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l3062_d285_to_hash_with_variations(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'to_hash_with_variations')
 	if formula.loaded_from_internal_api_value {
 		panic('Cannot call #to_hash_with_variations on formulae loaded from the internal API')
 	}
 	mut hash := ruby_formula_l2966_d284_to_hash(...args).as_map() or { panic(err) }
-	mut variations := map[string]brew_runtime.Value{}
+	mut variations := map[string]ruby.Value{}
 	if args.len > 1 && args[1].type_name == 'Hash' {
-		for tag, delta in args[1].as_map() or { map[string]brew_runtime.Value{} } {
+		for tag, delta in args[1].as_map() or { map[string]ruby.Value{} } {
 			variations[tag] = delta
 		}
 	}
-	hash['variations'] = brew_runtime.map_value(variations)
-	return brew_runtime.map_value(hash)
+	hash['variations'] = ruby.map_value(variations)
+	return ruby.map_value(hash)
 }
 
 // Ruby method `bottle_hash` at line 3104.
-pub fn ruby_formula_l3104_d286_bottle_hash(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l3104_d286_bottle_hash(args ...ruby.Value) ruby.Value {
 	return formula_bottle_hash_value(formula_receiver(args, 'bottle_hash'))
 }
 
 // Ruby method `urls_hash` at line 3137.
-pub fn ruby_formula_l3137_d287_urls_hash(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l3137_d287_urls_hash(args ...ruby.Value) ruby.Value {
 	return formula_urls_hash_value(formula_receiver(args, 'urls_hash'))
 }
 
 // Ruby method `serialized_patches` at line 3163.
-pub fn ruby_formula_l3163_d288_serialized_patches(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l3163_d288_serialized_patches(args ...ruby.Value) ruby.Value {
 	return formula_serialized_patches_value(formula_receiver(args, 'serialized_patches'))
 }
 
 // Ruby method `serialized_requirements` at line 3188.
-pub fn ruby_formula_l3188_d289_serialized_requirements(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l3188_d289_serialized_requirements(args ...ruby.Value) ruby.Value {
 	return formula_serialized_requirements_value(formula_receiver(args, 'serialized_requirements'))
 }
 
 // Ruby method `caveats_with_placeholders` at line 3214.
-pub fn ruby_formula_l3214_d290_caveats_with_placeholders(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l3214_d290_caveats_with_placeholders(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'caveats_with_placeholders')
 	mut caveats := args[0].attribute('caveats') or { return formula_nil_value() }
-	prefix_placeholder := brew_runtime.environment_value('HOMEBREW_PREFIX_PLACEHOLDER')
-	cellar_placeholder := brew_runtime.environment_value('HOMEBREW_CELLAR_PLACEHOLDER')
+	prefix_placeholder := ruby.environment_value('HOMEBREW_PREFIX_PLACEHOLDER')
+	cellar_placeholder := ruby.environment_value('HOMEBREW_CELLAR_PLACEHOLDER')
 	if prefix_placeholder != '' {
 		caveats = caveats.replace(formula.prefix_root, prefix_placeholder)
 	}
 	if cellar_placeholder != '' {
 		caveats = caveats.replace(formula.cellar, cellar_placeholder)
 	}
-	return brew_runtime.string_value(caveats)
+	return ruby.string_value(caveats)
 }
 
 // Ruby method `dependencies_hash` at line 3220.
-pub fn ruby_formula_l3220_d291_dependencies_hash(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l3220_d291_dependencies_hash(args ...ruby.Value) ruby.Value {
 	return formula_dependencies_hash_value(formula_receiver(args, 'dependencies_hash'))
 }
 
 // Ruby method `on_system_blocks_exist?` at line 3285.
-pub fn ruby_formula_l3285_d292_on_system_blocks_exist(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(formula_receiver(args, 'on_system_blocks_exist?').on_system_blocks_exist_value)
+pub fn ruby_formula_l3285_d292_on_system_blocks_exist(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(formula_receiver(args, 'on_system_blocks_exist?').on_system_blocks_exist_value)
 }
 
 // Ruby method `run_test(keep_tmp: false)` at line 3293.
-pub fn ruby_formula_l3293_d293_run_test(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l3293_d293_run_test(args ...ruby.Value) ruby.Value {
 	mut formula := formula_receiver(args, 'run_test')
 	keep_tmp := formula_keyword_bool(args, 'keep_tmp', false)
-	temporary_root := brew_runtime.environment_value('HOMEBREW_TEMP')
+	temporary_root := ruby.environment_value('HOMEBREW_TEMP')
 	base := if temporary_root == '' { os.temp_dir() } else { temporary_root }
 	testpath := os.join_path(base, '${formula.name()}-test-${os.getpid()}-${time.now().unix_nano()}')
 	os.mkdir_all(testpath) or { panic(err) }
@@ -4118,42 +4118,42 @@ pub fn ruby_formula_l3293_d293_run_test(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby method `test_defined?` at line 3337.
-pub fn ruby_formula_l3337_d294_test_defined(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(formula_receiver(args, 'test_defined?').test_defined_value)
+pub fn ruby_formula_l3337_d294_test_defined(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(formula_receiver(args, 'test_defined?').test_defined_value)
 }
 
 // Ruby method `test; end` at line 3349.
-pub fn ruby_formula_l3349_d295_test(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l3349_d295_test(args ...ruby.Value) ruby.Value {
 	_ = formula_receiver(args, 'test')
 	// Formula's base implementation is intentionally empty. A translated
 	// subclass carries its test return across the object boundary.
 	if result := args[0].attribute('test_result') {
-		return brew_runtime.object_value('BasicObject', result)
+		return ruby.object_value('BasicObject', result)
 	}
 	return formula_nil_value()
 }
 
 // Ruby method `test_fixtures(file)` at line 3355.
-pub fn ruby_formula_l3355_d296_test_fixtures(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l3355_d296_test_fixtures(args ...ruby.Value) ruby.Value {
 	_ = formula_receiver(args, 'test_fixtures')
 	if args.len < 2 { panic('Formula#test_fixtures requires a file') }
-	fixtures := os.join_path(brew_runtime.environment_value('HOMEBREW_LIBRARY_PATH'), 'test', 'support', 'fixtures')
-	return formula_path_boundary(brew_runtime.join_path(fixtures, args[1].as_string()))
+	fixtures := os.join_path(ruby.environment_value('HOMEBREW_LIBRARY_PATH'), 'test', 'support', 'fixtures')
+	return formula_path_boundary(ruby.join_path(fixtures, args[1].as_string()))
 }
 
 // Ruby method `install; end` at line 3375.
-pub fn ruby_formula_l3375_d297_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l3375_d297_install(args ...ruby.Value) ruby.Value {
 	_ = formula_receiver(args, 'install')
 	// Formula's base implementation is intentionally empty. A translated
 	// subclass carries its install return across the object boundary.
 	if result := args[0].attribute('install_result') {
-		return brew_runtime.object_value('BasicObject', result)
+		return ruby.object_value('BasicObject', result)
 	}
 	return formula_nil_value()
 }
 
 // Ruby method `inreplace(paths, before = nil, after = nil, audit_result: true, global: true, &block)` at line 3412.
-pub fn ruby_formula_l3412_d298_inreplace(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l3412_d298_inreplace(args ...ruby.Value) ruby.Value {
 	_ = formula_receiver(args, 'inreplace')
 	if args.len < 2 { panic('Formula#inreplace requires paths') }
 	paths := formula_argument_strings(args[1])
@@ -4183,26 +4183,26 @@ pub fn ruby_formula_l3412_d298_inreplace(args ...brew_runtime.Value) brew_runtim
 		audit_result: audit_result
 		global: global
 	}, none) or { panic(err) }
-	return brew_runtime.string_array_value(result.paths)
+	return ruby.string_array_value(result.paths)
 }
 
 // Ruby method `setup_home(home)` at line 3422.
-pub fn ruby_formula_l3422_d299_setup_home(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l3422_d299_setup_home(args ...ruby.Value) ruby.Value {
 	_ = formula_receiver(args, 'setup_home')
 	if args.len < 2 { panic('Formula#setup_home requires home') }
 	home := args[1].as_string()
 	os.mkdir_all(home) or { panic(err) }
-	brew_runtime.write_file(brew_runtime.join_path(home, '.bazelrc'), 'startup --output_user_root=${brew_runtime.join_path(home, '_bazel')}') or { panic(err) }
+	ruby.write_file(ruby.join_path(home, '.bazelrc'), 'startup --output_user_root=${ruby.join_path(home, '_bazel')}') or { panic(err) }
 	return formula_nil_value()
 }
 
 // Ruby method `declared_runtime_dependencies` at line 3429.
-pub fn ruby_formula_l3429_d300_declared_runtime_dependencies(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l3429_d300_declared_runtime_dependencies(args ...ruby.Value) ruby.Value {
 	return formula_dependency_array(formula_declared_runtime_dependencies(formula_receiver(args, 'declared_runtime_dependencies')))
 }
 
 // Ruby method `undeclared_runtime_dependencies` at line 3452.
-pub fn ruby_formula_l3452_d301_undeclared_runtime_dependencies(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l3452_d301_undeclared_runtime_dependencies(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'undeclared_runtime_dependencies')
 	declared := formula_declared_runtime_dependencies(formula).map(it.name)
 	keg := formula.any_installed_keg() or { return formula_dependency_array([]Dependency{}) }
@@ -4211,32 +4211,32 @@ pub fn ruby_formula_l3452_d301_undeclared_runtime_dependencies(args ...brew_runt
 }
 
 // Ruby method `missing_library_linkage` at line 3466.
-pub fn ruby_formula_l3466_d302_missing_library_linkage(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l3466_d302_missing_library_linkage(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'missing_library_linkage')
 	keg := formula.any_installed_keg() or {
-		return brew_runtime.array_value([
-			brew_runtime.string_array_value([]string{}),
-			brew_runtime.string_array_value([]string{}),
+		return ruby.array_value([
+			ruby.string_array_value([]string{}),
+			ruby.string_array_value([]string{}),
 		])
 	}
 	if !keg.directory() {
-		return brew_runtime.array_value([
-			brew_runtime.string_array_value([]string{}),
-			brew_runtime.string_array_value([]string{}),
+		return ruby.array_value([
+			ruby.string_array_value([]string{}),
+			ruby.string_array_value([]string{}),
 		])
 	}
 	mut own_libraries := formula_boundary_strings(args[0], 'broken_libraries')
 	mut dependency_names := formula_boundary_strings(args[0], 'broken_dependency_names')
 	own_libraries.sort()
 	dependency_names.sort()
-	return brew_runtime.array_value([
-		brew_runtime.string_array_value(own_libraries),
-		brew_runtime.string_array_value(dependency_names),
+	return ruby.array_value([
+		ruby.string_array_value(own_libraries),
+		ruby.string_array_value(dependency_names),
 	])
 }
 
 // Ruby method `system(cmd, *args)` at line 3522.
-pub fn ruby_formula_l3522_d303_system(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l3522_d303_system(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'system')
 	if args.len < 2 { panic('Formula#system requires a command') }
 	command := args[1].as_string()
@@ -4244,14 +4244,14 @@ pub fn ruby_formula_l3522_d303_system(args ...brew_runtime.Value) brew_runtime.V
 	for index in 2 .. args.len {
 		command_args << formula_argument_strings(args[index])
 	}
-	logs := brew_runtime.join_path(brew_runtime.environment_value('HOMEBREW_LOGS'), formula.name())
+	logs := ruby.join_path(ruby.environment_value('HOMEBREW_LOGS'), formula.name())
 	os.mkdir_all(logs) or { panic(err) }
-	mut existing := brew_runtime.list_dir(logs) or { []string{} }
+	mut existing := ruby.list_dir(logs) or { []string{} }
 	existing = existing.filter(it.ends_with('.${os.base(command).split(' ')[0]}.log'))
 	log_prefix := if formula.active_log_type == '' { '' } else { '${formula.active_log_type}.' }
 	log_filename := os.join_path(logs, '${log_prefix}${existing.len + 1:02}.${os.base(command).split(' ')[0]}.log')
-	result := brew_runtime.run_command(command, command_args)
-	brew_runtime.write_file(log_filename, '${time.now().format_rfc3339()}\n\n${command}\n${command_args.join(' ')}\n\n${result.output}') or {
+	result := ruby.run_command(command, command_args)
+	ruby.write_file(log_filename, '${time.now().format_rfc3339()}\n\n${command}\n${command_args.join(' ')}\n\n${result.output}') or {
 		panic(err)
 	}
 	if result.exit_code != 0 {
@@ -4261,7 +4261,7 @@ pub fn ruby_formula_l3522_d303_system(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby method `eligible_kegs_for_cleanup(quiet: false)` at line 3630.
-pub fn ruby_formula_l3630_d304_eligible_kegs_for_cleanup(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l3630_d304_eligible_kegs_for_cleanup(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'eligible_kegs_for_cleanup')
 	_ = formula_keyword_bool(args, 'quiet', false)
 	mut candidates := []Keg{}
@@ -4274,7 +4274,7 @@ pub fn ruby_formula_l3630_d304_eligible_kegs_for_cleanup(args ...brew_runtime.Va
 					version := keg.version() or { continue }
 					if version.head() { head_kegs << keg } else { stable_kegs << keg }
 				}
-				head_kegs = head_kegs.filter(brew_runtime.real_path(it.path) != brew_runtime.real_path(latest_head_prefix))
+				head_kegs = head_kegs.filter(ruby.real_path(it.path) != ruby.real_path(latest_head_prefix))
 				for index in 1 .. stable_kegs.len {
 					mut current := index
 					for current > 0 && stable_kegs[current].compare_scheme_and_version(stable_kegs[current - 1]) < 0 {
@@ -4298,9 +4298,9 @@ pub fn ruby_formula_l3630_d304_eligible_kegs_for_cleanup(args ...brew_runtime.Va
 		}
 	}
 	mut eligible := []Keg{}
-	pinned_path := if formula.pinned() { brew_runtime.real_path(formula.pin_path()) } else { '' }
+	pinned_path := if formula.pinned() { ruby.real_path(formula.pin_path()) } else { '' }
 	for keg in candidates {
-		if keg.linked() || (pinned_path != '' && brew_runtime.real_path(keg.path) == pinned_path) || keg.keepme_refs().len > 0 {
+		if keg.linked() || (pinned_path != '' && ruby.real_path(keg.path) == pinned_path) || keg.keepme_refs().len > 0 {
 			continue
 		}
 		eligible << keg
@@ -4309,7 +4309,7 @@ pub fn ruby_formula_l3630_d304_eligible_kegs_for_cleanup(args ...brew_runtime.Va
 }
 
 // Ruby method `mktemp(prefix = name, retain: false, retain_in_cache: false, &block)` at line 3685.
-pub fn ruby_formula_l3685_d305_mktemp(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l3685_d305_mktemp(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'mktemp')
 	prefix := if args.len > 1 && args[1].type_name != 'Hash' {
 		args[1].as_string()
@@ -4331,14 +4331,14 @@ pub fn ruby_formula_l3685_d305_mktemp(args ...brew_runtime.Value) brew_runtime.V
 		}
 	}
 	root := if retain_in_cache {
-		brew_runtime.environment_value('HOMEBREW_CACHE')
+		ruby.environment_value('HOMEBREW_CACHE')
 	} else {
-		brew_runtime.environment_value('HOMEBREW_TEMP')
+		ruby.environment_value('HOMEBREW_TEMP')
 	}
 	base := if root == '' { os.temp_dir() } else { root }
 	tmpdir := os.join_path(base, '${prefix}-${os.getpid()}-${time.now().unix_nano()}')
 	os.mkdir_all(tmpdir) or { panic(err) }
-	staging := brew_runtime.structured_value('Mktemp', tmpdir, {
+	staging := ruby.structured_value('Mktemp', tmpdir, {
 		'prefix':          prefix
 		'tmpdir':          tmpdir
 		'retain':          retain.str()
@@ -4353,23 +4353,23 @@ pub fn ruby_formula_l3685_d305_mktemp(args ...brew_runtime.Value) brew_runtime.V
 		}
 		result := argument.attribute('result') or { '' }
 		if !retain { os.rmdir_all(tmpdir) or {} }
-		return brew_runtime.object_value('BasicObject', result)
+		return ruby.object_value('BasicObject', result)
 	}
 	if !retain { os.rmdir_all(tmpdir) or {} }
 	return staging
 }
 
 // Ruby method `mkdir(name, &block)` at line 3692.
-pub fn ruby_formula_l3692_d306_mkdir(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l3692_d306_mkdir(args ...ruby.Value) ruby.Value {
 	_ = formula_receiver(args, 'mkdir')
 	if args.len < 2 { panic('Formula#mkdir requires a name') }
 	path := args[1].as_string()
-	already_existed := brew_runtime.is_dir(path)
+	already_existed := ruby.is_dir(path)
 	os.mkdir_all(path) or { panic(err) }
 	if args.len > 2 && args[2].type_name == 'Proc' {
-		return brew_runtime.object_value('BasicObject', args[2].attribute('result') or { '' })
+		return ruby.object_value('BasicObject', args[2].attribute('result') or { '' })
 	}
-	return brew_runtime.string_array_value(if already_existed {
+	return ruby.string_array_value(if already_existed {
 		[]string{}
 	} else {
 		[
@@ -4379,36 +4379,36 @@ pub fn ruby_formula_l3692_d306_mkdir(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby method `xcodebuild(*args)` at line 3703.
-pub fn ruby_formula_l3703_d307_xcodebuild(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l3703_d307_xcodebuild(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'xcodebuild')
-	mut system_args := [formula_boundary_value(formula), brew_runtime.string_value('xcodebuild')]
+	mut system_args := [formula_boundary_value(formula), ruby.string_value('xcodebuild')]
 	if args.len > 1 { system_args << args[1..] }
 	return ruby_formula_l3522_d303_system(...system_args)
 }
 
 // Ruby method `enqueue_resources_and_patches(download_queue:)` at line 3714.
-pub fn ruby_formula_l3714_d308_enqueue_resources_and_patches(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l3714_d308_enqueue_resources_and_patches(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'enqueue_resources_and_patches')
 	if args.len < 2 { panic('Formula#enqueue_resources_and_patches requires download_queue') }
-	mut queued := []brew_runtime.Value{}
+	mut queued := []ruby.Value{}
 	for resource in formula.resource_values {
-		queued << brew_runtime.structured_value('Resource', resource, {
+		queued << ruby.structured_value('Resource', resource, {
 			'name': resource
 		})
 	}
 	for encoded in formula.patch_values {
 		attributes := formula_patch_attributes(encoded)
 		if url := attributes['url'] {
-			queued << brew_runtime.structured_value('PatchResource', url, {
+			queued << ruby.structured_value('PatchResource', url, {
 				'url': url
 			})
 		}
 	}
-	return brew_runtime.array_value(queued)
+	return ruby.array_value(queued)
 }
 
 // Ruby method `fetch_patches` at line 3723.
-pub fn ruby_formula_l3723_d309_fetch_patches(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l3723_d309_fetch_patches(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'fetch_patches')
 	mut fetched := []string{}
 	for encoded in formula.patch_values {
@@ -4423,11 +4423,11 @@ pub fn ruby_formula_l3723_d309_fetch_patches(args ...brew_runtime.Value) brew_ru
 		path := patch_resource.fetch(true, none, false, false) or { panic(err) }
 		fetched << path
 	}
-	return brew_runtime.string_array_value(fetched)
+	return ruby.string_array_value(fetched)
 }
 
 // Ruby method `fetch_bottle_tab(quiet: false)` at line 3728.
-pub fn ruby_formula_l3728_d310_fetch_bottle_tab(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l3728_d310_fetch_bottle_tab(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'fetch_bottle_tab')
 	if !formula.reference.bottle_available {
 		return formula_nil_value()
@@ -4441,58 +4441,58 @@ pub fn ruby_formula_l3728_d310_fetch_bottle_tab(args ...brew_runtime.Value) brew
 }
 
 // Ruby method `bottle_tab_attributes` at line 3735.
-pub fn ruby_formula_l3735_d311_bottle_tab_attributes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l3735_d311_bottle_tab_attributes(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'bottle_tab_attributes')
 	if !formula.reference.bottle_available {
-		return brew_runtime.map_value({})
+		return ruby.map_value({})
 	}
 	mut bottle := api_bottle_for_formula(formula.reference, current_bottle_tag()) or {
-		return brew_runtime.map_value({})
+		return ruby.map_value({})
 	}
-	bottle.fetch_tab(none, true) or { return brew_runtime.map_value({}) }
-	mut attributes := map[string]brew_runtime.Value{}
+	bottle.fetch_tab(none, true) or { return ruby.map_value({}) }
+	mut attributes := map[string]ruby.Value{}
 	for key, value in bottle.tab_attributes() {
 		attributes[key] = formula_json_value(value)
 	}
-	return brew_runtime.map_value(attributes)
+	return ruby.map_value(attributes)
 }
 
 // Ruby method `common_sandbox_env(home)` at line 3743.
-pub fn ruby_formula_l3743_d312_common_sandbox_env(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l3743_d312_common_sandbox_env(args ...ruby.Value) ruby.Value {
 	_ = formula_receiver(args, 'common_sandbox_env')
 	if args.len < 2 { panic('Formula#common_sandbox_env requires home') }
 	home := args[1].as_string()
-	cache := brew_runtime.environment_value('HOMEBREW_CACHE')
+	cache := ruby.environment_value('HOMEBREW_CACHE')
 	null_file := os.path_devnull
-	cooldown := brew_runtime.environment_value('HOMEBREW_RELEASE_COOLDOWN_DAYS')
-	return brew_runtime.map_value({
-		'_JAVA_OPTIONS':           brew_runtime.string_value('-Duser.home=${brew_runtime.join_path(cache, 'java_cache')}')
-		'GOCACHE':                 brew_runtime.string_value(brew_runtime.join_path(cache, 'go_cache'))
-		'GIT_CONFIG_GLOBAL':       brew_runtime.string_value(null_file)
-		'GIT_TERMINAL_PROMPT':     brew_runtime.string_value('0')
-		'GOENV':                   brew_runtime.string_value('off')
-		'GOPATH':                  brew_runtime.string_value(brew_runtime.join_path(cache, 'go_mod_cache'))
-		'CARGO_HOME':              brew_runtime.string_value(brew_runtime.join_path(cache, 'cargo_cache'))
-		'BUNDLE_COOLDOWN':         brew_runtime.string_value(if cooldown == '' {
+	cooldown := ruby.environment_value('HOMEBREW_RELEASE_COOLDOWN_DAYS')
+	return ruby.map_value({
+		'_JAVA_OPTIONS':           ruby.string_value('-Duser.home=${ruby.join_path(cache, 'java_cache')}')
+		'GOCACHE':                 ruby.string_value(ruby.join_path(cache, 'go_cache'))
+		'GIT_CONFIG_GLOBAL':       ruby.string_value(null_file)
+		'GIT_TERMINAL_PROMPT':     ruby.string_value('0')
+		'GOENV':                   ruby.string_value('off')
+		'GOPATH':                  ruby.string_value(ruby.join_path(cache, 'go_mod_cache'))
+		'CARGO_HOME':              ruby.string_value(ruby.join_path(cache, 'cargo_cache'))
+		'BUNDLE_COOLDOWN':         ruby.string_value(if cooldown == '' {
 			'1'
 		} else {
 			cooldown
 		})
-		'PIP_CACHE_DIR':           brew_runtime.string_value(brew_runtime.join_path(cache, 'pip_cache'))
-		'PIP_CONFIG_FILE':         brew_runtime.string_value(null_file)
-		'NPM_CONFIG_USERCONFIG':   brew_runtime.string_value(null_file)
-		'CURL_HOME':               brew_runtime.string_value(if value := brew_runtime.environment_value_opt('CURL_HOME') {
+		'PIP_CACHE_DIR':           ruby.string_value(ruby.join_path(cache, 'pip_cache'))
+		'PIP_CONFIG_FILE':         ruby.string_value(null_file)
+		'NPM_CONFIG_USERCONFIG':   ruby.string_value(null_file)
+		'CURL_HOME':               ruby.string_value(if value := ruby.environment_value_opt('CURL_HOME') {
 			value
 		} else {
 			home
 		})
-		'PYTHONDONTWRITEBYTECODE': brew_runtime.string_value('1')
-		'XDG_CONFIG_HOME':         brew_runtime.string_value(brew_runtime.join_path(home, '.config'))
+		'PYTHONDONTWRITEBYTECODE': ruby.string_value('1')
+		'XDG_CONFIG_HOME':         ruby.string_value(ruby.join_path(home, '.config'))
 	})
 }
 
 // Ruby method `prepare_patches` at line 3765.
-pub fn ruby_formula_l3765_d313_prepare_patches(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l3765_d313_prepare_patches(args ...ruby.Value) ruby.Value {
 	mut formula := formula_receiver(args, 'prepare_patches')
 	for index, encoded in formula.patch_values {
 		if encoded.contains('=') {
@@ -4508,7 +4508,7 @@ pub fn ruby_formula_l3765_d313_prepare_patches(args ...brew_runtime.Value) brew_
 }
 
 // Ruby method `versioned_prefix(version) = rack/version.to_s` at line 3771.
-pub fn ruby_formula_l3771_d314_versioned_prefix(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l3771_d314_versioned_prefix(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'versioned_prefix')
 	if args.len < 2 { panic('Formula#versioned_prefix requires a version') }
 	version := parse_pkg_version(args[1].as_string()) or { panic(err) }
@@ -4516,51 +4516,51 @@ pub fn ruby_formula_l3771_d314_versioned_prefix(args ...brew_runtime.Value) brew
 }
 
 // Ruby method `exec_cmd(cmd, args, out, log_filename)` at line 3781.
-pub fn ruby_formula_l3781_d315_exec_cmd(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l3781_d315_exec_cmd(args ...ruby.Value) ruby.Value {
 	_ = formula_receiver(args, 'exec_cmd')
 	if args.len < 5 { panic('Formula#exec_cmd requires cmd, args, out and log_filename') }
 	command := args[1].as_string()
 	command_args := formula_argument_strings(args[2])
 	out := args[3].as_string()
 	log_filename := if args[4].type_name == 'NilClass' { '' } else { args[4].as_string() }
-	result := brew_runtime.run_command_with_environment(command, command_args, {
+	result := ruby.run_command_with_environment(command, command_args, {
 		'HOMEBREW_CC_LOG_PATH': log_filename
 	})
-	if out != '' { brew_runtime.write_file(out, result.output) or { panic(err) } }
+	if out != '' { ruby.write_file(out, result.output) or { panic(err) } }
 	if result.exit_code != 0 { panic('Failed to execute: ${command}') }
 	return formula_nil_value()
 }
 
 // Ruby method `stage(interactive: false, debug_symbols: false, &_block)` at line 3809.
-pub fn ruby_formula_l3809_d316_stage(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l3809_d316_stage(args ...ruby.Value) ruby.Value {
 	mut formula := formula_receiver(args, 'stage')
 	interactive := formula_keyword_bool(args, 'interactive', false)
 	_ = formula_keyword_bool(args, 'debug_symbols', false)
-	formula.buildpath = brew_runtime.current_directory()
-	env_home := brew_runtime.join_path(formula.buildpath, '.brew_home')
+	formula.buildpath = ruby.current_directory()
+	env_home := ruby.join_path(formula.buildpath, '.brew_home')
 	os.mkdir_all(env_home) or { panic(err) }
 	ruby_formula_l3422_d299_setup_home(formula_boundary_value(formula), formula_path_boundary(env_home))
-	brew_runtime.write_file(brew_runtime.join_path(env_home, '.gitignore'), '*') or { panic(err) }
-	mut environment := map[string]brew_runtime.Value{}
+	ruby.write_file(ruby.join_path(env_home, '.gitignore'), '*') or { panic(err) }
+	mut environment := map[string]ruby.Value{}
 	environment['HOMEBREW_PATH'] = formula_nil_value()
 	if !interactive {
-		environment['HOME'] = brew_runtime.string_value(env_home)
-		for key, value in ruby_formula_l3743_d312_common_sandbox_env(formula_boundary_value(formula), formula_path_boundary(env_home)).as_map() or { map[string]brew_runtime.Value{} } {
+		environment['HOME'] = ruby.string_value(env_home)
+		for key, value in ruby_formula_l3743_d312_common_sandbox_env(formula_boundary_value(formula), formula_path_boundary(env_home)).as_map() or { map[string]ruby.Value{} } {
 			environment[key] = value
 		}
 	}
-	staging := brew_runtime.structured_value('Mktemp', formula.buildpath, {
+	staging := ruby.structured_value('Mktemp', formula.buildpath, {
 		'tmpdir': formula.buildpath
 	})
-	return brew_runtime.map_value({
+	return ruby.map_value({
 		'staging': staging
 		'formula': formula_boundary_value(formula)
-		'env':     brew_runtime.map_value(environment)
+		'env':     ruby.map_value(environment)
 	})
 }
 
 // Ruby method `inherited(child)` at line 3849.
-pub fn ruby_formula_l3849_d317_inherited(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l3849_d317_inherited(args ...ruby.Value) ruby.Value {
 	_ = formula_receiver(args, 'inherited')
 	if args.len < 2 { panic('Formula.inherited requires child') }
 	child := if args[1].type_name == 'Formula' {
@@ -4585,52 +4585,52 @@ pub fn ruby_formula_l3849_d317_inherited(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `freeze` at line 3875.
-pub fn ruby_formula_l3875_d318_freeze(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l3875_d318_freeze(args ...ruby.Value) ruby.Value {
 	return formula_boundary_value(formula_receiver(args, 'freeze'))
 }
 
 // Ruby method `network_access_allowed = T.must(@network_access_allowed)` at line 3887.
-pub fn ruby_formula_l3887_d319_network_access_allowed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l3887_d319_network_access_allowed(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'network_access_allowed')
-	mut result := map[string]brew_runtime.Value{}
+	mut result := map[string]ruby.Value{}
 	for phase in ['build', 'test', 'postinstall'] {
-		result[phase] = brew_runtime.bool_value(formula.network_access_allowed_value[phase] or { true })
+		result[phase] = ruby.bool_value(formula.network_access_allowed_value[phase] or { true })
 	}
-	return brew_runtime.map_value(result)
+	return ruby.map_value(result)
 }
 
 // Ruby method `loaded_from_api? = !!@loaded_from_api` at line 3891.
-pub fn ruby_formula_l3891_d320_loaded_from_api(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(formula_receiver(args, 'loaded_from_api?').loaded_from_api())
+pub fn ruby_formula_l3891_d320_loaded_from_api(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(formula_receiver(args, 'loaded_from_api?').loaded_from_api())
 }
 
 // Ruby method `loaded_from_internal_api? = !!@loaded_from_internal_api` at line 3895.
-pub fn ruby_formula_l3895_d321_loaded_from_internal_api(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(formula_receiver(args, 'loaded_from_internal_api?').loaded_from_internal_api_value)
+pub fn ruby_formula_l3895_d321_loaded_from_internal_api(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(formula_receiver(args, 'loaded_from_internal_api?').loaded_from_internal_api_value)
 }
 
 // Ruby attr_reader `attr_reader :api_source` at line 3899.
-pub fn ruby_formula_l3899_d322_api_source(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l3899_d322_api_source(args ...ruby.Value) ruby.Value {
 	return optional_formula_string(formula_receiver(args, 'api_source').api_source_value, 'Hash')
 }
 
 // Ruby method `on_system_blocks_exist? = !!@on_system_blocks_exist` at line 3904.
-pub fn ruby_formula_l3904_d323_on_system_blocks_exist(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(formula_receiver(args, 'on_system_blocks_exist?').on_system_blocks_exist_value)
+pub fn ruby_formula_l3904_d323_on_system_blocks_exist(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(formula_receiver(args, 'on_system_blocks_exist?').on_system_blocks_exist_value)
 }
 
 // Ruby attr_reader `attr_reader :keg_only_reason` at line 3908.
-pub fn ruby_formula_l3908_d324_keg_only_reason(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l3908_d324_keg_only_reason(args ...ruby.Value) ruby.Value {
 	return optional_formula_string(formula_receiver(args, 'keg_only_reason').keg_only_reason_value, 'KegOnlyReason')
 }
 
 // Ruby attr_reader `attr_reader :pypi_packages_info` at line 3911.
-pub fn ruby_formula_l3911_d325_pypi_packages_info(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l3911_d325_pypi_packages_info(args ...ruby.Value) ruby.Value {
 	return formula_pypi_boundary(formula_receiver(args, 'pypi_packages_info'))
 }
 
 // Ruby method `desc(val = T.unsafe(nil))` at line 3925.
-pub fn ruby_formula_l3925_d326_desc(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l3925_d326_desc(args ...ruby.Value) ruby.Value {
 	mut formula := formula_receiver(args, 'desc')
 	if args.len > 1 && args[1].type_name != 'NilClass' {
 		formula.reference = api.PackageReference{ ...formula.reference, description: args[1].as_string() }
@@ -4640,7 +4640,7 @@ pub fn ruby_formula_l3925_d326_desc(args ...brew_runtime.Value) brew_runtime.Val
 }
 
 // Ruby method `license(args = nil)` at line 3982.
-pub fn ruby_formula_l3982_d327_license(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l3982_d327_license(args ...ruby.Value) ruby.Value {
 	mut formula := formula_receiver(args, 'license')
 	if args.len > 1 && args[1].type_name != 'NilClass' {
 		formula.reference = api.PackageReference{ ...formula.reference, license: args[1].as_string() }
@@ -4650,7 +4650,7 @@ pub fn ruby_formula_l3982_d327_license(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby method `allow_network_access!(phases = [])` at line 4011.
-pub fn ruby_formula_l4011_d328_allow_network_access(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l4011_d328_allow_network_access(args ...ruby.Value) ruby.Value {
 	mut formula := formula_receiver(args, 'allow_network_access!')
 	phases := if args.len > 1 {
 		formula_argument_strings(args[1]).map(it.trim_left(':'))
@@ -4666,7 +4666,7 @@ pub fn ruby_formula_l4011_d328_allow_network_access(args ...brew_runtime.Value) 
 }
 
 // Ruby method `deny_network_access!(phases = [])` at line 4045.
-pub fn ruby_formula_l4045_d329_deny_network_access(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l4045_d329_deny_network_access(args ...ruby.Value) ruby.Value {
 	mut formula := formula_receiver(args, 'deny_network_access!')
 	phases := if args.len > 1 {
 		formula_argument_strings(args[1]).map(it.trim_left(':'))
@@ -4682,7 +4682,7 @@ pub fn ruby_formula_l4045_d329_deny_network_access(args ...brew_runtime.Value) b
 }
 
 // Ruby method `network_access_allowed?(phase)` at line 4060.
-pub fn ruby_formula_l4060_d330_network_access_allowed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l4060_d330_network_access_allowed(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'network_access_allowed?')
 	if args.len < 2 { panic('Formula.network_access_allowed? requires a phase') }
 	phase := args[1].as_string().trim_left(':')
@@ -4694,19 +4694,19 @@ pub fn ruby_formula_l4060_d330_network_access_allowed(args ...brew_runtime.Value
 	} else {
 		override == 'allow'
 	}
-	return brew_runtime.bool_value(allowed)
+	return ruby.bool_value(allowed)
 }
 
 // Ruby method `post_install_steps_defined? = @post_install_steps_defined == true` at line 4068.
-pub fn ruby_formula_l4068_d331_post_install_steps_defined(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(formula_receiver(args, 'post_install_steps_defined?').post_install_steps_defined_value)
+pub fn ruby_formula_l4068_d331_post_install_steps_defined(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(formula_receiver(args, 'post_install_steps_defined?').post_install_steps_defined_value)
 }
 
 // Ruby method `post_install_steps(*steps, &block)` at line 4089.
-pub fn ruby_formula_l4089_d332_post_install_steps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l4089_d332_post_install_steps(args ...ruby.Value) ruby.Value {
 	mut formula := formula_receiver(args, 'post_install_steps')
 	if args.len == 1 {
-		return brew_runtime.string_array_value(formula.post_install_step_values)
+		return ruby.string_array_value(formula.post_install_step_values)
 	}
 	for index in 1 .. args.len {
 		formula.post_install_step_values << formula_argument_strings(args[index])
@@ -4716,7 +4716,7 @@ pub fn ruby_formula_l4089_d332_post_install_steps(args ...brew_runtime.Value) br
 }
 
 // Ruby method `homepage(val = T.unsafe(nil), browsed: nil)` at line 4123.
-pub fn ruby_formula_l4123_d333_homepage(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l4123_d333_homepage(args ...ruby.Value) ruby.Value {
 	mut formula := formula_receiver(args, 'homepage')
 	if args.len > 1 && args[1].type_name != 'NilClass' {
 		formula.reference = api.PackageReference{ ...formula.reference, homepage: args[1].as_string() }
@@ -4730,47 +4730,47 @@ pub fn ruby_formula_l4123_d333_homepage(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby attr_reader `attr_reader :homepage_browsed` at line 4135.
-pub fn ruby_formula_l4135_d334_homepage_browsed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l4135_d334_homepage_browsed(args ...ruby.Value) ruby.Value {
 	return optional_formula_string(formula_receiver(args, 'homepage_browsed').homepage_browsed_value, 'Date')
 }
 
 // Ruby method `livecheck_defined?` at line 4142.
-pub fn ruby_formula_l4142_d335_livecheck_defined(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(formula_receiver(args, 'livecheck_defined?').livecheck_defined_value)
+pub fn ruby_formula_l4142_d335_livecheck_defined(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(formula_receiver(args, 'livecheck_defined?').livecheck_defined_value)
 }
 
 // Ruby method `service?` at line 4151.
-pub fn ruby_formula_l4151_d336_service(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(formula_receiver(args, 'service?').service_block_value != '')
+pub fn ruby_formula_l4151_d336_service(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(formula_receiver(args, 'service?').service_block_value != '')
 }
 
 // Ruby attr_reader `attr_reader :conflicts` at line 4156.
-pub fn ruby_formula_l4156_d337_conflicts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(formula_receiver(args, 'conflicts').conflict_values)
+pub fn ruby_formula_l4156_d337_conflicts(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(formula_receiver(args, 'conflicts').conflict_values)
 }
 
 // Ruby attr_reader `attr_reader :skip_clean_paths` at line 4159.
-pub fn ruby_formula_l4159_d338_skip_clean_paths(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(formula_receiver(args, 'skip_clean_paths').skip_clean_path_values)
+pub fn ruby_formula_l4159_d338_skip_clean_paths(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(formula_receiver(args, 'skip_clean_paths').skip_clean_path_values)
 }
 
 // Ruby attr_reader `attr_reader :link_overwrite_paths` at line 4162.
-pub fn ruby_formula_l4162_d339_link_overwrite_paths(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(formula_receiver(args, 'link_overwrite_paths').link_overwrite_path_values)
+pub fn ruby_formula_l4162_d339_link_overwrite_paths(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(formula_receiver(args, 'link_overwrite_paths').link_overwrite_path_values)
 }
 
 // Ruby attr_reader `attr_reader :pour_bottle_only_if` at line 4165.
-pub fn ruby_formula_l4165_d340_pour_bottle_only_if(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l4165_d340_pour_bottle_only_if(args ...ruby.Value) ruby.Value {
 	return optional_formula_string(formula_receiver(args, 'pour_bottle_only_if').pour_bottle_only_if_value, 'Symbol')
 }
 
 // Ruby attr_accessor `attr_accessor :pour_bottle_check_unsatisfied_reason` at line 4170.
-pub fn ruby_formula_l4170_d341_pour_bottle_check_unsatisfied_reason(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l4170_d341_pour_bottle_check_unsatisfied_reason(args ...ruby.Value) ruby.Value {
 	return optional_formula_string(formula_receiver(args, 'pour_bottle_check_unsatisfied_reason').pour_bottle_reason_value, 'String')
 }
 
 // Ruby attr_accessor `attr_accessor :pour_bottle_check_unsatisfied_reason` at line 4170.
-pub fn ruby_formula_l4170_d342_pour_bottle_check_unsatisfied_reason(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l4170_d342_pour_bottle_check_unsatisfied_reason(args ...ruby.Value) ruby.Value {
 	mut formula := formula_receiver(args, 'pour_bottle_check_unsatisfied_reason=')
 	if args.len < 2 { panic('Formula.pour_bottle_check_unsatisfied_reason= requires a reason') }
 	formula.pour_bottle_reason_value = if args[1].type_name == 'NilClass' {
@@ -4782,29 +4782,29 @@ pub fn ruby_formula_l4170_d342_pour_bottle_check_unsatisfied_reason(args ...brew
 }
 
 // Ruby method `revision(val = T.unsafe(nil))` at line 4186.
-pub fn ruby_formula_l4186_d343_revision(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l4186_d343_revision(args ...ruby.Value) ruby.Value {
 	mut formula := formula_receiver(args, 'revision')
 	if args.len > 1 {
 		value := int(args[1].as_int() or { panic(err) })
 		formula.reference = api.PackageReference{ ...formula.reference, revision: value }
 		return formula_boundary_value(formula)
 	}
-	return brew_runtime.int_value(formula.reference.revision)
+	return ruby.int_value(formula.reference.revision)
 }
 
 // Ruby method `version_scheme(val = T.unsafe(nil))` at line 4206.
-pub fn ruby_formula_l4206_d344_version_scheme(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l4206_d344_version_scheme(args ...ruby.Value) ruby.Value {
 	mut formula := formula_receiver(args, 'version_scheme')
 	if args.len > 1 {
 		value := int(args[1].as_int() or { panic(err) })
 		formula.reference = api.PackageReference{ ...formula.reference, version_scheme: value }
 		return formula_boundary_value(formula)
 	}
-	return brew_runtime.int_value(formula.reference.version_scheme)
+	return ruby.int_value(formula.reference.version_scheme)
 }
 
 // Ruby method `compatibility_version(val = T.unsafe(nil))` at line 4224.
-pub fn ruby_formula_l4224_d345_compatibility_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l4224_d345_compatibility_version(args ...ruby.Value) ruby.Value {
 	mut formula := formula_receiver(args, 'compatibility_version')
 	if args.len > 1 {
 		formula.compatibility_version = int(args[1].as_int() or { panic(err) })
@@ -4812,53 +4812,53 @@ pub fn ruby_formula_l4224_d345_compatibility_version(args ...brew_runtime.Value)
 		return formula_boundary_value(formula)
 	}
 	if formula.has_compatibility_version {
-		return brew_runtime.int_value(formula.compatibility_version)
+		return ruby.int_value(formula.compatibility_version)
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `spec_syms = [:stable, :head].freeze` at line 4229.
-pub fn ruby_formula_l4229_d346_spec_syms(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.array_value([
-		brew_runtime.object_value('Symbol', ':stable'),
-		brew_runtime.object_value('Symbol', ':head'),
+pub fn ruby_formula_l4229_d346_spec_syms(args ...ruby.Value) ruby.Value {
+	return ruby.array_value([
+		ruby.object_value('Symbol', ':stable'),
+		ruby.object_value('Symbol', ':head'),
 	])
 }
 
 // Ruby method `specs` at line 4233.
-pub fn ruby_formula_l4233_d347_specs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l4233_d347_specs(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'specs')
-	return brew_runtime.array_value([
+	return ruby.array_value([
 		formula_spec_boundary(formula, 'stable'),
 		formula_spec_boundary(formula, 'head'),
 	])
 }
 
 // Ruby method `url(val = T.unsafe(nil), specs = {}) = stable.url(val, specs)` at line 4264.
-pub fn ruby_formula_l4264_d348_url(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l4264_d348_url(args ...ruby.Value) ruby.Value {
 	mut formula := formula_receiver(args, 'url')
 	if args.len > 1 {
 		formula.reference = api.PackageReference{ ...formula.reference, source_url: args[1].as_string() }
 		return formula_boundary_value(formula)
 	}
-	return brew_runtime.string_value(formula.url())
+	return ruby.string_value(formula.url())
 }
 
 // Ruby method `version(val = nil) = stable.version(val)` at line 4278.
-pub fn ruby_formula_l4278_d349_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l4278_d349_version(args ...ruby.Value) ruby.Value {
 	mut formula := formula_receiver(args, 'version')
 	if args.len > 1 && args[1].type_name != 'NilClass' {
 		formula.reference = api.PackageReference{ ...formula.reference, stable_version: args[1].as_string() }
 		return formula_boundary_value(formula)
 	}
 	if version := formula.stable_version() {
-		return brew_runtime.object_value('Version', version.to_s())
+		return ruby.object_value('Version', version.to_s())
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `mirror(val) = stable.mirror(val)` at line 4295.
-pub fn ruby_formula_l4295_d350_mirror(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l4295_d350_mirror(args ...ruby.Value) ruby.Value {
 	mut formula := formula_receiver(args, 'mirror')
 	if args.len < 2 { panic('Formula.mirror requires a URL') }
 	formula.mirror_values << args[1].as_string()
@@ -4866,7 +4866,7 @@ pub fn ruby_formula_l4295_d350_mirror(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby method `sha256(val) = stable.sha256(val)` at line 4311.
-pub fn ruby_formula_l4311_d351_sha256(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l4311_d351_sha256(args ...ruby.Value) ruby.Value {
 	mut formula := formula_receiver(args, 'sha256')
 	if args.len > 1 {
 		formula.reference = api.PackageReference{ ...formula.reference, source_checksum: args[1].as_string() }
@@ -4876,37 +4876,37 @@ pub fn ruby_formula_l4311_d351_sha256(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby method `bottle(&block) = stable.bottle(&block)` at line 4338.
-pub fn ruby_formula_l4338_d352_bottle(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l4338_d352_bottle(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'bottle')
-	return brew_runtime.structured_value('BottleSpecification', formula.full_name(), {
+	return ruby.structured_value('BottleSpecification', formula.full_name(), {
 		'rebuild': formula.reference.bottle_rebuild.str()
 		'tags':    formula.reference.bottle_tags.join(formula_boundary_separator)
 	})
 }
 
 // Ruby method `build = stable.build` at line 4341.
-pub fn ruby_formula_l4341_d353_build(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l4341_d353_build(args ...ruby.Value) ruby.Value {
 	return formula_build_boundary(formula_receiver(args, 'build'))
 }
 
 // Ruby method `build_flags` at line 4345.
-pub fn ruby_formula_l4345_d354_build_flags(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l4345_d354_build_flags(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'build_flags')
-	return brew_runtime.string_array_value(formula.build.used_options().as_flags())
+	return ruby.string_array_value(formula.build.used_options().as_flags())
 }
 
 // Ruby method `stable(&block)` at line 4374.
-pub fn ruby_formula_l4374_d355_stable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l4374_d355_stable(args ...ruby.Value) ruby.Value {
 	return formula_spec_boundary(formula_receiver(args, 'stable'), 'stable')
 }
 
 // Ruby method `head(val = nil, specs = {}, &block)` at line 4414.
-pub fn ruby_formula_l4414_d356_head(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l4414_d356_head(args ...ruby.Value) ruby.Value {
 	return formula_spec_boundary(formula_receiver(args, 'head'), 'head')
 }
 
 // Ruby method `pypi_packages(` at line 4451.
-pub fn ruby_formula_l4451_d357_pypi_packages(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l4451_d357_pypi_packages(args ...ruby.Value) ruby.Value {
 	mut formula := formula_receiver(args, 'pypi_packages')
 	if args.len < 2 { panic('must provide at least one argument') }
 	if args[1].type_name == 'Hash' {
@@ -4943,7 +4943,7 @@ pub fn ruby_formula_l4451_d357_pypi_packages(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby method `resource(name, klass = Resource, &block)` at line 4485.
-pub fn ruby_formula_l4485_d358_resource(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l4485_d358_resource(args ...ruby.Value) ruby.Value {
 	mut formula := formula_receiver(args, 'resource')
 	if args.len < 2 { panic('Formula.resource requires a name') }
 	name := args[1].as_string()
@@ -4952,7 +4952,7 @@ pub fn ruby_formula_l4485_d358_resource(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby method `depends_on(dep)` at line 4557.
-pub fn ruby_formula_l4557_d359_depends_on(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l4557_d359_depends_on(args ...ruby.Value) ruby.Value {
 	mut formula := formula_receiver(args, 'depends_on')
 	if args.len < 2 { panic('Formula.depends_on requires a dependency') }
 	name := args[1].as_string()
@@ -4963,12 +4963,12 @@ pub fn ruby_formula_l4557_d359_depends_on(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby method `uses_from_macos(dep, bounds = {})` at line 4574.
-pub fn ruby_formula_l4574_d360_uses_from_macos(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l4574_d360_uses_from_macos(args ...ruby.Value) ruby.Value {
 	return ruby_formula_l4557_d359_depends_on(...args)
 }
 
 // Ruby method `option(name, description = "")` at line 4596.
-pub fn ruby_formula_l4596_d361_option(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l4596_d361_option(args ...ruby.Value) ruby.Value {
 	mut formula := formula_receiver(args, 'option')
 	if args.len < 2 { panic('Formula.option requires a name') }
 	description := if args.len > 2 { args[2].as_string() } else { '' }
@@ -4979,7 +4979,7 @@ pub fn ruby_formula_l4596_d361_option(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby method `deprecated_option(hash)` at line 4612.
-pub fn ruby_formula_l4612_d362_deprecated_option(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l4612_d362_deprecated_option(args ...ruby.Value) ruby.Value {
 	mut formula := formula_receiver(args, 'deprecated_option')
 	if args.len < 2 || args[1].type_name != 'Hash' {
 		panic('Formula.deprecated_option requires a Hash')
@@ -4991,7 +4991,7 @@ pub fn ruby_formula_l4612_d362_deprecated_option(args ...brew_runtime.Value) bre
 }
 
 // Ruby method `patch(strip = :p1, src = nil, &block)` at line 4673.
-pub fn ruby_formula_l4673_d363_patch(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l4673_d363_patch(args ...ruby.Value) ruby.Value {
 	mut formula := formula_receiver(args, 'patch')
 	strip := if args.len > 1 && args[1].type_name != 'Hash' {
 		args[1].as_string().trim_left(':')
@@ -5007,7 +5007,7 @@ pub fn ruby_formula_l4673_d363_patch(args ...brew_runtime.Value) brew_runtime.Va
 			continue
 		}
 		has_metadata = true
-		for key, value in argument.as_map() or { map[string]brew_runtime.Value{} } {
+		for key, value in argument.as_map() or { map[string]ruby.Value{} } {
 			metadata[key] = if value.type_name == 'Array' {
 				formula_argument_strings(value).join(',')
 			} else {
@@ -5027,11 +5027,11 @@ pub fn ruby_formula_l4673_d363_patch(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby method `conflicts_with(*names)` at line 4687.
-pub fn ruby_formula_l4687_d364_conflicts_with(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l4687_d364_conflicts_with(args ...ruby.Value) ruby.Value {
 	mut formula := formula_receiver(args, 'conflicts_with')
 	mut reason := ''
 	if args.len > 1 && args.last().type_name == 'Hash' {
-		values := args.last().as_map() or { map[string]brew_runtime.Value{} }
+		values := args.last().as_map() or { map[string]ruby.Value{} }
 		if because := values['because'] {
 			reason = because.as_string()
 		}
@@ -5044,7 +5044,7 @@ pub fn ruby_formula_l4687_d364_conflicts_with(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby method `skip_clean(*paths)` at line 4712.
-pub fn ruby_formula_l4712_d365_skip_clean(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l4712_d365_skip_clean(args ...ruby.Value) ruby.Value {
 	mut formula := formula_receiver(args, 'skip_clean')
 	for index in 1 .. args.len {
 		for path in formula_argument_strings(args[index]) {
@@ -5055,19 +5055,19 @@ pub fn ruby_formula_l4712_d365_skip_clean(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby method `preserve_rpath(value: true)` at line 4734.
-pub fn ruby_formula_l4734_d366_preserve_rpath(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l4734_d366_preserve_rpath(args ...ruby.Value) ruby.Value {
 	mut formula := formula_receiver(args, 'preserve_rpath')
 	formula.preserve_rpath_value = if args.len > 1 { args[1].as_bool() or { true } } else { true }
 	return formula_boundary_value(formula)
 }
 
 // Ruby method `preserve_rpath?` at line 4742.
-pub fn ruby_formula_l4742_d367_preserve_rpath(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(formula_receiver(args, 'preserve_rpath?').preserve_rpath_value)
+pub fn ruby_formula_l4742_d367_preserve_rpath(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(formula_receiver(args, 'preserve_rpath?').preserve_rpath_value)
 }
 
 // Ruby method `keg_only(reason, explanation = "")` at line 4771.
-pub fn ruby_formula_l4771_d368_keg_only(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l4771_d368_keg_only(args ...ruby.Value) ruby.Value {
 	mut formula := formula_receiver(args, 'keg_only')
 	if args.len < 2 { panic('Formula.keg_only requires a reason') }
 	explanation := if args.len > 2 { args[2].as_string() } else { '' }
@@ -5077,7 +5077,7 @@ pub fn ruby_formula_l4771_d368_keg_only(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby method `fails_with(compiler, &block)` at line 4807.
-pub fn ruby_formula_l4807_d369_fails_with(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l4807_d369_fails_with(args ...ruby.Value) ruby.Value {
 	mut formula := formula_receiver(args, 'fails_with')
 	if args.len < 2 { panic('Formula.fails_with requires a compiler') }
 	formula.compiler_failure_values << args[1].as_string()
@@ -5085,14 +5085,14 @@ pub fn ruby_formula_l4807_d369_fails_with(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby method `test(&block) = define_method(:test, &block)` at line 4850.
-pub fn ruby_formula_l4850_d370_test(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l4850_d370_test(args ...ruby.Value) ruby.Value {
 	mut formula := formula_receiver(args, 'test')
 	formula.test_defined_value = true
 	return formula_boundary_value(formula)
 }
 
 // Ruby method `livecheck(&block)` at line 4870.
-pub fn ruby_formula_l4870_d371_livecheck(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l4870_d371_livecheck(args ...ruby.Value) ruby.Value {
 	mut formula := formula_receiver(args, 'livecheck')
 	if args.len == 1 {
 		return optional_formula_string(formula.livecheck_value, 'Livecheck')
@@ -5103,7 +5103,7 @@ pub fn ruby_formula_l4870_d371_livecheck(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `no_autobump!(because:)` at line 4881.
-pub fn ruby_formula_l4881_d372_no_autobump(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l4881_d372_no_autobump(args ...ruby.Value) ruby.Value {
 	mut formula := formula_receiver(args, 'no_autobump!')
 	if args.len < 2 { panic("Formula.no_autobump! requires 'because'") }
 	formula.no_autobump_message_value = formula_keyword(args, 'because', 1)
@@ -5112,17 +5112,17 @@ pub fn ruby_formula_l4881_d372_no_autobump(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `autobump?` at line 4901.
-pub fn ruby_formula_l4901_d373_autobump(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(formula_receiver(args, 'autobump?').autobump_value)
+pub fn ruby_formula_l4901_d373_autobump(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(formula_receiver(args, 'autobump?').autobump_value)
 }
 
 // Ruby attr_reader `attr_reader :no_autobump_message` at line 4910.
-pub fn ruby_formula_l4910_d374_no_autobump_message(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l4910_d374_no_autobump_message(args ...ruby.Value) ruby.Value {
 	return optional_formula_string(formula_receiver(args, 'no_autobump_message').no_autobump_message_value, 'Symbol')
 }
 
 // Ruby method `service(&block)` at line 4933.
-pub fn ruby_formula_l4933_d375_service(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l4933_d375_service(args ...ruby.Value) ruby.Value {
 	mut formula := formula_receiver(args, 'service')
 	if args.len == 1 {
 		return optional_formula_string(formula.service_block_value, 'Proc')
@@ -5132,7 +5132,7 @@ pub fn ruby_formula_l4933_d375_service(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby method `pour_bottle?(only_if: nil, &block)` at line 4970.
-pub fn ruby_formula_l4970_d376_pour_bottle(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l4970_d376_pour_bottle(args ...ruby.Value) ruby.Value {
 	mut formula := formula_receiver(args, 'pour_bottle?')
 	only_if := formula_keyword(args, 'only_if', 1)
 	if only_if != '' && only_if !in ['clt_installed', 'default_prefix'] {
@@ -5143,7 +5143,7 @@ pub fn ruby_formula_l4970_d376_pour_bottle(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `deprecate!(date:, because:, replacement: nil, replacement_formula: nil, replacement_cask: nil)` at line 5042.
-pub fn ruby_formula_l5042_d377_deprecate(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l5042_d377_deprecate(args ...ruby.Value) ruby.Value {
 	mut formula := formula_receiver(args, 'deprecate!')
 	date := formula_keyword(args, 'date', 1)
 	because := formula_keyword(args, 'because', 2)
@@ -5181,38 +5181,38 @@ pub fn ruby_formula_l5042_d377_deprecate(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `deprecated?` at line 5078.
-pub fn ruby_formula_l5078_d378_deprecated(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(formula_receiver(args, 'deprecated?').deprecated())
+pub fn ruby_formula_l5078_d378_deprecated(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(formula_receiver(args, 'deprecated?').deprecated())
 }
 
 // Ruby attr_reader `attr_reader :deprecation_date` at line 5087.
-pub fn ruby_formula_l5087_d379_deprecation_date(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l5087_d379_deprecation_date(args ...ruby.Value) ruby.Value {
 	return optional_formula_string(formula_receiver(args, 'deprecation_date').deprecation_date_value, 'Date')
 }
 
 // Ruby attr_reader `attr_reader :deprecation_reason` at line 5094.
-pub fn ruby_formula_l5094_d380_deprecation_reason(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l5094_d380_deprecation_reason(args ...ruby.Value) ruby.Value {
 	return optional_formula_string(formula_receiver(args, 'deprecation_reason').deprecation_reason(), 'Symbol')
 }
 
 // Ruby attr_reader `attr_reader :deprecation_replacement_formula` at line 5101.
-pub fn ruby_formula_l5101_d381_deprecation_replacement_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l5101_d381_deprecation_replacement_formula(args ...ruby.Value) ruby.Value {
 	return optional_formula_string(formula_receiver(args, 'deprecation_replacement_formula').deprecation_replacement_formula_value, 'String')
 }
 
 // Ruby attr_reader `attr_reader :deprecation_replacement_cask` at line 5108.
-pub fn ruby_formula_l5108_d382_deprecation_replacement_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l5108_d382_deprecation_replacement_cask(args ...ruby.Value) ruby.Value {
 	return optional_formula_string(formula_receiver(args, 'deprecation_replacement_cask').deprecation_replacement_cask_value, 'String')
 }
 
 // Ruby attr_reader `attr_reader :deprecate_args` at line 5116.
-pub fn ruby_formula_l5116_d383_deprecate_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l5116_d383_deprecate_args(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'deprecate_args')
 	if formula.deprecation_date_value == '' {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
-	return brew_runtime.map_value({
-		'date':                brew_runtime.string_value(formula.deprecation_date_value)
+	return ruby.map_value({
+		'date':                ruby.string_value(formula.deprecation_date_value)
 		'because':             optional_formula_string(formula.deprecation_reason(), 'Symbol')
 		'replacement_formula': optional_formula_string(formula.deprecation_replacement_formula_value, 'String')
 		'replacement_cask':    optional_formula_string(formula.deprecation_replacement_cask_value, 'String')
@@ -5220,7 +5220,7 @@ pub fn ruby_formula_l5116_d383_deprecate_args(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby method `disable!(date:, because:, replacement: nil, replacement_formula: nil, replacement_cask: nil)` at line 5152.
-pub fn ruby_formula_l5152_d384_disable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l5152_d384_disable(args ...ruby.Value) ruby.Value {
 	mut formula := formula_receiver(args, 'disable!')
 	date := formula_keyword(args, 'date', 1)
 	because := formula_keyword(args, 'because', 2)
@@ -5258,38 +5258,38 @@ pub fn ruby_formula_l5152_d384_disable(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby method `disabled?` at line 5192.
-pub fn ruby_formula_l5192_d385_disabled(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(formula_receiver(args, 'disabled?').disabled())
+pub fn ruby_formula_l5192_d385_disabled(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(formula_receiver(args, 'disabled?').disabled())
 }
 
 // Ruby attr_reader `attr_reader :disable_date` at line 5201.
-pub fn ruby_formula_l5201_d386_disable_date(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l5201_d386_disable_date(args ...ruby.Value) ruby.Value {
 	return optional_formula_string(formula_receiver(args, 'disable_date').disable_date_value, 'Date')
 }
 
 // Ruby attr_reader `attr_reader :disable_reason` at line 5208.
-pub fn ruby_formula_l5208_d387_disable_reason(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l5208_d387_disable_reason(args ...ruby.Value) ruby.Value {
 	return optional_formula_string(formula_receiver(args, 'disable_reason').disable_reason(), 'Symbol')
 }
 
 // Ruby attr_reader `attr_reader :disable_replacement_formula` at line 5215.
-pub fn ruby_formula_l5215_d388_disable_replacement_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l5215_d388_disable_replacement_formula(args ...ruby.Value) ruby.Value {
 	return optional_formula_string(formula_receiver(args, 'disable_replacement_formula').disable_replacement_formula_value, 'String')
 }
 
 // Ruby attr_reader `attr_reader :disable_replacement_cask` at line 5222.
-pub fn ruby_formula_l5222_d389_disable_replacement_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l5222_d389_disable_replacement_cask(args ...ruby.Value) ruby.Value {
 	return optional_formula_string(formula_receiver(args, 'disable_replacement_cask').disable_replacement_cask_value, 'String')
 }
 
 // Ruby attr_reader `attr_reader :disable_args` at line 5230.
-pub fn ruby_formula_l5230_d390_disable_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l5230_d390_disable_args(args ...ruby.Value) ruby.Value {
 	formula := formula_receiver(args, 'disable_args')
 	if formula.disable_date_value == '' {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
-	return brew_runtime.map_value({
-		'date':                brew_runtime.string_value(formula.disable_date_value)
+	return ruby.map_value({
+		'date':                ruby.string_value(formula.disable_date_value)
 		'because':             optional_formula_string(formula.disable_reason(), 'Symbol')
 		'replacement_formula': optional_formula_string(formula.disable_replacement_formula_value, 'String')
 		'replacement_cask':    optional_formula_string(formula.disable_replacement_cask_value, 'String')
@@ -5297,7 +5297,7 @@ pub fn ruby_formula_l5230_d390_disable_args(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby method `link_overwrite(*paths)` at line 5247.
-pub fn ruby_formula_l5247_d391_link_overwrite(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l5247_d391_link_overwrite(args ...ruby.Value) ruby.Value {
 	mut formula := formula_receiver(args, 'link_overwrite')
 	for index in 1 .. args.len {
 		for path in formula_argument_strings(args[index]) {
@@ -5308,7 +5308,7 @@ pub fn ruby_formula_l5247_d391_link_overwrite(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby method `python_major_minor_version(python)` at line 5259.
-pub fn ruby_formula_l5259_d392_python_major_minor_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l5259_d392_python_major_minor_version(args ...ruby.Value) ruby.Value {
 	_ = formula_receiver(args, 'python_major_minor_version')
 	if args.len < 2 { panic('Formula.python_major_minor_version requires a Python executable') }
 	// The Python language helper is the source-level collaborator. Tests and
@@ -5316,9 +5316,9 @@ pub fn ruby_formula_l5259_d392_python_major_minor_version(args ...brew_runtime.V
 	if args.len > 2 && args[2].type_name == 'Version' {
 		return args[2]
 	}
-	result := brew_runtime.run_command(args[1].as_string(), ['--version'])
+	result := ruby.run_command(args[1].as_string(), ['--version'])
 	if result.exit_code != 0 {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	mut version_text := result.output.trim_space()
 	if version_text.starts_with('Python ') {
@@ -5326,9 +5326,9 @@ pub fn ruby_formula_l5259_d392_python_major_minor_version(args ...brew_runtime.V
 	}
 	parts := version_text.split('.')
 	if parts.len < 2 {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
-	return brew_runtime.object_value('Version', '${parts[0]}.${parts[1]}')
+	return ruby.object_value('Version', '${parts[0]}.${parts[1]}')
 }
 
 // Original Ruby source (line-for-line):

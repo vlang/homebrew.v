@@ -1,15 +1,15 @@
 module subcommand
 
-import brew_runtime
+import ruby
 import homebrew.bundle
 
 // Translated from Homebrew/brew `bundle/subcommand/add.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `run` at line 46.
-pub fn ruby_add_l46_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_add_l46_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
-		return brew_runtime.object_value('ArgumentError', 'items, selected type, and Brewfile are required')
+		return ruby.object_value('ArgumentError', 'items, selected type, and Brewfile are required')
 	}
 	items := if args[0].type_name == 'Array' {
 		args[0].as_array() or { [] }.map(it.as_string())
@@ -30,8 +30,8 @@ pub fn ruby_add_l46_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
 		file: file
 		describe: describe
 		descriptions: descriptions
-	}) or { return brew_runtime.object_value('UsageError', err.msg()) }
-	return brew_runtime.structured_value('Bundle::AddSubcommand::Result', result.path, {
+	}) or { return ruby.object_value('UsageError', err.msg()) }
+	return ruby.structured_value('Bundle::AddSubcommand::Result', result.path, {
 		'path':         result.path
 		'content':      result.content
 		'trusted_type': result.trusted_type
@@ -78,7 +78,7 @@ pub fn run_bundle_add(options BundleAddCommandOptions) !bundle.BundleAddResult {
 	})
 }
 
-fn subcommand_descriptions_from_value(value brew_runtime.Value) map[string]string {
+fn subcommand_descriptions_from_value(value ruby.Value) map[string]string {
 	values := value.as_map() or { return map[string]string{} }
 	mut descriptions := map[string]string{}
 	for name, description in values {

@@ -1,13 +1,13 @@
 module props
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/props/pretty_printable.rb`.
 // The original source is retained below until every stub has a typed V body.
 pub struct PrettyProp {
 pub:
 	name                  string
-	value                 brew_runtime.Value
+	value                 ruby.Value
 	has_custom_inspection bool
 	custom_inspection     string
 	custom_returns_nil    bool
@@ -21,7 +21,7 @@ pub:
 	extra      string
 }
 
-fn inspect_prop_value(value brew_runtime.Value, multiline bool, indent string) string {
+fn inspect_prop_value(value ruby.Value, multiline bool, indent string) string {
 	return match value.type_name {
 		'NilClass' { 'nil' }
 		'String' {
@@ -84,7 +84,7 @@ pub fn pretty_print_valid_rule_key(super_valid bool, key string) bool {
 	return super_valid || key.trim_left(':') == 'inspect'
 }
 
-fn pretty_object_from_value(value brew_runtime.Value) PrettyObject {
+fn pretty_object_from_value(value ruby.Value) PrettyObject {
 	mut props := []PrettyProp{}
 	for name, prop_value in value.map_data {
 		custom := prop_value.attribute('inspect') or { '' }
@@ -105,7 +105,7 @@ fn pretty_object_from_value(value brew_runtime.Value) PrettyObject {
 }
 
 // Ruby method `pretty_print(pp)` at line 9.
-pub fn ruby_pretty_printable_l9_d1_pretty_print(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pretty_printable_l9_d1_pretty_print(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('PrettyPrintable#pretty_print requires a receiver')
 	}
@@ -114,45 +114,45 @@ pub fn ruby_pretty_printable_l9_d1_pretty_print(args ...brew_runtime.Value) brew
 	} else {
 		false
 	}
-	return brew_runtime.string_value(pretty_print_object(pretty_object_from_value(args[0]), multiline))
+	return ruby.string_value(pretty_print_object(pretty_object_from_value(args[0]), multiline))
 }
 
 // Ruby method `inspect` at line 36.
-pub fn ruby_pretty_printable_l36_d2_inspect(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pretty_printable_l36_d2_inspect(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('PrettyPrintable#inspect requires a receiver')
 	}
-	return brew_runtime.string_value(pretty_print_object(pretty_object_from_value(args[0]), false))
+	return ruby.string_value(pretty_print_object(pretty_object_from_value(args[0]), false))
 }
 
 // Ruby method `pretty_inspect` at line 43.
-pub fn ruby_pretty_printable_l43_d3_pretty_inspect(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pretty_printable_l43_d3_pretty_inspect(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('PrettyPrintable#pretty_inspect requires a receiver')
 	}
-	return brew_runtime.string_value('${pretty_print_object(pretty_object_from_value(args[0]), true)}\n')
+	return ruby.string_value('${pretty_print_object(pretty_object_from_value(args[0]), true)}\n')
 }
 
 // Ruby method `valid_rule_key?(key)` at line 53.
-pub fn ruby_pretty_printable_l53_d4_valid_rule_key(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pretty_printable_l53_d4_valid_rule_key(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('PrettyPrintable#valid_rule_key? requires a key')
 	}
-	return brew_runtime.bool_value(pretty_print_valid_rule_key(args[0].attribute('super_valid') or {
+	return ruby.bool_value(pretty_print_valid_rule_key(args[0].attribute('super_valid') or {
 		'false'
 	} == 'true', args[1].as_string()))
 }
 
 // Ruby method `inspect_class_with_decoration(instance)` at line 60.
-pub fn ruby_pretty_printable_l60_d5_inspect_class_with_decoration(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pretty_printable_l60_d5_inspect_class_with_decoration(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('inspect_class_with_decoration requires an instance')
 	}
-	return brew_runtime.string_value(args[1].attribute('class_name') or { args[1].type_name })
+	return ruby.string_value(args[1].attribute('class_name') or { args[1].type_name })
 }
 
 // Ruby method `pretty_print_extra(instance, pp); end` at line 67.
-pub fn ruby_pretty_printable_l67_d6_pretty_print_extra(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pretty_printable_l67_d6_pretty_print_extra(args ...ruby.Value) ruby.Value {
 	return props_nil_value()
 }
 

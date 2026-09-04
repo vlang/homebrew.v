@@ -1,6 +1,6 @@
 module utils
 
-import brew_runtime
+import ruby
 import os
 
 #include <pwd.h>
@@ -15,11 +15,11 @@ fn C.getpwuid(uid u32) &C.passwd
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `self.uid_home` at line 7.
-pub fn ruby_uid_l7_d1_self_uid_home(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uid_l7_d1_self_uid_home(args ...ruby.Value) ruby.Value {
 	return if directory := uid_home() {
-		brew_runtime.string_value(directory)
+		ruby.string_value(directory)
 	} else {
-		brew_runtime.object_value('Nil', '')
+		ruby.object_value('Nil', '')
 	}
 }
 

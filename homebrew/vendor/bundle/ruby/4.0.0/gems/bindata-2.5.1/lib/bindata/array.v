@@ -1,6 +1,6 @@
 module bindata
 
-import brew_runtime
+import ruby
 import math
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/bindata-2.5.1/lib/bindata/array.rb`.
@@ -19,16 +19,16 @@ enum ArrayElementKind {
 	generic
 }
 
-pub type ArrayInitialValueFn = fn(int) brew_runtime.Value
+pub type ArrayInitialValueFn = fn(int) ruby.Value
 
-pub type ArrayReadUntilFn = fn(int, brew_runtime.Value, []brew_runtime.Value) bool
+pub type ArrayReadUntilFn = fn(int, ruby.Value, []ruby.Value) bool
 
 @[heap]
 pub struct ArrayElement {
 mut:
 	base              &BaseObject
-	class_value       brew_runtime.Value
-	parameters        map[string]brew_runtime.Value
+	class_value       ruby.Value
+	parameters        map[string]ruby.Value
 	kind              ArrayElementKind
 	integer_spec      IntegerClass
 	bitfield_spec     BitFieldClass
@@ -43,25 +43,25 @@ pub:
 	type_name string
 mut:
 	base                    &BaseObject
-	element_prototype       brew_runtime.Value
-	element_type            brew_runtime.Value
-	element_parameters      map[string]brew_runtime.Value
+	element_prototype       ruby.Value
+	element_type            ruby.Value
+	element_parameters      map[string]ruby.Value
 	elements_value          []&ArrayElement
 	elements_initialized    bool
 	read_mode               ArrayReadMode
-	initial_length_value    brew_runtime.Value
-	read_until_value        brew_runtime.Value
+	initial_length_value    ruby.Value
+	read_until_value        ruby.Value
 	initial_value_callback  ArrayInitialValueFn = unsafe { nil }
 	has_initial_callback    bool
 	read_until_callback     ArrayReadUntilFn = unsafe { nil }
 	has_read_until_callback bool
 }
 
-fn array_nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn array_nil_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-fn array_parameter_parts(value brew_runtime.Value) (brew_runtime.Value, map[string]brew_runtime.Value) {
+fn array_parameter_parts(value ruby.Value) (ruby.Value, map[string]ruby.Value) {
 	if value.type_name == 'BinData::SanitizedPrototype' {
 		prototype := sanitized_prototype_from_value(value)
 		return prototype.object_class, prototype_object_parameters(prototype)
@@ -74,17 +74,17 @@ fn array_parameter_parts(value brew_runtime.Value) (brew_runtime.Value, map[stri
 		params := if parts.len > 1 {
 			sanitize_map_from_value(parts[1])
 		} else {
-			map[string]brew_runtime.Value{}
+			map[string]ruby.Value{}
 		}
 		return parts[0], params
 	}
 	if sanitize_is_base_instance(value) {
 		return value, base_object_from_value(value).params()
 	}
-	return value, map[string]brew_runtime.Value{}
+	return value, map[string]ruby.Value{}
 }
 
-fn array_builtin_class(name string) brew_runtime.Value {
+fn array_builtin_class(name string) ruby.Value {
 	canonical := name.trim_left(':').to_lower()
 	mut accepted := new_accepted_parameters()
 	mut processor := 'base'
@@ -108,7 +108,7 @@ fn array_builtin_class(name string) brew_runtime.Value {
 	mut attributes := encoded.attributes.clone()
 	attributes['arg_processor'] = processor
 	attributes['parser_type'] = if canonical == 'array' { 'array' } else { 'primitive' }
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'BinData::Class'
 		repr: repr
 		int_data: encoded.int_data
@@ -116,7 +116,7 @@ fn array_builtin_class(name string) brew_runtime.Value {
 	}
 }
 
-fn array_sanitize_prototype(value brew_runtime.Value, hints map[string]brew_runtime.Value) !brew_runtime.Value {
+fn array_sanitize_prototype(value ruby.Value, hints map[string]ruby.Value) !ruby.Value {
 	if value.type_name == 'BinData::SanitizedPrototype' {
 		return value
 	}
@@ -141,15 +141,15 @@ fn array_sanitize_prototype(value brew_runtime.Value, hints map[string]brew_runt
 	return sanitized_prototype_boundary_value(prototype)
 }
 
-fn array_dsl_parameters(object_class brew_runtime.Value) map[string]brew_runtime.Value {
+fn array_dsl_parameters(object_class ruby.Value) map[string]ruby.Value {
 	if _ := object_class.attributes['dsl_class_address'] {
 		mut dsl_class := dsl_class_from_value(object_class)
 		mut parser := dsl_parser_for_class(mut dsl_class, none) or {
-			return map[string]brew_runtime.Value{}
+			return map[string]ruby.Value{}
 		}
-		return parser.dsl_params() or { map[string]brew_runtime.Value{} }
+		return parser.dsl_params() or { map[string]ruby.Value{} }
 	}
-	mut result := map[string]brew_runtime.Value{}
+	mut result := map[string]ruby.Value{}
 	for key in ['type', 'initial_length', 'read_until'] {
 		if value := object_class.map_data[key] {
 			result[key] = value
@@ -158,10 +158,10 @@ fn array_dsl_parameters(object_class brew_runtime.Value) map[string]brew_runtime
 	return result
 }
 
-fn sanitize_array_parameter_map(object_class brew_runtime.Value, values map[string]brew_runtime.Value) !map[string]brew_runtime.Value {
+fn sanitize_array_parameter_map(object_class ruby.Value, values map[string]ruby.Value) !map[string]ruby.Value {
 	mut parameters := normalized_base_parameters(values)
 	if 'initial_length' !in parameters && 'read_until' !in parameters {
-		parameters['initial_length'] = brew_runtime.int_value(0)
+		parameters['initial_length'] = ruby.int_value(0)
 	}
 	if 'initial_length' in parameters && 'read_until' in parameters {
 		return error("params 'initial_length' and 'read_until' are mutually exclusive in ${object_class.repr}")
@@ -182,15 +182,15 @@ fn sanitize_array_parameter_map(object_class brew_runtime.Value, values map[stri
 	prototype := parameters['type'] or {
 		return error("parameter 'type' must be specified in ${object_class.repr}")
 	}
-	parameters['type'] = array_sanitize_prototype(prototype, map[string]brew_runtime.Value{})!
+	parameters['type'] = array_sanitize_prototype(prototype, map[string]ruby.Value{})!
 	return parameters
 }
 
-pub fn array_class_value() brew_runtime.Value {
+pub fn array_class_value() ruby.Value {
 	return array_builtin_class('array')
 }
 
-fn array_eval_index_value(value brew_runtime.Value, index int) i64 {
+fn array_eval_index_value(value ruby.Value, index int) i64 {
 	if value.type_name == 'Integer' {
 		return value.int_data
 	}
@@ -220,11 +220,11 @@ fn array_parent_index(object &ArrayObject) int {
 	return 0
 }
 
-fn new_array_object_with_base(mut base BaseObject, parameters map[string]brew_runtime.Value) !&ArrayObject {
+fn new_array_object_with_base(mut base BaseObject, parameters map[string]ruby.Value) !&ArrayObject {
 	prototype := parameters['type'] or { return error("parameter 'type' must be specified") }
 	element_type, element_parameters := array_parameter_parts(prototype)
 	mut mode := ArrayReadMode.initial_length
-	mut initial_length := parameters['initial_length'] or { brew_runtime.int_value(0) }
+	mut initial_length := parameters['initial_length'] or { ruby.int_value(0) }
 	mut read_until := array_nil_value()
 	if until := parameters['read_until'] {
 		read_until = until
@@ -252,7 +252,7 @@ fn new_array_object_with_base(mut base BaseObject, parameters map[string]brew_ru
 	}
 }
 
-pub fn new_bindata_array(parameters map[string]brew_runtime.Value) !&ArrayObject {
+pub fn new_bindata_array(parameters map[string]ruby.Value) !&ArrayObject {
 	object_class := array_class_value()
 	sanitized := sanitize_array_parameter_map(object_class, parameters)!
 	mut base := new_base_object('BinData::Array', sanitized)
@@ -270,12 +270,12 @@ pub fn (mut object ArrayObject) set_read_until_callback(callback ArrayReadUntilF
 	object.read_mode = .read_until
 }
 
-fn array_object_value(object &ArrayObject) brew_runtime.Value {
+fn array_object_value(object &ArrayObject) ruby.Value {
 	base_value := base_object_value(object.base)
 	mut attributes := base_value.attributes.clone()
 	attributes['array_object_address'] = u64(voidptr(object)).str()
 	attributes['read_mode'] = object.read_mode.str()
-	return brew_runtime.Value{
+	return ruby.Value{
 		...base_value
 		type_name: object.type_name
 		repr: if object.elements_initialized {
@@ -287,11 +287,11 @@ fn array_object_value(object &ArrayObject) brew_runtime.Value {
 	}
 }
 
-pub fn array_boundary_value(object &ArrayObject) brew_runtime.Value {
+pub fn array_boundary_value(object &ArrayObject) ruby.Value {
 	return array_object_value(object)
 }
 
-fn array_object_from_value(value brew_runtime.Value) &ArrayObject {
+fn array_object_from_value(value ruby.Value) &ArrayObject {
 	if address := value.attributes['array_object_address'] {
 		return unsafe { &ArrayObject(voidptr(address.u64())) }
 	}
@@ -300,7 +300,7 @@ fn array_object_from_value(value brew_runtime.Value) &ArrayObject {
 	return new_array_object_with_base(mut base, parameters) or { panic(err) }
 }
 
-fn array_type_name(value brew_runtime.Value) string {
+fn array_type_name(value ruby.Value) string {
 	if value.type_name in ['BinData::IntegerClass', 'BinData::BitFieldClass',
 		'BinData::FloatingPointClass'] {
 		return value.repr
@@ -345,13 +345,13 @@ fn array_bitfield_spec(type_name string) ?BitFieldClass {
 	return bitfield_class_for_name(name) or { return none }
 }
 
-fn array_parent_proxy(object &ArrayObject, index int, offset f64) brew_runtime.Value {
+fn array_parent_proxy(object &ArrayObject, index int, offset f64) ruby.Value {
 	parent := array_object_value(object)
 	mut attributes := parent.attributes.clone()
 	attributes['array_index'] = index.str()
 	attributes['debug_name'] = 'obj[${index}]'
 	attributes['offset'] = i64(math.floor(offset)).str()
-	return brew_runtime.Value{
+	return ruby.Value{
 		...parent
 		attributes: attributes
 	}
@@ -376,7 +376,7 @@ fn new_array_element(mut object ArrayObject) &ArrayElement {
 		element.bitfield_spec = spec
 		element.integer_num_bytes = false
 		nbits := if spec.dynamic {
-			int(array_eval_index_value(element.parameters['nbits'] or { brew_runtime.int_value(0) }, object.elements_value.len))
+			int(array_eval_index_value(element.parameters['nbits'] or { ruby.int_value(0) }, object.elements_value.len))
 		} else {
 			spec.nbits
 		}
@@ -478,7 +478,7 @@ fn array_actual_index(length int, index int) int {
 	return if index < 0 { length + index } else { index }
 }
 
-fn array_initial_snapshot(object &ArrayObject, element &ArrayElement, index int) brew_runtime.Value {
+fn array_initial_snapshot(object &ArrayObject, element &ArrayElement, index int) ruby.Value {
 	if object.has_initial_callback {
 		return object.initial_value_callback(index)
 	}
@@ -486,11 +486,11 @@ fn array_initial_snapshot(object &ArrayObject, element &ArrayElement, index int)
 		if value.type_name in ['Integer', 'Float', 'String', 'Bool'] {
 			return value
 		}
-		return brew_runtime.int_value(array_eval_index_value(value, index))
+		return ruby.int_value(array_eval_index_value(value, index))
 	}
 	return match element.kind {
-		.integer, .bitfield { brew_runtime.int_value(0) }
-		.string { brew_runtime.string_value('') }
+		.integer, .bitfield { ruby.int_value(0) }
+		.string { ruby.string_value('') }
 		.nested_array {
 			mut nested := element.nested
 			array_snapshot(mut nested)
@@ -499,7 +499,7 @@ fn array_initial_snapshot(object &ArrayObject, element &ArrayElement, index int)
 	}
 }
 
-fn array_element_snapshot(object &ArrayObject, element &ArrayElement, index int) brew_runtime.Value {
+fn array_element_snapshot(object &ArrayObject, element &ArrayElement, index int) ruby.Value {
 	if element.has_nested {
 		mut nested := element.nested
 		return array_snapshot(mut nested)
@@ -510,14 +510,14 @@ fn array_element_snapshot(object &ArrayObject, element &ArrayElement, index int)
 	return element.base.snapshot_value
 }
 
-fn array_element_value(object &ArrayObject, element &ArrayElement, index int) brew_runtime.Value {
+fn array_element_value(object &ArrayObject, element &ArrayElement, index int) ruby.Value {
 	snapshot := array_element_snapshot(object, element, index)
 	base_value := base_object_value(element.base)
 	mut attributes := base_value.attributes.clone()
 	attributes['array_element_address'] = u64(voidptr(element)).str()
 	attributes['array_index'] = index.str()
 	attributes['bit_aligned'] = (element.kind == .bitfield).str()
-	return brew_runtime.Value{
+	return ruby.Value{
 		...base_value
 		type_name: array_type_name(element.class_value)
 		repr: snapshot.repr
@@ -528,26 +528,26 @@ fn array_element_value(object &ArrayObject, element &ArrayElement, index int) br
 	}
 }
 
-fn array_element_from_value(value brew_runtime.Value) ?&ArrayElement {
+fn array_element_from_value(value ruby.Value) ?&ArrayElement {
 	address := value.attributes['array_element_address'] or { return none }
 	return unsafe { &ArrayElement(voidptr(address.u64())) }
 }
 
-fn array_snapshot(mut object ArrayObject) brew_runtime.Value {
+fn array_snapshot(mut object ArrayObject) ruby.Value {
 	array_ensure_elements(mut object)
-	mut values := []brew_runtime.Value{cap: object.elements_value.len}
+	mut values := []ruby.Value{cap: object.elements_value.len}
 	for index, element in object.elements_value {
 		values << array_element_snapshot(object, element, index)
 	}
-	return brew_runtime.array_value(values)
+	return ruby.array_value(values)
 }
 
-fn array_snapshot_from_pointer(object &ArrayObject) brew_runtime.Value {
+fn array_snapshot_from_pointer(object &ArrayObject) ruby.Value {
 	mut mutable_object := unsafe { &ArrayObject(voidptr(u64(voidptr(object)))) }
 	return array_snapshot(mut mutable_object)
 }
 
-fn array_assign_element(mut object ArrayObject, index int, value brew_runtime.Value) brew_runtime.Value {
+fn array_assign_element(mut object ArrayObject, index int, value ruby.Value) ruby.Value {
 	array_extend(mut object, index)
 	actual := array_actual_index(object.elements_value.len, index)
 	if actual < 0 || actual >= object.elements_value.len {
@@ -563,15 +563,15 @@ fn array_assign_element(mut object ArrayObject, index int, value brew_runtime.Va
 	}
 	if element.kind == .integer {
 		clamped := clamp_integer(assigned.as_int() or { panic(err) }, element.integer_spec.nbits, element.integer_spec.signed) or { panic(err) }
-		element.base.snapshot_value = brew_runtime.int_value(clamped)
+		element.base.snapshot_value = ruby.int_value(clamped)
 	} else if element.kind == .bitfield {
 		nbits := if element.bitfield_spec.dynamic {
-			int(array_eval_index_value(element.parameters['nbits'] or { brew_runtime.int_value(0) }, actual))
+			int(array_eval_index_value(element.parameters['nbits'] or { ruby.int_value(0) }, actual))
 		} else {
 			element.bitfield_spec.nbits
 		}
 		clamped := clamp_bitfield_integer(assigned.as_int() or { panic(err) }, nbits, element.bitfield_spec.signed) or { panic(err) }
-		element.base.snapshot_value = brew_runtime.int_value(clamped)
+		element.base.snapshot_value = ruby.int_value(clamped)
 	} else {
 		element.base.snapshot_value = assigned
 	}
@@ -581,16 +581,16 @@ fn array_assign_element(mut object ArrayObject, index int, value brew_runtime.Va
 	return element.base.snapshot_value
 }
 
-fn array_object_from_boundary(value brew_runtime.Value) ?&ArrayObject {
+fn array_object_from_boundary(value ruby.Value) ?&ArrayObject {
 	address := value.attributes['array_object_address'] or { return none }
 	return unsafe { &ArrayObject(voidptr(address.u64())) }
 }
 
-fn array_values_equal(left brew_runtime.Value, right brew_runtime.Value) bool {
+fn array_values_equal(left ruby.Value, right ruby.Value) bool {
 	return values_equal(left, right)
 }
 
-fn array_find_snapshot(mut object ArrayObject, wanted brew_runtime.Value) int {
+fn array_find_snapshot(mut object ArrayObject, wanted ruby.Value) int {
 	array_ensure_elements(mut object)
 	for index, element in object.elements_value {
 		if array_values_equal(array_element_snapshot(object, element, index), wanted) {
@@ -600,7 +600,7 @@ fn array_find_snapshot(mut object ArrayObject, wanted brew_runtime.Value) int {
 	return -1
 }
 
-fn array_find_identity(mut object ArrayObject, wanted brew_runtime.Value) int {
+fn array_find_identity(mut object ArrayObject, wanted ruby.Value) int {
 	array_ensure_elements(mut object)
 	if element := array_element_from_value(wanted) {
 		for index, candidate in object.elements_value {
@@ -619,7 +619,7 @@ fn array_find_identity(mut object ArrayObject, wanted brew_runtime.Value) int {
 	return -1
 }
 
-fn array_slice_start_length(mut object ArrayObject, start int, length int) brew_runtime.Value {
+fn array_slice_start_length(mut object ArrayObject, start int, length int) ruby.Value {
 	array_ensure_elements(mut object)
 	if length < 0 {
 		return array_nil_value()
@@ -633,11 +633,11 @@ fn array_slice_start_length(mut object ArrayObject, start int, length int) brew_
 	} else {
 		object.elements_value.len
 	}
-	mut values := []brew_runtime.Value{cap: end - actual_start}
+	mut values := []ruby.Value{cap: end - actual_start}
 	for index in actual_start .. end {
 		values << array_element_value(object, object.elements_value[index], index)
 	}
-	return brew_runtime.array_value(values)
+	return ruby.array_value(values)
 }
 
 struct ArrayRange {
@@ -646,7 +646,7 @@ struct ArrayRange {
 	exclusive bool
 }
 
-fn array_range(value brew_runtime.Value) !ArrayRange {
+fn array_range(value ruby.Value) !ArrayRange {
 	if value.type_name != 'Range' {
 		return error('expected Range')
 	}
@@ -659,13 +659,13 @@ fn array_range(value brew_runtime.Value) !ArrayRange {
 	}
 }
 
-pub fn array_range_value(start int, finish int, exclusive bool) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn array_range_value(start int, finish int, exclusive bool) ruby.Value {
+	return ruby.Value{
 		type_name: 'Range'
 		repr: '${start}${if exclusive { '...' } else { '..' }}${finish}'
 		map_data: {
-			'begin': brew_runtime.int_value(start)
-			'end':   brew_runtime.int_value(finish)
+			'begin': ruby.int_value(start)
+			'end':   ruby.int_value(finish)
 		}
 		attributes: {
 			'exclude_end': exclusive.str()
@@ -673,7 +673,7 @@ pub fn array_range_value(start int, finish int, exclusive bool) brew_runtime.Val
 	}
 }
 
-fn array_slice_range(mut object ArrayObject, range ArrayRange) brew_runtime.Value {
+fn array_slice_range(mut object ArrayObject, range ArrayRange) ruby.Value {
 	array_ensure_elements(mut object)
 	start := array_actual_index(object.elements_value.len, range.start)
 	if start < 0 || start > object.elements_value.len {
@@ -694,11 +694,11 @@ fn array_element_read(mut object ArrayObject, mut element ArrayElement, index in
 		.integer {
 			bytes := reader.readbytes(element.integer_spec.nbits / 8)!
 			value := integer_from_binary(bytes, element.integer_spec)!
-			element.base.snapshot_value = brew_runtime.int_value(value)
+			element.base.snapshot_value = ruby.int_value(value)
 		}
 		.bitfield {
 			nbits := if element.bitfield_spec.dynamic {
-				int(array_eval_index_value(element.parameters['nbits'] or { brew_runtime.int_value(0) }, index))
+				int(array_eval_index_value(element.parameters['nbits'] or { ruby.int_value(0) }, index))
 			} else {
 				element.bitfield_spec.nbits
 			}
@@ -707,14 +707,14 @@ fn array_element_read(mut object ArrayObject, mut element ArrayElement, index in
 			} else {
 				reader.readbits_little(nbits)!
 			}
-			element.base.snapshot_value = brew_runtime.int_value(bitfield_unsigned_to_integer(raw, nbits, element.bitfield_spec.signed)!)
+			element.base.snapshot_value = ruby.int_value(bitfield_unsigned_to_integer(raw, nbits, element.bitfield_spec.signed)!)
 		}
 		.string {
 			nbytes := int(element.base.do_num_bytes)
 			if nbytes <= 0 {
 				return error('array string element requires read_length')
 			}
-			element.base.snapshot_value = brew_runtime.string_value(reader.readbytes(nbytes)!.bytestr())
+			element.base.snapshot_value = ruby.string_value(reader.readbytes(nbytes)!.bytestr())
 		}
 		.nested_array {
 			array_do_read(mut element.nested, mut reader)!
@@ -728,7 +728,7 @@ fn array_element_read(mut object ArrayObject, mut element ArrayElement, index in
 			}
 			bytes := reader.readbytes(nbytes)!
 			element.base.binary_value = bytes.bytestr()
-			element.base.snapshot_value = brew_runtime.string_value(element.base.binary_value)
+			element.base.snapshot_value = ruby.string_value(element.base.binary_value)
 		}
 	}
 	element.base.assigned_value = element.base.snapshot_value
@@ -745,7 +745,7 @@ fn array_element_write(object &ArrayObject, element &ArrayElement, index int, mu
 		}
 		.bitfield {
 			nbits := if element.bitfield_spec.dynamic {
-				int(array_eval_index_value(element.parameters['nbits'] or { brew_runtime.int_value(0) }, index))
+				int(array_eval_index_value(element.parameters['nbits'] or { ruby.int_value(0) }, index))
 			} else {
 				element.bitfield_spec.nbits
 			}
@@ -763,7 +763,7 @@ fn array_element_write(object &ArrayObject, element &ArrayElement, index int, mu
 				if bytes.len > nbytes {
 					bytes = bytes[..nbytes].clone()
 				} else if bytes.len < nbytes {
-					pad := u8((element.parameters['pad_byte'] or { brew_runtime.int_value(0) }).int_data)
+					pad := u8((element.parameters['pad_byte'] or { ruby.int_value(0) }).int_data)
 					bytes << []u8{len: nbytes - bytes.len, init: pad}
 				}
 			}
@@ -791,7 +791,7 @@ fn array_do_write(object &ArrayObject, mut writer IOWrite) ! {
 fn array_read_condition(object &ArrayObject, index int) bool {
 	if object.has_read_until_callback {
 		element := array_element_snapshot(object, object.elements_value[index], index)
-		mut values := []brew_runtime.Value{cap: object.elements_value.len}
+		mut values := []ruby.Value{cap: object.elements_value.len}
 		for current, candidate in object.elements_value {
 			values << array_element_snapshot(object, candidate, current)
 		}
@@ -841,7 +841,7 @@ fn array_do_read(mut object ArrayObject, mut reader IORead) ! {
 	object.base.clear = false
 }
 
-fn array_boundary_receiver(args []brew_runtime.Value, method string) &ArrayObject {
+fn array_boundary_receiver(args []ruby.Value, method string) &ArrayObject {
 	if args.len == 0 {
 		panic('Array#${method} requires a receiver')
 	}
@@ -849,7 +849,7 @@ fn array_boundary_receiver(args []brew_runtime.Value, method string) &ArrayObjec
 }
 
 // Ruby method `initialize_shared_instance` at line 61.
-pub fn ruby_array_l61_d1_initialize_shared_instance(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_array_l61_d1_initialize_shared_instance(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Array#initialize_shared_instance requires a receiver')
 	}
@@ -862,7 +862,7 @@ pub fn ruby_array_l61_d1_initialize_shared_instance(args ...brew_runtime.Value) 
 }
 
 // Ruby method `initialize_instance` at line 74.
-pub fn ruby_array_l74_d2_initialize_instance(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_array_l74_d2_initialize_instance(args ...ruby.Value) ruby.Value {
 	mut object := array_boundary_receiver(args, 'initialize_instance')
 	object.elements_value = []&ArrayElement{}
 	object.elements_initialized = false
@@ -873,16 +873,16 @@ pub fn ruby_array_l74_d2_initialize_instance(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby method `clear?` at line 78.
-pub fn ruby_array_l78_d3_clear(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_array_l78_d3_clear(args ...ruby.Value) ruby.Value {
 	mut object := array_boundary_receiver(args, 'clear?')
 	if !object.elements_initialized {
-		return brew_runtime.bool_value(true)
+		return ruby.bool_value(true)
 	}
-	return brew_runtime.bool_value(object.elements_value.all(it.base.clear))
+	return ruby.bool_value(object.elements_value.all(it.base.clear))
 }
 
 // Ruby method `assign(array)` at line 82.
-pub fn ruby_array_l82_d4_assign(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_array_l82_d4_assign(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Array#assign requires an array')
 	}
@@ -911,13 +911,13 @@ pub fn ruby_array_l82_d4_assign(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `snapshot` at line 90.
-pub fn ruby_array_l90_d5_snapshot(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_array_l90_d5_snapshot(args ...ruby.Value) ruby.Value {
 	mut object := array_boundary_receiver(args, 'snapshot')
 	return array_snapshot(mut object)
 }
 
 // Ruby method `find_index(obj)` at line 94.
-pub fn ruby_array_l94_d6_find_index(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_array_l94_d6_find_index(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Array#find_index requires an object')
 	}
@@ -927,51 +927,51 @@ pub fn ruby_array_l94_d6_find_index(args ...brew_runtime.Value) brew_runtime.Val
 	} else {
 		args[1]
 	})
-	return if index < 0 { array_nil_value() } else { brew_runtime.int_value(index) }
+	return if index < 0 { array_nil_value() } else { ruby.int_value(index) }
 }
 
 // Ruby alias `alias index find_index` at line 97.
-pub fn ruby_array_l97_d7_index(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_array_l97_d7_index(args ...ruby.Value) ruby.Value {
 	return ruby_array_l94_d6_find_index(...args)
 }
 
 // Ruby method `find_index_of(obj)` at line 102.
-pub fn ruby_array_l102_d8_find_index_of(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_array_l102_d8_find_index_of(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Array#find_index_of requires an object')
 	}
 	mut object := array_boundary_receiver(args, 'find_index_of')
 	index := array_find_identity(mut object, args[1])
-	return if index < 0 { array_nil_value() } else { brew_runtime.int_value(index) }
+	return if index < 0 { array_nil_value() } else { ruby.int_value(index) }
 }
 
 // Ruby method `push(*args)` at line 106.
-pub fn ruby_array_l106_d9_push(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_array_l106_d9_push(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Array#push requires a receiver')
 	}
-	mut insert_args := [args[0], brew_runtime.int_value(-1)]
+	mut insert_args := [args[0], ruby.int_value(-1)]
 	insert_args << args[1..]
 	return ruby_array_l122_d13_insert(...insert_args)
 }
 
 // Ruby alias `alias << push` at line 110.
-pub fn ruby_array_l110_d10_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_array_l110_d10_anonymous(args ...ruby.Value) ruby.Value {
 	return ruby_array_l106_d9_push(...args)
 }
 
 // Ruby method `unshift(*args)` at line 112.
-pub fn ruby_array_l112_d11_unshift(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_array_l112_d11_unshift(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Array#unshift requires a receiver')
 	}
-	mut insert_args := [args[0], brew_runtime.int_value(0)]
+	mut insert_args := [args[0], ruby.int_value(0)]
 	insert_args << args[1..]
 	return ruby_array_l122_d13_insert(...insert_args)
 }
 
 // Ruby method `concat(array)` at line 117.
-pub fn ruby_array_l117_d12_concat(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_array_l117_d12_concat(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Array#concat requires an array')
 	}
@@ -980,13 +980,13 @@ pub fn ruby_array_l117_d12_concat(args ...brew_runtime.Value) brew_runtime.Value
 	} else {
 		args[1].as_array() or { panic(err) }
 	}
-	mut insert_args := [args[0], brew_runtime.int_value(-1)]
+	mut insert_args := [args[0], ruby.int_value(-1)]
 	insert_args << values
 	return ruby_array_l122_d13_insert(...insert_args)
 }
 
 // Ruby method `insert(index, *objs)` at line 122.
-pub fn ruby_array_l122_d13_insert(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_array_l122_d13_insert(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Array#insert requires an index')
 	}
@@ -1015,7 +1015,7 @@ pub fn ruby_array_l122_d13_insert(args ...brew_runtime.Value) brew_runtime.Value
 }
 
 // Ruby method `[](arg1, arg2 = nil)` at line 139.
-pub fn ruby_array_l139_d14_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_array_l139_d14_anonymous(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Array#[] requires an index or range')
 	}
@@ -1036,12 +1036,12 @@ pub fn ruby_array_l139_d14_anonymous(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby alias `alias slice []` at line 151.
-pub fn ruby_array_l151_d15_slice(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_array_l151_d15_slice(args ...ruby.Value) ruby.Value {
 	return ruby_array_l139_d14_anonymous(...args)
 }
 
 // Ruby method `slice_index(index)` at line 153.
-pub fn ruby_array_l153_d16_slice_index(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_array_l153_d16_slice_index(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Array#slice_index requires an index')
 	}
@@ -1056,7 +1056,7 @@ pub fn ruby_array_l153_d16_slice_index(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby method `slice_start_length(start, length)` at line 158.
-pub fn ruby_array_l158_d17_slice_start_length(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_array_l158_d17_slice_start_length(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('Array#slice_start_length requires start and length')
 	}
@@ -1065,7 +1065,7 @@ pub fn ruby_array_l158_d17_slice_start_length(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby method `slice_range(range)` at line 162.
-pub fn ruby_array_l162_d18_slice_range(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_array_l162_d18_slice_range(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Array#slice_range requires a range')
 	}
@@ -1074,7 +1074,7 @@ pub fn ruby_array_l162_d18_slice_range(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby method `at(index)` at line 169.
-pub fn ruby_array_l169_d19_at(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_array_l169_d19_at(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Array#at requires an index')
 	}
@@ -1088,7 +1088,7 @@ pub fn ruby_array_l169_d19_at(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `[]=(index, value)` at line 174.
-pub fn ruby_array_l174_d20_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_array_l174_d20_anonymous(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('Array#[]= requires index and value')
 	}
@@ -1097,78 +1097,78 @@ pub fn ruby_array_l174_d20_anonymous(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby method `first(n = nil)` at line 182.
-pub fn ruby_array_l182_d21_first(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_array_l182_d21_first(args ...ruby.Value) ruby.Value {
 	mut object := array_boundary_receiver(args, 'first')
 	array_ensure_elements(mut object)
 	if args.len < 2 || args[1].type_name == 'NilClass' {
 		if object.elements_value.len == 0 {
 			return array_nil_value()
 		}
-		return ruby_array_l153_d16_slice_index(args[0], brew_runtime.int_value(0))
+		return ruby_array_l153_d16_slice_index(args[0], ruby.int_value(0))
 	}
-	return ruby_array_l158_d17_slice_start_length(args[0], brew_runtime.int_value(0), args[1])
+	return ruby_array_l158_d17_slice_start_length(args[0], ruby.int_value(0), args[1])
 }
 
 // Ruby method `last(n = nil)` at line 196.
-pub fn ruby_array_l196_d22_last(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_array_l196_d22_last(args ...ruby.Value) ruby.Value {
 	mut object := array_boundary_receiver(args, 'last')
 	array_ensure_elements(mut object)
 	if args.len < 2 || args[1].type_name == 'NilClass' {
-		return ruby_array_l153_d16_slice_index(args[0], brew_runtime.int_value(-1))
+		return ruby_array_l153_d16_slice_index(args[0], ruby.int_value(-1))
 	}
 	mut count := int(args[1].as_int() or { panic(err) })
 	if count > object.elements_value.len {
 		count = object.elements_value.len
 	}
-	return ruby_array_l158_d17_slice_start_length(args[0], brew_runtime.int_value(-count), brew_runtime.int_value(count))
+	return ruby_array_l158_d17_slice_start_length(args[0], ruby.int_value(-count), ruby.int_value(count))
 }
 
 // Ruby method `length` at line 205.
-pub fn ruby_array_l205_d23_length(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_array_l205_d23_length(args ...ruby.Value) ruby.Value {
 	mut object := array_boundary_receiver(args, 'length')
 	array_ensure_elements(mut object)
-	return brew_runtime.int_value(object.elements_value.len)
+	return ruby.int_value(object.elements_value.len)
 }
 
 // Ruby alias `alias size length` at line 208.
-pub fn ruby_array_l208_d24_size(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_array_l208_d24_size(args ...ruby.Value) ruby.Value {
 	return ruby_array_l205_d23_length(...args)
 }
 
 // Ruby method `empty?` at line 210.
-pub fn ruby_array_l210_d25_empty(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(ruby_array_l205_d23_length(...args).int_data == 0)
+pub fn ruby_array_l210_d25_empty(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(ruby_array_l205_d23_length(...args).int_data == 0)
 }
 
 // Ruby method `to_ary` at line 215.
-pub fn ruby_array_l215_d26_to_ary(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_array_l215_d26_to_ary(args ...ruby.Value) ruby.Value {
 	return ruby_array_l219_d27_each(...args)
 }
 
 // Ruby method `each` at line 219.
-pub fn ruby_array_l219_d27_each(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_array_l219_d27_each(args ...ruby.Value) ruby.Value {
 	mut object := array_boundary_receiver(args, 'each')
 	array_ensure_elements(mut object)
-	mut values := []brew_runtime.Value{cap: object.elements_value.len}
+	mut values := []ruby.Value{cap: object.elements_value.len}
 	for index, element in object.elements_value {
 		values << array_element_value(object, element, index)
 	}
-	return brew_runtime.array_value(values)
+	return ruby.array_value(values)
 }
 
 // Ruby method `debug_name_of(child) # :nodoc:` at line 223.
-pub fn ruby_array_l223_d28_debug_name_of(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_array_l223_d28_debug_name_of(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Array#debug_name_of requires a child')
 	}
 	mut object := array_boundary_receiver(args, 'debug_name_of')
 	index := array_find_identity(mut object, args[1])
 	name := ruby_base_l206_d25_debug_name(args[0]).as_string()
-	return brew_runtime.string_value('${name}[${if index < 0 { '' } else { index.str() }}]')
+	return ruby.string_value('${name}[${if index < 0 { '' } else { index.str() }}]')
 }
 
 // Ruby method `offset_of(child) # :nodoc:` at line 228.
-pub fn ruby_array_l228_d29_offset_of(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_array_l228_d29_offset_of(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Array#offset_of requires a child')
 	}
@@ -1180,11 +1180,11 @@ pub fn ruby_array_l228_d29_offset_of(args ...brew_runtime.Value) brew_runtime.Va
 	sum := array_sum_num_bytes(object, index)
 	child := object.elements_value[index]
 	offset := if child.kind == .bitfield { math.floor(sum) } else { math.ceil(sum) }
-	return brew_runtime.int_value(i64(offset))
+	return ruby.int_value(i64(offset))
 }
 
 // Ruby method `do_write(io) # :nodoc:` at line 235.
-pub fn ruby_array_l235_d30_do_write(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_array_l235_d30_do_write(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Array#do_write requires IO')
 	}
@@ -1196,19 +1196,19 @@ pub fn ruby_array_l235_d30_do_write(args ...brew_runtime.Value) brew_runtime.Val
 }
 
 // Ruby method `do_num_bytes # :nodoc:` at line 239.
-pub fn ruby_array_l239_d31_do_num_bytes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_array_l239_d31_do_num_bytes(args ...ruby.Value) ruby.Value {
 	mut object := array_boundary_receiver(args, 'do_num_bytes')
 	array_ensure_elements(mut object)
 	sum := array_sum_num_bytes(object, object.elements_value.len)
 	return if sum == math.floor(sum) {
-		brew_runtime.int_value(i64(sum))
+		ruby.int_value(i64(sum))
 	} else {
-		brew_runtime.float_value(sum)
+		ruby.float_value(sum)
 	}
 }
 
 // Ruby method `extend_array(max_index)` at line 246.
-pub fn ruby_array_l246_d32_extend_array(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_array_l246_d32_extend_array(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Array#extend_array requires a maximum index')
 	}
@@ -1218,19 +1218,19 @@ pub fn ruby_array_l246_d32_extend_array(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby method `elements` at line 253.
-pub fn ruby_array_l253_d33_elements(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_array_l253_d33_elements(args ...ruby.Value) ruby.Value {
 	return ruby_array_l219_d27_each(...args)
 }
 
 // Ruby method `append_new_element` at line 257.
-pub fn ruby_array_l257_d34_append_new_element(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_array_l257_d34_append_new_element(args ...ruby.Value) ruby.Value {
 	mut object := array_boundary_receiver(args, 'append_new_element')
 	element := array_append(mut object)
 	return array_element_value(object, element, object.elements_value.len - 1)
 }
 
 // Ruby method `new_element` at line 263.
-pub fn ruby_array_l263_d35_new_element(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_array_l263_d35_new_element(args ...ruby.Value) ruby.Value {
 	mut object := array_boundary_receiver(args, 'new_element')
 	array_ensure_elements(mut object)
 	element := new_array_element(mut object)
@@ -1238,12 +1238,12 @@ pub fn ruby_array_l263_d35_new_element(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby method `sum_num_bytes_for_all_elements` at line 267.
-pub fn ruby_array_l267_d36_sum_num_bytes_for_all_elements(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_array_l267_d36_sum_num_bytes_for_all_elements(args ...ruby.Value) ruby.Value {
 	return ruby_array_l239_d31_do_num_bytes(...args)
 }
 
 // Ruby method `sum_num_bytes_below_index(index)` at line 271.
-pub fn ruby_array_l271_d37_sum_num_bytes_below_index(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_array_l271_d37_sum_num_bytes_below_index(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Array#sum_num_bytes_below_index requires an index')
 	}
@@ -1251,14 +1251,14 @@ pub fn ruby_array_l271_d37_sum_num_bytes_below_index(args ...brew_runtime.Value)
 	array_ensure_elements(mut object)
 	sum := array_sum_num_bytes(object, int(args[1].as_int() or { panic(err) }))
 	return if sum == math.floor(sum) {
-		brew_runtime.int_value(i64(sum))
+		ruby.int_value(i64(sum))
 	} else {
-		brew_runtime.float_value(sum)
+		ruby.float_value(sum)
 	}
 }
 
 // Ruby method `do_read(io)` at line 285.
-pub fn ruby_array_l285_d38_do_read(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_array_l285_d38_do_read(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Array#ReadUntilPlugin#do_read requires IO')
 	}
@@ -1270,7 +1270,7 @@ pub fn ruby_array_l285_d38_do_read(args ...brew_runtime.Value) brew_runtime.Valu
 }
 
 // Ruby method `do_read(io)` at line 297.
-pub fn ruby_array_l297_d39_do_read(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_array_l297_d39_do_read(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Array#ReadUntilEOFPlugin#do_read requires IO')
 	}
@@ -1282,7 +1282,7 @@ pub fn ruby_array_l297_d39_do_read(args ...brew_runtime.Value) brew_runtime.Valu
 }
 
 // Ruby method `do_read(io)` at line 312.
-pub fn ruby_array_l312_d40_do_read(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_array_l312_d40_do_read(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Array#InitialLengthPlugin#do_read requires IO')
 	}
@@ -1294,12 +1294,12 @@ pub fn ruby_array_l312_d40_do_read(args ...brew_runtime.Value) brew_runtime.Valu
 }
 
 // Ruby method `elements` at line 316.
-pub fn ruby_array_l316_d41_elements(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_array_l316_d41_elements(args ...ruby.Value) ruby.Value {
 	return ruby_array_l219_d27_each(...args)
 }
 
 // Ruby method `sanitize_parameters!(obj_class, params) # :nodoc:` at line 330.
-pub fn ruby_array_l330_d42_sanitize_parameters(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_array_l330_d42_sanitize_parameters(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('ArrayArgProcessor#sanitize_parameters! requires parameters')
 	}
@@ -1308,7 +1308,7 @@ pub fn ruby_array_l330_d42_sanitize_parameters(args ...brew_runtime.Value) brew_
 	if params_value.type_name == 'BinData::SanitizedParameters' {
 		mut parameters := sanitized_parameters_from_value(params_value)
 		if !parameters.has_at_least_one_of(['initial_length', 'read_until']) {
-			parameters.values['initial_length'] = brew_runtime.int_value(0)
+			parameters.values['initial_length'] = ruby.int_value(0)
 		}
 		parameters.warn_replacement_parameter('length', 'initial_length')
 		parameters.warn_replacement_parameter('read_length', 'initial_length')
@@ -1322,7 +1322,7 @@ pub fn ruby_array_l330_d42_sanitize_parameters(args ...brew_runtime.Value) brew_
 		return sanitized_parameters_boundary_value(parameters)
 	}
 	values := params_value.as_map() or { panic(err) }
-	return brew_runtime.map_value(sanitize_array_parameter_map(object_class, values) or { panic(err) })
+	return ruby.map_value(sanitize_array_parameter_map(object_class, values) or { panic(err) })
 }
 
 // Original Ruby source (line-for-line):

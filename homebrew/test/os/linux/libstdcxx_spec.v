@@ -1,6 +1,6 @@
 module linux
 
-import brew_runtime
+import ruby
 import os
 import time
 
@@ -116,7 +116,7 @@ pub fn libstdcxx_spec_unexpected_realpath_case(root string) !bool {
 	return libstdcxx_spec_version_from_path(library).compare_to(libstdcxx_spec_soversion()) == 0
 }
 
-fn libstdcxx_spec_case_root(args []brew_runtime.Value, suffix string) !(string, bool) {
+fn libstdcxx_spec_case_root(args []ruby.Value, suffix string) !(string, bool) {
 	if args.len > 0 && args[0].as_string() != '' {
 		return libstdcxx_spec_tmpdir(args[0].as_string())!, false
 	}
@@ -124,92 +124,92 @@ fn libstdcxx_spec_case_root(args []brew_runtime.Value, suffix string) !(string, 
 }
 
 // Ruby it `it "returns false when system version matches CI version" do` at line 8.
-pub fn ruby_libstdcxx_spec_l8_d1_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_libstdcxx_spec_l8_d1_returns(args ...ruby.Value) ruby.Value {
 	version_text := if args.len > 0 {
 		args[0].as_string()
 	} else {
 		libstdcxx_spec_ci_version
 	}
-	return brew_runtime.bool_value(!libstdcxx_spec_below_ci_version(libstdcxx_spec_version(version_text)))
+	return ruby.bool_value(!libstdcxx_spec_below_ci_version(libstdcxx_spec_version(version_text)))
 }
 
 // Ruby it `it "returns true when system version cannot be detected" do` at line 13.
-pub fn ruby_libstdcxx_spec_l13_d2_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_libstdcxx_spec_l13_d2_returns(args ...ruby.Value) ruby.Value {
 	version := if args.len > 0 && args[0].as_string() != 'NULL' {
 		libstdcxx_spec_version(args[0].as_string())
 	} else {
 		libstdcxx_spec_null_version()
 	}
-	return brew_runtime.bool_value(libstdcxx_spec_below_ci_version(version))
+	return ruby.bool_value(libstdcxx_spec_below_ci_version(version))
 }
 
 // Ruby let `let(:tmpdir) { mktmpdir }` at line 20.
-pub fn ruby_libstdcxx_spec_l20_d3_tmpdir(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_libstdcxx_spec_l20_d3_tmpdir(args ...ruby.Value) ruby.Value {
 	requested := if args.len > 0 { args[0].as_string() } else { '' }
 	root := libstdcxx_spec_tmpdir(requested) or {
-		return brew_runtime.object_value('Pathname', '')
+		return ruby.object_value('Pathname', '')
 	}
-	return brew_runtime.object_value('Pathname', root)
+	return ruby.object_value('Pathname', root)
 }
 
 // Ruby let `let(:libstdcxx) { tmpdir/OS::Linux::Libstdcxx::SONAME }` at line 21.
-pub fn ruby_libstdcxx_spec_l21_d4_libstdcxx(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_libstdcxx_spec_l21_d4_libstdcxx(args ...ruby.Value) ruby.Value {
 	requested := if args.len > 0 { args[0].as_string() } else { '' }
 	root := libstdcxx_spec_tmpdir(requested) or {
-		return brew_runtime.object_value('Pathname', '')
+		return ruby.object_value('Pathname', '')
 	}
-	return brew_runtime.object_value('Pathname', libstdcxx_spec_library_path(root))
+	return ruby.object_value('Pathname', libstdcxx_spec_library_path(root))
 }
 
 // Ruby let `let(:soversion) { Version.new(OS::Linux::Libstdcxx::SOVERSION.to_s) }` at line 22.
-pub fn ruby_libstdcxx_spec_l22_d5_soversion(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_libstdcxx_spec_l22_d5_soversion(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.object_value('Version', libstdcxx_spec_soversion().to_s())
+	return ruby.object_value('Version', libstdcxx_spec_soversion().to_s())
 }
 
 // Ruby it `it "returns NULL when unable to find system path" do` at line 34.
-pub fn ruby_libstdcxx_spec_l34_d6_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_libstdcxx_spec_l34_d6_returns(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(libstdcxx_spec_version_from_path(none).null_value)
+	return ruby.bool_value(libstdcxx_spec_version_from_path(none).null_value)
 }
 
 // Ruby it `it "returns full version from filename" do` at line 39.
-pub fn ruby_libstdcxx_spec_l39_d7_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_libstdcxx_spec_l39_d7_returns(args ...ruby.Value) ruby.Value {
 	root, cleanup := libstdcxx_spec_case_root(args, 'full-version') or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	defer {
 		if cleanup {
 			os.rmdir_all(root) or {}
 		}
 	}
-	return brew_runtime.bool_value(libstdcxx_spec_full_version_case(root) or { false })
+	return ruby.bool_value(libstdcxx_spec_full_version_case(root) or { false })
 }
 
 // Ruby it `it "returns major version when non-standard libstdc++ filename without full version" do` at line 47.
-pub fn ruby_libstdcxx_spec_l47_d8_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_libstdcxx_spec_l47_d8_returns(args ...ruby.Value) ruby.Value {
 	root, cleanup := libstdcxx_spec_case_root(args, 'soname') or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	defer {
 		if cleanup {
 			os.rmdir_all(root) or {}
 		}
 	}
-	return brew_runtime.bool_value(libstdcxx_spec_soname_case(root) or { false })
+	return ruby.bool_value(libstdcxx_spec_soname_case(root) or { false })
 }
 
 // Ruby it `it "returns major version when non-standard libstdc++ filename with unexpected realpath" do` at line 52.
-pub fn ruby_libstdcxx_spec_l52_d9_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_libstdcxx_spec_l52_d9_returns(args ...ruby.Value) ruby.Value {
 	root, cleanup := libstdcxx_spec_case_root(args, 'unexpected-realpath') or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	defer {
 		if cleanup {
 			os.rmdir_all(root) or {}
 		}
 	}
-	return brew_runtime.bool_value(libstdcxx_spec_unexpected_realpath_case(root) or { false })
+	return ruby.bool_value(libstdcxx_spec_unexpected_realpath_case(root) or { false })
 }
 
 // Original Ruby source (line-for-line):

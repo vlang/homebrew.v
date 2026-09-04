@@ -1,6 +1,6 @@
 module props
 
-import brew_runtime
+import ruby
 
 pub enum GeneratedValidationMode {
 	serialize
@@ -207,7 +207,7 @@ pub fn validate_generated_deserialize(source string) ! {
 	}
 }
 
-fn generated_value_equal(left brew_runtime.Value, right brew_runtime.Value) bool {
+fn generated_value_equal(left ruby.Value, right ruby.Value) bool {
 	if left.type_name != right.type_name || left.repr != right.repr || left.bool_data != right.bool_data || left.int_data != right.int_data || left.array_data.len != right.array_data.len || left.map_data.len != right.map_data.len {
 		return false
 	}
@@ -225,69 +225,69 @@ fn generated_value_equal(left brew_runtime.Value, right brew_runtime.Value) bool
 	return true
 }
 
-fn generated_whitelist_value(mode GeneratedValidationMode) brew_runtime.Value {
-	mut result := map[string]brew_runtime.Value{}
+fn generated_whitelist_value(mode GeneratedValidationMode) ruby.Value {
+	mut result := map[string]ruby.Value{}
 	for receiver, methods in generated_validation_whitelist(mode) {
-		result[receiver] = brew_runtime.string_array_value(methods)
+		result[receiver] = ruby.string_array_value(methods)
 	}
-	return brew_runtime.map_value(result)
+	return ruby.map_value(result)
 }
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/props/generated_code_validation.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `self.validate_deserialize(source)` at line 17.
-pub fn ruby_generated_code_validation_l17_d1_self_validate_deserialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generated_code_validation_l17_d1_self_validate_deserialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('validate_deserialize requires source') }
 	validate_generated_deserialize(args[args.len - 1].as_string()) or { panic(err) }
 	return props_nil_value()
 }
 
 // Ruby method `self.validate_serialize(source)` at line 49.
-pub fn ruby_generated_code_validation_l49_d2_self_validate_serialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generated_code_validation_l49_d2_self_validate_serialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('validate_serialize requires source') }
 	validate_generated_serialize(args[args.len - 1].as_string()) or { panic(err) }
 	return props_nil_value()
 }
 
 // Ruby method `self.validate_serialize_clause(clause)` at line 74.
-pub fn ruby_generated_code_validation_l74_d3_self_validate_serialize_clause(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generated_code_validation_l74_d3_self_validate_serialize_clause(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('validate_serialize_clause requires clause') }
 	validate_generated_serialize_clause(generated_lines(args[args.len - 1].as_string())) or { panic(err) }
 	return props_nil_value()
 }
 
 // Ruby method `self.validate_deserialize_hash_read(clause)` at line 107.
-pub fn ruby_generated_code_validation_l107_d4_self_validate_deserialize_hash_read(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generated_code_validation_l107_d4_self_validate_deserialize_hash_read(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('validate_deserialize_hash_read requires clause') }
 	validate_generated_deserialize_hash_read(args[args.len - 1].as_string().trim_space()) or { panic(err) }
 	return props_nil_value()
 }
 
 // Ruby method `self.validate_deserialize_ivar_set(clause)` at line 120.
-pub fn ruby_generated_code_validation_l120_d5_self_validate_deserialize_ivar_set(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generated_code_validation_l120_d5_self_validate_deserialize_ivar_set(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('validate_deserialize_ivar_set requires clause') }
 	validate_generated_deserialize_ivar_clause(generated_lines(args[args.len - 1].as_string())) or { panic(err) }
 	return props_nil_value()
 }
 
 // Ruby method `self.validate_deserialize_handle_nil(node)` at line 186.
-pub fn ruby_generated_code_validation_l186_d6_self_validate_deserialize_handle_nil(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generated_code_validation_l186_d6_self_validate_deserialize_handle_nil(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('validate_deserialize_handle_nil requires node') }
 	validate_generated_deserialize_nil_handler(args[args.len - 1].as_string()) or { panic(err) }
 	return props_nil_value()
 }
 
 // Ruby method `self.self_class_decorator` at line 218.
-pub fn ruby_generated_code_validation_l218_d7_self_self_class_decorator(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.structured_value('Parser::AST::Node', 'self.class.decorator', {
+pub fn ruby_generated_code_validation_l218_d7_self_self_class_decorator(args ...ruby.Value) ruby.Value {
+	return ruby.structured_value('Parser::AST::Node', 'self.class.decorator', {
 		'type':   'send'
 		'frozen': 'true'
 	})
 }
 
 // Ruby method `self.validate_lack_of_side_effects(node, whitelisted_methods_by_receiver_type)` at line 222.
-pub fn ruby_generated_code_validation_l222_d8_self_validate_lack_of_side_effects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generated_code_validation_l222_d8_self_validate_lack_of_side_effects(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('validate_lack_of_side_effects requires expression') }
 	mode := if args.len > 1 && args[args.len - 1].repr.contains('from_hash') {
 		GeneratedValidationMode.deserialize
@@ -299,7 +299,7 @@ pub fn ruby_generated_code_validation_l222_d8_self_validate_lack_of_side_effects
 }
 
 // Ruby method `self.assert_equal(expected, actual)` at line 260.
-pub fn ruby_generated_code_validation_l260_d9_self_assert_equal(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generated_code_validation_l260_d9_self_assert_equal(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('assert_equal requires expected and actual') }
 	if !generated_value_equal(args[args.len - 2], args[args.len - 1]) {
 		panic('Expected ${args[args.len - 2].repr}, got ${args[args.len - 1].repr}')
@@ -308,12 +308,12 @@ pub fn ruby_generated_code_validation_l260_d9_self_assert_equal(args ...brew_run
 }
 
 // Ruby method `self.whitelisted_methods_for_serialize` at line 267.
-pub fn ruby_generated_code_validation_l267_d10_self_whitelisted_methods_for_serialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generated_code_validation_l267_d10_self_whitelisted_methods_for_serialize(args ...ruby.Value) ruby.Value {
 	return generated_whitelist_value(.serialize)
 }
 
 // Ruby method `self.whitelisted_methods_for_deserialize` at line 276.
-pub fn ruby_generated_code_validation_l276_d11_self_whitelisted_methods_for_deserialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generated_code_validation_l276_d11_self_whitelisted_methods_for_deserialize(args ...ruby.Value) ruby.Value {
 	return generated_whitelist_value(.deserialize)
 }
 

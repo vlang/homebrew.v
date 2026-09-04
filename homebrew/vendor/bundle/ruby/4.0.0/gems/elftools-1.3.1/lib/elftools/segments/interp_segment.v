@@ -1,6 +1,6 @@
 module segments
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/elftools-1.3.1/lib/elftools/segments/interp_segment.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -12,11 +12,11 @@ pub fn interpreter_name(data []u8) string {
 }
 
 // Ruby method `interp_name` at line 15.
-pub fn ruby_interp_segment_l15_d1_interp_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_interp_segment_l15_d1_interp_name(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_value('')
+		return ruby.string_value('')
 	}
-	return brew_runtime.string_value(interpreter_name(args[0].as_string().bytes()))
+	return ruby.string_value(interpreter_name(args[0].as_string().bytes()))
 }
 
 // Original Ruby source (line-for-line):

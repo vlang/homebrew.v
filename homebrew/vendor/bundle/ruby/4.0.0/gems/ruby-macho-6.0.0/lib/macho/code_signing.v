@@ -1,6 +1,6 @@
 module macho
 
-import brew_runtime
+import ruby
 import crypto.sha1
 import crypto.sha256
 import encoding.binary
@@ -364,32 +364,32 @@ pub fn (blob &CodeSigningBlob) each_blob() []&CodeSigningBlob {
 	return blob.blobs.clone()
 }
 
-pub fn (blob &CodeSigningBlob) to_h() brew_runtime.Value {
-	mut values := map[string]brew_runtime.Value{}
-	values['magic'] = brew_runtime.int_value(blob.magic)
-	values['magic_sym'] = brew_runtime.string_value(blob.magic_sym())
-	values['length'] = brew_runtime.int_value(blob.length)
+pub fn (blob &CodeSigningBlob) to_h() ruby.Value {
+	mut values := map[string]ruby.Value{}
+	values['magic'] = ruby.int_value(blob.magic)
+	values['magic_sym'] = ruby.string_value(blob.magic_sym())
+	values['length'] = ruby.int_value(blob.length)
 	if blob.kind == .super_blob {
-		values['count'] = brew_runtime.int_value(blob.count)
-		values['indices'] = brew_runtime.array_value(blob.indices.map(brew_runtime.map_value({
-			'type':   brew_runtime.int_value(it.type_)
-			'offset': brew_runtime.int_value(it.offset)
+		values['count'] = ruby.int_value(blob.count)
+		values['indices'] = ruby.array_value(blob.indices.map(ruby.map_value({
+			'type':   ruby.int_value(it.type_)
+			'offset': ruby.int_value(it.offset)
 		})))
-		values['blobs'] = brew_runtime.array_value(blob.blobs.map(it.to_h()))
+		values['blobs'] = ruby.array_value(blob.blobs.map(it.to_h()))
 	} else if blob.kind == .code_directory {
-		values['version'] = brew_runtime.int_value(blob.version)
-		values['flags'] = brew_runtime.int_value(blob.flags)
-		values['identifier'] = brew_runtime.string_value(blob.identifier)
-		values['hash_offset'] = brew_runtime.int_value(blob.hash_offset)
-		values['n_special_slots'] = brew_runtime.int_value(blob.n_special_slots)
-		values['n_code_slots'] = brew_runtime.int_value(blob.n_code_slots)
-		values['code_limit'] = brew_runtime.int_value(i64(blob.code_limit()))
-		values['hash_size'] = brew_runtime.int_value(blob.hash_size)
-		values['hash_type'] = brew_runtime.int_value(blob.hash_type)
-		values['hash_type_sym'] = brew_runtime.string_value(blob.hash_type_sym())
-		values['page_size'] = brew_runtime.int_value(blob.page_size)
+		values['version'] = ruby.int_value(blob.version)
+		values['flags'] = ruby.int_value(blob.flags)
+		values['identifier'] = ruby.string_value(blob.identifier)
+		values['hash_offset'] = ruby.int_value(blob.hash_offset)
+		values['n_special_slots'] = ruby.int_value(blob.n_special_slots)
+		values['n_code_slots'] = ruby.int_value(blob.n_code_slots)
+		values['code_limit'] = ruby.int_value(i64(blob.code_limit()))
+		values['hash_size'] = ruby.int_value(blob.hash_size)
+		values['hash_type'] = ruby.int_value(blob.hash_type)
+		values['hash_type_sym'] = ruby.string_value(blob.hash_type_sym())
+		values['page_size'] = ruby.int_value(blob.page_size)
 	}
-	return brew_runtime.map_value(values)
+	return ruby.map_value(values)
 }
 
 pub fn build_super_blob(entries map[u32][]u8) []u8 {
@@ -942,13 +942,13 @@ pub fn code_signing_identifier(macho &CodeSigningMachO, filename string) string 
 	return '${name}-${identity}'
 }
 
-fn code_signing_blob_boundary(blob &CodeSigningBlob) brew_runtime.Value {
-	return brew_runtime.structured_value('MachO::CodeSigning::${blob.kind}', '#<MachO::CodeSigning::${blob.kind}>', {
+fn code_signing_blob_boundary(blob &CodeSigningBlob) ruby.Value {
+	return ruby.structured_value('MachO::CodeSigning::${blob.kind}', '#<MachO::CodeSigning::${blob.kind}>', {
 		'code_signing_blob_address': u64(voidptr(blob)).str()
 	})
 }
 
-fn code_signing_blob_from_args(args []brew_runtime.Value) &CodeSigningBlob {
+fn code_signing_blob_from_args(args []ruby.Value) &CodeSigningBlob {
 	if args.len == 0 {
 		panic('code-signing blob method requires a receiver')
 	}
@@ -958,26 +958,26 @@ fn code_signing_blob_from_args(args []brew_runtime.Value) &CodeSigningBlob {
 	return unsafe { &CodeSigningBlob(voidptr(address)) }
 }
 
-fn code_signing_macho_boundary(macho &CodeSigningMachO) brew_runtime.Value {
-	return brew_runtime.structured_value('MachO::MachOFile', macho.filename, {
+fn code_signing_macho_boundary(macho &CodeSigningMachO) ruby.Value {
+	return ruby.structured_value('MachO::MachOFile', macho.filename, {
 		'code_signing_macho_address': u64(voidptr(macho)).str()
 	})
 }
 
-fn code_signing_macho_from_value(value brew_runtime.Value) &CodeSigningMachO {
+fn code_signing_macho_from_value(value ruby.Value) &CodeSigningMachO {
 	address := (value.attribute('code_signing_macho_address') or {
 		panic('${value.type_name} has no translated code-signing Mach-O state')
 	}).u64()
 	return unsafe { &CodeSigningMachO(voidptr(address)) }
 }
 
-fn adhoc_signer_boundary(signer &AdhocSigner) brew_runtime.Value {
-	return brew_runtime.structured_value('MachO::CodeSigning::AdhocSigner', '#<MachO::CodeSigning::AdhocSigner>', {
+fn adhoc_signer_boundary(signer &AdhocSigner) ruby.Value {
+	return ruby.structured_value('MachO::CodeSigning::AdhocSigner', '#<MachO::CodeSigning::AdhocSigner>', {
 		'adhoc_signer_address': u64(voidptr(signer)).str()
 	})
 }
 
-fn adhoc_signer_from_args(args []brew_runtime.Value) &AdhocSigner {
+fn adhoc_signer_from_args(args []ruby.Value) &AdhocSigner {
 	if args.len == 0 {
 		panic('AdhocSigner method requires a receiver')
 	}
@@ -987,18 +987,18 @@ fn adhoc_signer_from_args(args []brew_runtime.Value) &AdhocSigner {
 	return unsafe { &AdhocSigner(voidptr(address)) }
 }
 
-fn code_signing_indices_boundary(indices []BlobIndex) brew_runtime.Value {
-	return brew_runtime.array_value(indices.map(brew_runtime.map_value({
-		'type':   brew_runtime.int_value(it.type_)
-		'offset': brew_runtime.int_value(it.offset)
+fn code_signing_indices_boundary(indices []BlobIndex) ruby.Value {
+	return ruby.array_value(indices.map(ruby.map_value({
+		'type':   ruby.int_value(it.type_)
+		'offset': ruby.int_value(it.offset)
 	})))
 }
 
-fn code_signing_blobs_boundary(blobs []&CodeSigningBlob) brew_runtime.Value {
-	return brew_runtime.array_value(blobs.map(code_signing_blob_boundary(it)))
+fn code_signing_blobs_boundary(blobs []&CodeSigningBlob) ruby.Value {
+	return ruby.array_value(blobs.map(code_signing_blob_boundary(it)))
 }
 
-fn code_signing_entries_from_value(value brew_runtime.Value) map[u32][]u8 {
+fn code_signing_entries_from_value(value ruby.Value) map[u32][]u8 {
 	values := value.as_map() or { panic(err) }
 	mut entries := map[u32][]u8{}
 	for slot, blob in values {
@@ -1007,73 +1007,73 @@ fn code_signing_entries_from_value(value brew_runtime.Value) map[u32][]u8 {
 	return entries
 }
 
-fn signing_metadata_boundary(metadata SigningMetadata) brew_runtime.Value {
-	mut components := map[string]brew_runtime.Value{}
+fn signing_metadata_boundary(metadata SigningMetadata) ruby.Value {
+	mut components := map[string]ruby.Value{}
 	for slot, data in metadata.components {
-		components[slot.str()] = brew_runtime.string_value(data.bytestr())
+		components[slot.str()] = ruby.string_value(data.bytestr())
 	}
-	return brew_runtime.map_value({
-		'components':     brew_runtime.map_value(components)
-		'exec_seg_flags': brew_runtime.int_value(i64(metadata.exec_seg_flags))
-		'flags':          brew_runtime.int_value(metadata.flags)
-		'runtime':        brew_runtime.int_value(metadata.runtime)
+	return ruby.map_value({
+		'components':     ruby.map_value(components)
+		'exec_seg_flags': ruby.int_value(i64(metadata.exec_seg_flags))
+		'flags':          ruby.int_value(metadata.flags)
+		'runtime':        ruby.int_value(metadata.runtime)
 	})
 }
 
-fn signing_metadata_from_value(value brew_runtime.Value) SigningMetadata {
+fn signing_metadata_from_value(value ruby.Value) SigningMetadata {
 	values := value.as_map() or { panic(err) }
 	components := code_signing_entries_from_value(values['components'] or {
-		brew_runtime.map_value({})
+		ruby.map_value({})
 	})
 	return SigningMetadata{
 		components: components
-		exec_seg_flags: u64((values['exec_seg_flags'] or { brew_runtime.int_value(0) }).as_int() or {
+		exec_seg_flags: u64((values['exec_seg_flags'] or { ruby.int_value(0) }).as_int() or {
 			panic(err)})
-		flags: u32((values['flags'] or { brew_runtime.int_value(cs_adhoc) }).as_int() or {
+		flags: u32((values['flags'] or { ruby.int_value(cs_adhoc) }).as_int() or {
 			panic(err)})
-		runtime: u32((values['runtime'] or { brew_runtime.int_value(0) }).as_int() or {
+		runtime: u32((values['runtime'] or { ruby.int_value(0) }).as_int() or {
 			panic(err)})
 	}
 }
 
-fn code_signing_command_boundary(macho &CodeSigningMachO, index int) brew_runtime.Value {
-	return brew_runtime.structured_value('MachO::LoadCommands::LinkeditDataCommand', '#<LC_CODE_SIGNATURE>', {
+fn code_signing_command_boundary(macho &CodeSigningMachO, index int) ruby.Value {
+	return ruby.structured_value('MachO::LoadCommands::LinkeditDataCommand', '#<LC_CODE_SIGNATURE>', {
 		'code_signing_macho_address': u64(voidptr(macho)).str()
 		'command_index':              index.str()
 	})
 }
 
-fn code_signing_command_from_value(value brew_runtime.Value) (&CodeSigningMachO, int) {
+fn code_signing_command_from_value(value ruby.Value) (&CodeSigningMachO, int) {
 	macho := code_signing_macho_from_value(value)
 	index := (value.attribute('command_index') or { panic('command has no translated index') }).int()
 	return macho, index
 }
 
-fn code_signing_segment_boundary(macho &CodeSigningMachO, index int) brew_runtime.Value {
-	return brew_runtime.structured_value('MachO::LoadCommands::SegmentCommand', '#<__LINKEDIT>', {
+fn code_signing_segment_boundary(macho &CodeSigningMachO, index int) ruby.Value {
+	return ruby.structured_value('MachO::LoadCommands::SegmentCommand', '#<__LINKEDIT>', {
 		'code_signing_macho_address': u64(voidptr(macho)).str()
 		'segment_index':              index.str()
 	})
 }
 
-fn code_signing_segment_from_value(value brew_runtime.Value) (&CodeSigningMachO, int) {
+fn code_signing_segment_from_value(value ruby.Value) (&CodeSigningMachO, int) {
 	macho := code_signing_macho_from_value(value)
 	index := (value.attribute('segment_index') or { panic('segment has no translated index') }).int()
 	return macho, index
 }
 
 // Ruby attr_reader `attr_reader :magic` at line 83.
-pub fn ruby_code_signing_l83_d1_magic(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(code_signing_blob_from_args(args).magic)
+pub fn ruby_code_signing_l83_d1_magic(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(code_signing_blob_from_args(args).magic)
 }
 
 // Ruby attr_reader `attr_reader :length` at line 86.
-pub fn ruby_code_signing_l86_d2_length(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(code_signing_blob_from_args(args).length)
+pub fn ruby_code_signing_l86_d2_length(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(code_signing_blob_from_args(args).length)
 }
 
 // Ruby method `self.parse(data)` at line 91.
-pub fn ruby_code_signing_l91_d3_self_parse(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_code_signing_l91_d3_self_parse(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Blob.parse requires data')
 	}
@@ -1083,7 +1083,7 @@ pub fn ruby_code_signing_l91_d3_self_parse(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `initialize(data)` at line 105.
-pub fn ruby_code_signing_l105_d4_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_code_signing_l105_d4_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Blob#initialize requires data')
 	}
@@ -1093,45 +1093,45 @@ pub fn ruby_code_signing_l105_d4_initialize(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby method `serialize` at line 115.
-pub fn ruby_code_signing_l115_d5_serialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(code_signing_blob_from_args(args).serialize().bytestr())
+pub fn ruby_code_signing_l115_d5_serialize(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(code_signing_blob_from_args(args).serialize().bytestr())
 }
 
 // Ruby method `magic_sym` at line 120.
-pub fn ruby_code_signing_l120_d6_magic_sym(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(code_signing_blob_from_args(args).magic_sym())
+pub fn ruby_code_signing_l120_d6_magic_sym(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(code_signing_blob_from_args(args).magic_sym())
 }
 
 // Ruby method `to_h` at line 125.
-pub fn ruby_code_signing_l125_d7_to_h(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_code_signing_l125_d7_to_h(args ...ruby.Value) ruby.Value {
 	return code_signing_blob_from_args(args).to_h()
 }
 
 // Ruby attr_reader `attr_reader :count` at line 137.
-pub fn ruby_code_signing_l137_d8_count(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(code_signing_blob_from_args(args).count)
+pub fn ruby_code_signing_l137_d8_count(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(code_signing_blob_from_args(args).count)
 }
 
 // Ruby attr_reader `attr_reader :indices` at line 140.
-pub fn ruby_code_signing_l140_d9_indices(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_code_signing_l140_d9_indices(args ...ruby.Value) ruby.Value {
 	return code_signing_indices_boundary(code_signing_blob_from_args(args).indices)
 }
 
 // Ruby attr_reader `attr_reader :blobs` at line 143.
-pub fn ruby_code_signing_l143_d10_blobs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_code_signing_l143_d10_blobs(args ...ruby.Value) ruby.Value {
 	return code_signing_blobs_boundary(code_signing_blob_from_args(args).blobs)
 }
 
 // Ruby method `self.build(entries)` at line 148.
-pub fn ruby_code_signing_l148_d11_self_build(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_code_signing_l148_d11_self_build(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('SuperBlob.build requires entries')
 	}
-	return brew_runtime.string_value(build_super_blob(code_signing_entries_from_value(args[args.len - 1])).bytestr())
+	return ruby.string_value(build_super_blob(code_signing_entries_from_value(args[args.len - 1])).bytestr())
 }
 
 // Ruby method `initialize(data)` at line 163.
-pub fn ruby_code_signing_l163_d12_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_code_signing_l163_d12_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('SuperBlob#initialize requires data')
 	}
@@ -1143,148 +1143,148 @@ pub fn ruby_code_signing_l163_d12_initialize(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby method `blob(type)` at line 184.
-pub fn ruby_code_signing_l184_d13_blob(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_code_signing_l184_d13_blob(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('SuperBlob#blob requires a slot type')
 	}
 	if blob := code_signing_blob_from_args(args).blob(u32(args[1].as_int() or { panic(err) })) {
 		return code_signing_blob_boundary(blob)
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `each_blob_index(&block)` at line 192.
-pub fn ruby_code_signing_l192_d14_each_blob_index(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_code_signing_l192_d14_each_blob_index(args ...ruby.Value) ruby.Value {
 	return code_signing_indices_boundary(code_signing_blob_from_args(args).each_blob_index())
 }
 
 // Ruby method `each_blob(&block)` at line 201.
-pub fn ruby_code_signing_l201_d15_each_blob(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_code_signing_l201_d15_each_blob(args ...ruby.Value) ruby.Value {
 	return code_signing_blobs_boundary(code_signing_blob_from_args(args).each_blob())
 }
 
 // Ruby method `to_h` at line 208.
-pub fn ruby_code_signing_l208_d16_to_h(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_code_signing_l208_d16_to_h(args ...ruby.Value) ruby.Value {
 	return code_signing_blob_from_args(args).to_h()
 }
 
 // Ruby attr_reader `attr_reader :version, :flags, :hash_offset, :ident_offset, :n_special_slots, :n_code_slots, :hash_size, :hash_type, :platform, :page_size, :scatter_offset, :team_offset, :code_limit64, :exec_seg_base, :exec_seg_limit, :exec_seg_flags, :runtime, :pre_encrypt_offset, :linkage_hash_type, :linkage_application_type, :linkage_application_subtype, :linkage_offset, :linkage_size` at line 219.
-pub fn ruby_code_signing_l219_d17_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(code_signing_blob_from_args(args).version)
+pub fn ruby_code_signing_l219_d17_version(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(code_signing_blob_from_args(args).version)
 }
 
 // Ruby attr_reader `attr_reader :version, :flags, :hash_offset, :ident_offset, :n_special_slots, :n_code_slots, :hash_size, :hash_type, :platform, :page_size, :scatter_offset, :team_offset, :code_limit64, :exec_seg_base, :exec_seg_limit, :exec_seg_flags, :runtime, :pre_encrypt_offset, :linkage_hash_type, :linkage_application_type, :linkage_application_subtype, :linkage_offset, :linkage_size` at line 219.
-pub fn ruby_code_signing_l219_d18_flags(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(code_signing_blob_from_args(args).flags)
+pub fn ruby_code_signing_l219_d18_flags(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(code_signing_blob_from_args(args).flags)
 }
 
 // Ruby attr_reader `attr_reader :version, :flags, :hash_offset, :ident_offset, :n_special_slots, :n_code_slots, :hash_size, :hash_type, :platform, :page_size, :scatter_offset, :team_offset, :code_limit64, :exec_seg_base, :exec_seg_limit, :exec_seg_flags, :runtime, :pre_encrypt_offset, :linkage_hash_type, :linkage_application_type, :linkage_application_subtype, :linkage_offset, :linkage_size` at line 219.
-pub fn ruby_code_signing_l219_d19_hash_offset(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(code_signing_blob_from_args(args).hash_offset)
+pub fn ruby_code_signing_l219_d19_hash_offset(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(code_signing_blob_from_args(args).hash_offset)
 }
 
 // Ruby attr_reader `attr_reader :version, :flags, :hash_offset, :ident_offset, :n_special_slots, :n_code_slots, :hash_size, :hash_type, :platform, :page_size, :scatter_offset, :team_offset, :code_limit64, :exec_seg_base, :exec_seg_limit, :exec_seg_flags, :runtime, :pre_encrypt_offset, :linkage_hash_type, :linkage_application_type, :linkage_application_subtype, :linkage_offset, :linkage_size` at line 219.
-pub fn ruby_code_signing_l219_d20_ident_offset(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(code_signing_blob_from_args(args).ident_offset)
+pub fn ruby_code_signing_l219_d20_ident_offset(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(code_signing_blob_from_args(args).ident_offset)
 }
 
 // Ruby attr_reader `attr_reader :version, :flags, :hash_offset, :ident_offset, :n_special_slots, :n_code_slots, :hash_size, :hash_type, :platform, :page_size, :scatter_offset, :team_offset, :code_limit64, :exec_seg_base, :exec_seg_limit, :exec_seg_flags, :runtime, :pre_encrypt_offset, :linkage_hash_type, :linkage_application_type, :linkage_application_subtype, :linkage_offset, :linkage_size` at line 219.
-pub fn ruby_code_signing_l219_d21_n_special_slots(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(code_signing_blob_from_args(args).n_special_slots)
+pub fn ruby_code_signing_l219_d21_n_special_slots(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(code_signing_blob_from_args(args).n_special_slots)
 }
 
 // Ruby attr_reader `attr_reader :version, :flags, :hash_offset, :ident_offset, :n_special_slots, :n_code_slots, :hash_size, :hash_type, :platform, :page_size, :scatter_offset, :team_offset, :code_limit64, :exec_seg_base, :exec_seg_limit, :exec_seg_flags, :runtime, :pre_encrypt_offset, :linkage_hash_type, :linkage_application_type, :linkage_application_subtype, :linkage_offset, :linkage_size` at line 219.
-pub fn ruby_code_signing_l219_d22_n_code_slots(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(code_signing_blob_from_args(args).n_code_slots)
+pub fn ruby_code_signing_l219_d22_n_code_slots(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(code_signing_blob_from_args(args).n_code_slots)
 }
 
 // Ruby attr_reader `attr_reader :version, :flags, :hash_offset, :ident_offset, :n_special_slots, :n_code_slots, :hash_size, :hash_type, :platform, :page_size, :scatter_offset, :team_offset, :code_limit64, :exec_seg_base, :exec_seg_limit, :exec_seg_flags, :runtime, :pre_encrypt_offset, :linkage_hash_type, :linkage_application_type, :linkage_application_subtype, :linkage_offset, :linkage_size` at line 219.
-pub fn ruby_code_signing_l219_d23_hash_size(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(code_signing_blob_from_args(args).hash_size)
+pub fn ruby_code_signing_l219_d23_hash_size(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(code_signing_blob_from_args(args).hash_size)
 }
 
 // Ruby attr_reader `attr_reader :version, :flags, :hash_offset, :ident_offset, :n_special_slots, :n_code_slots, :hash_size, :hash_type, :platform, :page_size, :scatter_offset, :team_offset, :code_limit64, :exec_seg_base, :exec_seg_limit, :exec_seg_flags, :runtime, :pre_encrypt_offset, :linkage_hash_type, :linkage_application_type, :linkage_application_subtype, :linkage_offset, :linkage_size` at line 219.
-pub fn ruby_code_signing_l219_d24_hash_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(code_signing_blob_from_args(args).hash_type)
+pub fn ruby_code_signing_l219_d24_hash_type(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(code_signing_blob_from_args(args).hash_type)
 }
 
 // Ruby attr_reader `attr_reader :version, :flags, :hash_offset, :ident_offset, :n_special_slots, :n_code_slots, :hash_size, :hash_type, :platform, :page_size, :scatter_offset, :team_offset, :code_limit64, :exec_seg_base, :exec_seg_limit, :exec_seg_flags, :runtime, :pre_encrypt_offset, :linkage_hash_type, :linkage_application_type, :linkage_application_subtype, :linkage_offset, :linkage_size` at line 219.
-pub fn ruby_code_signing_l219_d25_platform(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(code_signing_blob_from_args(args).platform)
+pub fn ruby_code_signing_l219_d25_platform(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(code_signing_blob_from_args(args).platform)
 }
 
 // Ruby attr_reader `attr_reader :version, :flags, :hash_offset, :ident_offset, :n_special_slots, :n_code_slots, :hash_size, :hash_type, :platform, :page_size, :scatter_offset, :team_offset, :code_limit64, :exec_seg_base, :exec_seg_limit, :exec_seg_flags, :runtime, :pre_encrypt_offset, :linkage_hash_type, :linkage_application_type, :linkage_application_subtype, :linkage_offset, :linkage_size` at line 219.
-pub fn ruby_code_signing_l219_d26_page_size(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(code_signing_blob_from_args(args).page_size)
+pub fn ruby_code_signing_l219_d26_page_size(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(code_signing_blob_from_args(args).page_size)
 }
 
 // Ruby attr_reader `attr_reader :version, :flags, :hash_offset, :ident_offset, :n_special_slots, :n_code_slots, :hash_size, :hash_type, :platform, :page_size, :scatter_offset, :team_offset, :code_limit64, :exec_seg_base, :exec_seg_limit, :exec_seg_flags, :runtime, :pre_encrypt_offset, :linkage_hash_type, :linkage_application_type, :linkage_application_subtype, :linkage_offset, :linkage_size` at line 219.
-pub fn ruby_code_signing_l219_d27_scatter_offset(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(code_signing_blob_from_args(args).scatter_offset)
+pub fn ruby_code_signing_l219_d27_scatter_offset(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(code_signing_blob_from_args(args).scatter_offset)
 }
 
 // Ruby attr_reader `attr_reader :version, :flags, :hash_offset, :ident_offset, :n_special_slots, :n_code_slots, :hash_size, :hash_type, :platform, :page_size, :scatter_offset, :team_offset, :code_limit64, :exec_seg_base, :exec_seg_limit, :exec_seg_flags, :runtime, :pre_encrypt_offset, :linkage_hash_type, :linkage_application_type, :linkage_application_subtype, :linkage_offset, :linkage_size` at line 219.
-pub fn ruby_code_signing_l219_d28_team_offset(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(code_signing_blob_from_args(args).team_offset)
+pub fn ruby_code_signing_l219_d28_team_offset(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(code_signing_blob_from_args(args).team_offset)
 }
 
 // Ruby attr_reader `attr_reader :version, :flags, :hash_offset, :ident_offset, :n_special_slots, :n_code_slots, :hash_size, :hash_type, :platform, :page_size, :scatter_offset, :team_offset, :code_limit64, :exec_seg_base, :exec_seg_limit, :exec_seg_flags, :runtime, :pre_encrypt_offset, :linkage_hash_type, :linkage_application_type, :linkage_application_subtype, :linkage_offset, :linkage_size` at line 219.
-pub fn ruby_code_signing_l219_d29_code_limit64(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(i64(code_signing_blob_from_args(args).code_limit64))
+pub fn ruby_code_signing_l219_d29_code_limit64(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(i64(code_signing_blob_from_args(args).code_limit64))
 }
 
 // Ruby attr_reader `attr_reader :version, :flags, :hash_offset, :ident_offset, :n_special_slots, :n_code_slots, :hash_size, :hash_type, :platform, :page_size, :scatter_offset, :team_offset, :code_limit64, :exec_seg_base, :exec_seg_limit, :exec_seg_flags, :runtime, :pre_encrypt_offset, :linkage_hash_type, :linkage_application_type, :linkage_application_subtype, :linkage_offset, :linkage_size` at line 219.
-pub fn ruby_code_signing_l219_d30_exec_seg_base(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(i64(code_signing_blob_from_args(args).exec_seg_base))
+pub fn ruby_code_signing_l219_d30_exec_seg_base(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(i64(code_signing_blob_from_args(args).exec_seg_base))
 }
 
 // Ruby attr_reader `attr_reader :version, :flags, :hash_offset, :ident_offset, :n_special_slots, :n_code_slots, :hash_size, :hash_type, :platform, :page_size, :scatter_offset, :team_offset, :code_limit64, :exec_seg_base, :exec_seg_limit, :exec_seg_flags, :runtime, :pre_encrypt_offset, :linkage_hash_type, :linkage_application_type, :linkage_application_subtype, :linkage_offset, :linkage_size` at line 219.
-pub fn ruby_code_signing_l219_d31_exec_seg_limit(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(i64(code_signing_blob_from_args(args).exec_seg_limit))
+pub fn ruby_code_signing_l219_d31_exec_seg_limit(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(i64(code_signing_blob_from_args(args).exec_seg_limit))
 }
 
 // Ruby attr_reader `attr_reader :version, :flags, :hash_offset, :ident_offset, :n_special_slots, :n_code_slots, :hash_size, :hash_type, :platform, :page_size, :scatter_offset, :team_offset, :code_limit64, :exec_seg_base, :exec_seg_limit, :exec_seg_flags, :runtime, :pre_encrypt_offset, :linkage_hash_type, :linkage_application_type, :linkage_application_subtype, :linkage_offset, :linkage_size` at line 219.
-pub fn ruby_code_signing_l219_d32_exec_seg_flags(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(i64(code_signing_blob_from_args(args).exec_seg_flags))
+pub fn ruby_code_signing_l219_d32_exec_seg_flags(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(i64(code_signing_blob_from_args(args).exec_seg_flags))
 }
 
 // Ruby attr_reader `attr_reader :version, :flags, :hash_offset, :ident_offset, :n_special_slots, :n_code_slots, :hash_size, :hash_type, :platform, :page_size, :scatter_offset, :team_offset, :code_limit64, :exec_seg_base, :exec_seg_limit, :exec_seg_flags, :runtime, :pre_encrypt_offset, :linkage_hash_type, :linkage_application_type, :linkage_application_subtype, :linkage_offset, :linkage_size` at line 219.
-pub fn ruby_code_signing_l219_d33_runtime(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(code_signing_blob_from_args(args).runtime)
+pub fn ruby_code_signing_l219_d33_runtime(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(code_signing_blob_from_args(args).runtime)
 }
 
 // Ruby attr_reader `attr_reader :version, :flags, :hash_offset, :ident_offset, :n_special_slots, :n_code_slots, :hash_size, :hash_type, :platform, :page_size, :scatter_offset, :team_offset, :code_limit64, :exec_seg_base, :exec_seg_limit, :exec_seg_flags, :runtime, :pre_encrypt_offset, :linkage_hash_type, :linkage_application_type, :linkage_application_subtype, :linkage_offset, :linkage_size` at line 219.
-pub fn ruby_code_signing_l219_d34_pre_encrypt_offset(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(code_signing_blob_from_args(args).pre_encrypt_offset)
+pub fn ruby_code_signing_l219_d34_pre_encrypt_offset(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(code_signing_blob_from_args(args).pre_encrypt_offset)
 }
 
 // Ruby attr_reader `attr_reader :version, :flags, :hash_offset, :ident_offset, :n_special_slots, :n_code_slots, :hash_size, :hash_type, :platform, :page_size, :scatter_offset, :team_offset, :code_limit64, :exec_seg_base, :exec_seg_limit, :exec_seg_flags, :runtime, :pre_encrypt_offset, :linkage_hash_type, :linkage_application_type, :linkage_application_subtype, :linkage_offset, :linkage_size` at line 219.
-pub fn ruby_code_signing_l219_d35_linkage_hash_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(code_signing_blob_from_args(args).linkage_hash_type)
+pub fn ruby_code_signing_l219_d35_linkage_hash_type(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(code_signing_blob_from_args(args).linkage_hash_type)
 }
 
 // Ruby attr_reader `attr_reader :version, :flags, :hash_offset, :ident_offset, :n_special_slots, :n_code_slots, :hash_size, :hash_type, :platform, :page_size, :scatter_offset, :team_offset, :code_limit64, :exec_seg_base, :exec_seg_limit, :exec_seg_flags, :runtime, :pre_encrypt_offset, :linkage_hash_type, :linkage_application_type, :linkage_application_subtype, :linkage_offset, :linkage_size` at line 219.
-pub fn ruby_code_signing_l219_d36_linkage_application_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(code_signing_blob_from_args(args).linkage_application_type)
+pub fn ruby_code_signing_l219_d36_linkage_application_type(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(code_signing_blob_from_args(args).linkage_application_type)
 }
 
 // Ruby attr_reader `attr_reader :version, :flags, :hash_offset, :ident_offset, :n_special_slots, :n_code_slots, :hash_size, :hash_type, :platform, :page_size, :scatter_offset, :team_offset, :code_limit64, :exec_seg_base, :exec_seg_limit, :exec_seg_flags, :runtime, :pre_encrypt_offset, :linkage_hash_type, :linkage_application_type, :linkage_application_subtype, :linkage_offset, :linkage_size` at line 219.
-pub fn ruby_code_signing_l219_d37_linkage_application_subtype(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(code_signing_blob_from_args(args).linkage_application_subtype)
+pub fn ruby_code_signing_l219_d37_linkage_application_subtype(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(code_signing_blob_from_args(args).linkage_application_subtype)
 }
 
 // Ruby attr_reader `attr_reader :version, :flags, :hash_offset, :ident_offset, :n_special_slots, :n_code_slots, :hash_size, :hash_type, :platform, :page_size, :scatter_offset, :team_offset, :code_limit64, :exec_seg_base, :exec_seg_limit, :exec_seg_flags, :runtime, :pre_encrypt_offset, :linkage_hash_type, :linkage_application_type, :linkage_application_subtype, :linkage_offset, :linkage_size` at line 219.
-pub fn ruby_code_signing_l219_d38_linkage_offset(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(code_signing_blob_from_args(args).linkage_offset)
+pub fn ruby_code_signing_l219_d38_linkage_offset(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(code_signing_blob_from_args(args).linkage_offset)
 }
 
 // Ruby attr_reader `attr_reader :version, :flags, :hash_offset, :ident_offset, :n_special_slots, :n_code_slots, :hash_size, :hash_type, :platform, :page_size, :scatter_offset, :team_offset, :code_limit64, :exec_seg_base, :exec_seg_limit, :exec_seg_flags, :runtime, :pre_encrypt_offset, :linkage_hash_type, :linkage_application_type, :linkage_application_subtype, :linkage_offset, :linkage_size` at line 219.
-pub fn ruby_code_signing_l219_d39_linkage_size(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(code_signing_blob_from_args(args).linkage_size)
+pub fn ruby_code_signing_l219_d39_linkage_size(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(code_signing_blob_from_args(args).linkage_size)
 }
 
 // Ruby method `self.build(source, identifier:, hash_type:, flags:, special_slots:,` at line 239.
-pub fn ruby_code_signing_l239_d40_self_build(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_code_signing_l239_d40_self_build(args ...ruby.Value) ruby.Value {
 	mut start := 0
 	if args.len > 0 && args[0].type_name != 'String' {
 		start = 1
@@ -1305,11 +1305,11 @@ pub fn ruby_code_signing_l239_d40_self_build(args ...brew_runtime.Value) brew_ru
 			args[start + 9].as_bool() or { panic(err) }} else {
 			true}
 	}) or { panic(err) }
-	return brew_runtime.string_value(data.bytestr())
+	return ruby.string_value(data.bytestr())
 }
 
 // Ruby method `initialize(data)` at line 277.
-pub fn ruby_code_signing_l277_d41_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_code_signing_l277_d41_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('CodeDirectory#initialize requires data')
 	}
@@ -1321,59 +1321,59 @@ pub fn ruby_code_signing_l277_d41_initialize(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby attr_reader `attr_reader :identifier` at line 331.
-pub fn ruby_code_signing_l331_d42_identifier(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(code_signing_blob_from_args(args).identifier)
+pub fn ruby_code_signing_l331_d42_identifier(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(code_signing_blob_from_args(args).identifier)
 }
 
 // Ruby method `code_limit` at line 334.
-pub fn ruby_code_signing_l334_d43_code_limit(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(i64(code_signing_blob_from_args(args).code_limit()))
+pub fn ruby_code_signing_l334_d43_code_limit(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(i64(code_signing_blob_from_args(args).code_limit()))
 }
 
 // Ruby method `code_hash(slot)` at line 341.
-pub fn ruby_code_signing_l341_d44_code_hash(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_code_signing_l341_d44_code_hash(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('CodeDirectory#code_hash requires a slot')
 	}
 	if hash := code_signing_blob_from_args(args).code_hash(int(args[1].as_int() or { panic(err) })) {
-		return brew_runtime.string_value(hash.bytestr())
+		return ruby.string_value(hash.bytestr())
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `hash_type_sym` at line 348.
-pub fn ruby_code_signing_l348_d45_hash_type_sym(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(code_signing_blob_from_args(args).hash_type_sym())
+pub fn ruby_code_signing_l348_d45_hash_type_sym(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(code_signing_blob_from_args(args).hash_type_sym())
 }
 
 // Ruby method `special_hash(slot)` at line 355.
-pub fn ruby_code_signing_l355_d46_special_hash(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_code_signing_l355_d46_special_hash(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('CodeDirectory#special_hash requires a slot')
 	}
 	if hash := code_signing_blob_from_args(args).special_hash(int(args[1].as_int() or { panic(err) })) {
-		return brew_runtime.string_value(hash.bytestr())
+		return ruby.string_value(hash.bytestr())
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `to_h` at line 362.
-pub fn ruby_code_signing_l362_d47_to_h(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_code_signing_l362_d47_to_h(args ...ruby.Value) ruby.Value {
 	return code_signing_blob_from_args(args).to_h()
 }
 
 // Ruby method `unpack_uint32(offset)` at line 380.
-pub fn ruby_code_signing_l380_d48_unpack_uint32(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_code_signing_l380_d48_unpack_uint32(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('CodeDirectory#unpack_uint32 requires an offset')
 	}
-	return brew_runtime.int_value(code_signing_blob_from_args(args).unpack_uint32(int(args[1].as_int() or {
+	return ruby.int_value(code_signing_blob_from_args(args).unpack_uint32(int(args[1].as_int() or {
 		panic(err)
 	})) or { panic(err) })
 }
 
 // Ruby method `initialize(macho, identifier)` at line 391.
-pub fn ruby_code_signing_l391_d49_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_code_signing_l391_d49_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('AdhocSigner#initialize requires a Mach-O and identifier')
 	}
@@ -1381,14 +1381,14 @@ pub fn ruby_code_signing_l391_d49_initialize(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby method `sign!` at line 398.
-pub fn ruby_code_signing_l398_d50_sign(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_code_signing_l398_d50_sign(args ...ruby.Value) ruby.Value {
 	mut signer := adhoc_signer_from_args(args)
 	signer.sign() or { panic(err) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `metadata_from(signature_command)` at line 432.
-pub fn ruby_code_signing_l432_d51_metadata_from(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_code_signing_l432_d51_metadata_from(args ...ruby.Value) ruby.Value {
 	signer := adhoc_signer_from_args(args)
 	if args.len < 2 || args[1].type_name == 'NilClass' {
 		return signing_metadata_boundary(default_signing_metadata())
@@ -1401,12 +1401,12 @@ pub fn ruby_code_signing_l432_d51_metadata_from(args ...brew_runtime.Value) brew
 }
 
 // Ruby method `default_metadata` at line 452.
-pub fn ruby_code_signing_l452_d52_default_metadata(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_code_signing_l452_d52_default_metadata(args ...ruby.Value) ruby.Value {
 	return signing_metadata_boundary(default_signing_metadata())
 }
 
 // Ruby method `remove_signature(signature_command)` at line 461.
-pub fn ruby_code_signing_l461_d53_remove_signature(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_code_signing_l461_d53_remove_signature(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('remove_signature requires an LC_CODE_SIGNATURE command')
 	}
@@ -1416,18 +1416,18 @@ pub fn ruby_code_signing_l461_d53_remove_signature(args ...brew_runtime.Value) b
 		panic('signature command does not belong to this Mach-O')
 	}
 	signer.remove_signature(macho.commands[index]) or { panic(err) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `add_signature_command` at line 474.
-pub fn ruby_code_signing_l474_d54_add_signature_command(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_code_signing_l474_d54_add_signature_command(args ...ruby.Value) ruby.Value {
 	mut signer := adhoc_signer_from_args(args)
 	signer.add_signature_command() or { panic(err) }
 	return code_signing_command_boundary(signer.macho, signer.macho.commands.len - 1)
 }
 
 // Ruby method `signature_entries(metadata, hashes: true)` at line 480.
-pub fn ruby_code_signing_l480_d55_signature_entries(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_code_signing_l480_d55_signature_entries(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('signature_entries requires metadata')
 	}
@@ -1436,20 +1436,20 @@ pub fn ruby_code_signing_l480_d55_signature_entries(args ...brew_runtime.Value) 
 	entries := signer.signature_entries(signing_metadata_from_value(args[1]), calculate_hashes) or {
 		panic(err)
 	}
-	mut values := map[string]brew_runtime.Value{}
+	mut values := map[string]ruby.Value{}
 	for slot, data in entries {
-		values[slot.str()] = brew_runtime.string_value(data.bytestr())
+		values[slot.str()] = ruby.string_value(data.bytestr())
 	}
-	return brew_runtime.map_value(values)
+	return ruby.map_value(values)
 }
 
 // Ruby method `hash_types` at line 515.
-pub fn ruby_code_signing_l515_d56_hash_types(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.array_value(adhoc_signer_from_args(args).hash_types().map(brew_runtime.int_value(it)))
+pub fn ruby_code_signing_l515_d56_hash_types(args ...ruby.Value) ruby.Value {
+	return ruby.array_value(adhoc_signer_from_args(args).hash_types().map(ruby.int_value(it)))
 }
 
 // Ruby method `update_linkedit_data_command(command, dataoff, datasize)` at line 522.
-pub fn ruby_code_signing_l522_d57_update_linkedit_data_command(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_code_signing_l522_d57_update_linkedit_data_command(args ...ruby.Value) ruby.Value {
 	if args.len < 4 {
 		panic('update_linkedit_data_command requires command, dataoff and datasize')
 	}
@@ -1465,7 +1465,7 @@ pub fn ruby_code_signing_l522_d57_update_linkedit_data_command(args ...brew_runt
 }
 
 // Ruby method `update_linkedit_segment(segment, final_size)` at line 527.
-pub fn ruby_code_signing_l527_d58_update_linkedit_segment(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_code_signing_l527_d58_update_linkedit_segment(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('update_linkedit_segment requires segment and final size')
 	}
@@ -1479,7 +1479,7 @@ pub fn ruby_code_signing_l527_d58_update_linkedit_segment(args ...brew_runtime.V
 }
 
 // Ruby method `self.identifier(macho, filename)` at line 548.
-pub fn ruby_code_signing_l548_d59_self_identifier(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_code_signing_l548_d59_self_identifier(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('CodeSigning.identifier requires a Mach-O')
 	}
@@ -1488,18 +1488,18 @@ pub fn ruby_code_signing_l548_d59_self_identifier(args ...brew_runtime.Value) br
 	} else {
 		''
 	}
-	return brew_runtime.string_value(code_signing_identifier(code_signing_macho_from_value(args[0]), filename))
+	return ruby.string_value(code_signing_identifier(code_signing_macho_from_value(args[0]), filename))
 }
 
 // Ruby method `self.info_plist(macho)` at line 576.
-pub fn ruby_code_signing_l576_d60_self_info_plist(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_code_signing_l576_d60_self_info_plist(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('CodeSigning.info_plist requires a Mach-O')
 	}
 	if plist := code_signing_info_plist(code_signing_macho_from_value(args[0])) {
-		return brew_runtime.string_value(plist.bytestr())
+		return ruby.string_value(plist.bytestr())
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Original Ruby source (line-for-line):

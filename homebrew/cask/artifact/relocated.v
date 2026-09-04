@@ -1,6 +1,6 @@
 module artifact
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `cask/artifact/relocated.rb`.
@@ -14,7 +14,7 @@ pub enum RelocatedPlatform {
 
 pub struct RelocatedArtifact {
 pub:
-	cask          brew_runtime.Value
+	cask          ruby.Value
 	source_string string
 	target_string string
 	base_dir      string
@@ -54,21 +54,21 @@ pub:
 
 pub type RelocatedCommandRunner = fn (RelocatedCommand) !RelocatedCommandResult
 
-fn relocated_nil() brew_runtime.Value {
-	return brew_runtime.Value{
+fn relocated_nil() ruby.Value {
+	return ruby.Value{
 		type_name: 'NilClass'
 		repr: 'nil'
 	}
 }
 
-fn relocated_cask_string(cask brew_runtime.Value, key string) string {
+fn relocated_cask_string(cask ruby.Value, key string) string {
 	if value := cask.map_data[key] {
 		return value.as_string()
 	}
 	return cask.attributes[key] or { '' }
 }
 
-fn relocated_url_only_path(cask brew_runtime.Value) string {
+fn relocated_url_only_path(cask ruby.Value) string {
 	if direct := cask.map_data['url_only_path'] {
 		return direct.as_string()
 	}
@@ -87,7 +87,7 @@ fn relocated_url_only_path(cask brew_runtime.Value) string {
 	return url.attributes['only_path'] or { '' }
 }
 
-fn relocated_target_base_dir(cask brew_runtime.Value) string {
+fn relocated_target_base_dir(cask ruby.Value) string {
 	dirmethod := relocated_cask_string(cask, 'dirmethod')
 	if dirmethod != '' {
 		if direct := cask.map_data[dirmethod] {
@@ -108,12 +108,12 @@ fn relocated_target_base_dir(cask brew_runtime.Value) string {
 	return cask.attributes['base_dir'] or { '' }
 }
 
-fn relocated_home(cask brew_runtime.Value) string {
+fn relocated_home(cask ruby.Value) string {
 	home := relocated_cask_string(cask, 'home')
 	return if home == '' { os.home_dir() } else { home }
 }
 
-pub fn new_relocated_artifact_with_context(cask brew_runtime.Value, source string, target string,
+pub fn new_relocated_artifact_with_context(cask ruby.Value, source string, target string,
 	base_dir string, home string) RelocatedArtifact {
 	return RelocatedArtifact{
 		cask: cask
@@ -124,7 +124,7 @@ pub fn new_relocated_artifact_with_context(cask brew_runtime.Value, source strin
 	}
 }
 
-pub fn new_relocated_artifact(cask brew_runtime.Value, source string,
+pub fn new_relocated_artifact(cask ruby.Value, source string,
 	target string) RelocatedArtifact {
 	return new_relocated_artifact_with_context(cask, source, target, relocated_target_base_dir(cask), relocated_home(cask))
 }
@@ -168,11 +168,11 @@ pub fn (artifact RelocatedArtifact) target() string {
 	return resolve_relocated_target(target, artifact.base_dir, artifact.home)
 }
 
-pub fn (artifact RelocatedArtifact) to_args() []brew_runtime.Value {
-	mut values := [brew_runtime.string_value(artifact.source_string)]
+pub fn (artifact RelocatedArtifact) to_args() []ruby.Value {
+	mut values := [ruby.string_value(artifact.source_string)]
 	if artifact.target_string != '' {
-		values << brew_runtime.map_value({
-			'target': brew_runtime.string_value(artifact.target_string)
+		values << ruby.map_value({
+			'target': ruby.string_value(artifact.target_string)
 		})
 	}
 	return values
@@ -197,34 +197,34 @@ pub fn (artifact RelocatedArtifact) printable_target() string {
 	return target
 }
 
-pub fn relocated_artifact_to_value(artifact RelocatedArtifact) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn relocated_artifact_to_value(artifact RelocatedArtifact) ruby.Value {
+	return ruby.Value{
 		type_name: 'Cask::Artifact::Relocated'
 		repr: artifact.summarize()
 		map_data: {
 			'cask':          artifact.cask
-			'source_string': brew_runtime.string_value(artifact.source_string)
-			'target_string': brew_runtime.string_value(artifact.target_string)
-			'base_dir':      brew_runtime.string_value(artifact.base_dir)
-			'home':          brew_runtime.string_value(artifact.home)
+			'source_string': ruby.string_value(artifact.source_string)
+			'target_string': ruby.string_value(artifact.target_string)
+			'base_dir':      ruby.string_value(artifact.base_dir)
+			'home':          ruby.string_value(artifact.home)
 		}
 	}
 }
 
-pub fn relocated_artifact_from_value(value brew_runtime.Value) !RelocatedArtifact {
+pub fn relocated_artifact_from_value(value ruby.Value) !RelocatedArtifact {
 	if !value.type_name.starts_with('Cask::Artifact::') && value.type_name != 'Hash' {
 		return error('expected Cask::Artifact::Relocated, got ${value.type_name}')
 	}
 	return new_relocated_artifact_with_context(value.map_data['cask'] or {
-		brew_runtime.object_value('Cask::Cask', '')
+		ruby.object_value('Cask::Cask', '')
 	}, (value.map_data['source_string'] or {
 		return error('Relocated source is required')
 	}).as_string(), (value.map_data['target_string'] or {
-		brew_runtime.string_value('')
+		ruby.string_value('')
 	}).as_string(), (value.map_data['base_dir'] or {
-		brew_runtime.string_value('')
+		ruby.string_value('')
 	}).as_string(), (value.map_data['home'] or {
-		brew_runtime.string_value(os.home_dir())
+		ruby.string_value(os.home_dir())
 	}).as_string())
 }
 
@@ -297,147 +297,147 @@ pub fn add_relocated_altname_metadata(file RelocatedFile, altname string,
 	return result
 }
 
-fn relocated_file_from_value(value brew_runtime.Value) RelocatedFile {
+fn relocated_file_from_value(value ruby.Value) RelocatedFile {
 	path := value.as_string()
 	return RelocatedFile{
 		path: path
-		basename: (value.map_data['basename'] or { brew_runtime.string_value(os.file_name(path)) }).as_string()
-		real_path: (value.map_data['real_path'] or { brew_runtime.string_value(path) }).as_string()
-		writable: (value.map_data['writable'] or { brew_runtime.bool_value(true) }).as_bool() or { true }
-		real_path_writable: (value.map_data['real_path_writable'] or { brew_runtime.bool_value(true) }).as_bool() or { true }
+		basename: (value.map_data['basename'] or { ruby.string_value(os.file_name(path)) }).as_string()
+		real_path: (value.map_data['real_path'] or { ruby.string_value(path) }).as_string()
+		writable: (value.map_data['writable'] or { ruby.bool_value(true) }).as_bool() or { true }
+		real_path_writable: (value.map_data['real_path_writable'] or { ruby.bool_value(true) }).as_bool() or { true }
 	}
 }
 
-fn relocated_metadata_value(result RelocatedMetadataResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'no_op':           brew_runtime.bool_value(result.no_op)
-		'alternate_names': brew_runtime.string_value(result.alternate_names)
-		'commands':        brew_runtime.array_value(result.commands.map(brew_runtime.map_value({
-			'executable':   brew_runtime.string_value(it.executable)
-			'args':         brew_runtime.string_array_value(it.args)
-			'print_stderr': brew_runtime.bool_value(it.print_stderr)
-			'sudo':         brew_runtime.bool_value(it.sudo)
-			'must_succeed': brew_runtime.bool_value(it.must_succeed)
+fn relocated_metadata_value(result RelocatedMetadataResult) ruby.Value {
+	return ruby.map_value({
+		'no_op':           ruby.bool_value(result.no_op)
+		'alternate_names': ruby.string_value(result.alternate_names)
+		'commands':        ruby.array_value(result.commands.map(ruby.map_value({
+			'executable':   ruby.string_value(it.executable)
+			'args':         ruby.string_array_value(it.args)
+			'print_stderr': ruby.bool_value(it.print_stderr)
+			'sudo':         ruby.bool_value(it.sudo)
+			'must_succeed': ruby.bool_value(it.must_succeed)
 		})))
-		'stdout':          brew_runtime.string_value(result.last_result.stdout)
+		'stdout':          ruby.string_value(result.last_result.stdout)
 	})
 }
 
 // Ruby method `self.from_args(cask, source_string, target_hash = nil)` at line 18.
-pub fn ruby_relocated_l18_d1_self_from_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_relocated_l18_d1_self_from_args(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'relocated artifact requires cask and source')
+		return ruby.object_value('ArgumentError', 'relocated artifact requires cask and source')
 	}
 	mut target := ''
 	if args.len > 2 && args[2].type_name != 'NilClass' {
 		if args[2].type_name != 'Hash' {
-			return brew_runtime.object_value('CaskInvalidError', args[0].as_string())
+			return ruby.object_value('CaskInvalidError', args[0].as_string())
 		}
 		for key, _ in args[2].map_data {
 			if key != 'target' {
-				return brew_runtime.object_value('CaskInvalidError', "invalid key: '${key}'")
+				return ruby.object_value('CaskInvalidError', "invalid key: '${key}'")
 			}
 		}
-		target = (args[2].map_data['target'] or { brew_runtime.string_value('') }).as_string()
+		target = (args[2].map_data['target'] or { ruby.string_value('') }).as_string()
 	}
 	return relocated_artifact_to_value(new_relocated_artifact(args[0], args[1].as_string(), target))
 }
 
 // Ruby method `resolve_target(target, base_dir: config.public_send(self.class.dirmethod))` at line 31.
-pub fn ruby_relocated_l31_d2_resolve_target(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_relocated_l31_d2_resolve_target(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'resolve_target requires a receiver and target')
+		return ruby.object_value('ArgumentError', 'resolve_target requires a receiver and target')
 	}
 	artifact := relocated_artifact_from_value(args[0]) or {
-		return brew_runtime.object_value('TypeError', err.msg())
+		return ruby.object_value('TypeError', err.msg())
 	}
 	base_dir := if args.len > 2 { args[2].as_string() } else { artifact.base_dir }
-	return brew_runtime.object_value('Pathname', resolve_relocated_target(args[1].as_string(), base_dir, artifact.home))
+	return ruby.object_value('Pathname', resolve_relocated_target(args[1].as_string(), base_dir, artifact.home))
 }
 
 // Ruby method `initialize(cask, source, **target_hash)` at line 46.
-pub fn ruby_relocated_l46_d3_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_relocated_l46_d3_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'relocated artifact requires cask and source')
+		return ruby.object_value('ArgumentError', 'relocated artifact requires cask and source')
 	}
 	mut target := ''
 	if args.len > 2 {
 		if args[2].type_name != 'Hash' {
-			return brew_runtime.object_value('TypeError', 'target keywords must be a Hash')
+			return ruby.object_value('TypeError', 'target keywords must be a Hash')
 		}
-		target = (args[2].map_data['target'] or { brew_runtime.string_value('') }).as_string()
+		target = (args[2].map_data['target'] or { ruby.string_value('') }).as_string()
 	}
 	return relocated_artifact_to_value(new_relocated_artifact(args[0], args[1].as_string(), target))
 }
 
 // Ruby method `source` at line 57.
-pub fn ruby_relocated_l57_d4_source(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_relocated_l57_d4_source(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'source requires a receiver')
+		return ruby.object_value('ArgumentError', 'source requires a receiver')
 	}
 	artifact := relocated_artifact_from_value(args[0]) or {
-		return brew_runtime.object_value('TypeError', err.msg())
+		return ruby.object_value('TypeError', err.msg())
 	}
-	return brew_runtime.object_value('Pathname', artifact.source())
+	return ruby.object_value('Pathname', artifact.source())
 }
 
 // Ruby method `target` at line 66.
-pub fn ruby_relocated_l66_d5_target(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_relocated_l66_d5_target(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'target requires a receiver')
+		return ruby.object_value('ArgumentError', 'target requires a receiver')
 	}
 	artifact := relocated_artifact_from_value(args[0]) or {
-		return brew_runtime.object_value('TypeError', err.msg())
+		return ruby.object_value('TypeError', err.msg())
 	}
-	return brew_runtime.object_value('Pathname', artifact.target())
+	return ruby.object_value('Pathname', artifact.target())
 }
 
 // Ruby method `to_a` at line 71.
-pub fn ruby_relocated_l71_d6_to_a(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_relocated_l71_d6_to_a(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'to_a requires a receiver')
+		return ruby.object_value('ArgumentError', 'to_a requires a receiver')
 	}
 	artifact := relocated_artifact_from_value(args[0]) or {
-		return brew_runtime.object_value('TypeError', err.msg())
+		return ruby.object_value('TypeError', err.msg())
 	}
-	return brew_runtime.array_value(artifact.to_args())
+	return ruby.array_value(artifact.to_args())
 }
 
 // Ruby method `summarize` at line 78.
-pub fn ruby_relocated_l78_d7_summarize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_relocated_l78_d7_summarize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'summarize requires a receiver')
+		return ruby.object_value('ArgumentError', 'summarize requires a receiver')
 	}
 	artifact := relocated_artifact_from_value(args[0]) or {
-		return brew_runtime.object_value('TypeError', err.msg())
+		return ruby.object_value('TypeError', err.msg())
 	}
-	return brew_runtime.string_value(artifact.summarize())
+	return ruby.string_value(artifact.summarize())
 }
 
 // Ruby method `add_altname_metadata(file, altname, command:)` at line 87.
-pub fn ruby_relocated_l87_d8_add_altname_metadata(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_relocated_l87_d8_add_altname_metadata(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
-		return brew_runtime.object_value('ArgumentError', 'add_altname_metadata requires a receiver, file and altname')
+		return ruby.object_value('ArgumentError', 'add_altname_metadata requires a receiver, file and altname')
 	}
-	options := if args.len > 3 { args[3].map_data } else { map[string]brew_runtime.Value{} }
-	platform := if (options['platform'] or { brew_runtime.string_value('macos') }).as_string() == 'linux' {
+	options := if args.len > 3 { args[3].map_data } else { map[string]ruby.Value{} }
+	platform := if (options['platform'] or { ruby.string_value('macos') }).as_string() == 'linux' {
 		RelocatedPlatform.linux
 	} else {
 		RelocatedPlatform.macos
 	}
-	result := plan_relocated_altname_metadata(relocated_file_from_value(args[1]), args[2].as_string(), (options['xattr_stdout'] or { brew_runtime.string_value('') }).as_string(), platform)
+	result := plan_relocated_altname_metadata(relocated_file_from_value(args[1]), args[2].as_string(), (options['xattr_stdout'] or { ruby.string_value('') }).as_string(), platform)
 	return if result.no_op { relocated_nil() } else { relocated_metadata_value(result) }
 }
 
 // Ruby method `printable_target` at line 116.
-pub fn ruby_relocated_l116_d9_printable_target(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_relocated_l116_d9_printable_target(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'printable_target requires a receiver')
+		return ruby.object_value('ArgumentError', 'printable_target requires a receiver')
 	}
 	artifact := relocated_artifact_from_value(args[0]) or {
-		return brew_runtime.object_value('TypeError', err.msg())
+		return ruby.object_value('TypeError', err.msg())
 	}
-	return brew_runtime.string_value(artifact.printable_target())
+	return ruby.string_value(artifact.printable_target())
 }
 
 // Original Ruby source (line-for-line):

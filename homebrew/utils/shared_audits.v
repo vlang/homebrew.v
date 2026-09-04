@@ -1,6 +1,6 @@
 module utils
 
-import brew_runtime
+import ruby
 import net.http
 import os
 import time
@@ -86,17 +86,17 @@ pub mut:
 	pull_request_author_value    string
 	has_pull_request_author      bool
 	self_submission_cache        map[string]bool
-	eol_data_cache               map[string]brew_runtime.Value
-	github_repo_data_cache       map[string]brew_runtime.Value
-	github_release_data_cache    map[string]brew_runtime.Value
-	gitlab_repo_data_cache       map[string]brew_runtime.Value
-	gitlab_release_data_cache    map[string]brew_runtime.Value
-	forgejo_repo_data_cache      map[string]brew_runtime.Value
-	forgejo_release_data_cache   map[string]brew_runtime.Value
+	eol_data_cache               map[string]ruby.Value
+	github_repo_data_cache       map[string]ruby.Value
+	github_release_data_cache    map[string]ruby.Value
+	gitlab_repo_data_cache       map[string]ruby.Value
+	gitlab_release_data_cache    map[string]ruby.Value
+	forgejo_repo_data_cache      map[string]ruby.Value
+	forgejo_release_data_cache   map[string]ruby.Value
 }
 
-fn shared_audits_nil() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn shared_audits_nil() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 fn shared_audits_default_fetch(arguments []string) !SharedAuditsHttpResult {
@@ -137,13 +137,13 @@ pub fn new_shared_audits_state(config SharedAuditsConfig) &SharedAuditsState {
 			config.github_event_path
 		}
 		self_submission_cache: map[string]bool{}
-		eol_data_cache: map[string]brew_runtime.Value{}
-		github_repo_data_cache: map[string]brew_runtime.Value{}
-		github_release_data_cache: map[string]brew_runtime.Value{}
-		gitlab_repo_data_cache: map[string]brew_runtime.Value{}
-		gitlab_release_data_cache: map[string]brew_runtime.Value{}
-		forgejo_repo_data_cache: map[string]brew_runtime.Value{}
-		forgejo_release_data_cache: map[string]brew_runtime.Value{}
+		eol_data_cache: map[string]ruby.Value{}
+		github_repo_data_cache: map[string]ruby.Value{}
+		github_release_data_cache: map[string]ruby.Value{}
+		gitlab_repo_data_cache: map[string]ruby.Value{}
+		gitlab_release_data_cache: map[string]ruby.Value{}
+		forgejo_repo_data_cache: map[string]ruby.Value{}
+		forgejo_release_data_cache: map[string]ruby.Value{}
 	}
 }
 
@@ -195,7 +195,7 @@ pub fn (mut state SharedAuditsState) pull_request_author() ?string {
 		return none
 	}
 	contents := os.read_file(state.github_event_path) or { return none }
-	parsed := brew_runtime.parse_json_value(contents) or { return none }
+	parsed := ruby.parse_json_value(contents) or { return none }
 	pull_request := parsed.map_data['pull_request'] or { return none }
 	user := pull_request.map_data['user'] or { return none }
 	login := user.map_data['login'] or { return none }
@@ -241,15 +241,15 @@ pub fn shared_audits_notability_thresholds_for(thresholds map[string]int,
 	return adjusted
 }
 
-fn (state &SharedAuditsState) fetch_json(arguments []string) ?brew_runtime.Value {
+fn (state &SharedAuditsState) fetch_json(arguments []string) ?ruby.Value {
 	result := state.fetcher(arguments) or { return none }
 	if !result.success {
 		return none
 	}
-	return brew_runtime.parse_json_value(result.stdout) or { none }
+	return ruby.parse_json_value(result.stdout) or { none }
 }
 
-pub fn (mut state SharedAuditsState) eol_data(product string, cycle string) brew_runtime.Value {
+pub fn (mut state SharedAuditsState) eol_data(product string, cycle string) ruby.Value {
 	key := '${product}/${cycle}'
 	if key in state.eol_data_cache {
 		return state.eol_data_cache[key]
@@ -262,11 +262,11 @@ pub fn (mut state SharedAuditsState) eol_data(product string, cycle string) brew
 	return data
 }
 
-fn shared_audits_present(value brew_runtime.Value) bool {
+fn shared_audits_present(value ruby.Value) bool {
 	return value.type_name != 'NilClass'
 }
 
-fn shared_audits_truthy(value brew_runtime.Value) bool {
+fn shared_audits_truthy(value ruby.Value) bool {
 	if value.type_name == 'NilClass' {
 		return false
 	}
@@ -276,22 +276,22 @@ fn shared_audits_truthy(value brew_runtime.Value) bool {
 	return true
 }
 
-fn shared_audits_string(metadata brew_runtime.Value, key string) string {
+fn shared_audits_string(metadata ruby.Value, key string) string {
 	return (metadata.map_data[key] or { return '' }).as_string()
 }
 
-fn shared_audits_int(metadata brew_runtime.Value, key string) int {
+fn shared_audits_int(metadata ruby.Value, key string) int {
 	value := metadata.map_data[key] or { return 0 }
 	return if value.type_name == 'Integer' { int(value.int_data) } else { value.as_string().int() }
 }
 
-fn shared_audits_bool(metadata brew_runtime.Value, key string) bool {
+fn shared_audits_bool(metadata ruby.Value, key string) bool {
 	value := metadata.map_data[key] or { return false }
 	return shared_audits_truthy(value)
 }
 
-fn (mut state SharedAuditsState) cached_json(mut cache map[string]brew_runtime.Value,
-	key string, arguments []string) brew_runtime.Value {
+fn (mut state SharedAuditsState) cached_json(mut cache map[string]ruby.Value,
+	key string, arguments []string) ruby.Value {
 	if key in cache {
 		return cache[key]
 	}
@@ -302,7 +302,7 @@ fn (mut state SharedAuditsState) cached_json(mut cache map[string]brew_runtime.V
 	return data
 }
 
-pub fn (mut state SharedAuditsState) github_repo_data(user string, repo string) brew_runtime.Value {
+pub fn (mut state SharedAuditsState) github_repo_data(user string, repo string) ruby.Value {
 	key := '${user}/${repo}'
 	return state.cached_json(mut state.github_repo_data_cache, key, [
 		'https://api.github.com/repos/${user}/${repo}',
@@ -310,7 +310,7 @@ pub fn (mut state SharedAuditsState) github_repo_data(user string, repo string) 
 }
 
 pub fn (mut state SharedAuditsState) github_release_data(user string, repo string,
-	tag string) brew_runtime.Value {
+	tag string) ruby.Value {
 	id := '${user}/${repo}/${tag}'
 	return state.cached_json(mut state.github_release_data_cache, id, [
 		'https://api.github.com/repos/${user}/${repo}/releases/tags/${tag}',
@@ -347,7 +347,7 @@ pub fn (mut state SharedAuditsState) github_release(user string, repo string, ta
 	return none
 }
 
-pub fn (mut state SharedAuditsState) gitlab_repo_data(user string, repo string) brew_runtime.Value {
+pub fn (mut state SharedAuditsState) gitlab_repo_data(user string, repo string) ruby.Value {
 	key := '${user}/${repo}'
 	if key in state.gitlab_repo_data_cache {
 		return state.gitlab_repo_data_cache[key]
@@ -362,7 +362,7 @@ pub fn (mut state SharedAuditsState) gitlab_repo_data(user string, repo string) 
 	return data
 }
 
-pub fn (mut state SharedAuditsState) forgejo_repo_data(user string, repo string) brew_runtime.Value {
+pub fn (mut state SharedAuditsState) forgejo_repo_data(user string, repo string) ruby.Value {
 	key := '${user}/${repo}'
 	return state.cached_json(mut state.forgejo_repo_data_cache, key, [
 		'https://codeberg.org/api/v1/repos/${user}/${repo}',
@@ -371,7 +371,7 @@ pub fn (mut state SharedAuditsState) forgejo_repo_data(user string, repo string)
 }
 
 pub fn (mut state SharedAuditsState) gitlab_release_data(user string, repo string,
-	tag string) brew_runtime.Value {
+	tag string) ruby.Value {
 	id := '${user}/${repo}/${tag}'
 	return state.cached_json(mut state.gitlab_release_data_cache, id, [
 		'https://gitlab.com/api/v4/projects/${user}%2F${repo}/releases/${tag}',
@@ -407,7 +407,7 @@ pub fn (mut state SharedAuditsState) gitlab_release(user string, repo string, ta
 }
 
 pub fn (mut state SharedAuditsState) forgejo_release_data(user string, repo string,
-	tag string) brew_runtime.Value {
+	tag string) ruby.Value {
 	id := '${user}/${repo}/${tag}'
 	return state.cached_json(mut state.forgejo_release_data_cache, id, [
 		'https://codeberg.org/api/v1/repos/${user}/${repo}/releases/tags/${tag}',
@@ -668,25 +668,25 @@ pub fn shared_audits_check_deprecate_disable_reason(subject SharedAuditsDeprecat
 	return none
 }
 
-pub fn shared_audits_state_boundary(state &SharedAuditsState) brew_runtime.Value {
-	return brew_runtime.structured_value('SharedAudits::State', '', {
+pub fn shared_audits_state_boundary(state &SharedAuditsState) ruby.Value {
+	return ruby.structured_value('SharedAudits::State', '', {
 		'shared_audits_state_address': u64(voidptr(state)).str()
 	})
 }
 
-fn shared_audits_state_and_offset(args []brew_runtime.Value) (&SharedAuditsState, int) {
+fn shared_audits_state_and_offset(args []ruby.Value) (&SharedAuditsState, int) {
 	if args.len > 0 && 'shared_audits_state_address' in args[0].attributes {
 		return unsafe { &SharedAuditsState(voidptr(args[0].attributes['shared_audits_state_address'].u64())) }, 1
 	}
 	return new_shared_audits_state(SharedAuditsConfig{}), 0
 }
 
-pub fn shared_audits_package_value(package SharedAuditsPackage) brew_runtime.Value {
-	mut exceptions := map[string]brew_runtime.Value{}
+pub fn shared_audits_package_value(package SharedAuditsPackage) ruby.Value {
+	mut exceptions := map[string]ruby.Value{}
 	for key, value in package.exceptions {
-		exceptions[key] = brew_runtime.string_value(value)
+		exceptions[key] = ruby.string_value(value)
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'SharedAudits::Package'
 		repr: package.name
 		map_data: exceptions
@@ -698,7 +698,7 @@ pub fn shared_audits_package_value(package SharedAuditsPackage) brew_runtime.Val
 	}
 }
 
-fn shared_audits_package_from_value(value brew_runtime.Value) ?SharedAuditsPackage {
+fn shared_audits_package_from_value(value ruby.Value) ?SharedAuditsPackage {
 	if value.type_name == 'NilClass' {
 		return none
 	}
@@ -714,8 +714,8 @@ fn shared_audits_package_from_value(value brew_runtime.Value) ?SharedAuditsPacka
 	}
 }
 
-pub fn shared_audits_deprecate_disable_subject_value(subject SharedAuditsDeprecateDisableSubject) brew_runtime.Value {
-	return brew_runtime.structured_value('SharedAudits::DeprecateDisableSubject', '', {
+pub fn shared_audits_deprecate_disable_subject_value(subject SharedAuditsDeprecateDisableSubject) ruby.Value {
+	return ruby.structured_value('SharedAudits::DeprecateDisableSubject', '', {
 		'kind':                         subject.kind.str()
 		'deprecated':                   subject.deprecated.str()
 		'disabled':                     subject.disabled.str()
@@ -726,7 +726,7 @@ pub fn shared_audits_deprecate_disable_subject_value(subject SharedAuditsDepreca
 	})
 }
 
-fn shared_audits_deprecate_disable_subject_from_value(value brew_runtime.Value) SharedAuditsDeprecateDisableSubject {
+fn shared_audits_deprecate_disable_subject_from_value(value ruby.Value) SharedAuditsDeprecateDisableSubject {
 	return SharedAuditsDeprecateDisableSubject{
 		kind: if (value.attributes['kind'] or { 'formula' }) == 'cask' { .cask } else { .formula }
 		deprecated: (value.attributes['deprecated'] or { 'false' }) == 'true'
@@ -740,44 +740,44 @@ fn shared_audits_deprecate_disable_subject_from_value(value brew_runtime.Value) 
 	}
 }
 
-fn shared_audits_optional_string(value brew_runtime.Value) ?string {
+fn shared_audits_optional_string(value ruby.Value) ?string {
 	return if value.type_name == 'NilClass' { none } else { value.as_string() }
 }
 
-fn shared_audits_optional_value(value ?string) brew_runtime.Value {
-	return brew_runtime.string_value(value or { return shared_audits_nil() })
+fn shared_audits_optional_value(value ?string) ruby.Value {
+	return ruby.string_value(value or { return shared_audits_nil() })
 }
 
 // Ruby method `self.homepage_browsed_recently?(browsed)` at line 20.
-pub fn ruby_shared_audits_l20_d1_self_homepage_browsed_recently(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shared_audits_l20_d1_self_homepage_browsed_recently(args ...ruby.Value) ruby.Value {
 	mut state, offset := shared_audits_state_and_offset(args)
 	browsed := if args.len > offset { shared_audits_optional_string(args[offset]) } else { none }
-	return brew_runtime.bool_value(shared_audits_homepage_browsed_recently(browsed, state.today))
+	return ruby.bool_value(shared_audits_homepage_browsed_recently(browsed, state.today))
 }
 
 // Ruby method `self.pull_request_author` at line 28.
-pub fn ruby_shared_audits_l28_d2_self_pull_request_author(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shared_audits_l28_d2_self_pull_request_author(args ...ruby.Value) ruby.Value {
 	mut state, _ := shared_audits_state_and_offset(args)
 	return shared_audits_optional_value(state.pull_request_author())
 }
 
 // Ruby method `self.self_submission?(submitter, repo_owner)` at line 41.
-pub fn ruby_shared_audits_l41_d3_self_self_submission(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shared_audits_l41_d3_self_self_submission(args ...ruby.Value) ruby.Value {
 	_, offset := shared_audits_state_and_offset(args)
 	submitter := if args.len > offset { shared_audits_optional_string(args[offset]) } else { none }
 	repo_owner := if args.len > offset + 1 { args[offset + 1].as_string() } else { '' }
-	return brew_runtime.bool_value(shared_audits_self_submission(submitter, repo_owner))
+	return ruby.bool_value(shared_audits_self_submission(submitter, repo_owner))
 }
 
 // Ruby method `self.self_submission_for_repo_owner?(repo_owner)` at line 49.
-pub fn ruby_shared_audits_l49_d4_self_self_submission_for_repo_owner(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shared_audits_l49_d4_self_self_submission_for_repo_owner(args ...ruby.Value) ruby.Value {
 	mut state, offset := shared_audits_state_and_offset(args)
 	repo_owner := if args.len > offset { args[offset].as_string() } else { '' }
-	return brew_runtime.bool_value(state.self_submission_for_repo_owner(repo_owner))
+	return ruby.bool_value(state.self_submission_for_repo_owner(repo_owner))
 }
 
 // Ruby method `self.notability_thresholds_for(thresholds, self_submission)` at line 62.
-pub fn ruby_shared_audits_l62_d5_self_notability_thresholds_for(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shared_audits_l62_d5_self_notability_thresholds_for(args ...ruby.Value) ruby.Value {
 	_, offset := shared_audits_state_and_offset(args)
 	mut thresholds := map[string]int{}
 	if args.len > offset {
@@ -787,15 +787,15 @@ pub fn ruby_shared_audits_l62_d5_self_notability_thresholds_for(args ...brew_run
 	}
 	self_submission := args.len > offset + 1 && args[offset + 1].bool_data
 	adjusted := shared_audits_notability_thresholds_for(thresholds, self_submission)
-	mut values := map[string]brew_runtime.Value{}
+	mut values := map[string]ruby.Value{}
 	for key, value in adjusted {
-		values[key] = brew_runtime.int_value(value)
+		values[key] = ruby.int_value(value)
 	}
-	return brew_runtime.map_value(values)
+	return ruby.map_value(values)
 }
 
 // Ruby method `self.eol_data(product, cycle)` at line 69.
-pub fn ruby_shared_audits_l69_d6_self_eol_data(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shared_audits_l69_d6_self_eol_data(args ...ruby.Value) ruby.Value {
 	mut state, offset := shared_audits_state_and_offset(args)
 	product := if args.len > offset { args[offset].as_string() } else { '' }
 	cycle := if args.len > offset + 1 { args[offset + 1].as_string() } else { '' }
@@ -803,19 +803,19 @@ pub fn ruby_shared_audits_l69_d6_self_eol_data(args ...brew_runtime.Value) brew_
 }
 
 // Ruby method `self.github_repo_data(user, repo)` at line 88.
-pub fn ruby_shared_audits_l88_d7_self_github_repo_data(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shared_audits_l88_d7_self_github_repo_data(args ...ruby.Value) ruby.Value {
 	mut state, offset := shared_audits_state_and_offset(args)
 	return state.github_repo_data(args[offset].as_string(), args[offset + 1].as_string())
 }
 
 // Ruby method `self.github_release_data(user, repo, tag)` at line 100.
-pub fn ruby_shared_audits_l100_d8_self_github_release_data(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shared_audits_l100_d8_self_github_release_data(args ...ruby.Value) ruby.Value {
 	mut state, offset := shared_audits_state_and_offset(args)
 	return state.github_release_data(args[offset].as_string(), args[offset + 1].as_string(), args[offset + 2].as_string())
 }
 
 // Ruby method `self.github_release(user, repo, tag, formula: nil, cask: nil)` at line 120.
-pub fn ruby_shared_audits_l120_d9_self_github_release(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shared_audits_l120_d9_self_github_release(args ...ruby.Value) ruby.Value {
 	mut state, offset := shared_audits_state_and_offset(args)
 	subject := if args.len > offset + 3 {
 		shared_audits_package_from_value(args[offset + 3])
@@ -826,25 +826,25 @@ pub fn ruby_shared_audits_l120_d9_self_github_release(args ...brew_runtime.Value
 }
 
 // Ruby method `self.gitlab_repo_data(user, repo)` at line 140.
-pub fn ruby_shared_audits_l140_d10_self_gitlab_repo_data(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shared_audits_l140_d10_self_gitlab_repo_data(args ...ruby.Value) ruby.Value {
 	mut state, offset := shared_audits_state_and_offset(args)
 	return state.gitlab_repo_data(args[offset].as_string(), args[offset + 1].as_string())
 }
 
 // Ruby method `self.forgejo_repo_data(user, repo)` at line 151.
-pub fn ruby_shared_audits_l151_d11_self_forgejo_repo_data(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shared_audits_l151_d11_self_forgejo_repo_data(args ...ruby.Value) ruby.Value {
 	mut state, offset := shared_audits_state_and_offset(args)
 	return state.forgejo_repo_data(args[offset].as_string(), args[offset + 1].as_string())
 }
 
 // Ruby method `self.gitlab_release_data(user, repo, tag)` at line 161.
-pub fn ruby_shared_audits_l161_d12_self_gitlab_release_data(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shared_audits_l161_d12_self_gitlab_release_data(args ...ruby.Value) ruby.Value {
 	mut state, offset := shared_audits_state_and_offset(args)
 	return state.gitlab_release_data(args[offset].as_string(), args[offset + 1].as_string(), args[offset + 2].as_string())
 }
 
 // Ruby method `self.gitlab_release(user, repo, tag, formula: nil, cask: nil)` at line 179.
-pub fn ruby_shared_audits_l179_d13_self_gitlab_release(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shared_audits_l179_d13_self_gitlab_release(args ...ruby.Value) ruby.Value {
 	mut state, offset := shared_audits_state_and_offset(args)
 	subject := if args.len > offset + 3 {
 		shared_audits_package_from_value(args[offset + 3])
@@ -855,13 +855,13 @@ pub fn ruby_shared_audits_l179_d13_self_gitlab_release(args ...brew_runtime.Valu
 }
 
 // Ruby method `self.forgejo_release_data(user, repo, tag)` at line 196.
-pub fn ruby_shared_audits_l196_d14_self_forgejo_release_data(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shared_audits_l196_d14_self_forgejo_release_data(args ...ruby.Value) ruby.Value {
 	mut state, offset := shared_audits_state_and_offset(args)
 	return state.forgejo_release_data(args[offset].as_string(), args[offset + 1].as_string(), args[offset + 2].as_string())
 }
 
 // Ruby method `self.forgejo_release(user, repo, tag, formula: nil, cask: nil)` at line 214.
-pub fn ruby_shared_audits_l214_d15_self_forgejo_release(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shared_audits_l214_d15_self_forgejo_release(args ...ruby.Value) ruby.Value {
 	mut state, offset := shared_audits_state_and_offset(args)
 	subject := if args.len > offset + 3 {
 		shared_audits_package_from_value(args[offset + 3])
@@ -872,50 +872,50 @@ pub fn ruby_shared_audits_l214_d15_self_forgejo_release(args ...brew_runtime.Val
 }
 
 // Ruby method `self.github(user, repo, self_submission: false)` at line 230.
-pub fn ruby_shared_audits_l230_d16_self_github(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shared_audits_l230_d16_self_github(args ...ruby.Value) ruby.Value {
 	mut state, offset := shared_audits_state_and_offset(args)
 	self_submission := args.len > offset + 2 && args[offset + 2].bool_data
 	return shared_audits_optional_value(state.github(args[offset].as_string(), args[offset + 1].as_string(), self_submission))
 }
 
 // Ruby method `self.gitlab(user, repo, self_submission: false)` at line 258.
-pub fn ruby_shared_audits_l258_d17_self_gitlab(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shared_audits_l258_d17_self_gitlab(args ...ruby.Value) ruby.Value {
 	mut state, offset := shared_audits_state_and_offset(args)
 	self_submission := args.len > offset + 2 && args[offset + 2].bool_data
 	return shared_audits_optional_value(state.gitlab(args[offset].as_string(), args[offset + 1].as_string(), self_submission))
 }
 
 // Ruby method `self.bitbucket(user, repo, self_submission: false)` at line 284.
-pub fn ruby_shared_audits_l284_d18_self_bitbucket(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shared_audits_l284_d18_self_bitbucket(args ...ruby.Value) ruby.Value {
 	mut state, offset := shared_audits_state_and_offset(args)
 	self_submission := args.len > offset + 2 && args[offset + 2].bool_data
 	return shared_audits_optional_value(state.bitbucket(args[offset].as_string(), args[offset + 1].as_string(), self_submission))
 }
 
 // Ruby method `self.forgejo(user, repo, self_submission: false)` at line 325.
-pub fn ruby_shared_audits_l325_d19_self_forgejo(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shared_audits_l325_d19_self_forgejo(args ...ruby.Value) ruby.Value {
 	mut state, offset := shared_audits_state_and_offset(args)
 	self_submission := args.len > offset + 2 && args[offset + 2].bool_data
 	return shared_audits_optional_value(state.forgejo(args[offset].as_string(), args[offset + 1].as_string(), self_submission))
 }
 
 // Ruby method `self.github_tag_from_url(url)` at line 352.
-pub fn ruby_shared_audits_l352_d20_self_github_tag_from_url(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shared_audits_l352_d20_self_github_tag_from_url(args ...ruby.Value) ruby.Value {
 	return shared_audits_optional_value(shared_audits_github_tag_from_url(args[0].as_string()))
 }
 
 // Ruby method `self.gitlab_tag_from_url(url)` at line 358.
-pub fn ruby_shared_audits_l358_d21_self_gitlab_tag_from_url(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shared_audits_l358_d21_self_gitlab_tag_from_url(args ...ruby.Value) ruby.Value {
 	return shared_audits_optional_value(shared_audits_gitlab_tag_from_url(args[0].as_string()))
 }
 
 // Ruby method `self.forgejo_tag_from_url(url)` at line 363.
-pub fn ruby_shared_audits_l363_d22_self_forgejo_tag_from_url(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shared_audits_l363_d22_self_forgejo_tag_from_url(args ...ruby.Value) ruby.Value {
 	return shared_audits_optional_value(shared_audits_forgejo_tag_from_url(args[0].as_string()))
 }
 
 // Ruby method `self.check_deprecate_disable_reason(formula_or_cask)` at line 368.
-pub fn ruby_shared_audits_l368_d23_self_check_deprecate_disable_reason(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shared_audits_l368_d23_self_check_deprecate_disable_reason(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return shared_audits_nil()
 	}

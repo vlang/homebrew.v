@@ -1,6 +1,6 @@
 module test_bot
 
-import brew_runtime
+import ruby
 import encoding.utf8
 import homebrew.utils
 import homebrew.utils.github
@@ -123,22 +123,22 @@ pub fn new_step(command []string, named_args []string, config StepConfig) Step {
 		homebrew_library: if config.homebrew_library != '' {
 			config.homebrew_library
 		} else {
-			brew_runtime.environment_value('HOMEBREW_LIBRARY')
+			ruby.environment_value('HOMEBREW_LIBRARY')
 		}
 		homebrew_prefix: if config.homebrew_prefix != '' {
 			config.homebrew_prefix
 		} else {
-			brew_runtime.environment_value('HOMEBREW_PREFIX')
+			ruby.environment_value('HOMEBREW_PREFIX')
 		}
 		homebrew_repository: if config.homebrew_repository != '' {
 			config.homebrew_repository
 		} else {
-			brew_runtime.environment_value('HOMEBREW_REPOSITORY')
+			ruby.environment_value('HOMEBREW_REPOSITORY')
 		}
 		runner_title: if config.runner_os_title != '' {
 			config.runner_os_title
 		} else {
-			brew_runtime.kernel_info().name
+			ruby.kernel_info().name
 		}
 		github_actions: config.github_actions
 		emit_output: config.emit_output
@@ -570,11 +570,11 @@ pub fn (mut step Step) run(options StepRunOptions) StepRunResult {
 	return step.finish_result(command_result.exit_code, options.fail_fast && step.failed(), false, '')
 }
 
-fn step_nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn step_nil_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-fn step_boundary_value(step Step) brew_runtime.Value {
+fn step_boundary_value(step Step) ruby.Value {
 	mut attributes := {
 		'name':                step.name
 		'has_name':            step.has_name.str()
@@ -600,7 +600,7 @@ fn step_boundary_value(step Step) brew_runtime.Value {
 	for key, value in step.environment {
 		attributes['environment:${key}'] = value
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'Homebrew::TestBot::Step'
 		repr: step.command.join(' ')
 		string_array_data: step.command.clone()
@@ -608,7 +608,7 @@ fn step_boundary_value(step Step) brew_runtime.Value {
 	}
 }
 
-fn step_from_boundary(value brew_runtime.Value) Step {
+fn step_from_boundary(value ruby.Value) Step {
 	attributes := value.attributes.clone()
 	start_nanoseconds := (attributes['start_time'] or { '0' }).i64()
 	end_nanoseconds := (attributes['end_time'] or { '0' }).i64()
@@ -658,14 +658,14 @@ fn step_from_boundary(value brew_runtime.Value) Step {
 	}
 }
 
-fn step_boundary_receiver(args []brew_runtime.Value) Step {
+fn step_boundary_receiver(args []ruby.Value) Step {
 	if args.len == 0 || args[0].type_name != 'Homebrew::TestBot::Step' {
 		return new_step([], [], StepConfig{ emit_output: false })
 	}
 	return step_from_boundary(args[0])
 }
 
-fn step_named_args(value brew_runtime.Value) []string {
+fn step_named_args(value ruby.Value) []string {
 	if value.type_name in ['NilClass', 'Nil'] {
 		return []
 	}
@@ -675,7 +675,7 @@ fn step_named_args(value brew_runtime.Value) []string {
 	return [value.as_string()]
 }
 
-fn step_config_from_boundary(args []brew_runtime.Value) StepConfig {
+fn step_config_from_boundary(args []ruby.Value) StepConfig {
 	mut environment := map[string]string{}
 	mut unset_environment := []string{}
 	if args.len > 1 && args[1].type_name == 'Hash' {
@@ -700,107 +700,107 @@ fn step_config_from_boundary(args []brew_runtime.Value) StepConfig {
 }
 
 // Ruby method `self.runner_os_title` at line 10.
-pub fn ruby_step_l10_d1_self_runner_os_title(args ...brew_runtime.Value) brew_runtime.Value {
-	title := runner_os_title() or { return brew_runtime.object_value('NotImplementedError', err.msg()) }
-	return brew_runtime.string_value(title)
+pub fn ruby_step_l10_d1_self_runner_os_title(args ...ruby.Value) ruby.Value {
+	title := runner_os_title() or { return ruby.object_value('NotImplementedError', err.msg()) }
+	return ruby.string_value(title)
 }
 
 // Ruby method `self.runner_os_title_with_arch` at line 15.
-pub fn ruby_step_l15_d2_self_runner_os_title_with_arch(args ...brew_runtime.Value) brew_runtime.Value {
-	title := if args.len > 0 { args[0].as_string() } else { brew_runtime.kernel_info().name }
-	return brew_runtime.string_value(runner_os_title_with_arch(title))
+pub fn ruby_step_l15_d2_self_runner_os_title_with_arch(args ...ruby.Value) ruby.Value {
+	title := if args.len > 0 { args[0].as_string() } else { ruby.kernel_info().name }
+	return ruby.string_value(runner_os_title_with_arch(title))
 }
 
 // Ruby attr_reader `attr_reader :command` at line 25.
-pub fn ruby_step_l25_d3_command(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(step_boundary_receiver(args).command)
+pub fn ruby_step_l25_d3_command(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(step_boundary_receiver(args).command)
 }
 
 // Ruby attr_reader `attr_reader :name` at line 28.
-pub fn ruby_step_l28_d4_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_step_l28_d4_name(args ...ruby.Value) ruby.Value {
 	step := step_boundary_receiver(args)
-	return if step.has_name { brew_runtime.string_value(step.name) } else { step_nil_value() }
+	return if step.has_name { ruby.string_value(step.name) } else { step_nil_value() }
 }
 
 // Ruby attr_reader `attr_reader :status` at line 31.
-pub fn ruby_step_l31_d5_status(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Symbol', ':' + step_boundary_receiver(args).status.str())
+pub fn ruby_step_l31_d5_status(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Symbol', ':' + step_boundary_receiver(args).status.str())
 }
 
 // Ruby attr_reader `attr_reader :output` at line 34.
-pub fn ruby_step_l34_d6_output(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_step_l34_d6_output(args ...ruby.Value) ruby.Value {
 	step := step_boundary_receiver(args)
-	return if step.has_output { brew_runtime.string_value(step.output) } else { step_nil_value() }
+	return if step.has_output { ruby.string_value(step.output) } else { step_nil_value() }
 }
 
 // Ruby attr_reader `attr_reader :start_time, :end_time` at line 37.
-pub fn ruby_step_l37_d7_start_time(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_step_l37_d7_start_time(args ...ruby.Value) ruby.Value {
 	step := step_boundary_receiver(args)
 	return if step.has_start_time {
-		brew_runtime.int_value(step.start_time.unix_nano())
+		ruby.int_value(step.start_time.unix_nano())
 	} else {
 		step_nil_value()
 	}
 }
 
 // Ruby attr_reader `attr_reader :start_time, :end_time` at line 37.
-pub fn ruby_step_l37_d8_end_time(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_step_l37_d8_end_time(args ...ruby.Value) ruby.Value {
 	step := step_boundary_receiver(args)
 	return if step.has_end_time {
-		brew_runtime.int_value(step.end_time.unix_nano())
+		ruby.int_value(step.end_time.unix_nano())
 	} else {
 		step_nil_value()
 	}
 }
 
 // Ruby method `initialize(command, env:, verbose:, named_args: nil, ignore_failures: false, repository: nil)` at line 52.
-pub fn ruby_step_l52_d9_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_step_l52_d9_initialize(args ...ruby.Value) ruby.Value {
 	command := if args.len > 0 { args[0].as_string_array() or { []string{} } } else { []string{} }
 	named_args := if args.len > 3 { step_named_args(args[3]) } else { []string{} }
 	return step_boundary_value(new_step(command, named_args, step_config_from_boundary(args)))
 }
 
 // Ruby method `command_trimmed` at line 66.
-pub fn ruby_step_l66_d10_command_trimmed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(step_boundary_receiver(args).command_trimmed())
+pub fn ruby_step_l66_d10_command_trimmed(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(step_boundary_receiver(args).command_trimmed())
 }
 
 // Ruby method `command_short` at line 75.
-pub fn ruby_step_l75_d11_command_short(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(step_boundary_receiver(args).command_short())
+pub fn ruby_step_l75_d11_command_short(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(step_boundary_receiver(args).command_short())
 }
 
 // Ruby method `passed?` at line 95.
-pub fn ruby_step_l95_d12_passed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(step_boundary_receiver(args).passed())
+pub fn ruby_step_l95_d12_passed(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(step_boundary_receiver(args).passed())
 }
 
 // Ruby method `failed?` at line 100.
-pub fn ruby_step_l100_d13_failed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(step_boundary_receiver(args).failed())
+pub fn ruby_step_l100_d13_failed(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(step_boundary_receiver(args).failed())
 }
 
 // Ruby method `ignored?` at line 105.
-pub fn ruby_step_l105_d14_ignored(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(step_boundary_receiver(args).ignored())
+pub fn ruby_step_l105_d14_ignored(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(step_boundary_receiver(args).ignored())
 }
 
 // Ruby method `puts_command` at line 110.
-pub fn ruby_step_l110_d15_puts_command(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_step_l110_d15_puts_command(args ...ruby.Value) ruby.Value {
 	mut step := step_boundary_receiver(args)
 	step.puts_command()
 	return step_nil_value()
 }
 
 // Ruby method `puts_result` at line 115.
-pub fn ruby_step_l115_d16_puts_result(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_step_l115_d16_puts_result(args ...ruby.Value) ruby.Value {
 	mut step := step_boundary_receiver(args)
 	step.puts_result()
 	return step_nil_value()
 }
 
 // Ruby method `puts_github_actions_annotation(message, title, file, line)` at line 120.
-pub fn ruby_step_l120_d17_puts_github_actions_annotation(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_step_l120_d17_puts_github_actions_annotation(args ...ruby.Value) ruby.Value {
 	mut step := step_boundary_receiver(args)
 	if args.len < 4 {
 		return step_nil_value()
@@ -818,7 +818,7 @@ pub fn ruby_step_l120_d17_puts_github_actions_annotation(args ...brew_runtime.Va
 }
 
 // Ruby method `puts_in_github_actions_group(title, &_block)` at line 136.
-pub fn ruby_step_l136_d18_puts_in_github_actions_group(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_step_l136_d18_puts_in_github_actions_group(args ...ruby.Value) ruby.Value {
 	step := step_boundary_receiver(args)
 	title := if args.len > 1 { args[1].as_string() } else { '' }
 	body := if args.len > 2 { args[2].as_string() } else { '' }
@@ -827,57 +827,57 @@ pub fn ruby_step_l136_d18_puts_in_github_actions_group(args ...brew_runtime.Valu
 }
 
 // Ruby method `output?` at line 143.
-pub fn ruby_step_l143_d19_output(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(step_boundary_receiver(args).output_present())
+pub fn ruby_step_l143_d19_output(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(step_boundary_receiver(args).output_present())
 }
 
 // Ruby method `time` at line 151.
-pub fn ruby_step_l151_d20_time(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_step_l151_d20_time(args ...ruby.Value) ruby.Value {
 	seconds := step_boundary_receiver(args).elapsed_seconds() or {
-		return brew_runtime.object_value('RuntimeError', err.msg())
+		return ruby.object_value('RuntimeError', err.msg())
 	}
-	return brew_runtime.float_value(seconds)
+	return ruby.float_value(seconds)
 }
 
 // Ruby method `puts_full_output` at line 156.
-pub fn ruby_step_l156_d21_puts_full_output(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_step_l156_d21_puts_full_output(args ...ruby.Value) ruby.Value {
 	mut step := step_boundary_receiver(args)
 	step.puts_full_output()
 	return step_nil_value()
 }
 
 // Ruby method `annotation_location(name)` at line 165.
-pub fn ruby_step_l165_d22_annotation_location(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_step_l165_d22_annotation_location(args ...ruby.Value) ruby.Value {
 	step := step_boundary_receiver(args)
 	location := step.annotation_location(if args.len > 1 { args[1].as_string() } else { '' })
-	return brew_runtime.array_value([
+	return ruby.array_value([
 		if location.path == '' {
 			step_nil_value()
 		} else {
-			brew_runtime.object_value('Pathname', location.path)
+			ruby.object_value('Pathname', location.path)
 		},
-		if location.has_line { brew_runtime.int_value(location.line) } else { step_nil_value() },
+		if location.has_line { ruby.int_value(location.line) } else { step_nil_value() },
 	])
 }
 
 // Ruby method `truncate_output(output, max_kb:, context_lines:)` at line 181.
-pub fn ruby_step_l181_d23_truncate_output(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_step_l181_d23_truncate_output(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.string_value('')
+		return ruby.string_value('')
 	}
 	max_kb := if args.len > 2 { int(args[2].as_int() or { 4 }) } else { 4 }
 	context_lines := if args.len > 3 { int(args[3].as_int() or { 5 }) } else { 5 }
-	return brew_runtime.string_value(truncate_step_output(args[1].as_string(), max_kb, context_lines))
+	return ruby.string_value(truncate_step_output(args[1].as_string(), max_kb, context_lines))
 }
 
 // Ruby method `run(dry_run: false, fail_fast: false)` at line 208.
-pub fn ruby_step_l208_d24_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_step_l208_d24_run(args ...ruby.Value) ruby.Value {
 	mut step := step_boundary_receiver(args)
 	result := step.run(StepRunOptions{
 		dry_run: args.len > 1 && (args[1].as_bool() or { false })
 		fail_fast: args.len > 2 && (args[2].as_bool() or { false })
 	})
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'Homebrew::TestBot::StepRunResult'
 		repr: result.exit_code.str()
 		attributes: {

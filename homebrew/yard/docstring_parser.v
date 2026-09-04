@@ -1,12 +1,12 @@
 module yard
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `yard/docstring_parser.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `parse_content(content)` at line 25.
-pub fn ruby_docstring_parser_l25_d1_parse_content(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_docstring_parser_l25_d1_parse_content(args ...ruby.Value) ruby.Value {
 	context := YardDocstringContext{
 		content: if args.len > 0 && args[0].type_name !in ['Nil', 'NilClass'] {
 			args[0].as_string()} else {
@@ -260,8 +260,8 @@ pub fn parse_yard_docstring(context YardDocstringContext) YardDocstringResult {
 	}
 }
 
-fn yard_docstring_result_value(result YardDocstringResult) brew_runtime.Value {
-	return brew_runtime.structured_value('YARD::DocstringParser::Result', result.content, {
+fn yard_docstring_result_value(result YardDocstringResult) ruby.Value {
+	return ruby.structured_value('YARD::DocstringParser::Result', result.content, {
 		'content':    result.content
 		'tags':       result.tags.map('${it.name}:${it.text}').join('\n')
 		'directives': result.directives.map('${it.name}:${it.text}').join('\n')

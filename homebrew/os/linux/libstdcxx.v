@@ -1,6 +1,6 @@
 module linux
 
-import brew_runtime
+import ruby
 import homebrew
 
 // Translated from Homebrew/brew `os/linux/libstdcxx.rb`.
@@ -23,8 +23,8 @@ pub fn find_libstdcxx_library(paths []string, homebrew_prefix string) ?string {
 		if homebrew_prefix != '' && path.starts_with(homebrew_prefix) {
 			continue
 		}
-		candidate_path := brew_runtime.join_path(path, libstdcxx_soname)
-		if !brew_runtime.path_exists(candidate_path) {
+		candidate_path := ruby.join_path(path, libstdcxx_soname)
+		if !ruby.path_exists(candidate_path) {
 			continue
 		}
 		candidate := new_elf_path(candidate_path) or { continue }
@@ -36,7 +36,7 @@ pub fn find_libstdcxx_library(paths []string, homebrew_prefix string) ?string {
 }
 
 pub fn system_libstdcxx_path() ?string {
-	prefix := brew_runtime.environment_value('HOMEBREW_PREFIX')
+	prefix := ruby.environment_value('HOMEBREW_PREFIX')
 	if path := find_libstdcxx_library(ld_library_paths('ld.so.conf', false), prefix) {
 		return path
 	}
@@ -49,7 +49,7 @@ fn libstdcxx_basename(path string) string {
 
 pub fn libstdcxx_version_from_path(path ?string) homebrew.Version {
 	library_path := path or { return homebrew.null_version() }
-	real_basename := libstdcxx_basename(brew_runtime.real_path(library_path))
+	real_basename := libstdcxx_basename(ruby.real_path(library_path))
 	suffix := if real_basename.starts_with(libstdcxx_soname) {
 		real_basename[libstdcxx_soname.len..]
 	} else {
@@ -88,7 +88,7 @@ pub fn ruby_libstdcxx_l34_d4_self_system_path() ?string {
 
 // Ruby method `self.find_library(paths)` at line 41.
 pub fn ruby_libstdcxx_l41_d5_self_find_library(paths []string) ?string {
-	return find_libstdcxx_library(paths, brew_runtime.environment_value('HOMEBREW_PREFIX'))
+	return find_libstdcxx_library(paths, ruby.environment_value('HOMEBREW_PREFIX'))
 }
 
 // Original Ruby source (line-for-line):

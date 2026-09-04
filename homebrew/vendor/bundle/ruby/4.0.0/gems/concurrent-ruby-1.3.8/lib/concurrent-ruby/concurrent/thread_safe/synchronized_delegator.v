@@ -1,23 +1,23 @@
 module thread_safe
 
-import brew_runtime
+import ruby
 import sync
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/thread_safe/synchronized_delegator.rb`.
 // The original source is retained below until every stub has a typed V body.
-pub type DelegatedAction = fn(brew_runtime.Value, string, []brew_runtime.Value) !brew_runtime.Value
+pub type DelegatedAction = fn(ruby.Value, string, []ruby.Value) !ruby.Value
 
 @[heap]
 pub struct SynchronizedDelegator {
 pub:
-	object brew_runtime.Value
+	object ruby.Value
 mut:
 	monitor            sync.Mutex
 	abort_on_exception bool
 	old_abort          bool
 }
 
-pub fn new_synchronized_delegator(object brew_runtime.Value) &SynchronizedDelegator {
+pub fn new_synchronized_delegator(object ruby.Value) &SynchronizedDelegator {
 	return &SynchronizedDelegator{
 		object: object
 	}
@@ -39,7 +39,7 @@ pub fn (mut delegator SynchronizedDelegator) teardown() bool {
 	return current
 }
 
-pub fn (mut delegator SynchronizedDelegator) invoke(method string, args []brew_runtime.Value, action DelegatedAction) !brew_runtime.Value {
+pub fn (mut delegator SynchronizedDelegator) invoke(method string, args []ruby.Value, action DelegatedAction) !ruby.Value {
 	delegator.monitor.lock()
 	defer {
 		delegator.monitor.unlock()
@@ -47,13 +47,13 @@ pub fn (mut delegator SynchronizedDelegator) invoke(method string, args []brew_r
 	return action(delegator.object, method, args)
 }
 
-fn synchronized_delegator_value(delegator &SynchronizedDelegator) brew_runtime.Value {
-	return brew_runtime.structured_value('Concurrent::SynchronizedDelegator', '#<Concurrent::SynchronizedDelegator>', {
+fn synchronized_delegator_value(delegator &SynchronizedDelegator) ruby.Value {
+	return ruby.structured_value('Concurrent::SynchronizedDelegator', '#<Concurrent::SynchronizedDelegator>', {
 		'synchronized_delegator_address': u64(voidptr(delegator)).str()
 	})
 }
 
-fn synchronized_delegator_from_args(args []brew_runtime.Value) &SynchronizedDelegator {
+fn synchronized_delegator_from_args(args []ruby.Value) &SynchronizedDelegator {
 	if args.len == 0 {
 		panic('SynchronizedDelegator method requires a receiver')
 	}
@@ -64,19 +64,19 @@ fn synchronized_delegator_from_args(args []brew_runtime.Value) &SynchronizedDele
 }
 
 // Ruby method `setup` at line 22.
-pub fn ruby_synchronized_delegator_l22_d1_setup(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_synchronized_delegator_l22_d1_setup(args ...ruby.Value) ruby.Value {
 	mut delegator := synchronized_delegator_from_args(args)
-	return brew_runtime.bool_value(delegator.setup())
+	return ruby.bool_value(delegator.setup())
 }
 
 // Ruby method `teardown` at line 27.
-pub fn ruby_synchronized_delegator_l27_d2_teardown(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_synchronized_delegator_l27_d2_teardown(args ...ruby.Value) ruby.Value {
 	mut delegator := synchronized_delegator_from_args(args)
-	return brew_runtime.bool_value(delegator.teardown())
+	return ruby.bool_value(delegator.teardown())
 }
 
 // Ruby method `initialize(obj)` at line 31.
-pub fn ruby_synchronized_delegator_l31_d3_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_synchronized_delegator_l31_d3_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('SynchronizedDelegator.new requires an object')
 	}
@@ -84,15 +84,15 @@ pub fn ruby_synchronized_delegator_l31_d3_initialize(args ...brew_runtime.Value)
 }
 
 // Ruby method `method_missing(method, *args, &block)` at line 36.
-pub fn ruby_synchronized_delegator_l36_d4_method_missing(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_synchronized_delegator_l36_d4_method_missing(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('SynchronizedDelegator#method_missing requires receiver, method, and translated delegated result')
 	}
 	mut delegator := synchronized_delegator_from_args(args)
 	method := args[1].as_string()
-	call_args := if args.len > 3 { args[2..args.len - 1] } else { []brew_runtime.Value{} }
+	call_args := if args.len > 3 { args[2..args.len - 1] } else { []ruby.Value{} }
 	mut result := args[args.len - 1]
-	return delegator.invoke(method, call_args, fn [mut result] (_ brew_runtime.Value, _ string, _ []brew_runtime.Value) !brew_runtime.Value {
+	return delegator.invoke(method, call_args, fn [mut result] (_ ruby.Value, _ string, _ []ruby.Value) !ruby.Value {
 		return result
 	}) or { panic(err) }
 }

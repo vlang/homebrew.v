@@ -1,6 +1,6 @@
 module utils
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `utils/git_repository.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -12,7 +12,7 @@ fn git_repository_query(repo string, arguments []string, safe bool, git_path str
 		}
 		return ''
 	}
-	probe := brew_runtime.run_command(git_path, ['-C', repo, 'rev-parse', '--git-dir'])
+	probe := ruby.run_command(git_path, ['-C', repo, 'rev-parse', '--git-dir'])
 	if probe.exit_code != 0 {
 		if safe {
 			return error('Not a Git repository: ${repo}')
@@ -21,7 +21,7 @@ fn git_repository_query(repo string, arguments []string, safe bool, git_path str
 	}
 	mut command_arguments := ['-C', repo]
 	command_arguments << arguments
-	result := brew_runtime.run_command(git_path, command_arguments)
+	result := ruby.run_command(git_path, command_arguments)
 	if result.exit_code != 0 {
 		if safe {
 			return error(result.output.trim_space())
@@ -53,23 +53,23 @@ pub fn git_branch_with_executable(repo string, safe bool, git_path string) !stri
 }
 
 pub fn git_head(repo string, length ?int, safe bool) !string {
-	git := brew_runtime.find_executable('git') or { '' }
+	git := ruby.find_executable('git') or { '' }
 	return git_head_with_executable(repo, length, safe, git)
 }
 
 pub fn git_short_head(repo string, length ?int, safe bool) !string {
-	git := brew_runtime.find_executable('git') or { '' }
+	git := ruby.find_executable('git') or { '' }
 	return git_short_head_with_executable(repo, length, safe, git)
 }
 
 pub fn git_branch(repo string, safe bool) !string {
-	git := brew_runtime.find_executable('git') or { '' }
+	git := ruby.find_executable('git') or { '' }
 	return git_branch_with_executable(repo, safe, git)
 }
 
 // Ruby method `self.git_head(repo = Pathname.pwd, length: nil, safe: true)` at line 13.
-pub fn ruby_git_repository_l13_d1_self_git_head(args ...brew_runtime.Value) brew_runtime.Value {
-	repo := if args.len > 0 { args[0].as_string() } else { brew_runtime.current_directory() }
+pub fn ruby_git_repository_l13_d1_self_git_head(args ...ruby.Value) ruby.Value {
+	repo := if args.len > 0 { args[0].as_string() } else { ruby.current_directory() }
 	length := if args.len > 1 && args[1].type_name != 'NilClass' {
 		?int(int(args[1].as_int() or { 0 }))
 	} else {
@@ -78,15 +78,15 @@ pub fn ruby_git_repository_l13_d1_self_git_head(args ...brew_runtime.Value) brew
 	safe := if args.len > 2 { args[2].as_bool() or { true } } else { true }
 	result := git_head(repo, length, safe) or { panic(err) }
 	return if result == '' {
-		brew_runtime.object_value('NilClass', '')
+		ruby.object_value('NilClass', '')
 	} else {
-		brew_runtime.string_value(result)
+		ruby.string_value(result)
 	}
 }
 
 // Ruby method `self.git_short_head(repo = Pathname.pwd, length: nil, safe: true)` at line 27.
-pub fn ruby_git_repository_l27_d2_self_git_short_head(args ...brew_runtime.Value) brew_runtime.Value {
-	repo := if args.len > 0 { args[0].as_string() } else { brew_runtime.current_directory() }
+pub fn ruby_git_repository_l27_d2_self_git_short_head(args ...ruby.Value) ruby.Value {
+	repo := if args.len > 0 { args[0].as_string() } else { ruby.current_directory() }
 	length := if args.len > 1 && args[1].type_name != 'NilClass' {
 		?int(int(args[1].as_int() or { 0 }))
 	} else {
@@ -95,21 +95,21 @@ pub fn ruby_git_repository_l27_d2_self_git_short_head(args ...brew_runtime.Value
 	safe := if args.len > 2 { args[2].as_bool() or { true } } else { true }
 	result := git_short_head(repo, length, safe) or { panic(err) }
 	return if result == '' {
-		brew_runtime.object_value('NilClass', '')
+		ruby.object_value('NilClass', '')
 	} else {
-		brew_runtime.string_value(result)
+		ruby.string_value(result)
 	}
 }
 
 // Ruby method `self.git_branch(repo = Pathname.pwd, safe: true)` at line 38.
-pub fn ruby_git_repository_l38_d3_self_git_branch(args ...brew_runtime.Value) brew_runtime.Value {
-	repo := if args.len > 0 { args[0].as_string() } else { brew_runtime.current_directory() }
+pub fn ruby_git_repository_l38_d3_self_git_branch(args ...ruby.Value) ruby.Value {
+	repo := if args.len > 0 { args[0].as_string() } else { ruby.current_directory() }
 	safe := if args.len > 1 { args[1].as_bool() or { true } } else { true }
 	result := git_branch(repo, safe) or { panic(err) }
 	return if result == '' {
-		brew_runtime.object_value('NilClass', '')
+		ruby.object_value('NilClass', '')
 	} else {
-		brew_runtime.string_value(result)
+		ruby.string_value(result)
 	}
 }
 

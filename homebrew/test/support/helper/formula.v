@@ -1,6 +1,6 @@
 module helper
 
-import brew_runtime
+import ruby
 
 pub struct HelperFormula {
 pub:
@@ -22,7 +22,7 @@ pub:
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `formula(name = "formula_name", path: nil, spec: :stable, alias_path: nil, tap: nil, &block)` at line 19.
-pub fn ruby_formula_l19_d1_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l19_d1_formula(args ...ruby.Value) ruby.Value {
 	formula := helper_formula(
 		if args.len > 0 { args[0].as_string() } else { 'formula_name' },
 		if args.len > 1 { args[1].as_string() } else { '' },
@@ -34,9 +34,9 @@ pub fn ruby_formula_l19_d1_formula(args ...brew_runtime.Value) brew_runtime.Valu
 }
 
 // Ruby method `stub_formula_loader(formula, ref = formula.full_name, call_original: false)` at line 27.
-pub fn ruby_formula_l27_d2_stub_formula_loader(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l27_d2_stub_formula_loader(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'stub_formula_loader requires a formula')
+		return ruby.object_value('ArgumentError', 'stub_formula_loader requires a formula')
 	}
 	formula := helper_formula_from_value(args[0])
 	loader := stub_formula_loader(formula, if args.len > 1 && args[1].type_name != 'NilClass' {
@@ -44,7 +44,7 @@ pub fn ruby_formula_l27_d2_stub_formula_loader(args ...brew_runtime.Value) brew_
 	} else {
 		formula.name
 	}, args.len > 2 && args[2].bool_data)
-	return brew_runtime.structured_value('Formulary::FormulaLoader', loader.ref, {
+	return ruby.structured_value('Formulary::FormulaLoader', loader.ref, {
 		'name':          loader.formula.name
 		'path':          loader.formula.path
 		'ref':           loader.ref
@@ -70,8 +70,8 @@ pub fn stub_formula_loader(formula HelperFormula, ref string, call_original bool
 	}
 }
 
-fn helper_formula_value(formula HelperFormula) brew_runtime.Value {
-	return brew_runtime.structured_value('Formula', formula.name, {
+fn helper_formula_value(formula HelperFormula) ruby.Value {
+	return ruby.structured_value('Formula', formula.name, {
 		'name':       formula.name
 		'path':       formula.path
 		'spec':       formula.spec
@@ -80,7 +80,7 @@ fn helper_formula_value(formula HelperFormula) brew_runtime.Value {
 	})
 }
 
-fn helper_formula_from_value(value brew_runtime.Value) HelperFormula {
+fn helper_formula_from_value(value ruby.Value) HelperFormula {
 	return helper_formula(value.attributes['name'] or { value.as_string() }, value.attributes['path'] or { '' }, value.attributes['spec'] or { 'stable' }, value.attributes['alias_path'] or { '' }, value.attributes['tap'] or { '' })
 }
 

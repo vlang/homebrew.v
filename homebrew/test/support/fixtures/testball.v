@@ -1,6 +1,6 @@
 module fixtures
 
-import brew_runtime
+import ruby
 
 pub struct FixtureFormula {
 pub:
@@ -32,26 +32,26 @@ pub:
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `initialize(name = "testball", path = Pathname.new(__FILE__).expand_path, spec = :stable,` at line 7.
-pub fn ruby_testball_l7_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_testball_l7_d1_initialize(args ...ruby.Value) ruby.Value {
 	return fixture_formula_value(fixture_formula_from_args(args, 'Testball', 'testball', false, false))
 }
 
 // Ruby method `self.inherited(other)` at line 20.
-pub fn ruby_testball_l20_d2_self_inherited(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_testball_l20_d2_self_inherited(args ...ruby.Value) ruby.Value {
 	other := if args.len > 0 {
 		args[0]
 	} else {
-		brew_runtime.object_value('Class', 'TestballSubclass')
+		ruby.object_value('Class', 'TestballSubclass')
 	}
 	return fixture_inherited_value(other, fixture_formula_from_args([], 'Testball', 'testball', false, false))
 }
 
 // Ruby method `install` at line 25.
-pub fn ruby_testball_l25_d3_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_testball_l25_d3_install(args ...ruby.Value) ruby.Value {
 	return fixture_install_value(fixture_install_plan('testball', false))
 }
 
-pub fn fixture_formula_from_args(args []brew_runtime.Value, class_name string, default_name string,
+pub fn fixture_formula_from_args(args []ruby.Value, class_name string, default_name string,
 	deny_network_build bool, bottle bool) FixtureFormula {
 	fixture_dir := if args.len > 6 { args[6].as_string() } else { 'test/support/fixtures' }
 	return FixtureFormula{
@@ -114,8 +114,8 @@ pub fn fixture_install_plan(kind string, fail_build bool) FixtureInstallPlan {
 	return FixtureInstallPlan{ prefix_install: ['bin', 'libexec'] }
 }
 
-pub fn fixture_formula_value(formula FixtureFormula) brew_runtime.Value {
-	return brew_runtime.structured_value(formula.class_name, formula.name, {
+pub fn fixture_formula_value(formula FixtureFormula) ruby.Value {
+	return ruby.structured_value(formula.class_name, formula.name, {
 		'name':               formula.name
 		'path':               formula.path
 		'spec':               formula.spec
@@ -131,8 +131,8 @@ pub fn fixture_formula_value(formula FixtureFormula) brew_runtime.Value {
 	})
 }
 
-pub fn fixture_inherited_value(other brew_runtime.Value, formula FixtureFormula) brew_runtime.Value {
-	return brew_runtime.structured_value(other.type_name, other.as_string(), {
+pub fn fixture_inherited_value(other ruby.Value, formula FixtureFormula) ruby.Value {
+	return ruby.structured_value(other.type_name, other.as_string(), {
 		'url':                formula.url
 		'sha256':             formula.sha256
 		'deny_network_build': formula.deny_network_build.str()
@@ -142,17 +142,17 @@ pub fn fixture_inherited_value(other brew_runtime.Value, formula FixtureFormula)
 	})
 }
 
-pub fn fixture_install_value(plan FixtureInstallPlan) brew_runtime.Value {
+pub fn fixture_install_value(plan FixtureInstallPlan) ruby.Value {
 	if plan.error_type != '' {
-		return brew_runtime.structured_value(plan.error_type, plan.error_message, {
+		return ruby.structured_value(plan.error_type, plan.error_message, {
 			'commands':       plan.commands.map(it.join(' ')).join(',')
 			'prefix_install': plan.prefix_install.join(',')
 		})
 	}
-	return brew_runtime.map_value({
-		'commands':       brew_runtime.array_value(plan.commands.map(brew_runtime.string_array_value(it)))
-		'prefix_install': brew_runtime.string_array_value(plan.prefix_install)
-		'chdir':          brew_runtime.string_value(plan.chdir)
+	return ruby.map_value({
+		'commands':       ruby.array_value(plan.commands.map(ruby.string_array_value(it)))
+		'prefix_install': ruby.string_array_value(plan.prefix_install)
+		'chdir':          ruby.string_value(plan.chdir)
 	})
 }
 

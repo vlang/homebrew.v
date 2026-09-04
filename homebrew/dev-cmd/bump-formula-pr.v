@@ -1,7 +1,7 @@
 module dev_cmd
 
 import crypto.sha256
-import brew_runtime
+import ruby
 import homebrew
 import homebrew.extend.file as atomic_file
 import homebrew.utils
@@ -182,24 +182,24 @@ pub:
 	error              string
 }
 
-fn bump_formula_nil() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn bump_formula_nil() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-fn bump_formula_bool(value brew_runtime.Value, fallback bool) bool {
+fn bump_formula_bool(value ruby.Value, fallback bool) bool {
 	return if value.type_name == 'Bool' { value.bool_data } else { fallback }
 }
 
-fn bump_formula_map_string(values map[string]brew_runtime.Value, key string,
+fn bump_formula_map_string(values map[string]ruby.Value, key string,
 	fallback string) string {
-	return (values[key] or { brew_runtime.string_value(fallback) }).as_string()
+	return (values[key] or { ruby.string_value(fallback) }).as_string()
 }
 
-fn bump_formula_map_bool(values map[string]brew_runtime.Value, key string, fallback bool) bool {
-	return bump_formula_bool(values[key] or { brew_runtime.bool_value(fallback) }, fallback)
+fn bump_formula_map_bool(values map[string]ruby.Value, key string, fallback bool) bool {
+	return bump_formula_bool(values[key] or { ruby.bool_value(fallback) }, fallback)
 }
 
-fn bump_formula_optional_int(values map[string]brew_runtime.Value, key string) ?int {
+fn bump_formula_optional_int(values map[string]ruby.Value, key string) ?int {
 	value := values[key] or { return none }
 	if value.type_name in ['Nil', 'NilClass'] {
 		return none
@@ -207,35 +207,35 @@ fn bump_formula_optional_int(values map[string]brew_runtime.Value, key string) ?
 	return int(value.int_data)
 }
 
-fn bump_formula_string_map_value(values map[string]string) brew_runtime.Value {
-	mut result := map[string]brew_runtime.Value{}
+fn bump_formula_string_map_value(values map[string]string) ruby.Value {
+	mut result := map[string]ruby.Value{}
 	for key, value in values {
-		result[key] = brew_runtime.string_value(value)
+		result[key] = ruby.string_value(value)
 	}
-	return brew_runtime.map_value(result)
+	return ruby.map_value(result)
 }
 
-pub fn bump_formula_resource_value(resource BumpFormulaResource) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn bump_formula_resource_value(resource BumpFormulaResource) ruby.Value {
+	return ruby.Value{
 		type_name: 'Resource'
 		repr: resource.name
 		map_data: {
-			'name':             brew_runtime.string_value(resource.name)
-			'version':          brew_runtime.string_value(resource.version)
-			'url':              brew_runtime.string_value(resource.url)
-			'mirrors':          brew_runtime.string_array_value(resource.mirrors)
-			'checksum':         brew_runtime.string_value(resource.checksum)
-			'owner_name':       brew_runtime.string_value(resource.owner_name)
-			'livecheck_parent': brew_runtime.bool_value(resource.livecheck_parent)
-			'fetch_path':       brew_runtime.string_value(resource.fetch_path)
-			'fetched_version':  brew_runtime.string_value(resource.fetched_version)
-			'fetched_sha256':   brew_runtime.string_value(resource.fetched_sha256)
-			'fetch_error':      brew_runtime.string_value(resource.fetch_error)
+			'name':             ruby.string_value(resource.name)
+			'version':          ruby.string_value(resource.version)
+			'url':              ruby.string_value(resource.url)
+			'mirrors':          ruby.string_array_value(resource.mirrors)
+			'checksum':         ruby.string_value(resource.checksum)
+			'owner_name':       ruby.string_value(resource.owner_name)
+			'livecheck_parent': ruby.bool_value(resource.livecheck_parent)
+			'fetch_path':       ruby.string_value(resource.fetch_path)
+			'fetched_version':  ruby.string_value(resource.fetched_version)
+			'fetched_sha256':   ruby.string_value(resource.fetched_sha256)
+			'fetch_error':      ruby.string_value(resource.fetch_error)
 		}
 	}
 }
 
-fn bump_formula_resource_from_value(value brew_runtime.Value) !BumpFormulaResource {
+fn bump_formula_resource_from_value(value ruby.Value) !BumpFormulaResource {
 	if value.type_name !in ['Resource', 'Hash'] {
 		return error('expected Resource, got ${value.type_name}')
 	}
@@ -244,7 +244,7 @@ fn bump_formula_resource_from_value(value brew_runtime.Value) !BumpFormulaResour
 		name: bump_formula_map_string(values, 'name', value.repr)
 		version: bump_formula_map_string(values, 'version', '')
 		url: bump_formula_map_string(values, 'url', '')
-		mirrors: (values['mirrors'] or { brew_runtime.string_array_value([]) }).as_string_array() or { [] }
+		mirrors: (values['mirrors'] or { ruby.string_array_value([]) }).as_string_array() or { [] }
 		checksum: bump_formula_map_string(values, 'checksum', '')
 		owner_name: bump_formula_map_string(values, 'owner_name', '')
 		livecheck_parent: bump_formula_map_bool(values, 'livecheck_parent', false)
@@ -255,60 +255,60 @@ fn bump_formula_resource_from_value(value brew_runtime.Value) !BumpFormulaResour
 	}
 }
 
-pub fn bump_formula_value(formula BumpFormula) brew_runtime.Value {
-	mut resources := []brew_runtime.Value{}
+pub fn bump_formula_value(formula BumpFormula) ruby.Value {
+	mut resources := []ruby.Value{}
 	for resource in formula.resources {
 		resources << bump_formula_resource_value(resource)
 	}
 	mut values := {
-		'name':                  brew_runtime.string_value(formula.name)
-		'full_name':             brew_runtime.string_value(formula.full_name)
-		'path':                  brew_runtime.string_value(formula.path)
-		'contents':              brew_runtime.string_value(formula.contents)
-		'version':               brew_runtime.string_value(formula.version)
-		'url':                   brew_runtime.string_value(formula.url)
-		'tag':                   brew_runtime.string_value(formula.tag)
-		'revision':              brew_runtime.string_value(formula.revision)
-		'checksum':              brew_runtime.string_value(formula.checksum)
-		'mirrors':               brew_runtime.string_array_value(formula.mirrors)
-		'aliases':               brew_runtime.string_array_value(formula.aliases)
-		'resources':             brew_runtime.array_value(resources)
-		'tap_present':           brew_runtime.bool_value(formula.tap_present)
-		'tap_git':               brew_runtime.bool_value(formula.tap_git)
-		'tap_name':              brew_runtime.string_value(formula.tap_name)
-		'tap_path':              brew_runtime.string_value(formula.tap_path)
-		'tap_remote_repository': brew_runtime.string_value(formula.tap_remote_repository)
-		'tap_official':          brew_runtime.bool_value(formula.tap_official)
-		'allow_bump':            brew_runtime.bool_value(formula.allow_bump)
-		'disabled':              brew_runtime.bool_value(formula.disabled)
-		'does_not_build':        brew_runtime.bool_value(formula.does_not_build)
-		'too_many_open_prs':     brew_runtime.bool_value(formula.too_many_open_prs)
-		'throttle_allows_bump':  brew_runtime.bool_value(formula.throttle_allows_bump)
-		'download_path':         brew_runtime.string_value(formula.download_path)
-		'download_sha256':       brew_runtime.string_value(formula.download_sha256)
-		'fetched_version':       brew_runtime.string_value(formula.fetched_version)
-		'fetched_revision':      brew_runtime.string_value(formula.fetched_revision)
+		'name':                  ruby.string_value(formula.name)
+		'full_name':             ruby.string_value(formula.full_name)
+		'path':                  ruby.string_value(formula.path)
+		'contents':              ruby.string_value(formula.contents)
+		'version':               ruby.string_value(formula.version)
+		'url':                   ruby.string_value(formula.url)
+		'tag':                   ruby.string_value(formula.tag)
+		'revision':              ruby.string_value(formula.revision)
+		'checksum':              ruby.string_value(formula.checksum)
+		'mirrors':               ruby.string_array_value(formula.mirrors)
+		'aliases':               ruby.string_array_value(formula.aliases)
+		'resources':             ruby.array_value(resources)
+		'tap_present':           ruby.bool_value(formula.tap_present)
+		'tap_git':               ruby.bool_value(formula.tap_git)
+		'tap_name':              ruby.string_value(formula.tap_name)
+		'tap_path':              ruby.string_value(formula.tap_path)
+		'tap_remote_repository': ruby.string_value(formula.tap_remote_repository)
+		'tap_official':          ruby.bool_value(formula.tap_official)
+		'allow_bump':            ruby.bool_value(formula.allow_bump)
+		'disabled':              ruby.bool_value(formula.disabled)
+		'does_not_build':        ruby.bool_value(formula.does_not_build)
+		'too_many_open_prs':     ruby.bool_value(formula.too_many_open_prs)
+		'throttle_allows_bump':  ruby.bool_value(formula.throttle_allows_bump)
+		'download_path':         ruby.string_value(formula.download_path)
+		'download_sha256':       ruby.string_value(formula.download_sha256)
+		'fetched_version':       ruby.string_value(formula.fetched_version)
+		'fetched_revision':      ruby.string_value(formula.fetched_revision)
 	}
 	if rate := formula.throttle_rate {
-		values['throttle_rate'] = brew_runtime.int_value(rate)
+		values['throttle_rate'] = ruby.int_value(rate)
 	}
 	if days := formula.throttle_days {
-		values['throttle_days'] = brew_runtime.int_value(days)
+		values['throttle_days'] = ruby.int_value(days)
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'Formula'
 		repr: formula.name
 		map_data: values
 	}
 }
 
-fn bump_formula_from_value(value brew_runtime.Value) !BumpFormula {
+fn bump_formula_from_value(value ruby.Value) !BumpFormula {
 	if value.type_name !in ['Formula', 'Hash'] {
 		return error('expected Formula, got ${value.type_name}')
 	}
 	values := value.map_data.clone()
 	mut resources := []BumpFormulaResource{}
-	for entry in (values['resources'] or { brew_runtime.array_value([]) }).as_array() or { [] } {
+	for entry in (values['resources'] or { ruby.array_value([]) }).as_array() or { [] } {
 		resources << bump_formula_resource_from_value(entry)!
 	}
 	return BumpFormula{
@@ -321,8 +321,8 @@ fn bump_formula_from_value(value brew_runtime.Value) !BumpFormula {
 		tag: bump_formula_map_string(values, 'tag', '')
 		revision: bump_formula_map_string(values, 'revision', '')
 		checksum: bump_formula_map_string(values, 'checksum', '')
-		mirrors: (values['mirrors'] or { brew_runtime.string_array_value([]) }).as_string_array() or { [] }
-		aliases: (values['aliases'] or { brew_runtime.string_array_value([]) }).as_string_array() or { [] }
+		mirrors: (values['mirrors'] or { ruby.string_array_value([]) }).as_string_array() or { [] }
+		aliases: (values['aliases'] or { ruby.string_array_value([]) }).as_string_array() or { [] }
 		resources: resources
 		tap_present: bump_formula_map_bool(values, 'tap_present', true)
 		tap_git: bump_formula_map_bool(values, 'tap_git', true)
@@ -344,7 +344,7 @@ fn bump_formula_from_value(value brew_runtime.Value) !BumpFormula {
 	}
 }
 
-fn bump_formula_options_from_value(value brew_runtime.Value) BumpFormulaOptions {
+fn bump_formula_options_from_value(value ruby.Value) BumpFormulaOptions {
 	values := value.map_data.clone()
 	return BumpFormulaOptions{
 		version: bump_formula_map_string(values, 'version', '')
@@ -352,7 +352,7 @@ fn bump_formula_options_from_value(value brew_runtime.Value) BumpFormulaOptions 
 		sha256: bump_formula_map_string(values, 'sha256', '')
 		tag: bump_formula_map_string(values, 'tag', '')
 		revision: bump_formula_map_string(values, 'revision', '')
-		mirrors: (values['mirrors'] or { brew_runtime.string_array_value([]) }).as_string_array() or { [] }
+		mirrors: (values['mirrors'] or { ruby.string_array_value([]) }).as_string_array() or { [] }
 		mirror_supplied: bump_formula_map_bool(values, 'mirror_supplied', 'mirrors' in values)
 		force: bump_formula_map_bool(values, 'force', false)
 		dry_run: bump_formula_map_bool(values, 'dry_run', false)
@@ -622,7 +622,7 @@ pub fn bump_formula_parse_resource_versions(contents string) !map[string]BumpFor
 	if contents.trim_space() == '' {
 		return map[string]BumpFormulaResourceVersion{}
 	}
-	parsed := brew_runtime.parse_json_value(contents)!
+	parsed := ruby.parse_json_value(contents)!
 	entries := parsed.as_array()!
 	mut result := map[string]BumpFormulaResourceVersion{}
 	for entry in entries {
@@ -657,22 +657,22 @@ pub fn bump_formula_update_resource_block(formula BumpFormula, resource BumpForm
 	mut ast := utils.FormulaAst{
 		contents: formula.contents
 	}
-	utils.ast_formula_replace_resource_value(mut ast, resource.name, 'url', brew_runtime.string_value(new_url), brew_runtime.string_value(resource.url))
+	utils.ast_formula_replace_resource_value(mut ast, resource.name, 'url', ruby.string_value(new_url), ruby.string_value(resource.url))
 	for index, old_mirror in resource.mirrors {
 		new_mirror := bump_formula_update_url(old_mirror, resource.version, new_version)
-		utils.ast_formula_replace_resource_value(mut ast, resource.name, 'mirror', brew_runtime.string_value(new_mirror), brew_runtime.string_value(old_mirror))
+		utils.ast_formula_replace_resource_value(mut ast, resource.name, 'mirror', ruby.string_value(new_mirror), ruby.string_value(old_mirror))
 	}
 	if resource.checksum != '' {
-		utils.ast_formula_replace_resource_value(mut ast, resource.name, 'sha256', brew_runtime.string_value(fetched.sha256), brew_runtime.string_value(resource.checksum))
+		utils.ast_formula_replace_resource_value(mut ast, resource.name, 'sha256', ruby.string_value(fetched.sha256), ruby.string_value(resource.checksum))
 	}
 	if fetched.forced_version {
 		if utils.ast_formula_resource_stanza_exists(ast, resource.name, 'version') {
-			utils.ast_formula_replace_resource_value(mut ast, resource.name, 'version', brew_runtime.string_value(new_version), none)
+			utils.ast_formula_replace_resource_value(mut ast, resource.name, 'version', ruby.string_value(new_version), none)
 		} else {
 			parent := utils.ast_formula_resource(ast, resource.name)
 			utils.ast_formula_add_stanzas_after(mut ast, 'sha256', [utils.AstStanzaPair{
 				name: 'version'
-				value: brew_runtime.string_value(new_version)
+				value: ruby.string_value(new_version)
 			}], parent)
 		}
 	}
@@ -841,31 +841,31 @@ fn bump_formula_apply_source(formula BumpFormula, options BumpFormulaOptions,
 		utils.ast_formula_remove_stable(mut ast, 'mirror', true)
 	}
 	if formula.checksum != '' {
-		utils.ast_formula_replace_stable_value(mut ast, 'url', brew_runtime.string_value(new_url))
-		utils.ast_formula_replace_stable_value(mut ast, 'sha256', brew_runtime.string_value(new_hash))
+		utils.ast_formula_replace_stable_value(mut ast, 'url', ruby.string_value(new_url))
+		utils.ast_formula_replace_stable_value(mut ast, 'sha256', ruby.string_value(new_hash))
 	} else if new_tag != '' {
-		utils.ast_formula_replace_stable_hash(mut ast, 'url', 'tag', brew_runtime.string_value(new_tag))
-		utils.ast_formula_replace_stable_hash(mut ast, 'url', 'revision', brew_runtime.string_value(new_revision))
+		utils.ast_formula_replace_stable_hash(mut ast, 'url', 'tag', ruby.string_value(new_tag))
+		utils.ast_formula_replace_stable_hash(mut ast, 'url', 'revision', ruby.string_value(new_revision))
 	} else if new_url != '' {
-		utils.ast_formula_replace_stable_value(mut ast, 'url', brew_runtime.string_value(new_url))
-		utils.ast_formula_replace_stable_hash(mut ast, 'url', 'revision', brew_runtime.string_value(new_revision))
+		utils.ast_formula_replace_stable_value(mut ast, 'url', ruby.string_value(new_url))
+		utils.ast_formula_replace_stable_hash(mut ast, 'url', 'revision', ruby.string_value(new_revision))
 	} else {
-		utils.ast_formula_replace_stable_hash(mut ast, 'url', 'revision', brew_runtime.string_value(new_revision))
+		utils.ast_formula_replace_stable_hash(mut ast, 'url', 'revision', ruby.string_value(new_revision))
 	}
 	mut additions := []utils.AstStanzaPair{}
 	for mirror in new_mirrors {
 		additions << utils.AstStanzaPair{
 			name: 'mirror'
-			value: brew_runtime.string_value(mirror)
+			value: ruby.string_value(mirror)
 		}
 	}
 	if forced_version && options.version != '0' {
 		if bump_formula_stable_has(ast, 'version') {
-			utils.ast_formula_replace_stable_value(mut ast, 'version', brew_runtime.string_value(options.version))
+			utils.ast_formula_replace_stable_value(mut ast, 'version', ruby.string_value(options.version))
 		} else {
 			additions << utils.AstStanzaPair{
 				name: 'version'
-				value: brew_runtime.string_value(options.version)
+				value: ruby.string_value(options.version)
 			}
 		}
 	} else if forced_version && options.version == '0' && bump_formula_stable_has(ast, 'version') {
@@ -1087,48 +1087,48 @@ pub fn bump_formula_run(request BumpFormulaRunRequest) BumpFormulaRunResult {
 	return result
 }
 
-fn bump_formula_check_value(result BumpFormulaCheckResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'allowed': brew_runtime.bool_value(result.allowed)
-		'error':   brew_runtime.string_value(result.error)
-		'output':  brew_runtime.string_array_value(result.output)
+fn bump_formula_check_value(result BumpFormulaCheckResult) ruby.Value {
+	return ruby.map_value({
+		'allowed': ruby.bool_value(result.allowed)
+		'error':   ruby.string_value(result.error)
+		'output':  ruby.string_array_value(result.output)
 	})
 }
 
-fn bump_formula_fetch_value(result BumpFormulaFetchResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'path':           brew_runtime.string_value(result.path)
-		'version':        brew_runtime.string_value(result.version)
-		'sha256':         brew_runtime.string_value(result.sha256)
-		'forced_version': brew_runtime.bool_value(result.forced_version)
+fn bump_formula_fetch_value(result BumpFormulaFetchResult) ruby.Value {
+	return ruby.map_value({
+		'path':           ruby.string_value(result.path)
+		'version':        ruby.string_value(result.version)
+		'sha256':         ruby.string_value(result.sha256)
+		'forced_version': ruby.bool_value(result.forced_version)
 	})
 }
 
-fn bump_formula_pull_request_value(check BumpFormulaPullRequestCheck) brew_runtime.Value {
-	return brew_runtime.Value{
+fn bump_formula_pull_request_value(check BumpFormulaPullRequestCheck) ruby.Value {
+	return ruby.Value{
 		type_name: 'GitHub::PullRequestCheck'
 		repr: '${check.formula} ${check.version}'.trim_space()
 		map_data: {
-			'formula':      brew_runtime.string_value(check.formula)
-			'remote':       brew_runtime.string_value(check.remote)
-			'version':      brew_runtime.string_value(check.version)
-			'state':        brew_runtime.string_value(check.state)
-			'file':         brew_runtime.string_value(check.file)
-			'quiet':        brew_runtime.bool_value(check.quiet)
-			'official_tap': brew_runtime.bool_value(check.official_tap)
+			'formula':      ruby.string_value(check.formula)
+			'remote':       ruby.string_value(check.remote)
+			'version':      ruby.string_value(check.version)
+			'state':        ruby.string_value(check.state)
+			'file':         ruby.string_value(check.file)
+			'quiet':        ruby.bool_value(check.quiet)
+			'official_tap': ruby.bool_value(check.official_tap)
 		}
 	}
 }
 
-fn bump_formula_updates_value(updates BumpFormulaResourceUpdates) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'contents': brew_runtime.string_value(updates.contents)
+fn bump_formula_updates_value(updates BumpFormulaResourceUpdates) ruby.Value {
+	return ruby.map_value({
+		'contents': ruby.string_value(updates.contents)
 		'statuses': bump_formula_string_map_value(updates.statuses)
-		'warnings': brew_runtime.string_array_value(updates.warnings)
+		'warnings': ruby.string_array_value(updates.warnings)
 	})
 }
 
-fn bump_formula_resource_versions_from_value(value brew_runtime.Value) !map[string]BumpFormulaResourceVersion {
+fn bump_formula_resource_versions_from_value(value ruby.Value) !map[string]BumpFormulaResourceVersion {
 	if value.type_name in ['Nil', 'NilClass'] {
 		return map[string]BumpFormulaResourceVersion{}
 	}
@@ -1144,48 +1144,48 @@ fn bump_formula_resource_versions_from_value(value brew_runtime.Value) !map[stri
 	return result
 }
 
-fn bump_formula_resource_versions_value(versions map[string]BumpFormulaResourceVersion) brew_runtime.Value {
-	mut values := map[string]brew_runtime.Value{}
+fn bump_formula_resource_versions_value(versions map[string]BumpFormulaResourceVersion) ruby.Value {
+	mut values := map[string]ruby.Value{}
 	for name, version in versions {
-		values[name] = brew_runtime.map_value({
-			'current_version': brew_runtime.string_value(version.current_version)
-			'latest_version':  brew_runtime.string_value(version.latest_version)
+		values[name] = ruby.map_value({
+			'current_version': ruby.string_value(version.current_version)
+			'latest_version':  ruby.string_value(version.latest_version)
 		})
 	}
-	return brew_runtime.map_value(values)
+	return ruby.map_value(values)
 }
 
-fn bump_formula_audit_value(result BumpFormulaAuditResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'failed':  brew_runtime.bool_value(result.failed)
-		'command': brew_runtime.string_array_value(result.command)
-		'output':  brew_runtime.string_array_value(result.output)
-		'moved':   brew_runtime.bool_value(result.moved)
-		'error':   brew_runtime.string_value(result.error)
+fn bump_formula_audit_value(result BumpFormulaAuditResult) ruby.Value {
+	return ruby.map_value({
+		'failed':  ruby.bool_value(result.failed)
+		'command': ruby.string_array_value(result.command)
+		'output':  ruby.string_array_value(result.output)
+		'moved':   ruby.bool_value(result.moved)
+		'error':   ruby.string_value(result.error)
 	})
 }
 
-fn bump_formula_run_result_value(result BumpFormulaRunResult) brew_runtime.Value {
+fn bump_formula_run_result_value(result BumpFormulaRunResult) ruby.Value {
 	mut values := {
-		'contents':          brew_runtime.string_value(result.contents)
-		'version':           brew_runtime.string_value(result.version)
-		'branch_name':       brew_runtime.string_value(result.branch_name)
-		'commit_message':    brew_runtime.string_value(result.commit_message)
-		'additional_files':  brew_runtime.string_array_value(result.additional_files)
+		'contents':          ruby.string_value(result.contents)
+		'version':           ruby.string_value(result.version)
+		'branch_name':       ruby.string_value(result.branch_name)
+		'commit_message':    ruby.string_value(result.commit_message)
+		'additional_files':  ruby.string_array_value(result.additional_files)
 		'resource_statuses': bump_formula_string_map_value(result.resource_statuses)
 		'audit':             bump_formula_audit_value(result.audit)
-		'pull_request':      brew_runtime.string_value(result.pull_request)
-		'browser_url':       brew_runtime.string_value(result.browser_url)
-		'printed_url':       brew_runtime.string_value(result.printed_url)
-		'output':            brew_runtime.string_array_value(result.output)
-		'error':             brew_runtime.string_value(result.error)
+		'pull_request':      ruby.string_value(result.pull_request)
+		'browser_url':       ruby.string_value(result.browser_url)
+		'printed_url':       ruby.string_value(result.printed_url)
+		'output':            ruby.string_array_value(result.output)
+		'error':             ruby.string_value(result.error)
 	}
 	if check := result.pull_request_check {
 		values['pull_request_check'] = bump_formula_pull_request_value(check)
 	} else {
 		values['pull_request_check'] = bump_formula_nil()
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'Homebrew::DevCmd::BumpFormulaPr::Result'
 		repr: result.commit_message
 		map_data: values
@@ -1193,17 +1193,17 @@ fn bump_formula_run_result_value(result BumpFormulaRunResult) brew_runtime.Value
 }
 
 // Ruby method `run` at line 99.
-pub fn ruby_bump_formula_pr_l99_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_formula_pr_l99_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'formula or request is required')
+		return ruby.object_value('ArgumentError', 'formula or request is required')
 	}
 	if args[0].type_name == 'Homebrew::DevCmd::BumpFormulaPr::Request' {
 		request_values := args[0].map_data.clone()
 		formula := bump_formula_from_value(request_values['formula'] or {
-			return brew_runtime.object_value('ArgumentError', 'request formula is required')
-		}) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+			return ruby.object_value('ArgumentError', 'request formula is required')
+		}) or { return ruby.object_value('ArgumentError', err.msg()) }
 		options := bump_formula_options_from_value(request_values['options'] or {
-			brew_runtime.map_value(map[string]brew_runtime.Value{})
+			ruby.map_value(map[string]ruby.Value{})
 		})
 		return bump_formula_run_result_value(bump_formula_run(BumpFormulaRunRequest{
 			formula: formula
@@ -1211,7 +1211,7 @@ pub fn ruby_bump_formula_pr_l99_d1_run(args ...brew_runtime.Value) brew_runtime.
 		}))
 	}
 	formula := bump_formula_from_value(args[0]) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	options := if args.len > 1 {
 		bump_formula_options_from_value(args[1])
@@ -1225,27 +1225,27 @@ pub fn ruby_bump_formula_pr_l99_d1_run(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby method `check_throttle(formula, new_version)` at line 508.
-pub fn ruby_bump_formula_pr_l508_d2_check_throttle(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_formula_pr_l508_d2_check_throttle(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'formula and new version are required')
+		return ruby.object_value('ArgumentError', 'formula and new version are required')
 	}
 	formula := bump_formula_from_value(args[0]) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	return bump_formula_check_value(bump_formula_check_throttle(formula, args[1].as_string()))
 }
 
 // Ruby method `update_matching_version_resources!(formula, version:, resource_versions: nil)` at line 537.
-pub fn ruby_bump_formula_pr_l537_d3_update_matching_version_resources(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_formula_pr_l537_d3_update_matching_version_resources(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'formula and version are required')
+		return ruby.object_value('ArgumentError', 'formula and version are required')
 	}
 	formula := bump_formula_from_value(args[0]) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	versions := if args.len > 2 {
 		bump_formula_resource_versions_from_value(args[2]) or {
-			return brew_runtime.object_value('ArgumentError', err.msg())
+			return ruby.object_value('ArgumentError', err.msg())
 		}
 	} else {
 		map[string]BumpFormulaResourceVersion{}
@@ -1254,62 +1254,62 @@ pub fn ruby_bump_formula_pr_l537_d3_update_matching_version_resources(args ...br
 }
 
 // Ruby method `update_resources!(formula, resource_versions:)` at line 550.
-pub fn ruby_bump_formula_pr_l550_d4_update_resources(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_formula_pr_l550_d4_update_resources(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'formula and resource versions are required')
+		return ruby.object_value('ArgumentError', 'formula and resource versions are required')
 	}
 	formula := bump_formula_from_value(args[0]) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	versions := bump_formula_resource_versions_from_value(args[1]) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	return bump_formula_updates_value(bump_formula_update_resources(formula, versions))
 }
 
 // Ruby method `determine_mirror(url)` at line 592.
-pub fn ruby_bump_formula_pr_l592_d5_determine_mirror(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_formula_pr_l592_d5_determine_mirror(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'URL is required')
+		return ruby.object_value('ArgumentError', 'URL is required')
 	}
 	if mirror := bump_formula_determine_mirror(args[0].as_string()) {
-		return brew_runtime.string_value(mirror)
+		return ruby.string_value(mirror)
 	}
 	return bump_formula_nil()
 }
 
 // Ruby method `check_for_mirrors(formula, old_mirrors, new_mirrors)` at line 606.
-pub fn ruby_bump_formula_pr_l606_d6_check_for_mirrors(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_formula_pr_l606_d6_check_for_mirrors(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
-		return brew_runtime.object_value('ArgumentError', 'formula, old mirrors, and new mirrors are required')
+		return ruby.object_value('ArgumentError', 'formula, old mirrors, and new mirrors are required')
 	}
 	old_mirrors := args[1].as_string_array() or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	new_mirrors := args[2].as_string_array() or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	force := args.len > 3 && bump_formula_bool(args[3], false)
 	return bump_formula_check_value(bump_formula_check_for_mirrors(args[0].as_string(), old_mirrors, new_mirrors, force))
 }
 
 // Ruby method `update_url(old_url, old_version, new_version)` at line 620.
-pub fn ruby_bump_formula_pr_l620_d7_update_url(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_formula_pr_l620_d7_update_url(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
-		return brew_runtime.object_value('ArgumentError', 'old URL, old version, and new version are required')
+		return ruby.object_value('ArgumentError', 'old URL, old version, and new version are required')
 	}
-	return brew_runtime.string_value(bump_formula_update_url(args[0].as_string(), args[1].as_string(), args[2].as_string()))
+	return ruby.string_value(bump_formula_update_url(args[0].as_string(), args[1].as_string(), args[2].as_string()))
 }
 
 // Ruby method `fetch_resource_and_forced_version(formula_or_resource, new_version, url, **specs)` at line 638.
-pub fn ruby_bump_formula_pr_l638_d8_fetch_resource_and_forced_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_formula_pr_l638_d8_fetch_resource_and_forced_version(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
-		return brew_runtime.object_value('ArgumentError', 'formula or resource, version, and URL are required')
+		return ruby.object_value('ArgumentError', 'formula or resource, version, and URL are required')
 	}
 	mut resource := BumpFormulaResource{}
 	if args[0].type_name == 'Formula' {
 		formula := bump_formula_from_value(args[0]) or {
-			return brew_runtime.object_value('ArgumentError', err.msg())
+			return ruby.object_value('ArgumentError', err.msg())
 		}
 		resource = BumpFormulaResource{
 			name: formula.name
@@ -1319,7 +1319,7 @@ pub fn ruby_bump_formula_pr_l638_d8_fetch_resource_and_forced_version(args ...br
 		}
 	} else {
 		resource = bump_formula_resource_from_value(args[0]) or {
-			return brew_runtime.object_value('ArgumentError', err.msg())
+			return ruby.object_value('ArgumentError', err.msg())
 		}
 	}
 	result := bump_formula_fetch_resource(resource, if args[1].type_name in [
@@ -1329,35 +1329,35 @@ pub fn ruby_bump_formula_pr_l638_d8_fetch_resource_and_forced_version(args ...br
 		''
 	} else {
 		args[1].as_string()
-	}, args[2].as_string()) or { return brew_runtime.object_value('RuntimeError', err.msg()) }
+	}, args[2].as_string()) or { return ruby.object_value('RuntimeError', err.msg()) }
 	return bump_formula_fetch_value(result)
 }
 
 // Ruby method `formula_version(formula, contents = nil)` at line 656.
-pub fn ruby_bump_formula_pr_l656_d9_formula_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_formula_pr_l656_d9_formula_version(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'formula is required')
+		return ruby.object_value('ArgumentError', 'formula is required')
 	}
 	formula := bump_formula_from_value(args[0]) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	contents := if args.len > 1 && args[1].type_name !in ['Nil', 'NilClass'] {
 		args[1].as_string()
 	} else {
 		''
 	}
-	return brew_runtime.string_value(bump_formula_version(formula, contents))
+	return ruby.string_value(bump_formula_version(formula, contents))
 }
 
 // Ruby method `check_pull_requests(formula, tap_remote_repo, state: nil, version: nil)` at line 671.
-pub fn ruby_bump_formula_pr_l671_d10_check_pull_requests(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_formula_pr_l671_d10_check_pull_requests(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'formula and tap remote repository are required')
+		return ruby.object_value('ArgumentError', 'formula and tap remote repository are required')
 	}
 	formula := bump_formula_from_value(args[0]) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
-	options := if args.len > 2 { args[2].map_data.clone() } else { map[string]brew_runtime.Value{} }
+	options := if args.len > 2 { args[2].map_data.clone() } else { map[string]ruby.Value{} }
 	if check := bump_formula_check_pull_requests(formula, args[1].as_string(), bump_formula_map_string(options, 'state', ''), bump_formula_map_string(options, 'version', ''), bump_formula_map_bool(options, 'quiet', false)) {
 		return bump_formula_pull_request_value(check)
 	}
@@ -1365,17 +1365,17 @@ pub fn ruby_bump_formula_pr_l671_d10_check_pull_requests(args ...brew_runtime.Va
 }
 
 // Ruby method `check_new_version(formula, tap_remote_repo, version: nil, url: nil, tag: nil)` at line 690.
-pub fn ruby_bump_formula_pr_l690_d11_check_new_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_formula_pr_l690_d11_check_new_version(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'formula and tap remote repository are required')
+		return ruby.object_value('ArgumentError', 'formula and tap remote repository are required')
 	}
 	formula := bump_formula_from_value(args[0]) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
-	options := if args.len > 2 { args[2].map_data.clone() } else { map[string]brew_runtime.Value{} }
+	options := if args.len > 2 { args[2].map_data.clone() } else { map[string]ruby.Value{} }
 	check := bump_formula_check_new_version(formula, args[1].as_string(), bump_formula_map_string(options, 'version', ''), bump_formula_map_string(options, 'url', ''), bump_formula_map_string(options, 'tag', ''), bump_formula_map_bool(options, 'write_only', false), bump_formula_map_bool(options, 'quiet', false))
 	if check.error != '' {
-		return brew_runtime.object_value('RuntimeError', check.error)
+		return ruby.object_value('RuntimeError', check.error)
 	}
 	if value := check.check {
 		return bump_formula_pull_request_value(value)
@@ -1384,30 +1384,30 @@ pub fn ruby_bump_formula_pr_l690_d11_check_new_version(args ...brew_runtime.Valu
 }
 
 // Ruby method `alias_update_pair(formula, new_formula_version)` at line 705.
-pub fn ruby_bump_formula_pr_l705_d12_alias_update_pair(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_formula_pr_l705_d12_alias_update_pair(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'formula and new version are required')
+		return ruby.object_value('ArgumentError', 'formula and new version are required')
 	}
 	formula := bump_formula_from_value(args[0]) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	if pair := bump_formula_alias_update_pair(formula, args[1].as_string()) {
-		return brew_runtime.string_array_value(pair)
+		return ruby.string_array_value(pair)
 	}
 	return bump_formula_nil()
 }
 
 // Ruby method `parse_resource_versions_arg` at line 721.
-pub fn ruby_bump_formula_pr_l721_d13_parse_resource_versions_arg(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_formula_pr_l721_d13_parse_resource_versions_arg(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || args[0].type_name in ['Nil', 'NilClass'] || args[0].as_string().trim_space() == '' {
 		return bump_formula_nil()
 	}
 	versions := bump_formula_parse_resource_versions(args[0].as_string()) or {
-		return brew_runtime.Value{
+		return ruby.Value{
 			type_name: 'NilClass'
 			repr: 'nil'
 			map_data: {
-				'warning': brew_runtime.string_value('Failed to parse --resource-versions JSON: ${err.msg()}')
+				'warning': ruby.string_value('Failed to parse --resource-versions JSON: ${err.msg()}')
 			}
 		}
 	}
@@ -1415,40 +1415,40 @@ pub fn ruby_bump_formula_pr_l721_d13_parse_resource_versions_arg(args ...brew_ru
 }
 
 // Ruby method `update_resource_block!(formula, resource, new_version)` at line 744.
-pub fn ruby_bump_formula_pr_l744_d14_update_resource_block(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_formula_pr_l744_d14_update_resource_block(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
-		return brew_runtime.object_value('ArgumentError', 'formula, resource, and new version are required')
+		return ruby.object_value('ArgumentError', 'formula, resource, and new version are required')
 	}
 	formula := bump_formula_from_value(args[0]) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	resource := bump_formula_resource_from_value(args[1]) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	result := bump_formula_update_resource_block(formula, resource, args[2].as_string()) or {
-		return brew_runtime.object_value('RuntimeError', err.msg())
+		return ruby.object_value('RuntimeError', err.msg())
 	}
-	return brew_runtime.map_value({
-		'contents': brew_runtime.string_value(result.contents)
-		'status':   brew_runtime.object_value('Symbol', ':${result.status}')
-		'message':  brew_runtime.string_value(result.message)
+	return ruby.map_value({
+		'contents': ruby.string_value(result.contents)
+		'status':   ruby.object_value('Symbol', ':${result.status}')
+		'message':  ruby.string_value(result.message)
 	})
 }
 
 // Ruby method `run_audit(formula, alias_rename, skip_synced_versions: false)` at line 799.
-pub fn ruby_bump_formula_pr_l799_d15_run_audit(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_formula_pr_l799_d15_run_audit(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'formula is required')
+		return ruby.object_value('ArgumentError', 'formula is required')
 	}
 	formula := bump_formula_from_value(args[0]) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	aliases := if args.len > 1 && args[1].type_name !in ['Nil', 'NilClass'] {
 		args[1].as_string_array() or { [] }
 	} else {
 		[]string{}
 	}
-	values := if args.len > 2 { args[2].map_data.clone() } else { map[string]brew_runtime.Value{} }
+	values := if args.len > 2 { args[2].map_data.clone() } else { map[string]ruby.Value{} }
 	return bump_formula_audit_value(bump_formula_run_audit(formula, aliases, BumpFormulaAuditOptions{
 		dry_run: bump_formula_map_bool(values, 'dry_run', false)
 		no_audit: bump_formula_map_bool(values, 'no_audit', false)

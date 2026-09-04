@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `test/dev-cmd/typecheck_spec.rb`.
@@ -37,23 +37,23 @@ pub fn typecheck_spec_trims_rubocop(root string) !bool {
 }
 
 // Ruby let `let(:rbi_file) { Pathname.new("#{TEST_FIXTURE_DIR}/rubocop@x.x.x.rbi") }` at line 11.
-pub fn ruby_typecheck_spec_l11_d1_rbi_file(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_typecheck_spec_l11_d1_rbi_file(args ...ruby.Value) ruby.Value {
 	root := if args.len > 0 { args[0].as_string() } else { os.temp_dir() }
-	return brew_runtime.object_value('Pathname', typecheck_spec_rbi_file(root))
+	return ruby.object_value('Pathname', typecheck_spec_rbi_file(root))
 }
 
 // Ruby let `let(:typecheck) { described_class.new([]) }` at line 12.
-pub fn ruby_typecheck_spec_l12_d2_typecheck(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::Typecheck', 'typecheck', {
+pub fn ruby_typecheck_spec_l12_d2_typecheck(args ...ruby.Value) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::Typecheck', 'typecheck', {
 		'arguments': typecheck_spec_command().arguments.join(' ')
 	})
 }
 
 // Ruby it `it "trims RuboCop RBI file to only include allowlisted classes" do` at line 18.
-pub fn ruby_typecheck_spec_l18_d3_trims(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_typecheck_spec_l18_d3_trims(args ...ruby.Value) ruby.Value {
 	root := if args.len > 0 { args[0].as_string() } else { os.temp_dir() }
-	return brew_runtime.bool_value(typecheck_spec_trims_rubocop(root) or {
-		return brew_runtime.object_value('Error', err.msg())
+	return ruby.bool_value(typecheck_spec_trims_rubocop(root) or {
+		return ruby.object_value('Error', err.msg())
 	})
 }
 

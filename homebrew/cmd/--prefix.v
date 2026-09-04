@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `cmd/--prefix.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -113,35 +113,35 @@ pub:
 	options PrefixOptions
 }
 
-pub fn prefix_input_boundary(input &PrefixInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::Cmd::Prefix::Input', '', {
+pub fn prefix_input_boundary(input &PrefixInput) ruby.Value {
+	return ruby.structured_value('Homebrew::Cmd::Prefix::Input', '', {
 		'prefix_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn prefix_input_from_value(value brew_runtime.Value) &PrefixInput {
+fn prefix_input_from_value(value ruby.Value) &PrefixInput {
 	address := value.attributes['prefix_input_address'] or { panic('invalid Prefix input') }
 	return unsafe { &PrefixInput(voidptr(address.u64())) }
 }
 
-fn prefix_result_value(result PrefixResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'stdout': brew_runtime.string_value(result.stdout)
-		'working_dir': brew_runtime.string_value(result.working_dir)
-		'find_command': brew_runtime.string_array_value(result.find_command)
+fn prefix_result_value(result PrefixResult) ruby.Value {
+	return ruby.map_value({
+		'stdout': ruby.string_value(result.stdout)
+		'working_dir': ruby.string_value(result.working_dir)
+		'find_command': ruby.string_array_value(result.find_command)
 	})
 }
 
 // Ruby method `self.command_name = "--prefix"` at line 39.
-pub fn ruby_prefix_l39_d1_self_command_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_prefix_l39_d1_self_command_name(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('--prefix')
+	return ruby.string_value('--prefix')
 }
 
 // Ruby method `run` at line 62.
-pub fn ruby_prefix_l62_d2_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_prefix_l62_d2_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'command input is required')
+		return ruby.object_value('ArgumentError', 'command input is required')
 	}
 	return prefix_result_value(run_prefix(prefix_input_from_value(args[0]).options) or {
 		message := err.msg()
@@ -154,16 +154,16 @@ pub fn ruby_prefix_l62_d2_run(args ...brew_runtime.Value) brew_runtime.Value {
 		} else {
 			'Error'
 		}
-		return brew_runtime.object_value(type_name, message.all_after(': ').trim_space())
+		return ruby.object_value(type_name, message.all_after(': ').trim_space())
 	})
 }
 
 // Ruby method `list_unbrewed` at line 96.
-pub fn ruby_prefix_l96_d3_list_unbrewed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_prefix_l96_d3_list_unbrewed(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'command input is required')
+		return ruby.object_value('ArgumentError', 'command input is required')
 	}
-	return brew_runtime.string_array_value(prefix_unbrewed_find_command(prefix_input_from_value(args[0]).options))
+	return ruby.string_array_value(prefix_unbrewed_find_command(prefix_input_from_value(args[0]).options))
 }
 
 // Original Ruby source (line-for-line):

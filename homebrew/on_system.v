@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `on_system.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -250,15 +250,15 @@ pub fn on_system_macos_only_definitions() OnSystemDefinitionSet {
 	}
 }
 
-fn on_system_optional_value(result OnSystemBlockResult) brew_runtime.Value {
+fn on_system_optional_value(result OnSystemBlockResult) ruby.Value {
 	return if result.called {
-		brew_runtime.string_value(result.value)
+		ruby.string_value(result.value)
 	} else {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	}
 }
 
-fn on_system_context_from_args(args []brew_runtime.Value, offset int) OnSystemContext {
+fn on_system_context_from_args(args []ruby.Value, offset int) OnSystemContext {
 	return OnSystemContext{
 		current_os: if args.len > offset {
 			args[offset].as_string().trim_left(':')} else {
@@ -272,30 +272,30 @@ fn on_system_context_from_args(args []brew_runtime.Value, offset int) OnSystemCo
 	}
 }
 
-fn on_system_definition_value(definitions OnSystemDefinitionSet) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'arch_methods':    brew_runtime.string_array_value(definitions.arch_methods)
-		'base_os_methods': brew_runtime.string_array_value(definitions.base_os_methods)
-		'macos_methods':   brew_runtime.string_array_value(definitions.macos_methods)
-		'conditional':     brew_runtime.string_array_value(definitions.conditional)
+fn on_system_definition_value(definitions OnSystemDefinitionSet) ruby.Value {
+	return ruby.map_value({
+		'arch_methods':    ruby.string_array_value(definitions.arch_methods)
+		'base_os_methods': ruby.string_array_value(definitions.base_os_methods)
+		'macos_methods':   ruby.string_array_value(definitions.macos_methods)
+		'conditional':     ruby.string_array_value(definitions.conditional)
 	})
 }
 
 // Ruby method `self.arch_condition_met?(arch)` at line 20.
-pub fn ruby_on_system_l20_d1_self_arch_condition_met(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_on_system_l20_d1_self_arch_condition_met(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'arch is required')
+		return ruby.object_value('ArgumentError', 'arch is required')
 	}
 	matched := on_system_arch_condition_met(args[0].as_string().trim_left(':'), on_system_context_from_args(args, 1)) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
-	return brew_runtime.bool_value(matched)
+	return ruby.bool_value(matched)
 }
 
 // Ruby method `self.os_condition_met?(os_name, or_condition = nil)` at line 27.
-pub fn ruby_on_system_l27_d2_self_os_condition_met(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_on_system_l27_d2_self_os_condition_met(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'OS is required')
+		return ruby.object_value('ArgumentError', 'OS is required')
 	}
 	condition := if args.len > 1 && args[1].type_name !in ['Nil', 'NilClass'] {
 		?string(args[1].as_string().trim_left(':'))
@@ -303,38 +303,38 @@ pub fn ruby_on_system_l27_d2_self_os_condition_met(args ...brew_runtime.Value) b
 		none
 	}
 	matched := on_system_os_condition_met(args[0].as_string().trim_left(':'), condition, on_system_context_from_args(args, 2)) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
-	return brew_runtime.bool_value(matched)
+	return ruby.bool_value(matched)
 }
 
 // Ruby method `self.condition_from_method_name(method_name)` at line 56.
-pub fn ruby_on_system_l56_d3_self_condition_from_method_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_on_system_l56_d3_self_condition_from_method_name(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'method name is required')
+		return ruby.object_value('ArgumentError', 'method name is required')
 	}
-	return brew_runtime.object_value('Symbol', ':${on_system_condition_from_method_name(args[0].as_string().trim_left(':'))}')
+	return ruby.object_value('Symbol', ':${on_system_condition_from_method_name(args[0].as_string().trim_left(':'))}')
 }
 
 // Ruby method `self.setup_arch_methods(base)` at line 61.
-pub fn ruby_on_system_l61_d4_self_setup_arch_methods(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_on_system_l61_d4_self_setup_arch_methods(args ...ruby.Value) ruby.Value {
 	return on_system_definition_value(on_system_arch_definitions())
 }
 
 // Ruby define_method `base.define_method(:"on_#{arch}") do |&block|` at line 63.
-pub fn ruby_on_system_l63_d5_on_arch(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_on_system_l63_d5_on_arch(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'method and block value are required')
+		return ruby.object_value('ArgumentError', 'method and block value are required')
 	}
 	mut state := OnSystemState{}
 	result := on_system_run_arch(mut state, args[0].as_string().trim_left('on_'), on_system_context_from_args(args, 2), args[1].as_string()) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	return on_system_optional_value(result)
 }
 
 // Ruby define_method `base.define_method(:on_arch_conditional) do |arm: nil, intel: nil|` at line 76.
-pub fn ruby_on_system_l76_d6_on_arch_conditional(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_on_system_l76_d6_on_arch_conditional(args ...ruby.Value) ruby.Value {
 	arm := if args.len > 0 && args[0].type_name !in ['Nil', 'NilClass'] {
 		?string(args[0].as_string())
 	} else {
@@ -347,42 +347,42 @@ pub fn ruby_on_system_l76_d6_on_arch_conditional(args ...brew_runtime.Value) bre
 	}
 	mut state := OnSystemState{}
 	result := on_system_arch_conditional(mut state, arm, intel, on_system_context_from_args(args, 2)) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	return on_system_optional_value(result)
 }
 
 // Ruby method `self.setup_base_os_methods(base)` at line 88.
-pub fn ruby_on_system_l88_d7_self_setup_base_os_methods(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_on_system_l88_d7_self_setup_base_os_methods(args ...ruby.Value) ruby.Value {
 	return on_system_definition_value(on_system_base_os_definitions())
 }
 
 // Ruby define_method `base.define_method(:"on_#{base_os}") do |&block|` at line 90.
-pub fn ruby_on_system_l90_d8_on_base_os(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_on_system_l90_d8_on_base_os(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'method and block value are required')
+		return ruby.object_value('ArgumentError', 'method and block value are required')
 	}
 	mut state := OnSystemState{}
 	result := on_system_run_base_os(mut state, args[0].as_string().trim_left('on_'), on_system_context_from_args(args, 2), args[1].as_string()) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	return on_system_optional_value(result)
 }
 
 // Ruby define_method `base.define_method(:on_system) do |linux, macos:, &block|` at line 106.
-pub fn ruby_on_system_l106_d9_on_system(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_on_system_l106_d9_on_system(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
-		return brew_runtime.object_value('ArgumentError', 'linux, macOS, and block value are required')
+		return ruby.object_value('ArgumentError', 'linux, macOS, and block value are required')
 	}
 	mut state := OnSystemState{}
 	result := on_system_run_system(mut state, args[0].as_string().trim_left(':'), args[1].as_string().trim_left(':'), on_system_context_from_args(args, 3), args[2].as_string()) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	return on_system_optional_value(result)
 }
 
 // Ruby define_method `base.define_method(:on_system_conditional) do |macos: nil, linux: nil|` at line 128.
-pub fn ruby_on_system_l128_d10_on_system_conditional(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_on_system_l128_d10_on_system_conditional(args ...ruby.Value) ruby.Value {
 	macos := if args.len > 0 && args[0].type_name !in ['Nil', 'NilClass'] {
 		?string(args[0].as_string())
 	} else {
@@ -395,20 +395,20 @@ pub fn ruby_on_system_l128_d10_on_system_conditional(args ...brew_runtime.Value)
 	}
 	mut state := OnSystemState{}
 	result := on_system_conditional(mut state, macos, linux, on_system_context_from_args(args, 2)) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	return on_system_optional_value(result)
 }
 
 // Ruby method `self.setup_macos_methods(base)` at line 140.
-pub fn ruby_on_system_l140_d11_self_setup_macos_methods(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_on_system_l140_d11_self_setup_macos_methods(args ...ruby.Value) ruby.Value {
 	return on_system_definition_value(on_system_macos_definitions())
 }
 
 // Ruby define_method `base.define_method(:"on_#{os_name}") do |or_condition = nil, &block|` at line 142.
-pub fn ruby_on_system_l142_d12_on_os_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_on_system_l142_d12_on_os_name(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'method and block value are required')
+		return ruby.object_value('ArgumentError', 'method and block value are required')
 	}
 	condition := if args.len > 2 && args[2].type_name !in ['Nil', 'NilClass'] {
 		?string(args[2].as_string().trim_left(':'))
@@ -417,23 +417,23 @@ pub fn ruby_on_system_l142_d12_on_os_name(args ...brew_runtime.Value) brew_runti
 	}
 	mut state := OnSystemState{}
 	result := on_system_run_macos(mut state, args[0].as_string().trim_left('on_'), condition, on_system_context_from_args(args, 3), args[1].as_string()) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	return on_system_optional_value(result)
 }
 
 // Ruby method `self.included(_base)` at line 169.
-pub fn ruby_on_system_l169_d13_self_included(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('RuntimeError', 'Do not include `OnSystem` directly. Instead, include `OnSystem::MacOSAndLinux` or `OnSystem::MacOSOnly`')
+pub fn ruby_on_system_l169_d13_self_included(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('RuntimeError', 'Do not include `OnSystem` directly. Instead, include `OnSystem::MacOSAndLinux` or `OnSystem::MacOSOnly`')
 }
 
 // Ruby method `self.included(base)` at line 175.
-pub fn ruby_on_system_l175_d14_self_included(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_on_system_l175_d14_self_included(args ...ruby.Value) ruby.Value {
 	return on_system_definition_value(on_system_macos_and_linux_definitions())
 }
 
 // Ruby method `self.included(base)` at line 184.
-pub fn ruby_on_system_l184_d15_self_included(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_on_system_l184_d15_self_included(args ...ruby.Value) ruby.Value {
 	return on_system_definition_value(on_system_macos_only_definitions())
 }
 

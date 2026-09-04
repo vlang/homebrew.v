@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 import time
 
 // Translated from Homebrew/brew `download_queue.rb`.
@@ -281,7 +281,7 @@ fn download_queue_readable_size(bytes i64) string {
 }
 
 pub fn new_download_queue(retries int, force bool, pour bool) DownloadQueue {
-	configured := brew_runtime.environment_value('HOMEBREW_DOWNLOAD_CONCURRENCY').int()
+	configured := ruby.environment_value('HOMEBREW_DOWNLOAD_CONCURRENCY').int()
 	concurrency := if configured > 0 { configured } else { 1 }
 	return DownloadQueue{
 		concurrency: concurrency
@@ -289,8 +289,8 @@ pub fn new_download_queue(retries int, force bool, pour bool) DownloadQueue {
 		tries: retries + 1
 		force: force
 		pour: pour
-		tty: brew_runtime.stdout_is_terminal()
-		dumb_tty: brew_runtime.environment_value('TERM') == 'dumb'
+		tty: ruby.stdout_is_terminal()
+		dumb_tty: ruby.environment_value('TERM') == 'dumb'
 		spinner_value: new_spinner()
 	}
 }

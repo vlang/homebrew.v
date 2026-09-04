@@ -1,16 +1,16 @@
 module private
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/props/private/deserializer_generator.rb`.
 // The original source is retained below until every stub has a typed V body.
 pub struct GeneratedDeserializeResult {
 pub:
 	found  int
-	values map[string]brew_runtime.Value
+	values map[string]ruby.Value
 }
 
-fn apply_defaults_from_value(value brew_runtime.Value) map[string]ApplyDefaultDescriptor {
+fn apply_defaults_from_value(value ruby.Value) map[string]ApplyDefaultDescriptor {
 	mut defaults := map[string]ApplyDefaultDescriptor{}
 	for prop, descriptor_value in value.map_data {
 		if descriptor_value.type_name != 'NilClass' {
@@ -20,7 +20,7 @@ fn apply_defaults_from_value(value brew_runtime.Value) map[string]ApplyDefaultDe
 	return defaults
 }
 
-fn ruby_literal_value(value brew_runtime.Value) ?string {
+fn ruby_literal_value(value ruby.Value) ?string {
 	return match value.type_name {
 		'String' { ruby_string_literal(value.as_string()) }
 		'Integer' { value.int_data.str() }
@@ -82,7 +82,7 @@ pub fn generate_deserializer_source(props []CodegenProp,
 	return 'def __t_props_generated_deserialize(hash)\n  found = ${parts.len}\n  ${body}\n  found\nend\n'
 }
 
-fn deserializer_nil_value(prop CodegenProp, default_value ?ApplyDefaultDescriptor) !brew_runtime.Value {
+fn deserializer_nil_value(prop CodegenProp, default_value ?ApplyDefaultDescriptor) !ruby.Value {
 	if !prop.nilable_type {
 		if descriptor := default_value {
 			return apply_default_value(descriptor)
@@ -96,9 +96,9 @@ fn deserializer_nil_value(prop CodegenProp, default_value ?ApplyDefaultDescripto
 }
 
 pub fn generated_deserialize(props []CodegenProp, defaults map[string]ApplyDefaultDescriptor,
-	hash map[string]brew_runtime.Value) !GeneratedDeserializeResult {
+	hash map[string]ruby.Value) !GeneratedDeserializeResult {
 	mut found := props.filter(!it.dont_store).len
-	mut values := map[string]brew_runtime.Value{}
+	mut values := map[string]ruby.Value{}
 	for prop in props {
 		if prop.dont_store {
 			continue
@@ -120,8 +120,8 @@ pub fn generated_deserialize(props []CodegenProp, defaults map[string]ApplyDefau
 	}
 }
 
-fn deserialize_result_value(result GeneratedDeserializeResult) brew_runtime.Value {
-	return brew_runtime.Value{
+fn deserialize_result_value(result GeneratedDeserializeResult) ruby.Value {
+	return ruby.Value{
 		type_name: 'Integer'
 		repr: result.found.str()
 		int_data: result.found
@@ -130,23 +130,23 @@ fn deserialize_result_value(result GeneratedDeserializeResult) brew_runtime.Valu
 }
 
 // Ruby method `self.generate(props, defaults)` at line 33.
-pub fn ruby_deserializer_generator_l33_d1_self_generate(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_deserializer_generator_l33_d1_self_generate(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('DeserializerGenerator.generate requires props and defaults')
 	}
-	return brew_runtime.string_value(generate_deserializer_source(codegen_props_from_value(args[0]) or {
+	return ruby.string_value(generate_deserializer_source(codegen_props_from_value(args[0]) or {
 		panic(err)
 	}, apply_defaults_from_value(args[1])) or { panic(err) })
 }
 
 // Ruby method `__t_props_generated_deserialize(hash)` at line 83.
-pub fn ruby_deserializer_generator_l83_d2_t_props_generated_deserialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_deserializer_generator_l83_d2_t_props_generated_deserialize(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('__t_props_generated_deserialize requires a receiver and hash')
 	}
 	props_value := args[0].map_data['_props'] or { panic('generated receiver has no _props') }
 	defaults_value := args[0].map_data['_defaults'] or {
-		brew_runtime.map_value(map[string]brew_runtime.Value{})
+		ruby.map_value(map[string]ruby.Value{})
 	}
 	return deserialize_result_value(generated_deserialize(codegen_props_from_value(props_value) or {
 		panic(err)
@@ -156,7 +156,7 @@ pub fn ruby_deserializer_generator_l83_d2_t_props_generated_deserialize(args ...
 }
 
 // Ruby method `self.generate_nil_handler(` at line 117.
-pub fn ruby_deserializer_generator_l117_d3_self_generate_nil_handler(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_deserializer_generator_l117_d3_self_generate_nil_handler(args ...ruby.Value) ruby.Value {
 	if args.len < 5 {
 		panic('generate_nil_handler requires prop, serialized form, default, nilable type, and raise_on_nil_write')
 	}
@@ -171,7 +171,7 @@ pub fn ruby_deserializer_generator_l117_d3_self_generate_nil_handler(args ...bre
 	} else {
 		?ApplyDefaultDescriptor(*apply_default_descriptor_from_value(args[2]))
 	}
-	return brew_runtime.string_value(generate_deserializer_nil_handler(prop, default_value))
+	return ruby.string_value(generate_deserializer_nil_handler(prop, default_value))
 }
 
 // Original Ruby source (line-for-line):

@@ -1,6 +1,6 @@
 module bundle
 
-import brew_runtime
+import ruby
 import homebrew.bundle.extensions
 
 // Translated from Homebrew/brew `bundle/subcommand.rb`.
@@ -72,10 +72,10 @@ pub:
 	bundle_dump_describe_checked bool
 	upgrade_formulae             []string
 	invocations                  []BundleSubcommandInvocation
-	executions                   []brew_runtime.Value
+	executions                   []ruby.Value
 }
 
-pub type BundleSubcommandRunner = fn (subcommand string, args BundleSubcommandArgs, context BundleSubcommandContext, options BundleSubcommandRunOptions) !brew_runtime.Value
+pub type BundleSubcommandRunner = fn (subcommand string, args BundleSubcommandArgs, context BundleSubcommandContext, options BundleSubcommandRunOptions) !ruby.Value
 
 fn bundle_subcommand_registered(config BundleSubcommandConfig) []string {
 	if config.registered_subcommands.len > 0 {
@@ -149,7 +149,7 @@ pub fn dispatch_bundle_subcommand(args BundleSubcommandArgs,
 	environment_after['HOMEBREW_NO_ASK'] = '1'
 
 	mut invocations := []BundleSubcommandInvocation{}
-	mut executions := []brew_runtime.Value{}
+	mut executions := []ruby.Value{}
 	if args.install {
 		options := BundleSubcommandRunOptions{
 			quiet: true
@@ -184,7 +184,7 @@ pub fn dispatch_bundle_subcommand(args BundleSubcommandArgs,
 	}
 }
 
-fn bundle_subcommand_optional_string(values map[string]brew_runtime.Value, key string) ?string {
+fn bundle_subcommand_optional_string(values map[string]ruby.Value, key string) ?string {
 	if value := values[key] {
 		if value.type_name != 'NilClass' {
 			return value.as_string()
@@ -193,14 +193,14 @@ fn bundle_subcommand_optional_string(values map[string]brew_runtime.Value, key s
 	return none
 }
 
-fn bundle_subcommand_bool(values map[string]brew_runtime.Value, key string, fallback bool) !bool {
+fn bundle_subcommand_bool(values map[string]ruby.Value, key string, fallback bool) !bool {
 	if value := values[key] {
 		return value.as_bool()!
 	}
 	return fallback
 }
 
-fn bundle_subcommand_bool_map(value brew_runtime.Value) !map[string]bool {
+fn bundle_subcommand_bool_map(value ruby.Value) !map[string]bool {
 	values := value.as_map()!
 	mut result := map[string]bool{}
 	for name, selected in values {
@@ -209,10 +209,10 @@ fn bundle_subcommand_bool_map(value brew_runtime.Value) !map[string]bool {
 	return result
 }
 
-fn bundle_subcommand_args_from_value(value brew_runtime.Value) !BundleSubcommandArgs {
+fn bundle_subcommand_args_from_value(value ruby.Value) !BundleSubcommandArgs {
 	values := value.as_map()!
 	return BundleSubcommandArgs{
-		subcommand: (values['subcommand'] or { brew_runtime.string_value('install') }).as_string()
+		subcommand: (values['subcommand'] or { ruby.string_value('install') }).as_string()
 		global: bundle_subcommand_bool(values, 'global', false)!
 		file: bundle_subcommand_optional_string(values, 'file')
 		no_upgrade: bundle_subcommand_bool(values, 'no_upgrade', false)!
@@ -226,7 +226,7 @@ fn bundle_subcommand_args_from_value(value brew_runtime.Value) !BundleSubcommand
 		casks: bundle_subcommand_bool(values, 'casks', false)!
 		taps: bundle_subcommand_bool(values, 'taps', false)!
 		extension_selected: bundle_subcommand_bool_map(values['extension_selected'] or {
-			brew_runtime.map_value(map[string]brew_runtime.Value{})
+			ruby.map_value(map[string]ruby.Value{})
 		})!
 		install: bundle_subcommand_bool(values, 'install', false)!
 		describe: bundle_subcommand_bool(values, 'describe', false)!
@@ -235,11 +235,11 @@ fn bundle_subcommand_args_from_value(value brew_runtime.Value) !BundleSubcommand
 	}
 }
 
-fn bundle_subcommand_extensions_from_value(value brew_runtime.Value) ![]extensions.ExtensionDefinition {
+fn bundle_subcommand_extensions_from_value(value ruby.Value) ![]extensions.ExtensionDefinition {
 	return value.as_array()!.map(extensions.extension_definition_from_value(it))
 }
 
-fn bundle_subcommand_string_map(value brew_runtime.Value) !map[string]string {
+fn bundle_subcommand_string_map(value ruby.Value) !map[string]string {
 	values := value.as_map()!
 	mut result := map[string]string{}
 	for name, item in values {
@@ -248,143 +248,143 @@ fn bundle_subcommand_string_map(value brew_runtime.Value) !map[string]string {
 	return result
 }
 
-fn bundle_subcommand_config_from_value(value brew_runtime.Value) !BundleSubcommandConfig {
+fn bundle_subcommand_config_from_value(value ruby.Value) !BundleSubcommandConfig {
 	values := value.as_map()!
 	return BundleSubcommandConfig{
 		environment: bundle_subcommand_string_map(values['environment'] or {
-			brew_runtime.map_value(map[string]brew_runtime.Value{})
+			ruby.map_value(map[string]ruby.Value{})
 		})!
 		ask: bundle_subcommand_bool(values, 'ask', true)!
 		bundle_jobs: bundle_subcommand_optional_string(values, 'bundle_jobs')
-		processor_count: int((values['processor_count'] or { brew_runtime.int_value(1) }).as_int()!)
+		processor_count: int((values['processor_count'] or { ruby.int_value(1) }).as_int()!)
 		registered_subcommands: (values['registered_subcommands'] or {
-			brew_runtime.string_array_value([]string{})
+			ruby.string_array_value([]string{})
 		}).as_string_array()!
 	}
 }
 
-fn bundle_subcommand_optional_value(value ?string) brew_runtime.Value {
+fn bundle_subcommand_optional_value(value ?string) ruby.Value {
 	return if concrete := value {
-		brew_runtime.string_value(concrete)
+		ruby.string_value(concrete)
 	} else {
-		brew_runtime.object_value('NilClass', '')
+		ruby.object_value('NilClass', '')
 	}
 }
 
-pub fn bundle_subcommand_context_value(context BundleSubcommandContext) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'subcommand':   brew_runtime.string_value(context.subcommand)
-		'global':       brew_runtime.bool_value(context.global)
+pub fn bundle_subcommand_context_value(context BundleSubcommandContext) ruby.Value {
+	return ruby.map_value({
+		'subcommand':   ruby.string_value(context.subcommand)
+		'global':       ruby.bool_value(context.global)
 		'file':         bundle_subcommand_optional_value(context.file)
-		'no_upgrade':   brew_runtime.bool_value(context.no_upgrade)
-		'verbose':      brew_runtime.bool_value(context.verbose)
-		'force':        brew_runtime.bool_value(context.force)
-		'ask':          brew_runtime.bool_value(context.ask)
-		'jobs':         brew_runtime.int_value(context.jobs)
-		'zap':          brew_runtime.bool_value(context.zap)
-		'no_type_args': brew_runtime.bool_value(context.no_type_args)
-		'extensions':   brew_runtime.array_value(context.extensions.map(extensions.extension_definition_value(it)))
+		'no_upgrade':   ruby.bool_value(context.no_upgrade)
+		'verbose':      ruby.bool_value(context.verbose)
+		'force':        ruby.bool_value(context.force)
+		'ask':          ruby.bool_value(context.ask)
+		'jobs':         ruby.int_value(context.jobs)
+		'zap':          ruby.bool_value(context.zap)
+		'no_type_args': ruby.bool_value(context.no_type_args)
+		'extensions':   ruby.array_value(context.extensions.map(extensions.extension_definition_value(it)))
 	})
 }
 
-fn bundle_subcommand_invocation_value(invocation BundleSubcommandInvocation) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'subcommand': brew_runtime.string_value(invocation.subcommand)
-		'quiet':      brew_runtime.bool_value(invocation.options.quiet)
-		'cleanup':    brew_runtime.bool_value(invocation.options.cleanup)
-		'preinstall': brew_runtime.bool_value(invocation.options.preinstall)
+fn bundle_subcommand_invocation_value(invocation BundleSubcommandInvocation) ruby.Value {
+	return ruby.map_value({
+		'subcommand': ruby.string_value(invocation.subcommand)
+		'quiet':      ruby.bool_value(invocation.options.quiet)
+		'cleanup':    ruby.bool_value(invocation.options.cleanup)
+		'preinstall': ruby.bool_value(invocation.options.preinstall)
 	})
 }
 
-fn bundle_subcommand_environment_value(environment map[string]string) brew_runtime.Value {
-	mut values := map[string]brew_runtime.Value{}
+fn bundle_subcommand_environment_value(environment map[string]string) ruby.Value {
+	mut values := map[string]ruby.Value{}
 	for name, value in environment {
-		values[name] = brew_runtime.string_value(value)
+		values[name] = ruby.string_value(value)
 	}
-	return brew_runtime.map_value(values)
+	return ruby.map_value(values)
 }
 
-fn bundle_subcommand_dispatch_result_value(result BundleSubcommandDispatchResult) brew_runtime.Value {
-	return brew_runtime.map_value({
+fn bundle_subcommand_dispatch_result_value(result BundleSubcommandDispatchResult) ruby.Value {
+	return ruby.map_value({
 		'context':                      bundle_subcommand_context_value(result.context)
 		'environment_after':            bundle_subcommand_environment_value(result.environment_after)
-		'bundle_dump_describe_checked': brew_runtime.bool_value(result.bundle_dump_describe_checked)
-		'upgrade_formulae':             brew_runtime.string_array_value(result.upgrade_formulae)
-		'invocations':                  brew_runtime.array_value(result.invocations.map(bundle_subcommand_invocation_value(it)))
-		'executions':                   brew_runtime.array_value(result.executions)
+		'bundle_dump_describe_checked': ruby.bool_value(result.bundle_dump_describe_checked)
+		'upgrade_formulae':             ruby.string_array_value(result.upgrade_formulae)
+		'invocations':                  ruby.array_value(result.invocations.map(bundle_subcommand_invocation_value(it)))
+		'executions':                   ruby.array_value(result.executions)
 	})
 }
 
 fn bundle_subcommand_boundary_runner(subcommand string, _ BundleSubcommandArgs,
-	_ BundleSubcommandContext, options BundleSubcommandRunOptions) !brew_runtime.Value {
-	return brew_runtime.map_value({
-		'subcommand': brew_runtime.string_value(subcommand)
-		'quiet':      brew_runtime.bool_value(options.quiet)
-		'cleanup':    brew_runtime.bool_value(options.cleanup)
-		'preinstall': brew_runtime.bool_value(options.preinstall)
+	_ BundleSubcommandContext, options BundleSubcommandRunOptions) !ruby.Value {
+	return ruby.map_value({
+		'subcommand': ruby.string_value(subcommand)
+		'quiet':      ruby.bool_value(options.quiet)
+		'cleanup':    ruby.bool_value(options.cleanup)
+		'preinstall': ruby.bool_value(options.preinstall)
 	})
 }
 
 // Ruby method `dispatch(args, extensions:)` at line 28.
-pub fn ruby_subcommand_l28_d1_dispatch(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_subcommand_l28_d1_dispatch(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'args are required')
+		return ruby.object_value('ArgumentError', 'args are required')
 	}
 	request := bundle_subcommand_args_from_value(args[0]) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	extension_definitions := bundle_subcommand_extensions_from_value(if args.len > 1 {
 		args[1]
 	} else {
-		brew_runtime.array_value([]brew_runtime.Value{})
-	}) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+		ruby.array_value([]ruby.Value{})
+	}) or { return ruby.object_value('ArgumentError', err.msg()) }
 	config := bundle_subcommand_config_from_value(if args.len > 2 {
 		args[2]
 	} else {
-		brew_runtime.map_value(map[string]brew_runtime.Value{})
-	}) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+		ruby.map_value(map[string]ruby.Value{})
+	}) or { return ruby.object_value('ArgumentError', err.msg()) }
 	result := dispatch_bundle_subcommand(request, extension_definitions, config, bundle_subcommand_boundary_runner) or {
-		return brew_runtime.object_value('UsageError', err.msg())
+		return ruby.object_value('UsageError', err.msg())
 	}
 	return bundle_subcommand_dispatch_result_value(result)
 }
 
 // Ruby method `context(args, extensions:, ask: false)` at line 61.
-pub fn ruby_subcommand_l61_d2_context(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_subcommand_l61_d2_context(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'args are required')
+		return ruby.object_value('ArgumentError', 'args are required')
 	}
 	request := bundle_subcommand_args_from_value(args[0]) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	extension_definitions := bundle_subcommand_extensions_from_value(if args.len > 1 {
 		args[1]
 	} else {
-		brew_runtime.array_value([]brew_runtime.Value{})
-	}) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+		ruby.array_value([]ruby.Value{})
+	}) or { return ruby.object_value('ArgumentError', err.msg()) }
 	ask := if args.len > 2 { args[2].as_bool() or { false } } else { false }
 	config := bundle_subcommand_config_from_value(if args.len > 3 {
 		args[3]
 	} else {
-		brew_runtime.map_value(map[string]brew_runtime.Value{})
-	}) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+		ruby.map_value(map[string]ruby.Value{})
+	}) or { return ruby.object_value('ArgumentError', err.msg()) }
 	return bundle_subcommand_context_value(build_bundle_subcommand_context(request, extension_definitions, config, ask))
 }
 
 // Ruby method `no_type_args?(args, extensions:)` at line 96.
-pub fn ruby_subcommand_l96_d3_no_type_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_subcommand_l96_d3_no_type_args(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'args are required')
+		return ruby.object_value('ArgumentError', 'args are required')
 	}
 	request := bundle_subcommand_args_from_value(args[0]) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	extension_definitions := bundle_subcommand_extensions_from_value(if args.len > 1 {
 		args[1]
 	} else {
-		brew_runtime.array_value([]brew_runtime.Value{})
-	}) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
-	return brew_runtime.bool_value(bundle_subcommand_no_type_args(request, extension_definitions))
+		ruby.array_value([]ruby.Value{})
+	}) or { return ruby.object_value('ArgumentError', err.msg()) }
+	return ruby.bool_value(bundle_subcommand_no_type_args(request, extension_definitions))
 }
 
 // Original Ruby source (line-for-line):

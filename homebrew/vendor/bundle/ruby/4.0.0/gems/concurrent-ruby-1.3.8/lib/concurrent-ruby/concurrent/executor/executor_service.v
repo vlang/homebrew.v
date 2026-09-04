@@ -1,28 +1,28 @@
 module executor
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/executor/executor_service.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `post(*args, &task)` at line 161.
-pub fn ruby_executor_service_l161_d1_post(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_executor_service_l161_d1_post(args ...ruby.Value) ruby.Value {
 	panic('NotImplementedError: ExecutorService#post')
 }
 
 // Ruby method `<<(task)` at line 166.
-pub fn ruby_executor_service_l166_d2_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_executor_service_l166_d2_anonymous(args ...ruby.Value) ruby.Value {
 	return ruby_executor_service_l161_d1_post(...args)
 }
 
 // Ruby method `can_overflow?` at line 174.
-pub fn ruby_executor_service_l174_d3_can_overflow(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(false)
+pub fn ruby_executor_service_l174_d3_can_overflow(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(false)
 }
 
 // Ruby method `serialized?` at line 181.
-pub fn ruby_executor_service_l181_d4_serialized(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(false)
+pub fn ruby_executor_service_l181_d4_serialized(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(false)
 }
 
 // Original Ruby source (line-for-line):

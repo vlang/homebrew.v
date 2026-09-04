@@ -1,40 +1,40 @@
 module homebrew
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `warnings.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `warn(message, category: nil)` at line 8.
-pub fn ruby_warnings_l8_d1_warn(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_warnings_l8_d1_warn(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('Nil', '')
+		return ruby.object_value('Nil', '')
 	}
 	filter := WarningFilter{
 		patterns: args[1..].map(it.as_string())
 	}
-	return brew_runtime.string_value(filter.emit(args[0].as_string()))
+	return ruby.string_value(filter.emit(args[0].as_string()))
 }
 
 // Ruby method `self.ignore(*warnings, &_block)` at line 28.
-pub fn ruby_warnings_l28_d2_self_ignore(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(expand_warning_patterns(args.map(it.as_string())))
+pub fn ruby_warnings_l28_d2_self_ignore(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(expand_warning_patterns(args.map(it.as_string())))
 }
 
 // Ruby method `self.ignored?(message)` at line 43.
-pub fn ruby_warnings_l43_d3_self_ignored(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_warnings_l43_d3_self_ignored(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	filter := WarningFilter{
 		patterns: expand_warning_patterns(args[1..].map(it.as_string()))
 	}
-	return brew_runtime.bool_value(filter.ignored(args[0].as_string()))
+	return ruby.bool_value(filter.ignored(args[0].as_string()))
 }
 
 // Ruby method `self.ignored_warnings` at line 48.
-pub fn ruby_warnings_l48_d4_self_ignored_warnings(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(expand_warning_patterns(args.map(it.as_string())))
+pub fn ruby_warnings_l48_d4_self_ignored_warnings(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(expand_warning_patterns(args.map(it.as_string())))
 }
 
 const parser_syntax_warning_patterns = [

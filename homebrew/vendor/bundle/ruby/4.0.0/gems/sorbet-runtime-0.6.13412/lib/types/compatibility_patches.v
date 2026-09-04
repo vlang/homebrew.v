@@ -1,30 +1,30 @@
 module types
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/compatibility_patches.rb`.
 // The original source is retained below until every stub has a typed V body.
 pub struct CompatibilityInvocation {
 pub:
-	result          brew_runtime.Value
-	method          brew_runtime.Value
+	result          ruby.Value
+	method          ruby.Value
 	force_signature bool
 }
 
 pub struct CompatibilityLetPlan {
 pub:
-	result              brew_runtime.Value
-	name                brew_runtime.Value
-	method              brew_runtime.Value
+	result              ruby.Value
+	name                ruby.Value
+	method              ruby.Value
 	redefine_outer      bool
 	suppress_method_add bool
 }
 
-fn compatibility_nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn compatibility_nil_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-fn compatibility_method(container brew_runtime.Value, name brew_runtime.Value) ?brew_runtime.Value {
+fn compatibility_method(container ruby.Value, name ruby.Value) ?ruby.Value {
 	clean_name := name.as_string().trim_string_left(':')
 	if method := container.map_data[clean_name] {
 		return method
@@ -35,8 +35,8 @@ fn compatibility_method(container brew_runtime.Value, name brew_runtime.Value) ?
 	return none
 }
 
-pub fn compatibility_observe(recorder brew_runtime.Value, method_name brew_runtime.Value,
-	super_result brew_runtime.Value) CompatibilityInvocation {
+pub fn compatibility_observe(recorder ruby.Value, method_name ruby.Value,
+	super_result ruby.Value) CompatibilityInvocation {
 	klass := recorder.map_data['klass'] or { recorder }
 	method := compatibility_method(klass, method_name) or { compatibility_nil_value() }
 	return CompatibilityInvocation{
@@ -46,8 +46,8 @@ pub fn compatibility_observe(recorder brew_runtime.Value, method_name brew_runti
 	}
 }
 
-pub fn compatibility_method_double(object brew_runtime.Value, method_name brew_runtime.Value,
-	super_result brew_runtime.Value) CompatibilityInvocation {
+pub fn compatibility_method_double(object ruby.Value, method_name ruby.Value,
+	super_result ruby.Value) CompatibilityInvocation {
 	method := compatibility_method(object, method_name) or { compatibility_nil_value() }
 	return CompatibilityInvocation{
 		result: super_result
@@ -56,8 +56,8 @@ pub fn compatibility_method_double(object brew_runtime.Value, method_name brew_r
 	}
 }
 
-pub fn compatibility_let(owner brew_runtime.Value, name brew_runtime.Value,
-	super_result brew_runtime.Value, active_declaration brew_runtime.Value) CompatibilityLetPlan {
+pub fn compatibility_let(owner ruby.Value, name ruby.Value,
+	super_result ruby.Value, active_declaration ruby.Value) CompatibilityLetPlan {
 	method := compatibility_method(owner, name) or { compatibility_nil_value() }
 	active := active_declaration.type_name != 'NilClass'
 	return CompatibilityLetPlan{
@@ -69,9 +69,9 @@ pub fn compatibility_let(owner brew_runtime.Value, name brew_runtime.Value,
 	}
 }
 
-pub fn compatibility_define_method(owner brew_runtime.Value, name brew_runtime.Value,
-	method brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn compatibility_define_method(owner ruby.Value, name ruby.Value,
+	method ruby.Value) ruby.Value {
+	return ruby.Value{
 		type_name: 'UnboundMethod'
 		repr: '${owner.as_string()}#${name.as_string().trim_string_left(':')}'
 		map_data: {
@@ -85,14 +85,14 @@ pub fn compatibility_define_method(owner brew_runtime.Value, name brew_runtime.V
 	}
 }
 
-fn compatibility_signature_method(method brew_runtime.Value) ?brew_runtime.Value {
+fn compatibility_signature_method(method ruby.Value) ?ruby.Value {
 	if signature_method := method.map_data['signature_method'] {
 		return signature_method
 	}
 	return none
 }
 
-pub fn compatibility_arity(method brew_runtime.Value, super_arity i64) i64 {
+pub fn compatibility_arity(method ruby.Value, super_arity i64) i64 {
 	if super_arity != -1 || method.type_name == 'Proc' {
 		return super_arity
 	}
@@ -100,20 +100,20 @@ pub fn compatibility_arity(method brew_runtime.Value, super_arity i64) i64 {
 	return signature_method.attribute('arity') or { super_arity.str() }.i64()
 }
 
-pub fn compatibility_source_location(method brew_runtime.Value,
-	super_location brew_runtime.Value) brew_runtime.Value {
+pub fn compatibility_source_location(method ruby.Value,
+	super_location ruby.Value) ruby.Value {
 	signature_method := compatibility_signature_method(method) or { return super_location }
 	return signature_method.map_data['source_location'] or { super_location }
 }
 
-pub fn compatibility_parameters(method brew_runtime.Value,
-	super_parameters brew_runtime.Value) brew_runtime.Value {
+pub fn compatibility_parameters(method ruby.Value,
+	super_parameters ruby.Value) ruby.Value {
 	signature_method := compatibility_signature_method(method) or { return super_parameters }
 	return signature_method.map_data['parameters'] or { super_parameters }
 }
 
 // Ruby method `observe!(method_name)` at line 29.
-pub fn ruby_compatibility_patches_l29_d1_observe(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_compatibility_patches_l29_d1_observe(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('RSpec Recorder#observe! requires a receiver and method name')
 	}
@@ -122,7 +122,7 @@ pub fn ruby_compatibility_patches_l29_d1_observe(args ...brew_runtime.Value) bre
 }
 
 // Ruby method `initialize(object, method_name, proxy)` at line 40.
-pub fn ruby_compatibility_patches_l40_d2_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_compatibility_patches_l40_d2_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 4 {
 		panic('RSpec MethodDouble#initialize requires a receiver, object, method name, and proxy')
 	}
@@ -131,7 +131,7 @@ pub fn ruby_compatibility_patches_l40_d2_initialize(args ...brew_runtime.Value) 
 }
 
 // Ruby method `let(name, &block)` at line 62.
-pub fn ruby_compatibility_patches_l62_d3_let(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_compatibility_patches_l62_d3_let(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('RSpec MemoizedHelpers#let requires a receiver and name')
 	}
@@ -141,7 +141,7 @@ pub fn ruby_compatibility_patches_l62_d3_let(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby define_method `define_method(name, method)` at line 85.
-pub fn ruby_compatibility_patches_l85_d4_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_compatibility_patches_l85_d4_name(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('RSpec compatibility define_method requires an owner, name, and method')
 	}
@@ -150,7 +150,7 @@ pub fn ruby_compatibility_patches_l85_d4_name(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby method `arity` at line 119.
-pub fn ruby_compatibility_patches_l119_d5_arity(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_compatibility_patches_l119_d5_arity(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('MethodExtensions#arity requires a receiver')
 	}
@@ -159,11 +159,11 @@ pub fn ruby_compatibility_patches_l119_d5_arity(args ...brew_runtime.Value) brew
 	} else {
 		args[0].attribute('arity') or { '-1' }.i64()
 	}
-	return brew_runtime.int_value(compatibility_arity(args[0], super_arity))
+	return ruby.int_value(compatibility_arity(args[0], super_arity))
 }
 
 // Ruby method `source_location` at line 126.
-pub fn ruby_compatibility_patches_l126_d6_source_location(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_compatibility_patches_l126_d6_source_location(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('MethodExtensions#source_location requires a receiver')
 	}
@@ -176,14 +176,14 @@ pub fn ruby_compatibility_patches_l126_d6_source_location(args ...brew_runtime.V
 }
 
 // Ruby method `parameters` at line 131.
-pub fn ruby_compatibility_patches_l131_d7_parameters(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_compatibility_patches_l131_d7_parameters(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('MethodExtensions#parameters requires a receiver')
 	}
 	super_parameters := if args.len > 1 {
 		args[1]
 	} else {
-		args[0].map_data['parameters'] or { brew_runtime.array_value([]) }
+		args[0].map_data['parameters'] or { ruby.array_value([]) }
 	}
 	return compatibility_parameters(args[0], super_parameters)
 }

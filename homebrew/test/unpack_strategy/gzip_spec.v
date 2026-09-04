@@ -1,13 +1,13 @@
 module unpack_strategy
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `test/unpack_strategy/gzip_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:path) { TEST_FIXTURE_DIR/"cask/container.gz" }` at line 7.
-pub fn ruby_gzip_spec_l7_d1_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(spec_compressed_fixture('gzip', 'gzip', '.gz', [
+pub fn ruby_gzip_spec_l7_d1_path(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(spec_compressed_fixture('gzip', 'gzip', '.gz', [
 		u8(0x1f),
 		0x8b,
 	]))

@@ -1,6 +1,6 @@
 module linux
 
-import brew_runtime
+import ruby
 import homebrew
 import homebrew.extend.os.linux as production_linux
 
@@ -52,103 +52,103 @@ fn linux_dependency_collector_spec_implicit_names(needs_build bool, needs_libc b
 }
 
 // Ruby subject `subject(:collector) { described_class.new }` at line 7.
-pub fn ruby_dependency_collector_spec_l7_d1_collector(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_collector_spec_l7_d1_collector(args ...ruby.Value) ruby.Value {
 	_ = args
 	return homebrew.dependency_collector_value(homebrew.new_dependency_collector(false, map[string]bool{}))
 }
 
 // Ruby alias_matcher `alias_matcher :be_a_build_requirement, :be_build` at line 9.
-pub fn ruby_dependency_collector_spec_l9_d2_be_a_build_requirement(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_collector_spec_l9_d2_be_a_build_requirement(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(homebrew.new_dependency('fixture', [':build']).has_symbol_tag('build'))
+	return ruby.bool_value(homebrew.new_dependency('fixture', [':build']).has_symbol_tag('build'))
 }
 
 // Ruby let `let(:resource) { Resource.new }` at line 12.
-pub fn ruby_dependency_collector_spec_l12_d3_resource(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_collector_spec_l12_d3_resource(args ...ruby.Value) ruby.Value {
 	url := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.structured_value('Resource', url, {
+	return ruby.structured_value('Resource', url, {
 		'url':      url
 		'strategy': 'curl'
 	})
 }
 
 // Ruby it `it "creates a resource dependency from a '.xz' URL" do` at line 15.
-pub fn ruby_dependency_collector_spec_l15_d4_creates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_collector_spec_l15_d4_creates(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(linux_dependency_collector_spec_resource_matches('https://brew.sh/foo.xz', 'xz', false))
+	return ruby.bool_value(linux_dependency_collector_spec_resource_matches('https://brew.sh/foo.xz', 'xz', false))
 }
 
 // Ruby it `it "creates a resource dependency from a '.zip' URL" do` at line 21.
-pub fn ruby_dependency_collector_spec_l21_d5_creates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_collector_spec_l21_d5_creates(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(linux_dependency_collector_spec_resource_matches('https://brew.sh/foo.zip', 'unzip', false))
+	return ruby.bool_value(linux_dependency_collector_spec_resource_matches('https://brew.sh/foo.zip', 'unzip', false))
 }
 
 // Ruby it `it "creates a resource dependency from a '.bz2' URL" do` at line 27.
-pub fn ruby_dependency_collector_spec_l27_d6_creates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_collector_spec_l27_d6_creates(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(linux_dependency_collector_spec_resource_matches('https://brew.sh/foo.tar.bz2', 'bzip2', false))
+	return ruby.bool_value(linux_dependency_collector_spec_resource_matches('https://brew.sh/foo.tar.bz2', 'bzip2', false))
 }
 
 // Ruby it `it "does not create a resource dependency from a '.xz' URL" do` at line 35.
-pub fn ruby_dependency_collector_spec_l35_d7_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_collector_spec_l35_d7_does(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(linux_dependency_collector_spec_resource_matches('https://brew.sh/foo.xz', 'xz', true))
+	return ruby.bool_value(linux_dependency_collector_spec_resource_matches('https://brew.sh/foo.xz', 'xz', true))
 }
 
 // Ruby it `it "does not create a resource dependency from a '.zip' URL" do` at line 41.
-pub fn ruby_dependency_collector_spec_l41_d8_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_collector_spec_l41_d8_does(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(linux_dependency_collector_spec_resource_matches('https://brew.sh/foo.zip', 'unzip', true))
+	return ruby.bool_value(linux_dependency_collector_spec_resource_matches('https://brew.sh/foo.zip', 'unzip', true))
 }
 
 // Ruby it `it "does not create a resource dependency from a '.bz2' URL" do` at line 47.
-pub fn ruby_dependency_collector_spec_l47_d9_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_collector_spec_l47_d9_does(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(linux_dependency_collector_spec_resource_matches('https://brew.sh/foo.tar.bz2', 'bzip2', true))
+	return ruby.bool_value(linux_dependency_collector_spec_resource_matches('https://brew.sh/foo.tar.bz2', 'bzip2', true))
 }
 
 // Ruby let `let(:formulae) do` at line 56.
-pub fn ruby_dependency_collector_spec_l56_d10_formulae(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_collector_spec_l56_d10_formulae(args ...ruby.Value) ruby.Value {
 	_ = args
-	mut values := map[string]brew_runtime.Value{}
+	mut values := map[string]ruby.Value{}
 	for name, formula in linux_dependency_collector_spec_formulae() {
-		values[name] = brew_runtime.structured_value('Formula', formula.name, {
+		values[name] = ruby.structured_value('Formula', formula.name, {
 			'name': formula.name
 			'deps': ''
 		})
 	}
-	return brew_runtime.map_value(values)
+	return ruby.map_value(values)
 }
 
 // Ruby method `global_dep_tree` at line 70.
-pub fn ruby_dependency_collector_spec_l70_d11_global_dep_tree(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_collector_spec_l70_d11_global_dep_tree(args ...ruby.Value) ruby.Value {
 	needs_build := args.len > 0 && (args[0].as_bool() or { false })
 	needs_libc := args.len > 1 && (args[1].as_bool() or { false })
 	collector := production_linux.new_linux_dependency_collector(needs_build, needs_libc, linux_dependency_collector_spec_formulae())
-	mut tree := map[string]brew_runtime.Value{}
+	mut tree := map[string]ruby.Value{}
 	for name, dependencies in collector.global_dep_tree {
-		tree[name] = brew_runtime.string_array_value(dependencies)
+		tree[name] = ruby.string_array_value(dependencies)
 	}
-	return brew_runtime.map_value(tree)
+	return ruby.map_value(tree)
 }
 
 // Ruby it `it "is empty when build formulae and a libc formula aren't needed" do` at line 74.
-pub fn ruby_dependency_collector_spec_l74_d12_is(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_collector_spec_l74_d12_is(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(linux_dependency_collector_spec_implicit_names(false, false).len == 0)
+	return ruby.bool_value(linux_dependency_collector_spec_implicit_names(false, false).len == 0)
 }
 
 // Ruby it `it "includes gcc when build formulae are needed" do` at line 78.
-pub fn ruby_dependency_collector_spec_l78_d13_includes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_collector_spec_l78_d13_includes(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(production_linux.linux_dependency_collector_gcc in linux_dependency_collector_spec_implicit_names(true, false))
+	return ruby.bool_value(production_linux.linux_dependency_collector_gcc in linux_dependency_collector_spec_implicit_names(true, false))
 }
 
 // Ruby it `it "includes glibc when a libc formula is needed" do` at line 84.
-pub fn ruby_dependency_collector_spec_l84_d14_includes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_collector_spec_l84_d14_includes(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(production_linux.linux_dependency_collector_glibc in linux_dependency_collector_spec_implicit_names(false, true))
+	return ruby.bool_value(production_linux.linux_dependency_collector_glibc in linux_dependency_collector_spec_implicit_names(false, true))
 }
 
 // Original Ruby source (line-for-line):

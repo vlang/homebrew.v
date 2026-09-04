@@ -1,28 +1,28 @@
 module ffi
 
-import brew_runtime
+import ruby
 import homebrew.os.mac.ffi as mac_ffi
 
 // Translated from Homebrew/brew `test/os/mac/ffi/xattr_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "replaces destination extended attributes with source extended attributes" do` at line 8.
-pub fn ruby_xattr_spec_l8_d1_replaces(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_xattr_spec_l8_d1_replaces(args ...ruby.Value) ruby.Value {
 	mut store := mac_ffi.XattrStore{}
 	mac_ffi.set_xattr(mut store, '/tmp/source', 'com.homebrew.test.source', 'source') or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	mac_ffi.set_xattr(mut store, '/tmp/destination', 'com.homebrew.test.destination', 'destination') or { return brew_runtime.bool_value(false) }
+	mac_ffi.set_xattr(mut store, '/tmp/destination', 'com.homebrew.test.destination', 'destination') or { return ruby.bool_value(false) }
 	mac_ffi.copy_xattrs(mut store, '/tmp/source', '/tmp/destination') or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	attributes := mac_ffi.list_xattrs(&store, '/tmp/destination') or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	value := mac_ffi.get_xattr(&store, '/tmp/destination', 'com.homebrew.test.source') or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value('com.homebrew.test.source' in attributes && 'com.homebrew.test.destination' !in attributes && value == 'source')
+	return ruby.bool_value('com.homebrew.test.source' in attributes && 'com.homebrew.test.destination' !in attributes && value == 'source')
 }
 
 // Original Ruby source (line-for-line):

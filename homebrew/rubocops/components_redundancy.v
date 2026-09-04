@@ -1,6 +1,6 @@
 module rubocops
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `rubocops/components_redundancy.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -176,8 +176,8 @@ pub fn audit_components_redundancy(source string) []ComponentsRedundancyProblem 
 	return problems
 }
 
-fn components_redundancy_problem_value(problem ComponentsRedundancyProblem) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cop::Problem', problem.message, {
+fn components_redundancy_problem_value(problem ComponentsRedundancyProblem) ruby.Value {
+	return ruby.structured_value('RuboCop::Cop::Problem', problem.message, {
 		'kind':      problem.kind
 		'begin_pos': problem.begin_pos.str()
 		'end_pos':   problem.end_pos.str()
@@ -186,9 +186,9 @@ fn components_redundancy_problem_value(problem ComponentsRedundancyProblem) brew
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 24.
-pub fn ruby_components_redundancy_l24_d1_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_redundancy_l24_d1_audit_formula(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.array_value(audit_components_redundancy(source).map(components_redundancy_problem_value(it)))
+	return ruby.array_value(audit_components_redundancy(source).map(components_redundancy_problem_value(it)))
 }
 
 // Original Ruby source (line-for-line):

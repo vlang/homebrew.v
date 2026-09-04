@@ -1,6 +1,6 @@
 module bindata
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/bindata-2.5.1/lib/bindata/registry.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -12,14 +12,14 @@ pub:
 
 pub struct Registry {
 mut:
-	entries          map[string]brew_runtime.Value
+	entries          map[string]ruby.Value
 	warning_messages []string
 	dynamic_classes  bool
 }
 
 pub fn new_registry() Registry {
 	return Registry{
-		entries: map[string]brew_runtime.Value{}
+		entries: map[string]ruby.Value{}
 	}
 }
 
@@ -27,7 +27,7 @@ pub fn new_registered_classes_registry() Registry {
 	// These are the eager registrations performed by int.rb, float.rb and
 	// bits.rb before the singleton RegisteredClasses registry is used.
 	mut registry := Registry{
-		entries: map[string]brew_runtime.Value{}
+		entries: map[string]ruby.Value{}
 		dynamic_classes: true
 	}
 	registry.register('Uint8', integer_class_value(IntegerClass{'Uint8', 8, .little, .unsigned}))
@@ -75,11 +75,11 @@ pub fn underscore_registry_name(name string) string {
 	return formatted.bytestr().to_lower()
 }
 
-fn runtime_classes_equal(left brew_runtime.Value, right brew_runtime.Value) bool {
+fn runtime_classes_equal(left ruby.Value, right ruby.Value) bool {
 	return left.type_name == right.type_name && left.repr == right.repr && left.attributes == right.attributes
 }
 
-pub fn (mut registry Registry) register(name string, class_to_register brew_runtime.Value) {
+pub fn (mut registry Registry) register(name string, class_to_register ruby.Value) {
 	formatted_name := underscore_registry_name(name)
 	if previous := registry.entries[formatted_name] {
 		if !runtime_classes_equal(previous, class_to_register) {
@@ -89,7 +89,7 @@ pub fn (mut registry Registry) register(name string, class_to_register brew_runt
 	registry.entries[formatted_name] = class_to_register
 }
 
-pub fn (mut registry Registry) unregister(name string) ?brew_runtime.Value {
+pub fn (mut registry Registry) unregister(name string) ?ruby.Value {
 	formatted_name := underscore_registry_name(name)
 	if previous := registry.entries[formatted_name] {
 		registry.entries.delete(formatted_name)
@@ -195,7 +195,7 @@ pub fn (mut registry Registry) register_dynamic_class(name string) {
 	}
 }
 
-pub fn (mut registry Registry) lookup(name string, hints RegistryHints) !brew_runtime.Value {
+pub fn (mut registry Registry) lookup(name string, hints RegistryHints) !ruby.Value {
 	for search in registry_search_names(name, hints) {
 		registry.register_dynamic_class(search)
 		if registered := registry.entries[search] {
@@ -215,8 +215,8 @@ pub fn (mut registry Registry) lookup(name string, hints RegistryHints) !brew_ru
 	return error(name)
 }
 
-fn registry_value(registry Registry) brew_runtime.Value {
-	return brew_runtime.Value{
+fn registry_value(registry Registry) ruby.Value {
+	return ruby.Value{
 		type_name: 'BinData::Registry'
 		repr: 'BinData::Registry'
 		map_data: registry.entries
@@ -227,7 +227,7 @@ fn registry_value(registry Registry) brew_runtime.Value {
 	}
 }
 
-fn registry_from_value(value brew_runtime.Value) Registry {
+fn registry_from_value(value ruby.Value) Registry {
 	return Registry{
 		entries: value.map_data
 		warning_messages: value.string_array_data
@@ -235,7 +235,7 @@ fn registry_from_value(value brew_runtime.Value) Registry {
 	}
 }
 
-fn registry_hints_from_value(value brew_runtime.Value) RegistryHints {
+fn registry_hints_from_value(value ruby.Value) RegistryHints {
 	if value.type_name != 'Hash' {
 		return RegistryHints{}
 	}
@@ -264,17 +264,17 @@ fn registry_hints_from_value(value brew_runtime.Value) RegistryHints {
 	return result
 }
 
-fn nil_registry_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn nil_registry_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `initialize` at line 21.
-pub fn ruby_registry_l21_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_registry_l21_d1_initialize(args ...ruby.Value) ruby.Value {
 	return registry_value(new_registry())
 }
 
 // Ruby method `register(name, class_to_register)` at line 25.
-pub fn ruby_registry_l25_d2_register(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_registry_l25_d2_register(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('Registry#register requires a receiver, name and class')
 	}
@@ -287,7 +287,7 @@ pub fn ruby_registry_l25_d2_register(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby method `unregister(name)` at line 34.
-pub fn ruby_registry_l34_d3_unregister(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_registry_l34_d3_unregister(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Registry#unregister requires a receiver and name')
 	}
@@ -296,7 +296,7 @@ pub fn ruby_registry_l34_d3_unregister(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby method `lookup(name, hints = {})` at line 38.
-pub fn ruby_registry_l38_d4_lookup(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_registry_l38_d4_lookup(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Registry#lookup requires a receiver and name')
 	}
@@ -306,31 +306,31 @@ pub fn ruby_registry_l38_d4_lookup(args ...brew_runtime.Value) brew_runtime.Valu
 }
 
 // Ruby method `underscore_name(name)` at line 58.
-pub fn ruby_registry_l58_d5_underscore_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_registry_l58_d5_underscore_name(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Registry#underscore_name requires a receiver and name')
 	}
-	return brew_runtime.string_value(underscore_registry_name(args[1].as_string().trim_left(':')))
+	return ruby.string_value(underscore_registry_name(args[1].as_string().trim_left(':')))
 }
 
 // Ruby method `search_names(name, hints)` at line 71.
-pub fn ruby_registry_l71_d6_search_names(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_registry_l71_d6_search_names(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('Registry#search_names requires a receiver, name and hints')
 	}
-	return brew_runtime.string_array_value(registry_search_names(args[1].as_string().trim_left(':'), registry_hints_from_value(args[2])))
+	return ruby.string_array_value(registry_search_names(args[1].as_string().trim_left(':'), registry_hints_from_value(args[2])))
 }
 
 // Ruby method `name_with_prefix(name, prefix)` at line 87.
-pub fn ruby_registry_l87_d7_name_with_prefix(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_registry_l87_d7_name_with_prefix(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('Registry#name_with_prefix requires a receiver, name and prefix')
 	}
-	return brew_runtime.string_value(name_with_registry_prefix(args[1].as_string(), args[2].as_string().trim_left(':')))
+	return ruby.string_value(name_with_registry_prefix(args[1].as_string(), args[2].as_string().trim_left(':')))
 }
 
 // Ruby method `name_with_endian(name, endian)` at line 96.
-pub fn ruby_registry_l96_d8_name_with_endian(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_registry_l96_d8_name_with_endian(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('Registry#name_with_endian requires a receiver, name and endian')
 	}
@@ -342,13 +342,13 @@ pub fn ruby_registry_l96_d8_name_with_endian(args ...brew_runtime.Value) brew_ru
 	} else {
 		IntEndian.big
 	}
-	return brew_runtime.string_value(name_with_registry_endian(args[1].as_string(), endian) or {
+	return ruby.string_value(name_with_registry_endian(args[1].as_string(), endian) or {
 		panic('endian suffix is missing')
 	})
 }
 
 // Ruby method `register_dynamic_class(name)` at line 107.
-pub fn ruby_registry_l107_d9_register_dynamic_class(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_registry_l107_d9_register_dynamic_class(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Registry#register_dynamic_class requires a receiver and name')
 	}
@@ -358,7 +358,7 @@ pub fn ruby_registry_l107_d9_register_dynamic_class(args ...brew_runtime.Value) 
 }
 
 // Ruby method `warn_if_name_is_already_registered(name, class_to_register)` at line 118.
-pub fn ruby_registry_l118_d10_warn_if_name_is_already_registered(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_registry_l118_d10_warn_if_name_is_already_registered(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('Registry#warning check requires a receiver, name and class')
 	}

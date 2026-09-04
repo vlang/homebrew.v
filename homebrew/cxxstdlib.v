@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `cxxstdlib.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -58,14 +58,14 @@ pub fn (stdlib CxxStdlib) inspect() string {
 	return '#<CxxStdlib: ${stdlib.compiler} ${stdlib.type_symbol()}>'
 }
 
-fn cxxstdlib_boundary_value(stdlib CxxStdlib) brew_runtime.Value {
-	return brew_runtime.structured_value('CxxStdlib', stdlib.inspect(), {
+fn cxxstdlib_boundary_value(stdlib CxxStdlib) ruby.Value {
+	return ruby.structured_value('CxxStdlib', stdlib.inspect(), {
 		'type':     stdlib.type_symbol()
 		'compiler': stdlib.compiler
 	})
 }
 
-fn cxxstdlib_from_boundary(value brew_runtime.Value) CxxStdlib {
+fn cxxstdlib_from_boundary(value ruby.Value) CxxStdlib {
 	if value.type_name != 'CxxStdlib' {
 		panic('expected CxxStdlib, got ${value.type_name}')
 	}
@@ -75,7 +75,7 @@ fn cxxstdlib_from_boundary(value brew_runtime.Value) CxxStdlib {
 }
 
 // Ruby method `self.create(type, compiler)` at line 9.
-pub fn ruby_cxxstdlib_l9_d1_self_create(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cxxstdlib_l9_d1_self_create(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('CxxStdlib.create requires type and compiler')
 	}
@@ -86,45 +86,45 @@ pub fn ruby_cxxstdlib_l9_d1_self_create(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby attr_reader `attr_reader :type` at line 16.
-pub fn ruby_cxxstdlib_l16_d2_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cxxstdlib_l16_d2_type(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('CxxStdlib#type requires a receiver')
 	}
 	type_symbol := cxxstdlib_from_boundary(args[0]).type_symbol()
 	return if type_symbol == '' {
-		brew_runtime.object_value('NilClass', '')
+		ruby.object_value('NilClass', '')
 	} else {
-		brew_runtime.object_value('Symbol', type_symbol)
+		ruby.object_value('Symbol', type_symbol)
 	}
 }
 
 // Ruby attr_reader `attr_reader :compiler` at line 19.
-pub fn ruby_cxxstdlib_l19_d3_compiler(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cxxstdlib_l19_d3_compiler(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('CxxStdlib#compiler requires a receiver')
 	}
-	return brew_runtime.object_value('Symbol', cxxstdlib_from_boundary(args[0]).compiler)
+	return ruby.object_value('Symbol', cxxstdlib_from_boundary(args[0]).compiler)
 }
 
 // Ruby method `initialize(type, compiler)` at line 22.
-pub fn ruby_cxxstdlib_l22_d4_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cxxstdlib_l22_d4_initialize(args ...ruby.Value) ruby.Value {
 	return ruby_cxxstdlib_l9_d1_self_create(...args)
 }
 
 // Ruby method `type_string` at line 28.
-pub fn ruby_cxxstdlib_l28_d5_type_string(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cxxstdlib_l28_d5_type_string(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('CxxStdlib#type_string requires a receiver')
 	}
-	return brew_runtime.string_value(cxxstdlib_from_boundary(args[0]).type_string())
+	return ruby.string_value(cxxstdlib_from_boundary(args[0]).type_string())
 }
 
 // Ruby method `inspect` at line 33.
-pub fn ruby_cxxstdlib_l33_d6_inspect(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cxxstdlib_l33_d6_inspect(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('CxxStdlib#inspect requires a receiver')
 	}
-	return brew_runtime.string_value(cxxstdlib_from_boundary(args[0]).inspect())
+	return ruby.string_value(cxxstdlib_from_boundary(args[0]).inspect())
 }
 
 // Original Ruby source (line-for-line):

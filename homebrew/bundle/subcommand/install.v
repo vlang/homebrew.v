@@ -1,12 +1,12 @@
 module subcommand
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `bundle/subcommand/install.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `run` at line 58.
-pub fn ruby_install_l58_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_l58_d1_run(args ...ruby.Value) ruby.Value {
 	options := BundleInstallCommandOptions{
 		zap: if args.len > 0 { args[0].as_bool() or { false } } else { false }
 		cleanup: if args.len > 1 { args[1].as_bool() or { false } } else { false }
@@ -14,17 +14,17 @@ pub fn ruby_install_l58_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
 		force: if args.len > 3 { args[3].as_bool() or { false } } else { false }
 		ask: if args.len > 4 { args[4].as_bool() or { false } } else { false }
 		install_succeeded: if args.len > 5 { args[5].as_bool() or { true } } else { true }
-		dsl: if args.len > 6 { args[6] } else { brew_runtime.object_value('NilClass', '') }
+		dsl: if args.len > 6 { args[6] } else { ruby.object_value('NilClass', '') }
 	}
 	plan := build_bundle_install_plan(options) or {
-		return brew_runtime.object_value('UsageError', err.msg())
+		return ruby.object_value('UsageError', err.msg())
 	}
 	return bundle_install_plan_value(plan)
 }
 
 // Ruby method `dsl` at line 104.
-pub fn ruby_install_l104_d2_dsl(args ...brew_runtime.Value) brew_runtime.Value {
-	return if args.len > 0 { args[0] } else { brew_runtime.object_value('NilClass', '') }
+pub fn ruby_install_l104_d2_dsl(args ...ruby.Value) ruby.Value {
+	return if args.len > 0 { args[0] } else { ruby.object_value('NilClass', '') }
 }
 
 pub struct BundleInstallCommandOptions {
@@ -35,7 +35,7 @@ pub:
 	force             bool
 	ask               bool
 	install_succeeded bool = true
-	dsl               brew_runtime.Value
+	dsl               ruby.Value
 	global            bool
 	file              string
 	no_upgrade        bool
@@ -46,7 +46,7 @@ pub:
 
 pub struct BundleInstallPlan {
 pub:
-	dsl                       brew_runtime.Value
+	dsl                       ruby.Value
 	install_exit_code         int
 	mark_installed_on_request bool
 	cleanup_requested         bool
@@ -82,8 +82,8 @@ pub fn build_bundle_install_plan(options BundleInstallCommandOptions) !BundleIns
 	}
 }
 
-fn bundle_install_plan_value(plan BundleInstallPlan) brew_runtime.Value {
-	return brew_runtime.structured_value('Bundle::InstallSubcommand::Plan', plan.install_exit_code.str(), {
+fn bundle_install_plan_value(plan BundleInstallPlan) ruby.Value {
+	return ruby.structured_value('Bundle::InstallSubcommand::Plan', plan.install_exit_code.str(), {
 		'install_exit_code':         plan.install_exit_code.str()
 		'mark_installed_on_request': plan.mark_installed_on_request.str()
 		'cleanup_requested':         plan.cleanup_requested.str()

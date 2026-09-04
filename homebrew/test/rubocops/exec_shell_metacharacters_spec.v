@@ -1,14 +1,14 @@
 module rubocops
 
-import brew_runtime
+import ruby
 import homebrew.rubocops as exec_shell_core
 
 // Translated from Homebrew/brew `test/rubocops/exec_shell_metacharacters_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
-pub fn ruby_exec_shell_metacharacters_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('RuboCop::Cop::Homebrew::ExecShellMetacharacters', 'Homebrew/ExecShellMetacharacters')
+pub fn ruby_exec_shell_metacharacters_spec_l7_d1_cop(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('RuboCop::Cop::Homebrew::ExecShellMetacharacters', 'Homebrew/ExecShellMetacharacters')
 }
 
 // Ruby it `it "reports aan offense when output piping is used" do` at line 10.

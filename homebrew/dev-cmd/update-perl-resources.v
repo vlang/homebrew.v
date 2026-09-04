@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 import homebrew.utils
 
 // Translated from Homebrew/brew `dev-cmd/update-perl-resources.rb`.
@@ -66,44 +66,44 @@ pub:
 	metadata_payload string
 }
 
-pub fn update_perl_resources_input_boundary(input &UpdatePerlResourcesInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::UpdatePerlResources::Input', '', {
+pub fn update_perl_resources_input_boundary(input &UpdatePerlResourcesInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::UpdatePerlResources::Input', '', {
 		'update_perl_resources_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn update_perl_resources_input_from_value(value brew_runtime.Value) &UpdatePerlResourcesInput {
+fn update_perl_resources_input_from_value(value ruby.Value) &UpdatePerlResourcesInput {
 	address := value.attributes['update_perl_resources_input_address'] or {
 		panic('invalid UpdatePerlResources input')
 	}
 	return unsafe { &UpdatePerlResourcesInput(voidptr(address.u64())) }
 }
 
-fn cpan_update_result_value(result utils.CpanUpdateResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'resource_section': brew_runtime.string_value(result.resource_section)
-		'updated_source':   brew_runtime.string_value(result.updated_source)
-		'messages':         brew_runtime.string_array_value(result.messages)
-		'errors':           brew_runtime.string_array_value(result.errors)
-		'updated_count':    brew_runtime.int_value(result.updated_count)
-		'failed':           brew_runtime.bool_value(result.failed)
+fn cpan_update_result_value(result utils.CpanUpdateResult) ruby.Value {
+	return ruby.map_value({
+		'resource_section': ruby.string_value(result.resource_section)
+		'updated_source':   ruby.string_value(result.updated_source)
+		'messages':         ruby.string_array_value(result.messages)
+		'errors':           ruby.string_array_value(result.errors)
+		'updated_count':    ruby.int_value(result.updated_count)
+		'failed':           ruby.bool_value(result.failed)
 	})
 }
 
-fn update_perl_resources_result_value(result UpdatePerlResourcesResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'bundler_groups': brew_runtime.string_array_value(result.bundler_groups)
-		'updates':        brew_runtime.array_value(result.updates.map(cpan_update_result_value(it)))
-		'stdout':         brew_runtime.string_array_value(result.stdout)
-		'stderr':         brew_runtime.string_array_value(result.stderr)
-		'failed':         brew_runtime.bool_value(result.failed)
+fn update_perl_resources_result_value(result UpdatePerlResourcesResult) ruby.Value {
+	return ruby.map_value({
+		'bundler_groups': ruby.string_array_value(result.bundler_groups)
+		'updates':        ruby.array_value(result.updates.map(cpan_update_result_value(it)))
+		'stdout':         ruby.string_array_value(result.stdout)
+		'stderr':         ruby.string_array_value(result.stderr)
+		'failed':         ruby.bool_value(result.failed)
 	})
 }
 
 // Ruby method `run` at line 26.
-pub fn ruby_update_perl_resources_l26_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_perl_resources_l26_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'command input is required')
+		return ruby.object_value('ArgumentError', 'command input is required')
 	}
 	input := update_perl_resources_input_from_value(args[0])
 	payload := input.metadata_payload
@@ -112,7 +112,7 @@ pub fn ruby_update_perl_resources_l26_d1_run(args ...brew_runtime.Value) brew_ru
 			return error('MetaCPAN response was not supplied')
 		}
 		return payload
-	}) or { return brew_runtime.object_value('Error', err.msg()) }
+	}) or { return ruby.object_value('Error', err.msg()) }
 	return update_perl_resources_result_value(result)
 }
 

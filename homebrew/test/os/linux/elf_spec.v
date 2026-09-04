@@ -1,42 +1,42 @@
 module linux
 
-import brew_runtime
+import ruby
 import homebrew.os.linux.elf
 
 // Translated from Homebrew/brew `test/os/linux/elf_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "expands tokens that are not wrapped in curly braces" do` at line 6.
-pub fn ruby_elf_spec_l6_d1_expands(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_elf_spec_l6_d1_expands(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(elf.expand_elf_dst(r'$ORIGIN/../lib', 'ORIGIN', '/opt/homebrew/bin') == '/opt/homebrew/bin/../lib')
+	return ruby.bool_value(elf.expand_elf_dst(r'$ORIGIN/../lib', 'ORIGIN', '/opt/homebrew/bin') == '/opt/homebrew/bin/../lib')
 }
 
 // Ruby it `it "expands tokens that are wrapped in curly braces" do` at line 14.
-pub fn ruby_elf_spec_l14_d2_expands(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_elf_spec_l14_d2_expands(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(elf.expand_elf_dst(r'${ORIGIN}/../lib', 'ORIGIN', '/opt/homebrew/bin') == '/opt/homebrew/bin/../lib' && elf.expand_elf_dst(r'${ORIGIN}new/../lib', 'ORIGIN', '/opt/homebrew/bin') == '/opt/homebrew/binnew/../lib')
+	return ruby.bool_value(elf.expand_elf_dst(r'${ORIGIN}/../lib', 'ORIGIN', '/opt/homebrew/bin') == '/opt/homebrew/bin/../lib' && elf.expand_elf_dst(r'${ORIGIN}new/../lib', 'ORIGIN', '/opt/homebrew/bin') == '/opt/homebrew/binnew/../lib')
 }
 
 // Ruby it `it "expands multiple occurrences of token" do` at line 28.
-pub fn ruby_elf_spec_l28_d3_expands(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_elf_spec_l28_d3_expands(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(elf.expand_elf_dst(r'${ORIGIN}/../..$ORIGIN/../lib', 'ORIGIN', '/opt/homebrew/bin') == '/opt/homebrew/bin/../../opt/homebrew/bin/../lib')
+	return ruby.bool_value(elf.expand_elf_dst(r'${ORIGIN}/../..$ORIGIN/../lib', 'ORIGIN', '/opt/homebrew/bin') == '/opt/homebrew/bin/../../opt/homebrew/bin/../lib')
 }
 
 // Ruby it `it "rejects and passes through tokens containing additional characters" do` at line 36.
-pub fn ruby_elf_spec_l36_d4_rejects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_elf_spec_l36_d4_rejects(args ...ruby.Value) ruby.Value {
 	_ = args
 	values := [r'$ORIGINAL/../lib', r'$ORIGIN_/../lib', r'$ORIGIN_STORY/../lib', r'${ORIGINAL}/../lib',
 		r'${ORIGIN_}/../lib', r'${ORIGIN_STORY}/../lib']
-	return brew_runtime.bool_value(values.all(elf.expand_elf_dst(it, 'ORIGIN', '/opt/homebrew/bin') == it))
+	return ruby.bool_value(values.all(elf.expand_elf_dst(it, 'ORIGIN', '/opt/homebrew/bin') == it))
 }
 
 // Ruby it `it "rejects and passes through tokens with mismatched curly braces" do` at line 74.
-pub fn ruby_elf_spec_l74_d5_rejects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_elf_spec_l74_d5_rejects(args ...ruby.Value) ruby.Value {
 	_ = args
 	values := [r'${ORIGIN/../lib', r'$ORIGIN}/../lib']
-	return brew_runtime.bool_value(values.all(elf.expand_elf_dst(it, 'ORIGIN', '/opt/homebrew/bin') == it))
+	return ruby.bool_value(values.all(elf.expand_elf_dst(it, 'ORIGIN', '/opt/homebrew/bin') == it))
 }
 
 // Original Ruby source (line-for-line):

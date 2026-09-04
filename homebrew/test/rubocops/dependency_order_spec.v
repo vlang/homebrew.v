@@ -1,15 +1,15 @@
 module rubocops
 
-import brew_runtime
+import ruby
 import homebrew.rubocops as dependency_order_core
 
 // Translated from Homebrew/brew `test/rubocops/dependency_order_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
-pub fn ruby_dependency_order_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_order_spec_l7_d1_cop(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::DependencyOrder', 'FormulaAudit/DependencyOrder')
+	return ruby.object_value('RuboCop::Cop::FormulaAudit::DependencyOrder', 'FormulaAudit/DependencyOrder')
 }
 
 fn dependency_order_spec_formula(lines []string) string {

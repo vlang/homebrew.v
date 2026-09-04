@@ -1,6 +1,6 @@
 module util
 
-import brew_runtime
+import ruby
 import math
 import sync
 
@@ -17,11 +17,11 @@ pub:
 	plan VolatileClassPlan
 mut:
 	lock   sync.RwMutex
-	values map[string]brew_runtime.Value
+	values map[string]ruby.Value
 }
 
-fn volatile_nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn volatile_nil_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 pub fn volatile_attributes(names []string) VolatileClassPlan {
@@ -37,7 +37,7 @@ pub fn volatile_attributes(names []string) VolatileClassPlan {
 }
 
 pub fn new_volatile_object(plan VolatileClassPlan) &VolatileObject {
-	mut values := map[string]brew_runtime.Value{}
+	mut values := map[string]ruby.Value{}
 	for name in plan.attributes {
 		values[name] = volatile_nil_value()
 	}
@@ -63,7 +63,7 @@ fn (object &VolatileObject) validate_attribute(name string) ! {
 	}
 }
 
-pub fn (mut object VolatileObject) get(name string) !brew_runtime.Value {
+pub fn (mut object VolatileObject) get(name string) !ruby.Value {
 	object.validate_attribute(name)!
 	object.lock.rlock()
 	value := object.values[name]
@@ -71,7 +71,7 @@ pub fn (mut object VolatileObject) get(name string) !brew_runtime.Value {
 	return value
 }
 
-pub fn (mut object VolatileObject) set(name string, value brew_runtime.Value) !brew_runtime.Value {
+pub fn (mut object VolatileObject) set(name string, value ruby.Value) !ruby.Value {
 	object.validate_attribute(name)!
 	object.lock.lock()
 	object.values[name] = value
@@ -79,7 +79,7 @@ pub fn (mut object VolatileObject) set(name string, value brew_runtime.Value) !b
 	return value
 }
 
-fn volatile_values_match(actual brew_runtime.Value, expected brew_runtime.Value) bool {
+fn volatile_values_match(actual ruby.Value, expected ruby.Value) bool {
 	if expected.type_name == 'Integer' || expected.type_name == 'Float' {
 		if actual.type_name != 'Integer' && actual.type_name != 'Float' {
 			return false
@@ -97,7 +97,7 @@ fn volatile_values_match(actual brew_runtime.Value, expected brew_runtime.Value)
 	return actual.type_name == expected.type_name && actual.repr == expected.repr
 }
 
-pub fn (mut object VolatileObject) compare_and_set(name string, expected brew_runtime.Value, prospect brew_runtime.Value) !bool {
+pub fn (mut object VolatileObject) compare_and_set(name string, expected ruby.Value, prospect ruby.Value) !bool {
 	object.validate_attribute(name)!
 	object.lock.lock()
 	if volatile_values_match(object.values[name], expected) {
@@ -109,24 +109,24 @@ pub fn (mut object VolatileObject) compare_and_set(name string, expected brew_ru
 	return false
 }
 
-fn volatile_plan_value(plan VolatileClassPlan) brew_runtime.Value {
-	return brew_runtime.structured_value('Concurrent::ThreadSafe::Util::VolatileClassPlan', plan.attributes.str(), {
+fn volatile_plan_value(plan VolatileClassPlan) ruby.Value {
+	return ruby.structured_value('Concurrent::ThreadSafe::Util::VolatileClassPlan', plan.attributes.str(), {
 		'attributes': plan.attributes.join(',')
 	})
 }
 
-fn volatile_plan_from_value(value brew_runtime.Value) VolatileClassPlan {
+fn volatile_plan_from_value(value ruby.Value) VolatileClassPlan {
 	return volatile_attributes((value.attribute('attributes') or { '' }).split(',').filter(it.len > 0))
 }
 
-fn volatile_object_value(object &VolatileObject) brew_runtime.Value {
-	return brew_runtime.structured_value('Concurrent::ThreadSafe::Util::VolatileObject', '#<VolatileObject>', {
+fn volatile_object_value(object &VolatileObject) ruby.Value {
+	return ruby.structured_value('Concurrent::ThreadSafe::Util::VolatileObject', '#<VolatileObject>', {
 		'volatile_object_address': u64(voidptr(object)).str()
 		'attributes':              object.plan.attributes.join(',')
 	})
 }
 
-fn volatile_object_from_value(value brew_runtime.Value) &VolatileObject {
+fn volatile_object_from_value(value ruby.Value) &VolatileObject {
 	address := (value.attribute('volatile_object_address') or {
 		panic('${value.type_name} has no translated volatile state')
 	}).u64()
@@ -134,12 +134,12 @@ fn volatile_object_from_value(value brew_runtime.Value) &VolatileObject {
 }
 
 // Ruby method `attr_volatile(*attr_names)` at line 33.
-pub fn ruby_volatile_l33_d1_attr_volatile(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_volatile_l33_d1_attr_volatile(args ...ruby.Value) ruby.Value {
 	return volatile_plan_value(volatile_attributes(args.map(it.as_string())))
 }
 
 // Ruby method `initialize(*)` at line 41.
-pub fn ruby_volatile_l41_d2_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_volatile_l41_d2_initialize(args ...ruby.Value) ruby.Value {
 	plan := if args.len > 0 && args[0].type_name == 'Concurrent::ThreadSafe::Util::VolatileClassPlan' {
 		volatile_plan_from_value(args[0])
 	} else {
@@ -149,7 +149,7 @@ pub fn ruby_volatile_l41_d2_initialize(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby method `initialize_copy(other)` at line 46.
-pub fn ruby_volatile_l46_d3_initialize_copy(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_volatile_l46_d3_initialize_copy(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Volatile#initialize_copy requires another object')
 	}
@@ -158,7 +158,7 @@ pub fn ruby_volatile_l46_d3_initialize_copy(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby method `#{attr_name}` at line 54.
-pub fn ruby_volatile_l54_d4_attr_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_volatile_l54_d4_attr_name(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('volatile getter requires receiver and attribute name')
 	}
@@ -167,7 +167,7 @@ pub fn ruby_volatile_l54_d4_attr_name(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby method `#{attr_name}=(value)` at line 58.
-pub fn ruby_volatile_l58_d5_attr_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_volatile_l58_d5_attr_name(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('volatile setter requires receiver, attribute name, and value')
 	}
@@ -176,23 +176,23 @@ pub fn ruby_volatile_l58_d5_attr_name(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby method `compare_and_set_#{attr_name}(old_value, new_value)` at line 62.
-pub fn ruby_volatile_l62_d6_compare_and_set_attr_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_volatile_l62_d6_compare_and_set_attr_name(args ...ruby.Value) ruby.Value {
 	if args.len < 4 {
 		panic('volatile compare_and_set requires receiver, attribute name, old value, and new value')
 	}
 	mut object := volatile_object_from_value(args[0])
-	return brew_runtime.bool_value(object.compare_and_set(args[1].as_string(), args[2], args[3]) or {
+	return ruby.bool_value(object.compare_and_set(args[1].as_string(), args[2], args[3]) or {
 		panic(err)
 	})
 }
 
 // Ruby alias_method `alias_method :"cas_#{attr_name}", :"compare_and_set_#{attr_name}"` at line 67.
-pub fn ruby_volatile_l67_d7_cas_attr_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_volatile_l67_d7_cas_attr_name(args ...ruby.Value) ruby.Value {
 	return ruby_volatile_l62_d6_compare_and_set_attr_name(...args)
 }
 
 // Ruby alias_method `alias_method :"lazy_set_#{attr_name}", :"#{attr_name}="` at line 68.
-pub fn ruby_volatile_l68_d8_lazy_set_attr_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_volatile_l68_d8_lazy_set_attr_name(args ...ruby.Value) ruby.Value {
 	return ruby_volatile_l58_d5_attr_name(...args)
 }
 

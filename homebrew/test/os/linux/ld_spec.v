@@ -1,6 +1,6 @@
 module linux
 
-import brew_runtime
+import ruby
 import homebrew.os.linux as linux_ld
 import os
 import time
@@ -39,62 +39,62 @@ pub fn ld_spec_parsed_library_paths(root string) ![]string {
 }
 
 // Ruby let `let(:diagnostics) do` at line 8.
-pub fn ruby_ld_spec_l8_d1_diagnostics(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ld_spec_l8_d1_diagnostics(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value(ld_spec_diagnostics)
+	return ruby.string_value(ld_spec_diagnostics)
 }
 
 // Ruby let `let(:ld_so) { "/lib/ld-linux.so.3" }` at line 18.
-pub fn ruby_ld_spec_l18_d2_ld_so(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ld_spec_l18_d2_ld_so(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value(ld_spec_linker)
+	return ruby.string_value(ld_spec_linker)
 }
 
 // Ruby it `it "returns the path to a known dynamic linker" do` at line 25.
-pub fn ruby_ld_spec_l25_d3_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ld_spec_l25_d3_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	linker := linux_ld.find_system_ld_so_in(linux_ld.dynamic_linkers, ld_spec_known_linker_executable) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(linker == ld_spec_linker)
+	return ruby.bool_value(linker == ld_spec_linker)
 }
 
 // Ruby it `it "returns nil when there is no known dynamic linker" do` at line 30.
-pub fn ruby_ld_spec_l30_d4_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ld_spec_l30_d4_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	linker := linux_ld.find_system_ld_so_in(linux_ld.dynamic_linkers, ld_spec_never_executable)
-	return brew_runtime.bool_value(linker == none)
+	return ruby.bool_value(linker == none)
 }
 
 // Ruby it `it "returns path.sysconfdir" do` at line 36.
-pub fn ruby_ld_spec_l36_d5_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ld_spec_l36_d5_returns(args ...ruby.Value) ruby.Value {
 	diagnostics := if args.len > 0 { args[0].as_string() } else { ld_spec_diagnostics }
-	return brew_runtime.bool_value(linux_ld.sysconfdir_from_diagnostics(diagnostics) == '/usr/local/etc')
+	return ruby.bool_value(linux_ld.sysconfdir_from_diagnostics(diagnostics) == '/usr/local/etc')
 }
 
 // Ruby it `it "returns fallback on blank diagnostics" do` at line 42.
-pub fn ruby_ld_spec_l42_d6_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ld_spec_l42_d6_returns(args ...ruby.Value) ruby.Value {
 	diagnostics := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.bool_value(linux_ld.sysconfdir_from_diagnostics(diagnostics) == '/etc')
+	return ruby.bool_value(linux_ld.sysconfdir_from_diagnostics(diagnostics) == '/etc')
 }
 
 // Ruby it `it "returns all path.system_dirs" do` at line 50.
-pub fn ruby_ld_spec_l50_d7_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ld_spec_l50_d7_returns(args ...ruby.Value) ruby.Value {
 	diagnostics := if args.len > 0 { args[0].as_string() } else { ld_spec_diagnostics }
-	return brew_runtime.bool_value(linux_ld.system_dirs_from_diagnostics(diagnostics) == [
+	return ruby.bool_value(linux_ld.system_dirs_from_diagnostics(diagnostics) == [
 		'/lib64',
 		'/var/lib',
 	])
 }
 
 // Ruby it `it "returns an empty array on blank diagnostics" do` at line 56.
-pub fn ruby_ld_spec_l56_d8_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ld_spec_l56_d8_returns(args ...ruby.Value) ruby.Value {
 	diagnostics := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.bool_value(linux_ld.system_dirs_from_diagnostics(diagnostics).len == 0)
+	return ruby.bool_value(linux_ld.system_dirs_from_diagnostics(diagnostics).len == 0)
 }
 
 // Ruby it `it "parses library paths successfully" do` at line 99.
-pub fn ruby_ld_spec_l99_d9_parses(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ld_spec_l99_d9_parses(args ...ruby.Value) ruby.Value {
 	root := if args.len > 0 && args[0].as_string() != '' {
 		args[0].as_string()
 	} else {
@@ -106,8 +106,8 @@ pub fn ruby_ld_spec_l99_d9_parses(args ...brew_runtime.Value) brew_runtime.Value
 			os.rmdir_all(root) or {}
 		}
 	}
-	paths := ld_spec_parsed_library_paths(root) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(paths == ['/foo/bar', '/baz/qux', '/g/h/i', '/a/b/c', '/d/e/f'])
+	paths := ld_spec_parsed_library_paths(root) or { return ruby.bool_value(false) }
+	return ruby.bool_value(paths == ['/foo/bar', '/baz/qux', '/g/h/i', '/a/b/c', '/d/e/f'])
 }
 
 // Original Ruby source (line-for-line):

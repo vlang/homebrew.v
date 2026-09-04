@@ -1,13 +1,13 @@
 module homebrew
 
-import brew_runtime
+import ruby
 import time
 
 // Translated from Homebrew/brew `homebrew.rb`.
 // The original source is retained below until every stub has a typed V body.
 pub type HomebrewRequireLoader = fn(string) !
 
-pub type HomebrewSystemRunner = fn(HomebrewSystemRequest) !brew_runtime.CommandResult
+pub type HomebrewSystemRunner = fn(HomebrewSystemRequest) !ruby.CommandResult
 
 pub type DumpStatsMatcher = fn(string) bool
 
@@ -29,12 +29,12 @@ pub mut:
 	times            map[string]f64
 }
 
-fn default_homebrew_system_runner(request HomebrewSystemRequest) !brew_runtime.CommandResult {
-	command := request.command or { return brew_runtime.CommandResult{ exit_code: 1 } }
+fn default_homebrew_system_runner(request HomebrewSystemRequest) !ruby.CommandResult {
+	command := request.command or { return ruby.CommandResult{ exit_code: 1 } }
 	if request.environment.len > 0 {
-		return brew_runtime.run_command_with_environment(command, request.arguments, request.environment)
+		return ruby.run_command_with_environment(command, request.arguments, request.environment)
 	}
-	return brew_runtime.run_command(command, request.arguments)
+	return ruby.run_command(command, request.arguments)
 }
 
 pub fn homebrew_require(path ?string, loader HomebrewRequireLoader) bool {

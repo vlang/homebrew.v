@@ -1,31 +1,31 @@
 module subcommand
 
-import brew_runtime
+import ruby
 import homebrew.extend.env
 
 // Translated from Homebrew/brew `bundle/subcommand/exec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `run` at line 45.
-pub fn ruby_exec_l45_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exec_l45_d1_run(args ...ruby.Value) ruby.Value {
 	return ruby_exec_l50_d2_self_run_command(...args)
 }
 
 // Ruby method `self.run_command(*named_args, args:, context:)` at line 50.
-pub fn ruby_exec_l50_d2_self_run_command(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exec_l50_d2_self_run_command(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'execution context is required')
+		return ruby.object_value('ArgumentError', 'execution context is required')
 	}
 	plan := build_bundle_exec_plan(bundle_exec_context_from_value(args[0])) or {
-		return brew_runtime.object_value('UsageError', err.msg())
+		return ruby.object_value('UsageError', err.msg())
 	}
 	return bundle_exec_plan_value(plan)
 }
 
 // Ruby method `self.run_external_command(` at line 87.
-pub fn ruby_exec_l87_d3_self_run_external_command(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exec_l87_d3_self_run_external_command(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'execution context is required')
+		return ruby.object_value('ArgumentError', 'execution context is required')
 	}
 	context := bundle_exec_context_from_value(args[0])
 	mut runtime := BundleExecRuntime{}
@@ -36,24 +36,24 @@ pub fn ruby_exec_l87_d3_self_run_external_command(args ...brew_runtime.Value) br
 }
 
 // Ruby method `self.map_service_info(entries, &_block)` at line 320.
-pub fn ruby_exec_l320_d4_self_map_service_info(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exec_l320_d4_self_map_service_info(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.array_value([])
+		return ruby.array_value([])
 	}
 	services := map_service_info(bundle_exec_context_from_value(args[0]).services) or {
-		return brew_runtime.object_value('RuntimeError', err.msg())
+		return ruby.object_value('RuntimeError', err.msg())
 	}
-	return brew_runtime.array_value(services.map(bundle_exec_service_value(it)))
+	return ruby.array_value(services.map(bundle_exec_service_value(it)))
 }
 
 // Ruby method `self.run_services(entries, &_block)` at line 387.
-pub fn ruby_exec_l387_d5_self_run_services(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exec_l387_d5_self_run_services(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'execution context is required')
+		return ruby.object_value('ArgumentError', 'execution context is required')
 	}
 	mut runtime := BundleExecRuntime{}
 	services := map_service_info(bundle_exec_context_from_value(args[0]).services) or {
-		return brew_runtime.object_value('RuntimeError', err.msg())
+		return ruby.object_value('RuntimeError', err.msg())
 	}
 	lifecycle := start_bundle_exec_services(services, mut runtime, recording_bundle_exec_service)
 	cleanup_bundle_exec_services(lifecycle, mut runtime, recording_bundle_exec_service)
@@ -61,13 +61,13 @@ pub fn ruby_exec_l387_d5_self_run_services(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `self.stop_services(entries)` at line 432.
-pub fn ruby_exec_l432_d6_self_stop_services(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exec_l432_d6_self_stop_services(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'execution context is required')
+		return ruby.object_value('ArgumentError', 'execution context is required')
 	}
 	mut runtime := BundleExecRuntime{}
 	services := map_service_info(bundle_exec_context_from_value(args[0]).services) or {
-		return brew_runtime.object_value('RuntimeError', err.msg())
+		return ruby.object_value('RuntimeError', err.msg())
 	}
 	stop_bundle_exec_services(services, mut runtime, recording_bundle_exec_service)
 	return bundle_exec_runtime_value(runtime, 0, '')
@@ -214,20 +214,20 @@ pub fn build_bundle_exec_plan(context BundleExecContext) !BundleExecPlan {
 		if !dependency.installed {
 			continue
 		}
-		environment['PATH'] = prepend_bundle_exec_path(environment['PATH'] or { '' }, brew_runtime.join_path(dependency.opt_prefix, 'bin'))
+		environment['PATH'] = prepend_bundle_exec_path(environment['PATH'] or { '' }, ruby.join_path(dependency.opt_prefix, 'bin'))
 		if context.all_dependencies_keg_only || dependency.keg_only {
 			environment['PKG_CONFIG_PATH'] = prepend_bundle_exec_path(environment['PKG_CONFIG_PATH'] or {
 				''
-			}, brew_runtime.join_path(dependency.opt_prefix, 'lib/pkgconfig'))
-			environment['CPPFLAGS'] = append_bundle_exec_flag(environment['CPPFLAGS'] or { '' }, '-I${brew_runtime.join_path(dependency.opt_prefix, 'include')}')
-			environment['LDFLAGS'] = append_bundle_exec_flag(environment['LDFLAGS'] or { '' }, '-L${brew_runtime.join_path(dependency.opt_prefix, 'lib')}')
+			}, ruby.join_path(dependency.opt_prefix, 'lib/pkgconfig'))
+			environment['CPPFLAGS'] = append_bundle_exec_flag(environment['CPPFLAGS'] or { '' }, '-I${ruby.join_path(dependency.opt_prefix, 'include')}')
+			environment['LDFLAGS'] = append_bundle_exec_flag(environment['LDFLAGS'] or { '' }, '-L${ruby.join_path(dependency.opt_prefix, 'lib')}')
 		}
 		if dependency.name in ['nodenv', 'pyenv', 'rbenv'] {
 			root_key := 'HOMEBREW_${dependency.name.to_upper()}_ROOT'
 			root := environment[root_key] or {
-				brew_runtime.join_path(context.home_directory, '.${dependency.name}')
+				ruby.join_path(context.home_directory, '.${dependency.name}')
 			}
-			environment['PATH'] = prepend_bundle_exec_path(environment['PATH'] or { '' }, brew_runtime.join_path(root, 'shims'))
+			environment['PATH'] = prepend_bundle_exec_path(environment['PATH'] or { '' }, ruby.join_path(root, 'shims'))
 		}
 		if dependency.version.len > 0 {
 			rewrite_bundle_exec_dependency_version(mut environment, dependency)
@@ -497,22 +497,22 @@ pub fn bundle_exec_context_from_invocation(invocation BundleExecSubcommandInvoca
 	}
 }
 
-pub fn bundle_exec_context_value(context BundleExecContext) brew_runtime.Value {
+pub fn bundle_exec_context_value(context BundleExecContext) ruby.Value {
 	mut sandbox := ''
 	if value := context.sandbox_path {
 		sandbox = value
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'BundleExecContext'
 		map_data: {
-			'argv':                  brew_runtime.string_array_value(context.argv)
+			'argv':                  ruby.string_array_value(context.argv)
 			'environment':           bundle_exec_string_map_value(context.environment)
 			'original_environment':  bundle_exec_string_map_value(context.original_environment)
-			'dependencies':          brew_runtime.array_value(context.dependencies.map(bundle_exec_dependency_value(it)))
-			'missing_dependencies':  brew_runtime.string_array_value(context.missing_dependencies)
-			'services':              brew_runtime.array_value(context.services.map(bundle_exec_service_value(it)))
+			'dependencies':          ruby.array_value(context.dependencies.map(bundle_exec_dependency_value(it)))
+			'missing_dependencies':  ruby.string_array_value(context.missing_dependencies)
+			'services':              ruby.array_value(context.services.map(bundle_exec_service_value(it)))
 			'available_commands':    bundle_exec_string_map_value(context.available_commands)
-			'unwritable_temp_paths': brew_runtime.string_array_value(context.unwritable_temp_paths)
+			'unwritable_temp_paths': ruby.string_array_value(context.unwritable_temp_paths)
 		}
 		attributes: {
 			'subcommand':                context.subcommand
@@ -530,7 +530,7 @@ pub fn bundle_exec_context_value(context BundleExecContext) brew_runtime.Value {
 	}
 }
 
-fn bundle_exec_context_from_value(value brew_runtime.Value) BundleExecContext {
+fn bundle_exec_context_from_value(value ruby.Value) BundleExecContext {
 	if value.type_name == 'Bundle::ExecSubcommand::Invocation' {
 		options := BundleExecSubcommandOptions{
 			check: (value.attributes['check'] or { 'false' }) == 'true'
@@ -543,20 +543,20 @@ fn bundle_exec_context_from_value(value brew_runtime.Value) BundleExecContext {
 			argv: (value.attributes['args'] or { '' }).split('\n').filter(it.len > 0)
 			subcommand: value.attributes['command'] or { '' }
 			options: options
-			environment: brew_runtime.environment()
-			original_environment: brew_runtime.environment()
-			home_directory: brew_runtime.environment_value('HOME')
+			environment: ruby.environment()
+			original_environment: ruby.environment()
+			home_directory: ruby.environment_value('HOME')
 		}
 	}
-	argv_value := value.map_data['argv'] or { brew_runtime.string_array_value([]) }
-	environment_value := value.map_data['environment'] or { brew_runtime.map_value({}) }
-	original_value := value.map_data['original_environment'] or { brew_runtime.map_value({}) }
-	dependencies_value := value.map_data['dependencies'] or { brew_runtime.array_value([]) }
-	missing_value := value.map_data['missing_dependencies'] or { brew_runtime.string_array_value([]) }
-	services_value := value.map_data['services'] or { brew_runtime.array_value([]) }
-	commands_value := value.map_data['available_commands'] or { brew_runtime.map_value({}) }
+	argv_value := value.map_data['argv'] or { ruby.string_array_value([]) }
+	environment_value := value.map_data['environment'] or { ruby.map_value({}) }
+	original_value := value.map_data['original_environment'] or { ruby.map_value({}) }
+	dependencies_value := value.map_data['dependencies'] or { ruby.array_value([]) }
+	missing_value := value.map_data['missing_dependencies'] or { ruby.string_array_value([]) }
+	services_value := value.map_data['services'] or { ruby.array_value([]) }
+	commands_value := value.map_data['available_commands'] or { ruby.map_value({}) }
 	unwritable_value := value.map_data['unwritable_temp_paths'] or {
-		brew_runtime.string_array_value([])
+		ruby.string_array_value([])
 	}
 	sandbox_value := value.attributes['sandbox_path'] or { '' }
 	return BundleExecContext{
@@ -584,8 +584,8 @@ fn bundle_exec_context_from_value(value brew_runtime.Value) BundleExecContext {
 	}
 }
 
-fn bundle_exec_plan_value(plan BundleExecPlan) brew_runtime.Value {
-	return brew_runtime.Value{
+fn bundle_exec_plan_value(plan BundleExecPlan) ruby.Value {
+	return ruby.Value{
 		type_name: 'BundleExecPlan'
 		map_data: {
 			'environment': bundle_exec_string_map_value(plan.environment)
@@ -603,8 +603,8 @@ fn bundle_exec_plan_value(plan BundleExecPlan) brew_runtime.Value {
 }
 
 fn bundle_exec_runtime_value(runtime BundleExecRuntime, exit_code int,
-	error_message string) brew_runtime.Value {
-	return brew_runtime.Value{
+	error_message string) ruby.Value {
+	return ruby.Value{
 		type_name: 'BundleExecRuntimeResult'
 		array_data: runtime.service_operations.map(bundle_exec_service_operation_value(it))
 		attributes: {
@@ -616,8 +616,8 @@ fn bundle_exec_runtime_value(runtime BundleExecRuntime, exit_code int,
 	}
 }
 
-fn bundle_exec_dependency_value(dependency BundleExecDependency) brew_runtime.Value {
-	return brew_runtime.structured_value('BundleExecDependency', dependency.name, {
+fn bundle_exec_dependency_value(dependency BundleExecDependency) ruby.Value {
+	return ruby.structured_value('BundleExecDependency', dependency.name, {
 		'name':       dependency.name
 		'opt_prefix': dependency.opt_prefix
 		'version':    dependency.version
@@ -626,7 +626,7 @@ fn bundle_exec_dependency_value(dependency BundleExecDependency) brew_runtime.Va
 	})
 }
 
-fn bundle_exec_dependency_from_value(value brew_runtime.Value) BundleExecDependency {
+fn bundle_exec_dependency_from_value(value ruby.Value) BundleExecDependency {
 	return BundleExecDependency{
 		name: value.attributes['name'] or { value.as_string() }
 		opt_prefix: value.attributes['opt_prefix'] or { '' }
@@ -636,10 +636,10 @@ fn bundle_exec_dependency_from_value(value brew_runtime.Value) BundleExecDepende
 	}
 }
 
-fn bundle_exec_service_value(service BundleExecServiceInfo) brew_runtime.Value {
-	return brew_runtime.Value{
+fn bundle_exec_service_value(service BundleExecServiceInfo) ruby.Value {
+	return ruby.Value{
 		type_name: 'BundleExecServiceInfo'
-		array_data: service.conflicts.map(brew_runtime.structured_value('BundleExecConflictingService', it.name, {
+		array_data: service.conflicts.map(ruby.structured_value('BundleExecConflictingService', it.name, {
 			'name':       it.name
 			'running':    it.running.str()
 			'registered': it.registered.str()
@@ -659,7 +659,7 @@ fn bundle_exec_service_value(service BundleExecServiceInfo) brew_runtime.Value {
 	}
 }
 
-fn bundle_exec_service_from_value(value brew_runtime.Value) BundleExecServiceInfo {
+fn bundle_exec_service_from_value(value ruby.Value) BundleExecServiceInfo {
 	return BundleExecServiceInfo{
 		entry_name: value.attributes['entry_name'] or { '' }
 		formula_name: value.attributes['formula_name'] or { value.as_string() }
@@ -679,8 +679,8 @@ fn bundle_exec_service_from_value(value brew_runtime.Value) BundleExecServiceInf
 	}
 }
 
-fn bundle_exec_service_operation_value(operation BundleExecServiceOperation) brew_runtime.Value {
-	return brew_runtime.structured_value('BundleExecServiceOperation', operation.name, {
+fn bundle_exec_service_operation_value(operation BundleExecServiceOperation) ruby.Value {
+	return ruby.structured_value('BundleExecServiceOperation', operation.name, {
 		'kind': operation.kind.str()
 		'name': operation.name
 		'file': operation.file
@@ -688,15 +688,15 @@ fn bundle_exec_service_operation_value(operation BundleExecServiceOperation) bre
 	})
 }
 
-fn bundle_exec_string_map_value(values map[string]string) brew_runtime.Value {
-	mut mapped := map[string]brew_runtime.Value{}
+fn bundle_exec_string_map_value(values map[string]string) ruby.Value {
+	mut mapped := map[string]ruby.Value{}
 	for key, value in values {
-		mapped[key] = brew_runtime.string_value(value)
+		mapped[key] = ruby.string_value(value)
 	}
-	return brew_runtime.map_value(mapped)
+	return ruby.map_value(mapped)
 }
 
-fn bundle_exec_string_map_from_value(value brew_runtime.Value) map[string]string {
+fn bundle_exec_string_map_from_value(value ruby.Value) map[string]string {
 	mut mapped := map[string]string{}
 	for key, item in value.map_data {
 		mapped[key] = item.as_string()

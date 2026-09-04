@@ -1,29 +1,29 @@
 module types
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/private/types/simple_pair_union.rb`.
 // The original source is retained below until every stub has a typed V body.
 @[heap]
 pub struct SimplePairUnion {
 pub:
-	type_a brew_runtime.Value
-	type_b brew_runtime.Value
-	raw_a  brew_runtime.Value
-	raw_b  brew_runtime.Value
+	type_a ruby.Value
+	type_b ruby.Value
+	raw_a  ruby.Value
+	raw_b  ruby.Value
 }
 
-fn pair_simple_name(type_value brew_runtime.Value) string {
+fn pair_simple_name(type_value ruby.Value) string {
 	return type_value.attribute('raw_type') or { type_value.as_string() }
 }
 
-fn pair_simple_raw(type_value brew_runtime.Value) brew_runtime.Value {
+fn pair_simple_raw(type_value ruby.Value) ruby.Value {
 	return type_value.map_data['raw_type'] or {
-		brew_runtime.object_value('Class', pair_simple_name(type_value))
+		ruby.object_value('Class', pair_simple_name(type_value))
 	}
 }
 
-pub fn new_simple_pair_union(type_a brew_runtime.Value, type_b brew_runtime.Value) !&SimplePairUnion {
+pub fn new_simple_pair_union(type_a ruby.Value, type_b ruby.Value) !&SimplePairUnion {
 	if pair_simple_name(type_a) == pair_simple_name(type_b) {
 		return error('${pair_simple_name(type_a)} == ${pair_simple_name(type_b)}')
 	}
@@ -35,15 +35,15 @@ pub fn new_simple_pair_union(type_a brew_runtime.Value, type_b brew_runtime.Valu
 	}
 }
 
-pub fn (pair &SimplePairUnion) recursively_valid(value brew_runtime.Value) bool {
+pub fn (pair &SimplePairUnion) recursively_valid(value ruby.Value) bool {
 	return pair.valid(value)
 }
 
-pub fn (pair &SimplePairUnion) valid(value brew_runtime.Value) bool {
+pub fn (pair &SimplePairUnion) valid(value ruby.Value) bool {
 	return pair_raw_accepts(pair.raw_a, value) || pair_raw_accepts(pair.raw_b, value)
 }
 
-fn pair_raw_accepts(raw_type brew_runtime.Value, value brew_runtime.Value) bool {
+fn pair_raw_accepts(raw_type ruby.Value, value ruby.Value) bool {
 	expected := raw_type.as_string()
 	if value.type_name == expected {
 		return true
@@ -52,12 +52,12 @@ fn pair_raw_accepts(raw_type brew_runtime.Value, value brew_runtime.Value) bool 
 	return ancestors.split(',').map(it.trim_space()).any(it == expected)
 }
 
-pub fn (pair &SimplePairUnion) types() []brew_runtime.Value {
+pub fn (pair &SimplePairUnion) types() []ruby.Value {
 	// Reconstructing through the pool preserves the source's weakly pooled type identity.
 	return [pair.type_a, pair.type_b]
 }
 
-pub fn (pair &SimplePairUnion) unwrap_nilable() ?brew_runtime.Value {
+pub fn (pair &SimplePairUnion) unwrap_nilable() ?ruby.Value {
 	types := pair.types()
 	if pair.raw_a.as_string() == 'NilClass' {
 		return types[1]
@@ -68,7 +68,7 @@ pub fn (pair &SimplePairUnion) unwrap_nilable() ?brew_runtime.Value {
 	return none
 }
 
-fn simple_pair_union_value(pair &SimplePairUnion) brew_runtime.Value {
+fn simple_pair_union_value(pair &SimplePairUnion) ruby.Value {
 	mut names := [pair_simple_name(pair.type_a), pair_simple_name(pair.type_b)]
 	names.sort()
 	representation := if pair.raw_a.as_string() == 'NilClass' {
@@ -78,7 +78,7 @@ fn simple_pair_union_value(pair &SimplePairUnion) brew_runtime.Value {
 	} else {
 		'T.any(${names.join(', ')})'
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'T::Private::Types::SimplePairUnion'
 		repr: representation
 		array_data: pair.types()
@@ -88,7 +88,7 @@ fn simple_pair_union_value(pair &SimplePairUnion) brew_runtime.Value {
 	}
 }
 
-fn simple_pair_union_from_args(args []brew_runtime.Value) &SimplePairUnion {
+fn simple_pair_union_from_args(args []ruby.Value) &SimplePairUnion {
 	if args.len == 0 {
 		panic('SimplePairUnion method requires a receiver')
 	}
@@ -99,7 +99,7 @@ fn simple_pair_union_from_args(args []brew_runtime.Value) &SimplePairUnion {
 }
 
 // Ruby method `initialize(type_a, type_b)` at line 12.
-pub fn ruby_simple_pair_union_l12_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_simple_pair_union_l12_d1_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('SimplePairUnion#initialize requires two types')
 	}
@@ -107,30 +107,30 @@ pub fn ruby_simple_pair_union_l12_d1_initialize(args ...brew_runtime.Value) brew
 }
 
 // Ruby method `recursively_valid?(obj)` at line 22.
-pub fn ruby_simple_pair_union_l22_d2_recursively_valid(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_simple_pair_union_l22_d2_recursively_valid(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('SimplePairUnion#recursively_valid? requires an object')
 	}
-	return brew_runtime.bool_value(simple_pair_union_from_args(args).recursively_valid(args[1]))
+	return ruby.bool_value(simple_pair_union_from_args(args).recursively_valid(args[1]))
 }
 
 // Ruby method `valid?(obj)` at line 27.
-pub fn ruby_simple_pair_union_l27_d3_valid(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_simple_pair_union_l27_d3_valid(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('SimplePairUnion#valid? requires an object')
 	}
-	return brew_runtime.bool_value(simple_pair_union_from_args(args).valid(args[1]))
+	return ruby.bool_value(simple_pair_union_from_args(args).valid(args[1]))
 }
 
 // Ruby method `types` at line 32.
-pub fn ruby_simple_pair_union_l32_d4_types(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.array_value(simple_pair_union_from_args(args).types())
+pub fn ruby_simple_pair_union_l32_d4_types(args ...ruby.Value) ruby.Value {
+	return ruby.array_value(simple_pair_union_from_args(args).types())
 }
 
 // Ruby method `unwrap_nilable` at line 44.
-pub fn ruby_simple_pair_union_l44_d5_unwrap_nilable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_simple_pair_union_l44_d5_unwrap_nilable(args ...ruby.Value) ruby.Value {
 	result := simple_pair_union_from_args(args).unwrap_nilable() or {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	return result
 }

@@ -1,6 +1,6 @@
 module download_strategy
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `download_strategy/abstract_download_strategy.rb`.
@@ -104,15 +104,15 @@ pub fn expand_deferred_environment_for(strategy DownloadStrategy) bool {
 pub fn (strategy &AbstractDownloadStrategy) stage(cached_location string, destination string) !string {
 	os.mkdir_all(destination)!
 	name := os.file_name(cached_location).to_lower()
-	mut result := brew_runtime.CommandResult{}
+	mut result := ruby.CommandResult{}
 	if name.ends_with('.zip') {
-		unzip := brew_runtime.find_executable('unzip')!
-		result = brew_runtime.run_command(unzip, ['-q', '-o', cached_location, '-d', destination])
+		unzip := ruby.find_executable('unzip')!
+		result = ruby.run_command(unzip, ['-q', '-o', cached_location, '-d', destination])
 	} else if name.ends_with('.tar') || name.ends_with('.tar.gz') || name.ends_with('.tgz')
 		|| name.ends_with('.tar.bz2') || name.ends_with('.tbz') || name.ends_with('.tbz2')
 		|| name.ends_with('.tar.xz') || name.ends_with('.txz') || name.ends_with('.tar.zst') {
-		tar := brew_runtime.find_executable('tar')!
-		result = brew_runtime.run_command(tar, ['-xf', cached_location, '-C', destination])
+		tar := ruby.find_executable('tar')!
+		result = ruby.run_command(tar, ['-xf', cached_location, '-C', destination])
 	} else {
 		os.cp(cached_location, os.join_path(destination, strategy.basename(cached_location)))!
 		return strategy.stage_working_directory(destination)
@@ -213,12 +213,12 @@ pub fn (strategy &AbstractDownloadStrategy) puts(messages ...string) {
 	}
 }
 
-pub fn (strategy &AbstractDownloadStrategy) silent_command(program string, arguments []string) brew_runtime.CommandResult {
+pub fn (strategy &AbstractDownloadStrategy) silent_command(program string, arguments []string) ruby.CommandResult {
 	_ = strategy
-	return brew_runtime.run_command(program, arguments)
+	return ruby.run_command(program, arguments)
 }
 
-pub fn (strategy &AbstractDownloadStrategy) command(program string, arguments []string) !brew_runtime.CommandResult {
+pub fn (strategy &AbstractDownloadStrategy) command(program string, arguments []string) !ruby.CommandResult {
 	result := strategy.silent_command(program, arguments)
 	if result.exit_code != 0 {
 		return error('command failed (${result.exit_code}): ${program}: ${result.output.trim_space()}')
@@ -342,12 +342,12 @@ pub fn ruby_abstract_download_strategy_l161_d21_puts(strategy &AbstractDownloadS
 }
 
 // Ruby method `silent_command(*args, **options)` at line 166.
-pub fn ruby_abstract_download_strategy_l166_d22_silent_command(strategy &AbstractDownloadStrategy, program string, arguments []string) brew_runtime.CommandResult {
+pub fn ruby_abstract_download_strategy_l166_d22_silent_command(strategy &AbstractDownloadStrategy, program string, arguments []string) ruby.CommandResult {
 	return strategy.silent_command(program, arguments)
 }
 
 // Ruby method `command!(*args, **options)` at line 171.
-pub fn ruby_abstract_download_strategy_l171_d23_command(strategy &AbstractDownloadStrategy, program string, arguments []string) !brew_runtime.CommandResult {
+pub fn ruby_abstract_download_strategy_l171_d23_command(strategy &AbstractDownloadStrategy, program string, arguments []string) !ruby.CommandResult {
 	return strategy.command(program, arguments)
 }
 

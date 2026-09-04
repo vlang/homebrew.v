@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 import homebrew.diagnostic as diagnostic_finding
 
 // Translated from Homebrew/brew `diagnostic.rb`.
@@ -136,27 +136,27 @@ pub:
 	output    []string
 }
 
-fn diagnostic_nil() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn diagnostic_nil() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-fn diagnostic_strings_value(values []string) brew_runtime.Value {
-	return brew_runtime.array_value(values.map(brew_runtime.string_value(it)))
+fn diagnostic_strings_value(values []string) ruby.Value {
+	return ruby.array_value(values.map(ruby.string_value(it)))
 }
 
-fn diagnostic_strings(value brew_runtime.Value) []string {
+fn diagnostic_strings(value ruby.Value) []string {
 	return value.as_array() or { return [] }.map(it.as_string())
 }
 
-fn diagnostic_string_map_value(values map[string]string) brew_runtime.Value {
-	mut result := map[string]brew_runtime.Value{}
+fn diagnostic_string_map_value(values map[string]string) ruby.Value {
+	mut result := map[string]ruby.Value{}
 	for key, value in values {
-		result[key] = brew_runtime.string_value(value)
+		result[key] = ruby.string_value(value)
 	}
-	return brew_runtime.map_value(result)
+	return ruby.map_value(result)
 }
 
-fn diagnostic_string_map(value brew_runtime.Value) map[string]string {
+fn diagnostic_string_map(value ruby.Value) map[string]string {
 	mut result := map[string]string{}
 	for key, item in value.map_data {
 		result[key] = item.as_string()
@@ -164,19 +164,19 @@ fn diagnostic_string_map(value brew_runtime.Value) map[string]string {
 	return result
 }
 
-pub fn diagnostic_checks_value(checks &DiagnosticChecks) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::Diagnostic::Checks', 'Homebrew::Diagnostic::Checks', {
+pub fn diagnostic_checks_value(checks &DiagnosticChecks) ruby.Value {
+	return ruby.structured_value('Homebrew::Diagnostic::Checks', 'Homebrew::Diagnostic::Checks', {
 		'checks_address': u64(voidptr(checks)).str()
 	})
 }
 
-fn diagnostic_checks_from_value(value brew_runtime.Value) &DiagnosticChecks {
+fn diagnostic_checks_from_value(value ruby.Value) &DiagnosticChecks {
 	address := value.attributes['checks_address'] or { panic('invalid Diagnostic::Checks receiver') }
 	return unsafe { &DiagnosticChecks(voidptr(address.u64())) }
 }
 
-pub fn diagnostic_tap_value(tap DiagnosticTap) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn diagnostic_tap_value(tap DiagnosticTap) ruby.Value {
+	return ruby.Value{
 		type_name: 'Tap'
 		repr: tap.name
 		map_data: {
@@ -203,7 +203,7 @@ pub fn diagnostic_tap_value(tap DiagnosticTap) brew_runtime.Value {
 	}
 }
 
-fn diagnostic_tap_from_value(value brew_runtime.Value) DiagnosticTap {
+fn diagnostic_tap_from_value(value ruby.Value) DiagnosticTap {
 	return DiagnosticTap{
 		name: value.attributes['name'] or { value.repr }
 		full_name: value.attributes['full_name'] or { value.repr }
@@ -225,8 +225,8 @@ fn diagnostic_tap_from_value(value brew_runtime.Value) DiagnosticTap {
 	}
 }
 
-pub fn diagnostic_formula_value(formula DiagnosticFormula) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn diagnostic_formula_value(formula DiagnosticFormula) ruby.Value {
+	return ruby.Value{
 		type_name: 'Formula'
 		repr: formula.full_name
 		map_data: {
@@ -250,7 +250,7 @@ pub fn diagnostic_formula_value(formula DiagnosticFormula) brew_runtime.Value {
 	}
 }
 
-fn diagnostic_formula_from_value(value brew_runtime.Value) DiagnosticFormula {
+fn diagnostic_formula_from_value(value ruby.Value) DiagnosticFormula {
 	return DiagnosticFormula{
 		name: value.attributes['name'] or { value.repr }
 		full_name: value.attributes['full_name'] or { value.repr }
@@ -263,7 +263,7 @@ fn diagnostic_formula_from_value(value brew_runtime.Value) DiagnosticFormula {
 		read_error: value.attributes['read_error'] or { '' }
 		loadable: (value.attributes['loadable'] or { 'true' }).bool()
 		installed_prefixes: diagnostic_strings(value.map_data['installed_prefixes'] or { diagnostic_strings_value([]) })
-		linked_files: diagnostic_string_map(value.map_data['linked_files'] or { brew_runtime.map_value({}) })
+		linked_files: diagnostic_string_map(value.map_data['linked_files'] or { ruby.map_value({}) })
 		opt_libexec: value.attributes['opt_libexec'] or { '' }
 		libexec: value.attributes['libexec'] or { '' }
 	}
@@ -273,13 +273,13 @@ fn diagnostic_remediation(text string, commands []string) ?diagnostic_finding.Re
 	return diagnostic_finding.Remediation{ text: text, commands: commands }
 }
 
-fn diagnostic_finding_value(finding ?diagnostic_finding.Finding) brew_runtime.Value {
+fn diagnostic_finding_value(finding ?diagnostic_finding.Finding) ruby.Value {
 	value := finding or { return diagnostic_nil() }
 	return value.to_value()
 }
 
-fn diagnostic_finding_array_value(findings []diagnostic_finding.Finding) brew_runtime.Value {
-	return brew_runtime.array_value(findings.map(it.to_value()))
+fn diagnostic_finding_array_value(findings []diagnostic_finding.Finding) ruby.Value {
+	return ruby.array_value(findings.map(it.to_value()))
 }
 
 fn diagnostic_add_info(mut checks DiagnosticChecks, values []string) {
@@ -1677,27 +1677,27 @@ pub fn diagnostic_run_checks(mut checks DiagnosticChecks, checks_type string,
 	}
 }
 
-fn diagnostic_run_result_value(result DiagnosticRunResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'failed':    brew_runtime.bool_value(result.failed)
-		'exit_code': brew_runtime.int_value(result.exit_code)
+fn diagnostic_run_result_value(result DiagnosticRunResult) ruby.Value {
+	return ruby.map_value({
+		'failed':    ruby.bool_value(result.failed)
+		'exit_code': ruby.int_value(result.exit_code)
 		'output':    diagnostic_strings_value(result.output)
 	})
 }
 
-fn diagnostic_receiver(args []brew_runtime.Value) &DiagnosticChecks {
+fn diagnostic_receiver(args []ruby.Value) &DiagnosticChecks {
 	if args.len == 0 {
 		panic('Diagnostic::Checks receiver is required')
 	}
 	return diagnostic_checks_from_value(args[0])
 }
 
-fn diagnostic_value_is_nil(value brew_runtime.Value) bool {
+fn diagnostic_value_is_nil(value ruby.Value) bool {
 	return value.type_name == 'NilClass'
 }
 
 // Ruby method `self.checks(type, fatal: true)` at line 26.
-pub fn ruby_diagnostic_l26_d1_self_checks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l26_d1_self_checks(args ...ruby.Value) ruby.Value {
 	mut argument := 0
 	mut checks := &DiagnosticChecks{}
 	if args.len > 0 && args[0].type_name == 'Homebrew::Diagnostic::Checks' {
@@ -1713,11 +1713,11 @@ pub fn ruby_diagnostic_l26_d1_self_checks(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby method `initialize(verbose: true)` at line 49.
-pub fn ruby_diagnostic_l49_d2_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l49_d2_initialize(args ...ruby.Value) ruby.Value {
 	verbose := if args.len == 0 {
 		true
 	} else if args[0].type_name == 'Hash' {
-		(args[0].map_data['verbose'] or { brew_runtime.bool_value(true) }).as_bool() or { true }
+		(args[0].map_data['verbose'] or { ruby.bool_value(true) }).as_bool() or { true }
 	} else {
 		args[0].as_bool() or { true }
 	}
@@ -1726,7 +1726,7 @@ pub fn ruby_diagnostic_l49_d2_initialize(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `find_relative_paths(*relative_paths)` at line 63.
-pub fn ruby_diagnostic_l63_d3_find_relative_paths(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l63_d3_find_relative_paths(args ...ruby.Value) ruby.Value {
 	mut checks := diagnostic_receiver(args)
 	mut relative_paths := []string{}
 	for value in args[1..] {
@@ -1741,74 +1741,74 @@ pub fn ruby_diagnostic_l63_d3_find_relative_paths(args ...brew_runtime.Value) br
 }
 
 // Ruby method `inject_file_list(list, string)` at line 70.
-pub fn ruby_diagnostic_l70_d4_inject_file_list(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l70_d4_inject_file_list(args ...ruby.Value) ruby.Value {
 	_ = diagnostic_receiver(args)
-	return brew_runtime.string_value(diagnostic_inject_file_list(diagnostic_strings(args[1]), args[2].as_string()))
+	return ruby.string_value(diagnostic_inject_file_list(diagnostic_strings(args[1]), args[2].as_string()))
 }
 
 // Ruby method `user_tilde(path)` at line 76.
-pub fn ruby_diagnostic_l76_d5_user_tilde(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l76_d5_user_tilde(args ...ruby.Value) ruby.Value {
 	checks := diagnostic_receiver(args)
-	return brew_runtime.string_value(diagnostic_user_tilde(args[1].as_string(), checks.home))
+	return ruby.string_value(diagnostic_user_tilde(args[1].as_string(), checks.home))
 }
 
 // Ruby method `none_string` at line 86.
-pub fn ruby_diagnostic_l86_d6_none_string(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l86_d6_none_string(args ...ruby.Value) ruby.Value {
 	_ = diagnostic_receiver(args)
-	return brew_runtime.string_value('<NONE>')
+	return ruby.string_value('<NONE>')
 }
 
 // Ruby method `add_info(*args)` at line 91.
-pub fn ruby_diagnostic_l91_d7_add_info(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l91_d7_add_info(args ...ruby.Value) ruby.Value {
 	mut checks := diagnostic_receiver(args)
 	diagnostic_add_info(mut checks, args[1..].map(it.as_string()))
 	return diagnostic_nil()
 }
 
 // Ruby method `fatal_preinstall_checks` at line 97.
-pub fn ruby_diagnostic_l97_d8_fatal_preinstall_checks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l97_d8_fatal_preinstall_checks(args ...ruby.Value) ruby.Value {
 	_ = diagnostic_receiver(args)
 	return diagnostic_strings_value(['check_access_directories'])
 }
 
 // Ruby method `fatal_build_from_source_checks` at line 104.
-pub fn ruby_diagnostic_l104_d9_fatal_build_from_source_checks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l104_d9_fatal_build_from_source_checks(args ...ruby.Value) ruby.Value {
 	_ = diagnostic_receiver(args)
 	return diagnostic_strings_value(['check_for_installed_developer_tools'])
 }
 
 // Ruby method `fatal_setup_build_environment_checks` at line 111.
-pub fn ruby_diagnostic_l111_d10_fatal_setup_build_environment_checks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l111_d10_fatal_setup_build_environment_checks(args ...ruby.Value) ruby.Value {
 	_ = diagnostic_receiver(args)
 	return diagnostic_strings_value([])
 }
 
 // Ruby method `supported_configuration_checks` at line 116.
-pub fn ruby_diagnostic_l116_d11_supported_configuration_checks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l116_d11_supported_configuration_checks(args ...ruby.Value) ruby.Value {
 	_ = diagnostic_receiver(args)
 	return diagnostic_strings_value([])
 }
 
 // Ruby method `build_from_source_checks` at line 121.
-pub fn ruby_diagnostic_l121_d12_build_from_source_checks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l121_d12_build_from_source_checks(args ...ruby.Value) ruby.Value {
 	_ = diagnostic_receiver(args)
 	return diagnostic_strings_value([])
 }
 
 // Ruby method `preinstall_checks` at line 126.
-pub fn ruby_diagnostic_l126_d13_preinstall_checks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l126_d13_preinstall_checks(args ...ruby.Value) ruby.Value {
 	_ = diagnostic_receiver(args)
 	return diagnostic_strings_value(['check_untrusted_taps'])
 }
 
 // Ruby method `build_error_checks` at line 133.
-pub fn ruby_diagnostic_l133_d14_build_error_checks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l133_d14_build_error_checks(args ...ruby.Value) ruby.Value {
 	_ = diagnostic_receiver(args)
 	return diagnostic_strings_value([])
 }
 
 // Ruby method `examine_git_origin(repository_path, desired_origin)` at line 138.
-pub fn ruby_diagnostic_l138_d15_examine_git_origin(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l138_d15_examine_git_origin(args ...ruby.Value) ruby.Value {
 	checks := diagnostic_receiver(args)
 	current_origin := if args.len < 4 || diagnostic_value_is_nil(args[3]) {
 		?string(none)
@@ -1819,118 +1819,118 @@ pub fn ruby_diagnostic_l138_d15_examine_git_origin(args ...brew_runtime.Value) b
 }
 
 // Ruby method `broken_tap(tap)` at line 182.
-pub fn ruby_diagnostic_l182_d16_broken_tap(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l182_d16_broken_tap(args ...ruby.Value) ruby.Value {
 	checks := diagnostic_receiver(args)
 	return diagnostic_finding_value(diagnostic_broken_tap(checks, diagnostic_tap_from_value(args[1])))
 }
 
 // Ruby method `check_for_installed_developer_tools` at line 213.
-pub fn ruby_diagnostic_l213_d17_check_for_installed_developer_tools(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l213_d17_check_for_installed_developer_tools(args ...ruby.Value) ruby.Value {
 	return diagnostic_finding_value(diagnostic_check_developer_tools(diagnostic_receiver(args)))
 }
 
 // Ruby method `__check_stray_files(dir, pattern, allow_list, message)` at line 223.
-pub fn ruby_diagnostic_l223_d18_check_stray_files(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l223_d18_check_stray_files(args ...ruby.Value) ruby.Value {
 	checks := diagnostic_receiver(args)
 	text := diagnostic_check_stray_files(checks, args[1].as_string(), args[2].as_string(), diagnostic_strings(args[3]), args[4].as_string()) or { return diagnostic_nil() }
-	return brew_runtime.string_value(text)
+	return ruby.string_value(text)
 }
 
 // Ruby method `check_for_stray_dylibs` at line 241.
-pub fn ruby_diagnostic_l241_d19_check_for_stray_dylibs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l241_d19_check_for_stray_dylibs(args ...ruby.Value) ruby.Value {
 	return diagnostic_finding_value(diagnostic_check_stray_dylibs(diagnostic_receiver(args)))
 }
 
 // Ruby method `check_for_stray_static_libs` at line 278.
-pub fn ruby_diagnostic_l278_d20_check_for_stray_static_libs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l278_d20_check_for_stray_static_libs(args ...ruby.Value) ruby.Value {
 	return diagnostic_finding_value(diagnostic_check_stray_static_libs(diagnostic_receiver(args)))
 }
 
 // Ruby method `check_for_stray_pcs` at line 308.
-pub fn ruby_diagnostic_l308_d21_check_for_stray_pcs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l308_d21_check_for_stray_pcs(args ...ruby.Value) ruby.Value {
 	return diagnostic_finding_value(diagnostic_check_stray_pcs(diagnostic_receiver(args)))
 }
 
 // Ruby method `check_for_stray_las` at line 333.
-pub fn ruby_diagnostic_l333_d22_check_for_stray_las(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l333_d22_check_for_stray_las(args ...ruby.Value) ruby.Value {
 	return diagnostic_finding_value(diagnostic_check_stray_las(diagnostic_receiver(args)))
 }
 
 // Ruby method `check_for_stray_headers` at line 357.
-pub fn ruby_diagnostic_l357_d23_check_for_stray_headers(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l357_d23_check_for_stray_headers(args ...ruby.Value) ruby.Value {
 	return diagnostic_finding_value(diagnostic_check_stray_headers(diagnostic_receiver(args)))
 }
 
 // Ruby method `check_for_broken_symlinks` at line 380.
-pub fn ruby_diagnostic_l380_d24_check_for_broken_symlinks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l380_d24_check_for_broken_symlinks(args ...ruby.Value) ruby.Value {
 	return diagnostic_finding_value(diagnostic_check_broken_symlinks(diagnostic_receiver(args)))
 }
 
 // Ruby method `check_tmpdir_sticky_bit` at line 407.
-pub fn ruby_diagnostic_l407_d25_check_tmpdir_sticky_bit(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l407_d25_check_tmpdir_sticky_bit(args ...ruby.Value) ruby.Value {
 	return diagnostic_finding_value(diagnostic_check_tmpdir_sticky_bit(diagnostic_receiver(args)))
 }
 
 // Ruby method `check_exist_directories` at line 426.
-pub fn ruby_diagnostic_l426_d26_check_exist_directories(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l426_d26_check_exist_directories(args ...ruby.Value) ruby.Value {
 	return diagnostic_finding_value(diagnostic_check_exist_directories(diagnostic_receiver(args)))
 }
 
 // Ruby method `check_access_directories` at line 450.
-pub fn ruby_diagnostic_l450_d27_check_access_directories(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l450_d27_check_access_directories(args ...ruby.Value) ruby.Value {
 	return diagnostic_finding_value(diagnostic_check_access_directories(diagnostic_receiver(args)))
 }
 
 // Ruby method `check_multiple_cellars` at line 476.
-pub fn ruby_diagnostic_l476_d28_check_multiple_cellars(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l476_d28_check_multiple_cellars(args ...ruby.Value) ruby.Value {
 	return diagnostic_finding_value(diagnostic_check_multiple_cellars(diagnostic_receiver(args)))
 }
 
 // Ruby method `check_user_path_1` at line 496.
-pub fn ruby_diagnostic_l496_d29_check_user_path_1(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l496_d29_check_user_path_1(args ...ruby.Value) ruby.Value {
 	mut checks := diagnostic_receiver(args)
 	return diagnostic_finding_value(diagnostic_check_user_path_1(mut checks))
 }
 
 // Ruby method `check_user_path_2` at line 543.
-pub fn ruby_diagnostic_l543_d30_check_user_path_2(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l543_d30_check_user_path_2(args ...ruby.Value) ruby.Value {
 	mut checks := diagnostic_receiver(args)
 	return diagnostic_finding_value(diagnostic_check_user_path_2(mut checks))
 }
 
 // Ruby method `check_user_path_3` at line 562.
-pub fn ruby_diagnostic_l562_d31_check_user_path_3(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l562_d31_check_user_path_3(args ...ruby.Value) ruby.Value {
 	mut checks := diagnostic_receiver(args)
 	return diagnostic_finding_value(diagnostic_check_user_path_3(mut checks))
 }
 
 // Ruby method `check_for_symlinked_cellar` at line 588.
-pub fn ruby_diagnostic_l588_d32_check_for_symlinked_cellar(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l588_d32_check_for_symlinked_cellar(args ...ruby.Value) ruby.Value {
 	return diagnostic_finding_value(diagnostic_check_symlinked_cellar(diagnostic_receiver(args)))
 }
 
 // Ruby method `check_git_version` at line 610.
-pub fn ruby_diagnostic_l610_d33_check_git_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l610_d33_check_git_version(args ...ruby.Value) ruby.Value {
 	return diagnostic_finding_value(diagnostic_check_git_version(diagnostic_receiver(args)))
 }
 
 // Ruby method `check_for_git` at line 633.
-pub fn ruby_diagnostic_l633_d34_check_for_git(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l633_d34_check_for_git(args ...ruby.Value) ruby.Value {
 	return diagnostic_finding_value(diagnostic_check_for_git(diagnostic_receiver(args)))
 }
 
 // Ruby method `check_git_newline_settings` at line 653.
-pub fn ruby_diagnostic_l653_d35_check_git_newline_settings(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l653_d35_check_git_newline_settings(args ...ruby.Value) ruby.Value {
 	return diagnostic_finding_value(diagnostic_check_git_newline(diagnostic_receiver(args)))
 }
 
 // Ruby method `check_homebrew_repository_git_hooks` at line 678.
-pub fn ruby_diagnostic_l678_d36_check_homebrew_repository_git_hooks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l678_d36_check_homebrew_repository_git_hooks(args ...ruby.Value) ruby.Value {
 	return diagnostic_finding_value(diagnostic_check_repository_hooks(diagnostic_receiver(args)))
 }
 
 // Ruby method `check_brew_git_origin` at line 709.
-pub fn ruby_diagnostic_l709_d37_check_brew_git_origin(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l709_d37_check_brew_git_origin(args ...ruby.Value) ruby.Value {
 	checks := diagnostic_receiver(args)
 	current_origin := if checks.repository_origin == '' {
 		?string(none)
@@ -1941,223 +1941,223 @@ pub fn ruby_diagnostic_l709_d37_check_brew_git_origin(args ...brew_runtime.Value
 }
 
 // Ruby method `check_for_nix_homebrew` at line 715.
-pub fn ruby_diagnostic_l715_d38_check_for_nix_homebrew(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l715_d38_check_for_nix_homebrew(args ...ruby.Value) ruby.Value {
 	return diagnostic_finding_value(diagnostic_check_nix(diagnostic_receiver(args)))
 }
 
 // Ruby method `check_coretap_integrity` at line 728.
-pub fn ruby_diagnostic_l728_d39_check_coretap_integrity(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l728_d39_check_coretap_integrity(args ...ruby.Value) ruby.Value {
 	checks := diagnostic_receiver(args)
 	tap := diagnostic_core_tap(checks) or { return diagnostic_nil() }
 	return diagnostic_finding_value(diagnostic_check_tap_integrity(checks, tap, checks.desired_core_origin))
 }
 
 // Ruby method `check_casktap_integrity` at line 740.
-pub fn ruby_diagnostic_l740_d40_check_casktap_integrity(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l740_d40_check_casktap_integrity(args ...ruby.Value) ruby.Value {
 	checks := diagnostic_receiver(args)
 	tap := diagnostic_core_cask_tap(checks) or { return diagnostic_nil() }
 	return diagnostic_finding_value(diagnostic_check_tap_integrity(checks, tap, tap.remote))
 }
 
 // Ruby method `check_tap_git_branch` at line 748.
-pub fn ruby_diagnostic_l748_d41_check_tap_git_branch(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l748_d41_check_tap_git_branch(args ...ruby.Value) ruby.Value {
 	return diagnostic_finding_value(diagnostic_check_tap_git_branch(diagnostic_receiver(args)))
 }
 
 // Ruby method `check_deprecated_official_taps` at line 794.
-pub fn ruby_diagnostic_l794_d42_check_deprecated_official_taps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l794_d42_check_deprecated_official_taps(args ...ruby.Value) ruby.Value {
 	return diagnostic_finding_value(diagnostic_check_deprecated_official_taps(diagnostic_receiver(args)))
 }
 
 // Ruby method `check_untrusted_taps` at line 815.
-pub fn ruby_diagnostic_l815_d43_check_untrusted_taps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l815_d43_check_untrusted_taps(args ...ruby.Value) ruby.Value {
 	return diagnostic_finding_value(diagnostic_check_untrusted_taps(diagnostic_receiver(args)))
 }
 
 // Ruby method `__check_linked_brew!(formula)` at line 916.
-pub fn ruby_diagnostic_l916_d44_check_linked_brew(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l916_d44_check_linked_brew(args ...ruby.Value) ruby.Value {
 	formula_index := if args.len > 1 && args[0].type_name == 'Homebrew::Diagnostic::Checks' {
 		1
 	} else {
 		0
 	}
-	return brew_runtime.bool_value(diagnostic_check_linked_brew(diagnostic_formula_from_value(args[formula_index])))
+	return ruby.bool_value(diagnostic_check_linked_brew(diagnostic_formula_from_value(args[formula_index])))
 }
 
 // Ruby method `check_for_other_frameworks` at line 930.
-pub fn ruby_diagnostic_l930_d45_check_for_other_frameworks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l930_d45_check_for_other_frameworks(args ...ruby.Value) ruby.Value {
 	return diagnostic_finding_value(diagnostic_check_other_frameworks(diagnostic_receiver(args)))
 }
 
 // Ruby method `check_tmpdir` at line 955.
-pub fn ruby_diagnostic_l955_d46_check_tmpdir(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l955_d46_check_tmpdir(args ...ruby.Value) ruby.Value {
 	return diagnostic_finding_value(diagnostic_check_tmpdir(diagnostic_receiver(args)))
 }
 
 // Ruby method `check_missing_deps` at line 967.
-pub fn ruby_diagnostic_l967_d47_check_missing_deps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l967_d47_check_missing_deps(args ...ruby.Value) ruby.Value {
 	return diagnostic_finding_value(diagnostic_check_missing_deps(diagnostic_receiver(args)))
 }
 
 // Ruby method `check_deprecated_disabled` at line 992.
-pub fn ruby_diagnostic_l992_d48_check_deprecated_disabled(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l992_d48_check_deprecated_disabled(args ...ruby.Value) ruby.Value {
 	return diagnostic_finding_value(diagnostic_check_deprecated_disabled(diagnostic_receiver(args)))
 }
 
 // Ruby method `check_cask_deprecated_disabled` at line 1009.
-pub fn ruby_diagnostic_l1009_d49_check_cask_deprecated_disabled(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l1009_d49_check_cask_deprecated_disabled(args ...ruby.Value) ruby.Value {
 	return diagnostic_finding_value(diagnostic_check_cask_deprecated_disabled(diagnostic_receiver(args)))
 }
 
 // Ruby method `check_git_status` at line 1025.
-pub fn ruby_diagnostic_l1025_d50_check_git_status(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l1025_d50_check_git_status(args ...ruby.Value) ruby.Value {
 	return diagnostic_finding_array_value(diagnostic_check_git_status(diagnostic_receiver(args)))
 }
 
 // Ruby method `__tap_git_status(tap, path)` at line 1044.
-pub fn ruby_diagnostic_l1044_d51_tap_git_status(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l1044_d51_tap_git_status(args ...ruby.Value) ruby.Value {
 	checks := diagnostic_receiver(args)
 	return diagnostic_finding_value(diagnostic_tap_git_status(checks, args[1].as_string(), args[2].as_string()))
 }
 
 // Ruby method `check_for_non_prefixed_coreutils` at line 1075.
-pub fn ruby_diagnostic_l1075_d52_check_for_non_prefixed_coreutils(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l1075_d52_check_for_non_prefixed_coreutils(args ...ruby.Value) ruby.Value {
 	return diagnostic_finding_value(diagnostic_check_non_prefixed_coreutils(diagnostic_receiver(args)))
 }
 
 // Ruby method `check_for_pydistutils_cfg_in_home` at line 1092.
-pub fn ruby_diagnostic_l1092_d53_check_for_pydistutils_cfg_in_home(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l1092_d53_check_for_pydistutils_cfg_in_home(args ...ruby.Value) ruby.Value {
 	return diagnostic_finding_value(diagnostic_check_pydistutils(diagnostic_receiver(args)))
 }
 
 // Ruby method `check_for_unreadable_installed_formula` at line 1110.
-pub fn ruby_diagnostic_l1110_d54_check_for_unreadable_installed_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l1110_d54_check_for_unreadable_installed_formula(args ...ruby.Value) ruby.Value {
 	return diagnostic_finding_value(diagnostic_check_unreadable_formulae(diagnostic_receiver(args)))
 }
 
 // Ruby method `check_for_unlinked_but_not_keg_only` at line 1132.
-pub fn ruby_diagnostic_l1132_d55_check_for_unlinked_but_not_keg_only(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l1132_d55_check_for_unlinked_but_not_keg_only(args ...ruby.Value) ruby.Value {
 	return diagnostic_finding_value(diagnostic_check_unlinked_formulae(diagnostic_receiver(args)))
 }
 
 // Ruby method `check_for_external_cmd_name_conflict` at line 1164.
-pub fn ruby_diagnostic_l1164_d56_check_for_external_cmd_name_conflict(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l1164_d56_check_for_external_cmd_name_conflict(args ...ruby.Value) ruby.Value {
 	return diagnostic_finding_value(diagnostic_check_external_command_conflicts(diagnostic_receiver(args)))
 }
 
 // Ruby method `check_for_tap_ruby_files_locations` at line 1192.
-pub fn ruby_diagnostic_l1192_d57_check_for_tap_ruby_files_locations(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l1192_d57_check_for_tap_ruby_files_locations(args ...ruby.Value) ruby.Value {
 	return diagnostic_finding_value(diagnostic_check_tap_ruby_locations(diagnostic_receiver(args)))
 }
 
 // Ruby method `check_homebrew_prefix` at line 1219.
-pub fn ruby_diagnostic_l1219_d58_check_homebrew_prefix(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l1219_d58_check_homebrew_prefix(args ...ruby.Value) ruby.Value {
 	return diagnostic_finding_value(diagnostic_check_homebrew_prefix(diagnostic_receiver(args)))
 }
 
 // Ruby method `check_deleted_formula` at line 1234.
-pub fn ruby_diagnostic_l1234_d59_check_deleted_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l1234_d59_check_deleted_formula(args ...ruby.Value) ruby.Value {
 	return diagnostic_finding_value(diagnostic_check_deleted_formula(diagnostic_receiver(args)))
 }
 
 // Ruby method `check_for_unnecessary_core_tap` at line 1275.
-pub fn ruby_diagnostic_l1275_d60_check_for_unnecessary_core_tap(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l1275_d60_check_for_unnecessary_core_tap(args ...ruby.Value) ruby.Value {
 	checks := diagnostic_receiver(args)
 	tap := diagnostic_core_tap(checks) or { return diagnostic_nil() }
 	return diagnostic_finding_value(diagnostic_check_unnecessary_tap(checks, tap, false))
 }
 
 // Ruby method `check_for_unnecessary_cask_tap` at line 1295.
-pub fn ruby_diagnostic_l1295_d61_check_for_unnecessary_cask_tap(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l1295_d61_check_for_unnecessary_cask_tap(args ...ruby.Value) ruby.Value {
 	checks := diagnostic_receiver(args)
 	tap := diagnostic_core_cask_tap(checks) or { return diagnostic_nil() }
 	return diagnostic_finding_value(diagnostic_check_unnecessary_tap(checks, tap, true))
 }
 
 // Ruby method `check_deprecated_cask_taps` at line 1317.
-pub fn ruby_diagnostic_l1317_d62_check_deprecated_cask_taps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l1317_d62_check_deprecated_cask_taps(args ...ruby.Value) ruby.Value {
 	return diagnostic_finding_value(diagnostic_check_deprecated_cask_taps(diagnostic_receiver(args)))
 }
 
 // Ruby method `check_cask_software_versions` at line 1339.
-pub fn ruby_diagnostic_l1339_d63_check_cask_software_versions(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l1339_d63_check_cask_software_versions(args ...ruby.Value) ruby.Value {
 	mut checks := diagnostic_receiver(args)
 	diagnostic_check_cask_software_versions(mut checks)
 	return diagnostic_nil()
 }
 
 // Ruby method `check_cask_install_location` at line 1346.
-pub fn ruby_diagnostic_l1346_d64_check_cask_install_location(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l1346_d64_check_cask_install_location(args ...ruby.Value) ruby.Value {
 	return diagnostic_finding_value(diagnostic_check_cask_install_location(diagnostic_receiver(args)))
 }
 
 // Ruby method `check_cask_staging_location` at line 1361.
-pub fn ruby_diagnostic_l1361_d65_check_cask_staging_location(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l1361_d65_check_cask_staging_location(args ...ruby.Value) ruby.Value {
 	mut checks := diagnostic_receiver(args)
 	return diagnostic_finding_value(diagnostic_check_cask_staging(mut checks))
 }
 
 // Ruby method `check_cask_corrupt_dirs` at line 1387.
-pub fn ruby_diagnostic_l1387_d66_check_cask_corrupt_dirs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l1387_d66_check_cask_corrupt_dirs(args ...ruby.Value) ruby.Value {
 	return diagnostic_finding_value(diagnostic_check_cask_corrupt(diagnostic_receiver(args)))
 }
 
 // Ruby method `check_cask_taps` at line 1409.
-pub fn ruby_diagnostic_l1409_d67_check_cask_taps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l1409_d67_check_cask_taps(args ...ruby.Value) ruby.Value {
 	mut checks := diagnostic_receiver(args)
 	return diagnostic_finding_value(diagnostic_check_cask_taps(mut checks))
 }
 
 // Ruby method `check_cask_load_path` at line 1434.
-pub fn ruby_diagnostic_l1434_d68_check_cask_load_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l1434_d68_check_cask_load_path(args ...ruby.Value) ruby.Value {
 	mut checks := diagnostic_receiver(args)
 	return diagnostic_finding_value(diagnostic_check_cask_load_path(mut checks))
 }
 
 // Ruby method `check_cask_environment_variables` at line 1443.
-pub fn ruby_diagnostic_l1443_d69_check_cask_environment_variables(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l1443_d69_check_cask_environment_variables(args ...ruby.Value) ruby.Value {
 	mut checks := diagnostic_receiver(args)
 	diagnostic_check_cask_environment(mut checks)
 	return diagnostic_nil()
 }
 
 // Ruby method `check_cask_xattr` at line 1471.
-pub fn ruby_diagnostic_l1471_d70_check_cask_xattr(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l1471_d70_check_cask_xattr(args ...ruby.Value) ruby.Value {
 	return diagnostic_finding_value(diagnostic_check_cask_xattr(diagnostic_receiver(args)))
 }
 
 // Ruby method `non_core_taps` at line 1512.
-pub fn ruby_diagnostic_l1512_d71_non_core_taps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l1512_d71_non_core_taps(args ...ruby.Value) ruby.Value {
 	taps := diagnostic_non_core_taps(diagnostic_receiver(args))
-	return brew_runtime.array_value(taps.map(diagnostic_tap_value(it)))
+	return ruby.array_value(taps.map(diagnostic_tap_value(it)))
 }
 
 // Ruby method `check_for_duplicate_formulae` at line 1517.
-pub fn ruby_diagnostic_l1517_d72_check_for_duplicate_formulae(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l1517_d72_check_for_duplicate_formulae(args ...ruby.Value) ruby.Value {
 	return diagnostic_finding_value(diagnostic_check_duplicate_formulae(diagnostic_receiver(args)))
 }
 
 // Ruby method `check_for_duplicate_casks` at line 1547.
-pub fn ruby_diagnostic_l1547_d73_check_for_duplicate_casks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l1547_d73_check_for_duplicate_casks(args ...ruby.Value) ruby.Value {
 	return diagnostic_finding_value(diagnostic_check_duplicate_casks(diagnostic_receiver(args)))
 }
 
 // Ruby method `all` at line 1583.
-pub fn ruby_diagnostic_l1583_d74_all(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l1583_d74_all(args ...ruby.Value) ruby.Value {
 	_ = diagnostic_receiver(args)
 	return diagnostic_strings_value(diagnostic_all_checks)
 }
 
 // Ruby method `cask_checks` at line 1588.
-pub fn ruby_diagnostic_l1588_d75_cask_checks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l1588_d75_cask_checks(args ...ruby.Value) ruby.Value {
 	_ = diagnostic_receiver(args)
 	return diagnostic_strings_value(diagnostic_cask_checks())
 }
 
 // Ruby method `current_user` at line 1593.
-pub fn ruby_diagnostic_l1593_d76_current_user(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l1593_d76_current_user(args ...ruby.Value) ruby.Value {
 	checks := diagnostic_receiver(args)
-	return brew_runtime.string_value(if checks.current_user_name == '' {
+	return ruby.string_value(if checks.current_user_name == '' {
 		'\$(whoami)'
 	} else {
 		checks.current_user_name
@@ -2165,7 +2165,7 @@ pub fn ruby_diagnostic_l1593_d76_current_user(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby method `paths` at line 1600.
-pub fn ruby_diagnostic_l1600_d77_paths(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l1600_d77_paths(args ...ruby.Value) ruby.Value {
 	checks := diagnostic_receiver(args)
 	return diagnostic_strings_value(diagnostic_unique(checks.original_paths))
 }

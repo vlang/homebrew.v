@@ -1,6 +1,6 @@
 module unpack_strategy
 
-import brew_runtime
+import ruby
 import os
 import time
 
@@ -125,7 +125,7 @@ pub fn (mut mount DmgMount) eject(verbose bool) ! {
 	mut last_error := ''
 	for attempt in 0 .. 3 {
 		args := if attempt < 2 { ['eject', mount.path] } else { ['unmount', 'force', mount.path] }
-		result := brew_runtime.run_command(diskutil, args)
+		result := ruby.run_command(diskutil, args)
 		if result.exit_code == 0 {
 			mount.ejected = true
 			if mount.mount_root != '' && os.is_dir(mount.mount_root) {
@@ -145,7 +145,7 @@ pub fn dmg_extensions() []string {
 
 pub fn dmg_can_extract(path string) bool {
 	hdiutil := command_path('hdiutil') or { return false }
-	result := brew_runtime.run_command(hdiutil, ['imageinfo', '-format', path])
+	result := ruby.run_command(hdiutil, ['imageinfo', '-format', path])
 	return result.exit_code == 0 && result.output.trim_space() != ''
 }
 

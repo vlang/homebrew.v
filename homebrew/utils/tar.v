@@ -1,6 +1,6 @@
 module utils
 
-import brew_runtime
+import ruby
 import os
 
 const tar_file_extensions = ['.tar', '.tb2', '.tbz', '.tbz2', '.tgz', '.tlz', '.txz', '.tZ']
@@ -36,30 +36,30 @@ mut:
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `available?` at line 17.
-pub fn ruby_tar_l17_d1_available(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tar_l17_d1_available(args ...ruby.Value) ruby.Value {
 	mut client := tar_default_client()
-	return brew_runtime.bool_value(tar_client_available(mut client))
+	return ruby.bool_value(tar_client_available(mut client))
 }
 
 // Ruby method `executable` at line 22.
-pub fn ruby_tar_l22_d2_executable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tar_l22_d2_executable(args ...ruby.Value) ruby.Value {
 	mut client := tar_default_client()
 	if executable := tar_client_executable(mut client) {
-		return brew_runtime.object_value('Pathname', executable)
+		return ruby.object_value('Pathname', executable)
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `validate_file(path)` at line 31.
-pub fn ruby_tar_l31_d3_validate_file(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tar_l31_d3_validate_file(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Utils::Tar.validate_file requires a path')
 	}
 	mut client := tar_default_client()
 	tar_validate_file(mut client, args[0].as_string()) or {
-		return brew_runtime.object_value('SystemExit', err.msg())
+		return ruby.object_value('SystemExit', err.msg())
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 pub fn tar_executable(candidates TarExecutableCandidates) ?string {
@@ -76,13 +76,13 @@ pub fn tar_executable(candidates TarExecutableCandidates) ?string {
 }
 
 pub fn tar_default_candidates() TarExecutableCandidates {
-	prefix := brew_runtime.environment_value('HOMEBREW_PREFIX').trim_right('/')
+	prefix := ruby.environment_value('HOMEBREW_PREFIX').trim_right('/')
 	gnu_tar_gtar := if prefix == '' { '' } else { os.join_path(prefix, 'opt/gnu-tar/bin/gtar') }
 	return TarExecutableCandidates{
-		path_gtar: brew_runtime.find_executable('gtar') or { '' }
+		path_gtar: ruby.find_executable('gtar') or { '' }
 		gnu_tar_gtar: gnu_tar_gtar
 		gnu_tar_gtar_executable: gnu_tar_gtar != '' && os.is_file(gnu_tar_gtar) && os.is_executable(gnu_tar_gtar)
-		path_tar: brew_runtime.find_executable('tar') or { '' }
+		path_tar: ruby.find_executable('tar') or { '' }
 	}
 }
 
@@ -140,7 +140,7 @@ pub fn tar_validate_file(mut client TarClient, path string) ! {
 }
 
 fn tar_run_command(executable string, arguments []string) TarCommandResult {
-	result := brew_runtime.run_command(executable, arguments)
+	result := ruby.run_command(executable, arguments)
 	return TarCommandResult{
 		stdout: result.output
 		exit_code: result.exit_code

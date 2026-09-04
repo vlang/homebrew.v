@@ -1,6 +1,6 @@
 module rubocops
 
-import brew_runtime
+import ruby
 import homebrew.utils
 
 // Translated from Homebrew/brew `rubocops/components_order.rb`.
@@ -524,17 +524,17 @@ pub fn analyze_components_order(source string) ComponentsOrderAnalysis {
 	}
 }
 
-fn components_order_offense_value(offense ComponentsOrderOffense) brew_runtime.Value {
-	return brew_runtime.Value{
+fn components_order_offense_value(offense ComponentsOrderOffense) ruby.Value {
+	return ruby.Value{
 		type_name: 'RuboCop::Cop::Offense'
 		repr: offense.message
 		map_data: {
-			'message':    brew_runtime.string_value(offense.message)
-			'node':       brew_runtime.string_value(offense.node_name)
-			'other':      brew_runtime.string_value(offense.other_name)
-			'line':       brew_runtime.int_value(offense.line)
-			'other_line': brew_runtime.int_value(offense.other_line)
-			'corrected':  brew_runtime.string_value(offense.corrected)
+			'message':    ruby.string_value(offense.message)
+			'node':       ruby.string_value(offense.node_name)
+			'other':      ruby.string_value(offense.other_name)
+			'line':       ruby.int_value(offense.line)
+			'other_line': ruby.int_value(offense.other_line)
+			'corrected':  ruby.string_value(offense.corrected)
 		}
 		attributes: {
 			'begin_pos': offense.begin_pos.str()
@@ -543,19 +543,19 @@ fn components_order_offense_value(offense ComponentsOrderOffense) brew_runtime.V
 	}
 }
 
-fn components_order_analysis_value(analysis ComponentsOrderAnalysis) brew_runtime.Value {
-	return brew_runtime.Value{
+fn components_order_analysis_value(analysis ComponentsOrderAnalysis) ruby.Value {
+	return ruby.Value{
 		type_name: 'RuboCop::Cop::FormulaAudit::ComponentsOrder::Analysis'
 		repr: analysis.source
 		array_data: analysis.offenses.map(components_order_offense_value(it))
 		map_data: {
-			'offenses':  brew_runtime.array_value(analysis.offenses.map(components_order_offense_value(it)))
-			'corrected': brew_runtime.string_value(analysis.corrected)
+			'offenses':  ruby.array_value(analysis.offenses.map(components_order_offense_value(it)))
+			'corrected': ruby.string_value(analysis.corrected)
 		}
 	}
 }
 
-fn components_order_arg_source(args []brew_runtime.Value) string {
+fn components_order_arg_source(args []ruby.Value) string {
 	return if args.len > 0 {
 		args[0].as_string()
 	} else {
@@ -564,43 +564,43 @@ fn components_order_arg_source(args []brew_runtime.Value) string {
 }
 
 // Ruby method `initialize(config = nil, options = nil)` at line 18.
-pub fn ruby_components_order_l18_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_l18_d1_initialize(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'RuboCop::Cop::FormulaAudit::ComponentsOrder'
 		repr: '#<RuboCop::Cop::FormulaAudit::ComponentsOrder>'
 		map_data: {
-			'present_components': brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
-			'offensive_nodes':    brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+			'present_components': ruby.Value{ type_name: 'NilClass', repr: 'nil' }
+			'offensive_nodes':    ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 		}
 	}
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 25.
-pub fn ruby_components_order_l25_d2_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_l25_d2_audit_formula(args ...ruby.Value) ruby.Value {
 	return components_order_analysis_value(analyze_components_order(components_order_arg_source(args)))
 }
 
 // Ruby method `check_block_component_order(component_precedence_list, block)` at line 135.
-pub fn ruby_components_order_l135_d3_check_block_component_order(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_l135_d3_check_block_component_order(args ...ruby.Value) ruby.Value {
 	analysis := analyze_components_order(components_order_arg_source(args))
-	return brew_runtime.array_value(analysis.offenses.map(components_order_offense_value(it)))
+	return ruby.array_value(analysis.offenses.map(components_order_offense_value(it)))
 }
 
 // Ruby method `check_on_system_block_content(component_precedence_list, on_system_block)` at line 146.
-pub fn ruby_components_order_l146_d4_check_on_system_block_content(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_l146_d4_check_on_system_block_content(args ...ruby.Value) ruby.Value {
 	analysis := analyze_components_order(components_order_arg_source(args))
-	return brew_runtime.array_value(analysis.offenses.map(components_order_offense_value(it)))
+	return ruby.array_value(analysis.offenses.map(components_order_offense_value(it)))
 }
 
 // Ruby method `reorder_components(corrector, node1, node2)` at line 194.
-pub fn ruby_components_order_l194_d5_reorder_components(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_l194_d5_reorder_components(args ...ruby.Value) ruby.Value {
 	analysis := analyze_components_order(components_order_arg_source(args))
-	return brew_runtime.string_value(analysis.corrected)
+	return ruby.string_value(analysis.corrected)
 }
 
 // Ruby method `get_state(node1)` at line 217.
-pub fn ruby_components_order_l217_d6_get_state(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_l217_d6_get_state(args ...ruby.Value) ruby.Value {
 	analysis := analyze_components_order(components_order_arg_source(args))
 	requested_name := if args.len > 1 {
 		args[1].attributes['name'] or { args[1].as_string() }
@@ -622,43 +622,43 @@ pub fn ruby_components_order_l217_d6_get_state(args ...brew_runtime.Value) brew_
 				occurrence++
 				continue
 			}
-			return brew_runtime.array_value([
-				brew_runtime.int_value(group_index),
-				brew_runtime.int_value(node_index),
-				brew_runtime.array_value(group.map(utils.ast_node_value(it))),
+			return ruby.array_value([
+				ruby.int_value(group_index),
+				ruby.int_value(node_index),
+				ruby.array_value(group.map(utils.ast_node_value(it))),
 			])
 		}
 	}
-	return brew_runtime.Value{ type_name: 'RuntimeError', repr: 'Could not find node1 in present_components' }
+	return ruby.Value{ type_name: 'RuntimeError', repr: 'Could not find node1 in present_components' }
 }
 
 // Ruby method `check_order(component_precedence_list, body_node)` at line 230.
-pub fn ruby_components_order_l230_d7_check_order(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_l230_d7_check_order(args ...ruby.Value) ruby.Value {
 	analysis := analyze_components_order(components_order_arg_source(args))
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'ComponentsOrder::CheckOrder'
 		array_data: analysis.offenses.map(components_order_offense_value(it))
 		map_data: {
-			'present_components': brew_runtime.array_value(analysis.present_components.map(brew_runtime.array_value(it.map(utils.ast_node_value(it)))))
-			'offensive_nodes':    brew_runtime.array_value(analysis.offenses.map(components_order_offense_value(it)))
+			'present_components': ruby.array_value(analysis.present_components.map(ruby.array_value(it.map(utils.ast_node_value(it)))))
+			'offensive_nodes':    ruby.array_value(analysis.offenses.map(components_order_offense_value(it)))
 		}
 	}
 }
 
 // Ruby method `component_problem(component1, component2)` at line 261.
-pub fn ruby_components_order_l261_d8_component_problem(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_l261_d8_component_problem(args ...ruby.Value) ruby.Value {
 	analysis := analyze_components_order(components_order_arg_source(args))
 	return if analysis.offenses.len > 0 {
 		components_order_offense_value(analysis.offenses[0])
 	} else {
-		brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+		ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 	}
 }
 
 // Ruby def_node_matcher `def_node_matcher :depends_on_node?, <<~EOS` at line 273.
-pub fn ruby_components_order_l273_d9_depends_on_node(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_l273_d9_depends_on_node(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	source := args[0].as_string()
 	trimmed_source := source.trim_space()
@@ -669,14 +669,14 @@ pub fn ruby_components_order_l273_d9_depends_on_node(args ...brew_runtime.Value)
 			source: source
 			source_range: utils.AstRange{ begin_pos: 0, end_pos: source.len, column: 0 }
 		}
-		return brew_runtime.bool_value(components_order_conditional_depends_on(source, conditional))
+		return ruby.bool_value(components_order_conditional_depends_on(source, conditional))
 	}
 	_, node := utils.ast_process_source(source)
 	mut candidate := node
 	if node.kind == 'class' && node.children.len > 0 {
 		candidate = node.children[0]
 	}
-	return brew_runtime.bool_value(components_order_depends_on_node(candidate))
+	return ruby.bool_value(components_order_depends_on_node(candidate))
 }
 
 // Original Ruby source (line-for-line):

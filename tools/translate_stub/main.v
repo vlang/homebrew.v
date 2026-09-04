@@ -46,7 +46,7 @@ fn translate_file(source_root string, relative_path string, destination_root str
 	output << 'module ${module_name}'
 	if definitions.len > 0 || has_file_body {
 		output << ''
-		output << 'import brew_runtime'
+		output << 'import ruby'
 	}
 	output << ''
 	output << '// Translated from Homebrew/brew `${relative_path}`.'
@@ -54,16 +54,16 @@ fn translate_file(source_root string, relative_path string, destination_root str
 	if has_file_body {
 		output << ''
 		output << '// Ruby top-level program body from `${relative_path}`.'
-		output << 'pub fn ruby_brew_file_body(args ...brew_runtime.Value) brew_runtime.Value {'
-		output << "\treturn brew_runtime.unimplemented_fn('brew.rb:<top-level>', ...args)"
+		output << 'pub fn ruby_brew_file_body(args ...ruby.Value) ruby.Value {'
+		output << "\treturn ruby.unimplemented_fn('brew.rb:<top-level>', ...args)"
 		output << '}'
 	}
 	for definition_index, definition in definitions {
 		function_name := 'ruby_${file_name}_l${definition.line}_d${definition_index + 1}_${identifier(definition.name)}'
 		output << ''
 		output << '// Ruby ${definition.kind} `${definition.header}` at line ${definition.line}.'
-		output << 'pub fn ${function_name}(args ...brew_runtime.Value) brew_runtime.Value {'
-		output << "\treturn brew_runtime.unimplemented_fn('${escape_v_string(definition.name)}', ...args)"
+		output << 'pub fn ${function_name}(args ...ruby.Value) ruby.Value {'
+		output << "\treturn ruby.unimplemented_fn('${escape_v_string(definition.name)}', ...args)"
 		output << '}'
 	}
 	output << ''

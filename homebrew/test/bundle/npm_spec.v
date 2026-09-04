@@ -1,6 +1,6 @@
 module bundle
 
-import brew_runtime
+import ruby
 import homebrew.bundle.extensions
 
 // Translated from Homebrew/brew `test/bundle/npm_spec.rb`.
@@ -95,87 +95,87 @@ fn npm_spec_case(line int) bool {
 }
 
 // Ruby subject `subject(:dumper) { described_class }` at line 11.
-pub fn ruby_npm_spec_l11_d1_dumper(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_npm_spec_l11_d1_dumper(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.object_value('Homebrew::Bundle::Npm', 'Homebrew::Bundle::Npm')
+	return ruby.object_value('Homebrew::Bundle::Npm', 'Homebrew::Bundle::Npm')
 }
 
 // Ruby specify `specify do` at line 19.
-pub fn ruby_npm_spec_l19_d2_do(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_npm_spec_l19_d2_do(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(npm_spec_case(19))
+	return ruby.bool_value(npm_spec_case(19))
 }
 
 // Ruby it `it "returns package list" do` at line 31.
-pub fn ruby_npm_spec_l31_d3_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_npm_spec_l31_d3_returns(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(npm_spec_case(31))
+	return ruby.bool_value(npm_spec_case(31))
 }
 
 // Ruby it `it "adds npm's directory to PATH when listing packages" do` at line 45.
-pub fn ruby_npm_spec_l45_d4_adds(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_npm_spec_l45_d4_adds(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(npm_spec_case(45))
+	return ruby.bool_value(npm_spec_case(45))
 }
 
 // Ruby it `it "excludes npm itself from the package list" do` at line 59.
-pub fn ruby_npm_spec_l59_d5_excludes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_npm_spec_l59_d5_excludes(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(npm_spec_case(59))
+	return ruby.bool_value(npm_spec_case(59))
 }
 
 // Ruby it `it "handles invalid JSON" do` at line 71.
-pub fn ruby_npm_spec_l71_d6_handles(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_npm_spec_l71_d6_handles(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(npm_spec_case(71))
+	return ruby.bool_value(npm_spec_case(71))
 }
 
 // Ruby it `it "handles empty output" do` at line 77.
-pub fn ruby_npm_spec_l77_d7_handles(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_npm_spec_l77_d7_handles(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(npm_spec_case(77))
+	return ruby.bool_value(npm_spec_case(77))
 }
 
 // Ruby it `it "dumps package list" do` at line 83.
-pub fn ruby_npm_spec_l83_d8_dumps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_npm_spec_l83_d8_dumps(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(npm_spec_case(83))
+	return ruby.bool_value(npm_spec_case(83))
 }
 
 // Ruby it `it "returns packages not in Brewfile entries" do` at line 100.
-pub fn ruby_npm_spec_l100_d9_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_npm_spec_l100_d9_returns(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(npm_spec_case(100))
+	return ruby.bool_value(npm_spec_case(100))
 }
 
 // Ruby it `it "returns empty when all packages are in Brewfile" do` at line 105.
-pub fn ruby_npm_spec_l105_d10_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_npm_spec_l105_d10_returns(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(npm_spec_case(105))
+	return ruby.bool_value(npm_spec_case(105))
 }
 
 // Ruby it `it "returns frozen empty array when npm is not installed" do` at line 114.
-pub fn ruby_npm_spec_l114_d11_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_npm_spec_l114_d11_returns(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(npm_spec_case(114))
+	return ruby.bool_value(npm_spec_case(114))
 }
 
 // Ruby it `it "tries to install node" do` at line 128.
-pub fn ruby_npm_spec_l128_d12_tries(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_npm_spec_l128_d12_tries(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(npm_spec_case(128))
+	return ruby.bool_value(npm_spec_case(128))
 }
 
 // Ruby it `it "skips" do` at line 147.
-pub fn ruby_npm_spec_l147_d13_skips(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_npm_spec_l147_d13_skips(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(npm_spec_case(147))
+	return ruby.bool_value(npm_spec_case(147))
 }
 
 // Ruby it `it "installs package" do` at line 161.
-pub fn ruby_npm_spec_l161_d14_installs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_npm_spec_l161_d14_installs(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(npm_spec_case(161))
+	return ruby.bool_value(npm_spec_case(161))
 }
 
 // Original Ruby source (line-for-line):

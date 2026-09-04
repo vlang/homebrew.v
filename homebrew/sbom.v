@@ -1,32 +1,32 @@
 module homebrew
 
-import brew_runtime
+import ruby
 import os
 import time
 import x.json2
 
 const sbom_filename = 'sbom.spdx.json'
 
-fn sbom_nil() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn sbom_nil() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-fn sbom_bool(value brew_runtime.Value, key string, fallback bool) bool {
+fn sbom_bool(value ruby.Value, key string, fallback bool) bool {
 	raw := value.attributes[key] or { return fallback }
 	return raw == 'true' || raw == '1'
 }
 
-fn sbom_values(value brew_runtime.Value, key string) []brew_runtime.Value {
+fn sbom_values(value ruby.Value, key string) []ruby.Value {
 	nested := value.map_data[key] or { return [] }
 	return nested.as_array() or { [] }
 }
 
-fn sbom_strings(value brew_runtime.Value, key string) []string {
+fn sbom_strings(value ruby.Value, key string) []string {
 	raw := value.attributes[key] or { return [] }
 	return if raw == '' { [] } else { raw.split('\x1f') }
 }
 
-fn sbom_present(value brew_runtime.Value) bool {
+fn sbom_present(value ruby.Value) bool {
 	return value.type_name != '' && value.type_name != 'NilClass' && !(value.type_name == 'String' && value.as_string() == '')
 }
 
@@ -34,22 +34,22 @@ fn sbom_time(epoch i64) string {
 	return time.unix(epoch).format_rfc3339().replace('.000Z', 'Z')
 }
 
-fn sbom_assert(value brew_runtime.Value) brew_runtime.Value {
+fn sbom_assert(value ruby.Value) ruby.Value {
 	if !sbom_present(value) {
-		return brew_runtime.string_value('NOASSERTION')
+		return ruby.string_value('NOASSERTION')
 	}
-	return brew_runtime.string_value(value.as_string())
+	return ruby.string_value(value.as_string())
 }
 
-fn sbom_string_map(attributes map[string]string) brew_runtime.Value {
-	mut values := map[string]brew_runtime.Value{}
+fn sbom_string_map(attributes map[string]string) ruby.Value {
+	mut values := map[string]ruby.Value{}
 	for key, value in attributes {
-		values[key] = brew_runtime.string_value(value)
+		values[key] = ruby.string_value(value)
 	}
-	return brew_runtime.map_value(values)
+	return ruby.map_value(values)
 }
 
-fn sbom_value_to_any(value brew_runtime.Value) json2.Any {
+fn sbom_value_to_any(value ruby.Value) json2.Any {
 	return match value.type_name {
 		'Hash' {
 			mut mapped := map[string]json2.Any{}
@@ -69,80 +69,80 @@ fn sbom_value_to_any(value brew_runtime.Value) json2.Any {
 	}
 }
 
-fn sbom_any_to_value(value json2.Any) brew_runtime.Value {
+fn sbom_any_to_value(value json2.Any) ruby.Value {
 	return match value {
 		map[string]json2.Any {
-			mut mapped := map[string]brew_runtime.Value{}
+			mut mapped := map[string]ruby.Value{}
 			for key, nested in value {
 				mapped[key] = sbom_any_to_value(nested)
 			}
-			brew_runtime.map_value(mapped)
+			ruby.map_value(mapped)
 		}
-		[]json2.Any { brew_runtime.array_value(value.map(sbom_any_to_value(it))) }
-		string { brew_runtime.string_value(value) }
-		bool { brew_runtime.bool_value(value) }
-		i64 { brew_runtime.int_value(value) }
-		int { brew_runtime.int_value(value) }
-		i32 { brew_runtime.int_value(value) }
-		i16 { brew_runtime.int_value(value) }
-		i8 { brew_runtime.int_value(value) }
-		u64 { brew_runtime.int_value(i64(value)) }
-		u32 { brew_runtime.int_value(i64(value)) }
-		u16 { brew_runtime.int_value(i64(value)) }
-		u8 { brew_runtime.int_value(i64(value)) }
-		f64 { brew_runtime.float_value(value) }
-		f32 { brew_runtime.float_value(value) }
-		time.Time { brew_runtime.string_value(value.format_rfc3339()) }
+		[]json2.Any { ruby.array_value(value.map(sbom_any_to_value(it))) }
+		string { ruby.string_value(value) }
+		bool { ruby.bool_value(value) }
+		i64 { ruby.int_value(value) }
+		int { ruby.int_value(value) }
+		i32 { ruby.int_value(value) }
+		i16 { ruby.int_value(value) }
+		i8 { ruby.int_value(value) }
+		u64 { ruby.int_value(i64(value)) }
+		u32 { ruby.int_value(i64(value)) }
+		u16 { ruby.int_value(i64(value)) }
+		u8 { ruby.int_value(i64(value)) }
+		f64 { ruby.float_value(value) }
+		f32 { ruby.float_value(value) }
+		time.Time { ruby.string_value(value.format_rfc3339()) }
 		json2.Null { sbom_nil() }
 	}
 }
 
-fn sbom_json(value brew_runtime.Value) string {
+fn sbom_json(value ruby.Value) string {
 	return json2.encode(sbom_value_to_any(value))
 }
 
-fn sbom_map_string(value brew_runtime.Value, key string) string {
+fn sbom_map_string(value ruby.Value, key string) string {
 	nested := value.map_data[key] or { return '' }
 	return nested.as_string()
 }
 
-fn sbom_source(receiver brew_runtime.Value) brew_runtime.Value {
-	return receiver.map_data['source'] or { brew_runtime.map_value({}) }
+fn sbom_source(receiver ruby.Value) ruby.Value {
+	return receiver.map_data['source'] or { ruby.map_value({}) }
 }
 
-fn sbom_source_value(source brew_runtime.Value, key string) brew_runtime.Value {
+fn sbom_source_value(source ruby.Value, key string) ruby.Value {
 	return source.map_data[key] or {
 		if raw := source.attributes[key] {
-			return if raw == '' { sbom_nil() } else { brew_runtime.string_value(raw) }
+			return if raw == '' { sbom_nil() } else { ruby.string_value(raw) }
 		}
 		return sbom_nil()
 	}
 }
 
-fn sbom_package_id(value brew_runtime.Value) string {
+fn sbom_package_id(value ruby.Value) string {
 	return sbom_map_string(value, 'SPDXID')
 }
 
-fn sbom_external_ref(locator string) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'referenceCategory': brew_runtime.string_value('PACKAGE-MANAGER')
-		'referenceLocator':  brew_runtime.string_value(locator)
-		'referenceType':     brew_runtime.string_value('purl')
+fn sbom_external_ref(locator string) ruby.Value {
+	return ruby.map_value({
+		'referenceCategory': ruby.string_value('PACKAGE-MANAGER')
+		'referenceLocator':  ruby.string_value(locator)
+		'referenceType':     ruby.string_value('purl')
 	})
 }
 
-fn sbom_checksum(value string) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'algorithm':     brew_runtime.string_value('SHA256')
-		'checksumValue': brew_runtime.string_value(value)
+fn sbom_checksum(value string) ruby.Value {
+	return ruby.map_value({
+		'algorithm':     ruby.string_value('SHA256')
+		'checksumValue': ruby.string_value(value)
 	})
 }
 
-fn sbom_relationship(element string, relationship string, related string) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'spdxElementId':      brew_runtime.string_value(element)
-		'relationshipType':   brew_runtime.string_value(relationship)
-		'relatedSpdxElement': brew_runtime.string_value(related)
+fn sbom_relationship(element string, relationship string, related string) ruby.Value {
+	return ruby.map_value({
+		'spdxElementId':      ruby.string_value(element)
+		'relationshipType':   ruby.string_value(relationship)
+		'relatedSpdxElement': ruby.string_value(related)
 	})
 }
 
@@ -190,9 +190,9 @@ fn sbom_upstream_purl(url string, version string) string {
 }
 
 fn sbom_state(name string, spdxfile string, source_modified_time i64, compiler string,
-	stdlib string, runtime_dependencies []brew_runtime.Value, license string,
-	built_on brew_runtime.Value, source brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.Value{
+	stdlib string, runtime_dependencies []ruby.Value, license string,
+	built_on ruby.Value, source ruby.Value) ruby.Value {
+	return ruby.Value{
 		type_name: 'SBOM'
 		repr: name
 		attributes: {
@@ -204,7 +204,7 @@ fn sbom_state(name string, spdxfile string, source_modified_time i64, compiler s
 			'license':              license
 		}
 		map_data: {
-			'runtime_dependencies': brew_runtime.array_value(runtime_dependencies)
+			'runtime_dependencies': ruby.array_value(runtime_dependencies)
 			'built_on':             built_on
 			'source':               source
 		}
@@ -215,9 +215,9 @@ fn sbom_state(name string, spdxfile string, source_modified_time i64, compiler s
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `self.create(formula, tab)` at line 33.
-pub fn ruby_sbom_l33_d1_self_create(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sbom_l33_d1_self_create(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'formula and tab are required')
+		return ruby.object_value('ArgumentError', 'formula and tab are required')
 	}
 	formula := args[0]
 	tab := args[1]
@@ -226,7 +226,7 @@ pub fn ruby_sbom_l33_d1_self_create(args ...brew_runtime.Value) brew_runtime.Val
 	} else {
 		formula.map_data['head'] or { formula }
 	}
-	source := brew_runtime.Value{
+	source := ruby.Value{
 		type_name: 'SBOM::Source'
 		attributes: {
 			'path':         formula.attributes['specified_path'] or { '' }
@@ -242,12 +242,12 @@ pub fn ruby_sbom_l33_d1_self_create(args ...brew_runtime.Value) brew_runtime.Val
 		map_data: {
 			'patches': active.map_data['patches'] or {
 				formula.map_data['patches'] or {
-					brew_runtime.array_value([])}}
-			'bottle':  formula.map_data['bottle'] or { brew_runtime.map_value({}) }
+					ruby.array_value([])}}
+			'bottle':  formula.map_data['bottle'] or { ruby.map_value({}) }
 		}
 	}
 	deps := ruby_sbom_l72_d3_self_runtime_deps_hash(tab.map_data['runtime_dependencies'] or {
-		brew_runtime.array_value([])
+		ruby.array_value([])
 	}).as_array() or { [] }
 	prefix := formula.attributes['prefix'] or { '' }
 	return sbom_state(formula.attributes['name'] or { formula.repr }, os.join_path(prefix, sbom_filename), (tab.attributes['source_modified_time'] or { '0' }).i64(), tab.attributes['compiler'] or { '' }, tab.attributes['stdlib'] or { '' }, deps, formula.attributes['license'] or { '' }, tab.map_data['built_on'] or {
@@ -256,19 +256,19 @@ pub fn ruby_sbom_l33_d1_self_create(args ...brew_runtime.Value) brew_runtime.Val
 }
 
 // Ruby method `self.spdxfile(formula)` at line 67.
-pub fn ruby_sbom_l67_d2_self_spdxfile(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sbom_l67_d2_self_spdxfile(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('Pathname', sbom_filename)
+		return ruby.object_value('Pathname', sbom_filename)
 	}
-	return brew_runtime.object_value('Pathname', os.join_path(args[0].attributes['prefix'] or {
+	return ruby.object_value('Pathname', os.join_path(args[0].attributes['prefix'] or {
 		''
 	}, sbom_filename))
 }
 
 // Ruby method `self.runtime_deps_hash(deps)` at line 72.
-pub fn ruby_sbom_l72_d3_self_runtime_deps_hash(args ...brew_runtime.Value) brew_runtime.Value {
-	deps := if args.len > 0 { args[0].as_array() or { [] } } else { []brew_runtime.Value{} }
-	mut result := []brew_runtime.Value{}
+pub fn ruby_sbom_l72_d3_self_runtime_deps_hash(args ...ruby.Value) ruby.Value {
+	deps := if args.len > 0 { args[0].as_array() or { [] } } else { []ruby.Value{} }
+	mut result := []ruby.Value{}
 	for dependency in deps {
 		formula := dependency.map_data['formula'] or { dependency }
 		full_name := dependency.attributes['full_name'] or {
@@ -276,32 +276,32 @@ pub fn ruby_sbom_l72_d3_self_runtime_deps_hash(args ...brew_runtime.Value) brew_
 				formula.repr
 			}
 		}
-		result << brew_runtime.Value{
+		result << ruby.Value{
 			type_name: 'Hash'
 			map_data: {
-				'full_name':           brew_runtime.string_value(full_name)
-				'pkg_version':         brew_runtime.string_value(dependency.attributes['pkg_version'] or {
+				'full_name':           ruby.string_value(full_name)
+				'pkg_version':         ruby.string_value(dependency.attributes['pkg_version'] or {
 					dependency.attributes['version'] or { '' }})
-				'name':                brew_runtime.string_value(formula.attributes['name'] or {
+				'name':                ruby.string_value(formula.attributes['name'] or {
 					formula.repr})
-				'license':             brew_runtime.string_value(formula.attributes['license'] or { '' })
-				'bottle':              formula.map_data['bottle'] or { brew_runtime.map_value({}) }
-				'formula_pkg_version': brew_runtime.string_value(formula.attributes['pkg_version'] or {
+				'license':             ruby.string_value(formula.attributes['license'] or { '' })
+				'bottle':              formula.map_data['bottle'] or { ruby.map_value({}) }
+				'formula_pkg_version': ruby.string_value(formula.attributes['pkg_version'] or {
 					formula.attributes['version'] or { '' }})
 			}
 		}
 	}
-	return brew_runtime.array_value(result)
+	return ruby.array_value(result)
 }
 
 // Ruby method `self.exist?(formula)` at line 88.
-pub fn ruby_sbom_l88_d4_self_exist(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sbom_l88_d4_self_exist(args ...ruby.Value) ruby.Value {
 	path := ruby_sbom_l67_d2_self_spdxfile(...args).as_string()
-	return brew_runtime.bool_value(os.exists(path))
+	return ruby.bool_value(os.exists(path))
 }
 
 // Ruby method `self.github_packages_sbom_supplement_annotation(supplement, formula_full_name:, formula_name:, version:,` at line 104.
-pub fn ruby_sbom_l104_d5_self_github_packages_sbom_supplement_annotation(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sbom_l104_d5_self_github_packages_sbom_supplement_annotation(args ...ruby.Value) ruby.Value {
 	if args.len < 8 || args[0].type_name == 'NilClass' {
 		return sbom_nil()
 	}
@@ -310,13 +310,13 @@ pub fn ruby_sbom_l104_d5_self_github_packages_sbom_supplement_annotation(args ..
 	if result.type_name == 'NilClass' {
 		return result
 	}
-	return brew_runtime.string_value(sbom_json(result))
+	return ruby.string_value(sbom_json(result))
 }
 
 // Ruby method `self.bottle_package(formula_full_name, formula_name, version, tar_gz_sha256, root_url:, license:, created_date:)` at line 133.
-pub fn ruby_sbom_l133_d6_self_bottle_package(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sbom_l133_d6_self_bottle_package(args ...ruby.Value) ruby.Value {
 	if args.len < 7 {
-		return brew_runtime.map_value({})
+		return ruby.map_value({})
 	}
 	full_name := args[0].as_string()
 	name := args[1].as_string()
@@ -326,40 +326,40 @@ pub fn ruby_sbom_l133_d6_self_bottle_package(args ...brew_runtime.Value) brew_ru
 	license := args[5].as_string()
 	created := args[6].as_string()
 	image_name := name.replace('@', '/').replace('+', 'x')
-	return brew_runtime.map_value({
-		'SPDXID':           brew_runtime.string_value('SPDXRef-Bottle-${name}')
-		'name':             brew_runtime.string_value(name)
-		'versionInfo':      brew_runtime.string_value(version)
-		'filesAnalyzed':    brew_runtime.bool_value(false)
-		'licenseDeclared':  brew_runtime.string_value('NOASSERTION')
-		'builtDate':        brew_runtime.string_value(created)
-		'licenseConcluded': brew_runtime.string_value(if license == '' {
+	return ruby.map_value({
+		'SPDXID':           ruby.string_value('SPDXRef-Bottle-${name}')
+		'name':             ruby.string_value(name)
+		'versionInfo':      ruby.string_value(version)
+		'filesAnalyzed':    ruby.bool_value(false)
+		'licenseDeclared':  ruby.string_value('NOASSERTION')
+		'builtDate':        ruby.string_value(created)
+		'licenseConcluded': ruby.string_value(if license == '' {
 			'NOASSERTION'
 		} else {
 			license
 		})
-		'downloadLocation': brew_runtime.string_value('${root_url}/${image_name}/blobs/sha256:${sha256}')
-		'copyrightText':    brew_runtime.string_value('NOASSERTION')
-		'externalRefs':     brew_runtime.array_value([
+		'downloadLocation': ruby.string_value('${root_url}/${image_name}/blobs/sha256:${sha256}')
+		'copyrightText':    ruby.string_value('NOASSERTION')
+		'externalRefs':     ruby.array_value([
 			sbom_external_ref(sbom_purl(full_name, version)),
 		])
-		'checksums':        brew_runtime.array_value([sbom_checksum(sha256)])
+		'checksums':        ruby.array_value([sbom_checksum(sha256)])
 	})
 }
 
 // Ruby method `self.brew_purl(full_name, version)` at line 163.
-pub fn ruby_sbom_l163_d7_self_brew_purl(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sbom_l163_d7_self_brew_purl(args ...ruby.Value) ruby.Value {
 	full_name := if args.len > 0 { args[0].as_string() } else { '' }
 	version := if args.len > 1 && args[1].type_name != 'NilClass' {
 		args[1].as_string()
 	} else {
 		''
 	}
-	return brew_runtime.string_value(sbom_purl(full_name, version))
+	return ruby.string_value(sbom_purl(full_name, version))
 }
 
 // Ruby method `self.update_pour_metadata(spdxfile, homebrew_version:, time:, supplement: nil)` at line 181.
-pub fn ruby_sbom_l181_d8_self_update_pour_metadata(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sbom_l181_d8_self_update_pour_metadata(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		return sbom_nil()
 	}
@@ -378,49 +378,49 @@ pub fn ruby_sbom_l181_d8_self_update_pour_metadata(args ...brew_runtime.Value) b
 		return sbom_nil()
 	}
 	mut creation_map := creation.map_data.clone()
-	creation_map['created'] = brew_runtime.string_value(sbom_time(args[2].int_data))
-	creation_map['creators'] = brew_runtime.string_array_value([
+	creation_map['created'] = ruby.string_value(sbom_time(args[2].int_data))
+	creation_map['creators'] = ruby.string_array_value([
 		'Tool: https://github.com/Homebrew/brew@${args[1].as_string()}',
 	])
-	creation = brew_runtime.map_value(creation_map)
+	creation = ruby.map_value(creation_map)
 	mut spdx_map := spdx.map_data.clone()
 	spdx_map['creationInfo'] = creation
-	spdx = brew_runtime.map_value(spdx_map)
+	spdx = ruby.map_value(spdx_map)
 	if args.len > 3 && args[3].type_name != 'NilClass' {
 		spdx = ruby_sbom_l310_d15_self_merge_spdx_supplement(spdx, args[3])
 	}
-	os.write_file(path, sbom_json(spdx)) or { return brew_runtime.object_value('IOError', err.msg()) }
+	os.write_file(path, sbom_json(spdx)) or { return ruby.object_value('IOError', err.msg()) }
 	return spdx
 }
 
 // Ruby method `self.schema` at line 199.
-pub fn ruby_sbom_l199_d9_self_schema(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sbom_l199_d9_self_schema(args ...ruby.Value) ruby.Value {
 	path := os.join_path(os.dir(@FILE), 'data', 'schemas', 'sbom.json')
-	contents := os.read_file(path) or { return brew_runtime.object_value('SchemaError', err.msg()) }
-	decoded := json2.decode[json2.Any](contents) or { return brew_runtime.object_value('SchemaError', err.msg()) }
+	contents := os.read_file(path) or { return ruby.object_value('SchemaError', err.msg()) }
+	decoded := json2.decode[json2.Any](contents) or { return ruby.object_value('SchemaError', err.msg()) }
 	return sbom_any_to_value(decoded)
 }
 
 // Ruby method `schema_validation_errors(data = nil, bottling: false)` at line 204.
-pub fn ruby_sbom_l204_d10_schema_validation_errors(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sbom_l204_d10_schema_validation_errors(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_array_value(['SBOM receiver is required'])
+		return ruby.string_array_value(['SBOM receiver is required'])
 	}
 	receiver := args[0]
 	if !sbom_bool(receiver, 'json_schemer_available', true) {
 		if sbom_bool(receiver, 'enforce_sbom', false) {
-			return brew_runtime.object_value('RuntimeError', 'Need json_schemer to validate SBOM, run `brew install-bundler-gems --add-groups=bottle`!')
+			return ruby.object_value('RuntimeError', 'Need json_schemer to validate SBOM, run `brew install-bundler-gems --add-groups=bottle`!')
 		}
-		return brew_runtime.string_array_value([])
+		return ruby.string_array_value([])
 	}
 	bottling := args.len > 2 && args[2].bool_data
 	data := if args.len > 1 && args[1].type_name != 'NilClass' {
 		args[1]
 	} else {
-		ruby_sbom_l246_d13_to_spdx_sbom(receiver, brew_runtime.bool_value(bottling))
+		ruby_sbom_l246_d13_to_spdx_sbom(receiver, ruby.bool_value(bottling))
 	}
 	if injected := data.map_data['schema_validation_errors'] {
-		return brew_runtime.string_array_value(injected.as_string_array() or { [] })
+		return ruby.string_array_value(injected.as_string_array() or { [] })
 	}
 	mut errors := []string{}
 	for key in ['SPDXID', 'spdxVersion', 'name', 'creationInfo', 'dataLicense', 'documentNamespace',
@@ -429,13 +429,13 @@ pub fn ruby_sbom_l204_d10_schema_validation_errors(args ...brew_runtime.Value) b
 			errors << "required property '${key}' is missing"
 		}
 	}
-	return brew_runtime.string_array_value(errors)
+	return ruby.string_array_value(errors)
 }
 
 // Ruby method `valid?(data = nil, bottling: false)` at line 217.
-pub fn ruby_sbom_l217_d11_valid(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sbom_l217_d11_valid(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	errors := ruby_sbom_l204_d10_schema_validation_errors(...args)
 	if errors.type_name != 'Array' {
@@ -443,12 +443,12 @@ pub fn ruby_sbom_l217_d11_valid(args ...brew_runtime.Value) brew_runtime.Value {
 	}
 	values := errors.as_string_array() or { [] }
 	if values.len == 0 {
-		return brew_runtime.bool_value(true)
+		return ruby.bool_value(true)
 	}
 	if sbom_bool(args[0], 'enforce_sbom', false) {
-		return brew_runtime.object_value('RuntimeError', 'Failed to validate SBOM against JSON schema!')
+		return ruby.object_value('RuntimeError', 'Failed to validate SBOM against JSON schema!')
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'Bool'
 		repr: 'false'
 		bool_data: false
@@ -459,21 +459,21 @@ pub fn ruby_sbom_l217_d11_valid(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `write(validate: true, bottling: false)` at line 230.
-pub fn ruby_sbom_l230_d12_write(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sbom_l230_d12_write(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'SBOM receiver is required')
+		return ruby.object_value('ArgumentError', 'SBOM receiver is required')
 	}
 	receiver := args[0]
 	validate := args.len < 2 || args[1].bool_data
 	bottling := args.len > 2 && args[2].bool_data
-	spdx := ruby_sbom_l246_d13_to_spdx_sbom(receiver, brew_runtime.bool_value(bottling))
+	spdx := ruby_sbom_l246_d13_to_spdx_sbom(receiver, ruby.bool_value(bottling))
 	if validate {
-		valid := ruby_sbom_l217_d11_valid(receiver, spdx, brew_runtime.bool_value(bottling))
+		valid := ruby_sbom_l217_d11_valid(receiver, spdx, ruby.bool_value(bottling))
 		if valid.type_name == 'RuntimeError' {
 			return valid
 		}
 		if valid.type_name != 'Bool' || !valid.bool_data {
-			return brew_runtime.Value{
+			return ruby.Value{
 				type_name: 'SBOMWriteResult'
 				bool_data: false
 				attributes: {
@@ -484,12 +484,12 @@ pub fn ruby_sbom_l230_d12_write(args ...brew_runtime.Value) brew_runtime.Value {
 	}
 	path := receiver.attributes['spdxfile'] or { '' }
 	if path == '' {
-		return brew_runtime.object_value('IOError', 'SPDX file path is empty')
+		return ruby.object_value('IOError', 'SPDX file path is empty')
 	}
 	file_existed := os.exists(path)
-	os.mkdir_all(os.dir(path)) or { return brew_runtime.object_value('IOError', err.msg()) }
-	os.write_file(path, sbom_json(spdx)) or { return brew_runtime.object_value('IOError', err.msg()) }
-	return brew_runtime.Value{
+	os.mkdir_all(os.dir(path)) or { return ruby.object_value('IOError', err.msg()) }
+	os.write_file(path, sbom_json(spdx)) or { return ruby.object_value('IOError', err.msg()) }
+	return ruby.Value{
 		type_name: 'SBOMWriteResult'
 		bool_data: true
 		attributes: {
@@ -503,55 +503,55 @@ pub fn ruby_sbom_l230_d12_write(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `to_spdx_sbom(bottling: false)` at line 246.
-pub fn ruby_sbom_l246_d13_to_spdx_sbom(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sbom_l246_d13_to_spdx_sbom(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.map_value({})
+		return ruby.map_value({})
 	}
 	receiver := args[0]
 	bottling := args.len > 1 && args[1].bool_data
-	runtime := ruby_sbom_l612_d29_full_spdx_runtime_dependencies(receiver, brew_runtime.bool_value(bottling)).as_array() or { [] }
+	runtime := ruby_sbom_l612_d29_full_spdx_runtime_dependencies(receiver, ruby.bool_value(bottling)).as_array() or { [] }
 	compiler := if bottling {
-		brew_runtime.map_value({})
+		ruby.map_value({})
 	} else {
 		ruby_sbom_l398_d25_compiler_packages(receiver)
 	}
-	packages := ruby_sbom_l494_d27_generate_packages_json(receiver, brew_runtime.array_value(runtime), compiler, brew_runtime.bool_value(bottling)).as_array() or { [] }
+	packages := ruby_sbom_l494_d27_generate_packages_json(receiver, ruby.array_value(runtime), compiler, ruby.bool_value(bottling)).as_array() or { [] }
 	files := ruby_sbom_l591_d28_generate_files_json(receiver).as_array() or { [] }
-	relations := ruby_sbom_l439_d26_generate_relations_json(receiver, brew_runtime.array_value(runtime), compiler, brew_runtime.bool_value(bottling)).as_array() or { [] }
+	relations := ruby_sbom_l439_d26_generate_relations_json(receiver, ruby.array_value(runtime), compiler, ruby.bool_value(bottling)).as_array() or { [] }
 	name := receiver.attributes['name'] or { receiver.repr }
 	version := ruby_sbom_l707_d37_spec_version(receiver).as_string()
-	return brew_runtime.map_value({
-		'SPDXID':            brew_runtime.string_value('SPDXRef-DOCUMENT')
-		'spdxVersion':       brew_runtime.string_value('SPDX-2.3')
-		'name':              brew_runtime.string_value('SBOM-SPDX-${name}-${version}')
-		'creationInfo':      brew_runtime.map_value({
-			'created':  brew_runtime.string_value(ruby_sbom_l712_d38_source_modified_time(receiver).as_string())
-			'creators': brew_runtime.string_array_value([
+	return ruby.map_value({
+		'SPDXID':            ruby.string_value('SPDXRef-DOCUMENT')
+		'spdxVersion':       ruby.string_value('SPDX-2.3')
+		'name':              ruby.string_value('SBOM-SPDX-${name}-${version}')
+		'creationInfo':      ruby.map_value({
+			'created':  ruby.string_value(ruby_sbom_l712_d38_source_modified_time(receiver).as_string())
+			'creators': ruby.string_array_value([
 				'Tool: https://github.com/Homebrew/brew',
 			])
 		})
-		'dataLicense':       brew_runtime.string_value('CC0-1.0')
-		'documentNamespace': brew_runtime.string_value('https://formulae.brew.sh/spdx/${name}-${version}.json')
-		'documentDescribes': brew_runtime.string_array_value(packages.map(sbom_package_id(it)))
-		'files':             brew_runtime.array_value(files)
-		'packages':          brew_runtime.array_value(packages)
-		'relationships':     brew_runtime.array_value(relations)
+		'dataLicense':       ruby.string_value('CC0-1.0')
+		'documentNamespace': ruby.string_value('https://formulae.brew.sh/spdx/${name}-${version}.json')
+		'documentDescribes': ruby.string_array_value(packages.map(sbom_package_id(it)))
+		'files':             ruby.array_value(files)
+		'packages':          ruby.array_value(packages)
+		'relationships':     ruby.array_value(relations)
 	})
 }
 
 // Ruby method `to_spdx_supplement` at line 271.
-pub fn ruby_sbom_l271_d14_to_spdx_supplement(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sbom_l271_d14_to_spdx_supplement(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.map_value({})
+		return ruby.map_value({})
 	}
 	receiver := args[0]
-	runtime := ruby_sbom_l612_d29_full_spdx_runtime_dependencies(receiver, brew_runtime.bool_value(false)).as_array() or { [] }
+	runtime := ruby_sbom_l612_d29_full_spdx_runtime_dependencies(receiver, ruby.bool_value(false)).as_array() or { [] }
 	compiler := ruby_sbom_l398_d25_compiler_packages(receiver)
 	mut packages := runtime.clone()
 	for _, package in compiler.map_data {
 		packages << package
 	}
-	mut relations := []brew_runtime.Value{}
+	mut relations := []ruby.Value{}
 	for dependency in runtime {
 		relations << sbom_relationship(sbom_package_id(dependency), 'RUNTIME_DEPENDENCY_OF', ruby_sbom_l686_d33_bottle_spdx_id(receiver).as_string())
 	}
@@ -565,15 +565,15 @@ pub fn ruby_sbom_l271_d14_to_spdx_supplement(args ...brew_runtime.Value) brew_ru
 			relations << sbom_relationship('SPDXRef-Stdlib', 'DEPENDENCY_OF', ruby_sbom_l686_d33_bottle_spdx_id(receiver).as_string())
 		}
 	}
-	return brew_runtime.map_value({
-		'documentDescribes': brew_runtime.string_array_value(packages.map(sbom_package_id(it)))
-		'packages':          brew_runtime.array_value(packages)
-		'relationships':     brew_runtime.array_value(relations)
+	return ruby.map_value({
+		'documentDescribes': ruby.string_array_value(packages.map(sbom_package_id(it)))
+		'packages':          ruby.array_value(packages)
+		'relationships':     ruby.array_value(relations)
 	})
 }
 
 // Ruby method `self.merge_spdx_supplement(spdx, supplement)` at line 310.
-pub fn ruby_sbom_l310_d15_self_merge_spdx_supplement(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sbom_l310_d15_self_merge_spdx_supplement(args ...ruby.Value) ruby.Value {
 	if args.len < 2 || args[0].type_name != 'Hash' || args[1].type_name != 'Hash' {
 		return if args.len > 0 { args[0] } else { sbom_nil() }
 	}
@@ -586,13 +586,13 @@ pub fn ruby_sbom_l310_d15_self_merge_spdx_supplement(args ...brew_runtime.Value)
 		}
 		mut combined := left.as_array() or { [] }
 		combined << right.as_array() or { [] }
-		mapped[key] = brew_runtime.array_value(combined)
+		mapped[key] = ruby.array_value(combined)
 	}
-	return brew_runtime.map_value(mapped)
+	return ruby.map_value(mapped)
 }
 
 // Ruby method `self.add_bottle_package_to_supplement(supplement, bottle_package)` at line 327.
-pub fn ruby_sbom_l327_d16_self_add_bottle_package_to_supplement(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sbom_l327_d16_self_add_bottle_package_to_supplement(args ...ruby.Value) ruby.Value {
 	if args.len < 2 || args[0].type_name == 'NilClass' {
 		return sbom_nil()
 	}
@@ -600,7 +600,7 @@ pub fn ruby_sbom_l327_d16_self_add_bottle_package_to_supplement(args ...brew_run
 	bottle := args[1]
 	if tags := supplement.map_data['tags'] {
 		if tags.type_name == 'Hash' {
-			mut updated_tags := map[string]brew_runtime.Value{}
+			mut updated_tags := map[string]ruby.Value{}
 			for tag, tag_supplement in tags.map_data {
 				if tag_supplement.type_name != 'Hash' {
 					continue
@@ -611,8 +611,8 @@ pub fn ruby_sbom_l327_d16_self_add_bottle_package_to_supplement(args ...brew_run
 				}
 			}
 			if updated_tags.len > 0 {
-				return brew_runtime.map_value({
-					'tags': brew_runtime.map_value(updated_tags)
+				return ruby.map_value({
+					'tags': ruby.map_value(updated_tags)
 				})
 			}
 		}
@@ -624,27 +624,27 @@ pub fn ruby_sbom_l327_d16_self_add_bottle_package_to_supplement(args ...brew_run
 	mut packages := packages_value.as_array() or { [] }
 	packages << bottle
 	describes_value := supplement.map_data['documentDescribes'] or {
-		brew_runtime.string_array_value([])
+		ruby.string_array_value([])
 	}
 	mut describes := describes_value.as_string_array() or {
 		(describes_value.as_array() or { [] }).map(it.as_string())
 	}
 	describes << sbom_package_id(bottle)
-	relationships := supplement.map_data['relationships'] or { brew_runtime.array_value([]) }
-	return brew_runtime.map_value({
-		'documentDescribes': brew_runtime.string_array_value(describes)
-		'packages':          brew_runtime.array_value(packages)
+	relationships := supplement.map_data['relationships'] or { ruby.array_value([]) }
+	return ruby.map_value({
+		'documentDescribes': ruby.string_array_value(describes)
+		'packages':          ruby.array_value(packages)
 		'relationships':     if relationships.type_name == 'Array' {
 			relationships
 		} else {
-			brew_runtime.array_value([])
+			ruby.array_value([])
 		}
 	})
 }
 
 // Ruby attr_reader `attr_reader :name` at line 354.
-pub fn ruby_sbom_l354_d17_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(if args.len > 0 {
+pub fn ruby_sbom_l354_d17_name(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(if args.len > 0 {
 		args[0].attributes['name'] or {
 			args[0].repr
 		}
@@ -654,38 +654,38 @@ pub fn ruby_sbom_l354_d17_name(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby attr_reader `attr_reader :stdlib` at line 357.
-pub fn ruby_sbom_l357_d18_stdlib(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sbom_l357_d18_stdlib(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || (args[0].attributes['stdlib'] or { '' }) == '' {
 		return sbom_nil()
 	}
-	return brew_runtime.string_value(args[0].attributes['stdlib'])
+	return ruby.string_value(args[0].attributes['stdlib'])
 }
 
 // Ruby attr_reader `attr_reader :source` at line 360.
-pub fn ruby_sbom_l360_d19_source(args ...brew_runtime.Value) brew_runtime.Value {
-	return if args.len > 0 { sbom_source(args[0]) } else { brew_runtime.map_value({}) }
+pub fn ruby_sbom_l360_d19_source(args ...ruby.Value) ruby.Value {
+	return if args.len > 0 { sbom_source(args[0]) } else { ruby.map_value({}) }
 }
 
 // Ruby attr_reader `attr_reader :built_on` at line 363.
-pub fn ruby_sbom_l363_d20_built_on(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sbom_l363_d20_built_on(args ...ruby.Value) ruby.Value {
 	return if args.len > 0 {
-		args[0].map_data['built_on'] or { brew_runtime.map_value({}) }
+		args[0].map_data['built_on'] or { ruby.map_value({}) }
 	} else {
-		brew_runtime.map_value({})
+		ruby.map_value({})
 	}
 }
 
 // Ruby attr_reader `attr_reader :license` at line 366.
-pub fn ruby_sbom_l366_d21_license(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sbom_l366_d21_license(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || (args[0].attributes['license'] or { '' }) == '' {
 		return sbom_nil()
 	}
-	return brew_runtime.string_value(args[0].attributes['license'])
+	return ruby.string_value(args[0].attributes['license'])
 }
 
 // Ruby attr_accessor `attr_accessor :spdxfile` at line 369.
-pub fn ruby_sbom_l369_d22_spdxfile(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Pathname', if args.len > 0 {
+pub fn ruby_sbom_l369_d22_spdxfile(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Pathname', if args.len > 0 {
 		args[0].attributes['spdxfile'] or {
 			''
 		}
@@ -695,22 +695,22 @@ pub fn ruby_sbom_l369_d22_spdxfile(args ...brew_runtime.Value) brew_runtime.Valu
 }
 
 // Ruby attr_accessor `attr_accessor :spdxfile` at line 369.
-pub fn ruby_sbom_l369_d23_spdxfile(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sbom_l369_d23_spdxfile(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		return if args.len > 0 { args[0] } else { sbom_nil() }
 	}
 	mut attributes := args[0].attributes.clone()
 	attributes['spdxfile'] = args[1].as_string()
-	return brew_runtime.Value{
+	return ruby.Value{
 		...args[0]
 		attributes: attributes
 	}
 }
 
 // Ruby method `initialize(name:, spdxfile:, source_modified_time:, compiler:, stdlib:, runtime_dependencies:,` at line 384.
-pub fn ruby_sbom_l384_d24_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sbom_l384_d24_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 9 {
-		return brew_runtime.object_value('ArgumentError', 'nine SBOM initializer values are required')
+		return ruby.object_value('ArgumentError', 'nine SBOM initializer values are required')
 	}
 	return sbom_state(args[0].as_string(), args[1].as_string(), args[2].int_data, args[3].as_string(), if args[4].type_name == 'NilClass' {
 		''
@@ -724,56 +724,56 @@ pub fn ruby_sbom_l384_d24_initialize(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby method `compiler_packages` at line 398.
-pub fn ruby_sbom_l398_d25_compiler_packages(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sbom_l398_d25_compiler_packages(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.map_value({})
+		return ruby.map_value({})
 	}
 	receiver := args[0]
 	compiler := ruby_sbom_l691_d34_compiler(receiver).as_string()
 	built_on := ruby_sbom_l363_d20_built_on(receiver)
 	xcode := built_on.map_data['xcode'] or { sbom_nil() }
 	mut packages := {
-		'SPDXRef-Compiler': brew_runtime.map_value({
-			'SPDXID':           brew_runtime.string_value('SPDXRef-Compiler')
-			'name':             brew_runtime.string_value(compiler)
+		'SPDXRef-Compiler': ruby.map_value({
+			'SPDXID':           ruby.string_value('SPDXRef-Compiler')
+			'name':             ruby.string_value(compiler)
 			'versionInfo':      sbom_assert(xcode)
-			'filesAnalyzed':    brew_runtime.bool_value(false)
-			'licenseDeclared':  brew_runtime.string_value('NOASSERTION')
-			'licenseConcluded': brew_runtime.string_value('NOASSERTION')
-			'copyrightText':    brew_runtime.string_value('NOASSERTION')
-			'downloadLocation': brew_runtime.string_value('NOASSERTION')
-			'checksums':        brew_runtime.array_value([])
-			'externalRefs':     brew_runtime.array_value([])
+			'filesAnalyzed':    ruby.bool_value(false)
+			'licenseDeclared':  ruby.string_value('NOASSERTION')
+			'licenseConcluded': ruby.string_value('NOASSERTION')
+			'copyrightText':    ruby.string_value('NOASSERTION')
+			'downloadLocation': ruby.string_value('NOASSERTION')
+			'checksums':        ruby.array_value([])
+			'externalRefs':     ruby.array_value([])
 		})
 	}
 	stdlib := receiver.attributes['stdlib'] or { '' }
 	if stdlib != '' {
-		packages['SPDXRef-Stdlib'] = brew_runtime.map_value({
-			'SPDXID':           brew_runtime.string_value('SPDXRef-Stdlib')
-			'name':             brew_runtime.string_value(stdlib)
-			'versionInfo':      brew_runtime.string_value(stdlib)
-			'filesAnalyzed':    brew_runtime.bool_value(false)
-			'licenseDeclared':  brew_runtime.string_value('NOASSERTION')
-			'licenseConcluded': brew_runtime.string_value('NOASSERTION')
-			'copyrightText':    brew_runtime.string_value('NOASSERTION')
-			'downloadLocation': brew_runtime.string_value('NOASSERTION')
-			'checksums':        brew_runtime.array_value([])
-			'externalRefs':     brew_runtime.array_value([])
+		packages['SPDXRef-Stdlib'] = ruby.map_value({
+			'SPDXID':           ruby.string_value('SPDXRef-Stdlib')
+			'name':             ruby.string_value(stdlib)
+			'versionInfo':      ruby.string_value(stdlib)
+			'filesAnalyzed':    ruby.bool_value(false)
+			'licenseDeclared':  ruby.string_value('NOASSERTION')
+			'licenseConcluded': ruby.string_value('NOASSERTION')
+			'copyrightText':    ruby.string_value('NOASSERTION')
+			'downloadLocation': ruby.string_value('NOASSERTION')
+			'checksums':        ruby.array_value([])
+			'externalRefs':     ruby.array_value([])
 		})
 	}
-	return brew_runtime.map_value(packages)
+	return ruby.map_value(packages)
 }
 
 // Ruby method `generate_relations_json(runtime_dependency_declaration, compiler_declaration, bottling:)` at line 439.
-pub fn ruby_sbom_l439_d26_generate_relations_json(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sbom_l439_d26_generate_relations_json(args ...ruby.Value) ruby.Value {
 	if args.len < 4 {
-		return brew_runtime.array_value([])
+		return ruby.array_value([])
 	}
 	receiver := args[0]
 	runtime := args[1].as_array() or { [] }
 	compiler := args[2]
 	bottling := args[3].bool_data
-	mut relationships := runtime.map(sbom_relationship(sbom_package_id(it), 'RUNTIME_DEPENDENCY_OF', ruby_sbom_l677_d32_described_package_spdx_id(receiver, brew_runtime.bool_value(bottling)).as_string()))
+	mut relationships := runtime.map(sbom_relationship(sbom_package_id(it), 'RUNTIME_DEPENDENCY_OF', ruby_sbom_l677_d32_described_package_spdx_id(receiver, ruby.bool_value(bottling)).as_string()))
 	name := receiver.attributes['name'] or { receiver.repr }
 	for index, patch in sbom_values(sbom_source(receiver), 'patches') {
 		if patch.type_name == 'ExternalPatch' || patch.attributes['kind'] == 'external' {
@@ -787,17 +787,17 @@ pub fn ruby_sbom_l439_d26_generate_relations_json(args ...brew_runtime.Value) br
 		relationships << sbom_relationship('SPDXRef-Compiler', 'BUILD_TOOL_OF', 'SPDXRef-Archive-${name}-src')
 		if stdlib := compiler.map_data['SPDXRef-Stdlib'] {
 			if sbom_present(stdlib) {
-				relationships << sbom_relationship('SPDXRef-Stdlib', 'DEPENDENCY_OF', ruby_sbom_l677_d32_described_package_spdx_id(receiver, brew_runtime.bool_value(false)).as_string())
+				relationships << sbom_relationship('SPDXRef-Stdlib', 'DEPENDENCY_OF', ruby_sbom_l677_d32_described_package_spdx_id(receiver, ruby.bool_value(false)).as_string())
 			}
 		}
 	}
-	return brew_runtime.array_value(relationships)
+	return ruby.array_value(relationships)
 }
 
 // Ruby method `generate_packages_json(runtime_dependency_declaration, compiler_declaration, bottling:)` at line 494.
-pub fn ruby_sbom_l494_d27_generate_packages_json(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sbom_l494_d27_generate_packages_json(args ...ruby.Value) ruby.Value {
 	if args.len < 4 {
-		return brew_runtime.array_value([])
+		return ruby.array_value([])
 	}
 	receiver := args[0]
 	runtime := args[1].as_array() or { [] }
@@ -815,95 +815,95 @@ pub fn ruby_sbom_l494_d27_generate_packages_json(args ...brew_runtime.Value) bre
 	if upstream != '' {
 		external_refs << sbom_external_ref(upstream)
 	}
-	mut packages := [brew_runtime.map_value({
-		'SPDXID':           brew_runtime.string_value('SPDXRef-Archive-${name}-src')
-		'name':             brew_runtime.string_value(name)
-		'versionInfo':      brew_runtime.string_value(version)
-		'filesAnalyzed':    brew_runtime.bool_value(false)
-		'licenseDeclared':  brew_runtime.string_value('NOASSERTION')
-		'builtDate':        brew_runtime.string_value(ruby_sbom_l712_d38_source_modified_time(receiver).as_string())
-		'licenseConcluded': brew_runtime.string_value(if license == '' {
+	mut packages := [ruby.map_value({
+		'SPDXID':           ruby.string_value('SPDXRef-Archive-${name}-src')
+		'name':             ruby.string_value(name)
+		'versionInfo':      ruby.string_value(version)
+		'filesAnalyzed':    ruby.bool_value(false)
+		'licenseDeclared':  ruby.string_value('NOASSERTION')
+		'builtDate':        ruby.string_value(ruby_sbom_l712_d38_source_modified_time(receiver).as_string())
+		'licenseConcluded': ruby.string_value(if license == '' {
 			'NOASSERTION'
 		} else {
 			license
 		})
 		'downloadLocation': if url == '' {
-			brew_runtime.string_value('NOASSERTION')
+			ruby.string_value('NOASSERTION')
 		} else {
-			brew_runtime.string_value(url)
+			ruby.string_value(url)
 		}
-		'copyrightText':    brew_runtime.string_value('NOASSERTION')
-		'externalRefs':     brew_runtime.array_value(external_refs)
-		'checksums':        brew_runtime.array_value([sbom_checksum(checksum)])
+		'copyrightText':    ruby.string_value('NOASSERTION')
+		'externalRefs':     ruby.array_value(external_refs)
+		'checksums':        ruby.array_value([sbom_checksum(checksum)])
 	})]
 	for index, patch in sbom_values(source, 'patches') {
 		if patch.type_name != 'ExternalPatch' && patch.attributes['kind'] != 'external' {
 			continue
 		}
 		patch_checksum := patch.attributes['checksum'] or { '' }
-		packages << brew_runtime.map_value({
-			'SPDXID':           brew_runtime.string_value('SPDXRef-Patch-${name}-${index}')
-			'name':             brew_runtime.string_value('${name} patch ${index}')
-			'filesAnalyzed':    brew_runtime.bool_value(false)
-			'licenseDeclared':  brew_runtime.string_value('NOASSERTION')
-			'licenseConcluded': brew_runtime.string_value('NOASSERTION')
-			'downloadLocation': sbom_assert(brew_runtime.string_value(patch.attributes['url'] or {
+		packages << ruby.map_value({
+			'SPDXID':           ruby.string_value('SPDXRef-Patch-${name}-${index}')
+			'name':             ruby.string_value('${name} patch ${index}')
+			'filesAnalyzed':    ruby.bool_value(false)
+			'licenseDeclared':  ruby.string_value('NOASSERTION')
+			'licenseConcluded': ruby.string_value('NOASSERTION')
+			'downloadLocation': sbom_assert(ruby.string_value(patch.attributes['url'] or {
 				''
 			}))
-			'copyrightText':    brew_runtime.string_value('NOASSERTION')
+			'copyrightText':    ruby.string_value('NOASSERTION')
 			'checksums':        if patch_checksum == '' {
-				brew_runtime.array_value([])
+				ruby.array_value([])
 			} else {
-				brew_runtime.array_value([sbom_checksum(patch_checksum)])
+				ruby.array_value([sbom_checksum(patch_checksum)])
 			}
-			'externalRefs':     brew_runtime.array_value([])
+			'externalRefs':     ruby.array_value([])
 		})
 	}
 	packages << runtime
 	for _, package in compiler.map_data {
 		packages << package
 	}
-	if ruby_sbom_l672_d31_bottle_package(receiver, brew_runtime.bool_value(bottling)).bool_data {
+	if ruby_sbom_l672_d31_bottle_package(receiver, ruby.bool_value(bottling)).bool_data {
 		info := ruby_sbom_l659_d30_get_bottle_info(receiver, source.map_data['bottle'] or {
-			brew_runtime.map_value({})
+			ruby.map_value({})
 		})
 		if info.type_name == 'Hash' && version != '' {
-			packages << brew_runtime.map_value({
-				'SPDXID':           brew_runtime.string_value('SPDXRef-Bottle-${name}')
-				'name':             brew_runtime.string_value(name)
-				'versionInfo':      brew_runtime.string_value(version)
-				'filesAnalyzed':    brew_runtime.bool_value(false)
-				'licenseDeclared':  brew_runtime.string_value('NOASSERTION')
-				'builtDate':        brew_runtime.string_value(ruby_sbom_l712_d38_source_modified_time(receiver).as_string())
-				'licenseConcluded': brew_runtime.string_value(if license == '' {
+			packages << ruby.map_value({
+				'SPDXID':           ruby.string_value('SPDXRef-Bottle-${name}')
+				'name':             ruby.string_value(name)
+				'versionInfo':      ruby.string_value(version)
+				'filesAnalyzed':    ruby.bool_value(false)
+				'licenseDeclared':  ruby.string_value('NOASSERTION')
+				'builtDate':        ruby.string_value(ruby_sbom_l712_d38_source_modified_time(receiver).as_string())
+				'licenseConcluded': ruby.string_value(if license == '' {
 					'NOASSERTION'
 				} else {
 					license
 				})
-				'downloadLocation': brew_runtime.string_value(sbom_map_string(info, 'url'))
-				'copyrightText':    brew_runtime.string_value('NOASSERTION')
-				'externalRefs':     brew_runtime.array_value([
+				'downloadLocation': ruby.string_value(sbom_map_string(info, 'url'))
+				'copyrightText':    ruby.string_value('NOASSERTION')
+				'externalRefs':     ruby.array_value([
 					sbom_external_ref(sbom_purl(full_name, version)),
 				])
-				'checksums':        brew_runtime.array_value([
+				'checksums':        ruby.array_value([
 					sbom_checksum(sbom_map_string(info, 'sha256')),
 				])
 			})
 		}
 	}
-	return brew_runtime.array_value(packages)
+	return ruby.array_value(packages)
 }
 
 // Ruby method `generate_files_json` at line 591.
-pub fn ruby_sbom_l591_d28_generate_files_json(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sbom_l591_d28_generate_files_json(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.array_value([])
+		return ruby.array_value([])
 	}
 	receiver := args[0]
 	source := sbom_source(receiver)
 	checksum := sbom_source_value(source, 'checksum').as_string()
 	if checksum == '' {
-		return brew_runtime.array_value([])
+		return ruby.array_value([])
 	}
 	name := receiver.attributes['name'] or { receiver.repr }
 	url := sbom_source_value(source, 'url').as_string()
@@ -912,19 +912,19 @@ pub fn ruby_sbom_l591_d28_generate_files_json(args ...brew_runtime.Value) brew_r
 	} else {
 		'${name}-${ruby_sbom_l707_d37_spec_version(receiver).as_string()}'
 	}
-	return brew_runtime.array_value([brew_runtime.map_value({
-		'SPDXID':    brew_runtime.string_value('SPDXRef-File-${name}')
-		'fileName':  brew_runtime.string_value(filename)
-		'checksums': brew_runtime.array_value([sbom_checksum(checksum)])
+	return ruby.array_value([ruby.map_value({
+		'SPDXID':    ruby.string_value('SPDXRef-File-${name}')
+		'fileName':  ruby.string_value(filename)
+		'checksums': ruby.array_value([sbom_checksum(checksum)])
 	})])
 }
 
 // Ruby method `full_spdx_runtime_dependencies(bottling:)` at line 612.
-pub fn ruby_sbom_l612_d29_full_spdx_runtime_dependencies(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sbom_l612_d29_full_spdx_runtime_dependencies(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || (args.len > 1 && args[1].bool_data) {
-		return brew_runtime.array_value([])
+		return ruby.array_value([])
 	}
-	mut packages := []brew_runtime.Value{}
+	mut packages := []ruby.Value{}
 	for dependency in sbom_values(args[0], 'runtime_dependencies') {
 		if dependency.type_name != 'Hash' || dependency.map_data.len == 0 {
 			continue
@@ -939,38 +939,38 @@ pub fn ruby_sbom_l612_d29_full_spdx_runtime_dependencies(args ...brew_runtime.Va
 		formula_version := sbom_map_string(dependency, 'formula_pkg_version')
 		url := if pkg_version == formula_version { sbom_map_string(info, 'url') } else { '' }
 		license := sbom_map_string(dependency, 'license')
-		packages << brew_runtime.map_value({
-			'SPDXID':           brew_runtime.string_value('SPDXRef-Package-SPDXRef-${name.replace('/', '-')}-${pkg_version}')
-			'name':             brew_runtime.string_value(name)
-			'versionInfo':      brew_runtime.string_value(pkg_version)
-			'filesAnalyzed':    brew_runtime.bool_value(false)
-			'licenseDeclared':  brew_runtime.string_value('NOASSERTION')
-			'licenseConcluded': brew_runtime.string_value(if license == '' {
+		packages << ruby.map_value({
+			'SPDXID':           ruby.string_value('SPDXRef-Package-SPDXRef-${name.replace('/', '-')}-${pkg_version}')
+			'name':             ruby.string_value(name)
+			'versionInfo':      ruby.string_value(pkg_version)
+			'filesAnalyzed':    ruby.bool_value(false)
+			'licenseDeclared':  ruby.string_value('NOASSERTION')
+			'licenseConcluded': ruby.string_value(if license == '' {
 				'NOASSERTION'
 			} else {
 				license
 			})
-			'downloadLocation': brew_runtime.string_value(if url == '' {
+			'downloadLocation': ruby.string_value(if url == '' {
 				'NOASSERTION'
 			} else {
 				url
 			})
-			'copyrightText':    brew_runtime.string_value('NOASSERTION')
-			'checksums':        brew_runtime.array_value([sbom_checksum(if sbom_map_string(info, 'sha256') == '' {
+			'copyrightText':    ruby.string_value('NOASSERTION')
+			'checksums':        ruby.array_value([sbom_checksum(if sbom_map_string(info, 'sha256') == '' {
 				'NOASSERTION'
 			} else {
 				sbom_map_string(info, 'sha256')
 			})])
-			'externalRefs':     brew_runtime.array_value([
+			'externalRefs':     ruby.array_value([
 				sbom_external_ref(sbom_purl(sbom_map_string(dependency, 'full_name'), pkg_version)),
 			])
 		})
 	}
-	return brew_runtime.array_value(packages)
+	return ruby.array_value(packages)
 }
 
 // Ruby method `get_bottle_info(base)` at line 659.
-pub fn ruby_sbom_l659_d30_get_bottle_info(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sbom_l659_d30_get_bottle_info(args ...ruby.Value) ruby.Value {
 	if args.len < 2 || args[1].type_name != 'Hash' || args[1].map_data.len == 0 {
 		return sbom_nil()
 	}
@@ -983,45 +983,45 @@ pub fn ruby_sbom_l659_d30_get_bottle_info(args ...brew_runtime.Value) brew_runti
 	if info.type_name != 'Hash' {
 		return sbom_nil()
 	}
-	mut mapped := map[string]brew_runtime.Value{}
+	mut mapped := map[string]ruby.Value{}
 	for key, value in info.map_data {
-		mapped[key] = brew_runtime.string_value(value.as_string())
+		mapped[key] = ruby.string_value(value.as_string())
 	}
 	for key, value in info.attributes {
-		mapped[key] = brew_runtime.string_value(value)
+		mapped[key] = ruby.string_value(value)
 	}
-	return brew_runtime.map_value(mapped)
+	return ruby.map_value(mapped)
 }
 
 // Ruby method `bottle_package?(bottling:)` at line 672.
-pub fn ruby_sbom_l672_d31_bottle_package(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sbom_l672_d31_bottle_package(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || (args.len > 1 && args[1].bool_data) {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	receiver := args[0]
 	info := ruby_sbom_l659_d30_get_bottle_info(receiver, sbom_source(receiver).map_data['bottle'] or {
-		brew_runtime.map_value({})
+		ruby.map_value({})
 	})
-	return brew_runtime.bool_value(info.type_name == 'Hash' && info.map_data.len > 0 && ruby_sbom_l702_d36_spec_symbol(receiver).as_string() == 'stable' && ruby_sbom_l707_d37_spec_version(receiver).as_string() != '')
+	return ruby.bool_value(info.type_name == 'Hash' && info.map_data.len > 0 && ruby_sbom_l702_d36_spec_symbol(receiver).as_string() == 'stable' && ruby_sbom_l707_d37_spec_version(receiver).as_string() != '')
 }
 
 // Ruby method `described_package_spdx_id(bottling:)` at line 677.
-pub fn ruby_sbom_l677_d32_described_package_spdx_id(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sbom_l677_d32_described_package_spdx_id(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_value('')
+		return ruby.string_value('')
 	}
 	bottling := args.len > 1 && args[1].bool_data
-	if ruby_sbom_l672_d31_bottle_package(args[0], brew_runtime.bool_value(bottling)).bool_data {
+	if ruby_sbom_l672_d31_bottle_package(args[0], ruby.bool_value(bottling)).bool_data {
 		return ruby_sbom_l686_d33_bottle_spdx_id(args[0])
 	}
-	return brew_runtime.string_value('SPDXRef-Archive-${args[0].attributes['name'] or {
+	return ruby.string_value('SPDXRef-Archive-${args[0].attributes['name'] or {
 		args[0].repr
 	}}-src')
 }
 
 // Ruby method `bottle_spdx_id` at line 686.
-pub fn ruby_sbom_l686_d33_bottle_spdx_id(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('SPDXRef-Bottle-${if args.len > 0 {
+pub fn ruby_sbom_l686_d33_bottle_spdx_id(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('SPDXRef-Bottle-${if args.len > 0 {
 		args[0].attributes['name'] or { args[0].repr }
 	} else {
 		''
@@ -1029,9 +1029,9 @@ pub fn ruby_sbom_l686_d33_bottle_spdx_id(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `compiler` at line 691.
-pub fn ruby_sbom_l691_d34_compiler(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sbom_l691_d34_compiler(args ...ruby.Value) ruby.Value {
 	if args.len > 0 && (args[0].attributes['compiler'] or { '' }) != '' {
-		return brew_runtime.string_value(args[0].attributes['compiler'])
+		return ruby.string_value(args[0].attributes['compiler'])
 	}
 	default_compiler := if args.len > 0 {
 		args[0].attributes['default_compiler'] or {
@@ -1040,11 +1040,11 @@ pub fn ruby_sbom_l691_d34_compiler(args ...brew_runtime.Value) brew_runtime.Valu
 	} else {
 		'clang'
 	}
-	return brew_runtime.string_value(default_compiler)
+	return ruby.string_value(default_compiler)
 }
 
 // Ruby method `tap` at line 696.
-pub fn ruby_sbom_l696_d35_tap(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sbom_l696_d35_tap(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return sbom_nil()
 	}
@@ -1052,15 +1052,15 @@ pub fn ruby_sbom_l696_d35_tap(args ...brew_runtime.Value) brew_runtime.Value {
 	return if name == '' {
 		sbom_nil()
 	} else {
-		brew_runtime.structured_value('Tap', name, {
+		ruby.structured_value('Tap', name, {
 			'name': name
 		})
 	}
 }
 
 // Ruby method `spec_symbol` at line 702.
-pub fn ruby_sbom_l702_d36_spec_symbol(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Symbol', if args.len > 0 {
+pub fn ruby_sbom_l702_d36_spec_symbol(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Symbol', if args.len > 0 {
 		sbom_source(args[0]).attributes['spec'] or { 'stable' }
 	} else {
 		'stable'
@@ -1068,7 +1068,7 @@ pub fn ruby_sbom_l702_d36_spec_symbol(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby method `spec_version` at line 707.
-pub fn ruby_sbom_l707_d37_spec_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sbom_l707_d37_spec_version(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return sbom_nil()
 	}
@@ -1076,17 +1076,17 @@ pub fn ruby_sbom_l707_d37_spec_version(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby method `source_modified_time` at line 712.
-pub fn ruby_sbom_l712_d38_source_modified_time(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sbom_l712_d38_source_modified_time(args ...ruby.Value) ruby.Value {
 	epoch := if args.len > 0 {
 		(args[0].attributes['source_modified_time'] or { '0' }).i64()
 	} else {
 		i64(0)
 	}
-	return brew_runtime.object_value('Time', sbom_time(epoch))
+	return ruby.object_value('Time', sbom_time(epoch))
 }
 
 // Ruby method `assert_value(val)` at line 717.
-pub fn ruby_sbom_l717_d39_assert_value(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sbom_l717_d39_assert_value(args ...ruby.Value) ruby.Value {
 	return sbom_assert(if args.len > 1 {
 		args[1]
 	} else if args.len > 0 {

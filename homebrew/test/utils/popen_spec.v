@@ -1,6 +1,6 @@
 module utils
 
-import brew_runtime
+import ruby
 import homebrew.utils as popen_utils
 import os
 import time
@@ -11,7 +11,7 @@ fn popen_spec_temp_path(label string) string {
 	return os.join_path(os.temp_dir(), 'brew-v-popen-spec-${label}-${os.getpid()}-${time.now().unix_micro()}')
 }
 
-fn popen_spec_foo_path(args []brew_runtime.Value) string {
+fn popen_spec_foo_path(args []ruby.Value) string {
 	return if args.len > 0 { args[0].as_string() } else { popen_spec_temp_path('foo') }
 }
 
@@ -34,85 +34,85 @@ fn popen_spec_cat_order(arguments []string, input string, expected string) bool 
 }
 
 // Ruby it `it "reads the standard output of a given command" do` at line 8.
-pub fn ruby_popen_spec_l8_d1_reads(args ...brew_runtime.Value) brew_runtime.Value {
-	result := popen_utils.popen_read(['sh', '-c', 'echo success'], popen_utils.PopenOptions{}) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(result.success() && result.stdout.trim_space() == 'success')
+pub fn ruby_popen_spec_l8_d1_reads(args ...ruby.Value) ruby.Value {
+	result := popen_utils.popen_read(['sh', '-c', 'echo success'], popen_utils.PopenOptions{}) or { return ruby.bool_value(false) }
+	return ruby.bool_value(result.success() && result.stdout.trim_space() == 'success')
 }
 
 // Ruby it `it "can be given a block to manually read from the pipe" do` at line 13.
-pub fn ruby_popen_spec_l13_d2_can(args ...brew_runtime.Value) brew_runtime.Value {
-	result := popen_utils.popen_read(['sh', '-c', 'echo success'], popen_utils.PopenOptions{}) or { return brew_runtime.bool_value(false) }
+pub fn ruby_popen_spec_l13_d2_can(args ...ruby.Value) ruby.Value {
+	result := popen_utils.popen_read(['sh', '-c', 'echo success'], popen_utils.PopenOptions{}) or { return ruby.bool_value(false) }
 	manually_read := result.stdout.trim_space()
-	return brew_runtime.bool_value(result.success() && manually_read == 'success')
+	return ruby.bool_value(result.success() && manually_read == 'success')
 }
 
 // Ruby it `it "fails when the command does not exist" do` at line 22.
-pub fn ruby_popen_spec_l22_d3_fails(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_popen_spec_l22_d3_fails(args ...ruby.Value) ruby.Value {
 	result := popen_utils.popen_read(['./nonexistent'], popen_utils.PopenOptions{
 		stderr: .stdout
-	}) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(result.exit_code == 127 && result.stdout == 'brew: command not found: ./nonexistent\n')
+	}) or { return ruby.bool_value(false) }
+	return ruby.bool_value(result.exit_code == 127 && result.stdout == 'brew: command not found: ./nonexistent\n')
 }
 
 // Ruby let `let(:foo) { mktmpdir/"foo" }` at line 30.
-pub fn ruby_popen_spec_l30_d4_foo(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_popen_spec_l30_d4_foo(args ...ruby.Value) ruby.Value {
 	path := popen_spec_foo_path(args)
-	os.mkdir_all(os.dir(path)) or { return brew_runtime.object_value('IOError', err.msg()) }
-	os.write_file(path, 'Foo\n') or { return brew_runtime.object_value('IOError', err.msg()) }
-	return brew_runtime.object_value('Pathname', path)
+	os.mkdir_all(os.dir(path)) or { return ruby.object_value('IOError', err.msg()) }
+	os.write_file(path, 'Foo\n') or { return ruby.object_value('IOError', err.msg()) }
+	return ruby.object_value('Pathname', path)
 }
 
 // Ruby it `it "supports writing to a command's standard input" do` at line 34.
-pub fn ruby_popen_spec_l34_d5_supports(args ...brew_runtime.Value) brew_runtime.Value {
-	result := popen_utils.popen_write(['grep', '-q', 'success'], 'success\n', popen_utils.PopenOptions{}) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(result.success())
+pub fn ruby_popen_spec_l34_d5_supports(args ...ruby.Value) ruby.Value {
+	result := popen_utils.popen_write(['grep', '-q', 'success'], 'success\n', popen_utils.PopenOptions{}) or { return ruby.bool_value(false) }
+	return ruby.bool_value(result.success())
 }
 
 // Ruby it `it "returns the command's standard output before writing" do` at line 41.
-pub fn ruby_popen_spec_l41_d6_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(popen_spec_cat_order(['foo', '-'], 'Bar\n', 'Foo\nBar\n'))
+pub fn ruby_popen_spec_l41_d6_returns(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(popen_spec_cat_order(['foo', '-'], 'Bar\n', 'Foo\nBar\n'))
 }
 
 // Ruby it `it "returns the command's standard output after writing" do` at line 52.
-pub fn ruby_popen_spec_l52_d7_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(popen_spec_cat_order(['-', 'foo'], 'Bar\n', 'Bar\nFoo\n'))
+pub fn ruby_popen_spec_l52_d7_returns(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(popen_spec_cat_order(['-', 'foo'], 'Bar\n', 'Bar\nFoo\n'))
 }
 
 // Ruby it `it "supports interleaved writing between two reads" do` at line 63.
-pub fn ruby_popen_spec_l63_d8_supports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(popen_spec_cat_order(['foo', '-', 'foo'], 'Bar\n', 'Foo\nBar\nFoo\n'))
+pub fn ruby_popen_spec_l63_d8_supports(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(popen_spec_cat_order(['foo', '-', 'foo'], 'Bar\n', 'Foo\nBar\nFoo\n'))
 }
 
 // Ruby it `it "does not raise an error if the command succeeds" do` at line 77.
-pub fn ruby_popen_spec_l77_d9_does(args ...brew_runtime.Value) brew_runtime.Value {
-	output := popen_utils.safe_popen_read(['sh', '-c', 'true'], popen_utils.PopenOptions{}) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(output == '')
+pub fn ruby_popen_spec_l77_d9_does(args ...ruby.Value) ruby.Value {
+	output := popen_utils.safe_popen_read(['sh', '-c', 'true'], popen_utils.PopenOptions{}) or { return ruby.bool_value(false) }
+	return ruby.bool_value(output == '')
 }
 
 // Ruby it `it "raises an error if the command fails" do` at line 82.
-pub fn ruby_popen_spec_l82_d10_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_popen_spec_l82_d10_raises(args ...ruby.Value) ruby.Value {
 	if _ := popen_utils.safe_popen_read(['sh', '-c', 'false'], popen_utils.PopenOptions{}) {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	} else {
-		return brew_runtime.bool_value(err.code() != 0 && err.msg().contains('Failure while executing'))
+		return ruby.bool_value(err.code() != 0 && err.msg().contains('Failure while executing'))
 	}
 }
 
 // Ruby it `it "does not raise an error if the command succeeds" do` at line 89.
-pub fn ruby_popen_spec_l89_d11_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_popen_spec_l89_d11_does(args ...ruby.Value) ruby.Value {
 	if _ := popen_utils.safe_popen_write(['grep', 'success'], 'success\n', popen_utils.PopenOptions{}) {
-		return brew_runtime.bool_value(true)
+		return ruby.bool_value(true)
 	} else {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 }
 
 // Ruby it `it "raises an error if the command fails" do` at line 96.
-pub fn ruby_popen_spec_l96_d12_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_popen_spec_l96_d12_raises(args ...ruby.Value) ruby.Value {
 	if _ := popen_utils.safe_popen_write(['grep', 'success'], 'failure\n', popen_utils.PopenOptions{}) {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	} else {
-		return brew_runtime.bool_value(err.code() != 0 && err.msg().contains('Failure while executing'))
+		return ruby.bool_value(err.code() != 0 && err.msg().contains('Failure while executing'))
 	}
 }
 

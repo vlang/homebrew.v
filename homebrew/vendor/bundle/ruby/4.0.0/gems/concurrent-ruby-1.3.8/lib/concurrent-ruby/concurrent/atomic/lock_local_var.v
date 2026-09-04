@@ -1,6 +1,6 @@
 module atomic
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/atomic/lock_local_var.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -12,8 +12,8 @@ pub fn mutex_owned_per_thread() bool {
 }
 
 // Ruby method `self.mutex_owned_per_thread?` at line 7.
-pub fn ruby_lock_local_var_l7_d1_self_mutex_owned_per_thread(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(mutex_owned_per_thread())
+pub fn ruby_lock_local_var_l7_d1_self_mutex_owned_per_thread(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(mutex_owned_per_thread())
 }
 
 // Original Ruby source (line-for-line):

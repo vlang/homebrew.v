@@ -1,6 +1,6 @@
 module mac
 
-import brew_runtime
+import ruby
 
 pub struct MacCellarMachFile {
 pub:
@@ -37,43 +37,43 @@ pub:
 	output  string
 }
 
-fn mac_cellar_check_value(check MacCellarCheck) brew_runtime.Value {
+fn mac_cellar_check_value(check MacCellarCheck) ruby.Value {
 	if !check.present {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
-	return brew_runtime.string_value(check.output)
+	return ruby.string_value(check.output)
 }
 
-fn mac_cellar_string(value brew_runtime.Value, key string) string {
+fn mac_cellar_string(value ruby.Value, key string) string {
 	if key in value.map_data {
 		return value.map_data[key].as_string()
 	}
 	return ''
 }
 
-fn mac_cellar_bool(value brew_runtime.Value, key string) bool {
+fn mac_cellar_bool(value ruby.Value, key string) bool {
 	if key in value.map_data {
 		return value.map_data[key].as_bool() or { false }
 	}
 	return false
 }
 
-fn mac_cellar_strings(value brew_runtime.Value, key string) []string {
+fn mac_cellar_strings(value ruby.Value, key string) []string {
 	if key in value.map_data {
 		return value.map_data[key].as_string_array() or { []string{} }
 	}
 	return []string{}
 }
 
-fn mac_cellar_mach_files(value brew_runtime.Value, key string) []MacCellarMachFile {
+fn mac_cellar_mach_files(value ruby.Value, key string) []MacCellarMachFile {
 	if key !in value.map_data {
 		return []MacCellarMachFile{}
 	}
 	mut files := []MacCellarMachFile{}
-	for item in value.map_data[key].as_array() or { []brew_runtime.Value{} } {
+	for item in value.map_data[key].as_array() or { []ruby.Value{} } {
 		mut slices := []bool{}
 		if 'two_level_slices' in item.map_data {
-			for slice in item.map_data['two_level_slices'].as_array() or { []brew_runtime.Value{} } {
+			for slice in item.map_data['two_level_slices'].as_array() or { []ruby.Value{} } {
 				slices << (slice.as_bool() or { false })
 			}
 		}
@@ -87,7 +87,7 @@ fn mac_cellar_mach_files(value brew_runtime.Value, key string) []MacCellarMachFi
 	return files
 }
 
-pub fn mac_formula_cellar_state_from_value(value brew_runtime.Value) !MacFormulaCellarState {
+pub fn mac_formula_cellar_state_from_value(value ruby.Value) !MacFormulaCellarState {
 	if value.type_name != 'Hash' {
 		return error('expected Hash cellar state, got ${value.type_name}')
 	}
@@ -237,46 +237,46 @@ pub fn mac_formula_valid_library_extension(filename string,
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `check_shadowed_headers` at line 16.
-pub fn ruby_formula_cellar_checks_l16_d1_check_shadowed_headers(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_cellar_checks_l16_d1_check_shadowed_headers(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('check_shadowed_headers requires cellar state') }
 	return mac_cellar_check_value(mac_formula_check_shadowed_headers(mac_formula_cellar_state_from_value(args[0]) or { panic(err) }))
 }
 
 // Ruby method `check_openssl_links` at line 38.
-pub fn ruby_formula_cellar_checks_l38_d2_check_openssl_links(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_cellar_checks_l38_d2_check_openssl_links(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('check_openssl_links requires cellar state') }
 	return mac_cellar_check_value(mac_formula_check_openssl_links(mac_formula_cellar_state_from_value(args[0]) or { panic(err) }))
 }
 
 // Ruby method `check_python_framework_links(lib)` at line 58.
-pub fn ruby_formula_cellar_checks_l58_d3_check_python_framework_links(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_cellar_checks_l58_d3_check_python_framework_links(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('check_python_framework_links requires cellar state') }
 	return mac_cellar_check_value(mac_formula_check_python_framework_links(mac_formula_cellar_state_from_value(args[0]) or { panic(err) }))
 }
 
 // Ruby method `check_linkage` at line 77.
-pub fn ruby_formula_cellar_checks_l77_d4_check_linkage(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_cellar_checks_l77_d4_check_linkage(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('check_linkage requires cellar state') }
 	return mac_cellar_check_value(mac_formula_check_linkage(mac_formula_cellar_state_from_value(args[0]) or { panic(err) }))
 }
 
 // Ruby method `check_flat_namespace(formula)` at line 105.
-pub fn ruby_formula_cellar_checks_l105_d5_check_flat_namespace(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_cellar_checks_l105_d5_check_flat_namespace(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('check_flat_namespace requires cellar state') }
 	return mac_cellar_check_value(mac_formula_check_flat_namespace(mac_formula_cellar_state_from_value(args[0]) or { panic(err) }))
 }
 
 // Ruby method `audit_installed` at line 133.
-pub fn ruby_formula_cellar_checks_l133_d6_audit_installed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_cellar_checks_l133_d6_audit_installed(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('audit_installed requires cellar state') }
-	return brew_runtime.string_array_value(mac_formula_audit_installed(mac_formula_cellar_state_from_value(args[0]) or { panic(err) }))
+	return ruby.string_array_value(mac_formula_audit_installed(mac_formula_cellar_state_from_value(args[0]) or { panic(err) }))
 }
 
 // Ruby method `valid_library_extension?(filename)` at line 145.
-pub fn ruby_formula_cellar_checks_l145_d7_valid_library_extension(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_cellar_checks_l145_d7_valid_library_extension(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('valid_library_extension? requires a filename') }
 	base := if args.len > 1 { args[1].as_string_array() or { panic(err) } } else { []string{} }
-	return brew_runtime.bool_value(mac_formula_valid_library_extension(args[0].as_string(), base))
+	return ruby.bool_value(mac_formula_valid_library_extension(args[0].as_string(), base))
 }
 
 // Original Ruby source (line-for-line):

@@ -1,6 +1,6 @@
 module atomic
 
-import brew_runtime
+import ruby
 import sync
 import time
 
@@ -11,7 +11,7 @@ const read_write_running_writer = i64(536_870_912)
 const read_write_max_readers = read_write_waiting_writer - 1
 const read_write_max_writers = read_write_running_writer - read_write_max_readers - 1
 
-pub type ReadWriteLockAction = fn() !brew_runtime.Value
+pub type ReadWriteLockAction = fn() !ruby.Value
 
 @[heap]
 struct ReadWriteLockState {
@@ -81,7 +81,7 @@ fn lock_poll_duration(deadline u64) time.Duration {
 	}
 }
 
-pub fn (mut rwlock ReadWriteLock) with_read_lock(action ReadWriteLockAction) !brew_runtime.Value {
+pub fn (mut rwlock ReadWriteLock) with_read_lock(action ReadWriteLockAction) !ruby.Value {
 	rwlock.acquire_read_lock()!
 	defer {
 		rwlock.release_read_lock() or {}
@@ -89,7 +89,7 @@ pub fn (mut rwlock ReadWriteLock) with_read_lock(action ReadWriteLockAction) !br
 	return action()!
 }
 
-pub fn (mut rwlock ReadWriteLock) with_write_lock(action ReadWriteLockAction) !brew_runtime.Value {
+pub fn (mut rwlock ReadWriteLock) with_write_lock(action ReadWriteLockAction) !ruby.Value {
 	rwlock.acquire_write_lock()!
 	defer {
 		rwlock.release_write_lock() or {}
@@ -271,13 +271,13 @@ pub fn (mut rwlock ReadWriteLock) counter_value() i64 {
 	return rwlock.state.counter
 }
 
-fn read_write_lock_boundary(rwlock &ReadWriteLock) brew_runtime.Value {
-	return brew_runtime.structured_value('Concurrent::ReadWriteLock', '#<Concurrent::ReadWriteLock>', {
+fn read_write_lock_boundary(rwlock &ReadWriteLock) ruby.Value {
+	return ruby.structured_value('Concurrent::ReadWriteLock', '#<Concurrent::ReadWriteLock>', {
 		'read_write_lock_address': u64(voidptr(rwlock)).str()
 	})
 }
 
-fn read_write_lock_boundary_receiver(args []brew_runtime.Value) &ReadWriteLock {
+fn read_write_lock_boundary_receiver(args []ruby.Value) &ReadWriteLock {
 	if args.len == 0 {
 		panic('ReadWriteLock method requires a receiver')
 	}
@@ -287,17 +287,17 @@ fn read_write_lock_boundary_receiver(args []brew_runtime.Value) &ReadWriteLock {
 	return unsafe { &ReadWriteLock(voidptr(address)) }
 }
 
-fn read_write_boundary_counter(mut rwlock ReadWriteLock, args []brew_runtime.Value) i64 {
+fn read_write_boundary_counter(mut rwlock ReadWriteLock, args []ruby.Value) i64 {
 	return if args.len > 1 { args[1].as_int() or { panic(err) } } else { rwlock.counter_value() }
 }
 
 // Ruby method `initialize` at line 60.
-pub fn ruby_read_write_lock_l60_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_read_write_lock_l60_d1_initialize(args ...ruby.Value) ruby.Value {
 	return read_write_lock_boundary(new_read_write_lock())
 }
 
 // Ruby method `with_read_lock` at line 77.
-pub fn ruby_read_write_lock_l77_d2_with_read_lock(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_read_write_lock_l77_d2_with_read_lock(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('no block given')
 	}
@@ -310,7 +310,7 @@ pub fn ruby_read_write_lock_l77_d2_with_read_lock(args ...brew_runtime.Value) br
 }
 
 // Ruby method `with_write_lock` at line 96.
-pub fn ruby_read_write_lock_l96_d3_with_write_lock(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_read_write_lock_l96_d3_with_write_lock(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('no block given')
 	}
@@ -323,81 +323,81 @@ pub fn ruby_read_write_lock_l96_d3_with_write_lock(args ...brew_runtime.Value) b
 }
 
 // Ruby method `acquire_read_lock` at line 113.
-pub fn ruby_read_write_lock_l113_d4_acquire_read_lock(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_read_write_lock_l113_d4_acquire_read_lock(args ...ruby.Value) ruby.Value {
 	mut rwlock := read_write_lock_boundary_receiver(args)
-	return brew_runtime.bool_value(rwlock.acquire_read_lock() or { panic(err) })
+	return ruby.bool_value(rwlock.acquire_read_lock() or { panic(err) })
 }
 
 // Ruby method `release_read_lock` at line 144.
-pub fn ruby_read_write_lock_l144_d5_release_read_lock(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_read_write_lock_l144_d5_release_read_lock(args ...ruby.Value) ruby.Value {
 	mut rwlock := read_write_lock_boundary_receiver(args)
-	return brew_runtime.bool_value(rwlock.release_read_lock() or { panic(err) })
+	return ruby.bool_value(rwlock.release_read_lock() or { panic(err) })
 }
 
 // Ruby method `acquire_write_lock` at line 166.
-pub fn ruby_read_write_lock_l166_d6_acquire_write_lock(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_read_write_lock_l166_d6_acquire_write_lock(args ...ruby.Value) ruby.Value {
 	mut rwlock := read_write_lock_boundary_receiver(args)
-	return brew_runtime.bool_value(rwlock.acquire_write_lock() or { panic(err) })
+	return ruby.bool_value(rwlock.acquire_write_lock() or { panic(err) })
 }
 
 // Ruby method `release_write_lock` at line 206.
-pub fn ruby_read_write_lock_l206_d7_release_write_lock(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_read_write_lock_l206_d7_release_write_lock(args ...ruby.Value) ruby.Value {
 	mut rwlock := read_write_lock_boundary_receiver(args)
-	return brew_runtime.bool_value(rwlock.release_write_lock() or { panic(err) })
+	return ruby.bool_value(rwlock.release_write_lock() or { panic(err) })
 }
 
 // Ruby method `write_locked?` at line 220.
-pub fn ruby_read_write_lock_l220_d8_write_locked(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_read_write_lock_l220_d8_write_locked(args ...ruby.Value) ruby.Value {
 	mut rwlock := read_write_lock_boundary_receiver(args)
-	return brew_runtime.bool_value(rwlock.write_locked())
+	return ruby.bool_value(rwlock.write_locked())
 }
 
 // Ruby method `has_waiters?` at line 227.
-pub fn ruby_read_write_lock_l227_d9_has_waiters(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_read_write_lock_l227_d9_has_waiters(args ...ruby.Value) ruby.Value {
 	mut rwlock := read_write_lock_boundary_receiver(args)
-	return brew_runtime.bool_value(rwlock.has_waiters())
+	return ruby.bool_value(rwlock.has_waiters())
 }
 
 // Ruby method `running_readers(c = @Counter.value)` at line 234.
-pub fn ruby_read_write_lock_l234_d10_running_readers(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_read_write_lock_l234_d10_running_readers(args ...ruby.Value) ruby.Value {
 	mut rwlock := read_write_lock_boundary_receiver(args)
-	return brew_runtime.int_value(read_write_running_readers(read_write_boundary_counter(mut rwlock, args)))
+	return ruby.int_value(read_write_running_readers(read_write_boundary_counter(mut rwlock, args)))
 }
 
 // Ruby method `running_readers?(c = @Counter.value)` at line 239.
-pub fn ruby_read_write_lock_l239_d11_running_readers(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_read_write_lock_l239_d11_running_readers(args ...ruby.Value) ruby.Value {
 	mut rwlock := read_write_lock_boundary_receiver(args)
-	return brew_runtime.bool_value(read_write_running_readers_present(read_write_boundary_counter(mut rwlock, args)))
+	return ruby.bool_value(read_write_running_readers_present(read_write_boundary_counter(mut rwlock, args)))
 }
 
 // Ruby method `running_writer?(c = @Counter.value)` at line 244.
-pub fn ruby_read_write_lock_l244_d12_running_writer(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_read_write_lock_l244_d12_running_writer(args ...ruby.Value) ruby.Value {
 	mut rwlock := read_write_lock_boundary_receiver(args)
-	return brew_runtime.bool_value(read_write_running_writer_present(read_write_boundary_counter(mut rwlock, args)))
+	return ruby.bool_value(read_write_running_writer_present(read_write_boundary_counter(mut rwlock, args)))
 }
 
 // Ruby method `waiting_writers(c = @Counter.value)` at line 249.
-pub fn ruby_read_write_lock_l249_d13_waiting_writers(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_read_write_lock_l249_d13_waiting_writers(args ...ruby.Value) ruby.Value {
 	mut rwlock := read_write_lock_boundary_receiver(args)
-	return brew_runtime.int_value(read_write_waiting_writers(read_write_boundary_counter(mut rwlock, args)))
+	return ruby.int_value(read_write_waiting_writers(read_write_boundary_counter(mut rwlock, args)))
 }
 
 // Ruby method `waiting_writer?(c = @Counter.value)` at line 254.
-pub fn ruby_read_write_lock_l254_d14_waiting_writer(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_read_write_lock_l254_d14_waiting_writer(args ...ruby.Value) ruby.Value {
 	mut rwlock := read_write_lock_boundary_receiver(args)
-	return brew_runtime.bool_value(read_write_waiting_writer_present(read_write_boundary_counter(mut rwlock, args)))
+	return ruby.bool_value(read_write_waiting_writer_present(read_write_boundary_counter(mut rwlock, args)))
 }
 
 // Ruby method `max_readers?(c = @Counter.value)` at line 259.
-pub fn ruby_read_write_lock_l259_d15_max_readers(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_read_write_lock_l259_d15_max_readers(args ...ruby.Value) ruby.Value {
 	mut rwlock := read_write_lock_boundary_receiver(args)
-	return brew_runtime.bool_value(read_write_max_readers_reached(read_write_boundary_counter(mut rwlock, args)))
+	return ruby.bool_value(read_write_max_readers_reached(read_write_boundary_counter(mut rwlock, args)))
 }
 
 // Ruby method `max_writers?(c = @Counter.value)` at line 264.
-pub fn ruby_read_write_lock_l264_d16_max_writers(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_read_write_lock_l264_d16_max_writers(args ...ruby.Value) ruby.Value {
 	mut rwlock := read_write_lock_boundary_receiver(args)
-	return brew_runtime.bool_value(read_write_max_writers_reached(read_write_boundary_counter(mut rwlock, args)))
+	return ruby.bool_value(read_write_max_writers_reached(read_write_boundary_counter(mut rwlock, args)))
 }
 
 // Original Ruby source (line-for-line):

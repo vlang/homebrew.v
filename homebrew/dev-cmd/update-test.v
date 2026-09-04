@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `dev-cmd/update-test.rb`.
@@ -158,60 +158,60 @@ pub:
 	options UpdateTestOptions
 }
 
-pub fn update_test_input_boundary(input &UpdateTestInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::UpdateTest::Input', '', {
+pub fn update_test_input_boundary(input &UpdateTestInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::UpdateTest::Input', '', {
 		'update_test_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn update_test_input_from_value(value brew_runtime.Value) &UpdateTestInput {
+fn update_test_input_from_value(value ruby.Value) &UpdateTestInput {
 	address := value.attributes['update_test_input_address'] or { panic('invalid UpdateTest input') }
 	return unsafe { &UpdateTestInput(voidptr(address.u64())) }
 }
 
-fn update_test_result_value(result UpdateTestResult) brew_runtime.Value {
-	mut environment := map[string]brew_runtime.Value{}
+fn update_test_result_value(result UpdateTestResult) ruby.Value {
+	mut environment := map[string]ruby.Value{}
 	for name, value in result.environment {
-		environment[name] = brew_runtime.string_value(value)
+		environment[name] = ruby.string_value(value)
 	}
-	return brew_runtime.map_value({
-		'environment': brew_runtime.map_value(environment)
-		'unset_environment': brew_runtime.string_array_value(result.unset_environment)
-		'branch': brew_runtime.string_value(result.branch)
-		'start_commit': brew_runtime.string_value(result.start_commit)
-		'end_commit': brew_runtime.string_value(result.end_commit)
-		'stdout': brew_runtime.string_value(result.stdout)
-		'headings': brew_runtime.string_array_value(result.headings)
-		'commands': brew_runtime.array_value(result.commands.map(brew_runtime.string_array_value(it)))
-		'quiet_commands': brew_runtime.array_value(result.quiet_commands.map(brew_runtime.string_array_value(it)))
-		'update_test_dir': brew_runtime.string_value(result.update_test_dir)
-		'removed': brew_runtime.bool_value(result.removed)
+	return ruby.map_value({
+		'environment': ruby.map_value(environment)
+		'unset_environment': ruby.string_array_value(result.unset_environment)
+		'branch': ruby.string_value(result.branch)
+		'start_commit': ruby.string_value(result.start_commit)
+		'end_commit': ruby.string_value(result.end_commit)
+		'stdout': ruby.string_value(result.stdout)
+		'headings': ruby.string_array_value(result.headings)
+		'commands': ruby.array_value(result.commands.map(ruby.string_array_value(it)))
+		'quiet_commands': ruby.array_value(result.quiet_commands.map(ruby.string_array_value(it)))
+		'update_test_dir': ruby.string_value(result.update_test_dir)
+		'removed': ruby.bool_value(result.removed)
 	})
 }
 
 // Ruby method `run` at line 30.
-pub fn ruby_update_test_l30_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_test_l30_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'command input is required')
+		return ruby.object_value('ArgumentError', 'command input is required')
 	}
 	return update_test_result_value(run_update_test(update_test_input_from_value(args[0]).options) or {
-		return brew_runtime.object_value('Error', err.msg())
+		return ruby.object_value('Error', err.msg())
 	})
 }
 
 // Ruby method `git_tags` at line 146.
-pub fn ruby_update_test_l146_d2_git_tags(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_test_l146_d2_git_tags(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'command input is required')
+		return ruby.object_value('ArgumentError', 'command input is required')
 	}
 	options := update_test_input_from_value(args[0]).options
 	result := update_test_git_tags(options.initial_tags, options.shallow_repository, options.fetched_tags) or {
-		return brew_runtime.object_value('Error', err.msg())
+		return ruby.object_value('Error', err.msg())
 	}
-	return brew_runtime.map_value({
-		'tags': brew_runtime.string_value(result.tags)
-		'fetched': brew_runtime.bool_value(result.fetched)
-		'fetch_command': brew_runtime.string_array_value(result.fetch_command)
+	return ruby.map_value({
+		'tags': ruby.string_value(result.tags)
+		'fetched': ruby.bool_value(result.fetched)
+		'fetch_command': ruby.string_array_value(result.fetch_command)
 	})
 }
 

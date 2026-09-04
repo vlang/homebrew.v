@@ -1,14 +1,14 @@
 module rubocops
 
-import brew_runtime
+import ruby
 import homebrew.rubocops as no_autobump_core
 
 // Translated from Homebrew/brew `test/rubocops/no_autobump.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:cop) { RuboCop::Cop::FormulaAudit::NoAutobump.new }` at line 7.
-pub fn ruby_no_autobump_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::NoAutobump', 'FormulaAudit/NoAutobump')
+pub fn ruby_no_autobump_l7_d1_cop(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('RuboCop::Cop::FormulaAudit::NoAutobump', 'FormulaAudit/NoAutobump')
 }
 
 // Ruby it `it "reports no offenses if `reason` is acceptable" do` at line 9.

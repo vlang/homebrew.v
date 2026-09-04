@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `cmd/cleanup.rb`.
@@ -104,27 +104,27 @@ pub fn run_cleanup_command(request CleanupCommandRequest) !CleanupCommandResult 
 	}
 }
 
-pub fn cleanup_command_result_to_value(result CleanupCommandResult) brew_runtime.Value {
-	return brew_runtime.map_value({
+pub fn cleanup_command_result_to_value(result CleanupCommandResult) ruby.Value {
+	return ruby.map_value({
 		'days':          if value := result.days {
-			brew_runtime.int_value(value)
+			ruby.int_value(value)
 		} else {
-			brew_runtime.object_value('NilClass', 'nil')
+			ruby.object_value('NilClass', 'nil')
 		}
-		'removed':       brew_runtime.string_array_value(result.removed)
-		'would_remove':  brew_runtime.string_array_value(result.would_remove)
-		'pruned_prefix': brew_runtime.bool_value(result.pruned_prefix)
-		'output':        brew_runtime.string_array_value(result.output)
-		'errors':        brew_runtime.string_array_value(result.errors)
+		'removed':       ruby.string_array_value(result.removed)
+		'would_remove':  ruby.string_array_value(result.would_remove)
+		'pruned_prefix': ruby.bool_value(result.pruned_prefix)
+		'output':        ruby.string_array_value(result.output)
+		'errors':        ruby.string_array_value(result.errors)
 	})
 }
 
 // Ruby method `run` at line 34.
-pub fn ruby_cleanup_l34_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cleanup_l34_d1_run(args ...ruby.Value) ruby.Value {
 	values := if args.len > 0 {
-		args[0].as_map() or { return brew_runtime.object_value('UsageError', err.msg()) }
+		args[0].as_map() or { return ruby.object_value('UsageError', err.msg()) }
 	} else {
-		map[string]brew_runtime.Value{}
+		map[string]ruby.Value{}
 	}
 	mut prune := ?string(none)
 	if value := values['prune'] {
@@ -154,7 +154,7 @@ pub fn ruby_cleanup_l34_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
 			[]string{}}
 	}
 	result := run_cleanup_command(request) or {
-		return brew_runtime.object_value('UsageError', err.msg())
+		return ruby.object_value('UsageError', err.msg())
 	}
 	return cleanup_command_result_to_value(result)
 }

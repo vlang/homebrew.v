@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 import os
 import time
 import x.json2
@@ -289,15 +289,15 @@ pub fn setup_formula_analytics_python(options FormulaAnalyticsOptions) !FormulaA
 }
 
 fn formula_analytics_request_json(query string) string {
-	return brew_runtime.json_value_to_string(brew_runtime.map_value({
-		'host':     brew_runtime.string_value(formula_analytics_influx_host)
-		'org':      brew_runtime.string_value(formula_analytics_influx_org)
-		'database': brew_runtime.string_value(formula_analytics_influx_bucket)
-		'query':    brew_runtime.string_value(query)
+	return ruby.json_value_to_string(ruby.map_value({
+		'host':     ruby.string_value(formula_analytics_influx_host)
+		'org':      ruby.string_value(formula_analytics_influx_org)
+		'database': ruby.string_value(formula_analytics_influx_bucket)
+		'query':    ruby.string_value(query)
 	}))
 }
 
-fn formula_analytics_record_from_value(value brew_runtime.Value) !FormulaAnalyticsRecord {
+fn formula_analytics_record_from_value(value ruby.Value) !FormulaAnalyticsRecord {
 	values := value.as_map()!
 	mut fields := map[string]string{}
 	mut count := i64(0)
@@ -342,7 +342,7 @@ pub fn each_formula_analytics_influx_record(query string, options FormulaAnalyti
 		if line.trim_space() == '' {
 			continue
 		}
-		records << formula_analytics_record_from_value(brew_runtime.parse_json_value(line)!)!
+		records << formula_analytics_record_from_value(ruby.parse_json_value(line)!)!
 	}
 	return records
 }
@@ -808,52 +808,52 @@ fn formula_analytics_finish_report(mut report FormulaAnalyticsReport, all_core_f
 	}
 }
 
-fn formula_analytics_item_value(item FormulaAnalyticsItem, env_config bool) brew_runtime.Value {
+fn formula_analytics_item_value(item FormulaAnalyticsItem, env_config bool) ruby.Value {
 	mut values := {
-		'number':           brew_runtime.int_value(item.number)
-		item.dimension_key: brew_runtime.string_value(item.dimension)
-		'count':            brew_runtime.string_value(item.formatted_count)
+		'number':           ruby.int_value(item.number)
+		item.dimension_key: ruby.string_value(item.dimension)
+		'count':            ruby.string_value(item.formatted_count)
 	}
 	if env_config {
-		values['non_default_count'] = brew_runtime.string_value(item.formatted_non_default)
-		values['set_default_count'] = brew_runtime.string_value(item.formatted_set_default)
-		values['unset_count'] = brew_runtime.string_value(item.formatted_unset)
-		values['percent'] = brew_runtime.string_value(item.percent)
+		values['non_default_count'] = ruby.string_value(item.formatted_non_default)
+		values['set_default_count'] = ruby.string_value(item.formatted_set_default)
+		values['unset_count'] = ruby.string_value(item.formatted_unset)
+		values['percent'] = ruby.string_value(item.percent)
 		values['default_value'] = if item.has_default_value {
-			brew_runtime.string_value(item.default_value)
+			ruby.string_value(item.default_value)
 		} else {
-			brew_runtime.object_value('NilClass', 'nil')
+			ruby.object_value('NilClass', 'nil')
 		}
 	} else if item.percent != '' {
-		values['percent'] = brew_runtime.string_value(item.percent)
+		values['percent'] = ruby.string_value(item.percent)
 	}
-	return brew_runtime.map_value(values)
+	return ruby.map_value(values)
 }
 
-fn formula_analytics_report_value(report FormulaAnalyticsReport) brew_runtime.Value {
+fn formula_analytics_report_value(report FormulaAnalyticsReport) ruby.Value {
 	mut values := {
-		'category':    brew_runtime.object_value('Symbol', report.category)
-		'total_items': brew_runtime.int_value(report.total_items)
-		'start_date':  brew_runtime.string_value(report.start_date)
-		'end_date':    brew_runtime.string_value(report.end_date)
-		'total_count': brew_runtime.int_value(report.total_count)
+		'category':    ruby.object_value('Symbol', report.category)
+		'total_items': ruby.int_value(report.total_items)
+		'start_date':  ruby.string_value(report.start_date)
+		'end_date':    ruby.string_value(report.end_date)
+		'total_count': ruby.int_value(report.total_count)
 	}
 	if report.formulae.len > 0 {
-		mut formulae := map[string]brew_runtime.Value{}
+		mut formulae := map[string]ruby.Value{}
 		mut names := report.formulae.keys()
 		names.sort()
 		for name in names {
-			formulae[name] = brew_runtime.array_value(report.formulae[name].map(formula_analytics_item_value(it, false)))
+			formulae[name] = ruby.array_value(report.formulae[name].map(formula_analytics_item_value(it, false)))
 		}
-		values['formulae'] = brew_runtime.map_value(formulae)
+		values['formulae'] = ruby.map_value(formulae)
 	} else {
-		values['items'] = brew_runtime.array_value(report.items.map(formula_analytics_item_value(it, report.category == 'homebrew_env_config')))
+		values['items'] = ruby.array_value(report.items.map(formula_analytics_item_value(it, report.category == 'homebrew_env_config')))
 	}
-	return brew_runtime.map_value(values)
+	return ruby.map_value(values)
 }
 
 fn formula_analytics_report_json(report FormulaAnalyticsReport) string {
-	return json2.encode(brew_runtime.json_any_from_value(formula_analytics_report_value(report)),
+	return json2.encode(ruby.json_any_from_value(formula_analytics_report_value(report)),
 		prettify: true
 	)
 }
@@ -1139,57 +1139,57 @@ fn formula_analytics_linux_dimension(dimension string) string {
 	return dimension
 }
 
-pub fn formula_analytics_input_boundary(input &FormulaAnalyticsInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::FormulaAnalytics::Input', '', {
+pub fn formula_analytics_input_boundary(input &FormulaAnalyticsInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::FormulaAnalytics::Input', '', {
 		'formula_analytics_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn formula_analytics_input_from_value(value brew_runtime.Value) !&FormulaAnalyticsInput {
+fn formula_analytics_input_from_value(value ruby.Value) !&FormulaAnalyticsInput {
 	address := value.attributes['formula_analytics_input_address'] or {
 		return error('invalid FormulaAnalytics input')
 	}
 	return unsafe { &FormulaAnalyticsInput(voidptr(address.u64())) }
 }
 
-pub fn formula_analytics_each_input_boundary(input &FormulaAnalyticsEachInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::FormulaAnalytics::EachInput', '', {
+pub fn formula_analytics_each_input_boundary(input &FormulaAnalyticsEachInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::FormulaAnalytics::EachInput', '', {
 		'formula_analytics_each_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn formula_analytics_each_input_from_value(value brew_runtime.Value) !&FormulaAnalyticsEachInput {
+fn formula_analytics_each_input_from_value(value ruby.Value) !&FormulaAnalyticsEachInput {
 	address := value.attributes['formula_analytics_each_input_address'] or {
 		return error('invalid FormulaAnalytics each-record input')
 	}
 	return unsafe { &FormulaAnalyticsEachInput(voidptr(address.u64())) }
 }
 
-fn formula_analytics_error(kind string, message string) brew_runtime.Value {
-	return brew_runtime.object_value(kind, message)
+fn formula_analytics_error(kind string, message string) ruby.Value {
+	return ruby.object_value(kind, message)
 }
 
-fn formula_analytics_setup_value(result FormulaAnalyticsSetupResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'uv_path':         brew_runtime.object_value('Pathname', result.uv_path)
-		'venv_root':       brew_runtime.object_value('Pathname', result.venv_root)
-		'formula_root':    brew_runtime.object_value('Pathname', result.formula_root)
-		'command':         brew_runtime.string_array_value(result.command)
-		'removed_entries': brew_runtime.string_array_value(result.removed_entries)
+fn formula_analytics_setup_value(result FormulaAnalyticsSetupResult) ruby.Value {
+	return ruby.map_value({
+		'uv_path':         ruby.object_value('Pathname', result.uv_path)
+		'venv_root':       ruby.object_value('Pathname', result.venv_root)
+		'formula_root':    ruby.object_value('Pathname', result.formula_root)
+		'command':         ruby.string_array_value(result.command)
+		'removed_entries': ruby.string_array_value(result.removed_entries)
 	})
 }
 
-fn formula_analytics_run_value(result FormulaAnalyticsRunResult) brew_runtime.Value {
-	return brew_runtime.map_value({
+fn formula_analytics_run_value(result FormulaAnalyticsRunResult) ruby.Value {
+	return ruby.map_value({
 		'setup':    formula_analytics_setup_value(result.setup)
-		'reports':  brew_runtime.array_value(result.reports.map(formula_analytics_report_value(it)))
-		'warnings': brew_runtime.string_array_value(result.warnings)
-		'output':   brew_runtime.string_value(result.output)
+		'reports':  ruby.array_value(result.reports.map(formula_analytics_report_value(it)))
+		'warnings': ruby.string_array_value(result.warnings)
+		'output':   ruby.string_value(result.output)
 	})
 }
 
 // Ruby method `run` at line 66.
-pub fn ruby_formula_analytics_l66_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_analytics_l66_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return formula_analytics_error('ArgumentError', 'FormulaAnalytics input is required')
 	}
@@ -1202,7 +1202,7 @@ pub fn ruby_formula_analytics_l66_d1_run(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `setup_python` at line 72.
-pub fn ruby_formula_analytics_l72_d2_setup_python(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_analytics_l72_d2_setup_python(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return formula_analytics_error('ArgumentError', 'FormulaAnalytics input is required')
 	}
@@ -1215,55 +1215,55 @@ pub fn ruby_formula_analytics_l72_d2_setup_python(args ...brew_runtime.Value) br
 }
 
 // Ruby method `formula_analytics_root` at line 88.
-pub fn ruby_formula_analytics_l88_d3_formula_analytics_root(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_analytics_l88_d3_formula_analytics_root(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return formula_analytics_error('ArgumentError', 'FormulaAnalytics input is required')
 	}
 	input := formula_analytics_input_from_value(args[0]) or {
 		return formula_analytics_error('ArgumentError', err.msg())
 	}
-	return brew_runtime.object_value('Pathname', formula_analytics_root(input.options))
+	return ruby.object_value('Pathname', formula_analytics_root(input.options))
 }
 
 // Ruby method `influxdb_query_script` at line 93.
-pub fn ruby_formula_analytics_l93_d4_influxdb_query_script(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_analytics_l93_d4_influxdb_query_script(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return formula_analytics_error('ArgumentError', 'FormulaAnalytics input is required')
 	}
 	input := formula_analytics_input_from_value(args[0]) or {
 		return formula_analytics_error('ArgumentError', err.msg())
 	}
-	return brew_runtime.object_value('Pathname', formula_analytics_influxdb_query_script(input.options))
+	return ruby.object_value('Pathname', formula_analytics_influxdb_query_script(input.options))
 }
 
 // Ruby method `venv_root` at line 98.
-pub fn ruby_formula_analytics_l98_d5_venv_root(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_analytics_l98_d5_venv_root(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return formula_analytics_error('ArgumentError', 'FormulaAnalytics input is required')
 	}
 	input := formula_analytics_input_from_value(args[0]) or {
 		return formula_analytics_error('ArgumentError', err.msg())
 	}
-	return brew_runtime.object_value('Pathname', formula_analytics_venv_root(input.options) or {
+	return ruby.object_value('Pathname', formula_analytics_venv_root(input.options) or {
 		return formula_analytics_error('SystemCallError', err.msg())
 	})
 }
 
 // Ruby method `venv_python` at line 104.
-pub fn ruby_formula_analytics_l104_d6_venv_python(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_analytics_l104_d6_venv_python(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return formula_analytics_error('ArgumentError', 'FormulaAnalytics input is required')
 	}
 	input := formula_analytics_input_from_value(args[0]) or {
 		return formula_analytics_error('ArgumentError', err.msg())
 	}
-	return brew_runtime.object_value('Pathname', formula_analytics_venv_python(input.options) or {
+	return ruby.object_value('Pathname', formula_analytics_venv_python(input.options) or {
 		return formula_analytics_error('SystemCallError', err.msg())
 	})
 }
 
 // Ruby method `each_influx_record(query, &_block)` at line 109.
-pub fn ruby_formula_analytics_l109_d7_each_influx_record(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_analytics_l109_d7_each_influx_record(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return formula_analytics_error('ArgumentError', 'FormulaAnalytics each-record input is required')
 	}
@@ -1273,18 +1273,18 @@ pub fn ruby_formula_analytics_l109_d7_each_influx_record(args ...brew_runtime.Va
 	records := each_formula_analytics_influx_record(input.query, input.options) or {
 		return formula_analytics_error('FatalError', err.msg())
 	}
-	return brew_runtime.array_value(records.map(fn (record FormulaAnalyticsRecord) brew_runtime.Value {
-		mut values := map[string]brew_runtime.Value{}
+	return ruby.array_value(records.map(fn (record FormulaAnalyticsRecord) ruby.Value {
+		mut values := map[string]ruby.Value{}
 		for key, value in record.fields {
-			values[key] = brew_runtime.string_value(value)
+			values[key] = ruby.string_value(value)
 		}
-		values['count'] = brew_runtime.int_value(record.count)
-		return brew_runtime.map_value(values)
+		values['count'] = ruby.int_value(record.count)
+		return ruby.map_value(values)
 	}))
 }
 
 // Ruby method `influx_analytics(args)` at line 140.
-pub fn ruby_formula_analytics_l140_d8_influx_analytics(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_analytics_l140_d8_influx_analytics(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return formula_analytics_error('ArgumentError', 'FormulaAnalytics input is required')
 	}
@@ -1294,36 +1294,36 @@ pub fn ruby_formula_analytics_l140_d8_influx_analytics(args ...brew_runtime.Valu
 	reports, _ := run_formula_analytics_query(input.options) or {
 		return formula_analytics_error('FatalError', err.msg())
 	}
-	return brew_runtime.array_value(reports.map(formula_analytics_report_value(it)))
+	return ruby.array_value(reports.map(formula_analytics_report_value(it)))
 }
 
 // Ruby method `format_count(count)` at line 416.
-pub fn ruby_formula_analytics_l416_d9_format_count(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_analytics_l416_d9_format_count(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return formula_analytics_error('ArgumentError', 'count is required')
 	}
 	count := args[0].as_int() or { args[0].as_string().i64() }
-	return brew_runtime.string_value(format_formula_analytics_count(count))
+	return ruby.string_value(format_formula_analytics_count(count))
 }
 
 // Ruby method `format_percent(percent)` at line 421.
-pub fn ruby_formula_analytics_l421_d10_format_percent(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_analytics_l421_d10_format_percent(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return formula_analytics_error('ArgumentError', 'percent is required')
 	}
 	percent := args[0].as_float() or { args[0].as_string().f64() }
-	return brew_runtime.string_value(format_formula_analytics_percent(percent))
+	return ruby.string_value(format_formula_analytics_percent(percent))
 }
 
 // Ruby method `format_os_version_dimension(dimension)` at line 426.
-pub fn ruby_formula_analytics_l426_d11_format_os_version_dimension(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_analytics_l426_d11_format_os_version_dimension(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || args[0].type_name == 'NilClass' {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	formatted := format_os_version_dimension(args[0].as_string()) or {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
-	return brew_runtime.string_value(formatted)
+	return ruby.string_value(formatted)
 }
 
 // Original Ruby source (line-for-line):

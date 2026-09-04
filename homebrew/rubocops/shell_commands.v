@@ -1,6 +1,6 @@
 module rubocops
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `rubocops/shell_commands.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -552,37 +552,37 @@ pub fn analyze_exec_shell_metacharacters(source string) !ShellCommandAnalysis {
 }
 
 // Ruby method `on_send(node)` at line 73.
-pub fn ruby_shell_commands_l73_d1_on_send(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shell_commands_l73_d1_on_send(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'source is required')
+		return ruby.object_value('ArgumentError', 'source is required')
 	}
 	analysis := analyze_shell_commands(args[0].as_string()) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	return shell_command_analysis_value(analysis)
 }
 
 // Ruby method `on_send(node)` at line 127.
-pub fn ruby_shell_commands_l127_d2_on_send(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shell_commands_l127_d2_on_send(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'source is required')
+		return ruby.object_value('ArgumentError', 'source is required')
 	}
 	analysis := analyze_exec_shell_metacharacters(args[0].as_string()) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	return shell_command_analysis_value(analysis)
 }
 
-pub fn shell_command_analysis_value(analysis ShellCommandAnalysis) brew_runtime.Value {
-	offenses := analysis.offenses.map(brew_runtime.structured_value('RuboCop::Cop::Offense', it.message, {
+pub fn shell_command_analysis_value(analysis ShellCommandAnalysis) ruby.Value {
+	offenses := analysis.offenses.map(ruby.structured_value('RuboCop::Cop::Offense', it.message, {
 		'begin_pos':   it.begin_pos.str()
 		'end_pos':     it.end_pos.str()
 		'message':     it.message
 		'replacement': it.replacement
 	}))
-	return brew_runtime.map_value({
-		'offenses':  brew_runtime.array_value(offenses)
-		'corrected': brew_runtime.string_value(analysis.corrected)
+	return ruby.map_value({
+		'offenses':  ruby.array_value(offenses)
+		'corrected': ruby.string_value(analysis.corrected)
 	})
 }
 

@@ -1,21 +1,21 @@
 module deep_dup
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `extend/object/deep_dup/array.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `deep_dup` at line 14.
-pub fn ruby_array_l14_d1_deep_dup(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_array_l14_d1_deep_dup(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.array_value([])
+		return ruby.array_value([])
 	}
-	return brew_runtime.array_value(deep_dup_array_values(args[0].as_array() or { [] }))
+	return ruby.array_value(deep_dup_array_values(args[0].as_array() or { [] }))
 }
 
 // deep_dup_values translates Array#deep_dup using the shared recursive value
 // copier used by Object#deep_dup.
-pub fn deep_dup_array_values(values []brew_runtime.Value) []brew_runtime.Value {
+pub fn deep_dup_array_values(values []ruby.Value) []ruby.Value {
 	return values.map(deep_dup_value(it))
 }
 

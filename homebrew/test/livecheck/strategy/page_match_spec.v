@@ -1,6 +1,6 @@
 module strategy
 
-import brew_runtime
+import ruby
 import homebrew.livecheck
 import homebrew.livecheck.strategy as page_match_core
 import homebrew.utils
@@ -89,8 +89,8 @@ fn page_match_spec_match_data_equal(left page_match_core.PageMatchData,
 }
 
 // Ruby subject `subject(:page_match) { described_class }` at line 7.
-pub fn ruby_page_match_spec_l7_d1_page_match() brew_runtime.Value {
-	return brew_runtime.object_value('Class', 'Homebrew::Livecheck::Strategy::PageMatch')
+pub fn ruby_page_match_spec_l7_d1_page_match() ruby.Value {
+	return ruby.object_value('Class', 'Homebrew::Livecheck::Strategy::PageMatch')
 }
 
 // Ruby let `let(:http_url) { "https://brew.sh/blog/" }` at line 9.

@@ -1,6 +1,6 @@
 module executor
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/executor/cached_thread_pool.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -17,7 +17,7 @@ pub:
 	fallback_policy string
 }
 
-pub fn cached_thread_pool_options(options map[string]brew_runtime.Value) ThreadPoolOptions {
+pub fn cached_thread_pool_options(options map[string]ruby.Value) ThreadPoolOptions {
 	return ThreadPoolOptions{
 		min_threads: 0
 		max_threads: default_max_pool_size
@@ -27,7 +27,7 @@ pub fn cached_thread_pool_options(options map[string]brew_runtime.Value) ThreadP
 	}
 }
 
-fn option_integer(options map[string]brew_runtime.Value, name string, default_value int) int {
+fn option_integer(options map[string]ruby.Value, name string, default_value int) int {
 	return if name in options {
 		int(options[name].as_int() or { panic(err) })
 	} else {
@@ -35,12 +35,12 @@ fn option_integer(options map[string]brew_runtime.Value, name string, default_va
 	}
 }
 
-fn option_string(options map[string]brew_runtime.Value, name string, default_value string) string {
+fn option_string(options map[string]ruby.Value, name string, default_value string) string {
 	return if name in options { options[name].as_string().trim_left(':') } else { default_value }
 }
 
-fn thread_pool_value(type_name string, options ThreadPoolOptions) brew_runtime.Value {
-	return brew_runtime.structured_value(type_name, type_name, {
+fn thread_pool_value(type_name string, options ThreadPoolOptions) ruby.Value {
+	return ruby.structured_value(type_name, type_name, {
 		'min_threads':     options.min_threads.str()
 		'max_threads':     options.max_threads.str()
 		'max_queue':       options.max_queue.str()
@@ -49,9 +49,9 @@ fn thread_pool_value(type_name string, options ThreadPoolOptions) brew_runtime.V
 	})
 }
 
-fn thread_pool_arguments(args []brew_runtime.Value) map[string]brew_runtime.Value {
+fn thread_pool_arguments(args []ruby.Value) map[string]ruby.Value {
 	return if args.len == 0 {
-		map[string]brew_runtime.Value{}
+		map[string]ruby.Value{}
 	} else {
 		args[0].as_map() or {
 			panic(err)
@@ -60,12 +60,12 @@ fn thread_pool_arguments(args []brew_runtime.Value) map[string]brew_runtime.Valu
 }
 
 // Ruby method `initialize(opts = {})` at line 39.
-pub fn ruby_cached_thread_pool_l39_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cached_thread_pool_l39_d1_initialize(args ...ruby.Value) ruby.Value {
 	return thread_pool_value('Concurrent::CachedThreadPool', cached_thread_pool_options(thread_pool_arguments(args)))
 }
 
 // Ruby method `ns_initialize(opts)` at line 51.
-pub fn ruby_cached_thread_pool_l51_d2_ns_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cached_thread_pool_l51_d2_ns_initialize(args ...ruby.Value) ruby.Value {
 	return thread_pool_value('Concurrent::CachedThreadPool', cached_thread_pool_options(thread_pool_arguments(args)))
 }
 

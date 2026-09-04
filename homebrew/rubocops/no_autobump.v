@@ -1,6 +1,6 @@
 module rubocops
 
-import brew_runtime
+import ruby
 import homebrew.rubocops.@shared as no_autobump_shared
 
 // Translated from Homebrew/brew `rubocops/no_autobump.rb`.
@@ -103,8 +103,8 @@ pub fn correct_formula_no_autobump(source string) string {
 	return corrected
 }
 
-fn no_autobump_problem_value(problem no_autobump_shared.NoAutobumpReasonProblem) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cop::Problem', problem.message, {
+fn no_autobump_problem_value(problem no_autobump_shared.NoAutobumpReasonProblem) ruby.Value {
+	return ruby.structured_value('RuboCop::Cop::Problem', problem.message, {
 		'kind':        problem.kind
 		'reason':      problem.reason
 		'is_symbol':   problem.is_symbol.str()
@@ -116,22 +116,22 @@ fn no_autobump_problem_value(problem no_autobump_shared.NoAutobumpReasonProblem)
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 17.
-pub fn ruby_no_autobump_l17_d1_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_no_autobump_l17_d1_audit_formula(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.array_value(audit_formula_no_autobump(source).map(no_autobump_problem_value(it)))
+	return ruby.array_value(audit_formula_no_autobump(source).map(no_autobump_problem_value(it)))
 }
 
 // Ruby def_node_search `def_node_search :reason, <<~EOS` at line 35.
-pub fn ruby_no_autobump_l35_d2_reason(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_no_autobump_l35_d2_reason(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
-	call := find_no_autobump_call(source) or { return brew_runtime.object_value('NilClass', 'nil') }
+	call := find_no_autobump_call(source) or { return ruby.object_value('NilClass', 'nil') }
 	return if call.has_reason {
-		brew_runtime.structured_value(if call.reason_symbol { 'Symbol' } else { 'String' }, call.reason, {
+		ruby.structured_value(if call.reason_symbol { 'Symbol' } else { 'String' }, call.reason, {
 			'begin_pos': call.reason_begin.str()
 			'end_pos':   call.reason_end.str()
 		})
 	} else {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	}
 }
 

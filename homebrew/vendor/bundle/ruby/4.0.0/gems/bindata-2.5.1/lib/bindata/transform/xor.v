@@ -1,6 +1,6 @@
 module transform
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/bindata-2.5.1/lib/bindata/transform/xor.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -31,7 +31,7 @@ pub fn (transform Xor) write(data []u8) []u8 {
 	return transform.transform(data)
 }
 
-fn xor_from_receiver(value brew_runtime.Value) Xor {
+fn xor_from_receiver(value ruby.Value) Xor {
 	key := if value.type_name == 'Integer' {
 		int(value.as_int() or { panic(err) })
 	} else {
@@ -41,33 +41,33 @@ fn xor_from_receiver(value brew_runtime.Value) Xor {
 }
 
 // Ruby method `initialize(xor)` at line 5.
-pub fn ruby_xor_l5_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_xor_l5_d1_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('BinData::Transform::Xor#initialize requires xor')
 	}
 	transform := xor_from_receiver(args[0])
-	return brew_runtime.structured_value('BinData::Transform::Xor', 'Xor(${transform.xor})', {
+	return ruby.structured_value('BinData::Transform::Xor', 'Xor(${transform.xor})', {
 		'xor': transform.xor.str()
 	})
 }
 
 // Ruby method `read(n)` at line 10.
-pub fn ruby_xor_l10_d2_read(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_xor_l10_d2_read(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('BinData::Transform::Xor#read requires a receiver and chained data')
 	}
 	transform := xor_from_receiver(args[0])
 	data := args[1].as_string().bytes()
 	n := if args.len >= 3 { int(args[2].as_int() or { panic(err) }) } else { data.len }
-	return brew_runtime.string_value(transform.read(data, n).bytestr())
+	return ruby.string_value(transform.read(data, n).bytestr())
 }
 
 // Ruby method `write(data)` at line 14.
-pub fn ruby_xor_l14_d3_write(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_xor_l14_d3_write(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('BinData::Transform::Xor#write requires a receiver and data')
 	}
-	return brew_runtime.string_value(xor_from_receiver(args[0]).write(args[1].as_string().bytes()).bytestr())
+	return ruby.string_value(xor_from_receiver(args[0]).write(args[1].as_string().bytes()).bytestr())
 }
 
 // Original Ruby source (line-for-line):

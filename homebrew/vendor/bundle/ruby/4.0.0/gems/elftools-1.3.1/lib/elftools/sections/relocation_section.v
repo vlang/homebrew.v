@@ -1,6 +1,6 @@
 module sections
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/elftools-1.3.1/lib/elftools/sections/relocation_section.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -146,15 +146,15 @@ pub fn (relocation ElfRelocation) r_info_type() u64 {
 	return relocation.header.r_info & ((u64(1) << relocation.mask_bit()) - 1)
 }
 
-fn relocation_section_from_value(value brew_runtime.Value) RelocationSection {
+fn relocation_section_from_value(value ruby.Value) RelocationSection {
 	return RelocationSection{
 		header: table_header_from_value(value)
 		stream: (value.attribute('stream') or { '' }).bytes()
 	}
 }
 
-fn relocation_header_value(header ElfRelocationHeader) brew_runtime.Value {
-	return brew_runtime.structured_value('ELF_Relocation', '', {
+fn relocation_header_value(header ElfRelocationHeader) ruby.Value {
+	return ruby.structured_value('ELF_Relocation', '', {
 		'r_offset':   header.r_offset.str()
 		'r_info':     header.r_info.str()
 		'r_addend':   header.r_addend.str()
@@ -164,8 +164,8 @@ fn relocation_header_value(header ElfRelocationHeader) brew_runtime.Value {
 	})
 }
 
-fn relocation_value(relocation ElfRelocation) brew_runtime.Value {
-	return brew_runtime.structured_value('ELFTools::Relocation', 'Relocation', {
+fn relocation_value(relocation ElfRelocation) ruby.Value {
+	return ruby.structured_value('ELFTools::Relocation', 'Relocation', {
 		'r_offset':   relocation.header.r_offset.str()
 		'r_info':     relocation.header.r_info.str()
 		'r_addend':   relocation.header.r_addend.str()
@@ -176,7 +176,7 @@ fn relocation_value(relocation ElfRelocation) brew_runtime.Value {
 	})
 }
 
-fn relocation_from_value(value brew_runtime.Value) ElfRelocation {
+fn relocation_from_value(value ruby.Value) ElfRelocation {
 	return ElfRelocation{
 		header: ElfRelocationHeader{
 			r_offset: (value.attribute('r_offset') or { '0' }).u64()
@@ -191,43 +191,43 @@ fn relocation_from_value(value brew_runtime.Value) ElfRelocation {
 }
 
 // Ruby method `rela?` at line 14.
-pub fn ruby_relocation_section_l14_d1_rela(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_relocation_section_l14_d1_rela(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('RelocationSection#rela? requires a receiver') }
-	return brew_runtime.bool_value(relocation_section_from_value(args[0]).is_rela())
+	return ruby.bool_value(relocation_section_from_value(args[0]).is_rela())
 }
 
 // Ruby method `num_relocations` at line 20.
-pub fn ruby_relocation_section_l20_d2_num_relocations(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_relocation_section_l20_d2_num_relocations(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('RelocationSection#num_relocations requires a receiver') }
-	return brew_runtime.int_value(relocation_section_from_value(args[0]).num_relocations() or {
+	return ruby.int_value(relocation_section_from_value(args[0]).num_relocations() or {
 		panic(err)
 	})
 }
 
 // Ruby method `relocation_at(n)` at line 31.
-pub fn ruby_relocation_section_l31_d3_relocation_at(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_relocation_section_l31_d3_relocation_at(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('RelocationSection#relocation_at requires a receiver and index') }
 	relocation := relocation_section_from_value(args[0]).relocation_at(int(args[1].as_int() or {
 		panic(err)
-	})) or { return brew_runtime.object_value('NilClass', 'nil') }
+	})) or { return ruby.object_value('NilClass', 'nil') }
 	return relocation_value(relocation)
 }
 
 // Ruby method `each_relocations(&block)` at line 45.
-pub fn ruby_relocation_section_l45_d4_each_relocations(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_relocation_section_l45_d4_each_relocations(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('RelocationSection#each_relocations requires a receiver') }
-	return brew_runtime.array_value(relocation_section_from_value(args[0]).relocations() or {
+	return ruby.array_value(relocation_section_from_value(args[0]).relocations() or {
 		panic(err)
 	}.map(relocation_value(it)))
 }
 
 // Ruby method `relocations` at line 56.
-pub fn ruby_relocation_section_l56_d5_relocations(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_relocation_section_l56_d5_relocations(args ...ruby.Value) ruby.Value {
 	return ruby_relocation_section_l45_d4_each_relocations(...args)
 }
 
 // Ruby method `create_relocation(n)` at line 62.
-pub fn ruby_relocation_section_l62_d6_create_relocation(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_relocation_section_l62_d6_create_relocation(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('RelocationSection#create_relocation requires a receiver and index') }
 	return relocation_value(relocation_section_from_value(args[0]).create_relocation(int(args[1].as_int() or {
 		panic(err)
@@ -235,51 +235,51 @@ pub fn ruby_relocation_section_l62_d6_create_relocation(args ...brew_runtime.Val
 }
 
 // Ruby attr_reader `attr_reader :header` at line 78.
-pub fn ruby_relocation_section_l78_d7_header(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_relocation_section_l78_d7_header(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Relocation#header requires a receiver') }
 	return relocation_header_value(relocation_from_value(args[0]).header)
 }
 
 // Ruby attr_reader `attr_reader :stream` at line 79.
-pub fn ruby_relocation_section_l79_d8_stream(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_relocation_section_l79_d8_stream(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Relocation#stream requires a receiver') }
-	return brew_runtime.string_value(relocation_from_value(args[0]).stream.bytestr())
+	return ruby.string_value(relocation_from_value(args[0]).stream.bytestr())
 }
 
 // Ruby method `initialize(header, stream)` at line 82.
-pub fn ruby_relocation_section_l82_d9_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_relocation_section_l82_d9_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Relocation#initialize requires a header and stream') }
 	mut attributes := args[0].attributes.clone()
 	attributes['stream'] = args[1].as_string()
-	return brew_runtime.structured_value('ELFTools::Relocation', 'Relocation', attributes)
+	return ruby.structured_value('ELFTools::Relocation', 'Relocation', attributes)
 }
 
 // Ruby method `r_info_sym` at line 90.
-pub fn ruby_relocation_section_l90_d10_r_info_sym(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_relocation_section_l90_d10_r_info_sym(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Relocation#r_info_sym requires a receiver') }
-	return brew_runtime.int_value(relocation_from_value(args[0]).r_info_sym())
+	return ruby.int_value(relocation_from_value(args[0]).r_info_sym())
 }
 
 // Ruby alias `alias symbol_index r_info_sym` at line 93.
-pub fn ruby_relocation_section_l93_d11_symbol_index(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_relocation_section_l93_d11_symbol_index(args ...ruby.Value) ruby.Value {
 	return ruby_relocation_section_l90_d10_r_info_sym(...args)
 }
 
 // Ruby method `r_info_type` at line 98.
-pub fn ruby_relocation_section_l98_d12_r_info_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_relocation_section_l98_d12_r_info_type(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Relocation#r_info_type requires a receiver') }
-	return brew_runtime.int_value(relocation_from_value(args[0]).r_info_type())
+	return ruby.int_value(relocation_from_value(args[0]).r_info_type())
 }
 
 // Ruby alias `alias type r_info_type` at line 101.
-pub fn ruby_relocation_section_l101_d13_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_relocation_section_l101_d13_type(args ...ruby.Value) ruby.Value {
 	return ruby_relocation_section_l98_d12_r_info_type(...args)
 }
 
 // Ruby method `mask_bit` at line 105.
-pub fn ruby_relocation_section_l105_d14_mask_bit(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_relocation_section_l105_d14_mask_bit(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Relocation#mask_bit requires a receiver') }
-	return brew_runtime.int_value(relocation_from_value(args[0]).mask_bit())
+	return ruby.int_value(relocation_from_value(args[0]).mask_bit())
 }
 
 // Original Ruby source (line-for-line):

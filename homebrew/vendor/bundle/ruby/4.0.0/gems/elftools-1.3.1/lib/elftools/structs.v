@@ -1,6 +1,6 @@
 module elftools
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/elftools-1.3.1/lib/elftools/structs.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -360,13 +360,13 @@ pub fn (mut relocation ElfRelocationStruct) set_field(name string, value i64) ! 
 	}
 }
 
-pub fn (record ElfStructRecord) snapshot() map[string]brew_runtime.Value {
-	mut result := map[string]brew_runtime.Value{}
+pub fn (record ElfStructRecord) snapshot() map[string]ruby.Value {
+	mut result := map[string]ruby.Value{}
 	for name, value in record.fields {
-		result[name] = brew_runtime.int_value(value.i64())
+		result[name] = ruby.int_value(value.i64())
 	}
 	for name, value in record.byte_fields {
-		result[name] = brew_runtime.string_value(value.bytestr())
+		result[name] = ruby.string_value(value.bytestr())
 	}
 	return result
 }
@@ -798,7 +798,7 @@ pub fn read_elf_relocation_struct(data []u8, elf_class int, endian ElfEndian, of
 	}
 }
 
-fn struct_record_value(record ElfStructRecord) brew_runtime.Value {
+fn struct_record_value(record ElfStructRecord) ruby.Value {
 	mut attributes := {
 		'kind':      record.kind
 		'elf_class': record.elf_class.str()
@@ -814,10 +814,10 @@ fn struct_record_value(record ElfStructRecord) brew_runtime.Value {
 	for offset, value in record.patches {
 		attributes['patch:${offset}'] = value.bytestr()
 	}
-	return brew_runtime.structured_value(record.kind, record.kind, attributes)
+	return ruby.structured_value(record.kind, record.kind, attributes)
 }
 
-fn struct_record_from_value(value brew_runtime.Value) ElfStructRecord {
+fn struct_record_from_value(value ruby.Value) ElfStructRecord {
 	mut record := new_struct_record(value.attribute('kind') or { value.type_name }, (value.attribute('elf_class') or { '0' }).int(), if value.attribute('endian') or { 'little' } == 'big' {
 		.big
 	} else {
@@ -834,58 +834,58 @@ fn struct_record_from_value(value brew_runtime.Value) ElfStructRecord {
 }
 
 // Ruby attr_accessor `attr_accessor :elf_class` at line 18.
-pub fn ruby_structs_l18_d1_elf_class(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_structs_l18_d1_elf_class(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('ELFStruct#elf_class requires a receiver') }
-	return brew_runtime.int_value((args[0].attribute('elf_class') or { '0' }).i64())
+	return ruby.int_value((args[0].attribute('elf_class') or { '0' }).i64())
 }
 
 // Ruby attr_accessor `attr_accessor :elf_class` at line 18.
-pub fn ruby_structs_l18_d2_elf_class(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_structs_l18_d2_elf_class(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('ELFStruct#elf_class= requires a receiver and value') }
 	record := struct_record_from_value(args[0])
 	mut result := struct_record_value(record)
 	mut attributes := result.attributes.clone()
 	elf_class := args[1].as_int() or { panic(err) }
 	attributes['elf_class'] = elf_class.str()
-	return brew_runtime.structured_value(result.type_name, result.repr, attributes)
+	return ruby.structured_value(result.type_name, result.repr, attributes)
 }
 
 // Ruby attr_accessor `attr_accessor :offset` at line 19.
-pub fn ruby_structs_l19_d3_offset(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_structs_l19_d3_offset(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('ELFStruct#offset requires a receiver') }
-	return brew_runtime.int_value((args[0].attribute('offset') or { '0' }).i64())
+	return ruby.int_value((args[0].attribute('offset') or { '0' }).i64())
 }
 
 // Ruby attr_accessor `attr_accessor :offset` at line 19.
-pub fn ruby_structs_l19_d4_offset(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_structs_l19_d4_offset(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('ELFStruct#offset= requires a receiver and value') }
 	record := struct_record_from_value(args[0])
 	mut result := struct_record_value(record)
 	mut attributes := result.attributes.clone()
 	offset := args[1].as_int() or { panic(err) }
 	attributes['offset'] = offset.str()
-	return brew_runtime.structured_value(result.type_name, result.repr, attributes)
+	return ruby.structured_value(result.type_name, result.repr, attributes)
 }
 
 // Ruby method `patches` at line 23.
-pub fn ruby_structs_l23_d5_patches(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_structs_l23_d5_patches(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('ELFStruct#patches requires a receiver') }
 	record := struct_record_from_value(args[0])
-	mut result := map[string]brew_runtime.Value{}
+	mut result := map[string]ruby.Value{}
 	for offset, value in record.patches {
-		result[offset.str()] = brew_runtime.string_value(value.bytestr())
+		result[offset.str()] = ruby.string_value(value.bytestr())
 	}
-	return brew_runtime.map_value(result)
+	return ruby.map_value(result)
 }
 
 // Ruby alias `alias to_h snapshot` at line 28.
-pub fn ruby_structs_l28_d6_to_h(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_structs_l28_d6_to_h(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('ELFStruct#to_h requires a receiver') }
-	return brew_runtime.map_value(struct_record_from_value(args[0]).snapshot())
+	return ruby.map_value(struct_record_from_value(args[0]).snapshot())
 }
 
 // Ruby method `new(*args)` at line 34.
-pub fn ruby_structs_l34_d7_new(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_structs_l34_d7_new(args ...ruby.Value) ruby.Value {
 	kind := if args.len > 0 { args[0].as_string() } else { 'ELFStruct' }
 	elf_class := if args.len > 1 { int(args[1].as_int() or { panic(err) }) } else { 0 }
 	endian := if args.len > 2 && args[2].as_string().trim_left(':') == 'big' {
@@ -898,7 +898,7 @@ pub fn ruby_structs_l34_d7_new(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby define_singleton_method `obj.define_singleton_method(m) do |val|` at line 45.
-pub fn ruby_structs_l45_d8_m(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_structs_l45_d8_m(args ...ruby.Value) ruby.Value {
 	if args.len < 5 {
 		panic('ELFStruct generated setter requires receiver, field, value, offset, and size')
 	}
@@ -911,9 +911,9 @@ pub fn ruby_structs_l45_d8_m(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `self_endian` at line 56.
-pub fn ruby_structs_l56_d9_self_endian(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_structs_l56_d9_self_endian(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('ELFStruct.self_endian requires a BinData class name') }
-	return brew_runtime.string_value(if args[0].as_string().ends_with('be') {
+	return ruby.string_value(if args[0].as_string().ends_with('be') {
 		':big'
 	} else {
 		':little'
@@ -921,19 +921,19 @@ pub fn ruby_structs_l56_d9_self_endian(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby method `pack(val, bytes)` at line 64.
-pub fn ruby_structs_l64_d10_pack(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_structs_l64_d10_pack(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('ELFStruct.pack requires a value and byte count') }
 	endian := if args.len > 2 && args[2].as_string().trim_left(':') == 'big' {
 		ElfEndian.big
 	} else {
 		ElfEndian.little
 	}
-	return brew_runtime.string_value(pack_elf_integer(args[0].as_int() or { panic(err) }, int(args[1].as_int() or { panic(err) }), endian) or { panic(err) }.bytestr())
+	return ruby.string_value(pack_elf_integer(args[0].as_int() or { panic(err) }, int(args[1].as_int() or { panic(err) }), endian) or { panic(err) }.bytestr())
 }
 
 // Ruby method `r_addend` at line 206.
-pub fn ruby_structs_l206_d11_r_addend(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+pub fn ruby_structs_l206_d11_r_addend(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Original Ruby source (line-for-line):

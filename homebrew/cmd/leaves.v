@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `cmd/leaves.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -64,8 +64,8 @@ pub fn formula_leaves(installed []LeavesFormula, cask_dependencies []string, fil
 	return leaves
 }
 
-pub fn leaves_formula_value(formula LeavesFormula) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn leaves_formula_value(formula LeavesFormula) ruby.Value {
+	return ruby.Value{
 		type_name: 'Formula'
 		repr: formula.full_name
 		attributes: {
@@ -74,23 +74,23 @@ pub fn leaves_formula_value(formula LeavesFormula) brew_runtime.Value {
 			'installed_on_request':         formula.installed_on_request.str()
 		}
 		map_data: {
-			'possible_names':                 brew_runtime.string_array_value(formula.possible_names)
-			'tab_runtime_dependencies':       brew_runtime.string_array_value(formula.tab_runtime_dependencies)
-			'installed_runtime_dependencies': brew_runtime.string_array_value(formula.installed_runtime_dependencies)
+			'possible_names':                 ruby.string_array_value(formula.possible_names)
+			'tab_runtime_dependencies':       ruby.string_array_value(formula.tab_runtime_dependencies)
+			'installed_runtime_dependencies': ruby.string_array_value(formula.installed_runtime_dependencies)
 		}
 	}
 }
 
-fn leaves_formula_from_value(value brew_runtime.Value) LeavesFormula {
+fn leaves_formula_from_value(value ruby.Value) LeavesFormula {
 	return LeavesFormula{
 		full_name: value.attribute('full_name') or { value.as_string() }
 		possible_names: (value.map_data['possible_names'] or {
-			brew_runtime.string_array_value([
+			ruby.string_array_value([
 				value.as_string(),
 			])}).as_string_array() or { [value.as_string()] }
 		has_tab_runtime_dependencies: (value.attribute('has_tab_runtime_dependencies') or { 'false' }) == 'true'
-		tab_runtime_dependencies: (value.map_data['tab_runtime_dependencies'] or { brew_runtime.string_array_value([]) }).as_string_array() or { [] }
-		installed_runtime_dependencies: (value.map_data['installed_runtime_dependencies'] or { brew_runtime.string_array_value([]) }).as_string_array() or { [] }
+		tab_runtime_dependencies: (value.map_data['tab_runtime_dependencies'] or { ruby.string_array_value([]) }).as_string_array() or { [] }
+		installed_runtime_dependencies: (value.map_data['installed_runtime_dependencies'] or { ruby.string_array_value([]) }).as_string_array() or { [] }
 		installed_on_request: (value.attribute('installed_on_request') or { 'false' }) == 'true'
 	}
 }
@@ -104,11 +104,11 @@ fn leaves_filter_from_string(value string) LeavesFilter {
 }
 
 // Ruby method `run` at line 26.
-pub fn ruby_leaves_l26_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_leaves_l26_d1_run(args ...ruby.Value) ruby.Value {
 	formula_values := if args.len > 0 {
-		args[0].as_array() or { []brew_runtime.Value{} }
+		args[0].as_array() or { []ruby.Value{} }
 	} else {
-		[]brew_runtime.Value{}
+		[]ruby.Value{}
 	}
 	cask_dependencies := if args.len > 1 {
 		args[1].as_string_array() or { []string{} }
@@ -121,15 +121,15 @@ pub fn ruby_leaves_l26_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
 		LeavesFilter.all
 	}
 	leaves := formula_leaves(formula_values.map(leaves_formula_from_value(it)), cask_dependencies, filter)
-	return brew_runtime.string_value(if leaves.len == 0 { '' } else { '${leaves.join('\n')}\n' })
+	return ruby.string_value(if leaves.len == 0 { '' } else { '${leaves.join('\n')}\n' })
 }
 
 // Ruby method `installed_on_request?(formula)` at line 64.
-pub fn ruby_leaves_l64_d2_installed_on_request(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_leaves_l64_d2_installed_on_request(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'installed_on_request? requires a formula')
+		return ruby.object_value('ArgumentError', 'installed_on_request? requires a formula')
 	}
-	return brew_runtime.bool_value(installed_on_request(leaves_formula_from_value(args[0])))
+	return ruby.bool_value(installed_on_request(leaves_formula_from_value(args[0])))
 }
 
 // Original Ruby source (line-for-line):

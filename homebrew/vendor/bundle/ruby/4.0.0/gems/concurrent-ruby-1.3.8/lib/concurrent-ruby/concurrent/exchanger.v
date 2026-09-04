@@ -1,6 +1,6 @@
 module concurrent
 
-import brew_runtime
+import ruby
 import sync
 import time
 
@@ -9,16 +9,16 @@ import time
 pub struct ExchangeResult {
 pub:
 	exchanged bool
-	value     brew_runtime.Value
+	value     ruby.Value
 }
 
 @[heap]
 pub struct ExchangerNode {
-	item      brew_runtime.Value
+	item      ruby.Value
 	mutex     &sync.Mutex
 	condition &sync.Cond
 mut:
-	value       brew_runtime.Value
+	value       ruby.Value
 	value_set   bool
 	cancelled   bool
 	latch_count i64
@@ -32,31 +32,31 @@ mut:
 	has_slot bool
 }
 
-fn exchanger_nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn exchanger_nil_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-fn exchanger_cancel_value() brew_runtime.Value {
-	return brew_runtime.object_value('Concurrent::AbstractExchanger::CANCEL', '#<Object:Concurrent::AbstractExchanger::CANCEL>')
+fn exchanger_cancel_value() ruby.Value {
+	return ruby.object_value('Concurrent::AbstractExchanger::CANCEL', '#<Object:Concurrent::AbstractExchanger::CANCEL>')
 }
 
-fn exchanger_null_value() brew_runtime.Value {
-	return brew_runtime.object_value('Concurrent::NULL', '#<Object:Concurrent::NULL>')
+fn exchanger_null_value() ruby.Value {
+	return ruby.object_value('Concurrent::NULL', '#<Object:Concurrent::NULL>')
 }
 
-fn exchanger_internal_value(value brew_runtime.Value) brew_runtime.Value {
+fn exchanger_internal_value(value ruby.Value) ruby.Value {
 	return if value.type_name == 'NilClass' { exchanger_null_value() } else { value }
 }
 
-fn exchanger_external_value(value brew_runtime.Value) brew_runtime.Value {
+fn exchanger_external_value(value ruby.Value) ruby.Value {
 	return if value.type_name == 'Concurrent::NULL' { exchanger_nil_value() } else { value }
 }
 
-fn exchanger_timeout_error() brew_runtime.Value {
-	return brew_runtime.object_value('Concurrent::TimeoutError', 'Concurrent::TimeoutError')
+fn exchanger_timeout_error() ruby.Value {
+	return ruby.object_value('Concurrent::TimeoutError', 'Concurrent::TimeoutError')
 }
 
-fn exchanger_values_equal(left brew_runtime.Value, right brew_runtime.Value) bool {
+fn exchanger_values_equal(left ruby.Value, right ruby.Value) bool {
 	if expected_identity := right.attributes['identity'] {
 		return left.attributes['identity'] == expected_identity
 	}
@@ -68,7 +68,7 @@ fn exchanger_values_equal(left brew_runtime.Value, right brew_runtime.Value) boo
 	return left.type_name == right.type_name && left.repr == right.repr
 }
 
-pub fn new_exchanger_node(item brew_runtime.Value) &ExchangerNode {
+pub fn new_exchanger_node(item ruby.Value) &ExchangerNode {
 	mutex := sync.new_mutex()
 	return &ExchangerNode{
 		item: item
@@ -79,7 +79,7 @@ pub fn new_exchanger_node(item brew_runtime.Value) &ExchangerNode {
 	}
 }
 
-pub fn (mut node ExchangerNode) get_value() brew_runtime.Value {
+pub fn (mut node ExchangerNode) get_value() ruby.Value {
 	node.mutex.lock()
 	defer {
 		node.mutex.unlock()
@@ -90,7 +90,7 @@ pub fn (mut node ExchangerNode) get_value() brew_runtime.Value {
 	return if node.value_set { node.value } else { exchanger_nil_value() }
 }
 
-pub fn (mut node ExchangerNode) set_value(value brew_runtime.Value) brew_runtime.Value {
+pub fn (mut node ExchangerNode) set_value(value ruby.Value) ruby.Value {
 	node.mutex.lock()
 	node.value = value
 	node.value_set = value.type_name != 'NilClass'
@@ -99,7 +99,7 @@ pub fn (mut node ExchangerNode) set_value(value brew_runtime.Value) brew_runtime
 	return value
 }
 
-pub fn (mut node ExchangerNode) compare_and_set_value(expected brew_runtime.Value, prospect brew_runtime.Value) bool {
+pub fn (mut node ExchangerNode) compare_and_set_value(expected ruby.Value, prospect ruby.Value) bool {
 	node.mutex.lock()
 	defer {
 		node.mutex.unlock()
@@ -120,7 +120,7 @@ pub fn (mut node ExchangerNode) compare_and_set_value(expected brew_runtime.Valu
 	return true
 }
 
-pub fn (mut node ExchangerNode) swap_value(prospect brew_runtime.Value) brew_runtime.Value {
+pub fn (mut node ExchangerNode) swap_value(prospect ruby.Value) ruby.Value {
 	node.mutex.lock()
 	old := if node.cancelled {
 		exchanger_cancel_value()
@@ -136,12 +136,12 @@ pub fn (mut node ExchangerNode) swap_value(prospect brew_runtime.Value) brew_run
 	return old
 }
 
-pub fn (mut node ExchangerNode) update_value(prospect brew_runtime.Value) brew_runtime.Value {
+pub fn (mut node ExchangerNode) update_value(prospect ruby.Value) ruby.Value {
 	node.set_value(prospect)
 	return prospect
 }
 
-pub fn (node &ExchangerNode) item_value() brew_runtime.Value {
+pub fn (node &ExchangerNode) item_value() ruby.Value {
 	return node.item
 }
 
@@ -262,7 +262,7 @@ fn exchanger_remaining_timeout(timeout ?time.Duration, deadline u64) ?time.Durat
 	return none
 }
 
-pub fn (mut exchanger Exchanger) do_exchange(value brew_runtime.Value, timeout ?time.Duration) ExchangeResult {
+pub fn (mut exchanger Exchanger) do_exchange(value ruby.Value, timeout ?time.Duration) ExchangeResult {
 	offered := exchanger_internal_value(value)
 	mut me := new_exchanger_node(offered)
 	deadline := if duration := timeout {
@@ -306,12 +306,12 @@ pub fn (mut exchanger Exchanger) do_exchange(value brew_runtime.Value, timeout ?
 	return ExchangeResult{ value: exchanger_cancel_value() }
 }
 
-pub fn (mut exchanger Exchanger) exchange(value brew_runtime.Value, timeout ?time.Duration) brew_runtime.Value {
+pub fn (mut exchanger Exchanger) exchange(value ruby.Value, timeout ?time.Duration) ruby.Value {
 	result := exchanger.do_exchange(value, timeout)
 	return if result.exchanged { result.value } else { exchanger_nil_value() }
 }
 
-pub fn (mut exchanger Exchanger) exchange_bang(value brew_runtime.Value, timeout ?time.Duration) !brew_runtime.Value {
+pub fn (mut exchanger Exchanger) exchange_bang(value ruby.Value, timeout ?time.Duration) !ruby.Value {
 	result := exchanger.do_exchange(value, timeout)
 	if !result.exchanged {
 		return error('Concurrent::TimeoutError')
@@ -319,7 +319,7 @@ pub fn (mut exchanger Exchanger) exchange_bang(value brew_runtime.Value, timeout
 	return result.value
 }
 
-pub fn (mut exchanger Exchanger) try_exchange(value brew_runtime.Value, timeout ?time.Duration) &Maybe {
+pub fn (mut exchanger Exchanger) try_exchange(value ruby.Value, timeout ?time.Duration) &Maybe {
 	result := exchanger.do_exchange(value, timeout)
 	if !result.exchanged {
 		return maybe_nothing(exchanger_timeout_error())
@@ -327,7 +327,7 @@ pub fn (mut exchanger Exchanger) try_exchange(value brew_runtime.Value, timeout 
 	return maybe_just(result.value)
 }
 
-fn exchanger_boundary_timeout(args []brew_runtime.Value, index int) ?time.Duration {
+fn exchanger_boundary_timeout(args []ruby.Value, index int) ?time.Duration {
 	if index >= args.len || args[index].type_name == 'NilClass' {
 		return none
 	}
@@ -335,13 +335,13 @@ fn exchanger_boundary_timeout(args []brew_runtime.Value, index int) ?time.Durati
 	return time.Duration(seconds * f64(time.second))
 }
 
-fn exchanger_boundary_value(exchanger &Exchanger, type_name string) brew_runtime.Value {
-	return brew_runtime.structured_value(type_name, '#<${type_name}>', {
+fn exchanger_boundary_value(exchanger &Exchanger, type_name string) ruby.Value {
+	return ruby.structured_value(type_name, '#<${type_name}>', {
 		'exchanger_address': u64(voidptr(exchanger)).str()
 	})
 }
 
-fn exchanger_boundary_receiver(args []brew_runtime.Value) &Exchanger {
+fn exchanger_boundary_receiver(args []ruby.Value) &Exchanger {
 	if args.len == 0 {
 		panic('Exchanger method requires a receiver')
 	}
@@ -351,13 +351,13 @@ fn exchanger_boundary_receiver(args []brew_runtime.Value) &Exchanger {
 	return unsafe { &Exchanger(voidptr(address)) }
 }
 
-fn exchanger_node_boundary_value(node &ExchangerNode) brew_runtime.Value {
-	return brew_runtime.structured_value('Concurrent::RubyExchanger::Node', '#<Concurrent::RubyExchanger::Node>', {
+fn exchanger_node_boundary_value(node &ExchangerNode) ruby.Value {
+	return ruby.structured_value('Concurrent::RubyExchanger::Node', '#<Concurrent::RubyExchanger::Node>', {
 		'exchanger_node_address': u64(voidptr(node)).str()
 	})
 }
 
-fn exchanger_node_boundary_receiver(args []brew_runtime.Value) &ExchangerNode {
+fn exchanger_node_boundary_receiver(args []ruby.Value) &ExchangerNode {
 	if args.len == 0 {
 		panic('Exchanger::Node method requires a receiver')
 	}
@@ -367,7 +367,7 @@ fn exchanger_node_boundary_receiver(args []brew_runtime.Value) &ExchangerNode {
 	return unsafe { &ExchangerNode(voidptr(address)) }
 }
 
-fn exchanger_node_from_value(value brew_runtime.Value) ?&ExchangerNode {
+fn exchanger_node_from_value(value ruby.Value) ?&ExchangerNode {
 	if value.type_name == 'NilClass' {
 		return none
 	}
@@ -377,7 +377,7 @@ fn exchanger_node_from_value(value brew_runtime.Value) ?&ExchangerNode {
 	return unsafe { &ExchangerNode(voidptr(address)) }
 }
 
-fn exchanger_slot_boundary_value(node ?&ExchangerNode) brew_runtime.Value {
+fn exchanger_slot_boundary_value(node ?&ExchangerNode) ruby.Value {
 	if existing := node {
 		return exchanger_node_boundary_value(existing)
 	}
@@ -385,12 +385,12 @@ fn exchanger_slot_boundary_value(node ?&ExchangerNode) brew_runtime.Value {
 }
 
 // Ruby method `initialize` at line 44.
-pub fn ruby_exchanger_l44_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exchanger_l44_d1_initialize(args ...ruby.Value) ruby.Value {
 	return exchanger_boundary_value(new_exchanger(), 'Concurrent::AbstractExchanger')
 }
 
 // Ruby method `exchange(value, timeout = nil)` at line 69.
-pub fn ruby_exchanger_l69_d2_exchange(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exchanger_l69_d2_exchange(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Exchanger#exchange requires a value')
 	}
@@ -399,7 +399,7 @@ pub fn ruby_exchanger_l69_d2_exchange(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby method `exchange!(value, timeout = nil)` at line 80.
-pub fn ruby_exchanger_l80_d3_exchange(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exchanger_l80_d3_exchange(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Exchanger#exchange! requires a value')
 	}
@@ -408,7 +408,7 @@ pub fn ruby_exchanger_l80_d3_exchange(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby method `try_exchange(value, timeout = nil)` at line 109.
-pub fn ruby_exchanger_l109_d4_try_exchange(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exchanger_l109_d4_try_exchange(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Exchanger#try_exchange requires a value')
 	}
@@ -417,7 +417,7 @@ pub fn ruby_exchanger_l109_d4_try_exchange(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `do_exchange(value, timeout)` at line 122.
-pub fn ruby_exchanger_l122_d5_do_exchange(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exchanger_l122_d5_do_exchange(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Exchanger#do_exchange requires a value')
 	}
@@ -426,13 +426,13 @@ pub fn ruby_exchanger_l122_d5_do_exchange(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby attr_atomic `attr_atomic :value` at line 139.
-pub fn ruby_exchanger_l139_d6_value(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exchanger_l139_d6_value(args ...ruby.Value) ruby.Value {
 	mut node := exchanger_node_boundary_receiver(args)
 	return node.get_value()
 }
 
 // Ruby attr_atomic `attr_atomic :value` at line 139.
-pub fn ruby_exchanger_l139_d7_value(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exchanger_l139_d7_value(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Exchanger::Node#value= requires a value')
 	}
@@ -441,16 +441,16 @@ pub fn ruby_exchanger_l139_d7_value(args ...brew_runtime.Value) brew_runtime.Val
 }
 
 // Ruby attr_atomic `attr_atomic :value` at line 139.
-pub fn ruby_exchanger_l139_d8_compare_and_set_value(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exchanger_l139_d8_compare_and_set_value(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('Exchanger::Node#compare_and_set_value requires expected and prospect values')
 	}
 	mut node := exchanger_node_boundary_receiver(args)
-	return brew_runtime.bool_value(node.compare_and_set_value(args[1], args[2]))
+	return ruby.bool_value(node.compare_and_set_value(args[1], args[2]))
 }
 
 // Ruby attr_atomic `attr_atomic :value` at line 139.
-pub fn ruby_exchanger_l139_d9_swap_value(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exchanger_l139_d9_swap_value(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Exchanger::Node#swap_value requires a prospect value')
 	}
@@ -459,7 +459,7 @@ pub fn ruby_exchanger_l139_d9_swap_value(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby attr_atomic `attr_atomic :value` at line 139.
-pub fn ruby_exchanger_l139_d10_update_value(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exchanger_l139_d10_update_value(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Exchanger::Node#update_value requires a translated block result')
 	}
@@ -468,7 +468,7 @@ pub fn ruby_exchanger_l139_d10_update_value(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby method `initialize(item)` at line 142.
-pub fn ruby_exchanger_l142_d11_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exchanger_l142_d11_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Exchanger::Node#initialize requires an item')
 	}
@@ -476,31 +476,31 @@ pub fn ruby_exchanger_l142_d11_initialize(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby method `latch` at line 149.
-pub fn ruby_exchanger_l149_d12_latch(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exchanger_l149_d12_latch(args ...ruby.Value) ruby.Value {
 	node := exchanger_node_boundary_receiver(args)
-	return brew_runtime.structured_value('Concurrent::CountDownLatch', '#<Concurrent::CountDownLatch>', {
+	return ruby.structured_value('Concurrent::CountDownLatch', '#<Concurrent::CountDownLatch>', {
 		'exchanger_node_address': u64(voidptr(node)).str()
 	})
 }
 
 // Ruby method `item` at line 153.
-pub fn ruby_exchanger_l153_d13_item(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exchanger_l153_d13_item(args ...ruby.Value) ruby.Value {
 	return exchanger_node_boundary_receiver(args).item_value()
 }
 
 // Ruby method `initialize` at line 159.
-pub fn ruby_exchanger_l159_d14_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exchanger_l159_d14_initialize(args ...ruby.Value) ruby.Value {
 	return exchanger_boundary_value(new_exchanger(), 'Concurrent::RubyExchanger')
 }
 
 // Ruby attr_atomic `attr_atomic(:slot)` at line 165.
-pub fn ruby_exchanger_l165_d15_slot(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exchanger_l165_d15_slot(args ...ruby.Value) ruby.Value {
 	mut exchanger := exchanger_boundary_receiver(args)
 	return exchanger_slot_boundary_value(exchanger.get_slot())
 }
 
 // Ruby attr_atomic `attr_atomic(:slot)` at line 165.
-pub fn ruby_exchanger_l165_d16_slot(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exchanger_l165_d16_slot(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('RubyExchanger#slot= requires a node or nil')
 	}
@@ -510,16 +510,16 @@ pub fn ruby_exchanger_l165_d16_slot(args ...brew_runtime.Value) brew_runtime.Val
 }
 
 // Ruby attr_atomic `attr_atomic(:slot)` at line 165.
-pub fn ruby_exchanger_l165_d17_compare_and_set_slot(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exchanger_l165_d17_compare_and_set_slot(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('RubyExchanger#compare_and_set_slot requires expected and prospect nodes')
 	}
 	mut exchanger := exchanger_boundary_receiver(args)
-	return brew_runtime.bool_value(exchanger.compare_and_set_slot(exchanger_node_from_value(args[1]), exchanger_node_from_value(args[2])))
+	return ruby.bool_value(exchanger.compare_and_set_slot(exchanger_node_from_value(args[1]), exchanger_node_from_value(args[2])))
 }
 
 // Ruby attr_atomic `attr_atomic(:slot)` at line 165.
-pub fn ruby_exchanger_l165_d18_swap_slot(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exchanger_l165_d18_swap_slot(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('RubyExchanger#swap_slot requires a prospect node')
 	}
@@ -528,7 +528,7 @@ pub fn ruby_exchanger_l165_d18_swap_slot(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby attr_atomic `attr_atomic(:slot)` at line 165.
-pub fn ruby_exchanger_l165_d19_update_slot(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exchanger_l165_d19_update_slot(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('RubyExchanger#update_slot requires a translated block result')
 	}
@@ -537,17 +537,17 @@ pub fn ruby_exchanger_l165_d19_update_slot(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `do_exchange(value, timeout)` at line 170.
-pub fn ruby_exchanger_l170_d20_do_exchange(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exchanger_l170_d20_do_exchange(args ...ruby.Value) ruby.Value {
 	return ruby_exchanger_l122_d5_do_exchange(...args)
 }
 
 // Ruby method `initialize` at line 298.
-pub fn ruby_exchanger_l298_d21_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exchanger_l298_d21_initialize(args ...ruby.Value) ruby.Value {
 	return exchanger_boundary_value(new_exchanger(), 'Concurrent::JavaExchanger')
 }
 
 // Ruby method `do_exchange(value, timeout)` at line 307.
-pub fn ruby_exchanger_l307_d22_do_exchange(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exchanger_l307_d22_do_exchange(args ...ruby.Value) ruby.Value {
 	return ruby_exchanger_l122_d5_do_exchange(...args)
 }
 

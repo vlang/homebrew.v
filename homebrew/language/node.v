@@ -1,6 +1,6 @@
 module language
 
-import brew_runtime
+import ruby
 import homebrew.utils
 import x.json2
 
@@ -8,16 +8,16 @@ import x.json2
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby attr_accessor `attr_accessor :env_set` at line 17.
-pub fn ruby_node_l17_d1_env_set(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_node_l17_d1_env_set(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('NilClass', '')
+		return ruby.object_value('NilClass', '')
 	}
 	state := node_environment_state_from_value(args[0])
-	return brew_runtime.bool_value(state.env_set)
+	return ruby.bool_value(state.env_set)
 }
 
 // Ruby attr_accessor `attr_accessor :env_set` at line 17.
-pub fn ruby_node_l17_d2_env_set(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_node_l17_d2_env_set(args ...ruby.Value) ruby.Value {
 	mut state := if args.len > 0 && args[0].type_name == 'NodeEnvironmentState' {
 		node_environment_state_from_value(args[0])
 	} else {
@@ -33,13 +33,13 @@ pub fn ruby_node_l17_d2_env_set(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `self.npm_cache_config` at line 21.
-pub fn ruby_node_l21_d3_self_npm_cache_config(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_node_l21_d3_self_npm_cache_config(args ...ruby.Value) ruby.Value {
 	cache := if args.len > 0 { args[0].as_string() } else { default_node_homebrew_cache() }
-	return brew_runtime.string_value(npm_cache_config(cache))
+	return ruby.string_value(npm_cache_config(cache))
 }
 
 // Ruby method `self.npm_install_security_args(ignore_scripts: true)` at line 26.
-pub fn ruby_node_l26_d4_self_npm_install_security_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_node_l26_d4_self_npm_install_security_args(args ...ruby.Value) ruby.Value {
 	mut cache := default_node_homebrew_cache()
 	mut ignore_scripts := true
 	if args.len > 0 {
@@ -52,28 +52,28 @@ pub fn ruby_node_l26_d4_self_npm_install_security_args(args ...brew_runtime.Valu
 	if args.len > 1 {
 		ignore_scripts = args[1].as_bool() or { true }
 	}
-	return brew_runtime.string_array_value(npm_install_security_args(cache, ignore_scripts))
+	return ruby.string_array_value(npm_install_security_args(cache, ignore_scripts))
 }
 
 // Ruby method `self.pack_for_installation` at line 38.
-pub fn ruby_node_l38_d5_self_pack_for_installation(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_node_l38_d5_self_pack_for_installation(args ...ruby.Value) ruby.Value {
 	working_directory := if args.len > 0 {
 		args[0].as_string()
 	} else {
-		brew_runtime.current_directory()
+		ruby.current_directory()
 	}
 	result := NpmPackResult{
 		stdout: if args.len > 1 { args[1].as_string() } else { '' }
 		exit_code: if args.len > 2 { int(args[2].as_int() or { 0 }) } else { 0 }
 	}
 	pack := pack_for_installation_with_result(working_directory, result) or {
-		return brew_runtime.object_value('RuntimeError', err.msg())
+		return ruby.object_value('RuntimeError', err.msg())
 	}
-	return brew_runtime.string_value(pack)
+	return ruby.string_value(pack)
 }
 
 // Ruby method `self.setup_npm_environment` at line 64.
-pub fn ruby_node_l64_d6_self_setup_npm_environment(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_node_l64_d6_self_setup_npm_environment(args ...ruby.Value) ruby.Value {
 	mut state := if args.len > 0 {
 		node_environment_state_from_value(args[0])
 	} else {
@@ -84,15 +84,15 @@ pub fn ruby_node_l64_d6_self_setup_npm_environment(args ...brew_runtime.Value) b
 }
 
 // Ruby method `self.std_npm_install_args(libexec, ignore_scripts: true)` at line 79.
-pub fn ruby_node_l79_d7_self_std_npm_install_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_node_l79_d7_self_std_npm_install_args(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'libexec is required')
+		return ruby.object_value('ArgumentError', 'libexec is required')
 	}
 	libexec := args[0].as_string()
 	working_directory := if args.len > 1 {
 		args[1].as_string()
 	} else {
-		brew_runtime.current_directory()
+		ruby.current_directory()
 	}
 	result := NpmPackResult{
 		stdout: if args.len > 2 { args[2].as_string() } else { '' }
@@ -107,13 +107,13 @@ pub fn ruby_node_l79_d7_self_std_npm_install_args(args ...brew_runtime.Value) br
 		NodeEnvironmentState{}
 	}
 	install_args := std_npm_install_args_with_result(mut state, libexec, working_directory, cache, ignore_scripts, effective_uid, result) or {
-		return brew_runtime.object_value('RuntimeError', err.msg())
+		return ruby.object_value('RuntimeError', err.msg())
 	}
-	return brew_runtime.string_array_value(install_args)
+	return ruby.string_array_value(install_args)
 }
 
 // Ruby method `self.local_npm_install_args(ignore_scripts: true)` at line 105.
-pub fn ruby_node_l105_d8_self_local_npm_install_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_node_l105_d8_self_local_npm_install_args(args ...ruby.Value) ruby.Value {
 	cache := if args.len > 0 && args[0].type_name != 'Bool' {
 		args[0].as_string()
 	} else {
@@ -130,22 +130,22 @@ pub fn ruby_node_l105_d8_self_local_npm_install_args(args ...brew_runtime.Value)
 	} else {
 		NodeEnvironmentState{}
 	}
-	return brew_runtime.string_array_value(local_npm_install_args(mut state, cache, ignore_scripts))
+	return ruby.string_array_value(local_npm_install_args(mut state, cache, ignore_scripts))
 }
 
 // Ruby method `node_shebang_rewrite_info(node_path)` at line 132.
-pub fn ruby_node_l132_d9_node_shebang_rewrite_info(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_node_l132_d9_node_shebang_rewrite_info(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'node path is required')
+		return ruby.object_value('ArgumentError', 'node path is required')
 	}
 	info := node_shebang_rewrite_info(args[0].as_string()) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	return utils.rewrite_info_value(info)
 }
 
 // Ruby method `detected_node_shebang(formula = T.cast(self, Formula))` at line 141.
-pub fn ruby_node_l141_d10_detected_node_shebang(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_node_l141_d10_detected_node_shebang(args ...ruby.Value) ruby.Value {
 	dependencies := if args.len > 0 {
 		node_dependencies_from_value(args[0])
 	} else {
@@ -153,7 +153,7 @@ pub fn ruby_node_l141_d10_detected_node_shebang(args ...brew_runtime.Value) brew
 	}
 	prefix := if args.len > 1 { args[1].as_string() } else { '/opt/homebrew' }
 	info := detected_node_shebang(dependencies, prefix) or {
-		return brew_runtime.object_value('ShebangDetectionError', err.msg())
+		return ruby.object_value('ShebangDetectionError', err.msg())
 	}
 	return utils.rewrite_info_value(info)
 }
@@ -186,7 +186,7 @@ pub:
 }
 
 pub fn npm_cache_config(homebrew_cache string) string {
-	return 'cache=${brew_runtime.join_path(homebrew_cache.trim_right('/'), 'npm_cache')}'
+	return 'cache=${ruby.join_path(homebrew_cache.trim_right('/'), 'npm_cache')}'
 }
 
 pub fn npm_install_security_args(homebrew_cache string, ignore_scripts bool) []string {
@@ -210,7 +210,7 @@ pub fn setup_npm_environment(mut state NodeEnvironmentState) bool {
 	if !state.node_formula_available {
 		return false
 	}
-	path := brew_runtime.join_path(state.node_opt_libexec.trim_right('/'), 'bin')
+	path := ruby.join_path(state.node_opt_libexec.trim_right('/'), 'bin')
 	mut path_entries := [path]
 	path_entries << state.path_entries
 	state.path_entries = path_entries
@@ -231,7 +231,7 @@ pub fn std_npm_install_args(mut environment NodeEnvironmentState, libexec string
 	runner NpmPackRunner) ![]string {
 	setup_npm_environment(mut environment)
 	pack := pack_for_installation(working_directory, runner)!
-	brew_runtime.make_dir_all(brew_runtime.join_path(libexec, 'lib'))!
+	ruby.make_dir_all(ruby.join_path(libexec, 'lib'))!
 	return compose_std_npm_install_args(libexec, working_directory, pack, homebrew_cache, ignore_scripts, effective_uid)
 }
 
@@ -255,21 +255,21 @@ pub fn detected_node_shebang(dependencies []NodeDependency, prefix string) !util
 	if node_dependencies.len > 1 {
 		return error('Cannot detect Node shebang: formula has multiple Node dependencies.')
 	}
-	node_path := brew_runtime.join_path(brew_runtime.join_path(brew_runtime.join_path(prefix.trim_right('/'), 'opt'), node_dependencies[0].name), 'bin/node')
+	node_path := ruby.join_path(ruby.join_path(ruby.join_path(prefix.trim_right('/'), 'opt'), node_dependencies[0].name), 'bin/node')
 	return node_shebang_rewrite_info(node_path)
 }
 
 fn default_node_homebrew_cache() string {
-	configured := brew_runtime.environment_value('HOMEBREW_CACHE')
+	configured := ruby.environment_value('HOMEBREW_CACHE')
 	return if configured.len > 0 { configured } else { '/tmp/homebrew-cache' }
 }
 
 fn prepare_node_package_json(working_directory string) ! {
-	package_path := brew_runtime.join_path(working_directory, 'package.json')
-	if !brew_runtime.is_file(package_path) {
+	package_path := ruby.join_path(working_directory, 'package.json')
+	if !ruby.is_file(package_path) {
 		return
 	}
-	contents := brew_runtime.read_file(package_path)!
+	contents := ruby.read_file(package_path)!
 	decoded := json2.decode[json2.Any](contents) or {
 		return error('Could not parse package.json! ${err}')
 	}
@@ -288,7 +288,7 @@ fn prepare_node_package_json(working_directory string) ! {
 	}
 	if removed {
 		package['scripts'] = json2.Any(scripts)
-		brew_runtime.atomic_write_file(package_path, json2.encode(json2.Any(package)))!
+		ruby.atomic_write_file(package_path, json2.encode(json2.Any(package)))!
 	}
 }
 
@@ -314,7 +314,7 @@ fn std_npm_install_args_with_result(mut environment NodeEnvironmentState, libexe
 	result NpmPackResult) ![]string {
 	setup_npm_environment(mut environment)
 	pack := pack_for_installation_with_result(working_directory, result)!
-	brew_runtime.make_dir_all(brew_runtime.join_path(libexec, 'lib'))!
+	ruby.make_dir_all(ruby.join_path(libexec, 'lib'))!
 	return compose_std_npm_install_args(libexec, working_directory, pack, homebrew_cache, ignore_scripts, effective_uid)
 }
 
@@ -323,16 +323,16 @@ fn compose_std_npm_install_args(libexec string, working_directory string, pack s
 	mut args := ['--loglevel=silly', '--global', '--build-from-source']
 	args << npm_install_security_args(homebrew_cache, ignore_scripts)
 	args << '--prefix=${libexec}'
-	args << brew_runtime.join_path(working_directory, pack)
-	effective_uid := if configured_uid >= 0 { configured_uid } else { brew_runtime.effective_uid() }
+	args << ruby.join_path(working_directory, pack)
+	effective_uid := if configured_uid >= 0 { configured_uid } else { ruby.effective_uid() }
 	if effective_uid == 0 {
 		args << '--unsafe-perm'
 	}
 	return args
 }
 
-fn node_environment_state_value(state NodeEnvironmentState) brew_runtime.Value {
-	return brew_runtime.structured_value('NodeEnvironmentState', state.env_set.str(), {
+fn node_environment_state_value(state NodeEnvironmentState) ruby.Value {
+	return ruby.structured_value('NodeEnvironmentState', state.env_set.str(), {
 		'env_set':                state.env_set.str()
 		'node_formula_available': state.node_formula_available.str()
 		'node_opt_libexec':       state.node_opt_libexec
@@ -341,7 +341,7 @@ fn node_environment_state_value(state NodeEnvironmentState) brew_runtime.Value {
 	})
 }
 
-fn node_environment_state_from_value(value brew_runtime.Value) NodeEnvironmentState {
+fn node_environment_state_from_value(value ruby.Value) NodeEnvironmentState {
 	if value.type_name != 'NodeEnvironmentState' {
 		return NodeEnvironmentState{}
 	}
@@ -355,7 +355,7 @@ fn node_environment_state_from_value(value brew_runtime.Value) NodeEnvironmentSt
 	}
 }
 
-fn node_dependencies_from_value(value brew_runtime.Value) []NodeDependency {
+fn node_dependencies_from_value(value ruby.Value) []NodeDependency {
 	return value.array_data.map(NodeDependency{
 		name: it.attributes['name'] or { it.as_string() }
 		required: (it.attributes['required'] or { 'true' }) == 'true'

@@ -1,6 +1,6 @@
 module cask
 
-import brew_runtime
+import ruby
 import homebrew.api
 import homebrew.api.cask as generator
 import homebrew.requirements
@@ -8,38 +8,38 @@ import homebrew.requirements
 // Translated from Homebrew/brew `test/api/cask/cask_struct_generator_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
-fn cask_struct_generator_spec_symbol(value string) brew_runtime.Value {
-	return brew_runtime.object_value('Symbol', value.trim_string_left(':'))
+fn cask_struct_generator_spec_symbol(value string) ruby.Value {
+	return ruby.object_value('Symbol', value.trim_string_left(':'))
 }
 
-fn cask_struct_generator_spec_string_array(values []string) brew_runtime.Value {
-	return brew_runtime.array_value(values.map(brew_runtime.string_value(it)))
+fn cask_struct_generator_spec_string_array(values []string) ruby.Value {
+	return ruby.array_value(values.map(ruby.string_value(it)))
 }
 
-fn cask_struct_generator_spec_requirement(tags []string, comparator string) brew_runtime.Value {
+fn cask_struct_generator_spec_requirement(tags []string, comparator string) ruby.Value {
 	requirement := requirements.new_macos_requirement(tags, comparator) or { panic(err) }
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'MacOSRequirement'
 		repr: requirement.inspect()
 		map_data: {
-			'comparator': brew_runtime.string_value(requirement.comparator)
-			'versions':   brew_runtime.string_array_value(requirement.versions.map(it.str()))
+			'comparator': ruby.string_value(requirement.comparator)
+			'versions':   ruby.string_array_value(requirement.versions.map(it.str()))
 		}
 	}
 }
 
-fn cask_struct_generator_spec_maps_equal(left map[string]brew_runtime.Value,
-	right map[string]brew_runtime.Value) bool {
-	return api.api_struct_value_equal(brew_runtime.map_value(left), brew_runtime.map_value(right))
+fn cask_struct_generator_spec_maps_equal(left map[string]ruby.Value,
+	right map[string]ruby.Value) bool {
+	return api.api_struct_value_equal(ruby.map_value(left), ruby.map_value(right))
 }
 
 // Ruby let `let(:depends_on_non_macos) do` at line 8.
-pub fn ruby_cask_struct_generator_spec_l8_d1_depends_on_non_macos() map[string]brew_runtime.Value {
+pub fn ruby_cask_struct_generator_spec_l8_d1_depends_on_non_macos() map[string]ruby.Value {
 	return {
-		'arch':    brew_runtime.array_value([
-			brew_runtime.map_value({
+		'arch':    ruby.array_value([
+			ruby.map_value({
 				'type': cask_struct_generator_spec_symbol('intel')
-				'bits': brew_runtime.int_value(64)
+				'bits': ruby.int_value(64)
 			}),
 		])
 		'formula': cask_struct_generator_spec_string_array(['foo'])
@@ -47,37 +47,37 @@ pub fn ruby_cask_struct_generator_spec_l8_d1_depends_on_non_macos() map[string]b
 }
 
 // Ruby let `let(:depends_on_linux) { { linux: LinuxRequirement.new } }` at line 14.
-pub fn ruby_cask_struct_generator_spec_l14_d2_depends_on_linux() map[string]brew_runtime.Value {
+pub fn ruby_cask_struct_generator_spec_l14_d2_depends_on_linux() map[string]ruby.Value {
 	return {
-		'linux': brew_runtime.object_value('LinuxRequirement', 'Linux')
+		'linux': ruby.object_value('LinuxRequirement', 'Linux')
 	}
 }
 
 // Ruby let `let(:depends_on_macos_equals) { { macos: { :== => ["15"] } } }` at line 15.
-pub fn ruby_cask_struct_generator_spec_l15_d3_depends_on_macos_equals() map[string]brew_runtime.Value {
+pub fn ruby_cask_struct_generator_spec_l15_d3_depends_on_macos_equals() map[string]ruby.Value {
 	return {
-		'macos': brew_runtime.map_value({
+		'macos': ruby.map_value({
 			'==': cask_struct_generator_spec_string_array(['15'])
 		})
 	}
 }
 
 // Ruby let `let(:depends_on_macos_greater) { { macos: MacOSRequirement.new([:sequoia], comparator: ">=") } }` at line 16.
-pub fn ruby_cask_struct_generator_spec_l16_d4_depends_on_macos_greater() map[string]brew_runtime.Value {
+pub fn ruby_cask_struct_generator_spec_l16_d4_depends_on_macos_greater() map[string]ruby.Value {
 	return {
 		'macos': cask_struct_generator_spec_requirement(['sequoia'], '>=')
 	}
 }
 
 // Ruby let `let(:depends_on_macos_bare) { { macos: MacOSRequirement.new([]) } }` at line 17.
-pub fn ruby_cask_struct_generator_spec_l17_d5_depends_on_macos_bare() map[string]brew_runtime.Value {
+pub fn ruby_cask_struct_generator_spec_l17_d5_depends_on_macos_bare() map[string]ruby.Value {
 	return {
 		'macos': cask_struct_generator_spec_requirement([], '>=')
 	}
 }
 
 // Ruby let `let(:depends_on_maximum_macos) { { maximum_macos: MacOSRequirement.new([:sequoia], comparator: "<=") } }` at line 18.
-pub fn ruby_cask_struct_generator_spec_l18_d6_depends_on_maximum_macos() map[string]brew_runtime.Value {
+pub fn ruby_cask_struct_generator_spec_l18_d6_depends_on_maximum_macos() map[string]ruby.Value {
 	return {
 		'maximum_macos': cask_struct_generator_spec_requirement(['sequoia'], '<=')
 	}
@@ -91,7 +91,7 @@ pub fn ruby_cask_struct_generator_spec_l20_d7_aggregate_failures() bool {
 	macos_greater := generator.ruby_cask_struct_generator_l110_d2_process_depends_on(ruby_cask_struct_generator_spec_l16_d4_depends_on_macos_greater())
 	macos_bare := generator.ruby_cask_struct_generator_l110_d2_process_depends_on(ruby_cask_struct_generator_spec_l17_d5_depends_on_macos_bare())
 	empty_macos := generator.ruby_cask_struct_generator_l110_d2_process_depends_on({
-		'macos': brew_runtime.map_value({})
+		'macos': ruby.map_value({})
 	})
 	maximum_macos := generator.ruby_cask_struct_generator_l110_d2_process_depends_on(ruby_cask_struct_generator_spec_l18_d6_depends_on_maximum_macos())
 	return cask_struct_generator_spec_maps_equal(non_macos, {
@@ -100,7 +100,7 @@ pub fn ruby_cask_struct_generator_spec_l20_d7_aggregate_failures() bool {
 	}) && cask_struct_generator_spec_maps_equal(linux, {
 		'linux': cask_struct_generator_spec_symbol('any')
 	}) && cask_struct_generator_spec_maps_equal(macos_equals, {
-		'macos': brew_runtime.array_value([
+		'macos': ruby.array_value([
 			cask_struct_generator_spec_symbol('sequoia'),
 		])
 	}) && cask_struct_generator_spec_maps_equal(macos_greater, {
@@ -117,46 +117,46 @@ pub fn ruby_cask_struct_generator_spec_l20_d7_aggregate_failures() bool {
 // Ruby specify `specify "::process_artifacts" do` at line 45.
 pub fn ruby_cask_struct_generator_spec_l45_d8_process_artifacts() bool {
 	input := [
-		brew_runtime.map_value({
-			'preflight': brew_runtime.object_value('NilClass', '')
+		ruby.map_value({
+			'preflight': ruby.object_value('NilClass', '')
 		}),
-		brew_runtime.map_value({
+		ruby.map_value({
 			'foo': cask_struct_generator_spec_string_array(['arg1', 'arg2'])
 		}),
-		brew_runtime.map_value({
-			'bar': brew_runtime.array_value([
-				brew_runtime.string_value('arg1'),
-				brew_runtime.string_value('arg2'),
-				brew_runtime.map_value({
-					'kwarg1': brew_runtime.string_value('value1')
+		ruby.map_value({
+			'bar': ruby.array_value([
+				ruby.string_value('arg1'),
+				ruby.string_value('arg2'),
+				ruby.map_value({
+					'kwarg1': ruby.string_value('value1')
 				}),
 			])
 		}),
-		brew_runtime.map_value({
-			'baz': brew_runtime.array_value([
-				brew_runtime.map_value({
-					'kwarg1': brew_runtime.string_value('value1')
+		ruby.map_value({
+			'baz': ruby.array_value([
+				ruby.map_value({
+					'kwarg1': ruby.string_value('value1')
 				}),
 			])
 		}),
-		brew_runtime.map_value({
-			'target':         brew_runtime.string_value(r'$HOMEBREW_PREFIX/share/zsh/site-functions/_foo')
+		ruby.map_value({
+			'target':         ruby.string_value(r'$HOMEBREW_PREFIX/share/zsh/site-functions/_foo')
 			'zsh_completion': cask_struct_generator_spec_string_array([
 				r'$APPDIR/Foo.app/Contents/Resources/completions/zsh/_foo',
 			])
 		}),
-		brew_runtime.map_value({
+		ruby.map_value({
 			'zsh_completion': cask_struct_generator_spec_string_array([
 				r'$APPDIR/Bar.app/Contents/Resources/completions/zsh/_bar',
 			])
-			'target':         brew_runtime.string_value(r'$HOMEBREW_PREFIX/share/zsh/site-functions/_bar')
+			'target':         ruby.string_value(r'$HOMEBREW_PREFIX/share/zsh/site-functions/_bar')
 		}),
-		brew_runtime.map_value({
-			'target': brew_runtime.string_value('/Applications/Bar.app')
-			'app':    brew_runtime.array_value([
-				brew_runtime.string_value('Foo.app'),
-				brew_runtime.map_value({
-					'target': brew_runtime.string_value('Bar.app')
+		ruby.map_value({
+			'target': ruby.string_value('/Applications/Bar.app')
+			'app':    ruby.array_value([
+				ruby.string_value('Foo.app'),
+				ruby.map_value({
+					'target': ruby.string_value('Bar.app')
 				}),
 			])
 		}),
@@ -177,15 +177,15 @@ pub fn ruby_cask_struct_generator_spec_l45_d8_process_artifacts() bool {
 // Ruby specify `specify "::process_url_specs" do` at line 77.
 pub fn ruby_cask_struct_generator_spec_l77_d9_process_url_specs() bool {
 	output := generator.ruby_cask_struct_generator_l165_d4_process_url_specs({
-		'user_agent': brew_runtime.string_value(':fake')
-		'using':      brew_runtime.string_value('curl')
-		'foo':        brew_runtime.object_value('NilClass', '')
-		'bar':        brew_runtime.string_value('baz')
+		'user_agent': ruby.string_value(':fake')
+		'using':      ruby.string_value('curl')
+		'foo':        ruby.object_value('NilClass', '')
+		'bar':        ruby.string_value('baz')
 	})
 	return cask_struct_generator_spec_maps_equal(output, {
 		'user_agent': cask_struct_generator_spec_symbol('fake')
 		'using':      cask_struct_generator_spec_symbol('curl')
-		'bar':        brew_runtime.string_value('baz')
+		'bar':        ruby.string_value('baz')
 	})
 }
 

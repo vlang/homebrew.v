@@ -1,13 +1,13 @@
 module mac
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `extend/os/mac/keg_only_reason.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `applicable?` at line 6.
-pub fn ruby_keg_only_reason_l6_d1_applicable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(keg_only_reason_is_applicable())
+pub fn ruby_keg_only_reason_l6_d1_applicable(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(keg_only_reason_is_applicable())
 }
 
 pub fn keg_only_reason_is_applicable() bool {

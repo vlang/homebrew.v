@@ -1,6 +1,6 @@
 module bundle
 
-import brew_runtime
+import ruby
 import homebrew.bundle as production_bundle
 import homebrew.bundle.subcommand as production_subcommand
 import os
@@ -9,7 +9,7 @@ import time
 // Translated from Homebrew/brew `test/cmd/bundle/install_subcommand_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
-fn install_subcommand_spec_root(args []brew_runtime.Value, label string) string {
+fn install_subcommand_spec_root(args []ruby.Value, label string) string {
 	if args.len > 0 && args[0].as_string() != '' {
 		return args[0].as_string()
 	}
@@ -33,8 +33,8 @@ fn install_subcommand_spec_plan(contents string,
 	})
 }
 
-fn install_subcommand_spec_plan_value(plan production_subcommand.BundleInstallPlan) brew_runtime.Value {
-	return brew_runtime.structured_value('Bundle::InstallSubcommand', 'install', {
+fn install_subcommand_spec_plan_value(plan production_subcommand.BundleInstallPlan) ruby.Value {
+	return ruby.structured_value('Bundle::InstallSubcommand', 'install', {
 		'install_exit_code':         plan.install_exit_code.str()
 		'mark_installed_on_request': plan.mark_installed_on_request.str()
 		'cleanup_requested':         plan.cleanup_requested.str()
@@ -46,9 +46,9 @@ fn install_subcommand_spec_plan_value(plan production_subcommand.BundleInstallPl
 }
 
 // Ruby subject `subject(:install_subcommand) do` at line 9.
-pub fn ruby_install_subcommand_spec_l9_d1_install_subcommand(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_subcommand_spec_l9_d1_install_subcommand(args ...ruby.Value) ruby.Value {
 	global := args.len > 0 && (args[0].as_bool() or { false })
-	return brew_runtime.structured_value('Homebrew::Cmd::Bundle::InstallSubcommand', 'install', {
+	return ruby.structured_value('Homebrew::Cmd::Bundle::InstallSubcommand', 'install', {
 		'global':        global.str()
 		'quiet':         'false'
 		'cleanup':       'false'
@@ -57,80 +57,80 @@ pub fn ruby_install_subcommand_spec_l9_d1_install_subcommand(args ...brew_runtim
 }
 
 // Ruby let `let(:global) { false }` at line 16.
-pub fn ruby_install_subcommand_spec_l16_d2_global(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_subcommand_spec_l16_d2_global(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 // Ruby it `it "raises an error" do` at line 23.
-pub fn ruby_install_subcommand_spec_l23_d3_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_subcommand_spec_l23_d3_raises(args ...ruby.Value) ruby.Value {
 	root := install_subcommand_spec_root(args, 'missing')
 	production_bundle.read_bundle_brewfile(production_bundle.BundleBrewfilePathConfig{
 		working_directory: root
 	}, production_bundle.real_brewfile_reader) or {
-		return brew_runtime.bool_value(err.msg() == 'No Brewfile found')
+		return ruby.bool_value(err.msg() == 'No Brewfile found')
 	}
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 // Ruby let `let(:brewfile_contents) do` at line 38.
-pub fn ruby_install_subcommand_spec_l38_d4_brewfile_contents(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_subcommand_spec_l38_d4_brewfile_contents(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value(install_subcommand_spec_brewfile())
+	return ruby.string_value(install_subcommand_spec_brewfile())
 }
 
 // Ruby it `it "does not raise an error" do` at line 49.
-pub fn ruby_install_subcommand_spec_l49_d5_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_subcommand_spec_l49_d5_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	plan := install_subcommand_spec_plan(install_subcommand_spec_brewfile(), production_subcommand.BundleInstallCommandOptions{}) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(plan.install_exit_code == 0 && plan.mark_installed_on_request)
+	return ruby.bool_value(plan.install_exit_code == 0 && plan.mark_installed_on_request)
 }
 
 // Ruby it `it "#dsl returns a valid DSL" do` at line 60.
-pub fn ruby_install_subcommand_spec_l60_d6_dsl(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_subcommand_spec_l60_d6_dsl(args ...ruby.Value) ruby.Value {
 	_ = args
 	dsl := install_subcommand_spec_dsl(install_subcommand_spec_brewfile()) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	plan := production_subcommand.build_bundle_install_plan(production_subcommand.BundleInstallCommandOptions{
 		dsl: production_bundle.bundle_dsl_value(dsl)
-	}) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(dsl.entries.len == 6 && dsl.entries[0].name == 'phinze/cask'
+	}) or { return ruby.bool_value(false) }
+	return ruby.bool_value(dsl.entries.len == 6 && dsl.entries[0].name == 'phinze/cask'
 		&& plan.dsl.array_data[0].attributes['name'] == 'phinze/cask')
 }
 
 // Ruby it `it "does not raise an error when skippable" do` at line 72.
-pub fn ruby_install_subcommand_spec_l72_d7_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_subcommand_spec_l72_d7_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	dsl := install_subcommand_spec_dsl("brew 'mysql'\n") or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	// A skipped entry produces no installer action but still leaves the command successful.
 	skipped_entries := dsl.entries.filter(false)
 	plan := production_subcommand.build_bundle_install_plan(production_subcommand.BundleInstallCommandOptions{
 		install_succeeded: true
 		dsl: production_bundle.bundle_dsl_value(dsl)
-	}) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(skipped_entries.len == 0 && plan.install_exit_code == 0)
+	}) or { return ruby.bool_value(false) }
+	return ruby.bool_value(skipped_entries.len == 0 && plan.install_exit_code == 0)
 }
 
 // Ruby it `it "exits on failures" do` at line 81.
-pub fn ruby_install_subcommand_spec_l81_d8_exits(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_subcommand_spec_l81_d8_exits(args ...ruby.Value) ruby.Value {
 	_ = args
 	plan := install_subcommand_spec_plan(install_subcommand_spec_brewfile(), production_subcommand.BundleInstallCommandOptions{
 		install_succeeded: false
-	}) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(plan.install_exit_code == 1 && plan.mark_installed_on_request
+	}) or { return ruby.bool_value(false) }
+	return ruby.bool_value(plan.install_exit_code == 1 && plan.mark_installed_on_request
 		&& !plan.cleanup_requested)
 }
 
 // Ruby it `it "skips installs from failed taps" do` at line 93.
-pub fn ruby_install_subcommand_spec_l93_d9_skips(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_subcommand_spec_l93_d9_skips(args ...ruby.Value) ruby.Value {
 	_ = args
 	dsl := install_subcommand_spec_dsl(install_subcommand_spec_brewfile()) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	failed_tap := 'phinze/cask'
 	mut skipped_casks := []string{}
@@ -145,72 +145,72 @@ pub fn ruby_install_subcommand_spec_l93_d9_skips(args ...brew_runtime.Value) bre
 	plan := production_subcommand.build_bundle_install_plan(production_subcommand.BundleInstallCommandOptions{
 		install_succeeded: false
 		dsl: production_bundle.bundle_dsl_value(dsl)
-	}) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(plan.install_exit_code == 1
+	}) or { return ruby.bool_value(false) }
+	return ruby.bool_value(plan.install_exit_code == 1
 		&& skipped_casks == ['phinze/cask/google-chrome'])
 }
 
 // Ruby it `it "marks Brewfile formulae as installed_on_request after installing" do` at line 105.
-pub fn ruby_install_subcommand_spec_l105_d10_marks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_subcommand_spec_l105_d10_marks(args ...ruby.Value) ruby.Value {
 	_ = args
 	plan := install_subcommand_spec_plan("brew 'test_formula'\n", production_subcommand.BundleInstallCommandOptions{}) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(plan.mark_installed_on_request && plan.dsl.array_data.len == 1
+	return ruby.bool_value(plan.mark_installed_on_request && plan.dsl.array_data.len == 1
 		&& plan.dsl.array_data[0].attributes['name'] == 'test_formula')
 }
 
 // Ruby it `it "asks before cleaning up when ask mode is enabled" do` at line 118.
-pub fn ruby_install_subcommand_spec_l118_d11_asks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_subcommand_spec_l118_d11_asks(args ...ruby.Value) ruby.Value {
 	_ = args
 	plan := install_subcommand_spec_plan("brew 'test_formula'\n", production_subcommand.BundleInstallCommandOptions{
 		cleanup: true
 		ask: true
-	}) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(plan.cleanup_requested && !plan.cleanup_force && plan.cleanup_ask
+	}) or { return ruby.bool_value(false) }
+	return ruby.bool_value(plan.cleanup_requested && !plan.cleanup_force && plan.cleanup_ask
 		&& !plan.cleanup_zap && plan.reset_cleanup_before_run)
 }
 
 // Ruby it `it "force cleans up when --force-cleanup is passed" do` at line 133.
-pub fn ruby_install_subcommand_spec_l133_d12_force(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_subcommand_spec_l133_d12_force(args ...ruby.Value) ruby.Value {
 	_ = args
 	plan := install_subcommand_spec_plan("brew 'test_formula'\n", production_subcommand.BundleInstallCommandOptions{
 		force_cleanup: true
 		ask: true
-	}) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(plan.cleanup_requested && plan.cleanup_force && plan.cleanup_ask)
+	}) or { return ruby.bool_value(false) }
+	return ruby.bool_value(plan.cleanup_requested && plan.cleanup_force && plan.cleanup_ask)
 }
 
 // Ruby it `it "force cleans up when --force and --cleanup are passed" do` at line 149.
-pub fn ruby_install_subcommand_spec_l149_d13_force(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_subcommand_spec_l149_d13_force(args ...ruby.Value) ruby.Value {
 	_ = args
 	plan := install_subcommand_spec_plan("brew 'test_formula'\n", production_subcommand.BundleInstallCommandOptions{
 		cleanup: true
 		force: true
-	}) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(plan.cleanup_requested && plan.cleanup_force && !plan.cleanup_ask)
+	}) or { return ruby.bool_value(false) }
+	return ruby.bool_value(plan.cleanup_requested && plan.cleanup_force && !plan.cleanup_ask)
 }
 
 // Ruby it `it "rejects --cleanup without force or ask" do` at line 165.
-pub fn ruby_install_subcommand_spec_l165_d14_rejects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_subcommand_spec_l165_d14_rejects(args ...ruby.Value) ruby.Value {
 	_ = args
 	install_subcommand_spec_plan("brew 'test_formula'\n", production_subcommand.BundleInstallCommandOptions{
 		cleanup: true
 	}) or {
-		return brew_runtime.bool_value(err.msg().contains('requires `--force`, `--force-cleanup`'))
+		return ruby.bool_value(err.msg().contains('requires `--force`, `--force-cleanup`'))
 	}
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 // Ruby it `it "rejects --zap without a cleanup flag" do` at line 171.
-pub fn ruby_install_subcommand_spec_l171_d15_rejects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_subcommand_spec_l171_d15_rejects(args ...ruby.Value) ruby.Value {
 	_ = args
 	install_subcommand_spec_plan("brew 'test_formula'\n", production_subcommand.BundleInstallCommandOptions{
 		zap: true
 	}) or {
-		return brew_runtime.bool_value(err.msg().contains('cannot be passed without `--cleanup`'))
+		return ruby.bool_value(err.msg().contains('cannot be passed without `--cleanup`'))
 	}
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 // Original Ruby source (line-for-line):

@@ -1,6 +1,6 @@
 module rubocops
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `rubocops/presence.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -737,29 +737,29 @@ pub fn analyze_presence(source string) !PresenceAnalysis {
 	}
 }
 
-fn presence_match_value(matched PresenceMatch) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'matched':  brew_runtime.bool_value(matched.matched)
-		'receiver': brew_runtime.string_value(matched.receiver.source)
-		'other':    brew_runtime.string_value(matched.other.source)
+fn presence_match_value(matched PresenceMatch) ruby.Value {
+	return ruby.map_value({
+		'matched':  ruby.bool_value(matched.matched)
+		'receiver': ruby.string_value(matched.receiver.source)
+		'other':    ruby.string_value(matched.other.source)
 	})
 }
 
-pub fn presence_analysis_value(analysis PresenceAnalysis) brew_runtime.Value {
-	offenses := analysis.offenses.map(brew_runtime.structured_value('RuboCop::Cop::Offense', it.message, {
+pub fn presence_analysis_value(analysis PresenceAnalysis) ruby.Value {
+	offenses := analysis.offenses.map(ruby.structured_value('RuboCop::Cop::Offense', it.message, {
 		'begin_pos':   it.begin_pos.str()
 		'end_pos':     it.end_pos.str()
 		'message':     it.message
 		'replacement': it.replacement
 	}))
-	return brew_runtime.map_value({
-		'offenses':  brew_runtime.array_value(offenses)
-		'corrected': brew_runtime.string_value(analysis.corrected)
+	return ruby.map_value({
+		'offenses':  ruby.array_value(offenses)
+		'corrected': ruby.string_value(analysis.corrected)
 	})
 }
 
 // Ruby def_node_matcher `def_node_matcher :redundant_receiver_and_other, <<~PATTERN` at line 51.
-pub fn ruby_presence_l51_d1_redundant_receiver_and_other(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_presence_l51_d1_redundant_receiver_and_other(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return presence_match_value(PresenceMatch{})
 	}
@@ -772,7 +772,7 @@ pub fn ruby_presence_l51_d1_redundant_receiver_and_other(args ...brew_runtime.Va
 }
 
 // Ruby def_node_matcher `def_node_matcher :redundant_negative_receiver_and_other, <<~PATTERN` at line 66.
-pub fn ruby_presence_l66_d2_redundant_negative_receiver_and_other(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_presence_l66_d2_redundant_negative_receiver_and_other(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return presence_match_value(PresenceMatch{})
 	}
@@ -785,7 +785,7 @@ pub fn ruby_presence_l66_d2_redundant_negative_receiver_and_other(args ...brew_r
 }
 
 // Ruby method `on_if(node)` at line 82.
-pub fn ruby_presence_l82_d3_on_if(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_presence_l82_d3_on_if(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return presence_analysis_value(PresenceAnalysis{})
 	}
@@ -793,45 +793,45 @@ pub fn ruby_presence_l82_d3_on_if(args ...brew_runtime.Value) brew_runtime.Value
 }
 
 // Ruby method `register_offense(node, receiver, other)` at line 103.
-pub fn ruby_presence_l103_d4_register_offense(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_presence_l103_d4_register_offense(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'source is required')
+		return ruby.object_value('ArgumentError', 'source is required')
 	}
 	return presence_analysis_value(analyze_presence(args[0].as_string()) or { PresenceAnalysis{ corrected: args[0].as_string() } })
 }
 
 // Ruby method `ignore_if_node?(node)` at line 110.
-pub fn ruby_presence_l110_d5_ignore_if_node(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_presence_l110_d5_ignore_if_node(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	nodes := parse_presence_conditionals(args[0].as_string())
-	return brew_runtime.bool_value(nodes.len > 0 && presence_ignore_if_node(nodes[0]))
+	return ruby.bool_value(nodes.len > 0 && presence_ignore_if_node(nodes[0]))
 }
 
 // Ruby method `ignore_other_node?(node)` at line 115.
-pub fn ruby_presence_l115_d6_ignore_other_node(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_presence_l115_d6_ignore_other_node(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || args[0].type_name == 'NilClass' {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	source := args[0].as_string()
-	return brew_runtime.bool_value(presence_ignore_other_node(presence_parse_send(source, 0, source.len)))
+	return ruby.bool_value(presence_ignore_other_node(presence_parse_send(source, 0, source.len)))
 }
 
 // Ruby method `message(node, receiver, other)` at line 125.
-pub fn ruby_presence_l125_d7_message(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_presence_l125_d7_message(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_value('')
+		return ruby.string_value('')
 	}
 	nodes := parse_presence_conditionals(args[0].as_string())
 	if nodes.len == 0 {
-		return brew_runtime.string_value('')
+		return ruby.string_value('')
 	}
 	mut matched := presence_match(nodes[0], false)
 	if !matched.matched {
 		matched = presence_match(nodes[0], true)
 	}
-	return brew_runtime.string_value(if matched.matched {
+	return ruby.string_value(if matched.matched {
 		presence_message(nodes[0], matched.receiver, matched.other)
 	} else {
 		''
@@ -839,12 +839,12 @@ pub fn ruby_presence_l125_d7_message(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby method `current(node)` at line 132.
-pub fn ruby_presence_l132_d8_current(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_presence_l132_d8_current(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_value('')
+		return ruby.string_value('')
 	}
 	nodes := parse_presence_conditionals(args[0].as_string())
-	return brew_runtime.string_value(if nodes.len > 0 {
+	return ruby.string_value(if nodes.len > 0 {
 		presence_current(nodes[0])
 	} else {
 		args[0].as_string()
@@ -852,9 +852,9 @@ pub fn ruby_presence_l132_d8_current(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby method `replacement(receiver, other, left_sibling)` at line 147.
-pub fn ruby_presence_l147_d9_replacement(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_presence_l147_d9_replacement(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_value('')
+		return ruby.string_value('')
 	}
 	receiver_source := args[0].as_string()
 	receiver := presence_parse_send(receiver_source, 0, receiver_source.len)
@@ -865,25 +865,25 @@ pub fn ruby_presence_l147_d9_replacement(args ...brew_runtime.Value) brew_runtim
 		presence_parse_send(source, 0, source.len)
 	}
 	left_sibling := args.len > 2 && args[2].type_name == 'Bool' && args[2].bool_data
-	return brew_runtime.string_value(presence_replacement(receiver, other, left_sibling))
+	return ruby.string_value(presence_replacement(receiver, other, left_sibling))
 }
 
 // Ruby method `build_source_for_or_method(other)` at line 161.
-pub fn ruby_presence_l161_d10_build_source_for_or_method(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_presence_l161_d10_build_source_for_or_method(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_value('')
+		return ruby.string_value('')
 	}
 	source := args[0].as_string()
-	return brew_runtime.string_value(presence_build_source_for_or_method(presence_parse_send(source, 0, source.len)))
+	return ruby.string_value(presence_build_source_for_or_method(presence_parse_send(source, 0, source.len)))
 }
 
 // Ruby method `method_range(node)` at line 173.
-pub fn ruby_presence_l173_d11_method_range(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_presence_l173_d11_method_range(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_value('')
+		return ruby.string_value('')
 	}
 	source := args[0].as_string()
-	return brew_runtime.string_value(presence_method_range(presence_parse_send(source, 0, source.len)))
+	return ruby.string_value(presence_method_range(presence_parse_send(source, 0, source.len)))
 }
 
 // Original Ruby source (line-for-line):

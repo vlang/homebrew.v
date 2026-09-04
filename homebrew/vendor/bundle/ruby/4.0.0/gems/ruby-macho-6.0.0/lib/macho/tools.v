@@ -1,6 +1,6 @@
 module macho
 
-import brew_runtime
+import ruby
 import encoding.binary
 import os
 
@@ -29,12 +29,12 @@ pub mut:
 	fat  &FatFile = unsafe { nil }
 }
 
-fn tool_options_from_value(value brew_runtime.Value) ToolModificationOptions {
+fn tool_options_from_value(value ruby.Value) ToolModificationOptions {
 	values := value.as_map() or { return ToolModificationOptions{} }
 	return ToolModificationOptions{
-		strict: (values['strict'] or { brew_runtime.bool_value(true) }).as_bool() or { true }
-		uniq: (values['uniq'] or { brew_runtime.bool_value(false) }).as_bool() or { false }
-		last: (values['last'] or { brew_runtime.bool_value(false) }).as_bool() or { false }
+		strict: (values['strict'] or { ruby.bool_value(true) }).as_bool() or { true }
+		uniq: (values['uniq'] or { ruby.bool_value(false) }).as_bool() or { false }
+		last: (values['last'] or { ruby.bool_value(false) }).as_bool() or { false }
 	}
 }
 
@@ -73,7 +73,7 @@ fn tool_source_error_message(message string) string {
 	return translated
 }
 
-pub fn macho_binary_boundary(file &MachoBinary) brew_runtime.Value {
+pub fn macho_binary_boundary(file &MachoBinary) ruby.Value {
 	return match file.kind {
 		.thin { macho_file_boundary(file.thin) }
 		.fat { fat_file_boundary(file.fat) }
@@ -277,15 +277,15 @@ pub fn merge_machos(filename string, files []string, fat64 bool) !int {
 }
 
 // Ruby method `self.dylibs(filename)` at line 9.
-pub fn ruby_tools_l9_d1_self_dylibs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tools_l9_d1_self_dylibs(args ...ruby.Value) ruby.Value {
 	if args.len < 1 {
 		panic('dylibs requires a filename')
 	}
-	return brew_runtime.string_array_value(dylibs(args[0].as_string()) or { panic(err) })
+	return ruby.string_array_value(dylibs(args[0].as_string()) or { panic(err) })
 }
 
 // Ruby method `self.change_dylib_id(filename, new_id, options = {})` at line 23.
-pub fn ruby_tools_l23_d2_self_change_dylib_id(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tools_l23_d2_self_change_dylib_id(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('change_dylib_id requires a filename and new ID')
 	}
@@ -294,11 +294,11 @@ pub fn ruby_tools_l23_d2_self_change_dylib_id(args ...brew_runtime.Value) brew_r
 	} else {
 		ToolModificationOptions{}
 	}
-	return brew_runtime.int_value(change_dylib_id(args[0].as_string(), args[1].as_string(), options) or { panic(err) })
+	return ruby.int_value(change_dylib_id(args[0].as_string(), args[1].as_string(), options) or { panic(err) })
 }
 
 // Ruby method `self.change_install_name(filename, old_name, new_name, options = {})` at line 39.
-pub fn ruby_tools_l39_d3_self_change_install_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tools_l39_d3_self_change_install_name(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('change_install_name requires a filename, old name, and new name')
 	}
@@ -307,11 +307,11 @@ pub fn ruby_tools_l39_d3_self_change_install_name(args ...brew_runtime.Value) br
 	} else {
 		ToolModificationOptions{}
 	}
-	return brew_runtime.int_value(change_install_name(args[0].as_string(), args[1].as_string(), args[2].as_string(), options) or { panic(err) })
+	return ruby.int_value(change_install_name(args[0].as_string(), args[1].as_string(), args[2].as_string(), options) or { panic(err) })
 }
 
 // Ruby method `self.change_rpath(filename, old_path, new_path, options = {})` at line 57.
-pub fn ruby_tools_l57_d4_self_change_rpath(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tools_l57_d4_self_change_rpath(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('change_rpath requires a filename, old path, and new path')
 	}
@@ -320,11 +320,11 @@ pub fn ruby_tools_l57_d4_self_change_rpath(args ...brew_runtime.Value) brew_runt
 	} else {
 		ToolModificationOptions{}
 	}
-	return brew_runtime.int_value(change_rpath(args[0].as_string(), args[1].as_string(), args[2].as_string(), options) or { panic(err) })
+	return ruby.int_value(change_rpath(args[0].as_string(), args[1].as_string(), args[2].as_string(), options) or { panic(err) })
 }
 
 // Ruby method `self.add_rpath(filename, new_path, options = {})` at line 71.
-pub fn ruby_tools_l71_d5_self_add_rpath(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tools_l71_d5_self_add_rpath(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('add_rpath requires a filename and new path')
 	}
@@ -333,13 +333,13 @@ pub fn ruby_tools_l71_d5_self_add_rpath(args ...brew_runtime.Value) brew_runtime
 	} else {
 		ToolModificationOptions{}
 	}
-	return brew_runtime.int_value(add_rpath(args[0].as_string(), args[1].as_string(), options) or {
+	return ruby.int_value(add_rpath(args[0].as_string(), args[1].as_string(), options) or {
 		panic(err)
 	})
 }
 
 // Ruby method `self.delete_rpath(filename, old_path, options = {})` at line 88.
-pub fn ruby_tools_l88_d6_self_delete_rpath(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tools_l88_d6_self_delete_rpath(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('delete_rpath requires a filename and old path')
 	}
@@ -348,13 +348,13 @@ pub fn ruby_tools_l88_d6_self_delete_rpath(args ...brew_runtime.Value) brew_runt
 	} else {
 		ToolModificationOptions{}
 	}
-	return brew_runtime.int_value(delete_rpath(args[0].as_string(), args[1].as_string(), options) or {
+	return ruby.int_value(delete_rpath(args[0].as_string(), args[1].as_string(), options) or {
 		panic(err)
 	})
 }
 
 // Ruby method `self.merge_machos(filename, *files, fat64: false)` at line 100.
-pub fn ruby_tools_l100_d7_self_merge_machos(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tools_l100_d7_self_merge_machos(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('merge_machos requires an output filename and at least one input file')
 	}
@@ -362,7 +362,7 @@ pub fn ruby_tools_l100_d7_self_merge_machos(args ...brew_runtime.Value) brew_run
 	mut fat64 := false
 	if values.len > 0 && values.last().type_name == 'Hash' {
 		options := values.pop().as_map() or { panic(err) }
-		fat64 = (options['fat64'] or { brew_runtime.bool_value(false) }).as_bool() or { false }
+		fat64 = (options['fat64'] or { ruby.bool_value(false) }).as_bool() or { false }
 	}
 	mut files := []string{}
 	for value in values {
@@ -372,7 +372,7 @@ pub fn ruby_tools_l100_d7_self_merge_machos(args ...brew_runtime.Value) brew_run
 			files << value.as_string()
 		}
 	}
-	return brew_runtime.int_value(merge_machos(args[0].as_string(), files, fat64) or {
+	return ruby.int_value(merge_machos(args[0].as_string(), files, fat64) or {
 		panic(err)
 	})
 }

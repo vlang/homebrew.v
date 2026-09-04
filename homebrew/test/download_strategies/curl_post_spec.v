@@ -1,6 +1,6 @@
 module download_strategies
 
-import brew_runtime
+import ruby
 import homebrew.download_strategy as production_strategy
 import os
 import time
@@ -25,9 +25,9 @@ fn curl_post_spec_root(label string) string {
 }
 
 fn curl_post_spec_strategy_value(url string, fields []production_strategy.CurlPostField,
-	has_data bool) brew_runtime.Value {
+	has_data bool) ruby.Value {
 	strategy := production_strategy.new_curl_post_download_strategy(url, curl_post_spec_name(), curl_post_spec_version(), production_strategy.DownloadMeta{}, fields, has_data)
-	return brew_runtime.structured_value('CurlPostDownloadStrategy', url, {
+	return ruby.structured_value('CurlPostDownloadStrategy', url, {
 		'url':        strategy.curl.file.base.url
 		'name':       strategy.curl.file.base.name
 		'version':    strategy.curl.file.base.version
@@ -71,7 +71,7 @@ fn curl_post_spec_has_pair(arguments []string, flag string, value string) bool {
 }
 
 // Ruby subject `subject(:strategy) { described_class.new(url, name, version, **specs) }` at line 7.
-pub fn ruby_curl_post_spec_l7_d1_strategy(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_curl_post_spec_l7_d1_strategy(args ...ruby.Value) ruby.Value {
 	url := if args.len > 0 && args[0].as_string() != '' {
 		args[0].as_string()
 	} else {
@@ -81,99 +81,99 @@ pub fn ruby_curl_post_spec_l7_d1_strategy(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby let `let(:name) { "foo" }` at line 9.
-pub fn ruby_curl_post_spec_l9_d2_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_curl_post_spec_l9_d2_name(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value(curl_post_spec_name())
+	return ruby.string_value(curl_post_spec_name())
 }
 
 // Ruby let `let(:url) { "https://example.com/foo.tar.gz" }` at line 10.
-pub fn ruby_curl_post_spec_l10_d3_url(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_curl_post_spec_l10_d3_url(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value(curl_post_spec_url())
+	return ruby.string_value(curl_post_spec_url())
 }
 
 // Ruby let `let(:version) { "1.2.3" }` at line 11.
-pub fn ruby_curl_post_spec_l11_d4_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_curl_post_spec_l11_d4_version(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value(curl_post_spec_version())
+	return ruby.string_value(curl_post_spec_version())
 }
 
 // Ruby let `let(:specs) { {} }` at line 12.
-pub fn ruby_curl_post_spec_l12_d5_specs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_curl_post_spec_l12_d5_specs(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.map_value(map[string]brew_runtime.Value{})
+	return ruby.map_value(map[string]ruby.Value{})
 }
 
 // Ruby let `let(:head_response) do` at line 13.
-pub fn ruby_curl_post_spec_l13_d6_head_response(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_curl_post_spec_l13_d6_head_response(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('HTTP/1.1 200\r\nContent-Disposition: attachment; filename="foo.tar.gz"\n')
+	return ruby.string_value('HTTP/1.1 200\r\nContent-Disposition: attachment; filename="foo.tar.gz"\n')
 }
 
 // Ruby let `let(:specs) do` at line 42.
-pub fn ruby_curl_post_spec_l42_d7_specs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_curl_post_spec_l42_d7_specs(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.map_value({
-		'using': brew_runtime.string_value('post')
-		'data':  brew_runtime.map_value({
-			'form': brew_runtime.string_value('data')
-			'is':   brew_runtime.string_value('good')
+	return ruby.map_value({
+		'using': ruby.string_value('post')
+		'data':  ruby.map_value({
+			'form': ruby.string_value('data')
+			'is':   ruby.string_value('good')
 		})
 	})
 }
 
 // Ruby it `it "adds the appropriate curl args" do` at line 52.
-pub fn ruby_curl_post_spec_l52_d8_adds(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_curl_post_spec_l52_d8_adds(args ...ruby.Value) ruby.Value {
 	_ = args
 	arguments := curl_post_spec_fetch(curl_post_spec_url(), curl_post_spec_url(), [
 		production_strategy.CurlPostField{ name: 'form', value: 'data' },
 		production_strategy.CurlPostField{ name: 'is', value: 'good' },
-	], true, false) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(curl_post_spec_has_pair(arguments, '-d', 'form=data')
+	], true, false) or { return ruby.bool_value(false) }
+	return ruby.bool_value(curl_post_spec_has_pair(arguments, '-d', 'form=data')
 		&& curl_post_spec_has_pair(arguments, '-d', 'is=good'))
 }
 
 // Ruby let `let(:specs) { { using: :post } }` at line 66.
-pub fn ruby_curl_post_spec_l66_d9_specs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_curl_post_spec_l66_d9_specs(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.map_value({
-		'using': brew_runtime.string_value('post')
+	return ruby.map_value({
+		'using': ruby.string_value('post')
 	})
 }
 
 // Ruby it `it "adds the appropriate curl args" do` at line 68.
-pub fn ruby_curl_post_spec_l68_d10_adds(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_curl_post_spec_l68_d10_adds(args ...ruby.Value) ruby.Value {
 	_ = args
-	arguments := curl_post_spec_fetch(curl_post_spec_url(), curl_post_spec_url(), [], false, false) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(curl_post_spec_has_pair(arguments, '-X', 'POST'))
+	arguments := curl_post_spec_fetch(curl_post_spec_url(), curl_post_spec_url(), [], false, false) or { return ruby.bool_value(false) }
+	return ruby.bool_value(curl_post_spec_has_pair(arguments, '-X', 'POST'))
 }
 
 // Ruby let `let(:url) { "https://example.com/foo.tar.gz?form=data" }` at line 82.
-pub fn ruby_curl_post_spec_l82_d11_url(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_curl_post_spec_l82_d11_url(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('https://example.com/foo.tar.gz?form=data')
+	return ruby.string_value('https://example.com/foo.tar.gz?form=data')
 }
 
 // Ruby let `let(:resolved_url) { "http://example.com/foo.tar.gz" }` at line 83.
-pub fn ruby_curl_post_spec_l83_d12_resolved_url(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_curl_post_spec_l83_d12_resolved_url(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('http://example.com/foo.tar.gz')
+	return ruby.string_value('http://example.com/foo.tar.gz')
 }
 
 // Ruby let `let(:specs) { { using: :post } }` at line 84.
-pub fn ruby_curl_post_spec_l84_d13_specs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_curl_post_spec_l84_d13_specs(args ...ruby.Value) ruby.Value {
 	return ruby_curl_post_spec_l66_d9_specs(...args)
 }
 
 // Ruby it `it "raises before downloading" do` at line 92.
-pub fn ruby_curl_post_spec_l92_d14_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_curl_post_spec_l92_d14_raises(args ...ruby.Value) ruby.Value {
 	_ = args
 	url := ruby_curl_post_spec_l82_d11_url().as_string()
 	resolved_url := ruby_curl_post_spec_l83_d12_resolved_url().as_string()
 	if _ := curl_post_spec_fetch(url, resolved_url, [], false, true) {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	} else {
-		return brew_runtime.bool_value(err.msg().contains('HTTPS to HTTP redirect detected'))
+		return ruby.bool_value(err.msg().contains('HTTPS to HTTP redirect detected'))
 	}
 }
 

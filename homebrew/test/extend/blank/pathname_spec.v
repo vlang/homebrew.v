@@ -1,6 +1,6 @@
 module blank
 
-import brew_runtime
+import ruby
 import homebrew.extend.blank as blank_ext
 import os
 import time
@@ -9,91 +9,91 @@ import time
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:blank) { [described_class.new("")] }` at line 8.
-pub fn ruby_pathname_spec_l8_d1_blank(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.array_value([brew_runtime.object_value('Pathname', '')])
+pub fn ruby_pathname_spec_l8_d1_blank(args ...ruby.Value) ruby.Value {
+	return ruby.array_value([ruby.object_value('Pathname', '')])
 }
 
 // Ruby let `let(:present) { [described_class.new(" "), described_class.new("."), described_class.new("test")] }` at line 9.
-pub fn ruby_pathname_spec_l9_d2_present(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.array_value([' ', '.', 'test'].map(brew_runtime.object_value('Pathname', it)))
+pub fn ruby_pathname_spec_l9_d2_present(args ...ruby.Value) ruby.Value {
+	return ruby.array_value([' ', '.', 'test'].map(ruby.object_value('Pathname', it)))
 }
 
 // Ruby it `it "is blank if and only if the path string is empty" do` at line 12.
-pub fn ruby_pathname_spec_l12_d3_is(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pathname_spec_l12_d3_is(args ...ruby.Value) ruby.Value {
 	blank_paths := ruby_pathname_spec_l8_d1_blank().as_array() or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	present_paths := ruby_pathname_spec_l9_d2_present().as_array() or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	for path in blank_paths {
 		if !(blank_ext.ruby_pathname_l18_d1_blank(path).as_bool() or { false }) {
-			return brew_runtime.bool_value(false)
+			return ruby.bool_value(false)
 		}
 	}
 	for path in present_paths {
 		if blank_ext.ruby_pathname_l18_d1_blank(path).as_bool() or { true } {
-			return brew_runtime.bool_value(false)
+			return ruby.bool_value(false)
 		}
 	}
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
 // Ruby it `it "is present if and only if the path string is not empty" do` at line 19.
-pub fn ruby_pathname_spec_l19_d4_is(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pathname_spec_l19_d4_is(args ...ruby.Value) ruby.Value {
 	blank_paths := ruby_pathname_spec_l8_d1_blank().as_array() or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	present_paths := ruby_pathname_spec_l9_d2_present().as_array() or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	for path in blank_paths {
 		if blank_ext.ruby_pathname_l23_d2_present(path).as_bool() or { true } {
-			return brew_runtime.bool_value(false)
+			return ruby.bool_value(false)
 		}
 	}
 	for path in present_paths {
 		if !(blank_ext.ruby_pathname_l23_d2_present(path).as_bool() or { false }) {
-			return brew_runtime.bool_value(false)
+			return ruby.bool_value(false)
 		}
 	}
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
 // Ruby it `it "returns the pathname when present, otherwise nil" do` at line 26.
-pub fn ruby_pathname_spec_l26_d5_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pathname_spec_l26_d5_returns(args ...ruby.Value) ruby.Value {
 	blank_path := (ruby_pathname_spec_l8_d1_blank().as_array() or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	})[0]
 	present_paths := ruby_pathname_spec_l9_d2_present().as_array() or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(blank_path.as_string() == ''
+	return ruby.bool_value(blank_path.as_string() == ''
 		&& present_paths.all(blank_ext.ruby_pathname_l23_d2_present(it).as_bool() or { false }))
 }
 
 // Ruby it `it "judges by the path string, not filesystem content" do` at line 37.
-pub fn ruby_pathname_spec_l37_d6_judges(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pathname_spec_l37_d6_judges(args ...ruby.Value) ruby.Value {
 	root := os.join_path(os.temp_dir(), 'brew-v-pathname-blank-${os.getpid()}-${time.now().unix_micro()}')
-	os.mkdir_all(root) or { return brew_runtime.bool_value(false) }
+	os.mkdir_all(root) or { return ruby.bool_value(false) }
 	defer { os.rmdir_all(root) or {} }
-	blank := brew_runtime.object_value('Pathname', '')
-	directory := brew_runtime.object_value('Pathname', root)
-	missing := brew_runtime.object_value('Pathname', os.join_path(root, 'nonexistent'))
-	return brew_runtime.bool_value(blank_ext.ruby_pathname_l18_d1_blank(blank).as_bool() or {
+	blank := ruby.object_value('Pathname', '')
+	directory := ruby.object_value('Pathname', root)
+	missing := ruby.object_value('Pathname', os.join_path(root, 'nonexistent'))
+	return ruby.bool_value(blank_ext.ruby_pathname_l18_d1_blank(blank).as_bool() or {
 		false
 	} && blank_ext.ruby_pathname_l23_d2_present(directory).as_bool() or { false }
 		&& blank_ext.ruby_pathname_l23_d2_present(missing).as_bool() or { false })
 }
 
 // Ruby it `it "treats an existing empty file as present" do` at line 43.
-pub fn ruby_pathname_spec_l43_d7_treats(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pathname_spec_l43_d7_treats(args ...ruby.Value) ruby.Value {
 	root := os.join_path(os.temp_dir(), 'brew-v-pathname-file-${os.getpid()}-${time.now().unix_micro()}')
-	os.mkdir_all(root) or { return brew_runtime.bool_value(false) }
+	os.mkdir_all(root) or { return ruby.bool_value(false) }
 	defer { os.rmdir_all(root) or {} }
 	file := os.join_path(root, 'empty-file')
-	os.write_file(file, '') or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(blank_ext.ruby_pathname_l23_d2_present(brew_runtime.object_value('Pathname', file)).as_bool() or { false })
+	os.write_file(file, '') or { return ruby.bool_value(false) }
+	return ruby.bool_value(blank_ext.ruby_pathname_l23_d2_present(ruby.object_value('Pathname', file)).as_bool() or { false })
 }
 
 // Original Ruby source (line-for-line):

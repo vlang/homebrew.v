@@ -1,18 +1,18 @@
 module test
 
-import brew_runtime
+import ruby
 import homebrew
 
 // Translated from Homebrew/brew `test/locale_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "parses a string in the correct format" do` at line 8.
-pub fn ruby_locale_spec_l8_d1_parses(args ...brew_runtime.Value) brew_runtime.Value {
-	ok := homebrew.parse_locale('zh') or { return brew_runtime.bool_value(false) }
-	zh_cn := homebrew.parse_locale('zh-CN') or { return brew_runtime.bool_value(false) }
-	zh_hans := homebrew.parse_locale('zh-Hans') or { return brew_runtime.bool_value(false) }
-	full := homebrew.parse_locale('zh-Hans-CN') or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(ok.equals(homebrew.Locale{ language: 'zh' }) && zh_cn.equals(homebrew.Locale{
+pub fn ruby_locale_spec_l8_d1_parses(args ...ruby.Value) ruby.Value {
+	ok := homebrew.parse_locale('zh') or { return ruby.bool_value(false) }
+	zh_cn := homebrew.parse_locale('zh-CN') or { return ruby.bool_value(false) }
+	zh_hans := homebrew.parse_locale('zh-Hans') or { return ruby.bool_value(false) }
+	full := homebrew.parse_locale('zh-Hans-CN') or { return ruby.bool_value(false) }
+	return ruby.bool_value(ok.equals(homebrew.Locale{ language: 'zh' }) && zh_cn.equals(homebrew.Locale{
 		language: 'zh'
 		region:   'CN'
 	}) && zh_hans.equals(homebrew.Locale{ language: 'zh', script: 'Hans' }) && full.equals(homebrew.Locale{
@@ -23,63 +23,63 @@ pub fn ruby_locale_spec_l8_d1_parses(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby it `it "correctly parses a string with a UN M.49 region code" do` at line 15.
-pub fn ruby_locale_spec_l15_d2_correctly(args ...brew_runtime.Value) brew_runtime.Value {
-	locale := homebrew.parse_locale('es-419') or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(locale.equals(homebrew.Locale{ language: 'es', region: '419' }))
+pub fn ruby_locale_spec_l15_d2_correctly(args ...ruby.Value) ruby.Value {
+	locale := homebrew.parse_locale('es-419') or { return ruby.bool_value(false) }
+	return ruby.bool_value(locale.equals(homebrew.Locale{ language: 'es', region: '419' }))
 }
 
 // Ruby it `it "an empty string" do` at line 20.
-pub fn ruby_locale_spec_l20_d3_an(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(locale_parse_fails(''))
+pub fn ruby_locale_spec_l20_d3_an(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(locale_parse_fails(''))
 }
 
 // Ruby it `it "a string in a wrong format" do` at line 24.
-pub fn ruby_locale_spec_l24_d4_a(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_locale_spec_l24_d4_a(args ...ruby.Value) ruby.Value {
 	invalid := ['zh-CN-Hans', 'zh_CN_Hans', 'zhCNHans', 'zh-CN_Hans', 'zhCN', 'zh_Hans', 'zh-',
 		'ZH-CN', 'zh-cn']
-	return brew_runtime.bool_value(invalid.all(locale_parse_fails(it)))
+	return ruby.bool_value(invalid.all(locale_parse_fails(it)))
 }
 
 // Ruby it `it "raises an ArgumentError when all arguments are nil" do` at line 39.
-pub fn ruby_locale_spec_l39_d5_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	_ := homebrew.new_locale('', '', '') or { return brew_runtime.bool_value(true) }
-	return brew_runtime.bool_value(false)
+pub fn ruby_locale_spec_l39_d5_raises(args ...ruby.Value) ruby.Value {
+	_ := homebrew.new_locale('', '', '') or { return ruby.bool_value(true) }
+	return ruby.bool_value(false)
 }
 
 // Ruby it `it "raises a ParserError when one of the arguments does not match the locale format" do` at line 43.
-pub fn ruby_locale_spec_l43_d6_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(locale_new_fails('ZH', '', '')
+pub fn ruby_locale_spec_l43_d6_raises(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(locale_new_fails('ZH', '', '')
 		&& locale_new_fails('', 'hans', '') && locale_new_fails('', '', 'cn'))
 }
 
 // Ruby subject `subject(:locale) { described_class.new("zh", "Hans", "CN") }` at line 51.
-pub fn ruby_locale_spec_l51_d7_locale(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_locale_spec_l51_d7_locale(args ...ruby.Value) ruby.Value {
 	return locale_boundary(homebrew.Locale{ language: 'zh', script: 'Hans', region: 'CN' })
 }
 
 // Ruby specify `specify(:aggregate_failures) do` at line 53.
-pub fn ruby_locale_spec_l53_d8_aggregate_failures(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_locale_spec_l53_d8_aggregate_failures(args ...ruby.Value) ruby.Value {
 	locale := homebrew.Locale{
 		language: 'zh'
 		script:   'Hans'
 		region:   'CN'
 	}
-	return brew_runtime.bool_value(['zh', 'zh-CN', 'CN', 'Hans-CN', 'Hans', 'zh-Hans-CN'].all(locale.includes_string(it)))
+	return ruby.bool_value(['zh', 'zh-CN', 'CN', 'Hans-CN', 'Hans', 'zh-Hans-CN'].all(locale.includes_string(it)))
 }
 
 // Ruby subject `subject(:locale) { described_class.new("zh", "Hans", "CN") }` at line 64.
-pub fn ruby_locale_spec_l64_d9_locale(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_locale_spec_l64_d9_locale(args ...ruby.Value) ruby.Value {
 	return locale_boundary(homebrew.Locale{ language: 'zh', script: 'Hans', region: 'CN' })
 }
 
 // Ruby specify `specify(:aggregate_failures) do` at line 67.
-pub fn ruby_locale_spec_l67_d10_aggregate_failures(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_locale_spec_l67_d10_aggregate_failures(args ...ruby.Value) ruby.Value {
 	locale := homebrew.Locale{
 		language: 'zh'
 		script:   'Hans'
 		region:   'CN'
 	}
-	return brew_runtime.bool_value(locale.equals_string('zh-Hans-CN') && locale.equals(homebrew.Locale{
+	return ruby.bool_value(locale.equals_string('zh-Hans-CN') && locale.equals(homebrew.Locale{
 		language: 'zh'
 		script:   'Hans'
 		region:   'CN'
@@ -87,35 +87,35 @@ pub fn ruby_locale_spec_l67_d10_aggregate_failures(args ...brew_runtime.Value) b
 }
 
 // Ruby specify `specify(:aggregate_failures) do` at line 74.
-pub fn ruby_locale_spec_l74_d11_aggregate_failures(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_locale_spec_l74_d11_aggregate_failures(args ...ruby.Value) ruby.Value {
 	locale := homebrew.Locale{
 		language: 'zh'
 		script:   'Hans'
 		region:   'CN'
 	}
-	return brew_runtime.bool_value(['zh', 'zh-CN', 'CN', 'Hans-CN', 'Hans'].all(!locale.equals_string(it)))
+	return ruby.bool_value(['zh', 'zh-CN', 'CN', 'Hans-CN', 'Hans'].all(!locale.equals_string(it)))
 }
 
 // Ruby it `it "does not raise if 'other' cannot be parsed" do` at line 83.
-pub fn ruby_locale_spec_l83_d12_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_locale_spec_l83_d12_does(args ...ruby.Value) ruby.Value {
 	locale := homebrew.Locale{
 		language: 'zh'
 		script:   'Hans'
 		region:   'CN'
 	}
-	return brew_runtime.bool_value(!locale.equals_string('zh_CN_Hans'))
+	return ruby.bool_value(!locale.equals_string('zh_CN_Hans'))
 }
 
 // Ruby let `let(:locale_groups) { [["zh"], ["zh-TW"]] }` at line 90.
-pub fn ruby_locale_spec_l90_d13_locale_groups(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.array_value([
-		brew_runtime.string_array_value(['zh']),
-		brew_runtime.string_array_value(['zh-TW']),
+pub fn ruby_locale_spec_l90_d13_locale_groups(args ...ruby.Value) ruby.Value {
+	return ruby.array_value([
+		ruby.string_array_value(['zh']),
+		ruby.string_array_value(['zh-TW']),
 	])
 }
 
 // Ruby it `it "finds best matching language code, independent of order" do` at line 92.
-pub fn ruby_locale_spec_l92_d14_finds(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_locale_spec_l92_d14_finds(args ...ruby.Value) ruby.Value {
 	groups := [['zh'], ['zh-TW']]
 	zh_tw := homebrew.Locale{
 		language: 'zh'
@@ -126,10 +126,10 @@ pub fn ruby_locale_spec_l92_d14_finds(args ...brew_runtime.Value) brew_runtime.V
 		script:   'Hans'
 		region:   'CN'
 	}
-	first := zh_tw.detect(groups) or { return brew_runtime.bool_value(false) }
-	reversed := zh_tw.detect(groups.reverse()) or { return brew_runtime.bool_value(false) }
-	fallback := zh_cn.detect(groups) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(first == ['zh-TW'] && reversed == ['zh-TW'] && fallback == ['zh'])
+	first := zh_tw.detect(groups) or { return ruby.bool_value(false) }
+	reversed := zh_tw.detect(groups.reverse()) or { return ruby.bool_value(false) }
+	fallback := zh_cn.detect(groups) or { return ruby.bool_value(false) }
+	return ruby.bool_value(first == ['zh-TW'] && reversed == ['zh-TW'] && fallback == ['zh'])
 }
 
 fn locale_parse_fails(input string) bool {
@@ -142,8 +142,8 @@ fn locale_new_fails(language string, script string, region string) bool {
 	return false
 }
 
-fn locale_boundary(locale homebrew.Locale) brew_runtime.Value {
-	return brew_runtime.structured_value('Locale', locale.str(), {
+fn locale_boundary(locale homebrew.Locale) ruby.Value {
+	return ruby.structured_value('Locale', locale.str(), {
 		'language': locale.language
 		'script':   locale.script
 		'region':   locale.region

@@ -1,17 +1,17 @@
 module subcommand
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `services/subcommand/stop.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `run` at line 31.
-pub fn ruby_stop_l31_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stop_l31_d1_run(args ...ruby.Value) ruby.Value {
 	request := service_subcommand_request_from_args(args) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	result := service_simple_operation('stop', request) or {
-		return brew_runtime.object_value('UsageError', err.msg())
+		return ruby.object_value('UsageError', err.msg())
 	}
 	return service_subcommand_result_to_value(result)
 }

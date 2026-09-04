@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `extend/os/mac/dev-cmd/bottle.rb`.
 pub fn mac_bottle_tar_args() []string {
@@ -8,21 +8,21 @@ pub fn mac_bottle_tar_args() []string {
 }
 
 pub fn mac_bottle_gnu_tar(opt_bin string) string {
-	return brew_runtime.join_path(opt_bin, 'gtar')
+	return ruby.join_path(opt_bin, 'gtar')
 }
 
 // Ruby method `tar_args` at line 9.
-pub fn ruby_bottle_l9_d1_tar_args(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(mac_bottle_tar_args())
+pub fn ruby_bottle_l9_d1_tar_args(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(mac_bottle_tar_args())
 }
 
 // Ruby method `gnu_tar(gnu_tar_formula)` at line 14.
-pub fn ruby_bottle_l14_d2_gnu_tar(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_l14_d2_gnu_tar(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('gnu_tar requires a formula')
 	}
 	opt_bin := args[0].attributes['opt_bin'] or { args[0].repr }
-	return brew_runtime.string_value(mac_bottle_gnu_tar(opt_bin))
+	return ruby.string_value(mac_bottle_gnu_tar(opt_bin))
 }
 
 // Original Ruby source (line-for-line):

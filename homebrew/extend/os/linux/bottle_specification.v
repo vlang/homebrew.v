@@ -1,13 +1,13 @@
 module linux
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `extend/os/linux/bottle_specification.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `skip_relocation?(tag: Utils::Bottles.tag, tab: nil)` at line 8.
-pub fn ruby_bottle_specification_l8_d1_skip_relocation(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(args.len >= 3 && skip_relocation(args[0].as_bool() or { false }, args[1].as_bool() or {
+pub fn ruby_bottle_specification_l8_d1_skip_relocation(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(args.len >= 3 && skip_relocation(args[0].as_bool() or { false }, args[1].as_bool() or {
 		false
 	}, args[2].as_bool() or { false }))
 }

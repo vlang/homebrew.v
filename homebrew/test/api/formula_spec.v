@@ -1,18 +1,18 @@
 module api
 
-import brew_runtime
+import ruby
 import homebrew.api as formula_api
 import os
 import time
 
 // Translated from Homebrew/brew `test/api/formula_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
-fn formula_spec_nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn formula_spec_nil_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-fn formula_spec_error_value(message string) brew_runtime.Value {
-	return brew_runtime.structured_value('RuntimeError', message, {
+fn formula_spec_error_value(message string) ruby.Value {
+	return ruby.structured_value('RuntimeError', message, {
 		'message': message
 	})
 }
@@ -35,20 +35,20 @@ pub fn formula_spec_formulae_json() string {
 	return '[{\n  "name": "foo",\n  "url": "https://brew.sh/foo",\n  "aliases": ["foo-alias1", "foo-alias2"],\n  "executables": ["foo-bin", "food"]\n}, {\n  "name": "bar",\n  "url": "https://brew.sh/bar",\n  "aliases": ["bar-alias"]\n}, {\n  "name": "baz",\n  "url": "https://brew.sh/baz",\n  "aliases": []\n}]\n'
 }
 
-pub fn formula_spec_formulae_hash() map[string]map[string]brew_runtime.Value {
+pub fn formula_spec_formulae_hash() map[string]map[string]ruby.Value {
 	return {
 		'foo': {
-			'url':         brew_runtime.string_value('https://brew.sh/foo')
-			'aliases':     brew_runtime.string_array_value(['foo-alias1', 'foo-alias2'])
-			'executables': brew_runtime.string_array_value(['foo-bin', 'food'])
+			'url':         ruby.string_value('https://brew.sh/foo')
+			'aliases':     ruby.string_array_value(['foo-alias1', 'foo-alias2'])
+			'executables': ruby.string_array_value(['foo-bin', 'food'])
 		}
 		'bar': {
-			'url':     brew_runtime.string_value('https://brew.sh/bar')
-			'aliases': brew_runtime.string_array_value(['bar-alias'])
+			'url':     ruby.string_value('https://brew.sh/bar')
+			'aliases': ruby.string_array_value(['bar-alias'])
 		}
 		'baz': {
-			'url':     brew_runtime.string_value('https://brew.sh/baz')
-			'aliases': brew_runtime.string_array_value([])
+			'url':     ruby.string_value('https://brew.sh/baz')
+			'aliases': ruby.string_array_value([])
 		}
 	}
 }
@@ -63,12 +63,12 @@ pub fn formula_spec_formulae_aliases() map[string]string {
 
 pub fn formula_spec_mock_curl_download(stdout string, mut state formula_api.FormulaApiState) ! {
 	state.fetch_results['formula.jws.json'] = formula_api.FormulaApiFetchResult{
-		data: brew_runtime.parse_json_value(stdout)!
+		data: ruby.parse_json_value(stdout)!
 		updated: true
 	}
 }
 
-fn formula_spec_value_equal(left brew_runtime.Value, right brew_runtime.Value) bool {
+fn formula_spec_value_equal(left ruby.Value, right ruby.Value) bool {
 	if left.type_name != right.type_name {
 		return false
 	}
@@ -100,14 +100,14 @@ fn formula_spec_value_equal(left brew_runtime.Value, right brew_runtime.Value) b
 	return left.repr == right.repr && left.bool_data == right.bool_data && left.int_data == right.int_data
 }
 
-fn formula_spec_maps_equal(left map[string]map[string]brew_runtime.Value,
-	right map[string]map[string]brew_runtime.Value) bool {
+fn formula_spec_maps_equal(left map[string]map[string]ruby.Value,
+	right map[string]map[string]ruby.Value) bool {
 	if left.len != right.len {
 		return false
 	}
 	for key, values in left {
 		other := (right[key] or { return false }).clone()
-		if !formula_spec_value_equal(brew_runtime.map_value(values), brew_runtime.map_value(other)) {
+		if !formula_spec_value_equal(ruby.map_value(values), ruby.map_value(other)) {
 			return false
 		}
 	}
@@ -284,21 +284,21 @@ pub fn formula_spec_loads_local_patch() bool {
 }
 
 // Ruby let `let(:cache_dir) { mktmpdir }` at line 8.
-pub fn ruby_formula_spec_l8_d1_cache_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Pathname', formula_spec_cache_dir() or {
+pub fn ruby_formula_spec_l8_d1_cache_dir(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Pathname', formula_spec_cache_dir() or {
 		return formula_spec_error_value(err.msg())
 	})
 }
 
 // Ruby let `let(:source_cache_dir) { mktmpdir }` at line 9.
-pub fn ruby_formula_spec_l9_d2_source_cache_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Pathname', formula_spec_source_cache_dir() or {
+pub fn ruby_formula_spec_l9_d2_source_cache_dir(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Pathname', formula_spec_source_cache_dir() or {
 		return formula_spec_error_value(err.msg())
 	})
 }
 
 // Ruby method `mock_curl_download(stdout:)` at line 18.
-pub fn ruby_formula_spec_l18_d3_mock_curl_download(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_spec_l18_d3_mock_curl_download(args ...ruby.Value) ruby.Value {
 	if args.len < 2 || 'formula_api_state_address' !in args[0].attributes {
 		return formula_spec_error_value('mock_curl_download requires Formula API state and stdout')
 	}
@@ -312,86 +312,86 @@ pub fn ruby_formula_spec_l18_d3_mock_curl_download(args ...brew_runtime.Value) b
 }
 
 // Ruby let `let(:formulae_json) do` at line 28.
-pub fn ruby_formula_spec_l28_d4_formulae_json(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(formula_spec_formulae_json())
+pub fn ruby_formula_spec_l28_d4_formulae_json(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(formula_spec_formulae_json())
 }
 
 // Ruby let `let(:formulae_hash) do` at line 46.
-pub fn ruby_formula_spec_l46_d5_formulae_hash(args ...brew_runtime.Value) brew_runtime.Value {
-	mut output := map[string]brew_runtime.Value{}
+pub fn ruby_formula_spec_l46_d5_formulae_hash(args ...ruby.Value) ruby.Value {
+	mut output := map[string]ruby.Value{}
 	for name, formula in formula_spec_formulae_hash() {
-		output[name] = brew_runtime.map_value(formula)
+		output[name] = ruby.map_value(formula)
 	}
-	return brew_runtime.map_value(output)
+	return ruby.map_value(output)
 }
 
 // Ruby let `let(:formulae_aliases) do` at line 57.
-pub fn ruby_formula_spec_l57_d6_formulae_aliases(args ...brew_runtime.Value) brew_runtime.Value {
-	mut output := map[string]brew_runtime.Value{}
+pub fn ruby_formula_spec_l57_d6_formulae_aliases(args ...ruby.Value) ruby.Value {
+	mut output := map[string]ruby.Value{}
 	for alias_name, name in formula_spec_formulae_aliases() {
-		output[alias_name] = brew_runtime.string_value(name)
+		output[alias_name] = ruby.string_value(name)
 	}
-	return brew_runtime.map_value(output)
+	return ruby.map_value(output)
 }
 
 // Ruby it `it "returns the expected formula JSON list" do` at line 65.
-pub fn ruby_formula_spec_l65_d7_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(formula_spec_returns_expected_formulae())
+pub fn ruby_formula_spec_l65_d7_returns(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(formula_spec_returns_expected_formulae())
 }
 
 // Ruby it `it "returns the expected formula alias list" do` at line 71.
-pub fn ruby_formula_spec_l71_d8_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(formula_spec_returns_expected_aliases())
+pub fn ruby_formula_spec_l71_d8_returns(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(formula_spec_returns_expected_aliases())
 }
 
 // Ruby it `it "writes formula executables from the formula JSON list" do` at line 77.
-pub fn ruby_formula_spec_l77_d9_writes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(formula_spec_writes_executables())
+pub fn ruby_formula_spec_l77_d9_writes(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(formula_spec_writes_executables())
 }
 
 // Ruby it `it "removes the executables database if formula JSON has no executable entries" do` at line 84.
-pub fn ruby_formula_spec_l84_d10_removes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(formula_spec_removes_empty_executables())
+pub fn ruby_formula_spec_l84_d10_removes(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(formula_spec_removes_empty_executables())
 }
 
 // Ruby it `it "does not download the executables database while reading formula JSON" do` at line 108.
-pub fn ruby_formula_spec_l108_d11_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(formula_spec_reading_json_does_not_create_executables())
+pub fn ruby_formula_spec_l108_d11_does(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(formula_spec_reading_json_does_not_create_executables())
 }
 
 // Ruby let `let(:f) { Testball.new }` at line 130.
-pub fn ruby_formula_spec_l130_d12_f(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_spec_l130_d12_f(args ...ruby.Value) ruby.Value {
 	return formula_api.formula_source_boundary(formula_spec_formula())
 }
 
 // Ruby it `it "forces re-download when symlink_location exists but is not a symlink" do` at line 139.
-pub fn ruby_formula_spec_l139_d13_forces(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(formula_spec_forces_redownload_for_regular_file())
+pub fn ruby_formula_spec_l139_d13_forces(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(formula_spec_forces_redownload_for_regular_file())
 }
 
 // Ruby it `it "skips download when symlink_location is a valid symlink" do` at line 149.
-pub fn ruby_formula_spec_l149_d14_skips(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(formula_spec_skips_valid_symlink())
+pub fn ruby_formula_spec_l149_d14_skips(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(formula_spec_skips_valid_symlink())
 }
 
 // Ruby let `let(:f) { Testball.new }` at line 163.
-pub fn ruby_formula_spec_l163_d15_f(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_spec_l163_d15_f(args ...ruby.Value) ruby.Value {
 	return formula_api.formula_source_boundary(formula_spec_formula())
 }
 
 // Ruby it `it "raises CannotInstallFormulaError when source file is missing" do` at line 172.
-pub fn ruby_formula_spec_l172_d16_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(formula_spec_missing_source_raises())
+pub fn ruby_formula_spec_l172_d16_raises(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(formula_spec_missing_source_raises())
 }
 
 // Ruby it `it "loads formula from symlink_location when source file exists" do` at line 183.
-pub fn ruby_formula_spec_l183_d17_loads(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(formula_spec_loads_source_formula())
+pub fn ruby_formula_spec_l183_d17_loads(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(formula_spec_loads_source_formula())
 }
 
 // Ruby it `it "loads local patch files from API source cache" do` at line 199.
-pub fn ruby_formula_spec_l199_d18_loads(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(formula_spec_loads_local_patch())
+pub fn ruby_formula_spec_l199_d18_loads(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(formula_spec_loads_local_patch())
 }
 
 // Original Ruby source (line-for-line):

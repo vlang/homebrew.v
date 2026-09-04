@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 import x.json2
 
 // Translated from Homebrew/brew `cmd/trust.rb`.
@@ -431,47 +431,47 @@ pub:
 	taps    []TrustCommandTap
 }
 
-pub fn trust_command_input_boundary(input &TrustCommandInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::Cmd::Trust::Input', '', {
+pub fn trust_command_input_boundary(input &TrustCommandInput) ruby.Value {
+	return ruby.structured_value('Homebrew::Cmd::Trust::Input', '', {
 		'trust_command_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn trust_command_input_from_value(value brew_runtime.Value) &TrustCommandInput {
+fn trust_command_input_from_value(value ruby.Value) &TrustCommandInput {
 	address := value.attributes['trust_command_input_address'] or { panic('invalid Trust command input') }
 	return unsafe { &TrustCommandInput(voidptr(address.u64())) }
 }
 
-fn trust_command_result_value(result TrustCommandResult) brew_runtime.Value {
-	mut entries := map[string]brew_runtime.Value{}
+fn trust_command_result_value(result TrustCommandResult) ruby.Value {
+	mut entries := map[string]ruby.Value{}
 	for key, values in result.store.entries {
-		entries[key] = brew_runtime.string_array_value(values)
+		entries[key] = ruby.string_array_value(values)
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'TrustCommandResult'
 		repr: result.stdout
 		map_data: {
-			'store':    brew_runtime.map_value(entries)
-			'messages': brew_runtime.string_array_value(result.messages)
-			'stdout':   brew_runtime.string_value(result.stdout)
+			'store':    ruby.map_value(entries)
+			'messages': ruby.string_array_value(result.messages)
+			'stdout':   ruby.string_value(result.stdout)
 		}
 	}
 }
 
-fn trust_command_error_value(message string) brew_runtime.Value {
+fn trust_command_error_value(message string) ruby.Value {
 	for type_name in ['Homebrew::CLI::OptionConstraintError', 'OptionParser::MissingArgument',
 		'UsageError'] {
 		if message.starts_with('${type_name}:') {
-			return brew_runtime.object_value(type_name, message.all_after(':').trim_space())
+			return ruby.object_value(type_name, message.all_after(':').trim_space())
 		}
 	}
-	return brew_runtime.object_value('UsageError', message)
+	return ruby.object_value('UsageError', message)
 }
 
 // Ruby method `run` at line 37.
-pub fn ruby_trust_l37_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_trust_l37_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'command input is required')
+		return ruby.object_value('ArgumentError', 'command input is required')
 	}
 	input := trust_command_input_from_value(args[0])
 	result := run_trust_command(input.options, input.store, input.taps) or {
@@ -481,28 +481,28 @@ pub fn ruby_trust_l37_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `print_json` at line 79.
-pub fn ruby_trust_l79_d2_print_json(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_trust_l79_d2_print_json(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'command input is required')
+		return ruby.object_value('ArgumentError', 'command input is required')
 	}
 	input := trust_command_input_from_value(args[0])
-	return brew_runtime.string_value(trust_command_json(input.store, selected_trust_type(input.options)))
+	return ruby.string_value(trust_command_json(input.store, selected_trust_type(input.options)))
 }
 
 // Ruby method `types` at line 96.
-pub fn ruby_trust_l96_d3_types(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_trust_l96_d3_types(args ...ruby.Value) ruby.Value {
 	selected := if args.len > 0 && args[0].type_name != 'NilClass' {
 		trust_entry_type_from_string(args[0].as_string()) or {
-			return brew_runtime.object_value('ArgumentError', err.msg())
+			return ruby.object_value('ArgumentError', err.msg())
 		}
 	} else {
 		none
 	}
-	return brew_runtime.string_array_value(trust_command_types(selected).map(trust_command_type_name(it)))
+	return ruby.string_array_value(trust_command_types(selected).map(trust_command_type_name(it)))
 }
 
 // Ruby method `selected_type` at line 104.
-pub fn ruby_trust_l104_d4_selected_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_trust_l104_d4_selected_type(args ...ruby.Value) ruby.Value {
 	options := TrustCommandOptions{
 		tap: args.len > 0 && (args[0].as_bool() or { false })
 		formula: args.len > 1 && (args[1].as_bool() or { false })
@@ -511,9 +511,9 @@ pub fn ruby_trust_l104_d4_selected_type(args ...brew_runtime.Value) brew_runtime
 		commands: args.len > 4 && (args[4].as_bool() or { false })
 	}
 	if kind := selected_trust_type(options) {
-		return brew_runtime.string_value(trust_command_type_name(kind))
+		return ruby.string_value(trust_command_type_name(kind))
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 fn trust_entry_type_from_string(value string) !TrustEntryType {

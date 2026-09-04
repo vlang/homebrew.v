@@ -1,6 +1,6 @@
 module shared
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `rubocops/shared/install_steps_helper.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -772,36 +772,36 @@ pub fn install_steps_compatibility_analysis(source string, block_name string,
 	return InstallStepHelperAnalysis{ source: source, offenses: offenses, corrected: corrected }
 }
 
-fn install_step_path_value(path InstallStepPath) brew_runtime.Value {
-	return brew_runtime.Value{
+fn install_step_path_value(path InstallStepPath) ruby.Value {
+	return ruby.Value{
 		type_name: 'RuboCop::Cop::InstallStepsHelper::InstallStepPath'
 		repr: install_steps_path_source(path)
 		map_data: {
-			'path':   brew_runtime.string_value(path.path)
-			'base':   brew_runtime.string_value(path.base)
-			'source': brew_runtime.string_value(path.source)
+			'path':   ruby.string_value(path.path)
+			'base':   ruby.string_value(path.base)
+			'source': ruby.string_value(path.source)
 		}
 	}
 }
 
-fn install_step_path_from_value(value brew_runtime.Value) ?InstallStepPath {
+fn install_step_path_from_value(value ruby.Value) ?InstallStepPath {
 	if value.type_name == 'RuboCop::Cop::InstallStepsHelper::InstallStepPath' {
 		return InstallStepPath{
-			path: (value.map_data['path'] or { brew_runtime.string_value('') }).as_string()
-			base: (value.map_data['base'] or { brew_runtime.string_value('') }).as_string()
-			source: (value.map_data['source'] or { brew_runtime.string_value('') }).as_string()
+			path: (value.map_data['path'] or { ruby.string_value('') }).as_string()
+			base: (value.map_data['base'] or { ruby.string_value('') }).as_string()
+			source: (value.map_data['source'] or { ruby.string_value('') }).as_string()
 		}
 	}
 	return install_steps_parse_path(value.as_string())
 }
 
-fn install_step_offense_value(offense InstallStepOffense) brew_runtime.Value {
-	return brew_runtime.Value{
+fn install_step_offense_value(offense InstallStepOffense) ruby.Value {
+	return ruby.Value{
 		type_name: 'RuboCop::Cop::Offense'
 		repr: offense.message
 		map_data: {
-			'message':     brew_runtime.string_value(offense.message)
-			'replacement': brew_runtime.string_value(offense.replacement)
+			'message':     ruby.string_value(offense.message)
+			'replacement': ruby.string_value(offense.replacement)
 		}
 		attributes: {
 			'begin_pos': offense.begin_pos.str()
@@ -810,81 +810,81 @@ fn install_step_offense_value(offense InstallStepOffense) brew_runtime.Value {
 	}
 }
 
-fn install_step_analysis_value(analysis InstallStepHelperAnalysis) brew_runtime.Value {
-	return brew_runtime.Value{
+fn install_step_analysis_value(analysis InstallStepHelperAnalysis) ruby.Value {
+	return ruby.Value{
 		type_name: 'RuboCop::Cop::InstallStepsHelper::Analysis'
 		repr: analysis.source
 		array_data: analysis.offenses.map(install_step_offense_value(it))
 		map_data: {
-			'offenses':  brew_runtime.array_value(analysis.offenses.map(install_step_offense_value(it)))
-			'corrected': brew_runtime.string_value(analysis.corrected)
+			'offenses':  ruby.array_value(analysis.offenses.map(install_step_offense_value(it)))
+			'corrected': ruby.string_value(analysis.corrected)
 		}
 	}
 }
 
-fn install_steps_helper_source(args []brew_runtime.Value) string {
+fn install_steps_helper_source(args []ruby.Value) string {
 	return if args.len > 0 { args[0].as_string() } else { '' }
 }
 
 // Ruby method `official_homebrew_tap?(file_path)` at line 116.
-pub fn ruby_install_steps_helper_l116_d1_official_homebrew_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(install_steps_official_homebrew_tap(install_steps_helper_source(args)))
+pub fn ruby_install_steps_helper_l116_d1_official_homebrew_tap(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(install_steps_official_homebrew_tap(install_steps_helper_source(args)))
 }
 
 // Ruby method `step_block_msg(allowed_methods)` at line 121.
-pub fn ruby_install_steps_helper_l121_d2_step_block_msg(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_helper_l121_d2_step_block_msg(args ...ruby.Value) ruby.Value {
 	allowed := if args.len > 0 && args[0].type_name == 'Array' {
 		(args[0].as_array() or { [] }).map(it.as_string())
 	} else {
 		install_steps_allowed_methods()
 	}
-	return brew_runtime.string_value(install_steps_step_block_message(allowed))
+	return ruby.string_value(install_steps_step_block_message(allowed))
 }
 
 // Ruby method `add_compatibility_step_offenses(block_node, allowed_methods: ALLOWED_STEP_METHODS)` at line 132.
-pub fn ruby_install_steps_helper_l132_d3_add_compatibility_step_offenses(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_helper_l132_d3_add_compatibility_step_offenses(args ...ruby.Value) ruby.Value {
 	return install_step_analysis_value(install_steps_compatibility_analysis(install_steps_helper_source(args), 'post_install_steps', install_steps_allowed_methods()))
 }
 
 // Ruby method `install_step_block_offense_node(block_node, allowed_methods: ALLOWED_STEP_METHODS)` at line 161.
-pub fn ruby_install_steps_helper_l161_d4_install_step_block_offense_node(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_helper_l161_d4_install_step_block_offense_node(args ...ruby.Value) ruby.Value {
 	offense := install_steps_block_offense_for(install_steps_helper_source(args), 'post_install_steps', install_steps_allowed_methods()) or {
-		return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+		return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 	}
 	return install_step_offense_value(offense)
 }
 
 // Ruby method `brew_ruby_step_node(block_node)` at line 175.
-pub fn ruby_install_steps_helper_l175_d5_brew_ruby_step_node(args ...brew_runtime.Value) brew_runtime.Value {
-	offense := install_steps_brew_ruby_offense(install_steps_helper_source(args), 'post_install_steps') or { return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' } }
+pub fn ruby_install_steps_helper_l175_d5_brew_ruby_step_node(args ...ruby.Value) ruby.Value {
+	offense := install_steps_brew_ruby_offense(install_steps_helper_source(args), 'post_install_steps') or { return ruby.Value{ type_name: 'NilClass', repr: 'nil' } }
 	return install_step_offense_value(offense)
 }
 
 // Ruby method `simple_install_step_lines(body_node, default_base:, default_source_base:, default_target_base:,` at line 211.
-pub fn ruby_install_steps_helper_l211_d6_simple_install_step_lines(args ...brew_runtime.Value) brew_runtime.Value {
-	lines := install_steps_simple_lines(install_steps_helper_source(args), 'post_install', 'var', 'prefix', 'prefix') or { return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' } }
-	return brew_runtime.string_array_value(lines)
+pub fn ruby_install_steps_helper_l211_d6_simple_install_step_lines(args ...ruby.Value) ruby.Value {
+	lines := install_steps_simple_lines(install_steps_helper_source(args), 'post_install', 'var', 'prefix', 'prefix') or { return ruby.Value{ type_name: 'NilClass', repr: 'nil' } }
+	return ruby.string_array_value(lines)
 }
 
 // Ruby method `install_steps_block_source(block_name, step_lines, indent)` at line 226.
-pub fn ruby_install_steps_helper_l226_d7_install_steps_block_source(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_helper_l226_d7_install_steps_block_source(args ...ruby.Value) ruby.Value {
 	name := if args.len > 0 { args[0].as_string().trim_left(':') } else { 'post_install_steps' }
 	lines := if args.len > 1 { args[1].as_string_array() or { [] } } else { [] }
 	indent := if args.len > 2 { int(args[2].int_data) } else { 0 }
-	return brew_runtime.string_value(install_steps_block_source(name, lines, indent))
+	return ruby.string_value(install_steps_block_source(name, lines, indent))
 }
 
 // Ruby method `append_install_step_lines(corrector, block_node, step_lines)` at line 242.
-pub fn ruby_install_steps_helper_l242_d8_append_install_step_lines(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_helper_l242_d8_append_install_step_lines(args ...ruby.Value) ruby.Value {
 	lines := if args.len > 1 { args[1].as_string_array() or { [] } } else { [] }
 	indent := if args.len > 2 { int(args[2].int_data) } else { 0 }
-	return brew_runtime.string_value(install_steps_append_lines(install_steps_helper_source(args), lines, indent))
+	return ruby.string_value(install_steps_append_lines(install_steps_helper_source(args), lines, indent))
 }
 
 // Ruby method `direct_install_step_nodes(body_node)` at line 252.
-pub fn ruby_install_steps_helper_l252_d9_direct_install_step_nodes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_helper_l252_d9_direct_install_step_nodes(args ...ruby.Value) ruby.Value {
 	spans := install_steps_direct_statements(install_steps_helper_source(args), 'post_install')
-	return brew_runtime.array_value(spans.map(brew_runtime.structured_value('RuboCop::AST::Node', it.source, {
+	return ruby.array_value(spans.map(ruby.structured_value('RuboCop::AST::Node', it.source, {
 		'name':      it.name
 		'begin_pos': it.begin_pos.str()
 		'end_pos':   it.end_pos.str()
@@ -892,140 +892,140 @@ pub fn ruby_install_steps_helper_l252_d9_direct_install_step_nodes(args ...brew_
 }
 
 // Ruby method `normalised_install_step_source(node)` at line 259.
-pub fn ruby_install_steps_helper_l259_d10_normalised_install_step_source(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(install_steps_normalised_source(install_steps_helper_source(args)))
+pub fn ruby_install_steps_helper_l259_d10_normalised_install_step_source(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(install_steps_normalised_source(install_steps_helper_source(args)))
 }
 
 // Ruby method `add_compatibility_step_keyword_offenses(send_node)` at line 266.
-pub fn ruby_install_steps_helper_l266_d11_add_compatibility_step_keyword_offenses(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_helper_l266_d11_add_compatibility_step_keyword_offenses(args ...ruby.Value) ruby.Value {
 	return install_step_analysis_value(install_steps_compatibility_analysis(install_steps_helper_source(args), 'post_install_steps', install_steps_allowed_methods()))
 }
 
 // Ruby method `correct_compatibility_step_keyword(corrector, send_node, options, legacy_pair, replacement)` at line 294.
-pub fn ruby_install_steps_helper_l294_d12_correct_compatibility_step_keyword(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(install_steps_compatibility_analysis(install_steps_helper_source(args), 'post_install_steps', install_steps_allowed_methods()).corrected)
+pub fn ruby_install_steps_helper_l294_d12_correct_compatibility_step_keyword(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(install_steps_compatibility_analysis(install_steps_helper_source(args), 'post_install_steps', install_steps_allowed_methods()).corrected)
 }
 
 // Ruby method `add_compatibility_step_method_corrections(corrector, send_node)` at line 332.
-pub fn ruby_install_steps_helper_l332_d13_add_compatibility_step_method_corrections(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(install_steps_compatibility_analysis(install_steps_helper_source(args), 'post_install_steps', install_steps_allowed_methods()).corrected)
+pub fn ruby_install_steps_helper_l332_d13_add_compatibility_step_method_corrections(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(install_steps_compatibility_analysis(install_steps_helper_source(args), 'post_install_steps', install_steps_allowed_methods()).corrected)
 }
 
 // Ruby method `add_step_keyword(corrector, send_node, keyword)` at line 354.
-pub fn ruby_install_steps_helper_l354_d14_add_step_keyword(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_helper_l354_d14_add_step_keyword(args ...ruby.Value) ruby.Value {
 	keyword := if args.len > 1 { args[1].as_string() } else { 'overwrite: true' }
-	return brew_runtime.string_value('${install_steps_helper_source(args).trim_right(' \t\n')}, ${keyword}')
+	return ruby.string_value('${install_steps_helper_source(args).trim_right(' \t\n')}, ${keyword}')
 }
 
 // Ruby method `install_step_offense_node(node, allowed_methods)` at line 379.
-pub fn ruby_install_steps_helper_l379_d15_install_step_offense_node(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_helper_l379_d15_install_step_offense_node(args ...ruby.Value) ruby.Value {
 	source := 'post_install_steps do\n  ${install_steps_helper_source(args)}\nend'
 	offense := install_steps_block_offense_for(source, 'post_install_steps', install_steps_allowed_methods()) or {
-		return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+		return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 	}
 	return install_step_offense_value(offense)
 }
 
 // Ruby method `invalid_step_argument_node(send_node)` at line 405.
-pub fn ruby_install_steps_helper_l405_d16_invalid_step_argument_node(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(!install_steps_allowed_interpolation(install_steps_helper_source(args)))
+pub fn ruby_install_steps_helper_l405_d16_invalid_step_argument_node(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(!install_steps_allowed_interpolation(install_steps_helper_source(args)))
 }
 
 // Ruby method `indented_install_step_lines(step_lines, indent)` at line 413.
-pub fn ruby_install_steps_helper_l413_d17_indented_install_step_lines(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_helper_l413_d17_indented_install_step_lines(args ...ruby.Value) ruby.Value {
 	lines := if args.len > 0 { args[0].as_string_array() or { [] } } else { [] }
 	indent := if args.len > 1 { int(args[1].int_data) } else { 0 }
-	return brew_runtime.string_array_value(install_steps_indented_lines(lines, indent))
+	return ruby.string_array_value(install_steps_indented_lines(lines, indent))
 }
 
 // Ruby method `allowed_step_argument_node?(node)` at line 424.
-pub fn ruby_install_steps_helper_l424_d18_allowed_step_argument_node(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_helper_l424_d18_allowed_step_argument_node(args ...ruby.Value) ruby.Value {
 	source := install_steps_helper_source(args).trim_space()
 	if source == '' {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	allowed_type := source in ['true', 'false', 'nil'] || source.starts_with('"') || source.starts_with("'") || source.starts_with(':') || source.starts_with('[') || source.starts_with('{') || source[0].is_digit()
-	return brew_runtime.bool_value(allowed_type && install_steps_allowed_interpolation(source))
+	return ruby.bool_value(allowed_type && install_steps_allowed_interpolation(source))
 }
 
 // Ruby method `allowed_step_template_node?(node)` at line 432.
-pub fn ruby_install_steps_helper_l432_d19_allowed_step_template_node(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_helper_l432_d19_allowed_step_template_node(args ...ruby.Value) ruby.Value {
 	source := install_steps_helper_source(args).trim_space().trim('{}')
-	return brew_runtime.bool_value(source in ['formula_name', 'name', 'token', 'version',
+	return ruby.bool_value(source in ['formula_name', 'name', 'token', 'version',
 		'version.major', 'version.major_minor'])
 }
 
 // Ruby method `simple_install_step_line(node, default_base:, default_source_base:, default_target_base:, rebuild_actions:,` at line 464.
-pub fn ruby_install_steps_helper_l464_d20_simple_install_step_line(args ...brew_runtime.Value) brew_runtime.Value {
-	line := install_steps_simple_line(install_steps_helper_source(args), 'var', 'prefix', 'prefix', true) or { return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' } }
-	return brew_runtime.string_value(line)
+pub fn ruby_install_steps_helper_l464_d20_simple_install_step_line(args ...ruby.Value) ruby.Value {
+	line := install_steps_simple_line(install_steps_helper_source(args), 'var', 'prefix', 'prefix', true) or { return ruby.Value{ type_name: 'NilClass', repr: 'nil' } }
+	return ruby.string_value(line)
 }
 
 // Ruby method `mkdir_step_line(path, default_base)` at line 536.
-pub fn ruby_install_steps_helper_l536_d21_mkdir_step_line(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_helper_l536_d21_mkdir_step_line(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+		return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 	}
 	path := install_step_path_from_value(args[0]) or {
-		return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+		return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 	}
 	if install_steps_relative_path(path) {
-		return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+		return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 	}
 	base := if args.len > 1 { args[1].as_string().trim_left(':') } else { 'var' }
-	return brew_runtime.string_value('mkdir_p ${install_steps_path_source(path)}${install_steps_path_keywords(path, base, 'base')}')
+	return ruby.string_value('mkdir_p ${install_steps_path_source(path)}${install_steps_path_keywords(path, base, 'base')}')
 }
 
 // Ruby method `touch_step_line(path, default_base)` at line 549.
-pub fn ruby_install_steps_helper_l549_d22_touch_step_line(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_helper_l549_d22_touch_step_line(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+		return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 	}
 	path := install_step_path_from_value(args[0]) or {
-		return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+		return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 	}
 	if install_steps_relative_path(path) {
-		return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+		return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 	}
 	base := if args.len > 1 { args[1].as_string().trim_left(':') } else { 'var' }
-	return brew_runtime.string_value('touch ${install_steps_path_source(path)}${install_steps_path_keywords(path, base, 'base')}')
+	return ruby.string_value('touch ${install_steps_path_source(path)}${install_steps_path_keywords(path, base, 'base')}')
 }
 
 // Ruby method `move_step_line(source, target, default_source_base, default_target_base)` at line 564.
-pub fn ruby_install_steps_helper_l564_d23_move_step_line(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_helper_l564_d23_move_step_line(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+		return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 	}
 	source := install_step_path_from_value(args[0]) or {
-		return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+		return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 	}
 	target := install_step_path_from_value(args[1]) or {
-		return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+		return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 	}
 	if install_steps_relative_path(source) || install_steps_relative_path(target) {
-		return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+		return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 	}
 	source_base := if args.len > 2 { args[2].as_string().trim_left(':') } else { 'prefix' }
 	target_base := if args.len > 3 { args[3].as_string().trim_left(':') } else { 'prefix' }
 	kwargs := [install_steps_path_keyword(source, source_base, 'source_base'),
 		install_steps_path_keyword(target, target_base, 'target_base')].filter(it != '')
-	return brew_runtime.string_value('move ${install_steps_path_source(source)}, ${install_steps_path_source(target)}${install_steps_kwargs(kwargs)}')
+	return ruby.string_value('move ${install_steps_path_source(source)}, ${install_steps_path_source(target)}${install_steps_kwargs(kwargs)}')
 }
 
 // Ruby method `symlink_step_line(overwrite, source, target, default_source_base, default_target_base)` at line 584.
-pub fn ruby_install_steps_helper_l584_d24_symlink_step_line(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_helper_l584_d24_symlink_step_line(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
-		return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+		return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 	}
 	overwrite := args[0].bool_data
 	source := install_step_path_from_value(args[1]) or {
-		return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+		return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 	}
 	target := install_step_path_from_value(args[2]) or {
-		return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+		return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 	}
 	if install_steps_relative_path(target) {
-		return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+		return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 	}
 	source_base := if args.len > 3 { args[3].as_string().trim_left(':') } else { 'prefix' }
 	target_base := if args.len > 4 { args[4].as_string().trim_left(':') } else { 'prefix' }
@@ -1037,62 +1037,62 @@ pub fn ruby_install_steps_helper_l584_d24_symlink_step_line(args ...brew_runtime
 	if overwrite {
 		kwargs << 'overwrite: true'
 	}
-	return brew_runtime.string_value('symlink ${install_steps_path_source(source)}, ${install_steps_path_source(target)}${install_steps_kwargs(kwargs)}')
+	return ruby.string_value('symlink ${install_steps_path_source(source)}, ${install_steps_path_source(target)}${install_steps_kwargs(kwargs)}')
 }
 
 // Ruby method `write_step_line(path, content_node, default_base)` at line 609.
-pub fn ruby_install_steps_helper_l609_d25_write_step_line(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_helper_l609_d25_write_step_line(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+		return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 	}
 	path := install_step_path_from_value(args[0]) or {
-		return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+		return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 	}
 	if install_steps_relative_path(path) {
-		return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+		return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 	}
 	base := if args.len > 2 { args[2].as_string().trim_left(':') } else { 'var' }
-	return brew_runtime.string_value('write_file ${install_steps_path_source(path)}, ${args[1].as_string()}${install_steps_path_keywords(path, base, 'base')}')
+	return ruby.string_value('write_file ${install_steps_path_source(path)}, ${args[1].as_string()}${install_steps_path_keywords(path, base, 'base')}')
 }
 
 // Ruby method `write_content_source(content_node, kwargs)` at line 621.
-pub fn ruby_install_steps_helper_l621_d26_write_content_source(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_helper_l621_d26_write_content_source(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+		return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 	}
 	kwargs := if args.len > 1 { args[1].as_string_array() or { [] } } else { [] }
-	return brew_runtime.string_value('${args[0].as_string()}${install_steps_kwargs(kwargs)}')
+	return ruby.string_value('${args[0].as_string()}${install_steps_kwargs(kwargs)}')
 }
 
 // Ruby method `set_permissions_step_line(send_node, default_base)` at line 641.
-pub fn ruby_install_steps_helper_l641_d27_set_permissions_step_line(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_helper_l641_d27_set_permissions_step_line(args ...ruby.Value) ruby.Value {
 	source := install_steps_helper_source(args).trim_space()
 	rest := source.trim_string_left('set_permissions ').split(', ')
 	if rest.len != 2 || !rest[1].starts_with('"') {
-		return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+		return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 	}
 	path := install_steps_parse_path(rest[0]) or {
-		return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+		return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 	}
 	base := if args.len > 1 { args[1].as_string().trim_left(':') } else { 'staged_path' }
-	return brew_runtime.string_value('set_permissions ${install_steps_path_source(path)}, ${rest[1]}${install_steps_path_keywords(path, base, 'base')}')
+	return ruby.string_value('set_permissions ${install_steps_path_source(path)}, ${rest[1]}${install_steps_path_keywords(path, base, 'base')}')
 }
 
 // Ruby method `set_ownership_step_line(send_node, default_base)` at line 659.
-pub fn ruby_install_steps_helper_l659_d28_set_ownership_step_line(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_helper_l659_d28_set_ownership_step_line(args ...ruby.Value) ruby.Value {
 	source := install_steps_helper_source(args).trim_space()
 	rest := source.trim_string_left('set_ownership ')
 	path_expression := rest.all_before(',')
 	path := install_steps_parse_path(path_expression) or {
-		return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+		return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 	}
-	return brew_runtime.string_value('set_ownership ${install_steps_path_source(path)}${rest[path_expression.len..]}')
+	return ruby.string_value('set_ownership ${install_steps_path_source(path)}${rest[path_expression.len..]}')
 }
 
 // Ruby method `permission_paths_source(node, default_base)` at line 689.
-pub fn ruby_install_steps_helper_l689_d29_permission_paths_source(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_helper_l689_d29_permission_paths_source(args ...ruby.Value) ruby.Value {
 	path := install_step_path_from_value(args[0]) or {
-		return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+		return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 	}
 	base := if install_steps_absolute_path(path) {
 		''
@@ -1103,28 +1103,28 @@ pub fn ruby_install_steps_helper_l689_d29_permission_paths_source(args ...brew_r
 	} else {
 		'staged_path'
 	}
-	return brew_runtime.array_value([
-		brew_runtime.string_value(install_steps_path_source(path)),
-		brew_runtime.string_value(base),
+	return ruby.array_value([
+		ruby.string_value(install_steps_path_source(path)),
+		ruby.string_value(base),
 	])
 }
 
 // Ruby method `cask_permission_path(node)` at line 714.
-pub fn ruby_install_steps_helper_l714_d30_cask_permission_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_helper_l714_d30_cask_permission_path(args ...ruby.Value) ruby.Value {
 	if install_steps_helper_source(args).trim_space() == 'staged_path.to_s' {
 		return install_step_path_value(InstallStepPath{ path: '.', base: 'staged_path' })
 	}
 	path := install_step_path_from_value(args[0]) or {
-		return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+		return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 	}
 	return install_step_path_value(path)
 }
 
 // Ruby method `dstr_permission_path(node)` at line 726.
-pub fn ruby_install_steps_helper_l726_d31_dstr_permission_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_helper_l726_d31_dstr_permission_path(args ...ruby.Value) ruby.Value {
 	source := install_steps_helper_source(args).trim_space()
 	if source.len < 2 || !source.starts_with('"') || !source.ends_with('"') {
-		return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+		return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 	}
 	content := source[1..source.len - 1]
 	mut base := ''
@@ -1140,16 +1140,16 @@ pub fn ruby_install_steps_helper_l726_d31_dstr_permission_path(args ...brew_runt
 		}
 	}
 	if base == '' && !path.starts_with('/') && !path.starts_with('~/') {
-		return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+		return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 	}
 	if !install_steps_allowed_interpolation(source) && base == '' {
-		return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+		return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 	}
 	return install_step_path_value(InstallStepPath{ path: path, base: base, source: source })
 }
 
 // Ruby method `interpolated_path_base(node)` at line 766.
-pub fn ruby_install_steps_helper_l766_d32_interpolated_path_base(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_helper_l766_d32_interpolated_path_base(args ...ruby.Value) ruby.Value {
 	source := install_steps_helper_source(args).trim_space().trim('{}')
 	base := match source {
 		'HOMEBREW_PREFIX' { 'homebrew_prefix' }
@@ -1157,17 +1157,17 @@ pub fn ruby_install_steps_helper_l766_d32_interpolated_path_base(args ...brew_ru
 		else { '' }
 	}
 	return if base == '' {
-		brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+		ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 	} else {
-		brew_runtime.object_value('Symbol', ':${base}')
+		ruby.object_value('Symbol', ':${base}')
 	}
 }
 
 // Ruby method `install_step_path_keywords_for_base(base, default_base)` at line 781.
-pub fn ruby_install_steps_helper_l781_d33_install_step_path_keywords_for_base(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_helper_l781_d33_install_step_path_keywords_for_base(args ...ruby.Value) ruby.Value {
 	base := if args.len > 0 { args[0].as_string().trim_left(':') } else { '' }
 	default_base := if args.len > 1 { args[1].as_string().trim_left(':') } else { '' }
-	return brew_runtime.string_value(if base != '' && base != default_base {
+	return ruby.string_value(if base != '' && base != default_base {
 		', base: :${base}'
 	} else {
 		''
@@ -1175,22 +1175,22 @@ pub fn ruby_install_steps_helper_l781_d33_install_step_path_keywords_for_base(ar
 }
 
 // Ruby method `fileutils_or_no_receiver?(send_node)` at line 786.
-pub fn ruby_install_steps_helper_l786_d34_fileutils_or_no_receiver(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_helper_l786_d34_fileutils_or_no_receiver(args ...ruby.Value) ruby.Value {
 	trimmed := install_steps_helper_source(args).trim_space()
 	selector := trimmed.all_before(' ')
-	return brew_runtime.bool_value(!selector.contains('.') || selector.starts_with('FileUtils.'))
+	return ruby.bool_value(!selector.contains('.') || selector.starts_with('FileUtils.'))
 }
 
 // Ruby method `install_step_path(node)` at line 792.
-pub fn ruby_install_steps_helper_l792_d35_install_step_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_helper_l792_d35_install_step_path(args ...ruby.Value) ruby.Value {
 	path := install_steps_parse_path(install_steps_helper_source(args)) or {
-		return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+		return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 	}
 	return install_step_path_value(path)
 }
 
 // Ruby method `install_step_path_base(node)` at line 810.
-pub fn ruby_install_steps_helper_l810_d36_install_step_path_base(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_helper_l810_d36_install_step_path_base(args ...ruby.Value) ruby.Value {
 	source := install_steps_helper_source(args).trim_space()
 	base := match source {
 		'HOMEBREW_PREFIX' { 'homebrew_prefix' }
@@ -1198,57 +1198,57 @@ pub fn ruby_install_steps_helper_l810_d36_install_step_path_base(args ...brew_ru
 		else { '' }
 	}
 	return if base == '' {
-		brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+		ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 	} else {
-		brew_runtime.object_value('Symbol', ':${base}')
+		ruby.object_value('Symbol', ':${base}')
 	}
 }
 
 // Ruby method `relative_install_step_path?(path)` at line 823.
-pub fn ruby_install_steps_helper_l823_d37_relative_install_step_path(args ...brew_runtime.Value) brew_runtime.Value {
-	path := install_step_path_from_value(args[0]) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(install_steps_relative_path(path))
+pub fn ruby_install_steps_helper_l823_d37_relative_install_step_path(args ...ruby.Value) ruby.Value {
+	path := install_step_path_from_value(args[0]) or { return ruby.bool_value(false) }
+	return ruby.bool_value(install_steps_relative_path(path))
 }
 
 // Ruby method `absolute_install_step_path?(path)` at line 828.
-pub fn ruby_install_steps_helper_l828_d38_absolute_install_step_path(args ...brew_runtime.Value) brew_runtime.Value {
-	path := install_step_path_from_value(args[0]) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(install_steps_absolute_path(path))
+pub fn ruby_install_steps_helper_l828_d38_absolute_install_step_path(args ...ruby.Value) ruby.Value {
+	path := install_step_path_from_value(args[0]) or { return ruby.bool_value(false) }
+	return ruby.bool_value(install_steps_absolute_path(path))
 }
 
 // Ruby method `install_step_path_source(path)` at line 833.
-pub fn ruby_install_steps_helper_l833_d39_install_step_path_source(args ...brew_runtime.Value) brew_runtime.Value {
-	path := install_step_path_from_value(args[0]) or { return brew_runtime.string_value('') }
-	return brew_runtime.string_value(install_steps_path_source(path))
+pub fn ruby_install_steps_helper_l833_d39_install_step_path_source(args ...ruby.Value) ruby.Value {
+	path := install_step_path_from_value(args[0]) or { return ruby.string_value('') }
+	return ruby.string_value(install_steps_path_source(path))
 }
 
 // Ruby method `install_step_path_keywords(path, base:, keyword:)` at line 838.
-pub fn ruby_install_steps_helper_l838_d40_install_step_path_keywords(args ...brew_runtime.Value) brew_runtime.Value {
-	path := install_step_path_from_value(args[0]) or { return brew_runtime.string_value('') }
+pub fn ruby_install_steps_helper_l838_d40_install_step_path_keywords(args ...ruby.Value) ruby.Value {
+	path := install_step_path_from_value(args[0]) or { return ruby.string_value('') }
 	base := if args.len > 1 { args[1].as_string().trim_left(':') } else { 'var' }
 	keyword := if args.len > 2 { args[2].as_string().trim_left(':') } else { 'base' }
-	return brew_runtime.string_value(install_steps_path_keywords(path, base, keyword))
+	return ruby.string_value(install_steps_path_keywords(path, base, keyword))
 }
 
 // Ruby method `install_step_path_keyword(path, base:, keyword:)` at line 844.
-pub fn ruby_install_steps_helper_l844_d41_install_step_path_keyword(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_helper_l844_d41_install_step_path_keyword(args ...ruby.Value) ruby.Value {
 	path := install_step_path_from_value(args[0]) or {
-		return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+		return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 	}
 	base := if args.len > 1 { args[1].as_string().trim_left(':') } else { 'var' }
 	keyword := if args.len > 2 { args[2].as_string().trim_left(':') } else { 'base' }
 	value := install_steps_path_keyword(path, base, keyword)
 	return if value == '' {
-		brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+		ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 	} else {
-		brew_runtime.string_value(value)
+		ruby.string_value(value)
 	}
 }
 
 // Ruby method `install_step_kwargs(kwargs)` at line 851.
-pub fn ruby_install_steps_helper_l851_d42_install_step_kwargs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_helper_l851_d42_install_step_kwargs(args ...ruby.Value) ruby.Value {
 	kwargs := if args.len > 0 { args[0].as_string_array() or { [] } } else { [] }
-	return brew_runtime.string_value(install_steps_kwargs(kwargs))
+	return ruby.string_value(install_steps_kwargs(kwargs))
 }
 
 // Original Ruby source (line-for-line):

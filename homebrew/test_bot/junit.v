@@ -1,6 +1,6 @@
 module test_bot
 
-import brew_runtime
+import ruby
 import os
 
 pub struct JunitStep {
@@ -30,36 +30,36 @@ pub mut:
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `initialize(tests)` at line 10.
-pub fn ruby_junit_l10_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_junit_l10_d1_initialize(args ...ruby.Value) ruby.Value {
 	tests := if args.len > 0 { junit_tests_from_value(args[0]) } else { []JunitTest{} }
-	return brew_runtime.map_value({
-		'tests':        brew_runtime.int_value(tests.len)
-		'xml_document': brew_runtime.object_value('NilClass', 'nil')
+	return ruby.map_value({
+		'tests':        ruby.int_value(tests.len)
+		'xml_document': ruby.object_value('NilClass', 'nil')
 	})
 }
 
 // Ruby method `build(filters: nil)` at line 20.
-pub fn ruby_junit_l20_d2_build(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_junit_l20_d2_build(args ...ruby.Value) ruby.Value {
 	tests := if args.len > 0 { junit_tests_from_value(args[0]) } else { []JunitTest{} }
 	filters := if args.len > 1 { args[1].as_string_array() or { []string{} } } else { []string{} }
 	tag := if args.len > 2 {
 		args[2].as_string()
 	} else {
-		brew_runtime.environment_value('HOMEBREW_TEST_BOT_TAG')
+		ruby.environment_value('HOMEBREW_TEST_BOT_TAG')
 	}
 	mut junit := new_junit(tests, tag)
-	return brew_runtime.string_value(junit.build(filters))
+	return ruby.string_value(junit.build(filters))
 }
 
 // Ruby method `write(filename)` at line 52.
-pub fn ruby_junit_l52_d3_write(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_junit_l52_d3_write(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('RuntimeError', 'Junit.write requires a filename and built XML document')
+		return ruby.object_value('RuntimeError', 'Junit.write requires a filename and built XML document')
 	}
 	write_junit(args[0].as_string(), args[1].as_string()) or {
-		return brew_runtime.object_value('RuntimeError', err.msg())
+		return ruby.object_value('RuntimeError', err.msg())
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 pub fn new_junit(tests []JunitTest, tag string) Junit {
@@ -116,7 +116,7 @@ fn junit_xml_attribute(value string) string {
 	return value.replace('&', '&amp;').replace("'", '&apos;').replace('<', '&lt;').replace('>', '&gt;').replace('"', '&quot;')
 }
 
-fn junit_tests_from_value(value brew_runtime.Value) []JunitTest {
+fn junit_tests_from_value(value ruby.Value) []JunitTest {
 	values := value.as_array() or { return [] }
 	mut tests := []JunitTest{cap: values.len}
 	for test_value in values {
@@ -126,12 +126,12 @@ fn junit_tests_from_value(value brew_runtime.Value) []JunitTest {
 		for step_value in step_values {
 			step := step_value.as_map() or { continue }
 			steps << JunitStep{
-				command_short: (step['command_short'] or { brew_runtime.string_value('') }).as_string()
-				status: (step['status'] or { brew_runtime.string_value('') }).as_string()
-				time: (step['time'] or { brew_runtime.string_value('') }).as_string()
-				start_time: (step['start_time'] or { brew_runtime.string_value('') }).as_string()
-				passed: (step['passed'] or { brew_runtime.bool_value(false) }).bool_data
-				command: (step['command'] or { brew_runtime.string_array_value([]) }).as_string_array() or { [] }
+				command_short: (step['command_short'] or { ruby.string_value('') }).as_string()
+				status: (step['status'] or { ruby.string_value('') }).as_string()
+				time: (step['time'] or { ruby.string_value('') }).as_string()
+				start_time: (step['start_time'] or { ruby.string_value('') }).as_string()
+				passed: (step['passed'] or { ruby.bool_value(false) }).bool_data
+				command: (step['command'] or { ruby.string_array_value([]) }).as_string_array() or { [] }
 			}
 		}
 		tests << JunitTest{ steps: steps }

@@ -68,7 +68,7 @@ fn audit_file(source_root string, source_path string, destination_root string, m
 	}
 	totals.files++
 	totals.source_lines += source_lines.len
-	totals.stubs += translated.count('brew_runtime.unimplemented_fn(')
+	totals.stubs += translated.count('ruby.unimplemented_fn(')
 	translated_lines := translated.split_into_lines()
 	marker_index := translated_lines.index('// Original Ruby source (line-for-line):')
 	if marker_index < 0 {

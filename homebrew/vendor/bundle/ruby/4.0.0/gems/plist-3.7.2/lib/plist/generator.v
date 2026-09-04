@@ -1,6 +1,6 @@
 module plist
 
-import brew_runtime
+import ruby
 import encoding.base64
 import os
 import time
@@ -20,7 +20,7 @@ pub:
 	indent_str string
 }
 
-fn emit_options_from_value(value brew_runtime.Value) EmitOptions {
+fn emit_options_from_value(value ruby.Value) EmitOptions {
 	if value.type_name != 'Hash' {
 		return EmitOptions{}
 	}
@@ -34,7 +34,7 @@ fn emit_options_from_value(value brew_runtime.Value) EmitOptions {
 	}
 }
 
-fn ruby_string_for_plist(value brew_runtime.Value) string {
+fn ruby_string_for_plist(value ruby.Value) string {
 	return match value.type_name {
 		'NilClass' { '' }
 		'Bool' { value.bool_data.str() }
@@ -48,7 +48,7 @@ fn escape_plist_html(contents string) string {
 	return contents.replace('&', '&amp;').replace("'", '&#39;').replace('"', '&quot;').replace('>', '&gt;').replace('<', '&lt;')
 }
 
-fn plist_date_text(element brew_runtime.Value) !string {
+fn plist_date_text(element ruby.Value) !string {
 	input := element.as_string()
 	if element.type_name == 'Time' {
 		parsed := time.parse_iso8601(input)!
@@ -62,7 +62,7 @@ fn plist_date_text(element brew_runtime.Value) !string {
 	return '${parsed.year:04d}-${parsed.month:02d}-${parsed.day:02d}T${parsed.hour:02d}:${parsed.minute:02d}:${parsed.second:02d}Z'
 }
 
-fn ruby_marshal_payload(element brew_runtime.Value) !string {
+fn ruby_marshal_payload(element ruby.Value) !string {
 	if payload := element.attribute('ruby_marshal_data') {
 		return payload
 	}
@@ -108,7 +108,7 @@ pub fn (builder &PlistBuilder) data_tag(data string, level int) string {
 	return builder.container_tag('data', lines.join('\n') + '\n', level)
 }
 
-pub fn (builder &PlistBuilder) element_type(item brew_runtime.Value) !string {
+pub fn (builder &PlistBuilder) element_type(item ruby.Value) !string {
 	return match item.type_name {
 		'String', 'Symbol' { 'string' }
 		'Integer' { 'integer' }
@@ -121,7 +121,7 @@ pub fn (_ &PlistBuilder) comment_tag(content string) string {
 	return '<!-- ${content} -->\n'
 }
 
-pub fn (builder &PlistBuilder) build(element brew_runtime.Value, level int) !string {
+pub fn (builder &PlistBuilder) build(element ruby.Value, level int) !string {
 	if node := element.attribute('to_plist_node') {
 		return node
 	}
@@ -170,25 +170,25 @@ pub fn wrap_plist(contents string) string {
 	return '<?xml version="1.0" encoding="UTF-8"?>\n' + '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n' + '<plist version="1.0">\n' + contents + '</plist>\n'
 }
 
-pub fn dump_plist(object brew_runtime.Value, envelope bool, options EmitOptions) !string {
+pub fn dump_plist(object ruby.Value, envelope bool, options EmitOptions) !string {
 	builder := new_plist_builder(options.indent)
 	output := builder.build(object, 0)!
 	return if envelope { wrap_plist(output) } else { output }
 }
 
-pub fn save_plist_file(object brew_runtime.Value, filename string, options EmitOptions) !int {
+pub fn save_plist_file(object ruby.Value, filename string, options EmitOptions) !int {
 	contents := dump_plist(object, true, options)!
 	os.write_file(filename, contents)!
 	return contents.len
 }
 
-fn plist_builder_boundary(builder &PlistBuilder) brew_runtime.Value {
-	return brew_runtime.structured_value('Plist::Emit::PlistBuilder', '#<Plist::Emit::PlistBuilder>', {
+fn plist_builder_boundary(builder &PlistBuilder) ruby.Value {
+	return ruby.structured_value('Plist::Emit::PlistBuilder', '#<Plist::Emit::PlistBuilder>', {
 		'plist_builder_address': u64(voidptr(builder)).str()
 	})
 }
 
-fn plist_builder_from_args(args []brew_runtime.Value) &PlistBuilder {
+fn plist_builder_from_args(args []ruby.Value) &PlistBuilder {
 	if args.len == 0 {
 		panic('PlistBuilder method requires a receiver')
 	}
@@ -199,49 +199,49 @@ fn plist_builder_from_args(args []brew_runtime.Value) &PlistBuilder {
 }
 
 // Ruby method `to_plist(envelope = true, options = {})` at line 28.
-pub fn ruby_generator_l28_d1_to_plist(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generator_l28_d1_to_plist(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('to_plist requires a receiver')
 	}
 	envelope := if args.len > 1 { args[1].as_bool() or { panic(err) } } else { true }
 	options := if args.len > 2 { emit_options_from_value(args[2]) } else { EmitOptions{} }
-	return brew_runtime.string_value(dump_plist(args[0], envelope, options) or { panic(err) })
+	return ruby.string_value(dump_plist(args[0], envelope, options) or { panic(err) })
 }
 
 // Ruby method `save_plist(filename, options = {})` at line 33.
-pub fn ruby_generator_l33_d2_save_plist(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generator_l33_d2_save_plist(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('save_plist requires a receiver and filename')
 	}
 	options := if args.len > 2 { emit_options_from_value(args[2]) } else { EmitOptions{} }
-	return brew_runtime.int_value(save_plist_file(args[0], args[1].as_string(), options) or {
+	return ruby.int_value(save_plist_file(args[0], args[1].as_string(), options) or {
 		panic(err)
 	})
 }
 
 // Ruby method `self.dump(obj, envelope = true, options = {})` at line 45.
-pub fn ruby_generator_l45_d3_self_dump(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generator_l45_d3_self_dump(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Plist::Emit.dump requires an object')
 	}
 	envelope := if args.len > 1 { args[1].as_bool() or { panic(err) } } else { true }
 	options := if args.len > 2 { emit_options_from_value(args[2]) } else { EmitOptions{} }
-	return brew_runtime.string_value(dump_plist(args[0], envelope, options) or { panic(err) })
+	return ruby.string_value(dump_plist(args[0], envelope, options) or { panic(err) })
 }
 
 // Ruby method `self.save_plist(obj, filename, options = {})` at line 55.
-pub fn ruby_generator_l55_d4_self_save_plist(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generator_l55_d4_self_save_plist(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Plist::Emit.save_plist requires an object and filename')
 	}
 	options := if args.len > 2 { emit_options_from_value(args[2]) } else { EmitOptions{} }
-	return brew_runtime.int_value(save_plist_file(args[0], args[1].as_string(), options) or {
+	return ruby.int_value(save_plist_file(args[0], args[1].as_string(), options) or {
 		panic(err)
 	})
 }
 
 // Ruby method `initialize(indent_str)` at line 64.
-pub fn ruby_generator_l64_d5_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generator_l64_d5_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('PlistBuilder.initialize requires an indent string')
 	}
@@ -249,17 +249,17 @@ pub fn ruby_generator_l64_d5_initialize(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby method `build(element, level=0)` at line 68.
-pub fn ruby_generator_l68_d6_build(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generator_l68_d6_build(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('PlistBuilder.build requires an element')
 	}
 	builder := plist_builder_from_args(args)
 	level := if args.len > 2 { int(args[2].as_int() or { panic(err) }) } else { 0 }
-	return brew_runtime.string_value(builder.build(args[1], level) or { panic(err) })
+	return ruby.string_value(builder.build(args[1], level) or { panic(err) })
 }
 
 // Ruby method `tag(type, contents, level, &block)` at line 113.
-pub fn ruby_generator_l113_d7_tag(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generator_l113_d7_tag(args ...ruby.Value) ruby.Value {
 	if args.len < 4 {
 		panic('PlistBuilder.tag requires type, contents, and level')
 	}
@@ -267,58 +267,58 @@ pub fn ruby_generator_l113_d7_tag(args ...brew_runtime.Value) brew_runtime.Value
 	tag_type := ruby_string_for_plist(args[1])
 	level := int(args[3].as_int() or { panic(err) })
 	if args.len > 4 {
-		return brew_runtime.string_value(builder.container_tag(tag_type, args[4].as_string(), level))
+		return ruby.string_value(builder.container_tag(tag_type, args[4].as_string(), level))
 	}
 	has_contents := args[2].type_name != 'NilClass'
-	return brew_runtime.string_value(builder.tag(tag_type, ruby_string_for_plist(args[2]), has_contents, level))
+	return ruby.string_value(builder.tag(tag_type, ruby_string_for_plist(args[2]), has_contents, level))
 }
 
 // Ruby method `data_tag(data, level)` at line 125.
-pub fn ruby_generator_l125_d8_data_tag(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generator_l125_d8_data_tag(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('PlistBuilder.data_tag requires data and level')
 	}
 	builder := plist_builder_from_args(args)
-	return brew_runtime.string_value(builder.data_tag(args[1].as_string(), int(args[2].as_int() or {
+	return ruby.string_value(builder.data_tag(args[1].as_string(), int(args[2].as_int() or {
 		panic(err)
 	})))
 }
 
 // Ruby method `indent(str, level)` at line 138.
-pub fn ruby_generator_l138_d9_indent(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generator_l138_d9_indent(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('PlistBuilder.indent requires a string and level')
 	}
 	builder := plist_builder_from_args(args)
-	return brew_runtime.string_value(builder.indent(args[1].as_string(), int(args[2].as_int() or {
+	return ruby.string_value(builder.indent(args[1].as_string(), int(args[2].as_int() or {
 		panic(err)
 	})))
 }
 
 // Ruby method `element_type(item)` at line 142.
-pub fn ruby_generator_l142_d10_element_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generator_l142_d10_element_type(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('PlistBuilder.element_type requires an item')
 	}
 	builder := plist_builder_from_args(args)
-	return brew_runtime.string_value(builder.element_type(args[1]) or { panic(err) })
+	return ruby.string_value(builder.element_type(args[1]) or { panic(err) })
 }
 
 // Ruby method `comment_tag(content)` at line 155.
-pub fn ruby_generator_l155_d11_comment_tag(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generator_l155_d11_comment_tag(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('PlistBuilder.comment_tag requires content')
 	}
 	builder := plist_builder_from_args(args)
-	return brew_runtime.string_value(builder.comment_tag(args[1].as_string()))
+	return ruby.string_value(builder.comment_tag(args[1].as_string()))
 }
 
 // Ruby method `self.wrap(contents)` at line 160.
-pub fn ruby_generator_l160_d12_self_wrap(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generator_l160_d12_self_wrap(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Plist::Emit.wrap requires contents')
 	}
-	return brew_runtime.string_value(wrap_plist(args[0].as_string()))
+	return ruby.string_value(wrap_plist(args[0].as_string()))
 }
 
 // Original Ruby source (line-for-line):

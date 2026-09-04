@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `cmd/desc.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -87,7 +87,7 @@ pub fn run_desc_command(request DescCommandRequest) !DescCommandResult {
 	}
 }
 
-pub fn desc_item_to_value(item DescItem) brew_runtime.Value {
+pub fn desc_item_to_value(item DescItem) ruby.Value {
 	mut attributes := {
 		'kind':      item.kind.str()
 		'full_name': item.full_name
@@ -97,10 +97,10 @@ pub fn desc_item_to_value(item DescItem) brew_runtime.Value {
 	if description := item.description {
 		attributes['description'] = description
 	}
-	return brew_runtime.structured_value('DescItem', item.full_name, attributes)
+	return ruby.structured_value('DescItem', item.full_name, attributes)
 }
 
-fn desc_item_from_value(value brew_runtime.Value) DescItem {
+fn desc_item_from_value(value ruby.Value) DescItem {
 	description := if text := value.attributes['description'] { ?string(text) } else { none }
 	return DescItem{
 		kind: if (value.attributes['kind'] or { 'formula' }) == 'cask' {
@@ -113,23 +113,23 @@ fn desc_item_from_value(value brew_runtime.Value) DescItem {
 	}
 }
 
-pub fn desc_result_to_value(result DescCommandResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'output':       brew_runtime.string_value(result.output)
-		'searched':     brew_runtime.bool_value(result.searched)
-		'search_query': brew_runtime.string_value(result.search_query)
-		'search_field': brew_runtime.string_value(result.search_field.str())
+pub fn desc_result_to_value(result DescCommandResult) ruby.Value {
+	return ruby.map_value({
+		'output':       ruby.string_value(result.output)
+		'searched':     ruby.bool_value(result.searched)
+		'search_query': ruby.string_value(result.search_query)
+		'search_field': ruby.string_value(result.search_field.str())
 	})
 }
 
 // Ruby method `run` at line 42.
-pub fn ruby_desc_l42_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_desc_l42_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'at least one formula, cask, or search term is required')
+		return ruby.object_value('ArgumentError', 'at least one formula, cask, or search term is required')
 	}
-	values := args[0].as_map() or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+	values := args[0].as_map() or { return ruby.object_value('ArgumentError', err.msg()) }
 	items := if value := values['items'] {
-		value.as_array() or { []brew_runtime.Value{} }.map(desc_item_from_value(it))
+		value.as_array() or { []ruby.Value{} }.map(desc_item_from_value(it))
 	} else {
 		[]DescItem{}
 	}
@@ -153,7 +153,7 @@ pub fn ruby_desc_l42_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
 		tty: if value := values['tty'] { value.as_bool() or { false } } else { false }
 	}
 	result := run_desc_command(request) or {
-		return brew_runtime.object_value('UsageError', err.msg())
+		return ruby.object_value('UsageError', err.msg())
 	}
 	return desc_result_to_value(result)
 }

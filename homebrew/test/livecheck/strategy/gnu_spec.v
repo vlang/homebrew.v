@@ -1,6 +1,6 @@
 module strategy
 
-import brew_runtime
+import ruby
 import homebrew.livecheck
 import homebrew.livecheck.strategy as gnu_core
 import homebrew.utils
@@ -59,8 +59,8 @@ fn gnu_spec_match_data_equal(left gnu_core.PageMatchData,
 }
 
 // Ruby subject `subject(:gnu) { described_class }` at line 7.
-pub fn ruby_gnu_spec_l7_d1_gnu() brew_runtime.Value {
-	return brew_runtime.object_value('Class', 'Homebrew::Livecheck::Strategy::Gnu')
+pub fn ruby_gnu_spec_l7_d1_gnu() ruby.Value {
+	return ruby.object_value('Class', 'Homebrew::Livecheck::Strategy::Gnu')
 }
 
 // Ruby let `let(:gnu_urls) do` at line 9.

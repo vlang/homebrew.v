@@ -1,13 +1,13 @@
 module duplicable
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `extend/object/duplicable/singleton.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `duplicable? = false` at line 11.
-pub fn ruby_singleton_l11_d1_duplicable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(false)
+pub fn ruby_singleton_l11_d1_duplicable(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(false)
 }
 
 pub fn singleton_is_duplicable() bool {

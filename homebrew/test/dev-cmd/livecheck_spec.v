@@ -1,13 +1,13 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 import homebrew.livecheck as livecheck_core
 
 // Translated from Homebrew/brew `test/dev-cmd/livecheck_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "reports the latest version of a Formula", :integration_test, :needs_network do` at line 10.
-pub fn ruby_livecheck_spec_l10_d1_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l10_d1_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	formula := livecheck_core.LivecheckPackage{
 		kind: 'formula'
@@ -25,21 +25,21 @@ pub fn ruby_livecheck_spec_l10_d1_reports(args ...brew_runtime.Value) brew_runti
 		named: ['test']
 	}, LivecheckCommandSources{
 		named_packages: [formula]
-	}) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(result.stdout.len == 1
+	}) or { return ruby.bool_value(false) }
+	return ruby.bool_value(result.stdout.len == 1
 		&& result.stdout[0].starts_with('test: ') && result.stderr.len == 0)
 }
 
 // Ruby it `it "gives an error when no arguments are given and there's no watchlist" do` at line 24.
-pub fn ruby_livecheck_spec_l24_d2_gives(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l24_d2_gives(args ...ruby.Value) ruby.Value {
 	_ = args
 	run_livecheck_command(LivecheckCommandOptions{
 		tap_trust_configured: true
 		livecheck_watchlist: '.this_should_not_exist'
 	}, LivecheckCommandSources{}) or {
-		return brew_runtime.bool_value(err.msg().contains('No formulae or casks to check'))
+		return ruby.bool_value(err.msg().contains('No formulae or casks to check'))
 	}
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 // Original Ruby source (line-for-line):

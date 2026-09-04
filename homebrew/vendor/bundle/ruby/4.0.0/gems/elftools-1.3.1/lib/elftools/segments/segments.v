@@ -1,6 +1,6 @@
 module segments
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/elftools-1.3.1/lib/elftools/segments/segments.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -33,7 +33,7 @@ pub fn (kind SegmentKind) class_name() string {
 }
 
 // Ruby method `create(header, stream, *args, **kwargs)` at line 22.
-pub fn ruby_segments_l22_d1_create(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_segments_l22_d1_create(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Segment.create requires a header') }
 	program_type := if args[0].type_name == 'Integer' {
 		int(args[0].as_int() or { panic(err) })
@@ -41,7 +41,7 @@ pub fn ruby_segments_l22_d1_create(args ...brew_runtime.Value) brew_runtime.Valu
 		(args[0].attribute('p_type') or { '0' }).int()
 	}
 	kind := segment_kind(program_type)
-	return brew_runtime.structured_value(kind.class_name(), kind.class_name(), {
+	return ruby.structured_value(kind.class_name(), kind.class_name(), {
 		'p_type': program_type.str()
 	})
 }

@@ -1,6 +1,6 @@
 module cask
 
-import brew_runtime
+import ruby
 import x.json2
 
 // Translated from Homebrew/brew `cask/config.rb`.
@@ -82,15 +82,15 @@ pub fn cask_config_defaults() CaskConfigMap {
 
 fn cask_config_expand_path(path string) string {
 	if path == '~' {
-		return brew_runtime.environment_value('HOME')
+		return ruby.environment_value('HOME')
 	}
 	if path.starts_with('~/') {
-		return brew_runtime.join_path(brew_runtime.environment_value('HOME'), path[2..])
+		return ruby.join_path(ruby.environment_value('HOME'), path[2..])
 	}
 	if path.starts_with('/') {
 		return path
 	}
-	return brew_runtime.join_path(brew_runtime.current_directory(), path)
+	return ruby.join_path(ruby.current_directory(), path)
 }
 
 pub fn canonicalize_cask_config(values CaskConfigMap) !CaskConfigMap {
@@ -156,7 +156,7 @@ pub fn new_cask_config(options CaskConfigOptions) !CaskConfig {
 		cask_config_environment(if options.cask_options.len > 0 {
 			options.cask_options
 		} else {
-			cask_config_option_words(brew_runtime.environment_value('HOMEBREW_CASK_OPTS'))
+			cask_config_option_words(ruby.environment_value('HOMEBREW_CASK_OPTS'))
 		})
 	}
 	mut explicit := options.explicit_values.clone()
@@ -334,27 +334,27 @@ pub fn (mut config CaskConfig) set_languages(languages []string) {
 }
 
 pub fn (config CaskConfig) binarydir() string {
-	return brew_runtime.join_path(cask_config_prefix(), 'bin')
+	return ruby.join_path(cask_config_prefix(), 'bin')
 }
 
 pub fn (config CaskConfig) manpagedir() string {
-	return brew_runtime.join_path(cask_config_prefix(), 'share/man')
+	return ruby.join_path(cask_config_prefix(), 'share/man')
 }
 
 pub fn (config CaskConfig) bash_completion() string {
-	return brew_runtime.join_path(cask_config_prefix(), 'etc/bash_completion.d')
+	return ruby.join_path(cask_config_prefix(), 'etc/bash_completion.d')
 }
 
 pub fn (config CaskConfig) zsh_completion() string {
-	return brew_runtime.join_path(cask_config_prefix(), 'share/zsh/site-functions')
+	return ruby.join_path(cask_config_prefix(), 'share/zsh/site-functions')
 }
 
 pub fn (config CaskConfig) fish_completion() string {
-	return brew_runtime.join_path(cask_config_prefix(), 'share/fish/vendor_completions.d')
+	return ruby.join_path(cask_config_prefix(), 'share/fish/vendor_completions.d')
 }
 
 fn cask_config_prefix() string {
-	prefix := brew_runtime.environment_value('HOMEBREW_PREFIX')
+	prefix := ruby.environment_value('HOMEBREW_PREFIX')
 	return if prefix == '' { '/opt/homebrew' } else { prefix }
 }
 
@@ -369,30 +369,30 @@ pub fn (config CaskConfig) merge(other CaskConfig) !CaskConfig {
 	})
 }
 
-fn cask_config_boundary(config CaskConfig) brew_runtime.Value {
-	return brew_runtime.structured_value('Cask::Config', config.json(), {
+fn cask_config_boundary(config CaskConfig) ruby.Value {
+	return ruby.structured_value('Cask::Config', config.json(), {
 		'json': config.json()
 	})
 }
 
-fn cask_config_from_boundary(value brew_runtime.Value) CaskConfig {
+fn cask_config_from_boundary(value ruby.Value) CaskConfig {
 	contents := value.attribute('json') or { value.as_string() }
 	return cask_config_from_json(contents, false) or { panic(err) }
 }
 
-fn cask_config_map_boundary(values CaskConfigMap) brew_runtime.Value {
-	mut mapped := map[string]brew_runtime.Value{}
+fn cask_config_map_boundary(values CaskConfigMap) ruby.Value {
+	mut mapped := map[string]ruby.Value{}
 	for name, value in values {
 		mapped[name] = if value.kind == .languages {
-			brew_runtime.string_array_value(value.values)
+			ruby.string_array_value(value.values)
 		} else {
-			brew_runtime.object_value('Pathname', value.path)
+			ruby.object_value('Pathname', value.path)
 		}
 	}
-	return brew_runtime.map_value(mapped)
+	return ruby.map_value(mapped)
 }
 
-fn cask_config_map_from_boundary(value brew_runtime.Value) CaskConfigMap {
+fn cask_config_map_from_boundary(value ruby.Value) CaskConfigMap {
 	values := value.as_map() or { return CaskConfigMap{} }
 	mut mapped := CaskConfigMap{}
 	for name, item in values {
@@ -406,7 +406,7 @@ fn cask_config_map_from_boundary(value brew_runtime.Value) CaskConfigMap {
 }
 
 // Ruby method `self.defaults` at line 43.
-pub fn ruby_config_l43_d1_self_defaults(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_config_l43_d1_self_defaults(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cask_config_map_boundary(canonicalize_cask_config(cask_config_defaults()) or {
 		panic(err)
@@ -414,7 +414,7 @@ pub fn ruby_config_l43_d1_self_defaults(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby method `self.from_args(args)` at line 50.
-pub fn ruby_config_l50_d2_self_from_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_config_l50_d2_self_from_args(args ...ruby.Value) ruby.Value {
 	mut explicit := CaskConfigMap{}
 	if args.len > 0 {
 		for name, value in args[0].attributes {
@@ -435,22 +435,22 @@ pub fn ruby_config_l50_d2_self_from_args(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `self.from_json(json, ignore_invalid_keys: false)` at line 76.
-pub fn ruby_config_l76_d3_self_from_json(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_config_l76_d3_self_from_json(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Config.from_json requires JSON') }
 	ignore := if args.len > 1 { args[1].as_bool() or { false } } else { false }
 	return cask_config_boundary(cask_config_from_json(args[0].as_string(), ignore) or { panic(err) })
 }
 
 // Ruby method `self.reject_legacy_keys(config)` at line 90.
-pub fn ruby_config_l90_d4_self_reject_legacy_keys(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_config_l90_d4_self_reject_legacy_keys(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || args[0].type_name == 'NilClass' {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	return cask_config_map_boundary(reject_legacy_cask_config_keys(cask_config_map_from_boundary(args[0])))
 }
 
 // Ruby method `self.canonicalize(config)` at line 99.
-pub fn ruby_config_l99_d5_self_canonicalize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_config_l99_d5_self_canonicalize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return cask_config_map_boundary(CaskConfigMap{})
 	}
@@ -460,13 +460,13 @@ pub fn ruby_config_l99_d5_self_canonicalize(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby attr_accessor `attr_accessor :explicit` at line 115.
-pub fn ruby_config_l115_d6_explicit(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_config_l115_d6_explicit(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Config#explicit requires a receiver') }
 	return cask_config_map_boundary(cask_config_from_boundary(args[0]).explicit_values)
 }
 
 // Ruby attr_accessor `attr_accessor :explicit` at line 115.
-pub fn ruby_config_l115_d7_explicit(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_config_l115_d7_explicit(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Config#explicit= requires a value') }
 	mut config := cask_config_from_boundary(args[0])
 	config.explicit_values = canonicalize_cask_config(cask_config_map_from_boundary(args[1])) or {
@@ -476,7 +476,7 @@ pub fn ruby_config_l115_d7_explicit(args ...brew_runtime.Value) brew_runtime.Val
 }
 
 // Ruby method `initialize(default: nil, env: nil, explicit: {}, ignore_invalid_keys: false)` at line 125.
-pub fn ruby_config_l125_d8_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_config_l125_d8_initialize(args ...ruby.Value) ruby.Value {
 	defaults := if args.len > 0 && args[0].type_name != 'NilClass' {
 		cask_config_map_from_boundary(args[0])
 	} else {
@@ -499,19 +499,19 @@ pub fn ruby_config_l125_d8_initialize(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby method `default` at line 161.
-pub fn ruby_config_l161_d9_default(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_config_l161_d9_default(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Config#default requires a receiver') }
 	return cask_config_map_boundary(cask_config_from_boundary(args[0]).default_values)
 }
 
 // Ruby method `env` at line 166.
-pub fn ruby_config_l166_d10_env(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_config_l166_d10_env(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Config#env requires a receiver') }
 	return cask_config_map_boundary(cask_config_from_boundary(args[0]).env_values)
 }
 
 // Ruby method `binarydir` at line 186.
-pub fn ruby_config_l186_d11_binarydir(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_config_l186_d11_binarydir(args ...ruby.Value) ruby.Value {
 	config := if args.len > 0 {
 		cask_config_from_boundary(args[0])
 	} else {
@@ -519,11 +519,11 @@ pub fn ruby_config_l186_d11_binarydir(args ...brew_runtime.Value) brew_runtime.V
 			panic(err)
 		}
 	}
-	return brew_runtime.object_value('Pathname', config.binarydir())
+	return ruby.object_value('Pathname', config.binarydir())
 }
 
 // Ruby method `manpagedir` at line 191.
-pub fn ruby_config_l191_d12_manpagedir(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_config_l191_d12_manpagedir(args ...ruby.Value) ruby.Value {
 	config := if args.len > 0 {
 		cask_config_from_boundary(args[0])
 	} else {
@@ -531,11 +531,11 @@ pub fn ruby_config_l191_d12_manpagedir(args ...brew_runtime.Value) brew_runtime.
 			panic(err)
 		}
 	}
-	return brew_runtime.object_value('Pathname', config.manpagedir())
+	return ruby.object_value('Pathname', config.manpagedir())
 }
 
 // Ruby method `bash_completion` at line 196.
-pub fn ruby_config_l196_d13_bash_completion(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_config_l196_d13_bash_completion(args ...ruby.Value) ruby.Value {
 	config := if args.len > 0 {
 		cask_config_from_boundary(args[0])
 	} else {
@@ -543,11 +543,11 @@ pub fn ruby_config_l196_d13_bash_completion(args ...brew_runtime.Value) brew_run
 			panic(err)
 		}
 	}
-	return brew_runtime.object_value('Pathname', config.bash_completion())
+	return ruby.object_value('Pathname', config.bash_completion())
 }
 
 // Ruby method `zsh_completion` at line 201.
-pub fn ruby_config_l201_d14_zsh_completion(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_config_l201_d14_zsh_completion(args ...ruby.Value) ruby.Value {
 	config := if args.len > 0 {
 		cask_config_from_boundary(args[0])
 	} else {
@@ -555,11 +555,11 @@ pub fn ruby_config_l201_d14_zsh_completion(args ...brew_runtime.Value) brew_runt
 			panic(err)
 		}
 	}
-	return brew_runtime.object_value('Pathname', config.zsh_completion())
+	return ruby.object_value('Pathname', config.zsh_completion())
 }
 
 // Ruby method `fish_completion` at line 206.
-pub fn ruby_config_l206_d15_fish_completion(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_config_l206_d15_fish_completion(args ...ruby.Value) ruby.Value {
 	config := if args.len > 0 {
 		cask_config_from_boundary(args[0])
 	} else {
@@ -567,17 +567,17 @@ pub fn ruby_config_l206_d15_fish_completion(args ...brew_runtime.Value) brew_run
 			panic(err)
 		}
 	}
-	return brew_runtime.object_value('Pathname', config.fish_completion())
+	return ruby.object_value('Pathname', config.fish_completion())
 }
 
 // Ruby method `languages` at line 211.
-pub fn ruby_config_l211_d16_languages(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_config_l211_d16_languages(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Config#languages requires a receiver') }
-	return brew_runtime.string_array_value(cask_config_from_boundary(args[0]).languages())
+	return ruby.string_array_value(cask_config_from_boundary(args[0]).languages())
 }
 
 // Ruby method `languages=(languages)` at line 226.
-pub fn ruby_config_l226_d17_languages(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_config_l226_d17_languages(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Config#languages= requires languages') }
 	mut config := cask_config_from_boundary(args[0])
 	config.set_languages(args[1].as_string_array() or { panic(err) })
@@ -585,17 +585,17 @@ pub fn ruby_config_l226_d17_languages(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby define_method `define_method(dir) do` at line 231.
-pub fn ruby_config_l231_d18_dir(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_config_l231_d18_dir(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('generated Config directory reader requires receiver and directory name')
 	}
-	return brew_runtime.object_value('Pathname', cask_config_from_boundary(args[0]).directory(args[1].as_string()) or {
+	return ruby.object_value('Pathname', cask_config_from_boundary(args[0]).directory(args[1].as_string()) or {
 		panic(err)
 	})
 }
 
 // Ruby define_method `define_method(:"#{dir}=") do |path|` at line 236.
-pub fn ruby_config_l236_d19_dir(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_config_l236_d19_dir(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('generated Config directory writer requires receiver, directory name and path')
 	}
@@ -605,7 +605,7 @@ pub fn ruby_config_l236_d19_dir(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `merge(other)` at line 243.
-pub fn ruby_config_l243_d20_merge(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_config_l243_d20_merge(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Config#merge requires a receiver and other Config') }
 	return cask_config_boundary(cask_config_from_boundary(args[0]).merge(cask_config_from_boundary(args[1])) or {
 		panic(err)
@@ -613,9 +613,9 @@ pub fn ruby_config_l243_d20_merge(args ...brew_runtime.Value) brew_runtime.Value
 }
 
 // Ruby method `to_json(*options)` at line 248.
-pub fn ruby_config_l248_d21_to_json(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_config_l248_d21_to_json(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Config#to_json requires a receiver') }
-	return brew_runtime.string_value(cask_config_from_boundary(args[0]).json())
+	return ruby.string_value(cask_config_from_boundary(args[0]).json())
 }
 
 // Original Ruby source (line-for-line):

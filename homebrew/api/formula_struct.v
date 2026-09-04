@@ -1,6 +1,6 @@
 module api
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `api/formula_struct.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -17,8 +17,8 @@ pub:
 
 pub struct ApiStructArgPair {
 pub:
-	first  brew_runtime.Value
-	second brew_runtime.Value
+	first  ruby.Value
+	second ruby.Value
 }
 
 pub struct FormulaBottleChecksum {
@@ -57,30 +57,30 @@ pub:
 	bottle_rebuild         int
 	caveats                ?string
 	conflicts              []ApiStructArgPair
-	deprecate_args         map[string]brew_runtime.Value
+	deprecate_args         map[string]ruby.Value
 	desc                   string
-	disable_args           map[string]brew_runtime.Value
+	disable_args           map[string]ruby.Value
 	executables            []string
-	head_dependencies      []brew_runtime.Value
+	head_dependencies      []ruby.Value
 	head_url_args          ApiStructArgPair
 	head_uses_from_macos   []ApiStructArgPair
 	homepage               string
-	keg_only_args          []brew_runtime.Value
+	keg_only_args          []ruby.Value
 	license                string
 	link_overwrite_paths   []string
-	no_autobump_args       map[string]brew_runtime.Value
+	no_autobump_args       map[string]ruby.Value
 	oldnames               []string
 	post_install_defined   bool
-	post_install_steps     []brew_runtime.Value
-	pour_bottle_args       map[string]brew_runtime.Value
+	post_install_steps     []ruby.Value
+	pour_bottle_args       map[string]ruby.Value
 	revision               int
 	ruby_source_checksum   string
 	service_args           []ApiStructArgPair
-	service_name_args      map[string]brew_runtime.Value
-	service_run_args       []brew_runtime.Value
-	service_run_kwargs     map[string]brew_runtime.Value
-	stable_dependencies    []brew_runtime.Value
-	stable_patches         []brew_runtime.Value
+	service_name_args      map[string]ruby.Value
+	service_run_args       []ruby.Value
+	service_run_kwargs     map[string]ruby.Value
+	stable_dependencies    []ruby.Value
+	stable_patches         []ruby.Value
 	stable_checksum        ?string
 	stable_url_args        ApiStructArgPair
 	stable_uses_from_macos []ApiStructArgPair
@@ -111,65 +111,65 @@ pub fn (formula FormulaStruct) predicate(name string) bool {
 	return formula_struct_predicate(formula, name)
 }
 
-pub fn api_struct_value_equal(left brew_runtime.Value, right brew_runtime.Value) bool {
+pub fn api_struct_value_equal(left ruby.Value, right ruby.Value) bool {
 	return api_struct_values_equal(left, right)
 }
 
-pub fn formula_struct_from_hash(hash map[string]brew_runtime.Value,
+pub fn formula_struct_from_hash(hash map[string]ruby.Value,
 	paths ApiStructPaths) FormulaStruct {
 	cleaned := api_struct_replace_map(hash, paths, paths.appdir)
 	return FormulaStruct{
-		aliases: api_struct_string_array(cleaned['aliases'] or { brew_runtime.string_array_value([]) })
+		aliases: api_struct_string_array(cleaned['aliases'] or { ruby.string_array_value([]) })
 		bottle_checksums: formula_bottle_checksums_from_value(cleaned['bottle_checksums'] or {
-			brew_runtime.array_value([])})
-		bottle_rebuild: api_struct_int(cleaned['bottle_rebuild'] or { brew_runtime.int_value(0) })
+			ruby.array_value([])})
+		bottle_rebuild: api_struct_int(cleaned['bottle_rebuild'] or { ruby.int_value(0) })
 		caveats: api_struct_optional_string(cleaned['caveats'] or { api_struct_nil_value() })
-		conflicts: api_struct_arg_pairs(cleaned['conflicts'] or { brew_runtime.array_value([]) })
-		deprecate_args: api_struct_value_map(cleaned['deprecate_args'] or { brew_runtime.map_value({}) })
-		desc: api_struct_string(cleaned['desc'] or { brew_runtime.string_value('') })
-		disable_args: api_struct_value_map(cleaned['disable_args'] or { brew_runtime.map_value({}) })
-		executables: api_struct_string_array(cleaned['executables'] or { brew_runtime.string_array_value([]) })
-		head_dependencies: api_struct_value_array(cleaned['head_dependencies'] or { brew_runtime.array_value([]) })
-		head_url_args: api_struct_arg_pair(cleaned['head_url_args'] or { brew_runtime.array_value([]) }, brew_runtime.map_value({}))
+		conflicts: api_struct_arg_pairs(cleaned['conflicts'] or { ruby.array_value([]) })
+		deprecate_args: api_struct_value_map(cleaned['deprecate_args'] or { ruby.map_value({}) })
+		desc: api_struct_string(cleaned['desc'] or { ruby.string_value('') })
+		disable_args: api_struct_value_map(cleaned['disable_args'] or { ruby.map_value({}) })
+		executables: api_struct_string_array(cleaned['executables'] or { ruby.string_array_value([]) })
+		head_dependencies: api_struct_value_array(cleaned['head_dependencies'] or { ruby.array_value([]) })
+		head_url_args: api_struct_arg_pair(cleaned['head_url_args'] or { ruby.array_value([]) }, ruby.map_value({}))
 		head_uses_from_macos: api_struct_arg_pairs(cleaned['head_uses_from_macos'] or {
-			brew_runtime.array_value([])})
-		homepage: api_struct_string(cleaned['homepage'] or { brew_runtime.string_value('') })
-		keg_only_args: api_struct_value_array(cleaned['keg_only_args'] or { brew_runtime.array_value([]) })
-		license: api_struct_string(cleaned['license'] or { brew_runtime.string_value('') })
+			ruby.array_value([])})
+		homepage: api_struct_string(cleaned['homepage'] or { ruby.string_value('') })
+		keg_only_args: api_struct_value_array(cleaned['keg_only_args'] or { ruby.array_value([]) })
+		license: api_struct_string(cleaned['license'] or { ruby.string_value('') })
 		link_overwrite_paths: api_struct_string_array(cleaned['link_overwrite_paths'] or {
-			brew_runtime.string_array_value([])})
-		no_autobump_args: api_struct_value_map(cleaned['no_autobump_args'] or { brew_runtime.map_value({}) })
-		oldnames: api_struct_string_array(cleaned['oldnames'] or { brew_runtime.string_array_value([]) })
+			ruby.string_array_value([])})
+		no_autobump_args: api_struct_value_map(cleaned['no_autobump_args'] or { ruby.map_value({}) })
+		oldnames: api_struct_string_array(cleaned['oldnames'] or { ruby.string_array_value([]) })
 		post_install_defined: api_struct_bool(cleaned['post_install_defined'] or {
-			brew_runtime.bool_value(false)})
+			ruby.bool_value(false)})
 		post_install_steps: api_struct_value_array(cleaned['post_install_steps'] or {
-			brew_runtime.array_value([])})
-		pour_bottle_args: api_struct_value_map(cleaned['pour_bottle_args'] or { brew_runtime.map_value({}) })
-		revision: api_struct_int(cleaned['revision'] or { brew_runtime.int_value(0) })
+			ruby.array_value([])})
+		pour_bottle_args: api_struct_value_map(cleaned['pour_bottle_args'] or { ruby.map_value({}) })
+		revision: api_struct_int(cleaned['revision'] or { ruby.int_value(0) })
 		ruby_source_checksum: api_struct_string(cleaned['ruby_source_checksum'] or {
-			brew_runtime.string_value('')})
-		service_args: api_struct_arg_pairs(cleaned['service_args'] or { brew_runtime.array_value([]) })
-		service_name_args: api_struct_value_map(cleaned['service_name_args'] or { brew_runtime.map_value({}) })
+			ruby.string_value('')})
+		service_args: api_struct_arg_pairs(cleaned['service_args'] or { ruby.array_value([]) })
+		service_name_args: api_struct_value_map(cleaned['service_name_args'] or { ruby.map_value({}) })
 		service_run_args: api_struct_value_array(cleaned['service_run_args'] or {
-			brew_runtime.array_value([])})
+			ruby.array_value([])})
 		service_run_kwargs: api_struct_value_map(cleaned['service_run_kwargs'] or {
-			brew_runtime.map_value({})})
+			ruby.map_value({})})
 		stable_dependencies: api_struct_value_array(cleaned['stable_dependencies'] or {
-			brew_runtime.array_value([])})
-		stable_patches: api_struct_value_array(cleaned['stable_patches'] or { brew_runtime.array_value([]) })
+			ruby.array_value([])})
+		stable_patches: api_struct_value_array(cleaned['stable_patches'] or { ruby.array_value([]) })
 		stable_checksum: api_struct_optional_string(cleaned['stable_checksum'] or { api_struct_nil_value() })
-		stable_url_args: api_struct_arg_pair(cleaned['stable_url_args'] or { brew_runtime.array_value([]) }, brew_runtime.map_value({}))
+		stable_url_args: api_struct_arg_pair(cleaned['stable_url_args'] or { ruby.array_value([]) }, ruby.map_value({}))
 		stable_uses_from_macos: api_struct_arg_pairs(cleaned['stable_uses_from_macos'] or {
-			brew_runtime.array_value([])})
-		stable_version: api_struct_string(cleaned['stable_version'] or { brew_runtime.string_value('') })
-		version_scheme: api_struct_int(cleaned['version_scheme'] or { brew_runtime.int_value(0) })
+			ruby.array_value([])})
+		stable_version: api_struct_string(cleaned['stable_version'] or { ruby.string_value('') })
+		version_scheme: api_struct_int(cleaned['version_scheme'] or { ruby.int_value(0) })
 		versioned_formulae: api_struct_string_array(cleaned['versioned_formulae'] or {
-			brew_runtime.string_array_value([])})
+			ruby.string_array_value([])})
 		predicates: formula_struct_predicates_from_hash(cleaned)
 	}
 }
 
-fn formula_struct_predicates_from_hash(hash map[string]brew_runtime.Value) FormulaStructPredicates {
+fn formula_struct_predicates_from_hash(hash map[string]ruby.Value) FormulaStructPredicates {
 	return FormulaStructPredicates{
 		bottle: api_struct_hash_bool(hash, 'bottle_present')
 		deprecate: api_struct_hash_bool(hash, 'deprecate_present')
@@ -255,57 +255,57 @@ fn formula_macos_tag_rank(tag string) int {
 	}
 }
 
-pub fn (formula FormulaStruct) serialize(bottle_tag string) map[string]brew_runtime.Value {
-	mut hash := map[string]brew_runtime.Value{}
-	api_struct_put_nonblank(mut hash, 'aliases', brew_runtime.string_array_value(formula.aliases))
-	api_struct_put_nonblank(mut hash, 'bottle_rebuild', brew_runtime.int_value(formula.bottle_rebuild))
+pub fn (formula FormulaStruct) serialize(bottle_tag string) map[string]ruby.Value {
+	mut hash := map[string]ruby.Value{}
+	api_struct_put_nonblank(mut hash, 'aliases', ruby.string_array_value(formula.aliases))
+	api_struct_put_nonblank(mut hash, 'bottle_rebuild', ruby.int_value(formula.bottle_rebuild))
 	if caveats := formula.caveats {
-		api_struct_put_nonblank(mut hash, 'caveats', brew_runtime.string_value(caveats))
+		api_struct_put_nonblank(mut hash, 'caveats', ruby.string_value(caveats))
 	}
 	api_struct_put_nonblank(mut hash, 'conflicts', api_struct_arg_pairs_value(formula.conflicts))
-	api_struct_put_nonblank(mut hash, 'deprecate_args', brew_runtime.map_value(formula.deprecate_args))
-	api_struct_put_nonblank(mut hash, 'desc', brew_runtime.string_value(formula.desc))
-	api_struct_put_nonblank(mut hash, 'disable_args', brew_runtime.map_value(formula.disable_args))
-	api_struct_put_nonblank(mut hash, 'executables', brew_runtime.string_array_value(formula.executables))
-	api_struct_put_nonblank(mut hash, 'head_dependencies', brew_runtime.array_value(formula.head_dependencies))
+	api_struct_put_nonblank(mut hash, 'deprecate_args', ruby.map_value(formula.deprecate_args))
+	api_struct_put_nonblank(mut hash, 'desc', ruby.string_value(formula.desc))
+	api_struct_put_nonblank(mut hash, 'disable_args', ruby.map_value(formula.disable_args))
+	api_struct_put_nonblank(mut hash, 'executables', ruby.string_array_value(formula.executables))
+	api_struct_put_nonblank(mut hash, 'head_dependencies', ruby.array_value(formula.head_dependencies))
 	if formula.predicates.head || !api_struct_arg_pair_blank(formula.head_url_args) {
 		api_struct_put_nonblank(mut hash, 'head_url_args', api_struct_arg_pair_value(formula.head_url_args))
 	}
 	api_struct_put_nonblank(mut hash, 'head_uses_from_macos', api_struct_arg_pairs_value(formula.head_uses_from_macos))
-	api_struct_put_nonblank(mut hash, 'homepage', brew_runtime.string_value(formula.homepage))
-	api_struct_put_nonblank(mut hash, 'keg_only_args', brew_runtime.array_value(formula.keg_only_args))
-	api_struct_put_nonblank(mut hash, 'license', brew_runtime.string_value(formula.license))
-	api_struct_put_nonblank(mut hash, 'link_overwrite_paths', brew_runtime.string_array_value(formula.link_overwrite_paths))
-	api_struct_put_nonblank(mut hash, 'no_autobump_args', brew_runtime.map_value(formula.no_autobump_args))
-	api_struct_put_nonblank(mut hash, 'oldnames', brew_runtime.string_array_value(formula.oldnames))
-	api_struct_put_nonblank(mut hash, 'post_install_defined', brew_runtime.bool_value(formula.post_install_defined))
-	api_struct_put_nonblank(mut hash, 'post_install_steps', brew_runtime.array_value(formula.post_install_steps))
-	api_struct_put_nonblank(mut hash, 'pour_bottle_args', brew_runtime.map_value(formula.pour_bottle_args))
-	api_struct_put_nonblank(mut hash, 'revision', brew_runtime.int_value(formula.revision))
-	api_struct_put_nonblank(mut hash, 'ruby_source_checksum', brew_runtime.string_value(formula.ruby_source_checksum))
+	api_struct_put_nonblank(mut hash, 'homepage', ruby.string_value(formula.homepage))
+	api_struct_put_nonblank(mut hash, 'keg_only_args', ruby.array_value(formula.keg_only_args))
+	api_struct_put_nonblank(mut hash, 'license', ruby.string_value(formula.license))
+	api_struct_put_nonblank(mut hash, 'link_overwrite_paths', ruby.string_array_value(formula.link_overwrite_paths))
+	api_struct_put_nonblank(mut hash, 'no_autobump_args', ruby.map_value(formula.no_autobump_args))
+	api_struct_put_nonblank(mut hash, 'oldnames', ruby.string_array_value(formula.oldnames))
+	api_struct_put_nonblank(mut hash, 'post_install_defined', ruby.bool_value(formula.post_install_defined))
+	api_struct_put_nonblank(mut hash, 'post_install_steps', ruby.array_value(formula.post_install_steps))
+	api_struct_put_nonblank(mut hash, 'pour_bottle_args', ruby.map_value(formula.pour_bottle_args))
+	api_struct_put_nonblank(mut hash, 'revision', ruby.int_value(formula.revision))
+	api_struct_put_nonblank(mut hash, 'ruby_source_checksum', ruby.string_value(formula.ruby_source_checksum))
 	api_struct_put_nonblank(mut hash, 'service_args', api_struct_arg_pairs_value(formula.service_args))
-	api_struct_put_nonblank(mut hash, 'service_name_args', brew_runtime.map_value(formula.service_name_args))
-	api_struct_put_nonblank(mut hash, 'service_run_args', brew_runtime.array_value(formula.service_run_args))
-	api_struct_put_nonblank(mut hash, 'service_run_kwargs', brew_runtime.map_value(formula.service_run_kwargs))
-	api_struct_put_nonblank(mut hash, 'stable_dependencies', brew_runtime.array_value(formula.stable_dependencies))
-	api_struct_put_nonblank(mut hash, 'stable_patches', brew_runtime.array_value(formula.stable_patches))
+	api_struct_put_nonblank(mut hash, 'service_name_args', ruby.map_value(formula.service_name_args))
+	api_struct_put_nonblank(mut hash, 'service_run_args', ruby.array_value(formula.service_run_args))
+	api_struct_put_nonblank(mut hash, 'service_run_kwargs', ruby.map_value(formula.service_run_kwargs))
+	api_struct_put_nonblank(mut hash, 'stable_dependencies', ruby.array_value(formula.stable_dependencies))
+	api_struct_put_nonblank(mut hash, 'stable_patches', ruby.array_value(formula.stable_patches))
 	if checksum := formula.stable_checksum {
-		api_struct_put_nonblank(mut hash, 'stable_checksum', brew_runtime.string_value(checksum))
+		api_struct_put_nonblank(mut hash, 'stable_checksum', ruby.string_value(checksum))
 	}
 	if formula.predicates.stable || !api_struct_arg_pair_blank(formula.stable_url_args) {
 		api_struct_put_nonblank(mut hash, 'stable_url_args', api_struct_arg_pair_value(formula.stable_url_args))
 	}
 	api_struct_put_nonblank(mut hash, 'stable_uses_from_macos', api_struct_arg_pairs_value(formula.stable_uses_from_macos))
-	api_struct_put_nonblank(mut hash, 'stable_version', brew_runtime.string_value(formula.stable_version))
-	api_struct_put_nonblank(mut hash, 'version_scheme', brew_runtime.int_value(formula.version_scheme))
-	api_struct_put_nonblank(mut hash, 'versioned_formulae', brew_runtime.string_array_value(formula.versioned_formulae))
+	api_struct_put_nonblank(mut hash, 'stable_version', ruby.string_value(formula.stable_version))
+	api_struct_put_nonblank(mut hash, 'version_scheme', ruby.int_value(formula.version_scheme))
+	api_struct_put_nonblank(mut hash, 'versioned_formulae', ruby.string_array_value(formula.versioned_formulae))
 	if bottle := formula.serialize_bottle(bottle_tag) {
-		hash['bottle_checksum'] = brew_runtime.string_value(bottle.bottle_checksum)
+		hash['bottle_checksum'] = ruby.string_value(bottle.bottle_checksum)
 		if tag := bottle.bottle_tag {
-			hash['bottle_tag'] = brew_runtime.string_value(':${tag}')
+			hash['bottle_tag'] = ruby.string_value(':${tag}')
 		}
 		if cellar := bottle.bottle_cellar {
-			hash['bottle_cellar'] = brew_runtime.string_value(if cellar.starts_with('/') {
+			hash['bottle_cellar'] = ruby.string_value(if cellar.starts_with('/') {
 				cellar
 			} else {
 				':${cellar}'
@@ -315,35 +315,35 @@ pub fn (formula FormulaStruct) serialize(bottle_tag string) map[string]brew_runt
 	return hash
 }
 
-pub fn formula_struct_deserialize(hash map[string]brew_runtime.Value, bottle_tag string,
+pub fn formula_struct_deserialize(hash map[string]ruby.Value, bottle_tag string,
 	paths ApiStructPaths) FormulaStruct {
 	mut restored := hash.clone()
 	for name in formula_struct_predicate_names {
-		restored['${name}_present'] = brew_runtime.bool_value(api_struct_value_present(restored['${name}_args'] or {
+		restored['${name}_present'] = ruby.bool_value(api_struct_value_present(restored['${name}_args'] or {
 			api_struct_nil_value()
 		}))
 	}
 	if checksum := restored['bottle_checksum'] {
 		tag := api_struct_normalize_symbol(api_struct_string(restored['bottle_tag'] or {
-			brew_runtime.string_value(bottle_tag)
+			ruby.string_value(bottle_tag)
 		}))
 		cellar := api_struct_normalize_symbol(api_struct_string(restored['bottle_cellar'] or {
-			brew_runtime.string_value('any_skip_relocation')
+			ruby.string_value('any_skip_relocation')
 		}))
-		restored['bottle_present'] = brew_runtime.bool_value(true)
-		restored['bottle_checksums'] = brew_runtime.array_value([brew_runtime.map_value({
-			'cellar': brew_runtime.string_value(cellar)
-			tag:      brew_runtime.string_value(checksum.as_string())
+		restored['bottle_present'] = ruby.bool_value(true)
+		restored['bottle_checksums'] = ruby.array_value([ruby.map_value({
+			'cellar': ruby.string_value(cellar)
+			tag:      ruby.string_value(checksum.as_string())
 		})])
 	} else {
-		restored['bottle_present'] = brew_runtime.bool_value(false)
+		restored['bottle_present'] = ruby.bool_value(false)
 	}
 	for spec in ['head', 'stable'] {
 		if value := restored['${spec}_url_args'] {
-			restored['${spec}_present'] = brew_runtime.bool_value(true)
-			restored['${spec}_url_args'] = api_struct_arg_pair_value(api_struct_arg_pair(value, brew_runtime.map_value({})))
+			restored['${spec}_present'] = ruby.bool_value(true)
+			restored['${spec}_url_args'] = api_struct_arg_pair_value(api_struct_arg_pair(value, ruby.map_value({})))
 		} else {
-			restored['${spec}_present'] = brew_runtime.bool_value(false)
+			restored['${spec}_present'] = ruby.bool_value(false)
 		}
 		if uses := restored['${spec}_uses_from_macos'] {
 			restored['${spec}_uses_from_macos'] = api_struct_arg_pairs_value(api_struct_arg_pairs(uses))
@@ -355,8 +355,8 @@ pub fn formula_struct_deserialize(hash map[string]brew_runtime.Value, bottle_tag
 	return formula_struct_from_hash(restored, paths)
 }
 
-pub fn formula_struct_format_arg_pair(values []brew_runtime.Value,
-	last brew_runtime.Value) ApiStructArgPair {
+pub fn formula_struct_format_arg_pair(values []ruby.Value,
+	last ruby.Value) ApiStructArgPair {
 	return ApiStructArgPair{
 		first: values[0] or { api_struct_nil_value() }
 		second: values[1] or { last }
@@ -364,7 +364,7 @@ pub fn formula_struct_format_arg_pair(values []brew_runtime.Value,
 }
 
 // Ruby method `self.from_hash(formula_hash)` at line 12.
-pub fn ruby_formula_struct_l12_d1_self_from_hash(hash map[string]brew_runtime.Value,
+pub fn ruby_formula_struct_l12_d1_self_from_hash(hash map[string]ruby.Value,
 	paths ApiStructPaths) FormulaStruct {
 	return formula_struct_from_hash(hash, paths)
 }
@@ -388,28 +388,28 @@ pub fn ruby_formula_struct_l136_d4_serialize_bottle(formula FormulaStruct,
 
 // Ruby method `serialize(bottle_tag: ::Utils::Bottles.tag)` at line 163.
 pub fn ruby_formula_struct_l163_d5_serialize(formula FormulaStruct,
-	bottle_tag string) map[string]brew_runtime.Value {
+	bottle_tag string) map[string]ruby.Value {
 	return formula.serialize(bottle_tag)
 }
 
 // Ruby method `self.deserialize(hash, bottle_tag: ::Utils::Bottles.tag)` at line 187.
-pub fn ruby_formula_struct_l187_d6_self_deserialize(hash map[string]brew_runtime.Value,
+pub fn ruby_formula_struct_l187_d6_self_deserialize(hash map[string]ruby.Value,
 	bottle_tag string, paths ApiStructPaths) FormulaStruct {
 	return formula_struct_deserialize(hash, bottle_tag, paths)
 }
 
 // Ruby method `self.format_arg_pair(args, last:)` at line 241.
-pub fn ruby_formula_struct_l241_d7_self_format_arg_pair(values []brew_runtime.Value,
-	last brew_runtime.Value) ApiStructArgPair {
+pub fn ruby_formula_struct_l241_d7_self_format_arg_pair(values []ruby.Value,
+	last ruby.Value) ApiStructArgPair {
 	return formula_struct_format_arg_pair(values, last)
 }
 
-fn formula_bottle_checksums_from_value(value brew_runtime.Value) []FormulaBottleChecksum {
+fn formula_bottle_checksums_from_value(value ruby.Value) []FormulaBottleChecksum {
 	mut checksums := []FormulaBottleChecksum{}
 	for item in api_struct_value_array(value) {
 		info := api_struct_value_map(item)
 		cellar := api_struct_normalize_symbol(api_struct_string(info['cellar'] or {
-			brew_runtime.string_value('any')
+			ruby.string_value('any')
 		}))
 		for tag, checksum in info {
 			if tag != 'cellar' {
@@ -425,24 +425,24 @@ fn formula_bottle_checksums_from_value(value brew_runtime.Value) []FormulaBottle
 	return checksums
 }
 
-fn api_struct_arg_pair(value brew_runtime.Value, last brew_runtime.Value) ApiStructArgPair {
+fn api_struct_arg_pair(value ruby.Value, last ruby.Value) ApiStructArgPair {
 	return formula_struct_format_arg_pair(api_struct_value_array(value), last)
 }
 
-fn api_struct_arg_pairs(value brew_runtime.Value) []ApiStructArgPair {
-	return api_struct_value_array(value).map(api_struct_arg_pair(it, brew_runtime.map_value({})))
+fn api_struct_arg_pairs(value ruby.Value) []ApiStructArgPair {
+	return api_struct_value_array(value).map(api_struct_arg_pair(it, ruby.map_value({})))
 }
 
-fn api_struct_arg_pair_value(pair ApiStructArgPair) brew_runtime.Value {
+fn api_struct_arg_pair_value(pair ApiStructArgPair) ruby.Value {
 	mut values := [pair.first]
 	if api_struct_value_present(pair.second) {
 		values << pair.second
 	}
-	return brew_runtime.array_value(values)
+	return ruby.array_value(values)
 }
 
-fn api_struct_arg_pairs_value(pairs []ApiStructArgPair) brew_runtime.Value {
-	return brew_runtime.array_value(pairs.map(api_struct_arg_pair_value(it)))
+fn api_struct_arg_pairs_value(pairs []ApiStructArgPair) ruby.Value {
+	return ruby.array_value(pairs.map(api_struct_arg_pair_value(it)))
 }
 
 fn api_struct_arg_pair_blank(pair ApiStructArgPair) bool {
@@ -453,15 +453,15 @@ fn api_struct_normalize_symbol(value string) string {
 	return value.trim_space().trim_string_left(':')
 }
 
-fn api_struct_nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', '')
+fn api_struct_nil_value() ruby.Value {
+	return ruby.object_value('NilClass', '')
 }
 
-fn api_struct_string(value brew_runtime.Value) string {
+fn api_struct_string(value ruby.Value) string {
 	return value.as_string()
 }
 
-fn api_struct_optional_string(value brew_runtime.Value) ?string {
+fn api_struct_optional_string(value ruby.Value) ?string {
 	return if value.type_name == 'NilClass' || value.as_string() == '' {
 		none
 	} else {
@@ -469,34 +469,34 @@ fn api_struct_optional_string(value brew_runtime.Value) ?string {
 	}
 }
 
-fn api_struct_bool(value brew_runtime.Value) bool {
+fn api_struct_bool(value ruby.Value) bool {
 	return value.as_bool() or { value.as_string().to_lower() in ['true', '1', 'yes'] }
 }
 
-fn api_struct_int(value brew_runtime.Value) int {
+fn api_struct_int(value ruby.Value) int {
 	return int(value.as_int() or { value.as_string().int() })
 }
 
-fn api_struct_hash_bool(hash map[string]brew_runtime.Value, name string) bool {
-	return api_struct_bool(hash[name] or { brew_runtime.bool_value(false) })
+fn api_struct_hash_bool(hash map[string]ruby.Value, name string) bool {
+	return api_struct_bool(hash[name] or { ruby.bool_value(false) })
 }
 
-fn api_struct_string_array(value brew_runtime.Value) []string {
+fn api_struct_string_array(value ruby.Value) []string {
 	if value.string_array_data.len > 0 {
 		return value.string_array_data.clone()
 	}
 	return value.array_data.map(it.as_string())
 }
 
-fn api_struct_value_array(value brew_runtime.Value) []brew_runtime.Value {
-	return value.as_array() or { []brew_runtime.Value{} }
+fn api_struct_value_array(value ruby.Value) []ruby.Value {
+	return value.as_array() or { []ruby.Value{} }
 }
 
-fn api_struct_value_map(value brew_runtime.Value) map[string]brew_runtime.Value {
-	return value.as_map() or { map[string]brew_runtime.Value{} }
+fn api_struct_value_map(value ruby.Value) map[string]ruby.Value {
+	return value.as_map() or { map[string]ruby.Value{} }
 }
 
-fn api_struct_value_present(value brew_runtime.Value) bool {
+fn api_struct_value_present(value ruby.Value) bool {
 	return match value.type_name {
 		'NilClass' { false }
 		'String' { value.as_string() != '' }
@@ -507,41 +507,41 @@ fn api_struct_value_present(value brew_runtime.Value) bool {
 	}
 }
 
-fn api_struct_put_nonblank(mut hash map[string]brew_runtime.Value, name string,
-	value brew_runtime.Value) {
+fn api_struct_put_nonblank(mut hash map[string]ruby.Value, name string,
+	value ruby.Value) {
 	if api_struct_value_present(value) {
 		hash[name] = value
 	}
 }
 
-fn api_struct_replace_map(hash map[string]brew_runtime.Value, paths ApiStructPaths,
-	appdir string) map[string]brew_runtime.Value {
-	mut replaced := map[string]brew_runtime.Value{}
+fn api_struct_replace_map(hash map[string]ruby.Value, paths ApiStructPaths,
+	appdir string) map[string]ruby.Value {
+	mut replaced := map[string]ruby.Value{}
 	for key, value in hash {
 		replaced[key.trim_string_left(':')] = api_struct_deep_replace(value, paths, appdir)
 	}
 	return replaced
 }
 
-fn api_struct_deep_replace(value brew_runtime.Value, paths ApiStructPaths,
-	appdir string) brew_runtime.Value {
+fn api_struct_deep_replace(value ruby.Value, paths ApiStructPaths,
+	appdir string) ruby.Value {
 	if value.type_name == 'String' {
-		return brew_runtime.string_value(value.as_string().replace(r'$HOMEBREW_PREFIX', paths.prefix).replace(r'$HOMEBREW_CELLAR', paths.cellar).replace(r'$APPDIR', appdir).replace(r'/$HOME', paths.home))
+		return ruby.string_value(value.as_string().replace(r'$HOMEBREW_PREFIX', paths.prefix).replace(r'$HOMEBREW_CELLAR', paths.cellar).replace(r'$APPDIR', appdir).replace(r'/$HOME', paths.home))
 	}
 	if value.type_name == 'Array' {
-		return brew_runtime.array_value(api_struct_value_array(value).map(api_struct_deep_replace(it, paths, appdir)))
+		return ruby.array_value(api_struct_value_array(value).map(api_struct_deep_replace(it, paths, appdir)))
 	}
 	if value.type_name == 'Hash' {
-		mut mapped := map[string]brew_runtime.Value{}
+		mut mapped := map[string]ruby.Value{}
 		for key, item in value.map_data {
 			mapped[key] = api_struct_deep_replace(item, paths, appdir)
 		}
-		return brew_runtime.map_value(mapped)
+		return ruby.map_value(mapped)
 	}
 	return value
 }
 
-fn api_struct_values_equal(left brew_runtime.Value, right brew_runtime.Value) bool {
+fn api_struct_values_equal(left ruby.Value, right ruby.Value) bool {
 	if left.type_name != right.type_name || left.repr != right.repr || left.bool_data != right.bool_data || left.int_data != right.int_data || left.float_data != right.float_data || left.string_array_data != right.string_array_data || left.attributes != right.attributes || left.array_data.len != right.array_data.len || left.map_data.len != right.map_data.len {
 		return false
 	}
@@ -553,8 +553,8 @@ fn api_struct_values_equal(left brew_runtime.Value, right brew_runtime.Value) bo
 	return api_struct_maps_equal(left.map_data, right.map_data)
 }
 
-fn api_struct_maps_equal(left map[string]brew_runtime.Value,
-	right map[string]brew_runtime.Value) bool {
+fn api_struct_maps_equal(left map[string]ruby.Value,
+	right map[string]ruby.Value) bool {
 	if left.len != right.len {
 		return false
 	}

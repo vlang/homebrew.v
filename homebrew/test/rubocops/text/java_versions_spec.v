@@ -1,6 +1,6 @@
 module text
 
-import brew_runtime
+import ruby
 import homebrew.rubocops as line_cops
 
 // Translated from Homebrew/brew `test/rubocops/text/java_versions_spec.rb`.
@@ -214,132 +214,132 @@ fn java_versions_spec_install_jar_unversioned_corrected() string {
 }
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
-pub fn ruby_java_versions_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::JavaVersions', 'JavaVersions')
+pub fn ruby_java_versions_spec_l7_d1_cop(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('RuboCop::Cop::FormulaAudit::JavaVersions', 'JavaVersions')
 }
 
 // Ruby it `it "reports no offenses for non-core formulae" do` at line 10.
-pub fn ruby_java_versions_spec_l10_d2_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_java_versions_spec_l10_d2_reports(args ...ruby.Value) ruby.Value {
 	install := java_versions_spec_install_non_core()
 	source := java_versions_spec_formula(['"openjdk@25"'], install)
-	return brew_runtime.bool_value(java_versions_spec_no_offenses(source, ''))
+	return ruby.bool_value(java_versions_spec_no_offenses(source, ''))
 }
 
 // Ruby method `install` at line 15.
-pub fn ruby_java_versions_spec_l15_d3_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(java_versions_spec_install_non_core())
+pub fn ruby_java_versions_spec_l15_d3_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(java_versions_spec_install_non_core())
 }
 
 // Ruby it `it "reports no offenses when there is no OpenJDK dependency" do` at line 26.
-pub fn ruby_java_versions_spec_l26_d4_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_java_versions_spec_l26_d4_reports(args ...ruby.Value) ruby.Value {
 	source := java_versions_spec_formula([], java_versions_spec_install_non_core())
-	return brew_runtime.bool_value(java_versions_spec_no_offenses(source, 'homebrew-core'))
+	return ruby.bool_value(java_versions_spec_no_offenses(source, 'homebrew-core'))
 }
 
 // Ruby method `install` at line 29.
-pub fn ruby_java_versions_spec_l29_d5_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(java_versions_spec_install_non_core())
+pub fn ruby_java_versions_spec_l29_d5_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(java_versions_spec_install_non_core())
 }
 
 // Ruby it `it "reports no offenses when there are multiple OpenJDK dependencies" do` at line 40.
-pub fn ruby_java_versions_spec_l40_d6_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_java_versions_spec_l40_d6_reports(args ...ruby.Value) ruby.Value {
 	source := java_versions_spec_formula(['"openjdk@21" => :build', '"openjdk@25"'], java_versions_spec_install_multiple_dependencies())
-	return brew_runtime.bool_value(java_versions_spec_no_offenses(source, 'homebrew-core'))
+	return ruby.bool_value(java_versions_spec_no_offenses(source, 'homebrew-core'))
 }
 
 // Ruby method `install` at line 46.
-pub fn ruby_java_versions_spec_l46_d7_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(java_versions_spec_install_multiple_dependencies())
+pub fn ruby_java_versions_spec_l46_d7_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(java_versions_spec_install_multiple_dependencies())
 }
 
 // Ruby it `it "reports no offenses when Java version arguments match versioned OpenJDK dependency" do` at line 57.
-pub fn ruby_java_versions_spec_l57_d8_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_java_versions_spec_l57_d8_reports(args ...ruby.Value) ruby.Value {
 	source := java_versions_spec_formula(['"openjdk@25"'], java_versions_spec_install_matching_versioned())
-	return brew_runtime.bool_value(java_versions_spec_no_offenses(source, 'homebrew-core'))
+	return ruby.bool_value(java_versions_spec_no_offenses(source, 'homebrew-core'))
 }
 
 // Ruby method `install` at line 62.
-pub fn ruby_java_versions_spec_l62_d9_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(java_versions_spec_install_matching_versioned())
+pub fn ruby_java_versions_spec_l62_d9_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(java_versions_spec_install_matching_versioned())
 }
 
 // Ruby it `it "reports no offenses when Java version arguments match unversioned OpenJDK dependency" do` at line 73.
-pub fn ruby_java_versions_spec_l73_d10_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_java_versions_spec_l73_d10_reports(args ...ruby.Value) ruby.Value {
 	source := java_versions_spec_formula(['"openjdk"'], java_versions_spec_install_matching_unversioned())
-	return brew_runtime.bool_value(java_versions_spec_no_offenses(source, 'homebrew-core'))
+	return ruby.bool_value(java_versions_spec_no_offenses(source, 'homebrew-core'))
 }
 
 // Ruby method `install` at line 78.
-pub fn ruby_java_versions_spec_l78_d11_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(java_versions_spec_install_matching_unversioned())
+pub fn ruby_java_versions_spec_l78_d11_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(java_versions_spec_install_matching_unversioned())
 }
 
 // Ruby it `it "reports and corrects mismatched java_home version arguments for versioned OpenJDK dependency" do` at line 89.
-pub fn ruby_java_versions_spec_l89_d12_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_java_versions_spec_l89_d12_reports(args ...ruby.Value) ruby.Value {
 	source := java_versions_spec_formula(['"openjdk@25"'], java_versions_spec_install_java_home_versioned())
 	corrected := java_versions_spec_formula(['"openjdk@25"'], java_versions_spec_install_java_home_versioned_corrected())
-	return brew_runtime.bool_value(java_versions_spec_offenses(source, corrected, 'openjdk@25', 5, 0))
+	return ruby.bool_value(java_versions_spec_offenses(source, corrected, 'openjdk@25', 5, 0))
 }
 
 // Ruby method `install` at line 94.
-pub fn ruby_java_versions_spec_l94_d13_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(java_versions_spec_install_java_home_versioned())
+pub fn ruby_java_versions_spec_l94_d13_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(java_versions_spec_install_java_home_versioned())
 }
 
 // Ruby method `install` at line 116.
-pub fn ruby_java_versions_spec_l116_d14_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(java_versions_spec_install_java_home_versioned_corrected())
+pub fn ruby_java_versions_spec_l116_d14_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(java_versions_spec_install_java_home_versioned_corrected())
 }
 
 // Ruby it `it "reports and corrects mismatched java_home version arguments for unversioned OpenJDK dependency" do` at line 130.
-pub fn ruby_java_versions_spec_l130_d15_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_java_versions_spec_l130_d15_reports(args ...ruby.Value) ruby.Value {
 	source := java_versions_spec_formula(['"openjdk"'], java_versions_spec_install_java_home_unversioned())
 	corrected := java_versions_spec_formula(['"openjdk"'], java_versions_spec_install_java_home_unversioned_corrected())
-	return brew_runtime.bool_value(java_versions_spec_offenses(source, corrected, 'openjdk', 3, 1))
+	return ruby.bool_value(java_versions_spec_offenses(source, corrected, 'openjdk', 3, 1))
 }
 
 // Ruby method `install` at line 135.
-pub fn ruby_java_versions_spec_l135_d16_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(java_versions_spec_install_java_home_unversioned())
+pub fn ruby_java_versions_spec_l135_d16_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(java_versions_spec_install_java_home_unversioned())
 }
 
 // Ruby method `install` at line 156.
-pub fn ruby_java_versions_spec_l156_d17_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(java_versions_spec_install_java_home_unversioned_corrected())
+pub fn ruby_java_versions_spec_l156_d17_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(java_versions_spec_install_java_home_unversioned_corrected())
 }
 
 // Ruby it `it "reports and corrects mismatched write_jar_script version arguments for versioned OpenJDK dependency" do` at line 170.
-pub fn ruby_java_versions_spec_l170_d18_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_java_versions_spec_l170_d18_reports(args ...ruby.Value) ruby.Value {
 	source := java_versions_spec_formula(['"openjdk@25"'], java_versions_spec_install_jar_versioned())
 	corrected := java_versions_spec_formula(['"openjdk@25"'], java_versions_spec_install_jar_versioned_corrected())
-	return brew_runtime.bool_value(java_versions_spec_offenses(source, corrected, 'openjdk@25', 4, 0))
+	return ruby.bool_value(java_versions_spec_offenses(source, corrected, 'openjdk@25', 4, 0))
 }
 
 // Ruby method `install` at line 175.
-pub fn ruby_java_versions_spec_l175_d19_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(java_versions_spec_install_jar_versioned())
+pub fn ruby_java_versions_spec_l175_d19_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(java_versions_spec_install_jar_versioned())
 }
 
 // Ruby method `install` at line 195.
-pub fn ruby_java_versions_spec_l195_d20_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(java_versions_spec_install_jar_versioned_corrected())
+pub fn ruby_java_versions_spec_l195_d20_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(java_versions_spec_install_jar_versioned_corrected())
 }
 
 // Ruby it `it "reports and corrects mismatched write_jar_script version arguments for unversioned OpenJDK dependency" do` at line 208.
-pub fn ruby_java_versions_spec_l208_d21_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_java_versions_spec_l208_d21_reports(args ...ruby.Value) ruby.Value {
 	source := java_versions_spec_formula(['"openjdk"'], java_versions_spec_install_jar_unversioned())
 	corrected := java_versions_spec_formula(['"openjdk"'], java_versions_spec_install_jar_unversioned_corrected())
-	return brew_runtime.bool_value(java_versions_spec_offenses(source, corrected, 'openjdk', 2, 0))
+	return ruby.bool_value(java_versions_spec_offenses(source, corrected, 'openjdk', 2, 0))
 }
 
 // Ruby method `install` at line 213.
-pub fn ruby_java_versions_spec_l213_d22_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(java_versions_spec_install_jar_unversioned())
+pub fn ruby_java_versions_spec_l213_d22_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(java_versions_spec_install_jar_unversioned())
 }
 
 // Ruby method `install` at line 230.
-pub fn ruby_java_versions_spec_l230_d23_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(java_versions_spec_install_jar_unversioned_corrected())
+pub fn ruby_java_versions_spec_l230_d23_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(java_versions_spec_install_jar_unversioned_corrected())
 }
 
 // Original Ruby source (line-for-line):

@@ -1,6 +1,6 @@
 module extend
 
-import brew_runtime
+import ruby
 import homebrew.rubocops.cask.constants as stanza_constants
 import homebrew.utils
 
@@ -33,11 +33,11 @@ pub:
 	has_heredoc_end bool
 }
 
-fn node_nil() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn node_nil() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-fn node_kind_from_value(value brew_runtime.Value) string {
+fn node_kind_from_value(value ruby.Value) string {
 	if kind := value.attributes['kind'] {
 		return match kind {
 			'method_call' { 'send' }
@@ -198,7 +198,7 @@ pub fn parse_cask_ast_node(source string) CaskAstNode {
 	return node
 }
 
-fn node_ancestor_values(value brew_runtime.Value) []CaskNodeAncestor {
+fn node_ancestor_values(value ruby.Value) []CaskNodeAncestor {
 	mut ancestors := []CaskNodeAncestor{}
 	if encoded := value.attributes['ancestors'] {
 		for item in encoded.split('>') {
@@ -225,7 +225,7 @@ fn node_ancestor_values(value brew_runtime.Value) []CaskNodeAncestor {
 	return ancestors
 }
 
-fn node_from_value(value brew_runtime.Value) CaskAstNode {
+fn node_from_value(value ruby.Value) CaskAstNode {
 	if value.type_name == 'String' {
 		return parse_cask_ast_node(value.as_string())
 	}
@@ -283,7 +283,7 @@ fn node_from_value(value brew_runtime.Value) CaskAstNode {
 	}
 }
 
-fn node_to_value(node CaskAstNode) brew_runtime.Value {
+fn node_to_value(node CaskAstNode) ruby.Value {
 	type_name := match node.kind {
 		'send' { 'RuboCop::AST::SendNode' }
 		'block' { 'RuboCop::AST::BlockNode' }
@@ -292,7 +292,7 @@ fn node_to_value(node CaskAstNode) brew_runtime.Value {
 		else { 'RuboCop::AST::Node' }
 	}
 	ancestor_text := node.ancestors.map('${it.kind}:${it.method_name}').join('>')
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: type_name
 		repr: node.source
 		array_data: node.children.map(node_to_value(it))
@@ -522,7 +522,7 @@ pub fn location_expression(node CaskAstNode) CaskNodeRange {
 	return expression
 }
 
-fn node_range_value(source string, source_range CaskNodeRange) brew_runtime.Value {
+fn node_range_value(source string, source_range CaskNodeRange) ruby.Value {
 	mut relative_begin := source_range.begin_pos
 	mut relative_end := source_range.end_pos
 	if relative_begin < 0 || relative_begin > source.len {
@@ -531,14 +531,14 @@ fn node_range_value(source string, source_range CaskNodeRange) brew_runtime.Valu
 	if relative_end < relative_begin || relative_end > source.len {
 		relative_end = source.len
 	}
-	return brew_runtime.structured_value('Parser::Source::Range', source[relative_begin..relative_end], {
+	return ruby.structured_value('Parser::Source::Range', source[relative_begin..relative_end], {
 		'begin_pos': source_range.begin_pos.str()
 		'end_pos':   source_range.end_pos.str()
 	})
 }
 
 // Ruby def_node_matcher `def_node_matcher :method_node, "{$(send ...) (block $(send ...) ...)}"` at line 10.
-pub fn ruby_node_l10_d1_method_node(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_node_l10_d1_method_node(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return node_nil()
 	}
@@ -547,7 +547,7 @@ pub fn ruby_node_l10_d1_method_node(args ...brew_runtime.Value) brew_runtime.Val
 }
 
 // Ruby def_node_matcher `def_node_matcher :block_body,  "(block _ _ $_)"` at line 11.
-pub fn ruby_node_l11_d2_block_body(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_node_l11_d2_block_body(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return node_nil()
 	}
@@ -556,47 +556,47 @@ pub fn ruby_node_l11_d2_block_body(args ...brew_runtime.Value) brew_runtime.Valu
 }
 
 // Ruby def_node_matcher `def_node_matcher :cask_block?, "(block (send nil? :cask ...) args ...)"` at line 12.
-pub fn ruby_node_l12_d3_cask_block(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(args.len > 0 && cask_block(node_from_value(args[0])))
+pub fn ruby_node_l12_d3_cask_block(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(args.len > 0 && cask_block(node_from_value(args[0])))
 }
 
 // Ruby def_node_matcher `def_node_matcher :on_system_block?` at line 13.
-pub fn ruby_node_l13_d4_on_system_block(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(args.len > 0 && on_system_block(node_from_value(args[0])))
+pub fn ruby_node_l13_d4_on_system_block(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(args.len > 0 && on_system_block(node_from_value(args[0])))
 }
 
 // Ruby def_node_matcher `def_node_matcher :arch_variable?` at line 15.
-pub fn ruby_node_l15_d5_arch_variable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(args.len > 0 && arch_variable(node_from_value(args[0])))
+pub fn ruby_node_l15_d5_arch_variable(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(args.len > 0 && arch_variable(node_from_value(args[0])))
 }
 
 // Ruby def_node_matcher `def_node_matcher :system_variable?` at line 16.
-pub fn ruby_node_l16_d6_system_variable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(args.len > 0 && system_variable(node_from_value(args[0])))
+pub fn ruby_node_l16_d6_system_variable(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(args.len > 0 && system_variable(node_from_value(args[0])))
 }
 
 // Ruby def_node_matcher `def_node_matcher :begin_block?` at line 17.
-pub fn ruby_node_l17_d7_begin_block(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(args.len > 0 && begin_block(node_from_value(args[0])))
+pub fn ruby_node_l17_d7_begin_block(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(args.len > 0 && begin_block(node_from_value(args[0])))
 }
 
 // Ruby method `cask_on_system_block?` at line 20.
-pub fn ruby_node_l20_d8_cask_on_system_block(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(args.len > 0 && cask_on_system_block(node_from_value(args[0])))
+pub fn ruby_node_l20_d8_cask_on_system_block(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(args.len > 0 && cask_on_system_block(node_from_value(args[0])))
 }
 
 // Ruby method `stanza?` at line 25.
-pub fn ruby_node_l25_d9_stanza(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(args.len > 0 && stanza(node_from_value(args[0])))
+pub fn ruby_node_l25_d9_stanza(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(args.len > 0 && stanza(node_from_value(args[0])))
 }
 
 // Ruby method `heredoc?` at line 37.
-pub fn ruby_node_l37_d10_heredoc(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(args.len > 0 && heredoc(node_from_value(args[0])))
+pub fn ruby_node_l37_d10_heredoc(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(args.len > 0 && heredoc(node_from_value(args[0])))
 }
 
 // Ruby method `location_expression` at line 42.
-pub fn ruby_node_l42_d11_location_expression(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_node_l42_d11_location_expression(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return node_range_value('', CaskNodeRange{})
 	}

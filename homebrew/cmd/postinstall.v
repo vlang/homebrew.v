@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `cmd/postinstall.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -43,15 +43,15 @@ pub fn run_postinstall_command(formulae []PostinstallFormula, options Postinstal
 	}
 }
 
-pub fn postinstall_formula_to_value(formula PostinstallFormula) brew_runtime.Value {
-	return brew_runtime.structured_value('Formula', formula.name, {
+pub fn postinstall_formula_to_value(formula PostinstallFormula) ruby.Value {
+	return ruby.structured_value('Formula', formula.name, {
 		'name':                       formula.name
 		'post_install_steps_defined': formula.post_install_steps_defined.str()
 		'post_install_defined':       formula.post_install_defined.str()
 	})
 }
 
-fn postinstall_formula_from_value(value brew_runtime.Value) PostinstallFormula {
+fn postinstall_formula_from_value(value ruby.Value) PostinstallFormula {
 	return PostinstallFormula{
 		name: value.attributes['name'] or { value.as_string() }
 		post_install_steps_defined: (value.attributes['post_install_steps_defined'] or { 'false' }) == 'true'
@@ -59,24 +59,24 @@ fn postinstall_formula_from_value(value brew_runtime.Value) PostinstallFormula {
 	}
 }
 
-pub fn postinstall_result_to_value(result PostinstallResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'actions':  brew_runtime.string_array_value(result.actions)
-		'warnings': brew_runtime.string_array_value(result.warnings)
+pub fn postinstall_result_to_value(result PostinstallResult) ruby.Value {
+	return ruby.map_value({
+		'actions':  ruby.string_array_value(result.actions)
+		'warnings': ruby.string_array_value(result.warnings)
 	})
 }
 
 // Ruby method `run` at line 19.
-pub fn ruby_postinstall_l19_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_postinstall_l19_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'at least one installed formula is required')
+		return ruby.object_value('ArgumentError', 'at least one installed formula is required')
 	}
-	values := args[0].as_map() or { return brew_runtime.object_value('ArgumentError', err.msg()) }
-	formula_values := values['formulae'] or { brew_runtime.array_value([]brew_runtime.Value{}) }.as_array() or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+	values := args[0].as_map() or { return ruby.object_value('ArgumentError', err.msg()) }
+	formula_values := values['formulae'] or { ruby.array_value([]ruby.Value{}) }.as_array() or {
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	if formula_values.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'at least one installed formula is required')
+		return ruby.object_value('ArgumentError', 'at least one installed formula is required')
 	}
 	options := PostinstallOptions{
 		debug: if value := values['debug'] { value.as_bool() or { false } } else { false }

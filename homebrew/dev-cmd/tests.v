@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 import homebrew.dev_tests
 
 // Translated from Homebrew/brew `dev-cmd/tests.rb`.
@@ -256,7 +256,7 @@ pub fn dev_tests_run(context DevTestsContext, args DevTestsArgs) !DevTestsRunPla
 	log_path := if context.ci {
 		'tests/${log_name}'
 	} else {
-		brew_runtime.join_path(context.cache, log_name)
+		ruby.join_path(context.cache, log_name)
 	}
 	environment['PARALLEL_RSPEC_LOG_PATH'] = log_path
 	parallel_args := if context.ci {
@@ -265,7 +265,7 @@ pub fn dev_tests_run(context DevTestsContext, args DevTestsArgs) !DevTestsRunPla
 		['--nice']
 	}
 	seed := args.seed or { context.generated_seed }
-	mut bundle_args := ['-I', brew_runtime.join_path(context.library_path, 'test'), '--seed',
+	mut bundle_args := ['-I', ruby.join_path(context.library_path, 'test'), '--seed',
 		seed.str(), '--color', '--require', 'spec_helper']
 	if args.fail_fast {
 		bundle_args << '--fail-fast'
@@ -291,18 +291,18 @@ pub fn dev_tests_run(context DevTestsContext, args DevTestsArgs) !DevTestsRunPla
 	if args.debug {
 		environment['HOMEBREW_DEBUG'] = '1'
 	}
-	test_prof := brew_runtime.join_path(context.library_path, 'tmp/test_prof')
+	test_prof := ruby.join_path(context.library_path, 'tmp/test_prof')
 	mut prof_input_filename := ''
 	mut prof_filename := ''
 	if args.stackprof {
 		environment['TEST_STACK_PROF'] = '1'
-		prof_input_filename = brew_runtime.join_path(test_prof, 'stack-prof-report-wall-raw-total.dump')
-		prof_filename = brew_runtime.join_path(test_prof, 'stack-prof-report-wall-raw-total.html')
+		prof_input_filename = ruby.join_path(test_prof, 'stack-prof-report-wall-raw-total.dump')
+		prof_filename = ruby.join_path(test_prof, 'stack-prof-report-wall-raw-total.html')
 	} else if args.vernier {
 		environment['TEST_VERNIER'] = '1'
 	} else if args.ruby_prof {
 		environment['TEST_RUBY_PROF'] = 'call_stack'
-		prof_filename = brew_runtime.join_path(test_prof, 'ruby-prof-report-call_stack-wall-total.html')
+		prof_filename = ruby.join_path(test_prof, 'ruby-prof-report-call_stack-wall-total.html')
 	}
 	if parallel {
 		mut command_args := ['exec', 'parallel_rspec']

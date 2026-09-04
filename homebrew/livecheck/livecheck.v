@@ -1,6 +1,6 @@
 module livecheck
 
-import brew_runtime
+import ruby
 import net.urllib
 import os
 import time
@@ -30,7 +30,7 @@ pub mut:
 	head_using              string
 	url_using               string
 	livecheck_defined       bool
-	livecheck_url           brew_runtime.Value
+	livecheck_url           ruby.Value
 	livecheck_formula       string
 	livecheck_cask          string
 	livecheck_regex         string
@@ -66,73 +66,73 @@ pub:
 	references  []LivecheckPackage
 }
 
-fn livecheck_nil() brew_runtime.Value {
-	return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+fn livecheck_nil() ruby.Value {
+	return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 }
 
-fn livecheck_error(kind string, message string) brew_runtime.Value {
-	return brew_runtime.object_value(kind, message)
+fn livecheck_error(kind string, message string) ruby.Value {
+	return ruby.object_value(kind, message)
 }
 
-fn livecheck_strings(value brew_runtime.Value) []string {
+fn livecheck_strings(value ruby.Value) []string {
 	if value.type_name == 'NilClass' || value.type_name == '' {
 		return []string{}
 	}
 	return value.as_string_array() or { []string{} }
 }
 
-pub fn livecheck_package_value(package LivecheckPackage) brew_runtime.Value {
-	mut matches := map[string]brew_runtime.Value{}
+pub fn livecheck_package_value(package LivecheckPackage) ruby.Value {
+	mut matches := map[string]ruby.Value{}
 	for key, value in package.livecheck_matches {
-		matches[key] = brew_runtime.string_value(value)
+		matches[key] = ruby.string_value(value)
 	}
 	mut values := {
-		'kind':                    brew_runtime.string_value(package.kind)
-		'name':                    brew_runtime.string_value(package.name)
-		'full_name':               brew_runtime.string_value(package.full_name)
-		'version':                 brew_runtime.string_value(package.version)
-		'head_only':               brew_runtime.bool_value(package.head_only)
-		'installed_head_commit':   brew_runtime.string_value(package.installed_head_commit)
-		'latest_head_commit':      brew_runtime.string_value(package.latest_head_commit)
-		'owner_name':              brew_runtime.string_value(package.owner_name)
-		'owner_full_name':         brew_runtime.string_value(package.owner_full_name)
-		'stable_url':              brew_runtime.string_value(package.stable_url)
-		'head_url':                brew_runtime.string_value(package.head_url)
-		'homepage':                brew_runtime.string_value(package.homepage)
-		'url':                     brew_runtime.string_value(package.url)
-		'mirrors':                 brew_runtime.string_array_value(package.mirrors)
-		'stable_using':            brew_runtime.string_value(package.stable_using)
-		'head_using':              brew_runtime.string_value(package.head_using)
-		'url_using':               brew_runtime.string_value(package.url_using)
-		'livecheck_defined':       brew_runtime.bool_value(package.livecheck_defined)
+		'kind':                    ruby.string_value(package.kind)
+		'name':                    ruby.string_value(package.name)
+		'full_name':               ruby.string_value(package.full_name)
+		'version':                 ruby.string_value(package.version)
+		'head_only':               ruby.bool_value(package.head_only)
+		'installed_head_commit':   ruby.string_value(package.installed_head_commit)
+		'latest_head_commit':      ruby.string_value(package.latest_head_commit)
+		'owner_name':              ruby.string_value(package.owner_name)
+		'owner_full_name':         ruby.string_value(package.owner_full_name)
+		'stable_url':              ruby.string_value(package.stable_url)
+		'head_url':                ruby.string_value(package.head_url)
+		'homepage':                ruby.string_value(package.homepage)
+		'url':                     ruby.string_value(package.url)
+		'mirrors':                 ruby.string_array_value(package.mirrors)
+		'stable_using':            ruby.string_value(package.stable_using)
+		'head_using':              ruby.string_value(package.head_using)
+		'url_using':               ruby.string_value(package.url_using)
+		'livecheck_defined':       ruby.bool_value(package.livecheck_defined)
 		'livecheck_url':           package.livecheck_url
-		'livecheck_formula':       brew_runtime.string_value(package.livecheck_formula)
-		'livecheck_cask':          brew_runtime.string_value(package.livecheck_cask)
-		'livecheck_regex':         brew_runtime.string_value(package.livecheck_regex)
-		'livecheck_strategy':      brew_runtime.string_value(package.livecheck_strategy)
-		'livecheck_parameters':    brew_runtime.string_array_value(package.livecheck_parameters)
-		'livecheck_matches':       brew_runtime.map_value(matches)
-		'livecheck_messages':      brew_runtime.string_array_value(package.livecheck_messages)
-		'livecheck_throttle':      brew_runtime.int_value(package.livecheck_throttle)
-		'livecheck_throttle_days': brew_runtime.int_value(package.livecheck_throttle_days)
-		'resources':               brew_runtime.array_value(package.resources.map(livecheck_package_value(it)))
-		'tap_name':                brew_runtime.string_value(package.tap_name)
-		'tap_path':                brew_runtime.string_value(package.tap_path)
-		'tap_git':                 brew_runtime.bool_value(package.tap_git)
-		'tap_core':                brew_runtime.bool_value(package.tap_core)
-		'tap_core_cask':           brew_runtime.bool_value(package.tap_core_cask)
-		'sourcefile_path':         brew_runtime.string_value(package.sourcefile_path)
-		'origin_version':          brew_runtime.string_value(package.origin_version)
-		'revisions':               brew_runtime.array_value(package.revisions.map(brew_runtime.structured_value('FormulaVersions::Revision', it.revision, {
+		'livecheck_formula':       ruby.string_value(package.livecheck_formula)
+		'livecheck_cask':          ruby.string_value(package.livecheck_cask)
+		'livecheck_regex':         ruby.string_value(package.livecheck_regex)
+		'livecheck_strategy':      ruby.string_value(package.livecheck_strategy)
+		'livecheck_parameters':    ruby.string_array_value(package.livecheck_parameters)
+		'livecheck_matches':       ruby.map_value(matches)
+		'livecheck_messages':      ruby.string_array_value(package.livecheck_messages)
+		'livecheck_throttle':      ruby.int_value(package.livecheck_throttle)
+		'livecheck_throttle_days': ruby.int_value(package.livecheck_throttle_days)
+		'resources':               ruby.array_value(package.resources.map(livecheck_package_value(it)))
+		'tap_name':                ruby.string_value(package.tap_name)
+		'tap_path':                ruby.string_value(package.tap_path)
+		'tap_git':                 ruby.bool_value(package.tap_git)
+		'tap_core':                ruby.bool_value(package.tap_core)
+		'tap_core_cask':           ruby.bool_value(package.tap_core_cask)
+		'sourcefile_path':         ruby.string_value(package.sourcefile_path)
+		'origin_version':          ruby.string_value(package.origin_version)
+		'revisions':               ruby.array_value(package.revisions.map(ruby.structured_value('FormulaVersions::Revision', it.revision, {
 			'revision':  it.revision
 			'version':   it.version
 			'timestamp': it.timestamp.str()
 		})))
 	}
 	if timestamp := package.last_updated_timestamp {
-		values['last_updated_timestamp'] = brew_runtime.int_value(timestamp)
+		values['last_updated_timestamp'] = ruby.int_value(timestamp)
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: match package.kind {
 			'cask' { 'Cask::Cask' }
 			'resource' { 'Resource' }
@@ -143,12 +143,12 @@ pub fn livecheck_package_value(package LivecheckPackage) brew_runtime.Value {
 	}
 }
 
-fn livecheck_string(values map[string]brew_runtime.Value, key string) string {
+fn livecheck_string(values map[string]ruby.Value, key string) string {
 	value := values[key] or { return '' }
 	return if value.type_name == 'NilClass' { '' } else { value.as_string().trim_left(':') }
 }
 
-pub fn livecheck_package_from_value(value brew_runtime.Value) !LivecheckPackage {
+pub fn livecheck_package_from_value(value ruby.Value) !LivecheckPackage {
 	values := value.map_data.clone()
 	kind := livecheck_string(values, 'kind')
 	mut package := LivecheckPackage{
@@ -158,7 +158,7 @@ pub fn livecheck_package_from_value(value brew_runtime.Value) !LivecheckPackage 
 		name: livecheck_string(values, 'name')
 		full_name: livecheck_string(values, 'full_name')
 		version: livecheck_string(values, 'version')
-		head_only: (values['head_only'] or { brew_runtime.bool_value(false) }).bool_data
+		head_only: (values['head_only'] or { ruby.bool_value(false) }).bool_data
 		installed_head_commit: livecheck_string(values, 'installed_head_commit')
 		latest_head_commit: livecheck_string(values, 'latest_head_commit')
 		owner_name: livecheck_string(values, 'owner_name')
@@ -171,7 +171,7 @@ pub fn livecheck_package_from_value(value brew_runtime.Value) !LivecheckPackage 
 		stable_using: livecheck_string(values, 'stable_using')
 		head_using: livecheck_string(values, 'head_using')
 		url_using: livecheck_string(values, 'url_using')
-		livecheck_defined: (values['livecheck_defined'] or { brew_runtime.bool_value(false) }).bool_data
+		livecheck_defined: (values['livecheck_defined'] or { ruby.bool_value(false) }).bool_data
 		livecheck_url: values['livecheck_url'] or { livecheck_nil() }
 		livecheck_formula: livecheck_string(values, 'livecheck_formula')
 		livecheck_cask: livecheck_string(values, 'livecheck_cask')
@@ -179,26 +179,26 @@ pub fn livecheck_package_from_value(value brew_runtime.Value) !LivecheckPackage 
 		livecheck_strategy: livecheck_string(values, 'livecheck_strategy')
 		livecheck_parameters: livecheck_strings(values['livecheck_parameters'] or { livecheck_nil() })
 		livecheck_messages: livecheck_strings(values['livecheck_messages'] or { livecheck_nil() })
-		livecheck_throttle: int((values['livecheck_throttle'] or { brew_runtime.int_value(0) }).int_data)
-		livecheck_throttle_days: int((values['livecheck_throttle_days'] or { brew_runtime.int_value(0) }).int_data)
+		livecheck_throttle: int((values['livecheck_throttle'] or { ruby.int_value(0) }).int_data)
+		livecheck_throttle_days: int((values['livecheck_throttle_days'] or { ruby.int_value(0) }).int_data)
 		tap_name: livecheck_string(values, 'tap_name')
 		tap_path: livecheck_string(values, 'tap_path')
-		tap_git: (values['tap_git'] or { brew_runtime.bool_value(false) }).bool_data
-		tap_core: (values['tap_core'] or { brew_runtime.bool_value(false) }).bool_data
-		tap_core_cask: (values['tap_core_cask'] or { brew_runtime.bool_value(false) }).bool_data
+		tap_git: (values['tap_git'] or { ruby.bool_value(false) }).bool_data
+		tap_core: (values['tap_core'] or { ruby.bool_value(false) }).bool_data
+		tap_core_cask: (values['tap_core_cask'] or { ruby.bool_value(false) }).bool_data
 		sourcefile_path: livecheck_string(values, 'sourcefile_path')
 		origin_version: livecheck_string(values, 'origin_version')
 	}
-	for key, raw in (values['livecheck_matches'] or { brew_runtime.map_value({}) }).map_data {
+	for key, raw in (values['livecheck_matches'] or { ruby.map_value({}) }).map_data {
 		package.livecheck_matches[key] = raw.as_string()
 	}
-	for raw in (values['resources'] or { brew_runtime.array_value([]brew_runtime.Value{}) }).as_array() or { []brew_runtime.Value{} } {
+	for raw in (values['resources'] or { ruby.array_value([]ruby.Value{}) }).as_array() or { []ruby.Value{} } {
 		package.resources << livecheck_package_from_value(raw)!
 	}
 	if raw := values['last_updated_timestamp'] {
 		package.last_updated_timestamp = raw.int_data
 	}
-	for raw in (values['revisions'] or { brew_runtime.array_value([]brew_runtime.Value{}) }).as_array() or { []brew_runtime.Value{} } {
+	for raw in (values['revisions'] or { ruby.array_value([]ruby.Value{}) }).as_array() or { []ruby.Value{} } {
 		package.revisions << LivecheckRevision{ revision: raw.attributes['revision'] or { raw.as_string() }, version: raw.attributes['version'] or { '' }, timestamp: (raw.attributes['timestamp'] or { '0' }).i64() }
 	}
 	if package.name == '' {
@@ -267,25 +267,25 @@ pub fn livecheck_package_name(package LivecheckPackage, full_name bool) string {
 	return if full_name && package.kind != 'resource' { package.full_name } else { package.name }
 }
 
-pub fn livecheck_status_hash(package LivecheckPackage, status string, messages []string) brew_runtime.Value {
+pub fn livecheck_status_hash(package LivecheckPackage, status string, messages []string) ruby.Value {
 	mut meta := {
-		'livecheck_defined': brew_runtime.bool_value(package.livecheck_defined)
+		'livecheck_defined': ruby.bool_value(package.livecheck_defined)
 	}
 	if package.kind == 'formula' && package.head_only {
-		meta['head_only'] = brew_runtime.bool_value(true)
+		meta['head_only'] = ruby.bool_value(true)
 	}
 	mut values := {
-		package.kind: brew_runtime.string_value(package.name)
-		'status':     brew_runtime.string_value(status)
-		'meta':       brew_runtime.map_value(meta)
+		package.kind: ruby.string_value(package.name)
+		'status':     ruby.string_value(status)
+		'meta':       ruby.map_value(meta)
 	}
 	if messages.len > 0 {
-		values['messages'] = brew_runtime.string_array_value(messages)
+		values['messages'] = ruby.string_array_value(messages)
 	}
-	return brew_runtime.map_value(values)
+	return ruby.map_value(values)
 }
 
-pub fn livecheck_url_to_string(url brew_runtime.Value, package LivecheckPackage) !string {
+pub fn livecheck_url_to_string(url ruby.Value, package LivecheckPackage) !string {
 	if url.type_name == 'String' {
 		return url.as_string()
 	}
@@ -425,7 +425,7 @@ pub fn livecheck_throttle_allows_bump(package LivecheckPackage, version string, 
 	return false
 }
 
-pub fn livecheck_latest_version_with_reference(package LivecheckPackage, referenced LivecheckPackage, has_reference bool, references []LivecheckPackage, interval_elapsed ?bool, json bool, full_name bool, verbose bool) brew_runtime.Value {
+pub fn livecheck_latest_version_with_reference(package LivecheckPackage, referenced LivecheckPackage, has_reference bool, references []LivecheckPackage, interval_elapsed ?bool, json bool, full_name bool, verbose bool) ruby.Value {
 	mut source := package
 	if has_reference {
 		if source.livecheck_url.type_name == '' || source.livecheck_url.type_name == 'NilClass' {
@@ -463,7 +463,7 @@ pub fn livecheck_latest_version_with_reference(package LivecheckPackage, referen
 		return livecheck_nil()
 	}
 	mut values := {
-		'latest': brew_runtime.object_value('Version', latest)
+		'latest': ruby.object_value('Version', latest)
 	}
 	if source.livecheck_throttle > 0 || source.livecheck_throttle_days > 0 {
 		mut throttled := map[string]string{}
@@ -478,46 +478,46 @@ pub fn livecheck_latest_version_with_reference(package LivecheckPackage, referen
 			livecheck_throttle_interval_elapsed(package, source.livecheck_throttle_days, time.now().unix())
 		}
 		if source.livecheck_throttle_days > 0 && elapsed {
-			values['latest_throttled'] = brew_runtime.object_value('Version', latest)
+			values['latest_throttled'] = ruby.object_value('Version', latest)
 		} else if throttled_latest := livecheck_latest(throttled) {
-			values['latest_throttled'] = brew_runtime.object_value('Version', throttled_latest)
+			values['latest_throttled'] = ruby.object_value('Version', throttled_latest)
 		} else {
 			values['latest_throttled'] = livecheck_nil()
 		}
 	}
 	if json && verbose {
-		mut meta := map[string]brew_runtime.Value{}
+		mut meta := map[string]ruby.Value{}
 		if references.len > 0 {
-			mut reference_values := []brew_runtime.Value{}
+			mut reference_values := []ruby.Value{}
 			for item in references {
-				reference_values << brew_runtime.map_value({
-					item.kind: brew_runtime.string_value(livecheck_package_name(item, full_name))
+				reference_values << ruby.map_value({
+					item.kind: ruby.string_value(livecheck_package_name(item, full_name))
 				})
 			}
-			meta['references'] = brew_runtime.array_value(reference_values)
+			meta['references'] = ruby.array_value(reference_values)
 		}
 		if source.livecheck_strategy != '' {
-			meta['strategy'] = brew_runtime.string_value(livecheck_strategy_name(source.livecheck_strategy))
+			meta['strategy'] = ruby.string_value(livecheck_strategy_name(source.livecheck_strategy))
 		}
 		if source.livecheck_regex != '' {
-			meta['regex'] = brew_runtime.string_value(source.livecheck_regex)
+			meta['regex'] = ruby.string_value(source.livecheck_regex)
 		}
 		if source.livecheck_throttle > 0 {
-			meta['throttle'] = brew_runtime.int_value(source.livecheck_throttle)
+			meta['throttle'] = ruby.int_value(source.livecheck_throttle)
 		}
 		if source.livecheck_throttle_days > 0 {
-			meta['throttle_days'] = brew_runtime.int_value(source.livecheck_throttle_days)
+			meta['throttle_days'] = ruby.int_value(source.livecheck_throttle_days)
 		}
-		values['meta'] = brew_runtime.map_value(meta)
+		values['meta'] = ruby.map_value(meta)
 	}
-	return brew_runtime.map_value(values)
+	return ruby.map_value(values)
 }
 
-pub fn livecheck_latest_version(package LivecheckPackage, interval_elapsed ?bool) brew_runtime.Value {
+pub fn livecheck_latest_version(package LivecheckPackage, interval_elapsed ?bool) ruby.Value {
 	return livecheck_latest_version_with_reference(package, LivecheckPackage{}, false, []LivecheckPackage{}, interval_elapsed, false, false, false)
 }
 
-pub fn livecheck_resource_version_with_options(resource LivecheckPackage, formula_latest string, json bool, full_name bool, verbose bool) brew_runtime.Value {
+pub fn livecheck_resource_version_with_options(resource LivecheckPackage, formula_latest string, json bool, full_name bool, verbose bool) ruby.Value {
 	mut package := resource
 	if package.livecheck_formula == 'parent' {
 		package.livecheck_matches = {
@@ -542,7 +542,7 @@ pub fn livecheck_resource_version_with_options(resource LivecheckPackage, formul
 	latest := (latest_info.map_data['latest'] or { livecheck_nil() }).as_string()
 	comparison := livecheck_compare_versions(resource.version, latest)
 	mut meta := {
-		'livecheck_defined': brew_runtime.bool_value(resource.livecheck_defined)
+		'livecheck_defined': ruby.bool_value(resource.livecheck_defined)
 	}
 	if package.livecheck_formula == 'parent' {
 		owner := if full_name && package.owner_full_name != '' {
@@ -550,31 +550,31 @@ pub fn livecheck_resource_version_with_options(resource LivecheckPackage, formul
 		} else {
 			package.owner_name
 		}
-		meta['references'] = brew_runtime.array_value([
-			brew_runtime.map_value({
-				'formula': brew_runtime.string_value(owner)
-				'symbol':  brew_runtime.Value{ type_name: 'Symbol', repr: 'parent' }
+		meta['references'] = ruby.array_value([
+			ruby.map_value({
+				'formula': ruby.string_value(owner)
+				'symbol':  ruby.Value{ type_name: 'Symbol', repr: 'parent' }
 			}),
 		])
 	}
 	if package.livecheck_strategy != '' {
-		meta['strategy'] = brew_runtime.string_value(livecheck_strategy_name(package.livecheck_strategy))
+		meta['strategy'] = ruby.string_value(livecheck_strategy_name(package.livecheck_strategy))
 	}
 	mut values := {
-		'resource': brew_runtime.string_value(resource.name)
-		'version':  brew_runtime.map_value({
-			'current':             brew_runtime.string_value(resource.version)
-			'latest':              brew_runtime.string_value(latest)
-			'outdated':            brew_runtime.bool_value(comparison < 0)
-			'newer_than_upstream': brew_runtime.bool_value(comparison > 0)
+		'resource': ruby.string_value(resource.name)
+		'version':  ruby.map_value({
+			'current':             ruby.string_value(resource.version)
+			'latest':              ruby.string_value(latest)
+			'outdated':            ruby.bool_value(comparison < 0)
+			'newer_than_upstream': ruby.bool_value(comparison > 0)
 		})
-		'meta':     brew_runtime.map_value(meta)
+		'meta':     ruby.map_value(meta)
 	}
 	if json && !verbose { values.delete('meta') }
-	return brew_runtime.map_value(values)
+	return ruby.map_value(values)
 }
 
-pub fn livecheck_resource_version(resource LivecheckPackage, formula_latest string) brew_runtime.Value {
+pub fn livecheck_resource_version(resource LivecheckPackage, formula_latest string) ruby.Value {
 	return livecheck_resource_version_with_options(resource, formula_latest, false, false, false)
 }
 
@@ -624,50 +624,50 @@ pub fn livecheck_throttle_interval_elapsed(package LivecheckPackage, days int, n
 	return now - timestamp >= i64(days * 24 * 60 * 60)
 }
 
-fn livecheck_keywords(args []brew_runtime.Value) map[string]brew_runtime.Value {
+fn livecheck_keywords(args []ruby.Value) map[string]ruby.Value {
 	for index := args.len - 1; index >= 0; index-- {
 		if args[index].type_name == 'Hash' {
 			return args[index].map_data.clone()
 		}
 	}
-	return map[string]brew_runtime.Value{}
+	return map[string]ruby.Value{}
 }
 
-fn livecheck_bool(values map[string]brew_runtime.Value, key string, fallback bool) bool {
+fn livecheck_bool(values map[string]ruby.Value, key string, fallback bool) bool {
 	value := values[key] or { return fallback }
 	return if value.type_name == 'Bool' { value.bool_data } else { fallback }
 }
 
 // Ruby method `self.livecheck_strategy_names(strategy_class)` at line 37.
-pub fn ruby_livecheck_l37_d1_self_livecheck_strategy_names(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_l37_d1_self_livecheck_strategy_names(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return livecheck_error('ArgumentError', 'strategy class is required')
 	}
-	return brew_runtime.string_value(livecheck_strategy_name(args[0].as_string()))
+	return ruby.string_value(livecheck_strategy_name(args[0].as_string()))
 }
 
 // Ruby method `self.livecheck_find_versions_parameters(strategy_class)` at line 43.
-pub fn ruby_livecheck_l43_d2_self_livecheck_find_versions_parameters(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_l43_d2_self_livecheck_find_versions_parameters(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.array_value([]brew_runtime.Value{})
+		return ruby.array_value([]ruby.Value{})
 	}
-	return brew_runtime.string_array_value(livecheck_strings(args[0].map_data['parameters'] or { args[0] }))
+	return ruby.string_array_value(livecheck_strings(args[0].map_data['parameters'] or { args[0] }))
 }
 
 // Ruby method `self.load_other_tap_strategies(formulae_and_casks_to_check)` at line 53.
-pub fn ruby_livecheck_l53_d3_self_load_other_tap_strategies(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_l53_d3_self_load_other_tap_strategies(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return livecheck_nil()
 	}
 	mut packages := []LivecheckPackage{}
-	for raw in args[0].as_array() or { []brew_runtime.Value{} } {
+	for raw in args[0].as_array() or { []ruby.Value{} } {
 		packages << livecheck_package_from_value(raw) or { continue }
 	}
-	return brew_runtime.string_array_value(livecheck_other_tap_strategy_paths(packages))
+	return ruby.string_array_value(livecheck_other_tap_strategy_paths(packages))
 }
 
 // Ruby method `self.resolve_livecheck_reference(` at line 83.
-pub fn ruby_livecheck_l83_d4_self_resolve_livecheck_reference(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_l83_d4_self_resolve_livecheck_reference(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return livecheck_error('ArgumentError', 'package is required')
 	}
@@ -679,20 +679,20 @@ pub fn ruby_livecheck_l83_d4_self_resolve_livecheck_reference(args ...brew_runti
 		}
 	}
 	resolved := livecheck_resolve_reference(package, catalog) or { return livecheck_error('RuntimeError', err.msg()) }
-	return brew_runtime.array_value([
+	return ruby.array_value([
 		if resolved.has_package { livecheck_package_value(resolved.package) } else { livecheck_nil() },
-		brew_runtime.array_value(resolved.references.map(livecheck_package_value(it))),
+		ruby.array_value(resolved.references.map(livecheck_package_value(it))),
 	])
 }
 
 // Ruby method `self.run_checks(` at line 160.
-pub fn ruby_livecheck_l160_d5_self_run_checks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_l160_d5_self_run_checks(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.array_value([]brew_runtime.Value{})
+		return ruby.array_value([]ruby.Value{})
 	}
 	options := livecheck_keywords(args)
 	mut packages := []LivecheckPackage{}
-	for raw in args[0].as_array() or { []brew_runtime.Value{} } {
+	for raw in args[0].as_array() or { []ruby.Value{} } {
 		packages << livecheck_package_from_value(raw) or { continue }
 	}
 	full_name := livecheck_bool(options, 'full_name', false)
@@ -713,7 +713,7 @@ pub fn ruby_livecheck_l160_d5_self_run_checks(args ...brew_runtime.Value) brew_r
 			catalog[key] = livecheck_package_from_value(raw) or { continue }
 		}
 	}
-	mut results := []brew_runtime.Value{}
+	mut results := []ruby.Value{}
 	for package in packages {
 		use_full_name := full_name || name_counts[package.name] > 1
 		mut referenced := LivecheckPackage{}
@@ -725,8 +725,8 @@ pub fn ruby_livecheck_l160_d5_self_run_checks(args ...brew_runtime.Value) brew_r
 					mut status := livecheck_status_hash(package, 'error', [err.msg()])
 					if use_full_name {
 						mut status_values := status.map_data.clone()
-						status_values[package.kind] = brew_runtime.string_value(package.full_name)
-						status = brew_runtime.map_value(status_values)
+						status_values[package.kind] = ruby.string_value(package.full_name)
+						status = ruby.map_value(status_values)
 					}
 					results << status
 				}
@@ -748,16 +748,16 @@ pub fn ruby_livecheck_l160_d5_self_run_checks(args ...brew_runtime.Value) brew_r
 				])
 				if use_full_name {
 					mut status_values := status.map_data.clone()
-					status_values[package.kind] = brew_runtime.string_value(package.full_name)
-					status = brew_runtime.map_value(status_values)
+					status_values[package.kind] = ruby.string_value(package.full_name)
+					status = ruby.map_value(status_values)
 				}
 				results << status
 			}
 			continue
 		}
 		latest := if package.head_only && package.latest_head_commit != '' {
-			brew_runtime.map_value({
-				'latest': brew_runtime.object_value('Version', package.latest_head_commit)
+			ruby.map_value({
+				'latest': ruby.object_value('Version', package.latest_head_commit)
 			})
 		} else {
 			livecheck_latest_version_with_reference(package, referenced, has_reference, references, none, json, use_full_name, verbose)
@@ -769,8 +769,8 @@ pub fn ruby_livecheck_l160_d5_self_run_checks(args ...brew_runtime.Value) brew_r
 				])
 				if use_full_name {
 					mut status_values := status.map_data.clone()
-					status_values[package.kind] = brew_runtime.string_value(package.full_name)
-					status = brew_runtime.map_value(status_values)
+					status_values[package.kind] = ruby.string_value(package.full_name)
+					status = ruby.map_value(status_values)
 				}
 				results << status
 			}
@@ -790,19 +790,19 @@ pub fn ruby_livecheck_l160_d5_self_run_checks(args ...brew_runtime.Value) brew_r
 			continue
 		}
 		mut version_values := {
-			'current':             brew_runtime.string_value(current_text)
-			'latest':              brew_runtime.string_value(upstream_text)
-			'outdated':            brew_runtime.bool_value(outdated)
-			'newer_than_upstream': brew_runtime.bool_value(!package.head_only && comparison > 0)
+			'current':             ruby.string_value(current_text)
+			'latest':              ruby.string_value(upstream_text)
+			'outdated':            ruby.bool_value(outdated)
+			'newer_than_upstream': ruby.bool_value(!package.head_only && comparison > 0)
 		}
 		if throttled := latest.map_data['latest_throttled'] {
 			version_values['latest_throttled'] = throttled
 		}
 		mut meta_values := {
-			'livecheck_defined': brew_runtime.bool_value(package.livecheck_defined)
+			'livecheck_defined': ruby.bool_value(package.livecheck_defined)
 		}
 		if package.head_only {
-			meta_values['head_only'] = brew_runtime.bool_value(true)
+			meta_values['head_only'] = ruby.bool_value(true)
 		}
 		if latest_meta := latest.map_data['meta'] {
 			for key, value in latest_meta.map_data {
@@ -810,44 +810,44 @@ pub fn ruby_livecheck_l160_d5_self_run_checks(args ...brew_runtime.Value) brew_r
 			}
 		}
 		mut info_values := {
-			package.kind: brew_runtime.string_value(livecheck_package_name(package, use_full_name))
-			'version':    brew_runtime.map_value(version_values)
-			'meta':       brew_runtime.map_value(meta_values)
+			package.kind: ruby.string_value(livecheck_package_name(package, use_full_name))
+			'version':    ruby.map_value(version_values)
+			'meta':       ruby.map_value(meta_values)
 		}
 		if check_resources && package.kind == 'formula' && package.resources.len > 0 {
-			mut resources := []brew_runtime.Value{}
+			mut resources := []ruby.Value{}
 			for resource in package.resources {
 				resources << livecheck_resource_version(resource, upstream_text)
 			}
-			info_values['resources'] = brew_runtime.array_value(resources)
+			info_values['resources'] = ruby.array_value(resources)
 		}
 		if json && !verbose { info_values.delete('meta') }
-		results << brew_runtime.map_value(info_values)
+		results << ruby.map_value(info_values)
 	}
-	return brew_runtime.array_value(results)
+	return ruby.array_value(results)
 }
 
 // Ruby method `self.package_or_resource_name(package_or_resource, full_name: false)` at line 430.
-pub fn ruby_livecheck_l430_d6_self_package_or_resource_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_l430_d6_self_package_or_resource_name(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return livecheck_error('ArgumentError', 'package is required')
 	}
 	pkg := livecheck_package_from_value(args[0]) or { return livecheck_error('TypeError', err.msg()) }
-	return brew_runtime.string_value(livecheck_package_name(pkg, livecheck_bool(livecheck_keywords(args), 'full_name', false)))
+	return ruby.string_value(livecheck_package_name(pkg, livecheck_bool(livecheck_keywords(args), 'full_name', false)))
 }
 
 // Ruby method `self.cask_name(cask, full_name: false)` at line 446.
-pub fn ruby_livecheck_l446_d7_self_cask_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_l446_d7_self_cask_name(args ...ruby.Value) ruby.Value {
 	return ruby_livecheck_l430_d6_self_package_or_resource_name(...args)
 }
 
 // Ruby method `self.formula_name(formula, full_name: false)` at line 453.
-pub fn ruby_livecheck_l453_d8_self_formula_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_l453_d8_self_formula_name(args ...ruby.Value) ruby.Value {
 	return ruby_livecheck_l430_d6_self_package_or_resource_name(...args)
 }
 
 // Ruby method `self.status_hash(package_or_resource, status_str, messages = nil, full_name: false, verbose: false)` at line 466.
-pub fn ruby_livecheck_l466_d9_self_status_hash(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_l466_d9_self_status_hash(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		return livecheck_error('ArgumentError', 'package and status are required')
 	}
@@ -856,19 +856,19 @@ pub fn ruby_livecheck_l466_d9_self_status_hash(args ...brew_runtime.Value) brew_
 	result := livecheck_status_hash(pkg, args[1].as_string(), messages)
 	if livecheck_bool(livecheck_keywords(args), 'full_name', false) {
 		mut values := result.map_data.clone()
-		values[pkg.kind] = brew_runtime.string_value(pkg.full_name)
-		return brew_runtime.map_value(values)
+		values[pkg.kind] = ruby.string_value(pkg.full_name)
+		return ruby.map_value(values)
 	}
 	return result
 }
 
 // Ruby method `self.print_latest_version(info, verbose: false, ambiguous_cask: false)` at line 492.
-pub fn ruby_livecheck_l492_d10_self_print_latest_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_l492_d10_self_print_latest_version(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return livecheck_nil()
 	}
 	info := args[0].map_data.clone()
-	version := (info['version'] or { brew_runtime.map_value({}) }).map_data.clone()
+	version := (info['version'] or { ruby.map_value({}) }).map_data.clone()
 	mut name := ''
 	for key in ['formula', 'cask', 'resource'] {
 		if raw := info[key] {
@@ -881,71 +881,71 @@ pub fn ruby_livecheck_l492_d10_self_print_latest_version(args ...brew_runtime.Va
 	if livecheck_bool(options, 'ambiguous_cask', false) {
 		display_name += ' (cask)'
 	}
-	meta_value := info['meta'] or { brew_runtime.map_value({}) }
+	meta_value := info['meta'] or { ruby.map_value({}) }
 	meta := meta_value.map_data.clone()
-	if livecheck_bool(options, 'verbose', false) && !(meta['livecheck_defined'] or { brew_runtime.bool_value(true) }).bool_data {
+	if livecheck_bool(options, 'verbose', false) && !(meta['livecheck_defined'] or { ruby.bool_value(true) }).bool_data {
 		display_name += ' (guessed)'
 	}
-	return brew_runtime.string_value('${display_name}: ${(version['current'] or { livecheck_nil() }).as_string()} ==> ${(version['latest'] or { livecheck_nil() }).as_string()}')
+	return ruby.string_value('${display_name}: ${(version['current'] or { livecheck_nil() }).as_string()} ==> ${(version['latest'] or { livecheck_nil() }).as_string()}')
 }
 
 // Ruby method `self.print_resources_info(info, verbose: false)` at line 515.
-pub fn ruby_livecheck_l515_d11_self_print_resources_info(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_l515_d11_self_print_resources_info(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_value('')
+		return ruby.string_value('')
 	}
 	mut lines := []string{}
-	for raw in args[0].as_array() or { []brew_runtime.Value{} } {
+	for raw in args[0].as_array() or { []ruby.Value{} } {
 		if (raw.map_data['status'] or { livecheck_nil() }).as_string() != '' {
-			name := (raw.map_data['resource'] or { brew_runtime.string_value('') }).as_string()
+			name := (raw.map_data['resource'] or { ruby.string_value('') }).as_string()
 			for message in livecheck_strings(raw.map_data['messages'] or { livecheck_nil() }) {
 				lines << '${name}: ${message}'
 			}
 		} else {
-			lines << ruby_livecheck_l492_d10_self_print_latest_version(raw, brew_runtime.map_value(livecheck_keywords(args))).as_string()
+			lines << ruby_livecheck_l492_d10_self_print_latest_version(raw, ruby.map_value(livecheck_keywords(args))).as_string()
 		}
 	}
-	return brew_runtime.string_value(lines.join('\n'))
+	return ruby.string_value(lines.join('\n'))
 }
 
 // Ruby method `self.livecheck_url_to_string(livecheck_url, package_or_resource)` at line 531.
-pub fn ruby_livecheck_l531_d12_self_livecheck_url_to_string(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_l531_d12_self_livecheck_url_to_string(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		return livecheck_error('ArgumentError', 'URL and package are required')
 	}
 	package := livecheck_package_from_value(args[1]) or { return livecheck_error('TypeError', err.msg()) }
-	return brew_runtime.string_value(livecheck_url_to_string(args[0], package) or { return livecheck_error('ArgumentError', err.msg()) })
+	return ruby.string_value(livecheck_url_to_string(args[0], package) or { return livecheck_error('ArgumentError', err.msg()) })
 }
 
 // Ruby method `self.checkable_urls(package_or_resource)` at line 552.
-pub fn ruby_livecheck_l552_d13_self_checkable_urls(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_l552_d13_self_checkable_urls(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_array_value([]string{})
+		return ruby.string_array_value([]string{})
 	}
 	package := livecheck_package_from_value(args[0]) or { return livecheck_error('TypeError', err.msg()) }
-	return brew_runtime.string_array_value(livecheck_checkable_urls(package))
+	return ruby.string_array_value(livecheck_checkable_urls(package))
 }
 
 // Ruby method `self.use_homebrew_curl?(formula_or_cask, url)` at line 579.
-pub fn ruby_livecheck_l579_d14_self_use_homebrew_curl(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_l579_d14_self_use_homebrew_curl(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	package := livecheck_package_from_value(args[0]) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(livecheck_use_homebrew_curl(package, args[1].as_string()))
+	package := livecheck_package_from_value(args[0]) or { return ruby.bool_value(false) }
+	return ruby.bool_value(livecheck_use_homebrew_curl(package, args[1].as_string()))
 }
 
 // Ruby method `self.url_host(url)` at line 607.
-pub fn ruby_livecheck_l607_d15_self_url_host(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_l607_d15_self_url_host(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return livecheck_nil()
 	}
 	host := livecheck_url_host(args[0].as_string()) or { return livecheck_nil() }
-	return brew_runtime.string_value(host)
+	return ruby.string_value(host)
 }
 
 // Ruby method `self.latest_version(` at line 626.
-pub fn ruby_livecheck_l626_d16_self_latest_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_l626_d16_self_latest_version(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return livecheck_nil()
 	}
@@ -960,7 +960,7 @@ pub fn ruby_livecheck_l626_d16_self_latest_version(args ...brew_runtime.Value) b
 	}
 	mut references := []LivecheckPackage{}
 	if raw := options['livecheck_references'] {
-		for value in raw.as_array() or { []brew_runtime.Value{} } {
+		for value in raw.as_array() or { []ruby.Value{} } {
 			references << livecheck_package_from_value(value) or { continue }
 		}
 	}
@@ -968,7 +968,7 @@ pub fn ruby_livecheck_l626_d16_self_latest_version(args ...brew_runtime.Value) b
 }
 
 // Ruby method `self.resource_version(` at line 897.
-pub fn ruby_livecheck_l897_d17_self_resource_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_l897_d17_self_resource_version(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		return livecheck_nil()
 	}
@@ -978,51 +978,51 @@ pub fn ruby_livecheck_l897_d17_self_resource_version(args ...brew_runtime.Value)
 }
 
 // Ruby method `self.throttle_allows_bump?(formula_or_cask, version, throttle_rate: nil, throttle_days: nil)` at line 1135.
-pub fn ruby_livecheck_l1135_d18_self_throttle_allows_bump(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_l1135_d18_self_throttle_allows_bump(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	package := livecheck_package_from_value(args[0]) or { return brew_runtime.bool_value(false) }
+	package := livecheck_package_from_value(args[0]) or { return ruby.bool_value(false) }
 	options := livecheck_keywords(args)
 	rate := if raw := options['throttle_rate'] { ?int(int(raw.int_data)) } else { none }
 	days := if raw := options['throttle_days'] { ?int(int(raw.int_data)) } else { none }
-	now := (options['now'] or { brew_runtime.int_value(time.now().unix()) }).int_data
-	return brew_runtime.bool_value(livecheck_throttle_allows_bump(package, args[1].as_string(), rate, days, now))
+	now := (options['now'] or { ruby.int_value(time.now().unix()) }).int_data
+	return ruby.bool_value(livecheck_throttle_allows_bump(package, args[1].as_string(), rate, days, now))
 }
 
 // Ruby method `self.formula_or_cask_last_updated_timestamp(package_or_resource)` at line 1147.
-pub fn ruby_livecheck_l1147_d19_self_formula_or_cask_last_updated_timestamp(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_l1147_d19_self_formula_or_cask_last_updated_timestamp(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return livecheck_nil()
 	}
 	package := livecheck_package_from_value(args[0]) or { return livecheck_nil() }
 	timestamp := livecheck_last_updated_timestamp(package) or { return livecheck_nil() }
-	return brew_runtime.int_value(timestamp)
+	return ruby.int_value(timestamp)
 }
 
 // Ruby method `self.formula_last_version_update_timestamp(formula, tap:)` at line 1162.
-pub fn ruby_livecheck_l1162_d20_self_formula_last_version_update_timestamp(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_l1162_d20_self_formula_last_version_update_timestamp(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return livecheck_nil()
 	}
 	package := livecheck_package_from_value(args[0]) or { return livecheck_nil() }
 	revision := livecheck_find_version_update_revision(package, package.version) or { return livecheck_nil() }
 	timestamp := livecheck_timestamp_for_revision(package, revision) or { return livecheck_nil() }
-	return brew_runtime.int_value(timestamp)
+	return ruby.int_value(timestamp)
 }
 
 // Ruby method `self.find_version_update_revision(formula, current_version)` at line 1173.
-pub fn ruby_livecheck_l1173_d21_self_find_version_update_revision(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_l1173_d21_self_find_version_update_revision(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		return livecheck_nil()
 	}
 	package := livecheck_package_from_value(args[0]) or { return livecheck_nil() }
 	revision := livecheck_find_version_update_revision(package, args[1].as_string()) or { return livecheck_nil() }
-	return brew_runtime.string_value(revision)
+	return ruby.string_value(revision)
 }
 
 // Ruby method `self.origin_stable_version(formula, formula_versions)` at line 1200.
-pub fn ruby_livecheck_l1200_d22_self_origin_stable_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_l1200_d22_self_origin_stable_version(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return livecheck_nil()
 	}
@@ -1030,39 +1030,39 @@ pub fn ruby_livecheck_l1200_d22_self_origin_stable_version(args ...brew_runtime.
 	return if package.origin_version == '' {
 		livecheck_nil()
 	} else {
-		brew_runtime.object_value('Version', package.origin_version)
+		ruby.object_value('Version', package.origin_version)
 	}
 }
 
 // Ruby method `self.formula_or_cask_last_commit_timestamp(package_or_resource, tap)` at line 1223.
-pub fn ruby_livecheck_l1223_d23_self_formula_or_cask_last_commit_timestamp(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_l1223_d23_self_formula_or_cask_last_commit_timestamp(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return livecheck_nil()
 	}
 	package := livecheck_package_from_value(args[0]) or { return livecheck_nil() }
 	timestamp := package.last_updated_timestamp or { return livecheck_nil() }
-	return brew_runtime.int_value(timestamp)
+	return ruby.int_value(timestamp)
 }
 
 // Ruby method `self.timestamp_for_revision(repository_path, revision)` at line 1274.
-pub fn ruby_livecheck_l1274_d24_self_timestamp_for_revision(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_l1274_d24_self_timestamp_for_revision(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		return livecheck_nil()
 	}
 	package := livecheck_package_from_value(args[0]) or { return livecheck_nil() }
 	timestamp := livecheck_timestamp_for_revision(package, args[1].as_string()) or { return livecheck_nil() }
-	return brew_runtime.int_value(timestamp)
+	return ruby.int_value(timestamp)
 }
 
 // Ruby method `self.throttle_interval_elapsed?(package_or_resource, days)` at line 1291.
-pub fn ruby_livecheck_l1291_d25_self_throttle_interval_elapsed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_l1291_d25_self_throttle_interval_elapsed(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	package := livecheck_package_from_value(args[0]) or { return brew_runtime.bool_value(false) }
+	package := livecheck_package_from_value(args[0]) or { return ruby.bool_value(false) }
 	options := livecheck_keywords(args)
-	now := (options['now'] or { brew_runtime.int_value(time.now().unix()) }).int_data
-	return brew_runtime.bool_value(livecheck_throttle_interval_elapsed(package, int(args[1].int_data), now))
+	now := (options['now'] or { ruby.int_value(time.now().unix()) }).int_data
+	return ruby.bool_value(livecheck_throttle_interval_elapsed(package, int(args[1].int_data), now))
 }
 
 // Original Ruby source (line-for-line):

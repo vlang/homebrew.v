@@ -1,6 +1,6 @@
 module test_bot
 
-import brew_runtime
+import ruby
 import homebrew.utils
 import os
 
@@ -92,7 +92,7 @@ fn test_core_tap_path(config TestConfig) string {
 	library := if config.homebrew_library != '' {
 		config.homebrew_library
 	} else {
-		brew_runtime.environment_value('HOMEBREW_LIBRARY')
+		ruby.environment_value('HOMEBREW_LIBRARY')
 	}
 	return if library == '' {
 		os.join_path(os.getwd(), 'Library', 'Taps', 'homebrew', 'homebrew-core')
@@ -222,7 +222,7 @@ pub fn (mut test Test) info_header(text string) string {
 	return line
 }
 
-pub fn test_request_boundary(request TestRequest) brew_runtime.Value {
+pub fn test_request_boundary(request TestRequest) ruby.Value {
 	mut attributes := {
 		'named_args':        request.named_args.join('\x1f')
 		'unset_environment': request.unset_environment.join('\x1f')
@@ -234,7 +234,7 @@ pub fn test_request_boundary(request TestRequest) brew_runtime.Value {
 	for key, value in request.environment {
 		attributes['environment:${key}'] = value
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'Homebrew::TestBot::TestRequest'
 		repr: request.arguments.join(' ')
 		string_array_data: request.arguments.clone()
@@ -242,7 +242,7 @@ pub fn test_request_boundary(request TestRequest) brew_runtime.Value {
 	}
 }
 
-fn test_request_from_boundary(value brew_runtime.Value) TestRequest {
+fn test_request_from_boundary(value ruby.Value) TestRequest {
 	mut environment := map[string]string{}
 	for key, contents in value.attributes {
 		if key.starts_with('environment:') {
@@ -269,8 +269,8 @@ fn test_request_from_boundary(value brew_runtime.Value) TestRequest {
 	}
 }
 
-fn test_boundary_value(test &Test) brew_runtime.Value {
-	return brew_runtime.Value{
+fn test_boundary_value(test &Test) ruby.Value {
+	return ruby.Value{
 		type_name: 'Homebrew::TestBot::Test'
 		repr: test.repository
 		array_data: test.steps.map(step_boundary_value(it))
@@ -297,7 +297,7 @@ fn test_boundary_value(test &Test) brew_runtime.Value {
 	}
 }
 
-fn test_boundary_receiver(args []brew_runtime.Value) !&Test {
+fn test_boundary_receiver(args []ruby.Value) !&Test {
 	if args.len == 0 || args[0].type_name != 'Homebrew::TestBot::Test' {
 		return error('Test receiver is required')
 	}
@@ -308,50 +308,50 @@ fn test_boundary_receiver(args []brew_runtime.Value) !&Test {
 	return unsafe { &Test(voidptr(address.u64())) }
 }
 
-fn test_tap_boundary(tap TestTap, present bool) brew_runtime.Value {
+fn test_tap_boundary(tap TestTap, present bool) ruby.Value {
 	if !present {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
-	return brew_runtime.structured_value('Tap', tap.name, {
+	return ruby.structured_value('Tap', tap.name, {
 		'name':      tap.name
 		'full_name': tap.full_name
 		'path':      tap.path
 	})
 }
 
-fn test_optional_string(value string, present bool, type_name string) brew_runtime.Value {
+fn test_optional_string(value string, present bool, type_name string) ruby.Value {
 	return if present {
-		brew_runtime.object_value(type_name, value)
+		ruby.object_value(type_name, value)
 	} else {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	}
 }
 
 // Ruby method `failed_steps` at line 13.
-pub fn ruby_test_l13_d1_failed_steps(args ...brew_runtime.Value) brew_runtime.Value {
-	test := test_boundary_receiver(args) or { return brew_runtime.array_value([]) }
-	return brew_runtime.array_value(test.failed_steps().map(step_boundary_value(it)))
+pub fn ruby_test_l13_d1_failed_steps(args ...ruby.Value) ruby.Value {
+	test := test_boundary_receiver(args) or { return ruby.array_value([]) }
+	return ruby.array_value(test.failed_steps().map(step_boundary_value(it)))
 }
 
 // Ruby method `ignored_steps` at line 18.
-pub fn ruby_test_l18_d2_ignored_steps(args ...brew_runtime.Value) brew_runtime.Value {
-	test := test_boundary_receiver(args) or { return brew_runtime.array_value([]) }
-	return brew_runtime.array_value(test.ignored_steps().map(step_boundary_value(it)))
+pub fn ruby_test_l18_d2_ignored_steps(args ...ruby.Value) ruby.Value {
+	test := test_boundary_receiver(args) or { return ruby.array_value([]) }
+	return ruby.array_value(test.ignored_steps().map(step_boundary_value(it)))
 }
 
 // Ruby attr_reader `attr_reader :steps` at line 23.
-pub fn ruby_test_l23_d3_steps(args ...brew_runtime.Value) brew_runtime.Value {
-	test := test_boundary_receiver(args) or { return brew_runtime.array_value([]) }
-	return brew_runtime.array_value(test.steps.map(step_boundary_value(it)))
+pub fn ruby_test_l23_d3_steps(args ...ruby.Value) ruby.Value {
+	test := test_boundary_receiver(args) or { return ruby.array_value([]) }
+	return ruby.array_value(test.steps.map(step_boundary_value(it)))
 }
 
 // Ruby method `test(*arguments, named_args: nil, env: {}, verbose: @verbose, ignore_failures: false,` at line 35.
-pub fn ruby_test_l35_d4_test(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_l35_d4_test(args ...ruby.Value) ruby.Value {
 	mut test := test_boundary_receiver(args) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'Test request is required')
+		return ruby.object_value('ArgumentError', 'Test request is required')
 	}
 	request := if args[1].type_name == 'Homebrew::TestBot::TestRequest' {
 		test_request_from_boundary(args[1])
@@ -365,49 +365,49 @@ pub fn ruby_test_l35_d4_test(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `cleanup?(args)` at line 58.
-pub fn ruby_test_l58_d5_cleanup(args ...brew_runtime.Value) brew_runtime.Value {
-	test := test_boundary_receiver(args) or { return brew_runtime.bool_value(false) }
+pub fn ruby_test_l58_d5_cleanup(args ...ruby.Value) ruby.Value {
+	test := test_boundary_receiver(args) or { return ruby.bool_value(false) }
 	options := if args.len > 1 {
 		TestCommandArgs{ cleanup: (args[1].attributes['cleanup'] or { 'false' }).bool() }
 	} else {
 		TestCommandArgs{}
 	}
-	return brew_runtime.bool_value(test_cleanup_enabled(options, test.actions_enabled()))
+	return ruby.bool_value(test_cleanup_enabled(options, test.actions_enabled()))
 }
 
 // Ruby method `local?(args)` at line 63.
-pub fn ruby_test_l63_d6_local(args ...brew_runtime.Value) brew_runtime.Value {
-	test := test_boundary_receiver(args) or { return brew_runtime.bool_value(false) }
+pub fn ruby_test_l63_d6_local(args ...ruby.Value) ruby.Value {
+	test := test_boundary_receiver(args) or { return ruby.bool_value(false) }
 	options := if args.len > 1 {
 		TestCommandArgs{ local_mode: (args[1].attributes['local'] or { 'false' }).bool() }
 	} else {
 		TestCommandArgs{}
 	}
-	return brew_runtime.bool_value(test_local_enabled(options, test.actions_enabled()))
+	return ruby.bool_value(test_local_enabled(options, test.actions_enabled()))
 }
 
 // Ruby attr_reader `attr_reader :tap` at line 70.
-pub fn ruby_test_l70_d7_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	test := test_boundary_receiver(args) or { return brew_runtime.object_value('NilClass', 'nil') }
+pub fn ruby_test_l70_d7_tap(args ...ruby.Value) ruby.Value {
+	test := test_boundary_receiver(args) or { return ruby.object_value('NilClass', 'nil') }
 	return test_tap_boundary(test.tap, test.has_tap)
 }
 
 // Ruby attr_reader `attr_reader :git` at line 73.
-pub fn ruby_test_l73_d8_git(args ...brew_runtime.Value) brew_runtime.Value {
-	test := test_boundary_receiver(args) or { return brew_runtime.object_value('NilClass', 'nil') }
+pub fn ruby_test_l73_d8_git(args ...ruby.Value) ruby.Value {
+	test := test_boundary_receiver(args) or { return ruby.object_value('NilClass', 'nil') }
 	return test_optional_string(test.git, test.has_git, 'String')
 }
 
 // Ruby attr_reader `attr_reader :repository` at line 76.
-pub fn ruby_test_l76_d9_repository(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_l76_d9_repository(args ...ruby.Value) ruby.Value {
 	test := test_boundary_receiver(args) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
-	return brew_runtime.object_value('Pathname', test.repository)
+	return ruby.object_value('Pathname', test.repository)
 }
 
 // Ruby method `initialize(tap: nil, git: nil, dry_run: false, fail_fast: false, verbose: false)` at line 87.
-pub fn ruby_test_l87_d10_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_l87_d10_initialize(args ...ruby.Value) ruby.Value {
 	tap := if args.len > 0 && args[0].type_name !in ['NilClass', 'Nil'] {
 		TestTap{
 			name: args[0].attributes['name'] or { args[0].as_string() }
@@ -432,9 +432,9 @@ pub fn ruby_test_l87_d10_initialize(args ...brew_runtime.Value) brew_runtime.Val
 }
 
 // Ruby method `test_header(klass, method: "run!")` at line 101.
-pub fn ruby_test_l101_d11_test_header(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_l101_d11_test_header(args ...ruby.Value) ruby.Value {
 	mut test := test_boundary_receiver(args) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	class_name := if args.len > 1 { args[1].as_string().trim_left(':') } else { '' }
 	method := if args.len > 2 && args[2].type_name !in ['NilClass', 'Nil'] {
@@ -443,16 +443,16 @@ pub fn ruby_test_l101_d11_test_header(args ...brew_runtime.Value) brew_runtime.V
 		'run!'
 	}
 	test.test_header(class_name, method)
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `info_header(text)` at line 107.
-pub fn ruby_test_l107_d12_info_header(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_l107_d12_info_header(args ...ruby.Value) ruby.Value {
 	mut test := test_boundary_receiver(args) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	test.info_header(if args.len > 1 { args[1].as_string() } else { '' })
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Original Ruby source (line-for-line):

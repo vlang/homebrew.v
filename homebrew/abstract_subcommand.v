@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 import homebrew.cli as brew_cli
 
 // Translated from Homebrew/brew `abstract_subcommand.rb`.
@@ -100,8 +100,8 @@ pub fn (mut subcommand AbstractSubcommandClass) subcommand_args(config AbstractS
 
 pub struct AbstractSubcommandInitOptions {
 pub:
-	context brew_runtime.Value
-	targets brew_runtime.Value
+	context ruby.Value
+	targets ruby.Value
 	quiet   bool
 	cleanup bool = true
 }
@@ -109,18 +109,18 @@ pub:
 // AbstractSubcommand stores the five instance variables initialized by Ruby.
 // The untyped Ruby readers remain Values while their boolean state is concrete.
 pub struct AbstractSubcommand {
-	args_value    brew_runtime.Value
-	context_value brew_runtime.Value
-	targets_value brew_runtime.Value
+	args_value    ruby.Value
+	context_value ruby.Value
+	targets_value ruby.Value
 	quiet_value   bool
 	cleanup_value bool
 }
 
-fn abstract_subcommand_nil() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn abstract_subcommand_nil() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-pub fn new_abstract_subcommand(args brew_runtime.Value, options AbstractSubcommandInitOptions) AbstractSubcommand {
+pub fn new_abstract_subcommand(args ruby.Value, options AbstractSubcommandInitOptions) AbstractSubcommand {
 	return AbstractSubcommand{
 		args_value: args
 		context_value: if options.context.type_name == '' {
@@ -138,15 +138,15 @@ pub fn new_abstract_subcommand(args brew_runtime.Value, options AbstractSubcomma
 	}
 }
 
-pub fn (subcommand AbstractSubcommand) args() brew_runtime.Value {
+pub fn (subcommand AbstractSubcommand) args() ruby.Value {
 	return subcommand.args_value
 }
 
-pub fn (subcommand AbstractSubcommand) context() brew_runtime.Value {
+pub fn (subcommand AbstractSubcommand) context() ruby.Value {
 	return subcommand.context_value
 }
 
-pub fn (subcommand AbstractSubcommand) targets() brew_runtime.Value {
+pub fn (subcommand AbstractSubcommand) targets() ruby.Value {
 	return subcommand.targets_value
 }
 
@@ -188,23 +188,23 @@ pub fn ruby_abstract_subcommand_l74_d5_subcommand_args(mut subcommand AbstractSu
 }
 
 // Ruby attr_reader `attr_reader :args` at line 83.
-pub fn ruby_abstract_subcommand_l83_d6_args(subcommand AbstractSubcommand) brew_runtime.Value {
+pub fn ruby_abstract_subcommand_l83_d6_args(subcommand AbstractSubcommand) ruby.Value {
 	return subcommand.args()
 }
 
 // Ruby method `initialize(args, context: nil, targets: nil, quiet: false, cleanup: true)` at line 86.
-pub fn ruby_abstract_subcommand_l86_d7_initialize(args brew_runtime.Value,
+pub fn ruby_abstract_subcommand_l86_d7_initialize(args ruby.Value,
 	options AbstractSubcommandInitOptions) AbstractSubcommand {
 	return new_abstract_subcommand(args, options)
 }
 
 // Ruby attr_reader `attr_reader :context` at line 95.
-pub fn ruby_abstract_subcommand_l95_d8_context(subcommand AbstractSubcommand) brew_runtime.Value {
+pub fn ruby_abstract_subcommand_l95_d8_context(subcommand AbstractSubcommand) ruby.Value {
 	return subcommand.context()
 }
 
 // Ruby attr_reader `attr_reader :targets` at line 98.
-pub fn ruby_abstract_subcommand_l98_d9_targets(subcommand AbstractSubcommand) brew_runtime.Value {
+pub fn ruby_abstract_subcommand_l98_d9_targets(subcommand AbstractSubcommand) ruby.Value {
 	return subcommand.targets()
 }
 

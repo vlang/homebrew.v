@@ -1,6 +1,6 @@
 module macho
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/ruby-macho-6.0.0/lib/macho/exceptions.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -185,14 +185,14 @@ pub fn fat_arch_offset_overflow_error(offset i64) &MachoErrorInfo {
 	return new_macho_error(.fat_arch_offset_overflow, 'Offset ${offset} exceeds the 32-bit width of a fat_arch offset. Consider merging with `fat64: true`')
 }
 
-fn macho_error_boundary(error_info &MachoErrorInfo) brew_runtime.Value {
-	return brew_runtime.structured_value('MachO::${error_info.kind}', error_info.msg(), {
+fn macho_error_boundary(error_info &MachoErrorInfo) ruby.Value {
+	return ruby.structured_value('MachO::${error_info.kind}', error_info.msg(), {
 		'macho_error_address': u64(voidptr(error_info)).str()
 		'message':             error_info.message
 	})
 }
 
-fn macho_error_from_args(args []brew_runtime.Value) &MachoErrorInfo {
+fn macho_error_from_args(args []ruby.Value) &MachoErrorInfo {
 	if args.len == 0 {
 		panic('MachO error method requires a receiver')
 	}
@@ -202,22 +202,22 @@ fn macho_error_from_args(args []brew_runtime.Value) &MachoErrorInfo {
 	return unsafe { &MachoErrorInfo(voidptr(address)) }
 }
 
-fn macho_integer(value brew_runtime.Value) i64 {
+fn macho_integer(value ruby.Value) i64 {
 	return value.as_int() or { panic(err) }
 }
 
 // Ruby attr_accessor `attr_accessor :macho_slice` at line 23.
-pub fn ruby_exceptions_l23_d1_macho_slice(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l23_d1_macho_slice(args ...ruby.Value) ruby.Value {
 	error_info := macho_error_from_args(args)
 	return if error_info.has_macho_slice {
-		brew_runtime.int_value(error_info.macho_slice)
+		ruby.int_value(error_info.macho_slice)
 	} else {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	}
 }
 
 // Ruby attr_accessor `attr_accessor :macho_slice` at line 23.
-pub fn ruby_exceptions_l23_d2_macho_slice(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l23_d2_macho_slice(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('RecoverableModificationError#macho_slice= requires a value')
 	}
@@ -231,17 +231,17 @@ pub fn ruby_exceptions_l23_d2_macho_slice(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby method `to_s` at line 26.
-pub fn ruby_exceptions_l26_d3_to_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(macho_error_from_args(args).msg())
+pub fn ruby_exceptions_l26_d3_to_s(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(macho_error_from_args(args).msg())
 }
 
 // Ruby method `initialize` at line 39.
-pub fn ruby_exceptions_l39_d4_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l39_d4_initialize(args ...ruby.Value) ruby.Value {
 	return macho_error_boundary(truncated_file_error())
 }
 
 // Ruby method `initialize(magic)` at line 47.
-pub fn ruby_exceptions_l47_d5_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l47_d5_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('MagicError#initialize requires magic')
 	}
@@ -249,17 +249,17 @@ pub fn ruby_exceptions_l47_d5_initialize(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `initialize` at line 54.
-pub fn ruby_exceptions_l54_d6_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l54_d6_initialize(args ...ruby.Value) ruby.Value {
 	return macho_error_boundary(java_class_file_error())
 }
 
 // Ruby method `initialize` at line 61.
-pub fn ruby_exceptions_l61_d7_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l61_d7_initialize(args ...ruby.Value) ruby.Value {
 	return macho_error_boundary(zero_architecture_error())
 }
 
 // Ruby method `initialize(fat_cputype, fat_cpusubtype, macho_cputype, macho_cpusubtype)` at line 69.
-pub fn ruby_exceptions_l69_d8_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l69_d8_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 4 {
 		panic('CPUTypeMismatchError#initialize requires four CPU values')
 	}
@@ -267,17 +267,17 @@ pub fn ruby_exceptions_l69_d8_initialize(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `initialize` at line 83.
-pub fn ruby_exceptions_l83_d9_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l83_d9_initialize(args ...ruby.Value) ruby.Value {
 	return macho_error_boundary(fat_binary_error())
 }
 
 // Ruby method `initialize` at line 90.
-pub fn ruby_exceptions_l90_d10_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l90_d10_initialize(args ...ruby.Value) ruby.Value {
 	return macho_error_boundary(macho_binary_error())
 }
 
 // Ruby method `initialize(cputype)` at line 98.
-pub fn ruby_exceptions_l98_d11_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l98_d11_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('CPUTypeError#initialize requires cputype')
 	}
@@ -285,7 +285,7 @@ pub fn ruby_exceptions_l98_d11_initialize(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby method `initialize(cputype, cpusubtype)` at line 107.
-pub fn ruby_exceptions_l107_d12_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l107_d12_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('CPUSubtypeError#initialize requires cputype and cpusubtype')
 	}
@@ -293,7 +293,7 @@ pub fn ruby_exceptions_l107_d12_initialize(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `initialize(num)` at line 116.
-pub fn ruby_exceptions_l116_d13_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l116_d13_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('FiletypeError#initialize requires number')
 	}
@@ -301,7 +301,7 @@ pub fn ruby_exceptions_l116_d13_initialize(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `initialize(num)` at line 124.
-pub fn ruby_exceptions_l124_d14_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l124_d14_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('LoadCommandError#initialize requires number')
 	}
@@ -309,7 +309,7 @@ pub fn ruby_exceptions_l124_d14_initialize(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `initialize(size)` at line 132.
-pub fn ruby_exceptions_l132_d15_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l132_d15_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('LoadCommandSizeError#initialize requires size')
 	}
@@ -317,7 +317,7 @@ pub fn ruby_exceptions_l132_d15_initialize(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `initialize(cmd_sym)` at line 140.
-pub fn ruby_exceptions_l140_d16_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l140_d16_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('LoadCommandNotCreatableError#initialize requires command')
 	}
@@ -325,7 +325,7 @@ pub fn ruby_exceptions_l140_d16_initialize(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `initialize(cmd_sym, expected_arity, actual_arity)` at line 151.
-pub fn ruby_exceptions_l151_d17_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l151_d17_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('LoadCommandCreationArityError#initialize requires command and arities')
 	}
@@ -333,7 +333,7 @@ pub fn ruby_exceptions_l151_d17_initialize(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `initialize(cmd_sym)` at line 160.
-pub fn ruby_exceptions_l160_d18_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l160_d18_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('LoadCommandNotSerializableError#initialize requires command')
 	}
@@ -341,7 +341,7 @@ pub fn ruby_exceptions_l160_d18_initialize(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `initialize(lc)` at line 168.
-pub fn ruby_exceptions_l168_d19_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l168_d19_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('LCStrMalformedError#initialize requires load command')
 	}
@@ -352,7 +352,7 @@ pub fn ruby_exceptions_l168_d19_initialize(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `initialize(offset)` at line 177.
-pub fn ruby_exceptions_l177_d20_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l177_d20_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('OffsetInsertionError#initialize requires offset')
 	}
@@ -360,7 +360,7 @@ pub fn ruby_exceptions_l177_d20_initialize(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `initialize(filename)` at line 185.
-pub fn ruby_exceptions_l185_d21_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l185_d21_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('HeaderPadError#initialize requires filename')
 	}
@@ -368,7 +368,7 @@ pub fn ruby_exceptions_l185_d21_initialize(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `initialize(dylib)` at line 195.
-pub fn ruby_exceptions_l195_d22_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l195_d22_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('DylibUnknownError#initialize requires dylib')
 	}
@@ -376,12 +376,12 @@ pub fn ruby_exceptions_l195_d22_initialize(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `initialize` at line 202.
-pub fn ruby_exceptions_l202_d23_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l202_d23_initialize(args ...ruby.Value) ruby.Value {
 	return macho_error_boundary(dylib_id_missing_error())
 }
 
 // Ruby method `initialize(path)` at line 210.
-pub fn ruby_exceptions_l210_d24_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l210_d24_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('RpathUnknownError#initialize requires path')
 	}
@@ -389,7 +389,7 @@ pub fn ruby_exceptions_l210_d24_initialize(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `initialize(path)` at line 218.
-pub fn ruby_exceptions_l218_d25_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l218_d25_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('RpathExistsError#initialize requires path')
 	}
@@ -397,7 +397,7 @@ pub fn ruby_exceptions_l218_d25_initialize(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `initialize(thing)` at line 226.
-pub fn ruby_exceptions_l226_d26_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l226_d26_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('UnimplementedError#initialize requires thing')
 	}
@@ -405,7 +405,7 @@ pub fn ruby_exceptions_l226_d26_initialize(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `initialize(offset)` at line 235.
-pub fn ruby_exceptions_l235_d27_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exceptions_l235_d27_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('FatArchOffsetOverflowError#initialize requires offset')
 	}

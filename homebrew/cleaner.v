@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 import homebrew.extend
 import homebrew.extend.file
 import homebrew.language
@@ -39,15 +39,15 @@ pub fn new_cleaner(formula Formula) &Cleaner {
 	}
 }
 
-fn cleaner_boundary_value(cleaner &Cleaner) brew_runtime.Value {
-	return brew_runtime.structured_value('Cleaner', '#<Cleaner: ${cleaner.formula.full_name()}>', {
+fn cleaner_boundary_value(cleaner &Cleaner) ruby.Value {
+	return ruby.structured_value('Cleaner', '#<Cleaner: ${cleaner.formula.full_name()}>', {
 		'cleaner_address': u64(voidptr(cleaner)).str()
 		'formula':         cleaner.formula.full_name()
 		'prefix':          cleaner.formula.prefix()
 	})
 }
 
-fn cleaner_from_args(args []brew_runtime.Value, method string) &Cleaner {
+fn cleaner_from_args(args []ruby.Value, method string) &Cleaner {
 	if args.len == 0 {
 		panic('Cleaner#${method} requires a receiver')
 	}
@@ -60,74 +60,74 @@ fn cleaner_from_args(args []brew_runtime.Value, method string) &Cleaner {
 	return unsafe { &Cleaner(voidptr(address.u64())) }
 }
 
-fn cleaner_nil() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn cleaner_nil() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-fn cleaner_error(err IError) brew_runtime.Value {
-	return brew_runtime.object_value('IOError', err.msg())
+fn cleaner_error(err IError) ruby.Value {
+	return ruby.object_value('IOError', err.msg())
 }
 
 // Ruby method `initialize(formula)` at line 22.
-pub fn ruby_cleaner_l22_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cleaner_l22_d1_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || args[0].type_name != 'Formula' {
-		return brew_runtime.object_value('ArgumentError', 'formula is required')
+		return ruby.object_value('ArgumentError', 'formula is required')
 	}
 	return cleaner_boundary_value(new_cleaner(formula_from_boundary(args[0])))
 }
 
 // Ruby method `clean` at line 28.
-pub fn ruby_cleaner_l28_d2_clean(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cleaner_l28_d2_clean(args ...ruby.Value) ruby.Value {
 	mut cleaner := cleaner_from_args(args, 'clean')
 	cleaner.clean() or { return cleaner_error(err) }
 	return cleaner_nil()
 }
 
 // Ruby method `observe_file_removal(path)` at line 74.
-pub fn ruby_cleaner_l74_d3_observe_file_removal(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cleaner_l74_d3_observe_file_removal(args ...ruby.Value) ruby.Value {
 	mut cleaner := cleaner_from_args(args, 'observe_file_removal')
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'path is required')
+		return ruby.object_value('ArgumentError', 'path is required')
 	}
 	cleaner.observe_file_removal(args[1].as_string()) or { return cleaner_error(err) }
 	return cleaner_nil()
 }
 
 // Ruby method `prune` at line 82.
-pub fn ruby_cleaner_l82_d4_prune(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cleaner_l82_d4_prune(args ...ruby.Value) ruby.Value {
 	mut cleaner := cleaner_from_args(args, 'prune')
 	cleaner.prune() or { return cleaner_error(err) }
 	return cleaner_nil()
 }
 
 // Ruby method `executable_path?(path)` at line 111.
-pub fn ruby_cleaner_l111_d5_executable_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cleaner_l111_d5_executable_path(args ...ruby.Value) ruby.Value {
 	cleaner := cleaner_from_args(args, 'executable_path?')
 	if args.len < 2 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(cleaner.executable_path(args[1].as_string()))
+	return ruby.bool_value(cleaner.executable_path(args[1].as_string()))
 }
 
 // Ruby method `clean_dir(directory)` at line 132.
-pub fn ruby_cleaner_l132_d6_clean_dir(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cleaner_l132_d6_clean_dir(args ...ruby.Value) ruby.Value {
 	mut cleaner := cleaner_from_args(args, 'clean_dir')
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'directory is required')
+		return ruby.object_value('ArgumentError', 'directory is required')
 	}
 	cleaner.clean_dir(args[1].as_string()) or { return cleaner_error(err) }
 	return cleaner_nil()
 }
 
 // Ruby method `rewrite_shebangs` at line 161.
-pub fn ruby_cleaner_l161_d7_rewrite_shebangs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cleaner_l161_d7_rewrite_shebangs(args ...ruby.Value) ruby.Value {
 	mut cleaner := cleaner_from_args(args, 'rewrite_shebangs')
 	cleaner.rewrite_shebangs() or { return cleaner_error(err) }
 	return cleaner_nil()
 }
 
 // Ruby method `clean_python_metadata` at line 190.
-pub fn ruby_cleaner_l190_d8_clean_python_metadata(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cleaner_l190_d8_clean_python_metadata(args ...ruby.Value) ruby.Value {
 	mut cleaner := cleaner_from_args(args, 'clean_python_metadata')
 	cleaner.clean_python_metadata() or { return cleaner_error(err) }
 	return cleaner_nil()

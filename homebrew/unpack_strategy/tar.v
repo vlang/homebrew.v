@@ -1,6 +1,6 @@
 module unpack_strategy
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `unpack_strategy/tar.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -39,7 +39,7 @@ pub fn tar_can_extract(path string) bool {
 		return false
 	}
 	tar := command_path('tar') or { return false }
-	result := brew_runtime.run_command(tar, ['--list', '--file', path])
+	result := ruby.run_command(tar, ['--list', '--file', path])
 	return result.exit_code == 0 && result.output != ''
 }
 
@@ -61,11 +61,11 @@ pub fn tar_subextract(path string, kind StrategyKind, dir string, verbose bool) 
 		destination: dir
 		verbose:     verbose
 	})!
-	children := brew_runtime.list_dir(dir)!
+	children := ruby.list_dir(dir)!
 	if children.len == 0 {
 		return error('compressed tar extraction produced no file')
 	}
-	return brew_runtime.join_path(dir, children[0])
+	return ruby.join_path(dir, children[0])
 }
 
 // Original Ruby source (line-for-line):

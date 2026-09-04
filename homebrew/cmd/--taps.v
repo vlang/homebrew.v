@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `cmd/--taps.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -12,7 +12,7 @@ pub fn taps_path(library string) string {
 }
 
 pub fn taps_path_from_environment() string {
-	mut library := brew_runtime.environment_value('HOMEBREW_LIBRARY')
+	mut library := ruby.environment_value('HOMEBREW_LIBRARY')
 	if library == '' {
 		// `Library/Homebrew` maps to the top-level `homebrew` module in this
 		// translation, so the module's parent is the translated library root.
@@ -22,9 +22,9 @@ pub fn taps_path_from_environment() string {
 }
 
 // Ruby method `self.command_name = "--taps"` at line 13.
-pub fn ruby_taps_l13_d1_self_command_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_taps_l13_d1_self_command_name(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('--taps')
+	return ruby.string_value('--taps')
 }
 
 // Original Ruby source (line-for-line):

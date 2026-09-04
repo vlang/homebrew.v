@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `missing.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -69,7 +69,7 @@ pub fn missing_dependencies(formulae []MissingFormula, casks []MissingCask, hide
 	return missing
 }
 
-fn missing_formulae_from_value(value brew_runtime.Value) []MissingFormula {
+fn missing_formulae_from_value(value ruby.Value) []MissingFormula {
 	return value.array_data.map(MissingFormula{
 		full_name: it.attributes['full_name'] or { it.as_string() }
 		display_name: it.attributes['display_name'] or { it.as_string() }
@@ -77,7 +77,7 @@ fn missing_formulae_from_value(value brew_runtime.Value) []MissingFormula {
 	})
 }
 
-fn missing_cask_from_value(value brew_runtime.Value) MissingCask {
+fn missing_cask_from_value(value ruby.Value) MissingCask {
 	mut dependencies := map[string][]MissingDependency{}
 	for dependency_type, list in value.map_data {
 		dependencies[dependency_type] = list.array_data.map(MissingDependency{
@@ -91,20 +91,20 @@ fn missing_cask_from_value(value brew_runtime.Value) MissingCask {
 	}
 }
 
-fn missing_casks_from_value(value brew_runtime.Value) []MissingCask {
+fn missing_casks_from_value(value ruby.Value) []MissingCask {
 	return value.array_data.map(missing_cask_from_value(it))
 }
 
-fn missing_map_value(values map[string][]string) brew_runtime.Value {
-	mut result := map[string]brew_runtime.Value{}
+fn missing_map_value(values map[string][]string) ruby.Value {
+	mut result := map[string]ruby.Value{}
 	for name, dependencies in values {
-		result[name] = brew_runtime.string_array_value(dependencies)
+		result[name] = ruby.string_array_value(dependencies)
 	}
-	return brew_runtime.map_value(result)
+	return ruby.map_value(result)
 }
 
 // Ruby method `self.deps(formulae, casks = [], hide = [], &_block)` at line 16.
-pub fn ruby_missing_l16_d1_self_deps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_missing_l16_d1_self_deps(args ...ruby.Value) ruby.Value {
 	formulae := if args.len > 0 { missing_formulae_from_value(args[0]) } else { []MissingFormula{} }
 	casks := if args.len > 1 { missing_casks_from_value(args[1]) } else { []MissingCask{} }
 	hide := if args.len > 2 { args[2].as_string_array() or { []string{} } } else { []string{} }
@@ -122,9 +122,9 @@ pub fn ruby_missing_l16_d1_self_deps(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby method `self.cask_deps(cask, hide)` at line 37.
-pub fn ruby_missing_l37_d2_self_cask_deps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_missing_l37_d2_self_cask_deps(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_array_value([])
+		return ruby.string_array_value([])
 	}
 	hide := if args.len > 1 { args[1].as_string_array() or { []string{} } } else { []string{} }
 	installed_formulae := if args.len > 2 {
@@ -137,7 +137,7 @@ pub fn ruby_missing_l37_d2_self_cask_deps(args ...brew_runtime.Value) brew_runti
 	} else {
 		[]string{}
 	}
-	return brew_runtime.string_array_value(missing_cask_dependencies(missing_cask_from_value(args[0]), hide, installed_formulae, installed_casks))
+	return ruby.string_array_value(missing_cask_dependencies(missing_cask_from_value(args[0]), hide, installed_formulae, installed_casks))
 }
 
 // Original Ruby source (line-for-line):

@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `cmd/autoremove.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -48,7 +48,7 @@ pub fn run_autoremove_command(dry_run bool, runner AutoremoveRunner) !Autoremove
 	return runner(dry_run)
 }
 
-fn autoremove_formula_from_value(value brew_runtime.Value) AutoremoveFormula {
+fn autoremove_formula_from_value(value ruby.Value) AutoremoveFormula {
 	return AutoremoveFormula{
 		name: value.attributes['name'] or { value.as_string() }
 		installed: (value.attributes['installed'] or { 'true' }) == 'true'
@@ -56,34 +56,34 @@ fn autoremove_formula_from_value(value brew_runtime.Value) AutoremoveFormula {
 	}
 }
 
-pub fn autoremove_formula_to_value(formula AutoremoveFormula) brew_runtime.Value {
-	return brew_runtime.structured_value('Formula', formula.name, {
+pub fn autoremove_formula_to_value(formula AutoremoveFormula) ruby.Value {
+	return ruby.structured_value('Formula', formula.name, {
 		'name':                 formula.name
 		'installed':            formula.installed.str()
 		'installed_on_request': formula.installed_on_request.str()
 	})
 }
 
-pub fn autoremove_result_to_value(result AutoremoveResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'removed':  brew_runtime.string_array_value(result.removed)
-		'retained': brew_runtime.string_array_value(result.retained)
-		'dry_run':  brew_runtime.bool_value(result.dry_run)
-		'output':   brew_runtime.string_value(result.output)
+pub fn autoremove_result_to_value(result AutoremoveResult) ruby.Value {
+	return ruby.map_value({
+		'removed':  ruby.string_array_value(result.removed)
+		'retained': ruby.string_array_value(result.retained)
+		'dry_run':  ruby.bool_value(result.dry_run)
+		'output':   ruby.string_value(result.output)
 	})
 }
 
 // Ruby method `run` at line 21.
-pub fn ruby_autoremove_l21_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_autoremove_l21_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return autoremove_result_to_value(autoremove_formulae([]AutoremoveFormula{}, false))
 	}
-	options := args[0].as_map() or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+	options := args[0].as_map() or { return ruby.object_value('ArgumentError', err.msg()) }
 	dry_run := if value := options['dry_run'] { value.as_bool() or { false } } else { false }
 	formula_values := if value := options['formulae'] {
-		value.as_array() or { []brew_runtime.Value{} }
+		value.as_array() or { []ruby.Value{} }
 	} else {
-		[]brew_runtime.Value{}
+		[]ruby.Value{}
 	}
 	return autoremove_result_to_value(autoremove_formulae(formula_values.map(autoremove_formula_from_value(it)), dry_run))
 }

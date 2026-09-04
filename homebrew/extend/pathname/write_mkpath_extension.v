@@ -1,6 +1,6 @@
 module pathname
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `extend/pathname/write_mkpath_extension.rb`.
@@ -25,7 +25,7 @@ pub fn write_mkpath(path string, content string, offset ?int, mode string) !int 
 }
 
 // Ruby method `write(content, offset = T.unsafe(nil), external_encoding: T.unsafe(nil), internal_encoding: T.unsafe(nil),` at line 24.
-pub fn ruby_write_mkpath_extension_l24_d1_write(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_write_mkpath_extension_l24_d1_write(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('WriteMkpathExtension#write requires path and content') }
 	offset := if args.len > 2 && args[2].type_name != 'NilClass' {
 		?int(int(args[2].as_int() or { panic(err) }))
@@ -33,7 +33,7 @@ pub fn ruby_write_mkpath_extension_l24_d1_write(args ...brew_runtime.Value) brew
 		none
 	}
 	mode := if args.len > 3 { args[3].as_string() } else { '' }
-	return brew_runtime.int_value(write_mkpath(args[0].as_string(), args[1].as_string(), offset, mode) or { panic(err) })
+	return ruby.int_value(write_mkpath(args[0].as_string(), args[1].as_string(), offset, mode) or { panic(err) })
 }
 
 // Original Ruby source (line-for-line):

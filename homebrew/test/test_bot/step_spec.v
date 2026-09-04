@@ -1,6 +1,6 @@
 module test_bot
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `test/test_bot/step_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -8,7 +8,7 @@ import brew_runtime
 pub struct StepSpecStep {
 pub:
 	command []string
-	env     map[string]brew_runtime.Value
+	env     map[string]ruby.Value
 	verbose bool
 }
 
@@ -22,7 +22,7 @@ pub struct StepSpecSystemCommandInvocation {
 pub:
 	executable   string
 	args         []string
-	env          map[string]brew_runtime.Value
+	env          map[string]ruby.Value
 	print_stderr bool
 	print_stdout bool
 }
@@ -65,8 +65,8 @@ pub fn ruby_step_spec_l9_d2_command() []string {
 }
 
 // Ruby let `let(:env) { {} }` at line 10.
-pub fn ruby_step_spec_l10_d3_env() map[string]brew_runtime.Value {
-	return map[string]brew_runtime.Value{}
+pub fn ruby_step_spec_l10_d3_env() map[string]ruby.Value {
+	return map[string]ruby.Value{}
 }
 
 // Ruby let `let(:verbose) { false }` at line 11.

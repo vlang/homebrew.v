@@ -1,13 +1,13 @@
 module bundle
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `extend/os/linux/bundle/brew_services.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `started_services_without_daemon_manager` at line 10.
-pub fn ruby_brew_services_l10_d1_started_services_without_daemon_manager(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(started_services_without_daemon_manager().services)
+pub fn ruby_brew_services_l10_d1_started_services_without_daemon_manager(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(started_services_without_daemon_manager().services)
 }
 
 pub struct StartedServicesResult {

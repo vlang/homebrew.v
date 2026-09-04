@@ -1,13 +1,13 @@
 module props
 
-import brew_runtime
+import ruby
 
 pub struct SerializableObject {
 pub:
 	class_name string
 pub mut:
-	values                 map[string]brew_runtime.Value
-	extra_props            map[string]brew_runtime.Value
+	values                 map[string]ruby.Value
+	extra_props            map[string]ruby.Value
 	missing_required_props []string
 }
 
@@ -16,8 +16,8 @@ const serializable_rule_keys = ['dont_store', 'name', 'raise_on_nil_write']
 pub fn new_serializable_object(class_name string) SerializableObject {
 	return SerializableObject{
 		class_name: class_name
-		values: map[string]brew_runtime.Value{}
-		extra_props: map[string]brew_runtime.Value{}
+		values: map[string]ruby.Value{}
+		extra_props: map[string]ruby.Value{}
 	}
 }
 
@@ -27,7 +27,7 @@ pub fn serializable_valid_rule_key(super_valid bool, key string) bool {
 
 fn serializable_prop_name(definition DecoratorProp) string {
 	return (definition.rules['serialized_form'] or {
-		definition.rules['name'] or { brew_runtime.string_value(definition.name) }
+		definition.rules['name'] or { ruby.string_value(definition.name) }
 	}).as_string()
 }
 
@@ -51,14 +51,14 @@ pub fn serializable_required_props(decorator PropsDecorator) []string {
 }
 
 pub fn serialize_props(object SerializableObject, decorator PropsDecorator,
-	strict bool) !map[string]brew_runtime.Value {
-	mut result := map[string]brew_runtime.Value{}
+	strict bool) !map[string]ruby.Value {
+	mut result := map[string]ruby.Value{}
 	for name, definition in decorator.props {
 		if decorator_rule_bool(definition.rules, 'dont_store') {
 			continue
 		}
 		accessor := (definition.rules['accessor_key'] or {
-			brew_runtime.object_value('Symbol', '@${name}')
+			ruby.object_value('Symbol', '@${name}')
 		}).as_string().trim_left('@')
 		value := object.values[accessor] or { object.values[name] or { props_nil_value() } }
 		if value.type_name == 'NilClass' {
@@ -76,7 +76,7 @@ pub fn serialize_props(object SerializableObject, decorator PropsDecorator,
 }
 
 pub fn deserialize_props(mut object SerializableObject, decorator PropsDecorator,
-	hash map[string]brew_runtime.Value, strict bool) !int {
+	hash map[string]ruby.Value, strict bool) !int {
 	forms := serializable_forms(decorator)
 	mut matched := 0
 	for serialized_form, prop in forms {
@@ -104,7 +104,7 @@ pub fn deserialize_props(mut object SerializableObject, decorator PropsDecorator
 			matched++
 		}
 	}
-	mut extra := map[string]brew_runtime.Value{}
+	mut extra := map[string]ruby.Value{}
 	for key, value in hash {
 		if key !in forms {
 			extra[key] = deep_clone(value)
@@ -121,31 +121,31 @@ pub fn deserialize_props(mut object SerializableObject, decorator PropsDecorator
 	return matched
 }
 
-pub fn stringify_serializable_keys(value brew_runtime.Value) brew_runtime.Value {
+pub fn stringify_serializable_keys(value ruby.Value) ruby.Value {
 	if value.type_name == 'Hash' {
-		mut result := map[string]brew_runtime.Value{}
+		mut result := map[string]ruby.Value{}
 		for key, child in value.map_data {
 			result[key.trim_left(':')] = stringify_serializable_keys(child)
 		}
-		return brew_runtime.map_value(result)
+		return ruby.map_value(result)
 	}
 	if value.type_name == 'Array' {
-		return brew_runtime.array_value(value.array_data.map(stringify_serializable_keys(it)))
+		return ruby.array_value(value.array_data.map(stringify_serializable_keys(it)))
 	}
 	return value
 }
 
 pub fn serializable_with(object SerializableObject, decorator PropsDecorator,
-	changed map[string]brew_runtime.Value) !SerializableObject {
+	changed map[string]ruby.Value) !SerializableObject {
 	mut serialized := serialize_props(object, decorator, true)!
-	converted := stringify_serializable_keys(brew_runtime.map_value(changed)).map_data
+	converted := stringify_serializable_keys(ruby.map_value(changed)).map_data
 	for key, value in converted {
 		serialized[key] = value
 	}
 	mut result := new_serializable_object(object.class_name)
 	deserialize_props(mut result, decorator, serialized, false)!
 	if object.extra_props != result.extra_props {
-		mut difference := map[string]brew_runtime.Value{}
+		mut difference := map[string]ruby.Value{}
 		for key, value in result.extra_props {
 			if key !in object.extra_props || object.extra_props[key].repr != value.repr {
 				difference[key] = value
@@ -157,11 +157,11 @@ pub fn serializable_with(object SerializableObject, decorator PropsDecorator,
 }
 
 pub fn serializable_add_prop_definition(mut decorator PropsDecorator, prop string,
-	input_rules map[string]brew_runtime.Value) ! {
+	input_rules map[string]ruby.Value) ! {
 	mut rules := input_rules.clone()
-	serialized_form := (rules['name'] or { brew_runtime.string_value(prop) }).as_string()
+	serialized_form := (rules['name'] or { ruby.string_value(prop) }).as_string()
 	validate_decorator_prop_name(serialized_form)!
-	rules['serialized_form'] = brew_runtime.string_value(serialized_form)
+	rules['serialized_form'] = ruby.string_value(serialized_form)
 	decorator_add_prop_definition(mut decorator, prop, rules)!
 }
 
@@ -171,7 +171,7 @@ pub fn generate_props_serialize_source(decorator PropsDecorator) string {
 		if decorator_rule_bool(definition.rules, 'dont_store') {
 			continue
 		}
-		key := (definition.rules['accessor_key'] or { brew_runtime.object_value('Symbol', '@${name}') }).as_string()
+		key := (definition.rules['accessor_key'] or { ruby.object_value('Symbol', '@${name}') }).as_string()
 		form := serializable_prop_name(definition)
 		required := if required_prop(definition.rules) {
 			'required_prop_missing_from_serialize(:${name}) if strict'
@@ -189,7 +189,7 @@ pub fn generate_props_deserialize_source(decorator PropsDecorator) string {
 		if decorator_rule_bool(definition.rules, 'dont_store') {
 			continue
 		}
-		key := (definition.rules['accessor_key'] or { brew_runtime.object_value('Symbol', '@${name}') }).as_string()
+		key := (definition.rules['accessor_key'] or { ruby.object_value('Symbol', '@${name}') }).as_string()
 		form := serializable_prop_name(definition)
 		clauses << '  val = hash["${form}"]\n  ${key} = if val.nil?\n    found -= 1 unless hash.key?("${form}".freeze)\n    nil\n  else\n    val\n  end'
 	}
@@ -232,14 +232,14 @@ pub fn serializable_pretty_extra(object SerializableObject, single_line bool) st
 	return '@_extra_props=<${pairs.join(' ')}>'
 }
 
-fn serializable_object_value(object SerializableObject) brew_runtime.Value {
-	return brew_runtime.Value{
+fn serializable_object_value(object SerializableObject) ruby.Value {
+	return ruby.Value{
 		type_name: object.class_name
 		repr: '<${object.class_name}>'
 		map_data: {
-			'_values':                                  brew_runtime.map_value(object.values)
-			'_extra_props':                             brew_runtime.map_value(object.extra_props)
-			'_required_props_missing_from_deserialize': brew_runtime.string_array_value(object.missing_required_props)
+			'_values':                                  ruby.map_value(object.values)
+			'_extra_props':                             ruby.map_value(object.extra_props)
+			'_required_props_missing_from_deserialize': ruby.string_array_value(object.missing_required_props)
 		}
 		attributes: {
 			'class_name': object.class_name
@@ -247,10 +247,10 @@ fn serializable_object_value(object SerializableObject) brew_runtime.Value {
 	}
 }
 
-fn serializable_object_from_value(value brew_runtime.Value) SerializableObject {
-	values := value.map_data['_values'] or { brew_runtime.map_value(value.map_data) }
-	extra := value.map_data['_extra_props'] or { brew_runtime.map_value(map[string]brew_runtime.Value{}) }
-	missing := value.map_data['_required_props_missing_from_deserialize'] or { brew_runtime.string_array_value([]string{}) }
+fn serializable_object_from_value(value ruby.Value) SerializableObject {
+	values := value.map_data['_values'] or { ruby.map_value(value.map_data) }
+	extra := value.map_data['_extra_props'] or { ruby.map_value(map[string]ruby.Value{}) }
+	missing := value.map_data['_required_props_missing_from_deserialize'] or { ruby.string_array_value([]string{}) }
 	return SerializableObject{
 		class_name: value.attribute('class_name') or { value.type_name }
 		values: values.map_data.clone()
@@ -259,7 +259,7 @@ fn serializable_object_from_value(value brew_runtime.Value) SerializableObject {
 	}
 }
 
-fn serializable_decorator_arg(args []brew_runtime.Value, index int) PropsDecorator {
+fn serializable_decorator_arg(args []ruby.Value, index int) PropsDecorator {
 	if index < args.len {
 		return decorator_from_value(args[index])
 	}
@@ -270,26 +270,26 @@ fn serializable_decorator_arg(args []brew_runtime.Value, index int) PropsDecorat
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `serialize(strict=true)` at line 18.
-pub fn ruby_serializable_l18_d1_serialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_serializable_l18_d1_serialize(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('serialize requires object and decorator') }
 	strict := if args.len > 2 { args[2].as_bool() or { panic(err) } } else { true }
-	return brew_runtime.map_value(serialize_props(serializable_object_from_value(args[0]), decorator_from_value(args[1]), strict) or { panic(err) })
+	return ruby.map_value(serialize_props(serializable_object_from_value(args[0]), decorator_from_value(args[1]), strict) or { panic(err) })
 }
 
 // Ruby method `__t_props_generated_serialize(strict)` at line 42.
-pub fn ruby_serializable_l42_d2_t_props_generated_serialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_serializable_l42_d2_t_props_generated_serialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.map_value(map[string]brew_runtime.Value{})
+		return ruby.map_value(map[string]ruby.Value{})
 	}
 	if args.len < 2 {
-		return brew_runtime.map_value(map[string]brew_runtime.Value{})
+		return ruby.map_value(map[string]ruby.Value{})
 	}
 	strict := if args.len > 2 { args[2].as_bool() or { panic(err) } } else { true }
-	return brew_runtime.map_value(serialize_props(serializable_object_from_value(args[0]), decorator_from_value(args[1]), strict) or { panic(err) })
+	return ruby.map_value(serialize_props(serializable_object_from_value(args[0]), decorator_from_value(args[1]), strict) or { panic(err) })
 }
 
 // Ruby method `deserialize(hash, strict=false)` at line 59.
-pub fn ruby_serializable_l59_d3_deserialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_serializable_l59_d3_deserialize(args ...ruby.Value) ruby.Value {
 	if args.len < 3 { panic('deserialize requires object, decorator, and hash') }
 	mut object := serializable_object_from_value(args[0])
 	strict := if args.len > 3 { args[3].as_bool() or { panic(err) } } else { false }
@@ -298,28 +298,28 @@ pub fn ruby_serializable_l59_d3_deserialize(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby method `__t_props_generated_deserialize(hash)` at line 95.
-pub fn ruby_serializable_l95_d4_t_props_generated_deserialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_serializable_l95_d4_t_props_generated_deserialize(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
-		return brew_runtime.int_value(0)
+		return ruby.int_value(0)
 	}
 	mut object := serializable_object_from_value(args[0])
-	return brew_runtime.int_value(deserialize_props(mut object, decorator_from_value(args[1]), args[2].as_map() or { panic(err) }, false) or { panic(err) })
+	return ruby.int_value(deserialize_props(mut object, decorator_from_value(args[1]), args[2].as_map() or { panic(err) }, false) or { panic(err) })
 }
 
 // Ruby method `with(changed_props)` at line 103.
-pub fn ruby_serializable_l103_d5_with(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_serializable_l103_d5_with(args ...ruby.Value) ruby.Value {
 	if args.len < 3 { panic('with requires object, decorator, and changes') }
 	return serializable_object_value(serializable_with(serializable_object_from_value(args[0]), decorator_from_value(args[1]), args[2].as_map() or { panic(err) }) or { panic(err) })
 }
 
 // Ruby method `recursive_stringify_keys(obj)` at line 107.
-pub fn ruby_serializable_l107_d6_recursive_stringify_keys(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_serializable_l107_d6_recursive_stringify_keys(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('recursive_stringify_keys requires object') }
 	return stringify_serializable_keys(args[args.len - 1])
 }
 
 // Ruby method `with_existing_hash(changed_props, existing_hash:)` at line 121.
-pub fn ruby_serializable_l121_d7_with_existing_hash(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_serializable_l121_d7_with_existing_hash(args ...ruby.Value) ruby.Value {
 	if args.len < 4 {
 		panic('with_existing_hash requires object, decorator, changes, and existing hash')
 	}
@@ -329,7 +329,7 @@ pub fn ruby_serializable_l121_d7_with_existing_hash(args ...brew_runtime.Value) 
 }
 
 // Ruby method `required_prop_missing_from_serialize(prop)` at line 139.
-pub fn ruby_serializable_l139_d8_required_prop_missing_from_serialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_serializable_l139_d8_required_prop_missing_from_serialize(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('required_prop_missing_from_serialize requires object and prop') }
 	object := serializable_object_from_value(args[0])
 	prop := decorator_rule_name(args[1])
@@ -340,7 +340,7 @@ pub fn ruby_serializable_l139_d8_required_prop_missing_from_serialize(args ...br
 }
 
 // Ruby method `required_prop_missing_from_deserialize(prop)` at line 154.
-pub fn ruby_serializable_l154_d9_required_prop_missing_from_deserialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_serializable_l154_d9_required_prop_missing_from_deserialize(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('required_prop_missing_from_deserialize requires object and prop') }
 	mut object := serializable_object_from_value(args[0])
 	prop := decorator_rule_name(args[1])
@@ -349,41 +349,41 @@ pub fn ruby_serializable_l154_d9_required_prop_missing_from_deserialize(args ...
 }
 
 // Ruby method `valid_rule_key?(key)` at line 179.
-pub fn ruby_serializable_l179_d10_valid_rule_key(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_serializable_l179_d10_valid_rule_key(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('valid_rule_key? requires key') }
 	super_valid := if args.len > 1 {
 		args[args.len - 2].type_name == 'Bool' && args[args.len - 2].bool_data
 	} else {
 		false
 	}
-	return brew_runtime.bool_value(serializable_valid_rule_key(super_valid, decorator_rule_name(args[args.len - 1])))
+	return ruby.bool_value(serializable_valid_rule_key(super_valid, decorator_rule_name(args[args.len - 1])))
 }
 
 // Ruby method `required_props` at line 183.
-pub fn ruby_serializable_l183_d11_required_props(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_serializable_l183_d11_required_props(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('required_props requires decorator') }
-	return brew_runtime.string_array_value(serializable_required_props(decorator_from_value(args[0])))
+	return ruby.string_array_value(serializable_required_props(decorator_from_value(args[0])))
 }
 
 // Ruby method `prop_dont_store?(prop)` at line 187.
-pub fn ruby_serializable_l187_d12_prop_dont_store(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_serializable_l187_d12_prop_dont_store(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('prop_dont_store? requires decorator and prop') }
 	rules := decorator_prop_rules(decorator_from_value(args[0]), decorator_rule_name(args[1])) or { panic(err) }
-	return brew_runtime.bool_value(decorator_rule_bool(rules, 'dont_store'))
+	return ruby.bool_value(decorator_rule_bool(rules, 'dont_store'))
 }
 
 // Ruby method `prop_by_serialized_forms` at line 190.
-pub fn ruby_serializable_l190_d13_prop_by_serialized_forms(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_serializable_l190_d13_prop_by_serialized_forms(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('prop_by_serialized_forms requires decorator') }
-	mut result := map[string]brew_runtime.Value{}
+	mut result := map[string]ruby.Value{}
 	for form, prop in serializable_forms(decorator_from_value(args[0])) {
-		result[form] = brew_runtime.object_value('Symbol', ':${prop}')
+		result[form] = ruby.object_value('Symbol', ':${prop}')
 	}
-	return brew_runtime.map_value(result)
+	return ruby.map_value(result)
 }
 
 // Ruby method `from_hash(hash, strict=false)` at line 194.
-pub fn ruby_serializable_l194_d14_from_hash(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_serializable_l194_d14_from_hash(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('from_hash requires decorator and hash') }
 	decorator := decorator_from_value(args[0])
 	mut object := new_serializable_object(decorator.class_name)
@@ -393,21 +393,21 @@ pub fn ruby_serializable_l194_d14_from_hash(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby method `prop_serialized_form(prop)` at line 203.
-pub fn ruby_serializable_l203_d15_prop_serialized_form(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_serializable_l203_d15_prop_serialized_form(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('prop_serialized_form requires decorator and prop') }
 	definition := decorator_from_value(args[0]).props[decorator_rule_name(args[1])] or { panic('No such prop') }
-	return brew_runtime.string_value(serializable_prop_name(definition))
+	return ruby.string_value(serializable_prop_name(definition))
 }
 
 // Ruby method `serialized_form_prop(serialized_form)` at line 207.
-pub fn ruby_serializable_l207_d16_serialized_form_prop(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_serializable_l207_d16_serialized_form_prop(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('serialized_form_prop requires decorator and form') }
 	prop := serializable_forms(decorator_from_value(args[0]))[args[1].as_string()] or { panic('No such serialized form') }
-	return brew_runtime.object_value('Symbol', ':${prop}')
+	return ruby.object_value('Symbol', ':${prop}')
 }
 
 // Ruby method `add_prop_definition(prop, rules)` at line 211.
-pub fn ruby_serializable_l211_d17_add_prop_definition(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_serializable_l211_d17_add_prop_definition(args ...ruby.Value) ruby.Value {
 	if args.len < 3 { panic('add_prop_definition requires decorator, prop, and rules') }
 	mut decorator := decorator_from_value(args[0])
 	serializable_add_prop_definition(mut decorator, decorator_rule_name(args[1]), args[2].as_map() or { panic(err) }) or { panic(err) }
@@ -415,35 +415,35 @@ pub fn ruby_serializable_l211_d17_add_prop_definition(args ...brew_runtime.Value
 }
 
 // Ruby method `generate_serialize_source` at line 221.
-pub fn ruby_serializable_l221_d18_generate_serialize_source(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_serializable_l221_d18_generate_serialize_source(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('generate_serialize_source requires decorator') }
-	return brew_runtime.string_value(generate_props_serialize_source(decorator_from_value(args[0])))
+	return ruby.string_value(generate_props_serialize_source(decorator_from_value(args[0])))
 }
 
 // Ruby method `generate_deserialize_source` at line 225.
-pub fn ruby_serializable_l225_d19_generate_deserialize_source(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_serializable_l225_d19_generate_deserialize_source(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('generate_deserialize_source requires decorator') }
-	return brew_runtime.string_value(generate_props_deserialize_source(decorator_from_value(args[0])))
+	return ruby.string_value(generate_props_deserialize_source(decorator_from_value(args[0])))
 }
 
 // Ruby method `message_with_generated_source_context(error, generated_method, generate_source_method)` at line 232.
-pub fn ruby_serializable_l232_d20_message_with_generated_source_context(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_serializable_l232_d20_message_with_generated_source_context(args ...ruby.Value) ruby.Value {
 	if args.len < 5 {
 		return props_nil_value()
 	}
 	line := args[4].as_int() or { return props_nil_value() }
 	context := generated_source_context(decorator_from_value(args[0]).class_name, args[2].as_string().trim_left(':'), args[1].as_string(), args[3].as_string(), int(line)) or { return props_nil_value() }
-	return brew_runtime.string_value(context)
+	return ruby.string_value(context)
 }
 
 // Ruby method `raise_nil_deserialize_error(hkey)` at line 271.
-pub fn ruby_serializable_l271_d21_raise_nil_deserialize_error(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_serializable_l271_d21_raise_nil_deserialize_error(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('raise_nil_deserialize_error requires decorator and key') }
 	panic('Tried to deserialize a required prop from a nil value. You should provide a default: or factory: for this prop. prop=${args[1].as_string()} klass=${decorator_from_value(args[0]).class_name}')
 }
 
 // Ruby method `prop_validate_definition!(name, cls, rules, type)` at line 277.
-pub fn ruby_serializable_l277_d22_prop_validate_definition(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_serializable_l277_d22_prop_validate_definition(args ...ruby.Value) ruby.Value {
 	if args.len < 4 { panic('prop_validate_definition! requires decorator, name, class, and rules') }
 	rules := args[3].as_map() or { panic(err) }
 	if rule_name := rules['name'] {
@@ -457,7 +457,7 @@ pub fn ruby_serializable_l277_d22_prop_validate_definition(args ...brew_runtime.
 }
 
 // Ruby method `get_id(instance)` at line 295.
-pub fn ruby_serializable_l295_d23_get_id(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_serializable_l295_d23_get_id(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('get_id requires decorator and instance') }
 	forms := serializable_forms(decorator_from_value(args[0]))
 	prop := forms['_id'] or { return props_nil_value() }
@@ -465,20 +465,20 @@ pub fn ruby_serializable_l295_d23_get_id(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `extra_props(instance)` at line 307.
-pub fn ruby_serializable_l307_d24_extra_props(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_serializable_l307_d24_extra_props(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('extra_props requires instance') }
-	return brew_runtime.map_value(serializable_object_from_value(args[args.len - 1]).extra_props)
+	return ruby.map_value(serializable_object_from_value(args[args.len - 1]).extra_props)
 }
 
 // Ruby method `pretty_print_extra(instance, pp)` at line 312.
-pub fn ruby_serializable_l312_d25_pretty_print_extra(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_serializable_l312_d25_pretty_print_extra(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('pretty_print_extra requires instance') }
 	single := if args.len > 1 {
 		args[args.len - 1].attribute('single_line') or { 'false' } == 'true'
 	} else {
 		true
 	}
-	return brew_runtime.string_value(serializable_pretty_extra(serializable_object_from_value(args[args.len - if args.len > 1 {
+	return ruby.string_value(serializable_pretty_extra(serializable_object_from_value(args[args.len - if args.len > 1 {
 		2
 	} else {
 		1
@@ -486,19 +486,19 @@ pub fn ruby_serializable_l312_d25_pretty_print_extra(args ...brew_runtime.Value)
 }
 
 // Ruby method `prop_by_serialized_forms` at line 335.
-pub fn ruby_serializable_l335_d26_prop_by_serialized_forms(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_serializable_l335_d26_prop_by_serialized_forms(args ...ruby.Value) ruby.Value {
 	return ruby_serializable_l190_d13_prop_by_serialized_forms(...args)
 }
 
 // Ruby method `from_hash(hash, strict=false)` at line 342.
-pub fn ruby_serializable_l342_d27_from_hash(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_serializable_l342_d27_from_hash(args ...ruby.Value) ruby.Value {
 	return ruby_serializable_l194_d14_from_hash(...args)
 }
 
 // Ruby method `from_hash!(hash)` at line 348.
-pub fn ruby_serializable_l348_d28_from_hash(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_serializable_l348_d28_from_hash(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('from_hash! requires decorator and hash') }
-	return ruby_serializable_l194_d14_from_hash(args[0], args[1], brew_runtime.bool_value(true))
+	return ruby_serializable_l194_d14_from_hash(args[0], args[1], ruby.bool_value(true))
 }
 
 // Original Ruby source (line-for-line):

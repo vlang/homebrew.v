@@ -1,6 +1,6 @@
 module artifact
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `cask/artifact/zshcompletion.rb`.
@@ -11,18 +11,18 @@ pub fn resolve_zsh_completion_target(target string, completion_directory string)
 	} else {
 		'_${os.base(target).trim_string_right(os.file_ext(target))}'
 	}
-	return brew_runtime.join_path(completion_directory, name)
+	return ruby.join_path(completion_directory, name)
 }
 
 // Ruby method `resolve_target(target, base_dir: nil)` at line 11.
-pub fn ruby_zshcompletion_l11_d1_resolve_target(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_zshcompletion_l11_d1_resolve_target(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('ZshCompletion#resolve_target requires a target') }
 	directory := if args.len > 1 {
 		args[1].as_string()
 	} else {
-		brew_runtime.join_path(cask_artifact_prefix(), 'share/zsh/site-functions')
+		ruby.join_path(cask_artifact_prefix(), 'share/zsh/site-functions')
 	}
-	return brew_runtime.object_value('Pathname', resolve_zsh_completion_target(args[0].as_string(), directory))
+	return ruby.object_value('Pathname', resolve_zsh_completion_target(args[0].as_string(), directory))
 }
 
 // Original Ruby source (line-for-line):

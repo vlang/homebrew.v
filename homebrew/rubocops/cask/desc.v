@@ -1,6 +1,6 @@
 module cask
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `rubocops/cask/desc.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -869,8 +869,8 @@ pub fn correct_cask_desc(source string) string {
 	return corrected
 }
 
-fn cask_desc_value(offense CaskDescOffense) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cop::Offense', offense.message, {
+fn cask_desc_value(offense CaskDescOffense) ruby.Value {
+	return ruby.structured_value('RuboCop::Cop::Offense', offense.message, {
 		'cask_name':   offense.cask_name
 		'description': offense.description
 		'begin_pos':   offense.begin_pos.str()
@@ -881,11 +881,11 @@ fn cask_desc_value(offense CaskDescOffense) brew_runtime.Value {
 }
 
 // Ruby method `on_desc_stanza(stanza)` at line 18.
-pub fn ruby_desc_l18_d1_on_desc_stanza(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_desc_l18_d1_on_desc_stanza(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	offenses := audit_cask_desc(source)
 	return if offenses.len == 0 {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	} else {
 		cask_desc_value(offenses[0])
 	}

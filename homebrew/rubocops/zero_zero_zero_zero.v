@@ -1,6 +1,6 @@
 module rubocops
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `rubocops/zero_zero_zero_zero.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -410,8 +410,8 @@ pub fn audit_zero_zero_zero_zero(source string, formula_tap string) []ZeroZeroZe
 	return offenses
 }
 
-fn zero_zero_zero_zero_offense_value(offense ZeroZeroZeroZeroOffense) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cop::Offense', offense.message, {
+fn zero_zero_zero_zero_offense_value(offense ZeroZeroZeroZeroOffense) ruby.Value {
+	return ruby.structured_value('RuboCop::Cop::Offense', offense.message, {
 		'content':   offense.content
 		'begin_pos': offense.begin_pos.str()
 		'end_pos':   offense.end_pos.str()
@@ -422,16 +422,16 @@ fn zero_zero_zero_zero_offense_value(offense ZeroZeroZeroZeroOffense) brew_runti
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 13.
-pub fn ruby_zero_zero_zero_zero_l13_d1_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_zero_zero_zero_zero_l13_d1_audit_formula(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	formula_tap := if args.len > 1 { args[1].as_string() } else { '' }
-	return brew_runtime.array_value(audit_zero_zero_zero_zero(source, formula_tap).map(zero_zero_zero_zero_offense_value(it)))
+	return ruby.array_value(audit_zero_zero_zero_zero(source, formula_tap).map(zero_zero_zero_zero_offense_value(it)))
 }
 
 // Ruby method `valid_ip_range?(content)` at line 37.
-pub fn ruby_zero_zero_zero_zero_l37_d2_valid_ip_range(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_zero_zero_zero_zero_l37_d2_valid_ip_range(args ...ruby.Value) ruby.Value {
 	content := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.bool_value(valid_zero_zero_zero_zero_ip_range(content))
+	return ruby.bool_value(valid_zero_zero_zero_zero_ip_range(content))
 }
 
 // Original Ruby source (line-for-line):

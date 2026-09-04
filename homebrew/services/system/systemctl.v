@@ -1,6 +1,6 @@
 module system
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `services/system/systemctl.rb`.
@@ -81,8 +81,8 @@ pub fn (state SystemctlState) scope() string {
 fn native_systemctl_runner(command SystemctlCommand) !SystemctlCommandResult {
 	mut argv := [command.executable]
 	argv << command.args
-	result := brew_runtime.run_captured_command(argv, brew_runtime.CapturedCommandOptions{
-		environment: brew_runtime.environment()
+	result := ruby.run_captured_command(argv, ruby.CapturedCommandOptions{
+		environment: ruby.environment()
 	})!
 	if command.print_stdout && result.stdout != '' {
 		print(result.stdout)
@@ -120,13 +120,13 @@ pub fn systemctl_run(mut state SystemctlState, arguments []string,
 	return systemctl_run_with(mut state, arguments, mode, native_systemctl_runner)
 }
 
-pub fn systemctl_state_boundary(state &SystemctlState) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::Services::System::Systemctl', 'Systemctl', {
+pub fn systemctl_state_boundary(state &SystemctlState) ruby.Value {
+	return ruby.structured_value('Homebrew::Services::System::Systemctl', 'Systemctl', {
 		'systemctl_state_address': u64(voidptr(state)).str()
 	})
 }
 
-fn systemctl_state_from_args(args []brew_runtime.Value) (&SystemctlState, int) {
+fn systemctl_state_from_args(args []ruby.Value) (&SystemctlState, int) {
 	if args.len > 0 && args[0].type_name == 'Homebrew::Services::System::Systemctl' {
 		address := args[0].attributes['systemctl_state_address'] or {
 			panic('translated Systemctl state is missing')
@@ -136,73 +136,73 @@ fn systemctl_state_from_args(args []brew_runtime.Value) (&SystemctlState, int) {
 	return new_systemctl_state('', os.geteuid() == 0), 0
 }
 
-fn systemctl_boundary_result(result SystemctlCommandResult, mode SystemctlMode) brew_runtime.Value {
+fn systemctl_boundary_result(result SystemctlCommandResult, mode SystemctlMode) ruby.Value {
 	return match mode {
-		.read { brew_runtime.string_value(result.stdout) }
-		.quiet { brew_runtime.bool_value(result.success) }
-		.default_mode { brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' } }
+		.read { ruby.string_value(result.stdout) }
+		.quiet { ruby.bool_value(result.success) }
+		.default_mode { ruby.Value{ type_name: 'NilClass', repr: 'nil' } }
 	}
 }
 
 // Ruby method `self.executable` at line 9.
-pub fn ruby_systemctl_l9_d1_self_executable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_systemctl_l9_d1_self_executable(args ...ruby.Value) ruby.Value {
 	mut state, _ := systemctl_state_from_args(args)
 	return if executable := state.executable() {
-		brew_runtime.object_value('Pathname', executable)
+		ruby.object_value('Pathname', executable)
 	} else {
-		brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+		ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 	}
 }
 
 // Ruby attr_writer `attr_writer :executable` at line 15.
-pub fn ruby_systemctl_l15_d2_executable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_systemctl_l15_d2_executable(args ...ruby.Value) ruby.Value {
 	mut state, offset := systemctl_state_from_args(args)
 	if args.len <= offset || args[offset].type_name == 'NilClass' {
 		state.set_executable(none)
-		return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+		return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 	}
 	state.set_executable(args[offset].as_string())
-	return brew_runtime.object_value('Pathname', args[offset].as_string())
+	return ruby.object_value('Pathname', args[offset].as_string())
 }
 
 // Ruby method `self.scope` at line 19.
-pub fn ruby_systemctl_l19_d3_self_scope(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_systemctl_l19_d3_self_scope(args ...ruby.Value) ruby.Value {
 	state, _ := systemctl_state_from_args(args)
-	return brew_runtime.string_value(state.scope())
+	return ruby.string_value(state.scope())
 }
 
 // Ruby method `self.run(*args)` at line 24.
-pub fn ruby_systemctl_l24_d4_self_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_systemctl_l24_d4_self_run(args ...ruby.Value) ruby.Value {
 	mut state, offset := systemctl_state_from_args(args)
 	result := systemctl_run(mut state, args[offset..].map(it.as_string()), .default_mode) or {
-		return brew_runtime.object_value('ErrorDuringExecution', err.msg())
+		return ruby.object_value('ErrorDuringExecution', err.msg())
 	}
 	return systemctl_boundary_result(result, .default_mode)
 }
 
 // Ruby method `self.quiet_run(*args)` at line 29.
-pub fn ruby_systemctl_l29_d5_self_quiet_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_systemctl_l29_d5_self_quiet_run(args ...ruby.Value) ruby.Value {
 	mut state, offset := systemctl_state_from_args(args)
 	result := systemctl_run(mut state, args[offset..].map(it.as_string()), .quiet) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	return systemctl_boundary_result(result, .quiet)
 }
 
 // Ruby method `self.popen_read(*args)` at line 34.
-pub fn ruby_systemctl_l34_d6_self_popen_read(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_systemctl_l34_d6_self_popen_read(args ...ruby.Value) ruby.Value {
 	mut state, offset := systemctl_state_from_args(args)
 	result := systemctl_run(mut state, args[offset..].map(it.as_string()), .read) or {
-		return brew_runtime.string_value('')
+		return ruby.string_value('')
 	}
 	return systemctl_boundary_result(result, .read)
 }
 
 // Ruby method `self._run(*args, mode:)` at line 39.
-pub fn ruby_systemctl_l39_d7_self_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_systemctl_l39_d7_self_run(args ...ruby.Value) ruby.Value {
 	mut state, offset := systemctl_state_from_args(args)
 	if args.len <= offset {
-		return brew_runtime.object_value('ArgumentError', 'mode is required')
+		return ruby.object_value('ArgumentError', 'mode is required')
 	}
 	mode_name := args.last().as_string().trim_left(':')
 	mode := match mode_name {
@@ -210,11 +210,11 @@ pub fn ruby_systemctl_l39_d7_self_run(args ...brew_runtime.Value) brew_runtime.V
 		'quiet' { SystemctlMode.quiet }
 		'read' { SystemctlMode.read }
 		else {
-			return brew_runtime.object_value('ArgumentError', 'invalid mode ${mode_name}')
+			return ruby.object_value('ArgumentError', 'invalid mode ${mode_name}')
 		}
 	}
 	result := systemctl_run(mut state, args[offset..args.len - 1].map(it.as_string()), mode) or {
-		return brew_runtime.object_value('ErrorDuringExecution', err.msg())
+		return ruby.object_value('ErrorDuringExecution', err.msg())
 	}
 	return systemctl_boundary_result(result, mode)
 }

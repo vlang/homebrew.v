@@ -1,6 +1,6 @@
 module props
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/props/type_validation.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -10,7 +10,7 @@ pub fn type_validation_valid_rule_key(super_valid bool, key string) bool {
 	return super_valid || key.trim_left(':') == 'DEPRECATED_underspecified_type'
 }
 
-fn first_invalid(types []brew_runtime.Value) ?brew_runtime.Value {
+fn first_invalid(types []ruby.Value) ?ruby.Value {
 	for subtype in types {
 		if invalid := find_invalid_prop_subtype(subtype) {
 			return invalid
@@ -21,7 +21,7 @@ fn first_invalid(types []brew_runtime.Value) ?brew_runtime.Value {
 
 // find_invalid_prop_subtype performs the same recursive shape walk as the Ruby
 // decorator. Boundary Values retain container members in array_data/map_data.
-pub fn find_invalid_prop_subtype(type_value brew_runtime.Value) ?brew_runtime.Value {
+pub fn find_invalid_prop_subtype(type_value ruby.Value) ?ruby.Value {
 	match type_value.type_name {
 		'T::Types::TypedEnumerable', 'T::Types::TypedArray', 'T::Types::TypedHash', 'T::Types::TypedRange', 'T::Types::TypedSet', 'T::Types::TypedEnumerator', 'T::Types::TypedEnumeratorLazy', 'T::Types::TypedEnumeratorChain' {
 			inner := type_value.map_data['type'] or { return type_value }
@@ -34,7 +34,7 @@ pub fn find_invalid_prop_subtype(type_value brew_runtime.Value) ?brew_runtime.Va
 			return first_invalid(type_value.array_data)
 		}
 		'T::Types::Intersection' {
-			mut invalid := []brew_runtime.Value{}
+			mut invalid := []ruby.Value{}
 			for subtype in type_value.array_data {
 				if member := find_invalid_prop_subtype(subtype) {
 					invalid << member
@@ -65,7 +65,7 @@ pub fn find_invalid_prop_subtype(type_value brew_runtime.Value) ?brew_runtime.Va
 	}
 }
 
-fn same_prop_type(left brew_runtime.Value, right brew_runtime.Value) bool {
+fn same_prop_type(left ruby.Value, right ruby.Value) bool {
 	if left_address := left.attributes['base_type_address'] {
 		if right_address := right.attributes['base_type_address'] {
 			return left_address == right_address
@@ -74,8 +74,8 @@ fn same_prop_type(left brew_runtime.Value, right brew_runtime.Value) bool {
 	return left.type_name == right.type_name && left.as_string() == right.as_string()
 }
 
-pub fn prop_type_error_message(class_name string, invalid_type brew_runtime.Value,
-	field_name string, original_type brew_runtime.Value) string {
+pub fn prop_type_error_message(class_name string, invalid_type ruby.Value,
+	field_name string, original_type ruby.Value) string {
 	prefix := '${class_name}.${field_name}: ${original_type.as_string()} is invalid in prop definition'
 	if same_prop_type(invalid_type, original_type) {
 		return '${prefix}. Please choose a more specific type (T.untyped and ~equivalents like Object are banned).'
@@ -83,7 +83,7 @@ pub fn prop_type_error_message(class_name string, invalid_type brew_runtime.Valu
 	return '${prefix}. Please choose a subtype more specific than ${invalid_type.as_string()} (T.untyped and ~equivalents like Object are banned).'
 }
 
-pub fn validate_prop_type(class_name string, type_value brew_runtime.Value,
+pub fn validate_prop_type(class_name string, type_value ruby.Value,
 	field_name string) ! {
 	if invalid := find_invalid_prop_subtype(type_value) {
 		return error(prop_type_error_message(class_name, invalid, field_name, type_value))
@@ -91,7 +91,7 @@ pub fn validate_prop_type(class_name string, type_value brew_runtime.Value,
 }
 
 pub fn validate_prop_definition_type(class_name string, name string,
-	rules map[string]brew_runtime.Value, type_value brew_runtime.Value) ! {
+	rules map[string]ruby.Value, type_value ruby.Value) ! {
 	deprecated := prop_rule_enabled(rules, 'DEPRECATED_underspecified_type')
 	if !deprecated {
 		validate_prop_type(class_name, type_value, name)!
@@ -100,22 +100,22 @@ pub fn validate_prop_definition_type(class_name string, name string,
 	}
 }
 
-fn validation_class_name(receiver brew_runtime.Value) string {
+fn validation_class_name(receiver ruby.Value) string {
 	return receiver.attribute('class_name') or { receiver.attribute('name') or { receiver.type_name } }
 }
 
 // Ruby method `valid_rule_key?(key)` at line 15.
-pub fn ruby_type_validation_l15_d1_valid_rule_key(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_type_validation_l15_d1_valid_rule_key(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('TypeValidation#valid_rule_key? requires a key')
 	}
-	return brew_runtime.bool_value(type_validation_valid_rule_key(args[0].attribute('super_valid') or {
+	return ruby.bool_value(type_validation_valid_rule_key(args[0].attribute('super_valid') or {
 		'false'
 	} == 'true', args[1].as_string()))
 }
 
 // Ruby method `prop_validate_definition!(name, _cls, rules, type)` at line 30.
-pub fn ruby_type_validation_l30_d2_prop_validate_definition(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_type_validation_l30_d2_prop_validate_definition(args ...ruby.Value) ruby.Value {
 	if args.len < 5 {
 		panic('TypeValidation#prop_validate_definition! requires name, class, rules, and type')
 	}
@@ -124,7 +124,7 @@ pub fn ruby_type_validation_l30_d2_prop_validate_definition(args ...brew_runtime
 }
 
 // Ruby method `validate_type(type, field_name)` at line 48.
-pub fn ruby_type_validation_l48_d3_validate_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_type_validation_l48_d3_validate_type(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('TypeValidation#validate_type requires type and field name')
 	}
@@ -135,7 +135,7 @@ pub fn ruby_type_validation_l48_d3_validate_type(args ...brew_runtime.Value) bre
 }
 
 // Ruby method `find_invalid_subtype(type)` at line 62.
-pub fn ruby_type_validation_l62_d4_find_invalid_subtype(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_type_validation_l62_d4_find_invalid_subtype(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('TypeValidation#find_invalid_subtype requires a type')
 	}
@@ -143,11 +143,11 @@ pub fn ruby_type_validation_l62_d4_find_invalid_subtype(args ...brew_runtime.Val
 }
 
 // Ruby method `type_error_message(type, field_name, orig_type)` at line 105.
-pub fn ruby_type_validation_l105_d5_type_error_message(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_type_validation_l105_d5_type_error_message(args ...ruby.Value) ruby.Value {
 	if args.len < 4 {
 		panic('TypeValidation#type_error_message requires type, field name, and original type')
 	}
-	return brew_runtime.string_value(prop_type_error_message(validation_class_name(args[0]), args[1], args[2].as_string(), args[3]))
+	return ruby.string_value(prop_type_error_message(validation_class_name(args[0]), args[1], args[2].as_string(), args[3]))
 }
 
 // Original Ruby source (line-for-line):

@@ -1,6 +1,6 @@
 module cask
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `rubocops/cask/array_alphabetization.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -537,8 +537,8 @@ pub fn correct_array_alphabetization(source string) string {
 	return corrected
 }
 
-fn array_alphabetization_offense_value(offense ArrayAlphabetizationOffense) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cop::Offense', offense.message, {
+fn array_alphabetization_offense_value(offense ArrayAlphabetizationOffense) ruby.Value {
+	return ruby.structured_value('RuboCop::Cop::Offense', offense.message, {
 		'begin_pos':   offense.begin_pos.str()
 		'end_pos':     offense.end_pos.str()
 		'message':     offense.message
@@ -547,33 +547,33 @@ fn array_alphabetization_offense_value(offense ArrayAlphabetizationOffense) brew
 }
 
 // Ruby method `on_send(node)` at line 11.
-pub fn ruby_array_alphabetization_l11_d1_on_send(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_array_alphabetization_l11_d1_on_send(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	offenses := audit_array_alphabetization(source)
 	return if offenses.len == 0 {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	} else {
 		array_alphabetization_offense_value(offenses[0])
 	}
 }
 
 // Ruby method `sort_array(source)` at line 39.
-pub fn ruby_array_alphabetization_l39_d2_sort_array(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_array_alphabetization_l39_d2_sort_array(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_array_value([])
+		return ruby.string_array_value([])
 	}
 	lines := args[0].as_string_array() or { args[0].as_string().split('\n') }
-	return brew_runtime.string_array_value(sort_array_alphabetization(lines))
+	return ruby.string_array_value(sort_array_alphabetization(lines))
 }
 
 // Ruby method `recursively_find_comments(source, index, line)` at line 69.
-pub fn ruby_array_alphabetization_l69_d3_recursively_find_comments(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_array_alphabetization_l69_d3_recursively_find_comments(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
-		return brew_runtime.string_value('')
+		return ruby.string_value('')
 	}
 	lines := args[0].as_string_array() or { args[0].as_string().split('\n') }
 	index := int(args[1].as_int() or { 0 })
-	return brew_runtime.string_value(recursively_find_array_alphabetization_comments(lines, index, args[2].as_string()))
+	return ruby.string_value(recursively_find_array_alphabetization_comments(lines, index, args[2].as_string()))
 }
 
 // Original Ruby source (line-for-line):

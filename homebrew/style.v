@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 import os
 import runtime
 import x.json2
@@ -131,16 +131,16 @@ pub:
 }
 
 fn style_env_path(name string, fallback string) string {
-	value := brew_runtime.environment_value(name)
+	value := ruby.environment_value(name)
 	return if value == '' { fallback } else { value }
 }
 
 pub fn default_style_config() StyleConfig {
-	repository := style_env_path('HOMEBREW_REPOSITORY', brew_runtime.current_directory())
+	repository := style_env_path('HOMEBREW_REPOSITORY', ruby.current_directory())
 	library := style_env_path('HOMEBREW_LIBRARY', os.join_path(repository, 'Library'))
 	library_path := style_env_path('HOMEBREW_LIBRARY_PATH', os.join_path(library, 'Homebrew'))
 	prefix := style_env_path('HOMEBREW_PREFIX', repository)
-	ruby := style_env_path('HOMEBREW_RUBY_PATH', 'ruby')
+	ruby_path := style_env_path('HOMEBREW_RUBY_PATH', 'ruby')
 	return StyleConfig{
 		prefix: prefix
 		repository: repository
@@ -149,14 +149,14 @@ pub fn default_style_config() StyleConfig {
 		original_brew_file: style_env_path('HOMEBREW_ORIGINAL_BREW_FILE', os.join_path(repository, 'bin/brew'))
 		cache: style_env_path('HOMEBREW_CACHE', os.join_path(os.temp_dir(), 'Homebrew'))
 		tap_directory: style_env_path('HOMEBREW_TAP_DIRECTORY', os.join_path(library, 'Taps'))
-		ruby_args: [ruby]
+		ruby_args: [ruby_path]
 		rubocop_path: os.join_path(library_path, 'utils/rubocop.rb')
 		shfmt_path: os.join_path(library, 'Homebrew/utils/shfmt.sh')
 		cpu_cores: runtime.nr_cpus()
-		color: brew_runtime.environment_value('TERM') != ''
-		ci: brew_runtime.environment_value('CI') != ''
-		github_actions: brew_runtime.environment_value('GITHUB_ACTIONS') != ''
-		github_workspace: style_env_path('GITHUB_WORKSPACE', brew_runtime.current_directory())
+		color: ruby.environment_value('TERM') != ''
+		ci: ruby.environment_value('CI') != ''
+		github_actions: ruby.environment_value('GITHUB_ACTIONS') != ''
+		github_workspace: style_env_path('GITHUB_WORKSPACE', ruby.current_directory())
 	}
 }
 
@@ -210,7 +210,7 @@ fn style_find_tool(configured string, name string) !string {
 	if configured != '' {
 		return configured
 	}
-	return brew_runtime.find_executable(name) or { return error('Unable to find ${name}') }
+	return ruby.find_executable(name) or { return error('Unable to find ${name}') }
 }
 
 fn style_existing_real_path(path string) !string {
@@ -576,7 +576,7 @@ pub fn style_run_rubocop(files []string, output_type StyleOutputType,
 		args << ['--only', cops.join(',')]
 	}
 	mut expanded_files := files.map(os.abs_path(it))
-	mut base_dir := brew_runtime.current_directory()
+	mut base_dir := ruby.current_directory()
 	if expanded_files.len == 0 || (expanded_files.len == 1 && expanded_files[0] == os.abs_path(config.repository)) {
 		expanded_files = [config.library_path]
 		base_dir = config.library_path

@@ -1,28 +1,28 @@
 module bindata
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/bindata-2.5.1/lib/bindata/virtual.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `do_read(io); end` at line 32.
-pub fn ruby_virtual_l32_d1_do_read(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+pub fn ruby_virtual_l32_d1_do_read(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `do_write(io); end` at line 34.
-pub fn ruby_virtual_l34_d2_do_write(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+pub fn ruby_virtual_l34_d2_do_write(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `do_num_bytes` at line 36.
-pub fn ruby_virtual_l36_d3_do_num_bytes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.float_value(0.0)
+pub fn ruby_virtual_l36_d3_do_num_bytes(args ...ruby.Value) ruby.Value {
+	return ruby.float_value(0.0)
 }
 
 // Ruby method `sensible_default` at line 40.
-pub fn ruby_virtual_l40_d4_sensible_default(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+pub fn ruby_virtual_l40_d4_sensible_default(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Original Ruby source (line-for-line):

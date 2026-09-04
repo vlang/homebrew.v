@@ -1,6 +1,6 @@
 module private
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/private/casts.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -8,20 +8,20 @@ pub struct CastFailure {
 pub:
 	message     string
 	kind        string
-	value       brew_runtime.Value
-	expected    brew_runtime.Value
+	value       ruby.Value
+	expected    ruby.Value
 	caller_path string
 }
 
 pub type CastErrorHandler = fn(CastFailure)
 
-fn cast_type_name(type_value brew_runtime.Value) string {
+fn cast_type_name(type_value ruby.Value) string {
 	return type_value.attribute('name') or {
 		type_value.attribute('raw_type') or { type_value.as_string() }
 	}
 }
 
-fn cast_value_matches(value brew_runtime.Value, type_value brew_runtime.Value,
+fn cast_value_matches(value ruby.Value, type_value ruby.Value,
 	recursive bool) bool {
 	if type_value.type_name in ['T::Types::Anything', 'T::Types::Untyped'] {
 		return true
@@ -52,8 +52,8 @@ fn cast_value_matches(value brew_runtime.Value, type_value brew_runtime.Value,
 	return ancestors.split(',').map(it.trim_space()).any(it == expected)
 }
 
-pub fn cast_value(value brew_runtime.Value, type_value brew_runtime.Value, cast_method string,
-	recursive bool, caller_path string, handler CastErrorHandler) brew_runtime.Value {
+pub fn cast_value(value ruby.Value, type_value ruby.Value, cast_method string,
+	recursive bool, caller_path string, handler CastErrorHandler) ruby.Value {
 	if cast_value_matches(value, type_value, recursive) {
 		return value
 	}
@@ -71,7 +71,7 @@ pub fn cast_value(value brew_runtime.Value, type_value brew_runtime.Value, cast_
 
 fn cast_noop_handler(_ CastFailure) {}
 
-fn cast_from_boundary(args []brew_runtime.Value, recursive bool) brew_runtime.Value {
+fn cast_from_boundary(args []ruby.Value, recursive bool) ruby.Value {
 	if args.len < 3 {
 		panic('Casts.cast requires value, type, and cast method')
 	}
@@ -80,12 +80,12 @@ fn cast_from_boundary(args []brew_runtime.Value, recursive bool) brew_runtime.Va
 }
 
 // Ruby method `self.cast(value, type, cast_method)` at line 6.
-pub fn ruby_casts_l6_d1_self_cast(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_casts_l6_d1_self_cast(args ...ruby.Value) ruby.Value {
 	return cast_from_boundary(args, false)
 }
 
 // Ruby method `self.cast_recursive(value, type, cast_method)` at line 49.
-pub fn ruby_casts_l49_d2_self_cast_recursive(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_casts_l49_d2_self_cast_recursive(args ...ruby.Value) ruby.Value {
 	return cast_from_boundary(args, true)
 }
 

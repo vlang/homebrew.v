@@ -1,13 +1,13 @@
 module utils
 
-import brew_runtime
+import ruby
 import homebrew.utils as tar_utils
 
 // Translated from Homebrew/brew `test/utils/tar_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `clear_executable_cache` at line 7.
-pub fn ruby_tar_spec_l7_d1_clear_executable_cache(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tar_spec_l7_d1_clear_executable_cache(args ...ruby.Value) ruby.Value {
 	mut client := tar_utils.tar_client_with(tar_utils.TarExecutableCandidates{
 		path_gtar: '/bin/gtar'
 	}, tar_spec_valid_runner)
@@ -15,62 +15,62 @@ pub fn ruby_tar_spec_l7_d1_clear_executable_cache(args ...brew_runtime.Value) br
 	client.candidates = tar_utils.TarExecutableCandidates{}
 	still_cached := tar_utils.tar_client_available(mut client)
 	tar_utils.tar_client_clear_executable_cache(mut client)
-	return brew_runtime.bool_value(still_cached && !tar_utils.tar_client_available(mut client))
+	return ruby.bool_value(still_cached && !tar_utils.tar_client_available(mut client))
 }
 
 // Ruby it `it "returns true if tar or gnu-tar is available" do` at line 18.
-pub fn ruby_tar_spec_l18_d2_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tar_spec_l18_d2_returns(args ...ruby.Value) ruby.Value {
 	mut available := tar_utils.tar_client_with(tar_utils.TarExecutableCandidates{
 		path_tar: '/bin/tar'
 	}, tar_spec_valid_runner)
 	mut unavailable := tar_utils.tar_client_with(tar_utils.TarExecutableCandidates{}, tar_spec_valid_runner)
-	return brew_runtime.bool_value(tar_utils.tar_client_available(mut available)
+	return ruby.bool_value(tar_utils.tar_client_available(mut available)
 		&& !tar_utils.tar_client_available(mut unavailable))
 }
 
 // Ruby it `it "does not raise an error when tar and gnu-tar are unavailable" do` at line 28.
-pub fn ruby_tar_spec_l28_d3_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tar_spec_l28_d3_does(args ...ruby.Value) ruby.Value {
 	mut client := tar_utils.tar_client_with(tar_utils.TarExecutableCandidates{}, tar_spec_invalid_runner)
-	tar_utils.tar_validate_file(mut client, 'blah') or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(true)
+	tar_utils.tar_validate_file(mut client, 'blah') or { return ruby.bool_value(false) }
+	return ruby.bool_value(true)
 }
 
 // Ruby let `let(:testball_resource) { "#{TEST_FIXTURE_DIR}/tarballs/testball-0.1.tbz" }` at line 34.
-pub fn ruby_tar_spec_l34_d4_testball_resource(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tar_spec_l34_d4_testball_resource(args ...ruby.Value) ruby.Value {
 	fixture_dir := if args.len > 0 { args[0].as_string() } else { 'test/fixtures' }
-	return brew_runtime.string_value('${fixture_dir}/tarballs/testball-0.1.tbz')
+	return ruby.string_value('${fixture_dir}/tarballs/testball-0.1.tbz')
 }
 
 // Ruby let `let(:invalid_resource) { "#{TEST_TMPDIR}/invalid.tgz" }` at line 35.
-pub fn ruby_tar_spec_l35_d5_invalid_resource(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tar_spec_l35_d5_invalid_resource(args ...ruby.Value) ruby.Value {
 	temporary_dir := if args.len > 0 { args[0].as_string() } else { '/tmp' }
-	return brew_runtime.string_value('${temporary_dir}/invalid.tgz')
+	return ruby.string_value('${temporary_dir}/invalid.tgz')
 }
 
 // Ruby it `it "does not raise an error if file is not a tar file" do` at line 41.
-pub fn ruby_tar_spec_l41_d6_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tar_spec_l41_d6_does(args ...ruby.Value) ruby.Value {
 	mut client := tar_spec_available_client(tar_spec_invalid_runner)
-	tar_utils.tar_validate_file(mut client, 'blah') or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(true)
+	tar_utils.tar_validate_file(mut client, 'blah') or { return ruby.bool_value(false) }
+	return ruby.bool_value(true)
 }
 
 // Ruby it `it "does not raise an error if file is valid tar file" do` at line 45.
-pub fn ruby_tar_spec_l45_d7_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tar_spec_l45_d7_does(args ...ruby.Value) ruby.Value {
 	mut client := tar_spec_available_client(tar_spec_valid_runner)
 	tar_utils.tar_validate_file(mut client, '/fixtures/tarballs/testball-0.1.tbz') or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
 // Ruby it `it "raises an error if file is an invalid tar file" do` at line 49.
-pub fn ruby_tar_spec_l49_d8_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tar_spec_l49_d8_raises(args ...ruby.Value) ruby.Value {
 	path := if args.len > 0 { args[0].as_string() } else { '/tmp/invalid.tgz' }
 	mut client := tar_spec_available_client(tar_spec_invalid_runner)
 	tar_utils.tar_validate_file(mut client, path) or {
-		return brew_runtime.bool_value(err.msg() == '${path} is not a valid tar file!')
+		return ruby.bool_value(err.msg() == '${path} is not a valid tar file!')
 	}
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 fn tar_spec_available_client(runner tar_utils.TarCommandRunner) tar_utils.TarClient {

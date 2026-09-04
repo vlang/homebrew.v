@@ -1,6 +1,6 @@
 module strategy
 
-import brew_runtime
+import ruby
 import homebrew.livecheck
 import homebrew.livecheck.strategy as crate_core
 import homebrew.utils
@@ -106,8 +106,8 @@ fn crate_spec_match_data_equal(left crate_core.JsonMatchData,
 }
 
 // Ruby subject `subject(:crate) { described_class }` at line 7.
-pub fn ruby_crate_spec_l7_d1_crate() brew_runtime.Value {
-	return brew_runtime.object_value('Class', 'Homebrew::Livecheck::Strategy::Crate')
+pub fn ruby_crate_spec_l7_d1_crate() ruby.Value {
+	return ruby.object_value('Class', 'Homebrew::Livecheck::Strategy::Crate')
 }
 
 // Ruby let `let(:crate_url) { "https://static.crates.io/crates/example/example-0.1.0.crate" }` at line 9.

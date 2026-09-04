@@ -1,19 +1,19 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `test/dev-cmd/prof_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "does not open HTML profiles outside a TTY" do` at line 16.
-pub fn ruby_prof_spec_l16_d1_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_prof_spec_l16_d1_does(args ...ruby.Value) ruby.Value {
 	tty := args.len > 0 && (args[0].as_bool() or { false })
 	plan := prof_plan(prof_spec_options(ProfOptions{
 		named: ['help']
 		command_extension: '.rb'
 		stdout_tty: tty
-	})) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(plan.command == [
+	})) or { return ruby.bool_value(false) }
+	return ruby.bool_value(plan.command == [
 		'ruby-prof',
 		'--printer=call_stack',
 		'--file=prof/call_stack.html',
@@ -24,14 +24,14 @@ pub fn ruby_prof_spec_l16_d1_does(args ...brew_runtime.Value) brew_runtime.Value
 }
 
 // Ruby it `it "runs Vernier without passing it to child Ruby processes" do` at line 28.
-pub fn ruby_prof_spec_l28_d2_runs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_prof_spec_l28_d2_runs(args ...ruby.Value) ruby.Value {
 	_ = args
 	plan := prof_plan(prof_spec_options(ProfOptions{
 		named: ['commands']
 		command_extension: '.rb'
 		vernier: true
-	})) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(plan.environment == {
+	})) or { return ruby.bool_value(false) }
+	return ruby.bool_value(plan.environment == {
 		'HOMEBREW_SPAWN_SYSTEM': '1'
 		'VERNIER_ALLOCATION_INTERVAL': '500'
 		'VERNIER_OUTPUT': 'prof/vernier.json'
@@ -49,55 +49,55 @@ pub fn ruby_prof_spec_l28_d2_runs(args ...brew_runtime.Value) brew_runtime.Value
 }
 
 // Ruby it `it "records phase timings without loading a sampling profiler" do` at line 51.
-pub fn ruby_prof_spec_l51_d3_records(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_prof_spec_l51_d3_records(args ...ruby.Value) ruby.Value {
 	_ = args
 	plan := prof_plan(prof_spec_options(ProfOptions{
 		named: ['help']
 		command_extension: '.rb'
 		timings: true
-	})) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(!plan.install_bundler_gems && !plan.setup_gem_environment
+	})) or { return ruby.bool_value(false) }
+	return ruby.bool_value(!plan.install_bundler_gems && !plan.setup_gem_environment
 		&& plan.environment['HOMEBREW_PHASE_TIMINGS'] == 'prof/timings.json'
 		&& plan.command == ['/portable/bin/ruby', '/brew/Library/Homebrew/brew.rb', 'help'])
 }
 
 // Ruby it `it "works using ruby-prof (the default)" do` at line 80.
-pub fn ruby_prof_spec_l80_d4_works(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_prof_spec_l80_d4_works(args ...ruby.Value) ruby.Value {
 	_ = args
 	plan := prof_plan(prof_spec_options(ProfOptions{
 		named: ['help']
 		command_extension: '.rb'
-	})) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(plan.mode == 'ruby-prof' && plan.command.last() == 'help')
+	})) or { return ruby.bool_value(false) }
+	return ruby.bool_value(plan.mode == 'ruby-prof' && plan.command.last() == 'help')
 }
 
 // Ruby it `it "works using stackprof" do` at line 87.
-pub fn ruby_prof_spec_l87_d5_works(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_prof_spec_l87_d5_works(args ...ruby.Value) ruby.Value {
 	_ = args
 	plan := prof_plan(prof_spec_options(ProfOptions{
 		named: ['help']
 		command_extension: '.rb'
 		stackprof: true
-	})) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(plan.mode == 'stackprof'
+	})) or { return ruby.bool_value(false) }
+	return ruby.bool_value(plan.mode == 'stackprof'
 		&& plan.environment['HOMEBREW_STACKPROF'] == '1'
 		&& plan.post_command == ['stackprof --d3-flamegraph prof/stackprof.dump > prof/d3-flamegraph.html'])
 }
 
 // Ruby it `it "works using vernier with child processes" do` at line 94.
-pub fn ruby_prof_spec_l94_d6_works(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_prof_spec_l94_d6_works(args ...ruby.Value) ruby.Value {
 	_ = args
 	plan := prof_plan(prof_spec_options(ProfOptions{
 		named: ['config']
 		command_extension: '.rb'
 		vernier: true
-	})) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(plan.mode == 'vernier' && plan.command.last() == 'config'
+	})) or { return ruby.bool_value(false) }
+	return ruby.bool_value(plan.mode == 'vernier' && plan.command.last() == 'config'
 		&& plan.messages[0] == 'Profiling complete!')
 }
 
 // Ruby it `it "records fetch phases" do` at line 100.
-pub fn ruby_prof_spec_l100_d7_records(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_prof_spec_l100_d7_records(args ...ruby.Value) ruby.Value {
 	phases := if args.len > 0 { args[0].as_string_array() or { []string{} } } else { [
 		'startup',
 		'cli_parse',
@@ -111,7 +111,7 @@ pub fn ruby_prof_spec_l100_d7_records(args ...brew_runtime.Value) brew_runtime.V
 	] }
 	expected := ['startup', 'cli_parse', 'command_load', 'formula_resolution', 'formula_inflation',
 		'download_enqueue', 'curl_body', 'checksum', 'symlink']
-	return brew_runtime.bool_value(expected.all(it in phases))
+	return ruby.bool_value(expected.all(it in phases))
 }
 
 fn prof_spec_options(overrides ProfOptions) ProfOptions {

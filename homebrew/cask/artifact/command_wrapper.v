@@ -1,6 +1,6 @@
 module artifact
 
-import brew_runtime
+import ruby
 import homebrew.extend as pathname_extension
 import os
 
@@ -133,26 +133,26 @@ pub fn install_command_wrapper(artifact CommandWrapperArtifact, force bool, adop
 	install_command_wrapper_with_command(artifact, force, adopt, default_artifact_command_runner)!
 }
 
-pub fn command_wrapper_to_args(artifact CommandWrapperArtifact) brew_runtime.Value {
-	mut options := map[string]brew_runtime.Value{}
+pub fn command_wrapper_to_args(artifact CommandWrapperArtifact) ruby.Value {
+	mut options := map[string]ruby.Value{}
 	if artifact.content != '' {
-		options['content'] = brew_runtime.string_value(artifact.content)
+		options['content'] = ruby.string_value(artifact.content)
 	} else {
-		options['executable'] = brew_runtime.string_value(artifact.executable)
+		options['executable'] = ruby.string_value(artifact.executable)
 		if artifact.args.len > 0 {
-			options['args'] = brew_runtime.string_array_value(artifact.args)
+			options['args'] = ruby.string_array_value(artifact.args)
 		}
 		if artifact.env.len > 0 {
-			mut environment := map[string]brew_runtime.Value{}
+			mut environment := map[string]ruby.Value{}
 			for key, value in artifact.env {
-				environment[key] = brew_runtime.string_value(value)
+				environment[key] = ruby.string_value(value)
 			}
-			options['env'] = brew_runtime.map_value(environment)
+			options['env'] = ruby.map_value(environment)
 		}
 	}
-	return brew_runtime.array_value([
-		brew_runtime.string_value(artifact.name),
-		brew_runtime.map_value(options),
+	return ruby.array_value([
+		ruby.string_value(artifact.name),
+		ruby.map_value(options),
 	])
 }
 
@@ -180,7 +180,7 @@ pub fn ruby_command_wrapper_l72_d4_install_phase(artifact CommandWrapperArtifact
 }
 
 // Ruby method `to_args` at line 84.
-pub fn ruby_command_wrapper_l84_d5_to_args(artifact CommandWrapperArtifact) brew_runtime.Value {
+pub fn ruby_command_wrapper_l84_d5_to_args(artifact CommandWrapperArtifact) ruby.Value {
 	return command_wrapper_to_args(artifact)
 }
 

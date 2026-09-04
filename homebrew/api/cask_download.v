@@ -1,6 +1,6 @@
 module api
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `api/cask_download.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -80,7 +80,7 @@ pub fn cask_download(token string, cask_struct CaskDownloadStruct, requested_lan
 	}
 }
 
-fn cask_download_struct_from_value(value brew_runtime.Value) CaskDownloadStruct {
+fn cask_download_struct_from_value(value ruby.Value) CaskDownloadStruct {
 	return CaskDownloadStruct{
 		version: value.attributes['version'] or { '' }
 		sha256: value.attributes['sha256'] or { '' }
@@ -98,9 +98,9 @@ fn cask_download_struct_from_value(value brew_runtime.Value) CaskDownloadStruct 
 }
 
 // Ruby method `self.download(token:, cask_struct:, languages: nil, require_sha: false)` at line 19.
-pub fn ruby_cask_download_l19_self_download(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_download_l19_self_download(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('NilClass', '')
+		return ruby.object_value('NilClass', '')
 	}
 	languages := if args.len > 2 { args[2].as_string_array() or { []string{} } } else { []string{} }
 	require_sha := if args.len > 3 { args[3].as_bool() or { false } } else { false }
@@ -110,9 +110,9 @@ pub fn ruby_cask_download_l19_self_download(args ...brew_runtime.Value) brew_run
 		[]string{}
 	}
 	download := cask_download(args[0].as_string(), cask_download_struct_from_value(args[1]), languages, configured_languages, require_sha) or {
-		return brew_runtime.object_value('NilClass', '')
+		return ruby.object_value('NilClass', '')
 	}
-	return brew_runtime.structured_value('CaskDownload', download.cask.token, {
+	return ruby.structured_value('CaskDownload', download.cask.token, {
 		'token':       download.cask.token
 		'version':     download.cask.version
 		'sha256':      download.cask.sha256

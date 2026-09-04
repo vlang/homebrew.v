@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 import homebrew.utils as brew_utils
 
 // Translated from Homebrew/brew `ask.rb`.
@@ -28,14 +28,14 @@ pub fn confirmation_key_action(character int) ConfirmationKeyAction {
 }
 
 pub fn confirm(action string) !bool {
-	if !brew_runtime.stdin_is_terminal() || !brew_runtime.stdout_is_terminal() {
+	if !ruby.stdin_is_terminal() || !ruby.stdout_is_terminal() {
 		return false
 	}
 
 	println(brew_utils.output_ohai('Do you want to proceed with the ${action}? [y/n]', [],
 		brew_utils.current_output_options()))
 	for {
-		character := brew_runtime.read_terminal_character() or {
+		character := ruby.read_terminal_character() or {
 			return error('confirmation aborted')
 		}
 		match confirmation_key_action(character) {
@@ -54,14 +54,14 @@ pub fn confirm(action string) !bool {
 }
 
 // Ruby method `self.confirm?(action:)` at line 12.
-pub fn ruby_ask_l12_d1_self_confirm(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ask_l12_d1_self_confirm(args ...ruby.Value) ruby.Value {
 	action := if args.len > 0 { args[0].as_string() } else { '' }
 	confirmed := confirm(action) or {
-		return brew_runtime.structured_value('SystemExit', err.msg(), {
+		return ruby.structured_value('SystemExit', err.msg(), {
 			'exit_code': '1'
 		})
 	}
-	return brew_runtime.bool_value(confirmed)
+	return ruby.bool_value(confirmed)
 }
 
 // Original Ruby source (line-for-line):

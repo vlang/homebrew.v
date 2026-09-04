@@ -1,6 +1,6 @@
 module strategy
 
-import brew_runtime
+import ruby
 import homebrew.livecheck
 import homebrew.utils
 import regex
@@ -151,62 +151,62 @@ fn crate_empty_fetcher(_ livecheck.StrategyCurlRequest) !utils.CurlCommandResult
 	}
 }
 
-fn crate_match_data_value(result JsonMatchData) brew_runtime.Value {
-	mut matches := map[string]brew_runtime.Value{}
+fn crate_match_data_value(result JsonMatchData) ruby.Value {
+	mut matches := map[string]ruby.Value{}
 	for version in result.matches.keys() {
-		matches[version] = brew_runtime.object_value('Version', version)
+		matches[version] = ruby.object_value('Version', version)
 	}
 	regex_value := result.regex or { JsonRegex{} }
 	mut values := {
-		'matches': brew_runtime.map_value(matches)
+		'matches': ruby.map_value(matches)
 		'regex':   if regex_value.pattern == '' {
-			brew_runtime.object_value('NilClass', 'nil')
+			ruby.object_value('NilClass', 'nil')
 		} else {
-			brew_runtime.object_value('Regexp', regex_value.pattern)
+			ruby.object_value('Regexp', regex_value.pattern)
 		}
-		'url':     brew_runtime.string_value(result.url)
+		'url':     ruby.string_value(result.url)
 	}
 	if result.has_cached {
-		values['cached'] = brew_runtime.bool_value(result.cached)
+		values['cached'] = ruby.bool_value(result.cached)
 	}
 	if result.has_content {
-		values['content'] = brew_runtime.string_value(result.content)
+		values['content'] = ruby.string_value(result.content)
 	}
-	return brew_runtime.map_value(values)
+	return ruby.map_value(values)
 }
 
 // Ruby method `self.match?(url)` at line 53.
-pub fn ruby_crate_l53_d1_self_match(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_crate_l53_d1_self_match(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(crate_matches_url(args[0].as_string()))
+	return ruby.bool_value(crate_matches_url(args[0].as_string()))
 }
 
 // Ruby method `self.generate_input_values(url)` at line 62.
-pub fn ruby_crate_l62_d2_self_generate_input_values(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_crate_l62_d2_self_generate_input_values(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.map_value({})
+		return ruby.map_value({})
 	}
 	generated := crate_generate_input_values(args[0].as_string())
 	if !generated.present {
-		return brew_runtime.map_value({})
+		return ruby.map_value({})
 	}
-	return brew_runtime.map_value({
-		'url': brew_runtime.string_value(generated.url)
+	return ruby.map_value({
+		'url': ruby.string_value(generated.url)
 	})
 }
 
 // Ruby method `self.find_versions(url:, regex: nil, content: nil, options: Options.new, &block)` at line 88.
-pub fn ruby_crate_l88_d3_self_find_versions(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_crate_l88_d3_self_find_versions(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.map_value({})
+		return ruby.map_value({})
 	}
 	content := if args.len > 1 { ?string(args[1].as_string()) } else { none }
 	result := crate_find_versions(CrateFindRequest{
 		url: args[0].as_string()
 		content: content
-	}, crate_empty_fetcher) or { return brew_runtime.object_value('Error', err.msg()) }
+	}, crate_empty_fetcher) or { return ruby.object_value('Error', err.msg()) }
 	return crate_match_data_value(result)
 }
 

@@ -1,14 +1,14 @@
 module utils
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `utils/attestation.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `self.check_attestation(bottle, quiet: false)` at line 13.
-pub fn ruby_attestation_l13_d1_self_check_attestation(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_attestation_l13_d1_self_check_attestation(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'bottle is required')
+		return ruby.object_value('ArgumentError', 'bottle is required')
 	}
 	bottle := AttestationBottle{
 		name: args[0].attribute('name') or { args[0].as_string() }
@@ -25,8 +25,8 @@ pub fn ruby_attestation_l13_d1_self_check_attestation(args ...brew_runtime.Value
 	}
 	result := check_bottle_attestation(bottle, options, fn [check] (_ AttestationBottle) AttestationCheck {
 		return check
-	}) or { return brew_runtime.object_value('CannotInstallFormulaError', err.msg()) }
-	return brew_runtime.structured_value('AttestationCheckResult', bottle.name, {
+	}) or { return ruby.object_value('CannotInstallFormulaError', err.msg()) }
+	return ruby.structured_value('AttestationCheckResult', bottle.name, {
 		'name':                   bottle.name
 		'heading':                result.heading
 		'no_verify_attestations': result.no_verify_attestations.str()

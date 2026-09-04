@@ -1,6 +1,6 @@
 module segments
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/elftools-1.3.1/lib/elftools/segments/load_segment.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -49,78 +49,78 @@ pub fn (segment ElfLoadSegment) vma_to_offset(vma i64) i64 {
 	return vma - segment.header.p_vaddr + segment.header.p_offset
 }
 
-fn elf_load_segment(value brew_runtime.Value) ElfLoadSegment {
+fn elf_load_segment(value ruby.Value) ElfLoadSegment {
 	return ElfLoadSegment{
 		header: elf_segment_header(value)
 	}
 }
 
 // Ruby method `file_head` at line 13.
-pub fn ruby_load_segment_l13_d1_file_head(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_segment_l13_d1_file_head(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('LoadSegment#file_head requires a receiver') }
-	return brew_runtime.int_value(elf_load_segment(args[0]).file_head())
+	return ruby.int_value(elf_load_segment(args[0]).file_head())
 }
 
 // Ruby method `size` at line 20.
-pub fn ruby_load_segment_l20_d2_size(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_segment_l20_d2_size(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('LoadSegment#size requires a receiver') }
-	return brew_runtime.int_value(elf_load_segment(args[0]).size())
+	return ruby.int_value(elf_load_segment(args[0]).size())
 }
 
 // Ruby method `file_tail` at line 27.
-pub fn ruby_load_segment_l27_d3_file_tail(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_segment_l27_d3_file_tail(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('LoadSegment#file_tail requires a receiver') }
-	return brew_runtime.int_value(elf_load_segment(args[0]).file_tail())
+	return ruby.int_value(elf_load_segment(args[0]).file_tail())
 }
 
 // Ruby method `mem_head` at line 34.
-pub fn ruby_load_segment_l34_d4_mem_head(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_segment_l34_d4_mem_head(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('LoadSegment#mem_head requires a receiver') }
-	return brew_runtime.int_value(elf_load_segment(args[0]).mem_head())
+	return ruby.int_value(elf_load_segment(args[0]).mem_head())
 }
 
 // Ruby method `mem_size` at line 41.
-pub fn ruby_load_segment_l41_d5_mem_size(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_segment_l41_d5_mem_size(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('LoadSegment#mem_size requires a receiver') }
-	return brew_runtime.int_value(elf_load_segment(args[0]).mem_size())
+	return ruby.int_value(elf_load_segment(args[0]).mem_size())
 }
 
 // Ruby method `mem_tail` at line 48.
-pub fn ruby_load_segment_l48_d6_mem_tail(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_segment_l48_d6_mem_tail(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('LoadSegment#mem_tail requires a receiver') }
-	return brew_runtime.int_value(elf_load_segment(args[0]).mem_tail())
+	return ruby.int_value(elf_load_segment(args[0]).mem_tail())
 }
 
 // Ruby method `offset_in?(offset, size = 0)` at line 58.
-pub fn ruby_load_segment_l58_d7_offset_in(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_segment_l58_d7_offset_in(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('LoadSegment#offset_in? requires a receiver and offset') }
 	size := if args.len >= 3 { args[2].as_int() or { panic(err) } } else { i64(0) }
-	return brew_runtime.bool_value(elf_load_segment(args[0]).offset_in(args[1].as_int() or {
+	return ruby.bool_value(elf_load_segment(args[0]).offset_in(args[1].as_int() or {
 		panic(err)
 	}, size))
 }
 
 // Ruby method `offset_to_vma(offset)` at line 66.
-pub fn ruby_load_segment_l66_d8_offset_to_vma(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_segment_l66_d8_offset_to_vma(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('LoadSegment#offset_to_vma requires a receiver and offset') }
-	return brew_runtime.int_value(elf_load_segment(args[0]).offset_to_vma(args[1].as_int() or {
+	return ruby.int_value(elf_load_segment(args[0]).offset_to_vma(args[1].as_int() or {
 		panic(err)
 	}))
 }
 
 // Ruby method `vma_in?(vma, size = 0)` at line 77.
-pub fn ruby_load_segment_l77_d9_vma_in(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_segment_l77_d9_vma_in(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('LoadSegment#vma_in? requires a receiver and virtual address') }
 	size := if args.len >= 3 { args[2].as_int() or { panic(err) } } else { i64(0) }
-	return brew_runtime.bool_value(elf_load_segment(args[0]).vma_in(args[1].as_int() or {
+	return ruby.bool_value(elf_load_segment(args[0]).vma_in(args[1].as_int() or {
 		panic(err)
 	}, size))
 }
 
 // Ruby method `vma_to_offset(vma)` at line 86.
-pub fn ruby_load_segment_l86_d10_vma_to_offset(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_segment_l86_d10_vma_to_offset(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('LoadSegment#vma_to_offset requires a receiver and virtual address') }
-	return brew_runtime.int_value(elf_load_segment(args[0]).vma_to_offset(args[1].as_int() or {
+	return ruby.int_value(elf_load_segment(args[0]).vma_to_offset(args[1].as_int() or {
 		panic(err)
 	}))
 }

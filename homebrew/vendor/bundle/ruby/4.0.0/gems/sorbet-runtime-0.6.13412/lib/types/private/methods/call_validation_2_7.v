@@ -1,6 +1,6 @@
 module methods
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/private/methods/call_validation_2_7.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -17,22 +17,22 @@ pub:
 	validate_block  bool
 	raw_fast_types  bool
 	kwargs_only     bool
-	original_method brew_runtime.Value
-	signature       brew_runtime.Value
+	original_method ruby.Value
+	signature       ruby.Value
 }
 
-fn specialized_effective_return_type(signature brew_runtime.Value) brew_runtime.Value {
+fn specialized_effective_return_type(signature ruby.Value) ruby.Value {
 	return signature.map_data['effective_return_type'] or {
-		signature.map_data['return_type'] or { brew_runtime.object_value('NilClass', 'nil') }
+		signature.map_data['return_type'] or { ruby.object_value('NilClass', 'nil') }
 	}
 }
 
-fn specialized_signature_arg_count(signature brew_runtime.Value) int {
+fn specialized_signature_arg_count(signature ruby.Value) int {
 	return call_signature_arg_types(signature).len
 }
 
 pub fn build_validator_specialization(kind string, fixed_arg_count int,
-	required_count int, args []brew_runtime.Value) ValidatorSpecialization {
+	required_count int, args []ruby.Value) ValidatorSpecialization {
 	if args.len < 3 {
 		panic('specialized CallValidation creation requires module, original method, and signature')
 	}
@@ -81,8 +81,8 @@ pub fn build_validator_specialization(kind string, fixed_arg_count int,
 	}
 }
 
-fn validator_specialization_value(specialization ValidatorSpecialization) brew_runtime.Value {
-	return brew_runtime.Value{
+fn validator_specialization_value(specialization ValidatorSpecialization) ruby.Value {
+	return ruby.Value{
 		type_name: 'T::Private::Methods::CallValidation::ValidatorSpecialization'
 		repr: specialization.method_name
 		map_data: {
@@ -105,7 +105,7 @@ fn validator_specialization_value(specialization ValidatorSpecialization) brew_r
 	}
 }
 
-pub fn validator_specialization_from_value(value brew_runtime.Value) ValidatorSpecialization {
+pub fn validator_specialization_from_value(value ruby.Value) ValidatorSpecialization {
 	return ValidatorSpecialization{
 		module_name: value.attribute('module') or { '' }
 		method_name: value.attribute('method_name') or { value.as_string() }
@@ -118,17 +118,17 @@ pub fn validator_specialization_from_value(value brew_runtime.Value) ValidatorSp
 		validate_block: value.attribute('validate_block') or { 'false' } == 'true'
 		raw_fast_types: value.attribute('raw_fast_types') or { 'false' } == 'true'
 		kwargs_only: value.attribute('kwargs_only') or { 'false' } == 'true'
-		original_method: value.map_data['original_method'] or { brew_runtime.object_value('NilClass', 'nil') }
-		signature: value.map_data['signature'] or { brew_runtime.object_value('NilClass', 'nil') }
+		original_method: value.map_data['original_method'] or { ruby.object_value('NilClass', 'nil') }
+		signature: value.map_data['signature'] or { ruby.object_value('NilClass', 'nil') }
 	}
 }
 
 pub fn execute_validator_specialization(specialization ValidatorSpecialization,
-	instance brew_runtime.Value, positional []brew_runtime.Value,
-	kwargs map[string]brew_runtime.Value, block_value brew_runtime.Value,
-	return_value brew_runtime.Value) !brew_runtime.Value {
+	instance ruby.Value, positional []ruby.Value,
+	kwargs map[string]ruby.Value, block_value ruby.Value,
+	return_value ruby.Value) !ruby.Value {
 	if specialization.kwargs_only {
-		kwarg_types := specialization.signature.map_data['kwarg_types'] or { brew_runtime.map_value({}) }.as_map()!
+		kwarg_types := specialization.signature.map_data['kwarg_types'] or { ruby.map_value({}) }.as_map()!
 		for name, value in kwargs {
 			if type_value := kwarg_types[name] {
 				message := call_error_message(type_value, value)
@@ -158,13 +158,13 @@ pub fn execute_validator_specialization(specialization ValidatorSpecialization,
 		}
 	}
 	if specialization.validate_block {
-		block_type := specialization.signature.map_data['block_type'] or { brew_runtime.object_value('NilClass', 'nil') }
+		block_type := specialization.signature.map_data['block_type'] or { ruby.object_value('NilClass', 'nil') }
 		if block_value.type_name == 'NilClass' || !call_value_valid(block_type, block_value) {
 			return error("Block parameter '${specialization.signature.attribute('block_name') or { '' }}': ${call_error_message(block_type, block_value)}")
 		}
 	}
 	if specialization.returns_void {
-		return brew_runtime.object_value('T::Private::Types::Void::VOID', 'VOID')
+		return ruby.object_value('T::Private::Types::Void::VOID', 'VOID')
 	}
 	if specialization.validate_return {
 		return_type := specialized_effective_return_type(specialization.signature)
@@ -177,282 +177,282 @@ pub fn execute_validator_specialization(specialization ValidatorSpecialization,
 }
 
 fn validator_specialization_boundary(kind string, fixed_arg_count int, required_count int,
-	args []brew_runtime.Value) brew_runtime.Value {
+	args []ruby.Value) ruby.Value {
 	return validator_specialization_value(build_validator_specialization(kind, fixed_arg_count, required_count, args))
 }
 
 // Ruby method `self.create_validator_method_fast(mod, original_method, method_sig, original_visibility)` at line 9.
-pub fn ruby_call_validation_2_7_l9_d1_self_create_validator_method_fast(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_call_validation_2_7_l9_d1_self_create_validator_method_fast(args ...ruby.Value) ruby.Value {
 	return validator_specialization_boundary('method_fast', -1, -1, args)
 }
 
 // Ruby method `self.create_validator_method_fast0(mod, original_method, method_sig, original_visibility, return_type)` at line 41.
-pub fn ruby_call_validation_2_7_l41_d2_self_create_validator_method_fast0(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_call_validation_2_7_l41_d2_self_create_validator_method_fast0(args ...ruby.Value) ruby.Value {
 	return validator_specialization_boundary('method_fast', 0, 0, args)
 }
 
 // Ruby method `self.create_validator_method_fast1(mod, original_method, method_sig, original_visibility, return_type, arg0_type)` at line 78.
-pub fn ruby_call_validation_2_7_l78_d3_self_create_validator_method_fast1(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_call_validation_2_7_l78_d3_self_create_validator_method_fast1(args ...ruby.Value) ruby.Value {
 	return validator_specialization_boundary('method_fast', 1, 1, args)
 }
 
 // Ruby method `self.create_validator_method_fast2(mod, original_method, method_sig, original_visibility, return_type, arg0_type, arg1_type)` at line 127.
-pub fn ruby_call_validation_2_7_l127_d4_self_create_validator_method_fast2(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_call_validation_2_7_l127_d4_self_create_validator_method_fast2(args ...ruby.Value) ruby.Value {
 	return validator_specialization_boundary('method_fast', 2, 2, args)
 }
 
 // Ruby method `self.create_validator_method_fast3(mod, original_method, method_sig, original_visibility, return_type, arg0_type, arg1_type, arg2_type)` at line 188.
-pub fn ruby_call_validation_2_7_l188_d5_self_create_validator_method_fast3(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_call_validation_2_7_l188_d5_self_create_validator_method_fast3(args ...ruby.Value) ruby.Value {
 	return validator_specialization_boundary('method_fast', 3, 3, args)
 }
 
 // Ruby method `self.create_validator_method_fast4(mod, original_method, method_sig, original_visibility, return_type, arg0_type, arg1_type, arg2_type, arg3_type)` at line 261.
-pub fn ruby_call_validation_2_7_l261_d6_self_create_validator_method_fast4(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_call_validation_2_7_l261_d6_self_create_validator_method_fast4(args ...ruby.Value) ruby.Value {
 	return validator_specialization_boundary('method_fast', 4, 4, args)
 }
 
 // Ruby method `self.create_validator_method_skip_return_fast(mod, original_method, method_sig, original_visibility)` at line 346.
-pub fn ruby_call_validation_2_7_l346_d7_self_create_validator_method_skip_return_fast(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_call_validation_2_7_l346_d7_self_create_validator_method_skip_return_fast(args ...ruby.Value) ruby.Value {
 	return validator_specialization_boundary('method_skip_return_fast', -1, -1, args)
 }
 
 // Ruby method `self.create_validator_method_skip_return_fast0(mod, original_method, method_sig, original_visibility)` at line 375.
-pub fn ruby_call_validation_2_7_l375_d8_self_create_validator_method_skip_return_fast0(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_call_validation_2_7_l375_d8_self_create_validator_method_skip_return_fast0(args ...ruby.Value) ruby.Value {
 	return validator_specialization_boundary('method_skip_return_fast', 0, 0, args)
 }
 
 // Ruby method `self.create_validator_method_skip_return_fast1(mod, original_method, method_sig, original_visibility, arg0_type)` at line 397.
-pub fn ruby_call_validation_2_7_l397_d9_self_create_validator_method_skip_return_fast1(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_call_validation_2_7_l397_d9_self_create_validator_method_skip_return_fast1(args ...ruby.Value) ruby.Value {
 	return validator_specialization_boundary('method_skip_return_fast', 1, 1, args)
 }
 
 // Ruby method `self.create_validator_method_skip_return_fast2(mod, original_method, method_sig, original_visibility, arg0_type, arg1_type)` at line 431.
-pub fn ruby_call_validation_2_7_l431_d10_self_create_validator_method_skip_return_fast2(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_call_validation_2_7_l431_d10_self_create_validator_method_skip_return_fast2(args ...ruby.Value) ruby.Value {
 	return validator_specialization_boundary('method_skip_return_fast', 2, 2, args)
 }
 
 // Ruby method `self.create_validator_method_skip_return_fast3(mod, original_method, method_sig, original_visibility, arg0_type, arg1_type, arg2_type)` at line 477.
-pub fn ruby_call_validation_2_7_l477_d11_self_create_validator_method_skip_return_fast3(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_call_validation_2_7_l477_d11_self_create_validator_method_skip_return_fast3(args ...ruby.Value) ruby.Value {
 	return validator_specialization_boundary('method_skip_return_fast', 3, 3, args)
 }
 
 // Ruby method `self.create_validator_method_skip_return_fast4(mod, original_method, method_sig, original_visibility, arg0_type, arg1_type, arg2_type, arg3_type)` at line 535.
-pub fn ruby_call_validation_2_7_l535_d12_self_create_validator_method_skip_return_fast4(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_call_validation_2_7_l535_d12_self_create_validator_method_skip_return_fast4(args ...ruby.Value) ruby.Value {
 	return validator_specialization_boundary('method_skip_return_fast', 4, 4, args)
 }
 
 // Ruby method `self.create_validator_procedure_fast(mod, original_method, method_sig, original_visibility)` at line 605.
-pub fn ruby_call_validation_2_7_l605_d13_self_create_validator_procedure_fast(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_call_validation_2_7_l605_d13_self_create_validator_procedure_fast(args ...ruby.Value) ruby.Value {
 	return validator_specialization_boundary('procedure_fast', -1, -1, args)
 }
 
 // Ruby method `self.create_validator_procedure_fast0(mod, original_method, method_sig, original_visibility)` at line 634.
-pub fn ruby_call_validation_2_7_l634_d14_self_create_validator_procedure_fast0(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_call_validation_2_7_l634_d14_self_create_validator_procedure_fast0(args ...ruby.Value) ruby.Value {
 	return validator_specialization_boundary('procedure_fast', 0, 0, args)
 }
 
 // Ruby method `self.create_validator_procedure_fast1(mod, original_method, method_sig, original_visibility, arg0_type)` at line 657.
-pub fn ruby_call_validation_2_7_l657_d15_self_create_validator_procedure_fast1(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_call_validation_2_7_l657_d15_self_create_validator_procedure_fast1(args ...ruby.Value) ruby.Value {
 	return validator_specialization_boundary('procedure_fast', 1, 1, args)
 }
 
 // Ruby method `self.create_validator_procedure_fast2(mod, original_method, method_sig, original_visibility, arg0_type, arg1_type)` at line 692.
-pub fn ruby_call_validation_2_7_l692_d16_self_create_validator_procedure_fast2(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_call_validation_2_7_l692_d16_self_create_validator_procedure_fast2(args ...ruby.Value) ruby.Value {
 	return validator_specialization_boundary('procedure_fast', 2, 2, args)
 }
 
 // Ruby method `self.create_validator_procedure_fast3(mod, original_method, method_sig, original_visibility, arg0_type, arg1_type, arg2_type)` at line 739.
-pub fn ruby_call_validation_2_7_l739_d17_self_create_validator_procedure_fast3(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_call_validation_2_7_l739_d17_self_create_validator_procedure_fast3(args ...ruby.Value) ruby.Value {
 	return validator_specialization_boundary('procedure_fast', 3, 3, args)
 }
 
 // Ruby method `self.create_validator_procedure_fast4(mod, original_method, method_sig, original_visibility, arg0_type, arg1_type, arg2_type, arg3_type)` at line 798.
-pub fn ruby_call_validation_2_7_l798_d18_self_create_validator_procedure_fast4(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_call_validation_2_7_l798_d18_self_create_validator_procedure_fast4(args ...ruby.Value) ruby.Value {
 	return validator_specialization_boundary('procedure_fast', 4, 4, args)
 }
 
 // Ruby method `self.create_validator_method_medium(mod, original_method, method_sig, original_visibility)` at line 869.
-pub fn ruby_call_validation_2_7_l869_d19_self_create_validator_method_medium(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_call_validation_2_7_l869_d19_self_create_validator_method_medium(args ...ruby.Value) ruby.Value {
 	return validator_specialization_boundary('method_medium', -1, -1, args)
 }
 
 // Ruby method `self.create_validator_method_medium0(mod, original_method, method_sig, original_visibility, return_type)` at line 901.
-pub fn ruby_call_validation_2_7_l901_d20_self_create_validator_method_medium0(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_call_validation_2_7_l901_d20_self_create_validator_method_medium0(args ...ruby.Value) ruby.Value {
 	return validator_specialization_boundary('method_medium', 0, 0, args)
 }
 
 // Ruby method `self.create_validator_method_medium1(mod, original_method, method_sig, original_visibility, return_type, arg0_type)` at line 938.
-pub fn ruby_call_validation_2_7_l938_d21_self_create_validator_method_medium1(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_call_validation_2_7_l938_d21_self_create_validator_method_medium1(args ...ruby.Value) ruby.Value {
 	return validator_specialization_boundary('method_medium', 1, 1, args)
 }
 
 // Ruby method `self.create_validator_method_medium2(mod, original_method, method_sig, original_visibility, return_type, arg0_type, arg1_type)` at line 987.
-pub fn ruby_call_validation_2_7_l987_d22_self_create_validator_method_medium2(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_call_validation_2_7_l987_d22_self_create_validator_method_medium2(args ...ruby.Value) ruby.Value {
 	return validator_specialization_boundary('method_medium', 2, 2, args)
 }
 
 // Ruby method `self.create_validator_method_medium3(mod, original_method, method_sig, original_visibility, return_type, arg0_type, arg1_type, arg2_type)` at line 1048.
-pub fn ruby_call_validation_2_7_l1048_d23_self_create_validator_method_medium3(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_call_validation_2_7_l1048_d23_self_create_validator_method_medium3(args ...ruby.Value) ruby.Value {
 	return validator_specialization_boundary('method_medium', 3, 3, args)
 }
 
 // Ruby method `self.create_validator_method_medium4(mod, original_method, method_sig, original_visibility, return_type, arg0_type, arg1_type, arg2_type, arg3_type)` at line 1121.
-pub fn ruby_call_validation_2_7_l1121_d24_self_create_validator_method_medium4(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_call_validation_2_7_l1121_d24_self_create_validator_method_medium4(args ...ruby.Value) ruby.Value {
 	return validator_specialization_boundary('method_medium', 4, 4, args)
 }
 
 // Ruby method `self.create_validator_method_skip_return_medium(mod, original_method, method_sig, original_visibility)` at line 1206.
-pub fn ruby_call_validation_2_7_l1206_d25_self_create_validator_method_skip_return_medium(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_call_validation_2_7_l1206_d25_self_create_validator_method_skip_return_medium(args ...ruby.Value) ruby.Value {
 	return validator_specialization_boundary('method_skip_return_medium', -1, -1, args)
 }
 
 // Ruby method `self.create_validator_method_skip_return_medium0(mod, original_method, method_sig, original_visibility)` at line 1235.
-pub fn ruby_call_validation_2_7_l1235_d26_self_create_validator_method_skip_return_medium0(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_call_validation_2_7_l1235_d26_self_create_validator_method_skip_return_medium0(args ...ruby.Value) ruby.Value {
 	return validator_specialization_boundary('method_skip_return_medium', 0, 0, args)
 }
 
 // Ruby method `self.create_validator_method_skip_return_medium1(mod, original_method, method_sig, original_visibility, arg0_type)` at line 1257.
-pub fn ruby_call_validation_2_7_l1257_d27_self_create_validator_method_skip_return_medium1(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_call_validation_2_7_l1257_d27_self_create_validator_method_skip_return_medium1(args ...ruby.Value) ruby.Value {
 	return validator_specialization_boundary('method_skip_return_medium', 1, 1, args)
 }
 
 // Ruby method `self.create_validator_method_skip_return_medium2(mod, original_method, method_sig, original_visibility, arg0_type, arg1_type)` at line 1291.
-pub fn ruby_call_validation_2_7_l1291_d28_self_create_validator_method_skip_return_medium2(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_call_validation_2_7_l1291_d28_self_create_validator_method_skip_return_medium2(args ...ruby.Value) ruby.Value {
 	return validator_specialization_boundary('method_skip_return_medium', 2, 2, args)
 }
 
 // Ruby method `self.create_validator_method_skip_return_medium3(mod, original_method, method_sig, original_visibility, arg0_type, arg1_type, arg2_type)` at line 1337.
-pub fn ruby_call_validation_2_7_l1337_d29_self_create_validator_method_skip_return_medium3(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_call_validation_2_7_l1337_d29_self_create_validator_method_skip_return_medium3(args ...ruby.Value) ruby.Value {
 	return validator_specialization_boundary('method_skip_return_medium', 3, 3, args)
 }
 
 // Ruby method `self.create_validator_method_skip_return_medium4(mod, original_method, method_sig, original_visibility, arg0_type, arg1_type, arg2_type, arg3_type)` at line 1395.
-pub fn ruby_call_validation_2_7_l1395_d30_self_create_validator_method_skip_return_medium4(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_call_validation_2_7_l1395_d30_self_create_validator_method_skip_return_medium4(args ...ruby.Value) ruby.Value {
 	return validator_specialization_boundary('method_skip_return_medium', 4, 4, args)
 }
 
 // Ruby method `self.create_validator_procedure_medium(mod, original_method, method_sig, original_visibility)` at line 1465.
-pub fn ruby_call_validation_2_7_l1465_d31_self_create_validator_procedure_medium(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_call_validation_2_7_l1465_d31_self_create_validator_procedure_medium(args ...ruby.Value) ruby.Value {
 	return validator_specialization_boundary('procedure_medium', -1, -1, args)
 }
 
 // Ruby method `self.create_validator_procedure_medium0(mod, original_method, method_sig, original_visibility)` at line 1494.
-pub fn ruby_call_validation_2_7_l1494_d32_self_create_validator_procedure_medium0(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_call_validation_2_7_l1494_d32_self_create_validator_procedure_medium0(args ...ruby.Value) ruby.Value {
 	return validator_specialization_boundary('procedure_medium', 0, 0, args)
 }
 
 // Ruby method `self.create_validator_procedure_medium1(mod, original_method, method_sig, original_visibility, arg0_type)` at line 1517.
-pub fn ruby_call_validation_2_7_l1517_d33_self_create_validator_procedure_medium1(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_call_validation_2_7_l1517_d33_self_create_validator_procedure_medium1(args ...ruby.Value) ruby.Value {
 	return validator_specialization_boundary('procedure_medium', 1, 1, args)
 }
 
 // Ruby method `self.create_validator_procedure_medium2(mod, original_method, method_sig, original_visibility, arg0_type, arg1_type)` at line 1552.
-pub fn ruby_call_validation_2_7_l1552_d34_self_create_validator_procedure_medium2(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_call_validation_2_7_l1552_d34_self_create_validator_procedure_medium2(args ...ruby.Value) ruby.Value {
 	return validator_specialization_boundary('procedure_medium', 2, 2, args)
 }
 
 // Ruby method `self.create_validator_procedure_medium3(mod, original_method, method_sig, original_visibility, arg0_type, arg1_type, arg2_type)` at line 1599.
-pub fn ruby_call_validation_2_7_l1599_d35_self_create_validator_procedure_medium3(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_call_validation_2_7_l1599_d35_self_create_validator_procedure_medium3(args ...ruby.Value) ruby.Value {
 	return validator_specialization_boundary('procedure_medium', 3, 3, args)
 }
 
 // Ruby method `self.create_validator_procedure_medium4(mod, original_method, method_sig, original_visibility, arg0_type, arg1_type, arg2_type, arg3_type)` at line 1658.
-pub fn ruby_call_validation_2_7_l1658_d36_self_create_validator_procedure_medium4(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_call_validation_2_7_l1658_d36_self_create_validator_procedure_medium4(args ...ruby.Value) ruby.Value {
 	return validator_specialization_boundary('procedure_medium', 4, 4, args)
 }
 
 // Ruby method `self.create_validator_method_kwargs(mod, original_method, method_sig, original_visibility)` at line 1729.
-pub fn ruby_call_validation_2_7_l1729_d37_self_create_validator_method_kwargs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_call_validation_2_7_l1729_d37_self_create_validator_method_kwargs(args ...ruby.Value) ruby.Value {
 	return validator_specialization_boundary('kwargs', 0, 0, args)
 }
 
 // Ruby method `self.create_validator_method_kwargs0(mod, original_method, method_sig, original_visibility, return_type, kwarg_types)` at line 1735.
-pub fn ruby_call_validation_2_7_l1735_d38_self_create_validator_method_kwargs0(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_call_validation_2_7_l1735_d38_self_create_validator_method_kwargs0(args ...ruby.Value) ruby.Value {
 	return validator_specialization_boundary('kwargs', 0, 0, args)
 }
 
 // Ruby method `self.create_validator_method_with_block(mod, original_method, method_sig, original_visibility)` at line 1777.
-pub fn ruby_call_validation_2_7_l1777_d39_self_create_validator_method_with_block(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_call_validation_2_7_l1777_d39_self_create_validator_method_with_block(args ...ruby.Value) ruby.Value {
 	return validator_specialization_boundary('with_block', -1, -1, args)
 }
 
 // Ruby method `self.create_validator_method_with_block0(mod, original_method, method_sig, original_visibility, return_type, block_type)` at line 1809.
-pub fn ruby_call_validation_2_7_l1809_d40_self_create_validator_method_with_block0(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_call_validation_2_7_l1809_d40_self_create_validator_method_with_block0(args ...ruby.Value) ruby.Value {
 	return validator_specialization_boundary('with_block', 0, 0, args)
 }
 
 // Ruby method `self.create_validator_method_with_block1(mod, original_method, method_sig, original_visibility, return_type, block_type, arg0_type)` at line 1846.
-pub fn ruby_call_validation_2_7_l1846_d41_self_create_validator_method_with_block1(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_call_validation_2_7_l1846_d41_self_create_validator_method_with_block1(args ...ruby.Value) ruby.Value {
 	return validator_specialization_boundary('with_block', 1, 1, args)
 }
 
 // Ruby method `self.create_validator_method_with_block2(mod, original_method, method_sig, original_visibility, return_type, block_type, arg0_type, arg1_type)` at line 1894.
-pub fn ruby_call_validation_2_7_l1894_d42_self_create_validator_method_with_block2(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_call_validation_2_7_l1894_d42_self_create_validator_method_with_block2(args ...ruby.Value) ruby.Value {
 	return validator_specialization_boundary('with_block', 2, 2, args)
 }
 
 // Ruby method `self.create_validator_method_with_block3(mod, original_method, method_sig, original_visibility, return_type, block_type, arg0_type, arg1_type, arg2_type)` at line 1953.
-pub fn ruby_call_validation_2_7_l1953_d43_self_create_validator_method_with_block3(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_call_validation_2_7_l1953_d43_self_create_validator_method_with_block3(args ...ruby.Value) ruby.Value {
 	return validator_specialization_boundary('with_block', 3, 3, args)
 }
 
 // Ruby method `self.create_validator_method_with_block4(mod, original_method, method_sig, original_visibility, return_type, block_type, arg0_type, arg1_type, arg2_type, arg3_type)` at line 2023.
-pub fn ruby_call_validation_2_7_l2023_d44_self_create_validator_method_with_block4(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_call_validation_2_7_l2023_d44_self_create_validator_method_with_block4(args ...ruby.Value) ruby.Value {
 	return validator_specialization_boundary('with_block', 4, 4, args)
 }
 
 // Ruby method `self.create_validator_method_optional_args(mod, original_method, method_sig, original_visibility)` at line 2104.
-pub fn ruby_call_validation_2_7_l2104_d45_self_create_validator_method_optional_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_call_validation_2_7_l2104_d45_self_create_validator_method_optional_args(args ...ruby.Value) ruby.Value {
 	return validator_specialization_boundary('optional_args', -1, -2, args)
 }
 
 // Ruby method `self.create_validator_method_optional_args0_1(mod, original_method, method_sig, original_visibility, return_type, arg0_type)` at line 2165.
-pub fn ruby_call_validation_2_7_l2165_d46_self_create_validator_method_optional_args0_1(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_call_validation_2_7_l2165_d46_self_create_validator_method_optional_args0_1(args ...ruby.Value) ruby.Value {
 	return validator_specialization_boundary('optional_args', 1, 0, args)
 }
 
 // Ruby method `self.create_validator_method_optional_args0_2(mod, original_method, method_sig, original_visibility, return_type, arg0_type, arg1_type)` at line 2202.
-pub fn ruby_call_validation_2_7_l2202_d47_self_create_validator_method_optional_args0_2(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_call_validation_2_7_l2202_d47_self_create_validator_method_optional_args0_2(args ...ruby.Value) ruby.Value {
 	return validator_specialization_boundary('optional_args', 2, 0, args)
 }
 
 // Ruby method `self.create_validator_method_optional_args1_2(mod, original_method, method_sig, original_visibility, return_type, arg0_type, arg1_type)` at line 2250.
-pub fn ruby_call_validation_2_7_l2250_d48_self_create_validator_method_optional_args1_2(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_call_validation_2_7_l2250_d48_self_create_validator_method_optional_args1_2(args ...ruby.Value) ruby.Value {
 	return validator_specialization_boundary('optional_args', 2, 1, args)
 }
 
 // Ruby method `self.create_validator_method_optional_args0_3(mod, original_method, method_sig, original_visibility, return_type, arg0_type, arg1_type, arg2_type)` at line 2298.
-pub fn ruby_call_validation_2_7_l2298_d49_self_create_validator_method_optional_args0_3(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_call_validation_2_7_l2298_d49_self_create_validator_method_optional_args0_3(args ...ruby.Value) ruby.Value {
 	return validator_specialization_boundary('optional_args', 3, 0, args)
 }
 
 // Ruby method `self.create_validator_method_optional_args1_3(mod, original_method, method_sig, original_visibility, return_type, arg0_type, arg1_type, arg2_type)` at line 2357.
-pub fn ruby_call_validation_2_7_l2357_d50_self_create_validator_method_optional_args1_3(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_call_validation_2_7_l2357_d50_self_create_validator_method_optional_args1_3(args ...ruby.Value) ruby.Value {
 	return validator_specialization_boundary('optional_args', 3, 1, args)
 }
 
 // Ruby method `self.create_validator_method_optional_args2_3(mod, original_method, method_sig, original_visibility, return_type, arg0_type, arg1_type, arg2_type)` at line 2416.
-pub fn ruby_call_validation_2_7_l2416_d51_self_create_validator_method_optional_args2_3(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_call_validation_2_7_l2416_d51_self_create_validator_method_optional_args2_3(args ...ruby.Value) ruby.Value {
 	return validator_specialization_boundary('optional_args', 3, 2, args)
 }
 
 // Ruby method `self.create_validator_method_optional_args0_4(mod, original_method, method_sig, original_visibility, return_type, arg0_type, arg1_type, arg2_type, arg3_type)` at line 2475.
-pub fn ruby_call_validation_2_7_l2475_d52_self_create_validator_method_optional_args0_4(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_call_validation_2_7_l2475_d52_self_create_validator_method_optional_args0_4(args ...ruby.Value) ruby.Value {
 	return validator_specialization_boundary('optional_args', 4, 0, args)
 }
 
 // Ruby method `self.create_validator_method_optional_args1_4(mod, original_method, method_sig, original_visibility, return_type, arg0_type, arg1_type, arg2_type, arg3_type)` at line 2545.
-pub fn ruby_call_validation_2_7_l2545_d53_self_create_validator_method_optional_args1_4(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_call_validation_2_7_l2545_d53_self_create_validator_method_optional_args1_4(args ...ruby.Value) ruby.Value {
 	return validator_specialization_boundary('optional_args', 4, 1, args)
 }
 
 // Ruby method `self.create_validator_method_optional_args2_4(mod, original_method, method_sig, original_visibility, return_type, arg0_type, arg1_type, arg2_type, arg3_type)` at line 2615.
-pub fn ruby_call_validation_2_7_l2615_d54_self_create_validator_method_optional_args2_4(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_call_validation_2_7_l2615_d54_self_create_validator_method_optional_args2_4(args ...ruby.Value) ruby.Value {
 	return validator_specialization_boundary('optional_args', 4, 2, args)
 }
 
 // Ruby method `self.create_validator_method_optional_args3_4(mod, original_method, method_sig, original_visibility, return_type, arg0_type, arg1_type, arg2_type, arg3_type)` at line 2685.
-pub fn ruby_call_validation_2_7_l2685_d55_self_create_validator_method_optional_args3_4(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_call_validation_2_7_l2685_d55_self_create_validator_method_optional_args3_4(args ...ruby.Value) ruby.Value {
 	return validator_specialization_boundary('optional_args', 4, 3, args)
 }
 

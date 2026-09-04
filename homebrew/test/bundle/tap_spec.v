@@ -1,12 +1,12 @@
 module bundle
 
-import brew_runtime
+import ruby
 import homebrew.bundle as brew_bundle
 
 // Translated from Homebrew/brew `test/bundle/tap_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
-fn tap_spec_bool(result bool) brew_runtime.Value {
-	return brew_runtime.bool_value(result)
+fn tap_spec_bool(result bool) ruby.Value {
+	return ruby.bool_value(result)
 }
 
 fn tap_spec_taps() []brew_bundle.BundleTap {
@@ -47,33 +47,33 @@ fn tap_spec_effect(command []string, result bool) brew_bundle.BundleTapEffects {
 }
 
 // Ruby subject `subject(:dumper) { described_class }` at line 10.
-pub fn ruby_tap_spec_l10_d1_dumper(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tap_spec_l10_d1_dumper(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.object_value('Homebrew::Bundle::Tap', 'Homebrew::Bundle::Tap')
+	return ruby.object_value('Homebrew::Bundle::Tap', 'Homebrew::Bundle::Tap')
 }
 
 // Ruby specify `specify do` at line 18.
-pub fn ruby_tap_spec_l18_d2_do(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tap_spec_l18_d2_do(args ...ruby.Value) ruby.Value {
 	_ = args
 	state := brew_bundle.bundle_tap_reset(brew_bundle.BundleTapState{})
 	return tap_spec_bool(brew_bundle.bundle_tap_names(state).len == 0 && brew_bundle.bundle_tap_dump(state, [], []) == '')
 }
 
 // Ruby it `it "returns list of information" do` at line 52.
-pub fn ruby_tap_spec_l52_d3_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tap_spec_l52_d3_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	return tap_spec_bool(brew_bundle.bundle_tap_names(tap_spec_dump_state()).len > 0)
 }
 
 // Ruby it `it "dumps output" do` at line 56.
-pub fn ruby_tap_spec_l56_d4_dumps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tap_spec_l56_d4_dumps(args ...ruby.Value) ruby.Value {
 	_ = args
 	expected := 'tap "bitbucket/bar", "https://bitbucket.org/bitbucket/bar.git"\ntap "homebrew/baz"\ntap "homebrew/foo"\ntap "privatebrew/private", "https://#{ENV.fetch("HOMEBREW_GITHUB_API_TOKEN")}@github.com/privatebrew/homebrew-private"'
 	return tap_spec_bool(brew_bundle.bundle_tap_dump(tap_spec_dump_state(), [], []) == expected)
 }
 
 // Ruby it `it "dumps trusted taps with trusted true" do` at line 66.
-pub fn ruby_tap_spec_l66_d5_dumps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tap_spec_l66_d5_dumps(args ...ruby.Value) ruby.Value {
 	_ = args
 	state := brew_bundle.BundleTapState{
 		...tap_spec_dump_state()
@@ -85,7 +85,7 @@ pub fn ruby_tap_spec_l66_d5_dumps(args ...brew_runtime.Value) brew_runtime.Value
 }
 
 // Ruby it `it "dumps GitHub clone targets matching a tap's default repository" do` at line 76.
-pub fn ruby_tap_spec_l76_d6_dumps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tap_spec_l76_d6_dumps(args ...ruby.Value) ruby.Value {
 	_ = args
 	state := brew_bundle.BundleTapState{
 		taps: [brew_bundle.BundleTap{
@@ -100,7 +100,7 @@ pub fn ruby_tap_spec_l76_d6_dumps(args ...brew_runtime.Value) brew_runtime.Value
 }
 
 // Ruby it `it "dumps partially trusted tap entries with trusted hash values" do` at line 90.
-pub fn ruby_tap_spec_l90_d7_dumps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tap_spec_l90_d7_dumps(args ...ruby.Value) ruby.Value {
 	_ = args
 	state := brew_bundle.BundleTapState{
 		...tap_spec_dump_state()
@@ -115,14 +115,14 @@ pub fn ruby_tap_spec_l90_d7_dumps(args ...brew_runtime.Value) brew_runtime.Value
 }
 
 // Ruby it `it "calls Homebrew" do` at line 113.
-pub fn ruby_tap_spec_l113_d8_calls(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tap_spec_l113_d8_calls(args ...ruby.Value) ruby.Value {
 	_ = args
 	state := brew_bundle.bundle_tap_reset(brew_bundle.BundleTapState{})
 	return tap_spec_bool(brew_bundle.bundle_tap_installed_names(state).len == 0)
 }
 
 // Ruby it `it "skips" do` at line 123.
-pub fn ruby_tap_spec_l123_d9_skips(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tap_spec_l123_d9_skips(args ...ruby.Value) ruby.Value {
 	_ = args
 	preinstall, _ := brew_bundle.bundle_tap_preinstall(brew_bundle.BundleTapState{
 		installed_taps: ['homebrew/cask']
@@ -132,7 +132,7 @@ pub fn ruby_tap_spec_l123_d9_skips(args ...brew_runtime.Value) brew_runtime.Valu
 }
 
 // Ruby it `it "taps" do` at line 134.
-pub fn ruby_tap_spec_l134_d10_taps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tap_spec_l134_d10_taps(args ...ruby.Value) ruby.Value {
 	_ = args
 	state := brew_bundle.BundleTapState{ installed_override: true }
 	preinstall, _ := brew_bundle.bundle_tap_preinstall(state, 'homebrew/cask', false)
@@ -144,7 +144,7 @@ pub fn ruby_tap_spec_l134_d10_taps(args ...brew_runtime.Value) brew_runtime.Valu
 }
 
 // Ruby it `it "clears cached tap contents after tapping" do` at line 141.
-pub fn ruby_tap_spec_l141_d11_clears(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tap_spec_l141_d11_clears(args ...ruby.Value) ruby.Value {
 	_ = args
 	action := brew_bundle.bundle_tap_install(brew_bundle.BundleTapState{
 		installed_override: true
@@ -158,7 +158,7 @@ pub fn ruby_tap_spec_l141_d11_clears(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby it `it "taps" do` at line 166.
-pub fn ruby_tap_spec_l166_d12_taps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tap_spec_l166_d12_taps(args ...ruby.Value) ruby.Value {
 	_ = args
 	action := brew_bundle.bundle_tap_install(brew_bundle.BundleTapState{
 		installed_override: true
@@ -175,7 +175,7 @@ pub fn ruby_tap_spec_l166_d12_taps(args ...brew_runtime.Value) brew_runtime.Valu
 }
 
 // Ruby it `it "fails" do` at line 174.
-pub fn ruby_tap_spec_l174_d13_fails(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tap_spec_l174_d13_fails(args ...ruby.Value) ruby.Value {
 	_ = args
 	action := brew_bundle.bundle_tap_install(brew_bundle.BundleTapState{
 		installed_override: true

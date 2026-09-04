@@ -1,6 +1,6 @@
 module language
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `language/java.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -108,7 +108,7 @@ pub fn overridable_java_home_env(version string, formulae []OpenJdkFormula,
 	}
 }
 
-fn openjdk_formulae_from_value(value brew_runtime.Value) []OpenJdkFormula {
+fn openjdk_formulae_from_value(value ruby.Value) []OpenJdkFormula {
 	return value.array_data.map(OpenJdkFormula{
 		name: it.attributes['name'] or { it.as_string() }
 		installed: (it.attributes['installed'] or { 'false' }) == 'true'
@@ -117,8 +117,8 @@ fn openjdk_formulae_from_value(value brew_runtime.Value) []OpenJdkFormula {
 	})
 }
 
-fn openjdk_formula_value(formula OpenJdkFormula) brew_runtime.Value {
-	return brew_runtime.structured_value('Formula', formula.name, {
+fn openjdk_formula_value(formula OpenJdkFormula) ruby.Value {
+	return ruby.structured_value('Formula', formula.name, {
 		'name':              formula.name
 		'installed':         formula.installed.str()
 		'installed_version': formula.installed_version
@@ -126,29 +126,29 @@ fn openjdk_formula_value(formula OpenJdkFormula) brew_runtime.Value {
 	})
 }
 
-fn java_environment_value(environment map[string]string) brew_runtime.Value {
-	mut values := map[string]brew_runtime.Value{}
+fn java_environment_value(environment map[string]string) ruby.Value {
+	mut values := map[string]ruby.Value{}
 	for name, value in environment {
-		values[name] = brew_runtime.string_value(value)
+		values[name] = ruby.string_value(value)
 	}
-	return brew_runtime.map_value(values)
+	return ruby.map_value(values)
 }
 
-fn java_boundary_version(args []brew_runtime.Value) string {
+fn java_boundary_version(args []ruby.Value) string {
 	if args.len == 0 || args[0].type_name == 'NilClass' {
 		return ''
 	}
 	return args[0].as_string()
 }
 
-fn java_boundary_formulae(args []brew_runtime.Value) []OpenJdkFormula {
+fn java_boundary_formulae(args []ruby.Value) []OpenJdkFormula {
 	if args.len < 2 {
 		return []
 	}
 	return openjdk_formulae_from_value(args[1])
 }
 
-fn java_boundary_composer(args []brew_runtime.Value) JavaHomeComposer {
+fn java_boundary_composer(args []ruby.Value) JavaHomeComposer {
 	if args.len > 2 && (args[2].as_bool() or { false }) {
 		return java_macos_home
 	}
@@ -156,33 +156,33 @@ fn java_boundary_composer(args []brew_runtime.Value) JavaHomeComposer {
 }
 
 // Ruby method `self.find_openjdk_formula(version = nil)` at line 10.
-pub fn ruby_java_l10_d1_self_find_openjdk_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_java_l10_d1_self_find_openjdk_formula(args ...ruby.Value) ruby.Value {
 	if formula := find_openjdk_formula(java_boundary_version(args), java_boundary_formulae(args)) {
 		return openjdk_formula_value(formula)
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `self.java_home(version = nil)` at line 39.
-pub fn ruby_java_l39_d2_self_java_home(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_java_l39_d2_self_java_home(args ...ruby.Value) ruby.Value {
 	if home := java_home(java_boundary_version(args), java_boundary_formulae(args), java_boundary_composer(args)) {
-		return brew_runtime.string_value(home)
+		return ruby.string_value(home)
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `self.java_home_shell(version = nil)` at line 44.
-pub fn ruby_java_l44_d3_self_java_home_shell(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(java_home_shell(java_boundary_version(args), java_boundary_formulae(args), java_boundary_composer(args)))
+pub fn ruby_java_l44_d3_self_java_home_shell(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(java_home_shell(java_boundary_version(args), java_boundary_formulae(args), java_boundary_composer(args)))
 }
 
 // Ruby method `self.java_home_env(version = nil)` at line 63.
-pub fn ruby_java_l63_d4_self_java_home_env(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_java_l63_d4_self_java_home_env(args ...ruby.Value) ruby.Value {
 	return java_environment_value(java_home_env(java_boundary_version(args), java_boundary_formulae(args), java_boundary_composer(args)))
 }
 
 // Ruby method `self.overridable_java_home_env(version = nil)` at line 80.
-pub fn ruby_java_l80_d5_self_overridable_java_home_env(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_java_l80_d5_self_overridable_java_home_env(args ...ruby.Value) ruby.Value {
 	return java_environment_value(overridable_java_home_env(java_boundary_version(args), java_boundary_formulae(args), java_boundary_composer(args)))
 }
 

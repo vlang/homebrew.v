@@ -1,6 +1,6 @@
 module shared_examples
 
-import brew_runtime
+import ruby
 
 pub struct ParseableArgumentsResult {
 pub:
@@ -14,12 +14,12 @@ pub:
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:command) do |example|` at line 5.
-pub fn ruby_args_parse_l5_d1_command(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(if args.len > 0 { args[0].as_string() } else { '' })
+pub fn ruby_args_parse_l5_d1_command(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(if args.len > 0 { args[0].as_string() } else { '' })
 }
 
 // Ruby it `it "can parse arguments" do` at line 9.
-pub fn ruby_args_parse_l9_d2_can(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_args_parse_l9_d2_can(args ...ruby.Value) ruby.Value {
 	described_class := if args.len > 0 && args[0].type_name != 'NilClass' {
 		args[0].as_string()
 	} else {
@@ -29,7 +29,7 @@ pub fn ruby_args_parse_l9_d2_can(args ...brew_runtime.Value) brew_runtime.Value 
 	command_name := if args.len > 2 { args[2].as_string() } else { '' }
 	min_named_args := if args.len > 3 { int(args[3].int_data) } else { 0 }
 	result := parseable_arguments(described_class, command, command_name, min_named_args)
-	return brew_runtime.structured_value(result.args_type, result.argv.str(), {
+	return ruby.structured_value(result.args_type, result.argv.str(), {
 		'command_class':   result.command_class
 		'argv':            result.argv.join(',')
 		'loaded_external': result.loaded_external.str()

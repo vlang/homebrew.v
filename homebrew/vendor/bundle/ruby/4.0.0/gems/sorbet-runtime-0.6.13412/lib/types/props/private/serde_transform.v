@@ -1,6 +1,6 @@
 module private
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/props/private/serde_transform.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -9,12 +9,12 @@ pub enum SerdeMode {
 	deserialize
 }
 
-fn serde_mode_from_value(value brew_runtime.Value) SerdeMode {
+fn serde_mode_from_value(value ruby.Value) SerdeMode {
 	name := value.as_string().to_lower()
 	return if name.contains('deserialize') { .deserialize } else { .serialize }
 }
 
-fn serde_simple_ancestors(type_value brew_runtime.Value) []string {
+fn serde_simple_ancestors(type_value ruby.Value) []string {
 	mut names := (type_value.attribute('ancestors') or { '' }).split(',').filter(it.len > 0)
 	raw := type_value.attribute('raw_type') or { type_value.as_string() }
 	if raw !in names {
@@ -23,7 +23,7 @@ fn serde_simple_ancestors(type_value brew_runtime.Value) []string {
 	return names
 }
 
-fn serde_nilable_member(type_value brew_runtime.Value) ?brew_runtime.Value {
+fn serde_nilable_member(type_value ruby.Value) ?ruby.Value {
 	if type_value.type_name != 'T::Types::Union' {
 		return none
 	}
@@ -38,7 +38,7 @@ fn serde_nilable_member(type_value brew_runtime.Value) ?brew_runtime.Value {
 	return none
 }
 
-pub fn serde_module_name(type_value brew_runtime.Value) ?string {
+pub fn serde_module_name(type_value ruby.Value) ?string {
 	name := type_value.attribute('mangled_name') or {
 		type_value.attribute('module_name') or {
 			type_value.attribute('name') or { type_value.as_string() }
@@ -50,7 +50,7 @@ pub fn serde_module_name(type_value brew_runtime.Value) ?string {
 	return name
 }
 
-pub fn handle_serializable_subtype(varname string, type_value brew_runtime.Value,
+pub fn handle_serializable_subtype(varname string, type_value ruby.Value,
 	mode SerdeMode) !string {
 	return match mode {
 		.serialize { '${varname}.serialize(strict)' }
@@ -60,7 +60,7 @@ pub fn handle_serializable_subtype(varname string, type_value brew_runtime.Value
 	}
 }
 
-pub fn handle_custom_type(varname string, type_value brew_runtime.Value, mode SerdeMode) !string {
+pub fn handle_custom_type(varname string, type_value ruby.Value, mode SerdeMode) !string {
 	return match mode {
 		.serialize { 'T::Props::CustomType.checked_serialize(${varname})' }
 		.deserialize {
@@ -71,7 +71,7 @@ pub fn handle_custom_type(varname string, type_value brew_runtime.Value, mode Se
 
 // generate_serde_transform translates the specialized source expression. A
 // missing result means the value can cross the serde boundary unchanged.
-pub fn generate_serde_transform(type_value brew_runtime.Value, mode SerdeMode,
+pub fn generate_serde_transform(type_value ruby.Value, mode SerdeMode,
 	varname string) ?string {
 	match type_value.type_name {
 		'T::Types::TypedArray' {
@@ -173,19 +173,19 @@ pub fn generate_serde_transform(type_value brew_runtime.Value, mode SerdeMode,
 // apply_serde_transform is the typed execution counterpart to the generated
 // source expression. Dynamic Ruby calls cross the boundary through explicit
 // `serialized`/`deserialized` values retained on the translated object.
-pub fn apply_serde_transform(value brew_runtime.Value, type_value brew_runtime.Value,
-	mode SerdeMode) !brew_runtime.Value {
+pub fn apply_serde_transform(value ruby.Value, type_value ruby.Value,
+	mode SerdeMode) !ruby.Value {
 	if value.type_name == 'NilClass' {
 		return value
 	}
 	match type_value.type_name {
 		'T::Types::TypedArray', 'T::Types::TypedSet' {
 			inner := type_value.map_data['type'] or { return private_deep_clone(value) }
-			mut transformed := []brew_runtime.Value{cap: value.array_data.len}
+			mut transformed := []ruby.Value{cap: value.array_data.len}
 			for item in value.array_data {
 				transformed << apply_serde_transform(item, inner, mode)!
 			}
-			return brew_runtime.Value{
+			return ruby.Value{
 				...value
 				array_data: transformed
 			}
@@ -193,9 +193,9 @@ pub fn apply_serde_transform(value brew_runtime.Value, type_value brew_runtime.V
 		'T::Types::TypedHash' {
 			key_type := type_value.map_data['keys'] or { private_nil_value() }
 			value_type := type_value.map_data['values'] or { private_nil_value() }
-			mut transformed := map[string]brew_runtime.Value{}
+			mut transformed := map[string]ruby.Value{}
 			for key, item in value.map_data {
-				key_value := brew_runtime.string_value(key)
+				key_value := ruby.string_value(key)
 				new_key := if key_type.type_name == 'NilClass' {
 					key
 				} else {
@@ -207,19 +207,19 @@ pub fn apply_serde_transform(value brew_runtime.Value, type_value brew_runtime.V
 					apply_serde_transform(item, value_type, mode)!
 				}
 			}
-			return brew_runtime.map_value(transformed)
+			return ruby.map_value(transformed)
 		}
 		'T::Types::Simple' {
 			names := serde_simple_ancestors(type_value)
 			if mode == .deserialize && 'Float' in names {
-				return brew_runtime.float_value(value.as_float()!)
+				return ruby.float_value(value.as_float()!)
 			}
 			if private_rule_enabled(type_value.map_data, 'serializable_subtype') || 'T::Props::Serializable' in names {
 				return if mode == .serialize {
 					value.map_data['serialized'] or { return error('${value.type_name} has no serialize result') }
 				} else {
 					value.map_data['deserialized'] or {
-						brew_runtime.Value{
+						ruby.Value{
 							type_name: serde_module_name(type_value) or { type_value.as_string() }
 							repr: value.as_string()
 							map_data: value.map_data.clone()
@@ -232,7 +232,7 @@ pub fn apply_serde_transform(value brew_runtime.Value, type_value brew_runtime.V
 					value.map_data['serialized'] or { return error('${value.type_name} has no custom serialize result') }
 				} else {
 					value.map_data['deserialized'] or {
-						brew_runtime.object_value(serde_module_name(type_value) or {
+						ruby.object_value(serde_module_name(type_value) or {
 							type_value.as_string()
 						}, value.as_string())
 					}
@@ -264,12 +264,12 @@ pub fn apply_serde_transform(value brew_runtime.Value, type_value brew_runtime.V
 	}
 }
 
-fn serde_transform_value(result ?string) brew_runtime.Value {
-	return if value := result { brew_runtime.string_value(value) } else { private_nil_value() }
+fn serde_transform_value(result ?string) ruby.Value {
+	return if value := result { ruby.string_value(value) } else { private_nil_value() }
 }
 
 // Ruby method `self.generate(type, mode, varname)` at line 36.
-pub fn ruby_serde_transform_l36_d1_self_generate(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_serde_transform_l36_d1_self_generate(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('SerdeTransform.generate requires type, mode, and variable name')
 	}
@@ -277,23 +277,23 @@ pub fn ruby_serde_transform_l36_d1_self_generate(args ...brew_runtime.Value) bre
 }
 
 // Ruby method `self.handle_serializable_subtype(varname, type, mode)` at line 155.
-pub fn ruby_serde_transform_l155_d2_self_handle_serializable_subtype(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_serde_transform_l155_d2_self_handle_serializable_subtype(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('handle_serializable_subtype requires variable, type, and mode')
 	}
-	return brew_runtime.string_value(handle_serializable_subtype(args[0].as_string(), args[1], serde_mode_from_value(args[2])) or { panic(err) })
+	return ruby.string_value(handle_serializable_subtype(args[0].as_string(), args[1], serde_mode_from_value(args[2])) or { panic(err) })
 }
 
 // Ruby method `self.handle_custom_type(varname, type, mode)` at line 168.
-pub fn ruby_serde_transform_l168_d3_self_handle_custom_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_serde_transform_l168_d3_self_handle_custom_type(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('handle_custom_type requires variable, type, and mode')
 	}
-	return brew_runtime.string_value(handle_custom_type(args[0].as_string(), args[1], serde_mode_from_value(args[2])) or { panic(err) })
+	return ruby.string_value(handle_custom_type(args[0].as_string(), args[1], serde_mode_from_value(args[2])) or { panic(err) })
 }
 
 // Ruby method `self.module_name(type)` at line 181.
-pub fn ruby_serde_transform_l181_d4_self_module_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_serde_transform_l181_d4_self_module_name(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('SerdeTransform.module_name requires a type')
 	}

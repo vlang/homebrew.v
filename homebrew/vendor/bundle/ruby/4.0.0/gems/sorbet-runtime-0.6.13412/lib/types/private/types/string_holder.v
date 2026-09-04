@@ -1,6 +1,6 @@
 module types
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/private/types/string_holder.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -16,29 +16,29 @@ pub fn new_string_holder(value string) &StringHolder {
 	}
 }
 
-pub fn (_ &StringHolder) build_type() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+pub fn (_ &StringHolder) build_type() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 pub fn (holder &StringHolder) name() string {
 	return holder.text
 }
 
-pub fn (_ &StringHolder) valid(_ brew_runtime.Value) bool {
+pub fn (_ &StringHolder) valid(_ ruby.Value) bool {
 	return false
 }
 
-pub fn (_ &StringHolder) subtype_of_single(_ brew_runtime.Value) bool {
+pub fn (_ &StringHolder) subtype_of_single(_ ruby.Value) bool {
 	return false
 }
 
-fn string_holder_value(holder &StringHolder) brew_runtime.Value {
-	return brew_runtime.structured_value('T::Private::Types::StringHolder', holder.text, {
+fn string_holder_value(holder &StringHolder) ruby.Value {
+	return ruby.structured_value('T::Private::Types::StringHolder', holder.text, {
 		'string_holder_address': u64(voidptr(holder)).str()
 	})
 }
 
-fn string_holder_from_args(args []brew_runtime.Value) &StringHolder {
+fn string_holder_from_args(args []ruby.Value) &StringHolder {
 	if args.len == 0 {
 		panic('StringHolder method requires a receiver')
 	}
@@ -49,12 +49,12 @@ fn string_holder_from_args(args []brew_runtime.Value) &StringHolder {
 }
 
 // Ruby attr_reader `attr_reader :string` at line 6.
-pub fn ruby_string_holder_l6_d1_string(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(string_holder_from_args(args).text)
+pub fn ruby_string_holder_l6_d1_string(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(string_holder_from_args(args).text)
 }
 
 // Ruby method `initialize(string)` at line 8.
-pub fn ruby_string_holder_l8_d2_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_string_holder_l8_d2_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('StringHolder#initialize requires a string')
 	}
@@ -62,29 +62,29 @@ pub fn ruby_string_holder_l8_d2_initialize(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `build_type` at line 12.
-pub fn ruby_string_holder_l12_d3_build_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_string_holder_l12_d3_build_type(args ...ruby.Value) ruby.Value {
 	return string_holder_from_args(args).build_type()
 }
 
 // Ruby method `name` at line 17.
-pub fn ruby_string_holder_l17_d4_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(string_holder_from_args(args).name())
+pub fn ruby_string_holder_l17_d4_name(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(string_holder_from_args(args).name())
 }
 
 // Ruby method `valid?(obj)` at line 22.
-pub fn ruby_string_holder_l22_d5_valid(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_string_holder_l22_d5_valid(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('StringHolder#valid? requires an object')
 	}
-	return brew_runtime.bool_value(string_holder_from_args(args).valid(args[1]))
+	return ruby.bool_value(string_holder_from_args(args).valid(args[1]))
 }
 
 // Ruby method `subtype_of_single?(other)` at line 27.
-pub fn ruby_string_holder_l27_d6_subtype_of_single(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_string_holder_l27_d6_subtype_of_single(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('StringHolder#subtype_of_single? requires another type')
 	}
-	return brew_runtime.bool_value(string_holder_from_args(args).subtype_of_single(args[1]))
+	return ruby.bool_value(string_holder_from_args(args).subtype_of_single(args[1]))
 }
 
 // Original Ruby source (line-for-line):

@@ -1,6 +1,6 @@
 module artifact
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `cask/artifact/stage_only.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -31,30 +31,30 @@ pub fn (stage StageOnly) summarize() string {
 }
 
 // Ruby method `self.from_args(cask, *args, **kwargs)` at line 11.
-pub fn ruby_stage_only_l11_d1_self_from_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stage_only_l11_d1_self_from_args(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('CaskInvalidError',
+		return ruby.object_value('CaskInvalidError',
 			'`stage_only` takes only a single argument: true')
 	}
 	arguments := args[1].as_string_array() or { [args[1].as_string()] }
 	has_keywords := args.len > 2 && (args[2].as_bool() or { false })
 	stage := stage_only_from_args(args[0].as_string(), arguments, has_keywords) or {
-		return brew_runtime.object_value('CaskInvalidError', err.msg())
+		return ruby.object_value('CaskInvalidError', err.msg())
 	}
-	return brew_runtime.structured_value('StageOnly', stage.summarize(), {
+	return ruby.structured_value('StageOnly', stage.summarize(), {
 		'cask_token': stage.cask_token
 		'value':      stage.value.str()
 	})
 }
 
 // Ruby method `to_a` at line 20.
-pub fn ruby_stage_only_l20_d2_to_a(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.array_value([brew_runtime.bool_value(true)])
+pub fn ruby_stage_only_l20_d2_to_a(args ...ruby.Value) ruby.Value {
+	return ruby.array_value([ruby.bool_value(true)])
 }
 
 // Ruby method `summarize` at line 25.
-pub fn ruby_stage_only_l25_d3_summarize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('true')
+pub fn ruby_stage_only_l25_d3_summarize(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('true')
 }
 
 // Original Ruby source (line-for-line):

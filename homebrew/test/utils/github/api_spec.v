@@ -1,13 +1,13 @@
 module github
 
-import brew_runtime
+import ruby
 import homebrew.utils.github as github_api
 
 // Translated from Homebrew/brew `test/utils/github/api_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "sleeps for at least 1 second even if the rate limit has already reset" do` at line 8.
-pub fn ruby_api_spec_l8_d1_sleeps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l8_d1_sleeps(args ...ruby.Value) ruby.Value {
 	now := if args.len > 0 {
 		args[0].as_int() or { i64(1_700_000_000) }
 	} else {
@@ -16,7 +16,7 @@ pub fn ruby_api_spec_l8_d1_sleeps(args ...brew_runtime.Value) brew_runtime.Value
 	exception := github_api.github_api_new_rate_limit_error('API rate limit exceeded', now - 10, 'core', 5000, 'token', now)
 	mut sleep_state := github_api.GitHubApiSleepState{}
 	slept := github_api.github_api_sleep_for_rate_limit(exception, now, mut sleep_state)
-	return brew_runtime.bool_value(slept == 1 && sleep_state.slept_seconds == [1] && sleep_state.warnings == [
+	return ruby.bool_value(slept == 1 && sleep_state.slept_seconds == [1] && sleep_state.warnings == [
 		'GitHub rate limit exceeded, sleeping for 1 seconds...',
 	])
 }

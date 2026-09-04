@@ -1,6 +1,6 @@
 module concurrent
 
-import brew_runtime
+import ruby
 import sync
 import time
 
@@ -16,13 +16,13 @@ pub enum PromisesState {
 pub struct PromisesResult {
 pub:
 	fulfilled bool
-	value     brew_runtime.Value
-	reason    brew_runtime.Value
+	value     ruby.Value
+	reason    ruby.Value
 }
 
-pub type PromisesTask = fn([]brew_runtime.Value) !brew_runtime.Value
+pub type PromisesTask = fn([]ruby.Value) !ruby.Value
 
-pub type PromisesCallback = fn(PromisesResult, []brew_runtime.Value)
+pub type PromisesCallback = fn(PromisesResult, []ruby.Value)
 
 enum PromisesCallbackKind {
 	resolution
@@ -53,7 +53,7 @@ enum PromisesAggregateMode {
 
 struct PromisesCallbackEntry {
 	kind          PromisesCallbackKind
-	args          []brew_runtime.Value
+	args          []ruby.Value
 	callback      PromisesCallback = promises_noop_callback
 	target        &PromisesEventFuture = unsafe { nil }
 	task          PromisesTask = promises_identity_task
@@ -68,14 +68,14 @@ struct PromisesCallbackEntry {
 struct PromisesJob {
 	target &PromisesEventFuture
 	task   PromisesTask @[required]
-	args   []brew_runtime.Value
+	args   []ruby.Value
 }
 
 @[heap]
 struct PromisesCallbackJob {
 	callback PromisesCallback @[required]
 	result   PromisesResult
-	args     []brew_runtime.Value
+	args     []ruby.Value
 }
 
 @[heap]
@@ -87,8 +87,8 @@ pub struct PromisesEventFuture {
 	default_executor_name string
 mut:
 	state                 PromisesState
-	value                 brew_runtime.Value
-	reason                brew_runtime.Value
+	value                 ruby.Value
+	reason                ruby.Value
 	callbacks             []PromisesCallbackEntry
 	waiters               int
 	touched               bool
@@ -102,21 +102,21 @@ mut:
 	hidden_wrapper        &PromisesEventFuture = unsafe { nil }
 }
 
-fn promises_nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn promises_nil_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-fn promises_exception_value(message string) brew_runtime.Value {
-	return brew_runtime.object_value('Exception', message)
+fn promises_exception_value(message string) ruby.Value {
+	return ruby.object_value('Exception', message)
 }
 
-fn promises_identity_task(args []brew_runtime.Value) !brew_runtime.Value {
+fn promises_identity_task(args []ruby.Value) !ruby.Value {
 	return if args.len > 0 { args[0] } else { promises_nil_value() }
 }
 
-fn promises_noop_callback(_ PromisesResult, _ []brew_runtime.Value) {}
+fn promises_noop_callback(_ PromisesResult, _ []ruby.Value) {}
 
-fn promises_value_equal(left brew_runtime.Value, right brew_runtime.Value) bool {
+fn promises_value_equal(left ruby.Value, right ruby.Value) bool {
 	return left.type_name == right.type_name && left.repr == right.repr
 }
 
@@ -162,7 +162,7 @@ pub fn promises_resolvable_future() &PromisesEventFuture {
 	return promises_resolvable_future_on('io')
 }
 
-pub fn promises_resolved_future(fulfilled bool, value brew_runtime.Value, reason brew_runtime.Value,
+pub fn promises_resolved_future(fulfilled bool, value ruby.Value, reason ruby.Value,
 	executor_name string) &PromisesEventFuture {
 	mut future := promises_resolvable_future_on(executor_name)
 	if fulfilled {
@@ -173,11 +173,11 @@ pub fn promises_resolved_future(fulfilled bool, value brew_runtime.Value, reason
 	return future
 }
 
-pub fn promises_fulfilled_future(value brew_runtime.Value) &PromisesEventFuture {
+pub fn promises_fulfilled_future(value ruby.Value) &PromisesEventFuture {
 	return promises_resolved_future(true, value, promises_nil_value(), 'io')
 }
 
-pub fn promises_rejected_future(reason brew_runtime.Value) &PromisesEventFuture {
+pub fn promises_rejected_future(reason ruby.Value) &PromisesEventFuture {
 	return promises_resolved_future(false, promises_nil_value(), reason, 'io')
 }
 
@@ -191,7 +191,7 @@ pub fn promises_resolved_event() &PromisesEventFuture {
 	return promises_resolved_event_on('io')
 }
 
-fn promises_job_execute(args []brew_runtime.Value) {
+fn promises_job_execute(args []ruby.Value) {
 	if args.len == 0 {
 		return
 	}
@@ -205,7 +205,7 @@ fn promises_job_execute(args []brew_runtime.Value) {
 	target.fulfill(value, false, false) or {}
 }
 
-fn promises_callback_execute(args []brew_runtime.Value) {
+fn promises_callback_execute(args []ruby.Value) {
 	if args.len == 0 {
 		return
 	}
@@ -214,34 +214,34 @@ fn promises_callback_execute(args []brew_runtime.Value) {
 }
 
 fn promises_post_callback(executor ScheduledExecutor, callback PromisesCallback,
-	result PromisesResult, args []brew_runtime.Value) {
+	result PromisesResult, args []ruby.Value) {
 	job := &PromisesCallbackJob{
 		callback: callback
 		result: result
 		args: args.clone()
 	}
 	executor.post(promises_callback_execute, [
-		brew_runtime.int_value(i64(voidptr(job))),
+		ruby.int_value(i64(voidptr(job))),
 	])
 }
 
 fn promises_post_task(target &PromisesEventFuture, executor ScheduledExecutor, task PromisesTask,
-	args []brew_runtime.Value) {
+	args []ruby.Value) {
 	job := &PromisesJob{
 		target: target
 		task: task
 		args: args.clone()
 	}
-	executor.post(promises_job_execute, [brew_runtime.int_value(i64(voidptr(job)))])
+	executor.post(promises_job_execute, [ruby.int_value(i64(voidptr(job)))])
 }
 
-pub fn promises_future_on(executor_name string, task PromisesTask, args []brew_runtime.Value) &PromisesEventFuture {
+pub fn promises_future_on(executor_name string, task PromisesTask, args []ruby.Value) &PromisesEventFuture {
 	mut future := promises_resolvable_future_on(executor_name)
 	promises_post_task(future, future.default_executor, task, args)
 	return future
 }
 
-pub fn promises_future(task PromisesTask, args []brew_runtime.Value) &PromisesEventFuture {
+pub fn promises_future(task PromisesTask, args []ruby.Value) &PromisesEventFuture {
 	return promises_future_on('io', task, args)
 }
 
@@ -341,8 +341,8 @@ pub fn (mut future PromisesEventFuture) resolve_event(raise_on_reassign bool, re
 	}, raise_on_reassign, reserved)
 }
 
-pub fn (mut future PromisesEventFuture) resolve(fulfilled bool, value brew_runtime.Value,
-	reason brew_runtime.Value, raise_on_reassign bool, reserved bool) !bool {
+pub fn (mut future PromisesEventFuture) resolve(fulfilled bool, value ruby.Value,
+	reason ruby.Value, raise_on_reassign bool, reserved bool) !bool {
 	return future.resolve_result(PromisesResult{
 		fulfilled: fulfilled
 		value: value
@@ -350,12 +350,12 @@ pub fn (mut future PromisesEventFuture) resolve(fulfilled bool, value brew_runti
 	}, raise_on_reassign, reserved)
 }
 
-pub fn (mut future PromisesEventFuture) fulfill(value brew_runtime.Value, raise_on_reassign bool,
+pub fn (mut future PromisesEventFuture) fulfill(value ruby.Value, raise_on_reassign bool,
 	reserved bool) !bool {
 	return future.resolve(true, value, promises_nil_value(), raise_on_reassign, reserved)
 }
 
-pub fn (mut future PromisesEventFuture) reject(reason brew_runtime.Value, raise_on_reassign bool,
+pub fn (mut future PromisesEventFuture) reject(reason ruby.Value, raise_on_reassign bool,
 	reserved bool) !bool {
 	return future.resolve(false, promises_nil_value(), reason, raise_on_reassign, reserved)
 }
@@ -423,10 +423,10 @@ fn (mut future PromisesEventFuture) call_callback(callback PromisesCallbackEntry
 			mut target := callback.target
 			should_run := callback.kind == .chain || (callback.kind == .then && result.fulfilled) || (callback.kind == .rescue && !result.fulfilled)
 			if should_run {
-				mut call_args := []brew_runtime.Value{}
+				mut call_args := []ruby.Value{}
 				if callback.kind == .chain {
 					if !future.is_event {
-						call_args << brew_runtime.bool_value(result.fulfilled)
+						call_args << ruby.bool_value(result.fulfilled)
 						call_args << result.value
 						call_args << result.reason
 					}
@@ -459,7 +459,7 @@ fn (mut future PromisesEventFuture) call_callback(callback PromisesCallbackEntry
 }
 
 pub fn (mut future PromisesEventFuture) on_resolution_bang(callback PromisesCallback,
-	args []brew_runtime.Value) &PromisesEventFuture {
+	args []ruby.Value) &PromisesEventFuture {
 	future.add_callback_entry(PromisesCallbackEntry{
 		kind: .resolution
 		args: args.clone()
@@ -469,7 +469,7 @@ pub fn (mut future PromisesEventFuture) on_resolution_bang(callback PromisesCall
 }
 
 pub fn (mut future PromisesEventFuture) on_resolution_using(executor_name string,
-	callback PromisesCallback, args []brew_runtime.Value) &PromisesEventFuture {
+	callback PromisesCallback, args []ruby.Value) &PromisesEventFuture {
 	future.add_callback_entry(PromisesCallbackEntry{
 		kind: .async_resolution
 		args: args.clone()
@@ -480,12 +480,12 @@ pub fn (mut future PromisesEventFuture) on_resolution_using(executor_name string
 }
 
 pub fn (mut future PromisesEventFuture) on_resolution(callback PromisesCallback,
-	args []brew_runtime.Value) &PromisesEventFuture {
+	args []ruby.Value) &PromisesEventFuture {
 	return future.on_resolution_using(future.default_executor_name, callback, args)
 }
 
 pub fn (mut future PromisesEventFuture) on_fulfillment_bang(callback PromisesCallback,
-	args []brew_runtime.Value) &PromisesEventFuture {
+	args []ruby.Value) &PromisesEventFuture {
 	future.add_callback_entry(PromisesCallbackEntry{
 		kind: .fulfillment
 		args: args.clone()
@@ -495,7 +495,7 @@ pub fn (mut future PromisesEventFuture) on_fulfillment_bang(callback PromisesCal
 }
 
 pub fn (mut future PromisesEventFuture) on_fulfillment_using(executor_name string,
-	callback PromisesCallback, args []brew_runtime.Value) &PromisesEventFuture {
+	callback PromisesCallback, args []ruby.Value) &PromisesEventFuture {
 	future.add_callback_entry(PromisesCallbackEntry{
 		kind: .async_fulfillment
 		args: args.clone()
@@ -506,12 +506,12 @@ pub fn (mut future PromisesEventFuture) on_fulfillment_using(executor_name strin
 }
 
 pub fn (mut future PromisesEventFuture) on_fulfillment(callback PromisesCallback,
-	args []brew_runtime.Value) &PromisesEventFuture {
+	args []ruby.Value) &PromisesEventFuture {
 	return future.on_fulfillment_using(future.default_executor_name, callback, args)
 }
 
 pub fn (mut future PromisesEventFuture) on_rejection_bang(callback PromisesCallback,
-	args []brew_runtime.Value) &PromisesEventFuture {
+	args []ruby.Value) &PromisesEventFuture {
 	future.add_callback_entry(PromisesCallbackEntry{
 		kind: .rejection
 		args: args.clone()
@@ -521,7 +521,7 @@ pub fn (mut future PromisesEventFuture) on_rejection_bang(callback PromisesCallb
 }
 
 pub fn (mut future PromisesEventFuture) on_rejection_using(executor_name string,
-	callback PromisesCallback, args []brew_runtime.Value) &PromisesEventFuture {
+	callback PromisesCallback, args []ruby.Value) &PromisesEventFuture {
 	future.add_callback_entry(PromisesCallbackEntry{
 		kind: .async_rejection
 		args: args.clone()
@@ -532,7 +532,7 @@ pub fn (mut future PromisesEventFuture) on_rejection_using(executor_name string,
 }
 
 pub fn (mut future PromisesEventFuture) on_rejection(callback PromisesCallback,
-	args []brew_runtime.Value) &PromisesEventFuture {
+	args []ruby.Value) &PromisesEventFuture {
 	return future.on_rejection_using(future.default_executor_name, callback, args)
 }
 
@@ -608,7 +608,7 @@ pub fn (mut future PromisesEventFuture) wait(timeout ?time.Duration) bool {
 }
 
 pub fn (mut future PromisesEventFuture) value(timeout ?time.Duration,
-	timeout_value brew_runtime.Value) brew_runtime.Value {
+	timeout_value ruby.Value) ruby.Value {
 	if !future.wait(timeout) {
 		return timeout_value
 	}
@@ -619,7 +619,7 @@ pub fn (mut future PromisesEventFuture) value(timeout ?time.Duration,
 }
 
 pub fn (mut future PromisesEventFuture) reason(timeout ?time.Duration,
-	timeout_value brew_runtime.Value) brew_runtime.Value {
+	timeout_value ruby.Value) ruby.Value {
 	if !future.wait(timeout) {
 		return timeout_value
 	}
@@ -636,7 +636,7 @@ pub fn (mut future PromisesEventFuture) result(timeout ?time.Duration) ?Promises
 	return future.result_now()
 }
 
-pub fn (mut future PromisesEventFuture) value_or_error(timeout ?time.Duration) !brew_runtime.Value {
+pub fn (mut future PromisesEventFuture) value_or_error(timeout ?time.Duration) !ruby.Value {
 	if !future.wait(timeout) {
 		return promises_nil_value()
 	}
@@ -648,7 +648,7 @@ pub fn (mut future PromisesEventFuture) value_or_error(timeout ?time.Duration) !
 }
 
 pub fn (mut future PromisesEventFuture) chain_on(executor_name string, task PromisesTask,
-	args []brew_runtime.Value) &PromisesEventFuture {
+	args []ruby.Value) &PromisesEventFuture {
 	target := promises_resolvable_future_on(executor_name)
 	mut blockers := []&PromisesEventFuture{}
 	blockers << unsafe { &future }
@@ -663,12 +663,12 @@ pub fn (mut future PromisesEventFuture) chain_on(executor_name string, task Prom
 }
 
 pub fn (mut future PromisesEventFuture) chain(task PromisesTask,
-	args []brew_runtime.Value) &PromisesEventFuture {
+	args []ruby.Value) &PromisesEventFuture {
 	return future.chain_on(future.default_executor_name, task, args)
 }
 
 pub fn (mut future PromisesEventFuture) then_on(executor_name string, task PromisesTask,
-	args []brew_runtime.Value) &PromisesEventFuture {
+	args []ruby.Value) &PromisesEventFuture {
 	target := promises_resolvable_future_on(executor_name)
 	mut blockers := []&PromisesEventFuture{}
 	blockers << unsafe { &future }
@@ -683,12 +683,12 @@ pub fn (mut future PromisesEventFuture) then_on(executor_name string, task Promi
 }
 
 pub fn (mut future PromisesEventFuture) then(task PromisesTask,
-	args []brew_runtime.Value) &PromisesEventFuture {
+	args []ruby.Value) &PromisesEventFuture {
 	return future.then_on(future.default_executor_name, task, args)
 }
 
 pub fn (mut future PromisesEventFuture) rescue_on(executor_name string, task PromisesTask,
-	args []brew_runtime.Value) &PromisesEventFuture {
+	args []ruby.Value) &PromisesEventFuture {
 	target := promises_resolvable_future_on(executor_name)
 	mut blockers := []&PromisesEventFuture{}
 	blockers << unsafe { &future }
@@ -703,7 +703,7 @@ pub fn (mut future PromisesEventFuture) rescue_on(executor_name string, task Pro
 }
 
 pub fn (mut future PromisesEventFuture) rescue(task PromisesTask,
-	args []brew_runtime.Value) &PromisesEventFuture {
+	args []ruby.Value) &PromisesEventFuture {
 	return future.rescue_on(future.default_executor_name, task, args)
 }
 
@@ -791,12 +791,12 @@ pub fn promises_delay_event() &PromisesEventFuture {
 }
 
 pub fn promises_delay_future_on(executor_name string, task PromisesTask,
-	args []brew_runtime.Value) &PromisesEventFuture {
+	args []ruby.Value) &PromisesEventFuture {
 	mut event := promises_delay_event_on(executor_name)
 	return event.chain_on(executor_name, task, args)
 }
 
-fn promises_schedule_resolve(args []brew_runtime.Value) {
+fn promises_schedule_resolve(args []ruby.Value) {
 	if args.len < 2 {
 		return
 	}
@@ -812,14 +812,14 @@ pub fn promises_schedule_event_on(executor_name string, intended_seconds f64) &P
 	mut event := promises_resolvable_event_on(executor_name)
 	event.intended_time_seconds = intended_seconds
 	spawn promises_schedule_resolve([
-		brew_runtime.int_value(i64(voidptr(event))),
-		brew_runtime.float_value(if intended_seconds > 0 { intended_seconds } else { 0 }),
+		ruby.int_value(i64(voidptr(event))),
+		ruby.float_value(if intended_seconds > 0 { intended_seconds } else { 0 }),
 	])
 	return event
 }
 
 pub fn promises_schedule_future_on(executor_name string, intended_seconds f64, task PromisesTask,
-	args []brew_runtime.Value) &PromisesEventFuture {
+	args []ruby.Value) &PromisesEventFuture {
 	mut event := promises_schedule_event_on(executor_name, intended_seconds)
 	return event.chain_on(executor_name, task, args)
 }
@@ -835,7 +835,7 @@ fn promises_new_aggregate(blockers []&PromisesEventFuture, executor_name string,
 	if blockers.len == 0 {
 		match mode {
 			.zip_futures {
-				target.fulfill(brew_runtime.array_value([]), false, false) or {}
+				target.fulfill(ruby.array_value([]), false, false) or {}
 			}
 			.zip_events { target.resolve_event(false, false) or {} }
 			else {}
@@ -900,8 +900,8 @@ fn (mut target PromisesEventFuture) receive_blocker(result PromisesResult, index
 		}
 		.zip_futures {
 			if remaining == 0 {
-				mut values := []brew_runtime.Value{cap: target.aggregate_resolutions.len}
-				mut reasons := []brew_runtime.Value{cap: target.aggregate_resolutions.len}
+				mut values := []ruby.Value{cap: target.aggregate_resolutions.len}
+				mut reasons := []ruby.Value{cap: target.aggregate_resolutions.len}
 				mut all_fulfilled := true
 				for item in target.aggregate_resolutions {
 					state := item or { continue }
@@ -911,10 +911,10 @@ fn (mut target PromisesEventFuture) receive_blocker(result PromisesResult, index
 				}
 				resolution = PromisesResult{
 					fulfilled: all_fulfilled
-					value: brew_runtime.array_value(values)
+					value: ruby.array_value(values)
 					reason: if all_fulfilled {
 						promises_nil_value()} else {
-						brew_runtime.array_value(reasons)}
+						ruby.array_value(reasons)}
 				}
 				should_resolve = true
 			}
@@ -1087,8 +1087,8 @@ pub fn (mut future PromisesEventFuture) run() &PromisesEventFuture {
 	return target
 }
 
-fn promises_boundary_value(future &PromisesEventFuture, type_name string) brew_runtime.Value {
-	return brew_runtime.Value{
+fn promises_boundary_value(future &PromisesEventFuture, type_name string) ruby.Value {
+	return ruby.Value{
 		type_name: type_name
 		repr: '#<${type_name}>'
 		int_data: i64(voidptr(future))
@@ -1098,7 +1098,7 @@ fn promises_boundary_value(future &PromisesEventFuture, type_name string) brew_r
 	}
 }
 
-fn promises_public_boundary_value(future &PromisesEventFuture) brew_runtime.Value {
+fn promises_public_boundary_value(future &PromisesEventFuture) ruby.Value {
 	return promises_boundary_value(future, if future.is_event {
 		'Concurrent::Promises::Event'
 	} else {
@@ -1106,7 +1106,7 @@ fn promises_public_boundary_value(future &PromisesEventFuture) brew_runtime.Valu
 	})
 }
 
-fn promises_resolvable_boundary_value(future &PromisesEventFuture) brew_runtime.Value {
+fn promises_resolvable_boundary_value(future &PromisesEventFuture) ruby.Value {
 	return promises_boundary_value(future, if future.is_event {
 		'Concurrent::Promises::ResolvableEvent'
 	} else {
@@ -1114,37 +1114,37 @@ fn promises_resolvable_boundary_value(future &PromisesEventFuture) brew_runtime.
 	})
 }
 
-fn promises_is_boundary_future(value brew_runtime.Value) bool {
+fn promises_is_boundary_future(value ruby.Value) bool {
 	return 'promises_future_address' in value.attributes
 }
 
-fn promises_boundary_receiver_value(value brew_runtime.Value) &PromisesEventFuture {
+fn promises_boundary_receiver_value(value ruby.Value) &PromisesEventFuture {
 	address := (value.attribute('promises_future_address') or {
 		panic('${value.type_name} has no translated Promises event/future state')
 	}).u64()
 	return unsafe { &PromisesEventFuture(voidptr(address)) }
 }
 
-fn promises_boundary_receiver(args []brew_runtime.Value) &PromisesEventFuture {
+fn promises_boundary_receiver(args []ruby.Value) &PromisesEventFuture {
 	if args.len == 0 {
 		panic('Promises method requires a receiver')
 	}
 	return promises_boundary_receiver_value(args[0])
 }
 
-fn promises_result_boundary_value(result PromisesResult, type_name string) brew_runtime.Value {
-	return brew_runtime.Value{
+fn promises_result_boundary_value(result PromisesResult, type_name string) ruby.Value {
+	return ruby.Value{
 		type_name: type_name
 		repr: result.fulfilled.str()
 		map_data: {
-			'fulfilled': brew_runtime.bool_value(result.fulfilled)
+			'fulfilled': ruby.bool_value(result.fulfilled)
 			'value':     result.value
 			'reason':    result.reason
 		}
 	}
 }
 
-fn promises_result_boundary_receiver(value brew_runtime.Value) PromisesResult {
+fn promises_result_boundary_receiver(value ruby.Value) PromisesResult {
 	if 'fulfilled' in value.map_data {
 		return PromisesResult{
 			fulfilled: value.map_data['fulfilled'].as_bool() or { false }
@@ -1169,9 +1169,9 @@ fn promises_result_boundary_receiver(value brew_runtime.Value) PromisesResult {
 	}
 }
 
-fn promises_pending_boundary(reserved bool) brew_runtime.Value {
+fn promises_pending_boundary(reserved bool) ruby.Value {
 	name := if reserved { 'Reserved' } else { 'Pending' }
-	return brew_runtime.object_value('Concurrent::Promises::InternalStates::${name}', ':${name.to_lower()}')
+	return ruby.object_value('Concurrent::Promises::InternalStates::${name}', ':${name.to_lower()}')
 }
 
 fn promises_result_type(result PromisesResult) string {
@@ -1182,7 +1182,7 @@ fn promises_result_type(result PromisesResult) string {
 	}
 }
 
-fn promises_future_state_boundary(mut future PromisesEventFuture) brew_runtime.Value {
+fn promises_future_state_boundary(mut future PromisesEventFuture) ruby.Value {
 	future.mutex.lock()
 	state := future.state
 	result := PromisesResult{
@@ -1198,7 +1198,7 @@ fn promises_future_state_boundary(mut future PromisesEventFuture) brew_runtime.V
 	}
 }
 
-fn promises_boundary_executor(args []brew_runtime.Value, index int) string {
+fn promises_boundary_executor(args []ruby.Value, index int) string {
 	if index >= args.len {
 		return 'io'
 	}
@@ -1206,15 +1206,15 @@ fn promises_boundary_executor(args []brew_runtime.Value, index int) string {
 	return if name.len > 0 { name } else { 'io' }
 }
 
-fn promises_boundary_timeout(args []brew_runtime.Value, index int) ?time.Duration {
+fn promises_boundary_timeout(args []ruby.Value, index int) ?time.Duration {
 	if index >= args.len || args[index].type_name == 'NilClass' {
 		return none
 	}
 	return time.Duration((args[index].as_float() or { panic(err) }) * f64(time.second))
 }
 
-fn promises_boundary_blockers(args []brew_runtime.Value, start int) []&PromisesEventFuture {
-	mut values := []brew_runtime.Value{}
+fn promises_boundary_blockers(args []ruby.Value, start int) []&PromisesEventFuture {
+	mut values := []ruby.Value{}
 	if start < args.len && args.len == start + 1 && args[start].type_name == 'Array' {
 		values = args[start].as_array() or { panic(err) }
 	} else if start < args.len {
@@ -1227,53 +1227,53 @@ fn promises_boundary_blockers(args []brew_runtime.Value, start int) []&PromisesE
 	return blockers
 }
 
-fn promises_boundary_array(blockers []&PromisesEventFuture) brew_runtime.Value {
-	mut values := []brew_runtime.Value{cap: blockers.len}
+fn promises_boundary_array(blockers []&PromisesEventFuture) ruby.Value {
+	mut values := []ruby.Value{cap: blockers.len}
 	for blocker in blockers {
 		values << promises_public_boundary_value(blocker)
 	}
-	return brew_runtime.array_value(values)
+	return ruby.array_value(values)
 }
 
-fn promises_last_value_task(args []brew_runtime.Value) !brew_runtime.Value {
+fn promises_last_value_task(args []ruby.Value) !ruby.Value {
 	return if args.len > 0 { args.last() } else { promises_nil_value() }
 }
 
-fn promises_boundary_task_args(args []brew_runtime.Value, start int) []brew_runtime.Value {
+fn promises_boundary_task_args(args []ruby.Value, start int) []ruby.Value {
 	return if start < args.len { args[start..].clone() } else { [] }
 }
 
-fn promises_result_array(result PromisesResult) brew_runtime.Value {
-	return brew_runtime.array_value([
-		brew_runtime.bool_value(result.fulfilled),
+fn promises_result_array(result PromisesResult) ruby.Value {
+	return ruby.array_value([
+		ruby.bool_value(result.fulfilled),
 		result.value,
 		result.reason,
 	])
 }
 
-fn promises_boundary_result(mut future PromisesEventFuture, timeout ?time.Duration) brew_runtime.Value {
+fn promises_boundary_result(mut future PromisesEventFuture, timeout ?time.Duration) ruby.Value {
 	result := future.result(timeout) or { return promises_nil_value() }
 	return promises_result_array(result)
 }
 
-fn promises_boundary_bool(value brew_runtime.Value, fallback bool) bool {
+fn promises_boundary_bool(value ruby.Value, fallback bool) bool {
 	return if value.type_name == 'Bool' { value.as_bool() or { fallback } } else { fallback }
 }
 
-fn promises_boundary_float(value brew_runtime.Value) f64 {
+fn promises_boundary_float(value ruby.Value) f64 {
 	return value.as_float() or { panic(err) }
 }
 
-fn promises_internal_promise_value(future &PromisesEventFuture, class_name string) brew_runtime.Value {
+fn promises_internal_promise_value(future &PromisesEventFuture, class_name string) ruby.Value {
 	return promises_boundary_value(future, 'Concurrent::Promises::${class_name}')
 }
 
-fn promises_boundary_noop_callback(_ PromisesResult, _ []brew_runtime.Value) {}
+fn promises_boundary_noop_callback(_ PromisesResult, _ []ruby.Value) {}
 
-fn promises_boundary_call(id int, args []brew_runtime.Value) brew_runtime.Value {
+fn promises_boundary_call(id int, args []ruby.Value) ruby.Value {
 	match id {
 		1 {
-			return brew_runtime.object_value('Symbol', ':io')
+			return ruby.object_value('Symbol', ':io')
 		}
 		2 {
 			return promises_resolvable_boundary_value(promises_resolvable_event())
@@ -1399,7 +1399,7 @@ fn promises_boundary_call(id int, args []brew_runtime.Value) brew_runtime.Value 
 	}
 }
 
-fn promises_boundary_assign_state(mut future PromisesEventFuture, state_value brew_runtime.Value) {
+fn promises_boundary_assign_state(mut future PromisesEventFuture, state_value ruby.Value) {
 	future.mutex.lock()
 	match state_value.type_name {
 		'Concurrent::Promises::InternalStates::Pending' {
@@ -1418,25 +1418,25 @@ fn promises_boundary_assign_state(mut future PromisesEventFuture, state_value br
 	future.mutex.unlock()
 }
 
-fn promises_boundary_symbol(name string) brew_runtime.Value {
-	return brew_runtime.object_value('Symbol', ':${name}')
+fn promises_boundary_symbol(name string) ruby.Value {
+	return ruby.object_value('Symbol', ':${name}')
 }
 
-fn promises_boundary_apply(args []brew_runtime.Value) brew_runtime.Value {
+fn promises_boundary_apply(args []ruby.Value) ruby.Value {
 	return if args.len > 0 { args.last() } else { promises_nil_value() }
 }
 
-fn promises_boundary_call_rest(id int, args []brew_runtime.Value) brew_runtime.Value {
+fn promises_boundary_call_rest(id int, args []ruby.Value) ruby.Value {
 	match id {
 		29, 30, 36, 37, 38, 39 { panic('NotImplementedError') }
 		31 {
-			return brew_runtime.bool_value(false)
+			return ruby.bool_value(false)
 		}
 		32 {
 			return promises_boundary_symbol('pending')
 		}
 		33 {
-			return brew_runtime.bool_value(true)
+			return ruby.bool_value(true)
 		}
 		34 {
 			return promises_boundary_symbol('resolved')
@@ -1454,7 +1454,7 @@ fn promises_boundary_call_rest(id int, args []brew_runtime.Value) brew_runtime.V
 			}, 'Concurrent::Promises::InternalStates::Fulfilled')
 		}
 		41 {
-			return brew_runtime.bool_value(true)
+			return ruby.bool_value(true)
 		}
 		42, 46 {
 			return promises_boundary_apply(args)
@@ -1476,7 +1476,7 @@ fn promises_boundary_call_rest(id int, args []brew_runtime.Value) brew_runtime.V
 			}, 'Concurrent::Promises::InternalStates::Rejected')
 		}
 		48, 54 {
-			return brew_runtime.bool_value(false)
+			return ruby.bool_value(false)
 		}
 		49 {
 			return promises_nil_value()
@@ -1527,10 +1527,10 @@ fn promises_boundary_call_rest(id int, args []brew_runtime.Value) brew_runtime.V
 			mut future := promises_boundary_receiver(args)
 			current := promises_future_state_boundary(mut future)
 			if current.type_name != args[1].type_name {
-				return brew_runtime.bool_value(false)
+				return ruby.bool_value(false)
 			}
 			promises_boundary_assign_state(mut future, args[2])
-			return brew_runtime.bool_value(true)
+			return ruby.bool_value(true)
 		}
 		63 {
 			if args.len < 2 {
@@ -1558,11 +1558,11 @@ fn promises_boundary_call_rest(id int, args []brew_runtime.Value) brew_runtime.V
 		}
 		67 {
 			mut future := promises_boundary_receiver(args)
-			return brew_runtime.bool_value(future.pending())
+			return ruby.bool_value(future.pending())
 		}
 		68 {
 			mut future := promises_boundary_receiver(args)
-			return brew_runtime.bool_value(future.resolved())
+			return ruby.bool_value(future.resolved())
 		}
 		69 {
 			mut future := promises_boundary_receiver(args)
@@ -1575,7 +1575,7 @@ fn promises_boundary_call_rest(id int, args []brew_runtime.Value) brew_runtime.V
 				future.wait(none)
 				return args[0]
 			}
-			return brew_runtime.bool_value(future.wait(promises_boundary_timeout(args, 1)))
+			return ruby.bool_value(future.wait(promises_boundary_timeout(args, 1)))
 		}
 		71 {
 			mut future := promises_boundary_receiver(args)
@@ -1591,7 +1591,7 @@ fn promises_boundary_call_rest(id int, args []brew_runtime.Value) brew_runtime.V
 		}
 		74, 75 {
 			mut future := promises_boundary_receiver(args)
-			return brew_runtime.string_value(future.string())
+			return ruby.string_value(future.string())
 		}
 		76, 77 {
 			if args.len < 2 {
@@ -1626,7 +1626,7 @@ fn promises_boundary_call_rest(id int, args []brew_runtime.Value) brew_runtime.V
 			}
 			reserved := if args.len > 3 { promises_boundary_bool(args[3], false) } else { false }
 			resolved := future.resolve_result(result, raise_reassign, reserved) or { panic(err) }
-			return if resolved { args[0] } else { brew_runtime.bool_value(false) }
+			return if resolved { args[0] } else { ruby.bool_value(false) }
 		}
 		83 {
 			mut future := promises_boundary_receiver(args)
@@ -1634,18 +1634,18 @@ fn promises_boundary_call_rest(id int, args []brew_runtime.Value) brew_runtime.V
 		}
 		84 {
 			mut future := promises_boundary_receiver(args)
-			return brew_runtime.array_value([]brew_runtime.Value{len: future.callbacks_count(), init: promises_boundary_symbol('callback')})
+			return ruby.array_value([]ruby.Value{len: future.callbacks_count(), init: promises_boundary_symbol('callback')})
 		}
 		85 {
 			return promises_internal_promise_value(promises_boundary_receiver(args), 'AbstractPromise')
 		}
 		86 {
 			mut future := promises_boundary_receiver(args)
-			return brew_runtime.bool_value(future.was_touched())
+			return ruby.bool_value(future.was_touched())
 		}
 		87 {
 			mut future := promises_boundary_receiver(args)
-			return brew_runtime.int_value(future.waiting_threads())
+			return ruby.int_value(future.waiting_threads())
 		}
 		88 {
 			if args.len < 2 {
@@ -1672,7 +1672,7 @@ fn promises_boundary_call_rest(id int, args []brew_runtime.Value) brew_runtime.V
 		}
 		93 {
 			mut future := promises_boundary_receiver(args)
-			return brew_runtime.bool_value(future.wait(promises_boundary_timeout(args, 1)))
+			return ruby.bool_value(future.wait(promises_boundary_timeout(args, 1)))
 		}
 		98 {
 			if args.len >= 2 {
@@ -1728,7 +1728,7 @@ fn promises_boundary_call_rest(id int, args []brew_runtime.Value) brew_runtime.V
 			if raise_reassign {
 				panic('Concurrent::MultipleAssignmentError: Event can be resolved only once')
 			}
-			return brew_runtime.bool_value(false)
+			return ruby.bool_value(false)
 		}
 		110 {
 			return promises_nil_value()
@@ -1739,7 +1739,7 @@ fn promises_boundary_call_rest(id int, args []brew_runtime.Value) brew_runtime.V
 	}
 }
 
-fn promises_boundary_resolution(value brew_runtime.Value) ?PromisesResult {
+fn promises_boundary_resolution(value ruby.Value) ?PromisesResult {
 	if value.type_name == 'NilClass' {
 		return none
 	}
@@ -1754,22 +1754,22 @@ fn promises_boundary_resolution(value brew_runtime.Value) ?PromisesResult {
 	}
 }
 
-fn promises_resolve_timeout(mut future PromisesEventFuture, resolution_value brew_runtime.Value) bool {
+fn promises_resolve_timeout(mut future PromisesEventFuture, resolution_value ruby.Value) bool {
 	if resolution := promises_boundary_resolution(resolution_value) {
 		return future.resolve_result(resolution, false, false) or { false }
 	}
 	return false
 }
 
-fn promises_boundary_call_future_and_promises(id int, args []brew_runtime.Value) brew_runtime.Value {
+fn promises_boundary_call_future_and_promises(id int, args []ruby.Value) ruby.Value {
 	match id {
 		111 {
 			mut future := promises_boundary_receiver(args)
-			return brew_runtime.bool_value(future.fulfilled())
+			return ruby.bool_value(future.fulfilled())
 		}
 		112 {
 			mut future := promises_boundary_receiver(args)
-			return brew_runtime.bool_value(future.rejected())
+			return ruby.bool_value(future.rejected())
 		}
 		113 {
 			mut future := promises_boundary_receiver(args)
@@ -1791,7 +1791,7 @@ fn promises_boundary_call_future_and_promises(id int, args []brew_runtime.Value)
 			if future.rejected() {
 				panic(future.reason(none, promises_nil_value()).repr)
 			}
-			return if args.len > 1 { brew_runtime.bool_value(resolved) } else { args[0] }
+			return if args.len > 1 { ruby.bool_value(resolved) } else { args[0] }
 		}
 		117 {
 			mut future := promises_boundary_receiver(args)
@@ -1898,7 +1898,7 @@ fn promises_boundary_call_future_and_promises(id int, args []brew_runtime.Value)
 		}
 		143, 144 {
 			mut future := promises_boundary_receiver(args)
-			return brew_runtime.string_value(future.string())
+			return ruby.string_value(future.string())
 		}
 		145 {
 			if args.len > 1 && promises_is_boundary_future(args[1]) {
@@ -1915,7 +1915,7 @@ fn promises_boundary_call_future_and_promises(id int, args []brew_runtime.Value)
 			if raise_reassign {
 				panic('Concurrent::MultipleAssignmentError: Future can be resolved only once')
 			}
-			return brew_runtime.bool_value(false)
+			return ruby.bool_value(false)
 		}
 		147 {
 			mut future := promises_boundary_receiver(args)
@@ -1923,7 +1923,7 @@ fn promises_boundary_call_future_and_promises(id int, args []brew_runtime.Value)
 			if future.rejected() {
 				panic(future.reason(none, promises_nil_value()).repr)
 			}
-			return brew_runtime.bool_value(resolved)
+			return ruby.bool_value(resolved)
 		}
 		148, 149, 150, 151, 152 {
 			return promises_nil_value()
@@ -1937,7 +1937,7 @@ fn promises_boundary_call_future_and_promises(id int, args []brew_runtime.Value)
 			}
 			reserved := if args.len > 2 { promises_boundary_bool(args[2], false) } else { false }
 			resolved := event.resolve_event(raise_reassign, reserved) or { panic(err) }
-			return if resolved { args[0] } else { brew_runtime.bool_value(false) }
+			return if resolved { args[0] } else { ruby.bool_value(false) }
 		}
 		154 {
 			mut event := promises_boundary_receiver(args)
@@ -1948,9 +1948,9 @@ fn promises_boundary_call_future_and_promises(id int, args []brew_runtime.Value)
 			resolved := event.wait(promises_boundary_timeout(args, 1))
 			if !resolved && args.len > 2 && promises_boundary_bool(args[2], false) {
 				resolved_on_timeout := event.resolve_event(false, false) or { false }
-				return brew_runtime.bool_value(!resolved_on_timeout)
+				return ruby.bool_value(!resolved_on_timeout)
 			}
-			return if args.len > 1 { brew_runtime.bool_value(resolved) } else { args[0] }
+			return if args.len > 1 { ruby.bool_value(resolved) } else { args[0] }
 		}
 		156 {
 			mut future := promises_boundary_receiver(args)
@@ -1964,7 +1964,7 @@ fn promises_boundary_call_future_and_promises(id int, args []brew_runtime.Value)
 			}
 			reserved := if args.len > 5 { promises_boundary_bool(args[5], false) } else { false }
 			resolved := future.resolve(fulfilled, value, reason, raise_reassign, reserved) or { panic(err) }
-			return if resolved { args[0] } else { brew_runtime.bool_value(false) }
+			return if resolved { args[0] } else { ruby.bool_value(false) }
 		}
 		157 {
 			mut future := promises_boundary_receiver(args)
@@ -1978,7 +1978,7 @@ fn promises_boundary_call_future_and_promises(id int, args []brew_runtime.Value)
 			}, if args.len > 3 { promises_boundary_bool(args[3], false) } else { false }) or {
 				panic(err)
 			}
-			return if resolved { args[0] } else { brew_runtime.bool_value(false) }
+			return if resolved { args[0] } else { ruby.bool_value(false) }
 		}
 		158 {
 			mut future := promises_boundary_receiver(args)
@@ -1992,7 +1992,7 @@ fn promises_boundary_call_future_and_promises(id int, args []brew_runtime.Value)
 			}, if args.len > 3 { promises_boundary_bool(args[3], false) } else { false }) or {
 				panic(err)
 			}
-			return if resolved { args[0] } else { brew_runtime.bool_value(false) }
+			return if resolved { args[0] } else { ruby.bool_value(false) }
 		}
 		159, 160 {
 			mut future := promises_boundary_receiver(args)
@@ -2009,14 +2009,14 @@ fn promises_boundary_call_future_and_promises(id int, args []brew_runtime.Value)
 			if !resolved && args.len > 2 {
 				resolved_on_timeout := promises_resolve_timeout(mut future, args[2])
 				if resolved_on_timeout {
-					return brew_runtime.bool_value(false)
+					return ruby.bool_value(false)
 				}
 			}
 			if id == 162 && future.rejected() {
 				panic(future.reason(none, promises_nil_value()).repr)
 			}
 			return if args.len > 1 {
-				brew_runtime.bool_value(resolved || future.resolved())
+				ruby.bool_value(resolved || future.resolved())
 			} else {
 				args[0]
 			}
@@ -2074,7 +2074,7 @@ fn promises_boundary_call_future_and_promises(id int, args []brew_runtime.Value)
 	}
 }
 
-fn promises_first_boundary_future(args []brew_runtime.Value) ?&PromisesEventFuture {
+fn promises_first_boundary_future(args []ruby.Value) ?&PromisesEventFuture {
 	for value in args {
 		if promises_is_boundary_future(value) {
 			return promises_boundary_receiver_value(value)
@@ -2083,14 +2083,14 @@ fn promises_first_boundary_future(args []brew_runtime.Value) ?&PromisesEventFutu
 	return none
 }
 
-fn promises_internal_new_future(args []brew_runtime.Value, is_event bool) &PromisesEventFuture {
+fn promises_internal_new_future(args []ruby.Value, is_event bool) &PromisesEventFuture {
 	if existing := promises_first_boundary_future(args) {
 		return existing
 	}
 	return promises_new_event_future(is_event, promises_boundary_executor(args, 0))
 }
 
-fn promises_boundary_call_internal_promises(id int, args []brew_runtime.Value) brew_runtime.Value {
+fn promises_boundary_call_internal_promises(id int, args []ruby.Value) ruby.Value {
 	match id {
 		168 {
 			future := promises_internal_new_future(args, false)
@@ -2114,7 +2114,7 @@ fn promises_boundary_call_internal_promises(id int, args []brew_runtime.Value) b
 		}
 		174, 175 {
 			mut future := promises_boundary_receiver(args)
-			return brew_runtime.string_value('#<Concurrent::Promises::AbstractPromise ${future.string()}>')
+			return ruby.string_value('#<Concurrent::Promises::AbstractPromise ${future.string()}>')
 		}
 		176 {
 			mut future := promises_boundary_receiver(args)
@@ -2166,7 +2166,7 @@ fn promises_boundary_call_internal_promises(id int, args []brew_runtime.Value) b
 			return promises_internal_promise_value(promises_zip_futures(blockers), 'BlockedPromise')
 		}
 		184 {
-			mut values := []brew_runtime.Value{}
+			mut values := []ruby.Value{}
 			for value in args {
 				if value.type_name == 'Array' {
 					values << (value.as_array() or { [] })
@@ -2177,7 +2177,7 @@ fn promises_boundary_call_internal_promises(id int, args []brew_runtime.Value) b
 			return if values.len == 0 {
 				promises_nil_value()
 			} else {
-				brew_runtime.array_value(values)
+				ruby.array_value(values)
 			}
 		}
 		185 {
@@ -2216,7 +2216,7 @@ fn promises_boundary_call_internal_promises(id int, args []brew_runtime.Value) b
 		}
 		191 {
 			countdown := if args.len > 1 { args[1].as_int() or { 0 } } else { 0 }
-			return brew_runtime.bool_value(countdown == 0)
+			return ruby.bool_value(countdown == 0)
 		}
 		192 {
 			mut future := promises_boundary_receiver(args)
@@ -2224,7 +2224,7 @@ fn promises_boundary_call_internal_promises(id int, args []brew_runtime.Value) b
 			future.aggregate_remaining--
 			countdown := future.aggregate_remaining
 			future.mutex.unlock()
-			return brew_runtime.int_value(countdown)
+			return ruby.int_value(countdown)
 		}
 		193 { panic('NotImplementedError') }
 		194, 196, 198 {
@@ -2296,7 +2296,7 @@ fn promises_boundary_call_internal_promises(id int, args []brew_runtime.Value) b
 		}
 		205 {
 			mut future := promises_boundary_receiver(args)
-			return brew_runtime.bool_value(future.was_touched())
+			return ruby.bool_value(future.was_touched())
 		}
 		206, 210, 212, 214, 216, 219, 221, 223, 226, 228, 231, 234 {
 			return promises_internal_resolution_action(id, args)
@@ -2304,7 +2304,7 @@ fn promises_boundary_call_internal_promises(id int, args []brew_runtime.Value) b
 		207 {
 			mut future := promises_boundary_receiver(args)
 			countdown := if args.len > 1 { args[1].int_data } else { 0 }
-			return brew_runtime.bool_value(!future.resolved() && countdown == 0)
+			return ruby.bool_value(!future.resolved() && countdown == 0)
 		}
 		208 {
 			mut future := promises_boundary_receiver(args)
@@ -2344,7 +2344,7 @@ fn promises_boundary_call_internal_promises(id int, args []brew_runtime.Value) b
 					})
 				}
 			}
-			return brew_runtime.int_value(target.aggregate_remaining)
+			return ruby.int_value(target.aggregate_remaining)
 		}
 		220 {
 			return promises_internal_promise_value(promises_resolvable_event_on(promises_boundary_executor(args, 2)), 'EventWrapperPromise')
@@ -2359,7 +2359,7 @@ fn promises_boundary_call_internal_promises(id int, args []brew_runtime.Value) b
 			target.aggregate_resolutions = []?PromisesResult{len: count}
 			target.aggregate_remaining = count
 			if count == 0 {
-				target.fulfill(brew_runtime.array_value([]), false, false) or {}
+				target.fulfill(ruby.array_value([]), false, false) or {}
 			}
 			return promises_internal_promise_value(target, 'ZipFuturesPromise')
 		}
@@ -2378,7 +2378,7 @@ fn promises_boundary_call_internal_promises(id int, args []brew_runtime.Value) b
 			return promises_internal_promise_value(promises_resolvable_event_on(promises_boundary_executor(args, 2)), 'AnyResolvedEventPromise')
 		}
 		230, 233 {
-			return brew_runtime.bool_value(true)
+			return ruby.bool_value(true)
 		}
 		232 {
 			return promises_internal_promise_value(promises_resolvable_future_on(promises_boundary_executor(args, 2)), 'AnyResolvedFuturePromise')
@@ -2387,9 +2387,9 @@ fn promises_boundary_call_internal_promises(id int, args []brew_runtime.Value) b
 			if args.len > 2 && promises_is_boundary_future(args[2]) {
 				mut future := promises_boundary_receiver_value(args[2])
 				countdown := if args.len > 1 { args[1].int_data } else { 0 }
-				return brew_runtime.bool_value((future.is_event && future.resolved()) || future.fulfilled() || countdown == 0)
+				return ruby.bool_value((future.is_event && future.resolved()) || future.fulfilled() || countdown == 0)
 			}
-			return brew_runtime.bool_value(args.len > 1 && args[1].int_data == 0)
+			return ruby.bool_value(args.len > 1 && args[1].int_data == 0)
 		}
 		236 {
 			return promises_internal_promise_value(promises_delay_event_on(promises_boundary_executor(args, 0)), 'DelayPromise')
@@ -2405,11 +2405,11 @@ fn promises_boundary_call_internal_promises(id int, args []brew_runtime.Value) b
 		}
 		239 {
 			mut future := promises_boundary_receiver(args)
-			return brew_runtime.float_value(future.intended_time_seconds)
+			return ruby.float_value(future.intended_time_seconds)
 		}
 		240 {
 			mut future := promises_boundary_receiver(args)
-			return brew_runtime.string_value('${future.string()[..future.string().len - 1]} intended_time: ${future.intended_time_seconds}>')
+			return ruby.string_value('${future.string()[..future.string().len - 1]} intended_time: ${future.intended_time_seconds}>')
 		}
 		241 {
 			if args.len < 2 {
@@ -2421,7 +2421,7 @@ fn promises_boundary_call_internal_promises(id int, args []brew_runtime.Value) b
 	}
 }
 
-fn promises_internal_resolution_action(id int, args []brew_runtime.Value) brew_runtime.Value {
+fn promises_internal_resolution_action(id int, args []ruby.Value) ruby.Value {
 	mut target := promises_boundary_receiver(args)
 	if args.len < 2 || !promises_is_boundary_future(args[1]) {
 		return promises_nil_value()
@@ -2446,1207 +2446,1207 @@ fn promises_internal_resolution_action(id int, args []brew_runtime.Value) brew_r
 }
 
 // Ruby method `default_executor` at line 54.
-pub fn ruby_promises_l54_d1_default_executor(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l54_d1_default_executor(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(1, args)
 }
 
 // Ruby method `resolvable_event` at line 63.
-pub fn ruby_promises_l63_d2_resolvable_event(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l63_d2_resolvable_event(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(2, args)
 }
 
 // Ruby method `resolvable_event_on(default_executor = self.default_executor)` at line 72.
-pub fn ruby_promises_l72_d3_resolvable_event_on(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l72_d3_resolvable_event_on(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(3, args)
 }
 
 // Ruby method `resolvable_future` at line 78.
-pub fn ruby_promises_l78_d4_resolvable_future(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l78_d4_resolvable_future(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(4, args)
 }
 
 // Ruby method `resolvable_future_on(default_executor = self.default_executor)` at line 88.
-pub fn ruby_promises_l88_d5_resolvable_future_on(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l88_d5_resolvable_future_on(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(5, args)
 }
 
 // Ruby method `future(*args, &task)` at line 94.
-pub fn ruby_promises_l94_d6_future(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l94_d6_future(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(6, args)
 }
 
 // Ruby method `future_on(default_executor, *args, &task)` at line 106.
-pub fn ruby_promises_l106_d7_future_on(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l106_d7_future_on(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(7, args)
 }
 
 // Ruby method `resolved_future(fulfilled, value, reason, default_executor = self.default_executor)` at line 118.
-pub fn ruby_promises_l118_d8_resolved_future(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l118_d8_resolved_future(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(8, args)
 }
 
 // Ruby method `fulfilled_future(value, default_executor = self.default_executor)` at line 127.
-pub fn ruby_promises_l127_d9_fulfilled_future(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l127_d9_fulfilled_future(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(9, args)
 }
 
 // Ruby method `rejected_future(reason, default_executor = self.default_executor)` at line 136.
-pub fn ruby_promises_l136_d10_rejected_future(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l136_d10_rejected_future(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(10, args)
 }
 
 // Ruby method `resolved_event(default_executor = self.default_executor)` at line 144.
-pub fn ruby_promises_l144_d11_resolved_event(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l144_d11_resolved_event(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(11, args)
 }
 
 // Ruby method `make_future(argument = nil, default_executor = self.default_executor)` at line 174.
-pub fn ruby_promises_l174_d12_make_future(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l174_d12_make_future(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(12, args)
 }
 
 // Ruby method `delay(*args, &task)` at line 190.
-pub fn ruby_promises_l190_d13_delay(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l190_d13_delay(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(13, args)
 }
 
 // Ruby method `delay_on(default_executor, *args, &task)` at line 207.
-pub fn ruby_promises_l207_d14_delay_on(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l207_d14_delay_on(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(14, args)
 }
 
 // Ruby method `schedule(intended_time, *args, &task)` at line 214.
-pub fn ruby_promises_l214_d15_schedule(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l214_d15_schedule(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(15, args)
 }
 
 // Ruby method `schedule_on(default_executor, intended_time, *args, &task)` at line 233.
-pub fn ruby_promises_l233_d16_schedule_on(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l233_d16_schedule_on(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(16, args)
 }
 
 // Ruby method `zip_futures(*futures_and_or_events)` at line 240.
-pub fn ruby_promises_l240_d17_zip_futures(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l240_d17_zip_futures(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(17, args)
 }
 
 // Ruby method `zip_futures_on(default_executor, *futures_and_or_events)` at line 254.
-pub fn ruby_promises_l254_d18_zip_futures_on(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l254_d18_zip_futures_on(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(18, args)
 }
 
 // Ruby alias_method `alias_method :zip, :zip_futures` at line 258.
-pub fn ruby_promises_l258_d19_zip(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l258_d19_zip(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(19, args)
 }
 
 // Ruby method `zip_events(*futures_and_or_events)` at line 262.
-pub fn ruby_promises_l262_d20_zip_events(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l262_d20_zip_events(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(20, args)
 }
 
 // Ruby method `zip_events_on(default_executor, *futures_and_or_events)` at line 272.
-pub fn ruby_promises_l272_d21_zip_events_on(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l272_d21_zip_events_on(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(21, args)
 }
 
 // Ruby method `any_resolved_future(*futures_and_or_events)` at line 278.
-pub fn ruby_promises_l278_d22_any_resolved_future(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l278_d22_any_resolved_future(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(22, args)
 }
 
 // Ruby alias_method `alias_method :any, :any_resolved_future` at line 282.
-pub fn ruby_promises_l282_d23_any(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l282_d23_any(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(23, args)
 }
 
 // Ruby method `any_resolved_future_on(default_executor, *futures_and_or_events)` at line 294.
-pub fn ruby_promises_l294_d24_any_resolved_future_on(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l294_d24_any_resolved_future_on(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(24, args)
 }
 
 // Ruby method `any_fulfilled_future(*futures_and_or_events)` at line 300.
-pub fn ruby_promises_l300_d25_any_fulfilled_future(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l300_d25_any_fulfilled_future(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(25, args)
 }
 
 // Ruby method `any_fulfilled_future_on(default_executor, *futures_and_or_events)` at line 313.
-pub fn ruby_promises_l313_d26_any_fulfilled_future_on(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l313_d26_any_fulfilled_future_on(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(26, args)
 }
 
 // Ruby method `any_event(*futures_and_or_events)` at line 319.
-pub fn ruby_promises_l319_d27_any_event(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l319_d27_any_event(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(27, args)
 }
 
 // Ruby method `any_event_on(default_executor, *futures_and_or_events)` at line 329.
-pub fn ruby_promises_l329_d28_any_event_on(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l329_d28_any_event_on(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(28, args)
 }
 
 // Ruby method `resolved?` at line 341.
-pub fn ruby_promises_l341_d29_resolved(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l341_d29_resolved(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(29, args)
 }
 
 // Ruby method `to_sym` at line 345.
-pub fn ruby_promises_l345_d30_to_sym(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l345_d30_to_sym(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(30, args)
 }
 
 // Ruby method `resolved?` at line 352.
-pub fn ruby_promises_l352_d31_resolved(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l352_d31_resolved(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(31, args)
 }
 
 // Ruby method `to_sym` at line 356.
-pub fn ruby_promises_l356_d32_to_sym(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l356_d32_to_sym(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(32, args)
 }
 
 // Ruby method `resolved?` at line 367.
-pub fn ruby_promises_l367_d33_resolved(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l367_d33_resolved(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(33, args)
 }
 
 // Ruby method `to_sym` at line 371.
-pub fn ruby_promises_l371_d34_to_sym(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l371_d34_to_sym(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(34, args)
 }
 
 // Ruby method `result` at line 375.
-pub fn ruby_promises_l375_d35_result(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l375_d35_result(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(35, args)
 }
 
 // Ruby method `fulfilled?` at line 379.
-pub fn ruby_promises_l379_d36_fulfilled(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l379_d36_fulfilled(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(36, args)
 }
 
 // Ruby method `value` at line 383.
-pub fn ruby_promises_l383_d37_value(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l383_d37_value(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(37, args)
 }
 
 // Ruby method `reason` at line 387.
-pub fn ruby_promises_l387_d38_reason(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l387_d38_reason(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(38, args)
 }
 
 // Ruby method `apply` at line 391.
-pub fn ruby_promises_l391_d39_apply(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l391_d39_apply(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(39, args)
 }
 
 // Ruby method `initialize(value)` at line 399.
-pub fn ruby_promises_l399_d40_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l399_d40_initialize(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(40, args)
 }
 
 // Ruby method `fulfilled?` at line 403.
-pub fn ruby_promises_l403_d41_fulfilled(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l403_d41_fulfilled(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(41, args)
 }
 
 // Ruby method `apply(args, block)` at line 407.
-pub fn ruby_promises_l407_d42_apply(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l407_d42_apply(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(42, args)
 }
 
 // Ruby method `value` at line 411.
-pub fn ruby_promises_l411_d43_value(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l411_d43_value(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(43, args)
 }
 
 // Ruby method `reason` at line 415.
-pub fn ruby_promises_l415_d44_reason(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l415_d44_reason(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(44, args)
 }
 
 // Ruby method `to_sym` at line 419.
-pub fn ruby_promises_l419_d45_to_sym(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l419_d45_to_sym(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(45, args)
 }
 
 // Ruby method `apply(args, block)` at line 426.
-pub fn ruby_promises_l426_d46_apply(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l426_d46_apply(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(46, args)
 }
 
 // Ruby method `initialize(reason)` at line 433.
-pub fn ruby_promises_l433_d47_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l433_d47_initialize(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(47, args)
 }
 
 // Ruby method `fulfilled?` at line 437.
-pub fn ruby_promises_l437_d48_fulfilled(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l437_d48_fulfilled(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(48, args)
 }
 
 // Ruby method `value` at line 441.
-pub fn ruby_promises_l441_d49_value(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l441_d49_value(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(49, args)
 }
 
 // Ruby method `reason` at line 445.
-pub fn ruby_promises_l445_d50_reason(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l445_d50_reason(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(50, args)
 }
 
 // Ruby method `to_sym` at line 449.
-pub fn ruby_promises_l449_d51_to_sym(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l449_d51_to_sym(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(51, args)
 }
 
 // Ruby method `apply(args, block)` at line 453.
-pub fn ruby_promises_l453_d52_apply(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l453_d52_apply(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(52, args)
 }
 
 // Ruby method `initialize(value, reason)` at line 460.
-pub fn ruby_promises_l460_d53_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l460_d53_initialize(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(53, args)
 }
 
 // Ruby method `fulfilled?` at line 466.
-pub fn ruby_promises_l466_d54_fulfilled(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l466_d54_fulfilled(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(54, args)
 }
 
 // Ruby method `to_sym` at line 470.
-pub fn ruby_promises_l470_d55_to_sym(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l470_d55_to_sym(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(55, args)
 }
 
 // Ruby method `value` at line 474.
-pub fn ruby_promises_l474_d56_value(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l474_d56_value(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(56, args)
 }
 
 // Ruby method `reason` at line 478.
-pub fn ruby_promises_l478_d57_reason(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l478_d57_reason(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(57, args)
 }
 
 // Ruby method `apply(args, block)` at line 482.
-pub fn ruby_promises_l482_d58_apply(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l482_d58_apply(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(58, args)
 }
 
 // Ruby method `RESOLVED.to_sym` at line 494.
-pub fn ruby_promises_l494_d59_resolved_to_sym(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l494_d59_resolved_to_sym(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(59, args)
 }
 
 // Ruby attr_atomic `attr_atomic(:internal_state)` at line 515.
-pub fn ruby_promises_l515_d60_internal_state(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l515_d60_internal_state(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(60, args)
 }
 
 // Ruby attr_atomic `attr_atomic(:internal_state)` at line 515.
-pub fn ruby_promises_l515_d61_internal_state(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l515_d61_internal_state(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(61, args)
 }
 
 // Ruby attr_atomic `attr_atomic(:internal_state)` at line 515.
-pub fn ruby_promises_l515_d62_compare_and_set_internal_state(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l515_d62_compare_and_set_internal_state(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(62, args)
 }
 
 // Ruby attr_atomic `attr_atomic(:internal_state)` at line 515.
-pub fn ruby_promises_l515_d63_swap_internal_state(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l515_d63_swap_internal_state(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(63, args)
 }
 
 // Ruby attr_atomic `attr_atomic(:internal_state)` at line 515.
-pub fn ruby_promises_l515_d64_update_internal_state(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l515_d64_update_internal_state(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(64, args)
 }
 
 // Ruby method `initialize(promise, default_executor)` at line 522.
-pub fn ruby_promises_l522_d65_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l522_d65_initialize(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(65, args)
 }
 
 // Ruby method `state` at line 543.
-pub fn ruby_promises_l543_d66_state(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l543_d66_state(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(66, args)
 }
 
 // Ruby method `pending?` at line 549.
-pub fn ruby_promises_l549_d67_pending(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l549_d67_pending(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(67, args)
 }
 
 // Ruby method `resolved?` at line 555.
-pub fn ruby_promises_l555_d68_resolved(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l555_d68_resolved(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(68, args)
 }
 
 // Ruby method `touch` at line 562.
-pub fn ruby_promises_l562_d69_touch(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l562_d69_touch(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(69, args)
 }
 
 // Ruby method `wait(timeout = nil)` at line 578.
-pub fn ruby_promises_l578_d70_wait(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l578_d70_wait(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(70, args)
 }
 
 // Ruby method `default_executor` at line 590.
-pub fn ruby_promises_l590_d71_default_executor(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l590_d71_default_executor(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(71, args)
 }
 
 // Ruby method `chain(*args, &task)` at line 596.
-pub fn ruby_promises_l596_d72_chain(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l596_d72_chain(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(72, args)
 }
 
 // Ruby method `chain_on(executor, *args, &task)` at line 614.
-pub fn ruby_promises_l614_d73_chain_on(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l614_d73_chain_on(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(73, args)
 }
 
 // Ruby method `to_s` at line 619.
-pub fn ruby_promises_l619_d74_to_s(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l619_d74_to_s(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(74, args)
 }
 
 // Ruby alias_method `alias_method :inspect, :to_s` at line 623.
-pub fn ruby_promises_l623_d75_inspect(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l623_d75_inspect(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(75, args)
 }
 
 // Ruby method `chain_resolvable(resolvable)` at line 629.
-pub fn ruby_promises_l629_d76_chain_resolvable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l629_d76_chain_resolvable(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(76, args)
 }
 
 // Ruby alias_method `alias_method :tangle, :chain_resolvable` at line 633.
-pub fn ruby_promises_l633_d77_tangle(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l633_d77_tangle(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(77, args)
 }
 
 // Ruby method `on_resolution(*args, &callback)` at line 637.
-pub fn ruby_promises_l637_d78_on_resolution(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l637_d78_on_resolution(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(78, args)
 }
 
 // Ruby method `on_resolution!(*args, &callback)` at line 655.
-pub fn ruby_promises_l655_d79_on_resolution(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l655_d79_on_resolution(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(79, args)
 }
 
 // Ruby method `on_resolution_using(executor, *args, &callback)` at line 673.
-pub fn ruby_promises_l673_d80_on_resolution_using(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l673_d80_on_resolution_using(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(80, args)
 }
 
 // Ruby method `with_default_executor(executor)` at line 683.
-pub fn ruby_promises_l683_d81_with_default_executor(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l683_d81_with_default_executor(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(81, args)
 }
 
 // Ruby method `resolve_with(state, raise_on_reassign = true, reserved = false)` at line 688.
-pub fn ruby_promises_l688_d82_resolve_with(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l688_d82_resolve_with(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(82, args)
 }
 
 // Ruby method `blocks` at line 702.
-pub fn ruby_promises_l702_d83_blocks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l702_d83_blocks(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(83, args)
 }
 
 // Ruby method `callbacks` at line 710.
-pub fn ruby_promises_l710_d84_callbacks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l710_d84_callbacks(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(84, args)
 }
 
 // Ruby method `promise` at line 716.
-pub fn ruby_promises_l716_d85_promise(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l716_d85_promise(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(85, args)
 }
 
 // Ruby method `touched?` at line 722.
-pub fn ruby_promises_l722_d86_touched(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l722_d86_touched(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(86, args)
 }
 
 // Ruby method `waiting_threads` at line 728.
-pub fn ruby_promises_l728_d87_waiting_threads(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l728_d87_waiting_threads(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(87, args)
 }
 
 // Ruby method `add_callback_notify_blocked(promise, index)` at line 733.
-pub fn ruby_promises_l733_d88_add_callback_notify_blocked(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l733_d88_add_callback_notify_blocked(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(88, args)
 }
 
 // Ruby method `add_callback_clear_delayed_node(node)` at line 738.
-pub fn ruby_promises_l738_d89_add_callback_clear_delayed_node(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l738_d89_add_callback_clear_delayed_node(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(89, args)
 }
 
 // Ruby method `with_hidden_resolvable` at line 743.
-pub fn ruby_promises_l743_d90_with_hidden_resolvable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l743_d90_with_hidden_resolvable(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(90, args)
 }
 
 // Ruby method `add_callback(method, *args)` at line 750.
-pub fn ruby_promises_l750_d91_add_callback(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l750_d91_add_callback(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(91, args)
 }
 
 // Ruby method `callback_clear_delayed_node(state, node)` at line 763.
-pub fn ruby_promises_l763_d92_callback_clear_delayed_node(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l763_d92_callback_clear_delayed_node(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(92, args)
 }
 
 // Ruby method `wait_until_resolved(timeout)` at line 768.
-pub fn ruby_promises_l768_d93_wait_until_resolved(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l768_d93_wait_until_resolved(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(93, args)
 }
 
 // Ruby method `call_callback(method, state, args)` at line 796.
-pub fn ruby_promises_l796_d94_call_callback(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l796_d94_call_callback(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(94, args)
 }
 
 // Ruby method `call_callbacks(state)` at line 800.
-pub fn ruby_promises_l800_d95_call_callbacks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l800_d95_call_callbacks(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(95, args)
 }
 
 // Ruby method `with_async(executor, *args, &block)` at line 808.
-pub fn ruby_promises_l808_d96_with_async(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l808_d96_with_async(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(96, args)
 }
 
 // Ruby method `async_callback_on_resolution(state, executor, args, callback)` at line 812.
-pub fn ruby_promises_l812_d97_async_callback_on_resolution(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l812_d97_async_callback_on_resolution(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(97, args)
 }
 
 // Ruby method `callback_notify_blocked(state, promise, index)` at line 818.
-pub fn ruby_promises_l818_d98_callback_notify_blocked(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l818_d98_callback_notify_blocked(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(98, args)
 }
 
 // Ruby alias_method `alias_method :then, :chain` at line 828.
-pub fn ruby_promises_l828_d99_then(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l828_d99_then(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(99, args)
 }
 
 // Ruby method `zip(other)` at line 839.
-pub fn ruby_promises_l839_d100_zip(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l839_d100_zip(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(100, args)
 }
 
 // Ruby alias_method `alias_method :&, :zip` at line 847.
-pub fn ruby_promises_l847_d101_zip(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l847_d101_zip(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(101, args)
 }
 
 // Ruby method `any(event_or_future)` at line 853.
-pub fn ruby_promises_l853_d102_any(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l853_d102_any(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(102, args)
 }
 
 // Ruby alias_method `alias_method :|, :any` at line 857.
-pub fn ruby_promises_l857_d103_any(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l857_d103_any(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(103, args)
 }
 
 // Ruby method `delay` at line 863.
-pub fn ruby_promises_l863_d104_delay(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l863_d104_delay(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(104, args)
 }
 
 // Ruby method `schedule(intended_time)` at line 875.
-pub fn ruby_promises_l875_d105_schedule(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l875_d105_schedule(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(105, args)
 }
 
 // Ruby method `to_future` at line 885.
-pub fn ruby_promises_l885_d106_to_future(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l885_d106_to_future(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(106, args)
 }
 
 // Ruby method `to_event` at line 893.
-pub fn ruby_promises_l893_d107_to_event(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l893_d107_to_event(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(107, args)
 }
 
 // Ruby method `with_default_executor(executor)` at line 899.
-pub fn ruby_promises_l899_d108_with_default_executor(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l899_d108_with_default_executor(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(108, args)
 }
 
 // Ruby method `rejected_resolution(raise_on_reassign, state)` at line 905.
-pub fn ruby_promises_l905_d109_rejected_resolution(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l905_d109_rejected_resolution(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(109, args)
 }
 
 // Ruby method `callback_on_resolution(state, args, callback)` at line 910.
-pub fn ruby_promises_l910_d110_callback_on_resolution(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l910_d110_callback_on_resolution(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(110, args)
 }
 
 // Ruby method `fulfilled?` at line 922.
-pub fn ruby_promises_l922_d111_fulfilled(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l922_d111_fulfilled(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(111, args)
 }
 
 // Ruby method `rejected?` at line 929.
-pub fn ruby_promises_l929_d112_rejected(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l929_d112_rejected(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(112, args)
 }
 
 // Ruby method `value(timeout = nil, timeout_value = nil)` at line 951.
-pub fn ruby_promises_l951_d113_value(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l951_d113_value(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(113, args)
 }
 
 // Ruby method `reason(timeout = nil, timeout_value = nil)` at line 967.
-pub fn ruby_promises_l967_d114_reason(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l967_d114_reason(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(114, args)
 }
 
 // Ruby method `result(timeout = nil)` at line 982.
-pub fn ruby_promises_l982_d115_result(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l982_d115_result(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(115, args)
 }
 
 // Ruby method `wait!(timeout = nil)` at line 988.
-pub fn ruby_promises_l988_d116_wait(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l988_d116_wait(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(116, args)
 }
 
 // Ruby method `value!(timeout = nil, timeout_value = nil)` at line 998.
-pub fn ruby_promises_l998_d117_value(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l998_d117_value(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(117, args)
 }
 
 // Ruby method `exception(*args)` at line 1014.
-pub fn ruby_promises_l1014_d118_exception(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1014_d118_exception(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(118, args)
 }
 
 // Ruby method `then(*args, &task)` at line 1040.
-pub fn ruby_promises_l1040_d119_then(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1040_d119_then(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(119, args)
 }
 
 // Ruby method `then_on(executor, *args, &task)` at line 1052.
-pub fn ruby_promises_l1052_d120_then_on(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1052_d120_then_on(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(120, args)
 }
 
 // Ruby method `rescue(*args, &task)` at line 1058.
-pub fn ruby_promises_l1058_d121_rescue(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1058_d121_rescue(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(121, args)
 }
 
 // Ruby method `rescue_on(executor, *args, &task)` at line 1070.
-pub fn ruby_promises_l1070_d122_rescue_on(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1070_d122_rescue_on(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(122, args)
 }
 
 // Ruby method `zip(other)` at line 1076.
-pub fn ruby_promises_l1076_d123_zip(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1076_d123_zip(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(123, args)
 }
 
 // Ruby alias_method `alias_method :&, :zip` at line 1084.
-pub fn ruby_promises_l1084_d124_zip(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1084_d124_zip(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(124, args)
 }
 
 // Ruby method `any(event_or_future)` at line 1091.
-pub fn ruby_promises_l1091_d125_any(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1091_d125_any(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(125, args)
 }
 
 // Ruby alias_method `alias_method :|, :any` at line 1095.
-pub fn ruby_promises_l1095_d126_any(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1095_d126_any(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(126, args)
 }
 
 // Ruby method `delay` at line 1101.
-pub fn ruby_promises_l1101_d127_delay(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1101_d127_delay(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(127, args)
 }
 
 // Ruby method `schedule(intended_time)` at line 1108.
-pub fn ruby_promises_l1108_d128_schedule(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1108_d128_schedule(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(128, args)
 }
 
 // Ruby method `with_default_executor(executor)` at line 1117.
-pub fn ruby_promises_l1117_d129_with_default_executor(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1117_d129_with_default_executor(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(129, args)
 }
 
 // Ruby method `flat_future(level = 1)` at line 1126.
-pub fn ruby_promises_l1126_d130_flat_future(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1126_d130_flat_future(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(130, args)
 }
 
 // Ruby alias_method `alias_method :flat, :flat_future` at line 1130.
-pub fn ruby_promises_l1130_d131_flat(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1130_d131_flat(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(131, args)
 }
 
 // Ruby method `flat_event` at line 1136.
-pub fn ruby_promises_l1136_d132_flat_event(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1136_d132_flat_event(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(132, args)
 }
 
 // Ruby method `on_fulfillment(*args, &callback)` at line 1142.
-pub fn ruby_promises_l1142_d133_on_fulfillment(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1142_d133_on_fulfillment(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(133, args)
 }
 
 // Ruby method `on_fulfillment!(*args, &callback)` at line 1153.
-pub fn ruby_promises_l1153_d134_on_fulfillment(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1153_d134_on_fulfillment(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(134, args)
 }
 
 // Ruby method `on_fulfillment_using(executor, *args, &callback)` at line 1165.
-pub fn ruby_promises_l1165_d135_on_fulfillment_using(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1165_d135_on_fulfillment_using(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(135, args)
 }
 
 // Ruby method `on_rejection(*args, &callback)` at line 1171.
-pub fn ruby_promises_l1171_d136_on_rejection(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1171_d136_on_rejection(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(136, args)
 }
 
 // Ruby method `on_rejection!(*args, &callback)` at line 1182.
-pub fn ruby_promises_l1182_d137_on_rejection(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1182_d137_on_rejection(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(137, args)
 }
 
 // Ruby method `on_rejection_using(executor, *args, &callback)` at line 1194.
-pub fn ruby_promises_l1194_d138_on_rejection_using(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1194_d138_on_rejection_using(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(138, args)
 }
 
 // Ruby method `run(run_test = method(:run_test))` at line 1216.
-pub fn ruby_promises_l1216_d139_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1216_d139_run(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(139, args)
 }
 
 // Ruby method `apply(args, block)` at line 1221.
-pub fn ruby_promises_l1221_d140_apply(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1221_d140_apply(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(140, args)
 }
 
 // Ruby method `to_event` at line 1228.
-pub fn ruby_promises_l1228_d141_to_event(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1228_d141_to_event(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(141, args)
 }
 
 // Ruby method `to_future` at line 1236.
-pub fn ruby_promises_l1236_d142_to_future(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1236_d142_to_future(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(142, args)
 }
 
 // Ruby method `to_s` at line 1241.
-pub fn ruby_promises_l1241_d143_to_s(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1241_d143_to_s(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(143, args)
 }
 
 // Ruby alias_method `alias_method :inspect, :to_s` at line 1249.
-pub fn ruby_promises_l1249_d144_inspect(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1249_d144_inspect(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(144, args)
 }
 
 // Ruby method `run_test(v)` at line 1253.
-pub fn ruby_promises_l1253_d145_run_test(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1253_d145_run_test(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(145, args)
 }
 
 // Ruby method `rejected_resolution(raise_on_reassign, state)` at line 1257.
-pub fn ruby_promises_l1257_d146_rejected_resolution(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1257_d146_rejected_resolution(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(146, args)
 }
 
 // Ruby method `wait_until_resolved!(timeout = nil)` at line 1272.
-pub fn ruby_promises_l1272_d147_wait_until_resolved(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1272_d147_wait_until_resolved(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(147, args)
 }
 
 // Ruby method `async_callback_on_fulfillment(state, executor, args, callback)` at line 1278.
-pub fn ruby_promises_l1278_d148_async_callback_on_fulfillment(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1278_d148_async_callback_on_fulfillment(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(148, args)
 }
 
 // Ruby method `async_callback_on_rejection(state, executor, args, callback)` at line 1284.
-pub fn ruby_promises_l1284_d149_async_callback_on_rejection(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1284_d149_async_callback_on_rejection(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(149, args)
 }
 
 // Ruby method `callback_on_fulfillment(state, args, callback)` at line 1290.
-pub fn ruby_promises_l1290_d150_callback_on_fulfillment(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1290_d150_callback_on_fulfillment(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(150, args)
 }
 
 // Ruby method `callback_on_rejection(state, args, callback)` at line 1294.
-pub fn ruby_promises_l1294_d151_callback_on_rejection(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1294_d151_callback_on_rejection(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(151, args)
 }
 
 // Ruby method `callback_on_resolution(state, args, callback)` at line 1298.
-pub fn ruby_promises_l1298_d152_callback_on_resolution(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1298_d152_callback_on_resolution(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(152, args)
 }
 
 // Ruby method `resolve(raise_on_reassign = true, reserved = false)` at line 1330.
-pub fn ruby_promises_l1330_d153_resolve(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1330_d153_resolve(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(153, args)
 }
 
 // Ruby method `with_hidden_resolvable` at line 1337.
-pub fn ruby_promises_l1337_d154_with_hidden_resolvable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1337_d154_with_hidden_resolvable(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(154, args)
 }
 
 // Ruby method `wait(timeout = nil, resolve_on_timeout = false)` at line 1348.
-pub fn ruby_promises_l1348_d155_wait(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1348_d155_wait(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(155, args)
 }
 
 // Ruby method `resolve(fulfilled = true, value = nil, reason = nil, raise_on_reassign = true, reserved = false)` at line 1371.
-pub fn ruby_promises_l1371_d156_resolve(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1371_d156_resolve(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(156, args)
 }
 
 // Ruby method `fulfill(value, raise_on_reassign = true, reserved = false)` at line 1381.
-pub fn ruby_promises_l1381_d157_fulfill(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1381_d157_fulfill(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(157, args)
 }
 
 // Ruby method `reject(reason, raise_on_reassign = true, reserved = false)` at line 1391.
-pub fn ruby_promises_l1391_d158_reject(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1391_d158_reject(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(158, args)
 }
 
 // Ruby method `evaluate_to(*args, &block)` at line 1401.
-pub fn ruby_promises_l1401_d159_evaluate_to(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1401_d159_evaluate_to(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(159, args)
 }
 
 // Ruby method `evaluate_to!(*args, &block)` at line 1412.
-pub fn ruby_promises_l1412_d160_evaluate_to(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1412_d160_evaluate_to(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(160, args)
 }
 
 // Ruby method `wait(timeout = nil, resolve_on_timeout = nil)` at line 1427.
-pub fn ruby_promises_l1427_d161_wait(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1427_d161_wait(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(161, args)
 }
 
 // Ruby method `wait!(timeout = nil, resolve_on_timeout = nil)` at line 1444.
-pub fn ruby_promises_l1444_d162_wait(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1444_d162_wait(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(162, args)
 }
 
 // Ruby method `value(timeout = nil, timeout_value = nil, resolve_on_timeout = nil)` at line 1465.
-pub fn ruby_promises_l1465_d163_value(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1465_d163_value(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(163, args)
 }
 
 // Ruby method `value!(timeout = nil, timeout_value = nil, resolve_on_timeout = nil)` at line 1487.
-pub fn ruby_promises_l1487_d164_value(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1487_d164_value(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(164, args)
 }
 
 // Ruby method `reason(timeout = nil, timeout_value = nil, resolve_on_timeout = nil)` at line 1509.
-pub fn ruby_promises_l1509_d165_reason(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1509_d165_reason(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(165, args)
 }
 
 // Ruby method `result(timeout = nil, resolve_on_timeout = nil)` at line 1530.
-pub fn ruby_promises_l1530_d166_result(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1530_d166_result(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(166, args)
 }
 
 // Ruby method `with_hidden_resolvable` at line 1548.
-pub fn ruby_promises_l1548_d167_with_hidden_resolvable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1548_d167_with_hidden_resolvable(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(167, args)
 }
 
 // Ruby method `initialize(future)` at line 1559.
-pub fn ruby_promises_l1559_d168_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1559_d168_initialize(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(168, args)
 }
 
 // Ruby method `future` at line 1564.
-pub fn ruby_promises_l1564_d169_future(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1564_d169_future(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(169, args)
 }
 
 // Ruby alias_method `alias_method :event, :future` at line 1568.
-pub fn ruby_promises_l1568_d170_event(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1568_d170_event(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(170, args)
 }
 
 // Ruby method `default_executor` at line 1570.
-pub fn ruby_promises_l1570_d171_default_executor(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1570_d171_default_executor(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(171, args)
 }
 
 // Ruby method `state` at line 1574.
-pub fn ruby_promises_l1574_d172_state(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1574_d172_state(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(172, args)
 }
 
 // Ruby method `touch` at line 1578.
-pub fn ruby_promises_l1578_d173_touch(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1578_d173_touch(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(173, args)
 }
 
 // Ruby method `to_s` at line 1581.
-pub fn ruby_promises_l1581_d174_to_s(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1581_d174_to_s(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(174, args)
 }
 
 // Ruby alias_method `alias_method :inspect, :to_s` at line 1585.
-pub fn ruby_promises_l1585_d175_inspect(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1585_d175_inspect(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(175, args)
 }
 
 // Ruby method `delayed_because` at line 1587.
-pub fn ruby_promises_l1587_d176_delayed_because(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1587_d176_delayed_because(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(176, args)
 }
 
 // Ruby method `resolve_with(new_state, raise_on_reassign = true)` at line 1593.
-pub fn ruby_promises_l1593_d177_resolve_with(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1593_d177_resolve_with(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(177, args)
 }
 
 // Ruby method `evaluate_to(*args, block)` at line 1598.
-pub fn ruby_promises_l1598_d178_evaluate_to(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1598_d178_evaluate_to(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(178, args)
 }
 
 // Ruby method `initialize(default_executor)` at line 1607.
-pub fn ruby_promises_l1607_d179_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1607_d179_initialize(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(179, args)
 }
 
 // Ruby method `initialize(default_executor)` at line 1613.
-pub fn ruby_promises_l1613_d180_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1613_d180_initialize(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(180, args)
 }
 
 // Ruby method `self.new_blocked_by1(blocker, *args, &block)` at line 1629.
-pub fn ruby_promises_l1629_d181_self_new_blocked_by1(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1629_d181_self_new_blocked_by1(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(181, args)
 }
 
 // Ruby method `self.new_blocked_by2(blocker1, blocker2, *args, &block)` at line 1636.
-pub fn ruby_promises_l1636_d182_self_new_blocked_by2(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1636_d182_self_new_blocked_by2(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(182, args)
 }
 
 // Ruby method `self.new_blocked_by(blockers, *args, &block)` at line 1651.
-pub fn ruby_promises_l1651_d183_self_new_blocked_by(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1651_d183_self_new_blocked_by(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(183, args)
 }
 
 // Ruby method `self.add_delayed(delayed1, delayed2)` at line 1658.
-pub fn ruby_promises_l1658_d184_self_add_delayed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1658_d184_self_add_delayed(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(184, args)
 }
 
 // Ruby method `initialize(delayed, blockers_count, future)` at line 1667.
-pub fn ruby_promises_l1667_d185_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1667_d185_initialize(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(185, args)
 }
 
 // Ruby method `on_blocker_resolution(future, index)` at line 1673.
-pub fn ruby_promises_l1673_d186_on_blocker_resolution(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1673_d186_on_blocker_resolution(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(186, args)
 }
 
 // Ruby method `delayed_because` at line 1680.
-pub fn ruby_promises_l1680_d187_delayed_because(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1680_d187_delayed_because(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(187, args)
 }
 
 // Ruby method `touch` at line 1684.
-pub fn ruby_promises_l1684_d188_touch(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1684_d188_touch(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(188, args)
 }
 
 // Ruby method `blocked_by` at line 1689.
-pub fn ruby_promises_l1689_d189_blocked_by(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1689_d189_blocked_by(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(189, args)
 }
 
 // Ruby method `clear_and_propagate_touch(stack_or_element = @Delayed)` at line 1697.
-pub fn ruby_promises_l1697_d190_clear_and_propagate_touch(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1697_d190_clear_and_propagate_touch(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(190, args)
 }
 
 // Ruby method `resolvable?(countdown, future, index)` at line 1708.
-pub fn ruby_promises_l1708_d191_resolvable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1708_d191_resolvable(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(191, args)
 }
 
 // Ruby method `process_on_blocker_resolution(future, index)` at line 1712.
-pub fn ruby_promises_l1712_d192_process_on_blocker_resolution(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1712_d192_process_on_blocker_resolution(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(192, args)
 }
 
 // Ruby method `on_resolvable(resolved_future, index)` at line 1716.
-pub fn ruby_promises_l1716_d193_on_resolvable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1716_d193_on_resolvable(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(193, args)
 }
 
 // Ruby method `initialize(delayed, blockers_count, default_executor, executor, args, &task)` at line 1723.
-pub fn ruby_promises_l1723_d194_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1723_d194_initialize(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(194, args)
 }
 
 // Ruby method `executor` at line 1731.
-pub fn ruby_promises_l1731_d195_executor(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1731_d195_executor(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(195, args)
 }
 
 // Ruby method `initialize(delayed, blockers_count, default_executor, executor, args, &task)` at line 1739.
-pub fn ruby_promises_l1739_d196_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1739_d196_initialize(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(196, args)
 }
 
 // Ruby method `on_resolvable(resolved_future, index)` at line 1743.
-pub fn ruby_promises_l1743_d197_on_resolvable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1743_d197_on_resolvable(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(197, args)
 }
 
 // Ruby method `initialize(delayed, blockers_count, default_executor, executor, args, &task)` at line 1757.
-pub fn ruby_promises_l1757_d198_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1757_d198_initialize(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(198, args)
 }
 
 // Ruby method `on_resolvable(resolved_future, index)` at line 1761.
-pub fn ruby_promises_l1761_d199_on_resolvable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1761_d199_on_resolvable(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(199, args)
 }
 
 // Ruby method `on_resolvable(resolved_future, index)` at line 1775.
-pub fn ruby_promises_l1775_d200_on_resolvable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1775_d200_on_resolvable(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(200, args)
 }
 
 // Ruby method `initialize(default_executor)` at line 1790.
-pub fn ruby_promises_l1790_d201_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1790_d201_initialize(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(201, args)
 }
 
 // Ruby method `initialize(default_executor, fulfilled, value, reason)` at line 1796.
-pub fn ruby_promises_l1796_d202_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1796_d202_initialize(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(202, args)
 }
 
 // Ruby method `initialize(delayed_because, blockers_count, event_or_future)` at line 1804.
-pub fn ruby_promises_l1804_d203_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1804_d203_initialize(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(203, args)
 }
 
 // Ruby method `touch` at line 1814.
-pub fn ruby_promises_l1814_d204_touch(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1814_d204_touch(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(204, args)
 }
 
 // Ruby method `touched?` at line 1822.
-pub fn ruby_promises_l1822_d205_touched(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1822_d205_touched(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(205, args)
 }
 
 // Ruby method `on_resolvable(resolved_future, index)` at line 1826.
-pub fn ruby_promises_l1826_d206_on_resolvable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1826_d206_on_resolvable(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(206, args)
 }
 
 // Ruby method `resolvable?(countdown, future, index)` at line 1830.
-pub fn ruby_promises_l1830_d207_resolvable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1830_d207_resolvable(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(207, args)
 }
 
 // Ruby method `add_delayed_of(future)` at line 1834.
-pub fn ruby_promises_l1834_d208_add_delayed_of(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1834_d208_add_delayed_of(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(208, args)
 }
 
 // Ruby method `initialize(delayed, blockers_count, default_executor)` at line 1850.
-pub fn ruby_promises_l1850_d209_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1850_d209_initialize(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(209, args)
 }
 
 // Ruby method `process_on_blocker_resolution(future, index)` at line 1854.
-pub fn ruby_promises_l1854_d210_process_on_blocker_resolution(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1854_d210_process_on_blocker_resolution(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(210, args)
 }
 
 // Ruby method `initialize(delayed, blockers_count, levels, default_executor)` at line 1883.
-pub fn ruby_promises_l1883_d211_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1883_d211_initialize(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(211, args)
 }
 
 // Ruby method `process_on_blocker_resolution(future, index)` at line 1890.
-pub fn ruby_promises_l1890_d212_process_on_blocker_resolution(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1890_d212_process_on_blocker_resolution(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(212, args)
 }
 
 // Ruby method `initialize(delayed, blockers_count, default_executor, run_test)` at line 1919.
-pub fn ruby_promises_l1919_d213_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1919_d213_initialize(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(213, args)
 }
 
 // Ruby method `process_on_blocker_resolution(future, index)` at line 1924.
-pub fn ruby_promises_l1924_d214_process_on_blocker_resolution(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1924_d214_process_on_blocker_resolution(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(214, args)
 }
 
 // Ruby method `initialize(delayed, blockers_count, default_executor)` at line 1947.
-pub fn ruby_promises_l1947_d215_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1947_d215_initialize(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(215, args)
 }
 
 // Ruby method `on_resolvable(resolved_future, index)` at line 1953.
-pub fn ruby_promises_l1953_d216_on_resolvable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1953_d216_on_resolvable(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(216, args)
 }
 
 // Ruby method `initialize(delayed, blockers_count, default_executor)` at line 1959.
-pub fn ruby_promises_l1959_d217_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1959_d217_initialize(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(217, args)
 }
 
 // Ruby method `process_on_blocker_resolution(future, index)` at line 1966.
-pub fn ruby_promises_l1966_d218_process_on_blocker_resolution(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1966_d218_process_on_blocker_resolution(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(218, args)
 }
 
 // Ruby method `on_resolvable(resolved_future, index)` at line 1973.
-pub fn ruby_promises_l1973_d219_on_resolvable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1973_d219_on_resolvable(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(219, args)
 }
 
 // Ruby method `initialize(delayed, blockers_count, default_executor)` at line 1979.
-pub fn ruby_promises_l1979_d220_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1979_d220_initialize(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(220, args)
 }
 
 // Ruby method `on_resolvable(resolved_future, index)` at line 1985.
-pub fn ruby_promises_l1985_d221_on_resolvable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1985_d221_on_resolvable(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(221, args)
 }
 
 // Ruby method `initialize(delayed, blockers_count, default_executor)` at line 1991.
-pub fn ruby_promises_l1991_d222_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1991_d222_initialize(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(222, args)
 }
 
 // Ruby method `on_resolvable(resolved_future, index)` at line 1997.
-pub fn ruby_promises_l1997_d223_on_resolvable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l1997_d223_on_resolvable(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(223, args)
 }
 
 // Ruby method `initialize(delayed, blockers_count, default_executor)` at line 2006.
-pub fn ruby_promises_l2006_d224_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l2006_d224_initialize(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(224, args)
 }
 
 // Ruby method `process_on_blocker_resolution(future, index)` at line 2013.
-pub fn ruby_promises_l2013_d225_process_on_blocker_resolution(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l2013_d225_process_on_blocker_resolution(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(225, args)
 }
 
 // Ruby method `on_resolvable(resolved_future, index)` at line 2019.
-pub fn ruby_promises_l2019_d226_on_resolvable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l2019_d226_on_resolvable(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(226, args)
 }
 
 // Ruby method `initialize(delayed, blockers_count, default_executor)` at line 2041.
-pub fn ruby_promises_l2041_d227_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l2041_d227_initialize(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(227, args)
 }
 
 // Ruby method `on_resolvable(resolved_future, index)` at line 2047.
-pub fn ruby_promises_l2047_d228_on_resolvable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l2047_d228_on_resolvable(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(228, args)
 }
 
 // Ruby method `initialize(delayed, blockers_count, default_executor)` at line 2060.
-pub fn ruby_promises_l2060_d229_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l2060_d229_initialize(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(229, args)
 }
 
 // Ruby method `resolvable?(countdown, future, index)` at line 2064.
-pub fn ruby_promises_l2064_d230_resolvable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l2064_d230_resolvable(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(230, args)
 }
 
 // Ruby method `on_resolvable(resolved_future, index)` at line 2068.
-pub fn ruby_promises_l2068_d231_on_resolvable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l2068_d231_on_resolvable(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(231, args)
 }
 
 // Ruby method `initialize(delayed, blockers_count, default_executor)` at line 2077.
-pub fn ruby_promises_l2077_d232_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l2077_d232_initialize(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(232, args)
 }
 
 // Ruby method `resolvable?(countdown, future, index)` at line 2081.
-pub fn ruby_promises_l2081_d233_resolvable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l2081_d233_resolvable(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(233, args)
 }
 
 // Ruby method `on_resolvable(resolved_future, index)` at line 2085.
-pub fn ruby_promises_l2085_d234_on_resolvable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l2085_d234_on_resolvable(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(234, args)
 }
 
 // Ruby method `resolvable?(countdown, event_or_future, index)` at line 2094.
-pub fn ruby_promises_l2094_d235_resolvable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l2094_d235_resolvable(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(235, args)
 }
 
 // Ruby method `initialize(default_executor)` at line 2103.
-pub fn ruby_promises_l2103_d236_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l2103_d236_initialize(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(236, args)
 }
 
 // Ruby method `touch` at line 2110.
-pub fn ruby_promises_l2110_d237_touch(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l2110_d237_touch(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(237, args)
 }
 
 // Ruby method `delayed_because` at line 2114.
-pub fn ruby_promises_l2114_d238_delayed_because(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l2114_d238_delayed_because(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(238, args)
 }
 
 // Ruby method `intended_time` at line 2121.
-pub fn ruby_promises_l2121_d239_intended_time(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l2121_d239_intended_time(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(239, args)
 }
 
 // Ruby method `inspect` at line 2125.
-pub fn ruby_promises_l2125_d240_inspect(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l2125_d240_inspect(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(240, args)
 }
 
 // Ruby method `initialize(default_executor, intended_time)` at line 2131.
-pub fn ruby_promises_l2131_d241_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promises_l2131_d241_initialize(args ...ruby.Value) ruby.Value {
 	return promises_boundary_call(241, args)
 }
 

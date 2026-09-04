@@ -1,6 +1,6 @@
 module bundle
 
-import brew_runtime
+import ruby
 import json2
 import os
 
@@ -172,7 +172,7 @@ pub fn brew_services_failure_reason(name string, no_upgrade bool) string {
 	return 'Service ${name} needs to be started.'
 }
 
-fn brew_services_entry_from_value(value brew_runtime.Value) BundleDslEntry {
+fn brew_services_entry_from_value(value ruby.Value) BundleDslEntry {
 	return BundleDslEntry{
 		entry_type: value.attributes['type'] or { 'brew' }
 		name: value.attributes['name'] or { value.repr }
@@ -181,7 +181,7 @@ fn brew_services_entry_from_value(value brew_runtime.Value) BundleDslEntry {
 }
 
 pub fn brew_services_entry_to_formula(entry BundleDslEntry) BundleBrewInstaller {
-	return bundle_brew_installer(entry.name, bundle_brew_options_from_value(brew_runtime.map_value(entry.options)))
+	return bundle_brew_installer(entry.name, bundle_brew_options_from_value(ruby.map_value(entry.options)))
 }
 
 pub fn brew_services_formula_needs_to_start(formula BundleBrewInstaller) bool {
@@ -219,38 +219,38 @@ pub fn brew_services_format_checkable(entries []BundleDslEntry) []BundleDslEntry
 	return entries.filter(it.entry_type == 'brew')
 }
 
-fn brew_services_entries_from_value(value brew_runtime.Value) []BundleDslEntry {
+fn brew_services_entries_from_value(value ruby.Value) []BundleDslEntry {
 	return value.as_array() or { [] }.map(brew_services_entry_from_value(it))
 }
 
-fn brew_services_entries_value(entries []BundleDslEntry) brew_runtime.Value {
-	return brew_runtime.array_value(entries.map(bundle_dsl_entry_value(it)))
+fn brew_services_entries_value(entries []BundleDslEntry) ruby.Value {
+	return ruby.array_value(entries.map(bundle_dsl_entry_value(it)))
 }
 
-fn brew_services_state_value(state &BrewServicesState) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::Bundle::Brew::Services', '', {
+fn brew_services_state_value(state &BrewServicesState) ruby.Value {
+	return ruby.structured_value('Homebrew::Bundle::Brew::Services', '', {
 		'brew_services_state_address': u64(voidptr(state)).str()
 	})
 }
 
-pub fn brew_services_state_boundary(state &BrewServicesState) brew_runtime.Value {
+pub fn brew_services_state_boundary(state &BrewServicesState) ruby.Value {
 	return brew_services_state_value(state)
 }
 
-fn brew_services_state_from_args(args []brew_runtime.Value, method string) &BrewServicesState {
+fn brew_services_state_from_args(args []ruby.Value, method string) &BrewServicesState {
 	if args.len == 0 || 'brew_services_state_address' !in args[0].attributes {
 		panic('Brew::Services.${method} requires translated BrewServices state')
 	}
 	return unsafe { &BrewServicesState(voidptr(args[0].attributes['brew_services_state_address'].u64())) }
 }
 
-fn brew_services_error(type_name string, message string) brew_runtime.Value {
-	return brew_runtime.structured_value(type_name, message, {
+fn brew_services_error(type_name string, message string) ruby.Value {
+	return ruby.structured_value(type_name, message, {
 		'message': message
 	})
 }
 
-fn brew_services_optional_string(args []brew_runtime.Value, index int) string {
+fn brew_services_optional_string(args []ruby.Value, index int) string {
 	if index >= args.len || args[index].type_name in ['Nil', 'NilClass'] {
 		return ''
 	}
@@ -258,77 +258,77 @@ fn brew_services_optional_string(args []brew_runtime.Value, index int) string {
 }
 
 // Ruby method `reset!` at line 17.
-pub fn ruby_brew_services_l17_d1_reset(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_services_l17_d1_reset(args ...ruby.Value) ruby.Value {
 	mut state := brew_services_state_from_args(args, 'reset!')
 	state.reset()
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `stop(name, keep: false, verbose: false)` at line 24.
-pub fn ruby_brew_services_l24_d2_stop(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_services_l24_d2_stop(args ...ruby.Value) ruby.Value {
 	mut state := brew_services_state_from_args(args, 'stop')
 	if args.len < 2 {
 		return brew_services_error('ArgumentError', 'name is required')
 	}
 	keep := if args.len > 2 { args[2].as_bool() or { false } } else { false }
 	verbose := if args.len > 3 { args[3].as_bool() or { false } } else { false }
-	return brew_runtime.bool_value(state.stop(args[1].as_string(), keep, verbose) or {
+	return ruby.bool_value(state.stop(args[1].as_string(), keep, verbose) or {
 		return brew_services_error('SystemExit', err.msg())
 	})
 }
 
 // Ruby method `start(name, file: nil, verbose: false)` at line 36.
-pub fn ruby_brew_services_l36_d3_start(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_services_l36_d3_start(args ...ruby.Value) ruby.Value {
 	mut state := brew_services_state_from_args(args, 'start')
 	if args.len < 2 {
 		return brew_services_error('ArgumentError', 'name is required')
 	}
 	verbose := if args.len > 3 { args[3].as_bool() or { false } } else { false }
-	return brew_runtime.bool_value(state.start(args[1].as_string(), brew_services_optional_string(args, 2), verbose))
+	return ruby.bool_value(state.start(args[1].as_string(), brew_services_optional_string(args, 2), verbose))
 }
 
 // Ruby method `run(name, file: nil, verbose: false)` at line 46.
-pub fn ruby_brew_services_l46_d4_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_services_l46_d4_run(args ...ruby.Value) ruby.Value {
 	mut state := brew_services_state_from_args(args, 'run')
 	if args.len < 2 {
 		return brew_services_error('ArgumentError', 'name is required')
 	}
 	verbose := if args.len > 3 { args[3].as_bool() or { false } } else { false }
-	return brew_runtime.bool_value(state.run(args[1].as_string(), brew_services_optional_string(args, 2), verbose))
+	return ruby.bool_value(state.run(args[1].as_string(), brew_services_optional_string(args, 2), verbose))
 }
 
 // Ruby method `restart(name, file: nil, verbose: false)` at line 56.
-pub fn ruby_brew_services_l56_d5_restart(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_services_l56_d5_restart(args ...ruby.Value) ruby.Value {
 	mut state := brew_services_state_from_args(args, 'restart')
 	if args.len < 2 {
 		return brew_services_error('ArgumentError', 'name is required')
 	}
 	verbose := if args.len > 3 { args[3].as_bool() or { false } } else { false }
-	return brew_runtime.bool_value(state.restart(args[1].as_string(), brew_services_optional_string(args, 2), verbose))
+	return ruby.bool_value(state.restart(args[1].as_string(), brew_services_optional_string(args, 2), verbose))
 }
 
 // Ruby method `started?(name)` at line 67.
-pub fn ruby_brew_services_l67_d6_started(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_services_l67_d6_started(args ...ruby.Value) ruby.Value {
 	mut state := brew_services_state_from_args(args, 'started?')
 	if args.len < 2 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(state.started(args[1].as_string()) or {
+	return ruby.bool_value(state.started(args[1].as_string()) or {
 		return brew_services_error('SystemExit', err.msg())
 	})
 }
 
 // Ruby method `started_services_without_daemon_manager` at line 72.
-pub fn ruby_brew_services_l72_d7_started_services_without_daemon_manager(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_services_l72_d7_started_services_without_daemon_manager(args ...ruby.Value) ruby.Value {
 	mut state := brew_services_state_from_args(args, 'started_services_without_daemon_manager')
 	services := state.started_services_without_daemon_manager() or {
 		return brew_services_error('SystemExit', err.msg())
 	}
-	return brew_runtime.string_array_value(services)
+	return ruby.string_array_value(services)
 }
 
 // Ruby method `started_services` at line 77.
-pub fn ruby_brew_services_l77_d8_started_services(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_services_l77_d8_started_services(args ...ruby.Value) ruby.Value {
 	mut state := brew_services_state_from_args(args, 'started_services')
 	services := state.load_started_services() or {
 		return brew_services_error(if err.msg().contains('supported only') {
@@ -337,40 +337,40 @@ pub fn ruby_brew_services_l77_d8_started_services(args ...brew_runtime.Value) br
 			'JSON::ParserError'
 		}, err.msg())
 	}
-	return brew_runtime.string_array_value(services)
+	return ruby.string_array_value(services)
 }
 
 // Ruby method `versioned_service_file(name)` at line 94.
-pub fn ruby_brew_services_l94_d9_versioned_service_file(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_services_l94_d9_versioned_service_file(args ...ruby.Value) ruby.Value {
 	state := brew_services_state_from_args(args, 'versioned_service_file')
 	if args.len < 2 {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	path := state.versioned_service_file(args[1].as_string()) or {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
-	return brew_runtime.object_value('Pathname', path)
+	return ruby.object_value('Pathname', path)
 }
 
 // Ruby method `failure_reason(name, no_upgrade:)` at line 113.
-pub fn ruby_brew_services_l113_d10_failure_reason(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_services_l113_d10_failure_reason(args ...ruby.Value) ruby.Value {
 	name := if args.len > 0 { args[0].as_string() } else { '' }
 	no_upgrade := if args.len > 1 { args[1].as_bool() or { false } } else { false }
-	return brew_runtime.string_value(brew_services_failure_reason(name, no_upgrade))
+	return ruby.string_value(brew_services_failure_reason(name, no_upgrade))
 }
 
 // Ruby method `installed_and_up_to_date?(formula, no_upgrade: false)` at line 120.
-pub fn ruby_brew_services_l120_d11_installed_and_up_to_date(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_services_l120_d11_installed_and_up_to_date(args ...ruby.Value) ruby.Value {
 	mut state := brew_services_state_from_args(args, 'installed_and_up_to_date?')
 	if args.len < 2 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	no_upgrade := if args.len > 2 { args[2].as_bool() or { false } } else { false }
-	return brew_runtime.bool_value(state.installed_and_up_to_date(brew_services_entry_from_value(args[1]), no_upgrade) or { return brew_services_error('SystemExit', err.msg()) })
+	return ruby.bool_value(state.installed_and_up_to_date(brew_services_entry_from_value(args[1]), no_upgrade) or { return brew_services_error('SystemExit', err.msg()) })
 }
 
 // Ruby method `entry_to_formula(entry)` at line 141.
-pub fn ruby_brew_services_l141_d12_entry_to_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_services_l141_d12_entry_to_formula(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return brew_services_error('ArgumentError', 'entry is required')
 	}
@@ -378,29 +378,29 @@ pub fn ruby_brew_services_l141_d12_entry_to_formula(args ...brew_runtime.Value) 
 }
 
 // Ruby method `formula_needs_to_start?(formula)` at line 146.
-pub fn ruby_brew_services_l146_d13_formula_needs_to_start(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_services_l146_d13_formula_needs_to_start(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(brew_services_formula_needs_to_start(bundle_brew_installer_from_value(args[0])))
+	return ruby.bool_value(brew_services_formula_needs_to_start(bundle_brew_installer_from_value(args[0])))
 }
 
 // Ruby method `lookup_old_name(service_name)` at line 151.
-pub fn ruby_brew_services_l151_d14_lookup_old_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_services_l151_d14_lookup_old_name(args ...ruby.Value) ruby.Value {
 	state := brew_services_state_from_args(args, 'lookup_old_name')
 	if args.len < 2 {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	old_name := state.lookup_old_name(args[1].as_string()) or {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
-	return brew_runtime.string_value(old_name)
+	return ruby.string_value(old_name)
 }
 
 // Ruby method `format_checkable(entries)` at line 159.
-pub fn ruby_brew_services_l159_d15_format_checkable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_services_l159_d15_format_checkable(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.array_value([])
+		return ruby.array_value([])
 	}
 	return brew_services_entries_value(brew_services_format_checkable(brew_services_entries_from_value(args[0])))
 }

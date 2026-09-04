@@ -1,125 +1,125 @@
 module utils
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `utils/git.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `self.available?` at line 15.
-pub fn ruby_git_l15_d1_self_available(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_git_l15_d1_self_available(args ...ruby.Value) ruby.Value {
 	mut client := git_client_from_args(args)
-	return brew_runtime.bool_value(git_client_available(mut client))
+	return ruby.bool_value(git_client_available(mut client))
 }
 
 // Ruby method `self.no_global_config_env` at line 20.
-pub fn ruby_git_l20_d2_self_no_global_config_env(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'GIT_CONFIG_GLOBAL': brew_runtime.string_value(git_no_global_config_file())
+pub fn ruby_git_l20_d2_self_no_global_config_env(args ...ruby.Value) ruby.Value {
+	return ruby.map_value({
+		'GIT_CONFIG_GLOBAL': ruby.string_value(git_no_global_config_file())
 	})
 }
 
 // Ruby method `self.no_global_config_file` at line 25.
-pub fn ruby_git_l25_d3_self_no_global_config_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(git_no_global_config_file())
+pub fn ruby_git_l25_d3_self_no_global_config_file(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(git_no_global_config_file())
 }
 
 // Ruby method `self.version` at line 30.
-pub fn ruby_git_l30_d4_self_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_git_l30_d4_self_version(args ...ruby.Value) ruby.Value {
 	mut client := git_client_from_args(args)
 	version := git_client_version(mut client)
-	return brew_runtime.object_value('Version', if version == '' { 'NULL' } else { version })
+	return ruby.object_value('Version', if version == '' { 'NULL' } else { version })
 }
 
 // Ruby method `self.path` at line 40.
-pub fn ruby_git_l40_d5_self_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_git_l40_d5_self_path(args ...ruby.Value) ruby.Value {
 	mut client := git_client_from_args(args)
 	if path := git_client_path(mut client) {
-		return brew_runtime.string_value(path)
+		return ruby.string_value(path)
 	}
 	return git_nil_value()
 }
 
 // Ruby method `self.git` at line 48.
-pub fn ruby_git_l48_d6_self_git(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(git_default_executable())
+pub fn ruby_git_l48_d6_self_git(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(git_default_executable())
 }
 
 // Ruby method `self.remote_exists?(url)` at line 53.
-pub fn ruby_git_l53_d7_self_remote_exists(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_git_l53_d7_self_remote_exists(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Utils::Git.remote_exists? requires a URL') }
 	mut client := git_default_client()
-	return brew_runtime.bool_value(git_client_remote_exists(mut client, args[0].as_string()))
+	return ruby.bool_value(git_client_remote_exists(mut client, args[0].as_string()))
 }
 
 // Ruby method `self.clear_available_cache` at line 60.
-pub fn ruby_git_l60_d8_self_clear_available_cache(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_git_l60_d8_self_clear_available_cache(args ...ruby.Value) ruby.Value {
 	mut client := git_client_from_args(args)
 	git_client_clear_available_cache(mut client)
 	return git_nil_value()
 }
 
 // Ruby method `self.last_revision_commit_of_file(repo, file, before_commit: nil)` at line 70.
-pub fn ruby_git_l70_d9_self_last_revision_commit_of_file(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_git_l70_d9_self_last_revision_commit_of_file(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('last_revision_commit_of_file requires repo and file') }
 	before := if args.len > 2 && args[2].type_name != 'NilClass' { args[2].as_string() } else { '' }
-	result := git_last_revision_commit_of_file(git_default_executable(), args[0].as_string(), args[1].as_string(), before, git_run_command) or { return brew_runtime.object_value('RuntimeError', err.msg()) }
-	return brew_runtime.string_value(result)
+	result := git_last_revision_commit_of_file(git_default_executable(), args[0].as_string(), args[1].as_string(), before, git_run_command) or { return ruby.object_value('RuntimeError', err.msg()) }
+	return ruby.string_value(result)
 }
 
 // Ruby method `self.last_revision_commit_of_files(repo, files, before_commit: nil)` at line 87.
-pub fn ruby_git_l87_d10_self_last_revision_commit_of_files(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_git_l87_d10_self_last_revision_commit_of_files(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('last_revision_commit_of_files requires repo and files') }
 	before := if args.len > 2 && args[2].type_name != 'NilClass' { args[2].as_string() } else { '' }
-	result := git_last_revision_commit_of_files(git_default_executable(), args[0].as_string(), args[1].as_string_array() or { args[1].array_data.map(it.as_string()) }, before, git_run_command) or { return brew_runtime.object_value('RuntimeError', err.msg()) }
-	return brew_runtime.map_value({
+	result := git_last_revision_commit_of_files(git_default_executable(), args[0].as_string(), args[1].as_string_array() or { args[1].array_data.map(it.as_string()) }, before, git_run_command) or { return ruby.object_value('RuntimeError', err.msg()) }
+	return ruby.map_value({
 		'commit': if result.commit == '' {
 			git_nil_value()
 		} else {
-			brew_runtime.string_value(result.commit)
+			ruby.string_value(result.commit)
 		}
-		'paths':  brew_runtime.string_array_value(result.paths)
+		'paths':  ruby.string_array_value(result.paths)
 	})
 }
 
 // Ruby method `self.last_revision_of_file(repo, file, before_commit: nil)` at line 112.
-pub fn ruby_git_l112_d11_self_last_revision_of_file(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_git_l112_d11_self_last_revision_of_file(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('last_revision_of_file requires repo and file') }
 	before := if args.len > 2 && args[2].type_name != 'NilClass' { args[2].as_string() } else { '' }
-	result := git_last_revision_of_file(git_default_executable(), args[0].as_string(), args[1].as_string(), before, git_run_command) or { return brew_runtime.object_value('RuntimeError', err.msg()) }
-	return brew_runtime.string_value(result)
+	result := git_last_revision_of_file(git_default_executable(), args[0].as_string(), args[1].as_string(), before, git_run_command) or { return ruby.object_value('RuntimeError', err.msg()) }
+	return ruby.string_value(result)
 }
 
 // Ruby method `self.file_at_commit(repo, file, commit)` at line 119.
-pub fn ruby_git_l119_d12_self_file_at_commit(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_git_l119_d12_self_file_at_commit(args ...ruby.Value) ruby.Value {
 	if args.len < 3 { panic('file_at_commit requires repo, file and commit') }
-	result := git_file_at_commit(git_default_executable(), args[0].as_string(), args[1].as_string(), args[2].as_string(), git_run_command) or { return brew_runtime.object_value('RuntimeError', err.msg()) }
-	return brew_runtime.string_value(result)
+	result := git_file_at_commit(git_default_executable(), args[0].as_string(), args[1].as_string(), args[2].as_string(), git_run_command) or { return ruby.object_value('RuntimeError', err.msg()) }
+	return ruby.string_value(result)
 }
 
 // Ruby method `self.changed_files(repository)` at line 131.
-pub fn ruby_git_l131_d13_self_changed_files(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_git_l131_d13_self_changed_files(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('changed_files requires a repository') }
 	result := git_changed_files(git_default_executable(), args[0].as_string(), git_run_command) or {
-		return brew_runtime.object_value('RuntimeError', err.msg())
+		return ruby.object_value('RuntimeError', err.msg())
 	}
-	return brew_runtime.string_array_value(result)
+	return ruby.string_array_value(result)
 }
 
 // Ruby method `self.ensure_installed!` at line 138.
-pub fn ruby_git_l138_d14_self_ensure_installed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_git_l138_d14_self_ensure_installed(args ...ruby.Value) ruby.Value {
 	mut client := git_default_client()
 	git_ensure_installed(mut client, GitInstallOptions{}) or {
-		return brew_runtime.object_value('RuntimeError', err.msg())
+		return ruby.object_value('RuntimeError', err.msg())
 	}
 	return git_nil_value()
 }
 
 // Ruby method `self.set_name_email!(author: true, committer: true)` at line 160.
-pub fn ruby_git_l160_d15_self_set_name_email(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_git_l160_d15_self_set_name_email(args ...ruby.Value) ruby.Value {
 	author := if args.len > 0 { args[0].bool_data } else { true }
 	committer := if args.len > 1 { args[1].bool_data } else { true }
-	values := git_name_email_environment(brew_runtime.environment(), GitIdentityConfig{
+	values := git_name_email_environment(ruby.environment(), GitIdentityConfig{
 		git_name: os.getenv('HOMEBREW_GIT_NAME')
 		git_committer_name: os.getenv('HOMEBREW_GIT_COMMITTER_NAME')
 		git_email: os.getenv('HOMEBREW_GIT_EMAIL')
@@ -132,7 +132,7 @@ pub fn ruby_git_l160_d15_self_set_name_email(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby method `self.setup_gpg!` at line 182.
-pub fn ruby_git_l182_d16_self_setup_gpg(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_git_l182_d16_self_setup_gpg(args ...ruby.Value) ruby.Value {
 	prefix := if args.len > 0 { args[0].as_string() } else { git_homebrew_prefix() }
 	updated := git_setup_gpg_path(prefix, os.getenv('PATH'))
 	if updated != os.getenv('PATH') { os.setenv('PATH', updated, true) }
@@ -140,20 +140,20 @@ pub fn ruby_git_l182_d16_self_setup_gpg(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby method `self.cherry_pick!(repo, *args, resolve: false, verbose: false)` at line 192.
-pub fn ruby_git_l192_d17_self_cherry_pick(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_git_l192_d17_self_cherry_pick(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('cherry_pick! requires repo and commit arguments') }
 	resolve := if args.len > 2 { args[2].bool_data } else { false }
 	verbose := if args.len > 3 { args[3].bool_data } else { false }
 	output := git_cherry_pick(git_default_executable(), args[0].as_string(), [
 		args[1].as_string(),
-	], resolve, verbose, git_run_command) or { return brew_runtime.object_value('ErrorDuringExecution', err.msg()) }
-	return brew_runtime.string_value(output)
+	], resolve, verbose, git_run_command) or { return ruby.object_value('ErrorDuringExecution', err.msg()) }
+	return ruby.string_value(output)
 }
 
 // Ruby method `self.supports_partial_clone_sparse_checkout?` at line 205.
-pub fn ruby_git_l205_d18_self_supports_partial_clone_sparse_checkout(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_git_l205_d18_self_supports_partial_clone_sparse_checkout(args ...ruby.Value) ruby.Value {
 	mut client := git_client_from_args(args)
-	return brew_runtime.bool_value(git_supports_partial_clone_sparse_checkout(git_client_version(mut client)))
+	return ruby.bool_value(git_supports_partial_clone_sparse_checkout(git_client_version(mut client)))
 }
 
 pub struct GitCommandResult {
@@ -439,16 +439,16 @@ fn git_compare_versions(left string, right string) int {
 }
 
 fn git_run_command(command []string) !GitCommandResult {
-	result := brew_runtime.run_captured_command(command, brew_runtime.CapturedCommandOptions{
-		environment: brew_runtime.environment()
+	result := ruby.run_captured_command(command, ruby.CapturedCommandOptions{
+		environment: ruby.environment()
 	})!
 	return GitCommandResult{ exit_code: result.exit_code, stdout: result.stdout, stderr: result.stderr }
 }
 
 fn git_run_version_command(command []string) !GitCommandResult {
-	mut environment := brew_runtime.environment()
+	mut environment := ruby.environment()
 	environment['GIT_CONFIG_GLOBAL'] = git_no_global_config_file()
-	result := brew_runtime.run_captured_command(command, brew_runtime.CapturedCommandOptions{
+	result := ruby.run_captured_command(command, ruby.CapturedCommandOptions{
 		environment: environment
 	})!
 	return GitCommandResult{ exit_code: result.exit_code, stdout: result.stdout, stderr: result.stderr }
@@ -467,7 +467,7 @@ fn git_homebrew_prefix() string {
 	return if prefix != '' { prefix } else { '/usr/local' }
 }
 
-fn git_client_from_args(args []brew_runtime.Value) GitClient {
+fn git_client_from_args(args []ruby.Value) GitClient {
 	git := if args.len > 0 && args[0].type_name == 'String' {
 		args[0].as_string()
 	} else {
@@ -476,8 +476,8 @@ fn git_client_from_args(args []brew_runtime.Value) GitClient {
 	return GitClient{ git: git }
 }
 
-fn git_nil_value() brew_runtime.Value {
-	return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+fn git_nil_value() ruby.Value {
+	return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 }
 
 // Original Ruby source (line-for-line):

@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `metafiles.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -44,19 +44,19 @@ pub fn is_metafile_copied(input string) bool {
 }
 
 // Ruby method `list?(file)` at line 19.
-pub fn ruby_metafiles_l19_d1_list(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_metafiles_l19_d1_list(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Metafiles.list? requires a file')
 	}
-	return brew_runtime.bool_value(is_metafile_listed(args[0].as_string()))
+	return ruby.bool_value(is_metafile_listed(args[0].as_string()))
 }
 
 // Ruby method `copy?(file)` at line 26.
-pub fn ruby_metafiles_l26_d2_copy(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_metafiles_l26_d2_copy(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Metafiles.copy? requires a file')
 	}
-	return brew_runtime.bool_value(is_metafile_copied(args[0].as_string()))
+	return ruby.bool_value(is_metafile_copied(args[0].as_string()))
 }
 
 // Original Ruby source (line-for-line):

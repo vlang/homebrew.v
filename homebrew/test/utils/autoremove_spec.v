@@ -1,6 +1,6 @@
 module utils
 
-import brew_runtime
+import ruby
 import homebrew.utils as autoremove_core
 
 // Translated from Homebrew/brew `test/utils/autoremove_spec.rb`.
@@ -47,8 +47,8 @@ fn autoremove_spec_formulae(poured_from_bottle bool, installed_present bool,
 	]
 }
 
-fn autoremove_spec_formulae_value(formulae []autoremove_core.AutoremoveFormula) brew_runtime.Value {
-	return brew_runtime.array_value(formulae.map(autoremove_core.autoremove_formula_value(it)))
+fn autoremove_spec_formulae_value(formulae []autoremove_core.AutoremoveFormula) ruby.Value {
+	return ruby.array_value(formulae.map(autoremove_core.autoremove_formula_value(it)))
 }
 
 fn autoremove_spec_cask(name string, dependencies []string) autoremove_core.AutoremoveCask {
@@ -58,8 +58,8 @@ fn autoremove_spec_cask(name string, dependencies []string) autoremove_core.Auto
 	}
 }
 
-fn autoremove_spec_casks_value(casks []autoremove_core.AutoremoveCask) brew_runtime.Value {
-	return brew_runtime.array_value(casks.map(autoremove_core.autoremove_cask_value(it)))
+fn autoremove_spec_casks_value(casks []autoremove_core.AutoremoveCask) ruby.Value {
+	return ruby.array_value(casks.map(autoremove_core.autoremove_cask_value(it)))
 }
 
 fn autoremove_spec_names(formulae []autoremove_core.AutoremoveFormula) []string {
@@ -73,33 +73,33 @@ fn autoremove_spec_same_names(mut actual []string, mut expected []string) bool {
 }
 
 // Ruby let `let(:formula_with_deps) do` at line 8.
-pub fn ruby_autoremove_spec_l8_d1_formula_with_deps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_autoremove_spec_l8_d1_formula_with_deps(args ...ruby.Value) ruby.Value {
 	return autoremove_core.autoremove_formula_value(autoremove_spec_formulae(true, true, false, false)[0])
 }
 
 // Ruby let `let(:first_formula_dep) do` at line 17.
-pub fn ruby_autoremove_spec_l17_d2_first_formula_dep(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_autoremove_spec_l17_d2_first_formula_dep(args ...ruby.Value) ruby.Value {
 	return autoremove_core.autoremove_formula_value(autoremove_spec_formulae(true, true, false, false)[1])
 }
 
 // Ruby let `let(:second_formula_dep) do` at line 24.
-pub fn ruby_autoremove_spec_l24_d3_second_formula_dep(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_autoremove_spec_l24_d3_second_formula_dep(args ...ruby.Value) ruby.Value {
 	return autoremove_core.autoremove_formula_value(autoremove_spec_formulae(true, true, false, false)[2])
 }
 
 // Ruby let `let(:formula_is_build_dep) do` at line 31.
-pub fn ruby_autoremove_spec_l31_d4_formula_is_build_dep(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_autoremove_spec_l31_d4_formula_is_build_dep(args ...ruby.Value) ruby.Value {
 	return autoremove_core.autoremove_formula_value(autoremove_spec_formulae(true, true, false, false)[3])
 }
 
 // Ruby let `let(:formulae) do` at line 38.
-pub fn ruby_autoremove_spec_l38_d5_formulae(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_autoremove_spec_l38_d5_formulae(args ...ruby.Value) ruby.Value {
 	return autoremove_spec_formulae_value(autoremove_spec_formulae(true, true, false, false))
 }
 
 // Ruby let `let(:tab_from_keg) { instance_double(Tab) }` at line 47.
-pub fn ruby_autoremove_spec_l47_d6_tab_from_keg(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.structured_value('Tab', 'tab', {
+pub fn ruby_autoremove_spec_l47_d6_tab_from_keg(args ...ruby.Value) ruby.Value {
+	return ruby.structured_value('Tab', 'tab', {
 		'poured_from_bottle': 'true'
 	})
 }
@@ -146,27 +146,27 @@ pub fn ruby_autoremove_spec_l132_d12_installed() bool {
 }
 
 // Ruby let `let(:cask_one_dep) do` at line 145.
-pub fn ruby_autoremove_spec_l145_d13_cask_one_dep(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_autoremove_spec_l145_d13_cask_one_dep(args ...ruby.Value) ruby.Value {
 	return autoremove_core.autoremove_cask_value(autoremove_spec_cask('red', ['two']))
 }
 
 // Ruby let `let(:cask_multiple_deps) do` at line 153.
-pub fn ruby_autoremove_spec_l153_d14_cask_multiple_deps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_autoremove_spec_l153_d14_cask_multiple_deps(args ...ruby.Value) ruby.Value {
 	return autoremove_core.autoremove_cask_value(autoremove_spec_cask('blue', ['zero']))
 }
 
 // Ruby let `let(:first_cask_no_deps) do` at line 161.
-pub fn ruby_autoremove_spec_l161_d15_first_cask_no_deps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_autoremove_spec_l161_d15_first_cask_no_deps(args ...ruby.Value) ruby.Value {
 	return autoremove_core.autoremove_cask_value(autoremove_spec_cask('green', []string{}))
 }
 
 // Ruby let `let(:second_cask_no_deps) do` at line 168.
-pub fn ruby_autoremove_spec_l168_d16_second_cask_no_deps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_autoremove_spec_l168_d16_second_cask_no_deps(args ...ruby.Value) ruby.Value {
 	return autoremove_core.autoremove_cask_value(autoremove_spec_cask('purple', []string{}))
 }
 
 // Ruby let `let(:casks_no_deps) { [first_cask_no_deps, second_cask_no_deps] }` at line 175.
-pub fn ruby_autoremove_spec_l175_d17_casks_no_deps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_autoremove_spec_l175_d17_casks_no_deps(args ...ruby.Value) ruby.Value {
 	return autoremove_spec_casks_value([
 		autoremove_spec_cask('green', []string{}),
 		autoremove_spec_cask('purple', []string{}),
@@ -174,7 +174,7 @@ pub fn ruby_autoremove_spec_l175_d17_casks_no_deps(args ...brew_runtime.Value) b
 }
 
 // Ruby let `let(:casks_one_dep) { [first_cask_no_deps, second_cask_no_deps, cask_one_dep] }` at line 176.
-pub fn ruby_autoremove_spec_l176_d18_casks_one_dep(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_autoremove_spec_l176_d18_casks_one_dep(args ...ruby.Value) ruby.Value {
 	return autoremove_spec_casks_value([
 		autoremove_spec_cask('green', []string{}),
 		autoremove_spec_cask('purple', []string{}),
@@ -183,7 +183,7 @@ pub fn ruby_autoremove_spec_l176_d18_casks_one_dep(args ...brew_runtime.Value) b
 }
 
 // Ruby let `let(:casks_multiple_deps) { [first_cask_no_deps, second_cask_no_deps, cask_multiple_deps] }` at line 177.
-pub fn ruby_autoremove_spec_l177_d19_casks_multiple_deps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_autoremove_spec_l177_d19_casks_multiple_deps(args ...ruby.Value) ruby.Value {
 	return autoremove_spec_casks_value([
 		autoremove_spec_cask('green', []string{}),
 		autoremove_spec_cask('purple', []string{}),

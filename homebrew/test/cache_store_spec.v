@@ -1,6 +1,6 @@
 module test
 
-import brew_runtime
+import ruby
 import homebrew
 import os
 import time
@@ -24,8 +24,8 @@ fn cache_store_spec_root() !string {
 	return root
 }
 
-fn cache_store_spec_noop(mut _ homebrew.CacheStoreDatabase) !brew_runtime.Value {
-	return brew_runtime.Value{ type_name: 'NilClass' }
+fn cache_store_spec_noop(mut _ homebrew.CacheStoreDatabase) !ruby.Value {
+	return ruby.Value{ type_name: 'NilClass' }
 }
 
 fn cache_store_spec_create_file(database homebrew.CacheStoreDatabase) ! {
@@ -43,8 +43,8 @@ pub fn ruby_cache_store_spec_l12_d3_creates() !bool {
 }
 
 // Ruby let `let(:db) { instance_double(Hash, "db", :[]= => nil) }` at line 23.
-pub fn ruby_cache_store_spec_l23_d4_db() map[string]brew_runtime.Value {
-	return map[string]brew_runtime.Value{}
+pub fn ruby_cache_store_spec_l23_d4_db() map[string]ruby.Value {
+	return map[string]ruby.Value{}
 }
 
 // Ruby it `it "sets the value in the `CacheStoreDatabase`" do` at line 25.
@@ -54,14 +54,14 @@ pub fn ruby_cache_store_spec_l25_d5_sets() !bool {
 	mut database := ruby_cache_store_spec_l7_d1_sample_db(root)
 	cache_store_spec_create_file(database)!
 	homebrew.ruby_cache_store_l137_d13_db(mut database, ruby_cache_store_spec_l23_d4_db())
-	homebrew.ruby_cache_store_l60_d3_set(mut database, 'foo', brew_runtime.string_value('bar'))
-	return database.dirty && (database.values['foo'] or { brew_runtime.Value{} }).repr == 'bar'
+	homebrew.ruby_cache_store_l60_d3_set(mut database, 'foo', ruby.string_value('bar'))
+	return database.dirty && (database.values['foo'] or { ruby.Value{} }).repr == 'bar'
 }
 
 // Ruby let `let(:db) { instance_double(Hash, "db", :[] => "bar") }` at line 37.
-pub fn ruby_cache_store_spec_l37_d6_db() map[string]brew_runtime.Value {
+pub fn ruby_cache_store_spec_l37_d6_db() map[string]ruby.Value {
 	return {
-		'foo': brew_runtime.string_value('bar')
+		'foo': ruby.string_value('bar')
 	}
 }
 
@@ -77,8 +77,8 @@ pub fn ruby_cache_store_spec_l39_d7_gets() !bool {
 }
 
 // Ruby let `let(:db) { instance_double(Hash, "db", :[] => nil) }` at line 48.
-pub fn ruby_cache_store_spec_l48_d8_db() map[string]brew_runtime.Value {
-	return map[string]brew_runtime.Value{}
+pub fn ruby_cache_store_spec_l48_d8_db() map[string]ruby.Value {
+	return map[string]ruby.Value{}
 }
 
 // Ruby it `it "does not get value in the `CacheStoreDatabase` corresponding to key" do` at line 54.
@@ -94,15 +94,15 @@ pub fn ruby_cache_store_spec_l58_d10_does() !bool {
 	root := cache_store_spec_root()!
 	defer { os.rmdir_all(root) or {} }
 	mut database := ruby_cache_store_spec_l7_d1_sample_db(root)
-	database.values['foo'] = brew_runtime.string_value('bar')
+	database.values['foo'] = ruby.string_value('bar')
 	return homebrew.ruby_cache_store_l67_d4_get(mut database, 'foo') == none
 }
 
 // Ruby let `let(:db) { instance_double(Hash, "db", :[] => { foo: "bar" }) }` at line 67.
-pub fn ruby_cache_store_spec_l67_d11_db() map[string]brew_runtime.Value {
+pub fn ruby_cache_store_spec_l67_d11_db() map[string]ruby.Value {
 	return {
-		'foo': brew_runtime.map_value({
-			'foo': brew_runtime.string_value('bar')
+		'foo': ruby.map_value({
+			'foo': ruby.string_value('bar')
 		})
 	}
 }
@@ -119,8 +119,8 @@ pub fn ruby_cache_store_spec_l73_d12_deletes() !bool {
 }
 
 // Ruby let `let(:db) { instance_double(Hash, "db", delete: nil) }` at line 80.
-pub fn ruby_cache_store_spec_l80_d13_db() map[string]brew_runtime.Value {
-	return map[string]brew_runtime.Value{}
+pub fn ruby_cache_store_spec_l80_d13_db() map[string]ruby.Value {
+	return map[string]ruby.Value{}
 }
 
 // Ruby it `it "does not call `db.delete` if `CacheStoreDatabase.created?` is `false`" do` at line 86.

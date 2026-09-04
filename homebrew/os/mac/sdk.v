@@ -1,6 +1,6 @@
 module mac
 
-import brew_runtime
+import ruby
 import os
 
 pub struct MacSdk {
@@ -161,15 +161,15 @@ pub fn clt_sdk_prefix(clt_path string) string {
 	return os.join_path(clt_path, 'SDKs')
 }
 
-fn sdk_value(sdk MacSdk) brew_runtime.Value {
-	return brew_runtime.structured_value('OS::Mac::SDK', sdk.path, {
+fn sdk_value(sdk MacSdk) ruby.Value {
+	return ruby.structured_value('OS::Mac::SDK', sdk.path, {
 		'version': sdk.version
 		'path':    sdk.path
 		'source':  sdk.source
 	})
 }
 
-fn sdk_from_value(value brew_runtime.Value) MacSdk {
+fn sdk_from_value(value ruby.Value) MacSdk {
 	return MacSdk{
 		version: value.attributes['version'] or { '' }
 		path: value.attributes['path'] or { value.repr }
@@ -177,13 +177,13 @@ fn sdk_from_value(value brew_runtime.Value) MacSdk {
 	}
 }
 
-fn sdk_locator_value(locator &SdkLocator) brew_runtime.Value {
-	return brew_runtime.structured_value('OS::Mac::BaseSDKLocator', locator.prefix, {
+fn sdk_locator_value(locator &SdkLocator) ruby.Value {
+	return ruby.structured_value('OS::Mac::BaseSDKLocator', locator.prefix, {
 		'locator_address': u64(voidptr(locator)).str()
 	})
 }
 
-fn sdk_locator_from_value(value brew_runtime.Value) &SdkLocator {
+fn sdk_locator_from_value(value ruby.Value) &SdkLocator {
 	address := value.attributes['locator_address'] or { panic('invalid SDK locator receiver') }
 	return unsafe { &SdkLocator(voidptr(address.u64())) }
 }
@@ -192,28 +192,28 @@ fn sdk_locator_from_value(value brew_runtime.Value) &SdkLocator {
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby attr_reader `attr_reader :version` at line 14.
-pub fn ruby_sdk_l14_d1_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(sdk_from_value(args[0]).version)
+pub fn ruby_sdk_l14_d1_version(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(sdk_from_value(args[0]).version)
 }
 
 // Ruby attr_reader `attr_reader :path` at line 17.
-pub fn ruby_sdk_l17_d2_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(sdk_from_value(args[0]).path)
+pub fn ruby_sdk_l17_d2_path(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(sdk_from_value(args[0]).path)
 }
 
 // Ruby attr_reader `attr_reader :source` at line 20.
-pub fn ruby_sdk_l20_d3_source(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Symbol', sdk_from_value(args[0]).source)
+pub fn ruby_sdk_l20_d3_source(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Symbol', sdk_from_value(args[0]).source)
 }
 
 // Ruby method `initialize(version, path, source)` at line 23.
-pub fn ruby_sdk_l23_d4_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sdk_l23_d4_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 3 { panic('SDK#initialize requires version, path, and source') }
 	return sdk_value(MacSdk{ version: args[0].as_string(), path: args[1].as_string(), source: args[2].as_string() })
 }
 
 // Ruby method `initialize` at line 40.
-pub fn ruby_sdk_l40_d5_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sdk_l40_d5_initialize(args ...ruby.Value) ruby.Value {
 	return sdk_locator_value(new_sdk_locator(if args.len > 0 { args[0].as_string() } else { '' }, if args.len > 1 {
 		args[1].as_string()
 	} else {
@@ -222,19 +222,19 @@ pub fn ruby_sdk_l40_d5_initialize(args ...brew_runtime.Value) brew_runtime.Value
 }
 
 // Ruby method `sdk_for(version)` at line 46.
-pub fn ruby_sdk_l46_d6_sdk_for(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sdk_l46_d6_sdk_for(args ...ruby.Value) ruby.Value {
 	mut locator := sdk_locator_from_value(args[0])
 	return sdk_value(locator.sdk_for(args[1].as_string()) or { panic(err) })
 }
 
 // Ruby method `all_sdks` at line 54.
-pub fn ruby_sdk_l54_d7_all_sdks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sdk_l54_d7_all_sdks(args ...ruby.Value) ruby.Value {
 	mut locator := sdk_locator_from_value(args[0])
-	return brew_runtime.array_value(locator.all_sdks().map(sdk_value(it)))
+	return ruby.array_value(locator.all_sdks().map(sdk_value(it)))
 }
 
 // Ruby method `sdk_if_applicable(version = nil)` at line 84.
-pub fn ruby_sdk_l84_d8_sdk_if_applicable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sdk_l84_d8_sdk_if_applicable(args ...ruby.Value) ruby.Value {
 	mut locator := sdk_locator_from_value(args[0])
 	requested := if args.len > 1 && args[1].type_name != 'NilClass' {
 		args[1].as_string()
@@ -243,49 +243,49 @@ pub fn ruby_sdk_l84_d8_sdk_if_applicable(args ...brew_runtime.Value) brew_runtim
 	}
 	os_version := if args.len > 2 { args[2].as_string() } else { requested }
 	sdk := locator.sdk_if_applicable(requested, os_version) or {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	return sdk_value(sdk)
 }
 
 // Ruby method `source; end` at line 104.
-pub fn ruby_sdk_l104_d9_source(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Symbol', sdk_locator_from_value(args[0]).source)
+pub fn ruby_sdk_l104_d9_source(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Symbol', sdk_locator_from_value(args[0]).source)
 }
 
 // Ruby method `sdk_prefix; end` at line 109.
-pub fn ruby_sdk_l109_d10_sdk_prefix(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(sdk_locator_from_value(args[0]).prefix)
+pub fn ruby_sdk_l109_d10_sdk_prefix(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(sdk_locator_from_value(args[0]).prefix)
 }
 
 // Ruby method `latest_sdk` at line 112.
-pub fn ruby_sdk_l112_d11_latest_sdk(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sdk_l112_d11_latest_sdk(args ...ruby.Value) ruby.Value {
 	mut locator := sdk_locator_from_value(args[0])
-	sdk := locator.latest_sdk() or { return brew_runtime.object_value('NilClass', 'nil') }
+	sdk := locator.latest_sdk() or { return ruby.object_value('NilClass', 'nil') }
 	return sdk_value(sdk)
 }
 
 // Ruby method `read_sdk_version(sdk_path)` at line 117.
-pub fn ruby_sdk_l117_d12_read_sdk_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sdk_l117_d12_read_sdk_version(args ...ruby.Value) ruby.Value {
 	contents := if args.len > 0 && os.is_dir(args[0].as_string()) {
 		os.read_file(os.join_path(args[0].as_string(), 'SDKSettings.json')) or { '' }
 	} else if args.len > 0 { args[0].as_string() } else { '' }
 	version := read_sdk_version(contents)
 	return if version == '' {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	} else {
-		brew_runtime.string_value(version)
+		ruby.string_value(version)
 	}
 }
 
 // Ruby method `source` at line 141.
-pub fn ruby_sdk_l141_d13_source(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Symbol', 'xcode')
+pub fn ruby_sdk_l141_d13_source(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Symbol', 'xcode')
 }
 
 // Ruby method `sdk_prefix` at line 148.
-pub fn ruby_sdk_l148_d14_sdk_prefix(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(xcode_sdk_prefix(if args.len > 0 {
+pub fn ruby_sdk_l148_d14_sdk_prefix(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(xcode_sdk_prefix(if args.len > 0 {
 		args[0].as_string()
 	} else {
 		''
@@ -293,13 +293,13 @@ pub fn ruby_sdk_l148_d14_sdk_prefix(args ...brew_runtime.Value) brew_runtime.Val
 }
 
 // Ruby method `source` at line 167.
-pub fn ruby_sdk_l167_d15_source(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Symbol', 'clt')
+pub fn ruby_sdk_l167_d15_source(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Symbol', 'clt')
 }
 
 // Ruby method `sdk_prefix` at line 176.
-pub fn ruby_sdk_l176_d16_sdk_prefix(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(clt_sdk_prefix(if args.len > 0 {
+pub fn ruby_sdk_l176_d16_sdk_prefix(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(clt_sdk_prefix(if args.len > 0 {
 		args[0].as_string()
 	} else {
 		'/Library/Developer/CommandLineTools'

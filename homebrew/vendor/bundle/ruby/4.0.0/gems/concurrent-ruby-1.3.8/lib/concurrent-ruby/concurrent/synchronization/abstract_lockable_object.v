@@ -1,42 +1,42 @@
 module synchronization
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/synchronization/abstract_lockable_object.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `synchronize` at line 18.
-pub fn ruby_abstract_lockable_object_l18_d1_synchronize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.structured_value('NotImplementedError', 'synchronize', {
+pub fn ruby_abstract_lockable_object_l18_d1_synchronize(args ...ruby.Value) ruby.Value {
+	return ruby.structured_value('NotImplementedError', 'synchronize', {
 		'method': 'synchronize'
 	})
 }
 
 // Ruby method `ns_wait_until(timeout = nil, &condition)` at line 37.
-pub fn ruby_abstract_lockable_object_l37_d2_ns_wait_until(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_lockable_object_l37_d2_ns_wait_until(args ...ruby.Value) ruby.Value {
 	if args.len > 0 && args[args.len - 1].type_name == 'Bool' {
 		return args[args.len - 1]
 	}
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 // Ruby method `ns_wait(timeout = nil)` at line 66.
-pub fn ruby_abstract_lockable_object_l66_d3_ns_wait(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.structured_value('NotImplementedError', 'ns_wait', {
+pub fn ruby_abstract_lockable_object_l66_d3_ns_wait(args ...ruby.Value) ruby.Value {
+	return ruby.structured_value('NotImplementedError', 'ns_wait', {
 		'method': 'ns_wait'
 	})
 }
 
 // Ruby method `ns_signal` at line 81.
-pub fn ruby_abstract_lockable_object_l81_d4_ns_signal(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.structured_value('NotImplementedError', 'ns_signal', {
+pub fn ruby_abstract_lockable_object_l81_d4_ns_signal(args ...ruby.Value) ruby.Value {
+	return ruby.structured_value('NotImplementedError', 'ns_signal', {
 		'method': 'ns_signal'
 	})
 }
 
 // Ruby method `ns_broadcast` at line 96.
-pub fn ruby_abstract_lockable_object_l96_d5_ns_broadcast(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.structured_value('NotImplementedError', 'ns_broadcast', {
+pub fn ruby_abstract_lockable_object_l96_d5_ns_broadcast(args ...ruby.Value) ruby.Value {
+	return ruby.structured_value('NotImplementedError', 'ns_broadcast', {
 		'method': 'ns_broadcast'
 	})
 }

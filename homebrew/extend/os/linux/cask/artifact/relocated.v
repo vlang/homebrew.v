@@ -1,14 +1,14 @@
 module artifact
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `extend/os/linux/cask/artifact/relocated.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `add_altname_metadata(file, altname, command:)` at line 14.
-pub fn ruby_relocated_l14_d1_add_altname_metadata(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_relocated_l14_d1_add_altname_metadata(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Original Ruby source (line-for-line):

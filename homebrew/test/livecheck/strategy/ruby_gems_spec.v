@@ -1,6 +1,6 @@
 module strategy
 
-import brew_runtime
+import ruby
 import homebrew.livecheck
 import homebrew.livecheck.strategy as ruby_gems_core
 import homebrew.utils
@@ -66,8 +66,8 @@ fn ruby_gems_spec_match_data_equal(left ruby_gems_core.JsonMatchData,
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:ruby_gems) { described_class }` at line 7.
-pub fn ruby_ruby_gems_spec_l7_d1_ruby_gems() brew_runtime.Value {
-	return brew_runtime.object_value('Class', 'Homebrew::Livecheck::Strategy::RubyGems')
+pub fn ruby_ruby_gems_spec_l7_d1_ruby_gems() ruby.Value {
+	return ruby.object_value('Class', 'Homebrew::Livecheck::Strategy::RubyGems')
 }
 
 // Ruby let `let(:ruby_gems_url) { "https://rubygems.org/downloads/example-package-1.2.3.gem" }` at line 9.

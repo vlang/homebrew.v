@@ -1,6 +1,6 @@
 module test_bot
 
-import brew_runtime
+import ruby
 import homebrew.test_bot as junit_core
 import os
 
@@ -8,7 +8,7 @@ import os
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "loads REXML and produces valid JUnit XML without NameError" do` at line 11.
-pub fn ruby_junit_spec_l11_d1_loads(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_junit_spec_l11_d1_loads(args ...ruby.Value) ruby.Value {
 	mut junit := junit_core.new_junit([junit_core.JunitTest{
 		steps: [junit_core.JunitStep{
 			command_short: 'audit'
@@ -22,15 +22,15 @@ pub fn ruby_junit_spec_l11_d1_loads(args ...brew_runtime.Value) brew_runtime.Val
 	junit.build(['audit'])
 	path := os.join_path(os.temp_dir(), 'brew-v-junit-passed-${os.getpid()}.xml')
 	defer { os.rm(path) or {} }
-	junit.write(path) or { return brew_runtime.bool_value(false) }
-	content := os.read_file(path) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(os.exists(path) && content.contains('<?xml')
+	junit.write(path) or { return ruby.bool_value(false) }
+	content := os.read_file(path) or { return ruby.bool_value(false) }
+	return ruby.bool_value(os.exists(path) && content.contains('<?xml')
 		&& content.contains('testsuites') && content.contains('testcase')
 		&& content.contains("name='audit'"))
 }
 
 // Ruby it `it "includes failure element when a step did not pass" do` at line 40.
-pub fn ruby_junit_spec_l40_d2_includes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_junit_spec_l40_d2_includes(args ...ruby.Value) ruby.Value {
 	mut junit := junit_core.new_junit([junit_core.JunitTest{
 		steps: [junit_core.JunitStep{
 			command_short: 'test'
@@ -43,9 +43,9 @@ pub fn ruby_junit_spec_l40_d2_includes(args ...brew_runtime.Value) brew_runtime.
 	junit.build(['test'])
 	path := os.join_path(os.temp_dir(), 'brew-v-junit-failed-${os.getpid()}.xml')
 	defer { os.rm(path) or {} }
-	junit.write(path) or { return brew_runtime.bool_value(false) }
-	content := os.read_file(path) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(content.contains('<failure ') && content.contains('failed'))
+	junit.write(path) or { return ruby.bool_value(false) }
+	content := os.read_file(path) or { return ruby.bool_value(false) }
+	return ruby.bool_value(content.contains('<failure ') && content.contains('failed'))
 }
 
 // Original Ruby source (line-for-line):

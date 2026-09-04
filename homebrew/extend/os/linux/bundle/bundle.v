@@ -1,16 +1,16 @@
 module bundle
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `extend/os/linux/bundle/bundle.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `prepend_pkgconf_path_if_needed!` at line 11.
-pub fn ruby_bundle_l11_d1_prepend_pkgconf_path_if_needed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bundle_l11_d1_prepend_pkgconf_path_if_needed(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
-		return brew_runtime.string_value(if args.len > 0 { args[0].as_string() } else { '' })
+		return ruby.string_value(if args.len > 0 { args[0].as_string() } else { '' })
 	}
-	return brew_runtime.string_value(prepend_pkgconf_path_if_needed(args[0].as_string(),
+	return ruby.string_value(prepend_pkgconf_path_if_needed(args[0].as_string(),
 		args[1].as_string(), args[2].as_bool() or { false }))
 }
 

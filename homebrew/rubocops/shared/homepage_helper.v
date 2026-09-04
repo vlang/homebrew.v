@@ -1,6 +1,6 @@
 module shared
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `rubocops/shared/homepage_helper.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -185,8 +185,8 @@ pub fn audit_homepage_content(homepage_type string, content string, homepage_beg
 	return problems
 }
 
-fn homepage_problem_value(problem HomepageProblem) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cop::Problem', problem.message, {
+fn homepage_problem_value(problem HomepageProblem) ruby.Value {
+	return ruby.structured_value('RuboCop::Cop::Problem', problem.message, {
 		'kind':          problem.kind
 		'homepage_type': problem.homepage_type
 		'content':       problem.content
@@ -198,14 +198,14 @@ fn homepage_problem_value(problem HomepageProblem) brew_runtime.Value {
 }
 
 // Ruby method `audit_homepage(type, content, homepage_node, homepage_parameter_node)` at line 19.
-pub fn ruby_homepage_helper_l19_d1_audit_homepage(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_homepage_helper_l19_d1_audit_homepage(args ...ruby.Value) ruby.Value {
 	homepage_type := if args.len > 0 { args[0].as_string() } else { 'formula' }
 	content := if args.len > 1 { args[1].as_string() } else { '' }
 	homepage_begin := if args.len > 2 { int(args[2].int_data) } else { 0 }
 	homepage_end := if args.len > 3 { int(args[3].int_data) } else { content.len }
 	parameter_begin := if args.len > 4 { int(args[4].int_data) } else { homepage_begin }
 	parameter_end := if args.len > 5 { int(args[5].int_data) } else { homepage_end }
-	return brew_runtime.array_value(audit_homepage_content(homepage_type, content, homepage_begin, homepage_end, parameter_begin, parameter_end).map(homepage_problem_value(it)))
+	return ruby.array_value(audit_homepage_content(homepage_type, content, homepage_begin, homepage_end, parameter_begin, parameter_end).map(homepage_problem_value(it)))
 }
 
 // Original Ruby source (line-for-line):

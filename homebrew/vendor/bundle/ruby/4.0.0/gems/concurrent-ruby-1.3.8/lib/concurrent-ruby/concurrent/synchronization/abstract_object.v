@@ -1,22 +1,22 @@
 module synchronization
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/synchronization/abstract_object.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `initialize` at line 7.
-pub fn ruby_abstract_object_l7_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+pub fn ruby_abstract_object_l7_d1_initialize(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `full_memory_barrier` at line 13.
-pub fn ruby_abstract_object_l13_d2_full_memory_barrier(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_object_l13_d2_full_memory_barrier(args ...ruby.Value) ruby.Value {
 	panic('NotImplementedError: AbstractObject#full_memory_barrier')
 }
 
 // Ruby method `self.attr_volatile(*names)` at line 17.
-pub fn ruby_abstract_object_l17_d3_self_attr_volatile(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_object_l17_d3_self_attr_volatile(args ...ruby.Value) ruby.Value {
 	panic('NotImplementedError: AbstractObject.attr_volatile')
 }
 

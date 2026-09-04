@@ -1,6 +1,6 @@
 module unpack_strategy
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `unpack_strategy/p7zip.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -46,7 +46,7 @@ pub fn p7zip_extract_to_dir(path string, unpack_dir string, basename string, ver
 	for line in listing.output.split_into_lines() {
 		if line.starts_with('Path = ') {
 			member := line.all_after('Path = ').trim_space()
-			if member != path && member != brew_runtime.real_path(path) {
+			if member != path && member != ruby.real_path(path) {
 				members << member
 			}
 		}

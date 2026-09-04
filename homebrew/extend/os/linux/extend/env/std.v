@@ -1,6 +1,6 @@
 module env
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `extend/os/linux/extend/ENV/std.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -52,25 +52,25 @@ pub fn (mut environment LinuxStdEnv) libxml2() {
 	environment.values['CPPFLAGS'] = if current == '' { flag } else { '${current} ${flag}' }
 }
 
-fn linux_std_env_value(environment &LinuxStdEnv) brew_runtime.Value {
-	return brew_runtime.structured_value('OS::Linux::Stdenv', '', {
+fn linux_std_env_value(environment &LinuxStdEnv) ruby.Value {
+	return ruby.structured_value('OS::Linux::Stdenv', '', {
 		'linux_std_env_address': u64(voidptr(environment)).str()
 	})
 }
 
-fn linux_std_env_from_value(value brew_runtime.Value) &LinuxStdEnv {
+fn linux_std_env_from_value(value ruby.Value) &LinuxStdEnv {
 	address := value.attributes['linux_std_env_address'] or { panic('invalid Linux Stdenv') }
 	return unsafe { &LinuxStdEnv(voidptr(address.u64())) }
 }
 
-pub fn linux_std_env_boundary(environment &LinuxStdEnv) brew_runtime.Value {
+pub fn linux_std_env_boundary(environment &LinuxStdEnv) ruby.Value {
 	return linux_std_env_value(environment)
 }
 
 // Ruby method `setup_build_environment(formula: nil, cc: nil, build_bottle: false, bottle_arch: nil,` at line 21.
-pub fn ruby_std_l21_d1_setup_build_environment(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_std_l21_d1_setup_build_environment(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'environment is required')
+		return ruby.object_value('ArgumentError', 'environment is required')
 	}
 	mut environment := linux_std_env_from_value(args[0])
 	formula := if args.len > 1 && args[1].type_name != 'NilClass' {
@@ -82,17 +82,17 @@ pub fn ruby_std_l21_d1_setup_build_environment(args ...brew_runtime.Value) brew_
 		none
 	}
 	environment.setup_build_environment(formula)
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `libxml2` at line 37.
-pub fn ruby_std_l37_d2_libxml2(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_std_l37_d2_libxml2(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'environment is required')
+		return ruby.object_value('ArgumentError', 'environment is required')
 	}
 	mut environment := linux_std_env_from_value(args[0])
 	environment.libxml2()
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Original Ruby source (line-for-line):

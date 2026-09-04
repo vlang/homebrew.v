@@ -1,6 +1,6 @@
 module ffi
 
-import brew_runtime
+import ruby
 import os
 
 pub fn foundation_trash_item(path string, trash_directory string) !string {
@@ -36,23 +36,23 @@ pub fn foundation_trash_paths(paths []string, trash_directory string) ([]string,
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `self.trash_item(path)` at line 12.
-pub fn ruby_foundation_l12_d1_self_trash_item(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_foundation_l12_d1_self_trash_item(args ...ruby.Value) ruby.Value {
 	trash_directory := if args.len > 1 {
 		args[1].as_string()
 	} else {
 		os.join_path(os.home_dir(), '.Trash')
 	}
 	result := foundation_trash_item(args[0].as_string(), trash_directory) or {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	if result == '' {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
-	return brew_runtime.string_value(result)
+	return ruby.string_value(result)
 }
 
 // Ruby method `self.trash_paths(paths)` at line 49.
-pub fn ruby_foundation_l49_d2_self_trash_paths(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_foundation_l49_d2_self_trash_paths(args ...ruby.Value) ruby.Value {
 	paths := args[0].as_array() or { [] }.map(it.as_string())
 	trash_directory := if args.len > 1 {
 		args[1].as_string()
@@ -60,9 +60,9 @@ pub fn ruby_foundation_l49_d2_self_trash_paths(args ...brew_runtime.Value) brew_
 		os.join_path(os.home_dir(), '.Trash')
 	}
 	trashed, untrashable := foundation_trash_paths(paths, trash_directory)
-	return brew_runtime.array_value([
-		brew_runtime.string_array_value(trashed),
-		brew_runtime.string_array_value(untrashable),
+	return ruby.array_value([
+		ruby.string_array_value(trashed),
+		ruby.string_array_value(untrashable),
 	])
 }
 

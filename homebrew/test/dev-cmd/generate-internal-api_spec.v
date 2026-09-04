@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `test/dev-cmd/generate-internal-api_spec.rb`.
@@ -15,12 +15,12 @@ pub fn generate_internal_api_spec_options(root string) GenerateInternalApiOption
 			'foo': GenerateInternalApiFormula{
 				name: 'foo'
 				hash: {
-					'name': brew_runtime.string_value('foo')
+					'name': ruby.string_value('foo')
 				}
 				serialized_by_tag: {
 					'arm64_sonoma': {
-						'name':        brew_runtime.string_value('foo')
-						'executables': brew_runtime.string_array_value(['foo-tool', 'food'])
+						'name':        ruby.string_value('foo')
+						'executables': ruby.string_array_value(['foo-tool', 'food'])
 					}
 				}
 			}
@@ -29,11 +29,11 @@ pub fn generate_internal_api_spec_options(root string) GenerateInternalApiOption
 			'c.rb': GenerateInternalApiCask{
 				token: 'c'
 				hash: {
-					'token': brew_runtime.string_value('c')
+					'token': ruby.string_value('c')
 				}
 				serialized_by_tag: {
 					'arm64_sonoma': {
-						'token': brew_runtime.string_value('c')
+						'token': ruby.string_value('c')
 					}
 				}
 			}
@@ -51,7 +51,7 @@ pub fn generate_internal_api_spec_writes(root string) !bool {
 	os.mkdir_all(root)!
 	run_generate_internal_api(generate_internal_api_spec_options(root))!
 	contents := os.read_file(os.join_path(root, 'api/internal/packages.arm64_sonoma.json'))!
-	json := brew_runtime.parse_json_value(contents)!.as_map()!
+	json := ruby.parse_json_value(contents)!.as_map()!
 	metadata := json['metadata']!.as_map()!
 	executables := json['formulae']!.as_map()!['foo']!.as_map()!['executables']!.as_array()!.map(it.as_string())
 	return metadata['homebrew_version']!.as_string() == '4.2.18'

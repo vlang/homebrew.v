@@ -1,6 +1,6 @@
 module props
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/props/weak_constructor.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -10,19 +10,19 @@ pub:
 	expected_type string
 	required      bool
 	has_default   bool
-	default_value brew_runtime.Value
+	default_value ruby.Value
 	has_factory   bool
-	factory_value brew_runtime.Value
+	factory_value ruby.Value
 }
 
 pub struct PropInstance {
 pub:
 	class_name string
 pub mut:
-	values map[string]brew_runtime.Value
+	values map[string]ruby.Value
 }
 
-fn prop_value_matches(definition PropDefinition, value brew_runtime.Value) bool {
+fn prop_value_matches(definition PropDefinition, value ruby.Value) bool {
 	if value.type_name == 'NilClass' {
 		return !definition.required
 	}
@@ -31,7 +31,7 @@ fn prop_value_matches(definition PropDefinition, value brew_runtime.Value) bool 
 }
 
 fn set_prop_value(mut instance PropInstance, definition PropDefinition,
-	value brew_runtime.Value) ! {
+	value ruby.Value) ! {
 	if !prop_value_matches(definition, value) {
 		return error('Expected type ${definition.expected_type} for prop `${definition.name}`, got ${value.type_name}')
 	}
@@ -41,7 +41,7 @@ fn set_prop_value(mut instance PropInstance, definition PropDefinition,
 // construct_props_without_defaults implements WeakConstructor's present-key
 // assignment and deliberately ignores missing keys.
 pub fn construct_props_without_defaults(mut instance PropInstance, definitions []PropDefinition,
-	hash map[string]brew_runtime.Value) !int {
+	hash map[string]ruby.Value) !int {
 	mut result := 0
 	for definition in definitions {
 		if definition.has_default || definition.has_factory || definition.name !in hash {
@@ -56,7 +56,7 @@ pub fn construct_props_without_defaults(mut instance PropInstance, definitions [
 // construct_props_with_defaults uses an input value only when the input hash
 // actually contains the key, including when that value is nil.
 pub fn construct_props_with_defaults(mut instance PropInstance, definitions []PropDefinition,
-	hash map[string]brew_runtime.Value) !int {
+	hash map[string]ruby.Value) !int {
 	mut result := 0
 	for definition in definitions {
 		if !definition.has_default && !definition.has_factory {
@@ -78,10 +78,10 @@ pub fn construct_props_with_defaults(mut instance PropInstance, definitions []Pr
 }
 
 pub fn weak_construct(class_name string, definitions []PropDefinition,
-	hash map[string]brew_runtime.Value) !PropInstance {
+	hash map[string]ruby.Value) !PropInstance {
 	mut instance := PropInstance{
 		class_name: class_name
-		values: map[string]brew_runtime.Value{}
+		values: map[string]ruby.Value{}
 	}
 	matched := construct_props_with_defaults(mut instance, definitions, hash)! + construct_props_without_defaults(mut instance, definitions, hash)!
 	if matched < hash.len {
@@ -98,7 +98,7 @@ pub fn weak_construct(class_name string, definitions []PropDefinition,
 	return instance
 }
 
-fn prop_definition_from_value(value brew_runtime.Value) PropDefinition {
+fn prop_definition_from_value(value ruby.Value) PropDefinition {
 	return PropDefinition{
 		name: value.attribute('name') or { value.as_string() }
 		expected_type: value.attribute('expected_type') or { '' }
@@ -110,19 +110,19 @@ fn prop_definition_from_value(value brew_runtime.Value) PropDefinition {
 	}
 }
 
-fn prop_definitions_from_value(value brew_runtime.Value) []PropDefinition {
+fn prop_definitions_from_value(value ruby.Value) []PropDefinition {
 	return value.array_data.map(prop_definition_from_value(it))
 }
 
-fn prop_instance_from_value(value brew_runtime.Value) PropInstance {
+fn prop_instance_from_value(value ruby.Value) PropInstance {
 	return PropInstance{
 		class_name: value.attribute('class_name') or { value.type_name }
 		values: value.map_data.clone()
 	}
 }
 
-fn prop_instance_value(instance PropInstance) brew_runtime.Value {
-	return brew_runtime.Value{
+fn prop_instance_value(instance PropInstance) ruby.Value {
+	return ruby.Value{
 		type_name: instance.class_name
 		repr: '<${instance.class_name}>'
 		map_data: instance.values.clone()
@@ -133,14 +133,14 @@ fn prop_instance_value(instance PropInstance) brew_runtime.Value {
 }
 
 // Ruby method `initialize(hash=EMPTY_HASH)` at line 15.
-pub fn ruby_weak_constructor_l15_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_weak_constructor_l15_d1_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('WeakConstructor#initialize requires a receiver')
 	}
 	hash := if args.len > 1 {
 		args[1].as_map() or { panic(err) }
 	} else {
-		map[string]brew_runtime.Value{}
+		map[string]ruby.Value{}
 	}
 	return prop_instance_value(weak_construct(args[0].attribute('class_name') or {
 		args[0].type_name
@@ -148,23 +148,23 @@ pub fn ruby_weak_constructor_l15_d1_initialize(args ...brew_runtime.Value) brew_
 }
 
 // Ruby method `construct_props_without_defaults(instance, hash)` at line 37.
-pub fn ruby_weak_constructor_l37_d2_construct_props_without_defaults(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_weak_constructor_l37_d2_construct_props_without_defaults(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('construct_props_without_defaults requires decorator, instance, and hash')
 	}
 	mut instance := prop_instance_from_value(args[1])
 	count := construct_props_without_defaults(mut instance, prop_definitions_from_value(args[0]), args[2].as_map() or { panic(err) }) or { panic(err) }
-	return brew_runtime.int_value(count)
+	return ruby.int_value(count)
 }
 
 // Ruby method `construct_props_with_defaults(instance, hash)` at line 58.
-pub fn ruby_weak_constructor_l58_d3_construct_props_with_defaults(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_weak_constructor_l58_d3_construct_props_with_defaults(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('construct_props_with_defaults requires decorator, instance, and hash')
 	}
 	mut instance := prop_instance_from_value(args[1])
 	count := construct_props_with_defaults(mut instance, prop_definitions_from_value(args[0]), args[2].as_map() or { panic(err) }) or { panic(err) }
-	return brew_runtime.int_value(count)
+	return ruby.int_value(count)
 }
 
 // Original Ruby source (line-for-line):

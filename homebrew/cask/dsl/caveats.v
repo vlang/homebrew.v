@@ -1,6 +1,6 @@
 module dsl
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `cask/dsl/caveats.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -15,54 +15,54 @@ pub:
 
 pub struct CaskCaveats {
 pub mut:
-	cask         brew_runtime.Value
+	cask         ruby.Value
 	built_in     []CaskCaveatEntry
 	custom       []string
 	discontinued bool
 	invoked      []string
 }
 
-fn caveats_nil() brew_runtime.Value {
-	return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+fn caveats_nil() ruby.Value {
+	return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 }
 
-pub fn new_cask_caveats(cask brew_runtime.Value) CaskCaveats {
+pub fn new_cask_caveats(cask ruby.Value) CaskCaveats {
 	return CaskCaveats{ cask: cask }
 }
 
-pub fn cask_caveats_value(caveats CaskCaveats) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn cask_caveats_value(caveats CaskCaveats) ruby.Value {
+	return ruby.Value{
 		type_name: 'Cask::DSL::Caveats'
 		repr: caveats_text(caveats, true)
 		map_data: {
 			'cask':             caveats.cask
-			'built_in_caveats': brew_runtime.array_value(caveats.built_in.map(brew_runtime.map_value({
-				'name': brew_runtime.string_value(it.name)
-				'args': brew_runtime.string_array_value(it.args)
-				'text': brew_runtime.string_value(it.text)
+			'built_in_caveats': ruby.array_value(caveats.built_in.map(ruby.map_value({
+				'name': ruby.string_value(it.name)
+				'args': ruby.string_array_value(it.args)
+				'text': ruby.string_value(it.text)
 			})))
-			'custom_caveats':   brew_runtime.string_array_value(caveats.custom)
-			'discontinued':     brew_runtime.bool_value(caveats.discontinued)
-			'invoked_caveats':  brew_runtime.string_array_value(caveats.invoked)
+			'custom_caveats':   ruby.string_array_value(caveats.custom)
+			'discontinued':     ruby.bool_value(caveats.discontinued)
+			'invoked_caveats':  ruby.string_array_value(caveats.invoked)
 		}
 	}
 }
 
-pub fn cask_caveats_from_value(value brew_runtime.Value) !CaskCaveats {
+pub fn cask_caveats_from_value(value ruby.Value) !CaskCaveats {
 	if value.type_name != 'Cask::DSL::Caveats' {
 		return error('expected Cask::DSL::Caveats, got ${value.type_name}')
 	}
 	mut caveats := CaskCaveats{
-		cask: value.map_data['cask'] or { brew_runtime.object_value('Cask', value.repr) }
-		custom: (value.map_data['custom_caveats'] or { brew_runtime.string_array_value([]) }).as_string_array()!
-		discontinued: (value.map_data['discontinued'] or { brew_runtime.bool_value(false) }).as_bool() or { false }
-		invoked: (value.map_data['invoked_caveats'] or { brew_runtime.string_array_value([]) }).as_string_array()!
+		cask: value.map_data['cask'] or { ruby.object_value('Cask', value.repr) }
+		custom: (value.map_data['custom_caveats'] or { ruby.string_array_value([]) }).as_string_array()!
+		discontinued: (value.map_data['discontinued'] or { ruby.bool_value(false) }).as_bool() or { false }
+		invoked: (value.map_data['invoked_caveats'] or { ruby.string_array_value([]) }).as_string_array()!
 	}
-	for raw in (value.map_data['built_in_caveats'] or { brew_runtime.array_value([]brew_runtime.Value{}) }).as_array()! {
+	for raw in (value.map_data['built_in_caveats'] or { ruby.array_value([]ruby.Value{}) }).as_array()! {
 		caveats.built_in << CaskCaveatEntry{
-			name: (raw.map_data['name'] or { brew_runtime.string_value('') }).as_string()
-			args: (raw.map_data['args'] or { brew_runtime.string_array_value([]) }).as_string_array()!
-			text: (raw.map_data['text'] or { brew_runtime.string_value('') }).as_string()
+			name: (raw.map_data['name'] or { ruby.string_value('') }).as_string()
+			args: (raw.map_data['args'] or { ruby.string_array_value([]) }).as_string_array()!
+			text: (raw.map_data['text'] or { ruby.string_value('') }).as_string()
 		}
 	}
 	return caveats
@@ -77,7 +77,7 @@ fn caveats_text(caveats CaskCaveats, include_conditional bool) string {
 }
 
 fn caveats_cask_name(caveats CaskCaveats) string {
-	return (caveats.cask.map_data['token'] or { brew_runtime.string_value(caveats.cask.as_string()) }).as_string()
+	return (caveats.cask.map_data['token'] or { ruby.string_value(caveats.cask.as_string()) }).as_string()
 }
 
 fn caveats_builtin_text(caveats CaskCaveats, name string, arguments []string) ?string {
@@ -85,7 +85,7 @@ fn caveats_builtin_text(caveats CaskCaveats, name string, arguments []string) ?s
 	first := if arguments.len > 0 { arguments[0] } else { '' }
 	match name {
 		'kext' {
-			version := (caveats.cask.map_data['macos_version'] or { brew_runtime.string_value('sonoma') }).as_string()
+			version := (caveats.cask.map_data['macos_version'] or { ruby.string_value('sonoma') }).as_string()
 			if version !in ['sonoma', 'sequoia', 'tahoe'] {
 				return none
 			}
@@ -93,7 +93,7 @@ fn caveats_builtin_text(caveats CaskCaveats, name string, arguments []string) ?s
 		}
 		'unsigned_accessibility' {
 			access := if first == '' || first == 'nil' { 'Accessibility' } else { first }
-			version := (caveats.cask.map_data['macos_version'] or { brew_runtime.string_value('ventura') }).as_string()
+			version := (caveats.cask.map_data['macos_version'] or { ruby.string_value('ventura') }).as_string()
 			navigation := if version in ['ventura', 'sonoma', 'sequoia', 'tahoe'] {
 				'System Settings → Privacy & Security'
 			} else {
@@ -108,7 +108,7 @@ fn caveats_builtin_text(caveats CaskCaveats, name string, arguments []string) ?s
 			return 'To use ${cask}, zsh users may need to add the following line to their\n~/.zprofile. (Among other effects, ${first} will be added to the\nPATH environment variable):\n  eval `/usr/libexec/path_helper -s`\n'
 		}
 		'files_in_usr_local' {
-			prefix := (caveats.cask.map_data['homebrew_prefix'] or { brew_runtime.string_value('/opt/homebrew') }).as_string()
+			prefix := (caveats.cask.map_data['homebrew_prefix'] or { ruby.string_value('/opt/homebrew') }).as_string()
 			if !prefix.to_lower().starts_with('/usr/local') {
 				return none
 			}
@@ -125,8 +125,8 @@ fn caveats_builtin_text(caveats CaskCaveats, name string, arguments []string) ?s
 			return '${cask} requires Java ${version}. You can install it with:\n  brew install --cask temurin@${version}\n'
 		}
 		'requires_rosetta' {
-			arch := (caveats.cask.map_data['system_arch'] or { brew_runtime.string_value('intel') }).as_string().trim_left(':')
-			installed := (caveats.cask.map_data['rosetta_installed'] or { brew_runtime.bool_value(false) }).as_bool() or { false }
+			arch := (caveats.cask.map_data['system_arch'] or { ruby.string_value('intel') }).as_string().trim_left(':')
+			installed := (caveats.cask.map_data['rosetta_installed'] or { ruby.bool_value(false) }).as_bool() or { false }
 			if arch !in ['arm', 'arm64'] || installed {
 				return none
 			}
@@ -163,36 +163,36 @@ pub fn (mut caveats CaskCaveats) invoke(name string, arguments []string) {
 }
 
 // Ruby method `initialize(*args)` at line 23.
-pub fn ruby_caveats_l23_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_caveats_l23_d1_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'Caveats#initialize requires a cask')
+		return ruby.object_value('ArgumentError', 'Caveats#initialize requires a cask')
 	}
 	return cask_caveats_value(new_cask_caveats(args[0]))
 }
 
 // Ruby method `self.caveat(name, &block)` at line 34.
-pub fn ruby_caveats_l34_d2_self_caveat(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_caveats_l34_d2_self_caveat(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'caveat requires a name')
+		return ruby.object_value('ArgumentError', 'caveat requires a name')
 	}
-	return brew_runtime.structured_value('Cask::DSL::CaveatDefinition', args[0].as_string(), {
+	return ruby.structured_value('Cask::DSL::CaveatDefinition', args[0].as_string(), {
 		'name': args[0].as_string().trim_left(':')
 	})
 }
 
 // Ruby define_method `define_method(name) do |*args|` at line 35.
-pub fn ruby_caveats_l35_d3_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_caveats_l35_d3_name(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'caveat invocation requires receiver and name')
+		return ruby.object_value('ArgumentError', 'caveat invocation requires receiver and name')
 	}
-	mut caveats := cask_caveats_from_value(args[0]) or { return brew_runtime.object_value('TypeError', err.msg()) }
+	mut caveats := cask_caveats_from_value(args[0]) or { return ruby.object_value('TypeError', err.msg()) }
 	mut values := []string{}
 	for index in 2 .. args.len {
 		values << args[index].as_string()
 	}
 	caveats.invoke(args[1].as_string().trim_left(':'), values)
 	result := cask_caveats_value(caveats)
-	return brew_runtime.Value{
+	return ruby.Value{
 		...result
 		attributes: {
 			'return': 'built_in_caveat'
@@ -201,47 +201,47 @@ pub fn ruby_caveats_l35_d3_name(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `discontinued? = @discontinued` at line 48.
-pub fn ruby_caveats_l48_d4_discontinued(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_caveats_l48_d4_discontinued(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'discontinued? requires a receiver')
+		return ruby.object_value('ArgumentError', 'discontinued? requires a receiver')
 	}
-	caveats := cask_caveats_from_value(args[0]) or { return brew_runtime.object_value('TypeError', err.msg()) }
-	return brew_runtime.bool_value(caveats.discontinued)
+	caveats := cask_caveats_from_value(args[0]) or { return ruby.object_value('TypeError', err.msg()) }
+	return ruby.bool_value(caveats.discontinued)
 }
 
 // Ruby method `to_s` at line 51.
-pub fn ruby_caveats_l51_d5_to_s(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_caveats_l51_d5_to_s(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'to_s requires a receiver')
+		return ruby.object_value('ArgumentError', 'to_s requires a receiver')
 	}
-	caveats := cask_caveats_from_value(args[0]) or { return brew_runtime.object_value('TypeError', err.msg()) }
-	return brew_runtime.string_value(caveats_text(caveats, true))
+	caveats := cask_caveats_from_value(args[0]) or { return ruby.object_value('TypeError', err.msg()) }
+	return ruby.string_value(caveats_text(caveats, true))
 }
 
 // Ruby method `to_s_without_conditional` at line 59.
-pub fn ruby_caveats_l59_d6_to_s_without_conditional(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_caveats_l59_d6_to_s_without_conditional(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'to_s_without_conditional requires a receiver')
+		return ruby.object_value('ArgumentError', 'to_s_without_conditional requires a receiver')
 	}
-	caveats := cask_caveats_from_value(args[0]) or { return brew_runtime.object_value('TypeError', err.msg()) }
-	return brew_runtime.string_value(caveats_text(caveats, false))
+	caveats := cask_caveats_from_value(args[0]) or { return ruby.object_value('TypeError', err.msg()) }
+	return ruby.string_value(caveats_text(caveats, false))
 }
 
 // Ruby method `invoked?(name)` at line 68.
-pub fn ruby_caveats_l68_d7_invoked(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_caveats_l68_d7_invoked(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'invoked? requires a name')
+		return ruby.object_value('ArgumentError', 'invoked? requires a name')
 	}
-	caveats := cask_caveats_from_value(args[0]) or { return brew_runtime.object_value('TypeError', err.msg()) }
-	return brew_runtime.bool_value(args[1].as_string().trim_left(':') in caveats.invoked)
+	caveats := cask_caveats_from_value(args[0]) or { return ruby.object_value('TypeError', err.msg()) }
+	return ruby.bool_value(args[1].as_string().trim_left(':') in caveats.invoked)
 }
 
 // Ruby method `puts(*args)` at line 74.
-pub fn ruby_caveats_l74_d8_puts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_caveats_l74_d8_puts(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'puts requires a receiver')
+		return ruby.object_value('ArgumentError', 'puts requires a receiver')
 	}
-	mut caveats := cask_caveats_from_value(args[0]) or { return brew_runtime.object_value('TypeError', err.msg()) }
+	mut caveats := cask_caveats_from_value(args[0]) or { return ruby.object_value('TypeError', err.msg()) }
 	for index in 1 .. args.len {
 		caveats.custom << args[index].as_string()
 	}
@@ -249,11 +249,11 @@ pub fn ruby_caveats_l74_d8_puts(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `eval_caveats(&block)` at line 80.
-pub fn ruby_caveats_l80_d9_eval_caveats(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_caveats_l80_d9_eval_caveats(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'eval_caveats requires a receiver')
+		return ruby.object_value('ArgumentError', 'eval_caveats requires a receiver')
 	}
-	mut caveats := cask_caveats_from_value(args[0]) or { return brew_runtime.object_value('TypeError', err.msg()) }
+	mut caveats := cask_caveats_from_value(args[0]) or { return ruby.object_value('TypeError', err.msg()) }
 	if args.len > 1 {
 		result := args[1]
 		if result.type_name != 'NilClass' && !(result.type_name == 'Symbol' && result.as_string().trim_left(':') == 'built_in_caveat') {
@@ -264,25 +264,25 @@ pub fn ruby_caveats_l80_d9_eval_caveats(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby attr_reader `attr_reader :invoked_caveats` at line 204.
-pub fn ruby_caveats_l204_d10_invoked_caveats(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_caveats_l204_d10_invoked_caveats(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'invoked_caveats requires a receiver')
+		return ruby.object_value('ArgumentError', 'invoked_caveats requires a receiver')
 	}
-	caveats := cask_caveats_from_value(args[0]) or { return brew_runtime.object_value('TypeError', err.msg()) }
-	return brew_runtime.string_array_value(caveats.invoked)
+	caveats := cask_caveats_from_value(args[0]) or { return ruby.object_value('TypeError', err.msg()) }
+	return ruby.string_array_value(caveats.invoked)
 }
 
 // Ruby attr_reader `attr_reader :built_in_caveats` at line 207.
-pub fn ruby_caveats_l207_d11_built_in_caveats(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_caveats_l207_d11_built_in_caveats(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'built_in_caveats requires a receiver')
+		return ruby.object_value('ArgumentError', 'built_in_caveats requires a receiver')
 	}
-	caveats := cask_caveats_from_value(args[0]) or { return brew_runtime.object_value('TypeError', err.msg()) }
-	mut values := map[string]brew_runtime.Value{}
+	caveats := cask_caveats_from_value(args[0]) or { return ruby.object_value('TypeError', err.msg()) }
+	mut values := map[string]ruby.Value{}
 	for entry in caveats.built_in {
-		values['${entry.name}:${entry.args.join(',')}'] = brew_runtime.string_value(entry.text)
+		values['${entry.name}:${entry.args.join(',')}'] = ruby.string_value(entry.text)
 	}
-	return brew_runtime.map_value(values)
+	return ruby.map_value(values)
 }
 
 // Original Ruby source (line-for-line):

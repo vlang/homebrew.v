@@ -1,14 +1,14 @@
 module rubocops
 
-import brew_runtime
+import ruby
 import homebrew.rubocops as provided_by_macos_core
 
 // Translated from Homebrew/brew `test/rubocops/provided_by_macos_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
-pub fn ruby_provided_by_macos_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::ProvidedByMacos', 'FormulaAudit/ProvidedByMacos')
+pub fn ruby_provided_by_macos_spec_l7_d1_cop(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('RuboCop::Cop::FormulaAudit::ProvidedByMacos', 'FormulaAudit/ProvidedByMacos')
 }
 
 // Ruby it `it "fails for formulae not in PROVIDED_BY_MACOS_FORMULAE list" do` at line 9.

@@ -1,12 +1,12 @@
 module homebrew
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `locale.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `self.parse(string)` at line 28.
-pub fn ruby_locale_l28_d1_self_parse(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_locale_l28_d1_self_parse(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic("'' cannot be parsed to a Locale")
 	}
@@ -14,34 +14,34 @@ pub fn ruby_locale_l28_d1_self_parse(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby method `self.try_parse(string)` at line 37.
-pub fn ruby_locale_l37_d2_self_try_parse(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_locale_l37_d2_self_try_parse(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('Nil', '')
+		return ruby.object_value('Nil', '')
 	}
 	return if locale := try_parse_locale(args[0].as_string()) {
 		locale_value(locale)
 	} else {
-		brew_runtime.object_value('Nil', '')
+		ruby.object_value('Nil', '')
 	}
 }
 
 // Ruby attr_reader `attr_reader :language` at line 60.
-pub fn ruby_locale_l60_d3_language(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_locale_l60_d3_language(args ...ruby.Value) ruby.Value {
 	return locale_attribute(args, 'language')
 }
 
 // Ruby attr_reader `attr_reader :script` at line 63.
-pub fn ruby_locale_l63_d4_script(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_locale_l63_d4_script(args ...ruby.Value) ruby.Value {
 	return locale_attribute(args, 'script')
 }
 
 // Ruby attr_reader `attr_reader :region` at line 66.
-pub fn ruby_locale_l66_d5_region(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_locale_l66_d5_region(args ...ruby.Value) ruby.Value {
 	return locale_attribute(args, 'region')
 }
 
 // Ruby method `initialize(language, script, region)` at line 69.
-pub fn ruby_locale_l69_d6_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_locale_l69_d6_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('Locale cannot be empty')
 	}
@@ -51,54 +51,54 @@ pub fn ruby_locale_l69_d6_initialize(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby method `include?(other)` at line 95.
-pub fn ruby_locale_l95_d7_include(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_locale_l95_d7_include(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	locale := locale_from_value(args[0]) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(locale.includes_string(args[1].as_string()))
+	locale := locale_from_value(args[0]) or { return ruby.bool_value(false) }
+	return ruby.bool_value(locale.includes_string(args[1].as_string()))
 }
 
 // Ruby method `eql?(other)` at line 109.
-pub fn ruby_locale_l109_d8_eql(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_locale_l109_d8_eql(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	locale := locale_from_value(args[0]) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(locale.equals_string(args[1].as_string()))
+	locale := locale_from_value(args[0]) or { return ruby.bool_value(false) }
+	return ruby.bool_value(locale.equals_string(args[1].as_string()))
 }
 
 // Ruby alias `alias == eql?` at line 119.
-pub fn ruby_locale_l119_d9_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_locale_l119_d9_anonymous(args ...ruby.Value) ruby.Value {
 	return ruby_locale_l109_d8_eql(...args)
 }
 
 // Ruby method `detect(locale_groups)` at line 128.
-pub fn ruby_locale_l128_d10_detect(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_locale_l128_d10_detect(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('Nil', '')
+		return ruby.object_value('Nil', '')
 	}
-	locale := locale_from_value(args[0]) or { return brew_runtime.object_value('Nil', '') }
+	locale := locale_from_value(args[0]) or { return ruby.object_value('Nil', '') }
 	mut groups := [][]string{}
 	for group in args[1].array_data {
 		groups << (group.as_string_array() or { [] })
 	}
 	return if detected := locale.detect(groups) {
-		brew_runtime.string_array_value(detected)
+		ruby.string_array_value(detected)
 	} else {
-		brew_runtime.object_value('Nil', '')
+		ruby.object_value('Nil', '')
 	}
 }
 
 // Ruby method `to_s` at line 134.
-pub fn ruby_locale_l134_d11_to_s(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_locale_l134_d11_to_s(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_value('')
+		return ruby.string_value('')
 	}
 	locale := locale_from_value(args[0]) or {
-		return brew_runtime.string_value(args[0].as_string())
+		return ruby.string_value(args[0].as_string())
 	}
-	return brew_runtime.string_value(locale.str())
+	return ruby.string_value(locale.str())
 }
 
 // Locale is the V representation of Homebrew's ordered language, script, and
@@ -217,15 +217,15 @@ fn valid_region(value string) bool {
 		|| (value.len == 3 && value.bytes().all(it >= `0` && it <= `9`))
 }
 
-fn locale_value(locale Locale) brew_runtime.Value {
-	return brew_runtime.structured_value('Locale', locale.str(), {
+fn locale_value(locale Locale) ruby.Value {
+	return ruby.structured_value('Locale', locale.str(), {
 		'language': locale.language
 		'script':   locale.script
 		'region':   locale.region
 	})
 }
 
-fn locale_from_value(value brew_runtime.Value) !Locale {
+fn locale_from_value(value ruby.Value) !Locale {
 	if value.type_name == 'Locale' {
 		return new_locale(value.attributes['language'], value.attributes['script'],
 			value.attributes['region'])
@@ -233,15 +233,15 @@ fn locale_from_value(value brew_runtime.Value) !Locale {
 	return parse_locale(value.as_string())
 }
 
-fn locale_attribute(args []brew_runtime.Value, name string) brew_runtime.Value {
+fn locale_attribute(args []ruby.Value, name string) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('Nil', '')
+		return ruby.object_value('Nil', '')
 	}
 	value := args[0].attribute(name) or { '' }
 	return if value.len > 0 {
-		brew_runtime.string_value(value)
+		ruby.string_value(value)
 	} else {
-		brew_runtime.object_value('Nil', '')
+		ruby.object_value('Nil', '')
 	}
 }
 

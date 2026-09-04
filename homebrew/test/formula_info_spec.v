@@ -1,6 +1,6 @@
 module test
 
-import brew_runtime
+import ruby
 import homebrew
 
 // Translated from Homebrew/brew `test/formula_info_spec.rb`.
@@ -13,9 +13,9 @@ fn formula_info_spec_case() bool {
 }
 
 // Ruby it `it "tests the FormulaInfo class" do` at line 7.
-pub fn ruby_formula_info_spec_l7_d1_tests(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_info_spec_l7_d1_tests(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(formula_info_spec_case())
+	return ruby.bool_value(formula_info_spec_case())
 }
 
 // Original Ruby source (line-for-line):

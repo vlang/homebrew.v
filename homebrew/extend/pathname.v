@@ -1,6 +1,6 @@
 module extend
 
-import brew_runtime
+import ruby
 import crypto.sha256
 import os
 
@@ -113,12 +113,12 @@ pub fn ruby_pathname_l278_d21_ensure_writable(path string, action PathAction) ! 
 }
 
 // Ruby method `install_info` at line 290.
-pub fn ruby_pathname_l290_d22_install_info(path string, executable string) !brew_runtime.CommandResult {
+pub fn ruby_pathname_l290_d22_install_info(path string, executable string) !ruby.CommandResult {
 	return pathname_install_info(path, executable, false)
 }
 
 // Ruby method `uninstall_info` at line 295.
-pub fn ruby_pathname_l295_d23_uninstall_info(path string, executable string) !brew_runtime.CommandResult {
+pub fn ruby_pathname_l295_d23_uninstall_info(path string, executable string) !ruby.CommandResult {
 	return pathname_install_info(path, executable, true)
 }
 
@@ -295,7 +295,7 @@ pub fn pathname_append_lines(path string, content string) ! {
 
 pub fn pathname_atomic_write(path string, content string) ! {
 	old_mode := if os.exists(path) { ?int(int(os.stat(path)!.get_mode().bitmask())) } else { none }
-	brew_runtime.atomic_write_file(path, content)!
+	ruby.atomic_write_file(path, content)!
 	if mode := old_mode {
 		os.chmod(path, mode) or {}
 	}
@@ -508,7 +508,7 @@ pub fn pathname_ensure_writable(path string, action PathAction) ! {
 	action(path)!
 }
 
-pub fn pathname_install_info(path string, executable string, uninstall bool) !brew_runtime.CommandResult {
+pub fn pathname_install_info(path string, executable string, uninstall bool) !ruby.CommandResult {
 	if executable == '' {
 		return error('install-info is not available')
 	}
@@ -517,7 +517,7 @@ pub fn pathname_install_info(path string, executable string, uninstall bool) !br
 		arguments << '--delete'
 	}
 	arguments << ['--quiet', path, os.join_path(os.dir(path), 'dir')]
-	return brew_runtime.run_command(executable, arguments)
+	return ruby.run_command(executable, arguments)
 }
 
 pub fn pathname_write_exec_script(directory string, targets []string) ! {
@@ -601,14 +601,14 @@ pub fn pathname_magic_number(path string) !string {
 }
 
 pub fn pathname_file_type(path string) !string {
-	executable := brew_runtime.find_executable('file')!
-	result := brew_runtime.run_command(executable, ['-b', path])
+	executable := ruby.find_executable('file')!
+	result := ruby.run_command(executable, ['-b', path])
 	return result.output.trim_right('\r\n')
 }
 
 pub fn pathname_zipinfo(path string) ![]string {
-	executable := brew_runtime.find_executable('zipinfo')!
-	result := brew_runtime.run_command(executable, ['-1', path])
+	executable := ruby.find_executable('zipinfo')!
+	result := ruby.run_command(executable, ['-1', path])
 	return result.output.split_into_lines()
 }
 
@@ -631,8 +631,8 @@ pub fn pathname_install_p_with(destination string, source string, new_basename s
 	}
 	os.mv(source, target) or {
 		if os.is_link(source) {
-			mv := brew_runtime.find_executable('mv')!
-			result := brew_runtime.run_command(mv, [source, target])
+			mv := ruby.find_executable('mv')!
+			result := ruby.run_command(mv, [source, target])
 			if result.exit_code != 0 {
 				return error(result.output.trim_space())
 			}

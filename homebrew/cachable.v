@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `cachable.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -34,12 +34,12 @@ pub fn (mut cachable Cachable[K, V]) clear_cache() {
 	cache.entries.clear()
 }
 
-fn cachable_boundary_value(cachable Cachable[string, string]) brew_runtime.Value {
+fn cachable_boundary_value(cachable Cachable[string, string]) ruby.Value {
 	cache := cachable.cache()
-	return brew_runtime.structured_value('Cachable', cache.entries.str(), cache.entries)
+	return ruby.structured_value('Cachable', cache.entries.str(), cache.entries)
 }
 
-fn cachable_from_boundary(value brew_runtime.Value) Cachable[string, string] {
+fn cachable_from_boundary(value ruby.Value) Cachable[string, string] {
 	if value.type_name != 'Cachable' {
 		return new_cachable[string, string]()
 	}
@@ -50,18 +50,18 @@ fn cachable_from_boundary(value brew_runtime.Value) Cachable[string, string] {
 }
 
 // Ruby method `cache` at line 10.
-pub fn ruby_cachable_l10_d1_cache(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cachable_l10_d1_cache(args ...ruby.Value) ruby.Value {
 	mut cachable := if args.len > 0 {
 		cachable_from_boundary(args[0])
 	} else {
 		new_cachable[string, string]()
 	}
 	cache := cachable.cache()
-	return brew_runtime.structured_value('Hash', cache.entries.str(), cache.entries)
+	return ruby.structured_value('Hash', cache.entries.str(), cache.entries)
 }
 
 // Ruby method `clear_cache` at line 15.
-pub fn ruby_cachable_l15_d2_clear_cache(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cachable_l15_d2_clear_cache(args ...ruby.Value) ruby.Value {
 	mut cachable := if args.len > 0 {
 		cachable_from_boundary(args[0])
 	} else {

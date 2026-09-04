@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 import x.json2
 
 // Translated from Homebrew/brew `cmd/vulns.rb`.
@@ -105,7 +105,7 @@ pub:
 	deps              bool
 	no_ignore_patches bool
 	brewfile          bool
-	brewfile_value    brew_runtime.Value
+	brewfile_value    ruby.Value
 	fix_available     bool
 	no_fix_available  bool
 	severity          ?string
@@ -203,7 +203,7 @@ pub fn vulns_formulae(mut command VulnsCommand) []VulnsScannerFormula {
 // A bare --brewfile is represented by Bool(true), while an explicit empty
 // string has the same default-path meaning. Only a present non-empty String is
 // forwarded to Bundle::Brewfile.
-pub fn vulns_brewfile_path(value brew_runtime.Value) ?string {
+pub fn vulns_brewfile_path(value ruby.Value) ?string {
 	if value.type_name != 'String' || value.as_string() == '' {
 		return none
 	}
@@ -412,8 +412,8 @@ pub fn run_vulns_command(mut command VulnsCommand) !VulnsCommandResult {
 	}
 }
 
-pub fn vulns_scanner_formula_value(formula VulnsScannerFormula) brew_runtime.Value {
-	return brew_runtime.structured_value('Formula', vulns_formula_name(formula), {
+pub fn vulns_scanner_formula_value(formula VulnsScannerFormula) ruby.Value {
+	return ruby.structured_value('Formula', vulns_formula_name(formula), {
 		'name':                   formula.name
 		'full_name':              formula.full_name
 		'stable_url':             formula.stable_url
@@ -429,7 +429,7 @@ pub fn vulns_scanner_formula_value(formula VulnsScannerFormula) brew_runtime.Val
 	})
 }
 
-fn vulns_scanner_formula_from_value(value brew_runtime.Value) VulnsScannerFormula {
+fn vulns_scanner_formula_from_value(value ruby.Value) VulnsScannerFormula {
 	return VulnsScannerFormula{
 		name: value.attributes['name'] or { value.as_string() }
 		full_name: value.attributes['full_name'] or { value.as_string() }
@@ -446,54 +446,54 @@ fn vulns_scanner_formula_from_value(value brew_runtime.Value) VulnsScannerFormul
 	}
 }
 
-pub fn vulns_formula_value(formula VulnsFormula) brew_runtime.Value {
+pub fn vulns_formula_value(formula VulnsFormula) ruby.Value {
 	mut value := vulns_scanner_formula_value(formula.formula)
-	value = brew_runtime.Value{
+	value = ruby.Value{
 		...value
 		map_data: {
-			'recursive_dependencies': brew_runtime.array_value(formula.recursive_dependencies.map(vulns_scanner_formula_value(it)))
+			'recursive_dependencies': ruby.array_value(formula.recursive_dependencies.map(vulns_scanner_formula_value(it)))
 		}
 	}
 	return value
 }
 
-fn vulns_formula_from_value(value brew_runtime.Value) VulnsFormula {
+fn vulns_formula_from_value(value ruby.Value) VulnsFormula {
 	dependencies := (value.map_data['recursive_dependencies'] or {
-		brew_runtime.array_value([])
-	}).as_array() or { []brew_runtime.Value{} }
+		ruby.array_value([])
+	}).as_array() or { []ruby.Value{} }
 	return VulnsFormula{
 		formula: vulns_scanner_formula_from_value(value)
 		recursive_dependencies: dependencies.map(vulns_scanner_formula_from_value(it))
 	}
 }
 
-pub fn vulns_options_value(options VulnsCommandOptions) brew_runtime.Value {
+pub fn vulns_options_value(options VulnsCommandOptions) ruby.Value {
 	mut values := {
-		'deps':              brew_runtime.bool_value(options.deps)
-		'no_ignore_patches': brew_runtime.bool_value(options.no_ignore_patches)
-		'brewfile':          brew_runtime.bool_value(options.brewfile)
+		'deps':              ruby.bool_value(options.deps)
+		'no_ignore_patches': ruby.bool_value(options.no_ignore_patches)
+		'brewfile':          ruby.bool_value(options.brewfile)
 		'brewfile_value':    options.brewfile_value
-		'fix_available':     brew_runtime.bool_value(options.fix_available)
-		'no_fix_available':  brew_runtime.bool_value(options.no_fix_available)
-		'json':              brew_runtime.bool_value(options.json)
+		'fix_available':     ruby.bool_value(options.fix_available)
+		'no_fix_available':  ruby.bool_value(options.no_fix_available)
+		'json':              ruby.bool_value(options.json)
 	}
 	if severity := options.severity {
-		values['severity'] = brew_runtime.string_value(severity)
+		values['severity'] = ruby.string_value(severity)
 	}
 	if max_summary := options.max_summary {
-		values['max_summary'] = brew_runtime.string_value(max_summary)
+		values['max_summary'] = ruby.string_value(max_summary)
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'VulnsCommandOptions'
 		map_data: values
 	}
 }
 
-fn vulns_value_bool(values map[string]brew_runtime.Value, name string) bool {
+fn vulns_value_bool(values map[string]ruby.Value, name string) bool {
 	return if value := values[name] { value.as_bool() or { false } } else { false }
 }
 
-fn vulns_value_optional_string(values map[string]brew_runtime.Value, name string) ?string {
+fn vulns_value_optional_string(values map[string]ruby.Value, name string) ?string {
 	if value := values[name] {
 		if value.type_name == 'String' {
 			return value.as_string()
@@ -502,13 +502,13 @@ fn vulns_value_optional_string(values map[string]brew_runtime.Value, name string
 	return none
 }
 
-fn vulns_options_from_value(value brew_runtime.Value) VulnsCommandOptions {
+fn vulns_options_from_value(value ruby.Value) VulnsCommandOptions {
 	values := value.map_data.clone()
 	return VulnsCommandOptions{
 		deps: vulns_value_bool(values, 'deps')
 		no_ignore_patches: vulns_value_bool(values, 'no_ignore_patches')
 		brewfile: vulns_value_bool(values, 'brewfile')
-		brewfile_value: values['brewfile_value'] or { brew_runtime.Value{} }
+		brewfile_value: values['brewfile_value'] or { ruby.Value{} }
 		fix_available: vulns_value_bool(values, 'fix_available')
 		no_fix_available: vulns_value_bool(values, 'no_fix_available')
 		severity: vulns_value_optional_string(values, 'severity')
@@ -517,13 +517,13 @@ fn vulns_options_from_value(value brew_runtime.Value) VulnsCommandOptions {
 	}
 }
 
-pub fn vulns_command_value(command VulnsCommand) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn vulns_command_value(command VulnsCommand) ruby.Value {
+	return ruby.Value{
 		type_name: 'VulnsCommand'
 		map_data: {
 			'options':           vulns_options_value(command.options)
-			'named':             brew_runtime.array_value(command.named.map(vulns_formula_value(it)))
-			'brewfile_entries':  brew_runtime.array_value(command.brewfile_entries.map(brew_runtime.Value{
+			'named':             ruby.array_value(command.named.map(vulns_formula_value(it)))
+			'brewfile_entries':  ruby.array_value(command.brewfile_entries.map(ruby.Value{
 				type_name: 'BrewfileEntry'
 				attributes: {
 					'type': it.entry_type
@@ -532,7 +532,7 @@ pub fn vulns_command_value(command VulnsCommand) brew_runtime.Value {
 					'formula': vulns_formula_value(it.formula)
 				}
 			}))
-			'installed_racks':   brew_runtime.array_value(command.installed_racks.map(brew_runtime.Value{
+			'installed_racks':   ruby.array_value(command.installed_racks.map(ruby.Value{
 				type_name: 'InstalledRack'
 				repr: it.path
 				attributes: {
@@ -544,29 +544,29 @@ pub fn vulns_command_value(command VulnsCommand) brew_runtime.Value {
 					'formula': vulns_formula_value(it.formula)
 				}
 			}))
-			'untrusted_skipped': brew_runtime.string_array_value(command.untrusted_skipped)
+			'untrusted_skipped': ruby.string_array_value(command.untrusted_skipped)
 		}
 	}
 }
 
-fn vulns_command_from_value(value brew_runtime.Value) VulnsCommand {
+fn vulns_command_from_value(value ruby.Value) VulnsCommand {
 	values := value.map_data.clone()
-	named := (values['named'] or { brew_runtime.array_value([]) }).as_array() or { [] }
-	entries := (values['brewfile_entries'] or { brew_runtime.array_value([]) }).as_array() or { [] }
-	racks := (values['installed_racks'] or { brew_runtime.array_value([]) }).as_array() or { [] }
+	named := (values['named'] or { ruby.array_value([]) }).as_array() or { [] }
+	entries := (values['brewfile_entries'] or { ruby.array_value([]) }).as_array() or { [] }
+	racks := (values['installed_racks'] or { ruby.array_value([]) }).as_array() or { [] }
 	skipped := (values['untrusted_skipped'] or {
-		brew_runtime.string_array_value([])
+		ruby.string_array_value([])
 	}).as_string_array() or { []string{} }
 	return VulnsCommand{
-		options: vulns_options_from_value(values['options'] or { brew_runtime.map_value({}) })
+		options: vulns_options_from_value(values['options'] or { ruby.map_value({}) })
 		named: named.map(vulns_formula_from_value(it))
 		brewfile_entries: entries.map(VulnsBrewfileEntry{
 			entry_type: it.attributes['type'] or { '' }
-			formula: vulns_formula_from_value(it.map_data['formula'] or { brew_runtime.Value{} })
+			formula: vulns_formula_from_value(it.map_data['formula'] or { ruby.Value{} })
 		})
 		installed_racks: racks.map(VulnsInstalledRack{
 			path: it.attributes['path'] or { it.as_string() }
-			formula: vulns_formula_from_value(it.map_data['formula'] or { brew_runtime.Value{} })
+			formula: vulns_formula_from_value(it.map_data['formula'] or { ruby.Value{} })
 			error: it.attributes['error'] or { '' }
 			untrusted: (it.attributes['untrusted'] or { 'false' }) == 'true'
 		})
@@ -574,8 +574,8 @@ fn vulns_command_from_value(value brew_runtime.Value) VulnsCommand {
 	}
 }
 
-fn vulns_result_value(result VulnsCommandResult) brew_runtime.Value {
-	return brew_runtime.Value{
+fn vulns_result_value(result VulnsCommandResult) ruby.Value {
+	return ruby.Value{
 		type_name: 'VulnsCommandResult'
 		attributes: {
 			'stdout':         result.stdout
@@ -587,17 +587,17 @@ fn vulns_result_value(result VulnsCommandResult) brew_runtime.Value {
 			'except_fixed':   result.scanner_options.except_fixed.str()
 		}
 		map_data: {
-			'formulae':              brew_runtime.array_value(result.formulae.map(vulns_scanner_formula_value(it)))
-			'outdated_without_sbom': brew_runtime.string_array_value(result.results.outdated_without_sbom)
+			'formulae':              ruby.array_value(result.formulae.map(vulns_scanner_formula_value(it)))
+			'outdated_without_sbom': ruby.string_array_value(result.results.outdated_without_sbom)
 		}
 	}
 }
 
 // Ruby method `run` at line 48.
-pub fn ruby_vulns_l48_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vulns_l48_d1_run(args ...ruby.Value) ruby.Value {
 	mut command := if args.len > 0 { vulns_command_from_value(args[0]) } else { VulnsCommand{} }
 	result := run_vulns_command(mut command) or {
-		return brew_runtime.object_value(if err.msg().contains('`--') {
+		return ruby.object_value(if err.msg().contains('`--') {
 			'UsageError'
 		} else {
 			'RuntimeError'
@@ -607,44 +607,44 @@ pub fn ruby_vulns_l48_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `formulae` at line 89.
-pub fn ruby_vulns_l89_d2_formulae(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vulns_l89_d2_formulae(args ...ruby.Value) ruby.Value {
 	mut command := if args.len > 0 { vulns_command_from_value(args[0]) } else { VulnsCommand{} }
-	return brew_runtime.array_value(vulns_formulae(mut command).map(vulns_scanner_formula_value(it)))
+	return ruby.array_value(vulns_formulae(mut command).map(vulns_scanner_formula_value(it)))
 }
 
 // Ruby method `installed_formulae` at line 104.
-pub fn ruby_vulns_l104_d3_installed_formulae(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vulns_l104_d3_installed_formulae(args ...ruby.Value) ruby.Value {
 	mut command := if args.len > 0 { vulns_command_from_value(args[0]) } else { VulnsCommand{} }
-	return brew_runtime.array_value(vulns_installed_formulae(mut command).map(vulns_scanner_formula_value(it)))
+	return ruby.array_value(vulns_installed_formulae(mut command).map(vulns_scanner_formula_value(it)))
 }
 
 // Ruby method `untrusted_skipped` at line 116.
-pub fn ruby_vulns_l116_d4_untrusted_skipped(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vulns_l116_d4_untrusted_skipped(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_array_value([])
+		return ruby.string_array_value([])
 	}
 	if args[0].type_name == 'Array' {
-		return brew_runtime.string_array_value(args[0].as_string_array() or { []string{} })
+		return ruby.string_array_value(args[0].as_string_array() or { []string{} })
 	}
 	mut command := vulns_command_from_value(args[0])
 	if command.untrusted_skipped.len == 0 {
 		vulns_installed_formulae(mut command)
 	}
-	return brew_runtime.string_array_value(command.untrusted_skipped)
+	return ruby.string_array_value(command.untrusted_skipped)
 }
 
 // Ruby method `brewfile_path(value)` at line 124.
-pub fn ruby_vulns_l124_d5_brewfile_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vulns_l124_d5_brewfile_path(args ...ruby.Value) ruby.Value {
 	if args.len > 0 {
 		if path := vulns_brewfile_path(args[0]) {
-			return brew_runtime.string_value(path)
+			return ruby.string_value(path)
 		}
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `min_severity` at line 129.
-pub fn ruby_vulns_l129_d6_min_severity(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vulns_l129_d6_min_severity(args ...ruby.Value) ruby.Value {
 	mut raw := ?string(none)
 	if args.len > 0 {
 		if args[0].type_name == 'Hash' || args[0].type_name == 'VulnsCommandOptions' {
@@ -654,16 +654,16 @@ pub fn ruby_vulns_l129_d6_min_severity(args ...brew_runtime.Value) brew_runtime.
 		}
 	}
 	if raw == none {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	severity := vulns_min_severity(raw) or {
-		return brew_runtime.object_value('UsageError', err.msg())
+		return ruby.object_value('UsageError', err.msg())
 	}
-	return brew_runtime.object_value('Symbol', severity.str())
+	return ruby.object_value('Symbol', severity.str())
 }
 
 // Ruby method `max_summary` at line 140.
-pub fn ruby_vulns_l140_d7_max_summary(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vulns_l140_d7_max_summary(args ...ruby.Value) ruby.Value {
 	mut raw := ?string(none)
 	if args.len > 0 {
 		if args[0].type_name == 'Hash' || args[0].type_name == 'VulnsCommandOptions' {
@@ -673,9 +673,9 @@ pub fn ruby_vulns_l140_d7_max_summary(args ...brew_runtime.Value) brew_runtime.V
 		}
 	}
 	maximum := vulns_max_summary(raw) or {
-		return brew_runtime.object_value('UsageError', err.msg())
+		return ruby.object_value('UsageError', err.msg())
 	}
-	return brew_runtime.int_value(maximum)
+	return ruby.int_value(maximum)
 }
 
 // Original Ruby source (line-for-line):

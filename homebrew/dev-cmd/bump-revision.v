@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 import homebrew.extend.file as atomic_file
 import homebrew.utils
 import os
@@ -47,9 +47,9 @@ pub fn bump_revision_source(source string, current_revision int,
 		contents: source
 	}
 	if current_revision == 0 {
-		utils.ast_formula_add_stanza(mut formula_ast, 'revision', brew_runtime.int_value(new_revision), none)
+		utils.ast_formula_add_stanza(mut formula_ast, 'revision', ruby.int_value(new_revision), none)
 	} else {
-		utils.ast_formula_replace_stanza(mut formula_ast, 'revision', brew_runtime.int_value(new_revision), none)
+		utils.ast_formula_replace_stanza(mut formula_ast, 'revision', ruby.int_value(new_revision), none)
 	}
 	if remove_bottle_block {
 		utils.ast_formula_remove_stanza(mut formula_ast, 'bottle', none)
@@ -96,36 +96,36 @@ pub fn run_bump_revision(options BumpRevisionOptions) !BumpRevisionResult {
 	}
 }
 
-pub fn bump_revision_input_boundary(input &BumpRevisionInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::BumpRevision::Input', '', {
+pub fn bump_revision_input_boundary(input &BumpRevisionInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::BumpRevision::Input', '', {
 		'bump_revision_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn bump_revision_input_from_value(value brew_runtime.Value) &BumpRevisionInput {
+fn bump_revision_input_from_value(value ruby.Value) &BumpRevisionInput {
 	address := value.attributes['bump_revision_input_address'] or {
 		panic('invalid BumpRevision input')
 	}
 	return unsafe { &BumpRevisionInput(voidptr(address.u64())) }
 }
 
-fn bump_revision_result_value(result BumpRevisionResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'path':              brew_runtime.string_value(result.path)
-		'bundler_groups':    brew_runtime.string_array_value(result.bundler_groups)
-		'output':            brew_runtime.string_array_value(result.output)
-		'commit_commands':   brew_runtime.array_value(result.commit_commands.map(brew_runtime.string_array_value(it)))
-		'modified_formulae': brew_runtime.string_array_value(result.modified_formulae)
+fn bump_revision_result_value(result BumpRevisionResult) ruby.Value {
+	return ruby.map_value({
+		'path':              ruby.string_value(result.path)
+		'bundler_groups':    ruby.string_array_value(result.bundler_groups)
+		'output':            ruby.string_array_value(result.output)
+		'commit_commands':   ruby.array_value(result.commit_commands.map(ruby.string_array_value(it)))
+		'modified_formulae': ruby.string_array_value(result.modified_formulae)
 	})
 }
 
 // Ruby method `run` at line 30.
-pub fn ruby_bump_revision_l30_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_revision_l30_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'command input is required')
+		return ruby.object_value('ArgumentError', 'command input is required')
 	}
 	result := run_bump_revision(bump_revision_input_from_value(args[0]).options) or {
-		return brew_runtime.object_value('Error', err.msg())
+		return ruby.object_value('Error', err.msg())
 	}
 	return bump_revision_result_value(result)
 }

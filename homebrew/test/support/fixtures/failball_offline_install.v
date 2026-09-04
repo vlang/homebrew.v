@@ -1,27 +1,27 @@
 module fixtures
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `test/support/fixtures/failball_offline_install.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `initialize(name = "failball_offline_install", path = Pathname.new(__FILE__).expand_path, spec = :stable,` at line 7.
-pub fn ruby_failball_offline_install_l7_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_failball_offline_install_l7_d1_initialize(args ...ruby.Value) ruby.Value {
 	return fixture_formula_value(fixture_formula_from_args(args, 'FailballOfflineInstall', 'failball_offline_install', true, false))
 }
 
 // Ruby method `self.inherited(other)` at line 21.
-pub fn ruby_failball_offline_install_l21_d2_self_inherited(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_failball_offline_install_l21_d2_self_inherited(args ...ruby.Value) ruby.Value {
 	other := if args.len > 0 {
 		args[0]
 	} else {
-		brew_runtime.object_value('Class', 'FailballOfflineInstallSubclass')
+		ruby.object_value('Class', 'FailballOfflineInstallSubclass')
 	}
 	return fixture_inherited_value(other, fixture_formula_from_args([], 'FailballOfflineInstall', 'failball_offline_install', true, false))
 }
 
 // Ruby method `install` at line 26.
-pub fn ruby_failball_offline_install_l26_d3_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_failball_offline_install_l26_d3_install(args ...ruby.Value) ruby.Value {
 	return fixture_install_value(fixture_install_plan('failball_offline_install', false))
 }
 

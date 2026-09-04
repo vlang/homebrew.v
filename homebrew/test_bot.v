@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `test_bot.rb`.
@@ -279,7 +279,7 @@ pub fn test_bot_run(args TestBotArgs, context TestBotRunContext) !TestBotRunResu
 	}
 }
 
-fn test_bot_args_from_value(value brew_runtime.Value) TestBotArgs {
+fn test_bot_args_from_value(value ruby.Value) TestBotArgs {
 	return TestBotArgs{
 		cleanup: (value.attributes['cleanup'] or { 'false' }).bool()
 		local_mode: (value.attributes['local'] or { 'false' }).bool()
@@ -295,9 +295,9 @@ fn test_bot_args_from_value(value brew_runtime.Value) TestBotArgs {
 	}
 }
 
-fn test_bot_tap_value(tap ?TestBotTap) brew_runtime.Value {
-	actual := tap or { return brew_runtime.object_value('NilClass', 'nil') }
-	return brew_runtime.structured_value('Tap', actual.name, {
+fn test_bot_tap_value(tap ?TestBotTap) ruby.Value {
+	actual := tap or { return ruby.object_value('NilClass', 'nil') }
+	return ruby.structured_value('Tap', actual.name, {
 		'name':      actual.name
 		'full_name': actual.full_name
 		'official':  actual.official.str()
@@ -305,32 +305,32 @@ fn test_bot_tap_value(tap ?TestBotTap) brew_runtime.Value {
 	})
 }
 
-fn test_bot_environment_value(environment map[string]string) brew_runtime.Value {
-	mut values := map[string]brew_runtime.Value{}
+fn test_bot_environment_value(environment map[string]string) ruby.Value {
+	mut values := map[string]ruby.Value{}
 	for key, value in environment {
-		values[key] = brew_runtime.string_value(value)
+		values[key] = ruby.string_value(value)
 	}
-	return brew_runtime.map_value(values)
+	return ruby.map_value(values)
 }
 
 // Ruby method `cleanup?(args)` at line 33.
-pub fn ruby_test_bot_l33_d1_cleanup(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_bot_l33_d1_cleanup(args ...ruby.Value) ruby.Value {
 	options := if args.len > 0 { test_bot_args_from_value(args[0]) } else { TestBotArgs{} }
 	github_actions := if args.len > 1 { args[1].as_bool() or { false } } else { false }
-	return brew_runtime.bool_value(test_bot_cleanup(options, github_actions))
+	return ruby.bool_value(test_bot_cleanup(options, github_actions))
 }
 
 // Ruby method `local?(args)` at line 38.
-pub fn ruby_test_bot_l38_d2_local(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_bot_l38_d2_local(args ...ruby.Value) ruby.Value {
 	options := if args.len > 0 { test_bot_args_from_value(args[0]) } else { TestBotArgs{} }
 	github_actions := if args.len > 1 { args[1].as_bool() or { false } } else { false }
-	return brew_runtime.bool_value(test_bot_local(options, github_actions))
+	return ruby.bool_value(test_bot_local(options, github_actions))
 }
 
 // Ruby method `trust_test_tap!(tap)` at line 43.
-pub fn ruby_test_bot_l43_d3_trust_test_tap(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_bot_l43_d3_trust_test_tap(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || args[0].type_name == 'NilClass' {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	tap := TestBotTap{
 		name: args[0].attributes['name'] or { args[0].as_string() }
@@ -338,20 +338,20 @@ pub fn ruby_test_bot_l43_d3_trust_test_tap(args ...brew_runtime.Value) brew_runt
 	}
 	newly_trusted := if args.len > 1 { args[1].as_bool() or { true } } else { true }
 	return if message := test_bot_trust_tap(tap, newly_trusted) {
-		brew_runtime.string_value(message)
+		ruby.string_value(message)
 	} else {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	}
 }
 
 // Ruby method `setup_github_actions_sandbox!` at line 51.
-pub fn ruby_test_bot_l51_d4_setup_github_actions_sandbox(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_bot_l51_d4_setup_github_actions_sandbox(args ...ruby.Value) ruby.Value {
 	github_actions := if args.len > 0 { args[0].as_bool() or { false } } else { false }
 	sandbox_linux := if args.len > 1 { args[1].as_bool() or { false } } else { false }
 	configured := if args.len > 2 { args[2].as_bool() or { true } } else { true }
 	owner := if args.len > 3 { args[3].as_string() } else { '' }
 	result := test_bot_setup_github_actions_sandbox(github_actions, sandbox_linux, configured, owner)
-	return brew_runtime.structured_value('SandboxResult', '', {
+	return ruby.structured_value('SandboxResult', '', {
 		'attempted':  result.attempted.str()
 		'configured': result.configured.str()
 		'ensured':    result.ensured.str()
@@ -361,13 +361,13 @@ pub fn ruby_test_bot_l51_d4_setup_github_actions_sandbox(args ...brew_runtime.Va
 }
 
 // Ruby method `configure_sandbox! = true` at line 67.
-pub fn ruby_test_bot_l67_d5_configure_sandbox(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_bot_l67_d5_configure_sandbox(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
 // Ruby method `resolve_test_tap(tap = nil)` at line 70.
-pub fn ruby_test_bot_l70_d6_resolve_test_tap(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_bot_l70_d6_resolve_test_tap(args ...ruby.Value) ruby.Value {
 	explicit := if args.len > 0 && args[0].type_name != 'NilClass' && args[0].as_string() != '' {
 		?string(args[0].as_string())
 	} else {
@@ -379,9 +379,9 @@ pub fn ruby_test_bot_l70_d6_resolve_test_tap(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby method `run!(args)` at line 92.
-pub fn ruby_test_bot_l92_d7_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_bot_l92_d7_run(args ...ruby.Value) ruby.Value {
 	options := if args.len > 0 { test_bot_args_from_value(args[0]) } else { TestBotArgs{} }
-	context_value := if args.len > 1 { args[1] } else { brew_runtime.Value{} }
+	context_value := if args.len > 1 { args[1] } else { ruby.Value{} }
 	context := TestBotRunContext{
 		cwd: context_value.attributes['cwd'] or { os.getwd() }
 		prefix: context_value.attributes['prefix'] or { '/home/linuxbrew/.linuxbrew' }
@@ -396,14 +396,14 @@ pub fn ruby_test_bot_l92_d7_run(args ...brew_runtime.Value) brew_runtime.Value {
 		}
 	}
 	result := test_bot_run(options, context) or {
-		return brew_runtime.object_value('UsageError', err.msg())
+		return ruby.object_value('UsageError', err.msg())
 	}
-	return brew_runtime.map_value({
+	return ruby.map_value({
 		'environment': test_bot_environment_value(result.environment)
 		'tap':         test_bot_tap_value(result.tap)
-		'actions':     brew_runtime.string_array_value(result.actions)
-		'output':      brew_runtime.string_array_value(result.output)
-		'failed':      brew_runtime.bool_value(result.failed)
+		'actions':     ruby.string_array_value(result.actions)
+		'output':      ruby.string_array_value(result.output)
+		'failed':      ruby.bool_value(result.failed)
 	})
 }
 

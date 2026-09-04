@@ -1,6 +1,6 @@
 module strategy
 
-import brew_runtime
+import ruby
 import homebrew.livecheck
 import homebrew.livecheck.strategy as launchpad_core
 import homebrew.utils
@@ -43,8 +43,8 @@ fn launchpad_spec_match_data_equal(left launchpad_core.PageMatchData,
 }
 
 // Ruby subject `subject(:launchpad) { described_class }` at line 7.
-pub fn ruby_launchpad_spec_l7_d1_launchpad() brew_runtime.Value {
-	return brew_runtime.object_value('Class', 'Homebrew::Livecheck::Strategy::Launchpad')
+pub fn ruby_launchpad_spec_l7_d1_launchpad() ruby.Value {
+	return ruby.object_value('Class', 'Homebrew::Livecheck::Strategy::Launchpad')
 }
 
 // Ruby let `let(:launchpad_urls) do` at line 9.

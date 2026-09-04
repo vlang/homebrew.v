@@ -1,6 +1,6 @@
 module extend
 
-import brew_runtime
+import ruby
 import homebrew.extend as pathname_extension
 import os
 
@@ -8,9 +8,9 @@ import os
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "creates script with arguments" do` at line 8.
-pub fn ruby_pathname_spec_l8_d1_creates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pathname_spec_l8_d1_creates(args ...ruby.Value) ruby.Value {
 	root := pathname_spec_root('arguments', args)
-	pathname_spec_reset(root) or { return brew_runtime.bool_value(false) }
+	pathname_spec_reset(root) or { return ruby.bool_value(false) }
 	wrapper := os.join_path(root, 'wrapper_script')
 	target := os.join_path(root, 'test')
 	pathname_extension.pathname_write_env_script(wrapper, target, ['foo', 'bar'], [
@@ -18,15 +18,15 @@ pub fn ruby_pathname_spec_l8_d1_creates(args ...brew_runtime.Value) brew_runtime
 			key: 'TEST'
 			value: 'baz'
 		},
-	]) or { return brew_runtime.bool_value(false) }
+	]) or { return ruby.bool_value(false) }
 	expected := '#!/bin/bash\nTEST="baz" exec "${target}" foo bar "\$@"\n'
-	return brew_runtime.bool_value((os.read_file(wrapper) or { '' }) == expected)
+	return ruby.bool_value((os.read_file(wrapper) or { '' }) == expected)
 }
 
 // Ruby it `it "creates script without arguments" do` at line 18.
-pub fn ruby_pathname_spec_l18_d2_creates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pathname_spec_l18_d2_creates(args ...ruby.Value) ruby.Value {
 	root := pathname_spec_root('without-arguments', args)
-	pathname_spec_reset(root) or { return brew_runtime.bool_value(false) }
+	pathname_spec_reset(root) or { return ruby.bool_value(false) }
 	wrapper := os.join_path(root, 'wrapper_script')
 	pathname_extension.pathname_write_env_script(wrapper, 'test', [], [
 		pathname_extension.EnvironmentAssignment{
@@ -37,35 +37,35 @@ pub fn ruby_pathname_spec_l18_d2_creates(args ...brew_runtime.Value) brew_runtim
 			key: 'TEST2'
 			value: os.join_path(root, 'baz')
 		},
-	]) or { return brew_runtime.bool_value(false) }
+	]) or { return ruby.bool_value(false) }
 	expected := '#!/bin/bash\nTEST="bar" TEST2="${os.join_path(root, 'baz')}" exec "test"  "\$@"\n'
-	return brew_runtime.bool_value((os.read_file(wrapper) or { '' }) == expected)
+	return ruby.bool_value((os.read_file(wrapper) or { '' }) == expected)
 }
 
 // Ruby it `it "makes scripts read-only executable" do` at line 30.
-pub fn ruby_pathname_spec_l30_d3_makes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pathname_spec_l30_d3_makes(args ...ruby.Value) ruby.Value {
 	root := pathname_spec_root('permissions', args)
-	pathname_spec_reset(root) or { return brew_runtime.bool_value(false) }
+	pathname_spec_reset(root) or { return ruby.bool_value(false) }
 	wrapper := os.join_path(root, 'wrapper_script')
 	pathname_extension.pathname_write_env_script(wrapper, 'test', [], [
 		pathname_extension.EnvironmentAssignment{
 			key: 'TEST'
 			value: 'bar'
 		},
-	]) or { return brew_runtime.bool_value(false) }
-	mode := os.stat(wrapper) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(mode.get_mode().bitmask() & 0o777 == 0o555)
+	]) or { return ruby.bool_value(false) }
+	mode := os.stat(wrapper) or { return ruby.bool_value(false) }
+	return ruby.bool_value(mode.get_mode().bitmask() & 0o777 == 0o555)
 }
 
 // Ruby it `it "creates scripts for files with mixed environment key types" do` at line 41.
-pub fn ruby_pathname_spec_l41_d4_creates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pathname_spec_l41_d4_creates(args ...ruby.Value) ruby.Value {
 	root := pathname_spec_root('all-files', args)
-	pathname_spec_reset(root) or { return brew_runtime.bool_value(false) }
+	pathname_spec_reset(root) or { return ruby.bool_value(false) }
 	input := os.join_path(root, 'input')
 	output := os.join_path(root, 'output')
-	os.mkdir_all(input) or { return brew_runtime.bool_value(false) }
-	os.write_file(os.join_path(input, 'foo'), '') or { return brew_runtime.bool_value(false) }
-	os.write_file(os.join_path(input, 'bar'), '') or { return brew_runtime.bool_value(false) }
+	os.mkdir_all(input) or { return ruby.bool_value(false) }
+	os.write_file(os.join_path(input, 'foo'), '') or { return ruby.bool_value(false) }
+	os.write_file(os.join_path(input, 'bar'), '') or { return ruby.bool_value(false) }
 	environment := [pathname_extension.EnvironmentAssignment{
 		key: 'FOO'
 		value: 'foo'
@@ -74,37 +74,37 @@ pub fn ruby_pathname_spec_l41_d4_creates(args ...brew_runtime.Value) brew_runtim
 		value: os.join_path(input, 'test')
 	}]
 	pathname_extension.pathname_env_script_all_files(input, output, environment) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	for name in ['foo', 'bar'] {
 		expected := '#!/bin/bash\nFOO="foo" BAR="${os.join_path(input, 'test')}" exec "${os.join_path(output, name)}"  "\$@"\n'
 		if (os.read_file(os.join_path(input, name)) or { '' }) != expected {
-			return brew_runtime.bool_value(false)
+			return ruby.bool_value(false)
 		}
 	}
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
 // Ruby it `it "raises an exception when file already exists" do` at line 64.
-pub fn ruby_pathname_spec_l64_d5_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pathname_spec_l64_d5_raises(args ...ruby.Value) ruby.Value {
 	root := pathname_spec_root('existing-file', args)
-	pathname_spec_reset(root) or { return brew_runtime.bool_value(false) }
+	pathname_spec_reset(root) or { return ruby.bool_value(false) }
 	input := os.join_path(root, 'input')
 	output := os.join_path(root, 'output')
-	os.mkdir_all(input) or { return brew_runtime.bool_value(false) }
-	os.mkdir_all(output) or { return brew_runtime.bool_value(false) }
-	os.write_file(os.join_path(input, 'foo'), '') or { return brew_runtime.bool_value(false) }
-	os.write_file(os.join_path(output, 'foo'), '') or { return brew_runtime.bool_value(false) }
+	os.mkdir_all(input) or { return ruby.bool_value(false) }
+	os.mkdir_all(output) or { return ruby.bool_value(false) }
+	os.write_file(os.join_path(input, 'foo'), '') or { return ruby.bool_value(false) }
+	os.write_file(os.join_path(output, 'foo'), '') or { return ruby.bool_value(false) }
 	pathname_extension.pathname_env_script_all_files(input, output, [
 		pathname_extension.EnvironmentAssignment{
 			key: 'FOO'
 			value: 'foo'
 		},
-	]) or { return brew_runtime.bool_value(err.msg().contains('EEXIST')) }
-	return brew_runtime.bool_value(false)
+	]) or { return ruby.bool_value(err.msg().contains('EEXIST')) }
+	return ruby.bool_value(false)
 }
 
-fn pathname_spec_root(name string, args []brew_runtime.Value) string {
+fn pathname_spec_root(name string, args []ruby.Value) string {
 	base := if args.len > 0 {
 		args[0].as_string()
 	} else {

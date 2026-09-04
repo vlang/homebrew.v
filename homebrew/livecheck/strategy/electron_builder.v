@@ -1,6 +1,6 @@
 module strategy
 
-import brew_runtime
+import ruby
 import regex
 
 // Translated from Homebrew/brew `livecheck/strategy/electron_builder.rb`.
@@ -135,25 +135,25 @@ pub fn electron_builder_find_versions(request ElectronBuilderRequest) !ElectronB
 	}
 }
 
-pub fn electron_builder_match_data_to_value(data ElectronBuilderMatchData) brew_runtime.Value {
-	mut matches := map[string]brew_runtime.Value{}
+pub fn electron_builder_match_data_to_value(data ElectronBuilderMatchData) ruby.Value {
+	mut matches := map[string]ruby.Value{}
 	for version, parsed in data.matches {
-		matches[version] = brew_runtime.object_value('Version', parsed)
+		matches[version] = ruby.object_value('Version', parsed)
 	}
 	regex_value := if value := data.regex {
-		brew_runtime.object_value('Regexp', value)
+		ruby.object_value('Regexp', value)
 	} else {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	}
-	return brew_runtime.map_value({
-		'matches': brew_runtime.map_value(matches)
+	return ruby.map_value({
+		'matches': ruby.map_value(matches)
 		'regex':   regex_value
-		'url':     brew_runtime.string_value(data.url)
-		'cached':  brew_runtime.bool_value(data.cached)
+		'url':     ruby.string_value(data.url)
+		'cached':  ruby.bool_value(data.cached)
 	})
 }
 
-fn electron_builder_request_from_value(value brew_runtime.Value) !ElectronBuilderRequest {
+fn electron_builder_request_from_value(value ruby.Value) !ElectronBuilderRequest {
 	values := value.as_map()!
 	mut supplied_regex := ?string(none)
 	if regex_value := values['regex'] {
@@ -167,13 +167,13 @@ fn electron_builder_request_from_value(value brew_runtime.Value) !ElectronBuilde
 			content = content_value.as_string()
 		}
 	}
-	selector := match values['selector'] or { brew_runtime.string_value('default_version') }.as_string() {
+	selector := match values['selector'] or { ruby.string_value('default_version') }.as_string() {
 		'path_regex' { ElectronBuilderSelector.path_regex }
 		'version_regex' { ElectronBuilderSelector.version_regex }
 		else { ElectronBuilderSelector.default_version }
 	}
 	return ElectronBuilderRequest{
-		url: values['url'] or { brew_runtime.string_value('') }.as_string()
+		url: values['url'] or { ruby.string_value('') }.as_string()
 		regex: supplied_regex
 		content: content
 		selector: selector
@@ -181,23 +181,23 @@ fn electron_builder_request_from_value(value brew_runtime.Value) !ElectronBuilde
 }
 
 // Ruby method `self.match?(url)` at line 28.
-pub fn ruby_electron_builder_l28_d1_self_match(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_electron_builder_l28_d1_self_match(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(electron_builder_matches_url(args[0].as_string()))
+	return ruby.bool_value(electron_builder_matches_url(args[0].as_string()))
 }
 
 // Ruby method `self.find_versions(url:, regex: nil, content: nil, options: Options.new, &block)` at line 48.
-pub fn ruby_electron_builder_l48_d2_self_find_versions(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_electron_builder_l48_d2_self_find_versions(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'ElectronBuilder request is required')
+		return ruby.object_value('ArgumentError', 'ElectronBuilder request is required')
 	}
 	request := electron_builder_request_from_value(args[0]) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	result := electron_builder_find_versions(request) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	return electron_builder_match_data_to_value(result)
 }

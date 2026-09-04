@@ -1,6 +1,6 @@
 module atomic
 
-import brew_runtime
+import ruby
 import math
 import sync
 
@@ -8,7 +8,7 @@ import sync
 // The original source is retained below until every stub has a typed V body.
 pub struct MarkablePair {
 pub:
-	value brew_runtime.Value
+	value ruby.Value
 	mark  bool
 }
 
@@ -24,7 +24,7 @@ pub:
 	pair    MarkablePair
 }
 
-pub type MarkableUpdate = fn(brew_runtime.Value, bool) !MarkablePair
+pub type MarkableUpdate = fn(ruby.Value, bool) !MarkablePair
 
 @[heap]
 pub struct AtomicMarkableReference {
@@ -34,11 +34,11 @@ mut:
 	version u64
 }
 
-fn markable_nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn markable_nil_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-pub fn new_atomic_markable_reference(value brew_runtime.Value, mark bool) &AtomicMarkableReference {
+pub fn new_atomic_markable_reference(value ruby.Value, mark bool) &AtomicMarkableReference {
 	return &AtomicMarkableReference{
 		pair: MarkablePair{
 			value: value
@@ -58,7 +58,7 @@ pub fn (mut reference AtomicMarkableReference) snapshot() MarkableSnapshot {
 	}
 }
 
-fn markable_values_match(actual brew_runtime.Value, expected brew_runtime.Value) bool {
+fn markable_values_match(actual ruby.Value, expected ruby.Value) bool {
 	if expected.type_name == 'Integer' || expected.type_name == 'Float' {
 		if actual.type_name != 'Integer' && actual.type_name != 'Float' {
 			return false
@@ -77,7 +77,7 @@ fn markable_values_match(actual brew_runtime.Value, expected brew_runtime.Value)
 	return actual.type_name == expected.type_name && actual.repr == expected.repr
 }
 
-pub fn (mut reference AtomicMarkableReference) compare_and_set(expected_value brew_runtime.Value, new_value brew_runtime.Value, expected_mark bool, new_mark bool) bool {
+pub fn (mut reference AtomicMarkableReference) compare_and_set(expected_value ruby.Value, new_value ruby.Value, expected_mark bool, new_mark bool) bool {
 	reference.lock.lock()
 	defer {
 		reference.lock.unlock()
@@ -106,7 +106,7 @@ pub fn (mut reference AtomicMarkableReference) compare_and_set_snapshot(expected
 	return true
 }
 
-pub fn (mut reference AtomicMarkableReference) set(value brew_runtime.Value, mark bool) MarkablePair {
+pub fn (mut reference AtomicMarkableReference) set(value ruby.Value, mark bool) MarkablePair {
 	reference.lock.lock()
 	reference.pair = MarkablePair{
 		value: value
@@ -156,9 +156,9 @@ pub fn (mut reference AtomicMarkableReference) try_update(action MarkableUpdate)
 	}
 }
 
-fn markable_pair_value(pair MarkablePair, address u64, version u64) brew_runtime.Value {
-	values := [pair.value, brew_runtime.bool_value(pair.mark)]
-	return brew_runtime.Value{
+fn markable_pair_value(pair MarkablePair, address u64, version u64) ruby.Value {
+	values := [pair.value, ruby.bool_value(pair.mark)]
+	return ruby.Value{
 		type_name: 'Array'
 		repr: values.map(it.repr).str()
 		array_data: values
@@ -169,7 +169,7 @@ fn markable_pair_value(pair MarkablePair, address u64, version u64) brew_runtime
 	}
 }
 
-fn markable_pair_from_value(value brew_runtime.Value) MarkablePair {
+fn markable_pair_from_value(value ruby.Value) MarkablePair {
 	values := value.as_array() or { panic('markable reference requires a two-element Array') }
 	if values.len < 2 {
 		panic('markable reference requires a two-element Array')
@@ -180,14 +180,14 @@ fn markable_pair_from_value(value brew_runtime.Value) MarkablePair {
 	}
 }
 
-fn markable_boundary_new(value brew_runtime.Value, mark bool) brew_runtime.Value {
+fn markable_boundary_new(value ruby.Value, mark bool) ruby.Value {
 	reference := new_atomic_markable_reference(value, mark)
-	return brew_runtime.structured_value('Concurrent::AtomicMarkableReference', '#<Concurrent::AtomicMarkableReference>', {
+	return ruby.structured_value('Concurrent::AtomicMarkableReference', '#<Concurrent::AtomicMarkableReference>', {
 		'markable_address': u64(voidptr(reference)).str()
 	})
 }
 
-fn markable_boundary_receiver(args []brew_runtime.Value) &AtomicMarkableReference {
+fn markable_boundary_receiver(args []ruby.Value) &AtomicMarkableReference {
 	if args.len == 0 {
 		panic('AtomicMarkableReference method requires a receiver')
 	}
@@ -197,19 +197,19 @@ fn markable_boundary_receiver(args []brew_runtime.Value) &AtomicMarkableReferenc
 	return unsafe { &AtomicMarkableReference(voidptr(address)) }
 }
 
-fn markable_boundary_snapshot(mut reference &AtomicMarkableReference) brew_runtime.Value {
+fn markable_boundary_snapshot(mut reference &AtomicMarkableReference) ruby.Value {
 	snapshot := reference.snapshot()
 	return markable_pair_value(snapshot.pair, u64(voidptr(reference)), snapshot.version)
 }
 
 // Ruby attr_atomic `attr_atomic(:reference)` at line 12.
-pub fn ruby_atomic_markable_reference_l12_d1_reference(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_atomic_markable_reference_l12_d1_reference(args ...ruby.Value) ruby.Value {
 	mut reference := markable_boundary_receiver(args)
 	return markable_boundary_snapshot(mut reference)
 }
 
 // Ruby attr_atomic `attr_atomic(:reference)` at line 12.
-pub fn ruby_atomic_markable_reference_l12_d2_reference(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_atomic_markable_reference_l12_d2_reference(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('AtomicMarkableReference#reference= requires pair')
 	}
@@ -219,20 +219,20 @@ pub fn ruby_atomic_markable_reference_l12_d2_reference(args ...brew_runtime.Valu
 }
 
 // Ruby attr_atomic `attr_atomic(:reference)` at line 12.
-pub fn ruby_atomic_markable_reference_l12_d3_compare_and_set_reference(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_atomic_markable_reference_l12_d3_compare_and_set_reference(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('compare_and_set_reference requires current and prospect pairs')
 	}
 	mut reference := markable_boundary_receiver(args)
 	expected := MarkableSnapshot{
 		pair: markable_pair_from_value(args[1])
-		version: (args[1].attribute('version') or { return brew_runtime.bool_value(false) }).u64()
+		version: (args[1].attribute('version') or { return ruby.bool_value(false) }).u64()
 	}
-	return brew_runtime.bool_value(reference.compare_and_set_snapshot(expected, markable_pair_from_value(args[2])))
+	return ruby.bool_value(reference.compare_and_set_snapshot(expected, markable_pair_from_value(args[2])))
 }
 
 // Ruby attr_atomic `attr_atomic(:reference)` at line 12.
-pub fn ruby_atomic_markable_reference_l12_d4_swap_reference(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_atomic_markable_reference_l12_d4_swap_reference(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('swap_reference requires prospect pair')
 	}
@@ -242,7 +242,7 @@ pub fn ruby_atomic_markable_reference_l12_d4_swap_reference(args ...brew_runtime
 }
 
 // Ruby attr_atomic `attr_atomic(:reference)` at line 12.
-pub fn ruby_atomic_markable_reference_l12_d5_update_reference(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_atomic_markable_reference_l12_d5_update_reference(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('update_reference requires translated block result')
 	}
@@ -252,52 +252,52 @@ pub fn ruby_atomic_markable_reference_l12_d5_update_reference(args ...brew_runti
 }
 
 // Ruby method `initialize(value = nil, mark = false)` at line 15.
-pub fn ruby_atomic_markable_reference_l15_d6_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_atomic_markable_reference_l15_d6_initialize(args ...ruby.Value) ruby.Value {
 	value := if args.len > 0 { args[0] } else { markable_nil_value() }
 	mark := if args.len > 1 { args[1].as_bool() or { false } } else { false }
 	return markable_boundary_new(value, mark)
 }
 
 // Ruby method `compare_and_set(expected_val, new_val, expected_mark, new_mark)` at line 33.
-pub fn ruby_atomic_markable_reference_l33_d7_compare_and_set(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_atomic_markable_reference_l33_d7_compare_and_set(args ...ruby.Value) ruby.Value {
 	if args.len < 5 {
 		panic('compare_and_set requires expected/new values and marks')
 	}
 	mut reference := markable_boundary_receiver(args)
-	return brew_runtime.bool_value(reference.compare_and_set(args[1], args[2], args[3].as_bool() or {
+	return ruby.bool_value(reference.compare_and_set(args[1], args[2], args[3].as_bool() or {
 		panic(err)
 	}, args[4].as_bool() or { panic(err) }))
 }
 
 // Ruby alias_method `alias_method :compare_and_swap, :compare_and_set` at line 59.
-pub fn ruby_atomic_markable_reference_l59_d8_compare_and_swap(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_atomic_markable_reference_l59_d8_compare_and_swap(args ...ruby.Value) ruby.Value {
 	return ruby_atomic_markable_reference_l33_d7_compare_and_set(...args)
 }
 
 // Ruby method `get` at line 64.
-pub fn ruby_atomic_markable_reference_l64_d9_get(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_atomic_markable_reference_l64_d9_get(args ...ruby.Value) ruby.Value {
 	return ruby_atomic_markable_reference_l12_d1_reference(...args)
 }
 
 // Ruby method `value` at line 71.
-pub fn ruby_atomic_markable_reference_l71_d10_value(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_atomic_markable_reference_l71_d10_value(args ...ruby.Value) ruby.Value {
 	mut reference := markable_boundary_receiver(args)
 	return reference.snapshot().pair.value
 }
 
 // Ruby method `mark` at line 78.
-pub fn ruby_atomic_markable_reference_l78_d11_mark(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_atomic_markable_reference_l78_d11_mark(args ...ruby.Value) ruby.Value {
 	mut reference := markable_boundary_receiver(args)
-	return brew_runtime.bool_value(reference.snapshot().pair.mark)
+	return ruby.bool_value(reference.snapshot().pair.mark)
 }
 
 // Ruby alias_method `alias_method :marked?, :mark` at line 82.
-pub fn ruby_atomic_markable_reference_l82_d12_marked(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_atomic_markable_reference_l82_d12_marked(args ...ruby.Value) ruby.Value {
 	return ruby_atomic_markable_reference_l78_d11_mark(...args)
 }
 
 // Ruby method `set(new_val, new_mark)` at line 91.
-pub fn ruby_atomic_markable_reference_l91_d13_set(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_atomic_markable_reference_l91_d13_set(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('AtomicMarkableReference#set requires value and mark')
 	}
@@ -307,7 +307,7 @@ pub fn ruby_atomic_markable_reference_l91_d13_set(args ...brew_runtime.Value) br
 }
 
 // Ruby method `update` at line 105.
-pub fn ruby_atomic_markable_reference_l105_d14_update(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_atomic_markable_reference_l105_d14_update(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('AtomicMarkableReference#update requires translated value and mark')
 	}
@@ -315,7 +315,7 @@ pub fn ruby_atomic_markable_reference_l105_d14_update(args ...brew_runtime.Value
 }
 
 // Ruby method `try_update!` at line 128.
-pub fn ruby_atomic_markable_reference_l128_d15_try_update(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_atomic_markable_reference_l128_d15_try_update(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('AtomicMarkableReference#try_update! requires translated value and mark')
 	}
@@ -323,7 +323,7 @@ pub fn ruby_atomic_markable_reference_l128_d15_try_update(args ...brew_runtime.V
 }
 
 // Ruby method `try_update` at line 152.
-pub fn ruby_atomic_markable_reference_l152_d16_try_update(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_atomic_markable_reference_l152_d16_try_update(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('AtomicMarkableReference#try_update requires translated value and mark')
 	}
@@ -331,8 +331,8 @@ pub fn ruby_atomic_markable_reference_l152_d16_try_update(args ...brew_runtime.V
 }
 
 // Ruby method `immutable_array(*args)` at line 163.
-pub fn ruby_atomic_markable_reference_l163_d17_immutable_array(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.array_value(args)
+pub fn ruby_atomic_markable_reference_l163_d17_immutable_array(args ...ruby.Value) ruby.Value {
+	return ruby.array_value(args)
 }
 
 // Original Ruby source (line-for-line):

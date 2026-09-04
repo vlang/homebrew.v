@@ -1,6 +1,6 @@
 module rubocops
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `rubocops/files.rb`.
@@ -56,8 +56,8 @@ pub fn audit_formula_file_permissions(file_path string, codespaces bool) ![]File
 	return audit_file_permission_mode(file_path, actual_mode)
 }
 
-fn file_permission_problem_value(problem FilePermissionProblem) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cop::Problem', problem.message, {
+fn file_permission_problem_value(problem FilePermissionProblem) ruby.Value {
+	return ruby.structured_value('RuboCop::Cop::Problem', problem.message, {
 		'actual':  problem.actual.str()
 		'wanted':  problem.wanted
 		'path':    problem.path
@@ -66,18 +66,18 @@ fn file_permission_problem_value(problem FilePermissionProblem) brew_runtime.Val
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 12.
-pub fn ruby_files_l12_d1_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_files_l12_d1_audit_formula(args ...ruby.Value) ruby.Value {
 	file_path := if args.len > 0 { args[0].as_string() } else { '' }
 	codespaces := os.getenv('CODESPACES') != '' || os.getenv('HOMEBREW_CODESPACES') != ''
 	problems := audit_formula_file_permissions(file_path, codespaces) or {
-		return brew_runtime.structured_value('Error', err.msg(), {
+		return ruby.structured_value('Error', err.msg(), {
 			'path': file_path
 		})
 	}
 	return if problems.len == 0 {
-		brew_runtime.array_value([]brew_runtime.Value{})
+		ruby.array_value([]ruby.Value{})
 	} else {
-		brew_runtime.array_value(problems.map(file_permission_problem_value(it)))
+		ruby.array_value(problems.map(file_permission_problem_value(it)))
 	}
 }
 

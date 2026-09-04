@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 import os
 import x.json2
 
@@ -13,8 +13,8 @@ pub struct GenerateFormulaApiFormula {
 pub:
 	name              string
 	pkg_version       string
-	hash              map[string]brew_runtime.Value
-	serialized_by_tag map[string]map[string]brew_runtime.Value
+	hash              map[string]ruby.Value
+	serialized_by_tag map[string]map[string]ruby.Value
 }
 
 pub struct GenerateFormulaApiOptions {
@@ -31,7 +31,7 @@ pub:
 	formulas             map[string]GenerateFormulaApiFormula
 	executables_contents string
 	executables_download bool = true
-	advisory_statuses    map[string]brew_runtime.Value
+	advisory_statuses    map[string]ruby.Value
 	advisory_loaded      bool
 	advisory_load_error  string
 	bottle_tags          []string
@@ -39,7 +39,7 @@ pub:
 
 pub struct GenerateFormulaApiResult {
 pub:
-	formulae      map[string]map[string]brew_runtime.Value
+	formulae      map[string]map[string]ruby.Value
 	warnings      []string
 	written_files []string
 }
@@ -65,12 +65,12 @@ fn generate_formula_api_remove(path string) {
 	}
 }
 
-fn generate_formula_api_string_map_value(values map[string]string) brew_runtime.Value {
-	mut result := map[string]brew_runtime.Value{}
+fn generate_formula_api_string_map_value(values map[string]string) ruby.Value {
+	mut result := map[string]ruby.Value{}
 	for key, value in values {
-		result[key] = brew_runtime.string_value(value)
+		result[key] = ruby.string_value(value)
 	}
-	return brew_runtime.map_value(result)
+	return ruby.map_value(result)
 }
 
 fn generate_formula_api_executables(contents string) map[string][]string {
@@ -94,8 +94,8 @@ fn generate_formula_api_executables(contents string) map[string][]string {
 	return executables
 }
 
-fn generate_formula_api_pretty_json(value brew_runtime.Value) string {
-	return json2.encode(brew_runtime.json_any_from_value(value), prettify: true)
+fn generate_formula_api_pretty_json(value ruby.Value) string {
+	return json2.encode(ruby.json_any_from_value(value), prettify: true)
 }
 
 pub fn generate_formula_api_html_template(title string) string {
@@ -138,11 +138,11 @@ pub fn run_generate_formula_api(options GenerateFormulaApiOptions) !GenerateForm
 
 	if !options.dry_run {
 		path := generate_formula_api_path(root, 'api/formula_tap_migrations.json')
-		os.write_file(path, brew_runtime.json_value_to_string(generate_formula_api_string_map_value(options.tap_migrations)))!
+		os.write_file(path, ruby.json_value_to_string(generate_formula_api_string_map_value(options.tap_migrations)))!
 		written_files << 'api/formula_tap_migrations.json'
 	}
 
-	mut all_formulae := map[string]map[string]brew_runtime.Value{}
+	mut all_formulae := map[string]map[string]ruby.Value{}
 	mut formula_definitions := map[string]GenerateFormulaApiFormula{}
 	for requested_name in options.formula_names {
 		formula := options.formulas[requested_name] or {
@@ -151,7 +151,7 @@ pub fn run_generate_formula_api(options GenerateFormulaApiOptions) !GenerateForm
 		name := formula.name
 		mut formula_hash := formula.hash.clone()
 		if formula_executables := executables[name] {
-			formula_hash['executables'] = brew_runtime.string_array_value(formula_executables)
+			formula_hash['executables'] = ruby.string_array_value(formula_executables)
 		}
 		if options.advisory_load_error == '' {
 			if status := options.advisory_statuses[name] {
@@ -165,7 +165,7 @@ pub fn run_generate_formula_api(options GenerateFormulaApiOptions) !GenerateForm
 			data_relative_path := '_data/formula/${name.replace('+', '_')}.json'
 			api_relative_path := 'api/formula/${name}.json'
 			html_relative_path := 'formula/${name}.html'
-			os.write_file(generate_formula_api_path(root, data_relative_path), '${generate_formula_api_pretty_json(brew_runtime.map_value(formula_hash))}\n')!
+			os.write_file(generate_formula_api_path(root, data_relative_path), '${generate_formula_api_pretty_json(ruby.map_value(formula_hash))}\n')!
 			os.write_file(generate_formula_api_path(root, api_relative_path), generate_formula_api_json_template)!
 			os.write_file(generate_formula_api_path(root, html_relative_path), generate_formula_api_html_template(name))!
 			written_files << data_relative_path
@@ -185,24 +185,24 @@ pub fn run_generate_formula_api(options GenerateFormulaApiOptions) !GenerateForm
 	}
 
 	for bottle_tag in options.bottle_tags {
-		mut serialized_formulae := map[string]brew_runtime.Value{}
+		mut serialized_formulae := map[string]ruby.Value{}
 		for name, formula_hash in all_formulae {
 			formula := formula_definitions[name] or {
 				return error("Error while generating data for formula '${name}'.")
 			}
 			serialized := (formula.serialized_by_tag[bottle_tag] or { formula_hash }).clone()
-			serialized_formulae[name] = brew_runtime.map_value(serialized)
+			serialized_formulae[name] = ruby.map_value(serialized)
 		}
-		json_contents := brew_runtime.map_value({
-			'formulae':       brew_runtime.map_value(serialized_formulae)
+		json_contents := ruby.map_value({
+			'formulae':       ruby.map_value(serialized_formulae)
 			'aliases':        generate_formula_api_string_map_value(options.alias_table)
 			'renames':        generate_formula_api_string_map_value(options.formula_renames)
-			'tap_git_head':   brew_runtime.string_value(options.tap_git_head)
+			'tap_git_head':   ruby.string_value(options.tap_git_head)
 			'tap_migrations': generate_formula_api_string_map_value(options.tap_migrations)
 		})
 		if !options.dry_run {
 			relative_path := 'api/internal/formula.${bottle_tag}.json'
-			os.write_file(generate_formula_api_path(root, relative_path), brew_runtime.json_value_to_string(json_contents))!
+			os.write_file(generate_formula_api_path(root, relative_path), ruby.json_value_to_string(json_contents))!
 			written_files << relative_path
 		}
 	}
@@ -214,35 +214,35 @@ pub fn run_generate_formula_api(options GenerateFormulaApiOptions) !GenerateForm
 	}
 }
 
-pub fn generate_formula_api_input_boundary(input &GenerateFormulaApiInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::GenerateFormulaApi::Input', '', {
+pub fn generate_formula_api_input_boundary(input &GenerateFormulaApiInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::GenerateFormulaApi::Input', '', {
 		'generate_formula_api_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn generate_formula_api_input_from_value(value brew_runtime.Value) &GenerateFormulaApiInput {
+fn generate_formula_api_input_from_value(value ruby.Value) &GenerateFormulaApiInput {
 	address := value.attributes['generate_formula_api_input_address'] or {
 		panic('invalid GenerateFormulaApi input')
 	}
 	return unsafe { &GenerateFormulaApiInput(voidptr(address.u64())) }
 }
 
-fn generate_formula_api_result_value(result GenerateFormulaApiResult) brew_runtime.Value {
-	mut formulae := map[string]brew_runtime.Value{}
+fn generate_formula_api_result_value(result GenerateFormulaApiResult) ruby.Value {
+	mut formulae := map[string]ruby.Value{}
 	for name, hash in result.formulae {
-		formulae[name] = brew_runtime.map_value(hash)
+		formulae[name] = ruby.map_value(hash)
 	}
-	return brew_runtime.map_value({
-		'formulae':      brew_runtime.map_value(formulae)
-		'warnings':      brew_runtime.string_array_value(result.warnings)
-		'written_files': brew_runtime.string_array_value(result.written_files)
+	return ruby.map_value({
+		'formulae':      ruby.map_value(formulae)
+		'warnings':      ruby.string_array_value(result.warnings)
+		'written_files': ruby.string_array_value(result.written_files)
 	})
 }
 
 // Ruby method `run` at line 35.
-pub fn ruby_generate_formula_api_l35_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_formula_api_l35_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'command input is required')
+		return ruby.object_value('ArgumentError', 'command input is required')
 	}
 	input := generate_formula_api_input_from_value(args[0])
 	result := run_generate_formula_api(input.options) or {
@@ -253,32 +253,32 @@ pub fn ruby_generate_formula_api_l35_d1_run(args ...brew_runtime.Value) brew_run
 		} else {
 			'Error'
 		}
-		return brew_runtime.object_value(error_type, err.msg())
+		return ruby.object_value(error_type, err.msg())
 	}
 	return generate_formula_api_result_value(result)
 }
 
 // Ruby method `load_advisory_database` at line 115.
-pub fn ruby_generate_formula_api_l115_d2_load_advisory_database(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_formula_api_l115_d2_load_advisory_database(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'command input is required')
+		return ruby.object_value('ArgumentError', 'command input is required')
 	}
 	options := generate_formula_api_input_from_value(args[0]).options
 	if options.advisory_load_error != '' {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	if options.advisory_loaded {
-		return brew_runtime.object_value('Homebrew::Vulns::AdvisoryDatabase', '#<Homebrew::Vulns::AdvisoryDatabase>')
+		return ruby.object_value('Homebrew::Vulns::AdvisoryDatabase', '#<Homebrew::Vulns::AdvisoryDatabase>')
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `html_template(title)` at line 123.
-pub fn ruby_generate_formula_api_l123_d3_html_template(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_formula_api_l123_d3_html_template(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'title is required')
+		return ruby.object_value('ArgumentError', 'title is required')
 	}
-	return brew_runtime.string_value(generate_formula_api_html_template(args[0].as_string()))
+	return ruby.string_value(generate_formula_api_html_template(args[0].as_string()))
 }
 
 // Original Ruby source (line-for-line):

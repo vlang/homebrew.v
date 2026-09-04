@@ -1,11 +1,11 @@
 module test_bot
 
-import brew_runtime
+import ruby
 
 pub struct TestBotStepFixture {
 pub:
 	command     []string
-	environment map[string]brew_runtime.Value
+	environment map[string]ruby.Value
 	passed      bool
 }
 
@@ -13,36 +13,36 @@ pub:
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "converts Pathname arguments to strings" do` at line 8.
-pub fn ruby_test_spec_l8_d1_converts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_spec_l8_d1_converts(args ...ruby.Value) ruby.Value {
 	arguments := if args.len > 0 {
-		args[0].as_array() or { []brew_runtime.Value{} }
+		args[0].as_array() or { []ruby.Value{} }
 	} else {
 		[
-			brew_runtime.string_value('git'),
-			brew_runtime.string_value('-C'),
-			brew_runtime.object_value('Pathname', '/some/path'),
-			brew_runtime.string_value('status'),
+			ruby.string_value('git'),
+			ruby.string_value('-C'),
+			ruby.object_value('Pathname', '/some/path'),
+			ruby.string_value('status'),
 		]
 	}
-	step := test_bot_dry_run_step(arguments, map[string]brew_runtime.Value{})
-	return brew_runtime.bool_value(step.command == ['git', '-C', '/some/path', 'status']
+	step := test_bot_dry_run_step(arguments, map[string]ruby.Value{})
+	return ruby.bool_value(step.command == ['git', '-C', '/some/path', 'status']
 		&& step.passed)
 }
 
 // Ruby it `it "allows nil environment values" do` at line 20.
-pub fn ruby_test_spec_l20_d2_allows(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_spec_l20_d2_allows(args ...ruby.Value) ruby.Value {
 	step := test_bot_dry_run_step([
-		brew_runtime.string_value('brew'),
-		brew_runtime.string_value('install'),
+		ruby.string_value('brew'),
+		ruby.string_value('install'),
 	], {
-		'HOMEBREW_DEVELOPER': brew_runtime.object_value('NilClass', 'nil')
+		'HOMEBREW_DEVELOPER': ruby.object_value('NilClass', 'nil')
 	})
-	return brew_runtime.bool_value(step.passed
+	return ruby.bool_value(step.passed
 		&& step.environment['HOMEBREW_DEVELOPER'].type_name == 'NilClass')
 }
 
-pub fn test_bot_dry_run_step(arguments []brew_runtime.Value,
-	environment map[string]brew_runtime.Value) TestBotStepFixture {
+pub fn test_bot_dry_run_step(arguments []ruby.Value,
+	environment map[string]ruby.Value) TestBotStepFixture {
 	return TestBotStepFixture{
 		command: arguments.map(it.as_string())
 		environment: environment.clone()

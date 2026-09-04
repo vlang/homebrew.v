@@ -1,6 +1,6 @@
 module shared_examples
 
-import brew_runtime
+import ruby
 import homebrew.cask as core
 
 // Translated from Homebrew/brew `test/cask/dsl/shared_examples/staged.rb`.
@@ -17,34 +17,34 @@ fn staged_example(denied bool) &core.StagedState {
 }
 
 // Ruby let `let(:existing_path) { Pathname("/path/to/file/that/exists") }` at line 7.
-pub fn ruby_staged_l7_d1_existing_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_staged_l7_d1_existing_path(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.object_value('Pathname', staged_existing_path)
+	return ruby.object_value('Pathname', staged_existing_path)
 }
 
 // Ruby let `let(:non_existent_path) { Pathname("/path/to/file/that/does/not/exist") }` at line 8.
-pub fn ruby_staged_l8_d2_non_existent_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_staged_l8_d2_non_existent_path(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.object_value('Pathname', staged_missing_path)
+	return ruby.object_value('Pathname', staged_missing_path)
 }
 
 // Ruby it `it "can run system commands with list-form arguments" do` at line 15.
-pub fn ruby_staged_l15_d3_can(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_staged_l15_d3_can(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut state := staged_example(false)
 	state.system_command('echo', ['homebrew-cask', 'rocks!'], false)
-	return brew_runtime.bool_value(state.invocations == [core.StagedCommandInvocation{
+	return ruby.bool_value(state.invocations == [core.StagedCommandInvocation{
 		executable: 'echo'
 		args: ['homebrew-cask', 'rocks!']
 	}])
 }
 
 // Ruby it `it "can set the permissions of a file" do` at line 22.
-pub fn ruby_staged_l22_d4_can(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_staged_l22_d4_can(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut state := staged_example(false)
 	state.set_permissions([staged_existing_path], '777')
-	return brew_runtime.bool_value(state.invocations.len == 1 && state.invocations[0].executable == 'chmod' && state.invocations[0].args == [
+	return ruby.bool_value(state.invocations.len == 1 && state.invocations[0].executable == 'chmod' && state.invocations[0].args == [
 		'-R',
 		'--',
 		'777',
@@ -53,11 +53,11 @@ pub fn ruby_staged_l22_d4_can(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby it `it "can set the permissions of multiple files" do` at line 32.
-pub fn ruby_staged_l32_d5_can(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_staged_l32_d5_can(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut state := staged_example(false)
 	state.set_permissions([staged_existing_path, staged_existing_path], '777')
-	return brew_runtime.bool_value(state.invocations.len == 1 && state.invocations[0].args == [
+	return ruby.bool_value(state.invocations.len == 1 && state.invocations[0].args == [
 		'-R',
 		'--',
 		'777',
@@ -67,19 +67,19 @@ pub fn ruby_staged_l32_d5_can(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby it `it "cannot set the permissions of a file that does not exist" do` at line 42.
-pub fn ruby_staged_l42_d6_cannot(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_staged_l42_d6_cannot(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut state := staged_example(false)
 	state.set_permissions([staged_missing_path], '777')
-	return brew_runtime.bool_value(state.invocations.len == 0)
+	return ruby.bool_value(state.invocations.len == 0)
 }
 
 // Ruby it `it "can set the ownership of a file" do` at line 49.
-pub fn ruby_staged_l49_d7_can(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_staged_l49_d7_can(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut state := staged_example(false)
-	state.set_ownership([staged_existing_path], '', '') or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(state.invocations.len == 1 && state.invocations[0].args == [
+	state.set_ownership([staged_existing_path], '', '') or { return ruby.bool_value(false) }
+	return ruby.bool_value(state.invocations.len == 1 && state.invocations[0].args == [
 		'-R',
 		'--',
 		'fake_user:staff',
@@ -88,13 +88,13 @@ pub fn ruby_staged_l49_d7_can(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby it `it "can set the ownership of multiple files" do` at line 61.
-pub fn ruby_staged_l61_d8_can(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_staged_l61_d8_can(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut state := staged_example(false)
 	state.set_ownership([staged_existing_path, staged_existing_path], '', '') or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(state.invocations.len == 1 && state.invocations[0].args == [
+	return ruby.bool_value(state.invocations.len == 1 && state.invocations[0].args == [
 		'-R',
 		'--',
 		'fake_user:staff',
@@ -104,40 +104,40 @@ pub fn ruby_staged_l61_d8_can(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby it `it "can set the ownership of a file with a different user and group" do` at line 77.
-pub fn ruby_staged_l77_d9_can(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_staged_l77_d9_can(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut state := staged_example(false)
 	state.set_ownership([staged_existing_path], 'other_user', 'other_group') or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(state.invocations[0].args == ['-R', '--', 'other_user:other_group',
+	return ruby.bool_value(state.invocations[0].args == ['-R', '--', 'other_user:other_group',
 		staged_existing_path])
 }
 
 // Ruby it `it "sets the ownership of an app when App Management permissions are granted" do` at line 92.
-pub fn ruby_staged_l92_d10_sets(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_staged_l92_d10_sets(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut state := staged_example(false)
-	state.set_ownership([staged_existing_path], '', '') or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(state.invocations.len == 1 && state.invocations[0].executable == 'chown')
+	state.set_ownership([staged_existing_path], '', '') or { return ruby.bool_value(false) }
+	return ruby.bool_value(state.invocations.len == 1 && state.invocations[0].executable == 'chown')
 }
 
 // Ruby it `it "does not set the ownership of an app when App Management permissions are missing" do` at line 107.
-pub fn ruby_staged_l107_d11_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_staged_l107_d11_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut state := staged_example(true)
 	state.set_ownership([staged_existing_path], '', '') or {
-		return brew_runtime.bool_value(err.msg().contains('App Management permissions') && state.invocations.len == 0)
+		return ruby.bool_value(err.msg().contains('App Management permissions') && state.invocations.len == 0)
 	}
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 // Ruby it `it "cannot set the ownership of a file that does not exist" do` at line 123.
-pub fn ruby_staged_l123_d12_cannot(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_staged_l123_d12_cannot(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut state := staged_example(false)
-	state.set_ownership([staged_missing_path], '', '') or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(state.invocations.len == 0)
+	state.set_ownership([staged_missing_path], '', '') or { return ruby.bool_value(false) }
+	return ruby.bool_value(state.invocations.len == 0)
 }
 
 // Original Ruby source (line-for-line):

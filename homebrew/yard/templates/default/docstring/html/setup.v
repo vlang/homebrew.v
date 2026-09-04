@@ -1,24 +1,24 @@
 module html
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `yard/templates/default/docstring/html/setup.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `init` at line 7.
-pub fn ruby_setup_l7_d1_init(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_setup_l7_d1_init(args ...ruby.Value) ruby.Value {
 	sections := if args.len > 0 { args[0].as_string_array() or { [] } } else { [] }
-	return brew_runtime.string_array_value(initialize_docstring_html_sections(sections))
+	return ruby.string_array_value(initialize_docstring_html_sections(sections))
 }
 
 // Ruby method `internal` at line 19.
-pub fn ruby_setup_l19_d2_internal(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_setup_l19_d2_internal(args ...ruby.Value) ruby.Value {
 	api := if args.len > 0 { args[0].as_string() } else { '' }
 	template := if args.len > 1 { args[1].as_string() } else { 'internal' }
 	return if rendered := render_internal_docstring(api, template) {
-		brew_runtime.string_value(rendered)
+		ruby.string_value(rendered)
 	} else {
-		brew_runtime.object_value('NilClass', '')
+		ruby.object_value('NilClass', '')
 	}
 }
 

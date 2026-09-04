@@ -1,6 +1,6 @@
 module concern
 
-import brew_runtime
+import ruby
 import os
 import time
 
@@ -104,15 +104,15 @@ pub fn (logger ConcurrentLogger) call(severity int, progname string, message str
 	return true
 }
 
-fn logger_as_value(logger ConcurrentLogger) brew_runtime.Value {
-	return brew_runtime.structured_value('Concurrent::Logger', logger.kind.str(), {
+fn logger_as_value(logger ConcurrentLogger) ruby.Value {
+	return ruby.structured_value('Concurrent::Logger', logger.kind.str(), {
 		'level':  logger.level.str()
 		'output': logger.output
 		'kind':   logger.kind.str()
 	})
 }
 
-fn logger_from_value(value brew_runtime.Value) !ConcurrentLogger {
+fn logger_from_value(value ruby.Value) !ConcurrentLogger {
 	level := (value.attribute('level')!).int()
 	output := value.attribute('output')!
 	kind_name := value.attribute('kind')!
@@ -164,7 +164,7 @@ pub fn use_stdlib_logger(level int, output string) ConcurrentLogger {
 }
 
 // Ruby method `log(level, progname, message = nil, &block)` at line 19.
-pub fn ruby_logging_l19_d1_log(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_logging_l19_d1_log(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('log requires severity and progname')
 	}
@@ -174,11 +174,11 @@ pub fn ruby_logging_l19_d1_log(args ...brew_runtime.Value) brew_runtime.Value {
 		eprintln('`Concurrent.global_logger` failed to log: ${err}')
 		false
 	}
-	return brew_runtime.bool_value(logged)
+	return ruby.bool_value(logged)
 }
 
 // Ruby method `self.create_simple_logger(level = :FATAL, output = $stderr)` at line 38.
-pub fn ruby_logging_l38_d2_self_create_simple_logger(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_logging_l38_d2_self_create_simple_logger(args ...ruby.Value) ruby.Value {
 	level := if args.len > 0 {
 		if args[0].type_name == 'Integer' {
 			int(args[0].as_int() or { panic(err) })
@@ -193,32 +193,32 @@ pub fn ruby_logging_l38_d2_self_create_simple_logger(args ...brew_runtime.Value)
 }
 
 // Ruby method `self.use_simple_logger(level = :FATAL, output = $stderr)` at line 66.
-pub fn ruby_logging_l66_d3_self_use_simple_logger(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_logging_l66_d3_self_use_simple_logger(args ...ruby.Value) ruby.Value {
 	logger := logger_from_value(ruby_logging_l38_d2_self_create_simple_logger(...args)) or { panic(err) }
 	set_global_logger(logger)
 	return logger_as_value(logger)
 }
 
 // Ruby method `self.create_stdlib_logger(level = :FATAL, output = $stderr)` at line 73.
-pub fn ruby_logging_l73_d4_self_create_stdlib_logger(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_logging_l73_d4_self_create_stdlib_logger(args ...ruby.Value) ruby.Value {
 	simple := logger_from_value(ruby_logging_l38_d2_self_create_simple_logger(...args)) or { panic(err) }
 	return logger_as_value(create_stdlib_logger(simple.level, simple.output))
 }
 
 // Ruby method `self.use_stdlib_logger(level = :FATAL, output = $stderr)` at line 101.
-pub fn ruby_logging_l101_d5_self_use_stdlib_logger(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_logging_l101_d5_self_use_stdlib_logger(args ...ruby.Value) ruby.Value {
 	logger := logger_from_value(ruby_logging_l73_d4_self_create_stdlib_logger(...args)) or { panic(err) }
 	set_global_logger(logger)
 	return logger_as_value(logger)
 }
 
 // Ruby method `self.global_logger` at line 114.
-pub fn ruby_logging_l114_d6_self_global_logger(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_logging_l114_d6_self_global_logger(args ...ruby.Value) ruby.Value {
 	return logger_as_value(global_logger())
 }
 
 // Ruby method `self.global_logger=(value)` at line 118.
-pub fn ruby_logging_l118_d7_self_global_logger(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_logging_l118_d7_self_global_logger(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('global_logger= requires a logger')
 	}

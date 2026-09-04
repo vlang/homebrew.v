@@ -1,6 +1,6 @@
 module rubocops
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `rubocops/no_send_in_tests.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -288,8 +288,8 @@ pub fn audit_no_send_in_tests(source string) []NoSendInTestsOffense {
 	return offenses
 }
 
-fn no_send_in_tests_offense_value(offense NoSendInTestsOffense) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cop::Offense', offense.message, {
+fn no_send_in_tests_offense_value(offense NoSendInTestsOffense) ruby.Value {
+	return ruby.structured_value('RuboCop::Cop::Offense', offense.message, {
 		'method':          offense.call.method
 		'begin_pos':       offense.begin_pos.str()
 		'end_pos':         offense.end_pos.str()
@@ -301,25 +301,25 @@ fn no_send_in_tests_offense_value(offense NoSendInTestsOffense) brew_runtime.Val
 }
 
 // Ruby method `on_send(node)` at line 52.
-pub fn ruby_no_send_in_tests_l52_d1_on_send(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_no_send_in_tests_l52_d1_on_send(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	offenses := audit_no_send_in_tests(source)
 	return if offenses.len == 0 {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	} else {
 		no_send_in_tests_offense_value(offenses[0])
 	}
 }
 
 // Ruby alias `alias on_csend on_send` at line 67.
-pub fn ruby_no_send_in_tests_l67_d2_on_csend(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_no_send_in_tests_l67_d2_on_csend(args ...ruby.Value) ruby.Value {
 	return ruby_no_send_in_tests_l52_d1_on_send(...args)
 }
 
 // Ruby method `directly_callable_name?(argument)` at line 72.
-pub fn ruby_no_send_in_tests_l72_d3_directly_callable_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_no_send_in_tests_l72_d3_directly_callable_name(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || args[0].type_name !in ['Symbol', 'String'] {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	mut value := args[0].as_string()
 	kind := if args[0].type_name == 'Symbol' { 'symbol' } else { 'string' }
@@ -329,7 +329,7 @@ pub fn ruby_no_send_in_tests_l72_d3_directly_callable_name(args ...brew_runtime.
 	if value.len >= 2 && value[0] in [`'`, `\"`] && value[value.len - 1] == value[0] {
 		value = value[1..value.len - 1]
 	}
-	return brew_runtime.bool_value(directly_callable_no_send_name(NoSendInTestsArgument{
+	return ruby.bool_value(directly_callable_no_send_name(NoSendInTestsArgument{
 		kind: kind
 		value: value
 	}))

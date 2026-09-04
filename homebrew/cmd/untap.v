@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `cmd/untap.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -304,83 +304,83 @@ pub fn run_untap_command(input UntapCommandInput) !UntapCommandResult {
 	}
 }
 
-pub fn untap_command_input_boundary(input &UntapCommandInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::Cmd::Untap::Input', '', {
+pub fn untap_command_input_boundary(input &UntapCommandInput) ruby.Value {
+	return ruby.structured_value('Homebrew::Cmd::Untap::Input', '', {
 		'untap_command_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn untap_command_input_from_value(value brew_runtime.Value) &UntapCommandInput {
+fn untap_command_input_from_value(value ruby.Value) &UntapCommandInput {
 	address := value.attributes['untap_command_input_address'] or { panic('invalid Untap command input') }
 	return unsafe { &UntapCommandInput(voidptr(address.u64())) }
 }
 
-pub fn untap_formula_query_boundary(query &UntapFormulaQuery) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::Cmd::Untap::FormulaQuery', '', {
+pub fn untap_formula_query_boundary(query &UntapFormulaQuery) ruby.Value {
+	return ruby.structured_value('Homebrew::Cmd::Untap::FormulaQuery', '', {
 		'untap_formula_query_address': u64(voidptr(query)).str()
 	})
 }
 
-fn untap_formula_query_from_value(value brew_runtime.Value) &UntapFormulaQuery {
+fn untap_formula_query_from_value(value ruby.Value) &UntapFormulaQuery {
 	address := value.attributes['untap_formula_query_address'] or { panic('invalid Untap formula query') }
 	return unsafe { &UntapFormulaQuery(voidptr(address.u64())) }
 }
 
-pub fn untap_cask_query_boundary(query &UntapCaskQuery) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::Cmd::Untap::CaskQuery', '', {
+pub fn untap_cask_query_boundary(query &UntapCaskQuery) ruby.Value {
+	return ruby.structured_value('Homebrew::Cmd::Untap::CaskQuery', '', {
 		'untap_cask_query_address': u64(voidptr(query)).str()
 	})
 }
 
-fn untap_cask_query_from_value(value brew_runtime.Value) &UntapCaskQuery {
+fn untap_cask_query_from_value(value ruby.Value) &UntapCaskQuery {
 	address := value.attributes['untap_cask_query_address'] or { panic('invalid Untap cask query') }
 	return unsafe { &UntapCaskQuery(voidptr(address.u64())) }
 }
 
-fn untap_formula_value(formula UntapFormula) brew_runtime.Value {
-	return brew_runtime.structured_value('Formula', untap_formula_full_name(formula), {
+fn untap_formula_value(formula UntapFormula) ruby.Value {
+	return ruby.structured_value('Formula', untap_formula_full_name(formula), {
 		'name':      formula.name
 		'full_name': untap_formula_full_name(formula)
 	})
 }
 
-fn untap_cask_value(cask UntapCask) brew_runtime.Value {
-	return brew_runtime.structured_value('Cask::Cask', untap_cask_full_name(cask), {
+fn untap_cask_value(cask UntapCask) ruby.Value {
+	return ruby.structured_value('Cask::Cask', untap_cask_full_name(cask), {
 		'token':     cask.token
 		'full_name': untap_cask_full_name(cask)
 	})
 }
 
-fn untap_result_value(result UntapCommandResult) brew_runtime.Value {
-	mut racks := map[string]brew_runtime.Value{}
+fn untap_result_value(result UntapCommandResult) ruby.Value {
+	mut racks := map[string]ruby.Value{}
 	for rack, formulae in result.kegs_by_rack {
-		racks[rack] = brew_runtime.string_array_value(formulae)
+		racks[rack] = ruby.string_array_value(formulae)
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'UntapCommandResult'
 		repr: result.stdout
 		bool_data: result.failed
 		map_data: {
-			'stdout':               brew_runtime.string_value(result.stdout)
-			'stderr':               brew_runtime.string_value(result.stderr)
-			'failed':               brew_runtime.bool_value(result.failed)
-			'untapped':             brew_runtime.string_array_value(result.untapped)
-			'uninstalled_formulae': brew_runtime.string_array_value(result.uninstalled_formulae)
-			'uninstalled_casks':    brew_runtime.string_array_value(result.uninstalled_casks)
-			'kegs_by_rack':         brew_runtime.map_value(racks)
-			'actions':              brew_runtime.string_array_value(result.actions)
+			'stdout':               ruby.string_value(result.stdout)
+			'stderr':               ruby.string_value(result.stderr)
+			'failed':               ruby.bool_value(result.failed)
+			'untapped':             ruby.string_array_value(result.untapped)
+			'uninstalled_formulae': ruby.string_array_value(result.uninstalled_formulae)
+			'uninstalled_casks':    ruby.string_array_value(result.uninstalled_casks)
+			'kegs_by_rack':         ruby.map_value(racks)
+			'actions':              ruby.string_array_value(result.actions)
 		}
 	}
 }
 
 // Ruby method `run` at line 25.
-pub fn ruby_untap_l25_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_untap_l25_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'command input is required')
+		return ruby.object_value('ArgumentError', 'command input is required')
 	}
 	input := untap_command_input_from_value(args[0])
 	result := run_untap_command(input) or {
-		return brew_runtime.object_value(if err.msg().starts_with('Invalid tap name') {
+		return ruby.object_value(if err.msg().starts_with('Invalid tap name') {
 			'Tap::InvalidNameError'
 		} else {
 			'UsageError'
@@ -390,40 +390,40 @@ pub fn ruby_untap_l25_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `installed_formulae_for(tap:)` at line 108.
-pub fn ruby_untap_l108_d2_installed_formulae_for(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_untap_l108_d2_installed_formulae_for(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'formula query is required')
+		return ruby.object_value('ArgumentError', 'formula query is required')
 	}
 	query := untap_formula_query_from_value(args[0])
-	return brew_runtime.array_value(installed_formulae_for(query.tap, query.formulae, query.installed_formula_names).map(untap_formula_value(it)))
+	return ruby.array_value(installed_formulae_for(query.tap, query.formulae, query.installed_formula_names).map(untap_formula_value(it)))
 }
 
 // Ruby method `installed_casks_for(tap:)` at line 127.
-pub fn ruby_untap_l127_d3_installed_casks_for(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_untap_l127_d3_installed_casks_for(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'cask query is required')
+		return ruby.object_value('ArgumentError', 'cask query is required')
 	}
 	query := untap_cask_query_from_value(args[0])
-	return brew_runtime.array_value(installed_casks_for(query.tap, query.casks, query.installed_cask_tokens).map(untap_cask_value(it)))
+	return ruby.array_value(installed_casks_for(query.tap, query.casks, query.installed_cask_tokens).map(untap_cask_value(it)))
 }
 
 // Ruby method `installed_formulae_names` at line 145.
-pub fn ruby_untap_l145_d4_installed_formulae_names(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_untap_l145_d4_installed_formulae_names(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_array_value([])
+		return ruby.string_array_value([])
 	}
-	return brew_runtime.string_array_value(untap_unique(args[0].as_string_array() or {
-		return brew_runtime.object_value('TypeError', err.msg())
+	return ruby.string_array_value(untap_unique(args[0].as_string_array() or {
+		return ruby.object_value('TypeError', err.msg())
 	}))
 }
 
 // Ruby method `installed_cask_tokens` at line 150.
-pub fn ruby_untap_l150_d5_installed_cask_tokens(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_untap_l150_d5_installed_cask_tokens(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_array_value([])
+		return ruby.string_array_value([])
 	}
-	return brew_runtime.string_array_value(untap_unique(args[0].as_string_array() or {
-		return brew_runtime.object_value('TypeError', err.msg())
+	return ruby.string_array_value(untap_unique(args[0].as_string_array() or {
+		return ruby.object_value('TypeError', err.msg())
 	}))
 }
 

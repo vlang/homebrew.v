@@ -1,6 +1,6 @@
 module unpack_strategy
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `test/unpack_strategy/subversion_spec.rb`.
@@ -27,33 +27,33 @@ fn subversion_working_copy_fixture(repository string, suffix string) string {
 }
 
 // Ruby let `let(:repo) { mktmpdir }` at line 7.
-pub fn ruby_subversion_spec_l7_d1_repo(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(spec_temp_dir('subversion-repository'))
+pub fn ruby_subversion_spec_l7_d1_repo(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(spec_temp_dir('subversion-repository'))
 }
 
 // Ruby let `let(:working_copy) { mktmpdir }` at line 8.
-pub fn ruby_subversion_spec_l8_d2_working_copy(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_subversion_spec_l8_d2_working_copy(args ...ruby.Value) ruby.Value {
 	repository := if args.len > 0 {
 		args[0].as_string()
 	} else {
 		spec_temp_dir('subversion-repository')
 	}
-	return brew_runtime.string_value(subversion_working_copy_fixture(repository, ''))
+	return ruby.string_value(subversion_working_copy_fixture(repository, ''))
 }
 
 // Ruby let `let(:path) { working_copy }` at line 9.
-pub fn ruby_subversion_spec_l9_d3_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_subversion_spec_l9_d3_path(args ...ruby.Value) ruby.Value {
 	return if args.len > 0 { args[0] } else { ruby_subversion_spec_l8_d2_working_copy() }
 }
 
 // Ruby let `let(:working_copy) { mktmpdir(["", "@1.2.3"])  }` at line 24.
-pub fn ruby_subversion_spec_l24_d4_working_copy(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_subversion_spec_l24_d4_working_copy(args ...ruby.Value) ruby.Value {
 	repository := if args.len > 0 {
 		args[0].as_string()
 	} else {
 		spec_temp_dir('subversion-at-repository')
 	}
-	return brew_runtime.string_value(subversion_working_copy_fixture(repository, '@1.2.3'))
+	return ruby.string_value(subversion_working_copy_fixture(repository, '@1.2.3'))
 }
 
 // Original Ruby source (line-for-line):

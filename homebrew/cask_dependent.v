@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `cask_dependent.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -241,101 +241,101 @@ pub fn (dependent CaskDependent) requirement_satisfied(requirement CaskDependent
 	return requirement.kind != 'cask' || requirement.cask in dependent.graph.installed_casks
 }
 
-fn cask_dependent_requirement_value(requirement CaskDependentRequirement) brew_runtime.Value {
-	return brew_runtime.Value{
+fn cask_dependent_requirement_value(requirement CaskDependentRequirement) ruby.Value {
+	return ruby.Value{
 		type_name: if requirement.kind == 'cask' {
 			'CaskDependent::Requirement'} else {
 			'${requirement.kind.capitalize()}Requirement'}
 		repr: requirement.name
 		map_data: {
-			'name': brew_runtime.string_value(requirement.name)
-			'cask': brew_runtime.string_value(requirement.cask)
-			'kind': brew_runtime.string_value(requirement.kind)
+			'name': ruby.string_value(requirement.name)
+			'cask': ruby.string_value(requirement.cask)
+			'kind': ruby.string_value(requirement.kind)
 		}
 	}
 }
 
-fn cask_dependent_dependency_value(dependency CaskDependentDependency) brew_runtime.Value {
-	return brew_runtime.structured_value('Dependency', dependency.name, {
+fn cask_dependent_dependency_value(dependency CaskDependentDependency) ruby.Value {
+	return ruby.structured_value('Dependency', dependency.name, {
 		'name': dependency.name
 	})
 }
 
-pub fn cask_dependent_cask_value(cask CaskDependentCask) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn cask_dependent_cask_value(cask CaskDependentCask) ruby.Value {
+	return ruby.Value{
 		type_name: 'Cask::Cask'
 		repr: if cask.full_name != '' { cask.full_name } else { cask.token }
 		map_data: {
-			'token':                brew_runtime.string_value(cask.token)
-			'full_name':            brew_runtime.string_value(cask.full_name)
-			'installed':            brew_runtime.bool_value(cask.installed)
-			'formula_dependencies': brew_runtime.string_array_value(cask.formula_dependencies)
-			'cask_dependencies':    brew_runtime.string_array_value(cask.cask_dependencies)
-			'arch':                 brew_runtime.array_value(cask.arch.map(brew_runtime.map_value({
-				'kind': brew_runtime.string_value(it.kind)
-				'bits': brew_runtime.int_value(it.bits)
+			'token':                ruby.string_value(cask.token)
+			'full_name':            ruby.string_value(cask.full_name)
+			'installed':            ruby.bool_value(cask.installed)
+			'formula_dependencies': ruby.string_array_value(cask.formula_dependencies)
+			'cask_dependencies':    ruby.string_array_value(cask.cask_dependencies)
+			'arch':                 ruby.array_value(cask.arch.map(ruby.map_value({
+				'kind': ruby.string_value(it.kind)
+				'bits': ruby.int_value(it.bits)
 			})))
-			'linux':                brew_runtime.bool_value(cask.linux)
-			'macos':                brew_runtime.bool_value(cask.macos)
-			'maximum_macos':        brew_runtime.bool_value(cask.maximum_macos)
+			'linux':                ruby.bool_value(cask.linux)
+			'macos':                ruby.bool_value(cask.macos)
+			'maximum_macos':        ruby.bool_value(cask.maximum_macos)
 		}
 	}
 }
 
-fn cask_dependent_cask_from_value(value brew_runtime.Value) !CaskDependentCask {
+fn cask_dependent_cask_from_value(value ruby.Value) !CaskDependentCask {
 	if value.type_name != 'Cask::Cask' && value.type_name != 'Hash' {
 		return error('expected Cask::Cask, got ${value.type_name}')
 	}
 	mut arches := []CaskDependentArch{}
-	for raw in (value.map_data['arch'] or { brew_runtime.array_value([]) }).as_array()! {
+	for raw in (value.map_data['arch'] or { ruby.array_value([]) }).as_array()! {
 		arches << CaskDependentArch{
-			kind: (raw.map_data['kind'] or { brew_runtime.string_value('') }).as_string()
-			bits: int((raw.map_data['bits'] or { brew_runtime.int_value(64) }).as_int()!)
+			kind: (raw.map_data['kind'] or { ruby.string_value('') }).as_string()
+			bits: int((raw.map_data['bits'] or { ruby.int_value(64) }).as_int()!)
 		}
 	}
 	return CaskDependentCask{
-		token: (value.map_data['token'] or { brew_runtime.string_value(value.as_string()) }).as_string()
-		full_name: (value.map_data['full_name'] or { brew_runtime.string_value(value.as_string()) }).as_string()
-		installed: (value.map_data['installed'] or { brew_runtime.bool_value(false) }).as_bool()!
-		formula_dependencies: (value.map_data['formula_dependencies'] or { brew_runtime.string_array_value([]) }).as_string_array()!
-		cask_dependencies: (value.map_data['cask_dependencies'] or { brew_runtime.string_array_value([]) }).as_string_array()!
+		token: (value.map_data['token'] or { ruby.string_value(value.as_string()) }).as_string()
+		full_name: (value.map_data['full_name'] or { ruby.string_value(value.as_string()) }).as_string()
+		installed: (value.map_data['installed'] or { ruby.bool_value(false) }).as_bool()!
+		formula_dependencies: (value.map_data['formula_dependencies'] or { ruby.string_array_value([]) }).as_string_array()!
+		cask_dependencies: (value.map_data['cask_dependencies'] or { ruby.string_array_value([]) }).as_string_array()!
 		arch: arches
-		linux: (value.map_data['linux'] or { brew_runtime.bool_value(false) }).as_bool()!
-		macos: (value.map_data['macos'] or { brew_runtime.bool_value(false) }).as_bool()!
-		maximum_macos: (value.map_data['maximum_macos'] or { brew_runtime.bool_value(false) }).as_bool()!
+		linux: (value.map_data['linux'] or { ruby.bool_value(false) }).as_bool()!
+		macos: (value.map_data['macos'] or { ruby.bool_value(false) }).as_bool()!
+		maximum_macos: (value.map_data['maximum_macos'] or { ruby.bool_value(false) }).as_bool()!
 	}
 }
 
-pub fn cask_dependent_value(dependent CaskDependent) brew_runtime.Value {
-	mut formulae := map[string]brew_runtime.Value{}
+pub fn cask_dependent_value(dependent CaskDependent) ruby.Value {
+	mut formulae := map[string]ruby.Value{}
 	for name, formula in dependent.graph.formulae {
-		formulae[name] = brew_runtime.map_value({
-			'name':                 brew_runtime.string_value(formula.name)
-			'dependencies':         brew_runtime.string_array_value(formula.dependencies)
-			'runtime_dependencies': brew_runtime.string_array_value(formula.runtime_dependencies)
-			'requirements':         brew_runtime.array_value(formula.requirements.map(cask_dependent_requirement_value(it)))
+		formulae[name] = ruby.map_value({
+			'name':                 ruby.string_value(formula.name)
+			'dependencies':         ruby.string_array_value(formula.dependencies)
+			'runtime_dependencies': ruby.string_array_value(formula.runtime_dependencies)
+			'requirements':         ruby.array_value(formula.requirements.map(cask_dependent_requirement_value(it)))
 		})
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'CaskDependent'
 		repr: dependent.full_name()
 		map_data: {
 			'cask':            cask_dependent_cask_value(dependent.cask)
-			'formulae':        brew_runtime.map_value(formulae)
-			'installed_casks': brew_runtime.string_array_value(dependent.graph.installed_casks)
+			'formulae':        ruby.map_value(formulae)
+			'installed_casks': ruby.string_array_value(dependent.graph.installed_casks)
 		}
 	}
 }
 
-fn cask_dependent_requirement_from_value(value brew_runtime.Value) CaskDependentRequirement {
+fn cask_dependent_requirement_from_value(value ruby.Value) CaskDependentRequirement {
 	return CaskDependentRequirement{
-		kind: (value.map_data['kind'] or { brew_runtime.string_value('') }).as_string()
-		name: (value.map_data['name'] or { brew_runtime.string_value(value.as_string()) }).as_string()
-		cask: (value.map_data['cask'] or { brew_runtime.string_value('') }).as_string()
+		kind: (value.map_data['kind'] or { ruby.string_value('') }).as_string()
+		name: (value.map_data['name'] or { ruby.string_value(value.as_string()) }).as_string()
+		cask: (value.map_data['cask'] or { ruby.string_value('') }).as_string()
 	}
 }
 
-pub fn cask_dependent_from_value(value brew_runtime.Value) !CaskDependent {
+pub fn cask_dependent_from_value(value ruby.Value) !CaskDependent {
 	if value.type_name == 'Cask::Cask' {
 		return new_cask_dependent(cask_dependent_cask_from_value(value)!, CaskDependentGraph{})
 	}
@@ -343,24 +343,24 @@ pub fn cask_dependent_from_value(value brew_runtime.Value) !CaskDependent {
 		return error('expected CaskDependent, got ${value.type_name}')
 	}
 	mut formulae := map[string]CaskDependentFormula{}
-	for name, raw in (value.map_data['formulae'] or { brew_runtime.map_value({}) }).map_data {
+	for name, raw in (value.map_data['formulae'] or { ruby.map_value({}) }).map_data {
 		formulae[name] = CaskDependentFormula{
-			name: (raw.map_data['name'] or { brew_runtime.string_value(name) }).as_string()
-			dependencies: (raw.map_data['dependencies'] or { brew_runtime.string_array_value([]) }).as_string_array()!
-			runtime_dependencies: (raw.map_data['runtime_dependencies'] or { brew_runtime.string_array_value([]) }).as_string_array()!
-			requirements: (raw.map_data['requirements'] or { brew_runtime.array_value([]) }).as_array()!.map(cask_dependent_requirement_from_value(it))
+			name: (raw.map_data['name'] or { ruby.string_value(name) }).as_string()
+			dependencies: (raw.map_data['dependencies'] or { ruby.string_array_value([]) }).as_string_array()!
+			runtime_dependencies: (raw.map_data['runtime_dependencies'] or { ruby.string_array_value([]) }).as_string_array()!
+			requirements: (raw.map_data['requirements'] or { ruby.array_value([]) }).as_array()!.map(cask_dependent_requirement_from_value(it))
 		}
 	}
 	return new_cask_dependent(
 		cask_dependent_cask_from_value(value.map_data['cask'] or { return error('CaskDependent cask is required') })!,
 		CaskDependentGraph{
 			formulae: formulae
-			installed_casks: (value.map_data['installed_casks'] or { brew_runtime.string_array_value([]) }).as_string_array()!
+			installed_casks: (value.map_data['installed_casks'] or { ruby.string_array_value([]) }).as_string_array()!
 		},
 	)
 }
 
-fn cask_dependent_receiver(args []brew_runtime.Value) ?CaskDependent {
+fn cask_dependent_receiver(args []ruby.Value) ?CaskDependent {
 	if args.len == 0 {
 		return none
 	}
@@ -368,70 +368,70 @@ fn cask_dependent_receiver(args []brew_runtime.Value) ?CaskDependent {
 }
 
 // Ruby attr_reader `attr_reader :cask` at line 21.
-pub fn ruby_cask_dependent_l21_d1_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	dependent := cask_dependent_receiver(args) or { return brew_runtime.object_value('NilClass', 'nil') }
+pub fn ruby_cask_dependent_l21_d1_cask(args ...ruby.Value) ruby.Value {
+	dependent := cask_dependent_receiver(args) or { return ruby.object_value('NilClass', 'nil') }
 	return cask_dependent_cask_value(dependent.cask)
 }
 
 // Ruby method `initialize(cask)` at line 24.
-pub fn ruby_cask_dependent_l24_d2_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_dependent_l24_d2_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'cask is required')
+		return ruby.object_value('ArgumentError', 'cask is required')
 	}
 	cask := cask_dependent_cask_from_value(args[0]) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	return cask_dependent_value(new_cask_dependent(cask, CaskDependentGraph{}))
 }
 
 // Ruby method `name` at line 29.
-pub fn ruby_cask_dependent_l29_d3_name(args ...brew_runtime.Value) brew_runtime.Value {
-	dependent := cask_dependent_receiver(args) or { return brew_runtime.string_value('') }
-	return brew_runtime.string_value(dependent.name())
+pub fn ruby_cask_dependent_l29_d3_name(args ...ruby.Value) ruby.Value {
+	dependent := cask_dependent_receiver(args) or { return ruby.string_value('') }
+	return ruby.string_value(dependent.name())
 }
 
 // Ruby method `full_name` at line 34.
-pub fn ruby_cask_dependent_l34_d4_full_name(args ...brew_runtime.Value) brew_runtime.Value {
-	dependent := cask_dependent_receiver(args) or { return brew_runtime.string_value('') }
-	return brew_runtime.string_value(dependent.full_name())
+pub fn ruby_cask_dependent_l34_d4_full_name(args ...ruby.Value) ruby.Value {
+	dependent := cask_dependent_receiver(args) or { return ruby.string_value('') }
+	return ruby.string_value(dependent.full_name())
 }
 
 // Ruby method `runtime_dependencies(read_from_tab: true, undeclared: true)` at line 39.
-pub fn ruby_cask_dependent_l39_d5_runtime_dependencies(args ...brew_runtime.Value) brew_runtime.Value {
-	dependent := cask_dependent_receiver(args) or { return brew_runtime.array_value([]) }
+pub fn ruby_cask_dependent_l39_d5_runtime_dependencies(args ...ruby.Value) ruby.Value {
+	dependent := cask_dependent_receiver(args) or { return ruby.array_value([]) }
 	read_from_tab := if args.len > 1 { args[1].as_bool() or { true } } else { true }
 	undeclared := if args.len > 2 { args[2].as_bool() or { true } } else { true }
-	return brew_runtime.array_value(dependent.runtime_dependencies(read_from_tab, undeclared).map(cask_dependent_dependency_value(it)))
+	return ruby.array_value(dependent.runtime_dependencies(read_from_tab, undeclared).map(cask_dependent_dependency_value(it)))
 }
 
 // Ruby method `deps` at line 46.
-pub fn ruby_cask_dependent_l46_d6_deps(args ...brew_runtime.Value) brew_runtime.Value {
-	dependent := cask_dependent_receiver(args) or { return brew_runtime.array_value([]) }
-	return brew_runtime.array_value(dependent.deps().map(cask_dependent_dependency_value(it)))
+pub fn ruby_cask_dependent_l46_d6_deps(args ...ruby.Value) ruby.Value {
+	dependent := cask_dependent_receiver(args) or { return ruby.array_value([]) }
+	return ruby.array_value(dependent.deps().map(cask_dependent_dependency_value(it)))
 }
 
 // Ruby method `requirements` at line 56.
-pub fn ruby_cask_dependent_l56_d7_requirements(args ...brew_runtime.Value) brew_runtime.Value {
-	dependent := cask_dependent_receiver(args) or { return brew_runtime.array_value([]) }
-	return brew_runtime.array_value(dependent.requirements().map(cask_dependent_requirement_value(it)))
+pub fn ruby_cask_dependent_l56_d7_requirements(args ...ruby.Value) ruby.Value {
+	dependent := cask_dependent_receiver(args) or { return ruby.array_value([]) }
+	return ruby.array_value(dependent.requirements().map(cask_dependent_requirement_value(it)))
 }
 
 // Ruby method `recursive_dependencies(&block)` at line 95.
-pub fn ruby_cask_dependent_l95_d8_recursive_dependencies(args ...brew_runtime.Value) brew_runtime.Value {
-	dependent := cask_dependent_receiver(args) or { return brew_runtime.array_value([]) }
-	return brew_runtime.array_value(dependent.recursive_dependencies().map(cask_dependent_dependency_value(it)))
+pub fn ruby_cask_dependent_l95_d8_recursive_dependencies(args ...ruby.Value) ruby.Value {
+	dependent := cask_dependent_receiver(args) or { return ruby.array_value([]) }
+	return ruby.array_value(dependent.recursive_dependencies().map(cask_dependent_dependency_value(it)))
 }
 
 // Ruby method `recursive_requirements(&block)` at line 105.
-pub fn ruby_cask_dependent_l105_d9_recursive_requirements(args ...brew_runtime.Value) brew_runtime.Value {
-	dependent := cask_dependent_receiver(args) or { return brew_runtime.array_value([]) }
-	return brew_runtime.array_value(dependent.recursive_requirements().map(cask_dependent_requirement_value(it)))
+pub fn ruby_cask_dependent_l105_d9_recursive_requirements(args ...ruby.Value) ruby.Value {
+	dependent := cask_dependent_receiver(args) or { return ruby.array_value([]) }
+	return ruby.array_value(dependent.recursive_requirements().map(cask_dependent_requirement_value(it)))
 }
 
 // Ruby method `any_version_installed?` at line 110.
-pub fn ruby_cask_dependent_l110_d10_any_version_installed(args ...brew_runtime.Value) brew_runtime.Value {
-	dependent := cask_dependent_receiver(args) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(dependent.any_version_installed())
+pub fn ruby_cask_dependent_l110_d10_any_version_installed(args ...ruby.Value) ruby.Value {
+	dependent := cask_dependent_receiver(args) or { return ruby.bool_value(false) }
+	return ruby.bool_value(dependent.any_version_installed())
 }
 
 // Original Ruby source (line-for-line):

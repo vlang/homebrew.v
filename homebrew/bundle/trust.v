@@ -1,6 +1,6 @@
 module bundle
 
-import brew_runtime
+import ruby
 import homebrew
 
 // Translated from Homebrew/brew `bundle/trust.rb`.
@@ -233,7 +233,7 @@ pub fn bundle_trust_entries(entries []BrewfileEntry, context BundleTrustContext)
 	return targets
 }
 
-pub fn brewfile_entry_value(entry BrewfileEntry) brew_runtime.Value {
+pub fn brewfile_entry_value(entry BrewfileEntry) ruby.Value {
 	mut attributes := {
 		'entry_type':   entry.entry_type.str()
 		'name':         entry.name
@@ -244,10 +244,10 @@ pub fn brewfile_entry_value(entry BrewfileEntry) brew_runtime.Value {
 	for key, items in entry.options.trusted_items {
 		attributes['trusted.${key}'] = items.join('\x1f')
 	}
-	return brew_runtime.structured_value('Homebrew::Bundle::Dsl::Entry', entry.name, attributes)
+	return ruby.structured_value('Homebrew::Bundle::Dsl::Entry', entry.name, attributes)
 }
 
-pub fn brewfile_entry_from_value(value brew_runtime.Value) BrewfileEntry {
+pub fn brewfile_entry_from_value(value ruby.Value) BrewfileEntry {
 	entry_type := match value.attributes['entry_type'] or { '' } {
 		'tap' { BrewfileEntryType.tap }
 		'brew' { BrewfileEntryType.brew }
@@ -276,16 +276,16 @@ pub fn brewfile_entry_from_value(value brew_runtime.Value) BrewfileEntry {
 	}
 }
 
-pub fn trust_target_value(target TrustTarget) brew_runtime.Value {
-	return brew_runtime.structured_value('TrustTarget', target.name, {
+pub fn trust_target_value(target TrustTarget) ruby.Value {
+	return ruby.structured_value('TrustTarget', target.name, {
 		'type': target.target_type.str()
 		'name': target.name
 	})
 }
 
 // Ruby method `self.entries(entries)` at line 20.
-pub fn ruby_trust_l20_d1_self_entries(args ...brew_runtime.Value) brew_runtime.Value {
-	mut values := []brew_runtime.Value{}
+pub fn ruby_trust_l20_d1_self_entries(args ...ruby.Value) ruby.Value {
+	mut values := []ruby.Value{}
 	for argument in args {
 		if argument.type_name == 'Array' {
 			values << argument.as_array() or { [] }
@@ -295,9 +295,9 @@ pub fn ruby_trust_l20_d1_self_entries(args ...brew_runtime.Value) brew_runtime.V
 	}
 	entries := values.map(brewfile_entry_from_value(it))
 	targets := bundle_trust_entries(entries, BundleTrustContext{}) or {
-		return brew_runtime.object_value('UsageError', err.msg())
+		return ruby.object_value('UsageError', err.msg())
 	}
-	return brew_runtime.array_value(targets.map(trust_target_value(it)))
+	return ruby.array_value(targets.map(trust_target_value(it)))
 }
 
 // Original Ruby source (line-for-line):

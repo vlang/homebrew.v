@@ -1,18 +1,18 @@
 module artifact
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `cask/artifact/suite.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `self.english_name` at line 11.
-pub fn ruby_suite_l11_d1_self_english_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('App Suite')
+pub fn ruby_suite_l11_d1_self_english_name(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('App Suite')
 }
 
 // Ruby method `self.dirmethod` at line 16.
-pub fn ruby_suite_l16_d2_self_dirmethod(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Symbol', 'appdir')
+pub fn ruby_suite_l16_d2_self_dirmethod(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Symbol', 'appdir')
 }
 
 // Original Ruby source (line-for-line):

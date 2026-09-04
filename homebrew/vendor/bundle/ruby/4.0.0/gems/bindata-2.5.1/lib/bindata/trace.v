@@ -1,15 +1,15 @@
 module bindata
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/bindata-2.5.1/lib/bindata/trace.rb`.
 // The original source is retained below until every stub has a typed V body.
 
-pub type TraceBlockFn = fn (mut TraceSession) brew_runtime.Value
+pub type TraceBlockFn = fn (mut TraceSession) ruby.Value
 
-pub type TraceMessageFn = fn (&Tracer) brew_runtime.Value
+pub type TraceMessageFn = fn (&Tracer) ruby.Value
 
-pub type TraceReadFn = fn (mut IORead) brew_runtime.Value
+pub type TraceReadFn = fn (mut IORead) ruby.Value
 
 @[heap]
 pub struct TraceOutput {
@@ -48,8 +48,8 @@ mut:
 pub struct TraceReadable {
 mut:
 	debug_name string
-	selection  brew_runtime.Value
-	value      brew_runtime.Value
+	selection  ruby.Value
+	value      ruby.Value
 	read       TraceReadFn @[required]
 }
 
@@ -62,13 +62,13 @@ enum TraceHookKind {
 pub struct TraceHookState {
 mut:
 	kind    TraceHookKind
-	target  brew_runtime.Value
+	target  ruby.Value
 	session &TraceSession
 	active  bool
 }
 
-fn trace_nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn trace_nil_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 pub fn new_trace_output() &TraceOutput {
@@ -79,8 +79,8 @@ pub fn (output &TraceOutput) value() string {
 	return output.data
 }
 
-fn trace_output_value(output &TraceOutput) brew_runtime.Value {
-	return brew_runtime.Value{
+fn trace_output_value(output &TraceOutput) ruby.Value {
+	return ruby.Value{
 		type_name: 'StringIO'
 		repr: output.data
 		int_data: i64(u64(voidptr(output)))
@@ -90,7 +90,7 @@ fn trace_output_value(output &TraceOutput) brew_runtime.Value {
 	}
 }
 
-fn trace_output_from_value(value brew_runtime.Value) &TraceOutput {
+fn trace_output_from_value(value ruby.Value) &TraceOutput {
 	if address := value.attributes['trace_output_address'] {
 		return unsafe { &TraceOutput(voidptr(address.u64())) }
 	}
@@ -103,8 +103,8 @@ pub fn new_tracer(output &TraceOutput) &Tracer {
 	}
 }
 
-pub fn tracer_boundary_value(tracer &Tracer) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn tracer_boundary_value(tracer &Tracer) ruby.Value {
+	return ruby.Value{
 		type_name: 'BinData::Tracer'
 		repr: 'BinData::Tracer'
 		int_data: i64(u64(voidptr(tracer)))
@@ -114,7 +114,7 @@ pub fn tracer_boundary_value(tracer &Tracer) brew_runtime.Value {
 	}
 }
 
-fn tracer_from_value(value brew_runtime.Value) &Tracer {
+fn tracer_from_value(value ruby.Value) &Tracer {
 	address := value.attributes['tracer_address'] or { panic('expected BinData::Tracer receiver') }
 	return unsafe { &Tracer(voidptr(address.u64())) }
 }
@@ -125,8 +125,8 @@ pub fn new_trace_session(output &TraceOutput) &TraceSession {
 	}
 }
 
-pub fn trace_session_boundary_value(session &TraceSession) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn trace_session_boundary_value(session &TraceSession) ruby.Value {
+	return ruby.Value{
 		type_name: 'BinData::TraceSession'
 		repr: 'BinData::TraceSession'
 		int_data: i64(u64(voidptr(session)))
@@ -136,16 +136,16 @@ pub fn trace_session_boundary_value(session &TraceSession) brew_runtime.Value {
 	}
 }
 
-fn trace_session_from_value(value brew_runtime.Value) &TraceSession {
+fn trace_session_from_value(value ruby.Value) &TraceSession {
 	address := value.attributes['trace_session_address'] or { panic('expected BinData::TraceSession') }
 	return unsafe { &TraceSession(voidptr(address.u64())) }
 }
 
-pub fn trace_block_value(callback TraceBlockFn) brew_runtime.Value {
+pub fn trace_block_value(callback TraceBlockFn) ruby.Value {
 	block := &TraceBlock{
 		callback: callback
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'Proc'
 		repr: 'trace block'
 		int_data: i64(u64(voidptr(block)))
@@ -155,16 +155,16 @@ pub fn trace_block_value(callback TraceBlockFn) brew_runtime.Value {
 	}
 }
 
-fn trace_block_from_value(value brew_runtime.Value) ?&TraceBlock {
+fn trace_block_from_value(value ruby.Value) ?&TraceBlock {
 	address := value.attributes['trace_block_address'] or { return none }
 	return unsafe { &TraceBlock(voidptr(address.u64())) }
 }
 
-pub fn trace_message_block_value(callback TraceMessageFn) brew_runtime.Value {
+pub fn trace_message_block_value(callback TraceMessageFn) ruby.Value {
 	block := &TraceMessageBlock{
 		callback: callback
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'Proc'
 		repr: 'trace message block'
 		int_data: i64(u64(voidptr(block)))
@@ -174,12 +174,12 @@ pub fn trace_message_block_value(callback TraceMessageFn) brew_runtime.Value {
 	}
 }
 
-fn trace_message_block_from_value(value brew_runtime.Value) ?&TraceMessageBlock {
+fn trace_message_block_from_value(value ruby.Value) ?&TraceMessageBlock {
 	address := value.attributes['trace_message_block_address'] or { return none }
 	return unsafe { &TraceMessageBlock(voidptr(address.u64())) }
 }
 
-pub fn new_trace_readable(debug_name string, selection brew_runtime.Value, callback TraceReadFn) &TraceReadable {
+pub fn new_trace_readable(debug_name string, selection ruby.Value, callback TraceReadFn) &TraceReadable {
 	return &TraceReadable{
 		debug_name: debug_name
 		selection: selection
@@ -188,8 +188,8 @@ pub fn new_trace_readable(debug_name string, selection brew_runtime.Value, callb
 	}
 }
 
-pub fn trace_readable_boundary_value(readable &TraceReadable) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn trace_readable_boundary_value(readable &TraceReadable) ruby.Value {
+	return ruby.Value{
 		type_name: 'BinData::TraceReadable'
 		repr: readable.value.repr
 		int_data: i64(u64(voidptr(readable)))
@@ -200,12 +200,12 @@ pub fn trace_readable_boundary_value(readable &TraceReadable) brew_runtime.Value
 	}
 }
 
-fn trace_readable_from_value(value brew_runtime.Value) ?&TraceReadable {
+fn trace_readable_from_value(value ruby.Value) ?&TraceReadable {
 	address := value.attributes['trace_readable_address'] or { return none }
 	return unsafe { &TraceReadable(voidptr(address.u64())) }
 }
 
-pub fn new_trace_hook(kind string, target brew_runtime.Value, session &TraceSession) &TraceHookState {
+pub fn new_trace_hook(kind string, target ruby.Value, session &TraceSession) &TraceHookState {
 	return &TraceHookState{
 		kind: if kind.trim_left(':') == 'choice' { .choice } else { .primitive }
 		target: target
@@ -213,8 +213,8 @@ pub fn new_trace_hook(kind string, target brew_runtime.Value, session &TraceSess
 	}
 }
 
-pub fn trace_hook_boundary_value(hook &TraceHookState) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn trace_hook_boundary_value(hook &TraceHookState) ruby.Value {
+	return ruby.Value{
 		type_name: 'BinData::TraceHook'
 		repr: hook.kind.str()
 		int_data: i64(u64(voidptr(hook)))
@@ -226,7 +226,7 @@ pub fn trace_hook_boundary_value(hook &TraceHookState) brew_runtime.Value {
 	}
 }
 
-fn trace_hook_from_value(value brew_runtime.Value) ?&TraceHookState {
+fn trace_hook_from_value(value ruby.Value) ?&TraceHookState {
 	address := value.attributes['trace_hook_address'] or { return none }
 	return unsafe { &TraceHookState(voidptr(address.u64())) }
 }
@@ -243,7 +243,7 @@ fn (mut tracer Tracer) trace_object(name string, initial_value string) {
 	tracer.trace('${name} => ${value}')
 }
 
-fn trace_inspect(value brew_runtime.Value) string {
+fn trace_inspect(value ruby.Value) string {
 	if value.type_name == 'String' {
 		return '"${value.as_string()}"'
 	}
@@ -253,7 +253,7 @@ fn trace_inspect(value brew_runtime.Value) string {
 	return value.repr
 }
 
-fn trace_target_debug_name(value brew_runtime.Value) string {
+fn trace_target_debug_name(value ruby.Value) string {
 	if readable := trace_readable_from_value(value) {
 		return readable.debug_name
 	}
@@ -263,7 +263,7 @@ fn trace_target_debug_name(value brew_runtime.Value) string {
 	return value.attributes['debug_name'] or { 'obj' }
 }
 
-fn trace_target_value(value brew_runtime.Value) brew_runtime.Value {
+fn trace_target_value(value ruby.Value) ruby.Value {
 	if readable := trace_readable_from_value(value) {
 		return readable.value
 	}
@@ -276,7 +276,7 @@ fn trace_target_value(value brew_runtime.Value) brew_runtime.Value {
 	return value
 }
 
-fn trace_target_selection(value brew_runtime.Value) brew_runtime.Value {
+fn trace_target_selection(value ruby.Value) ruby.Value {
 	if readable := trace_readable_from_value(value) {
 		return readable.selection
 	}
@@ -286,7 +286,7 @@ fn trace_target_selection(value brew_runtime.Value) brew_runtime.Value {
 	return value.map_data['selection'] or { trace_nil_value() }
 }
 
-fn trace_raw_read(target brew_runtime.Value, io brew_runtime.Value) brew_runtime.Value {
+fn trace_raw_read(target ruby.Value, io ruby.Value) ruby.Value {
 	mut reader := io_read_from_value(io)
 	if address := target.attributes['trace_readable_address'] {
 		mut readable := unsafe { &TraceReadable(voidptr(address.u64())) }
@@ -310,7 +310,7 @@ fn trace_raw_read(target brew_runtime.Value, io brew_runtime.Value) brew_runtime
 	panic('${target.type_name} has no translated do_read target')
 }
 
-fn trace_hook_call_args(args []brew_runtime.Value) (&TraceHookState, brew_runtime.Value) {
+fn trace_hook_call_args(args []ruby.Value) (&TraceHookState, ruby.Value) {
 	if args.len == 0 {
 		panic('trace hook requires a receiver')
 	}
@@ -329,21 +329,21 @@ fn trace_hook_call_args(args []brew_runtime.Value) (&TraceHookState, brew_runtim
 	return hook, args[2]
 }
 
-fn trace_with_primitive_hook(hook &TraceHookState, io brew_runtime.Value) brew_runtime.Value {
+fn trace_with_primitive_hook(hook &TraceHookState, io ruby.Value) ruby.Value {
 	result := trace_raw_read(hook.target, io)
 	mut tracer := hook.session.tracer
 	tracer.trace_object(trace_target_debug_name(hook.target), trace_inspect(trace_target_value(hook.target)))
 	return result
 }
 
-fn trace_with_choice_hook(hook &TraceHookState, io brew_runtime.Value) brew_runtime.Value {
+fn trace_with_choice_hook(hook &TraceHookState, io ruby.Value) ruby.Value {
 	mut tracer := hook.session.tracer
 	tracer.trace_object('${trace_target_debug_name(hook.target)}-selection-', trace_inspect(trace_target_selection(hook.target)))
 	return trace_raw_read(hook.target, io)
 }
 
 // Ruby method `trace_reading(io = STDERR)` at line 6.
-pub fn ruby_trace_l6_d1_trace_reading(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_trace_l6_d1_trace_reading(args ...ruby.Value) ruby.Value {
 	mut session := if args.len > 0 && args[0].type_name == 'BinData::TraceSession' {
 		trace_session_from_value(args[0])
 	} else {
@@ -366,7 +366,7 @@ pub fn ruby_trace_l6_d1_trace_reading(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby method `initialize(io)` at line 24.
-pub fn ruby_trace_l24_d2_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_trace_l24_d2_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Tracer#initialize requires IO')
 	}
@@ -374,7 +374,7 @@ pub fn ruby_trace_l24_d2_initialize(args ...brew_runtime.Value) brew_runtime.Val
 }
 
 // Ruby method `trace(msg)` at line 28.
-pub fn ruby_trace_l28_d3_trace(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_trace_l28_d3_trace(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Tracer#trace requires a receiver and message')
 	}
@@ -384,7 +384,7 @@ pub fn ruby_trace_l28_d3_trace(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `trace_obj(obj_name, val)` at line 32.
-pub fn ruby_trace_l32_d4_trace_obj(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_trace_l32_d4_trace_obj(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('Tracer#trace_obj requires a receiver, object name and value')
 	}
@@ -394,7 +394,7 @@ pub fn ruby_trace_l32_d4_trace_obj(args ...brew_runtime.Value) brew_runtime.Valu
 }
 
 // Ruby method `trace_message # :nodoc:` at line 41.
-pub fn ruby_trace_l41_d5_trace_message(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_trace_l41_d5_trace_message(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('trace_message requires a trace session')
 	}
@@ -408,7 +408,7 @@ pub fn ruby_trace_l41_d5_trace_message(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby method `turn_on_tracing` at line 48.
-pub fn ruby_trace_l48_d6_turn_on_tracing(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_trace_l48_d6_turn_on_tracing(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('TraceHook#turn_on_tracing requires a receiver')
 	}
@@ -428,13 +428,13 @@ pub fn ruby_trace_l48_d6_turn_on_tracing(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby alias_method `alias_method :do_read_without_hook, :do_read` at line 50.
-pub fn ruby_trace_l50_d7_do_read_without_hook(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_trace_l50_d7_do_read_without_hook(args ...ruby.Value) ruby.Value {
 	hook, io := trace_hook_call_args(args)
 	return trace_raw_read(hook.target, io)
 }
 
 // Ruby alias_method `alias_method :do_read, :do_read_with_hook` at line 51.
-pub fn ruby_trace_l51_d8_do_read(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_trace_l51_d8_do_read(args ...ruby.Value) ruby.Value {
 	hook, io := trace_hook_call_args(args)
 	if !hook.active {
 		return trace_raw_read(hook.target, io)
@@ -446,7 +446,7 @@ pub fn ruby_trace_l51_d8_do_read(args ...brew_runtime.Value) brew_runtime.Value 
 }
 
 // Ruby method `turn_off_tracing` at line 55.
-pub fn ruby_trace_l55_d9_turn_off_tracing(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_trace_l55_d9_turn_off_tracing(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('TraceHook#turn_off_tracing requires a receiver')
 	}
@@ -466,19 +466,19 @@ pub fn ruby_trace_l55_d9_turn_off_tracing(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby alias_method `alias_method :do_read, :do_read_without_hook` at line 57.
-pub fn ruby_trace_l57_d10_do_read(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_trace_l57_d10_do_read(args ...ruby.Value) ruby.Value {
 	hook, io := trace_hook_call_args(args)
 	return trace_raw_read(hook.target, io)
 }
 
 // Ruby method `do_read_with_hook(io)` at line 66.
-pub fn ruby_trace_l66_d11_do_read_with_hook(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_trace_l66_d11_do_read_with_hook(args ...ruby.Value) ruby.Value {
 	hook, io := trace_hook_call_args(args)
 	return trace_with_primitive_hook(hook, io)
 }
 
 // Ruby method `do_read_with_hook(io)` at line 79.
-pub fn ruby_trace_l79_d12_do_read_with_hook(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_trace_l79_d12_do_read_with_hook(args ...ruby.Value) ruby.Value {
 	hook, io := trace_hook_call_args(args)
 	return trace_with_choice_hook(hook, io)
 }

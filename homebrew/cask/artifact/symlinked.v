@@ -1,6 +1,6 @@
 module artifact
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `cask/artifact/symlinked.rb`.
@@ -208,45 +208,45 @@ pub fn summarize_installed_symlink(artifact SymlinkedArtifact) string {
 	return 'Broken Link: ${printable}'
 }
 
-pub fn symlinked_artifact_to_value(artifact SymlinkedArtifact) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'source':           brew_runtime.string_value(artifact.source)
-		'target':           brew_runtime.string_value(artifact.target)
-		'english_name':     brew_runtime.string_value(artifact.english_name)
-		'link_type_name':   brew_runtime.string_value(artifact.link_type_name)
-		'printable_target': brew_runtime.string_value(artifact.printable_target)
-		'caskroom_path':    brew_runtime.string_value(artifact.caskroom_path)
-		'cellar_root':      brew_runtime.string_value(artifact.cellar_root)
+pub fn symlinked_artifact_to_value(artifact SymlinkedArtifact) ruby.Value {
+	return ruby.map_value({
+		'source':           ruby.string_value(artifact.source)
+		'target':           ruby.string_value(artifact.target)
+		'english_name':     ruby.string_value(artifact.english_name)
+		'link_type_name':   ruby.string_value(artifact.link_type_name)
+		'printable_target': ruby.string_value(artifact.printable_target)
+		'caskroom_path':    ruby.string_value(artifact.caskroom_path)
+		'cellar_root':      ruby.string_value(artifact.cellar_root)
 	})
 }
 
-fn symlinked_artifact_from_value(value brew_runtime.Value) !SymlinkedArtifact {
+fn symlinked_artifact_from_value(value ruby.Value) !SymlinkedArtifact {
 	values := value.as_map()!
 	return SymlinkedArtifact{
 		source: (values['source'] or { return error('Symlink source is required') }).as_string()
 		target: (values['target'] or { return error('Symlink target is required') }).as_string()
-		english_name: (values['english_name'] or { brew_runtime.string_value('Artifact') }).as_string()
-		link_type_name: (values['link_type_name'] or { brew_runtime.string_value('Symlink') }).as_string()
-		printable_target: (values['printable_target'] or { brew_runtime.string_value('') }).as_string()
-		caskroom_path: (values['caskroom_path'] or { brew_runtime.string_value('') }).as_string()
-		cellar_root: (values['cellar_root'] or { brew_runtime.string_value('') }).as_string()
+		english_name: (values['english_name'] or { ruby.string_value('Artifact') }).as_string()
+		link_type_name: (values['link_type_name'] or { ruby.string_value('Symlink') }).as_string()
+		printable_target: (values['printable_target'] or { ruby.string_value('') }).as_string()
+		caskroom_path: (values['caskroom_path'] or { ruby.string_value('') }).as_string()
+		cellar_root: (values['cellar_root'] or { ruby.string_value('') }).as_string()
 	}
 }
 
-pub fn symlinked_operation_to_value(result SymlinkedOperationResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'success':             brew_runtime.bool_value(result.success)
-		'error':               brew_runtime.string_value(result.error)
-		'output':              brew_runtime.string_array_value(result.output)
-		'warnings':            brew_runtime.string_array_value(result.warnings)
-		'linked':              brew_runtime.bool_value(result.linked)
-		'unlinked':            brew_runtime.bool_value(result.unlinked)
-		'skipped':             brew_runtime.bool_value(result.skipped)
-		'conflicting_formula': brew_runtime.string_value(result.conflicting_formula)
+pub fn symlinked_operation_to_value(result SymlinkedOperationResult) ruby.Value {
+	return ruby.map_value({
+		'success':             ruby.bool_value(result.success)
+		'error':               ruby.string_value(result.error)
+		'output':              ruby.string_array_value(result.output)
+		'warnings':            ruby.string_array_value(result.warnings)
+		'linked':              ruby.bool_value(result.linked)
+		'unlinked':            ruby.bool_value(result.unlinked)
+		'skipped':             ruby.bool_value(result.skipped)
+		'conflicting_formula': ruby.string_value(result.conflicting_formula)
 	})
 }
 
-fn symlinked_install_options_from_value(value brew_runtime.Value) SymlinkedInstallOptions {
+fn symlinked_install_options_from_value(value ruby.Value) SymlinkedInstallOptions {
 	values := value.as_map() or { return SymlinkedInstallOptions{} }
 	return SymlinkedInstallOptions{
 		force: value_bool(values, 'force', false)
@@ -255,7 +255,7 @@ fn symlinked_install_options_from_value(value brew_runtime.Value) SymlinkedInsta
 	}
 }
 
-fn symlinked_adapter_artifact(args []brew_runtime.Value) !SymlinkedArtifact {
+fn symlinked_adapter_artifact(args []ruby.Value) !SymlinkedArtifact {
 	if args.len == 0 {
 		return error('Symlinked artifact is required')
 	}
@@ -263,26 +263,26 @@ fn symlinked_adapter_artifact(args []brew_runtime.Value) !SymlinkedArtifact {
 }
 
 // Ruby method `self.link_type_english_name` at line 11.
-pub fn ruby_symlinked_l11_d1_self_link_type_english_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_symlinked_l11_d1_self_link_type_english_name(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value(symlinked_link_type_english_name())
+	return ruby.string_value(symlinked_link_type_english_name())
 }
 
 // Ruby method `self.english_description` at line 16.
-pub fn ruby_symlinked_l16_d2_self_english_description(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_symlinked_l16_d2_self_english_description(args ...ruby.Value) ruby.Value {
 	if args.len > 0 {
 		artifact := symlinked_artifact_from_value(args[0]) or {
-			return brew_runtime.string_value('Artifact Symlinks')
+			return ruby.string_value('Artifact Symlinks')
 		}
-		return brew_runtime.string_value(symlinked_english_description(artifact))
+		return ruby.string_value(symlinked_english_description(artifact))
 	}
-	return brew_runtime.string_value('Artifact Symlinks')
+	return ruby.string_value('Artifact Symlinks')
 }
 
 // Ruby method `install_phase(force: false, adopt: false, command: SystemCommand, **options)` at line 28.
-pub fn ruby_symlinked_l28_d3_install_phase(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_symlinked_l28_d3_install_phase(args ...ruby.Value) ruby.Value {
 	artifact := symlinked_adapter_artifact(args) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	options := if args.len > 1 {
 		symlinked_install_options_from_value(args[1])
@@ -293,35 +293,35 @@ pub fn ruby_symlinked_l28_d3_install_phase(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `uninstall_phase(command: SystemCommand, **_options)` at line 38.
-pub fn ruby_symlinked_l38_d4_uninstall_phase(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_symlinked_l38_d4_uninstall_phase(args ...ruby.Value) ruby.Value {
 	artifact := symlinked_adapter_artifact(args) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	return symlinked_operation_to_value(unlink_symlinked_artifact(artifact))
 }
 
 // Ruby method `summarize_installed` at line 43.
-pub fn ruby_symlinked_l43_d5_summarize_installed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_symlinked_l43_d5_summarize_installed(args ...ruby.Value) ruby.Value {
 	artifact := symlinked_adapter_artifact(args) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
-	return brew_runtime.string_value(summarize_installed_symlink(artifact))
+	return ruby.string_value(summarize_installed_symlink(artifact))
 }
 
 // Ruby method `link(force: false, adopt: false, command: SystemCommand, **_options)` at line 67.
-pub fn ruby_symlinked_l67_d6_link(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_symlinked_l67_d6_link(args ...ruby.Value) ruby.Value {
 	return ruby_symlinked_l28_d3_install_phase(...args)
 }
 
 // Ruby method `unlink(command: SystemCommand)` at line 98.
-pub fn ruby_symlinked_l98_d7_unlink(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_symlinked_l98_d7_unlink(args ...ruby.Value) ruby.Value {
 	return ruby_symlinked_l38_d4_uninstall_phase(...args)
 }
 
 // Ruby method `create_filesystem_link(command)` at line 112.
-pub fn ruby_symlinked_l112_d8_create_filesystem_link(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_symlinked_l112_d8_create_filesystem_link(args ...ruby.Value) ruby.Value {
 	artifact := symlinked_adapter_artifact(args) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	options := if args.len > 1 {
 		symlinked_install_options_from_value(args[1])
@@ -334,20 +334,20 @@ pub fn ruby_symlinked_l112_d8_create_filesystem_link(args ...brew_runtime.Value)
 }
 
 // Ruby method `target_links_to_source?` at line 120.
-pub fn ruby_symlinked_l120_d9_target_links_to_source(args ...brew_runtime.Value) brew_runtime.Value {
-	artifact := symlinked_adapter_artifact(args) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(symlink_target_links_to_source(artifact))
+pub fn ruby_symlinked_l120_d9_target_links_to_source(args ...ruby.Value) ruby.Value {
+	artifact := symlinked_adapter_artifact(args) or { return ruby.bool_value(false) }
+	return ruby.bool_value(symlink_target_links_to_source(artifact))
 }
 
 // Ruby method `conflicting_formula` at line 130.
-pub fn ruby_symlinked_l130_d10_conflicting_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_symlinked_l130_d10_conflicting_formula(args ...ruby.Value) ruby.Value {
 	artifact := symlinked_adapter_artifact(args) or {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	formula := symlink_conflicting_formula(artifact) or {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
-	return brew_runtime.string_value(formula)
+	return ruby.string_value(formula)
 }
 
 // Original Ruby source (line-for-line):

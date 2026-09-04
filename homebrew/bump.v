@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `bump.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -173,102 +173,102 @@ pub fn (mut state BumpState) create_pr(info BumpInfo, options BumpCreateOptions)
 	return state.pull_request_url
 }
 
-fn bump_state_value(state &BumpState) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::Bump::State', '', {
+fn bump_state_value(state &BumpState) ruby.Value {
+	return ruby.structured_value('Homebrew::Bump::State', '', {
 		'bump_state_address': u64(voidptr(state)).str()
 	})
 }
 
-fn bump_state_from_value(value brew_runtime.Value) &BumpState {
+fn bump_state_from_value(value ruby.Value) &BumpState {
 	address := value.attributes['bump_state_address'] or { panic('invalid Bump state') }
 	return unsafe { &BumpState(voidptr(address.u64())) }
 }
 
-pub fn bump_state_boundary(state &BumpState) brew_runtime.Value {
+pub fn bump_state_boundary(state &BumpState) ruby.Value {
 	return bump_state_value(state)
 }
 
-fn bump_info_value(info &BumpInfo) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::Bump::BumpInfo', info.pr_title, {
+fn bump_info_value(info &BumpInfo) ruby.Value {
+	return ruby.structured_value('Homebrew::Bump::BumpInfo', info.pr_title, {
 		'bump_info_address': u64(voidptr(info)).str()
 	})
 }
 
-fn bump_info_from_value(value brew_runtime.Value) &BumpInfo {
+fn bump_info_from_value(value ruby.Value) &BumpInfo {
 	address := value.attributes['bump_info_address'] or { panic('invalid BumpInfo') }
 	return unsafe { &BumpInfo(voidptr(address.u64())) }
 }
 
-pub fn bump_info_boundary(info &BumpInfo) brew_runtime.Value {
+pub fn bump_info_boundary(info &BumpInfo) ruby.Value {
 	return bump_info_value(info)
 }
 
 // Ruby method `self.pr_message(command, user_message:)` at line 34.
-pub fn ruby_bump_l34_d1_self_pr_message(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_l34_d1_self_pr_message(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_value('')
+		return ruby.string_value('')
 	}
 	user_message := if args.len > 1 && args[1].type_name != 'NilClass' {
 		?string(args[1].as_string())
 	} else {
 		none
 	}
-	return brew_runtime.string_value(bump_pr_message(args[0].as_string(), user_message))
+	return ruby.string_value(bump_pr_message(args[0].as_string(), user_message))
 }
 
 // Ruby method `self.create_pr(info, dry_run: false, no_fork: false, fork_org: nil, commit: false)` at line 49.
-pub fn ruby_bump_l49_d2_self_create_pr(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_l49_d2_self_create_pr(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'state and info are required')
+		return ruby.object_value('ArgumentError', 'state and info are required')
 	}
 	mut state := bump_state_from_value(args[0])
 	options_values := if args.len > 2 {
-		args[2].as_map() or { map[string]brew_runtime.Value{} }
+		args[2].as_map() or { map[string]ruby.Value{} }
 	} else {
-		map[string]brew_runtime.Value{}
+		map[string]ruby.Value{}
 	}
-	fork_org_value := options_values['fork_org'] or { brew_runtime.object_value('NilClass', 'nil') }
+	fork_org_value := options_values['fork_org'] or { ruby.object_value('NilClass', 'nil') }
 	result := state.create_pr(*bump_info_from_value(args[1]), BumpCreateOptions{
-		dry_run: (options_values['dry_run'] or { brew_runtime.bool_value(false) }).bool_data
-		no_fork: (options_values['no_fork'] or { brew_runtime.bool_value(false) }).bool_data
+		dry_run: (options_values['dry_run'] or { ruby.bool_value(false) }).bool_data
+		no_fork: (options_values['no_fork'] or { ruby.bool_value(false) }).bool_data
 		fork_org: if fork_org_value.type_name == 'NilClass' {
 			?string(none)
 		} else {
 			fork_org_value.as_string()
 		}
-		commit: (options_values['commit'] or { brew_runtime.bool_value(false) }).bool_data
-	}) or { return brew_runtime.object_value('RuntimeError', err.msg()) }
+		commit: (options_values['commit'] or { ruby.bool_value(false) }).bool_data
+	}) or { return ruby.object_value('RuntimeError', err.msg()) }
 	return if result == '' {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	} else {
-		brew_runtime.string_value(result)
+		ruby.string_value(result)
 	}
 }
 
 // Ruby method `self.add_auth_token_to_url!(url)` at line 141.
-pub fn ruby_bump_l141_d3_self_add_auth_token_to_url(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_l141_d3_self_add_auth_token_to_url(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'state and URL are required')
+		return ruby.object_value('ArgumentError', 'state and URL are required')
 	}
-	return brew_runtime.string_value(bump_add_auth_token_to_url(args[1].as_string(), bump_state_from_value(args[0])))
+	return ruby.string_value(bump_add_auth_token_to_url(args[1].as_string(), bump_state_from_value(args[0])))
 }
 
 // Ruby method `self.redacted_url(url)` at line 150.
-pub fn ruby_bump_l150_d4_self_redacted_url(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_l150_d4_self_redacted_url(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_value('')
+		return ruby.string_value('')
 	}
 	if args.len == 1 {
-		return brew_runtime.string_value(args[0].as_string())
+		return ruby.string_value(args[0].as_string())
 	}
 	state := bump_state_from_value(args[0])
-	return brew_runtime.string_value(bump_redacted_url(args[1].as_string(), state.credentials))
+	return ruby.string_value(bump_redacted_url(args[1].as_string(), state.credentials))
 }
 
 // Ruby method `self.forked_repo_info!(tap_remote_repo, org: nil)` at line 155.
-pub fn ruby_bump_l155_d5_self_forked_repo_info(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_l155_d5_self_forked_repo_info(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'state and repository are required')
+		return ruby.object_value('ArgumentError', 'state and repository are required')
 	}
 	state := bump_state_from_value(args[0])
 	org := if args.len > 2 && args[2].type_name != 'NilClass' {
@@ -277,9 +277,9 @@ pub fn ruby_bump_l155_d5_self_forked_repo_info(args ...brew_runtime.Value) brew_
 		none
 	}
 	url, username := bump_forked_repo_info(args[1].as_string(), org, state) or {
-		return brew_runtime.object_value('RuntimeError', err.msg())
+		return ruby.object_value('RuntimeError', err.msg())
 	}
-	return brew_runtime.string_array_value([url, username])
+	return ruby.string_array_value([url, username])
 }
 
 // Original Ruby source (line-for-line):

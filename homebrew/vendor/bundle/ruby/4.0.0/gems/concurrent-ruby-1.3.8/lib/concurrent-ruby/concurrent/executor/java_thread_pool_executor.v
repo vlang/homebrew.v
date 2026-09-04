@@ -1,6 +1,6 @@
 module executor
 
-import brew_runtime
+import ruby
 import sync
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/executor/java_thread_pool_executor.rb`.
@@ -38,7 +38,7 @@ mut:
 @[heap]
 struct JavaThreadPoolJob {
 	pool voidptr
-	args []brew_runtime.Value
+	args []ruby.Value
 	task ExecutorTask @[required]
 }
 
@@ -72,7 +72,7 @@ pub fn new_java_thread_pool_executor(options JavaThreadPoolOptions) !&JavaThread
 	}
 }
 
-fn execute_java_thread_pool_job(args []brew_runtime.Value) ! {
+fn execute_java_thread_pool_job(args []ruby.Value) ! {
 	if args.len == 0 {
 		return error('missing Java thread-pool job')
 	}
@@ -99,13 +99,13 @@ fn (mut pool JavaThreadPoolExecutor) finish_task() {
 	pool.lock.unlock()
 }
 
-pub fn (mut pool JavaThreadPoolExecutor) post(task ExecutorTask, args []brew_runtime.Value) !bool {
+pub fn (mut pool JavaThreadPoolExecutor) post(task ExecutorTask, args []ruby.Value) !bool {
 	job := &JavaThreadPoolJob{
 		pool: voidptr(&pool)
 		args: args.clone()
 		task: task
 	}
-	job_value := brew_runtime.structured_value('JavaThreadPoolJob', '#<JavaThreadPoolJob>', {
+	job_value := ruby.structured_value('JavaThreadPoolJob', '#<JavaThreadPoolJob>', {
 		'java_thread_pool_job_address': u64(voidptr(job)).str()
 	})
 	pool.lock.lock()
@@ -149,7 +149,7 @@ pub fn (mut pool JavaThreadPoolExecutor) running() bool {
 	return pool.service.running() && !terminating
 }
 
-fn java_thread_pool_options_from_boundary(args []brew_runtime.Value) JavaThreadPoolOptions {
+fn java_thread_pool_options_from_boundary(args []ruby.Value) JavaThreadPoolOptions {
 	if args.len == 0 || args[0].type_name != 'Hash' {
 		return JavaThreadPoolOptions{}
 	}
@@ -180,13 +180,13 @@ fn java_thread_pool_options_from_boundary(args []brew_runtime.Value) JavaThreadP
 	}
 }
 
-fn java_thread_pool_boundary_value(pool &JavaThreadPoolExecutor) brew_runtime.Value {
-	return brew_runtime.structured_value('Concurrent::JavaThreadPoolExecutor', '#<Concurrent::JavaThreadPoolExecutor>', {
+fn java_thread_pool_boundary_value(pool &JavaThreadPoolExecutor) ruby.Value {
+	return ruby.structured_value('Concurrent::JavaThreadPoolExecutor', '#<Concurrent::JavaThreadPoolExecutor>', {
 		'java_thread_pool_address': u64(voidptr(pool)).str()
 	})
 }
 
-fn java_thread_pool_boundary_receiver(args []brew_runtime.Value) &JavaThreadPoolExecutor {
+fn java_thread_pool_boundary_receiver(args []ruby.Value) &JavaThreadPoolExecutor {
 	if args.len == 0 {
 		panic('JavaThreadPoolExecutor method requires a receiver')
 	}
@@ -197,104 +197,104 @@ fn java_thread_pool_boundary_receiver(args []brew_runtime.Value) &JavaThreadPool
 }
 
 // Ruby attr_reader `attr_reader :max_length` at line 29.
-pub fn ruby_java_thread_pool_executor_l29_d1_max_length(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(java_thread_pool_boundary_receiver(args).max_length)
+pub fn ruby_java_thread_pool_executor_l29_d1_max_length(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(java_thread_pool_boundary_receiver(args).max_length)
 }
 
 // Ruby attr_reader `attr_reader :max_queue` at line 32.
-pub fn ruby_java_thread_pool_executor_l32_d2_max_queue(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(java_thread_pool_boundary_receiver(args).max_queue)
+pub fn ruby_java_thread_pool_executor_l32_d2_max_queue(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(java_thread_pool_boundary_receiver(args).max_queue)
 }
 
 // Ruby attr_reader `attr_reader :synchronous` at line 35.
-pub fn ruby_java_thread_pool_executor_l35_d3_synchronous(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(java_thread_pool_boundary_receiver(args).synchronous)
+pub fn ruby_java_thread_pool_executor_l35_d3_synchronous(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(java_thread_pool_boundary_receiver(args).synchronous)
 }
 
 // Ruby method `initialize(opts = {})` at line 38.
-pub fn ruby_java_thread_pool_executor_l38_d4_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_java_thread_pool_executor_l38_d4_initialize(args ...ruby.Value) ruby.Value {
 	return java_thread_pool_boundary_value(new_java_thread_pool_executor(java_thread_pool_options_from_boundary(args)) or {
 		panic(err)
 	})
 }
 
 // Ruby method `can_overflow?` at line 43.
-pub fn ruby_java_thread_pool_executor_l43_d5_can_overflow(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(java_thread_pool_boundary_receiver(args).max_queue != 0)
+pub fn ruby_java_thread_pool_executor_l43_d5_can_overflow(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(java_thread_pool_boundary_receiver(args).max_queue != 0)
 }
 
 // Ruby method `min_length` at line 48.
-pub fn ruby_java_thread_pool_executor_l48_d6_min_length(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(java_thread_pool_boundary_receiver(args).min_length)
+pub fn ruby_java_thread_pool_executor_l48_d6_min_length(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(java_thread_pool_boundary_receiver(args).min_length)
 }
 
 // Ruby method `max_length` at line 53.
-pub fn ruby_java_thread_pool_executor_l53_d7_max_length(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_java_thread_pool_executor_l53_d7_max_length(args ...ruby.Value) ruby.Value {
 	return ruby_java_thread_pool_executor_l29_d1_max_length(...args)
 }
 
 // Ruby method `length` at line 58.
-pub fn ruby_java_thread_pool_executor_l58_d8_length(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_java_thread_pool_executor_l58_d8_length(args ...ruby.Value) ruby.Value {
 	mut pool := java_thread_pool_boundary_receiver(args)
 	active, _, _, _ := pool.stats()
-	return brew_runtime.int_value(active)
+	return ruby.int_value(active)
 }
 
 // Ruby method `largest_length` at line 63.
-pub fn ruby_java_thread_pool_executor_l63_d9_largest_length(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_java_thread_pool_executor_l63_d9_largest_length(args ...ruby.Value) ruby.Value {
 	mut pool := java_thread_pool_boundary_receiver(args)
 	_, largest, _, _ := pool.stats()
-	return brew_runtime.int_value(largest)
+	return ruby.int_value(largest)
 }
 
 // Ruby method `scheduled_task_count` at line 68.
-pub fn ruby_java_thread_pool_executor_l68_d10_scheduled_task_count(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_java_thread_pool_executor_l68_d10_scheduled_task_count(args ...ruby.Value) ruby.Value {
 	mut pool := java_thread_pool_boundary_receiver(args)
 	_, _, scheduled, _ := pool.stats()
-	return brew_runtime.int_value(scheduled)
+	return ruby.int_value(scheduled)
 }
 
 // Ruby method `completed_task_count` at line 73.
-pub fn ruby_java_thread_pool_executor_l73_d11_completed_task_count(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_java_thread_pool_executor_l73_d11_completed_task_count(args ...ruby.Value) ruby.Value {
 	mut pool := java_thread_pool_boundary_receiver(args)
 	_, _, _, completed := pool.stats()
-	return brew_runtime.int_value(completed)
+	return ruby.int_value(completed)
 }
 
 // Ruby method `active_count` at line 78.
-pub fn ruby_java_thread_pool_executor_l78_d12_active_count(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_java_thread_pool_executor_l78_d12_active_count(args ...ruby.Value) ruby.Value {
 	return ruby_java_thread_pool_executor_l58_d8_length(...args)
 }
 
 // Ruby method `idletime` at line 83.
-pub fn ruby_java_thread_pool_executor_l83_d13_idletime(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(java_thread_pool_boundary_receiver(args).idletime)
+pub fn ruby_java_thread_pool_executor_l83_d13_idletime(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(java_thread_pool_boundary_receiver(args).idletime)
 }
 
 // Ruby method `queue_length` at line 88.
-pub fn ruby_java_thread_pool_executor_l88_d14_queue_length(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(0)
+pub fn ruby_java_thread_pool_executor_l88_d14_queue_length(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(0)
 }
 
 // Ruby method `remaining_capacity` at line 93.
-pub fn ruby_java_thread_pool_executor_l93_d15_remaining_capacity(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_java_thread_pool_executor_l93_d15_remaining_capacity(args ...ruby.Value) ruby.Value {
 	pool := java_thread_pool_boundary_receiver(args)
-	return brew_runtime.int_value(if pool.max_queue == 0 { -1 } else { pool.max_queue })
+	return ruby.int_value(if pool.max_queue == 0 { -1 } else { pool.max_queue })
 }
 
 // Ruby method `running?` at line 98.
-pub fn ruby_java_thread_pool_executor_l98_d16_running(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_java_thread_pool_executor_l98_d16_running(args ...ruby.Value) ruby.Value {
 	mut pool := java_thread_pool_boundary_receiver(args)
-	return brew_runtime.bool_value(pool.running())
+	return ruby.bool_value(pool.running())
 }
 
 // Ruby method `prune_pool` at line 103.
-pub fn ruby_java_thread_pool_executor_l103_d17_prune_pool(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+pub fn ruby_java_thread_pool_executor_l103_d17_prune_pool(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `ns_initialize(opts)` at line 109.
-pub fn ruby_java_thread_pool_executor_l109_d18_ns_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_java_thread_pool_executor_l109_d18_ns_initialize(args ...ruby.Value) ruby.Value {
 	return ruby_java_thread_pool_executor_l38_d4_initialize(...args)
 }
 

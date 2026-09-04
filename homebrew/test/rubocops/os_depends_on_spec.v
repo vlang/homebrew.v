@@ -1,6 +1,6 @@
 module rubocops
 
-import brew_runtime
+import ruby
 import homebrew.rubocops as os_depends_on_cop
 
 // Translated from Homebrew/brew `test/rubocops/os_depends_on_spec.rb`.
@@ -29,7 +29,7 @@ fn os_depends_on_spec_accepts(source string) bool {
 }
 
 // Ruby it `it "autocorrects cask macOS comparison strings" do` at line 7.
-pub fn ruby_os_depends_on_spec_l7_d1_autocorrects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_os_depends_on_spec_l7_d1_autocorrects(args ...ruby.Value) ruby.Value {
 	_ = args
 	source := os_depends_on_spec_source([
 		'depends_on macos: ">= :catalina"',
@@ -41,7 +41,7 @@ pub fn ruby_os_depends_on_spec_l7_d1_autocorrects(args ...brew_runtime.Value) br
 		'depends_on maximum_macos: :sonoma',
 		'depends_on maximum_macos: :tahoe',
 	])
-	return brew_runtime.bool_value(os_depends_on_spec_matches(source, [
+	return ruby.bool_value(os_depends_on_spec_matches(source, [
 		'Use `depends_on macos: :catalina`.',
 		'Use `depends_on maximum_macos: :sonoma`.',
 		'Use `depends_on maximum_macos: :tahoe`.',
@@ -49,17 +49,17 @@ pub fn ruby_os_depends_on_spec_l7_d1_autocorrects(args ...brew_runtime.Value) br
 }
 
 // Ruby it `it "autocorrects redundant bare macOS requirements" do` at line 24.
-pub fn ruby_os_depends_on_spec_l24_d2_autocorrects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_os_depends_on_spec_l24_d2_autocorrects(args ...ruby.Value) ruby.Value {
 	_ = args
 	source := os_depends_on_spec_source(['depends_on :macos', 'depends_on macos: :catalina'])
 	corrected := os_depends_on_spec_source(['depends_on macos: :catalina'])
-	return brew_runtime.bool_value(os_depends_on_spec_matches(source, [
+	return ruby.bool_value(os_depends_on_spec_matches(source, [
 		'Remove redundant `depends_on :macos`.',
 	], ['depends_on :macos'], corrected, [true]))
 }
 
 // Ruby it `it "ignores non-symbol dependency hash keys" do` at line 36.
-pub fn ruby_os_depends_on_spec_l36_d3_ignores(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_os_depends_on_spec_l36_d3_ignores(args ...ruby.Value) ruby.Value {
 	_ = args
 	source := os_depends_on_spec_source([
 		'depends_on GawkRequirement => :build',
@@ -68,22 +68,22 @@ pub fn ruby_os_depends_on_spec_l36_d3_ignores(args ...brew_runtime.Value) brew_r
 		'depends_on :linux',
 		'depends_on LinuxKernelRequirement',
 	])
-	return brew_runtime.bool_value(os_depends_on_spec_accepts(source))
+	return ruby.bool_value(os_depends_on_spec_accepts(source))
 }
 
 // Ruby it `it "reports conflicting macOS-only and Linux-only requirements" do` at line 46.
-pub fn ruby_os_depends_on_spec_l46_d4_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_os_depends_on_spec_l46_d4_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	source := os_depends_on_spec_source(['depends_on macos: :catalina', 'depends_on :linux'])
 	message := '`depends_on` cannot be macOS-only and Linux-only.'
-	return brew_runtime.bool_value(os_depends_on_spec_matches(source, [message, message], [
+	return ruby.bool_value(os_depends_on_spec_matches(source, [message, message], [
 		'depends_on macos: :catalina',
 		'depends_on :linux',
 	], source, [false, false]))
 }
 
 // Ruby it `it "allows scoped macOS requirements" do` at line 55.
-pub fn ruby_os_depends_on_spec_l55_d5_allows(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_os_depends_on_spec_l55_d5_allows(args ...ruby.Value) ruby.Value {
 	_ = args
 	source := os_depends_on_spec_source([
 		'on_macos do',
@@ -92,11 +92,11 @@ pub fn ruby_os_depends_on_spec_l55_d5_allows(args ...brew_runtime.Value) brew_ru
 		'',
 		'depends_on :linux',
 	])
-	return brew_runtime.bool_value(os_depends_on_spec_accepts(source))
+	return ruby.bool_value(os_depends_on_spec_accepts(source))
 }
 
 // Ruby it `it "autocorrects missing bare macOS dependencies for macOS-only cask stanzas" do` at line 65.
-pub fn ruby_os_depends_on_spec_l65_d6_autocorrects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_os_depends_on_spec_l65_d6_autocorrects(args ...ruby.Value) ruby.Value {
 	_ = args
 	source := os_depends_on_spec_source([
 		'cask "basic" do',
@@ -109,13 +109,13 @@ pub fn ruby_os_depends_on_spec_l65_d6_autocorrects(args ...brew_runtime.Value) b
 		'end',
 	])
 	corrected := source.replace('  app "Basic.app"', '  depends_on :macos\n\n  app "Basic.app"')
-	return brew_runtime.bool_value(os_depends_on_spec_matches(source, [
+	return ruby.bool_value(os_depends_on_spec_matches(source, [
 		'Add `depends_on :macos` for macOS-only casks.',
 	], ['app "Basic.app"'], corrected, [true]))
 }
 
 // Ruby it `it "autocorrects missing bare macOS dependencies using cask stanza order" do` at line 92.
-pub fn ruby_os_depends_on_spec_l92_d7_autocorrects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_os_depends_on_spec_l92_d7_autocorrects(args ...ruby.Value) ruby.Value {
 	_ = args
 	source := os_depends_on_spec_source([
 		'cask "ordered" do',
@@ -138,13 +138,13 @@ pub fn ruby_os_depends_on_spec_l92_d7_autocorrects(args ...brew_runtime.Value) b
 		'end',
 	])
 	corrected := source.replace('  container nested: "Ordered"', '  depends_on :macos\n\n  container nested: "Ordered"')
-	return brew_runtime.bool_value(os_depends_on_spec_matches(source, [
+	return ruby.bool_value(os_depends_on_spec_matches(source, [
 		'Add `depends_on :macos` for macOS-only casks.',
 	], ['app "Ordered.app"'], corrected, [true]))
 }
 
 // Ruby it `it "autocorrects missing bare macOS dependencies before macOS-only cask stanzas" do` at line 139.
-pub fn ruby_os_depends_on_spec_l139_d8_autocorrects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_os_depends_on_spec_l139_d8_autocorrects(args ...ruby.Value) ruby.Value {
 	_ = args
 	source := os_depends_on_spec_source([
 		'cask "basic" do',
@@ -154,13 +154,13 @@ pub fn ruby_os_depends_on_spec_l139_d8_autocorrects(args ...brew_runtime.Value) 
 		'end',
 	])
 	corrected := source.replace('  installer manual: "Basic.app"', '  depends_on :macos\n\n  installer manual: "Basic.app"')
-	return brew_runtime.bool_value(os_depends_on_spec_matches(source, [
+	return ruby.bool_value(os_depends_on_spec_matches(source, [
 		'Add `depends_on :macos` for macOS-only casks.',
 	], ['installer manual: "Basic.app"'], corrected, [true]))
 }
 
 // Ruby it `it "autocorrects missing bare macOS dependencies for artifacts in architecture blocks" do` at line 160.
-pub fn ruby_os_depends_on_spec_l160_d9_autocorrects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_os_depends_on_spec_l160_d9_autocorrects(args ...ruby.Value) ruby.Value {
 	_ = args
 	source := os_depends_on_spec_source([
 		'cask "basic" do',
@@ -171,13 +171,13 @@ pub fn ruby_os_depends_on_spec_l160_d9_autocorrects(args ...brew_runtime.Value) 
 		'end',
 	])
 	corrected := source.replace('  end\nend\n', '  end\n\n  depends_on :macos\nend\n')
-	return brew_runtime.bool_value(os_depends_on_spec_matches(source, [
+	return ruby.bool_value(os_depends_on_spec_matches(source, [
 		'Add `depends_on :macos` for macOS-only casks.',
 	], ['app "Basic.app"'], corrected, [true]))
 }
 
 // Ruby it `it "autocorrects missing bare Linux dependencies for Linux-only cask stanzas" do` at line 183.
-pub fn ruby_os_depends_on_spec_l183_d10_autocorrects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_os_depends_on_spec_l183_d10_autocorrects(args ...ruby.Value) ruby.Value {
 	_ = args
 	source := os_depends_on_spec_source([
 		'cask "basic" do',
@@ -190,13 +190,13 @@ pub fn ruby_os_depends_on_spec_l183_d10_autocorrects(args ...brew_runtime.Value)
 		'end',
 	])
 	corrected := source.replace('  app_image "Basic.AppImage"', '  depends_on :linux\n\n  app_image "Basic.AppImage"')
-	return brew_runtime.bool_value(os_depends_on_spec_matches(source, [
+	return ruby.bool_value(os_depends_on_spec_matches(source, [
 		'Add `depends_on :linux` for Linux-only casks.',
 	], ['app_image "Basic.AppImage"'], corrected, [true]))
 }
 
 // Ruby it `it "autocorrects missing bare Linux dependencies using cask stanza order" do` at line 210.
-pub fn ruby_os_depends_on_spec_l210_d11_autocorrects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_os_depends_on_spec_l210_d11_autocorrects(args ...ruby.Value) ruby.Value {
 	_ = args
 	source := os_depends_on_spec_source([
 		'cask "ordered" do',
@@ -219,13 +219,13 @@ pub fn ruby_os_depends_on_spec_l210_d11_autocorrects(args ...brew_runtime.Value)
 		'end',
 	])
 	corrected := source.replace('  container nested: "Ordered"', '  depends_on :linux\n\n  container nested: "Ordered"')
-	return brew_runtime.bool_value(os_depends_on_spec_matches(source, [
+	return ruby.bool_value(os_depends_on_spec_matches(source, [
 		'Add `depends_on :linux` for Linux-only casks.',
 	], ['app_image "Ordered.AppImage"'], corrected, [true]))
 }
 
 // Ruby it `it "autocorrects missing bare Linux dependencies before Linux-only cask stanzas" do` at line 257.
-pub fn ruby_os_depends_on_spec_l257_d12_autocorrects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_os_depends_on_spec_l257_d12_autocorrects(args ...ruby.Value) ruby.Value {
 	_ = args
 	source := os_depends_on_spec_source([
 		'cask "basic" do',
@@ -235,13 +235,13 @@ pub fn ruby_os_depends_on_spec_l257_d12_autocorrects(args ...brew_runtime.Value)
 		'end',
 	])
 	corrected := source.replace('  app_image "Basic.AppImage"', '  depends_on :linux\n\n  app_image "Basic.AppImage"')
-	return brew_runtime.bool_value(os_depends_on_spec_matches(source, [
+	return ruby.bool_value(os_depends_on_spec_matches(source, [
 		'Add `depends_on :linux` for Linux-only casks.',
 	], ['app_image "Basic.AppImage"'], corrected, [true]))
 }
 
 // Ruby it `it "autocorrects missing bare Linux dependencies for artifacts in architecture blocks" do` at line 278.
-pub fn ruby_os_depends_on_spec_l278_d13_autocorrects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_os_depends_on_spec_l278_d13_autocorrects(args ...ruby.Value) ruby.Value {
 	_ = args
 	source := os_depends_on_spec_source([
 		'cask "basic" do',
@@ -252,13 +252,13 @@ pub fn ruby_os_depends_on_spec_l278_d13_autocorrects(args ...brew_runtime.Value)
 		'end',
 	])
 	corrected := source.replace('  end\nend\n', '  end\n\n  depends_on :linux\nend\n')
-	return brew_runtime.bool_value(os_depends_on_spec_matches(source, [
+	return ruby.bool_value(os_depends_on_spec_matches(source, [
 		'Add `depends_on :linux` for Linux-only casks.',
 	], ['app_image "Basic.AppImage"'], corrected, [true]))
 }
 
 // Ruby it `it "requires OS scoping for architecture artifacts in cross-platform casks" do` at line 301.
-pub fn ruby_os_depends_on_spec_l301_d14_requires(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_os_depends_on_spec_l301_d14_requires(args ...ruby.Value) ruby.Value {
 	_ = args
 	source := os_depends_on_spec_source([
 		'cask "dual-os-arch" do',
@@ -271,13 +271,13 @@ pub fn ruby_os_depends_on_spec_l301_d14_requires(args ...brew_runtime.Value) bre
 		'  end',
 		'end',
 	])
-	return brew_runtime.bool_value(os_depends_on_spec_matches(source, [
+	return ruby.bool_value(os_depends_on_spec_matches(source, [
 		'Move this macOS-only stanza into an `on_macos` block for cross-platform casks.',
 	], ['app "Foo.app"'], source, [false]))
 }
 
 // Ruby it `it "requires OS scoping for top-level artifacts in cross-platform casks" do` at line 318.
-pub fn ruby_os_depends_on_spec_l318_d15_requires(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_os_depends_on_spec_l318_d15_requires(args ...ruby.Value) ruby.Value {
 	_ = args
 	source := os_depends_on_spec_source([
 		'cask "toplevel-cross-platform" do',
@@ -288,13 +288,13 @@ pub fn ruby_os_depends_on_spec_l318_d15_requires(args ...brew_runtime.Value) bre
 		'  end',
 		'end',
 	])
-	return brew_runtime.bool_value(os_depends_on_spec_matches(source, [
+	return ruby.bool_value(os_depends_on_spec_matches(source, [
 		'Move this macOS-only stanza into an `on_macos` block for cross-platform casks.',
 	], ['app "Foo.app"'], source, [false]))
 }
 
 // Ruby it `it "requires OS scoping for artifacts in on_system blocks" do` at line 333.
-pub fn ruby_os_depends_on_spec_l333_d16_requires(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_os_depends_on_spec_l333_d16_requires(args ...ruby.Value) ruby.Value {
 	_ = args
 	source := os_depends_on_spec_source([
 		'cask "on-system-artifact" do',
@@ -303,13 +303,13 @@ pub fn ruby_os_depends_on_spec_l333_d16_requires(args ...brew_runtime.Value) bre
 		'  end',
 		'end',
 	])
-	return brew_runtime.bool_value(os_depends_on_spec_matches(source, [
+	return ruby.bool_value(os_depends_on_spec_matches(source, [
 		'Move this Linux-only stanza into an `on_linux` block for cross-platform casks.',
 	], ['app_image "Foo.AppImage"'], source, [false]))
 }
 
 // Ruby it `it "does not autocorrect conflicting OS-specific architecture artifacts" do` at line 346.
-pub fn ruby_os_depends_on_spec_l346_d17_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_os_depends_on_spec_l346_d17_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	source := os_depends_on_spec_source([
 		'cask "conflicting-arch-artifacts" do',
@@ -322,14 +322,14 @@ pub fn ruby_os_depends_on_spec_l346_d17_does(args ...brew_runtime.Value) brew_ru
 		'  end',
 		'end',
 	])
-	return brew_runtime.bool_value(os_depends_on_spec_matches(source, [
+	return ruby.bool_value(os_depends_on_spec_matches(source, [
 		'Move this macOS-only stanza into an `on_macos` block for cross-platform casks.',
 		'Move this Linux-only stanza into an `on_linux` block for cross-platform casks.',
 	], ['app "Foo.app"', 'app_image "Foo.AppImage"'], source, [false, false]))
 }
 
 // Ruby it `it "accepts casks without macOS-only or Linux-only stanzas" do` at line 364.
-pub fn ruby_os_depends_on_spec_l364_d18_accepts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_os_depends_on_spec_l364_d18_accepts(args ...ruby.Value) ruby.Value {
 	_ = args
 	source := os_depends_on_spec_source([
 		'cask "basic" do',
@@ -341,11 +341,11 @@ pub fn ruby_os_depends_on_spec_l364_d18_accepts(args ...brew_runtime.Value) brew
 		'  binary "basic"',
 		'end',
 	])
-	return brew_runtime.bool_value(os_depends_on_spec_accepts(source))
+	return ruby.bool_value(os_depends_on_spec_accepts(source))
 }
 
 // Ruby it `it "accepts casks with explicit OS dependencies" do` at line 377.
-pub fn ruby_os_depends_on_spec_l377_d19_accepts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_os_depends_on_spec_l377_d19_accepts(args ...ruby.Value) ruby.Value {
 	_ = args
 	source := os_depends_on_spec_source([
 		'cask "basic" do',
@@ -359,11 +359,11 @@ pub fn ruby_os_depends_on_spec_l377_d19_accepts(args ...brew_runtime.Value) brew
 		'  app "Basic.app"',
 		'end',
 	])
-	return brew_runtime.bool_value(os_depends_on_spec_accepts(source))
+	return ruby.bool_value(os_depends_on_spec_accepts(source))
 }
 
 // Ruby it `it "accepts casks with explicit OS dependencies in nested blocks" do` at line 392.
-pub fn ruby_os_depends_on_spec_l392_d20_accepts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_os_depends_on_spec_l392_d20_accepts(args ...ruby.Value) ruby.Value {
 	_ = args
 	source := os_depends_on_spec_source([
 		'cask "basic" do',
@@ -383,7 +383,7 @@ pub fn ruby_os_depends_on_spec_l392_d20_accepts(args ...brew_runtime.Value) brew
 		'  app "Basic.app"',
 		'end',
 	])
-	return brew_runtime.bool_value(os_depends_on_spec_accepts(source))
+	return ruby.bool_value(os_depends_on_spec_accepts(source))
 }
 
 // Original Ruby source (line-for-line):

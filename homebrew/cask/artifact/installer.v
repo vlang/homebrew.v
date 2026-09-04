@@ -1,23 +1,23 @@
 module artifact
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `cask/artifact/installer.rb`.
 // The original source is retained below until every stub has a typed V body.
 pub struct InstallerArtifact {
 pub:
-	cask           brew_runtime.Value
+	cask           ruby.Value
 	path           string
-	arguments      map[string]brew_runtime.Value
+	arguments      map[string]ruby.Value
 	manual_install bool
 }
 
-fn installer_nil() brew_runtime.Value {
-	return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+fn installer_nil() ruby.Value {
+	return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 }
 
-fn installer_script(arguments brew_runtime.Value) !(string, map[string]brew_runtime.Value) {
+fn installer_script(arguments ruby.Value) !(string, map[string]ruby.Value) {
 	mut values := if arguments.type_name == 'String' {
 		{
 			'executable': arguments
@@ -36,17 +36,17 @@ fn installer_script(arguments brew_runtime.Value) !(string, map[string]brew_runt
 	executable := values['executable'] or { installer_nil() }
 	values.delete('executable')
 	mut defaults := {
-		'must_succeed': brew_runtime.bool_value(true)
-		'sudo':         brew_runtime.bool_value(false)
+		'must_succeed': ruby.bool_value(true)
+		'sudo':         ruby.bool_value(false)
 	}
 	for key, value in values {
 		defaults[key] = value
 	}
-	defaults['print_stdout'] = brew_runtime.bool_value(true)
+	defaults['print_stdout'] = ruby.bool_value(true)
 	return executable.as_string(), defaults
 }
 
-pub fn new_installer_artifact(cask brew_runtime.Value, supplied map[string]brew_runtime.Value) !InstallerArtifact {
+pub fn new_installer_artifact(cask ruby.Value, supplied map[string]ruby.Value) !InstallerArtifact {
 	if supplied.len == 0 {
 		return error("'installer' stanza requires an argument.")
 	}
@@ -60,7 +60,7 @@ pub fn new_installer_artifact(cask brew_runtime.Value, supplied map[string]brew_
 			script_values['executable'] = script
 			script_values.delete('script')
 			values = {
-				'script': brew_runtime.map_value(script_values)
+				'script': ruby.map_value(script_values)
 			}
 		}
 	}
@@ -82,15 +82,15 @@ pub fn new_installer_artifact(cask brew_runtime.Value, supplied map[string]brew_
 	return InstallerArtifact{ cask: cask, path: path, arguments: arguments }
 }
 
-pub fn installer_artifact_value(installer InstallerArtifact) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn installer_artifact_value(installer InstallerArtifact) ruby.Value {
+	return ruby.Value{
 		type_name: 'Cask::Artifact::Installer'
 		repr: installer.path
 		map_data: {
 			'cask':           installer.cask
-			'path':           brew_runtime.object_value('Pathname', installer.path)
-			'args':           brew_runtime.map_value(installer.arguments)
-			'manual_install': brew_runtime.bool_value(installer.manual_install)
+			'path':           ruby.object_value('Pathname', installer.path)
+			'args':           ruby.map_value(installer.arguments)
+			'manual_install': ruby.bool_value(installer.manual_install)
 		}
 		attributes: {
 			'dsl_key': 'installer'
@@ -98,22 +98,22 @@ pub fn installer_artifact_value(installer InstallerArtifact) brew_runtime.Value 
 	}
 }
 
-pub fn installer_artifact_from_value(value brew_runtime.Value) !InstallerArtifact {
+pub fn installer_artifact_from_value(value ruby.Value) !InstallerArtifact {
 	if value.type_name != 'Cask::Artifact::Installer' {
 		return error('expected Cask::Artifact::Installer, got ${value.type_name}')
 	}
 	return InstallerArtifact{
-		cask: value.map_data['cask'] or { brew_runtime.object_value('Cask', '') }
-		path: (value.map_data['path'] or { brew_runtime.string_value(value.repr) }).as_string()
-		arguments: (value.map_data['args'] or { brew_runtime.map_value({}) }).map_data.clone()
-		manual_install: (value.map_data['manual_install'] or { brew_runtime.bool_value(false) }).as_bool() or { false }
+		cask: value.map_data['cask'] or { ruby.object_value('Cask', '') }
+		path: (value.map_data['path'] or { ruby.string_value(value.repr) }).as_string()
+		arguments: (value.map_data['args'] or { ruby.map_value({}) }).map_data.clone()
+		manual_install: (value.map_data['manual_install'] or { ruby.bool_value(false) }).as_bool() or { false }
 	}
 }
 
-pub fn (installer InstallerArtifact) install_request(homebrew_prefix string, environment_path string) brew_runtime.Value {
-	staged := (installer.cask.map_data['staged_path'] or { brew_runtime.string_value('') }).as_string()
+pub fn (installer InstallerArtifact) install_request(homebrew_prefix string, environment_path string) ruby.Value {
+	staged := (installer.cask.map_data['staged_path'] or { ruby.string_value('') }).as_string()
 	if installer.manual_install {
-		return brew_runtime.Value{ type_name: 'ManualInstallerNotice', repr: 'Cask ${installer.cask.as_string()} only provides a manual installer. To run it and complete the installation:\n  open ${os.join_path(staged, installer.path)}\n' }
+		return ruby.Value{ type_name: 'ManualInstallerNotice', repr: 'Cask ${installer.cask.as_string()} only provides a manual installer. To run it and complete the installation:\n  open ${os.join_path(staged, installer.path)}\n' }
 	}
 	executable := if os.is_abs_path(installer.path) {
 		installer.path
@@ -121,99 +121,99 @@ pub fn (installer InstallerArtifact) install_request(homebrew_prefix string, env
 		os.join_path(staged, installer.path)
 	}
 	mut options := installer.arguments.clone()
-	options['env'] = brew_runtime.map_value({
-		'PATH': brew_runtime.string_value('${homebrew_prefix}/bin:${homebrew_prefix}/sbin:${environment_path}')
+	options['env'] = ruby.map_value({
+		'PATH': ruby.string_value('${homebrew_prefix}/bin:${homebrew_prefix}/sbin:${environment_path}')
 	})
-	sudo := (installer.arguments['sudo'] or { brew_runtime.bool_value(false) }).as_bool() or { false }
-	options['reset_uid'] = brew_runtime.bool_value(!sudo)
-	return brew_runtime.Value{
+	sudo := (installer.arguments['sudo'] or { ruby.bool_value(false) }).as_bool() or { false }
+	options['reset_uid'] = ruby.bool_value(!sudo)
+	return ruby.Value{
 		type_name: 'SystemCommand::Request'
 		repr: executable
 		map_data: {
-			'executable': brew_runtime.string_value(executable)
-			'options':    brew_runtime.map_value(options)
+			'executable': ruby.string_value(executable)
+			'options':    ruby.map_value(options)
 		}
 	}
 }
 
 // Ruby method `install_phase(command: SystemCommand, **_options)` at line 17.
-pub fn ruby_installer_l17_d1_install_phase(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l17_d1_install_phase(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'install_phase requires a receiver')
+		return ruby.object_value('ArgumentError', 'install_phase requires a receiver')
 	}
-	installer := installer_artifact_from_value(args[0]) or { return brew_runtime.object_value('TypeError', err.msg()) }
+	installer := installer_artifact_from_value(args[0]) or { return ruby.object_value('TypeError', err.msg()) }
 	options := if args.len > 1 && args[1].type_name == 'Hash' {
 		args[1].map_data
 	} else {
-		map[string]brew_runtime.Value{}
+		map[string]ruby.Value{}
 	}
-	return installer.install_request((options['homebrew_prefix'] or { brew_runtime.string_value('/opt/homebrew') }).as_string(), (options['path'] or { brew_runtime.string_value('') }).as_string())
+	return installer.install_request((options['homebrew_prefix'] or { ruby.string_value('/opt/homebrew') }).as_string(), (options['path'] or { ruby.string_value('') }).as_string())
 }
 
 // Ruby method `self.from_args(cask, **args)` at line 40.
-pub fn ruby_installer_l40_d2_self_from_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l40_d2_self_from_args(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('CaskInvalidError', "'installer' stanza requires an argument.")
+		return ruby.object_value('CaskInvalidError', "'installer' stanza requires an argument.")
 	}
 	values := if args[1].type_name == 'Hash' {
 		args[1].map_data
 	} else {
-		map[string]brew_runtime.Value{}
+		map[string]ruby.Value{}
 	}
-	installer := new_installer_artifact(args[0], values) or { return brew_runtime.object_value('CaskInvalidError', err.msg()) }
+	installer := new_installer_artifact(args[0], values) or { return ruby.object_value('CaskInvalidError', err.msg()) }
 	return installer_artifact_value(installer)
 }
 
 // Ruby attr_reader `attr_reader :path` at line 65.
-pub fn ruby_installer_l65_d3_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l65_d3_path(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'path requires a receiver')
+		return ruby.object_value('ArgumentError', 'path requires a receiver')
 	}
-	installer := installer_artifact_from_value(args[0]) or { return brew_runtime.object_value('TypeError', err.msg()) }
-	return brew_runtime.object_value('Pathname', installer.path)
+	installer := installer_artifact_from_value(args[0]) or { return ruby.object_value('TypeError', err.msg()) }
+	return ruby.object_value('Pathname', installer.path)
 }
 
 // Ruby attr_reader `attr_reader :args` at line 68.
-pub fn ruby_installer_l68_d4_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l68_d4_args(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'args requires a receiver')
+		return ruby.object_value('ArgumentError', 'args requires a receiver')
 	}
-	installer := installer_artifact_from_value(args[0]) or { return brew_runtime.object_value('TypeError', err.msg()) }
-	return brew_runtime.map_value(installer.arguments)
+	installer := installer_artifact_from_value(args[0]) or { return ruby.object_value('TypeError', err.msg()) }
+	return ruby.map_value(installer.arguments)
 }
 
 // Ruby attr_reader `attr_reader :manual_install` at line 71.
-pub fn ruby_installer_l71_d5_manual_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l71_d5_manual_install(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'manual_install requires a receiver')
+		return ruby.object_value('ArgumentError', 'manual_install requires a receiver')
 	}
-	installer := installer_artifact_from_value(args[0]) or { return brew_runtime.object_value('TypeError', err.msg()) }
-	return brew_runtime.bool_value(installer.manual_install)
+	installer := installer_artifact_from_value(args[0]) or { return ruby.object_value('TypeError', err.msg()) }
+	return ruby.bool_value(installer.manual_install)
 }
 
 // Ruby method `initialize(cask, **args)` at line 74.
-pub fn ruby_installer_l74_d6_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l74_d6_initialize(args ...ruby.Value) ruby.Value {
 	return ruby_installer_l40_d2_self_from_args(...args)
 }
 
 // Ruby method `summarize = path.to_s` at line 94.
-pub fn ruby_installer_l94_d7_summarize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l94_d7_summarize(args ...ruby.Value) ruby.Value {
 	return ruby_installer_l65_d3_path(...args)
 }
 
 // Ruby method `to_h` at line 97.
-pub fn ruby_installer_l97_d8_to_h(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l97_d8_to_h(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'to_h requires a receiver')
+		return ruby.object_value('ArgumentError', 'to_h requires a receiver')
 	}
-	installer := installer_artifact_from_value(args[0]) or { return brew_runtime.object_value('TypeError', err.msg()) }
+	installer := installer_artifact_from_value(args[0]) or { return ruby.object_value('TypeError', err.msg()) }
 	mut values := {
-		'path': brew_runtime.object_value('Pathname', installer.path)
+		'path': ruby.object_value('Pathname', installer.path)
 	}
 	if !installer.manual_install {
-		values['args'] = brew_runtime.map_value(installer.arguments)
+		values['args'] = ruby.map_value(installer.arguments)
 	}
-	return brew_runtime.map_value(values)
+	return ruby.map_value(values)
 }
 
 // Original Ruby source (line-for-line):

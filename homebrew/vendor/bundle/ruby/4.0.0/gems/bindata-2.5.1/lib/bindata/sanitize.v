@@ -1,6 +1,6 @@
 module bindata
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/bindata-2.5.1/lib/bindata/sanitize.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -19,12 +19,12 @@ pub:
 @[heap]
 pub struct SanitizedPrototype {
 pub:
-	object_type brew_runtime.Value
-	hints       map[string]brew_runtime.Value
+	object_type ruby.Value
+	hints       map[string]ruby.Value
 mut:
-	factory           brew_runtime.Value
+	factory           ruby.Value
 	has_factory       bool
-	object_class      brew_runtime.Value
+	object_class      ruby.Value
 	object_parameters &SanitizedParameters = unsafe { nil }
 	has_parameters    bool
 }
@@ -32,7 +32,7 @@ mut:
 @[heap]
 pub struct SanitizedField {
 pub:
-	name      brew_runtime.Value
+	name      ruby.Value
 	has_name  bool
 	prototype &SanitizedPrototype
 }
@@ -40,69 +40,69 @@ pub:
 @[heap]
 pub struct SanitizedFields {
 pub:
-	hints map[string]brew_runtime.Value
+	hints map[string]ruby.Value
 mut:
 	fields []&SanitizedField
 }
 
 pub struct SanitizedChoiceEntry {
 pub:
-	key       brew_runtime.Value
-	prototype brew_runtime.Value
+	key       ruby.Value
+	prototype ruby.Value
 }
 
 @[heap]
 pub struct SanitizedChoices {
 mut:
 	entries           []SanitizedChoiceEntry
-	default_prototype brew_runtime.Value
+	default_prototype ruby.Value
 	has_default       bool
 }
 
 @[heap]
 pub struct SanitizedParameters {
 pub:
-	object_class brew_runtime.Value
+	object_class ruby.Value
 mut:
-	values           map[string]brew_runtime.Value
+	values           map[string]ruby.Value
 	warning_messages []string
 }
 
-pub type SanitizeValueBlock = fn(brew_runtime.Value) !brew_runtime.Value
+pub type SanitizeValueBlock = fn(ruby.Value) !ruby.Value
 
-pub type SanitizeFieldsBlock = fn(brew_runtime.Value, mut SanitizedFields) !
+pub type SanitizeFieldsBlock = fn(ruby.Value, mut SanitizedFields) !
 
-fn sanitize_nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn sanitize_nil_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-fn sanitize_symbol_value(name string) brew_runtime.Value {
-	return brew_runtime.object_value('Symbol', ':${name.trim_left(':')}')
+fn sanitize_symbol_value(name string) ruby.Value {
+	return ruby.object_value('Symbol', ':${name.trim_left(':')}')
 }
 
-fn sanitize_key_name(value brew_runtime.Value) string {
+fn sanitize_key_name(value ruby.Value) string {
 	if value.type_name !in ['String', 'Symbol'] {
 		panic("undefined method `to_sym' for ${value.type_name}")
 	}
 	return value.as_string().trim_left(':')
 }
 
-fn sanitize_normalized_map(values map[string]brew_runtime.Value) map[string]brew_runtime.Value {
-	mut normalized := map[string]brew_runtime.Value{}
+fn sanitize_normalized_map(values map[string]ruby.Value) map[string]ruby.Value {
+	mut normalized := map[string]ruby.Value{}
 	for key, value in values {
 		normalized[key.trim_left(':')] = value
 	}
 	return normalized
 }
 
-fn sanitize_map_from_value(value brew_runtime.Value) map[string]brew_runtime.Value {
+fn sanitize_map_from_value(value ruby.Value) map[string]ruby.Value {
 	if value.type_name == 'NilClass' {
-		return map[string]brew_runtime.Value{}
+		return map[string]ruby.Value{}
 	}
 	return sanitize_normalized_map(value.as_map() or { panic(err) })
 }
 
-fn sanitize_values(value brew_runtime.Value) []brew_runtime.Value {
+fn sanitize_values(value ruby.Value) []ruby.Value {
 	if value.type_name == 'NilClass' {
 		return []
 	}
@@ -112,28 +112,28 @@ fn sanitize_values(value brew_runtime.Value) []brew_runtime.Value {
 	return [value]
 }
 
-fn sanitize_value_equal(left brew_runtime.Value, right brew_runtime.Value) bool {
+fn sanitize_value_equal(left ruby.Value, right ruby.Value) bool {
 	return left.type_name == right.type_name && left.repr == right.repr && left.int_data == right.int_data && left.bool_data == right.bool_data
 }
 
-fn sanitize_is_parameter(value brew_runtime.Value) bool {
+fn sanitize_is_parameter(value ruby.Value) bool {
 	return value.type_name.starts_with('BinData::Sanitized')
 }
 
-fn sanitize_truthy(value brew_runtime.Value) bool {
+fn sanitize_truthy(value ruby.Value) bool {
 	return value.type_name != 'NilClass' && !(value.type_name == 'Bool' && !value.bool_data)
 }
 
-fn sanitize_is_base_instance(value brew_runtime.Value) bool {
+fn sanitize_is_base_instance(value ruby.Value) bool {
 	return 'base_object_address' in value.attributes || 'struct_object_address' in value.attributes
 }
 
-fn sanitize_is_class(value brew_runtime.Value) bool {
+fn sanitize_is_class(value ruby.Value) bool {
 	return value.type_name in ['Class', 'BinData::Class', 'BinData::IntegerClass',
 		'BinData::FloatingPointClass', 'BinData::BitFieldClass']
 }
 
-fn sanitize_endian_name(value brew_runtime.Value) ?string {
+fn sanitize_endian_name(value ruby.Value) ?string {
 	if value.type_name == 'BinData::SanitizedBigEndian' {
 		return 'big'
 	}
@@ -149,7 +149,7 @@ fn sanitize_endian_name(value brew_runtime.Value) ?string {
 	return none
 }
 
-fn sanitizer_hints_from_map(hints map[string]brew_runtime.Value) SanitizerHints {
+fn sanitizer_hints_from_map(hints map[string]ruby.Value) SanitizerHints {
 	mut result := SanitizerHints{}
 	if value := hints['endian'] {
 		if name := sanitize_endian_name(value) {
@@ -173,11 +173,11 @@ fn sanitizer_hints_from_map(hints map[string]brew_runtime.Value) SanitizerHints 
 	return result
 }
 
-pub fn sanitizer_hints_from_value(value brew_runtime.Value) SanitizerHints {
+pub fn sanitizer_hints_from_value(value ruby.Value) SanitizerHints {
 	return sanitizer_hints_from_map(sanitize_map_from_value(value))
 }
 
-fn registry_hints_for_sanitize(hints map[string]brew_runtime.Value) RegistryHints {
+fn registry_hints_for_sanitize(hints map[string]ruby.Value) RegistryHints {
 	typed := sanitizer_hints_from_map(hints)
 	mut endian := ?IntEndian(none)
 	if actual := typed.endian {
@@ -193,7 +193,7 @@ fn registry_hints_for_sanitize(hints map[string]brew_runtime.Value) RegistryHint
 	}
 }
 
-fn raw_registry_hints(hints map[string]brew_runtime.Value) map[string]brew_runtime.Value {
+fn raw_registry_hints(hints map[string]ruby.Value) map[string]ruby.Value {
 	mut raw := hints.clone()
 	if value := raw['endian'] {
 		if name := sanitize_endian_name(value) {
@@ -203,15 +203,15 @@ fn raw_registry_hints(hints map[string]brew_runtime.Value) map[string]brew_runti
 	return raw
 }
 
-fn sanitized_endian_value(endian SanitizedEndian) !brew_runtime.Value {
+fn sanitized_endian_value(endian SanitizedEndian) !ruby.Value {
 	return match endian {
 		.big {
-			brew_runtime.structured_value('BinData::SanitizedBigEndian', 'big', {
+			ruby.structured_value('BinData::SanitizedBigEndian', 'big', {
 				'endian': 'big'
 			})
 		}
 		.little {
-			brew_runtime.structured_value('BinData::SanitizedLittleEndian', 'little', {
+			ruby.structured_value('BinData::SanitizedLittleEndian', 'little', {
 				'endian': 'little'
 			})
 		}
@@ -219,7 +219,7 @@ fn sanitized_endian_value(endian SanitizedEndian) !brew_runtime.Value {
 	}
 }
 
-pub fn create_sanitized_endian_value(value brew_runtime.Value) !brew_runtime.Value {
+pub fn create_sanitized_endian_value(value ruby.Value) !ruby.Value {
 	name := sanitize_endian_name(value) or {
 		return error("unknown value for endian '${value.as_string()}'")
 	}
@@ -231,10 +231,10 @@ pub fn create_sanitized_endian_value(value brew_runtime.Value) !brew_runtime.Val
 	}
 }
 
-fn sanitized_prototype_value(prototype &SanitizedPrototype) brew_runtime.Value {
+fn sanitized_prototype_value(prototype &SanitizedPrototype) ruby.Value {
 	mut data := {
 		'object_type': prototype.object_type
-		'hints':       brew_runtime.map_value(prototype.hints)
+		'hints':       ruby.map_value(prototype.hints)
 	}
 	if prototype.has_factory {
 		data['factory'] = prototype.factory
@@ -242,7 +242,7 @@ fn sanitized_prototype_value(prototype &SanitizedPrototype) brew_runtime.Value {
 	if prototype.has_parameters {
 		data['parameters'] = sanitized_parameters_value(prototype.object_parameters)
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'BinData::SanitizedPrototype'
 		repr: prototype.object_type.repr
 		int_data: i64(u64(voidptr(prototype)))
@@ -253,11 +253,11 @@ fn sanitized_prototype_value(prototype &SanitizedPrototype) brew_runtime.Value {
 	}
 }
 
-pub fn sanitized_prototype_boundary_value(prototype &SanitizedPrototype) brew_runtime.Value {
+pub fn sanitized_prototype_boundary_value(prototype &SanitizedPrototype) ruby.Value {
 	return sanitized_prototype_value(prototype)
 }
 
-fn sanitized_prototype_from_value(value brew_runtime.Value) &SanitizedPrototype {
+fn sanitized_prototype_from_value(value ruby.Value) &SanitizedPrototype {
 	address := value.attributes['sanitized_prototype_address'] or {
 		panic('expected SanitizedPrototype receiver')
 	}
@@ -265,17 +265,17 @@ fn sanitized_prototype_from_value(value brew_runtime.Value) &SanitizedPrototype 
 	return unsafe { &SanitizedPrototype(voidptr(actual)) }
 }
 
-fn prototype_object_parameters(prototype &SanitizedPrototype) map[string]brew_runtime.Value {
+fn prototype_object_parameters(prototype &SanitizedPrototype) map[string]ruby.Value {
 	if prototype.has_parameters {
 		return prototype.object_parameters.values.clone()
 	}
 	if sanitize_is_base_instance(prototype.factory) {
 		return base_object_from_value(prototype.factory).params()
 	}
-	return map[string]brew_runtime.Value{}
+	return map[string]ruby.Value{}
 }
 
-pub fn new_sanitized_prototype(object_type brew_runtime.Value, object_parameters map[string]brew_runtime.Value, hints map[string]brew_runtime.Value) !&SanitizedPrototype {
+pub fn new_sanitized_prototype(object_type ruby.Value, object_parameters map[string]ruby.Value, hints map[string]ruby.Value) !&SanitizedPrototype {
 	raw_hints := raw_registry_hints(hints)
 	mut prototype := &SanitizedPrototype{
 		object_type: object_type
@@ -316,10 +316,10 @@ pub fn (prototype &SanitizedPrototype) has_parameter(name string) bool {
 	return prototype.has_parameters && prototype.object_parameters.has_parameter(name)
 }
 
-pub fn (mut prototype SanitizedPrototype) instantiate(value brew_runtime.Value, has_value bool, parent brew_runtime.Value, has_parent bool) brew_runtime.Value {
+pub fn (mut prototype SanitizedPrototype) instantiate(value ruby.Value, has_value bool, parent ruby.Value, has_parent bool) ruby.Value {
 	if !prototype.has_factory {
 		prototype.factory = initialize_base_object(prototype.object_class, [
-			brew_runtime.map_value(prototype_object_parameters(prototype)),
+			ruby.map_value(prototype_object_parameters(prototype)),
 		])
 		prototype.has_factory = true
 	}
@@ -333,14 +333,14 @@ pub fn (mut prototype SanitizedPrototype) instantiate(value brew_runtime.Value, 
 	return ruby_base_l97_d10_new(...args)
 }
 
-fn sanitized_field_value(field &SanitizedField) brew_runtime.Value {
-	return brew_runtime.Value{
+fn sanitized_field_value(field &SanitizedField) ruby.Value {
+	return ruby.Value{
 		type_name: 'BinData::SanitizedField'
 		repr: if field.has_name { field.name.repr } else { 'nil' }
 		int_data: i64(u64(voidptr(field)))
 		map_data: {
 			'field_type': field.prototype.object_type
-			'parameters': brew_runtime.map_value(prototype_object_parameters(field.prototype))
+			'parameters': ruby.map_value(prototype_object_parameters(field.prototype))
 			'prototype':  sanitized_prototype_value(field.prototype)
 		}
 		attributes: {
@@ -353,11 +353,11 @@ fn sanitized_field_value(field &SanitizedField) brew_runtime.Value {
 	}
 }
 
-pub fn sanitized_field_boundary_value(field &SanitizedField) brew_runtime.Value {
+pub fn sanitized_field_boundary_value(field &SanitizedField) ruby.Value {
 	return sanitized_field_value(field)
 }
 
-fn sanitized_field_from_value(value brew_runtime.Value) &SanitizedField {
+fn sanitized_field_from_value(value ruby.Value) &SanitizedField {
 	if address := value.attributes['sanitized_field_address'] {
 		actual := if value.int_data != 0 { u64(value.int_data) } else { address.u64() }
 		return unsafe { &SanitizedField(voidptr(actual)) }
@@ -370,7 +370,7 @@ fn sanitized_field_from_value(value brew_runtime.Value) &SanitizedField {
 	}, definition.field_type, definition.parameters, {}) or { panic(err) }
 }
 
-pub fn new_sanitized_field(name brew_runtime.Value, field_type brew_runtime.Value, field_parameters map[string]brew_runtime.Value, hints map[string]brew_runtime.Value) !&SanitizedField {
+pub fn new_sanitized_field(name ruby.Value, field_type ruby.Value, field_parameters map[string]ruby.Value, hints map[string]ruby.Value) !&SanitizedField {
 	return &SanitizedField{
 		name: name
 		has_name: name.type_name != 'NilClass'
@@ -378,7 +378,7 @@ pub fn new_sanitized_field(name brew_runtime.Value, field_type brew_runtime.Valu
 	}
 }
 
-pub fn (field &SanitizedField) name_as_symbol() brew_runtime.Value {
+pub fn (field &SanitizedField) name_as_symbol() ruby.Value {
 	if !field.has_name {
 		return sanitize_nil_value()
 	}
@@ -389,19 +389,19 @@ pub fn (field &SanitizedField) has_parameter(name string) bool {
 	return field.prototype.has_parameter(name)
 }
 
-pub fn (field &SanitizedField) instantiate(value brew_runtime.Value, has_value bool, parent brew_runtime.Value, has_parent bool) brew_runtime.Value {
+pub fn (field &SanitizedField) instantiate(value ruby.Value, has_value bool, parent ruby.Value, has_parent bool) ruby.Value {
 	mut prototype := field.prototype
 	return prototype.instantiate(value, has_value, parent, has_parent)
 }
 
-fn sanitized_fields_value(fields &SanitizedFields) brew_runtime.Value {
-	return brew_runtime.Value{
+fn sanitized_fields_value(fields &SanitizedFields) ruby.Value {
+	return ruby.Value{
 		type_name: 'BinData::SanitizedFields'
 		repr: fields.fields.map(if it.has_name { it.name.repr } else { 'nil' }).str()
 		int_data: i64(u64(voidptr(fields)))
 		array_data: fields.fields.map(sanitized_field_value(it))
 		map_data: {
-			'hints': brew_runtime.map_value(fields.hints)
+			'hints': ruby.map_value(fields.hints)
 		}
 		attributes: {
 			'sanitized_fields_address': u64(voidptr(fields)).str()
@@ -409,11 +409,11 @@ fn sanitized_fields_value(fields &SanitizedFields) brew_runtime.Value {
 	}
 }
 
-pub fn sanitized_fields_boundary_value(fields &SanitizedFields) brew_runtime.Value {
+pub fn sanitized_fields_boundary_value(fields &SanitizedFields) ruby.Value {
 	return sanitized_fields_value(fields)
 }
 
-fn sanitized_fields_from_value(value brew_runtime.Value) &SanitizedFields {
+fn sanitized_fields_from_value(value ruby.Value) &SanitizedFields {
 	if address := value.attributes['sanitized_fields_address'] {
 		actual := if value.int_data != 0 { u64(value.int_data) } else { address.u64() }
 		return unsafe { &SanitizedFields(voidptr(actual)) }
@@ -421,7 +421,7 @@ fn sanitized_fields_from_value(value brew_runtime.Value) &SanitizedFields {
 	hints := if encoded := value.map_data['hints'] {
 		sanitize_map_from_value(encoded)
 	} else {
-		map[string]brew_runtime.Value{}
+		map[string]ruby.Value{}
 	}
 	mut fields := new_sanitized_fields(hints, none)
 	for definition in sanitized_struct_fields_from_value(value) {
@@ -434,7 +434,7 @@ fn sanitized_fields_from_value(value brew_runtime.Value) &SanitizedFields {
 	return fields
 }
 
-pub fn new_sanitized_fields(hints map[string]brew_runtime.Value, base_fields ?&SanitizedFields) &SanitizedFields {
+pub fn new_sanitized_fields(hints map[string]ruby.Value, base_fields ?&SanitizedFields) &SanitizedFields {
 	mut fields := []&SanitizedField{}
 	if base := base_fields {
 		fields = base.fields.clone()
@@ -445,7 +445,7 @@ pub fn new_sanitized_fields(hints map[string]brew_runtime.Value, base_fields ?&S
 	}
 }
 
-pub fn (mut fields SanitizedFields) add_field(field_type brew_runtime.Value, name brew_runtime.Value, parameters map[string]brew_runtime.Value) ! {
+pub fn (mut fields SanitizedFields) add_field(field_type ruby.Value, name ruby.Value, parameters map[string]ruby.Value) ! {
 	actual_name := if name.type_name == 'String' && name.as_string() == '' {
 		sanitize_nil_value()
 	} else {
@@ -466,7 +466,7 @@ pub fn (fields &SanitizedFields) at(index int) ?&SanitizedField {
 	return fields.fields[actual]
 }
 
-pub fn (fields &SanitizedFields) field_names() []brew_runtime.Value {
+pub fn (fields &SanitizedFields) field_names() []ruby.Value {
 	return fields.fields.map(it.name_as_symbol())
 }
 
@@ -492,16 +492,16 @@ pub fn (fields &SanitizedFields) any_field_has_parameter(name string) bool {
 	return fields.fields.any(it.has_parameter(name))
 }
 
-fn sanitized_choices_value(choices &SanitizedChoices) brew_runtime.Value {
-	mut data := map[string]brew_runtime.Value{}
+fn sanitized_choices_value(choices &SanitizedChoices) ruby.Value {
+	mut data := map[string]ruby.Value{}
 	if choices.has_default {
 		data['default'] = choices.default_prototype
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'BinData::SanitizedChoices'
 		repr: choices.entries.map(it.key.repr).str()
 		int_data: i64(u64(voidptr(choices)))
-		array_data: choices.entries.map(brew_runtime.array_value([it.key, it.prototype]))
+		array_data: choices.entries.map(ruby.array_value([it.key, it.prototype]))
 		map_data: data
 		attributes: {
 			'sanitized_choices_address': u64(voidptr(choices)).str()
@@ -509,17 +509,17 @@ fn sanitized_choices_value(choices &SanitizedChoices) brew_runtime.Value {
 	}
 }
 
-pub fn sanitized_choices_boundary_value(choices &SanitizedChoices) brew_runtime.Value {
+pub fn sanitized_choices_boundary_value(choices &SanitizedChoices) ruby.Value {
 	return sanitized_choices_value(choices)
 }
 
-fn sanitized_choices_from_value(value brew_runtime.Value) &SanitizedChoices {
+fn sanitized_choices_from_value(value ruby.Value) &SanitizedChoices {
 	address := value.attributes['sanitized_choices_address'] or { panic('expected SanitizedChoices receiver') }
 	actual := if value.int_data != 0 { u64(value.int_data) } else { address.u64() }
 	return unsafe { &SanitizedChoices(voidptr(actual)) }
 }
 
-fn sanitized_choice_prototype(value brew_runtime.Value, hints map[string]brew_runtime.Value) !brew_runtime.Value {
+fn sanitized_choice_prototype(value ruby.Value, hints map[string]ruby.Value) !ruby.Value {
 	if sanitize_is_parameter(value) {
 		return value
 	}
@@ -536,19 +536,19 @@ fn sanitized_choice_prototype(value brew_runtime.Value, hints map[string]brew_ru
 	parameters := if parts.len > 1 {
 		sanitize_map_from_value(parts[1])
 	} else {
-		map[string]brew_runtime.Value{}
+		map[string]ruby.Value{}
 	}
 	return sanitized_prototype_value(new_sanitized_prototype(parts[0], parameters, hints)!)
 }
 
-fn raw_choice_entries(choices brew_runtime.Value) []SanitizedChoiceEntry {
+fn raw_choice_entries(choices ruby.Value) []SanitizedChoiceEntry {
 	mut entries := []SanitizedChoiceEntry{}
 	if choices.type_name == 'Hash' {
 		for key, value in choices.map_data {
 			entries << SanitizedChoiceEntry{
 				key: if key.trim_left(':') == 'default' {
 					sanitize_symbol_value('default')} else {
-					brew_runtime.string_value(key)}
+					ruby.string_value(key)}
 				prototype: value
 			}
 		}
@@ -569,14 +569,14 @@ fn raw_choice_entries(choices brew_runtime.Value) []SanitizedChoiceEntry {
 			}
 		}
 		entries << SanitizedChoiceEntry{
-			key: brew_runtime.int_value(index)
+			key: ruby.int_value(index)
 			prototype: value
 		}
 	}
 	return entries
 }
 
-pub fn new_sanitized_choices(choices brew_runtime.Value, hints map[string]brew_runtime.Value) !&SanitizedChoices {
+pub fn new_sanitized_choices(choices ruby.Value, hints map[string]ruby.Value) !&SanitizedChoices {
 	mut result := &SanitizedChoices{
 		default_prototype: sanitize_nil_value()
 	}
@@ -595,7 +595,7 @@ pub fn new_sanitized_choices(choices brew_runtime.Value, hints map[string]brew_r
 	return result
 }
 
-pub fn (choices &SanitizedChoices) get(key brew_runtime.Value) ?brew_runtime.Value {
+pub fn (choices &SanitizedChoices) get(key ruby.Value) ?ruby.Value {
 	for entry in choices.entries {
 		if sanitize_value_equal(entry.key, key) {
 			return entry.prototype
@@ -607,8 +607,8 @@ pub fn (choices &SanitizedChoices) get(key brew_runtime.Value) ?brew_runtime.Val
 	return none
 }
 
-fn sanitized_parameters_value(parameters &SanitizedParameters) brew_runtime.Value {
-	return brew_runtime.Value{
+fn sanitized_parameters_value(parameters &SanitizedParameters) ruby.Value {
+	return ruby.Value{
 		type_name: 'BinData::SanitizedParameters'
 		repr: parameters.values.str()
 		int_data: i64(u64(voidptr(parameters)))
@@ -620,11 +620,11 @@ fn sanitized_parameters_value(parameters &SanitizedParameters) brew_runtime.Valu
 	}
 }
 
-pub fn sanitized_parameters_boundary_value(parameters &SanitizedParameters) brew_runtime.Value {
+pub fn sanitized_parameters_boundary_value(parameters &SanitizedParameters) ruby.Value {
 	return sanitized_parameters_value(parameters)
 }
 
-fn sanitized_parameters_from_value(value brew_runtime.Value) &SanitizedParameters {
+fn sanitized_parameters_from_value(value ruby.Value) &SanitizedParameters {
 	address := value.attributes['sanitized_parameters_address'] or {
 		panic('expected SanitizedParameters receiver')
 	}
@@ -632,14 +632,14 @@ fn sanitized_parameters_from_value(value brew_runtime.Value) &SanitizedParameter
 	return unsafe { &SanitizedParameters(voidptr(actual)) }
 }
 
-pub fn sanitize_parameters_value(parameters brew_runtime.Value, object_class brew_runtime.Value) !brew_runtime.Value {
+pub fn sanitize_parameters_value(parameters ruby.Value, object_class ruby.Value) !ruby.Value {
 	if parameters.type_name == 'BinData::SanitizedParameters' {
 		return parameters
 	}
-	return sanitized_parameters_value(new_sanitized_parameters(sanitize_map_from_value(parameters), object_class, map[string]brew_runtime.Value{})!)
+	return sanitized_parameters_value(new_sanitized_parameters(sanitize_map_from_value(parameters), object_class, map[string]ruby.Value{})!)
 }
 
-pub fn new_sanitized_parameters(values map[string]brew_runtime.Value, object_class brew_runtime.Value, hints map[string]brew_runtime.Value) !&SanitizedParameters {
+pub fn new_sanitized_parameters(values map[string]ruby.Value, object_class ruby.Value, hints map[string]ruby.Value) !&SanitizedParameters {
 	mut merged := sanitize_normalized_map(values)
 	if endian := hints['endian'] {
 		current := merged['endian'] or { sanitize_nil_value() }
@@ -651,7 +651,7 @@ pub fn new_sanitized_parameters(values map[string]brew_runtime.Value, object_cla
 		if sanitize_truthy(prefix) && sanitize_values(prefix).len > 0 {
 			mut prefixes := sanitize_values(merged['search_prefix'] or { sanitize_nil_value() })
 			prefixes << sanitize_values(prefix)
-			merged['search_prefix'] = brew_runtime.array_value(prefixes)
+			merged['search_prefix'] = ruby.array_value(prefixes)
 		}
 	}
 	mut parameters := &SanitizedParameters{
@@ -680,7 +680,7 @@ pub fn (mut parameters SanitizedParameters) warn_replacement_parameter(bad_key s
 	return message
 }
 
-fn sanitize_value_converts_to_integer(value brew_runtime.Value) bool {
+fn sanitize_value_converts_to_integer(value ruby.Value) bool {
 	return value.type_name in ['Integer', 'Float', 'Symbol', 'Proc', 'Function'] || 'arity' in value.attributes || 'to_int' in value.attributes
 }
 
@@ -695,7 +695,7 @@ pub fn (parameters &SanitizedParameters) must_be_integer(names []string) ! {
 	}
 }
 
-pub fn (mut parameters SanitizedParameters) rename_parameter(old_key string, new_key string) ?brew_runtime.Value {
+pub fn (mut parameters SanitizedParameters) rename_parameter(old_key string, new_key string) ?ruby.Value {
 	old_name := old_key.trim_left(':')
 	if value := parameters.values[old_name] {
 		parameters.values.delete(old_name)
@@ -710,7 +710,7 @@ pub fn (parameters &SanitizedParameters) needs_sanitizing(key string) bool {
 	return name in parameters.values && !sanitize_is_parameter(parameters.values[name])
 }
 
-pub fn (mut parameters SanitizedParameters) sanitize_value(key string, block SanitizeValueBlock) !brew_runtime.Value {
+pub fn (mut parameters SanitizedParameters) sanitize_value(key string, block SanitizeValueBlock) !ruby.Value {
 	name := key.trim_left(':')
 	if !parameters.needs_sanitizing(name) {
 		return sanitize_nil_value()
@@ -731,7 +731,7 @@ pub fn (mut parameters SanitizedParameters) sanitize_object_prototype(key string
 	object_parameters := if parts.len > 1 {
 		sanitize_map_from_value(parts[1])
 	} else {
-		map[string]brew_runtime.Value{}
+		map[string]ruby.Value{}
 	}
 	parameters.values[name] = sanitized_prototype_value(new_sanitized_prototype(parts[0], object_parameters, parameters.hints())!)
 }
@@ -762,11 +762,11 @@ pub fn (mut parameters SanitizedParameters) sanitize_endian(key string) ! {
 	}
 }
 
-pub fn (parameters &SanitizedParameters) create_sanitized_parameters(values map[string]brew_runtime.Value, object_class brew_runtime.Value) !&SanitizedParameters {
+pub fn (parameters &SanitizedParameters) create_sanitized_parameters(values map[string]ruby.Value, object_class ruby.Value) !&SanitizedParameters {
 	return new_sanitized_parameters(values, object_class, parameters.hints())
 }
 
-pub fn (parameters &SanitizedParameters) hints() map[string]brew_runtime.Value {
+pub fn (parameters &SanitizedParameters) hints() map[string]ruby.Value {
 	return {
 		'endian':        parameters.values['endian'] or { sanitize_nil_value() }
 		'search_prefix': parameters.values['search_prefix'] or { sanitize_nil_value() }
@@ -808,7 +808,7 @@ pub fn (parameters &SanitizedParameters) ensure_mutual_exclusion_of_parameters()
 	}
 }
 
-fn sanitize_struct_fields_block(raw brew_runtime.Value, mut fields SanitizedFields) ! {
+fn sanitize_struct_fields_block(raw ruby.Value, mut fields SanitizedFields) ! {
 	for definition in sanitize_raw_struct_fields(raw) {
 		fields.add_field(definition.field_type, if definition.has_name {
 			sanitize_symbol_value(definition.name)
@@ -818,7 +818,7 @@ fn sanitize_struct_fields_block(raw brew_runtime.Value, mut fields SanitizedFiel
 	}
 }
 
-fn sanitize_identity_block(value brew_runtime.Value) !brew_runtime.Value {
+fn sanitize_identity_block(value ruby.Value) !ruby.Value {
 	return value
 }
 
@@ -832,7 +832,7 @@ fn (mut parameters SanitizedParameters) sanitize_struct_processor() ! {
 				prefixes << trimmed
 			}
 		}
-		parameters.values['search_prefix'] = brew_runtime.string_array_value(prefixes)
+		parameters.values['search_prefix'] = ruby.string_array_value(prefixes)
 	}
 	parameters.sanitize_fields('fields', sanitize_struct_fields_block)!
 	if fields_value := parameters.values['fields'] {
@@ -853,7 +853,7 @@ fn (mut parameters SanitizedParameters) sanitize_struct_processor() ! {
 				hidden << name
 			}
 		}
-		parameters.values['hide'] = brew_runtime.string_array_value(hidden)
+		parameters.values['hide'] = ruby.string_array_value(hidden)
 	}
 }
 
@@ -879,7 +879,7 @@ pub fn (mut parameters SanitizedParameters) sanitize_all() ! {
 }
 
 // Ruby method `initialize(obj_type, obj_params, hints)` at line 9.
-pub fn ruby_sanitize_l9_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sanitize_l9_d1_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('SanitizedPrototype#initialize requires object type, parameters and hints')
 	}
@@ -887,15 +887,15 @@ pub fn ruby_sanitize_l9_d1_initialize(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby method `has_parameter?(param)` at line 30.
-pub fn ruby_sanitize_l30_d2_has_parameter(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sanitize_l30_d2_has_parameter(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('SanitizedPrototype#has_parameter? requires a receiver and parameter')
 	}
-	return brew_runtime.bool_value(sanitized_prototype_from_value(args[0]).has_parameter(sanitize_key_name(args[1])))
+	return ruby.bool_value(sanitized_prototype_from_value(args[0]).has_parameter(sanitize_key_name(args[1])))
 }
 
 // Ruby method `instantiate(value = nil, parent = nil)` at line 38.
-pub fn ruby_sanitize_l38_d3_instantiate(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sanitize_l38_d3_instantiate(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('SanitizedPrototype#instantiate requires a receiver')
 	}
@@ -908,7 +908,7 @@ pub fn ruby_sanitize_l38_d3_instantiate(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby method `initialize(name, field_type, field_params, hints)` at line 47.
-pub fn ruby_sanitize_l47_d4_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sanitize_l47_d4_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 4 {
 		panic('SanitizedField#initialize requires name, type, parameters and hints')
 	}
@@ -916,7 +916,7 @@ pub fn ruby_sanitize_l47_d4_initialize(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby attr_reader `attr_reader :prototype, :name` at line 52.
-pub fn ruby_sanitize_l52_d5_prototype(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sanitize_l52_d5_prototype(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('SanitizedField#prototype requires a receiver')
 	}
@@ -924,7 +924,7 @@ pub fn ruby_sanitize_l52_d5_prototype(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby attr_reader `attr_reader :prototype, :name` at line 52.
-pub fn ruby_sanitize_l52_d6_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sanitize_l52_d6_name(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('SanitizedField#name requires a receiver')
 	}
@@ -933,7 +933,7 @@ pub fn ruby_sanitize_l52_d6_name(args ...brew_runtime.Value) brew_runtime.Value 
 }
 
 // Ruby method `name_as_sym` at line 54.
-pub fn ruby_sanitize_l54_d7_name_as_sym(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sanitize_l54_d7_name_as_sym(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('SanitizedField#name_as_sym requires a receiver')
 	}
@@ -941,15 +941,15 @@ pub fn ruby_sanitize_l54_d7_name_as_sym(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby method `has_parameter?(param)` at line 58.
-pub fn ruby_sanitize_l58_d8_has_parameter(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sanitize_l58_d8_has_parameter(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('SanitizedField#has_parameter? requires a receiver and parameter')
 	}
-	return brew_runtime.bool_value(sanitized_field_from_value(args[0]).has_parameter(sanitize_key_name(args[1])))
+	return ruby.bool_value(sanitized_field_from_value(args[0]).has_parameter(sanitize_key_name(args[1])))
 }
 
 // Ruby method `instantiate(value = nil, parent = nil)` at line 62.
-pub fn ruby_sanitize_l62_d9_instantiate(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sanitize_l62_d9_instantiate(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('SanitizedField#instantiate requires a receiver')
 	}
@@ -965,7 +965,7 @@ pub fn ruby_sanitize_l62_d9_instantiate(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby method `initialize(hints, base_fields = nil)` at line 71.
-pub fn ruby_sanitize_l71_d10_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sanitize_l71_d10_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('SanitizedFields#initialize requires hints')
 	}
@@ -978,7 +978,7 @@ pub fn ruby_sanitize_l71_d10_initialize(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby method `add_field(type, name, params)` at line 76.
-pub fn ruby_sanitize_l76_d11_add_field(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sanitize_l76_d11_add_field(args ...ruby.Value) ruby.Value {
 	if args.len < 4 {
 		panic('SanitizedFields#add_field requires a receiver, type, name and parameters')
 	}
@@ -988,15 +988,15 @@ pub fn ruby_sanitize_l76_d11_add_field(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby method `raw_fields` at line 82.
-pub fn ruby_sanitize_l82_d12_raw_fields(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sanitize_l82_d12_raw_fields(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('SanitizedFields#raw_fields requires a receiver')
 	}
-	return brew_runtime.array_value(sanitized_fields_from_value(args[0]).raw_fields().map(sanitized_field_value(it)))
+	return ruby.array_value(sanitized_fields_from_value(args[0]).raw_fields().map(sanitized_field_value(it)))
 }
 
 // Ruby method `[](idx)` at line 86.
-pub fn ruby_sanitize_l86_d13_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sanitize_l86_d13_anonymous(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('SanitizedFields#[] requires a receiver and index')
 	}
@@ -1007,36 +1007,36 @@ pub fn ruby_sanitize_l86_d13_anonymous(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby method `empty?` at line 90.
-pub fn ruby_sanitize_l90_d14_empty(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sanitize_l90_d14_empty(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('SanitizedFields#empty? requires a receiver')
 	}
-	return brew_runtime.bool_value(sanitized_fields_from_value(args[0]).fields.len == 0)
+	return ruby.bool_value(sanitized_fields_from_value(args[0]).fields.len == 0)
 }
 
 // Ruby method `length` at line 94.
-pub fn ruby_sanitize_l94_d15_length(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sanitize_l94_d15_length(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('SanitizedFields#length requires a receiver')
 	}
-	return brew_runtime.int_value(sanitized_fields_from_value(args[0]).fields.len)
+	return ruby.int_value(sanitized_fields_from_value(args[0]).fields.len)
 }
 
 // Ruby method `each(&block)` at line 98.
-pub fn ruby_sanitize_l98_d16_each(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sanitize_l98_d16_each(args ...ruby.Value) ruby.Value {
 	return ruby_sanitize_l82_d12_raw_fields(...args)
 }
 
 // Ruby method `field_names` at line 102.
-pub fn ruby_sanitize_l102_d17_field_names(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sanitize_l102_d17_field_names(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('SanitizedFields#field_names requires a receiver')
 	}
-	return brew_runtime.array_value(sanitized_fields_from_value(args[0]).field_names())
+	return ruby.array_value(sanitized_fields_from_value(args[0]).field_names())
 }
 
 // Ruby method `field_name?(name)` at line 106.
-pub fn ruby_sanitize_l106_d18_field_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sanitize_l106_d18_field_name(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('SanitizedFields#field_name? requires a receiver and name')
 	}
@@ -1047,31 +1047,31 @@ pub fn ruby_sanitize_l106_d18_field_name(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `all_field_names_blank?` at line 110.
-pub fn ruby_sanitize_l110_d19_all_field_names_blank(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sanitize_l110_d19_all_field_names_blank(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('SanitizedFields#all_field_names_blank? requires a receiver')
 	}
-	return brew_runtime.bool_value(sanitized_fields_from_value(args[0]).all_field_names_blank())
+	return ruby.bool_value(sanitized_fields_from_value(args[0]).all_field_names_blank())
 }
 
 // Ruby method `no_field_names_blank?` at line 114.
-pub fn ruby_sanitize_l114_d20_no_field_names_blank(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sanitize_l114_d20_no_field_names_blank(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('SanitizedFields#no_field_names_blank? requires a receiver')
 	}
-	return brew_runtime.bool_value(sanitized_fields_from_value(args[0]).no_field_names_blank())
+	return ruby.bool_value(sanitized_fields_from_value(args[0]).no_field_names_blank())
 }
 
 // Ruby method `any_field_has_parameter?(parameter)` at line 118.
-pub fn ruby_sanitize_l118_d21_any_field_has_parameter(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sanitize_l118_d21_any_field_has_parameter(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('SanitizedFields#any_field_has_parameter? requires a receiver and parameter')
 	}
-	return brew_runtime.bool_value(sanitized_fields_from_value(args[0]).any_field_has_parameter(sanitize_key_name(args[1])))
+	return ruby.bool_value(sanitized_fields_from_value(args[0]).any_field_has_parameter(sanitize_key_name(args[1])))
 }
 
 // Ruby method `initialize(choices, hints)` at line 125.
-pub fn ruby_sanitize_l125_d22_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sanitize_l125_d22_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('SanitizedChoices#initialize requires choices and hints')
 	}
@@ -1081,7 +1081,7 @@ pub fn ruby_sanitize_l125_d22_initialize(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `[](key)` at line 143.
-pub fn ruby_sanitize_l143_d23_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sanitize_l143_d23_anonymous(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('SanitizedChoices#[] requires a receiver and key')
 	}
@@ -1089,17 +1089,17 @@ pub fn ruby_sanitize_l143_d23_anonymous(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby method `endian` at line 150.
-pub fn ruby_sanitize_l150_d24_endian(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sanitize_l150_d24_endian(args ...ruby.Value) ruby.Value {
 	return sanitize_symbol_value('big')
 }
 
 // Ruby method `endian` at line 156.
-pub fn ruby_sanitize_l156_d25_endian(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sanitize_l156_d25_endian(args ...ruby.Value) ruby.Value {
 	return sanitize_symbol_value('little')
 }
 
 // Ruby method `sanitize(parameters, the_class)` at line 179.
-pub fn ruby_sanitize_l179_d26_sanitize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sanitize_l179_d26_sanitize(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('SanitizedParameters.sanitize requires parameters and class')
 	}
@@ -1107,7 +1107,7 @@ pub fn ruby_sanitize_l179_d26_sanitize(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby method `initialize(parameters, the_class, hints)` at line 188.
-pub fn ruby_sanitize_l188_d27_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sanitize_l188_d27_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('SanitizedParameters#initialize requires parameters, class and hints')
 	}
@@ -1115,23 +1115,23 @@ pub fn ruby_sanitize_l188_d27_initialize(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby alias `alias has_parameter? key?` at line 204.
-pub fn ruby_sanitize_l204_d28_has_parameter(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sanitize_l204_d28_has_parameter(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('SanitizedParameters#has_parameter? requires a receiver and key')
 	}
-	return brew_runtime.bool_value(sanitized_parameters_from_value(args[0]).has_parameter(sanitize_key_name(args[1])))
+	return ruby.bool_value(sanitized_parameters_from_value(args[0]).has_parameter(sanitize_key_name(args[1])))
 }
 
 // Ruby method `has_at_least_one_of?(*keys)` at line 206.
-pub fn ruby_sanitize_l206_d29_has_at_least_one_of(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sanitize_l206_d29_has_at_least_one_of(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('SanitizedParameters#has_at_least_one_of? requires a receiver')
 	}
-	return brew_runtime.bool_value(sanitized_parameters_from_value(args[0]).has_at_least_one_of(args[1..].map(sanitize_key_name(it))))
+	return ruby.bool_value(sanitized_parameters_from_value(args[0]).has_at_least_one_of(args[1..].map(sanitize_key_name(it))))
 }
 
 // Ruby method `warn_replacement_parameter(bad_key, suggested_key)` at line 214.
-pub fn ruby_sanitize_l214_d30_warn_replacement_parameter(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sanitize_l214_d30_warn_replacement_parameter(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('SanitizedParameters#warn_replacement_parameter requires a receiver and two keys')
 	}
@@ -1141,7 +1141,7 @@ pub fn ruby_sanitize_l214_d30_warn_replacement_parameter(args ...brew_runtime.Va
 }
 
 // Ruby method `must_be_integer(*keys)` at line 230.
-pub fn ruby_sanitize_l230_d31_must_be_integer(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sanitize_l230_d31_must_be_integer(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('SanitizedParameters#must_be_integer requires a receiver')
 	}
@@ -1152,7 +1152,7 @@ pub fn ruby_sanitize_l230_d31_must_be_integer(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby method `rename_parameter(old_key, new_key)` at line 244.
-pub fn ruby_sanitize_l244_d32_rename_parameter(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sanitize_l244_d32_rename_parameter(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('SanitizedParameters#rename_parameter requires a receiver and two keys')
 	}
@@ -1163,7 +1163,7 @@ pub fn ruby_sanitize_l244_d32_rename_parameter(args ...brew_runtime.Value) brew_
 }
 
 // Ruby method `sanitize_object_prototype(key)` at line 250.
-pub fn ruby_sanitize_l250_d33_sanitize_object_prototype(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sanitize_l250_d33_sanitize_object_prototype(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('SanitizedParameters#sanitize_object_prototype requires a receiver and key')
 	}
@@ -1173,7 +1173,7 @@ pub fn ruby_sanitize_l250_d33_sanitize_object_prototype(args ...brew_runtime.Val
 }
 
 // Ruby method `sanitize_fields(key, &block)` at line 256.
-pub fn ruby_sanitize_l256_d34_sanitize_fields(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sanitize_l256_d34_sanitize_fields(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('SanitizedParameters#sanitize_fields requires a receiver and key')
 	}
@@ -1183,7 +1183,7 @@ pub fn ruby_sanitize_l256_d34_sanitize_fields(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby method `sanitize_choices(key, &block)` at line 264.
-pub fn ruby_sanitize_l264_d35_sanitize_choices(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sanitize_l264_d35_sanitize_choices(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('SanitizedParameters#sanitize_choices requires a receiver and key')
 	}
@@ -1193,7 +1193,7 @@ pub fn ruby_sanitize_l264_d35_sanitize_choices(args ...brew_runtime.Value) brew_
 }
 
 // Ruby method `sanitize_endian(key)` at line 270.
-pub fn ruby_sanitize_l270_d36_sanitize_endian(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sanitize_l270_d36_sanitize_endian(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('SanitizedParameters#sanitize_endian requires a receiver and key')
 	}
@@ -1203,7 +1203,7 @@ pub fn ruby_sanitize_l270_d36_sanitize_endian(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby method `sanitize(key, &block)` at line 274.
-pub fn ruby_sanitize_l274_d37_sanitize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sanitize_l274_d37_sanitize(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('SanitizedParameters#sanitize requires a receiver and key')
 	}
@@ -1217,7 +1217,7 @@ pub fn ruby_sanitize_l274_d37_sanitize(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby method `create_sanitized_params(params, the_class)` at line 280.
-pub fn ruby_sanitize_l280_d38_create_sanitized_params(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sanitize_l280_d38_create_sanitized_params(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('SanitizedParameters#create_sanitized_params requires a receiver, parameters and class')
 	}
@@ -1225,15 +1225,15 @@ pub fn ruby_sanitize_l280_d38_create_sanitized_params(args ...brew_runtime.Value
 }
 
 // Ruby method `hints` at line 284.
-pub fn ruby_sanitize_l284_d39_hints(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sanitize_l284_d39_hints(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('SanitizedParameters#hints requires a receiver')
 	}
-	return brew_runtime.map_value(sanitized_parameters_from_value(args[0]).hints())
+	return ruby.map_value(sanitized_parameters_from_value(args[0]).hints())
 }
 
 // Ruby method `sanitize!` at line 291.
-pub fn ruby_sanitize_l291_d40_sanitize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sanitize_l291_d40_sanitize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('SanitizedParameters#sanitize! requires a receiver')
 	}
@@ -1243,15 +1243,15 @@ pub fn ruby_sanitize_l291_d40_sanitize(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby method `needs_sanitizing?(key)` at line 301.
-pub fn ruby_sanitize_l301_d41_needs_sanitizing(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sanitize_l301_d41_needs_sanitizing(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('SanitizedParameters#needs_sanitizing? requires a receiver and key')
 	}
-	return brew_runtime.bool_value(sanitized_parameters_from_value(args[0]).needs_sanitizing(sanitize_key_name(args[1])))
+	return ruby.bool_value(sanitized_parameters_from_value(args[0]).needs_sanitizing(sanitize_key_name(args[1])))
 }
 
 // Ruby method `ensure_no_nil_values` at line 305.
-pub fn ruby_sanitize_l305_d42_ensure_no_nil_values(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sanitize_l305_d42_ensure_no_nil_values(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('SanitizedParameters#ensure_no_nil_values requires a receiver')
 	}
@@ -1260,7 +1260,7 @@ pub fn ruby_sanitize_l305_d42_ensure_no_nil_values(args ...brew_runtime.Value) b
 }
 
 // Ruby method `merge_default_parameters!` at line 314.
-pub fn ruby_sanitize_l314_d43_merge_default_parameters(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sanitize_l314_d43_merge_default_parameters(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('SanitizedParameters#merge_default_parameters! requires a receiver')
 	}
@@ -1270,7 +1270,7 @@ pub fn ruby_sanitize_l314_d43_merge_default_parameters(args ...brew_runtime.Valu
 }
 
 // Ruby method `ensure_mandatory_parameters_exist` at line 320.
-pub fn ruby_sanitize_l320_d44_ensure_mandatory_parameters_exist(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sanitize_l320_d44_ensure_mandatory_parameters_exist(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('SanitizedParameters#ensure_mandatory_parameters_exist requires a receiver')
 	}
@@ -1279,7 +1279,7 @@ pub fn ruby_sanitize_l320_d44_ensure_mandatory_parameters_exist(args ...brew_run
 }
 
 // Ruby method `ensure_mutual_exclusion_of_parameters` at line 329.
-pub fn ruby_sanitize_l329_d45_ensure_mutual_exclusion_of_parameters(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sanitize_l329_d45_ensure_mutual_exclusion_of_parameters(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('SanitizedParameters#ensure_mutual_exclusion_of_parameters requires a receiver')
 	}
@@ -1288,7 +1288,7 @@ pub fn ruby_sanitize_l329_d45_ensure_mutual_exclusion_of_parameters(args ...brew
 }
 
 // Ruby method `create_sanitized_endian(endian)` at line 340.
-pub fn ruby_sanitize_l340_d46_create_sanitized_endian(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sanitize_l340_d46_create_sanitized_endian(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('SanitizedParameters#create_sanitized_endian requires a receiver and endian')
 	}
@@ -1296,7 +1296,7 @@ pub fn ruby_sanitize_l340_d46_create_sanitized_endian(args ...brew_runtime.Value
 }
 
 // Ruby method `create_sanitized_choices(choices)` at line 352.
-pub fn ruby_sanitize_l352_d47_create_sanitized_choices(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sanitize_l352_d47_create_sanitized_choices(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('SanitizedParameters#create_sanitized_choices requires a receiver and choices')
 	}
@@ -1306,7 +1306,7 @@ pub fn ruby_sanitize_l352_d47_create_sanitized_choices(args ...brew_runtime.Valu
 }
 
 // Ruby method `create_sanitized_fields` at line 356.
-pub fn ruby_sanitize_l356_d48_create_sanitized_fields(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sanitize_l356_d48_create_sanitized_fields(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('SanitizedParameters#create_sanitized_fields requires a receiver')
 	}
@@ -1314,7 +1314,7 @@ pub fn ruby_sanitize_l356_d48_create_sanitized_fields(args ...brew_runtime.Value
 }
 
 // Ruby method `create_sanitized_object_prototype(obj_type, obj_params)` at line 360.
-pub fn ruby_sanitize_l360_d49_create_sanitized_object_prototype(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sanitize_l360_d49_create_sanitized_object_prototype(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('SanitizedParameters#create_sanitized_object_prototype requires a receiver, type and parameters')
 	}

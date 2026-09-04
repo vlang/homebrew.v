@@ -1,6 +1,6 @@
 module bindata
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/bindata-2.5.1/lib/bindata/stringz.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -81,7 +81,7 @@ pub fn read_stringz(data string, options StringzOptions) !string {
 	return trim_and_zero_terminate_string(data[..length], options)
 }
 
-fn stringz_options_from_value(value brew_runtime.Value) StringzOptions {
+fn stringz_options_from_value(value ruby.Value) StringzOptions {
 	maximum := if raw := value.attributes['max_length'] { ?int(raw.int()) } else { none }
 	fallback_name := if value.repr.len == 0 { 'BinData::Stringz' } else { value.repr }
 	return StringzOptions{
@@ -91,63 +91,63 @@ fn stringz_options_from_value(value brew_runtime.Value) StringzOptions {
 }
 
 // Ruby method `assign(val)` at line 30.
-pub fn ruby_stringz_l30_d1_assign(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stringz_l30_d1_assign(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Stringz#assign requires a value')
 	}
-	return brew_runtime.string_value(args[args.len - 1].as_string())
+	return ruby.string_value(args[args.len - 1].as_string())
 }
 
 // Ruby method `snapshot` at line 34.
-pub fn ruby_stringz_l34_d2_snapshot(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stringz_l34_d2_snapshot(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Stringz#snapshot requires a receiver')
 	}
 	value := args[0].attributes['value'] or { args[0].as_string() }
-	return brew_runtime.string_value(stringz_snapshot(value, stringz_options_from_value(args[0])) or {
+	return ruby.string_value(stringz_snapshot(value, stringz_options_from_value(args[0])) or {
 		panic(err)
 	})
 }
 
 // Ruby method `value_to_binary_string(val)` at line 43.
-pub fn ruby_stringz_l43_d3_value_to_binary_string(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stringz_l43_d3_value_to_binary_string(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Stringz#value_to_binary_string requires a receiver and value')
 	}
-	return brew_runtime.string_value(trim_and_zero_terminate_string(args[1].as_string(), stringz_options_from_value(args[0])) or { panic(err) })
+	return ruby.string_value(trim_and_zero_terminate_string(args[1].as_string(), stringz_options_from_value(args[0])) or { panic(err) })
 }
 
 // Ruby method `read_and_return_value(io)` at line 47.
-pub fn ruby_stringz_l47_d4_read_and_return_value(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stringz_l47_d4_read_and_return_value(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Stringz#read_and_return_value requires a receiver and input')
 	}
-	return brew_runtime.string_value(read_stringz(args[1].as_string(), stringz_options_from_value(args[0])) or { panic(err) })
+	return ruby.string_value(read_stringz(args[1].as_string(), stringz_options_from_value(args[0])) or { panic(err) })
 }
 
 // Ruby method `sensible_default` at line 63.
-pub fn ruby_stringz_l63_d5_sensible_default(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('')
+pub fn ruby_stringz_l63_d5_sensible_default(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('')
 }
 
 // Ruby method `trim_and_zero_terminate(str)` at line 67.
-pub fn ruby_stringz_l67_d6_trim_and_zero_terminate(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stringz_l67_d6_trim_and_zero_terminate(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Stringz#trim_and_zero_terminate requires a receiver and string')
 	}
-	return brew_runtime.string_value(trim_and_zero_terminate_string(args[1].as_string(), stringz_options_from_value(args[0])) or { panic(err) })
+	return ruby.string_value(trim_and_zero_terminate_string(args[1].as_string(), stringz_options_from_value(args[0])) or { panic(err) })
 }
 
 // Ruby method `truncate_after_first_zero_byte!(str)` at line 81.
-pub fn ruby_stringz_l81_d7_truncate_after_first_zero_byte(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stringz_l81_d7_truncate_after_first_zero_byte(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('truncate_after_first_zero_byte! requires a string')
 	}
-	return brew_runtime.string_value(truncate_stringz_after_first_zero(args[args.len - 1].as_string()))
+	return ruby.string_value(truncate_stringz_after_first_zero(args[args.len - 1].as_string()))
 }
 
 // Ruby method `trim_to!(str, max_length = nil)` at line 85.
-pub fn ruby_stringz_l85_d8_trim_to(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stringz_l85_d8_trim_to(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('trim_to! requires a string')
 	}
@@ -157,15 +157,15 @@ pub fn ruby_stringz_l85_d8_trim_to(args ...brew_runtime.Value) brew_runtime.Valu
 		none
 	}
 	value_index := if maximum == none { args.len - 1 } else { args.len - 2 }
-	return brew_runtime.string_value(trim_stringz_to(args[value_index].as_string(), maximum))
+	return ruby.string_value(trim_stringz_to(args[value_index].as_string(), maximum))
 }
 
 // Ruby method `append_zero_byte_if_needed!(str)` at line 92.
-pub fn ruby_stringz_l92_d9_append_zero_byte_if_needed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stringz_l92_d9_append_zero_byte_if_needed(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('append_zero_byte_if_needed! requires a string')
 	}
-	return brew_runtime.string_value(append_stringz_zero_if_needed(args[args.len - 1].as_string()))
+	return ruby.string_value(append_stringz_zero_if_needed(args[args.len - 1].as_string()))
 }
 
 // Original Ruby source (line-for-line):

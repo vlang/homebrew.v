@@ -1,6 +1,6 @@
 module compilers
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `sorbet/tapioca/compilers/forwardables.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -76,66 +76,66 @@ pub fn forwardables_compiler_decoration(constant_module ForwardableCompilerModul
 	}
 }
 
-fn forwardables_compiler_input_value(input &ForwardablesCompilerInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Tapioca::Compilers::Forwardables::Input', '', {
+fn forwardables_compiler_input_value(input &ForwardablesCompilerInput) ruby.Value {
+	return ruby.structured_value('Tapioca::Compilers::Forwardables::Input', '', {
 		'forwardables_compiler_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn forwardables_compiler_input_from_value(value brew_runtime.Value) &ForwardablesCompilerInput {
+fn forwardables_compiler_input_from_value(value ruby.Value) &ForwardablesCompilerInput {
 	address := value.attributes['forwardables_compiler_input_address'] or {
 		panic('invalid Forwardables compiler input')
 	}
 	return unsafe { &ForwardablesCompilerInput(voidptr(address.u64())) }
 }
 
-pub fn forwardables_compiler_input_boundary(input &ForwardablesCompilerInput) brew_runtime.Value {
+pub fn forwardables_compiler_input_boundary(input &ForwardablesCompilerInput) ruby.Value {
 	return forwardables_compiler_input_value(input)
 }
 
 // Ruby method `self.gather_constants` at line 26.
-pub fn ruby_forwardables_l26_d1_self_gather_constants(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_forwardables_l26_d1_self_gather_constants(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.array_value([])
+		return ruby.array_value([])
 	}
-	return brew_runtime.array_value(forwardables_compiler_gather_constants(forwardables_compiler_input_from_value(args[0])).map(brew_runtime.object_value('Module', it.name)))
+	return ruby.array_value(forwardables_compiler_gather_constants(forwardables_compiler_input_from_value(args[0])).map(ruby.object_value('Module', it.name)))
 }
 
 // Ruby method `decorate` at line 34.
-pub fn ruby_forwardables_l34_d2_decorate(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_forwardables_l34_d2_decorate(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'input and constant are required')
+		return ruby.object_value('ArgumentError', 'input and constant are required')
 	}
 	input := forwardables_compiler_input_from_value(args[0])
 	name := args[1].as_string()
 	matches := input.modules.filter(it.name == name)
 	if matches.len == 0 {
-		return brew_runtime.object_value('NameError', 'unknown constant ${name}')
+		return ruby.object_value('NameError', 'unknown constant ${name}')
 	}
 	return tapioca_decoration_value(forwardables_compiler_decoration(matches[0]))
 }
 
 // Ruby method `compile_forwardable_method(klass, method, class_method: false)` at line 46.
-pub fn ruby_forwardables_l46_d3_compile_forwardable_method(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_forwardables_l46_d3_compile_forwardable_method(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'klass and method are required')
+		return ruby.object_value('ArgumentError', 'klass and method are required')
 	}
 	class_method := if args.len > 2 { args[2].as_bool() or { false } } else { false }
 	method := forwardables_compile_method(args[0].as_string(), args[1].as_string(), class_method)
-	return brew_runtime.map_value({
-		'name':         brew_runtime.string_value(method.name)
-		'parameters':   brew_runtime.string_array_value(method.parameters)
-		'return_type':  brew_runtime.string_value(method.return_type)
-		'class_method': brew_runtime.bool_value(method.class_method)
+	return ruby.map_value({
+		'name':         ruby.string_value(method.name)
+		'parameters':   ruby.string_array_value(method.parameters)
+		'return_type':  ruby.string_value(method.return_type)
+		'class_method': ruby.bool_value(method.class_method)
 	})
 }
 
 // Ruby method `return_type(klass, name)` at line 61.
-pub fn ruby_forwardables_l61_d4_return_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_forwardables_l61_d4_return_type(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'klass and name are required')
+		return ruby.object_value('ArgumentError', 'klass and name are required')
 	}
-	return brew_runtime.string_value(forwardables_compiler_return_type(args[0].as_string(), args[1].as_string()))
+	return ruby.string_value(forwardables_compiler_return_type(args[0].as_string(), args[1].as_string()))
 }
 
 // Original Ruby source (line-for-line):

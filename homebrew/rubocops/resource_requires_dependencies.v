@@ -1,6 +1,6 @@
 module rubocops
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `rubocops/resource_requires_dependencies.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -354,8 +354,8 @@ pub fn audit_resource_requires_dependencies(source string) []ResourceRequiresDep
 	return problems
 }
 
-fn resource_requires_dependencies_problem_value(problem ResourceRequiresDependenciesProblem) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cop::Problem', problem.message, {
+fn resource_requires_dependencies_problem_value(problem ResourceRequiresDependenciesProblem) ruby.Value {
+	return ruby.structured_value('RuboCop::Cop::Problem', problem.message, {
 		'resource':              problem.resource
 		'dependency_kind':       problem.dependency_kind
 		'required_dependencies': problem.required_dependencies.join(',')
@@ -366,9 +366,9 @@ fn resource_requires_dependencies_problem_value(problem ResourceRequiresDependen
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 14.
-pub fn ruby_resource_requires_dependencies_l14_d1_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_resource_requires_dependencies_l14_d1_audit_formula(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.array_value(audit_resource_requires_dependencies(source).map(resource_requires_dependencies_problem_value(it)))
+	return ruby.array_value(audit_resource_requires_dependencies(source).map(resource_requires_dependencies_problem_value(it)))
 }
 
 // Original Ruby source (line-for-line):

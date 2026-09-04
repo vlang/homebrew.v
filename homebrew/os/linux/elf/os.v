@@ -1,6 +1,6 @@
 module elf
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `os/linux/elf/os.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -52,9 +52,9 @@ pub fn expand_elf_dst(input string, reference string, replacement string) string
 }
 
 // Ruby method `self.expand_elf_dst(str, ref, repl)` at line 11.
-pub fn ruby_os_l11_d1_self_expand_elf_dst(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_os_l11_d1_self_expand_elf_dst(args ...ruby.Value) ruby.Value {
 	if args.len < 3 { panic('expand_elf_dst requires string, reference and replacement') }
-	return brew_runtime.string_value(expand_elf_dst(args[0].as_string(), args[1].as_string(), args[2].as_string()))
+	return ruby.string_value(expand_elf_dst(args[0].as_string(), args[1].as_string(), args[2].as_string()))
 }
 
 // Original Ruby source (line-for-line):

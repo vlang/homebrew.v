@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `cmd/unlink.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -53,7 +53,7 @@ fn unlink_command_count(keg UnlinkCommandKeg, _ UnlinkCommandOptions) !int {
 }
 
 // Ruby method `run` at line 24.
-pub fn ruby_unlink_l24_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unlink_l24_d1_run(args ...ruby.Value) ruby.Value {
 	kegs := if args.len > 0 {
 		args[0].array_data.map(UnlinkCommandKeg{
 			name: it.attributes['name'] or { it.as_string() }
@@ -67,9 +67,9 @@ pub fn ruby_unlink_l24_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
 		verbose: if args.len > 2 { args[2].as_bool() or { false } } else { false }
 	}
 	result := unlink_command(kegs, options, unlink_command_count) or {
-		return brew_runtime.object_value('Error', err.msg())
+		return ruby.object_value('Error', err.msg())
 	}
-	return brew_runtime.structured_value('UnlinkCommandResult', result.output, {
+	return ruby.structured_value('UnlinkCommandResult', result.output, {
 		'output': result.output
 		'counts': result.counts.map(it.str()).join(',')
 	})

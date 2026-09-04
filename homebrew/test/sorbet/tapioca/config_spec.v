@@ -1,23 +1,23 @@
 module tapioca
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `test/sorbet/tapioca/config_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:config) { YAML.load_file(File.join(__dir__, "../../../sorbet/tapioca/config.yml")) }` at line 8.
-pub fn ruby_config_spec_l8_d1_config(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_config_spec_l8_d1_config(args ...ruby.Value) ruby.Value {
 	contents := if args.len > 0 { args[0].as_string() } else { '' }
 	exclusions := tapioca_config_exclusions(contents)
-	return brew_runtime.map_value({
-		'gem': brew_runtime.map_value({
-			'exclude': brew_runtime.string_array_value(exclusions)
+	return ruby.map_value({
+		'gem': ruby.map_value({
+			'exclude': ruby.string_array_value(exclusions)
 		})
 	})
 }
 
 // Ruby it `it "only excludes dependencies" do` at line 10.
-pub fn ruby_config_spec_l10_d2_only(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_config_spec_l10_d2_only(args ...ruby.Value) ruby.Value {
 	exclusions := if args.len > 0 {
 		args[0].as_string_array() or { []string{} }
 	} else {
@@ -28,7 +28,7 @@ pub fn ruby_config_spec_l10_d2_only(args ...brew_runtime.Value) brew_runtime.Val
 	} else {
 		[]string{}
 	}
-	return brew_runtime.bool_value(tapioca_only_excludes_dependencies(exclusions, dependencies))
+	return ruby.bool_value(tapioca_only_excludes_dependencies(exclusions, dependencies))
 }
 
 pub fn tapioca_config_exclusions(contents string) []string {

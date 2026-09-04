@@ -14,8 +14,16 @@ accessors, aliases, delegates, matcher methods, and RSpec examples have V entry
 points.
 
 Where a dependency or Ruby type has not yet been translated, the V entry point
-calls `brew_runtime.unimplemented_fn`. These explicit boundaries are intended to
-be replaced one at a time with typed V bodies without losing source context.
+calls `ruby.unimplemented_fn` from the
+[`vlang/ruby`](https://github.com/vlang/ruby) compatibility module. These
+explicit boundaries are intended to be replaced one at a time with typed V
+bodies without losing source context.
+
+Install the external V dependencies once after cloning:
+
+```sh
+v install --once
+```
 
 Build the current command entry point with:
 

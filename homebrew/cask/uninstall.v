@@ -1,6 +1,6 @@
 module cask
 
-import brew_runtime
+import ruby
 import homebrew
 import os
 
@@ -272,135 +272,135 @@ pub fn check_dependent_casks(casks []CaskUninstallCask, caskroom []homebrew.Cask
 	}
 }
 
-pub fn cask_uninstall_cask_value(cask CaskUninstallCask) brew_runtime.Value {
+pub fn cask_uninstall_cask_value(cask CaskUninstallCask) ruby.Value {
 	mut values := {
 		'core':                     cask_core_value(cask.core)
-		'installed':                brew_runtime.bool_value(cask.installed)
-		'pinned':                   brew_runtime.bool_value(cask.pinned)
-		'installed_versions':       brew_runtime.string_array_value(cask.installed_versions)
-		'artifact_paths':           brew_runtime.string_array_value(cask.artifact_paths)
-		'uninstall_script':         brew_runtime.string_value(cask.uninstall_script)
-		'uninstall_script_missing': brew_runtime.bool_value(cask.uninstall_script_missing)
-		'incomplete_metadata':      brew_runtime.bool_value(cask.incomplete_metadata)
-		'upgrade':                  brew_runtime.bool_value(cask.upgrade)
-		'installer_messages':       brew_runtime.string_array_value(cask.installer_messages)
+		'installed':                ruby.bool_value(cask.installed)
+		'pinned':                   ruby.bool_value(cask.pinned)
+		'installed_versions':       ruby.string_array_value(cask.installed_versions)
+		'artifact_paths':           ruby.string_array_value(cask.artifact_paths)
+		'uninstall_script':         ruby.string_value(cask.uninstall_script)
+		'uninstall_script_missing': ruby.bool_value(cask.uninstall_script_missing)
+		'incomplete_metadata':      ruby.bool_value(cask.incomplete_metadata)
+		'upgrade':                  ruby.bool_value(cask.upgrade)
+		'installer_messages':       ruby.string_array_value(cask.installer_messages)
 	}
 	if failure := cask.installer_failure {
-		values['installer_failure'] = brew_runtime.structured_value(failure.type_name, failure.message, {
+		values['installer_failure'] = ruby.structured_value(failure.type_name, failure.message, {
 			'message': failure.message
 		})
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'Cask::Uninstall::CaskState'
 		repr: cask_uninstall_name(cask)
 		map_data: values
 	}
 }
 
-fn cask_uninstall_cask_from_value(value brew_runtime.Value) !CaskUninstallCask {
+fn cask_uninstall_cask_from_value(value ruby.Value) !CaskUninstallCask {
 	if value.type_name != 'Cask::Uninstall::CaskState' && value.type_name != 'Hash' {
 		return error('expected Cask::Uninstall::CaskState, got ${value.type_name}')
 	}
 	failure := if raw := value.map_data['installer_failure'] {
 		?CaskUninstallFailure(CaskUninstallFailure{
 			type_name: raw.type_name
-			message: (raw.map_data['message'] or { brew_runtime.string_value(raw.as_string()) }).as_string()
+			message: (raw.map_data['message'] or { ruby.string_value(raw.as_string()) }).as_string()
 		})
 	} else {
 		none
 	}
 	return CaskUninstallCask{
 		core: cask_core_from_value(value.map_data['core'] or { return error('core is required') })!
-		installed: (value.map_data['installed'] or { brew_runtime.bool_value(false) }).as_bool()!
-		pinned: (value.map_data['pinned'] or { brew_runtime.bool_value(false) }).as_bool()!
-		installed_versions: (value.map_data['installed_versions'] or { brew_runtime.string_array_value([]) }).as_string_array()!
-		artifact_paths: (value.map_data['artifact_paths'] or { brew_runtime.string_array_value([]) }).as_string_array()!
-		uninstall_script: (value.map_data['uninstall_script'] or { brew_runtime.string_value('') }).as_string()
-		uninstall_script_missing: (value.map_data['uninstall_script_missing'] or { brew_runtime.bool_value(false) }).as_bool()!
-		incomplete_metadata: (value.map_data['incomplete_metadata'] or { brew_runtime.bool_value(false) }).as_bool()!
-		upgrade: (value.map_data['upgrade'] or { brew_runtime.bool_value(false) }).as_bool()!
-		installer_messages: (value.map_data['installer_messages'] or { brew_runtime.string_array_value([]) }).as_string_array()!
+		installed: (value.map_data['installed'] or { ruby.bool_value(false) }).as_bool()!
+		pinned: (value.map_data['pinned'] or { ruby.bool_value(false) }).as_bool()!
+		installed_versions: (value.map_data['installed_versions'] or { ruby.string_array_value([]) }).as_string_array()!
+		artifact_paths: (value.map_data['artifact_paths'] or { ruby.string_array_value([]) }).as_string_array()!
+		uninstall_script: (value.map_data['uninstall_script'] or { ruby.string_value('') }).as_string()
+		uninstall_script_missing: (value.map_data['uninstall_script_missing'] or { ruby.bool_value(false) }).as_bool()!
+		incomplete_metadata: (value.map_data['incomplete_metadata'] or { ruby.bool_value(false) }).as_bool()!
+		upgrade: (value.map_data['upgrade'] or { ruby.bool_value(false) }).as_bool()!
+		installer_messages: (value.map_data['installer_messages'] or { ruby.string_array_value([]) }).as_string_array()!
 		installer_failure: failure
 	}
 }
 
-fn cask_uninstall_result_value(result CaskUninstallResult) brew_runtime.Value {
+fn cask_uninstall_result_value(result CaskUninstallResult) ruby.Value {
 	mut values := {
-		'casks':         brew_runtime.array_value(result.casks.map(cask_uninstall_cask_value(it)))
-		'stdout':        brew_runtime.string_value(result.stdout)
-		'stderr':        brew_runtime.string_value(result.stderr)
-		'uninstalled':   brew_runtime.string_array_value(result.uninstalled)
-		'removed_paths': brew_runtime.string_array_value(result.removed_paths)
-		'errors':        brew_runtime.array_value(result.errors.map(brew_runtime.structured_value(it.type_name, it.message, {
+		'casks':         ruby.array_value(result.casks.map(cask_uninstall_cask_value(it)))
+		'stdout':        ruby.string_value(result.stdout)
+		'stderr':        ruby.string_value(result.stderr)
+		'uninstalled':   ruby.string_array_value(result.uninstalled)
+		'removed_paths': ruby.string_array_value(result.removed_paths)
+		'errors':        ruby.array_value(result.errors.map(ruby.structured_value(it.type_name, it.message, {
 			'message': it.message
 		})))
 	}
 	if failure := result.final_failure {
-		values['final_failure'] = brew_runtime.structured_value(failure.type_name, failure.message, {
+		values['final_failure'] = ruby.structured_value(failure.type_name, failure.message, {
 			'message': failure.message
 		})
 	}
-	return brew_runtime.map_value(values)
+	return ruby.map_value(values)
 }
 
 // Ruby method `self.uninstall_casks(*casks, binaries: false, force: false, verbose: false)` at line 13.
-pub fn ruby_uninstall_l13_d1_self_uninstall_casks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uninstall_l13_d1_self_uninstall_casks(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return cask_uninstall_result_value(uninstall_casks([], CaskUninstallOptions{}))
 	}
-	values := args[0].as_map() or { return brew_runtime.object_value('ArgumentError', err.msg()) }
-	cask_values := (values['casks'] or { brew_runtime.array_value([]) }).as_array() or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+	values := args[0].as_map() or { return ruby.object_value('ArgumentError', err.msg()) }
+	cask_values := (values['casks'] or { ruby.array_value([]) }).as_array() or {
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	mut casks := []CaskUninstallCask{}
 	for value in cask_values {
 		casks << (cask_uninstall_cask_from_value(value) or {
-			return brew_runtime.object_value('ArgumentError', err.msg())
+			return ruby.object_value('ArgumentError', err.msg())
 		})
 	}
 	return cask_uninstall_result_value(uninstall_casks(casks, CaskUninstallOptions{
-		binaries: (values['binaries'] or { brew_runtime.bool_value(false) }).as_bool() or { false }
-		force: (values['force'] or { brew_runtime.bool_value(false) }).as_bool() or { false }
-		verbose: (values['verbose'] or { brew_runtime.bool_value(false) }).as_bool() or { false }
+		binaries: (values['binaries'] or { ruby.bool_value(false) }).as_bool() or { false }
+		force: (values['force'] or { ruby.bool_value(false) }).as_bool() or { false }
+		verbose: (values['verbose'] or { ruby.bool_value(false) }).as_bool() or { false }
 	}))
 }
 
 // Ruby method `self.unpin_for_removal?(cask, force:)` at line 39.
-pub fn ruby_uninstall_l39_d2_self_unpin_for_removal(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uninstall_l39_d2_self_unpin_for_removal(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	cask := cask_uninstall_cask_from_value(args[0]) or { return brew_runtime.bool_value(false) }
+	cask := cask_uninstall_cask_from_value(args[0]) or { return ruby.bool_value(false) }
 	force := args.len > 1 && (args[1].as_bool() or { false })
-	return brew_runtime.bool_value(cask_unpin_for_removal(cask, force).allowed)
+	return ruby.bool_value(cask_unpin_for_removal(cask, force).allowed)
 }
 
 // Ruby method `self.check_dependent_casks(*casks, named_args: [])` at line 52.
-pub fn ruby_uninstall_l52_d3_self_check_dependent_casks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uninstall_l52_d3_self_check_dependent_casks(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_value('')
+		return ruby.string_value('')
 	}
-	values := args[0].as_map() or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+	values := args[0].as_map() or { return ruby.object_value('ArgumentError', err.msg()) }
 	mut casks := []CaskUninstallCask{}
-	for raw in (values['casks'] or { brew_runtime.array_value([]) }).as_array() or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+	for raw in (values['casks'] or { ruby.array_value([]) }).as_array() or {
+		return ruby.object_value('ArgumentError', err.msg())
 	} {
 		casks << (cask_uninstall_cask_from_value(raw) or {
-			return brew_runtime.object_value('ArgumentError', err.msg())
+			return ruby.object_value('ArgumentError', err.msg())
 		})
 	}
 	mut caskroom := []homebrew.CaskDependent{}
-	for raw in (values['caskroom'] or { brew_runtime.array_value([]) }).as_array() or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+	for raw in (values['caskroom'] or { ruby.array_value([]) }).as_array() or {
+		return ruby.object_value('ArgumentError', err.msg())
 	} {
 		caskroom << (homebrew.cask_dependent_from_value(raw) or {
-			return brew_runtime.object_value('ArgumentError', err.msg())
+			return ruby.object_value('ArgumentError', err.msg())
 		})
 	}
-	named_args := (values['named_args'] or { brew_runtime.string_array_value([]) }).as_string_array() or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+	named_args := (values['named_args'] or { ruby.string_array_value([]) }).as_string_array() or {
+		return ruby.object_value('ArgumentError', err.msg())
 	}
-	return brew_runtime.string_value(check_dependent_casks(casks, caskroom, named_args).stderr)
+	return ruby.string_value(check_dependent_casks(casks, caskroom, named_args).stderr)
 }
 
 // Original Ruby source (line-for-line):

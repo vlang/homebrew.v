@@ -1,6 +1,6 @@
 module methods
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/private/methods/signature.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -13,31 +13,31 @@ pub:
 pub struct RuntimeArgumentValueType {
 pub:
 	name       string
-	value      brew_runtime.Value
-	type_value brew_runtime.Value
+	value      ruby.Value
+	type_value ruby.Value
 }
 
 @[heap]
 pub struct RuntimeMethodSignature {
 pub:
-	method                      brew_runtime.Value
+	method                      ruby.Value
 	arg_types                   []ValidationTypePair
-	kwarg_types                 map[string]brew_runtime.Value
-	block_type                  brew_runtime.Value
+	kwarg_types                 map[string]ruby.Value
+	block_type                  ruby.Value
 	block_name                  string
-	rest_type                   brew_runtime.Value
+	rest_type                   ruby.Value
 	rest_name                   string
-	keyrest_type                brew_runtime.Value
+	keyrest_type                ruby.Value
 	keyrest_name                string
-	bind                        brew_runtime.Value
-	effective_return_type       brew_runtime.Value
-	return_type                 brew_runtime.Value
+	bind                        ruby.Value
+	effective_return_type       ruby.Value
+	return_type                 ruby.Value
 	mode                        string
 	req_arg_count               int
 	req_kwarg_names             []string
 	check_level                 string
 	parameters                  []RuntimeMethodParameter
-	on_failure                  brew_runtime.Value
+	on_failure                  ruby.Value
 	override_allow_incompatible string
 	defined_raw                 bool
 pub mut:
@@ -45,14 +45,14 @@ pub mut:
 	types_built bool
 }
 
-fn signature_nil() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn signature_nil() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-fn signature_parameters_from_method(method brew_runtime.Value) []RuntimeMethodParameter {
+fn signature_parameters_from_method(method ruby.Value) []RuntimeMethodParameter {
 	if raw_parameters := method.map_data['parameters'] {
 		mut result := []RuntimeMethodParameter{}
-		for parameter in raw_parameters.as_array() or { []brew_runtime.Value{} } {
+		for parameter in raw_parameters.as_array() or { []ruby.Value{} } {
 			result << RuntimeMethodParameter{
 				kind: parameter.attribute('kind') or { 'req' }.trim_string_left(':')
 				name: parameter.attribute('name') or { '' }.trim_string_left(':')
@@ -74,29 +74,29 @@ fn signature_parameters_from_method(method brew_runtime.Value) []RuntimeMethodPa
 	return result
 }
 
-fn signature_parameter_values(parameters []RuntimeMethodParameter) brew_runtime.Value {
-	return brew_runtime.array_value(parameters.map(brew_runtime.structured_value('Array', '[${it.kind}, ${it.name}]', {
+fn signature_parameter_values(parameters []RuntimeMethodParameter) ruby.Value {
+	return ruby.array_value(parameters.map(ruby.structured_value('Array', '[${it.kind}, ${it.name}]', {
 		'kind': it.kind
 		'name': it.name
 	})))
 }
 
-fn runtime_signature_arg_map(signature &RuntimeMethodSignature) map[string]brew_runtime.Value {
-	mut result := map[string]brew_runtime.Value{}
+fn runtime_signature_arg_map(signature &RuntimeMethodSignature) map[string]ruby.Value {
+	mut result := map[string]ruby.Value{}
 	for pair in signature.arg_types {
 		result[pair.name] = pair.type_value
 	}
 	return result
 }
 
-fn runtime_signature_value(signature &RuntimeMethodSignature) brew_runtime.Value {
-	return brew_runtime.Value{
+fn runtime_signature_value(signature &RuntimeMethodSignature) ruby.Value {
+	return ruby.Value{
 		type_name: 'T::Private::Methods::Signature'
 		repr: signature.method_name
 		map_data: {
 			'method':                signature.method
-			'arg_types':             brew_runtime.map_value(runtime_signature_arg_map(signature))
-			'kwarg_types':           brew_runtime.map_value(signature.kwarg_types)
+			'arg_types':             ruby.map_value(runtime_signature_arg_map(signature))
+			'kwarg_types':           ruby.map_value(signature.kwarg_types)
 			'block_type':            signature.block_type
 			'rest_type':             signature.rest_type
 			'keyrest_type':          signature.keyrest_type
@@ -105,7 +105,7 @@ fn runtime_signature_value(signature &RuntimeMethodSignature) brew_runtime.Value
 			'return_type':           signature.return_type
 			'parameters':            signature_parameter_values(signature.parameters)
 			'on_failure':            signature.on_failure
-			'owner':                 signature.method.map_data['owner'] or { brew_runtime.object_value('Module', signature.method.attribute('owner') or { '<unknown>' }) }
+			'owner':                 signature.method.map_data['owner'] or { ruby.object_value('Module', signature.method.attribute('owner') or { '<unknown>' }) }
 		}
 		string_array_data: signature.req_kwarg_names.clone()
 		attributes: {
@@ -124,21 +124,21 @@ fn runtime_signature_value(signature &RuntimeMethodSignature) brew_runtime.Value
 	}
 }
 
-fn runtime_signature_from_value(value brew_runtime.Value) &RuntimeMethodSignature {
+fn runtime_signature_from_value(value ruby.Value) &RuntimeMethodSignature {
 	address := value.attribute('runtime_signature_address') or { panic('invalid Signature receiver') }
 	return unsafe { &RuntimeMethodSignature(voidptr(address.u64())) }
 }
 
-fn runtime_signature_from_args(args []brew_runtime.Value) &RuntimeMethodSignature {
+fn runtime_signature_from_args(args []ruby.Value) &RuntimeMethodSignature {
 	if args.len == 0 {
 		panic('Signature method requires a receiver')
 	}
 	return runtime_signature_from_value(args[0])
 }
 
-pub fn new_runtime_method_signature(method brew_runtime.Value, method_name string,
-	raw_arg_types map[string]brew_runtime.Value, raw_return_type brew_runtime.Value,
-	bind brew_runtime.Value, mode string, check_level string, on_failure brew_runtime.Value,
+pub fn new_runtime_method_signature(method ruby.Value, method_name string,
+	raw_arg_types map[string]ruby.Value, raw_return_type ruby.Value,
+	bind ruby.Value, mode string, check_level string, on_failure ruby.Value,
 	parameters []RuntimeMethodParameter, override_allow_incompatible string,
 	defined_raw bool) !&RuntimeMethodSignature {
 	clean_check := if check_level == '' || check_level == 'nil' {
@@ -166,7 +166,7 @@ pub fn new_runtime_method_signature(method brew_runtime.Value, method_name strin
 		return error('The declaration for `${method.as_string()}` has arguments with duplicate names')
 	}
 	mut arg_types := []ValidationTypePair{}
-	mut kwarg_types := map[string]brew_runtime.Value{}
+	mut kwarg_types := map[string]ruby.Value{}
 	mut req_kwarg_names := []string{}
 	mut req_arg_count := 0
 	mut block_type := signature_nil()
@@ -213,7 +213,7 @@ pub fn new_runtime_method_signature(method brew_runtime.Value, method_name strin
 		}
 	}
 	effective_return := if clean_check == 'tests' && raw_return_type.type_name == 'T::Private::Types::Void' {
-		brew_runtime.object_value('T::Types::Anything', 'T.anything')
+		ruby.object_value('T::Types::Anything', 'T.anything')
 	} else {
 		raw_return_type
 	}
@@ -242,7 +242,7 @@ pub fn new_runtime_method_signature(method brew_runtime.Value, method_name strin
 	}
 }
 
-pub fn new_untyped_runtime_method_signature(method brew_runtime.Value, mode string,
+pub fn new_untyped_runtime_method_signature(method ruby.Value, mode string,
 	parameters []RuntimeMethodParameter) !&RuntimeMethodSignature {
 	mut effective_parameters := parameters.clone()
 	for index, parameter in effective_parameters {
@@ -250,17 +250,17 @@ pub fn new_untyped_runtime_method_signature(method brew_runtime.Value, mode stri
 			effective_parameters[index] = RuntimeMethodParameter{ ...parameter, name: 'arg${index}' }
 		}
 	}
-	not_typed := brew_runtime.object_value('T::Private::Types::NotTyped', 'T::Private::Types::NotTyped::INSTANCE')
-	mut raw_arg_types := map[string]brew_runtime.Value{}
+	not_typed := ruby.object_value('T::Private::Types::NotTyped', 'T::Private::Types::NotTyped::INSTANCE')
+	mut raw_arg_types := map[string]ruby.Value{}
 	for parameter in effective_parameters {
 		raw_arg_types[parameter.name] = not_typed
 	}
 	return new_runtime_method_signature(method, method.attribute('name') or { method.as_string() }, raw_arg_types, not_typed, signature_nil(), mode, 'never', signature_nil(), effective_parameters, 'false', false)
 }
 
-pub fn (signature &RuntimeMethodSignature) each_argument_value_type(arguments []brew_runtime.Value) ![]RuntimeArgumentValueType {
+pub fn (signature &RuntimeMethodSignature) each_argument_value_type(arguments []ruby.Value) ![]RuntimeArgumentValueType {
 	mut positional_length := arguments.len
-	mut kwargs := map[string]brew_runtime.Value{}
+	mut kwargs := map[string]ruby.Value{}
 	if positional_length > signature.req_arg_count && (signature.kwarg_types.len > 0 || !validation_is_nil_type(signature.keyrest_type)) && arguments.len > 0 && arguments.last().type_name == 'Hash' {
 		kwargs = arguments.last().as_map()!
 		positional_length--
@@ -294,19 +294,19 @@ pub fn (signature &RuntimeMethodSignature) each_argument_value_type(arguments []
 	return result
 }
 
-pub fn runtime_method_description(method brew_runtime.Value, method_name string,
+pub fn runtime_method_description(method ruby.Value, method_name string,
 	source_location string) string {
 	location := if source_location == '' || source_location == 'nil' {
 		'<unknown location>'
 	} else {
 		source_location
 	}
-	owner := method.attribute('owner') or { method.map_data['owner'] or { brew_runtime.object_value('Module', '<unknown>') }.as_string() }
+	owner := method.attribute('owner') or { method.map_data['owner'] or { ruby.object_value('Module', '<unknown>') }.as_string() }
 	return '${owner}#${method_name} at ${location}'
 }
 
-fn runtime_argument_value(result RuntimeArgumentValueType) brew_runtime.Value {
-	return brew_runtime.Value{
+fn runtime_argument_value(result RuntimeArgumentValueType) ruby.Value {
+	return ruby.Value{
 		type_name: 'T::Private::Methods::ArgumentValueType'
 		repr: result.name
 		map_data: {
@@ -319,13 +319,13 @@ fn runtime_argument_value(result RuntimeArgumentValueType) brew_runtime.Value {
 	}
 }
 
-fn signature_config_from_args(args []brew_runtime.Value) map[string]brew_runtime.Value {
+fn signature_config_from_args(args []ruby.Value) map[string]ruby.Value {
 	if args.len == 1 && args[0].type_name == 'Hash' {
 		return args[0].as_map() or { panic(err) }
 	}
 	keys := ['method', 'method_name', 'raw_arg_types', 'raw_return_type', 'bind', 'mode',
 		'check_level', 'on_failure', 'parameters', 'override_allow_incompatible', 'defined_raw']
-	mut result := map[string]brew_runtime.Value{}
+	mut result := map[string]ruby.Value{}
 	for index, value in args {
 		if index < keys.len {
 			result[keys[index]] = value
@@ -334,139 +334,139 @@ fn signature_config_from_args(args []brew_runtime.Value) map[string]brew_runtime
 	return result
 }
 
-fn runtime_signature_from_config(config map[string]brew_runtime.Value) &RuntimeMethodSignature {
+fn runtime_signature_from_config(config map[string]ruby.Value) &RuntimeMethodSignature {
 	method := config['method'] or { panic('Signature.initialize requires method') }
-	raw_args := config['raw_arg_types'] or { brew_runtime.map_value({}) }.as_map() or { panic(err) }
+	raw_args := config['raw_arg_types'] or { ruby.map_value({}) }.as_map() or { panic(err) }
 	parameters_value := config['parameters'] or { method.map_data['parameters'] or { signature_parameter_values(signature_parameters_from_method(method)) } }
-	parameters := (parameters_value.as_array() or { []brew_runtime.Value{} }).map(RuntimeMethodParameter{
+	parameters := (parameters_value.as_array() or { []ruby.Value{} }).map(RuntimeMethodParameter{
 		kind: it.attribute('kind') or { 'req' }.trim_string_left(':')
 		name: it.attribute('name') or { '' }.trim_string_left(':')
 	})
-	return new_runtime_method_signature(method, config['method_name'] or { brew_runtime.string_value(method.attribute('name') or { method.as_string() }) }.as_string().trim_string_left(':'), raw_args, config['raw_return_type'] or { signature_nil() }, config['bind'] or { signature_nil() }, config['mode'] or { brew_runtime.string_value('standard') }.as_string(), config['check_level'] or { brew_runtime.string_value('always') }.as_string(), config['on_failure'] or { signature_nil() }, parameters, config['override_allow_incompatible'] or { brew_runtime.bool_value(false) }.as_string().trim_string_left(':'), config['defined_raw'] or { brew_runtime.bool_value(false) }.as_bool() or { false }) or { panic(err) }
+	return new_runtime_method_signature(method, config['method_name'] or { ruby.string_value(method.attribute('name') or { method.as_string() }) }.as_string().trim_string_left(':'), raw_args, config['raw_return_type'] or { signature_nil() }, config['bind'] or { signature_nil() }, config['mode'] or { ruby.string_value('standard') }.as_string(), config['check_level'] or { ruby.string_value('always') }.as_string(), config['on_failure'] or { signature_nil() }, parameters, config['override_allow_incompatible'] or { ruby.bool_value(false) }.as_string().trim_string_left(':'), config['defined_raw'] or { ruby.bool_value(false) }.as_bool() or { false }) or { panic(err) }
 }
 
 // Ruby attr_reader `attr_reader :method, :method_name, :arg_types, :kwarg_types, :block_type, :block_name, :rest_type, :rest_name, :keyrest_type, :keyrest_name, :bind, :effective_return_type, :return_type, :mode, :req_arg_count, :req_kwarg_names, :check_level, :parameters, :on_failure, :override_allow_incompatible, :defined_raw` at line 5.
-pub fn ruby_signature_l5_d1_method(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_signature_l5_d1_method(args ...ruby.Value) ruby.Value {
 	return runtime_signature_from_args(args).method
 }
 
 // Ruby attr_reader `attr_reader :method, :method_name, :arg_types, :kwarg_types, :block_type, :block_name, :rest_type, :rest_name, :keyrest_type, :keyrest_name, :bind, :effective_return_type, :return_type, :mode, :req_arg_count, :req_kwarg_names, :check_level, :parameters, :on_failure, :override_allow_incompatible, :defined_raw` at line 5.
-pub fn ruby_signature_l5_d2_method_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Symbol', ':${runtime_signature_from_args(args).method_name}')
+pub fn ruby_signature_l5_d2_method_name(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Symbol', ':${runtime_signature_from_args(args).method_name}')
 }
 
 // Ruby attr_reader `attr_reader :method, :method_name, :arg_types, :kwarg_types, :block_type, :block_name, :rest_type, :rest_name, :keyrest_type, :keyrest_name, :bind, :effective_return_type, :return_type, :mode, :req_arg_count, :req_kwarg_names, :check_level, :parameters, :on_failure, :override_allow_incompatible, :defined_raw` at line 5.
-pub fn ruby_signature_l5_d3_arg_types(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.map_value(runtime_signature_arg_map(runtime_signature_from_args(args)))
+pub fn ruby_signature_l5_d3_arg_types(args ...ruby.Value) ruby.Value {
+	return ruby.map_value(runtime_signature_arg_map(runtime_signature_from_args(args)))
 }
 
 // Ruby attr_reader `attr_reader :method, :method_name, :arg_types, :kwarg_types, :block_type, :block_name, :rest_type, :rest_name, :keyrest_type, :keyrest_name, :bind, :effective_return_type, :return_type, :mode, :req_arg_count, :req_kwarg_names, :check_level, :parameters, :on_failure, :override_allow_incompatible, :defined_raw` at line 5.
-pub fn ruby_signature_l5_d4_kwarg_types(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.map_value(runtime_signature_from_args(args).kwarg_types)
+pub fn ruby_signature_l5_d4_kwarg_types(args ...ruby.Value) ruby.Value {
+	return ruby.map_value(runtime_signature_from_args(args).kwarg_types)
 }
 
 // Ruby attr_reader `attr_reader :method, :method_name, :arg_types, :kwarg_types, :block_type, :block_name, :rest_type, :rest_name, :keyrest_type, :keyrest_name, :bind, :effective_return_type, :return_type, :mode, :req_arg_count, :req_kwarg_names, :check_level, :parameters, :on_failure, :override_allow_incompatible, :defined_raw` at line 5.
-pub fn ruby_signature_l5_d5_block_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_signature_l5_d5_block_type(args ...ruby.Value) ruby.Value {
 	return runtime_signature_from_args(args).block_type
 }
 
 // Ruby attr_reader `attr_reader :method, :method_name, :arg_types, :kwarg_types, :block_type, :block_name, :rest_type, :rest_name, :keyrest_type, :keyrest_name, :bind, :effective_return_type, :return_type, :mode, :req_arg_count, :req_kwarg_names, :check_level, :parameters, :on_failure, :override_allow_incompatible, :defined_raw` at line 5.
-pub fn ruby_signature_l5_d6_block_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_signature_l5_d6_block_name(args ...ruby.Value) ruby.Value {
 	name := runtime_signature_from_args(args).block_name
 	return if name == '' {
 		signature_nil()
 	} else {
-		brew_runtime.object_value('Symbol', ':${name}')
+		ruby.object_value('Symbol', ':${name}')
 	}
 }
 
 // Ruby attr_reader `attr_reader :method, :method_name, :arg_types, :kwarg_types, :block_type, :block_name, :rest_type, :rest_name, :keyrest_type, :keyrest_name, :bind, :effective_return_type, :return_type, :mode, :req_arg_count, :req_kwarg_names, :check_level, :parameters, :on_failure, :override_allow_incompatible, :defined_raw` at line 5.
-pub fn ruby_signature_l5_d7_rest_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_signature_l5_d7_rest_type(args ...ruby.Value) ruby.Value {
 	return runtime_signature_from_args(args).rest_type
 }
 
 // Ruby attr_reader `attr_reader :method, :method_name, :arg_types, :kwarg_types, :block_type, :block_name, :rest_type, :rest_name, :keyrest_type, :keyrest_name, :bind, :effective_return_type, :return_type, :mode, :req_arg_count, :req_kwarg_names, :check_level, :parameters, :on_failure, :override_allow_incompatible, :defined_raw` at line 5.
-pub fn ruby_signature_l5_d8_rest_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_signature_l5_d8_rest_name(args ...ruby.Value) ruby.Value {
 	name := runtime_signature_from_args(args).rest_name
 	return if name == '' {
 		signature_nil()
 	} else {
-		brew_runtime.object_value('Symbol', ':${name}')
+		ruby.object_value('Symbol', ':${name}')
 	}
 }
 
 // Ruby attr_reader `attr_reader :method, :method_name, :arg_types, :kwarg_types, :block_type, :block_name, :rest_type, :rest_name, :keyrest_type, :keyrest_name, :bind, :effective_return_type, :return_type, :mode, :req_arg_count, :req_kwarg_names, :check_level, :parameters, :on_failure, :override_allow_incompatible, :defined_raw` at line 5.
-pub fn ruby_signature_l5_d9_keyrest_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_signature_l5_d9_keyrest_type(args ...ruby.Value) ruby.Value {
 	return runtime_signature_from_args(args).keyrest_type
 }
 
 // Ruby attr_reader `attr_reader :method, :method_name, :arg_types, :kwarg_types, :block_type, :block_name, :rest_type, :rest_name, :keyrest_type, :keyrest_name, :bind, :effective_return_type, :return_type, :mode, :req_arg_count, :req_kwarg_names, :check_level, :parameters, :on_failure, :override_allow_incompatible, :defined_raw` at line 5.
-pub fn ruby_signature_l5_d10_keyrest_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_signature_l5_d10_keyrest_name(args ...ruby.Value) ruby.Value {
 	name := runtime_signature_from_args(args).keyrest_name
 	return if name == '' {
 		signature_nil()
 	} else {
-		brew_runtime.object_value('Symbol', ':${name}')
+		ruby.object_value('Symbol', ':${name}')
 	}
 }
 
 // Ruby attr_reader `attr_reader :method, :method_name, :arg_types, :kwarg_types, :block_type, :block_name, :rest_type, :rest_name, :keyrest_type, :keyrest_name, :bind, :effective_return_type, :return_type, :mode, :req_arg_count, :req_kwarg_names, :check_level, :parameters, :on_failure, :override_allow_incompatible, :defined_raw` at line 5.
-pub fn ruby_signature_l5_d11_bind(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_signature_l5_d11_bind(args ...ruby.Value) ruby.Value {
 	return runtime_signature_from_args(args).bind
 }
 
 // Ruby attr_reader `attr_reader :method, :method_name, :arg_types, :kwarg_types, :block_type, :block_name, :rest_type, :rest_name, :keyrest_type, :keyrest_name, :bind, :effective_return_type, :return_type, :mode, :req_arg_count, :req_kwarg_names, :check_level, :parameters, :on_failure, :override_allow_incompatible, :defined_raw` at line 5.
-pub fn ruby_signature_l5_d12_effective_return_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_signature_l5_d12_effective_return_type(args ...ruby.Value) ruby.Value {
 	return runtime_signature_from_args(args).effective_return_type
 }
 
 // Ruby attr_reader `attr_reader :method, :method_name, :arg_types, :kwarg_types, :block_type, :block_name, :rest_type, :rest_name, :keyrest_type, :keyrest_name, :bind, :effective_return_type, :return_type, :mode, :req_arg_count, :req_kwarg_names, :check_level, :parameters, :on_failure, :override_allow_incompatible, :defined_raw` at line 5.
-pub fn ruby_signature_l5_d13_return_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_signature_l5_d13_return_type(args ...ruby.Value) ruby.Value {
 	return runtime_signature_from_args(args).return_type
 }
 
 // Ruby attr_reader `attr_reader :method, :method_name, :arg_types, :kwarg_types, :block_type, :block_name, :rest_type, :rest_name, :keyrest_type, :keyrest_name, :bind, :effective_return_type, :return_type, :mode, :req_arg_count, :req_kwarg_names, :check_level, :parameters, :on_failure, :override_allow_incompatible, :defined_raw` at line 5.
-pub fn ruby_signature_l5_d14_mode(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(runtime_signature_from_args(args).mode)
+pub fn ruby_signature_l5_d14_mode(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(runtime_signature_from_args(args).mode)
 }
 
 // Ruby attr_reader `attr_reader :method, :method_name, :arg_types, :kwarg_types, :block_type, :block_name, :rest_type, :rest_name, :keyrest_type, :keyrest_name, :bind, :effective_return_type, :return_type, :mode, :req_arg_count, :req_kwarg_names, :check_level, :parameters, :on_failure, :override_allow_incompatible, :defined_raw` at line 5.
-pub fn ruby_signature_l5_d15_req_arg_count(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(runtime_signature_from_args(args).req_arg_count)
+pub fn ruby_signature_l5_d15_req_arg_count(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(runtime_signature_from_args(args).req_arg_count)
 }
 
 // Ruby attr_reader `attr_reader :method, :method_name, :arg_types, :kwarg_types, :block_type, :block_name, :rest_type, :rest_name, :keyrest_type, :keyrest_name, :bind, :effective_return_type, :return_type, :mode, :req_arg_count, :req_kwarg_names, :check_level, :parameters, :on_failure, :override_allow_incompatible, :defined_raw` at line 5.
-pub fn ruby_signature_l5_d16_req_kwarg_names(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(runtime_signature_from_args(args).req_kwarg_names)
+pub fn ruby_signature_l5_d16_req_kwarg_names(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(runtime_signature_from_args(args).req_kwarg_names)
 }
 
 // Ruby attr_reader `attr_reader :method, :method_name, :arg_types, :kwarg_types, :block_type, :block_name, :rest_type, :rest_name, :keyrest_type, :keyrest_name, :bind, :effective_return_type, :return_type, :mode, :req_arg_count, :req_kwarg_names, :check_level, :parameters, :on_failure, :override_allow_incompatible, :defined_raw` at line 5.
-pub fn ruby_signature_l5_d17_check_level(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Symbol', ':${runtime_signature_from_args(args).check_level}')
+pub fn ruby_signature_l5_d17_check_level(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Symbol', ':${runtime_signature_from_args(args).check_level}')
 }
 
 // Ruby attr_reader `attr_reader :method, :method_name, :arg_types, :kwarg_types, :block_type, :block_name, :rest_type, :rest_name, :keyrest_type, :keyrest_name, :bind, :effective_return_type, :return_type, :mode, :req_arg_count, :req_kwarg_names, :check_level, :parameters, :on_failure, :override_allow_incompatible, :defined_raw` at line 5.
-pub fn ruby_signature_l5_d18_parameters(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_signature_l5_d18_parameters(args ...ruby.Value) ruby.Value {
 	return signature_parameter_values(runtime_signature_from_args(args).parameters)
 }
 
 // Ruby attr_reader `attr_reader :method, :method_name, :arg_types, :kwarg_types, :block_type, :block_name, :rest_type, :rest_name, :keyrest_type, :keyrest_name, :bind, :effective_return_type, :return_type, :mode, :req_arg_count, :req_kwarg_names, :check_level, :parameters, :on_failure, :override_allow_incompatible, :defined_raw` at line 5.
-pub fn ruby_signature_l5_d19_on_failure(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_signature_l5_d19_on_failure(args ...ruby.Value) ruby.Value {
 	return runtime_signature_from_args(args).on_failure
 }
 
 // Ruby attr_reader `attr_reader :method, :method_name, :arg_types, :kwarg_types, :block_type, :block_name, :rest_type, :rest_name, :keyrest_type, :keyrest_name, :bind, :effective_return_type, :return_type, :mode, :req_arg_count, :req_kwarg_names, :check_level, :parameters, :on_failure, :override_allow_incompatible, :defined_raw` at line 5.
-pub fn ruby_signature_l5_d20_override_allow_incompatible(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(runtime_signature_from_args(args).override_allow_incompatible)
+pub fn ruby_signature_l5_d20_override_allow_incompatible(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(runtime_signature_from_args(args).override_allow_incompatible)
 }
 
 // Ruby attr_reader `attr_reader :method, :method_name, :arg_types, :kwarg_types, :block_type, :block_name, :rest_type, :rest_name, :keyrest_type, :keyrest_name, :bind, :effective_return_type, :return_type, :mode, :req_arg_count, :req_kwarg_names, :check_level, :parameters, :on_failure, :override_allow_incompatible, :defined_raw` at line 5.
-pub fn ruby_signature_l5_d21_defined_raw(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(runtime_signature_from_args(args).defined_raw)
+pub fn ruby_signature_l5_d21_defined_raw(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(runtime_signature_from_args(args).defined_raw)
 }
 
 // Ruby method `self.new_untyped(method:, mode: T::Private::Methods::Modes.untyped, parameters: method.parameters)` at line 19.
-pub fn ruby_signature_l19_d22_self_new_untyped(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_signature_l19_d22_self_new_untyped(args ...ruby.Value) ruby.Value {
 	config := signature_config_from_args(args)
 	method := config['method'] or {
 		if args.len > 0 {
@@ -475,18 +475,18 @@ pub fn ruby_signature_l19_d22_self_new_untyped(args ...brew_runtime.Value) brew_
 			panic('Signature.new_untyped requires method')
 		}
 	}
-	mode := config['mode'] or { brew_runtime.string_value('untyped') }.as_string()
+	mode := config['mode'] or { ruby.string_value('untyped') }.as_string()
 	parameters := signature_parameters_from_method(method)
 	return runtime_signature_value(new_untyped_runtime_method_signature(method, mode, parameters) or { panic(err) })
 }
 
 // Ruby method `initialize(method:, method_name:, raw_arg_types:, raw_return_type:, bind:, mode:, check_level:, on_failure:, parameters: method.parameters, override_allow_incompatible: false, defined_raw: false)` at line 45.
-pub fn ruby_signature_l45_d23_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_signature_l45_d23_initialize(args ...ruby.Value) ruby.Value {
 	return runtime_signature_value(runtime_signature_from_config(signature_config_from_args(args)))
 }
 
 // Ruby attr_writer `attr_writer :method_name` at line 171.
-pub fn ruby_signature_l171_d24_method_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_signature_l171_d24_method_name(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Signature#method_name= requires a name') }
 	mut signature := runtime_signature_from_args(args)
 	signature.method_name = args[1].as_string().trim_string_left(':')
@@ -494,7 +494,7 @@ pub fn ruby_signature_l171_d24_method_name(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `as_alias(alias_name)` at line 174.
-pub fn ruby_signature_l174_d25_as_alias(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_signature_l174_d25_as_alias(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Signature#as_alias requires an alias name') }
 	signature := runtime_signature_from_args(args)
 	mut alias_signature := &RuntimeMethodSignature{
@@ -505,63 +505,63 @@ pub fn ruby_signature_l174_d25_as_alias(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby method `arg_count` at line 180.
-pub fn ruby_signature_l180_d26_arg_count(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(runtime_signature_from_args(args).arg_types.len)
+pub fn ruby_signature_l180_d26_arg_count(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(runtime_signature_from_args(args).arg_types.len)
 }
 
 // Ruby method `kwarg_names` at line 184.
-pub fn ruby_signature_l184_d27_kwarg_names(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(runtime_signature_from_args(args).kwarg_types.keys())
+pub fn ruby_signature_l184_d27_kwarg_names(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(runtime_signature_from_args(args).kwarg_types.keys())
 }
 
 // Ruby method `owner` at line 188.
-pub fn ruby_signature_l188_d28_owner(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_signature_l188_d28_owner(args ...ruby.Value) ruby.Value {
 	signature := runtime_signature_from_args(args)
-	return signature.method.map_data['owner'] or { brew_runtime.object_value('Module', signature.method.attribute('owner') or { '<unknown>' }) }
+	return signature.method.map_data['owner'] or { ruby.object_value('Module', signature.method.attribute('owner') or { '<unknown>' }) }
 }
 
 // Ruby method `each_args_value_type(args)` at line 193.
-pub fn ruby_signature_l193_d29_each_args_value_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_signature_l193_d29_each_args_value_type(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Signature#each_args_value_type requires arguments') }
 	values := args[1].as_array() or { panic(err) }
-	return brew_runtime.array_value(runtime_signature_from_args(args).each_argument_value_type(values) or { panic(err) }.map(runtime_argument_value(it)))
+	return ruby.array_value(runtime_signature_from_args(args).each_argument_value_type(values) or { panic(err) }.map(runtime_argument_value(it)))
 }
 
 // Ruby it `it += 1` at line 225.
-pub fn ruby_signature_l225_d30_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_signature_l225_d30_anonymous(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.int_value(1)
+		return ruby.int_value(1)
 	}
-	return brew_runtime.int_value((args[0].as_int() or { 0 }) + 1)
+	return ruby.int_value((args[0].as_int() or { 0 }) + 1)
 }
 
 // Ruby it `it += 1` at line 234.
-pub fn ruby_signature_l234_d31_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_signature_l234_d31_anonymous(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.int_value(1)
+		return ruby.int_value(1)
 	}
-	return brew_runtime.int_value((args[0].as_int() or { 0 }) + 1)
+	return ruby.int_value((args[0].as_int() or { 0 }) + 1)
 }
 
 // Ruby method `method_desc` at line 249.
-pub fn ruby_signature_l249_d32_method_desc(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_signature_l249_d32_method_desc(args ...ruby.Value) ruby.Value {
 	signature := runtime_signature_from_args(args)
-	return brew_runtime.string_value(runtime_method_description(signature.method, signature.method_name, signature.method.attribute('source_location') or { '' }))
+	return ruby.string_value(runtime_method_description(signature.method, signature.method_name, signature.method.attribute('source_location') or { '' }))
 }
 
 // Ruby method `self.method_desc(method, method_name, source_loc=method.source_location)` at line 253.
-pub fn ruby_signature_l253_d33_self_method_desc(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_signature_l253_d33_self_method_desc(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Signature.method_desc requires method and method_name') }
 	location := if args.len > 2 {
 		args[2].as_string()
 	} else {
 		args[0].attribute('source_location') or { '' }
 	}
-	return brew_runtime.string_value(runtime_method_description(args[0], args[1].as_string().trim_string_left(':'), location))
+	return ruby.string_value(runtime_method_description(args[0], args[1].as_string().trim_string_left(':'), location))
 }
 
 // Ruby method `force_type_init` at line 262.
-pub fn ruby_signature_l262_d34_force_type_init(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_signature_l262_d34_force_type_init(args ...ruby.Value) ruby.Value {
 	mut signature := runtime_signature_from_args(args)
 	signature.types_built = true
 	return signature_nil()

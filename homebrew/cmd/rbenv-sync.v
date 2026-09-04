@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `cmd/rbenv-sync.rb`.
@@ -98,57 +98,57 @@ pub fn sync_rbenv_versions(rbenv_root string, installed []InstalledRubyVersion, 
 	return result
 }
 
-pub fn installed_ruby_version_value(version InstalledRubyVersion) brew_runtime.Value {
-	return brew_runtime.structured_value('InstalledRubyVersion', version.path, {
+pub fn installed_ruby_version_value(version InstalledRubyVersion) ruby.Value {
+	return ruby.structured_value('InstalledRubyVersion', version.path, {
 		'path':    version.path
 		'version': version.version
 	})
 }
 
-fn installed_ruby_version_from_value(value brew_runtime.Value) InstalledRubyVersion {
+fn installed_ruby_version_from_value(value ruby.Value) InstalledRubyVersion {
 	return InstalledRubyVersion{
 		path: value.attribute('path') or { value.as_string() }
 		version: value.attribute('version') or { '' }
 	}
 }
 
-fn rbenv_sync_result_value(result RbenvSyncResult) brew_runtime.Value {
-	return brew_runtime.Value{
+fn rbenv_sync_result_value(result RbenvSyncResult) ruby.Value {
+	return ruby.Value{
 		type_name: 'RbenvSyncResult'
 		repr: result.created.str()
 		attributes: {
 			'skipped_busy': result.skipped_busy.str()
 		}
 		map_data: {
-			'created': brew_runtime.string_array_value(result.created)
-			'skipped': brew_runtime.string_array_value(result.skipped)
-			'removed': brew_runtime.string_array_value(result.removed)
+			'created': ruby.string_array_value(result.created)
+			'skipped': ruby.string_array_value(result.skipped)
+			'removed': ruby.string_array_value(result.removed)
 		}
 	}
 }
 
 // Ruby method `run` at line 23.
-pub fn ruby_rbenv_sync_l23_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_rbenv_sync_l23_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'rbenv-sync requires the rbenv root')
+		return ruby.object_value('ArgumentError', 'rbenv-sync requires the rbenv root')
 	}
 	installed_values := if args.len > 1 {
-		args[1].as_array() or { []brew_runtime.Value{} }
+		args[1].as_array() or { []ruby.Value{} }
 	} else {
-		[]brew_runtime.Value{}
+		[]ruby.Value{}
 	}
 	strict := args.len > 2 && (args[2].as_bool() or { false })
-	result := sync_rbenv_versions(args[0].as_string(), installed_values.map(installed_ruby_version_from_value(it)), strict) or { return brew_runtime.object_value('RuntimeError', err.msg()) }
+	result := sync_rbenv_versions(args[0].as_string(), installed_values.map(installed_ruby_version_from_value(it)), strict) or { return ruby.object_value('RuntimeError', err.msg()) }
 	return rbenv_sync_result_value(result)
 }
 
 // Ruby method `link_rbenv_versions(path, rbenv_versions)` at line 51.
-pub fn ruby_rbenv_sync_l51_d2_link_rbenv_versions(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_rbenv_sync_l51_d2_link_rbenv_versions(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'link_rbenv_versions requires a Ruby and versions path')
+		return ruby.object_value('ArgumentError', 'link_rbenv_versions requires a Ruby and versions path')
 	}
 	strict := args.len > 2 && (args[2].as_bool() or { false })
-	result := link_rbenv_versions(installed_ruby_version_from_value(args[0]), args[1].as_string(), strict) or { return brew_runtime.object_value('RuntimeError', err.msg()) }
+	result := link_rbenv_versions(installed_ruby_version_from_value(args[0]), args[1].as_string(), strict) or { return ruby.object_value('RuntimeError', err.msg()) }
 	return rbenv_sync_result_value(result)
 }
 

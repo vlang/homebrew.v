@@ -1,40 +1,40 @@
 module concurrent
 
-import brew_runtime
+import ruby
 import math
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/maybe.rb`.
 // The original source is retained below until every stub has a typed V body.
-pub type MaybeOperation = fn([]brew_runtime.Value) !brew_runtime.Value
+pub type MaybeOperation = fn([]ruby.Value) !ruby.Value
 
 @[heap]
 pub struct Maybe {
 pub:
-	just_value    brew_runtime.Value
-	nothing_value brew_runtime.Value
+	just_value    ruby.Value
+	nothing_value ruby.Value
 	is_nothing    bool
 }
 
-fn maybe_none_value() brew_runtime.Value {
-	return brew_runtime.object_value('Concurrent::Maybe::NONE', '#<Object:Concurrent::Maybe::NONE>')
+fn maybe_none_value() ruby.Value {
+	return ruby.object_value('Concurrent::Maybe::NONE', '#<Object:Concurrent::Maybe::NONE>')
 }
 
-fn maybe_nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn maybe_nil_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-fn maybe_error_value(reason string) brew_runtime.Value {
-	return brew_runtime.object_value('StandardError', reason)
+fn maybe_error_value(reason string) ruby.Value {
+	return ruby.object_value('StandardError', reason)
 }
 
-pub fn maybe_just(value brew_runtime.Value) &Maybe {
+pub fn maybe_just(value ruby.Value) &Maybe {
 	return &Maybe{
 		just_value: value
 		nothing_value: maybe_none_value()
 	}
 }
 
-pub fn maybe_nothing(reason brew_runtime.Value) &Maybe {
+pub fn maybe_nothing(reason ruby.Value) &Maybe {
 	return &Maybe{
 		just_value: maybe_none_value()
 		nothing_value: reason
@@ -46,16 +46,16 @@ pub fn maybe_nothing_from_string(reason string) &Maybe {
 	return maybe_nothing(maybe_error_value(reason))
 }
 
-pub fn maybe_from(args []brew_runtime.Value, operation MaybeOperation) &Maybe {
+pub fn maybe_from(args []ruby.Value, operation MaybeOperation) &Maybe {
 	value := operation(args) or { return maybe_nothing(maybe_error_value(err.msg())) }
 	return maybe_just(value)
 }
 
-pub fn (maybe &Maybe) just() brew_runtime.Value {
+pub fn (maybe &Maybe) just() ruby.Value {
 	return maybe.just_value
 }
 
-pub fn (maybe &Maybe) nothing() brew_runtime.Value {
+pub fn (maybe &Maybe) nothing() ruby.Value {
 	return maybe.nothing_value
 }
 
@@ -71,15 +71,15 @@ pub fn (maybe &Maybe) rejected() bool {
 	return maybe.is_nothing
 }
 
-pub fn (maybe &Maybe) value() brew_runtime.Value {
+pub fn (maybe &Maybe) value() ruby.Value {
 	return maybe.just()
 }
 
-pub fn (maybe &Maybe) reason() brew_runtime.Value {
+pub fn (maybe &Maybe) reason() ruby.Value {
 	return maybe.nothing()
 }
 
-fn maybe_compare_values(left brew_runtime.Value, right brew_runtime.Value) ?int {
+fn maybe_compare_values(left ruby.Value, right ruby.Value) ?int {
 	if (left.type_name == 'Integer' || left.type_name == 'Float') && (right.type_name == 'Integer' || right.type_name == 'Float') {
 		left_number := left.as_float() or { return none }
 		right_number := right.as_float() or { return none }
@@ -115,19 +115,19 @@ pub fn (maybe &Maybe) compare(other &Maybe) ?int {
 	return maybe_compare_values(maybe.just_value, other.just_value)
 }
 
-pub fn (maybe &Maybe) or_value(other brew_runtime.Value) brew_runtime.Value {
+pub fn (maybe &Maybe) or_value(other ruby.Value) ruby.Value {
 	return if maybe.is_just() { maybe.just_value } else { other }
 }
 
-fn maybe_boundary_value(maybe &Maybe) brew_runtime.Value {
+fn maybe_boundary_value(maybe &Maybe) ruby.Value {
 	kind := if maybe.is_nothing { 'Nothing' } else { 'Just' }
-	return brew_runtime.structured_value('Concurrent::Maybe', '#<Concurrent::Maybe ${kind}>', {
+	return ruby.structured_value('Concurrent::Maybe', '#<Concurrent::Maybe ${kind}>', {
 		'maybe_address': u64(voidptr(maybe)).str()
 		'kind':          kind
 	})
 }
 
-fn maybe_boundary_receiver(args []brew_runtime.Value) &Maybe {
+fn maybe_boundary_receiver(args []ruby.Value) &Maybe {
 	if args.len == 0 {
 		panic('Maybe method requires a receiver')
 	}
@@ -138,17 +138,17 @@ fn maybe_boundary_receiver(args []brew_runtime.Value) &Maybe {
 }
 
 // Ruby attr_reader `attr_reader :just` at line 114.
-pub fn ruby_maybe_l114_d1_just(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_maybe_l114_d1_just(args ...ruby.Value) ruby.Value {
 	return maybe_boundary_receiver(args).just()
 }
 
 // Ruby attr_reader `attr_reader :nothing` at line 117.
-pub fn ruby_maybe_l117_d2_nothing(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_maybe_l117_d2_nothing(args ...ruby.Value) ruby.Value {
 	return maybe_boundary_receiver(args).nothing()
 }
 
 // Ruby method `self.from(*args)` at line 137.
-pub fn ruby_maybe_l137_d3_self_from(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_maybe_l137_d3_self_from(args ...ruby.Value) ruby.Value {
 	// The typed `maybe_from` API executes V callbacks. At this generic Ruby
 	// boundary the translated block result is carried as the final argument.
 	return maybe_boundary_value(maybe_just(if args.len > 0 {
@@ -159,12 +159,12 @@ pub fn ruby_maybe_l137_d3_self_from(args ...brew_runtime.Value) brew_runtime.Val
 }
 
 // Ruby method `self.just(value)` at line 152.
-pub fn ruby_maybe_l152_d4_self_just(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_maybe_l152_d4_self_just(args ...ruby.Value) ruby.Value {
 	return maybe_boundary_value(maybe_just(if args.len > 0 { args[0] } else { maybe_nil_value() }))
 }
 
 // Ruby method `self.nothing(error = '')` at line 164.
-pub fn ruby_maybe_l164_d5_self_nothing(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_maybe_l164_d5_self_nothing(args ...ruby.Value) ruby.Value {
 	reason := if args.len == 0 {
 		maybe_error_value('')
 	} else if args[0].type_name.ends_with('Error') || args[0].type_name.ends_with('Exception') {
@@ -176,48 +176,48 @@ pub fn ruby_maybe_l164_d5_self_nothing(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby method `just?` at line 176.
-pub fn ruby_maybe_l176_d6_just(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(maybe_boundary_receiver(args).is_just())
+pub fn ruby_maybe_l176_d6_just(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(maybe_boundary_receiver(args).is_just())
 }
 
 // Ruby alias `alias :fulfilled? :just?` at line 179.
-pub fn ruby_maybe_l179_d7_fulfilled(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_maybe_l179_d7_fulfilled(args ...ruby.Value) ruby.Value {
 	return ruby_maybe_l176_d6_just(...args)
 }
 
 // Ruby method `nothing?` at line 184.
-pub fn ruby_maybe_l184_d8_nothing(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(maybe_boundary_receiver(args).is_nothing)
+pub fn ruby_maybe_l184_d8_nothing(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(maybe_boundary_receiver(args).is_nothing)
 }
 
 // Ruby alias `alias :rejected? :nothing?` at line 187.
-pub fn ruby_maybe_l187_d9_rejected(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_maybe_l187_d9_rejected(args ...ruby.Value) ruby.Value {
 	return ruby_maybe_l184_d8_nothing(...args)
 }
 
 // Ruby alias `alias :value :just` at line 189.
-pub fn ruby_maybe_l189_d10_value(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_maybe_l189_d10_value(args ...ruby.Value) ruby.Value {
 	return ruby_maybe_l114_d1_just(...args)
 }
 
 // Ruby alias `alias :reason :nothing` at line 191.
-pub fn ruby_maybe_l191_d11_reason(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_maybe_l191_d11_reason(args ...ruby.Value) ruby.Value {
 	return ruby_maybe_l117_d2_nothing(...args)
 }
 
 // Ruby method `<=>(other)` at line 199.
-pub fn ruby_maybe_l199_d12_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_maybe_l199_d12_anonymous(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Maybe#<=> requires another Maybe')
 	}
 	maybe := maybe_boundary_receiver(args)
 	other := maybe_boundary_receiver(args[1..])
 	comparison := maybe.compare(other) or { return maybe_nil_value() }
-	return brew_runtime.int_value(comparison)
+	return ruby.int_value(comparison)
 }
 
 // Ruby method `or(other)` at line 210.
-pub fn ruby_maybe_l210_d13_or(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_maybe_l210_d13_or(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Maybe#or requires a default value')
 	}
@@ -225,7 +225,7 @@ pub fn ruby_maybe_l210_d13_or(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `initialize(just, nothing)` at line 224.
-pub fn ruby_maybe_l224_d14_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_maybe_l224_d14_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Maybe#initialize requires just and nothing')
 	}

@@ -1,6 +1,6 @@
 module bundle
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `bundle/subcommand_context.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -93,7 +93,7 @@ pub fn subcommand_selected_types(args SubcommandContextArgs,
 	return selected
 }
 
-fn subcommand_context_args_from_value(value brew_runtime.Value) SubcommandContextArgs {
+fn subcommand_context_args_from_value(value ruby.Value) SubcommandContextArgs {
 	mut predicates := map[string]bool{}
 	if value.type_name == 'Hash' {
 		for method, selected in value.map_data {
@@ -109,7 +109,7 @@ fn subcommand_context_args_from_value(value brew_runtime.Value) SubcommandContex
 	return SubcommandContextArgs{ predicates: predicates }
 }
 
-fn subcommand_extension_from_value(value brew_runtime.Value) SubcommandContextExtension {
+fn subcommand_extension_from_value(value ruby.Value) SubcommandContextExtension {
 	type_name := value.attributes['type']
 	return SubcommandContextExtension{
 		type_name: type_name
@@ -131,7 +131,7 @@ fn subcommand_extension_from_value(value brew_runtime.Value) SubcommandContextEx
 	}
 }
 
-fn subcommand_type_context_from_value(value brew_runtime.Value) SubcommandTypeContext {
+fn subcommand_type_context_from_value(value ruby.Value) SubcommandTypeContext {
 	mut extensions := []SubcommandContextExtension{}
 	for extension_value in value.array_data {
 		extensions << subcommand_extension_from_value(extension_value)
@@ -142,40 +142,40 @@ fn subcommand_type_context_from_value(value brew_runtime.Value) SubcommandTypeCo
 	}
 }
 
-fn subcommand_bool_map_value(values map[string]bool) brew_runtime.Value {
-	mut result := map[string]brew_runtime.Value{}
+fn subcommand_bool_map_value(values map[string]bool) ruby.Value {
+	mut result := map[string]ruby.Value{}
 	for name, value in values {
-		result[name] = brew_runtime.bool_value(value)
+		result[name] = ruby.bool_value(value)
 	}
-	return brew_runtime.map_value(result)
+	return ruby.map_value(result)
 }
 
 // Ruby method `extension_selected?(args, extension)` at line 24.
-pub fn ruby_subcommand_context_l24_d1_extension_selected(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_subcommand_context_l24_d1_extension_selected(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(subcommand_extension_selected(subcommand_context_args_from_value(args[0]), subcommand_extension_from_value(args[1])))
+	return ruby.bool_value(subcommand_extension_selected(subcommand_context_args_from_value(args[0]), subcommand_extension_from_value(args[1])))
 }
 
 // Ruby method `extension_dump_disabled?(args, extension)` at line 29.
-pub fn ruby_subcommand_context_l29_d2_extension_dump_disabled(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_subcommand_context_l29_d2_extension_dump_disabled(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(subcommand_extension_dump_disabled(subcommand_context_args_from_value(args[0]), subcommand_extension_from_value(args[1])))
+	return ruby.bool_value(subcommand_extension_dump_disabled(subcommand_context_args_from_value(args[0]), subcommand_extension_from_value(args[1])))
 }
 
 // Ruby method `extension_disabled?(args, extension)` at line 35.
-pub fn ruby_subcommand_context_l35_d3_extension_disabled(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_subcommand_context_l35_d3_extension_disabled(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(subcommand_extension_disabled(subcommand_context_args_from_value(args[0]), subcommand_extension_from_value(args[1])))
+	return ruby.bool_value(subcommand_extension_disabled(subcommand_context_args_from_value(args[0]), subcommand_extension_from_value(args[1])))
 }
 
 // Ruby method `core_type_options(args, prefix, all: false)` at line 44.
-pub fn ruby_subcommand_context_l44_d4_core_type_options(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_subcommand_context_l44_d4_core_type_options(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		return subcommand_bool_map_value(map[string]bool{})
 	}
@@ -188,35 +188,35 @@ pub fn ruby_subcommand_context_l44_d4_core_type_options(args ...brew_runtime.Val
 }
 
 // Ruby method `selected_types(args)` at line 53.
-pub fn ruby_subcommand_context_l53_d5_selected_types(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_subcommand_context_l53_d5_selected_types(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_array_value([])
+		return ruby.string_array_value([])
 	}
 	context := if args.len > 1 {
 		subcommand_type_context_from_value(args[1])
 	} else {
 		SubcommandTypeContext{}
 	}
-	return brew_runtime.string_array_value(subcommand_selected_types(subcommand_context_args_from_value(args[0]), context))
+	return ruby.string_array_value(subcommand_selected_types(subcommand_context_args_from_value(args[0]), context))
 }
 
 // Ruby method `type_selected?(args, predicate_method, disabled_predicate_method, env_disabled_predicate_method,` at line 73.
-pub fn ruby_subcommand_context_l73_d6_type_selected(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_subcommand_context_l73_d6_type_selected(args ...ruby.Value) ruby.Value {
 	if args.len < 4 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	context := if args.len > 5 {
 		subcommand_type_context_from_value(args[5])
 	} else {
 		SubcommandTypeContext{}
 	}
-	return brew_runtime.bool_value(subcommand_type_selected(subcommand_context_args_from_value(args[0]), context, args[1].as_string(), args[2].as_string(), args[3].as_string(), args.len > 4 && (args[4].as_bool() or { false })))
+	return ruby.bool_value(subcommand_type_selected(subcommand_context_args_from_value(args[0]), context, args[1].as_string(), args[2].as_string(), args[3].as_string(), args.len > 4 && (args[4].as_bool() or { false })))
 }
 
 // Ruby method `type_disabled?(args, *disabled_methods)` at line 80.
-pub fn ruby_subcommand_context_l80_d7_type_disabled(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_subcommand_context_l80_d7_type_disabled(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	mut methods := []string{}
 	for value in args[1..] {
@@ -226,7 +226,7 @@ pub fn ruby_subcommand_context_l80_d7_type_disabled(args ...brew_runtime.Value) 
 			methods << value.as_string()
 		}
 	}
-	return brew_runtime.bool_value(subcommand_type_disabled(subcommand_context_args_from_value(args[0]), methods))
+	return ruby.bool_value(subcommand_type_disabled(subcommand_context_args_from_value(args[0]), methods))
 }
 
 // Original Ruby source (line-for-line):

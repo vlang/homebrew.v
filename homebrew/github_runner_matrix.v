@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `github_runner_matrix.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -72,7 +72,7 @@ fn github_runner_spec_with_formulae(spec GitHubRunnerSpec, formulae []string) Gi
 	}
 }
 
-pub fn github_runner_spec_to_map(spec GitHubRunnerSpec) map[string]brew_runtime.Value {
+pub fn github_runner_spec_to_map(spec GitHubRunnerSpec) map[string]ruby.Value {
 	return match spec {
 		LinuxRunnerSpec { linux_runner_spec_to_map(spec) }
 		MacOSRunnerSpec { macos_runner_spec_to_map(spec) }
@@ -93,8 +93,8 @@ pub fn new_github_runner_matrix(testing_formulae []TestRunnerFormula, deleted_fo
 	return matrix
 }
 
-pub fn github_runner_matrix_active_specs(matrix GitHubRunnerMatrix) []map[string]brew_runtime.Value {
-	mut specs := []map[string]brew_runtime.Value{}
+pub fn github_runner_matrix_active_specs(matrix GitHubRunnerMatrix) []map[string]ruby.Value {
+	mut specs := []map[string]ruby.Value{}
 	for runner in matrix.runners {
 		if runner.active {
 			specs << github_runner_spec_to_map(runner.spec)
@@ -104,15 +104,15 @@ pub fn github_runner_matrix_active_specs(matrix GitHubRunnerMatrix) []map[string
 	if !matrix.options.dependent_matrix || shards == 1 {
 		return specs
 	}
-	mut sharded := []map[string]brew_runtime.Value{}
+	mut sharded := []map[string]ruby.Value{}
 	for spec in specs {
 		for shard in 1 .. shards + 1 {
 			mut entry := spec.clone()
 			name := spec['name'].as_string()
 			runner := spec['runner'].as_string()
-			entry['name'] = brew_runtime.string_value('${name} shard ${shard}/${shards}')
-			entry['runner'] = brew_runtime.string_value(runner.replace_once('-deps', '-deps${shard}'))
-			entry['formulae_dependents_shard'] = brew_runtime.string_value('${shard}/${shards}')
+			entry['name'] = ruby.string_value('${name} shard ${shard}/${shards}')
+			entry['runner'] = ruby.string_value(runner.replace_once('-deps', '-deps${shard}'))
+			entry['formulae_dependents_shard'] = ruby.string_value('${shard}/${shards}')
 			sharded << entry
 		}
 	}
@@ -383,7 +383,7 @@ pub fn ruby_github_runner_matrix_l33_d2_initialize(testing_formulae []TestRunner
 }
 
 // Ruby method `active_runner_specs_hash` at line 70.
-pub fn ruby_github_runner_matrix_l70_d3_active_runner_specs_hash(matrix GitHubRunnerMatrix) []map[string]brew_runtime.Value {
+pub fn ruby_github_runner_matrix_l70_d3_active_runner_specs_hash(matrix GitHubRunnerMatrix) []map[string]ruby.Value {
 	return github_runner_matrix_active_specs(matrix)
 }
 

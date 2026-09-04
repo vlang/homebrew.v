@@ -1,6 +1,6 @@
 module strategy
 
-import brew_runtime
+import ruby
 import homebrew
 import homebrew.cask as cask_core
 import homebrew.livecheck
@@ -71,16 +71,16 @@ fn extract_plist_item_short_version(item ExtractPlistItem) ?string {
 	return none
 }
 
-pub fn extract_plist_item_to_value(item ExtractPlistItem) brew_runtime.Value {
+pub fn extract_plist_item_to_value(item ExtractPlistItem) ruby.Value {
 	bundle_version := item.bundle_version or {
-		return brew_runtime.map_value({})
+		return ruby.map_value({})
 	}
-	mut values := map[string]brew_runtime.Value{}
+	mut values := map[string]ruby.Value{}
 	for key, value in bundle_version.to_h() {
-		values[key] = brew_runtime.string_value(value)
+		values[key] = ruby.string_value(value)
 	}
-	return brew_runtime.map_value({
-		'bundle_version': brew_runtime.map_value(values)
+	return ruby.map_value({
+		'bundle_version': ruby.map_value(values)
 	})
 }
 
@@ -109,9 +109,9 @@ const extract_plist_cask_url_keywords = ['verified', 'using', 'tag', 'branch', '
 	'trust_cert', 'cookies', 'referer', 'header', 'user_agent', 'data', 'only_path']
 
 pub fn extract_plist_cask_with_url(cask ExtractPlistCask, url string,
-	url_options map[string]brew_runtime.Value) !ExtractPlistCask {
+	url_options map[string]ruby.Value) !ExtractPlistCask {
 	mut unused_options := []string{}
-	mut supported_options := map[string]brew_runtime.Value{}
+	mut supported_options := map[string]ruby.Value{}
 	for key, value in url_options {
 		if value.type_name == 'NilClass' {
 			continue
@@ -240,30 +240,30 @@ pub fn extract_plist_find_versions(request ExtractPlistFindVersionsRequest) !Ext
 	return match_data
 }
 
-pub fn extract_plist_match_data_to_value(data ExtractPlistMatchData) brew_runtime.Value {
-	mut matches := map[string]brew_runtime.Value{}
+pub fn extract_plist_match_data_to_value(data ExtractPlistMatchData) ruby.Value {
+	mut matches := map[string]ruby.Value{}
 	for version, parsed in data.matches {
-		matches[version] = brew_runtime.object_value('Version', parsed)
+		matches[version] = ruby.object_value('Version', parsed)
 	}
-	mut values := map[string]brew_runtime.Value{}
-	values['matches'] = brew_runtime.map_value(matches)
+	mut values := map[string]ruby.Value{}
+	values['matches'] = ruby.map_value(matches)
 	values['regex'] = if regex := data.regex {
-		brew_runtime.object_value('Regexp', regex.pattern)
+		ruby.object_value('Regexp', regex.pattern)
 	} else {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	}
 	values['url'] = if url := data.url {
-		brew_runtime.string_value(url)
+		ruby.string_value(url)
 	} else {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	}
 	if data.has_cached {
-		values['cached'] = brew_runtime.bool_value(data.cached)
+		values['cached'] = ruby.bool_value(data.cached)
 	}
 	if data.has_content {
-		values['content'] = brew_runtime.string_value(data.content)
+		values['content'] = ruby.string_value(data.content)
 	}
-	return brew_runtime.map_value(values)
+	return ruby.map_value(values)
 }
 
 // Ruby delegate `delegate version: :bundle_version` at line 39.
@@ -277,7 +277,7 @@ pub fn ruby_extract_plist_l45_d2_short_version(item ExtractPlistItem) ?string {
 }
 
 // Ruby method `to_h` at line 48.
-pub fn ruby_extract_plist_l48_d3_to_h(item ExtractPlistItem) brew_runtime.Value {
+pub fn ruby_extract_plist_l48_d3_to_h(item ExtractPlistItem) ruby.Value {
 	return extract_plist_item_to_value(item)
 }
 
@@ -293,7 +293,7 @@ pub fn ruby_extract_plist_l77_d5_self_versions_from_content(request ExtractPlist
 
 // Ruby method `self.cask_with_url(cask, url, url_options)` at line 104.
 pub fn ruby_extract_plist_l104_d6_self_cask_with_url(cask ExtractPlistCask, url string,
-	url_options map[string]brew_runtime.Value) !ExtractPlistCask {
+	url_options map[string]ruby.Value) !ExtractPlistCask {
 	return extract_plist_cask_with_url(cask, url, url_options)
 }
 

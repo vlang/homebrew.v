@@ -1,21 +1,21 @@
 module test
 
-import brew_runtime
+import ruby
 import homebrew
 import homebrew.dependency as uses_from_macos_dependency
 
 const dependency_spec_tag_separator = '\x1e'
 
-fn dependency_spec_bool(value bool) brew_runtime.Value {
-	return brew_runtime.bool_value(value)
+fn dependency_spec_bool(value bool) ruby.Value {
+	return ruby.bool_value(value)
 }
 
 fn dependency_spec_tags(dependency homebrew.Dependency) []string {
 	return dependency.tags.map(it.boundary_string())
 }
 
-fn dependency_spec_value(dependency homebrew.Dependency) brew_runtime.Value {
-	return brew_runtime.structured_value('Dependency', dependency.name, {
+fn dependency_spec_value(dependency homebrew.Dependency) ruby.Value {
+	return ruby.structured_value('Dependency', dependency.name, {
 		'name':            dependency.name
 		'tags':            dependency_spec_tags(dependency).join(dependency_spec_tag_separator)
 		'tap':             dependency.tap
@@ -23,7 +23,7 @@ fn dependency_spec_value(dependency homebrew.Dependency) brew_runtime.Value {
 	})
 }
 
-fn dependency_spec_from_value(value brew_runtime.Value) homebrew.Dependency {
+fn dependency_spec_from_value(value ruby.Value) homebrew.Dependency {
 	name := value.attributes['name'] or { value.repr }
 	tags_text := value.attributes['tags'] or { '' }
 	tags := if tags_text == '' {
@@ -48,8 +48,8 @@ fn dependency_spec_accepts_bottle_os_version(method string, bottle_os_version st
 	return true
 }
 
-fn dependency_spec_uses_from_macos_value() brew_runtime.Value {
-	return brew_runtime.structured_value('UsesFromMacOSDependency', 'foo', {
+fn dependency_spec_uses_from_macos_value() ruby.Value {
+	return ruby.structured_value('UsesFromMacOSDependency', 'foo', {
 		'name':   'foo'
 		'tags':   ''
 		'bounds': 'since=sonoma'
@@ -73,7 +73,7 @@ fn dependency_spec_uses_from_macos_accepts(bottle_os_version string) bool {
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby alias_matcher `alias_matcher :be_a_build_dependency, :be_build` at line 7.
-pub fn ruby_dependency_spec_l7_d1_be_a_build_dependency(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_spec_l7_d1_be_a_build_dependency(args ...ruby.Value) ruby.Value {
 	dependency := if args.len > 0 {
 		dependency_spec_from_value(args[0])
 	} else {
@@ -83,14 +83,14 @@ pub fn ruby_dependency_spec_l7_d1_be_a_build_dependency(args ...brew_runtime.Val
 }
 
 // Ruby it `it "accepts a single tag" do` at line 10.
-pub fn ruby_dependency_spec_l10_d2_accepts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_spec_l10_d2_accepts(args ...ruby.Value) ruby.Value {
 	_ = args
 	dependency := homebrew.new_dependency('foo', ['bar'])
 	return dependency_spec_bool(dependency_spec_tags(dependency) == ['bar'])
 }
 
 // Ruby it `it "accepts multiple tags" do` at line 15.
-pub fn ruby_dependency_spec_l15_d3_accepts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_spec_l15_d3_accepts(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut actual := dependency_spec_tags(homebrew.new_dependency('foo', ['bar', 'baz']))
 	actual.sort()
@@ -98,7 +98,7 @@ pub fn ruby_dependency_spec_l15_d3_accepts(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby it `it "preserves symbol tags" do` at line 20.
-pub fn ruby_dependency_spec_l20_d4_preserves(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_spec_l20_d4_preserves(args ...ruby.Value) ruby.Value {
 	_ = args
 	dependency := homebrew.new_dependency('foo', [':build'])
 	return dependency_spec_bool(dependency.tags.len == 1
@@ -106,14 +106,14 @@ pub fn ruby_dependency_spec_l20_d4_preserves(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby it `it "accepts symbol and string tags" do` at line 25.
-pub fn ruby_dependency_spec_l25_d5_accepts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_spec_l25_d5_accepts(args ...ruby.Value) ruby.Value {
 	_ = args
 	dependency := homebrew.new_dependency('foo', [':build', 'bar'])
 	return dependency_spec_bool(dependency_spec_tags(dependency) == [':build', 'bar'])
 }
 
 // Ruby it `it "merges duplicate dependencies" do` at line 32.
-pub fn ruby_dependency_spec_l32_d6_merges(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_spec_l32_d6_merges(args ...ruby.Value) ruby.Value {
 	_ = args
 	merged := homebrew.merge_repeated_dependencies([
 		homebrew.new_dependency('foo', [':build']),
@@ -129,7 +129,7 @@ pub fn ruby_dependency_spec_l32_d6_merges(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby it `it "merges necessity tags" do` at line 47.
-pub fn ruby_dependency_spec_l47_d7_merges(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_spec_l47_d7_merges(args ...ruby.Value) ruby.Value {
 	_ = args
 	required_dependency := homebrew.new_dependency('foo', []string{})
 	recommended_dependency := homebrew.new_dependency('foo', [':recommended'])
@@ -152,7 +152,7 @@ pub fn ruby_dependency_spec_l47_d7_merges(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby it `it "merges temporality tags" do` at line 71.
-pub fn ruby_dependency_spec_l71_d8_merges(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_spec_l71_d8_merges(args ...ruby.Value) ruby.Value {
 	_ = args
 	merged := homebrew.merge_repeated_dependencies([
 		homebrew.new_dependency('foo', []string{}),
@@ -162,7 +162,7 @@ pub fn ruby_dependency_spec_l71_d8_merges(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby specify `specify "equality" do` at line 81.
-pub fn ruby_dependency_spec_l81_d9_equality(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_spec_l81_d9_equality(args ...ruby.Value) ruby.Value {
 	_ = args
 	foo1 := homebrew.new_dependency('foo', []string{})
 	foo2 := homebrew.new_dependency('foo', []string{})
@@ -179,7 +179,7 @@ pub fn ruby_dependency_spec_l81_d9_equality(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby it `it "returns a tap passed a fully-qualified name" do` at line 102.
-pub fn ruby_dependency_spec_l102_d10_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_spec_l102_d10_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	dependency := homebrew.new_dependency('foo/bar/dog', []string{})
 	tap := dependency.tap_name() or { return dependency_spec_bool(false) }
@@ -187,7 +187,7 @@ pub fn ruby_dependency_spec_l102_d10_returns(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby it `it "returns no tap passed a simple name" do` at line 107.
-pub fn ruby_dependency_spec_l107_d11_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_spec_l107_d11_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	dependency := homebrew.new_dependency('dog', []string{})
 	if _ := dependency.tap_name() {
@@ -197,14 +197,14 @@ pub fn ruby_dependency_spec_l107_d11_returns(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby specify `specify "#option_names" do` at line 113.
-pub fn ruby_dependency_spec_l113_d12_option_names(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_spec_l113_d12_option_names(args ...ruby.Value) ruby.Value {
 	_ = args
 	dependency := homebrew.new_dependency('foo/bar/dog', []string{})
 	return dependency_spec_bool(dependency.option_names() == ['dog'])
 }
 
 // Ruby it `it "marks dependency as no_linkage" do` at line 119.
-pub fn ruby_dependency_spec_l119_d13_marks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_spec_l119_d13_marks(args ...ruby.Value) ruby.Value {
 	_ = args
 	dependency := homebrew.new_dependency('foo', [':no_linkage'])
 	return dependency_spec_bool(dependency.no_linkage() && dependency.required()
@@ -212,54 +212,54 @@ pub fn ruby_dependency_spec_l119_d13_marks(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby subject `subject(:dependency) { described_class.new("foo") }` at line 129.
-pub fn ruby_dependency_spec_l129_d14_dependency(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_spec_l129_d14_dependency(args ...ruby.Value) ruby.Value {
 	_ = args
 	return dependency_spec_value(homebrew.new_dependency('foo', []string{}))
 }
 
 // Ruby it `it "accepts macOS bottle_os_version parameter" do` at line 131.
-pub fn ruby_dependency_spec_l131_d15_accepts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_spec_l131_d15_accepts(args ...ruby.Value) ruby.Value {
 	_ = args
 	return dependency_spec_bool(dependency_spec_accepts_bottle_os_version('installed', 'macOS 14'))
 }
 
 // Ruby it `it "accepts Ubuntu bottle_os_version parameter" do` at line 135.
-pub fn ruby_dependency_spec_l135_d16_accepts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_spec_l135_d16_accepts(args ...ruby.Value) ruby.Value {
 	_ = args
 	return dependency_spec_bool(dependency_spec_accepts_bottle_os_version('installed', 'Ubuntu 22.04'))
 }
 
 // Ruby subject `subject(:dependency) { described_class.new("foo") }` at line 141.
-pub fn ruby_dependency_spec_l141_d17_dependency(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_spec_l141_d17_dependency(args ...ruby.Value) ruby.Value {
 	return ruby_dependency_spec_l129_d14_dependency(...args)
 }
 
 // Ruby it `it "accepts bottle_os_version parameter" do` at line 143.
-pub fn ruby_dependency_spec_l143_d18_accepts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_spec_l143_d18_accepts(args ...ruby.Value) ruby.Value {
 	_ = args
 	return dependency_spec_bool(dependency_spec_accepts_bottle_os_version('satisfied', 'macOS 14'))
 }
 
 // Ruby it `it "accepts Ubuntu bottle_os_version parameter" do` at line 147.
-pub fn ruby_dependency_spec_l147_d19_accepts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_spec_l147_d19_accepts(args ...ruby.Value) ruby.Value {
 	_ = args
 	return dependency_spec_bool(dependency_spec_accepts_bottle_os_version('installed', 'Ubuntu 22.04'))
 }
 
 // Ruby subject `subject(:uses_from_macos) { described_class.new("foo", bounds: { since: :sonoma }) }` at line 153.
-pub fn ruby_dependency_spec_l153_d20_uses_from_macos(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_spec_l153_d20_uses_from_macos(args ...ruby.Value) ruby.Value {
 	_ = args
 	return dependency_spec_uses_from_macos_value()
 }
 
 // Ruby it `it "accepts macOS bottle_os_version parameter" do` at line 155.
-pub fn ruby_dependency_spec_l155_d21_accepts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_spec_l155_d21_accepts(args ...ruby.Value) ruby.Value {
 	_ = args
 	return dependency_spec_bool(dependency_spec_uses_from_macos_accepts('macOS 14'))
 }
 
 // Ruby it `it "accepts Ubuntu bottle_os_version parameter" do` at line 159.
-pub fn ruby_dependency_spec_l159_d22_accepts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_spec_l159_d22_accepts(args ...ruby.Value) ruby.Value {
 	_ = args
 	return dependency_spec_bool(dependency_spec_uses_from_macos_accepts('Ubuntu 22.04'))
 }

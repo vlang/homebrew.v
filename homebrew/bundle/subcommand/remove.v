@@ -1,15 +1,15 @@
 module subcommand
 
-import brew_runtime
+import ruby
 import homebrew.bundle
 
 // Translated from Homebrew/brew `bundle/subcommand/remove.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `run` at line 35.
-pub fn ruby_remove_l35_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_remove_l35_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
-		return brew_runtime.object_value('ArgumentError', 'items, selected type, and Brewfile are required')
+		return ruby.object_value('ArgumentError', 'items, selected type, and Brewfile are required')
 	}
 	items := if args[0].type_name == 'Array' {
 		args[0].as_array() or { [] }.map(it.as_string())
@@ -27,8 +27,8 @@ pub fn ruby_remove_l35_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
 		selected_types: selected_types
 		file: args[2].as_string()
 		packages: packages
-	}) or { return brew_runtime.object_value('UsageError', err.msg()) }
-	return brew_runtime.structured_value('Bundle::RemoveSubcommand::Result', result.path, {
+	}) or { return ruby.object_value('UsageError', err.msg()) }
+	return ruby.structured_value('Bundle::RemoveSubcommand::Result', result.path, {
 		'path':    result.path
 		'content': result.content
 		'removed': result.removed.join(',')
@@ -51,7 +51,7 @@ pub fn run_bundle_remove(options BundleRemoveCommandOptions) !bundle.BundleRemov
 	return bundle.remove_bundle_entries(options.file, options.items, options.selected_types[0], options.packages)
 }
 
-fn subcommand_remove_packages_from_value(value brew_runtime.Value) []bundle.BundlePackage {
+fn subcommand_remove_packages_from_value(value ruby.Value) []bundle.BundlePackage {
 	values := value.as_array() or { [] }
 	return values.map(bundle.BundlePackage{
 		kind: if (it.attribute('kind') or { 'formula' }) == 'cask' { .cask } else { .formula }

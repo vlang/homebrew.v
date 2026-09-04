@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 import hash.fnv1a
 import x.json2
 
@@ -229,7 +229,7 @@ pub fn dependency_installation_for_formula(formula Formula) DependencyInstallati
 	installed_tab := tab_for_formula(formula)
 	return DependencyInstallation{
 		formula_available: true
-		opt_prefix_exists: brew_runtime.path_exists(formula.opt_prefix())
+		opt_prefix_exists: ruby.path_exists(formula.opt_prefix())
 		latest_version_installed: formula.latest_version_installed()
 		has_installed_keg: has_installed_keg
 		installed_keg_name: installed_keg_name
@@ -617,8 +617,8 @@ pub fn merge_dependency_temporality(dependencies []Dependency) []DependencyTag {
 	return tags
 }
 
-fn dependency_boundary_value(dependency Dependency) brew_runtime.Value {
-	return brew_runtime.structured_value('Dependency', dependency.inspect(), {
+fn dependency_boundary_value(dependency Dependency) ruby.Value {
+	return ruby.structured_value('Dependency', dependency.inspect(), {
 		'name':            dependency.name
 		'tags':            dependency.tags.map(it.boundary_string()).join('\x1e')
 		'tap':             dependency.tap
@@ -626,7 +626,7 @@ fn dependency_boundary_value(dependency Dependency) brew_runtime.Value {
 	})
 }
 
-fn dependency_from_boundary(value brew_runtime.Value) Dependency {
+fn dependency_from_boundary(value ruby.Value) Dependency {
 	if value.type_name != 'Dependency' {
 		panic('expected Dependency, got ${value.type_name}')
 	}
@@ -639,14 +639,14 @@ fn dependency_from_boundary(value brew_runtime.Value) Dependency {
 	return new_dependency(name, tags)
 }
 
-fn dependable_boundary_receiver(args []brew_runtime.Value, method string) Dependency {
+fn dependable_boundary_receiver(args []ruby.Value, method string) Dependency {
 	if args.len == 0 {
 		panic('Dependable#${method} requires a receiver')
 	}
 	return dependency_from_boundary(args[0])
 }
 
-fn build_options_from_boundary(value brew_runtime.Value) BuildOptions {
+fn build_options_from_boundary(value ruby.Value) BuildOptions {
 	if value.type_name != 'BuildOptions' {
 		panic('expected BuildOptions, got ${value.type_name}')
 	}
@@ -657,7 +657,7 @@ fn build_options_from_boundary(value brew_runtime.Value) BuildOptions {
 	return new_build_options(new_options(...arguments), new_options(...options))
 }
 
-fn dependency_boundary_list(args []brew_runtime.Value) []Dependency {
+fn dependency_boundary_list(args []ruby.Value) []Dependency {
 	if args.len == 1 && args[0].type_name in ['DependencyArray', 'Array'] {
 		return args[0].string_array_data.map(dependency_from_identity_string(it))
 	}
@@ -685,15 +685,15 @@ fn dependency_from_identity_string(identity string) Dependency {
 	return new_dependency_with_tags(parts[0], tags)
 }
 
-fn dependency_list_boundary_value(dependencies []Dependency) brew_runtime.Value {
-	return brew_runtime.Value{
+fn dependency_list_boundary_value(dependencies []Dependency) ruby.Value {
+	return ruby.Value{
 		type_name: 'DependencyArray'
 		repr: dependencies.map(it.inspect()).str()
 		string_array_data: dependencies.map(it.identity_string())
 	}
 }
 
-fn dependency_node_from_boundary(value brew_runtime.Value) DependencyNode {
+fn dependency_node_from_boundary(value ruby.Value) DependencyNode {
 	if value.type_name != 'Formula' && value.type_name != 'CaskDependent' && value.type_name != 'DependencyNode' {
 		panic('expected Formula, CaskDependent, or DependencyNode, got ${value.type_name}')
 	}
@@ -706,7 +706,7 @@ fn dependency_node_from_boundary(value brew_runtime.Value) DependencyNode {
 	}
 	args := value.attribute('build_args') or { '' }
 	options := value.attribute('build_options') or { '' }
-	build := build_options_from_boundary(brew_runtime.structured_value('BuildOptions', '', {
+	build := build_options_from_boundary(ruby.structured_value('BuildOptions', '', {
 		'args':    args
 		'options': options
 	}))
@@ -718,7 +718,7 @@ fn dependency_node_from_boundary(value brew_runtime.Value) DependencyNode {
 	}
 }
 
-fn dependency_minimum_from_boundary_args(args []brew_runtime.Value) DependencyMinimum {
+fn dependency_minimum_from_boundary_args(args []ruby.Value) DependencyMinimum {
 	mut version := null_version()
 	mut has_version := false
 	if args.len > 1 && args[1].type_name != 'NilClass' {
@@ -753,31 +753,31 @@ fn dependency_minimum_from_boundary_args(args []brew_runtime.Value) DependencyMi
 }
 
 // Ruby attr_reader `attr_reader :name` at line 14.
-pub fn ruby_dependency_l14_d1_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(dependable_boundary_receiver(args, 'name').name)
+pub fn ruby_dependency_l14_d1_name(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(dependable_boundary_receiver(args, 'name').name)
 }
 
 // Ruby attr_reader `attr_reader :tap` at line 17.
-pub fn ruby_dependency_l17_d2_tap(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_l17_d2_tap(args ...ruby.Value) ruby.Value {
 	dependency := dependable_boundary_receiver(args, 'tap')
 	if tap := dependency.tap_name() {
 		parts := tap.split('/')
-		return brew_runtime.structured_value('Tap', tap, {
+		return ruby.structured_value('Tap', tap, {
 			'user': parts[0]
 			'repo': parts[1]
 		})
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby attr_reader `attr_reader :tags` at line 20.
-pub fn ruby_dependency_l20_d3_tags(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_l20_d3_tags(args ...ruby.Value) ruby.Value {
 	dependency := dependable_boundary_receiver(args, 'tags')
-	return brew_runtime.string_array_value(dependency.tags.map(it.boundary_string()))
+	return ruby.string_array_value(dependency.tags.map(it.boundary_string()))
 }
 
 // Ruby method `initialize(name, tags = [])` at line 23.
-pub fn ruby_dependency_l23_d4_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_l23_d4_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Dependency#initialize requires a name')
 	}
@@ -798,25 +798,25 @@ pub fn ruby_dependency_l23_d4_initialize(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `==(other)` at line 34.
-pub fn ruby_dependency_l34_d5_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_l34_d5_anonymous(args ...ruby.Value) ruby.Value {
 	if args.len < 2 || args[1].type_name != 'Dependency' {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(dependency_from_boundary(args[0]).equal(dependency_from_boundary(args[1])))
+	return ruby.bool_value(dependency_from_boundary(args[0]).equal(dependency_from_boundary(args[1])))
 }
 
 // Ruby alias `alias eql? ==` at line 41.
-pub fn ruby_dependency_l41_d6_eql(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_l41_d6_eql(args ...ruby.Value) ruby.Value {
 	return ruby_dependency_l34_d5_anonymous(...args)
 }
 
 // Ruby method `hash` at line 44.
-pub fn ruby_dependency_l44_d7_hash(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(i64(dependable_boundary_receiver(args, 'hash').hash_code()))
+pub fn ruby_dependency_l44_d7_hash(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(i64(dependable_boundary_receiver(args, 'hash').hash_code()))
 }
 
 // Ruby method `to_installed_formula` at line 49.
-pub fn ruby_dependency_l49_d8_to_installed_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_l49_d8_to_installed_formula(args ...ruby.Value) ruby.Value {
 	dependency := dependable_boundary_receiver(args, 'to_installed_formula')
 	formula := dependency_to_formula(dependency, true, default_formulary_lookup_config()) or {
 		panic(err)
@@ -825,7 +825,7 @@ pub fn ruby_dependency_l49_d8_to_installed_formula(args ...brew_runtime.Value) b
 }
 
 // Ruby method `to_formula` at line 56.
-pub fn ruby_dependency_l56_d9_to_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_l56_d9_to_formula(args ...ruby.Value) ruby.Value {
 	dependency := dependable_boundary_receiver(args, 'to_formula')
 	formula := dependency_to_formula(dependency, false, default_formulary_lookup_config()) or {
 		panic(err)
@@ -834,19 +834,19 @@ pub fn ruby_dependency_l56_d9_to_formula(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `installed?(minimum_version: nil, minimum_revision: nil, minimum_compatibility_version: nil,` at line 70.
-pub fn ruby_dependency_l70_d10_installed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_l70_d10_installed(args ...ruby.Value) ruby.Value {
 	dependency := dependable_boundary_receiver(args, 'installed?')
-	return brew_runtime.bool_value(dependency.installed_with_formulary(dependency_minimum_from_boundary_args(args), default_formulary_lookup_config()))
+	return ruby.bool_value(dependency.installed_with_formulary(dependency_minimum_from_boundary_args(args), default_formulary_lookup_config()))
 }
 
 // Ruby method `satisfied?(minimum_version: nil, minimum_revision: nil,` at line 127.
-pub fn ruby_dependency_l127_d11_satisfied(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_l127_d11_satisfied(args ...ruby.Value) ruby.Value {
 	dependency := dependable_boundary_receiver(args, 'satisfied?')
-	return brew_runtime.bool_value(dependency.satisfied_with_formulary(dependency_minimum_from_boundary_args(args), default_formulary_lookup_config()))
+	return ruby.bool_value(dependency.satisfied_with_formulary(dependency_minimum_from_boundary_args(args), default_formulary_lookup_config()))
 }
 
 // Ruby method `missing_options` at line 134.
-pub fn ruby_dependency_l134_d12_missing_options(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_l134_d12_missing_options(args ...ruby.Value) ruby.Value {
 	dependency := dependable_boundary_receiver(args, 'missing_options')
 	options := dependency.missing_options_with_formulary(default_formulary_lookup_config()) or {
 		panic(err)
@@ -855,27 +855,27 @@ pub fn ruby_dependency_l134_d12_missing_options(args ...brew_runtime.Value) brew
 }
 
 // Ruby method `option_names` at line 143.
-pub fn ruby_dependency_l143_d13_option_names(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(dependable_boundary_receiver(args, 'option_names').option_names())
+pub fn ruby_dependency_l143_d13_option_names(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(dependable_boundary_receiver(args, 'option_names').option_names())
 }
 
 // Ruby method `uses_from_macos?` at line 148.
-pub fn ruby_dependency_l148_d14_uses_from_macos(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(dependable_boundary_receiver(args, 'uses_from_macos?').uses_from_macos_dependency())
+pub fn ruby_dependency_l148_d14_uses_from_macos(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(dependable_boundary_receiver(args, 'uses_from_macos?').uses_from_macos_dependency())
 }
 
 // Ruby method `to_s = name` at line 153.
-pub fn ruby_dependency_l153_d15_to_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(dependable_boundary_receiver(args, 'to_s').str())
+pub fn ruby_dependency_l153_d15_to_s(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(dependable_boundary_receiver(args, 'to_s').str())
 }
 
 // Ruby method `inspect` at line 156.
-pub fn ruby_dependency_l156_d16_inspect(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(dependable_boundary_receiver(args, 'inspect').inspect())
+pub fn ruby_dependency_l156_d16_inspect(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(dependable_boundary_receiver(args, 'inspect').inspect())
 }
 
 // Ruby method `dup_with_formula_name(formula)` at line 161.
-pub fn ruby_dependency_l161_d17_dup_with_formula_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_l161_d17_dup_with_formula_name(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Dependency#dup_with_formula_name requires a receiver and formula')
 	}
@@ -884,12 +884,12 @@ pub fn ruby_dependency_l161_d17_dup_with_formula_name(args ...brew_runtime.Value
 }
 
 // Ruby attr_reader `attr_reader :expand_stack` at line 167.
-pub fn ruby_dependency_l167_d18_expand_stack(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value([]string{})
+pub fn ruby_dependency_l167_d18_expand_stack(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value([]string{})
 }
 
 // Ruby method `expand(dependent, deps = dependent.deps, cache_key: nil, cache_timestamp: nil, formula_cache: nil, &block)` at line 188.
-pub fn ruby_dependency_l188_d19_expand(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_l188_d19_expand(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Dependency.expand requires a dependent')
 	}
@@ -911,24 +911,24 @@ pub fn ruby_dependency_l188_d19_expand(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby method `action(dependent, dep, &block)` at line 245.
-pub fn ruby_dependency_l245_d20_action(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_l245_d20_action(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Dependency.action requires a dependent and dependency')
 	}
 	action := default_dependency_action(dependency_node_from_boundary(args[0]), dependency_from_boundary(args[1]))
 	if action == .keep {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
-	return brew_runtime.object_value('Symbol', action.str())
+	return ruby.object_value('Symbol', action.str())
 }
 
 // Ruby method `merge_repeats(all)` at line 254.
-pub fn ruby_dependency_l254_d21_merge_repeats(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_l254_d21_merge_repeats(args ...ruby.Value) ruby.Value {
 	return dependency_list_boundary_value(merge_repeated_dependencies(dependency_boundary_list(args)))
 }
 
 // Ruby method `cache(key, cache_timestamp: nil)` at line 270.
-pub fn ruby_dependency_l270_d22_cache(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_l270_d22_cache(args ...ruby.Value) ruby.Value {
 	key := if args.len > 0 { args[0].as_string() } else { '' }
 	timestamp := if args.len > 1 && args[1].type_name != 'NilClass' {
 		args[1].as_string()
@@ -936,56 +936,56 @@ pub fn ruby_dependency_l270_d22_cache(args ...brew_runtime.Value) brew_runtime.V
 		''
 	}
 	cache := new_dependency_expansion_cache().cache(key, timestamp)
-	return brew_runtime.object_value('Hash', cache.str())
+	return ruby.object_value('Hash', cache.str())
 }
 
 // Ruby method `clear_cache` at line 283.
-pub fn ruby_dependency_l283_d23_clear_cache(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_l283_d23_clear_cache(args ...ruby.Value) ruby.Value {
 	mut cache := new_dependency_expansion_cache()
 	cache.clear_cache()
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `delete_timestamped_cache_entry(key, cache_timestamp)` at line 292.
-pub fn ruby_dependency_l292_d24_delete_timestamped_cache_entry(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_l292_d24_delete_timestamped_cache_entry(args ...ruby.Value) ruby.Value {
 	mut cache := new_dependency_expansion_cache()
 	key := if args.len > 0 { args[0].as_string() } else { '' }
 	timestamp := if args.len > 1 { args[1].as_string() } else { '' }
 	cache.delete_timestamped_cache_entry(key, timestamp)
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `cache_id(dependent)` at line 304.
-pub fn ruby_dependency_l304_d25_cache_id(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_l304_d25_cache_id(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Dependency.cache_id requires a dependent')
 	}
-	return brew_runtime.string_value(dependency_cache_id(dependency_node_from_boundary(args[0])))
+	return ruby.string_value(dependency_cache_id(dependency_node_from_boundary(args[0])))
 }
 
 // Ruby method `formula_for_dependency(dep, formula_cache)` at line 309.
-pub fn ruby_dependency_l309_d26_formula_for_dependency(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_l309_d26_formula_for_dependency(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Dependency.formula_for_dependency requires a dependency') }
 	formula := dependency_to_formula(dependency_from_boundary(args[0]), false, default_formulary_lookup_config()) or { panic(err) }
 	return formula_boundary_value(formula)
 }
 
 // Ruby method `merge_tags(deps)` at line 316.
-pub fn ruby_dependency_l316_d27_merge_tags(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_l316_d27_merge_tags(args ...ruby.Value) ruby.Value {
 	tags := merge_dependency_tags(dependency_boundary_list(args))
-	return brew_runtime.string_array_value(tags.map(it.boundary_string()))
+	return ruby.string_array_value(tags.map(it.boundary_string()))
 }
 
 // Ruby method `merge_necessity(deps)` at line 323.
-pub fn ruby_dependency_l323_d28_merge_necessity(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_l323_d28_merge_necessity(args ...ruby.Value) ruby.Value {
 	tags := merge_dependency_necessity(dependency_boundary_list(args))
-	return brew_runtime.string_array_value(tags.map(it.boundary_string()))
+	return ruby.string_array_value(tags.map(it.boundary_string()))
 }
 
 // Ruby method `merge_temporality(deps)` at line 335.
-pub fn ruby_dependency_l335_d29_merge_temporality(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_l335_d29_merge_temporality(args ...ruby.Value) ruby.Value {
 	tags := merge_dependency_temporality(dependency_boundary_list(args))
-	return brew_runtime.string_array_value(tags.map(it.boundary_string()))
+	return ruby.string_array_value(tags.map(it.boundary_string()))
 }
 
 // Original Ruby source (line-for-line):

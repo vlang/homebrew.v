@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `cmd/fetch.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -188,52 +188,52 @@ pub mut:
 	queue               FetchDownloadQueue
 }
 
-pub fn fetch_command_input_boundary(input &FetchCommandInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::Cmd::FetchCmd::Input', '', {
+pub fn fetch_command_input_boundary(input &FetchCommandInput) ruby.Value {
+	return ruby.structured_value('Homebrew::Cmd::FetchCmd::Input', '', {
 		'fetch_command_input_address': u64(voidptr(input)).str()
 	})
 }
 
-pub fn fetch_cask_downloads_input_boundary(input &FetchCaskDownloadsInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::Cmd::FetchCmd::CaskDownloadsInput', '', {
+pub fn fetch_cask_downloads_input_boundary(input &FetchCaskDownloadsInput) ruby.Value {
+	return ruby.structured_value('Homebrew::Cmd::FetchCmd::CaskDownloadsInput', '', {
 		'fetch_cask_downloads_input_address': u64(voidptr(input)).str()
 	})
 }
 
-pub fn fetch_api_names_input_boundary(input &FetchApiNamesInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::Cmd::FetchCmd::ApiNamesInput', '', {
+pub fn fetch_api_names_input_boundary(input &FetchApiNamesInput) ruby.Value {
+	return ruby.structured_value('Homebrew::Cmd::FetchCmd::ApiNamesInput', '', {
 		'fetch_api_names_input_address': u64(voidptr(input)).str()
 	})
 }
 
-pub fn fetch_command_state_boundary(state &FetchCommandState) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::Cmd::FetchCmd::State', '', {
+pub fn fetch_command_state_boundary(state &FetchCommandState) ruby.Value {
+	return ruby.structured_value('Homebrew::Cmd::FetchCmd::State', '', {
 		'fetch_command_state_address': u64(voidptr(state)).str()
 	})
 }
 
-fn fetch_command_input_from_value(value brew_runtime.Value) !&FetchCommandInput {
+fn fetch_command_input_from_value(value ruby.Value) !&FetchCommandInput {
 	address := value.attributes['fetch_command_input_address'] or {
 		return error('invalid Fetch command input')
 	}
 	return unsafe { &FetchCommandInput(voidptr(address.u64())) }
 }
 
-fn fetch_cask_downloads_input_from_value(value brew_runtime.Value) !&FetchCaskDownloadsInput {
+fn fetch_cask_downloads_input_from_value(value ruby.Value) !&FetchCaskDownloadsInput {
 	address := value.attributes['fetch_cask_downloads_input_address'] or {
 		return error('invalid Fetch cask downloads input')
 	}
 	return unsafe { &FetchCaskDownloadsInput(voidptr(address.u64())) }
 }
 
-fn fetch_api_names_input_from_value(value brew_runtime.Value) !&FetchApiNamesInput {
+fn fetch_api_names_input_from_value(value ruby.Value) !&FetchApiNamesInput {
 	address := value.attributes['fetch_api_names_input_address'] or {
 		return error('invalid Fetch API names input')
 	}
 	return unsafe { &FetchApiNamesInput(voidptr(address.u64())) }
 }
 
-fn fetch_command_state_from_value(value brew_runtime.Value) !&FetchCommandState {
+fn fetch_command_state_from_value(value ruby.Value) !&FetchCommandState {
 	address := value.attributes['fetch_command_state_address'] or {
 		return error('invalid Fetch command state')
 	}
@@ -678,8 +678,8 @@ pub fn fetch_download_queue(mut state FetchCommandState) &FetchDownloadQueue {
 	return &state.queue
 }
 
-fn fetch_download_value(download FetchDownload) brew_runtime.Value {
-	return brew_runtime.structured_value('FetchDownload', download.url, {
+fn fetch_download_value(download FetchDownload) ruby.Value {
+	return ruby.structured_value('FetchDownload', download.url, {
 		'kind':        download.kind
 		'name':        download.name
 		'url':         download.url
@@ -690,47 +690,47 @@ fn fetch_download_value(download FetchDownload) brew_runtime.Value {
 	})
 }
 
-fn fetch_result_value(result FetchCommandResult) brew_runtime.Value {
-	return brew_runtime.Value{
+fn fetch_result_value(result FetchCommandResult) ruby.Value {
+	return ruby.Value{
 		type_name: 'FetchCommandResult'
 		repr: result.stdout
 		map_data: {
-			'downloads':     brew_runtime.array_value(result.downloads.map(fetch_download_value(it)))
-			'stdout':        brew_runtime.string_value(result.stdout)
-			'stderr':        brew_runtime.string_value(result.stderr)
-			'warnings':      brew_runtime.string_array_value(result.warnings)
-			'events':        brew_runtime.string_array_value(result.events)
-			'used_api':      brew_runtime.bool_value(result.used_api)
-			'regular_loads': brew_runtime.int_value(result.regular_loads)
-			'fetches':       brew_runtime.int_value(result.fetches)
-			'shutdowns':     brew_runtime.int_value(result.shutdowns)
-			'failed':        brew_runtime.bool_value(result.failed)
-			'error':         brew_runtime.string_value(result.error)
+			'downloads':     ruby.array_value(result.downloads.map(fetch_download_value(it)))
+			'stdout':        ruby.string_value(result.stdout)
+			'stderr':        ruby.string_value(result.stderr)
+			'warnings':      ruby.string_array_value(result.warnings)
+			'events':        ruby.string_array_value(result.events)
+			'used_api':      ruby.bool_value(result.used_api)
+			'regular_loads': ruby.int_value(result.regular_loads)
+			'fetches':       ruby.int_value(result.fetches)
+			'shutdowns':     ruby.int_value(result.shutdowns)
+			'failed':        ruby.bool_value(result.failed)
+			'error':         ruby.string_value(result.error)
 		}
 	}
 }
 
 // Ruby method `run` at line 79.
-pub fn ruby_fetch_l79_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_fetch_l79_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'Fetch command input is required')
+		return ruby.object_value('ArgumentError', 'Fetch command input is required')
 	}
 	input := fetch_command_input_from_value(args[0]) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	return fetch_result_value(run_fetch_command(input.request))
 }
 
 // Ruby method `cask_downloads(cask)` at line 176.
-pub fn ruby_fetch_l176_d2_cask_downloads(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_fetch_l176_d2_cask_downloads(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'Fetch cask input is required')
+		return ruby.object_value('ArgumentError', 'Fetch cask input is required')
 	}
 	input := fetch_cask_downloads_input_from_value(args[0]) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	result := fetch_cask_downloads(input.cask, input.options)
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'Array'
 		repr: result.downloads.map(it.url).str()
 		array_data: result.downloads.map(fetch_download_value(it))
@@ -742,13 +742,13 @@ pub fn ruby_fetch_l176_d2_cask_downloads(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `enqueue_api_formula_bottles?` at line 239.
-pub fn ruby_fetch_l239_d3_enqueue_api_formula_bottles(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_fetch_l239_d3_enqueue_api_formula_bottles(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	input := fetch_command_input_from_value(args[0]) or { return brew_runtime.bool_value(false) }
+	input := fetch_command_input_from_value(args[0]) or { return ruby.bool_value(false) }
 	result := fetch_enqueue_api_formula_bottles(input.request)
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'Bool'
 		repr: result.handled.str()
 		bool_data: result.handled
@@ -762,13 +762,13 @@ pub fn ruby_fetch_l239_d3_enqueue_api_formula_bottles(args ...brew_runtime.Value
 }
 
 // Ruby method `enqueue_api_cask_downloads?` at line 282.
-pub fn ruby_fetch_l282_d4_enqueue_api_cask_downloads(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_fetch_l282_d4_enqueue_api_cask_downloads(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	input := fetch_command_input_from_value(args[0]) or { return brew_runtime.bool_value(false) }
+	input := fetch_command_input_from_value(args[0]) or { return ruby.bool_value(false) }
 	result := fetch_enqueue_api_cask_downloads(input.request)
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'Bool'
 		repr: result.handled.str()
 		bool_data: result.handled
@@ -782,45 +782,45 @@ pub fn ruby_fetch_l282_d4_enqueue_api_cask_downloads(args ...brew_runtime.Value)
 }
 
 // Ruby method `api_fetchable?` at line 316.
-pub fn ruby_fetch_l316_d5_api_fetchable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_fetch_l316_d5_api_fetchable(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	input := fetch_command_input_from_value(args[0]) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(fetch_api_fetchable(input.request.options))
+	input := fetch_command_input_from_value(args[0]) or { return ruby.bool_value(false) }
+	return ruby.bool_value(fetch_api_fetchable(input.request.options))
 }
 
 // Ruby method `api_fetch_names(regex:, capture:, named:, aliases:, renames:)` at line 333.
-pub fn ruby_fetch_l333_d6_api_fetch_names(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_fetch_l333_d6_api_fetch_names(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	input := fetch_api_names_input_from_value(args[0]) or {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
-	names := fetch_api_fetch_names(*input) or { return brew_runtime.object_value('NilClass', 'nil') }
-	return brew_runtime.string_array_value(names)
+	names := fetch_api_fetch_names(*input) or { return ruby.object_value('NilClass', 'nil') }
+	return ruby.string_array_value(names)
 }
 
 // Ruby method `retries` at line 352.
-pub fn ruby_fetch_l352_d7_retries(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_fetch_l352_d7_retries(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.int_value(1)
+		return ruby.int_value(1)
 	}
-	mut state := fetch_command_state_from_value(args[0]) or { return brew_runtime.int_value(1) }
-	return brew_runtime.int_value(fetch_retries(mut state))
+	mut state := fetch_command_state_from_value(args[0]) or { return ruby.int_value(1) }
+	return ruby.int_value(fetch_retries(mut state))
 }
 
 // Ruby method `download_queue` at line 357.
-pub fn ruby_fetch_l357_d8_download_queue(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_fetch_l357_d8_download_queue(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'Fetch command state is required')
+		return ruby.object_value('ArgumentError', 'Fetch command state is required')
 	}
 	mut state := fetch_command_state_from_value(args[0]) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	queue := fetch_download_queue(mut state)
-	return brew_runtime.structured_value('Homebrew::DownloadQueue', '', {
+	return ruby.structured_value('Homebrew::DownloadQueue', '', {
 		'retries': queue.retries.str()
 		'force':   queue.force.str()
 		'address': u64(voidptr(queue)).str()

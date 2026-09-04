@@ -1,6 +1,6 @@
 module shared_examples
 
-import brew_runtime
+import ruby
 import homebrew.extend.os.mac as reinstall_mac
 
 // Translated from Homebrew/brew `test/cmd/shared_examples/reinstall_pkgconf_if_needed.rb`.
@@ -15,17 +15,17 @@ pub fn shared_pkgconf_reinstall_case(is_mac bool, mismatch string, warning strin
 }
 
 // Ruby let `let(:formula) { instance_double(Formula) }` at line 10.
-pub fn ruby_reinstall_pkgconf_if_needed_l10_d1_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_reinstall_pkgconf_if_needed_l10_d1_formula(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.structured_value('Formula', 'pkgconf', {
+	return ruby.structured_value('Formula', 'pkgconf', {
 		'name': 'pkgconf'
 	})
 }
 
 // Ruby let `let(:formula_installer) do` at line 11.
-pub fn ruby_reinstall_pkgconf_if_needed_l11_d2_formula_installer(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_reinstall_pkgconf_if_needed_l11_d2_formula_installer(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.structured_value('FormulaInstaller', '#<FormulaInstaller pkgconf>', {
+	return ruby.structured_value('FormulaInstaller', '#<FormulaInstaller pkgconf>', {
 		'formula':       'pkgconf'
 		'prelude_fetch': 'true'
 		'prelude':       'true'
@@ -34,49 +34,49 @@ pub fn ruby_reinstall_pkgconf_if_needed_l11_d2_formula_installer(args ...brew_ru
 }
 
 // Ruby let `let(:context) { instance_double(Homebrew::Reinstall::InstallationContext, formula_installer:) }` at line 14.
-pub fn ruby_reinstall_pkgconf_if_needed_l14_d3_context(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_reinstall_pkgconf_if_needed_l14_d3_context(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.structured_value('Homebrew::Reinstall::InstallationContext', '#<InstallationContext pkgconf>', {
+	return ruby.structured_value('Homebrew::Reinstall::InstallationContext', '#<InstallationContext pkgconf>', {
 		'formula_installer': 'pkgconf'
 	})
 }
 
 // Ruby it `it "does nothing" do` at line 24.
-pub fn ruby_reinstall_pkgconf_if_needed_l24_d4_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_reinstall_pkgconf_if_needed_l24_d4_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := shared_pkgconf_reinstall_case(true, '', 'warning', false, false)
-	return brew_runtime.bool_value(!result.mismatch_found && !result.reinstalled
+	return ruby.bool_value(!result.mismatch_found && !result.reinstalled
 		&& result.warnings.len == 0)
 }
 
 // Ruby it `it "prints a warning and does not reinstall" do` at line 33.
-pub fn ruby_reinstall_pkgconf_if_needed_l33_d5_prints(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_reinstall_pkgconf_if_needed_l33_d5_prints(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := shared_pkgconf_reinstall_case(true, '13|14', 'warning', true, false)
-	return brew_runtime.bool_value(result.dry_run && !result.reinstalled && result.warnings.len == 1
+	return ruby.bool_value(result.dry_run && !result.reinstalled && result.warnings.len == 1
 		&& result.warnings[0].contains('would be reinstalled'))
 }
 
 // Ruby it `it "reinstalls pkgconf and prints success" do` at line 46.
-pub fn ruby_reinstall_pkgconf_if_needed_l46_d6_reinstalls(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_reinstall_pkgconf_if_needed_l46_d6_reinstalls(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := shared_pkgconf_reinstall_case(true, '13|14', 'warning', false, false)
-	return brew_runtime.bool_value(result.reinstalled && result.infos.len == 1
+	return ruby.bool_value(result.reinstalled && result.infos.len == 1
 		&& result.infos[0].contains('Reinstalled pkgconf'))
 }
 
 // Ruby it `it "rescues and prints the mismatch warning" do` at line 57.
-pub fn ruby_reinstall_pkgconf_if_needed_l57_d7_rescues(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_reinstall_pkgconf_if_needed_l57_d7_rescues(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := shared_pkgconf_reinstall_case(true, '13|14', 'warning', false, true)
-	return brew_runtime.bool_value(!result.reinstalled && result.failures == ['warning'])
+	return ruby.bool_value(!result.reinstalled && result.failures == ['warning'])
 }
 
 // Ruby it `it "does nothing and does not crash" do` at line 79.
-pub fn ruby_reinstall_pkgconf_if_needed_l79_d8_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_reinstall_pkgconf_if_needed_l79_d8_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := shared_pkgconf_reinstall_case(false, '13|14', 'warning', false, false)
-	return brew_runtime.bool_value(!result.mismatch_found && !result.reinstalled
+	return ruby.bool_value(!result.mismatch_found && !result.reinstalled
 		&& result.warnings.len == 0 && result.infos.len == 0 && result.failures.len == 0)
 }
 

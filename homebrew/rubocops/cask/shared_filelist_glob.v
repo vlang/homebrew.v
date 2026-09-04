@@ -1,6 +1,6 @@
 module cask
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `rubocops/cask/shared_filelist_glob.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -201,8 +201,8 @@ pub fn correct_shared_filelist_glob(source string) string {
 	return corrected
 }
 
-fn shared_filelist_glob_value(offense SharedFilelistGlobOffense) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cop::Offense', offense.message, {
+fn shared_filelist_glob_value(offense SharedFilelistGlobOffense) ruby.Value {
+	return ruby.structured_value('RuboCop::Cop::Offense', offense.message, {
 		'begin_pos':   offense.begin_pos.str()
 		'end_pos':     offense.end_pos.str()
 		'message':     offense.message
@@ -211,11 +211,11 @@ fn shared_filelist_glob_value(offense SharedFilelistGlobOffense) brew_runtime.Va
 }
 
 // Ruby method `on_send(node)` at line 11.
-pub fn ruby_shared_filelist_glob_l11_d1_on_send(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shared_filelist_glob_l11_d1_on_send(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	offenses := audit_shared_filelist_glob(source)
 	return if offenses.len == 0 {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	} else {
 		shared_filelist_glob_value(offenses[0])
 	}

@@ -1,6 +1,6 @@
 module mac
 
-import brew_runtime
+import ruby
 
 pub struct MacDevelopmentTools {
 pub mut:
@@ -86,17 +86,17 @@ pub fn (tools MacDevelopmentTools) build_system_info() map[string]string {
 	return result
 }
 
-fn development_tools_value(tools &MacDevelopmentTools) brew_runtime.Value {
-	return brew_runtime.structured_value('DevelopmentTools', '', {
+fn development_tools_value(tools &MacDevelopmentTools) ruby.Value {
+	return ruby.structured_value('DevelopmentTools', '', {
 		'mac_development_tools_address': u64(voidptr(tools)).str()
 	})
 }
 
-fn development_tools_from_value(value brew_runtime.Value) &MacDevelopmentTools {
+fn development_tools_from_value(value ruby.Value) &MacDevelopmentTools {
 	return unsafe { &MacDevelopmentTools(voidptr(value.attributes['mac_development_tools_address'].u64())) }
 }
 
-pub fn mac_development_tools_boundary(tools &MacDevelopmentTools) brew_runtime.Value {
+pub fn mac_development_tools_boundary(tools &MacDevelopmentTools) ruby.Value {
 	return development_tools_value(tools)
 }
 
@@ -104,61 +104,61 @@ pub fn mac_development_tools_boundary(tools &MacDevelopmentTools) brew_runtime.V
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `locate(tool)` at line 15.
-pub fn ruby_development_tools_l15_d1_locate(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_development_tools_l15_d1_locate(args ...ruby.Value) ruby.Value {
 	mut tools := development_tools_from_value(args[0])
 	path := tools.locate(args[1].as_string()) or {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
-	return brew_runtime.string_value(path)
+	return ruby.string_value(path)
 }
 
 // Ruby method `installed?` at line 31.
-pub fn ruby_development_tools_l31_d2_installed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(development_tools_from_value(args[0]).installed())
+pub fn ruby_development_tools_l31_d2_installed(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(development_tools_from_value(args[0]).installed())
 }
 
 // Ruby method `default_compiler` at line 36.
-pub fn ruby_development_tools_l36_d3_default_compiler(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Symbol', 'clang')
+pub fn ruby_development_tools_l36_d3_default_compiler(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Symbol', 'clang')
 }
 
 // Ruby method `ld64_version` at line 41.
-pub fn ruby_development_tools_l41_d4_ld64_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_development_tools_l41_d4_ld64_version(args ...ruby.Value) ruby.Value {
 	mut tools := development_tools_from_value(args[0])
 	version := tools.parsed_ld64_version()
 	return if version == '' {
-		brew_runtime.object_value('Version::NULL', '')
+		ruby.object_value('Version::NULL', '')
 	} else {
-		brew_runtime.string_value(version)
+		ruby.string_value(version)
 	}
 }
 
 // Ruby method `curl_handles_most_https_certificates?` at line 53.
-pub fn ruby_development_tools_l53_d5_curl_handles_most_https_certificates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(!development_tools_from_value(args[0]).system_curl_too_old)
+pub fn ruby_development_tools_l53_d5_curl_handles_most_https_certificates(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(!development_tools_from_value(args[0]).system_curl_too_old)
 }
 
 // Ruby method `installation_instructions` at line 60.
-pub fn ruby_development_tools_l60_d6_installation_instructions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(development_tools_from_value(args[0]).clt_installation_instructions)
+pub fn ruby_development_tools_l60_d6_installation_instructions(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(development_tools_from_value(args[0]).clt_installation_instructions)
 }
 
 // Ruby method `custom_installation_instructions` at line 65.
-pub fn ruby_development_tools_l65_d7_custom_installation_instructions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value("Install GNU's GCC:\n  brew install gcc\n")
+pub fn ruby_development_tools_l65_d7_custom_installation_instructions(args ...ruby.Value) ruby.Value {
+	return ruby.string_value("Install GNU's GCC:\n  brew install gcc\n")
 }
 
 // Ruby method `build_system_info` at line 73.
-pub fn ruby_development_tools_l73_d8_build_system_info(args ...brew_runtime.Value) brew_runtime.Value {
-	mut result := map[string]brew_runtime.Value{}
+pub fn ruby_development_tools_l73_d8_build_system_info(args ...ruby.Value) ruby.Value {
+	mut result := map[string]ruby.Value{}
 	for key, value in development_tools_from_value(args[0]).build_system_info() {
 		result[key] = if value == '' {
-			brew_runtime.object_value('NilClass', 'nil')
+			ruby.object_value('NilClass', 'nil')
 		} else {
-			brew_runtime.string_value(value)
+			ruby.string_value(value)
 		}
 	}
-	return brew_runtime.map_value(result)
+	return ruby.map_value(result)
 }
 
 // Original Ruby source (line-for-line):

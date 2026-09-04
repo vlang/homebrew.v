@@ -1,6 +1,6 @@
 module logger
 
-import brew_runtime
+import ruby
 import time
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/logger-1.7.0/lib/logger/period.rb`.
@@ -85,7 +85,7 @@ pub fn previous_period_end(now time.Time, shift_age string) !time.Time {
 	})
 }
 
-fn period_value_time(value brew_runtime.Value) time.Time {
+fn period_value_time(value ruby.Value) time.Time {
 	if value.type_name == 'Integer' {
 		return time.unix(value.as_int() or { 0 })
 	}
@@ -93,21 +93,21 @@ fn period_value_time(value brew_runtime.Value) time.Time {
 }
 
 // Ruby method `next_rotate_time(now, shift_age)` at line 9.
-pub fn ruby_period_l9_d1_next_rotate_time(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_period_l9_d1_next_rotate_time(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Logger::Period.next_rotate_time requires a time and shift age')
 	}
-	return brew_runtime.int_value(next_rotate_time(period_value_time(args[0]), args[1].as_string()) or {
+	return ruby.int_value(next_rotate_time(period_value_time(args[0]), args[1].as_string()) or {
 		panic(err)
 	}.unix())
 }
 
 // Ruby method `previous_period_end(now, shift_age)` at line 31.
-pub fn ruby_period_l31_d2_previous_period_end(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_period_l31_d2_previous_period_end(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Logger::Period.previous_period_end requires a time and shift age')
 	}
-	return brew_runtime.int_value(previous_period_end(period_value_time(args[0]), args[1].as_string()) or {
+	return ruby.int_value(previous_period_end(period_value_time(args[0]), args[1].as_string()) or {
 		panic(err)
 	}.unix())
 }

@@ -1,6 +1,6 @@
 module artifact
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `cask/artifact/app.rb`.
@@ -377,35 +377,35 @@ pub fn reinstall_app(artifact AppArtifact, preserve_directory bool, root_owned b
 	}
 }
 
-pub fn app_artifact_value(artifact AppArtifact) brew_runtime.Value {
-	return brew_runtime.structured_value('Cask::Artifact::App', artifact.source, {
+pub fn app_artifact_value(artifact AppArtifact) ruby.Value {
+	return ruby.structured_value('Cask::Artifact::App', artifact.source, {
 		'source': artifact.source
 		'target': artifact.target
 	})
 }
 
-pub fn app_artifact_from_value(value brew_runtime.Value) AppArtifact {
+pub fn app_artifact_from_value(value ruby.Value) AppArtifact {
 	return AppArtifact{
 		source: value.attributes['source'] or { value.as_string() }
 		target: value.attributes['target'] or { '' }
 	}
 }
 
-pub fn app_operation_value(result AppOperationResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'success':     brew_runtime.bool_value(result.success)
-		'error':       brew_runtime.string_value(result.error)
-		'stdout':      brew_runtime.string_value(result.stdout)
-		'stderr':      brew_runtime.string_value(result.stderr)
-		'adopted':     brew_runtime.bool_value(result.adopted)
-		'overwritten': brew_runtime.bool_value(result.overwritten)
-		'reused':      brew_runtime.bool_value(result.reused)
-		'commands':    brew_runtime.string_array_value(result.commands.map('${it.executable} ${it.args.join(' ')} sudo=${it.sudo}'))
+pub fn app_operation_value(result AppOperationResult) ruby.Value {
+	return ruby.map_value({
+		'success':     ruby.bool_value(result.success)
+		'error':       ruby.string_value(result.error)
+		'stdout':      ruby.string_value(result.stdout)
+		'stderr':      ruby.string_value(result.stderr)
+		'adopted':     ruby.bool_value(result.adopted)
+		'overwritten': ruby.bool_value(result.overwritten)
+		'reused':      ruby.bool_value(result.reused)
+		'commands':    ruby.string_array_value(result.commands.map('${it.executable} ${it.args.join(' ')} sudo=${it.sudo}'))
 	})
 }
 
 // Ruby method `install_phase(` at line 22.
-pub fn ruby_app_l22_d1_install_phase(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_app_l22_d1_install_phase(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return app_operation_value(AppOperationResult{
 			error: 'App install_phase requires an artifact'

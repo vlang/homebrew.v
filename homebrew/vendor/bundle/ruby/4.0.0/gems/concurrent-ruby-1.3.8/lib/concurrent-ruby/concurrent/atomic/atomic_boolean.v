@@ -1,6 +1,6 @@
 module atomic
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/atomic/atomic_boolean.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -13,7 +13,7 @@ pub fn atomic_boolean_description(super_description string, value bool) string {
 	return '${base} value:${value}>'
 }
 
-fn atomic_boolean_description_from_args(args []brew_runtime.Value) string {
+fn atomic_boolean_description_from_args(args []ruby.Value) string {
 	if args.len >= 2 {
 		return atomic_boolean_description(args[0].as_string(), args[1].as_bool() or {
 			panic(err)
@@ -30,12 +30,12 @@ fn atomic_boolean_description_from_args(args []brew_runtime.Value) string {
 }
 
 // Ruby method `to_s` at line 121.
-pub fn ruby_atomic_boolean_l121_d1_to_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(atomic_boolean_description_from_args(args))
+pub fn ruby_atomic_boolean_l121_d1_to_s(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(atomic_boolean_description_from_args(args))
 }
 
 // Ruby alias_method `alias_method :inspect, :to_s` at line 125.
-pub fn ruby_atomic_boolean_l125_d2_inspect(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_atomic_boolean_l125_d2_inspect(args ...ruby.Value) ruby.Value {
 	return ruby_atomic_boolean_l121_d1_to_s(...args)
 }
 

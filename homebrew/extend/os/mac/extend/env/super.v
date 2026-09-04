@@ -1,6 +1,6 @@
 module env
 
-import brew_runtime
+import ruby
 import homebrew.extend.env as base_env
 
 // Translated from Homebrew/brew `extend/os/mac/extend/ENV/super.rb`.
@@ -28,7 +28,7 @@ pub:
 }
 
 pub fn mac_superenv_shims_path(homebrew_shims_path string) string {
-	return brew_runtime.join_path(homebrew_shims_path, 'mac/super/bin')
+	return ruby.join_path(homebrew_shims_path, 'mac/super/bin')
 }
 
 pub fn mac_superenv_bin(development_tools_installed bool, real_shims_path string) ?string {
@@ -41,7 +41,7 @@ pub fn mac_superenv_bin(development_tools_installed bool, real_shims_path string
 pub fn mac_superenv_extra_pkg_config_paths(homebrew_library string,
 	macos_version string) []string {
 	return ['/usr/lib/pkgconfig',
-		brew_runtime.join_path(homebrew_library, 'Homebrew/os/mac/pkgconfig/${macos_version}')]
+		ruby.join_path(homebrew_library, 'Homebrew/os/mac/pkgconfig/${macos_version}')]
 }
 
 pub fn mac_superenv_libxml2_include_needed(dependencies []base_env.SuperenvDependency,
@@ -49,19 +49,19 @@ pub fn mac_superenv_libxml2_include_needed(dependencies []base_env.SuperenvDepen
 	if dependencies.any(it.name == 'libxml2') {
 		return false
 	}
-	return !directory(brew_runtime.join_path(sdkroot, 'usr/include/libxml'))
+	return !directory(ruby.join_path(sdkroot, 'usr/include/libxml'))
 }
 
 pub fn mac_superenv_extra_isystem_paths(sdkroot string, libxml2_needed bool,
 	xcode_without_clt bool) []string {
 	mut paths := []string{}
 	if libxml2_needed {
-		paths << brew_runtime.join_path(sdkroot, 'usr/include/libxml2')
+		paths << ruby.join_path(sdkroot, 'usr/include/libxml2')
 	}
 	if xcode_without_clt {
-		paths << brew_runtime.join_path(sdkroot, 'usr/include/apache2')
+		paths << ruby.join_path(sdkroot, 'usr/include/apache2')
 	}
-	paths << brew_runtime.join_path(sdkroot, 'System/Library/Frameworks/OpenGL.framework/Versions/Current/Headers')
+	paths << ruby.join_path(sdkroot, 'System/Library/Frameworks/OpenGL.framework/Versions/Current/Headers')
 	return paths
 }
 
@@ -69,10 +69,10 @@ pub fn mac_superenv_extra_library_paths(sdkroot string, compiler string,
 	homebrew_prefix string) []string {
 	mut paths := []string{}
 	if compiler.trim_string_left(':') == 'llvm_clang' {
-		paths << brew_runtime.join_path(sdkroot, 'usr/lib')
-		paths << brew_runtime.join_path(homebrew_prefix, 'opt/llvm/lib')
+		paths << ruby.join_path(sdkroot, 'usr/lib')
+		paths << ruby.join_path(homebrew_prefix, 'opt/llvm/lib')
 	}
-	paths << brew_runtime.join_path(sdkroot, 'System/Library/Frameworks/OpenGL.framework/Versions/Current/Libraries')
+	paths << ruby.join_path(sdkroot, 'System/Library/Frameworks/OpenGL.framework/Versions/Current/Libraries')
 	return paths
 }
 
@@ -83,7 +83,7 @@ pub fn mac_superenv_extra_cmake_include_paths(sdkroot string, libxml2_needed boo
 
 pub fn mac_superenv_extra_cmake_library_paths(sdkroot string) []string {
 	return [
-		brew_runtime.join_path(sdkroot, 'System/Library/Frameworks/OpenGL.framework/Versions/Current/Libraries'),
+		ruby.join_path(sdkroot, 'System/Library/Frameworks/OpenGL.framework/Versions/Current/Libraries'),
 	]
 }
 
@@ -92,7 +92,7 @@ pub fn mac_superenv_extra_cmake_framework_paths(sdkroot string,
 	if !xcode_without_clt {
 		return []
 	}
-	return [brew_runtime.join_path(sdkroot, 'System/Library/Frameworks')]
+	return [ruby.join_path(sdkroot, 'System/Library/Frameworks')]
 }
 
 fn mac_superenv_version_parts(version string) []int {

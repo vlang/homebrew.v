@@ -1,10 +1,10 @@
 module atomic_reference
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/atomic_reference/atomic_direct_update.rb`.
 // The original source is retained below until every stub has a typed V body.
-fn direct_update_values(args []brew_runtime.Value) (brew_runtime.Value, bool) {
+fn direct_update_values(args []ruby.Value) (ruby.Value, bool) {
 	if args.len < 2 {
 		return nil_boundary_value(), false
 	}
@@ -17,19 +17,19 @@ fn direct_update_values(args []brew_runtime.Value) (brew_runtime.Value, bool) {
 }
 
 // Ruby method `update` at line 10.
-pub fn ruby_atomic_direct_update_l10_d1_update(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_atomic_direct_update_l10_d1_update(args ...ruby.Value) ruby.Value {
 	new_value, _ := direct_update_values(args)
 	return new_value
 }
 
 // Ruby method `try_update` at line 15.
-pub fn ruby_atomic_direct_update_l15_d2_try_update(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_atomic_direct_update_l15_d2_try_update(args ...ruby.Value) ruby.Value {
 	new_value, succeeded := direct_update_values(args)
 	return if succeeded { new_value } else { nil_boundary_value() }
 }
 
 // Ruby method `try_update!` at line 24.
-pub fn ruby_atomic_direct_update_l24_d3_try_update(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_atomic_direct_update_l24_d3_try_update(args ...ruby.Value) ruby.Value {
 	new_value, succeeded := direct_update_values(args)
 	if !succeeded {
 		panic('ConcurrentUpdateError: Update failed')

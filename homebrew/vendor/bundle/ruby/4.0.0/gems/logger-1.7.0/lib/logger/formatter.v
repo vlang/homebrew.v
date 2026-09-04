@@ -1,6 +1,6 @@
 module logger
 
-import brew_runtime
+import ruby
 import os
 import time
 
@@ -30,7 +30,7 @@ pub fn (formatter Formatter) format_datetime(value time.Time) string {
 	return formatted.replace(placeholder, '${value.nanosecond / 1_000:06}')
 }
 
-pub fn message_to_string(message brew_runtime.Value) string {
+pub fn message_to_string(message ruby.Value) string {
 	if message.type_name == 'String' {
 		return message.as_string()
 	}
@@ -46,24 +46,24 @@ pub fn message_to_string(message brew_runtime.Value) string {
 	return message.as_string()
 }
 
-pub fn (formatter Formatter) call(severity string, at time.Time, progname string, message brew_runtime.Value) string {
+pub fn (formatter Formatter) call(severity string, at time.Time, progname string, message ruby.Value) string {
 	initial := if severity.len > 0 { severity[..1] } else { '' }
 	return '${initial}, [${formatter.format_datetime(at)} #${os.getpid()}] ${severity:5} -- ${progname}: ${message_to_string(message)}\n'
 }
 
-fn formatter_from_value(value brew_runtime.Value) Formatter {
+fn formatter_from_value(value ruby.Value) Formatter {
 	return Formatter{
 		datetime_format: value.attribute('datetime_format') or { '' }
 	}
 }
 
-fn formatter_value(formatter Formatter) brew_runtime.Value {
-	return brew_runtime.structured_value('Logger::Formatter', '#<Logger::Formatter>', {
+fn formatter_value(formatter Formatter) ruby.Value {
+	return ruby.structured_value('Logger::Formatter', '#<Logger::Formatter>', {
 		'datetime_format': formatter.datetime_format
 	})
 }
 
-fn value_time(value brew_runtime.Value) time.Time {
+fn value_time(value ruby.Value) time.Time {
 	if value.type_name == 'Integer' {
 		return time.unix(value.as_int() or { 0 })
 	}
@@ -71,15 +71,15 @@ fn value_time(value brew_runtime.Value) time.Time {
 }
 
 // Ruby attr_accessor `attr_accessor :datetime_format` at line 9.
-pub fn ruby_formatter_l9_d1_datetime_format(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formatter_l9_d1_datetime_format(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Logger::Formatter#datetime_format requires a formatter')
 	}
-	return brew_runtime.string_value(formatter_from_value(args[0]).datetime_format)
+	return ruby.string_value(formatter_from_value(args[0]).datetime_format)
 }
 
 // Ruby attr_accessor `attr_accessor :datetime_format` at line 9.
-pub fn ruby_formatter_l9_d2_datetime_format(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formatter_l9_d2_datetime_format(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Logger::Formatter#datetime_format= requires a formatter and format')
 	}
@@ -89,33 +89,33 @@ pub fn ruby_formatter_l9_d2_datetime_format(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby method `initialize` at line 11.
-pub fn ruby_formatter_l11_d3_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formatter_l11_d3_initialize(args ...ruby.Value) ruby.Value {
 	return formatter_value(new_formatter())
 }
 
 // Ruby method `call(severity, time, progname, msg)` at line 15.
-pub fn ruby_formatter_l15_d4_call(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formatter_l15_d4_call(args ...ruby.Value) ruby.Value {
 	if args.len < 5 {
 		panic('Logger::Formatter#call requires a formatter, severity, time, progname, and message')
 	}
 	formatter := formatter_from_value(args[0])
-	return brew_runtime.string_value(formatter.call(args[1].as_string(), value_time(args[2]), args[3].as_string(), args[4]))
+	return ruby.string_value(formatter.call(args[1].as_string(), value_time(args[2]), args[3].as_string(), args[4]))
 }
 
 // Ruby method `format_datetime(time)` at line 21.
-pub fn ruby_formatter_l21_d5_format_datetime(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formatter_l21_d5_format_datetime(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Logger::Formatter#format_datetime requires a formatter and time')
 	}
-	return brew_runtime.string_value(formatter_from_value(args[0]).format_datetime(value_time(args[1])))
+	return ruby.string_value(formatter_from_value(args[0]).format_datetime(value_time(args[1])))
 }
 
 // Ruby method `msg2str(msg)` at line 25.
-pub fn ruby_formatter_l25_d6_msg2str(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formatter_l25_d6_msg2str(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Logger::Formatter#msg2str requires a message')
 	}
-	return brew_runtime.string_value(message_to_string(args[args.len - 1]))
+	return ruby.string_value(message_to_string(args[args.len - 1]))
 }
 
 // Original Ruby source (line-for-line):

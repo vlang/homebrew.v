@@ -1,6 +1,6 @@
 module cask
 
-import brew_runtime
+import ruby
 import os
 import time
 
@@ -91,77 +91,77 @@ pub fn cask_metadata_leaf_subdir(leaf string, version ?string, timestamp string,
 	}
 }
 
-fn cask_metadata_optional_version(value brew_runtime.Value) ?string {
+fn cask_metadata_optional_version(value ruby.Value) ?string {
 	if value.type_name in ['NilClass', 'Nil'] {
 		return none
 	}
 	return value.as_string()
 }
 
-fn cask_metadata_timestamp_value(value brew_runtime.Value) string {
+fn cask_metadata_timestamp_value(value ruby.Value) string {
 	if value.type_name == 'Symbol' {
 		return ':${value.as_string().trim_left(':')}'
 	}
 	return value.as_string()
 }
 
-fn cask_metadata_path_value(result CaskMetadataPath) brew_runtime.Value {
+fn cask_metadata_path_value(result CaskMetadataPath) ruby.Value {
 	return if result.present {
-		brew_runtime.object_value('Pathname', result.path)
+		ruby.object_value('Pathname', result.path)
 	} else {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	}
 }
 
 // Ruby method `metadata_main_container_path(caskroom_path: self.caskroom_path)` at line 18.
-pub fn ruby_metadata_l18_d1_metadata_main_container_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_metadata_l18_d1_metadata_main_container_path(args ...ruby.Value) ruby.Value {
 	caskroom_path := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.object_value('Pathname', cask_metadata_main_container_path(caskroom_path))
+	return ruby.object_value('Pathname', cask_metadata_main_container_path(caskroom_path))
 }
 
 // Ruby method `metadata_versioned_path(version: self.version, caskroom_path: self.caskroom_path)` at line 23.
-pub fn ruby_metadata_l23_d2_metadata_versioned_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_metadata_l23_d2_metadata_versioned_path(args ...ruby.Value) ruby.Value {
 	version := if args.len > 0 { cask_metadata_optional_version(args[0]) } else { ?string(none) }
 	caskroom_path := if args.len > 1 { args[1].as_string() } else { '' }
 	path := cask_metadata_versioned_path(version, caskroom_path) or {
-		return brew_runtime.object_value('CaskError', err.msg())
+		return ruby.object_value('CaskError', err.msg())
 	}
-	return brew_runtime.object_value('Pathname', path)
+	return ruby.object_value('Pathname', path)
 }
 
 // Ruby method `metadata_timestamped_path(version: self.version, timestamp: :latest, create: false,` at line 39.
-pub fn ruby_metadata_l39_d3_metadata_timestamped_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_metadata_l39_d3_metadata_timestamped_path(args ...ruby.Value) ruby.Value {
 	version := if args.len > 0 { cask_metadata_optional_version(args[0]) } else { ?string(none) }
 	timestamp := if args.len > 1 { cask_metadata_timestamp_value(args[1]) } else { ':latest' }
 	create := if args.len > 2 { args[2].as_bool() or { false } } else { false }
 	caskroom_path := if args.len > 3 { args[3].as_string() } else { '' }
 	result := cask_metadata_timestamped_path(version, timestamp, create, caskroom_path) or {
-		return brew_runtime.object_value('CaskError', err.msg())
+		return ruby.object_value('CaskError', err.msg())
 	}
 	return cask_metadata_path_value(result)
 }
 
 // Ruby method `metadata_subdir(leaf, version: self.version, timestamp: :latest, create: false,` at line 71.
-pub fn ruby_metadata_l71_d4_metadata_subdir(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_metadata_l71_d4_metadata_subdir(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('CaskError', 'Cannot create metadata subdir for empty leaf.')
+		return ruby.object_value('CaskError', 'Cannot create metadata subdir for empty leaf.')
 	}
 	version := if args.len > 1 { cask_metadata_optional_version(args[1]) } else { ?string(none) }
 	timestamp := if args.len > 2 { cask_metadata_timestamp_value(args[2]) } else { ':latest' }
 	create := if args.len > 3 { args[3].as_bool() or { false } } else { false }
 	caskroom_path := if args.len > 4 { args[4].as_string() } else { '' }
-	result := cask_metadata_leaf_subdir(args[0].as_string(), version, timestamp, create, caskroom_path) or { return brew_runtime.object_value('CaskError', err.msg()) }
+	result := cask_metadata_leaf_subdir(args[0].as_string(), version, timestamp, create, caskroom_path) or { return ruby.object_value('CaskError', err.msg()) }
 	return cask_metadata_path_value(result)
 }
 
 // Ruby method `new_timestamp(time = Time.now)` at line 94.
-pub fn ruby_metadata_l94_d5_new_timestamp(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_metadata_l94_d5_new_timestamp(args ...ruby.Value) ruby.Value {
 	value := if args.len > 0 {
 		time.unix(args[0].as_int() or { 0 })
 	} else {
 		time.now()
 	}
-	return brew_runtime.string_value(cask_metadata_new_timestamp(value))
+	return ruby.string_value(cask_metadata_new_timestamp(value))
 }
 
 // Original Ruby source (line-for-line):

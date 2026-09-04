@@ -1,13 +1,13 @@
 module pathname
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `extend/os/linux/extend/pathname/os.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `activate_extensions!` at line 13.
-pub fn ruby_os_l13_d1_activate_extensions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(active_pathname_extensions())
+pub fn ruby_os_l13_d1_activate_extensions(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(active_pathname_extensions())
 }
 
 pub fn active_pathname_extensions() []string {

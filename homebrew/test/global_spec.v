@@ -1,18 +1,18 @@
 module test
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `test/global_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "does not require slow dependencies unnecessarily" do` at line 5.
-pub fn ruby_global_spec_l5_d1_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_global_spec_l5_d1_does(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	exit_code := args[0].as_int() or { return brew_runtime.bool_value(false) }
+	exit_code := args[0].as_int() or { return ruby.bool_value(false) }
 	output := if args.len > 1 { args[1].as_string() } else { '' }
-	return brew_runtime.bool_value(exit_code == 0 && output == '')
+	return ruby.bool_value(exit_code == 0 && output == '')
 }
 
 // Original Ruby source (line-for-line):

@@ -1,6 +1,6 @@
 module artifact
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `cask/artifact/mdimporter.rb`.
@@ -320,14 +320,14 @@ pub fn summarize_installed_mdimporter(artifact MdimporterArtifact) string {
 	return 'Missing Spotlight metadata importer: ${artifact.target}'
 }
 
-pub fn mdimporter_artifact_to_value(artifact MdimporterArtifact) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'source': brew_runtime.string_value(artifact.source)
-		'target': brew_runtime.string_value(artifact.target)
+pub fn mdimporter_artifact_to_value(artifact MdimporterArtifact) ruby.Value {
+	return ruby.map_value({
+		'source': ruby.string_value(artifact.source)
+		'target': ruby.string_value(artifact.target)
 	})
 }
 
-fn mdimporter_artifact_from_value(value brew_runtime.Value) !MdimporterArtifact {
+fn mdimporter_artifact_from_value(value ruby.Value) !MdimporterArtifact {
 	values := value.as_map()!
 	return MdimporterArtifact{
 		source: (values['source'] or { return error('Mdimporter source is required') }).as_string()
@@ -335,23 +335,23 @@ fn mdimporter_artifact_from_value(value brew_runtime.Value) !MdimporterArtifact 
 	}
 }
 
-pub fn mdimporter_operation_to_value(result MdimporterOperationResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'success':   brew_runtime.bool_value(result.success)
-		'error':     brew_runtime.string_value(result.error)
-		'moved':     brew_runtime.bool_value(result.moved)
-		'adopted':   brew_runtime.bool_value(result.adopted)
-		'restored':  brew_runtime.bool_value(result.restored)
-		'refreshed': brew_runtime.bool_value(result.refreshed)
-		'commands':  brew_runtime.array_value(result.commands.map(brew_runtime.map_value({
-			'executable': brew_runtime.string_value(it.executable)
-			'args':       brew_runtime.string_array_value(it.args)
-			'sudo':       brew_runtime.bool_value(it.sudo)
+pub fn mdimporter_operation_to_value(result MdimporterOperationResult) ruby.Value {
+	return ruby.map_value({
+		'success':   ruby.bool_value(result.success)
+		'error':     ruby.string_value(result.error)
+		'moved':     ruby.bool_value(result.moved)
+		'adopted':   ruby.bool_value(result.adopted)
+		'restored':  ruby.bool_value(result.restored)
+		'refreshed': ruby.bool_value(result.refreshed)
+		'commands':  ruby.array_value(result.commands.map(ruby.map_value({
+			'executable': ruby.string_value(it.executable)
+			'args':       ruby.string_array_value(it.args)
+			'sudo':       ruby.bool_value(it.sudo)
 		})))
 	})
 }
 
-fn mdimporter_install_options_from_value(value brew_runtime.Value) MdimporterInstallOptions {
+fn mdimporter_install_options_from_value(value ruby.Value) MdimporterInstallOptions {
 	values := value.as_map() or { return MdimporterInstallOptions{} }
 	return MdimporterInstallOptions{
 		adopt: value_bool(values, 'adopt', false)
@@ -365,17 +365,17 @@ fn mdimporter_install_options_from_value(value brew_runtime.Value) MdimporterIns
 }
 
 // Ruby method `self.english_name` at line 11.
-pub fn ruby_mdimporter_l11_d1_self_english_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('Spotlight metadata importer')
+pub fn ruby_mdimporter_l11_d1_self_english_name(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('Spotlight metadata importer')
 }
 
 // Ruby method `install_phase(adopt: false, auto_updates: false, force: false, verbose: false, predecessor: nil,` at line 27.
-pub fn ruby_mdimporter_l27_d2_install_phase(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mdimporter_l27_d2_install_phase(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'Mdimporter artifact is required')
+		return ruby.object_value('ArgumentError', 'Mdimporter artifact is required')
 	}
 	artifact := mdimporter_artifact_from_value(args[0]) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	options := if args.len > 1 {
 		mdimporter_install_options_from_value(args[1])
@@ -386,12 +386,12 @@ pub fn ruby_mdimporter_l27_d2_install_phase(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby method `reload_spotlight(command:, **_options)` at line 36.
-pub fn ruby_mdimporter_l36_d3_reload_spotlight(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mdimporter_l36_d3_reload_spotlight(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'Mdimporter artifact is required')
+		return ruby.object_value('ArgumentError', 'Mdimporter artifact is required')
 	}
 	artifact := mdimporter_artifact_from_value(args[0]) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	mut result := MdimporterOperationResult{}
 	reload_spotlight_with_command(artifact, default_mdimporter_runner, mut result)

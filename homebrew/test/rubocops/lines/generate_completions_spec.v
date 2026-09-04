@@ -1,14 +1,14 @@
 module lines
 
-import brew_runtime
+import ruby
 import homebrew.rubocops as line_cops
 
 // Translated from Homebrew/brew `test/rubocops/lines/generate_completions_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 8.
-pub fn ruby_generate_completions_spec_l8_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::GenerateCompletionsDSL', 'GenerateCompletionsDSL')
+pub fn ruby_generate_completions_spec_l8_d1_cop(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('RuboCop::Cop::FormulaAudit::GenerateCompletionsDSL', 'GenerateCompletionsDSL')
 }
 
 fn generate_completion_spec(command string, formula_name string, correction string, message string) bool {
@@ -27,233 +27,233 @@ fn redundant_completion_spec(source string, corrected string, offense_count int)
 }
 
 // Ruby it `it "reports an offense when writing to a shell completions file directly" do` at line 10.
-pub fn ruby_generate_completions_spec_l10_d2_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_completions_spec_l10_d2_reports(args ...ruby.Value) ruby.Value {
 	source := '(bash_completion/"foo").write Utils.safe_popen_read(bin/"foo", "completions", "bash")'
 	corrected := 'generate_completions_from_executable(bin/"foo", "completions", shells: [:bash])'
-	return brew_runtime.bool_value(generate_completion_spec(source, 'foo', corrected, 'Use `${corrected}` instead of `${source}`.'))
+	return ruby.bool_value(generate_completion_spec(source, 'foo', corrected, 'Use `${corrected}` instead of `${source}`.'))
 }
 
 // Ruby method `install` at line 15.
-pub fn ruby_generate_completions_spec_l15_d3_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('(bash_completion/"foo").write Utils.safe_popen_read(bin/"foo", "completions", "bash")')
+pub fn ruby_generate_completions_spec_l15_d3_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('(bash_completion/"foo").write Utils.safe_popen_read(bin/"foo", "completions", "bash")')
 }
 
 // Ruby method `install` at line 26.
-pub fn ruby_generate_completions_spec_l26_d4_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('generate_completions_from_executable(bin/"foo", "completions", shells: [:bash])')
+pub fn ruby_generate_completions_spec_l26_d4_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('generate_completions_from_executable(bin/"foo", "completions", shells: [:bash])')
 }
 
 // Ruby it `it "reports an offense when writing to a shell completions file differing from the formula name" do` at line 33.
-pub fn ruby_generate_completions_spec_l33_d5_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_completions_spec_l33_d5_reports(args ...ruby.Value) ruby.Value {
 	source := '(bash_completion/"foo").write Utils.safe_popen_read(bin/"foo", "completions", "bash")'
 	corrected := 'generate_completions_from_executable(bin/"foo", "completions", base_name: "foo", shells: [:bash])'
-	return brew_runtime.bool_value(generate_completion_spec(source, 'foo-cli', corrected, 'Use `${corrected}` instead of `${source}`.'))
+	return ruby.bool_value(generate_completion_spec(source, 'foo-cli', corrected, 'Use `${corrected}` instead of `${source}`.'))
 }
 
 // Ruby method `install` at line 38.
-pub fn ruby_generate_completions_spec_l38_d6_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_completions_spec_l38_d6_install(args ...ruby.Value) ruby.Value {
 	return ruby_generate_completions_spec_l15_d3_install()
 }
 
 // Ruby method `install` at line 49.
-pub fn ruby_generate_completions_spec_l49_d7_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('generate_completions_from_executable(bin/"foo", "completions", base_name: "foo", shells: [:bash])')
+pub fn ruby_generate_completions_spec_l49_d7_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('generate_completions_from_executable(bin/"foo", "completions", base_name: "foo", shells: [:bash])')
 }
 
 // Ruby it `it "reports an offense when writing to a shell completions file using an arg for the shell parameter" do` at line 56.
-pub fn ruby_generate_completions_spec_l56_d8_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_completions_spec_l56_d8_reports(args ...ruby.Value) ruby.Value {
 	source := '(bash_completion/"foo").write Utils.safe_popen_read(bin/"foo", "completions", "--shell=bash")'
 	corrected := 'generate_completions_from_executable(bin/"foo", "completions", shells: [:bash], shell_parameter_format: :arg)'
-	return brew_runtime.bool_value(generate_completion_spec(source, 'foo', corrected, 'Use `${corrected}` instead of `${source}`.'))
+	return ruby.bool_value(generate_completion_spec(source, 'foo', corrected, 'Use `${corrected}` instead of `${source}`.'))
 }
 
 // Ruby method `install` at line 61.
-pub fn ruby_generate_completions_spec_l61_d9_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('(bash_completion/"foo").write Utils.safe_popen_read(bin/"foo", "completions", "--shell=bash")')
+pub fn ruby_generate_completions_spec_l61_d9_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('(bash_completion/"foo").write Utils.safe_popen_read(bin/"foo", "completions", "--shell=bash")')
 }
 
 // Ruby method `install` at line 72.
-pub fn ruby_generate_completions_spec_l72_d10_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('generate_completions_from_executable(bin/"foo", "completions", shells: [:bash], shell_parameter_format: :arg)')
+pub fn ruby_generate_completions_spec_l72_d10_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('generate_completions_from_executable(bin/"foo", "completions", shells: [:bash], shell_parameter_format: :arg)')
 }
 
 // Ruby it `it "reports an offense when writing to a shell completions file using a custom flag for the shell parameter" do` at line 79.
-pub fn ruby_generate_completions_spec_l79_d11_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_completions_spec_l79_d11_reports(args ...ruby.Value) ruby.Value {
 	source := '(bash_completion/"foo").write Utils.safe_popen_read(bin/"foo", "completions", "--completion-script-bash")'
 	corrected := 'generate_completions_from_executable(bin/"foo", "completions", shells: [:bash], shell_parameter_format: "--completion-script-")'
-	return brew_runtime.bool_value(generate_completion_spec(source, 'foo', corrected, 'Use `${corrected}` instead of `${source}`.'))
+	return ruby.bool_value(generate_completion_spec(source, 'foo', corrected, 'Use `${corrected}` instead of `${source}`.'))
 }
 
 // Ruby method `install` at line 84.
-pub fn ruby_generate_completions_spec_l84_d12_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('(bash_completion/"foo").write Utils.safe_popen_read(bin/"foo", "completions", "--completion-script-bash")')
+pub fn ruby_generate_completions_spec_l84_d12_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('(bash_completion/"foo").write Utils.safe_popen_read(bin/"foo", "completions", "--completion-script-bash")')
 }
 
 // Ruby method `install` at line 95.
-pub fn ruby_generate_completions_spec_l95_d13_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('generate_completions_from_executable(bin/"foo", "completions", shells: [:bash], shell_parameter_format: "--completion-script-")')
+pub fn ruby_generate_completions_spec_l95_d13_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('generate_completions_from_executable(bin/"foo", "completions", shells: [:bash], shell_parameter_format: "--completion-script-")')
 }
 
 // Ruby it `it "reports an offense when writing to a completions file indirectly" do` at line 102.
-pub fn ruby_generate_completions_spec_l102_d14_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_completions_spec_l102_d14_reports(args ...ruby.Value) ruby.Value {
 	source := '(bash_completion/"foo").write output'
 	analysis := line_cops.audit_lines_generate_completions(line_cops.LinesContext{ source: source, formula_name: 'foo' })
-	return brew_runtime.bool_value(analysis.offenses.len == 1 && analysis.corrected == source && analysis.offenses[0].message == 'Use `generate_completions_from_executable` DSL instead of `${source}`.')
+	return ruby.bool_value(analysis.offenses.len == 1 && analysis.corrected == source && analysis.offenses[0].message == 'Use `generate_completions_from_executable` DSL instead of `${source}`.')
 }
 
 // Ruby method `install` at line 107.
-pub fn ruby_generate_completions_spec_l107_d15_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('output = Utils.safe_popen_read(bin/"foo", "completions", "bash")\n(bash_completion/"foo").write output')
+pub fn ruby_generate_completions_spec_l107_d15_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('output = Utils.safe_popen_read(bin/"foo", "completions", "bash")\n(bash_completion/"foo").write output')
 }
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 118.
-pub fn ruby_generate_completions_spec_l118_d16_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::SingleGenerateCompletionsDSLCall', 'SingleGenerateCompletionsDSLCall')
+pub fn ruby_generate_completions_spec_l118_d16_cop(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('RuboCop::Cop::FormulaAudit::SingleGenerateCompletionsDSLCall', 'SingleGenerateCompletionsDSLCall')
 }
 
 // Ruby it `it "reports an offense when using multiple` at line 120.
-pub fn ruby_generate_completions_spec_l120_d17_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_completions_spec_l120_d17_reports(args ...ruby.Value) ruby.Value {
 	source := 'generate_completions_from_executable(bin/"foo", "completions", shells: [:bash])\ngenerate_completions_from_executable(bin/"foo", "completions", shells: [:zsh])\ngenerate_completions_from_executable(bin/"foo", "completions", shells: [:fish])'
 	corrected := 'generate_completions_from_executable(bin/"foo", "completions")'
-	return brew_runtime.bool_value(single_completion_spec(source, corrected, 3))
+	return ruby.bool_value(single_completion_spec(source, corrected, 3))
 }
 
 // Ruby method `install` at line 125.
-pub fn ruby_generate_completions_spec_l125_d18_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('generate_completions_from_executable(bin/"foo", "completions", shells: [:bash])\ngenerate_completions_from_executable(bin/"foo", "completions", shells: [:zsh])\ngenerate_completions_from_executable(bin/"foo", "completions", shells: [:fish])')
+pub fn ruby_generate_completions_spec_l125_d18_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('generate_completions_from_executable(bin/"foo", "completions", shells: [:bash])\ngenerate_completions_from_executable(bin/"foo", "completions", shells: [:zsh])\ngenerate_completions_from_executable(bin/"foo", "completions", shells: [:fish])')
 }
 
 // Ruby method `install` at line 140.
-pub fn ruby_generate_completions_spec_l140_d19_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('generate_completions_from_executable(bin/"foo", "completions")')
+pub fn ruby_generate_completions_spec_l140_d19_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('generate_completions_from_executable(bin/"foo", "completions")')
 }
 
 // Ruby it `it "does not report an offense when shells are generated dynamically" do` at line 147.
-pub fn ruby_generate_completions_spec_l147_d20_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_completions_spec_l147_d20_does(args ...ruby.Value) ruby.Value {
 	source := 'generate_completions_from_executable(bin/"foo", "completions")\n[:zsh, :bash].each do |shell|\n  generate_completions_from_executable(\n    bin/"foo", "completions", shell.to_s, "bar", shells: [shell], base_name: "bar",\n    shell_parameter_format: :none\n  )\nend'
-	return brew_runtime.bool_value(single_completion_spec(source, source, 0))
+	return ruby.bool_value(single_completion_spec(source, source, 0))
 }
 
 // Ruby method `install` at line 152.
-pub fn ruby_generate_completions_spec_l152_d21_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('generate_completions_from_executable(bin/"foo", "completions")\n[:zsh, :bash].each do |shell|\n  generate_completions_from_executable(\n    bin/"foo", "completions", shell.to_s, "bar", shells: [shell], base_name: "bar",\n    shell_parameter_format: :none\n  )\nend')
+pub fn ruby_generate_completions_spec_l152_d21_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('generate_completions_from_executable(bin/"foo", "completions")\n[:zsh, :bash].each do |shell|\n  generate_completions_from_executable(\n    bin/"foo", "completions", shell.to_s, "bar", shells: [shell], base_name: "bar",\n    shell_parameter_format: :none\n  )\nend')
 }
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 167.
-pub fn ruby_generate_completions_spec_l167_d22_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::RedundantGenerateCompletionsShells', 'RedundantGenerateCompletionsShells')
+pub fn ruby_generate_completions_spec_l167_d22_cop(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('RuboCop::Cop::FormulaAudit::RedundantGenerateCompletionsShells', 'RedundantGenerateCompletionsShells')
 }
 
 // Ruby it `it "reports an offense and removes `shells:` when all default shells are passed" do` at line 169.
-pub fn ruby_generate_completions_spec_l169_d23_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_completions_spec_l169_d23_reports(args ...ruby.Value) ruby.Value {
 	source := 'generate_completions_from_executable(bin/"foo", "completions", shells: [:bash, :zsh, :fish])'
 	corrected := 'generate_completions_from_executable(bin/"foo", "completions")'
-	return brew_runtime.bool_value(redundant_completion_spec(source, corrected, 1))
+	return ruby.bool_value(redundant_completion_spec(source, corrected, 1))
 }
 
 // Ruby method `install` at line 174.
-pub fn ruby_generate_completions_spec_l174_d24_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('generate_completions_from_executable(bin/"foo", "completions", shells: [:bash, :zsh, :fish])')
+pub fn ruby_generate_completions_spec_l174_d24_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('generate_completions_from_executable(bin/"foo", "completions", shells: [:bash, :zsh, :fish])')
 }
 
 // Ruby method `install` at line 185.
-pub fn ruby_generate_completions_spec_l185_d25_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_completions_spec_l185_d25_install(args ...ruby.Value) ruby.Value {
 	return ruby_generate_completions_spec_l140_d19_install()
 }
 
 // Ruby it `it "reports an offense regardless of the order of the default shells" do` at line 192.
-pub fn ruby_generate_completions_spec_l192_d26_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_completions_spec_l192_d26_reports(args ...ruby.Value) ruby.Value {
 	source := 'generate_completions_from_executable(bin/"foo", "completions", shells: [:fish, :bash, :zsh])'
 	corrected := 'generate_completions_from_executable(bin/"foo", "completions")'
-	return brew_runtime.bool_value(redundant_completion_spec(source, corrected, 1))
+	return ruby.bool_value(redundant_completion_spec(source, corrected, 1))
 }
 
 // Ruby method `install` at line 197.
-pub fn ruby_generate_completions_spec_l197_d27_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('generate_completions_from_executable(bin/"foo", "completions", shells: [:fish, :bash, :zsh])')
+pub fn ruby_generate_completions_spec_l197_d27_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('generate_completions_from_executable(bin/"foo", "completions", shells: [:fish, :bash, :zsh])')
 }
 
 // Ruby method `install` at line 208.
-pub fn ruby_generate_completions_spec_l208_d28_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_completions_spec_l208_d28_install(args ...ruby.Value) ruby.Value {
 	return ruby_generate_completions_spec_l140_d19_install()
 }
 
 // Ruby it `it "removes only `shells:` and keeps other keyword arguments" do` at line 215.
-pub fn ruby_generate_completions_spec_l215_d29_removes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_completions_spec_l215_d29_removes(args ...ruby.Value) ruby.Value {
 	source := 'generate_completions_from_executable(bin/"foo", "completions", shells: [:bash, :zsh, :fish], base_name: "bar")'
 	corrected := 'generate_completions_from_executable(bin/"foo", "completions", base_name: "bar")'
-	return brew_runtime.bool_value(redundant_completion_spec(source, corrected, 1))
+	return ruby.bool_value(redundant_completion_spec(source, corrected, 1))
 }
 
 // Ruby method `install` at line 220.
-pub fn ruby_generate_completions_spec_l220_d30_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('generate_completions_from_executable(bin/"foo", "completions", shells: [:bash, :zsh, :fish], base_name: "bar")')
+pub fn ruby_generate_completions_spec_l220_d30_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('generate_completions_from_executable(bin/"foo", "completions", shells: [:bash, :zsh, :fish], base_name: "bar")')
 }
 
 // Ruby method `install` at line 231.
-pub fn ruby_generate_completions_spec_l231_d31_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('generate_completions_from_executable(bin/"foo", "completions", base_name: "bar")')
+pub fn ruby_generate_completions_spec_l231_d31_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('generate_completions_from_executable(bin/"foo", "completions", base_name: "bar")')
 }
 
 // Ruby it `it "does not report an offense when only some default shells are passed" do` at line 238.
-pub fn ruby_generate_completions_spec_l238_d32_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_completions_spec_l238_d32_does(args ...ruby.Value) ruby.Value {
 	source := 'generate_completions_from_executable(bin/"foo", "completions", shells: [:bash, :zsh])'
-	return brew_runtime.bool_value(redundant_completion_spec(source, source, 0))
+	return ruby.bool_value(redundant_completion_spec(source, source, 0))
 }
 
 // Ruby method `install` at line 243.
-pub fn ruby_generate_completions_spec_l243_d33_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('generate_completions_from_executable(bin/"foo", "completions", shells: [:bash, :zsh])')
+pub fn ruby_generate_completions_spec_l243_d33_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('generate_completions_from_executable(bin/"foo", "completions", shells: [:bash, :zsh])')
 }
 
 // Ruby it `it "does not report an offense when a non-default shell is included" do` at line 250.
-pub fn ruby_generate_completions_spec_l250_d34_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_completions_spec_l250_d34_does(args ...ruby.Value) ruby.Value {
 	source := 'generate_completions_from_executable(bin/"foo", "completions", shells: [:bash, :zsh, :fish, :pwsh])'
-	return brew_runtime.bool_value(redundant_completion_spec(source, source, 0))
+	return ruby.bool_value(redundant_completion_spec(source, source, 0))
 }
 
 // Ruby method `install` at line 255.
-pub fn ruby_generate_completions_spec_l255_d35_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('generate_completions_from_executable(bin/"foo", "completions", shells: [:bash, :zsh, :fish, :pwsh])')
+pub fn ruby_generate_completions_spec_l255_d35_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('generate_completions_from_executable(bin/"foo", "completions", shells: [:bash, :zsh, :fish, :pwsh])')
 }
 
 // Ruby it `it "treats `:pwsh` as a default when `shell_parameter_format` is `:cobra`" do` at line 262.
-pub fn ruby_generate_completions_spec_l262_d36_treats(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_completions_spec_l262_d36_treats(args ...ruby.Value) ruby.Value {
 	source := 'generate_completions_from_executable(bin/"foo", shells: [:bash, :zsh, :fish, :pwsh], shell_parameter_format: :cobra)'
 	corrected := 'generate_completions_from_executable(bin/"foo", shell_parameter_format: :cobra)'
-	return brew_runtime.bool_value(redundant_completion_spec(source, corrected, 1))
+	return ruby.bool_value(redundant_completion_spec(source, corrected, 1))
 }
 
 // Ruby method `install` at line 267.
-pub fn ruby_generate_completions_spec_l267_d37_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('generate_completions_from_executable(bin/"foo", shells: [:bash, :zsh, :fish, :pwsh], shell_parameter_format: :cobra)')
+pub fn ruby_generate_completions_spec_l267_d37_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('generate_completions_from_executable(bin/"foo", shells: [:bash, :zsh, :fish, :pwsh], shell_parameter_format: :cobra)')
 }
 
 // Ruby method `install` at line 278.
-pub fn ruby_generate_completions_spec_l278_d38_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('generate_completions_from_executable(bin/"foo", shell_parameter_format: :cobra)')
+pub fn ruby_generate_completions_spec_l278_d38_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('generate_completions_from_executable(bin/"foo", shell_parameter_format: :cobra)')
 }
 
 // Ruby it `it "does not report an offense when `:cobra` is used without its `:pwsh` default" do` at line 285.
-pub fn ruby_generate_completions_spec_l285_d39_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_completions_spec_l285_d39_does(args ...ruby.Value) ruby.Value {
 	source := 'generate_completions_from_executable(bin/"foo", shells: [:bash, :zsh, :fish], shell_parameter_format: :cobra)'
-	return brew_runtime.bool_value(redundant_completion_spec(source, source, 0))
+	return ruby.bool_value(redundant_completion_spec(source, source, 0))
 }
 
 // Ruby method `install` at line 290.
-pub fn ruby_generate_completions_spec_l290_d40_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('generate_completions_from_executable(bin/"foo", shells: [:bash, :zsh, :fish], shell_parameter_format: :cobra)')
+pub fn ruby_generate_completions_spec_l290_d40_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('generate_completions_from_executable(bin/"foo", shells: [:bash, :zsh, :fish], shell_parameter_format: :cobra)')
 }
 
 // Ruby it `it "does not report an offense when `shell_parameter_format` is not a literal" do` at line 297.
-pub fn ruby_generate_completions_spec_l297_d41_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_completions_spec_l297_d41_does(args ...ruby.Value) ruby.Value {
 	source := 'format = :cobra\ngenerate_completions_from_executable(bin/"foo", shells: [:bash, :zsh, :fish], shell_parameter_format: format)'
-	return brew_runtime.bool_value(redundant_completion_spec(source, source, 0))
+	return ruby.bool_value(redundant_completion_spec(source, source, 0))
 }
 
 // Ruby method `install` at line 302.
-pub fn ruby_generate_completions_spec_l302_d42_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('format = :cobra\ngenerate_completions_from_executable(bin/"foo", shells: [:bash, :zsh, :fish], shell_parameter_format: format)')
+pub fn ruby_generate_completions_spec_l302_d42_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('format = :cobra\ngenerate_completions_from_executable(bin/"foo", shells: [:bash, :zsh, :fish], shell_parameter_format: format)')
 }
 
 // Original Ruby source (line-for-line):

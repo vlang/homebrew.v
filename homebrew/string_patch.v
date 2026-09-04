@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `string_patch.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -26,14 +26,14 @@ pub fn (patch StringPatch) contents() string {
 	return patch.text
 }
 
-fn string_patch_boundary_value(patch StringPatch) brew_runtime.Value {
-	return brew_runtime.structured_value('StringPatch', patch.filename(), {
+fn string_patch_boundary_value(patch StringPatch) ruby.Value {
+	return ruby.structured_value('StringPatch', patch.filename(), {
 		'strip': patch.strip
 		'text':  patch.text
 	})
 }
 
-fn string_patch_from_boundary(value brew_runtime.Value) StringPatch {
+fn string_patch_from_boundary(value ruby.Value) StringPatch {
 	if value.type_name != 'StringPatch' {
 		panic('expected StringPatch, got ${value.type_name}')
 	}
@@ -43,7 +43,7 @@ fn string_patch_from_boundary(value brew_runtime.Value) StringPatch {
 }
 
 // Ruby method `initialize(strip, str)` at line 9.
-pub fn ruby_string_patch_l9_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_string_patch_l9_d1_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('StringPatch#initialize requires strip and contents')
 	}
@@ -51,19 +51,19 @@ pub fn ruby_string_patch_l9_d1_initialize(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby method `filename = "embedded string patch"` at line 15.
-pub fn ruby_string_patch_l15_d2_filename(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_string_patch_l15_d2_filename(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('StringPatch#filename requires a receiver')
 	}
-	return brew_runtime.string_value(string_patch_from_boundary(args[0]).filename())
+	return ruby.string_value(string_patch_from_boundary(args[0]).filename())
 }
 
 // Ruby method `contents` at line 18.
-pub fn ruby_string_patch_l18_d3_contents(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_string_patch_l18_d3_contents(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('StringPatch#contents requires a receiver')
 	}
-	return brew_runtime.string_value(string_patch_from_boundary(args[0]).contents())
+	return ruby.string_value(string_patch_from_boundary(args[0]).contents())
 }
 
 // Original Ruby source (line-for-line):

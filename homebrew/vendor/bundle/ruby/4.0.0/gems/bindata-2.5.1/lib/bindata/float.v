@@ -1,6 +1,6 @@
 module bindata
 
-import brew_runtime
+import ruby
 import math
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/bindata-2.5.1/lib/bindata/float.rb`.
@@ -68,19 +68,19 @@ pub fn floating_point_from_binary(data []u8, precision FloatPrecision, endian In
 	}
 }
 
-fn float_precision_from_value(value brew_runtime.Value) FloatPrecision {
+fn float_precision_from_value(value ruby.Value) FloatPrecision {
 	return if value.as_string().trim_left(':') == 'single' { .single } else { .double }
 }
 
-fn floating_point_class_value(spec FloatingPointClass) brew_runtime.Value {
-	return brew_runtime.structured_value('BinData::FloatingPointClass', spec.name, {
+fn floating_point_class_value(spec FloatingPointClass) ruby.Value {
+	return ruby.structured_value('BinData::FloatingPointClass', spec.name, {
 		'name':      spec.name
 		'precision': spec.precision.str()
 		'endian':    spec.endian.str()
 	})
 }
 
-fn floating_point_class_from_value(value brew_runtime.Value) FloatingPointClass {
+fn floating_point_class_from_value(value ruby.Value) FloatingPointClass {
 	if value.type_name == 'BinData::FloatingPointClass' {
 		return FloatingPointClass{
 			name: value.attribute('name') or { '' }
@@ -102,7 +102,7 @@ fn floating_point_class_from_value(value brew_runtime.Value) FloatingPointClass 
 }
 
 // Ruby method `define_methods(float_class, precision, endian)` at line 21.
-pub fn ruby_float_l21_d1_define_methods(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_float_l21_d1_define_methods(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('FloatingPoint.define_methods requires a class, precision and endian')
 	}
@@ -114,77 +114,77 @@ pub fn ruby_float_l21_d1_define_methods(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby method `do_num_bytes` at line 23.
-pub fn ruby_float_l23_d2_do_num_bytes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_float_l23_d2_do_num_bytes(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('floating point do_num_bytes requires a receiver')
 	}
-	return brew_runtime.int_value(floating_point_num_bytes(floating_point_class_from_value(args[0]).precision))
+	return ruby.int_value(floating_point_num_bytes(floating_point_class_from_value(args[0]).precision))
 }
 
 // Ruby method `sensible_default` at line 30.
-pub fn ruby_float_l30_d3_sensible_default(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.float_value(0.0)
+pub fn ruby_float_l30_d3_sensible_default(args ...ruby.Value) ruby.Value {
+	return ruby.float_value(0.0)
 }
 
 // Ruby method `value_to_binary_string(val)` at line 34.
-pub fn ruby_float_l34_d4_value_to_binary_string(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_float_l34_d4_value_to_binary_string(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('floating point value_to_binary_string requires a receiver and value')
 	}
 	spec := floating_point_class_from_value(args[0])
-	return brew_runtime.string_value(floating_point_to_binary(args[1].as_float() or { panic(err) }, spec.precision, spec.endian).bytestr())
+	return ruby.string_value(floating_point_to_binary(args[1].as_float() or { panic(err) }, spec.precision, spec.endian).bytestr())
 }
 
 // Ruby method `read_and_return_value(io)` at line 38.
-pub fn ruby_float_l38_d5_read_and_return_value(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_float_l38_d5_read_and_return_value(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('floating point read_and_return_value requires a receiver and bytes')
 	}
 	spec := floating_point_class_from_value(args[0])
-	return brew_runtime.float_value(floating_point_from_binary(args[1].as_string().bytes(), spec.precision, spec.endian) or { panic(err) })
+	return ruby.float_value(floating_point_from_binary(args[1].as_string().bytes(), spec.precision, spec.endian) or { panic(err) })
 }
 
 // Ruby method `create_num_bytes_code(precision)` at line 44.
-pub fn ruby_float_l44_d6_create_num_bytes_code(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_float_l44_d6_create_num_bytes_code(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('create_num_bytes_code requires precision')
 	}
-	return brew_runtime.int_value(floating_point_num_bytes(float_precision_from_value(args[0])))
+	return ruby.int_value(floating_point_num_bytes(float_precision_from_value(args[0])))
 }
 
 // Ruby method `create_read_code(precision, endian)` at line 48.
-pub fn ruby_float_l48_d7_create_read_code(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_float_l48_d7_create_read_code(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('create_read_code requires precision and endian')
 	}
-	return brew_runtime.string_value(floating_point_read_code(float_precision_from_value(args[0]), int_endian_from_value(args[1])))
+	return ruby.string_value(floating_point_read_code(float_precision_from_value(args[0]), int_endian_from_value(args[1])))
 }
 
 // Ruby method `create_to_binary_s_code(precision, endian)` at line 55.
-pub fn ruby_float_l55_d8_create_to_binary_s_code(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_float_l55_d8_create_to_binary_s_code(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('create_to_binary_s_code requires precision and endian')
 	}
-	return brew_runtime.string_value(floating_point_to_binary_code(float_precision_from_value(args[0]), int_endian_from_value(args[1])))
+	return ruby.string_value(floating_point_to_binary_code(float_precision_from_value(args[0]), int_endian_from_value(args[1])))
 }
 
 // Ruby define_method `FloatingPoint.define_methods(self, :single, :little)` at line 66.
-pub fn ruby_float_l66_d9_s_self(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_float_l66_d9_s_self(args ...ruby.Value) ruby.Value {
 	return floating_point_class_value(FloatingPointClass{'FloatLe', .single, .little})
 }
 
 // Ruby define_method `FloatingPoint.define_methods(self, :single, :big)` at line 71.
-pub fn ruby_float_l71_d10_s_self(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_float_l71_d10_s_self(args ...ruby.Value) ruby.Value {
 	return floating_point_class_value(FloatingPointClass{'FloatBe', .single, .big})
 }
 
 // Ruby define_method `FloatingPoint.define_methods(self, :double, :little)` at line 76.
-pub fn ruby_float_l76_d11_s_self(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_float_l76_d11_s_self(args ...ruby.Value) ruby.Value {
 	return floating_point_class_value(FloatingPointClass{'DoubleLe', .double, .little})
 }
 
 // Ruby define_method `FloatingPoint.define_methods(self, :double, :big)` at line 81.
-pub fn ruby_float_l81_d12_s_self(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_float_l81_d12_s_self(args ...ruby.Value) ruby.Value {
 	return floating_point_class_value(FloatingPointClass{'DoubleBe', .double, .big})
 }
 

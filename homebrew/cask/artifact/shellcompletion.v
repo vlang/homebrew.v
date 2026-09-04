@@ -1,12 +1,12 @@
 module artifact
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `cask/artifact/shellcompletion.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `resolve_target(_, base_dir: nil)` at line 11.
-pub fn ruby_shellcompletion_l11_d1_resolve_target(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shellcompletion_l11_d1_resolve_target(args ...ruby.Value) ruby.Value {
 	panic(shell_completion_error().msg())
 }
 

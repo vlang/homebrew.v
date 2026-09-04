@@ -1,6 +1,6 @@
 module strategy
 
-import brew_runtime
+import ruby
 import homebrew.livecheck
 import homebrew.livecheck.strategy as yaml_core
 import homebrew.utils
@@ -126,8 +126,8 @@ fn yaml_spec_match_data_equal(left yaml_core.YamlMatchData,
 }
 
 // Ruby subject `subject(:yaml) { described_class }` at line 7.
-pub fn ruby_yaml_spec_l7_d1_yaml() brew_runtime.Value {
-	return brew_runtime.object_value('Class', 'Homebrew::Livecheck::Strategy::Yaml')
+pub fn ruby_yaml_spec_l7_d1_yaml() ruby.Value {
+	return ruby.object_value('Class', 'Homebrew::Livecheck::Strategy::Yaml')
 }
 
 // Ruby let `let(:http_url) { "https://brew.sh/blog/" }` at line 9.

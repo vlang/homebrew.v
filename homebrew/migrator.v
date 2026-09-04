@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 import json2
 import os
 
@@ -64,8 +64,8 @@ pub mut:
 	errors   []string
 }
 
-fn migrator_nil_value() brew_runtime.Value {
-	return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+fn migrator_nil_value() ruby.Value {
+	return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 }
 
 pub fn migrator_migration_needed_message(oldname string, newname string) string {
@@ -491,132 +491,132 @@ pub fn migrator_migrate_if_needed(formula MigratorFormulaInfo, config MigratorCo
 	return result
 }
 
-fn migrator_formula_from_value(value brew_runtime.Value) MigratorFormulaInfo {
+fn migrator_formula_from_value(value ruby.Value) MigratorFormulaInfo {
 	return MigratorFormulaInfo{
-		name: (value.map_data['name'] or { brew_runtime.string_value(value.as_string()) }).as_string()
-		tap: (value.map_data['tap'] or { brew_runtime.string_value('') }).as_string()
-		path: (value.map_data['path'] or { brew_runtime.string_value('') }).as_string()
-		rack: (value.map_data['rack'] or { brew_runtime.string_value('') }).as_string()
-		oldnames: (value.map_data['oldnames'] or { brew_runtime.string_array_value([]) }).as_string_array() or { [] }
-		keg_only: (value.map_data['keg_only'] or { brew_runtime.bool_value(false) }).bool_data
-		outdated: (value.map_data['outdated'] or { brew_runtime.bool_value(false) }).bool_data
+		name: (value.map_data['name'] or { ruby.string_value(value.as_string()) }).as_string()
+		tap: (value.map_data['tap'] or { ruby.string_value('') }).as_string()
+		path: (value.map_data['path'] or { ruby.string_value('') }).as_string()
+		rack: (value.map_data['rack'] or { ruby.string_value('') }).as_string()
+		oldnames: (value.map_data['oldnames'] or { ruby.string_array_value([]) }).as_string_array() or { [] }
+		keg_only: (value.map_data['keg_only'] or { ruby.bool_value(false) }).bool_data
+		outdated: (value.map_data['outdated'] or { ruby.bool_value(false) }).bool_data
 	}
 }
 
-fn migrator_config_from_value(value brew_runtime.Value) MigratorConfig {
+fn migrator_config_from_value(value ruby.Value) MigratorConfig {
 	return MigratorConfig{
-		cellar: (value.map_data['cellar'] or { brew_runtime.string_value('') }).as_string()
-		prefix: (value.map_data['prefix'] or { brew_runtime.string_value('') }).as_string()
-		pinned_kegs: (value.map_data['pinned_kegs'] or { brew_runtime.string_value('') }).as_string()
-		linked_kegs: (value.map_data['linked_kegs'] or { brew_runtime.string_value('') }).as_string()
-		locks_dir: (value.map_data['locks_dir'] or { brew_runtime.string_value('') }).as_string()
-		force: (value.map_data['force'] or { brew_runtime.bool_value(false) }).bool_data
+		cellar: (value.map_data['cellar'] or { ruby.string_value('') }).as_string()
+		prefix: (value.map_data['prefix'] or { ruby.string_value('') }).as_string()
+		pinned_kegs: (value.map_data['pinned_kegs'] or { ruby.string_value('') }).as_string()
+		linked_kegs: (value.map_data['linked_kegs'] or { ruby.string_value('') }).as_string()
+		locks_dir: (value.map_data['locks_dir'] or { ruby.string_value('') }).as_string()
+		force: (value.map_data['force'] or { ruby.bool_value(false) }).bool_data
 	}
 }
 
-pub fn migrator_value(migrator Migrator) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn migrator_value(migrator Migrator) ruby.Value {
+	return ruby.Value{
 		type_name: 'Migrator'
 		repr: '${migrator.oldname}->${migrator.newname}'
 		map_data: {
-			'formula':               brew_runtime.Value{
+			'formula':               ruby.Value{
 				type_name: 'Formula'
 				repr: migrator.formula.name
 				map_data: {
-					'name':     brew_runtime.string_value(migrator.formula.name)
-					'tap':      brew_runtime.string_value(migrator.formula.tap)
-					'path':     brew_runtime.string_value(migrator.formula.path)
-					'rack':     brew_runtime.string_value(migrator.formula.rack)
-					'oldnames': brew_runtime.string_array_value(migrator.formula.oldnames)
-					'keg_only': brew_runtime.bool_value(migrator.formula.keg_only)
-					'outdated': brew_runtime.bool_value(migrator.formula.outdated)
+					'name':     ruby.string_value(migrator.formula.name)
+					'tap':      ruby.string_value(migrator.formula.tap)
+					'path':     ruby.string_value(migrator.formula.path)
+					'rack':     ruby.string_value(migrator.formula.rack)
+					'oldnames': ruby.string_array_value(migrator.formula.oldnames)
+					'keg_only': ruby.bool_value(migrator.formula.keg_only)
+					'outdated': ruby.bool_value(migrator.formula.outdated)
 				}
 			}
-			'oldname':               brew_runtime.string_value(migrator.oldname)
-			'newname':               brew_runtime.string_value(migrator.newname)
-			'old_cellar':            brew_runtime.string_value(migrator.old_cellar)
-			'new_cellar':            brew_runtime.string_value(migrator.new_cellar)
-			'old_pin_record':        brew_runtime.string_value(migrator.old_pin_record)
-			'new_pin_record':        brew_runtime.string_value(migrator.new_pin_record)
-			'old_pin_link_record':   brew_runtime.string_value(migrator.old_pin_link_record)
-			'old_opt_records':       brew_runtime.string_array_value(migrator.old_opt_records)
-			'old_linked_kegs':       brew_runtime.string_array_value(migrator.old_linked_kegs)
-			'old_full_linked_kegs':  brew_runtime.string_array_value(migrator.old_full_linked_kegs)
-			'old_tap':               brew_runtime.string_value(migrator.old_tap)
-			'new_linked_keg_record': brew_runtime.string_value(migrator.new_linked_keg_record)
-			'new_cellar_existed':    brew_runtime.bool_value(migrator.new_cellar_existed)
-			'pinned':                brew_runtime.bool_value(migrator.pinned)
-			'cellar':                brew_runtime.string_value(migrator.cellar)
-			'prefix':                brew_runtime.string_value(migrator.prefix)
-			'pinned_kegs':           brew_runtime.string_value(migrator.pinned_kegs)
-			'linked_kegs':           brew_runtime.string_value(migrator.linked_kegs)
-			'locks_dir':             brew_runtime.string_value(migrator.locks_dir)
-			'output':                brew_runtime.string_array_value(migrator.output)
+			'oldname':               ruby.string_value(migrator.oldname)
+			'newname':               ruby.string_value(migrator.newname)
+			'old_cellar':            ruby.string_value(migrator.old_cellar)
+			'new_cellar':            ruby.string_value(migrator.new_cellar)
+			'old_pin_record':        ruby.string_value(migrator.old_pin_record)
+			'new_pin_record':        ruby.string_value(migrator.new_pin_record)
+			'old_pin_link_record':   ruby.string_value(migrator.old_pin_link_record)
+			'old_opt_records':       ruby.string_array_value(migrator.old_opt_records)
+			'old_linked_kegs':       ruby.string_array_value(migrator.old_linked_kegs)
+			'old_full_linked_kegs':  ruby.string_array_value(migrator.old_full_linked_kegs)
+			'old_tap':               ruby.string_value(migrator.old_tap)
+			'new_linked_keg_record': ruby.string_value(migrator.new_linked_keg_record)
+			'new_cellar_existed':    ruby.bool_value(migrator.new_cellar_existed)
+			'pinned':                ruby.bool_value(migrator.pinned)
+			'cellar':                ruby.string_value(migrator.cellar)
+			'prefix':                ruby.string_value(migrator.prefix)
+			'pinned_kegs':           ruby.string_value(migrator.pinned_kegs)
+			'linked_kegs':           ruby.string_value(migrator.linked_kegs)
+			'locks_dir':             ruby.string_value(migrator.locks_dir)
+			'output':                ruby.string_array_value(migrator.output)
 		}
 	}
 }
 
-fn migrator_from_value(value brew_runtime.Value) !Migrator {
+fn migrator_from_value(value ruby.Value) !Migrator {
 	formula_value := value.map_data['formula'] or { return error('Migrator value has no formula') }
 	formula := migrator_formula_from_value(formula_value)
 	return Migrator{
 		formula: formula
-		oldname: (value.map_data['oldname'] or { brew_runtime.string_value('') }).as_string()
-		newname: (value.map_data['newname'] or { brew_runtime.string_value(formula.name) }).as_string()
-		old_cellar: (value.map_data['old_cellar'] or { brew_runtime.string_value('') }).as_string()
-		new_cellar: (value.map_data['new_cellar'] or { brew_runtime.string_value('') }).as_string()
-		old_pin_record: (value.map_data['old_pin_record'] or { brew_runtime.string_value('') }).as_string()
-		new_pin_record: (value.map_data['new_pin_record'] or { brew_runtime.string_value('') }).as_string()
-		old_pin_link_record: (value.map_data['old_pin_link_record'] or { brew_runtime.string_value('') }).as_string()
-		old_opt_records: (value.map_data['old_opt_records'] or { brew_runtime.string_array_value([]) }).as_string_array() or { [] }
-		old_linked_kegs: (value.map_data['old_linked_kegs'] or { brew_runtime.string_array_value([]) }).as_string_array() or { [] }
-		old_full_linked_kegs: (value.map_data['old_full_linked_kegs'] or { brew_runtime.string_array_value([]) }).as_string_array() or { [] }
-		old_tap: (value.map_data['old_tap'] or { brew_runtime.string_value('') }).as_string()
-		new_linked_keg_record: (value.map_data['new_linked_keg_record'] or { brew_runtime.string_value('') }).as_string()
-		new_cellar_existed: (value.map_data['new_cellar_existed'] or { brew_runtime.bool_value(false) }).bool_data
-		pinned: (value.map_data['pinned'] or { brew_runtime.bool_value(false) }).bool_data
-		cellar: (value.map_data['cellar'] or { brew_runtime.string_value('') }).as_string()
-		prefix: (value.map_data['prefix'] or { brew_runtime.string_value('') }).as_string()
-		pinned_kegs: (value.map_data['pinned_kegs'] or { brew_runtime.string_value('') }).as_string()
-		linked_kegs: (value.map_data['linked_kegs'] or { brew_runtime.string_value('') }).as_string()
-		locks_dir: (value.map_data['locks_dir'] or { brew_runtime.string_value('') }).as_string()
-		output: (value.map_data['output'] or { brew_runtime.string_array_value([]) }).as_string_array() or { [] }
-		newname_lock: new_lock_file('formula', (value.map_data['new_cellar'] or { brew_runtime.string_value('') }).as_string(), (value.map_data['locks_dir'] or { brew_runtime.string_value('') }).as_string())
-		oldname_lock: new_lock_file('formula', (value.map_data['old_cellar'] or { brew_runtime.string_value('') }).as_string(), (value.map_data['locks_dir'] or { brew_runtime.string_value('') }).as_string())
+		oldname: (value.map_data['oldname'] or { ruby.string_value('') }).as_string()
+		newname: (value.map_data['newname'] or { ruby.string_value(formula.name) }).as_string()
+		old_cellar: (value.map_data['old_cellar'] or { ruby.string_value('') }).as_string()
+		new_cellar: (value.map_data['new_cellar'] or { ruby.string_value('') }).as_string()
+		old_pin_record: (value.map_data['old_pin_record'] or { ruby.string_value('') }).as_string()
+		new_pin_record: (value.map_data['new_pin_record'] or { ruby.string_value('') }).as_string()
+		old_pin_link_record: (value.map_data['old_pin_link_record'] or { ruby.string_value('') }).as_string()
+		old_opt_records: (value.map_data['old_opt_records'] or { ruby.string_array_value([]) }).as_string_array() or { [] }
+		old_linked_kegs: (value.map_data['old_linked_kegs'] or { ruby.string_array_value([]) }).as_string_array() or { [] }
+		old_full_linked_kegs: (value.map_data['old_full_linked_kegs'] or { ruby.string_array_value([]) }).as_string_array() or { [] }
+		old_tap: (value.map_data['old_tap'] or { ruby.string_value('') }).as_string()
+		new_linked_keg_record: (value.map_data['new_linked_keg_record'] or { ruby.string_value('') }).as_string()
+		new_cellar_existed: (value.map_data['new_cellar_existed'] or { ruby.bool_value(false) }).bool_data
+		pinned: (value.map_data['pinned'] or { ruby.bool_value(false) }).bool_data
+		cellar: (value.map_data['cellar'] or { ruby.string_value('') }).as_string()
+		prefix: (value.map_data['prefix'] or { ruby.string_value('') }).as_string()
+		pinned_kegs: (value.map_data['pinned_kegs'] or { ruby.string_value('') }).as_string()
+		linked_kegs: (value.map_data['linked_kegs'] or { ruby.string_value('') }).as_string()
+		locks_dir: (value.map_data['locks_dir'] or { ruby.string_value('') }).as_string()
+		output: (value.map_data['output'] or { ruby.string_array_value([]) }).as_string_array() or { [] }
+		newname_lock: new_lock_file('formula', (value.map_data['new_cellar'] or { ruby.string_value('') }).as_string(), (value.map_data['locks_dir'] or { ruby.string_value('') }).as_string())
+		oldname_lock: new_lock_file('formula', (value.map_data['old_cellar'] or { ruby.string_value('') }).as_string(), (value.map_data['locks_dir'] or { ruby.string_value('') }).as_string())
 	}
 }
 
-fn migrator_receiver(args []brew_runtime.Value) !Migrator {
+fn migrator_receiver(args []ruby.Value) !Migrator {
 	if args.len == 0 {
 		return error('Migrator receiver is required')
 	}
 	return migrator_from_value(args[0])
 }
 
-fn migrator_error_value(message string) brew_runtime.Value {
-	return brew_runtime.Value{ type_name: 'Error', repr: message }
+fn migrator_error_value(message string) ruby.Value {
+	return ruby.Value{ type_name: 'Error', repr: message }
 }
 
 // Ruby method `initialize(oldname, newname)` at line 19.
-pub fn ruby_migrator_l19_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_l19_d1_initialize(args ...ruby.Value) ruby.Value {
 	oldname := if args.len > 0 { args[0].as_string() } else { '' }
 	newname := if args.len > 1 { args[1].as_string() } else { '' }
 	return migrator_error_value(migrator_migration_needed_message(oldname, newname))
 }
 
 // Ruby method `initialize(oldname)` at line 30.
-pub fn ruby_migrator_l30_d2_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_l30_d2_initialize(args ...ruby.Value) ruby.Value {
 	oldname := if args.len > 0 { args[0].as_string() } else { '' }
 	cellar := if args.len > 1 {
 		args[1].as_string()
 	} else {
-		brew_runtime.environment_value('HOMEBREW_CELLAR')
+		ruby.environment_value('HOMEBREW_CELLAR')
 	}
 	return migrator_error_value(migrator_no_oldpath_message(cellar, oldname))
 }
 
 // Ruby method `initialize(formula, oldname, tap)` at line 38.
-pub fn ruby_migrator_l38_d3_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_l38_d3_initialize(args ...ruby.Value) ruby.Value {
 	formula := if args.len > 0 {
 		migrator_formula_from_value(args[0])
 	} else {
@@ -628,7 +628,7 @@ pub fn ruby_migrator_l38_d3_initialize(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby attr_reader `attr_reader :formula` at line 55.
-pub fn ruby_migrator_l55_d4_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_l55_d4_formula(args ...ruby.Value) ruby.Value {
 	return if args.len > 0 {
 		args[0].map_data['formula'] or { migrator_nil_value() }
 	} else {
@@ -637,126 +637,126 @@ pub fn ruby_migrator_l55_d4_formula(args ...brew_runtime.Value) brew_runtime.Val
 }
 
 // Ruby attr_reader `attr_reader :oldname` at line 59.
-pub fn ruby_migrator_l59_d5_oldname(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(if args.len > 0 {
-		(args[0].map_data['oldname'] or { brew_runtime.string_value('') }).as_string()
+pub fn ruby_migrator_l59_d5_oldname(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(if args.len > 0 {
+		(args[0].map_data['oldname'] or { ruby.string_value('') }).as_string()
 	} else {
 		''
 	})
 }
 
 // Ruby attr_reader `attr_reader :old_cellar` at line 63.
-pub fn ruby_migrator_l63_d6_old_cellar(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(if args.len > 0 {
-		(args[0].map_data['old_cellar'] or { brew_runtime.string_value('') }).as_string()
+pub fn ruby_migrator_l63_d6_old_cellar(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(if args.len > 0 {
+		(args[0].map_data['old_cellar'] or { ruby.string_value('') }).as_string()
 	} else {
 		''
 	})
 }
 
 // Ruby attr_reader `attr_reader :old_pin_record` at line 67.
-pub fn ruby_migrator_l67_d7_old_pin_record(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(if args.len > 0 {
-		(args[0].map_data['old_pin_record'] or { brew_runtime.string_value('') }).as_string()
+pub fn ruby_migrator_l67_d7_old_pin_record(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(if args.len > 0 {
+		(args[0].map_data['old_pin_record'] or { ruby.string_value('') }).as_string()
 	} else {
 		''
 	})
 }
 
 // Ruby attr_reader `attr_reader :old_opt_records` at line 71.
-pub fn ruby_migrator_l71_d8_old_opt_records(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_l71_d8_old_opt_records(args ...ruby.Value) ruby.Value {
 	return if args.len > 0 {
-		args[0].map_data['old_opt_records'] or { brew_runtime.string_array_value([]) }
+		args[0].map_data['old_opt_records'] or { ruby.string_array_value([]) }
 	} else {
-		brew_runtime.string_array_value([])
+		ruby.string_array_value([])
 	}
 }
 
 // Ruby attr_reader `attr_reader :old_linked_kegs` at line 75.
-pub fn ruby_migrator_l75_d9_old_linked_kegs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_l75_d9_old_linked_kegs(args ...ruby.Value) ruby.Value {
 	return if args.len > 0 {
-		args[0].map_data['old_linked_kegs'] or { brew_runtime.string_array_value([]) }
+		args[0].map_data['old_linked_kegs'] or { ruby.string_array_value([]) }
 	} else {
-		brew_runtime.string_array_value([])
+		ruby.string_array_value([])
 	}
 }
 
 // Ruby attr_reader `attr_reader :old_full_linked_kegs` at line 79.
-pub fn ruby_migrator_l79_d10_old_full_linked_kegs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_l79_d10_old_full_linked_kegs(args ...ruby.Value) ruby.Value {
 	return if args.len > 0 {
-		args[0].map_data['old_full_linked_kegs'] or { brew_runtime.string_array_value([]) }
+		args[0].map_data['old_full_linked_kegs'] or { ruby.string_array_value([]) }
 	} else {
-		brew_runtime.string_array_value([])
+		ruby.string_array_value([])
 	}
 }
 
 // Ruby attr_reader `attr_reader :old_tabs` at line 83.
-pub fn ruby_migrator_l83_d11_old_tabs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_l83_d11_old_tabs(args ...ruby.Value) ruby.Value {
 	migrator := migrator_receiver(args) or { return migrator_error_value(err.msg()) }
-	return brew_runtime.array_value(migrator.old_tabs.map(tab_boundary_value(it)))
+	return ruby.array_value(migrator.old_tabs.map(tab_boundary_value(it)))
 }
 
 // Ruby attr_reader `attr_reader :old_tap` at line 87.
-pub fn ruby_migrator_l87_d12_old_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(if args.len > 0 {
-		(args[0].map_data['old_tap'] or { brew_runtime.string_value('') }).as_string()
+pub fn ruby_migrator_l87_d12_old_tap(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(if args.len > 0 {
+		(args[0].map_data['old_tap'] or { ruby.string_value('') }).as_string()
 	} else {
 		''
 	})
 }
 
 // Ruby attr_reader `attr_reader :old_pin_link_record` at line 91.
-pub fn ruby_migrator_l91_d13_old_pin_link_record(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(if args.len > 0 {
-		(args[0].map_data['old_pin_link_record'] or { brew_runtime.string_value('') }).as_string()
+pub fn ruby_migrator_l91_d13_old_pin_link_record(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(if args.len > 0 {
+		(args[0].map_data['old_pin_link_record'] or { ruby.string_value('') }).as_string()
 	} else {
 		''
 	})
 }
 
 // Ruby attr_reader `attr_reader :newname` at line 95.
-pub fn ruby_migrator_l95_d14_newname(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(if args.len > 0 {
-		(args[0].map_data['newname'] or { brew_runtime.string_value('') }).as_string()
+pub fn ruby_migrator_l95_d14_newname(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(if args.len > 0 {
+		(args[0].map_data['newname'] or { ruby.string_value('') }).as_string()
 	} else {
 		''
 	})
 }
 
 // Ruby attr_reader `attr_reader :new_cellar` at line 99.
-pub fn ruby_migrator_l99_d15_new_cellar(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(if args.len > 0 {
-		(args[0].map_data['new_cellar'] or { brew_runtime.string_value('') }).as_string()
+pub fn ruby_migrator_l99_d15_new_cellar(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(if args.len > 0 {
+		(args[0].map_data['new_cellar'] or { ruby.string_value('') }).as_string()
 	} else {
 		''
 	})
 }
 
 // Ruby attr_reader `attr_reader :new_cellar_existed` at line 103.
-pub fn ruby_migrator_l103_d16_new_cellar_existed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(args.len > 0 && (args[0].map_data['new_cellar_existed'] or { brew_runtime.bool_value(false) }).bool_data)
+pub fn ruby_migrator_l103_d16_new_cellar_existed(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(args.len > 0 && (args[0].map_data['new_cellar_existed'] or { ruby.bool_value(false) }).bool_data)
 }
 
 // Ruby attr_reader `attr_reader :new_pin_record` at line 107.
-pub fn ruby_migrator_l107_d17_new_pin_record(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(if args.len > 0 {
-		(args[0].map_data['new_pin_record'] or { brew_runtime.string_value('') }).as_string()
+pub fn ruby_migrator_l107_d17_new_pin_record(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(if args.len > 0 {
+		(args[0].map_data['new_pin_record'] or { ruby.string_value('') }).as_string()
 	} else {
 		''
 	})
 }
 
 // Ruby attr_reader `attr_reader :new_linked_keg_record` at line 111.
-pub fn ruby_migrator_l111_d18_new_linked_keg_record(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(if args.len > 0 {
-		(args[0].map_data['new_linked_keg_record'] or { brew_runtime.string_value('') }).as_string()
+pub fn ruby_migrator_l111_d18_new_linked_keg_record(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(if args.len > 0 {
+		(args[0].map_data['new_linked_keg_record'] or { ruby.string_value('') }).as_string()
 	} else {
 		''
 	})
 }
 
 // Ruby method `self.oldnames_needing_migration(formula)` at line 114.
-pub fn ruby_migrator_l114_d19_self_oldnames_needing_migration(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_l114_d19_self_oldnames_needing_migration(args ...ruby.Value) ruby.Value {
 	formula := if args.len > 0 {
 		migrator_formula_from_value(args[0])
 	} else {
@@ -765,18 +765,18 @@ pub fn ruby_migrator_l114_d19_self_oldnames_needing_migration(args ...brew_runti
 	cellar := if args.len > 1 {
 		args[1].as_string()
 	} else {
-		brew_runtime.environment_value('HOMEBREW_CELLAR')
+		ruby.environment_value('HOMEBREW_CELLAR')
 	}
-	return brew_runtime.string_array_value(migrator_oldnames_needing_migration(formula, cellar))
+	return ruby.string_array_value(migrator_oldnames_needing_migration(formula, cellar))
 }
 
 // Ruby method `self.needs_migration?(formula)` at line 125.
-pub fn ruby_migrator_l125_d20_self_needs_migration(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value((ruby_migrator_l114_d19_self_oldnames_needing_migration(...args).as_string_array() or { [] }).len > 0)
+pub fn ruby_migrator_l125_d20_self_needs_migration(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value((ruby_migrator_l114_d19_self_oldnames_needing_migration(...args).as_string_array() or { [] }).len > 0)
 }
 
 // Ruby method `self.migrate_if_needed(formula, force:, dry_run: false)` at line 130.
-pub fn ruby_migrator_l130_d21_self_migrate_if_needed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_l130_d21_self_migrate_if_needed(args ...ruby.Value) ruby.Value {
 	formula := if args.len > 0 {
 		migrator_formula_from_value(args[0])
 	} else {
@@ -785,19 +785,19 @@ pub fn ruby_migrator_l130_d21_self_migrate_if_needed(args ...brew_runtime.Value)
 	config := if args.len > 1 { migrator_config_from_value(args[1]) } else { MigratorConfig{} }
 	dry_run := args.len > 2 && args[2].bool_data
 	result := migrator_migrate_if_needed(formula, config, dry_run)
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'Migrator::RunResult'
 		repr: result.output.join('\n')
 		map_data: {
-			'migrated': brew_runtime.string_array_value(result.migrated)
-			'output':   brew_runtime.string_array_value(result.output)
-			'errors':   brew_runtime.string_array_value(result.errors)
+			'migrated': ruby.string_array_value(result.migrated)
+			'output':   ruby.string_array_value(result.output)
+			'errors':   ruby.string_array_value(result.errors)
 		}
 	}
 }
 
 // Ruby method `initialize(formula, oldname, force: false)` at line 149.
-pub fn ruby_migrator_l149_d22_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_l149_d22_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		return migrator_error_value('Migrator.new requires formula, old name, and path configuration')
 	}
@@ -808,32 +808,32 @@ pub fn ruby_migrator_l149_d22_initialize(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `fix_tabs` at line 186.
-pub fn ruby_migrator_l186_d23_fix_tabs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_l186_d23_fix_tabs(args ...ruby.Value) ruby.Value {
 	mut migrator := migrator_receiver(args) or { return migrator_error_value(err.msg()) }
 	migrator.fix_tabs() or { return migrator_error_value(err.msg()) }
 	return migrator_value(migrator)
 }
 
 // Ruby method `from_same_tap_user?` at line 194.
-pub fn ruby_migrator_l194_d24_from_same_tap_user(args ...brew_runtime.Value) brew_runtime.Value {
-	mut migrator := migrator_receiver(args) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(migrator.from_same_tap_user() or { false })
+pub fn ruby_migrator_l194_d24_from_same_tap_user(args ...ruby.Value) ruby.Value {
+	mut migrator := migrator_receiver(args) or { return ruby.bool_value(false) }
+	return ruby.bool_value(migrator.from_same_tap_user() or { false })
 }
 
 // Ruby method `linked_old_linked_kegs` at line 221.
-pub fn ruby_migrator_l221_d25_linked_old_linked_kegs(args ...brew_runtime.Value) brew_runtime.Value {
-	migrator := migrator_receiver(args) or { return brew_runtime.string_array_value([]) }
-	return brew_runtime.string_array_value(migrator.linked_old_linked_kegs())
+pub fn ruby_migrator_l221_d25_linked_old_linked_kegs(args ...ruby.Value) ruby.Value {
+	migrator := migrator_receiver(args) or { return ruby.string_array_value([]) }
+	return ruby.string_array_value(migrator.linked_old_linked_kegs())
 }
 
 // Ruby method `pinned?` at line 230.
-pub fn ruby_migrator_l230_d26_pinned(args ...brew_runtime.Value) brew_runtime.Value {
-	migrator := migrator_receiver(args) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(migrator.pinned_value())
+pub fn ruby_migrator_l230_d26_pinned(args ...ruby.Value) ruby.Value {
+	migrator := migrator_receiver(args) or { return ruby.bool_value(false) }
+	return ruby.bool_value(migrator.pinned_value())
 }
 
 // Ruby method `migrate` at line 235.
-pub fn ruby_migrator_l235_d27_migrate(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_l235_d27_migrate(args ...ruby.Value) ruby.Value {
 	mut migrator := migrator_receiver(args) or { return migrator_error_value(err.msg()) }
 	migrator.migrate() or {
 		migrator.backup_oldname() or {}
@@ -843,14 +843,14 @@ pub fn ruby_migrator_l235_d27_migrate(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby method `remove_conflicts(directory)` at line 272.
-pub fn ruby_migrator_l272_d28_remove_conflicts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_l272_d28_remove_conflicts(args ...ruby.Value) ruby.Value {
 	mut migrator := migrator_receiver(args) or { return migrator_error_value(err.msg()) }
 	directory := if args.len > 1 { args[1].as_string() } else { migrator.old_cellar }
-	return brew_runtime.bool_value(migrator.remove_conflicts(directory) or { return migrator_error_value(err.msg()) })
+	return ruby.bool_value(migrator.remove_conflicts(directory) or { return migrator_error_value(err.msg()) })
 }
 
 // Ruby method `merge_directory(directory)` at line 294.
-pub fn ruby_migrator_l294_d29_merge_directory(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_l294_d29_merge_directory(args ...ruby.Value) ruby.Value {
 	mut migrator := migrator_receiver(args) or { return migrator_error_value(err.msg()) }
 	directory := if args.len > 1 { args[1].as_string() } else { migrator.old_cellar }
 	migrator.merge_directory(directory) or { return migrator_error_value(err.msg()) }
@@ -858,105 +858,105 @@ pub fn ruby_migrator_l294_d29_merge_directory(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby method `move_to_new_directory` at line 309.
-pub fn ruby_migrator_l309_d30_move_to_new_directory(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_l309_d30_move_to_new_directory(args ...ruby.Value) ruby.Value {
 	mut migrator := migrator_receiver(args) or { return migrator_error_value(err.msg()) }
 	migrator.move_to_new_directory() or { return migrator_error_value(err.msg()) }
 	return migrator_value(migrator)
 }
 
 // Ruby method `repin` at line 326.
-pub fn ruby_migrator_l326_d31_repin(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_l326_d31_repin(args ...ruby.Value) ruby.Value {
 	mut migrator := migrator_receiver(args) or { return migrator_error_value(err.msg()) }
 	migrator.repin() or { return migrator_error_value(err.msg()) }
 	return migrator_value(migrator)
 }
 
 // Ruby method `unlink_oldname` at line 350.
-pub fn ruby_migrator_l350_d32_unlink_oldname(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_l350_d32_unlink_oldname(args ...ruby.Value) ruby.Value {
 	mut migrator := migrator_receiver(args) or { return migrator_error_value(err.msg()) }
 	migrator.unlink_oldname() or { return migrator_error_value(err.msg()) }
 	return migrator_value(migrator)
 }
 
 // Ruby method `unlink_newname` at line 359.
-pub fn ruby_migrator_l359_d33_unlink_newname(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_l359_d33_unlink_newname(args ...ruby.Value) ruby.Value {
 	mut migrator := migrator_receiver(args) or { return migrator_error_value(err.msg()) }
 	migrator.unlink_newname() or { return migrator_error_value(err.msg()) }
 	return migrator_value(migrator)
 }
 
 // Ruby method `link_newname` at line 368.
-pub fn ruby_migrator_l368_d34_link_newname(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_l368_d34_link_newname(args ...ruby.Value) ruby.Value {
 	mut migrator := migrator_receiver(args) or { return migrator_error_value(err.msg()) }
 	migrator.link_newname() or { return migrator_error_value(err.msg()) }
 	return migrator_value(migrator)
 }
 
 // Ruby method `link_oldname_opt` at line 420.
-pub fn ruby_migrator_l420_d35_link_oldname_opt(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_l420_d35_link_oldname_opt(args ...ruby.Value) ruby.Value {
 	mut migrator := migrator_receiver(args) or { return migrator_error_value(err.msg()) }
 	migrator.link_oldname_opt() or { return migrator_error_value(err.msg()) }
 	return migrator_value(migrator)
 }
 
 // Ruby method `update_tabs` at line 433.
-pub fn ruby_migrator_l433_d36_update_tabs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_l433_d36_update_tabs(args ...ruby.Value) ruby.Value {
 	mut migrator := migrator_receiver(args) or { return migrator_error_value(err.msg()) }
 	migrator.update_tabs() or { return migrator_error_value(err.msg()) }
 	return migrator_value(migrator)
 }
 
 // Ruby method `unlink_oldname_opt` at line 443.
-pub fn ruby_migrator_l443_d37_unlink_oldname_opt(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_l443_d37_unlink_oldname_opt(args ...ruby.Value) ruby.Value {
 	mut migrator := migrator_receiver(args) or { return migrator_error_value(err.msg()) }
 	migrator.unlink_oldname_opt() or { return migrator_error_value(err.msg()) }
 	return migrator_value(migrator)
 }
 
 // Ruby method `link_oldname_cellar` at line 459.
-pub fn ruby_migrator_l459_d38_link_oldname_cellar(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_l459_d38_link_oldname_cellar(args ...ruby.Value) ruby.Value {
 	mut migrator := migrator_receiver(args) or { return migrator_error_value(err.msg()) }
 	migrator.link_oldname_cellar() or { return migrator_error_value(err.msg()) }
 	return migrator_value(migrator)
 }
 
 // Ruby method `unlink_oldname_cellar` at line 466.
-pub fn ruby_migrator_l466_d39_unlink_oldname_cellar(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_l466_d39_unlink_oldname_cellar(args ...ruby.Value) ruby.Value {
 	mut migrator := migrator_receiver(args) or { return migrator_error_value(err.msg()) }
 	migrator.unlink_oldname_cellar() or { return migrator_error_value(err.msg()) }
 	return migrator_value(migrator)
 }
 
 // Ruby method `backup_oldname` at line 475.
-pub fn ruby_migrator_l475_d40_backup_oldname(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_l475_d40_backup_oldname(args ...ruby.Value) ruby.Value {
 	mut migrator := migrator_receiver(args) or { return migrator_error_value(err.msg()) }
 	migrator.backup_oldname() or { return migrator_error_value(err.msg()) }
 	return migrator_value(migrator)
 }
 
 // Ruby method `backup_oldname_cellar` at line 515.
-pub fn ruby_migrator_l515_d41_backup_oldname_cellar(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_l515_d41_backup_oldname_cellar(args ...ruby.Value) ruby.Value {
 	mut migrator := migrator_receiver(args) or { return migrator_error_value(err.msg()) }
 	migrator.backup_oldname_cellar() or { return migrator_error_value(err.msg()) }
 	return migrator_value(migrator)
 }
 
 // Ruby method `backup_old_tabs` at line 520.
-pub fn ruby_migrator_l520_d42_backup_old_tabs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_l520_d42_backup_old_tabs(args ...ruby.Value) ruby.Value {
 	mut migrator := migrator_receiver(args) or { return migrator_error_value(err.msg()) }
 	migrator.backup_old_tabs() or { return migrator_error_value(err.msg()) }
 	return migrator_value(migrator)
 }
 
 // Ruby method `lock` at line 525.
-pub fn ruby_migrator_l525_d43_lock(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_l525_d43_lock(args ...ruby.Value) ruby.Value {
 	mut migrator := migrator_receiver(args) or { return migrator_error_value(err.msg()) }
 	migrator.lock() or { return migrator_error_value(err.msg()) }
 	return migrator_value(migrator)
 }
 
 // Ruby method `unlock` at line 535.
-pub fn ruby_migrator_l535_d44_unlock(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_l535_d44_unlock(args ...ruby.Value) ruby.Value {
 	mut migrator := migrator_receiver(args) or { return migrator_error_value(err.msg()) }
 	migrator.unlock() or { return migrator_error_value(err.msg()) }
 	return migrator_value(migrator)

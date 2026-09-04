@@ -1,6 +1,6 @@
 module rubocops
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `rubocops/present.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -451,8 +451,8 @@ pub fn correct_present(source string) string {
 	return corrected
 }
 
-fn present_match_value(matched PresentMatch, type_name string) brew_runtime.Value {
-	return brew_runtime.structured_value(type_name, matched.source, {
+fn present_match_value(matched PresentMatch, type_name string) ruby.Value {
+	return ruby.structured_value(type_name, matched.source, {
 		'variable1':   if matched.variable1.has_source { matched.variable1.source } else { 'nil' }
 		'variable2':   if matched.variable2.has_source { matched.variable2.source } else { 'nil' }
 		'begin_pos':   matched.begin_pos.str()
@@ -463,8 +463,8 @@ fn present_match_value(matched PresentMatch, type_name string) brew_runtime.Valu
 	})
 }
 
-fn present_offense_value(offense PresentOffense) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cop::Offense', offense.message, {
+fn present_offense_value(offense PresentOffense) ruby.Value {
+	return ruby.structured_value('RuboCop::Cop::Offense', offense.message, {
 		'begin_pos':   offense.begin_pos.str()
 		'end_pos':     offense.end_pos.str()
 		'message':     offense.message
@@ -473,33 +473,33 @@ fn present_offense_value(offense PresentOffense) brew_runtime.Value {
 }
 
 // Ruby def_node_matcher `def_node_matcher :exists_and_not_empty?, <<~PATTERN` at line 26.
-pub fn ruby_present_l26_d1_exists_and_not_empty(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_present_l26_d1_exists_and_not_empty(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	matched := match_present_expression(source) or {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	return present_match_value(matched, 'RuboCop::AST::NodeMatch')
 }
 
 // Ruby method `on_and(node)` at line 41.
-pub fn ruby_present_l41_d2_on_and(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_present_l41_d2_on_and(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	offenses := audit_present(source)
 	if offenses.len == 0 {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	return present_offense_value(offenses[0])
 }
 
 // Ruby method `on_or(node)` at line 54.
-pub fn ruby_present_l54_d3_on_or(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_present_l54_d3_on_or(args ...ruby.Value) ruby.Value {
 	// The retained matcher only accepts an `and` node, so invoking it for an `or`
 	// node never yields the block arguments used to register an offense.
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `autocorrect(corrector, node)` at line 65.
-pub fn ruby_present_l65_d4_autocorrect(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_present_l65_d4_autocorrect(args ...ruby.Value) ruby.Value {
 	source := if args.len > 1 {
 		args[1].as_string()
 	} else if args.len > 0 {
@@ -508,17 +508,17 @@ pub fn ruby_present_l65_d4_autocorrect(args ...brew_runtime.Value) brew_runtime.
 		''
 	}
 	matched := match_present_expression(source) or {
-		return brew_runtime.string_value(source)
+		return ruby.string_value(source)
 	}
-	return brew_runtime.string_value(source[..matched.begin_pos] + matched.replacement + source[matched.end_pos..])
+	return ruby.string_value(source[..matched.begin_pos] + matched.replacement + source[matched.end_pos..])
 }
 
 // Ruby method `replacement(node)` at line 74.
-pub fn ruby_present_l74_d5_replacement(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_present_l74_d5_replacement(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || args[0].type_name == 'NilClass' || args[0].as_string() == '' {
-		return brew_runtime.string_value('present?')
+		return ruby.string_value('present?')
 	}
-	return brew_runtime.string_value('${args[0].as_string()}.present?')
+	return ruby.string_value('${args[0].as_string()}.present?')
 }
 
 // Original Ruby source (line-for-line):

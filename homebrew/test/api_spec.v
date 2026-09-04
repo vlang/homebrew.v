@@ -1,6 +1,6 @@
 module test
 
-import brew_runtime
+import ruby
 import encoding.base64
 import homebrew
 import os
@@ -11,40 +11,40 @@ import x.json2
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:text) { "foo" }` at line 8.
-pub fn ruby_api_spec_l8_d1_text(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l8_d1_text(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('foo')
+	return ruby.string_value('foo')
 }
 
 // Ruby let `let(:json) { '{"foo":"bar"}' }` at line 9.
-pub fn ruby_api_spec_l9_d2_json(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l9_d2_json(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('{"foo":"bar"}')
+	return ruby.string_value('{"foo":"bar"}')
 }
 
 // Ruby let `let(:json_hash) { JSON.parse(json) }` at line 10.
-pub fn ruby_api_spec_l10_d3_json_hash(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l10_d3_json_hash(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.map_value({
-		'foo': brew_runtime.string_value('bar')
+	return ruby.map_value({
+		'foo': ruby.string_value('bar')
 	})
 }
 
 // Ruby let `let(:json_invalid) { '{"foo":"bar"' }` at line 11.
-pub fn ruby_api_spec_l11_d4_json_invalid(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l11_d4_json_invalid(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('{"foo":"bar"')
+	return ruby.string_value('{"foo":"bar"')
 }
 
-fn api_spec_nil() brew_runtime.Value {
-	return brew_runtime.Value{
+fn api_spec_nil() ruby.Value {
+	return ruby.Value{
 		type_name: 'NilClass'
 		repr: 'nil'
 	}
 }
 
-fn api_spec_bool(value bool) brew_runtime.Value {
-	return brew_runtime.bool_value(value)
+fn api_spec_bool(value bool) ruby.Value {
+	return ruby.bool_value(value)
 }
 
 fn api_spec_temp_dir(label string) string {
@@ -53,28 +53,28 @@ fn api_spec_temp_dir(label string) string {
 	return path
 }
 
-fn api_spec_curl_result(stdout string, success bool) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'stdout':  brew_runtime.string_value(stdout)
-		'success': brew_runtime.bool_value(success)
+fn api_spec_curl_result(stdout string, success bool) ruby.Value {
+	return ruby.map_value({
+		'stdout':  ruby.string_value(stdout)
+		'success': ruby.bool_value(success)
 	})
 }
 
-fn api_spec_fetch_config(primary brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.map_value({
+fn api_spec_fetch_config(primary ruby.Value) ruby.Value {
+	return ruby.map_value({
 		'primary': primary
 	})
 }
 
-fn api_spec_download_attempt(url string, stdout string, success bool) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'url':     brew_runtime.string_value(url)
-		'stdout':  brew_runtime.string_value(stdout)
-		'success': brew_runtime.bool_value(success)
+fn api_spec_download_attempt(url string, stdout string, success bool) ruby.Value {
+	return ruby.map_value({
+		'url':     ruby.string_value(url)
+		'stdout':  ruby.string_value(stdout)
+		'success': ruby.bool_value(success)
 	})
 }
 
-fn api_spec_value_equal(left brew_runtime.Value, right brew_runtime.Value) bool {
+fn api_spec_value_equal(left ruby.Value, right ruby.Value) bool {
 	if left.type_name != right.type_name {
 		return false
 	}
@@ -106,96 +106,96 @@ fn api_spec_value_equal(left brew_runtime.Value, right brew_runtime.Value) bool 
 	return left.repr == right.repr && left.bool_data == right.bool_data && left.int_data == right.int_data
 }
 
-fn api_spec_fetch_json_config(target string, attempts []brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'target':            brew_runtime.string_value(target)
-		'now':               brew_runtime.int_value(time.now().unix())
-		'download_attempts': brew_runtime.array_value(attempts)
+fn api_spec_fetch_json_config(target string, attempts []ruby.Value) ruby.Value {
+	return ruby.map_value({
+		'target':            ruby.string_value(target)
+		'now':               ruby.int_value(time.now().unix())
+		'download_attempts': ruby.array_value(attempts)
 	})
 }
 
 // Ruby method `mock_curl_output(stdout: "", success: true)` at line 13.
-pub fn ruby_api_spec_l13_d5_mock_curl_output(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l13_d5_mock_curl_output(args ...ruby.Value) ruby.Value {
 	stdout := if args.len > 0 { args[0].as_string() } else { '' }
 	success := args.len < 2 || args[1].bool_data
 	return api_spec_curl_result(stdout, success)
 }
 
 // Ruby method `mock_curl_download(stdout:)` at line 18.
-pub fn ruby_api_spec_l18_d6_mock_curl_download(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l18_d6_mock_curl_download(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.structured_value('ArgumentError', 'stdout is required', {})
+		return ruby.structured_value('ArgumentError', 'stdout is required', {})
 	}
 	url := if args.len > 1 { args[1].as_string() } else { '' }
 	return api_spec_download_attempt(url, args[0].as_string(), true)
 }
 
 // Ruby it `it "fetches a JSON file" do` at line 25.
-pub fn ruby_api_spec_l25_d7_fetches(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l25_d7_fetches(args ...ruby.Value) ruby.Value {
 	_ = args
-	result := homebrew.ruby_api_l34_d1_self_fetch(brew_runtime.string_value('foo.json'), api_spec_fetch_config(api_spec_curl_result('{"foo":"bar"}', true)))
+	result := homebrew.ruby_api_l34_d1_self_fetch(ruby.string_value('foo.json'), api_spec_fetch_config(api_spec_curl_result('{"foo":"bar"}', true)))
 	return api_spec_bool(api_spec_value_equal(result, ruby_api_spec_l10_d3_json_hash()))
 }
 
 // Ruby it `it "raises an error if the file does not exist" do` at line 31.
-pub fn ruby_api_spec_l31_d8_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l31_d8_raises(args ...ruby.Value) ruby.Value {
 	_ = args
-	result := homebrew.ruby_api_l34_d1_self_fetch(brew_runtime.string_value('bar.txt'), api_spec_fetch_config(api_spec_curl_result('', false)))
+	result := homebrew.ruby_api_l34_d1_self_fetch(ruby.string_value('bar.txt'), api_spec_fetch_config(api_spec_curl_result('', false)))
 	return api_spec_bool(result.type_name == 'ArgumentError' && result.as_string().contains('No file found'))
 }
 
 // Ruby it `it "raises an error if the JSON file is invalid" do` at line 36.
-pub fn ruby_api_spec_l36_d9_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l36_d9_raises(args ...ruby.Value) ruby.Value {
 	_ = args
-	result := homebrew.ruby_api_l34_d1_self_fetch(brew_runtime.string_value('baz.txt'), api_spec_fetch_config(api_spec_curl_result('foo', true)))
+	result := homebrew.ruby_api_l34_d1_self_fetch(ruby.string_value('baz.txt'), api_spec_fetch_config(api_spec_curl_result('foo', true)))
 	return api_spec_bool(result.type_name == 'ArgumentError' && result.as_string().contains('Invalid JSON file'))
 }
 
 // Ruby it `it "returns true for a core formula name" do` at line 47.
-pub fn ruby_api_spec_l47_d10_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l47_d10_returns(args ...ruby.Value) ruby.Value {
 	_ = args
-	return homebrew.ruby_api_l568_d26_self_formula_name(brew_runtime.string_value('foo'), brew_runtime.string_array_value([
+	return homebrew.ruby_api_l568_d26_self_formula_name(ruby.string_value('foo'), ruby.string_array_value([
 		'foo',
 	]))
 }
 
 // Ruby it `it "returns false for an unknown name" do` at line 51.
-pub fn ruby_api_spec_l51_d11_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l51_d11_returns(args ...ruby.Value) ruby.Value {
 	_ = args
-	result := homebrew.ruby_api_l568_d26_self_formula_name(brew_runtime.string_value('bar'), brew_runtime.string_array_value([
+	result := homebrew.ruby_api_l568_d26_self_formula_name(ruby.string_value('bar'), ruby.string_array_value([
 		'foo',
 	]))
 	return api_spec_bool(!result.bool_data)
 }
 
 // Ruby it `it "returns true for a core cask token" do` at line 61.
-pub fn ruby_api_spec_l61_d12_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l61_d12_returns(args ...ruby.Value) ruby.Value {
 	_ = args
-	return homebrew.ruby_api_l593_d31_self_cask_token(brew_runtime.string_value('foo'), brew_runtime.string_array_value([
+	return homebrew.ruby_api_l593_d31_self_cask_token(ruby.string_value('foo'), ruby.string_array_value([
 		'foo',
 	]))
 }
 
 // Ruby it `it "returns false for an unknown token" do` at line 65.
-pub fn ruby_api_spec_l65_d13_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l65_d13_returns(args ...ruby.Value) ruby.Value {
 	_ = args
-	result := homebrew.ruby_api_l593_d31_self_cask_token(brew_runtime.string_value('bar'), brew_runtime.string_array_value([
+	result := homebrew.ruby_api_l593_d31_self_cask_token(ruby.string_value('bar'), ruby.string_array_value([
 		'foo',
 	]))
 	return api_spec_bool(!result.bool_data)
 }
 
 // Ruby let! `let!(:cache_dir) { mktmpdir }` at line 71.
-pub fn ruby_api_spec_l71_d14_cache_dir(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l71_d14_cache_dir(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.object_value('Pathname', api_spec_temp_dir('fetch-json'))
+	return ruby.object_value('Pathname', api_spec_temp_dir('fetch-json'))
 }
 
 // Ruby it `it "fetches a JSON file" do` at line 77.
-pub fn ruby_api_spec_l77_d15_fetches(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l77_d15_fetches(args ...ruby.Value) ruby.Value {
 	cache_dir := if args.len > 0 { args[0].as_string() } else { api_spec_temp_dir('fetch-new') }
 	target := os.join_path(cache_dir, 'foo.json')
-	result := homebrew.ruby_api_l69_d3_self_fetch_json_api_file(brew_runtime.string_value('foo.json'), api_spec_fetch_json_config(target, [
+	result := homebrew.ruby_api_l69_d3_self_fetch_json_api_file(ruby.string_value('foo.json'), api_spec_fetch_json_config(target, [
 		api_spec_download_attempt('', '{"foo":"bar"}', true),
 	]))
 	items := result.as_array() or { return api_spec_bool(false) }
@@ -203,11 +203,11 @@ pub fn ruby_api_spec_l77_d15_fetches(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby it `it "updates an existing JSON file" do` at line 83.
-pub fn ruby_api_spec_l83_d16_updates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l83_d16_updates(args ...ruby.Value) ruby.Value {
 	cache_dir := if args.len > 0 { args[0].as_string() } else { api_spec_temp_dir('fetch-update') }
 	target := os.join_path(cache_dir, 'bar.json')
 	os.write_file(target, 'tmp') or { return api_spec_bool(false) }
-	result := homebrew.ruby_api_l69_d3_self_fetch_json_api_file(brew_runtime.string_value('bar.json'), api_spec_fetch_json_config(target, [
+	result := homebrew.ruby_api_l69_d3_self_fetch_json_api_file(ruby.string_value('bar.json'), api_spec_fetch_json_config(target, [
 		api_spec_download_attempt('', '{"foo":"bar"}', true),
 	]))
 	items := result.as_array() or { return api_spec_bool(false) }
@@ -215,36 +215,36 @@ pub fn ruby_api_spec_l83_d16_updates(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby it `it "raises an error if the JSON file is invalid" do` at line 89.
-pub fn ruby_api_spec_l89_d17_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l89_d17_raises(args ...ruby.Value) ruby.Value {
 	cache_dir := if args.len > 0 { args[0].as_string() } else { api_spec_temp_dir('fetch-invalid') }
 	target := os.join_path(cache_dir, 'baz.json')
-	result := homebrew.ruby_api_l69_d3_self_fetch_json_api_file(brew_runtime.string_value('baz.json'), api_spec_fetch_json_config(target, [
+	result := homebrew.ruby_api_l69_d3_self_fetch_json_api_file(ruby.string_value('baz.json'), api_spec_fetch_json_config(target, [
 		api_spec_download_attempt('', '{"foo":"bar"', true),
 	]))
 	return api_spec_bool(result.type_name == 'SystemExit')
 }
 
 // Ruby it `it "does not refresh the cache mtime when the download fails" do` at line 96.
-pub fn ruby_api_spec_l96_d18_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l96_d18_does(args ...ruby.Value) ruby.Value {
 	cache_dir := if args.len > 0 { args[0].as_string() } else { api_spec_temp_dir('mtime-fail') }
 	target := os.join_path(cache_dir, 'bar.json')
 	os.write_file(target, '{"foo":"bar"}') or { return api_spec_bool(false) }
 	stale := time.now().unix() - 7200
 	os.utime(target, stale, stale) or { return api_spec_bool(false) }
-	config := brew_runtime.map_value({
-		'target':            brew_runtime.string_value(target)
-		'now':               brew_runtime.int_value(time.now().unix())
-		'stale_seconds':     brew_runtime.int_value(3600)
-		'download_attempts': brew_runtime.array_value([
+	config := ruby.map_value({
+		'target':            ruby.string_value(target)
+		'now':               ruby.int_value(time.now().unix())
+		'stale_seconds':     ruby.int_value(3600)
+		'download_attempts': ruby.array_value([
 			api_spec_download_attempt('', '', false),
 		])
 	})
-	result := homebrew.ruby_api_l69_d3_self_fetch_json_api_file(brew_runtime.string_value('bar.json'), config)
+	result := homebrew.ruby_api_l69_d3_self_fetch_json_api_file(ruby.string_value('bar.json'), config)
 	return api_spec_bool(result.type_name == 'Array' && os.file_last_mod_unix(target) == stale)
 }
 
 // Ruby it `it "refreshes the cache mtime when a fallback to the default API domain succeeds" do` at line 115.
-pub fn ruby_api_spec_l115_d19_refreshes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l115_d19_refreshes(args ...ruby.Value) ruby.Value {
 	cache_dir := if args.len > 0 {
 		args[0].as_string()
 	} else {
@@ -255,74 +255,74 @@ pub fn ruby_api_spec_l115_d19_refreshes(args ...brew_runtime.Value) brew_runtime
 	stale := time.now().unix() - 7200
 	os.utime(target, stale, stale) or { return api_spec_bool(false) }
 	now := time.now().unix()
-	config := brew_runtime.map_value({
-		'api_domain':        brew_runtime.string_value('https://example.invalid/api')
-		'default_domain':    brew_runtime.string_value('https://formulae.brew.sh/api')
-		'target':            brew_runtime.string_value(target)
-		'now':               brew_runtime.int_value(now)
-		'stale_seconds':     brew_runtime.int_value(3600)
-		'download_attempts': brew_runtime.array_value([
+	config := ruby.map_value({
+		'api_domain':        ruby.string_value('https://example.invalid/api')
+		'default_domain':    ruby.string_value('https://formulae.brew.sh/api')
+		'target':            ruby.string_value(target)
+		'now':               ruby.int_value(now)
+		'stale_seconds':     ruby.int_value(3600)
+		'download_attempts': ruby.array_value([
 			api_spec_download_attempt('https://example.invalid/api/bar.json', '', false),
 			api_spec_download_attempt('https://formulae.brew.sh/api/bar.json', '{"foo":"bar"}', true),
 		])
 	})
-	result := homebrew.ruby_api_l69_d3_self_fetch_json_api_file(brew_runtime.string_value('bar.json'), config)
+	result := homebrew.ruby_api_l69_d3_self_fetch_json_api_file(ruby.string_value('bar.json'), config)
 	return api_spec_bool(result.type_name == 'Array' && os.file_last_mod_unix(target) > stale)
 }
 
 // Ruby method `self.jws_test_key` at line 146.
-pub fn ruby_api_spec_l146_d20_self_jws_test_key(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l146_d20_self_jws_test_key(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.structured_value('ArgumentError', 'RSA key collaborator is required', {})
+		return ruby.structured_value('ArgumentError', 'RSA key collaborator is required', {})
 	}
 	return args[0]
 }
 
 // Ruby let! `let!(:cache_dir) { mktmpdir }` at line 150.
-pub fn ruby_api_spec_l150_d21_cache_dir(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l150_d21_cache_dir(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.object_value('Pathname', api_spec_temp_dir('jws'))
+	return ruby.object_value('Pathname', api_spec_temp_dir('jws'))
 }
 
 // Ruby let `let(:target) { cache_dir/"internal/packages.test.jws.json" }` at line 151.
-pub fn ruby_api_spec_l151_d22_target(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l151_d22_target(args ...ruby.Value) ruby.Value {
 	cache_dir := if args.len > 0 { args[0].as_string() } else { api_spec_temp_dir('jws-target') }
-	return brew_runtime.object_value('Pathname', os.join_path(cache_dir, 'internal', 'packages.test.jws.json'))
+	return ruby.object_value('Pathname', os.join_path(cache_dir, 'internal', 'packages.test.jws.json'))
 }
 
 // Ruby let `let(:payload_cache) { cache_dir/"internal/packages.test.jws.json.payload" }` at line 152.
-pub fn ruby_api_spec_l152_d23_payload_cache(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l152_d23_payload_cache(args ...ruby.Value) ruby.Value {
 	target := if args.len > 0 {
 		args[0].as_string()
 	} else {
 		ruby_api_spec_l151_d22_target().as_string()
 	}
-	return brew_runtime.object_value('Pathname', '${target}.payload')
+	return ruby.object_value('Pathname', '${target}.payload')
 }
 
 // Ruby let `let(:private_key) { self.class.jws_test_key }` at line 153.
-pub fn ruby_api_spec_l153_d24_private_key(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l153_d24_private_key(args ...ruby.Value) ruby.Value {
 	return ruby_api_spec_l146_d20_self_jws_test_key(...args)
 }
 
 // Ruby let `let(:protected_b64) { urlsafe_encode64('{"alg":"PS512","b64":false}') }` at line 154.
-pub fn ruby_api_spec_l154_d25_protected_b64(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l154_d25_protected_b64(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value(base64.url_encode_str('{"alg":"PS512","b64":false}'))
+	return ruby.string_value(base64.url_encode_str('{"alg":"PS512","b64":false}'))
 }
 
 // Ruby method `urlsafe_encode64(value)` at line 156.
-pub fn ruby_api_spec_l156_d26_urlsafe_encode64(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l156_d26_urlsafe_encode64(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.structured_value('ArgumentError', 'value is required', {})
+		return ruby.structured_value('ArgumentError', 'value is required', {})
 	}
-	return brew_runtime.string_value(base64.url_encode_str(args[0].as_string()))
+	return ruby.string_value(base64.url_encode_str(args[0].as_string()))
 }
 
 // Ruby method `sign_payload(payload)` at line 160.
-pub fn ruby_api_spec_l160_d27_sign_payload(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l160_d27_sign_payload(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.structured_value('ArgumentError', 'RSA-PSS signer result is required', {})
+		return ruby.structured_value('ArgumentError', 'RSA-PSS signer result is required', {})
 	}
 	return args[1]
 }
@@ -342,23 +342,23 @@ fn api_spec_envelope(payload string, signature string) string {
 }
 
 // Ruby method `envelope_json(payload, signature: sign_payload(payload))` at line 166.
-pub fn ruby_api_spec_l166_d28_envelope_json(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l166_d28_envelope_json(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.structured_value('ArgumentError', 'payload and signer result are required', {})
+		return ruby.structured_value('ArgumentError', 'payload and signer result are required', {})
 	}
-	return brew_runtime.string_value(api_spec_envelope(args[0].as_string(), args[1].as_string()))
+	return ruby.string_value(api_spec_envelope(args[0].as_string(), args[1].as_string()))
 }
 
 // Ruby method `write_payload_cache(payload, signature: sign_payload(payload))` at line 177.
-pub fn ruby_api_spec_l177_d29_write_payload_cache(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l177_d29_write_payload_cache(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
-		return brew_runtime.structured_value('ArgumentError', 'target, payload and signer result are required', {})
+		return ruby.structured_value('ArgumentError', 'target, payload and signer result are required', {})
 	}
 	target := args[0].as_string()
 	payload := args[1].as_string()
 	signature := args[2].as_string()
 	stat := os.stat(target) or {
-		return brew_runtime.structured_value('SystemCallError', err.msg(), {})
+		return ruby.structured_value('SystemCallError', err.msg(), {})
 	}
 	header := json2.encode(json2.Any({
 		'protected':       json2.Any(base64.url_encode_str('{"alg":"PS512","b64":false}'))
@@ -368,28 +368,28 @@ pub fn ruby_api_spec_l177_d29_write_payload_cache(args ...brew_runtime.Value) br
 	}))
 	path := '${target}.payload'
 	os.write_file(path, '${header}\n${payload}') or {
-		return brew_runtime.structured_value('SystemCallError', err.msg(), {})
+		return ruby.structured_value('SystemCallError', err.msg(), {})
 	}
-	return brew_runtime.object_value('Pathname', path)
+	return ruby.object_value('Pathname', path)
 }
 
 // Ruby method `fetch_target` at line 188.
-pub fn ruby_api_spec_l188_d30_fetch_target(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l188_d30_fetch_target(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.structured_value('ArgumentError', 'target is required', {})
+		return ruby.structured_value('ArgumentError', 'target is required', {})
 	}
 	target := args[0].as_string()
 	verified := args.len < 2 || args[1].bool_data
 	payload_verified := args.len < 3 || args[2].bool_data
-	config := brew_runtime.map_value({
-		'target':                           brew_runtime.string_value(target)
-		'now':                              brew_runtime.int_value(time.now().unix())
-		'stale_seconds':                    brew_runtime.int_value(3600)
-		'signature_verified':               brew_runtime.bool_value(verified)
-		'payload_cache_signature_verified': brew_runtime.bool_value(payload_verified)
-		'has_signature_result':             brew_runtime.bool_value(true)
+	config := ruby.map_value({
+		'target':                           ruby.string_value(target)
+		'now':                              ruby.int_value(time.now().unix())
+		'stale_seconds':                    ruby.int_value(3600)
+		'signature_verified':               ruby.bool_value(verified)
+		'payload_cache_signature_verified': ruby.bool_value(payload_verified)
+		'has_signature_result':             ruby.bool_value(true)
 	})
-	result := homebrew.ruby_api_l69_d3_self_fetch_json_api_file(brew_runtime.string_value('internal/packages.test.jws.json'), config)
+	result := homebrew.ruby_api_l69_d3_self_fetch_json_api_file(ruby.string_value('internal/packages.test.jws.json'), config)
 	items := result.as_array() or { return result }
 	return if items.len > 0 { items[0] } else { api_spec_nil() }
 }
@@ -404,20 +404,20 @@ fn api_spec_prepare_jws(label string, envelope_payload string) (string, string) 
 	return cache, target
 }
 
-fn api_spec_map_foo(value brew_runtime.Value, expected string) bool {
+fn api_spec_map_foo(value ruby.Value, expected string) bool {
 	return value.type_name == 'Hash' && (value.map_data['foo'] or { api_spec_nil() }).as_string() == expected
 }
 
 // Ruby it `it "verifies the envelope and writes a payload cache" do` at line 199.
-pub fn ruby_api_spec_l199_d31_verifies(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l199_d31_verifies(args ...ruby.Value) ruby.Value {
 	_ = args
 	_, target := api_spec_prepare_jws('verify-write', '{"foo":"bar"}')
-	data := ruby_api_spec_l188_d30_fetch_target(brew_runtime.string_value(target), brew_runtime.bool_value(true))
+	data := ruby_api_spec_l188_d30_fetch_target(ruby.string_value(target), ruby.bool_value(true))
 	return api_spec_bool(api_spec_map_foo(data, 'bar') && os.exists('${target}.payload'))
 }
 
 // Ruby it `it "does not write a payload cache for endpoints without one" do` at line 204.
-pub fn ruby_api_spec_l204_d32_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l204_d32_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	cache := api_spec_temp_dir('no-payload-cache')
 	target := os.join_path(cache, 'internal', 'other.jws.json')
@@ -425,185 +425,185 @@ pub fn ruby_api_spec_l204_d32_does(args ...brew_runtime.Value) brew_runtime.Valu
 	os.write_file(target, api_spec_envelope('{"foo":"bar"}', 'signature')) or {
 		return api_spec_bool(false)
 	}
-	config := brew_runtime.map_value({
-		'target':               brew_runtime.string_value(target)
-		'now':                  brew_runtime.int_value(time.now().unix())
-		'stale_seconds':        brew_runtime.int_value(3600)
-		'signature_verified':   brew_runtime.bool_value(true)
-		'has_signature_result': brew_runtime.bool_value(true)
+	config := ruby.map_value({
+		'target':               ruby.string_value(target)
+		'now':                  ruby.int_value(time.now().unix())
+		'stale_seconds':        ruby.int_value(3600)
+		'signature_verified':   ruby.bool_value(true)
+		'has_signature_result': ruby.bool_value(true)
 	})
-	result := homebrew.ruby_api_l69_d3_self_fetch_json_api_file(brew_runtime.string_value('internal/other.jws.json'), config)
+	result := homebrew.ruby_api_l69_d3_self_fetch_json_api_file(ruby.string_value('internal/other.jws.json'), config)
 	items := result.as_array() or { return api_spec_bool(false) }
 	return api_spec_bool(items.len > 0 && api_spec_map_foo(items[0], 'bar') && !os.exists('${target}.payload'))
 }
 
 // Ruby it `it "loads a current payload cache instead of the envelope" do` at line 214.
-pub fn ruby_api_spec_l214_d33_loads(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l214_d33_loads(args ...ruby.Value) ruby.Value {
 	_ = args
 	_, target := api_spec_prepare_jws('loads-payload', '{"foo":"bar"}')
-	cache_result := ruby_api_spec_l177_d29_write_payload_cache(brew_runtime.string_value(target), brew_runtime.string_value('{"foo":"baz"}'), brew_runtime.string_value('payload-signature'))
+	cache_result := ruby_api_spec_l177_d29_write_payload_cache(ruby.string_value(target), ruby.string_value('{"foo":"baz"}'), ruby.string_value('payload-signature'))
 	if cache_result.type_name != 'Pathname' {
 		return api_spec_bool(false)
 	}
-	before := homebrew.ruby_api_l453_d19_self_cached_jws_payload(brew_runtime.string_value(target), brew_runtime.bool_value(true), brew_runtime.bool_value(true))
+	before := homebrew.ruby_api_l453_d19_self_cached_jws_payload(ruby.string_value(target), ruby.bool_value(true), ruby.bool_value(true))
 	if before.type_name == 'NilClass' {
 		return api_spec_bool(false)
 	}
-	data := ruby_api_spec_l188_d30_fetch_target(brew_runtime.string_value(target), brew_runtime.bool_value(true))
+	data := ruby_api_spec_l188_d30_fetch_target(ruby.string_value(target), ruby.bool_value(true))
 	return api_spec_bool(api_spec_map_foo(data, 'baz'))
 }
 
 // Ruby it `it "falls back to the envelope when the payload cache does not match the file" do` at line 219.
-pub fn ruby_api_spec_l219_d34_falls(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l219_d34_falls(args ...ruby.Value) ruby.Value {
 	_ = args
 	_, target := api_spec_prepare_jws('fingerprint-fallback', '{"foo":"bar"}')
-	ruby_api_spec_l177_d29_write_payload_cache(brew_runtime.string_value(target), brew_runtime.string_value('{"foo":"baz"}'), brew_runtime.string_value('payload-signature'))
+	ruby_api_spec_l177_d29_write_payload_cache(ruby.string_value(target), ruby.string_value('{"foo":"baz"}'), ruby.string_value('payload-signature'))
 	future := time.now().unix() + 10
 	os.utime(target, future, future) or { return api_spec_bool(false) }
-	data := ruby_api_spec_l188_d30_fetch_target(brew_runtime.string_value(target), brew_runtime.bool_value(true))
+	data := ruby_api_spec_l188_d30_fetch_target(ruby.string_value(target), ruby.bool_value(true))
 	return api_spec_bool(api_spec_map_foo(data, 'bar'))
 }
 
 // Ruby it `it "falls back to the envelope when the payload cache signature does not verify" do` at line 225.
-pub fn ruby_api_spec_l225_d35_falls(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l225_d35_falls(args ...ruby.Value) ruby.Value {
 	_ = args
 	_, target := api_spec_prepare_jws('signature-fallback', '{"foo":"bar"}')
-	ruby_api_spec_l177_d29_write_payload_cache(brew_runtime.string_value(target), brew_runtime.string_value('{"foo":"baz"}'), brew_runtime.string_value('mismatched-signature'))
-	cached := homebrew.ruby_api_l453_d19_self_cached_jws_payload(brew_runtime.string_value(target), brew_runtime.bool_value(false), brew_runtime.bool_value(true))
-	data := ruby_api_spec_l188_d30_fetch_target(brew_runtime.string_value(target), brew_runtime.bool_value(true), brew_runtime.bool_value(false))
+	ruby_api_spec_l177_d29_write_payload_cache(ruby.string_value(target), ruby.string_value('{"foo":"baz"}'), ruby.string_value('mismatched-signature'))
+	cached := homebrew.ruby_api_l453_d19_self_cached_jws_payload(ruby.string_value(target), ruby.bool_value(false), ruby.bool_value(true))
+	data := ruby_api_spec_l188_d30_fetch_target(ruby.string_value(target), ruby.bool_value(true), ruby.bool_value(false))
 	return api_spec_bool(cached.type_name == 'NilClass' && api_spec_map_foo(data, 'bar'))
 }
 
 // Ruby it `it "falls back to the envelope when the payload cache is corrupt" do` at line 230.
-pub fn ruby_api_spec_l230_d36_falls(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l230_d36_falls(args ...ruby.Value) ruby.Value {
 	_ = args
 	_, target := api_spec_prepare_jws('corrupt-fallback', '{"foo":"bar"}')
 	os.write_file('${target}.payload', 'not json') or { return api_spec_bool(false) }
-	data := ruby_api_spec_l188_d30_fetch_target(brew_runtime.string_value(target), brew_runtime.bool_value(true))
+	data := ruby_api_spec_l188_d30_fetch_target(ruby.string_value(target), ruby.bool_value(true))
 	return api_spec_bool(api_spec_map_foo(data, 'bar'))
 }
 
 // Ruby it `it "falls back to the envelope when the payload cache header is not a JSON object" do` at line 235.
-pub fn ruby_api_spec_l235_d37_falls(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l235_d37_falls(args ...ruby.Value) ruby.Value {
 	_ = args
 	_, target := api_spec_prepare_jws('scalar-header-fallback', '{"foo":"bar"}')
 	os.write_file('${target}.payload', '123\n{"foo":"baz"}') or {
 		return api_spec_bool(false)
 	}
-	data := ruby_api_spec_l188_d30_fetch_target(brew_runtime.string_value(target), brew_runtime.bool_value(true))
+	data := ruby_api_spec_l188_d30_fetch_target(ruby.string_value(target), ruby.bool_value(true))
 	return api_spec_bool(api_spec_map_foo(data, 'bar'))
 }
 
 // Ruby it `it "raises when the envelope signature does not verify" do` at line 240.
-pub fn ruby_api_spec_l240_d38_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l240_d38_raises(args ...ruby.Value) ruby.Value {
 	_ = args
 	_, target := api_spec_prepare_jws('bad-envelope', '{"foo":"bar"}')
-	result := ruby_api_spec_l188_d30_fetch_target(brew_runtime.string_value(target), brew_runtime.bool_value(false))
+	result := ruby_api_spec_l188_d30_fetch_target(ruby.string_value(target), ruby.bool_value(false))
 	return api_spec_bool(result.type_name == 'SystemExit' && result.as_string().contains('signature mismatch'))
 }
 
 // Ruby it `it "does not initialise downloads when the API cache is current" do` at line 248.
-pub fn ruby_api_spec_l248_d39_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l248_d39_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	cache := api_spec_temp_dir('current-api')
 	target := os.join_path(cache, 'packages.json')
 	os.write_file(target, '{"foo":"bar"}') or { return api_spec_bool(false) }
 	result := homebrew.api_fetch_files_result({
-		'target':         brew_runtime.string_value(target)
-		'no_auto_update': brew_runtime.bool_value(true)
-		'now':            brew_runtime.int_value(time.now().unix())
+		'target':         ruby.string_value(target)
+		'no_auto_update': ruby.bool_value(true)
+		'now':            ruby.int_value(time.now().unix())
 	})
 	return api_spec_bool(!result.enqueued)
 }
 
 // Ruby it `it "handles a missing API cache before refusing root downloads" do` at line 258.
-pub fn ruby_api_spec_l258_d40_handles(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l258_d40_handles(args ...ruby.Value) ruby.Value {
 	_ = args
 	cache := api_spec_temp_dir('missing-api')
 	target := os.join_path(cache, 'packages.json')
 	result := homebrew.api_fetch_files_result({
-		'target':          brew_runtime.string_value(target)
-		'running_as_root': brew_runtime.bool_value(true)
-		'fetch_succeeded': brew_runtime.bool_value(true)
+		'target':          ruby.string_value(target)
+		'running_as_root': ruby.bool_value(true)
+		'fetch_succeeded': ruby.bool_value(true)
 	})
 	return api_spec_bool(result.enqueued && result.shutdown)
 }
 
 // Ruby it `it "decodes unpadded URL-safe base64" do` at line 270.
-pub fn ruby_api_spec_l270_d41_decodes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l270_d41_decodes(args ...ruby.Value) ruby.Value {
 	_ = args
-	result := homebrew.ruby_api_l546_d23_self_urlsafe_decode64(brew_runtime.string_value('SGVsbG8'))
+	result := homebrew.ruby_api_l546_d23_self_urlsafe_decode64(ruby.string_value('SGVsbG8'))
 	return api_spec_bool(result.type_name == 'String' && result.as_string() == 'Hello')
 }
 
 // Ruby it `it "rejects invalid base64" do` at line 274.
-pub fn ruby_api_spec_l274_d42_rejects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l274_d42_rejects(args ...ruby.Value) ruby.Value {
 	_ = args
-	result := homebrew.ruby_api_l546_d23_self_urlsafe_decode64(brew_runtime.string_value('a'))
+	result := homebrew.ruby_api_l546_d23_self_urlsafe_decode64(ruby.string_value('a'))
 	return api_spec_bool(result.type_name == 'ArgumentError')
 }
 
 // Ruby it `it "downloads executables.txt from the GitHub Packages OCI artifact" do` at line 280.
-pub fn ruby_api_spec_l280_d43_downloads(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l280_d43_downloads(args ...ruby.Value) ruby.Value {
 	cache := if args.len > 0 { args[0].as_string() } else { api_spec_temp_dir('oci') }
 	target := os.join_path(cache, 'executables.txt')
 	manifest := '{"layers":[{"digest":"sha256:abc123","annotations":{"org.opencontainers.image.title":"executables.txt"}}]}'
-	result := homebrew.ruby_api_l314_d10_self_download_executables_file_from_github_packages(brew_runtime.string_value(target), brew_runtime.map_value({
-		'manifest':         brew_runtime.string_value(manifest)
-		'manifest_success': brew_runtime.bool_value(true)
-		'download_success': brew_runtime.bool_value(true)
-		'download_stdout':  brew_runtime.string_value('foo:foo-bin\n')
-		'authorization':    brew_runtime.string_value('Bearer QQ==')
+	result := homebrew.ruby_api_l314_d10_self_download_executables_file_from_github_packages(ruby.string_value(target), ruby.map_value({
+		'manifest':         ruby.string_value(manifest)
+		'manifest_success': ruby.bool_value(true)
+		'download_success': ruby.bool_value(true)
+		'download_stdout':  ruby.string_value('foo:foo-bin\n')
+		'authorization':    ruby.string_value('Bearer QQ==')
 	}))
 	contents := os.read_file(target) or { return api_spec_bool(false) }
 	return api_spec_bool(result.bool_data && contents == 'foo:foo-bin\n')
 }
 
 // Ruby let `let(:cache_dir) { mktmpdir }` at line 313.
-pub fn ruby_api_spec_l313_d44_cache_dir(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l313_d44_cache_dir(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.object_value('Pathname', api_spec_temp_dir('executables'))
+	return ruby.object_value('Pathname', api_spec_temp_dir('executables'))
 }
 
 // Ruby let `let(:target) { cache_dir/"internal/executables.txt" }` at line 314.
-pub fn ruby_api_spec_l314_d45_target(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l314_d45_target(args ...ruby.Value) ruby.Value {
 	cache := if args.len > 0 {
 		args[0].as_string()
 	} else {
 		ruby_api_spec_l313_d44_cache_dir().as_string()
 	}
-	return brew_runtime.object_value('Pathname', os.join_path(cache, 'internal', 'executables.txt'))
+	return ruby.object_value('Pathname', os.join_path(cache, 'internal', 'executables.txt'))
 }
 
 // Ruby let `let(:source) { cache_dir/"internal/packages.jws.json" }` at line 315.
-pub fn ruby_api_spec_l315_d46_source(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l315_d46_source(args ...ruby.Value) ruby.Value {
 	cache := if args.len > 0 {
 		args[0].as_string()
 	} else {
 		ruby_api_spec_l313_d44_cache_dir().as_string()
 	}
-	return brew_runtime.object_value('Pathname', os.join_path(cache, 'internal', 'packages.jws.json'))
+	return ruby.object_value('Pathname', os.join_path(cache, 'internal', 'packages.jws.json'))
 }
 
 // Ruby let `let(:formulae) { { "foo" => { "executables" => ["foo-bin"] } } }` at line 316.
-pub fn ruby_api_spec_l316_d47_formulae(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l316_d47_formulae(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.map_value({
-		'foo': brew_runtime.map_value({
-			'executables': brew_runtime.string_array_value(['foo-bin'])
+	return ruby.map_value({
+		'foo': ruby.map_value({
+			'executables': ruby.string_array_value(['foo-bin'])
 		})
 	})
 }
 
 // Ruby method `write_executables_file!(regenerate:)` at line 318.
-pub fn ruby_api_spec_l318_d48_write_executables_file(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l318_d48_write_executables_file(args ...ruby.Value) ruby.Value {
 	if args.len < 4 {
-		return brew_runtime.structured_value('ArgumentError', 'regenerate, source, formulae and target are required', {})
+		return ruby.structured_value('ArgumentError', 'regenerate, source, formulae and target are required', {})
 	}
 	return homebrew.ruby_api_l282_d9_self_write_executables_file(args[0], args[1], args[2], args[3])
 }
 
-fn api_spec_executables_fixture(label string) (string, string, string, brew_runtime.Value) {
+fn api_spec_executables_fixture(label string) (string, string, string, ruby.Value) {
 	cache := api_spec_temp_dir(label)
 	target := os.join_path(cache, 'internal', 'executables.txt')
 	source := os.join_path(cache, 'internal', 'packages.jws.json')
@@ -613,162 +613,162 @@ fn api_spec_executables_fixture(label string) (string, string, string, brew_runt
 }
 
 // Ruby it `it "writes the executables database when it does not exist" do` at line 328.
-pub fn ruby_api_spec_l328_d49_writes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l328_d49_writes(args ...ruby.Value) ruby.Value {
 	_ = args
 	_, target, source, formulae := api_spec_executables_fixture('write-executables')
-	result := ruby_api_spec_l318_d48_write_executables_file(brew_runtime.bool_value(false), brew_runtime.string_value(source), formulae, brew_runtime.string_value(target))
+	result := ruby_api_spec_l318_d48_write_executables_file(ruby.bool_value(false), ruby.string_value(source), formulae, ruby.string_value(target))
 	contents := os.read_file(target) or { return api_spec_bool(false) }
 	return api_spec_bool(result.bool_data && contents == 'foo:foo-bin\n')
 }
 
 // Ruby it `it "does not rebuild an executables database newer than its source when not regenerating" do` at line 333.
-pub fn ruby_api_spec_l333_d50_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l333_d50_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	_, target, source, formulae := api_spec_executables_fixture('fresh-executables')
 	os.write_file(target, 'stale:stale-bin\n') or { return api_spec_bool(false) }
 	future := os.file_last_mod_unix(source) + 10
 	os.utime(target, future, future) or { return api_spec_bool(false) }
-	result := ruby_api_spec_l318_d48_write_executables_file(brew_runtime.bool_value(false), brew_runtime.string_value(source), formulae, brew_runtime.string_value(target))
+	result := ruby_api_spec_l318_d48_write_executables_file(ruby.bool_value(false), ruby.string_value(source), formulae, ruby.string_value(target))
 	contents := os.read_file(target) or { return api_spec_bool(false) }
 	return api_spec_bool(!result.bool_data && contents == 'stale:stale-bin\n')
 }
 
 // Ruby it `it "rebuilds the executables database when the source is newer" do` at line 341.
-pub fn ruby_api_spec_l341_d51_rebuilds(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l341_d51_rebuilds(args ...ruby.Value) ruby.Value {
 	_ = args
 	_, target, source, formulae := api_spec_executables_fixture('stale-executables')
 	os.write_file(target, 'stale:stale-bin\n') or { return api_spec_bool(false) }
 	future := os.file_last_mod_unix(target) + 10
 	os.utime(source, future, future) or { return api_spec_bool(false) }
-	result := ruby_api_spec_l318_d48_write_executables_file(brew_runtime.bool_value(false), brew_runtime.string_value(source), formulae, brew_runtime.string_value(target))
+	result := ruby_api_spec_l318_d48_write_executables_file(ruby.bool_value(false), ruby.string_value(source), formulae, ruby.string_value(target))
 	contents := os.read_file(target) or { return api_spec_bool(false) }
 	return api_spec_bool(result.bool_data && contents == 'foo:foo-bin\n')
 }
 
 // Ruby it `it "rewrites the executables database when regenerating" do` at line 349.
-pub fn ruby_api_spec_l349_d52_rewrites(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l349_d52_rewrites(args ...ruby.Value) ruby.Value {
 	_ = args
 	_, target, source, formulae := api_spec_executables_fixture('regenerate-executables')
 	os.write_file(target, 'stale:stale-bin\n') or { return api_spec_bool(false) }
 	future := os.file_last_mod_unix(source) + 10
 	os.utime(target, future, future) or { return api_spec_bool(false) }
-	result := ruby_api_spec_l318_d48_write_executables_file(brew_runtime.bool_value(true), brew_runtime.string_value(source), formulae, brew_runtime.string_value(target))
+	result := ruby_api_spec_l318_d48_write_executables_file(ruby.bool_value(true), ruby.string_value(source), formulae, ruby.string_value(target))
 	contents := os.read_file(target) or { return api_spec_bool(false) }
 	return api_spec_bool(result.bool_data && contents == 'foo:foo-bin\n')
 }
 
 // Ruby let `let(:api_cache_root) { Homebrew::API::HOMEBREW_CACHE_API_SOURCE }` at line 359.
-pub fn ruby_api_spec_l359_d53_api_cache_root(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l359_d53_api_cache_root(args ...ruby.Value) ruby.Value {
 	root := if args.len > 0 { args[0].as_string() } else { api_spec_temp_dir('api-source') }
-	return brew_runtime.object_value('Pathname', root)
+	return ruby.object_value('Pathname', root)
 }
 
 // Ruby let `let(:cache_path) do` at line 360.
-pub fn ruby_api_spec_l360_d54_cache_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l360_d54_cache_path(args ...ruby.Value) ruby.Value {
 	root := if args.len > 0 {
 		args[0].as_string()
 	} else {
 		ruby_api_spec_l359_d53_api_cache_root().as_string()
 	}
-	return brew_runtime.object_value('Pathname', os.join_path(root, 'Homebrew', 'homebrew-core', 'cf5c386c1fa2cb54279d78c0990dd7a0fa4bc327', 'Formula', 'foo.rb'))
+	return ruby.object_value('Pathname', os.join_path(root, 'Homebrew', 'homebrew-core', 'cf5c386c1fa2cb54279d78c0990dd7a0fa4bc327', 'Formula', 'foo.rb'))
 }
 
 // Ruby it `it "returns the corresponding tap" do` at line 365.
-pub fn ruby_api_spec_l365_d55_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l365_d55_returns(args ...ruby.Value) ruby.Value {
 	root := if args.len > 0 { args[0].as_string() } else { api_spec_temp_dir('inside-source') }
-	path := ruby_api_spec_l360_d54_cache_path(brew_runtime.string_value(root))
-	result := homebrew.ruby_api_l551_d24_self_tap_from_source_download(path, brew_runtime.string_value(root))
+	path := ruby_api_spec_l360_d54_cache_path(ruby.string_value(root))
+	result := homebrew.ruby_api_l551_d24_self_tap_from_source_download(path, ruby.string_value(root))
 	return api_spec_bool(result.type_name == 'Tap' && result.as_string() == 'Homebrew/homebrew-core')
 }
 
 // Ruby let `let(:api_cache_root) { mktmpdir }` at line 371.
-pub fn ruby_api_spec_l371_d56_api_cache_root(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l371_d56_api_cache_root(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.object_value('Pathname', api_spec_temp_dir('outside-source'))
+	return ruby.object_value('Pathname', api_spec_temp_dir('outside-source'))
 }
 
 // Ruby it `it "returns nil" do` at line 373.
-pub fn ruby_api_spec_l373_d57_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l373_d57_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	inside_root := api_spec_temp_dir('real-source')
-	path := ruby_api_spec_l360_d54_cache_path(brew_runtime.string_value(inside_root))
+	path := ruby_api_spec_l360_d54_cache_path(ruby.string_value(inside_root))
 	outside_root := ruby_api_spec_l371_d56_api_cache_root()
 	result := homebrew.ruby_api_l551_d24_self_tap_from_source_download(path, outside_root)
 	return api_spec_bool(result.type_name == 'NilClass')
 }
 
 // Ruby it `it "returns nil" do` at line 379.
-pub fn ruby_api_spec_l379_d58_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l379_d58_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	root := api_spec_temp_dir('relative-source')
-	result := homebrew.ruby_api_l551_d24_self_tap_from_source_download(brew_runtime.object_value('Pathname', '../foo.rb'), brew_runtime.string_value(root))
+	result := homebrew.ruby_api_l551_d24_self_tap_from_source_download(ruby.object_value('Pathname', '../foo.rb'), ruby.string_value(root))
 	return api_spec_bool(result.type_name == 'NilClass')
 }
 
 // Ruby let `let(:arm64_sequoia_tag) { Utils::Bottles::Tag.new(system: :sequoia, arch: :arm) }` at line 386.
-pub fn ruby_api_spec_l386_d59_arm64_sequoia_tag(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l386_d59_arm64_sequoia_tag(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.object_value('Utils::Bottles::Tag', 'arm64_sequoia')
+	return ruby.object_value('Utils::Bottles::Tag', 'arm64_sequoia')
 }
 
 // Ruby let `let(:sonoma_tag) { Utils::Bottles::Tag.new(system: :sonoma, arch: :intel) }` at line 387.
-pub fn ruby_api_spec_l387_d60_sonoma_tag(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l387_d60_sonoma_tag(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.object_value('Utils::Bottles::Tag', 'sonoma')
+	return ruby.object_value('Utils::Bottles::Tag', 'sonoma')
 }
 
 // Ruby let `let(:x86_64_linux_tag) { Utils::Bottles::Tag.new(system: :linux, arch: :intel) }` at line 388.
-pub fn ruby_api_spec_l388_d61_x86_64_linux_tag(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l388_d61_x86_64_linux_tag(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.object_value('Utils::Bottles::Tag', 'x86_64_linux')
+	return ruby.object_value('Utils::Bottles::Tag', 'x86_64_linux')
 }
 
 // Ruby let `let(:json) do` at line 390.
-pub fn ruby_api_spec_l390_d62_json(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l390_d62_json(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.map_value({
-		'name':       brew_runtime.string_value('foo')
-		'foo':        brew_runtime.string_value('bar')
-		'baz':        brew_runtime.string_array_value(['test1', 'test2'])
-		'variations': brew_runtime.map_value({
-			'arm64_sequoia': brew_runtime.map_value({
-				'foo': brew_runtime.string_value('new')
+	return ruby.map_value({
+		'name':       ruby.string_value('foo')
+		'foo':        ruby.string_value('bar')
+		'baz':        ruby.string_array_value(['test1', 'test2'])
+		'variations': ruby.map_value({
+			'arm64_sequoia': ruby.map_value({
+				'foo': ruby.string_value('new')
 			})
-			'sonoma':        brew_runtime.map_value({
-				'baz': brew_runtime.string_array_value(['new1', 'new2', 'new3'])
+			'sonoma':        ruby.map_value({
+				'baz': ruby.string_array_value(['new1', 'new2', 'new3'])
 			})
 		})
 	})
 }
 
 // Ruby let `let(:arm64_sequoia_result) do` at line 402.
-pub fn ruby_api_spec_l402_d63_arm64_sequoia_result(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l402_d63_arm64_sequoia_result(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.map_value({
-		'name': brew_runtime.string_value('foo')
-		'foo':  brew_runtime.string_value('new')
-		'baz':  brew_runtime.string_array_value(['test1', 'test2'])
+	return ruby.map_value({
+		'name': ruby.string_value('foo')
+		'foo':  ruby.string_value('new')
+		'baz':  ruby.string_array_value(['test1', 'test2'])
 	})
 }
 
 // Ruby let `let(:sonoma_result) do` at line 410.
-pub fn ruby_api_spec_l410_d64_sonoma_result(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l410_d64_sonoma_result(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.map_value({
-		'name': brew_runtime.string_value('foo')
-		'foo':  brew_runtime.string_value('bar')
-		'baz':  brew_runtime.string_array_value(['new1', 'new2', 'new3'])
+	return ruby.map_value({
+		'name': ruby.string_value('foo')
+		'foo':  ruby.string_value('bar')
+		'baz':  ruby.string_array_value(['new1', 'new2', 'new3'])
 	})
 }
 
-fn api_spec_json_without_variations() brew_runtime.Value {
+fn api_spec_json_without_variations() ruby.Value {
 	mut value := ruby_api_spec_l390_d62_json().map_data.clone()
 	value.delete('variations')
-	return brew_runtime.map_value(value)
+	return ruby.map_value(value)
 }
 
 // Ruby it `it "returns the original JSON if no variations are found" do` at line 418.
-pub fn ruby_api_spec_l418_d65_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l418_d65_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	expected := ruby_api_spec_l402_d63_arm64_sequoia_result()
 	actual := homebrew.ruby_api_l194_d4_self_merge_variations(expected, ruby_api_spec_l386_d59_arm64_sequoia_tag())
@@ -776,7 +776,7 @@ pub fn ruby_api_spec_l418_d65_returns(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby it `it "returns the original JSON if no variations are found for the current system" do` at line 423.
-pub fn ruby_api_spec_l423_d66_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l423_d66_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	expected := ruby_api_spec_l402_d63_arm64_sequoia_result()
 	actual := homebrew.ruby_api_l194_d4_self_merge_variations(expected)
@@ -784,42 +784,42 @@ pub fn ruby_api_spec_l423_d66_returns(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby it `it "returns the original JSON without the variations if no matching variation is found" do` at line 428.
-pub fn ruby_api_spec_l428_d67_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l428_d67_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	actual := homebrew.ruby_api_l194_d4_self_merge_variations(ruby_api_spec_l390_d62_json(), ruby_api_spec_l388_d61_x86_64_linux_tag())
 	return api_spec_bool(api_spec_value_equal(actual, api_spec_json_without_variations()))
 }
 
 // Ruby it `it "returns the original JSON without the variations if no matching variation is found for the current system" do` at line 433.
-pub fn ruby_api_spec_l433_d68_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l433_d68_returns(args ...ruby.Value) ruby.Value {
 	tag := if args.len > 0 { args[0] } else { ruby_api_spec_l388_d61_x86_64_linux_tag() }
 	actual := homebrew.ruby_api_l194_d4_self_merge_variations(ruby_api_spec_l390_d62_json(), tag)
 	return api_spec_bool(api_spec_value_equal(actual, api_spec_json_without_variations()))
 }
 
 // Ruby it `it "returns the JSON with the matching variation applied from a string key" do` at line 440.
-pub fn ruby_api_spec_l440_d69_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l440_d69_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	actual := homebrew.ruby_api_l194_d4_self_merge_variations(ruby_api_spec_l390_d62_json(), ruby_api_spec_l386_d59_arm64_sequoia_tag())
 	return api_spec_bool(api_spec_value_equal(actual, ruby_api_spec_l402_d63_arm64_sequoia_result()))
 }
 
 // Ruby it `it "returns the JSON with the matching variation applied from a string key for the current system" do` at line 445.
-pub fn ruby_api_spec_l445_d70_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l445_d70_returns(args ...ruby.Value) ruby.Value {
 	tag := if args.len > 0 { args[0] } else { ruby_api_spec_l386_d59_arm64_sequoia_tag() }
 	actual := homebrew.ruby_api_l194_d4_self_merge_variations(ruby_api_spec_l390_d62_json(), tag)
 	return api_spec_bool(api_spec_value_equal(actual, ruby_api_spec_l402_d63_arm64_sequoia_result()))
 }
 
 // Ruby it `it "returns the JSON with the matching variation applied from a symbol key" do` at line 452.
-pub fn ruby_api_spec_l452_d71_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l452_d71_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	actual := homebrew.ruby_api_l194_d4_self_merge_variations(ruby_api_spec_l390_d62_json(), ruby_api_spec_l387_d60_sonoma_tag())
 	return api_spec_bool(api_spec_value_equal(actual, ruby_api_spec_l410_d64_sonoma_result()))
 }
 
 // Ruby it `it "returns the JSON with the matching variation applied from a symbol key for the current system" do` at line 457.
-pub fn ruby_api_spec_l457_d72_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_spec_l457_d72_returns(args ...ruby.Value) ruby.Value {
 	tag := if args.len > 0 { args[0] } else { ruby_api_spec_l387_d60_sonoma_tag() }
 	actual := homebrew.ruby_api_l194_d4_self_merge_variations(ruby_api_spec_l390_d62_json(), tag)
 	return api_spec_bool(api_spec_value_equal(actual, ruby_api_spec_l410_d64_sonoma_result()))

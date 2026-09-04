@@ -1,6 +1,6 @@
 module ast
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `rubocops/cask/ast/cask_header.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -142,8 +142,8 @@ pub fn parse_cask_header(source string) ?CaskHeader {
 	return none
 }
 
-fn cask_header_value(header CaskHeader) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cask::AST::CaskHeader', header.cask_token, {
+fn cask_header_value(header CaskHeader) ruby.Value {
+	return ruby.structured_value('RuboCop::Cask::AST::CaskHeader', header.cask_token, {
 		'method_source': header.method_source
 		'begin_pos':     header.begin_pos.str()
 		'end_pos':       header.end_pos.str()
@@ -154,23 +154,23 @@ fn cask_header_value(header CaskHeader) brew_runtime.Value {
 	})
 }
 
-fn cask_header_argument(args []brew_runtime.Value) ?CaskHeader {
+fn cask_header_argument(args []ruby.Value) ?CaskHeader {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	return parse_cask_header(source)
 }
 
 // Ruby method `initialize(method_node)` at line 11.
-pub fn ruby_cask_header_l11_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_header_l11_d1_initialize(args ...ruby.Value) ruby.Value {
 	header := cask_header_argument(args) or {
-		return brew_runtime.object_value('ArgumentError', 'expected a cask method node')
+		return ruby.object_value('ArgumentError', 'expected a cask method node')
 	}
 	return cask_header_value(header)
 }
 
 // Ruby attr_reader `attr_reader :method_node` at line 16.
-pub fn ruby_cask_header_l16_d2_method_node(args ...brew_runtime.Value) brew_runtime.Value {
-	header := cask_header_argument(args) or { return brew_runtime.object_value('NilClass', 'nil') }
-	return brew_runtime.structured_value('RuboCop::AST::SendNode', header.method_source, {
+pub fn ruby_cask_header_l16_d2_method_node(args ...ruby.Value) ruby.Value {
+	header := cask_header_argument(args) or { return ruby.object_value('NilClass', 'nil') }
+	return ruby.structured_value('RuboCop::AST::SendNode', header.method_source, {
 		'source':    header.method_source
 		'begin_pos': header.begin_pos.str()
 		'end_pos':   header.end_pos.str()
@@ -178,9 +178,9 @@ pub fn ruby_cask_header_l16_d2_method_node(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `source_range` at line 19.
-pub fn ruby_cask_header_l19_d3_source_range(args ...brew_runtime.Value) brew_runtime.Value {
-	header := cask_header_argument(args) or { return brew_runtime.object_value('NilClass', 'nil') }
-	return brew_runtime.structured_value('Parser::Source::Range', header.method_source, {
+pub fn ruby_cask_header_l19_d3_source_range(args ...ruby.Value) ruby.Value {
+	header := cask_header_argument(args) or { return ruby.object_value('NilClass', 'nil') }
+	return ruby.structured_value('Parser::Source::Range', header.method_source, {
 		'begin_pos': header.begin_pos.str()
 		'end_pos':   header.end_pos.str()
 		'source':    header.method_source
@@ -188,18 +188,18 @@ pub fn ruby_cask_header_l19_d3_source_range(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby method `cask_token` at line 24.
-pub fn ruby_cask_header_l24_d4_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
-	header := cask_header_argument(args) or { return brew_runtime.object_value('NilClass', 'nil') }
-	return brew_runtime.string_value(header.cask_token)
+pub fn ruby_cask_header_l24_d4_cask_token(args ...ruby.Value) ruby.Value {
+	header := cask_header_argument(args) or { return ruby.object_value('NilClass', 'nil') }
+	return ruby.string_value(header.cask_token)
 }
 
 // Ruby method `hash_node` at line 29.
-pub fn ruby_cask_header_l29_d5_hash_node(args ...brew_runtime.Value) brew_runtime.Value {
-	header := cask_header_argument(args) or { return brew_runtime.object_value('NilClass', 'nil') }
+pub fn ruby_cask_header_l29_d5_hash_node(args ...ruby.Value) ruby.Value {
+	header := cask_header_argument(args) or { return ruby.object_value('NilClass', 'nil') }
 	if header.hash_source == '' {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
-	return brew_runtime.structured_value('RuboCop::AST::HashNode', header.hash_source, {
+	return ruby.structured_value('RuboCop::AST::HashNode', header.hash_source, {
 		'source':    header.hash_source
 		'begin_pos': header.hash_begin.str()
 		'end_pos':   header.hash_end.str()

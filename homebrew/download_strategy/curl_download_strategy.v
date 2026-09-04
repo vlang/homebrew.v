@@ -1,6 +1,6 @@
 module download_strategy
 
-import brew_runtime
+import ruby
 import net.urllib
 import os
 import time
@@ -440,7 +440,7 @@ fn content_disposition_header_filename(value string) ?string {
 	return none
 }
 
-pub fn (mut strategy CurlDownloadStrategy) fetch_to_temporary(url string, resolved_url string, timeout ?f64) !brew_runtime.CommandResult {
+pub fn (mut strategy CurlDownloadStrategy) fetch_to_temporary(url string, resolved_url string, timeout ?f64) !ruby.CommandResult {
 	if url != resolved_url {
 		strategy.file.base.ohai('Downloading from ${resolved_url}')
 	}
@@ -456,7 +456,7 @@ pub fn (strategy &CurlDownloadStrategy) ensure_no_insecure_redirect(url string, 
 	}
 }
 
-pub fn (mut strategy CurlDownloadStrategy) curl_download(resolved_url string, target string, timeout ?f64) !brew_runtime.CommandResult {
+pub fn (mut strategy CurlDownloadStrategy) curl_download(resolved_url string, target string, timeout ?f64) !ruby.CommandResult {
 	mut arguments := ['--remote-time', '--output', target]
 	if strategy.try_partial {
 		arguments << ['--continue-at', '-']
@@ -503,23 +503,23 @@ pub fn (strategy &CurlDownloadStrategy) curl_opts() []string {
 	return ['--user-agent', user_agent]
 }
 
-pub fn (strategy &CurlDownloadStrategy) curl_output(arguments []string) !brew_runtime.CommandResult {
+pub fn (strategy &CurlDownloadStrategy) curl_output(arguments []string) !ruby.CommandResult {
 	return strategy.run_curl(arguments)
 }
 
-pub fn (strategy &CurlDownloadStrategy) curl(arguments []string) !brew_runtime.CommandResult {
+pub fn (strategy &CurlDownloadStrategy) curl(arguments []string) !ruby.CommandResult {
 	return strategy.run_curl(arguments)
 }
 
-fn (strategy &CurlDownloadStrategy) run_curl(arguments []string) !brew_runtime.CommandResult {
-	curl := brew_runtime.find_executable('curl')!
+fn (strategy &CurlDownloadStrategy) run_curl(arguments []string) !ruby.CommandResult {
+	curl := ruby.find_executable('curl')!
 	mut all_arguments := strategy.curl_args()
 	all_arguments << strategy.curl_opts()
 	if strategy.mirrors.len > 0 {
 		all_arguments << ['--connect-timeout', '15']
 	}
 	all_arguments << strategy.expand_deferred_environment_args(arguments)
-	result := brew_runtime.run_command(curl, all_arguments)
+	result := ruby.run_command(curl, all_arguments)
 	if result.exit_code != 0 {
 		return error(result.output.trim_space())
 	}
@@ -590,7 +590,7 @@ pub fn ruby_curl_download_strategy_l198_d10_resolve_url_basename_time_file_size(
 }
 
 // Ruby method `_fetch(url:, resolved_url:, timeout:)` at line 280.
-pub fn ruby_curl_download_strategy_l280_d11_fetch(mut strategy CurlDownloadStrategy, url string, resolved_url string, timeout ?f64) !brew_runtime.CommandResult {
+pub fn ruby_curl_download_strategy_l280_d11_fetch(mut strategy CurlDownloadStrategy, url string, resolved_url string, timeout ?f64) !ruby.CommandResult {
 	return strategy.fetch_to_temporary(url, resolved_url, timeout)
 }
 
@@ -600,7 +600,7 @@ pub fn ruby_curl_download_strategy_l289_d12_ensure_no_insecure_redirect(strategy
 }
 
 // Ruby method `_curl_download(resolved_url, to, timeout)` at line 301.
-pub fn ruby_curl_download_strategy_l301_d13_curl_download(mut strategy CurlDownloadStrategy, resolved_url string, target string, timeout ?f64) !brew_runtime.CommandResult {
+pub fn ruby_curl_download_strategy_l301_d13_curl_download(mut strategy CurlDownloadStrategy, resolved_url string, target string, timeout ?f64) !ruby.CommandResult {
 	return strategy.curl_download(resolved_url, target, timeout)
 }
 
@@ -615,12 +615,12 @@ pub fn ruby_curl_download_strategy_l315_d15_curl_opts(strategy &CurlDownloadStra
 }
 
 // Ruby method `curl_output(*args, **options)` at line 320.
-pub fn ruby_curl_download_strategy_l320_d16_curl_output(strategy &CurlDownloadStrategy, arguments []string) !brew_runtime.CommandResult {
+pub fn ruby_curl_download_strategy_l320_d16_curl_output(strategy &CurlDownloadStrategy, arguments []string) !ruby.CommandResult {
 	return strategy.curl_output(arguments)
 }
 
 // Ruby method `curl(*args, print_stdout: true, **options)` at line 328.
-pub fn ruby_curl_download_strategy_l328_d17_curl(strategy &CurlDownloadStrategy, arguments []string) !brew_runtime.CommandResult {
+pub fn ruby_curl_download_strategy_l328_d17_curl(strategy &CurlDownloadStrategy, arguments []string) !ruby.CommandResult {
 	return strategy.curl(arguments)
 }
 

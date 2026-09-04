@@ -1,6 +1,6 @@
 module bindata
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/bindata-2.5.1/lib/bindata/params.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -9,14 +9,14 @@ pub struct AcceptedParameters {
 mut:
 	mandatory_names          []string
 	optional_names           []string
-	default_values           map[string]brew_runtime.Value
+	default_values           map[string]ruby.Value
 	default_names            []string
 	mutually_exclusive_pairs [][]string
 }
 
 pub fn new_accepted_parameters() &AcceptedParameters {
 	return &AcceptedParameters{
-		default_values: map[string]brew_runtime.Value{}
+		default_values: map[string]ruby.Value{}
 	}
 }
 
@@ -88,7 +88,7 @@ pub fn (mut parameters AcceptedParameters) add_optional(names []string) ![]strin
 	return parameters.optional_names.clone()
 }
 
-pub fn (mut parameters AcceptedParameters) add_defaults(values map[string]brew_runtime.Value) !map[string]brew_runtime.Value {
+pub fn (mut parameters AcceptedParameters) add_defaults(values map[string]ruby.Value) !map[string]ruby.Value {
 	validate_accepted_parameter_names(values.keys().map(it.trim_left(':')))!
 	for original_name, value in values {
 		name := original_name.trim_left(':')
@@ -121,7 +121,7 @@ pub fn (parameters &AcceptedParameters) optional() []string {
 	return parameters.optional_names.clone()
 }
 
-pub fn (parameters &AcceptedParameters) defaults() map[string]brew_runtime.Value {
+pub fn (parameters &AcceptedParameters) defaults() map[string]ruby.Value {
 	return parameters.default_values.clone()
 }
 
@@ -136,9 +136,9 @@ pub fn (parameters &AcceptedParameters) all() []string {
 	return unique_parameter_names(names)
 }
 
-fn accepted_parameters_value(parameters &AcceptedParameters) brew_runtime.Value {
-	pairs := parameters.mutually_exclusive_pairs.map(brew_runtime.string_array_value(it))
-	return brew_runtime.Value{
+fn accepted_parameters_value(parameters &AcceptedParameters) ruby.Value {
+	pairs := parameters.mutually_exclusive_pairs.map(ruby.string_array_value(it))
+	return ruby.Value{
 		type_name: 'BinData::AcceptedParameters'
 		repr: parameters.all().str()
 		int_data: i64(u64(voidptr(parameters)))
@@ -146,16 +146,16 @@ fn accepted_parameters_value(parameters &AcceptedParameters) brew_runtime.Value 
 			'accepted_parameters_address': u64(voidptr(parameters)).str()
 		}
 		map_data: {
-			'mandatory':          brew_runtime.string_array_value(parameters.mandatory_names)
-			'optional':           brew_runtime.string_array_value(parameters.optional_names)
-			'default':            brew_runtime.map_value(parameters.default_values)
-			'default_names':      brew_runtime.string_array_value(parameters.default_names)
-			'mutually_exclusive': brew_runtime.array_value(pairs)
+			'mandatory':          ruby.string_array_value(parameters.mandatory_names)
+			'optional':           ruby.string_array_value(parameters.optional_names)
+			'default':            ruby.map_value(parameters.default_values)
+			'default_names':      ruby.string_array_value(parameters.default_names)
+			'mutually_exclusive': ruby.array_value(pairs)
 		}
 	}
 }
 
-fn accepted_parameters_from_value(value brew_runtime.Value) &AcceptedParameters {
+fn accepted_parameters_from_value(value ruby.Value) &AcceptedParameters {
 	if address := value.attributes['accepted_parameters_address'] {
 		actual := if value.int_data != 0 { u64(value.int_data) } else { address.u64() }
 		return unsafe { &AcceptedParameters(voidptr(actual)) }
@@ -164,11 +164,11 @@ fn accepted_parameters_from_value(value brew_runtime.Value) &AcceptedParameters 
 		return new_accepted_parameters()
 	}
 	data := value.map_data.clone()
-	mandatory := data['mandatory'] or { brew_runtime.string_array_value([]) }
-	optional := data['optional'] or { brew_runtime.string_array_value([]) }
-	defaults := data['default'] or { brew_runtime.map_value({}) }
-	default_names := data['default_names'] or { brew_runtime.string_array_value([]) }
-	pairs := data['mutually_exclusive'] or { brew_runtime.array_value([]) }
+	mandatory := data['mandatory'] or { ruby.string_array_value([]) }
+	optional := data['optional'] or { ruby.string_array_value([]) }
+	defaults := data['default'] or { ruby.map_value({}) }
+	default_names := data['default_names'] or { ruby.string_array_value([]) }
+	pairs := data['mutually_exclusive'] or { ruby.array_value([]) }
 	return &AcceptedParameters{
 		mandatory_names: mandatory.as_string_array() or { panic(err) }
 		optional_names: optional.as_string_array() or { panic(err) }
@@ -179,9 +179,9 @@ fn accepted_parameters_from_value(value brew_runtime.Value) &AcceptedParameters 
 	}
 }
 
-pub fn new_accepted_parameters_plugin_receiver(type_name string) brew_runtime.Value {
+pub fn new_accepted_parameters_plugin_receiver(type_name string) ruby.Value {
 	parameters := new_accepted_parameters()
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: type_name
 		repr: type_name
 		int_data: i64(u64(voidptr(parameters)))
@@ -191,9 +191,9 @@ pub fn new_accepted_parameters_plugin_receiver(type_name string) brew_runtime.Va
 	}
 }
 
-pub fn inherit_accepted_parameters_plugin_receiver(type_name string, ancestor brew_runtime.Value) brew_runtime.Value {
+pub fn inherit_accepted_parameters_plugin_receiver(type_name string, ancestor ruby.Value) ruby.Value {
 	parameters := inherit_accepted_parameters(accepted_parameters_for_plugin(ancestor))
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: type_name
 		repr: type_name
 		int_data: i64(u64(voidptr(parameters)))
@@ -203,22 +203,22 @@ pub fn inherit_accepted_parameters_plugin_receiver(type_name string, ancestor br
 	}
 }
 
-fn nil_parameter_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn nil_parameter_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-fn parameter_name_from_value(value brew_runtime.Value) string {
+fn parameter_name_from_value(value ruby.Value) string {
 	if value.type_name !in ['String', 'Symbol'] {
 		panic("undefined method `to_sym' for ${value.type_name}")
 	}
 	return value.as_string().trim_left(':')
 }
 
-fn parameter_names_from_values(values []brew_runtime.Value) []string {
+fn parameter_names_from_values(values []ruby.Value) []string {
 	return values.map(parameter_name_from_value(it))
 }
 
-fn accepted_parameters_for_plugin(receiver brew_runtime.Value) &AcceptedParameters {
+fn accepted_parameters_for_plugin(receiver ruby.Value) &AcceptedParameters {
 	if _ := receiver.attributes['accepted_parameters_address'] {
 		return accepted_parameters_from_value(receiver)
 	}
@@ -234,34 +234,34 @@ fn accepted_parameters_for_plugin(receiver brew_runtime.Value) &AcceptedParamete
 	return new_accepted_parameters()
 }
 
-fn parameter_pairs_value(pairs [][]string) brew_runtime.Value {
-	return brew_runtime.array_value(pairs.map(brew_runtime.string_array_value(it)))
+fn parameter_pairs_value(pairs [][]string) ruby.Value {
+	return ruby.array_value(pairs.map(ruby.string_array_value(it)))
 }
 
 // Ruby method `mandatory_parameters(*args)` at line 6.
-pub fn ruby_params_l6_d1_mandatory_parameters(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_params_l6_d1_mandatory_parameters(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('mandatory_parameters requires a receiver')
 	}
 	mut parameters := accepted_parameters_for_plugin(args[0])
-	return brew_runtime.string_array_value(parameters.add_mandatory(parameter_names_from_values(args[1..])) or {
+	return ruby.string_array_value(parameters.add_mandatory(parameter_names_from_values(args[1..])) or {
 		panic(err)
 	})
 }
 
 // Ruby method `optional_parameters(*args)` at line 11.
-pub fn ruby_params_l11_d2_optional_parameters(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_params_l11_d2_optional_parameters(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('optional_parameters requires a receiver')
 	}
 	mut parameters := accepted_parameters_for_plugin(args[0])
-	return brew_runtime.string_array_value(parameters.add_optional(parameter_names_from_values(args[1..])) or {
+	return ruby.string_array_value(parameters.add_optional(parameter_names_from_values(args[1..])) or {
 		panic(err)
 	})
 }
 
 // Ruby method `default_parameters(*args)` at line 16.
-pub fn ruby_params_l16_d3_default_parameters(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_params_l16_d3_default_parameters(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('default_parameters requires a receiver')
 	}
@@ -272,13 +272,13 @@ pub fn ruby_params_l16_d3_default_parameters(args ...brew_runtime.Value) brew_ru
 	values := if args.len > 1 && args[1].type_name != 'NilClass' {
 		args[1].as_map() or { panic(err) }
 	} else {
-		map[string]brew_runtime.Value{}
+		map[string]ruby.Value{}
 	}
-	return brew_runtime.map_value(parameters.add_defaults(values) or { panic(err) })
+	return ruby.map_value(parameters.add_defaults(values) or { panic(err) })
 }
 
 // Ruby method `mutually_exclusive_parameters(*args)` at line 22.
-pub fn ruby_params_l22_d4_mutually_exclusive_parameters(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_params_l22_d4_mutually_exclusive_parameters(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('mutually_exclusive_parameters requires a receiver')
 	}
@@ -289,22 +289,22 @@ pub fn ruby_params_l22_d4_mutually_exclusive_parameters(args ...brew_runtime.Val
 }
 
 // Ruby alias `alias mandatory_parameter mandatory_parameters` at line 26.
-pub fn ruby_params_l26_d5_mandatory_parameter(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_params_l26_d5_mandatory_parameter(args ...ruby.Value) ruby.Value {
 	return ruby_params_l6_d1_mandatory_parameters(...args)
 }
 
 // Ruby alias `alias optional_parameter  optional_parameters` at line 27.
-pub fn ruby_params_l27_d6_optional_parameter(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_params_l27_d6_optional_parameter(args ...ruby.Value) ruby.Value {
 	return ruby_params_l11_d2_optional_parameters(...args)
 }
 
 // Ruby alias `alias default_parameter   default_parameters` at line 28.
-pub fn ruby_params_l28_d7_default_parameter(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_params_l28_d7_default_parameter(args ...ruby.Value) ruby.Value {
 	return ruby_params_l16_d3_default_parameters(...args)
 }
 
 // Ruby method `accepted_parameters # :nodoc:` at line 30.
-pub fn ruby_params_l30_d8_accepted_parameters(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_params_l30_d8_accepted_parameters(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return accepted_parameters_value(new_accepted_parameters())
 	}
@@ -312,7 +312,7 @@ pub fn ruby_params_l30_d8_accepted_parameters(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby method `initialize(ancestor_parameters = nil)` at line 42.
-pub fn ruby_params_l42_d9_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_params_l42_d9_initialize(args ...ruby.Value) ruby.Value {
 	if args.len > 1 {
 		panic('wrong number of arguments for AcceptedParameters#initialize')
 	}
@@ -323,29 +323,29 @@ pub fn ruby_params_l42_d9_initialize(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby method `mandatory(*args)` at line 56.
-pub fn ruby_params_l56_d10_mandatory(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_params_l56_d10_mandatory(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('AcceptedParameters#mandatory requires a receiver')
 	}
 	mut parameters := accepted_parameters_from_value(args[0])
-	return brew_runtime.string_array_value(parameters.add_mandatory(parameter_names_from_values(args[1..])) or {
+	return ruby.string_array_value(parameters.add_mandatory(parameter_names_from_values(args[1..])) or {
 		panic(err)
 	})
 }
 
 // Ruby method `optional(*args)` at line 64.
-pub fn ruby_params_l64_d11_optional(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_params_l64_d11_optional(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('AcceptedParameters#optional requires a receiver')
 	}
 	mut parameters := accepted_parameters_from_value(args[0])
-	return brew_runtime.string_array_value(parameters.add_optional(parameter_names_from_values(args[1..])) or {
+	return ruby.string_array_value(parameters.add_optional(parameter_names_from_values(args[1..])) or {
 		panic(err)
 	})
 }
 
 // Ruby method `default(args = nil)` at line 72.
-pub fn ruby_params_l72_d12_default(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_params_l72_d12_default(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('AcceptedParameters#default requires a receiver')
 	}
@@ -354,15 +354,15 @@ pub fn ruby_params_l72_d12_default(args ...brew_runtime.Value) brew_runtime.Valu
 	}
 	mut parameters := accepted_parameters_from_value(args[0])
 	if args.len > 1 && args[1].type_name != 'NilClass' {
-		return brew_runtime.map_value(parameters.add_defaults(args[1].as_map() or { panic(err) }) or {
+		return ruby.map_value(parameters.add_defaults(args[1].as_map() or { panic(err) }) or {
 			panic(err)
 		})
 	}
-	return brew_runtime.map_value(parameters.defaults())
+	return ruby.map_value(parameters.defaults())
 }
 
 // Ruby method `mutually_exclusive(*args)` at line 82.
-pub fn ruby_params_l82_d13_mutually_exclusive(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_params_l82_d13_mutually_exclusive(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('AcceptedParameters#mutually_exclusive requires a receiver')
 	}
@@ -373,42 +373,42 @@ pub fn ruby_params_l82_d13_mutually_exclusive(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby method `all` at line 94.
-pub fn ruby_params_l94_d14_all(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_params_l94_d14_all(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('AcceptedParameters#all requires a receiver')
 	}
-	return brew_runtime.string_array_value(accepted_parameters_from_value(args[0]).all())
+	return ruby.string_array_value(accepted_parameters_from_value(args[0]).all())
 }
 
 // Ruby method `to_syms(args)` at line 101.
-pub fn ruby_params_l101_d15_to_syms(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_params_l101_d15_to_syms(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('AcceptedParameters#to_syms requires a receiver and array')
 	}
 	values := args[1].as_array() or { panic(err) }
-	return brew_runtime.string_array_value(accepted_parameter_symbols(parameter_names_from_values(values)) or {
+	return ruby.string_array_value(accepted_parameter_symbols(parameter_names_from_values(values)) or {
 		panic(err)
 	})
 }
 
 // Ruby method `ensure_valid_names(names)` at line 107.
-pub fn ruby_params_l107_d16_ensure_valid_names(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_params_l107_d16_ensure_valid_names(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('AcceptedParameters#ensure_valid_names requires a receiver and names')
 	}
 	names := args[1].as_array() or { panic(err) }
 	converted := parameter_names_from_values(names)
 	validate_accepted_parameter_names(converted) or { panic(err) }
-	return brew_runtime.string_array_value(converted)
+	return ruby.string_array_value(converted)
 }
 
 // Ruby method `invalid_parameter_names` at line 118.
-pub fn ruby_params_l118_d17_invalid_parameter_names(args ...brew_runtime.Value) brew_runtime.Value {
-	mut invalid := map[string]brew_runtime.Value{}
+pub fn ruby_params_l118_d17_invalid_parameter_names(args ...ruby.Value) ruby.Value {
+	mut invalid := map[string]ruby.Value{}
 	for name in invalid_accepted_parameter_names() {
-		invalid[name] = brew_runtime.bool_value(true)
+		invalid[name] = ruby.bool_value(true)
 	}
-	return brew_runtime.map_value(invalid)
+	return ruby.map_value(invalid)
 }
 
 // Original Ruby source (line-for-line):

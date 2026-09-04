@@ -1,6 +1,6 @@
 module utils
 
-import brew_runtime
+import ruby
 import homebrew.utils as shared_audits
 
 // Translated from Homebrew/brew `test/utils/shared_audits_spec.rb`.
@@ -34,52 +34,52 @@ fn shared_audits_spec_state() &shared_audits.SharedAuditsState {
 	})
 }
 
-fn shared_audits_spec_bool(value bool) brew_runtime.Value {
-	return brew_runtime.bool_value(value)
+fn shared_audits_spec_bool(value bool) ruby.Value {
+	return ruby.bool_value(value)
 }
 
 // Ruby let `let(:eol_json_text) do` at line 8.
-pub fn ruby_shared_audits_spec_l8_d1_eol_json_text(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shared_audits_spec_l8_d1_eol_json_text(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value(shared_audits_spec_eol_json)
+	return ruby.string_value(shared_audits_spec_eol_json)
 }
 
 // Ruby method `mock_curl_output(stdout: "", success: true)` at line 33.
-pub fn ruby_shared_audits_spec_l33_d2_mock_curl_output(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shared_audits_spec_l33_d2_mock_curl_output(args ...ruby.Value) ruby.Value {
 	stdout := if args.len > 0 { args[0].as_string() } else { '' }
 	success := args.len < 2 || args[1].bool_data
-	return brew_runtime.map_value({
-		'stdout':  brew_runtime.string_value(stdout)
-		'success': brew_runtime.bool_value(success)
+	return ruby.map_value({
+		'stdout':  ruby.string_value(stdout)
+		'success': ruby.bool_value(success)
 	})
 }
 
 // Ruby it `it "returns true for a date less than a year ago" do` at line 42.
-pub fn ruby_shared_audits_spec_l42_d3_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shared_audits_spec_l42_d3_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	return shared_audits_spec_bool(shared_audits.shared_audits_homepage_browsed_recently('2025-07-27', '2026-07-26'))
 }
 
 // Ruby it `it "returns false for a date a year ago" do` at line 46.
-pub fn ruby_shared_audits_spec_l46_d4_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shared_audits_spec_l46_d4_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	return shared_audits_spec_bool(!shared_audits.shared_audits_homepage_browsed_recently('2025-07-26', '2026-07-26'))
 }
 
 // Ruby it `it "returns false for a future date" do` at line 50.
-pub fn ruby_shared_audits_spec_l50_d5_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shared_audits_spec_l50_d5_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	return shared_audits_spec_bool(!shared_audits.shared_audits_homepage_browsed_recently('2026-07-27', '2026-07-26'))
 }
 
 // Ruby it `it "returns false without a date" do` at line 54.
-pub fn ruby_shared_audits_spec_l54_d6_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shared_audits_spec_l54_d6_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	return shared_audits_spec_bool(!shared_audits.shared_audits_homepage_browsed_recently(none, '2026-07-26'))
 }
 
 // Ruby it `it "returns a parsed JSON object if the product is found" do` at line 60.
-pub fn ruby_shared_audits_spec_l60_d7_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shared_audits_spec_l60_d7_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut state := shared_audits_spec_state()
 	data := state.eol_data('product', 'cycle')
@@ -88,21 +88,21 @@ pub fn ruby_shared_audits_spec_l60_d7_returns(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby it `it "returns nil if the product is not found" do` at line 66.
-pub fn ruby_shared_audits_spec_l66_d8_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shared_audits_spec_l66_d8_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut state := shared_audits_spec_state()
 	return shared_audits_spec_bool(state.eol_data('none', 'cycle').type_name == 'NilClass')
 }
 
 // Ruby it `it "returns nil if api call fails" do` at line 71.
-pub fn ruby_shared_audits_spec_l71_d9_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shared_audits_spec_l71_d9_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut state := shared_audits_spec_state()
 	return shared_audits_spec_bool(state.eol_data('', '').type_name == 'NilClass')
 }
 
 // Ruby it `it "finds tags in archive urls" do` at line 78.
-pub fn ruby_shared_audits_spec_l78_d10_finds(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shared_audits_spec_l78_d10_finds(args ...ruby.Value) ruby.Value {
 	_ = args
 	tag := shared_audits.shared_audits_github_tag_from_url('https://github.com/a/b/archive/refs/tags/v1.2.3.tar.gz') or {
 		return shared_audits_spec_bool(false)
@@ -111,7 +111,7 @@ pub fn ruby_shared_audits_spec_l78_d10_finds(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby it `it "finds tags in release urls" do` at line 83.
-pub fn ruby_shared_audits_spec_l83_d11_finds(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shared_audits_spec_l83_d11_finds(args ...ruby.Value) ruby.Value {
 	_ = args
 	tag := shared_audits.shared_audits_github_tag_from_url('https://github.com/a/b/releases/download/1.2.3/b-1.2.3.tar.bz2') or {
 		return shared_audits_spec_bool(false)
@@ -120,7 +120,7 @@ pub fn ruby_shared_audits_spec_l83_d11_finds(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby it `it "finds tags with slashes" do` at line 88.
-pub fn ruby_shared_audits_spec_l88_d12_finds(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shared_audits_spec_l88_d12_finds(args ...ruby.Value) ruby.Value {
 	_ = args
 	tag := shared_audits.shared_audits_github_tag_from_url('https://github.com/a/b/archive/refs/tags/c/d/e/f/g-v1.2.3.tar.gz') or {
 		return shared_audits_spec_bool(false)
@@ -129,7 +129,7 @@ pub fn ruby_shared_audits_spec_l88_d12_finds(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby it `it "finds tags in orgs/repos with special characters" do` at line 93.
-pub fn ruby_shared_audits_spec_l93_d13_finds(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shared_audits_spec_l93_d13_finds(args ...ruby.Value) ruby.Value {
 	_ = args
 	tag := shared_audits.shared_audits_github_tag_from_url('https://github.com/a-b/c-d_e.f/archive/refs/tags/2.5.tar.gz') or {
 		return shared_audits_spec_bool(false)
@@ -138,13 +138,13 @@ pub fn ruby_shared_audits_spec_l93_d13_finds(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby it `it "doesn't find tags in invalid urls" do` at line 100.
-pub fn ruby_shared_audits_spec_l100_d14_doesn(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shared_audits_spec_l100_d14_doesn(args ...ruby.Value) ruby.Value {
 	_ = args
 	return shared_audits_spec_bool(shared_audits.shared_audits_gitlab_tag_from_url('https://gitlab.com/a/-/archive/v1.2.3/a-v1.2.3.tar.gz') == none)
 }
 
 // Ruby it `it "finds tags in basic urls" do` at line 105.
-pub fn ruby_shared_audits_spec_l105_d15_finds(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shared_audits_spec_l105_d15_finds(args ...ruby.Value) ruby.Value {
 	_ = args
 	tag := shared_audits.shared_audits_gitlab_tag_from_url('https://gitlab.com/a/b/-/archive/v1.2.3/b-1.2.3.tar.gz') or {
 		return shared_audits_spec_bool(false)
@@ -153,7 +153,7 @@ pub fn ruby_shared_audits_spec_l105_d15_finds(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby it `it "finds tags in urls with subgroups" do` at line 110.
-pub fn ruby_shared_audits_spec_l110_d16_finds(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shared_audits_spec_l110_d16_finds(args ...ruby.Value) ruby.Value {
 	_ = args
 	tag := shared_audits.shared_audits_gitlab_tag_from_url('https://gitlab.com/a/b/c/d/e/f/g/-/archive/2.5/g-2.5.tar.gz') or {
 		return shared_audits_spec_bool(false)
@@ -162,7 +162,7 @@ pub fn ruby_shared_audits_spec_l110_d16_finds(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby it `it "finds tags in urls with special characters" do` at line 115.
-pub fn ruby_shared_audits_spec_l115_d17_finds(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shared_audits_spec_l115_d17_finds(args ...ruby.Value) ruby.Value {
 	_ = args
 	tag := shared_audits.shared_audits_gitlab_tag_from_url('https://gitlab.com/a.b/c-d_e/-/archive/2.5/c-d_e-2.5.tar.gz') or {
 		return shared_audits_spec_bool(false)
@@ -171,7 +171,7 @@ pub fn ruby_shared_audits_spec_l115_d17_finds(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby it `it "finds tags in basic urls" do` at line 122.
-pub fn ruby_shared_audits_spec_l122_d18_finds(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shared_audits_spec_l122_d18_finds(args ...ruby.Value) ruby.Value {
 	_ = args
 	tag := shared_audits.shared_audits_forgejo_tag_from_url('https://codeberg.org/Aviac/codeberg-cli/archive/v0.4.11.tar.gz') or {
 		return shared_audits_spec_bool(false)
@@ -180,7 +180,7 @@ pub fn ruby_shared_audits_spec_l122_d18_finds(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby it `it "finds tags in urls with subgroups" do` at line 127.
-pub fn ruby_shared_audits_spec_l127_d19_finds(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shared_audits_spec_l127_d19_finds(args ...ruby.Value) ruby.Value {
 	_ = args
 	tag := shared_audits.shared_audits_forgejo_tag_from_url('https://codeberg.org/Aviac/codeberg-cli/archive/some/test/1.2.3.tar.gz') or {
 		return shared_audits_spec_bool(false)
@@ -189,7 +189,7 @@ pub fn ruby_shared_audits_spec_l127_d19_finds(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby it `it "finds tags in orgs/repos with special characters" do` at line 132.
-pub fn ruby_shared_audits_spec_l132_d20_finds(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shared_audits_spec_l132_d20_finds(args ...ruby.Value) ruby.Value {
 	_ = args
 	tag := shared_audits.shared_audits_forgejo_tag_from_url('https://codeberg.org/Aviaca-b_cv/codeberg-cli/archive/v0.4.11.tar.gz') or {
 		return shared_audits_spec_bool(false)

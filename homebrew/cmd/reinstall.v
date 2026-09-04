@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `cmd/reinstall.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -164,7 +164,7 @@ pub fn run_reinstall_command(items []ReinstallCommandItem,
 	}
 }
 
-pub fn reinstall_command_item_to_value(item ReinstallCommandItem) brew_runtime.Value {
+pub fn reinstall_command_item_to_value(item ReinstallCommandItem) ruby.Value {
 	mut attributes := {
 		'kind':    item.kind.str()
 		'name':    item.name
@@ -174,10 +174,10 @@ pub fn reinstall_command_item_to_value(item ReinstallCommandItem) brew_runtime.V
 	if failure := item.fail_message {
 		attributes['fail_message'] = failure
 	}
-	return brew_runtime.structured_value('ReinstallItem', item.name, attributes)
+	return ruby.structured_value('ReinstallItem', item.name, attributes)
 }
 
-fn reinstall_command_item_from_value(value brew_runtime.Value) ReinstallCommandItem {
+fn reinstall_command_item_from_value(value ruby.Value) ReinstallCommandItem {
 	failure := if message := value.attributes['fail_message'] { ?string(message) } else { none }
 	return ReinstallCommandItem{
 		kind: match value.attributes['kind'] or { 'formula' } {
@@ -192,29 +192,29 @@ fn reinstall_command_item_from_value(value brew_runtime.Value) ReinstallCommandI
 	}
 }
 
-pub fn reinstall_command_result_to_value(result ReinstallCommandResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'events':               brew_runtime.string_array_value(result.events)
-		'formulae_reinstalled': brew_runtime.string_array_value(result.formulae_reinstalled)
-		'casks_reinstalled':    brew_runtime.string_array_value(result.casks_reinstalled)
-		'errors':               brew_runtime.string_array_value(result.errors)
-		'failed':               brew_runtime.bool_value(result.failed)
-		'queue_created':        brew_runtime.bool_value(result.queue_created)
-		'queue_shutdown':       brew_runtime.bool_value(result.queue_shutdown)
-		'casks_prefetched':     brew_runtime.bool_value(result.casks_prefetched)
+pub fn reinstall_command_result_to_value(result ReinstallCommandResult) ruby.Value {
+	return ruby.map_value({
+		'events':               ruby.string_array_value(result.events)
+		'formulae_reinstalled': ruby.string_array_value(result.formulae_reinstalled)
+		'casks_reinstalled':    ruby.string_array_value(result.casks_reinstalled)
+		'errors':               ruby.string_array_value(result.errors)
+		'failed':               ruby.bool_value(result.failed)
+		'queue_created':        ruby.bool_value(result.queue_created)
+		'queue_shutdown':       ruby.bool_value(result.queue_shutdown)
+		'casks_prefetched':     ruby.bool_value(result.casks_prefetched)
 	})
 }
 
 // Ruby method `run` at line 124.
-pub fn ruby_reinstall_l124_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_reinstall_l124_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'at least one formula or cask is required')
+		return ruby.object_value('ArgumentError', 'at least one formula or cask is required')
 	}
-	values := args[0].as_map() or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+	values := args[0].as_map() or { return ruby.object_value('ArgumentError', err.msg()) }
 	item_values := if value := values['items'] {
-		value.as_array() or { []brew_runtime.Value{} }
+		value.as_array() or { []ruby.Value{} }
 	} else {
-		[]brew_runtime.Value{}
+		[]ruby.Value{}
 	}
 	options := ReinstallCommandOptions{
 		no_ask: if value := values['no_ask'] { value.as_bool() or { false } } else { false }
@@ -242,7 +242,7 @@ pub fn ruby_reinstall_l124_d1_run(args ...brew_runtime.Value) brew_runtime.Value
 			false}
 	}
 	result := run_reinstall_command(item_values.map(reinstall_command_item_from_value(it)), options) or {
-		return brew_runtime.object_value('BuildFlagsError', err.msg())
+		return ruby.object_value('BuildFlagsError', err.msg())
 	}
 	return reinstall_command_result_to_value(result)
 }

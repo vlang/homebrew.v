@@ -1,6 +1,6 @@
 module deprecate_disable
 
-import brew_runtime
+import ruby
 import homebrew.rubocops
 
 // Translated from Homebrew/brew `test/rubocops/deprecate_disable/date_spec.rb`.
@@ -27,81 +27,81 @@ fn date_spec_correction(method string, arguments string) bool {
 }
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
-pub fn ruby_date_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_date_spec_l7_d1_cop(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::DeprecateDisableDate', 'DeprecateDisableDate')
+	return ruby.object_value('RuboCop::Cop::FormulaAudit::DeprecateDisableDate', 'DeprecateDisableDate')
 }
 
 // Ruby it `it "reports and corrects an offense if `date` is not ISO 8601 compliant" do` at line 10.
-pub fn ruby_date_spec_l10_d2_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_date_spec_l10_d2_reports(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(date_spec_correction('deprecate!', ' date: "June 25, 2020"'))
+	return ruby.bool_value(date_spec_correction('deprecate!', ' date: "June 25, 2020"'))
 }
 
 // Ruby it `it "reports and corrects an offense if `date` is not ISO 8601 compliant (with `reason`)" do` at line 27.
-pub fn ruby_date_spec_l27_d3_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_date_spec_l27_d3_reports(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(date_spec_correction('deprecate!', ' because: "is broken", date: "June 25, 2020"'))
+	return ruby.bool_value(date_spec_correction('deprecate!', ' because: "is broken", date: "June 25, 2020"'))
 }
 
 // Ruby it `it "reports no offenses if `date` is ISO 8601 compliant" do` at line 44.
-pub fn ruby_date_spec_l44_d4_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_date_spec_l44_d4_reports(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(date_spec_no_offense('deprecate!', ' date: "2020-06-25"'))
+	return ruby.bool_value(date_spec_no_offense('deprecate!', ' date: "2020-06-25"'))
 }
 
 // Ruby it `it "reports no offenses if `date` is ISO 8601 compliant (with `reason`)" do` at line 53.
-pub fn ruby_date_spec_l53_d5_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_date_spec_l53_d5_reports(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(date_spec_no_offense('deprecate!', ' because: "is broken", date: "2020-06-25"'))
+	return ruby.bool_value(date_spec_no_offense('deprecate!', ' because: "is broken", date: "2020-06-25"'))
 }
 
 // Ruby it `it "reports no offenses if no `date` is specified" do` at line 62.
-pub fn ruby_date_spec_l62_d6_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_date_spec_l62_d6_reports(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(date_spec_no_offense('deprecate!', ''))
+	return ruby.bool_value(date_spec_no_offense('deprecate!', ''))
 }
 
 // Ruby it `it "reports no offenses if no `date` is specified (with `reason`)" do` at line 71.
-pub fn ruby_date_spec_l71_d7_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_date_spec_l71_d7_reports(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(date_spec_no_offense('deprecate!', ' because: "is broken"'))
+	return ruby.bool_value(date_spec_no_offense('deprecate!', ' because: "is broken"'))
 }
 
 // Ruby it `it "reports and corrects an offense if `date` is not ISO 8601 compliant" do` at line 82.
-pub fn ruby_date_spec_l82_d8_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_date_spec_l82_d8_reports(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(date_spec_correction('disable!', ' date: "June 25, 2020"'))
+	return ruby.bool_value(date_spec_correction('disable!', ' date: "June 25, 2020"'))
 }
 
 // Ruby it `it "reports and corrects an offense if `date` is not ISO 8601 compliant (with `reason`)" do` at line 99.
-pub fn ruby_date_spec_l99_d9_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_date_spec_l99_d9_reports(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(date_spec_correction('disable!', ' because: "is broken", date: "June 25, 2020"'))
+	return ruby.bool_value(date_spec_correction('disable!', ' because: "is broken", date: "June 25, 2020"'))
 }
 
 // Ruby it `it "reports no offenses if `date` is ISO 8601 compliant" do` at line 116.
-pub fn ruby_date_spec_l116_d10_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_date_spec_l116_d10_reports(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(date_spec_no_offense('disable!', ' date: "2020-06-25"'))
+	return ruby.bool_value(date_spec_no_offense('disable!', ' date: "2020-06-25"'))
 }
 
 // Ruby it `it "reports no offenses if `date` is ISO 8601 compliant (with `reason`)" do` at line 125.
-pub fn ruby_date_spec_l125_d11_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_date_spec_l125_d11_reports(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(date_spec_no_offense('disable!', ' because: "is broken", date: "2020-06-25"'))
+	return ruby.bool_value(date_spec_no_offense('disable!', ' because: "is broken", date: "2020-06-25"'))
 }
 
 // Ruby it `it "reports no offenses if no `date` is specified" do` at line 134.
-pub fn ruby_date_spec_l134_d12_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_date_spec_l134_d12_reports(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(date_spec_no_offense('disable!', ''))
+	return ruby.bool_value(date_spec_no_offense('disable!', ''))
 }
 
 // Ruby it `it "reports no offenses if no `date` is specified (with `reason`)" do` at line 143.
-pub fn ruby_date_spec_l143_d13_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_date_spec_l143_d13_reports(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(date_spec_no_offense('disable!', ' because: "is broken"'))
+	return ruby.bool_value(date_spec_no_offense('disable!', ' because: "is broken"'))
 }
 
 // Original Ruby source (line-for-line):

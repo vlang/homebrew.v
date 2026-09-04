@@ -1,6 +1,6 @@
 module concurrent
 
-import brew_runtime
+import ruby
 import time
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/future.rb`.
@@ -17,14 +17,14 @@ pub struct Future {
 mut:
 	ivar &IVar
 	task IVarTask @[required]
-	args []brew_runtime.Value
+	args []ruby.Value
 }
 
-pub fn new_future(task IVarTask, args []brew_runtime.Value) &Future {
+pub fn new_future(task IVarTask, args []ruby.Value) &Future {
 	return new_future_with_mode(task, args, .async)
 }
 
-pub fn new_future_with_mode(task IVarTask, args []brew_runtime.Value, mode FutureExecutorMode) &Future {
+pub fn new_future_with_mode(task IVarTask, args []ruby.Value, mode FutureExecutorMode) &Future {
 	mut ivar := new_ivar_with_options(IVarOptions{
 		args: args.clone()
 	})
@@ -61,17 +61,17 @@ pub fn (mut future Future) execute() bool {
 	return true
 }
 
-pub fn execute_future(task IVarTask, args []brew_runtime.Value) &Future {
+pub fn execute_future(task IVarTask, args []ruby.Value) &Future {
 	mut future := new_future(task, args)
 	future.execute()
 	return future
 }
 
-pub fn (mut future Future) set(value brew_runtime.Value) !&Future {
+pub fn (mut future Future) set(value ruby.Value) !&Future {
 	return future.set_task(future_value_task, [value])
 }
 
-pub fn (mut future Future) set_task(task IVarTask, args []brew_runtime.Value) !&Future {
+pub fn (mut future Future) set_task(task IVarTask, args []ruby.Value) !&Future {
 	future.ivar.data.mutex.lock()
 	if future.ivar.data.state != .unscheduled {
 		future.ivar.data.mutex.unlock()
@@ -85,7 +85,7 @@ pub fn (mut future Future) set_task(task IVarTask, args []brew_runtime.Value) !&
 	return future
 }
 
-fn future_value_task(args []brew_runtime.Value) !brew_runtime.Value {
+fn future_value_task(args []ruby.Value) !ruby.Value {
 	return if args.len > 0 { args[0] } else { ivar_nil_value() }
 }
 
@@ -116,11 +116,11 @@ pub fn (mut future Future) state() IVarState {
 	return future.ivar.state()
 }
 
-pub fn (mut future Future) value(timeout ?time.Duration) brew_runtime.Value {
+pub fn (mut future Future) value(timeout ?time.Duration) ruby.Value {
 	return future.ivar.value(timeout)
 }
 
-pub fn (mut future Future) value_or_error(timeout ?time.Duration) !brew_runtime.Value {
+pub fn (mut future Future) value_or_error(timeout ?time.Duration) !ruby.Value {
 	return future.ivar.value_or_error(timeout)
 }
 
@@ -128,13 +128,13 @@ pub fn (mut future Future) reason() string {
 	return future.ivar.reason()
 }
 
-fn future_boundary_value(future &Future) brew_runtime.Value {
-	return brew_runtime.structured_value('Concurrent::Future', '#<Concurrent::Future>', {
+fn future_boundary_value(future &Future) ruby.Value {
+	return ruby.structured_value('Concurrent::Future', '#<Concurrent::Future>', {
 		'future_address': u64(voidptr(future)).str()
 	})
 }
 
-fn future_boundary_receiver(args []brew_runtime.Value) &Future {
+fn future_boundary_receiver(args []ruby.Value) &Future {
 	if args.len == 0 {
 		panic('Future method requires a receiver')
 	}
@@ -144,12 +144,12 @@ fn future_boundary_receiver(args []brew_runtime.Value) &Future {
 	return unsafe { &Future(voidptr(address)) }
 }
 
-fn future_boundary_timeout(value brew_runtime.Value) time.Duration {
+fn future_boundary_timeout(value ruby.Value) time.Duration {
 	return time.Duration((value.as_float() or { panic(err) }) * f64(time.second))
 }
 
 // Ruby method `initialize(opts = {}, &block)` at line 33.
-pub fn ruby_future_l33_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_future_l33_d1_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('ArgumentError: no block given')
 	}
@@ -157,19 +157,19 @@ pub fn ruby_future_l33_d1_initialize(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby method `execute` at line 53.
-pub fn ruby_future_l53_d2_execute(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_future_l53_d2_execute(args ...ruby.Value) ruby.Value {
 	mut future := future_boundary_receiver(args)
 	return if future.execute() { args[0] } else { ivar_nil_value() }
 }
 
 // Ruby method `self.execute(opts = {}, &block)` at line 77.
-pub fn ruby_future_l77_d3_self_execute(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_future_l77_d3_self_execute(args ...ruby.Value) ruby.Value {
 	value := ruby_future_l33_d1_initialize(...args)
 	return ruby_future_l53_d2_execute(value)
 }
 
 // Ruby method `set(value = NULL, &block)` at line 82.
-pub fn ruby_future_l82_d4_set(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_future_l82_d4_set(args ...ruby.Value) ruby.Value {
 	mut future := future_boundary_receiver(args)
 	if args.len < 2 {
 		panic('ArgumentError: must set with either a value or a block')
@@ -179,28 +179,28 @@ pub fn ruby_future_l82_d4_set(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `cancel` at line 99.
-pub fn ruby_future_l99_d5_cancel(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_future_l99_d5_cancel(args ...ruby.Value) ruby.Value {
 	mut future := future_boundary_receiver(args)
-	return brew_runtime.bool_value(future.cancel())
+	return ruby.bool_value(future.cancel())
 }
 
 // Ruby method `cancelled?` at line 111.
-pub fn ruby_future_l111_d6_cancelled(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_future_l111_d6_cancelled(args ...ruby.Value) ruby.Value {
 	mut future := future_boundary_receiver(args)
-	return brew_runtime.bool_value(future.cancelled())
+	return ruby.bool_value(future.cancelled())
 }
 
 // Ruby method `wait_or_cancel(timeout)` at line 121.
-pub fn ruby_future_l121_d7_wait_or_cancel(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_future_l121_d7_wait_or_cancel(args ...ruby.Value) ruby.Value {
 	mut future := future_boundary_receiver(args)
 	if args.len < 2 {
 		panic('wait_or_cancel requires a timeout')
 	}
-	return brew_runtime.bool_value(future.wait_or_cancel(future_boundary_timeout(args[1])))
+	return ruby.bool_value(future.wait_or_cancel(future_boundary_timeout(args[1])))
 }
 
 // Ruby method `ns_initialize(value, opts)` at line 133.
-pub fn ruby_future_l133_d8_ns_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_future_l133_d8_ns_initialize(args ...ruby.Value) ruby.Value {
 	return ruby_future_l33_d1_initialize(...args)
 }
 

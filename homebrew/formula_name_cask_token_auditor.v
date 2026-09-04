@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `formula_name_cask_token_auditor.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -71,13 +71,13 @@ pub fn (auditor FormulaNameCaskTokenAuditor) errors() []string {
 	return errors
 }
 
-fn formula_name_cask_token_auditor_boundary_value(auditor FormulaNameCaskTokenAuditor) brew_runtime.Value {
-	return brew_runtime.structured_value('FormulaNameCaskTokenAuditor', auditor.token, {
+fn formula_name_cask_token_auditor_boundary_value(auditor FormulaNameCaskTokenAuditor) ruby.Value {
+	return ruby.structured_value('FormulaNameCaskTokenAuditor', auditor.token, {
 		'token': auditor.token
 	})
 }
 
-fn formula_name_cask_token_auditor_from_boundary(value brew_runtime.Value) FormulaNameCaskTokenAuditor {
+fn formula_name_cask_token_auditor_from_boundary(value ruby.Value) FormulaNameCaskTokenAuditor {
 	if value.type_name != 'FormulaNameCaskTokenAuditor' {
 		panic('expected FormulaNameCaskTokenAuditor, got ${value.type_name}')
 	}
@@ -85,15 +85,15 @@ fn formula_name_cask_token_auditor_from_boundary(value brew_runtime.Value) Formu
 }
 
 // Ruby attr_reader `attr_reader :token` at line 7.
-pub fn ruby_formula_name_cask_token_auditor_l7_d1_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_name_cask_token_auditor_l7_d1_token(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('FormulaNameCaskTokenAuditor#token requires a receiver')
 	}
-	return brew_runtime.string_value(formula_name_cask_token_auditor_from_boundary(args[0]).token)
+	return ruby.string_value(formula_name_cask_token_auditor_from_boundary(args[0]).token)
 }
 
 // Ruby method `initialize(token)` at line 10.
-pub fn ruby_formula_name_cask_token_auditor_l10_d2_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_name_cask_token_auditor_l10_d2_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('FormulaNameCaskTokenAuditor#initialize requires a token')
 	}
@@ -101,11 +101,11 @@ pub fn ruby_formula_name_cask_token_auditor_l10_d2_initialize(args ...brew_runti
 }
 
 // Ruby method `errors` at line 15.
-pub fn ruby_formula_name_cask_token_auditor_l15_d3_errors(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_name_cask_token_auditor_l15_d3_errors(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('FormulaNameCaskTokenAuditor#errors requires a receiver')
 	}
-	return brew_runtime.string_array_value(formula_name_cask_token_auditor_from_boundary(args[0]).errors())
+	return ruby.string_array_value(formula_name_cask_token_auditor_from_boundary(args[0]).errors())
 }
 
 // Original Ruby source (line-for-line):

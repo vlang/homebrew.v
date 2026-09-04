@@ -1,6 +1,6 @@
 module rubocops
 
-import brew_runtime
+import ruby
 import homebrew.utils
 
 // Translated from Homebrew/brew `rubocops/dependency_order.rb`.
@@ -672,8 +672,8 @@ pub fn analyze_dependency_order(source string) DependencyOrderAnalysis {
 	}
 }
 
-fn dependency_order_problem_value(problem DependencyOrderProblem) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cop::Offense', problem.message, {
+fn dependency_order_problem_value(problem DependencyOrderProblem) ruby.Value {
+	return ruby.structured_value('RuboCop::Cop::Offense', problem.message, {
 		'method':           problem.method
 		'dependency':       problem.dependency
 		'other_dependency': problem.other_dependency
@@ -686,8 +686,8 @@ fn dependency_order_problem_value(problem DependencyOrderProblem) brew_runtime.V
 	})
 }
 
-fn dependency_order_node_value(node DependencyOrderNode) brew_runtime.Value {
-	return brew_runtime.Value{
+fn dependency_order_node_value(node DependencyOrderNode) ruby.Value {
+	return ruby.Value{
 		type_name: 'RuboCop::AST::Node'
 		repr: node.source
 		string_array_data: node.build_with_names.clone()
@@ -708,7 +708,7 @@ fn dependency_order_nodes_from_source(source string) []DependencyOrderNode {
 	return dependency_order_all_nodes(source, body)
 }
 
-fn dependency_order_nodes_from_args(args []brew_runtime.Value) []DependencyOrderNode {
+fn dependency_order_nodes_from_args(args []ruby.Value) []DependencyOrderNode {
 	if args.len == 0 {
 		return []DependencyOrderNode{}
 	}
@@ -728,120 +728,120 @@ fn dependency_order_nodes_from_args(args []brew_runtime.Value) []DependencyOrder
 	return dependency_order_nodes_from_source(joined)
 }
 
-fn dependency_order_nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn dependency_order_nil_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 17.
-pub fn ruby_dependency_order_l17_d1_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_order_l17_d1_audit_formula(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.array_value(audit_dependency_order(source).map(dependency_order_problem_value(it)))
+	return ruby.array_value(audit_dependency_order(source).map(dependency_order_problem_value(it)))
 }
 
 // Ruby method `check_uses_from_macos_nodes_order(parent_node)` at line 32.
-pub fn ruby_dependency_order_l32_d2_check_uses_from_macos_nodes_order(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_order_l32_d2_check_uses_from_macos_nodes_order(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
-	body := dependency_order_body(source) or { return brew_runtime.array_value([]brew_runtime.Value{}) }
-	return brew_runtime.array_value(dependency_order_check_scope(source, body, 'uses_from_macos').map(dependency_order_problem_value(it)))
+	body := dependency_order_body(source) or { return ruby.array_value([]ruby.Value{}) }
+	return ruby.array_value(dependency_order_check_scope(source, body, 'uses_from_macos').map(dependency_order_problem_value(it)))
 }
 
 // Ruby method `check_dependency_nodes_order(parent_node)` at line 40.
-pub fn ruby_dependency_order_l40_d3_check_dependency_nodes_order(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_order_l40_d3_check_dependency_nodes_order(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
-	body := dependency_order_body(source) or { return brew_runtime.array_value([]brew_runtime.Value{}) }
-	return brew_runtime.array_value(dependency_order_check_scope(source, body, 'depends_on').map(dependency_order_problem_value(it)))
+	body := dependency_order_body(source) or { return ruby.array_value([]ruby.Value{}) }
+	return ruby.array_value(dependency_order_check_scope(source, body, 'depends_on').map(dependency_order_problem_value(it)))
 }
 
 // Ruby method `ensure_dependency_order(nodes)` at line 48.
-pub fn ruby_dependency_order_l48_d4_ensure_dependency_order(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_order_l48_d4_ensure_dependency_order(args ...ruby.Value) ruby.Value {
 	nodes := dependency_order_nodes_from_args(args)
 	joined := nodes.map(it.source).join('\n')
-	return brew_runtime.array_value(dependency_order_check_nodes(joined, ensure_dependency_order(nodes)).map(dependency_order_problem_value(it)))
+	return ruby.array_value(dependency_order_check_nodes(joined, ensure_dependency_order(nodes)).map(dependency_order_problem_value(it)))
 }
 
 // Ruby method `sort_dependencies_by_type(dependency_nodes)` at line 64.
-pub fn ruby_dependency_order_l64_d5_sort_dependencies_by_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.array_value(sort_dependency_order_nodes_by_type(dependency_order_nodes_from_args(args)).map(dependency_order_node_value(it)))
+pub fn ruby_dependency_order_l64_d5_sort_dependencies_by_type(args ...ruby.Value) ruby.Value {
+	return ruby.array_value(sort_dependency_order_nodes_by_type(dependency_order_nodes_from_args(args)).map(dependency_order_node_value(it)))
 }
 
 // Ruby method `sort_conditional_dependencies!(ordered)` at line 82.
-pub fn ruby_dependency_order_l82_d6_sort_conditional_dependencies(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.array_value(sort_dependency_order_conditional(dependency_order_nodes_from_args(args)).map(dependency_order_node_value(it)))
+pub fn ruby_dependency_order_l82_d6_sort_conditional_dependencies(args ...ruby.Value) ruby.Value {
+	return ruby.array_value(sort_dependency_order_conditional(dependency_order_nodes_from_args(args)).map(dependency_order_node_value(it)))
 }
 
 // Ruby method `verify_order_in_source(ordered)` at line 109.
-pub fn ruby_dependency_order_l109_d7_verify_order_in_source(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_order_l109_d7_verify_order_in_source(args ...ruby.Value) ruby.Value {
 	nodes := dependency_order_nodes_from_args(args)
 	source := nodes.map(it.source).join('\n')
-	return brew_runtime.array_value(verify_dependency_order(source, nodes).map(dependency_order_problem_value(it)))
+	return ruby.array_value(verify_dependency_order(source, nodes).map(dependency_order_problem_value(it)))
 }
 
 // Ruby def_node_matcher `def_node_matcher :depends_on_node?, <<~EOS` at line 135.
-pub fn ruby_dependency_order_l135_d8_depends_on_node(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(args.len > 0 && dependency_order_depends_on_node(args[0].as_string()))
+pub fn ruby_dependency_order_l135_d8_depends_on_node(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(args.len > 0 && dependency_order_depends_on_node(args[0].as_string()))
 }
 
 // Ruby def_node_matcher `def_node_matcher :uses_from_macos_node?, <<~EOS` at line 140.
-pub fn ruby_dependency_order_l140_d9_uses_from_macos_node(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(args.len > 0 && dependency_order_uses_from_macos_node(args[0].as_string()))
+pub fn ruby_dependency_order_l140_d9_uses_from_macos_node(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(args.len > 0 && dependency_order_uses_from_macos_node(args[0].as_string()))
 }
 
 // Ruby def_node_search `def_node_search :buildtime_dependency?, "(sym :build)"` at line 145.
-pub fn ruby_dependency_order_l145_d10_buildtime_dependency(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(args.len > 0 && dependency_order_has_tag(args[0].as_string(), 'build'))
+pub fn ruby_dependency_order_l145_d10_buildtime_dependency(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(args.len > 0 && dependency_order_has_tag(args[0].as_string(), 'build'))
 }
 
 // Ruby def_node_search `def_node_search :recommended_dependency?, "(sym :recommended)"` at line 147.
-pub fn ruby_dependency_order_l147_d11_recommended_dependency(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(args.len > 0 && dependency_order_has_tag(args[0].as_string(), 'recommended'))
+pub fn ruby_dependency_order_l147_d11_recommended_dependency(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(args.len > 0 && dependency_order_has_tag(args[0].as_string(), 'recommended'))
 }
 
 // Ruby def_node_search `def_node_search :test_dependency?, "(sym :test)"` at line 149.
-pub fn ruby_dependency_order_l149_d12_test_dependency(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(args.len > 0 && dependency_order_has_tag(args[0].as_string(), 'test'))
+pub fn ruby_dependency_order_l149_d12_test_dependency(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(args.len > 0 && dependency_order_has_tag(args[0].as_string(), 'test'))
 }
 
 // Ruby def_node_search `def_node_search :optional_dependency?, "(sym :optional)"` at line 151.
-pub fn ruby_dependency_order_l151_d13_optional_dependency(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(args.len > 0 && dependency_order_has_tag(args[0].as_string(), 'optional'))
+pub fn ruby_dependency_order_l151_d13_optional_dependency(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(args.len > 0 && dependency_order_has_tag(args[0].as_string(), 'optional'))
 }
 
 // Ruby def_node_search `def_node_search :negate_normal_dependency?, "(sym {:build :recommended :test :optional})"` at line 153.
-pub fn ruby_dependency_order_l153_d14_negate_normal_dependency(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_order_l153_d14_negate_normal_dependency(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	symbols := dependency_order_symbols(args[0].as_string())
-	return brew_runtime.bool_value(symbols.any(it in ['build', 'recommended', 'test', 'optional']))
+	return ruby.bool_value(symbols.any(it in ['build', 'recommended', 'test', 'optional']))
 }
 
 // Ruby def_node_search `def_node_search :dependency_name_node, <<~EOS` at line 156.
-pub fn ruby_dependency_order_l156_d15_dependency_name_node(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_order_l156_d15_dependency_name_node(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return dependency_order_nil_value()
 	}
 	name := dependency_order_dependency_name(args[0].as_string()) or {
 		return dependency_order_nil_value()
 	}
-	return brew_runtime.object_value('RuboCop::AST::Node', name)
+	return ruby.object_value('RuboCop::AST::Node', name)
 }
 
 // Ruby def_node_search `def_node_search :build_with_dependency_node, <<~EOS` at line 162.
-pub fn ruby_dependency_order_l162_d16_build_with_dependency_node(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_order_l162_d16_build_with_dependency_node(args ...ruby.Value) ruby.Value {
 	names := if args.len > 0 {
 		dependency_order_build_with_names(args[0].as_string())
 	} else {
 		[]string{}
 	}
-	return brew_runtime.array_value(names.map(brew_runtime.object_value('RuboCop::AST::Node', it)))
+	return ruby.array_value(names.map(ruby.object_value('RuboCop::AST::Node', it)))
 }
 
 // Ruby method `insert_after!(arr, idx1, idx2)` at line 167.
-pub fn ruby_dependency_order_l167_d17_insert_after(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_order_l167_d17_insert_after(args ...ruby.Value) ruby.Value {
 	mut values := if args.len > 0 {
-		args[0].as_array() or { []brew_runtime.Value{} }
+		args[0].as_array() or { []ruby.Value{} }
 	} else {
-		[]brew_runtime.Value{}
+		[]ruby.Value{}
 	}
 	idx1 := if args.len > 1 { int(args[1].int_data) } else { -1 }
 	idx2 := if args.len > 2 { int(args[2].int_data) } else { -1 }
@@ -851,11 +851,11 @@ pub fn ruby_dependency_order_l167_d17_insert_after(args ...brew_runtime.Value) b
 		insertion := if idx2 + 1 <= values.len { idx2 + 1 } else { values.len }
 		values.insert(insertion, value)
 	}
-	return brew_runtime.array_value(values)
+	return ruby.array_value(values)
 }
 
 // Ruby method `build_with_dependency_name(node)` at line 175.
-pub fn ruby_dependency_order_l175_d18_build_with_dependency_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_order_l175_d18_build_with_dependency_name(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return dependency_order_nil_value()
 	}
@@ -863,19 +863,19 @@ pub fn ruby_dependency_order_l175_d18_build_with_dependency_name(args ...brew_ru
 	return if names.len == 0 {
 		dependency_order_nil_value()
 	} else {
-		brew_runtime.string_array_value(names)
+		ruby.string_array_value(names)
 	}
 }
 
 // Ruby method `dependency_name(dependency_node)` at line 182.
-pub fn ruby_dependency_order_l182_d19_dependency_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_order_l182_d19_dependency_name(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return dependency_order_nil_value()
 	}
 	name := dependency_order_dependency_name(args[0].as_string()) or {
 		return dependency_order_nil_value()
 	}
-	return brew_runtime.string_value(name)
+	return ruby.string_value(name)
 }
 
 // Original Ruby source (line-for-line):

@@ -1,6 +1,6 @@
 module test
 
-import brew_runtime
+import ruby
 import homebrew
 import json2
 import os
@@ -20,42 +20,42 @@ pub mut:
 	migrator homebrew.Migrator
 }
 
-fn migrator_spec_path_value(path string, type_name string) brew_runtime.Value {
-	return brew_runtime.Value{
+fn migrator_spec_path_value(path string, type_name string) ruby.Value {
+	return ruby.Value{
 		type_name: type_name
 		repr: path
 		map_data: {
-			'path': brew_runtime.string_value(path)
+			'path': ruby.string_value(path)
 		}
 	}
 }
 
-fn migrator_spec_formula_value(formula homebrew.MigratorFormulaInfo) brew_runtime.Value {
-	return brew_runtime.Value{
+fn migrator_spec_formula_value(formula homebrew.MigratorFormulaInfo) ruby.Value {
+	return ruby.Value{
 		type_name: 'Formula'
 		repr: formula.name
 		map_data: {
-			'name':     brew_runtime.string_value(formula.name)
-			'tap':      brew_runtime.string_value(formula.tap)
-			'path':     brew_runtime.string_value(formula.path)
-			'rack':     brew_runtime.string_value(formula.rack)
-			'oldnames': brew_runtime.string_array_value(formula.oldnames)
-			'keg_only': brew_runtime.bool_value(formula.keg_only)
-			'outdated': brew_runtime.bool_value(formula.outdated)
+			'name':     ruby.string_value(formula.name)
+			'tap':      ruby.string_value(formula.tap)
+			'path':     ruby.string_value(formula.path)
+			'rack':     ruby.string_value(formula.rack)
+			'oldnames': ruby.string_array_value(formula.oldnames)
+			'keg_only': ruby.bool_value(formula.keg_only)
+			'outdated': ruby.bool_value(formula.outdated)
 		}
 	}
 }
 
-fn migrator_spec_config_value(config homebrew.MigratorConfig) brew_runtime.Value {
-	return brew_runtime.Value{
+fn migrator_spec_config_value(config homebrew.MigratorConfig) ruby.Value {
+	return ruby.Value{
 		type_name: 'Migrator::Config'
 		map_data: {
-			'cellar':      brew_runtime.string_value(config.cellar)
-			'prefix':      brew_runtime.string_value(config.prefix)
-			'pinned_kegs': brew_runtime.string_value(config.pinned_kegs)
-			'linked_kegs': brew_runtime.string_value(config.linked_kegs)
-			'locks_dir':   brew_runtime.string_value(config.locks_dir)
-			'force':       brew_runtime.bool_value(config.force)
+			'cellar':      ruby.string_value(config.cellar)
+			'prefix':      ruby.string_value(config.prefix)
+			'pinned_kegs': ruby.string_value(config.pinned_kegs)
+			'linked_kegs': ruby.string_value(config.linked_kegs)
+			'locks_dir':   ruby.string_value(config.locks_dir)
+			'force':       ruby.bool_value(config.force)
 		}
 	}
 }
@@ -130,8 +130,8 @@ fn migrator_spec_tab(path string, source_path string, tap string) ! {
 	tab.write()!
 }
 
-fn migrator_spec_bool(result bool) brew_runtime.Value {
-	return brew_runtime.bool_value(result)
+fn migrator_spec_bool(result bool) ruby.Value {
+	return ruby.bool_value(result)
 }
 
 fn migrator_spec_backup_restored(fixture MigratorSpecFixture) bool {
@@ -144,57 +144,57 @@ fn migrator_spec_children(path string) []string {
 }
 
 // Ruby subject `subject(:migrator) { described_class.new(new_formula, old_formula.name) }` at line 10.
-pub fn ruby_migrator_spec_l10_d1_migrator(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_spec_l10_d1_migrator(args ...ruby.Value) ruby.Value {
 	_ = args
-	fixture := migrator_spec_setup('subject') or { return brew_runtime.Value{ type_name: 'Error', repr: err.msg() } }
+	fixture := migrator_spec_setup('subject') or { return ruby.Value{ type_name: 'Error', repr: err.msg() } }
 	defer { fixture.cleanup() }
 	return homebrew.migrator_value(fixture.migrator)
 }
 
 // Ruby let `let(:new_formula) { Testball.new("newname") }` at line 12.
-pub fn ruby_migrator_spec_l12_d2_new_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_spec_l12_d2_new_formula(args ...ruby.Value) ruby.Value {
 	_ = args
 	return migrator_spec_formula_value(homebrew.MigratorFormulaInfo{ name: 'newname' })
 }
 
 // Ruby let `let(:old_formula) { Testball.new("oldname") }` at line 13.
-pub fn ruby_migrator_spec_l13_d3_old_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_spec_l13_d3_old_formula(args ...ruby.Value) ruby.Value {
 	_ = args
 	return migrator_spec_formula_value(homebrew.MigratorFormulaInfo{ name: 'oldname' })
 }
 
 // Ruby let `let(:new_keg_record) { HOMEBREW_CELLAR/"newname/0.1" }` at line 14.
-pub fn ruby_migrator_spec_l14_d4_new_keg_record(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_spec_l14_d4_new_keg_record(args ...ruby.Value) ruby.Value {
 	_ = args
 	return migrator_spec_path_value('Cellar/newname/0.1', 'Pathname')
 }
 
 // Ruby let `let(:old_keg_record) { HOMEBREW_CELLAR/"oldname/0.1" }` at line 15.
-pub fn ruby_migrator_spec_l15_d5_old_keg_record(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_spec_l15_d5_old_keg_record(args ...ruby.Value) ruby.Value {
 	_ = args
 	return migrator_spec_path_value('Cellar/oldname/0.1', 'Pathname')
 }
 
 // Ruby let `let(:old_tab) { Tab.empty }` at line 16.
-pub fn ruby_migrator_spec_l16_d6_old_tab(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_spec_l16_d6_old_tab(args ...ruby.Value) ruby.Value {
 	_ = args
 	return homebrew.tab_boundary_value(homebrew.new_tab(homebrew.TabConfig{}))
 }
 
 // Ruby let `let(:keg) { Keg.new(old_keg_record) }` at line 17.
-pub fn ruby_migrator_spec_l17_d7_keg(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_spec_l17_d7_keg(args ...ruby.Value) ruby.Value {
 	_ = args
 	return migrator_spec_path_value('Cellar/oldname/0.1', 'Keg')
 }
 
 // Ruby let `let(:old_pin) { HOMEBREW_PINNED_KEGS/"oldname" }` at line 18.
-pub fn ruby_migrator_spec_l18_d8_old_pin(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_spec_l18_d8_old_pin(args ...ruby.Value) ruby.Value {
 	_ = args
 	return migrator_spec_path_value('var/homebrew/pinned/oldname', 'Pathname')
 }
 
 // Ruby it `it "raises an error if there is no old path" do` at line 59.
-pub fn ruby_migrator_spec_l59_d9_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_spec_l59_d9_raises(args ...ruby.Value) ruby.Value {
 	_ = args
 	root := os.join_path(os.temp_dir(), 'brew-v-migrator-${os.getpid()}-no-old')
 	os.rmdir_all(root) or {}
@@ -206,7 +206,7 @@ pub fn ruby_migrator_spec_l59_d9_raises(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby it `it "raises an error if the Taps differ" do` at line 65.
-pub fn ruby_migrator_spec_l65_d10_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_spec_l65_d10_raises(args ...ruby.Value) ruby.Value {
 	_ = args
 	fixture := migrator_spec_setup('different-taps') or { return migrator_spec_bool(false) }
 	defer { fixture.cleanup() }
@@ -219,7 +219,7 @@ pub fn ruby_migrator_spec_l65_d10_raises(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby specify `specify "#move_to_new_directory" do` at line 79.
-pub fn ruby_migrator_spec_l79_d11_move_to_new_directory(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_spec_l79_d11_move_to_new_directory(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut fixture := migrator_spec_setup('move') or { return migrator_spec_bool(false) }
 	defer { fixture.cleanup() }
@@ -230,7 +230,7 @@ pub fn ruby_migrator_spec_l79_d11_move_to_new_directory(args ...brew_runtime.Val
 }
 
 // Ruby specify `specify "#backup_oldname_cellar" do` at line 90.
-pub fn ruby_migrator_spec_l90_d12_backup_oldname_cellar(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_spec_l90_d12_backup_oldname_cellar(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut fixture := migrator_spec_setup('backup-cellar') or { return migrator_spec_bool(false) }
 	defer { fixture.cleanup() }
@@ -241,7 +241,7 @@ pub fn ruby_migrator_spec_l90_d12_backup_oldname_cellar(args ...brew_runtime.Val
 }
 
 // Ruby specify `specify "#repin" do` at line 100.
-pub fn ruby_migrator_spec_l100_d13_repin(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_spec_l100_d13_repin(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut fixture := migrator_spec_setup('repin') or { return migrator_spec_bool(false) }
 	defer { fixture.cleanup() }
@@ -251,7 +251,7 @@ pub fn ruby_migrator_spec_l100_d13_repin(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby specify `specify "#unlink_oldname" do` at line 111.
-pub fn ruby_migrator_spec_l111_d14_unlink_oldname(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_spec_l111_d14_unlink_oldname(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut fixture := migrator_spec_setup('unlink-old') or { return migrator_spec_bool(false) }
 	defer { fixture.cleanup() }
@@ -260,7 +260,7 @@ pub fn ruby_migrator_spec_l111_d14_unlink_oldname(args ...brew_runtime.Value) br
 }
 
 // Ruby specify `specify "#link_newname" do` at line 121.
-pub fn ruby_migrator_spec_l121_d15_link_newname(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_spec_l121_d15_link_newname(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut fixture := migrator_spec_setup('link-new') or { return migrator_spec_bool(false) }
 	defer { fixture.cleanup() }
@@ -275,7 +275,7 @@ pub fn ruby_migrator_spec_l121_d15_link_newname(args ...brew_runtime.Value) brew
 }
 
 // Ruby specify `specify "#link_oldname_opt" do` at line 136.
-pub fn ruby_migrator_spec_l136_d16_link_oldname_opt(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_spec_l136_d16_link_oldname_opt(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut fixture := migrator_spec_setup('link-old-opt') or { return migrator_spec_bool(false) }
 	defer { fixture.cleanup() }
@@ -286,7 +286,7 @@ pub fn ruby_migrator_spec_l136_d16_link_oldname_opt(args ...brew_runtime.Value) 
 }
 
 // Ruby specify `specify "#link_oldname_cellar" do` at line 142.
-pub fn ruby_migrator_spec_l142_d17_link_oldname_cellar(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_spec_l142_d17_link_oldname_cellar(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut fixture := migrator_spec_setup('link-old-cellar') or { return migrator_spec_bool(false) }
 	defer { fixture.cleanup() }
@@ -296,7 +296,7 @@ pub fn ruby_migrator_spec_l142_d17_link_oldname_cellar(args ...brew_runtime.Valu
 }
 
 // Ruby specify `specify "#update_tabs" do` at line 150.
-pub fn ruby_migrator_spec_l150_d18_update_tabs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_spec_l150_d18_update_tabs(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut fixture := migrator_spec_setup('update-tabs') or { return migrator_spec_bool(false) }
 	defer { fixture.cleanup() }
@@ -310,7 +310,7 @@ pub fn ruby_migrator_spec_l150_d18_update_tabs(args ...brew_runtime.Value) brew_
 }
 
 // Ruby specify `specify "#migrate" do` at line 160.
-pub fn ruby_migrator_spec_l160_d19_migrate(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_spec_l160_d19_migrate(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut fixture := migrator_spec_setup('migrate') or { return migrator_spec_bool(false) }
 	defer { fixture.cleanup() }
@@ -322,7 +322,7 @@ pub fn ruby_migrator_spec_l160_d19_migrate(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby specify `specify "#unlinik_oldname_opt" do` at line 179.
-pub fn ruby_migrator_spec_l179_d20_unlinik_oldname_opt(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_spec_l179_d20_unlinik_oldname_opt(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut fixture := migrator_spec_setup('unlink-old-opt') or { return migrator_spec_bool(false) }
 	defer { fixture.cleanup() }
@@ -335,7 +335,7 @@ pub fn ruby_migrator_spec_l179_d20_unlinik_oldname_opt(args ...brew_runtime.Valu
 }
 
 // Ruby specify `specify "#unlink_oldname_cellar" do` at line 188.
-pub fn ruby_migrator_spec_l188_d21_unlink_oldname_cellar(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_spec_l188_d21_unlink_oldname_cellar(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut fixture := migrator_spec_setup('unlink-old-cellar') or { return migrator_spec_bool(false) }
 	defer { fixture.cleanup() }
@@ -349,7 +349,7 @@ pub fn ruby_migrator_spec_l188_d21_unlink_oldname_cellar(args ...brew_runtime.Va
 }
 
 // Ruby specify `specify "#backup_oldname_cellar after uninstall" do` at line 197.
-pub fn ruby_migrator_spec_l197_d22_backup_oldname_cellar(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_spec_l197_d22_backup_oldname_cellar(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut fixture := migrator_spec_setup('backup-after-uninstall') or { return migrator_spec_bool(false) }
 	defer { fixture.cleanup() }
@@ -361,7 +361,7 @@ pub fn ruby_migrator_spec_l197_d22_backup_oldname_cellar(args ...brew_runtime.Va
 }
 
 // Ruby specify `specify "#backup_old_tabs" do` at line 205.
-pub fn ruby_migrator_spec_l205_d23_backup_old_tabs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_spec_l205_d23_backup_old_tabs(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut fixture := migrator_spec_setup('backup-tabs') or { return migrator_spec_bool(false) }
 	defer { fixture.cleanup() }
@@ -373,7 +373,7 @@ pub fn ruby_migrator_spec_l205_d23_backup_old_tabs(args ...brew_runtime.Value) b
 }
 
 // Ruby it `it "backs up the old name" do` at line 218.
-pub fn ruby_migrator_spec_l218_d24_backs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_spec_l218_d24_backs(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut fixture := migrator_spec_setup('backup-existing') or { return migrator_spec_bool(false) }
 	defer { fixture.cleanup() }
@@ -382,7 +382,7 @@ pub fn ruby_migrator_spec_l218_d24_backs(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby it `it "backs up the old name" do` at line 230.
-pub fn ruby_migrator_spec_l230_d25_backs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_spec_l230_d25_backs(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut fixture := migrator_spec_setup('backup-removed') or { return migrator_spec_bool(false) }
 	defer { fixture.cleanup() }
@@ -394,7 +394,7 @@ pub fn ruby_migrator_spec_l230_d25_backs(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby it `it "backs up the old name" do` at line 245.
-pub fn ruby_migrator_spec_l245_d26_backs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_spec_l245_d26_backs(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut fixture := migrator_spec_setup('backup-linked') or { return migrator_spec_bool(false) }
 	defer { fixture.cleanup() }

@@ -1,6 +1,6 @@
 module unpack_strategy
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `unpack_strategy/mercurial.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -16,7 +16,7 @@ pub fn ruby_mercurial_l17_d2_extract_to_dir(path string, unpack_dir string, base
 }
 
 pub fn mercurial_can_extract(path string) bool {
-	return directory_can_extract(path) && brew_runtime.is_dir(brew_runtime.join_path(path, '.hg'))
+	return directory_can_extract(path) && ruby.is_dir(ruby.join_path(path, '.hg'))
 }
 
 pub fn mercurial_extract_to_dir(path string, unpack_dir string, basename string, verbose bool) ! {

@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `dev-cmd/generate-zap.rb`.
@@ -100,39 +100,39 @@ pub:
 	stdout       string
 }
 
-pub fn generate_zap_run_input_boundary(input &GenerateZapRunInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::GenerateZap::Input', '', {
+pub fn generate_zap_run_input_boundary(input &GenerateZapRunInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::GenerateZap::Input', '', {
 		'generate_zap_input_address': u64(voidptr(input)).str()
 	})
 }
 
-pub fn generate_zap_cask_boundary(cask &GenerateZapCask) brew_runtime.Value {
-	return brew_runtime.structured_value('Cask::Cask', cask.token, {
+pub fn generate_zap_cask_boundary(cask &GenerateZapCask) ruby.Value {
+	return ruby.structured_value('Cask::Cask', cask.token, {
 		'generate_zap_cask_address': u64(voidptr(cask)).str()
 	})
 }
 
-pub fn generate_zap_artifact_boundary(artifact &GenerateZapArtifact) brew_runtime.Value {
-	return brew_runtime.structured_value('Cask::Artifact::App', artifact.target, {
+pub fn generate_zap_artifact_boundary(artifact &GenerateZapArtifact) ruby.Value {
+	return ruby.structured_value('Cask::Artifact::App', artifact.target, {
 		'generate_zap_artifact_address': u64(voidptr(artifact)).str()
 	})
 }
 
-fn generate_zap_run_input_from_value(value brew_runtime.Value) &GenerateZapRunInput {
+fn generate_zap_run_input_from_value(value ruby.Value) &GenerateZapRunInput {
 	address := value.attributes['generate_zap_input_address'] or {
 		panic('invalid GenerateZap run input')
 	}
 	return unsafe { &GenerateZapRunInput(voidptr(address.u64())) }
 }
 
-fn generate_zap_cask_from_value(value brew_runtime.Value) &GenerateZapCask {
+fn generate_zap_cask_from_value(value ruby.Value) &GenerateZapCask {
 	address := value.attributes['generate_zap_cask_address'] or {
 		panic('invalid GenerateZap cask input')
 	}
 	return unsafe { &GenerateZapCask(voidptr(address.u64())) }
 }
 
-fn generate_zap_artifact_from_value(value brew_runtime.Value) &GenerateZapArtifact {
+fn generate_zap_artifact_from_value(value ruby.Value) &GenerateZapArtifact {
 	address := value.attributes['generate_zap_artifact_address'] or {
 		panic('invalid GenerateZap artifact input')
 	}
@@ -182,9 +182,9 @@ pub fn generate_zap_bundle_identifiers(app_artifact GenerateZapArtifact) ![]stri
 	mut readable_file := os.open(info_plist) or { return [] }
 	readable_file.close()
 	plutil := if os.is_file('/usr/bin/plutil') { '/usr/bin/plutil' } else { 'plutil' }
-	converted := brew_runtime.run_captured_command([plutil, '-convert', 'xml1', '-o', '-',
-		info_plist], brew_runtime.CapturedCommandOptions{
-		environment: brew_runtime.environment()
+	converted := ruby.run_captured_command([plutil, '-convert', 'xml1', '-o', '-',
+		info_plist], ruby.CapturedCommandOptions{
+		environment: ruby.environment()
 	})!
 	if converted.exit_code != 0 {
 		return error('plutil failed to read ${info_plist}: ${converted.stderr.trim_space()}')
@@ -507,30 +507,30 @@ pub fn generate_zap_run(input GenerateZapRunInput) !GenerateZapRunResult {
 	}
 }
 
-fn generate_zap_required_argument(args []brew_runtime.Value, index int, name string) brew_runtime.Value {
+fn generate_zap_required_argument(args []ruby.Value, index int, name string) ruby.Value {
 	if index >= args.len {
 		panic('GenerateZap `${name}` is missing argument ${index + 1}')
 	}
 	return args[index]
 }
 
-fn generate_zap_result_value(result GenerateZapRunResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'patterns': brew_runtime.string_array_value(result.patterns)
-		'trash':    brew_runtime.string_array_value(result.trash_paths)
-		'delete':   brew_runtime.string_array_value(result.delete_paths)
-		'rmdir':    brew_runtime.string_array_value(result.rmdir_paths)
-		'info':     brew_runtime.string_array_value(result.info)
-		'warnings': brew_runtime.string_array_value(result.warnings)
-		'stdout':   brew_runtime.string_value(result.stdout)
+fn generate_zap_result_value(result GenerateZapRunResult) ruby.Value {
+	return ruby.map_value({
+		'patterns': ruby.string_array_value(result.patterns)
+		'trash':    ruby.string_array_value(result.trash_paths)
+		'delete':   ruby.string_array_value(result.delete_paths)
+		'rmdir':    ruby.string_array_value(result.rmdir_paths)
+		'info':     ruby.string_array_value(result.info)
+		'warnings': ruby.string_array_value(result.warnings)
+		'stdout':   ruby.string_value(result.stdout)
 	})
 }
 
 // Ruby method `run` at line 95.
-pub fn ruby_generate_zap_l95_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_zap_l95_d1_run(args ...ruby.Value) ruby.Value {
 	input := generate_zap_run_input_from_value(generate_zap_required_argument(args, 0, 'run'))
 	result := generate_zap_run(*input) or {
-		return brew_runtime.structured_value('RuntimeError', err.msg(), {
+		return ruby.structured_value('RuntimeError', err.msg(), {
 			'message': err.msg()
 		})
 	}
@@ -538,29 +538,29 @@ pub fn ruby_generate_zap_l95_d1_run(args ...brew_runtime.Value) brew_runtime.Val
 }
 
 // Ruby method `resolve_patterns_from_cask(cask)` at line 133.
-pub fn ruby_generate_zap_l133_d2_resolve_patterns_from_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_zap_l133_d2_resolve_patterns_from_cask(args ...ruby.Value) ruby.Value {
 	cask := generate_zap_cask_from_value(generate_zap_required_argument(args, 0, 'resolve_patterns_from_cask'))
 	patterns := generate_zap_resolve_patterns_from_cask(*cask) or {
-		return brew_runtime.structured_value('RuntimeError', err.msg(), {
+		return ruby.structured_value('RuntimeError', err.msg(), {
 			'message': err.msg()
 		})
 	}
-	return brew_runtime.string_array_value(patterns)
+	return ruby.string_array_value(patterns)
 }
 
 // Ruby method `bundle_identifiers(app_artifact)` at line 146.
-pub fn ruby_generate_zap_l146_d3_bundle_identifiers(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_zap_l146_d3_bundle_identifiers(args ...ruby.Value) ruby.Value {
 	artifact := generate_zap_artifact_from_value(generate_zap_required_argument(args, 0, 'bundle_identifiers'))
 	identifiers := generate_zap_bundle_identifiers(*artifact) or {
-		return brew_runtime.structured_value('RuntimeError', err.msg(), {
+		return ruby.structured_value('RuntimeError', err.msg(), {
 			'message': err.msg()
 		})
 	}
-	return brew_runtime.string_array_value(identifiers)
+	return ruby.string_array_value(identifiers)
 }
 
 // Ruby method `scan_directories(directories, home_relative:, patterns:)` at line 164.
-pub fn ruby_generate_zap_l164_d4_scan_directories(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_zap_l164_d4_scan_directories(args ...ruby.Value) ruby.Value {
 	directories := generate_zap_required_argument(args, 0, 'scan_directories').as_string_array() or {
 		panic(err)
 	}
@@ -571,66 +571,66 @@ pub fn ruby_generate_zap_l164_d4_scan_directories(args ...brew_runtime.Value) br
 		panic(err)
 	}
 	home := if args.len > 3 { args[3].as_string() } else { '' }
-	return brew_runtime.string_array_value(generate_zap_scan_directories(directories, home_relative, patterns, home))
+	return ruby.string_array_value(generate_zap_scan_directories(directories, home_relative, patterns, home))
 }
 
 // Ruby method `scan_home_root(patterns)` at line 186.
-pub fn ruby_generate_zap_l186_d5_scan_home_root(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_zap_l186_d5_scan_home_root(args ...ruby.Value) ruby.Value {
 	patterns := generate_zap_required_argument(args, 0, 'scan_home_root').as_string_array() or {
 		panic(err)
 	}
 	home := if args.len > 1 { args[1].as_string() } else { '' }
-	return brew_runtime.string_array_value(generate_zap_scan_home_root(patterns, home))
+	return ruby.string_array_value(generate_zap_scan_home_root(patterns, home))
 }
 
 // Ruby method `each_readable_child(dir, &block)` at line 204.
-pub fn ruby_generate_zap_l204_d6_each_readable_child(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_zap_l204_d6_each_readable_child(args ...ruby.Value) ruby.Value {
 	directory := generate_zap_required_argument(args, 0, 'each_readable_child').as_string()
-	return brew_runtime.string_array_value(generate_zap_each_readable_child(directory))
+	return ruby.string_array_value(generate_zap_each_readable_child(directory))
 }
 
 // Ruby method `collapse_to_wildcards(paths)` at line 212.
-pub fn ruby_generate_zap_l212_d7_collapse_to_wildcards(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_zap_l212_d7_collapse_to_wildcards(args ...ruby.Value) ruby.Value {
 	paths := generate_zap_required_argument(args, 0, 'collapse_to_wildcards').as_string_array() or {
 		panic(err)
 	}
-	return brew_runtime.string_array_value(generate_zap_collapse_to_wildcards(paths))
+	return ruby.string_array_value(generate_zap_collapse_to_wildcards(paths))
 }
 
 // Ruby method `replace_uuids(paths)` at line 235.
-pub fn ruby_generate_zap_l235_d8_replace_uuids(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_zap_l235_d8_replace_uuids(args ...ruby.Value) ruby.Value {
 	paths := generate_zap_required_argument(args, 0, 'replace_uuids').as_string_array() or {
 		panic(err)
 	}
-	return brew_runtime.string_array_value(generate_zap_replace_uuids(paths))
+	return ruby.string_array_value(generate_zap_replace_uuids(paths))
 }
 
 // Ruby method `glob_shared_filelists(paths)` at line 240.
-pub fn ruby_generate_zap_l240_d9_glob_shared_filelists(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_zap_l240_d9_glob_shared_filelists(args ...ruby.Value) ruby.Value {
 	paths := generate_zap_required_argument(args, 0, 'glob_shared_filelists').as_string_array() or {
 		panic(err)
 	}
-	return brew_runtime.string_array_value(generate_zap_glob_shared_filelists(paths))
+	return ruby.string_array_value(generate_zap_glob_shared_filelists(paths))
 }
 
 // Ruby method `derive_rmdir_candidates(paths)` at line 245.
-pub fn ruby_generate_zap_l245_d10_derive_rmdir_candidates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_zap_l245_d10_derive_rmdir_candidates(args ...ruby.Value) ruby.Value {
 	paths := generate_zap_required_argument(args, 0, 'derive_rmdir_candidates').as_string_array() or {
 		panic(err)
 	}
 	home := if args.len > 1 { args[1].as_string() } else { '' }
-	return brew_runtime.string_array_value(generate_zap_derive_rmdir_candidates(paths, home))
+	return ruby.string_array_value(generate_zap_derive_rmdir_candidates(paths, home))
 }
 
 // Ruby method `normalize_path(path)` at line 266.
-pub fn ruby_generate_zap_l266_d11_normalize_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_zap_l266_d11_normalize_path(args ...ruby.Value) ruby.Value {
 	path := generate_zap_required_argument(args, 0, 'normalize_path').as_string()
 	home := if args.len > 1 { args[1].as_string() } else { '' }
-	return brew_runtime.string_value(generate_zap_normalize_path(path, home))
+	return ruby.string_value(generate_zap_normalize_path(path, home))
 }
 
 // Ruby method `format_stanza(trash:, delete:, rmdir:)` at line 278.
-pub fn ruby_generate_zap_l278_d12_format_stanza(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_zap_l278_d12_format_stanza(args ...ruby.Value) ruby.Value {
 	trash := generate_zap_required_argument(args, 0, 'format_stanza').as_string_array() or {
 		panic(err)
 	}
@@ -640,32 +640,32 @@ pub fn ruby_generate_zap_l278_d12_format_stanza(args ...brew_runtime.Value) brew
 	rmdir := generate_zap_required_argument(args, 2, 'format_stanza').as_string_array() or {
 		panic(err)
 	}
-	return brew_runtime.string_value(generate_zap_format_stanza(trash, delete, rmdir))
+	return ruby.string_value(generate_zap_format_stanza(trash, delete, rmdir))
 }
 
 // Ruby method `format_patterns(patterns)` at line 291.
-pub fn ruby_generate_zap_l291_d13_format_patterns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_zap_l291_d13_format_patterns(args ...ruby.Value) ruby.Value {
 	patterns := generate_zap_required_argument(args, 0, 'format_patterns').as_string_array() or {
 		panic(err)
 	}
-	return brew_runtime.string_value(generate_zap_format_patterns(patterns))
+	return ruby.string_value(generate_zap_format_patterns(patterns))
 }
 
 // Ruby method `find_wildcard_groups(basenames)` at line 296.
-pub fn ruby_generate_zap_l296_d14_find_wildcard_groups(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_zap_l296_d14_find_wildcard_groups(args ...ruby.Value) ruby.Value {
 	basenames := generate_zap_required_argument(args, 0, 'find_wildcard_groups').as_string_array() or {
 		panic(err)
 	}
-	return brew_runtime.string_array_value(generate_zap_find_wildcard_groups(basenames))
+	return ruby.string_array_value(generate_zap_find_wildcard_groups(basenames))
 }
 
 // Ruby method `format_directive(key, paths)` at line 325.
-pub fn ruby_generate_zap_l325_d15_format_directive(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_zap_l325_d15_format_directive(args ...ruby.Value) ruby.Value {
 	key := generate_zap_required_argument(args, 0, 'format_directive').as_string()
 	paths := generate_zap_required_argument(args, 1, 'format_directive').as_string_array() or {
 		panic(err)
 	}
-	return brew_runtime.string_value(generate_zap_format_directive(key, paths))
+	return ruby.string_value(generate_zap_format_directive(key, paths))
 }
 
 // Original Ruby source (line-for-line):

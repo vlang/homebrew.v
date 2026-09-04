@@ -1,6 +1,6 @@
 module macho
 
-import brew_runtime
+import ruby
 import encoding.binary
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/ruby-macho-6.0.0/lib/macho/structure.rb`.
@@ -40,7 +40,7 @@ pub:
 	signed_value   i64
 	unsigned_value u64
 	string_value   string
-	boundary_value brew_runtime.Value
+	boundary_value ruby.Value
 }
 
 pub struct MachoStructureFieldOptions {
@@ -51,7 +51,7 @@ pub:
 	has_mask       bool
 	unpack_format  string
 	has_unpack     bool
-	default_value  brew_runtime.Value
+	default_value  ruby.Value
 	has_default    bool
 	to_string      bool
 	endianness     string
@@ -70,7 +70,7 @@ pub:
 	reader_kind   MachoStructureReaderKind
 	mask          u64
 	unpack_format string
-	default_value brew_runtime.Value
+	default_value ruby.Value
 }
 
 @[heap]
@@ -223,26 +223,26 @@ pub fn (mut definition MachoStructureDefinition) add_field(name string, requeste
 }
 
 pub fn (mut definition MachoStructureDefinition) define_class_reader(name string, field_type MachoStructureFieldType, index int) ! {
-	definition.update_reader(name, index, .class_value, 0, '', brew_runtime.Value{}, field_type)!
+	definition.update_reader(name, index, .class_value, 0, '', ruby.Value{}, field_type)!
 }
 
 pub fn (mut definition MachoStructureDefinition) define_mask_reader(name string, index int, mask u64) ! {
-	definition.update_reader(name, index, .masked, mask, '', brew_runtime.Value{}, .uint32)!
+	definition.update_reader(name, index, .masked, mask, '', ruby.Value{}, .uint32)!
 }
 
 pub fn (mut definition MachoStructureDefinition) define_unpack_reader(name string, index int, unpack_format string) ! {
-	definition.update_reader(name, index, .unpacked, 0, unpack_format, brew_runtime.Value{}, .string)!
+	definition.update_reader(name, index, .unpacked, 0, unpack_format, ruby.Value{}, .string)!
 }
 
-pub fn (mut definition MachoStructureDefinition) define_default_reader(name string, index int, default_value brew_runtime.Value) ! {
+pub fn (mut definition MachoStructureDefinition) define_default_reader(name string, index int, default_value ruby.Value) ! {
 	definition.update_reader(name, index, .default_value, 0, '', default_value, .string)!
 }
 
 pub fn (mut definition MachoStructureDefinition) define_reader(name string, index int) ! {
-	definition.update_reader(name, index, .plain, 0, '', brew_runtime.Value{}, .string)!
+	definition.update_reader(name, index, .plain, 0, '', ruby.Value{}, .string)!
 }
 
-fn (mut definition MachoStructureDefinition) update_reader(name string, index int, reader_kind MachoStructureReaderKind, mask u64, unpack_format string, default_value brew_runtime.Value, field_type MachoStructureFieldType) ! {
+fn (mut definition MachoStructureDefinition) update_reader(name string, index int, reader_kind MachoStructureReaderKind, mask u64, unpack_format string, default_value ruby.Value, field_type MachoStructureFieldType) ! {
 	if index < 0 || index >= definition.fields.len {
 		return error('field index ${index} is out of range')
 	}
@@ -290,7 +290,7 @@ pub fn (mut definition MachoStructureDefinition) bytesize() !int {
 	return definition.bytesize_cache
 }
 
-fn structure_value_from_boundary(value brew_runtime.Value) MachoStructureValue {
+fn structure_value_from_boundary(value ruby.Value) MachoStructureValue {
 	return match value.type_name {
 		'Integer' {
 			MachoStructureValue{
@@ -346,17 +346,17 @@ fn string_structure_value(value string) MachoStructureValue {
 	}
 }
 
-pub fn (value MachoStructureValue) to_boundary() brew_runtime.Value {
+pub fn (value MachoStructureValue) to_boundary() ruby.Value {
 	return match value.kind {
-		.signed_integer { brew_runtime.int_value(value.signed_value) }
+		.signed_integer { ruby.int_value(value.signed_value) }
 		.unsigned_integer {
-			brew_runtime.Value{
+			ruby.Value{
 				type_name: 'Integer'
 				repr: value.unsigned_value.str()
 				int_data: i64(value.unsigned_value)
 			}
 		}
-		.string { brew_runtime.string_value(value.string_value) }
+		.string { ruby.string_value(value.string_value) }
 		else { value.boundary_value }
 	}
 }
@@ -380,7 +380,7 @@ pub fn new_macho_structure(definition &MachoStructureDefinition, values []MachoS
 	}
 }
 
-pub fn new_macho_structure_from_values(definition &MachoStructureDefinition, values []brew_runtime.Value) !&MachoStructure {
+pub fn new_macho_structure_from_values(definition &MachoStructureDefinition, values []ruby.Value) !&MachoStructure {
 	return new_macho_structure(definition, values.map(structure_value_from_boundary(it)))
 }
 
@@ -479,7 +479,7 @@ fn unpack_reader_value(value MachoStructureValue, format string) !MachoStructure
 	items := unpack_structure_values(value.string_value.bytes(), format)!
 	return MachoStructureValue{
 		kind: .array
-		boundary_value: brew_runtime.array_value(items.map(it.to_boundary()))
+		boundary_value: ruby.array_value(items.map(it.to_boundary()))
 	}
 }
 
@@ -492,19 +492,19 @@ fn (mut structure MachoStructure) class_reader_value(field MachoStructureField) 
 		.lcstr {
 			raw := structure.raw_value(field.index)!
 			attributes['offset'] = raw.integer()!.str()
-			structure_value_from_boundary(brew_runtime.structured_value('MachO::LoadCommands::LoadCommand::LCStr', '#<MachO::LCStr offset=${attributes['offset']}>', attributes))
+			structure_value_from_boundary(ruby.structured_value('MachO::LoadCommands::LoadCommand::LCStr', '#<MachO::LCStr offset=${attributes['offset']}>', attributes))
 		}
 		.two_level_hints_table {
 			attributes['view'] = structure.field_value('view')!.to_boundary().repr
 			attributes['htoffset'] = structure.field_value('htoffset')!.integer()!.str()
 			attributes['nhints'] = structure.field_value('nhints')!.integer()!.str()
-			structure_value_from_boundary(brew_runtime.structured_value('MachO::LoadCommands::TwolevelHintsCommand::TwolevelHintsTable', '#<MachO::TwolevelHintsTable>', attributes))
+			structure_value_from_boundary(ruby.structured_value('MachO::LoadCommands::TwolevelHintsCommand::TwolevelHintsTable', '#<MachO::TwolevelHintsTable>', attributes))
 		}
 		.tool_entries {
 			raw := structure.raw_value(field.index)!
 			attributes['view'] = structure.field_value('view')!.to_boundary().repr
 			attributes['count'] = raw.integer()!.str()
-			structure_value_from_boundary(brew_runtime.structured_value('MachO::LoadCommands::BuildVersionCommand::ToolEntries', '#<MachO::ToolEntries count=${attributes['count']}>', attributes))
+			structure_value_from_boundary(ruby.structured_value('MachO::LoadCommands::BuildVersionCommand::ToolEntries', '#<MachO::ToolEntries count=${attributes['count']}>', attributes))
 		}
 		else {
 			return error('field ${field.name} is not a class field')
@@ -548,61 +548,61 @@ pub fn (mut structure MachoStructure) to_string() !string {
 	return structure.field_value(structure.definition.to_string_field)!.to_boundary().repr
 }
 
-pub fn (mut structure MachoStructure) to_hash() !map[string]brew_runtime.Value {
+pub fn (mut structure MachoStructure) to_hash() !map[string]ruby.Value {
 	mut definition := structure.definition
 	return {
-		'structure': brew_runtime.map_value({
-			'format':   brew_runtime.string_value(definition.format())
-			'bytesize': brew_runtime.int_value(definition.bytesize()!)
+		'structure': ruby.map_value({
+			'format':   ruby.string_value(definition.format())
+			'bytesize': ruby.int_value(definition.bytesize()!)
 		})
 	}
 }
 
-fn macho_structure_nil() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn macho_structure_nil() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-pub fn macho_structure_definition_boundary(definition &MachoStructureDefinition) brew_runtime.Value {
-	return brew_runtime.structured_value('Class', definition.name, {
+pub fn macho_structure_definition_boundary(definition &MachoStructureDefinition) ruby.Value {
+	return ruby.structured_value('Class', definition.name, {
 		'macho_structure_definition_address': u64(voidptr(definition)).str()
 	})
 }
 
-pub fn macho_structure_boundary(structure &MachoStructure) brew_runtime.Value {
-	return brew_runtime.structured_value(structure.definition.name, '#<${structure.definition.name}>', {
+pub fn macho_structure_boundary(structure &MachoStructure) ruby.Value {
+	return ruby.structured_value(structure.definition.name, '#<${structure.definition.name}>', {
 		'macho_structure_address': u64(voidptr(structure)).str()
 	})
 }
 
-fn macho_structure_definition_from_value(value brew_runtime.Value) &MachoStructureDefinition {
+fn macho_structure_definition_from_value(value ruby.Value) &MachoStructureDefinition {
 	address := (value.attribute('macho_structure_definition_address') or { panic(err) }).u64()
 	return unsafe { &MachoStructureDefinition(voidptr(address)) }
 }
 
-fn macho_structure_from_value(value brew_runtime.Value) &MachoStructure {
+fn macho_structure_from_value(value ruby.Value) &MachoStructure {
 	address := (value.attribute('macho_structure_address') or { panic(err) }).u64()
 	return unsafe { &MachoStructure(voidptr(address)) }
 }
 
-fn structure_field_options_from_value(value brew_runtime.Value) MachoStructureFieldOptions {
+fn structure_field_options_from_value(value ruby.Value) MachoStructureFieldOptions {
 	options := value.as_map() or { panic(err) }
 	return MachoStructureFieldOptions{
-		size: int((options['size'] or { brew_runtime.int_value(0) }).as_int() or { panic(err) })
+		size: int((options['size'] or { ruby.int_value(0) }).as_int() or { panic(err) })
 		has_size: 'size' in options
-		mask: u64((options['mask'] or { brew_runtime.int_value(0) }).as_int() or { panic(err) })
+		mask: u64((options['mask'] or { ruby.int_value(0) }).as_int() or { panic(err) })
 		has_mask: 'mask' in options
-		unpack_format: (options['unpack'] or { brew_runtime.string_value('') }).as_string()
+		unpack_format: (options['unpack'] or { ruby.string_value('') }).as_string()
 		has_unpack: 'unpack' in options
 		default_value: options['default'] or { macho_structure_nil() }
 		has_default: 'default' in options
-		to_string: (options['to_s'] or { brew_runtime.bool_value(false) }).as_bool() or { panic(err) }
-		endianness: (options['endian'] or { brew_runtime.string_value('') }).as_string()
+		to_string: (options['to_s'] or { ruby.bool_value(false) }).as_bool() or { panic(err) }
+		endianness: (options['endian'] or { ruby.string_value('') }).as_string()
 		has_endianness: 'endian' in options
-		null_padding: (options['padding'] or { brew_runtime.string_value('') }).as_string().trim_left(':') == 'null'
+		null_padding: (options['padding'] or { ruby.string_value('') }).as_string().trim_left(':') == 'null'
 	}
 }
 
-fn structure_dynamic_reader(args []brew_runtime.Value) brew_runtime.Value {
+fn structure_dynamic_reader(args []ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('generated structure reader requires a receiver and field name')
 	}
@@ -611,7 +611,7 @@ fn structure_dynamic_reader(args []brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `initialize(*args)` at line 75.
-pub fn ruby_structure_l75_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_structure_l75_d1_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('MachOStructure.initialize requires a class receiver')
 	}
@@ -622,24 +622,24 @@ pub fn ruby_structure_l75_d1_initialize(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby method `to_h` at line 82.
-pub fn ruby_structure_l82_d2_to_h(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_structure_l82_d2_to_h(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('MachOStructure#to_h requires a receiver')
 	}
 	mut structure := macho_structure_from_value(args[0])
-	return brew_runtime.map_value(structure.to_hash() or { panic(err) })
+	return ruby.map_value(structure.to_hash() or { panic(err) })
 }
 
 // Ruby attr_reader `attr_reader :min_args` at line 92.
-pub fn ruby_structure_l92_d3_min_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_structure_l92_d3_min_args(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('MachOStructure.min_args requires a class receiver')
 	}
-	return brew_runtime.int_value(macho_structure_definition_from_value(args[0]).min_args)
+	return ruby.int_value(macho_structure_definition_from_value(args[0]).min_args)
 }
 
 // Ruby method `new_from_bin(endianness, bin)` at line 98.
-pub fn ruby_structure_l98_d4_new_from_bin(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_structure_l98_d4_new_from_bin(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('MachOStructure.new_from_bin requires endianness and binary data')
 	}
@@ -648,25 +648,25 @@ pub fn ruby_structure_l98_d4_new_from_bin(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby method `format` at line 104.
-pub fn ruby_structure_l104_d5_format(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_structure_l104_d5_format(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('MachOStructure.format requires a class receiver')
 	}
 	mut definition := macho_structure_definition_from_value(args[0])
-	return brew_runtime.string_value(definition.format())
+	return ruby.string_value(definition.format())
 }
 
 // Ruby method `bytesize` at line 108.
-pub fn ruby_structure_l108_d6_bytesize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_structure_l108_d6_bytesize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('MachOStructure.bytesize requires a class receiver')
 	}
 	mut definition := macho_structure_definition_from_value(args[0])
-	return brew_runtime.int_value(definition.bytesize() or { panic(err) })
+	return ruby.int_value(definition.bytesize() or { panic(err) })
 }
 
 // Ruby method `inherited(subclass) # rubocop:disable Lint/MissingSuper` at line 116.
-pub fn ruby_structure_l116_d7_inherited(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_structure_l116_d7_inherited(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('MachOStructure.inherited requires a class receiver')
 	}
@@ -688,7 +688,7 @@ pub fn ruby_structure_l116_d7_inherited(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby method `field(name, type, **options)` at line 144.
-pub fn ruby_structure_l144_d8_field(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_structure_l144_d8_field(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('MachOStructure.field requires a name and type')
 	}
@@ -704,7 +704,7 @@ pub fn ruby_structure_l144_d8_field(args ...brew_runtime.Value) brew_runtime.Val
 }
 
 // Ruby method `def_class_reader(name, type, idx)` at line 196.
-pub fn ruby_structure_l196_d9_def_class_reader(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_structure_l196_d9_def_class_reader(args ...ruby.Value) ruby.Value {
 	if args.len < 4 {
 		panic('def_class_reader requires a name, type, and index')
 	}
@@ -716,22 +716,22 @@ pub fn ruby_structure_l196_d9_def_class_reader(args ...brew_runtime.Value) brew_
 }
 
 // Ruby define_method `define_method(name) do` at line 199.
-pub fn ruby_structure_l199_d10_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_structure_l199_d10_name(args ...ruby.Value) ruby.Value {
 	return structure_dynamic_reader(args)
 }
 
 // Ruby define_method `define_method(name) do` at line 206.
-pub fn ruby_structure_l206_d11_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_structure_l206_d11_name(args ...ruby.Value) ruby.Value {
 	return structure_dynamic_reader(args)
 }
 
 // Ruby define_method `define_method(name) do` at line 213.
-pub fn ruby_structure_l213_d12_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_structure_l213_d12_name(args ...ruby.Value) ruby.Value {
 	return structure_dynamic_reader(args)
 }
 
 // Ruby method `def_mask_reader(name, idx, mask)` at line 227.
-pub fn ruby_structure_l227_d13_def_mask_reader(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_structure_l227_d13_def_mask_reader(args ...ruby.Value) ruby.Value {
 	if args.len < 4 {
 		panic('def_mask_reader requires a name, index, and mask')
 	}
@@ -743,12 +743,12 @@ pub fn ruby_structure_l227_d13_def_mask_reader(args ...brew_runtime.Value) brew_
 }
 
 // Ruby define_method `define_method(name) do` at line 228.
-pub fn ruby_structure_l228_d14_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_structure_l228_d14_name(args ...ruby.Value) ruby.Value {
 	return structure_dynamic_reader(args)
 }
 
 // Ruby method `def_unpack_reader(name, idx, unpack)` at line 241.
-pub fn ruby_structure_l241_d15_def_unpack_reader(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_structure_l241_d15_def_unpack_reader(args ...ruby.Value) ruby.Value {
 	if args.len < 4 {
 		panic('def_unpack_reader requires a name, index, and format')
 	}
@@ -760,12 +760,12 @@ pub fn ruby_structure_l241_d15_def_unpack_reader(args ...brew_runtime.Value) bre
 }
 
 // Ruby define_method `define_method(name) do` at line 242.
-pub fn ruby_structure_l242_d16_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_structure_l242_d16_name(args ...ruby.Value) ruby.Value {
 	return structure_dynamic_reader(args)
 }
 
 // Ruby method `def_default_reader(name, idx, default)` at line 255.
-pub fn ruby_structure_l255_d17_def_default_reader(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_structure_l255_d17_def_default_reader(args ...ruby.Value) ruby.Value {
 	if args.len < 4 {
 		panic('def_default_reader requires a name, index, and default')
 	}
@@ -777,12 +777,12 @@ pub fn ruby_structure_l255_d17_def_default_reader(args ...brew_runtime.Value) br
 }
 
 // Ruby define_method `define_method(name) do` at line 256.
-pub fn ruby_structure_l256_d18_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_structure_l256_d18_name(args ...ruby.Value) ruby.Value {
 	return structure_dynamic_reader(args)
 }
 
 // Ruby method `def_reader(name, idx)` at line 268.
-pub fn ruby_structure_l268_d19_def_reader(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_structure_l268_d19_def_reader(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('def_reader requires a name and index')
 	}
@@ -794,12 +794,12 @@ pub fn ruby_structure_l268_d19_def_reader(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby define_method `define_method(name) do` at line 269.
-pub fn ruby_structure_l269_d20_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_structure_l269_d20_name(args ...ruby.Value) ruby.Value {
 	return structure_dynamic_reader(args)
 }
 
 // Ruby method `def_to_s(name)` at line 277.
-pub fn ruby_structure_l277_d21_def_to_s(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_structure_l277_d21_def_to_s(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('def_to_s requires a field name')
 	}
@@ -809,12 +809,12 @@ pub fn ruby_structure_l277_d21_def_to_s(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby define_method `define_method(:to_s) do` at line 278.
-pub fn ruby_structure_l278_d22_to_s(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_structure_l278_d22_to_s(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('MachOStructure#to_s requires a receiver')
 	}
 	mut structure := macho_structure_from_value(args[0])
-	return brew_runtime.string_value(structure.to_string() or { panic(err) })
+	return ruby.string_value(structure.to_string() or { panic(err) })
 }
 
 // Original Ruby source (line-for-line):

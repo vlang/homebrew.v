@@ -1,19 +1,19 @@
 module dependency
 
-import brew_runtime
+import ruby
 import hash.fnv1a
 
 // Translated from Homebrew/brew `dependency/uses_from_macos_dependency.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby attr_reader `attr_reader :bounds` at line 7.
-pub fn ruby_uses_from_macos_dependency_l7_d1_bounds(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uses_from_macos_dependency_l7_d1_bounds(args ...ruby.Value) ruby.Value {
 	dependency := uses_from_macos_dependency_from_args(args) or { panic(err) }
 	return uses_from_macos_bounds_value(dependency.bounds)
 }
 
 // Ruby method `initialize(name, tags = [], bounds:)` at line 10.
-pub fn ruby_uses_from_macos_dependency_l10_d2_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uses_from_macos_dependency_l10_d2_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('UsesFromMacOSDependency requires a name')
 	}
@@ -33,47 +33,47 @@ pub fn ruby_uses_from_macos_dependency_l10_d2_initialize(args ...brew_runtime.Va
 }
 
 // Ruby method `==(other)` at line 17.
-pub fn ruby_uses_from_macos_dependency_l17_d3_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uses_from_macos_dependency_l17_d3_anonymous(args ...ruby.Value) ruby.Value {
 	if args.len < 2 || args[1].type_name != 'UsesFromMacOSDependency' {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	dependency := uses_from_macos_dependency_from_args(args) or { panic(err) }
 	other := uses_from_macos_dependency_from_value(args[1]) or { panic(err) }
-	return brew_runtime.bool_value(dependency.equal(other))
+	return ruby.bool_value(dependency.equal(other))
 }
 
 // Ruby alias `alias eql? ==` at line 24.
-pub fn ruby_uses_from_macos_dependency_l24_d4_eql(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uses_from_macos_dependency_l24_d4_eql(args ...ruby.Value) ruby.Value {
 	return ruby_uses_from_macos_dependency_l17_d3_anonymous(...args)
 }
 
 // Ruby method `hash` at line 27.
-pub fn ruby_uses_from_macos_dependency_l27_d5_hash(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uses_from_macos_dependency_l27_d5_hash(args ...ruby.Value) ruby.Value {
 	dependency := uses_from_macos_dependency_from_args(args) or { panic(err) }
-	return brew_runtime.int_value(i64(dependency.hash_code()))
+	return ruby.int_value(i64(dependency.hash_code()))
 }
 
 // Ruby method `installed?(minimum_version: nil, minimum_revision: nil, minimum_compatibility_version: nil,` at line 39.
-pub fn ruby_uses_from_macos_dependency_l39_d6_installed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uses_from_macos_dependency_l39_d6_installed(args ...ruby.Value) ruby.Value {
 	dependency := uses_from_macos_dependency_from_args(args) or { panic(err) }
 	context := uses_from_macos_context_from_args(args, 1)
-	return brew_runtime.bool_value(dependency.installed(context) or { panic(err) })
+	return ruby.bool_value(dependency.installed(context) or { panic(err) })
 }
 
 // Ruby method `use_macos_install?(bottle_os_version: nil)` at line 45.
-pub fn ruby_uses_from_macos_dependency_l45_d7_use_macos_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uses_from_macos_dependency_l45_d7_use_macos_install(args ...ruby.Value) ruby.Value {
 	dependency := uses_from_macos_dependency_from_args(args) or { panic(err) }
 	context := uses_from_macos_context_from_args(args, 1)
-	return brew_runtime.bool_value(dependency.use_macos_install(context) or { panic(err) })
+	return ruby.bool_value(dependency.use_macos_install(context) or { panic(err) })
 }
 
 // Ruby method `uses_from_macos?` at line 81.
-pub fn ruby_uses_from_macos_dependency_l81_d8_uses_from_macos(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(true)
+pub fn ruby_uses_from_macos_dependency_l81_d8_uses_from_macos(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(true)
 }
 
 // Ruby method `dup_with_formula_name(formula)` at line 86.
-pub fn ruby_uses_from_macos_dependency_l86_d9_dup_with_formula_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uses_from_macos_dependency_l86_d9_dup_with_formula_name(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('dup_with_formula_name requires a formula')
 	}
@@ -83,9 +83,9 @@ pub fn ruby_uses_from_macos_dependency_l86_d9_dup_with_formula_name(args ...brew
 }
 
 // Ruby method `inspect` at line 91.
-pub fn ruby_uses_from_macos_dependency_l91_d10_inspect(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uses_from_macos_dependency_l91_d10_inspect(args ...ruby.Value) ruby.Value {
 	dependency := uses_from_macos_dependency_from_args(args) or { panic(err) }
-	return brew_runtime.string_value(dependency.inspect())
+	return ruby.string_value(dependency.inspect())
 }
 
 // UsesFromMacosDependency is the concrete V representation of the Ruby
@@ -280,15 +280,15 @@ fn (version ComparableMacosVersion) compare(other ComparableMacosVersion) int {
 	return 0
 }
 
-fn uses_from_macos_bounds_value(bounds map[string]string) brew_runtime.Value {
-	mut values := map[string]brew_runtime.Value{}
+fn uses_from_macos_bounds_value(bounds map[string]string) ruby.Value {
+	mut values := map[string]ruby.Value{}
 	for name, value in bounds {
-		values[name] = brew_runtime.object_value('Symbol', value)
+		values[name] = ruby.object_value('Symbol', value)
 	}
-	return brew_runtime.map_value(values)
+	return ruby.map_value(values)
 }
 
-fn uses_from_macos_bounds_from_value(value brew_runtime.Value) !map[string]string {
+fn uses_from_macos_bounds_from_value(value ruby.Value) !map[string]string {
 	values := value.as_map()!
 	mut bounds := map[string]string{}
 	for name, bound in values {
@@ -297,32 +297,32 @@ fn uses_from_macos_bounds_from_value(value brew_runtime.Value) !map[string]strin
 	return bounds
 }
 
-fn dependency_tags_from_value(value brew_runtime.Value) ![]string {
+fn dependency_tags_from_value(value ruby.Value) ![]string {
 	values := value.as_array()!
 	return values.map(if it.type_name == 'Symbol' { ':${it.as_string()}' } else { it.as_string() })
 }
 
-fn uses_from_macos_dependency_value(dependency UsesFromMacosDependency) brew_runtime.Value {
-	mut tag_values := []brew_runtime.Value{cap: dependency.tags.len}
+fn uses_from_macos_dependency_value(dependency UsesFromMacosDependency) ruby.Value {
+	mut tag_values := []ruby.Value{cap: dependency.tags.len}
 	for tag in dependency.tags {
 		tag_values << if tag.starts_with(':') {
-			brew_runtime.object_value('Symbol', tag.trim_string_left(':'))
+			ruby.object_value('Symbol', tag.trim_string_left(':'))
 		} else {
-			brew_runtime.string_value(tag)
+			ruby.string_value(tag)
 		}
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'UsesFromMacOSDependency'
 		repr: dependency.inspect()
 		map_data: {
-			'name':   brew_runtime.string_value(dependency.name)
-			'tags':   brew_runtime.array_value(tag_values)
+			'name':   ruby.string_value(dependency.name)
+			'tags':   ruby.array_value(tag_values)
 			'bounds': uses_from_macos_bounds_value(dependency.bounds)
 		}
 	}
 }
 
-fn uses_from_macos_dependency_from_value(value brew_runtime.Value) !UsesFromMacosDependency {
+fn uses_from_macos_dependency_from_value(value ruby.Value) !UsesFromMacosDependency {
 	if value.type_name != 'UsesFromMacOSDependency' {
 		return error('expected UsesFromMacOSDependency, got ${value.type_name}')
 	}
@@ -332,7 +332,7 @@ fn uses_from_macos_dependency_from_value(value brew_runtime.Value) !UsesFromMaco
 	return new_uses_from_macos_dependency(name_value.as_string(), dependency_tags_from_value(tags_value)!, uses_from_macos_bounds_from_value(bounds_value)!)
 }
 
-fn uses_from_macos_dependency_from_args(args []brew_runtime.Value) !UsesFromMacosDependency {
+fn uses_from_macos_dependency_from_args(args []ruby.Value) !UsesFromMacosDependency {
 	if args.len == 0 {
 		return error('missing UsesFromMacOSDependency receiver')
 	}
@@ -341,7 +341,7 @@ fn uses_from_macos_dependency_from_args(args []brew_runtime.Value) !UsesFromMaco
 
 // Generic adapters pass bottle_os_version, the inherited installed? result,
 // SimulateSystem's macOS predicate, and current_os after the receiver.
-fn uses_from_macos_context_from_args(args []brew_runtime.Value, offset int) UsesFromMacosContext {
+fn uses_from_macos_context_from_args(args []ruby.Value, offset int) UsesFromMacosContext {
 	return UsesFromMacosContext{
 		bottle_os_version: if args.len > offset { args[offset].as_string() } else { '' }
 		inherited_installed: if args.len > offset + 1 {

@@ -1,17 +1,17 @@
 module unpack_strategy
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `test/unpack_strategy/mercurial_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:repo) do` at line 7.
-pub fn ruby_mercurial_spec_l7_d1_repo(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(spec_repository_fixture('mercurial', '.hg', false))
+pub fn ruby_mercurial_spec_l7_d1_repo(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(spec_repository_fixture('mercurial', '.hg', false))
 }
 
 // Ruby let `let(:path) { repo }` at line 12.
-pub fn ruby_mercurial_spec_l12_d2_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mercurial_spec_l12_d2_path(args ...ruby.Value) ruby.Value {
 	return if args.len > 0 { args[0] } else { ruby_mercurial_spec_l7_d1_repo() }
 }
 

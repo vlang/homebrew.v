@@ -1,13 +1,13 @@
 module test
 
-import brew_runtime
+import ruby
 import homebrew
 
 // Translated from Homebrew/brew `test/formula_creator_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "parses` at line 56.
-pub fn ruby_formula_creator_spec_l56_d1_parses(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_creator_spec_l56_d1_parses(args ...ruby.Value) ruby.Value {
 	tests := [
 		homebrew.FormulaCreatorOptions{
 			url: 'http://digit-labs.org/files/tools/synscan/releases/synscan-5.02.tar.gz'
@@ -42,11 +42,11 @@ pub fn ruby_formula_creator_spec_l56_d1_parses(args ...brew_runtime.Value) brew_
 	for index, options in tests {
 		creator := homebrew.new_formula_creator(options)
 		if creator.name != expected_names[index] || creator.version != expected_versions[index] {
-			return brew_runtime.bool_value(false)
+			return ruby.bool_value(false)
 		}
 	}
 	latest := homebrew.new_formula_creator(tests[5])
-	return brew_runtime.bool_value(tests.len == 7 && homebrew.new_formula_creator(tests[2]).head
+	return ruby.bool_value(tests.len == 7 && homebrew.new_formula_creator(tests[2]).head
 		&& latest.url == 'https://github.com/buildpacks/pack/archive/refs/tags/v0.37.0.tar.gz')
 }
 

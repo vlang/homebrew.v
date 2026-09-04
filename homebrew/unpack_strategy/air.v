@@ -1,6 +1,6 @@
 module unpack_strategy
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `unpack_strategy/air.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -42,7 +42,7 @@ pub fn air_extract_to_dir(path string, unpack_dir string, basename string, verbo
 	_ = basename
 	_ = verbose
 	installer := '/Applications/Utilities/Adobe AIR Application Installer.app/Contents/MacOS/Adobe AIR Application Installer'
-	if !brew_runtime.is_file(installer) {
+	if !ruby.is_file(installer) {
 		return error('Adobe AIR Application Installer is required to extract ${path}')
 	}
 	checked_command(installer, ['-silent', '-location', unpack_dir, path])!

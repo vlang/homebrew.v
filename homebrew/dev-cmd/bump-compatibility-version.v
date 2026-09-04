@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 import homebrew.extend.file as atomic_file
 import homebrew.utils
 import os
@@ -46,9 +46,9 @@ pub fn bump_compatibility_version_source(source string, current ?int) (string, i
 		contents: source
 	}
 	if current == none {
-		utils.ast_formula_add_stanza(mut formula_ast, 'compatibility_version', brew_runtime.int_value(new_version), none)
+		utils.ast_formula_add_stanza(mut formula_ast, 'compatibility_version', ruby.int_value(new_version), none)
 	} else {
-		utils.ast_formula_replace_stanza(mut formula_ast, 'compatibility_version', brew_runtime.int_value(new_version), none)
+		utils.ast_formula_replace_stanza(mut formula_ast, 'compatibility_version', ruby.int_value(new_version), none)
 	}
 	return formula_ast.contents, new_version
 }
@@ -93,36 +93,36 @@ pub fn run_bump_compatibility_version(options BumpCompatibilityVersionOptions) !
 	}
 }
 
-pub fn bump_compatibility_version_input_boundary(input &BumpCompatibilityVersionInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::BumpCompatibilityVersion::Input', '', {
+pub fn bump_compatibility_version_input_boundary(input &BumpCompatibilityVersionInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::BumpCompatibilityVersion::Input', '', {
 		'bump_compatibility_version_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn bump_compatibility_version_input_from_value(value brew_runtime.Value) &BumpCompatibilityVersionInput {
+fn bump_compatibility_version_input_from_value(value ruby.Value) &BumpCompatibilityVersionInput {
 	address := value.attributes['bump_compatibility_version_input_address'] or {
 		panic('invalid BumpCompatibilityVersion input')
 	}
 	return unsafe { &BumpCompatibilityVersionInput(voidptr(address.u64())) }
 }
 
-fn bump_compatibility_version_result_value(result BumpCompatibilityVersionResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'path':              brew_runtime.string_value(result.path)
-		'bundler_groups':    brew_runtime.string_array_value(result.bundler_groups)
-		'output':            brew_runtime.string_array_value(result.output)
-		'commit_commands':   brew_runtime.array_value(result.commit_commands.map(brew_runtime.string_array_value(it)))
-		'modified_formulae': brew_runtime.string_array_value(result.modified_formulae)
+fn bump_compatibility_version_result_value(result BumpCompatibilityVersionResult) ruby.Value {
+	return ruby.map_value({
+		'path':              ruby.string_value(result.path)
+		'bundler_groups':    ruby.string_array_value(result.bundler_groups)
+		'output':            ruby.string_array_value(result.output)
+		'commit_commands':   ruby.array_value(result.commit_commands.map(ruby.string_array_value(it)))
+		'modified_formulae': ruby.string_array_value(result.modified_formulae)
 	})
 }
 
 // Ruby method `run` at line 28.
-pub fn ruby_bump_compatibility_version_l28_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_compatibility_version_l28_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'command input is required')
+		return ruby.object_value('ArgumentError', 'command input is required')
 	}
 	result := run_bump_compatibility_version(bump_compatibility_version_input_from_value(args[0]).options) or {
-		return brew_runtime.object_value('Error', err.msg())
+		return ruby.object_value('Error', err.msg())
 	}
 	return bump_compatibility_version_result_value(result)
 }

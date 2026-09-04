@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 import homebrew
 import homebrew.utils
 import os
@@ -177,37 +177,37 @@ pub fn run_which_update(options WhichUpdateOptions) !WhichUpdateResult {
 	return result
 }
 
-pub fn which_update_input_boundary(input &WhichUpdateInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::WhichUpdate::Input', '', {
+pub fn which_update_input_boundary(input &WhichUpdateInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::WhichUpdate::Input', '', {
 		'which_update_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn which_update_input_from_value(value brew_runtime.Value) &WhichUpdateInput {
+fn which_update_input_from_value(value ruby.Value) &WhichUpdateInput {
 	address := value.attributes['which_update_input_address'] or {
 		panic('invalid WhichUpdate command input')
 	}
 	return unsafe { &WhichUpdateInput(voidptr(address.u64())) }
 }
 
-fn which_update_result_value(result WhichUpdateResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'source':                brew_runtime.string_value(result.source)
-		'updated':               brew_runtime.bool_value(result.updated)
-		'repository':            brew_runtime.string_value(result.repository)
-		'pull_request_url':      brew_runtime.string_value(result.pull_request_url)
-		'removed_formulae':      brew_runtime.string_array_value(result.removed_formulae)
-		'removed_entries':       brew_runtime.string_array_value(result.removed_entries)
-		'warnings':              brew_runtime.string_array_value(result.warnings)
-		'summary_written':       brew_runtime.bool_value(result.summary_written)
-		'github_output_written': brew_runtime.bool_value(result.github_output_written)
+fn which_update_result_value(result WhichUpdateResult) ruby.Value {
+	return ruby.map_value({
+		'source':                ruby.string_value(result.source)
+		'updated':               ruby.bool_value(result.updated)
+		'repository':            ruby.string_value(result.repository)
+		'pull_request_url':      ruby.string_value(result.pull_request_url)
+		'removed_formulae':      ruby.string_array_value(result.removed_formulae)
+		'removed_entries':       ruby.string_array_value(result.removed_entries)
+		'warnings':              ruby.string_array_value(result.warnings)
+		'summary_written':       ruby.bool_value(result.summary_written)
+		'github_output_written': ruby.bool_value(result.github_output_written)
 	})
 }
 
 // Ruby method `run` at line 33.
-pub fn ruby_which_update_l33_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_which_update_l33_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'command input is required')
+		return ruby.object_value('ArgumentError', 'command input is required')
 	}
 	options := which_update_input_from_value(args[0]).options
 	result := run_which_update(options) or {
@@ -218,21 +218,21 @@ pub fn ruby_which_update_l33_d1_run(args ...brew_runtime.Value) brew_runtime.Val
 		} else {
 			'Error'
 		}
-		return brew_runtime.object_value(error_type, err.msg())
+		return ruby.object_value(error_type, err.msg())
 	}
 	return which_update_result_value(result)
 }
 
 // Ruby method `update_and_save!(source:, bottle_json_dir: nil, removed_formulae_file: nil, pull_request: nil,` at line 56.
-pub fn ruby_which_update_l56_d2_update_and_save(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_which_update_l56_d2_update_and_save(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'command input is required')
+		return ruby.object_value('ArgumentError', 'command input is required')
 	}
 	result := which_update_and_save(which_update_input_from_value(args[0]).options) or {
 		error_type := if err.msg().starts_with('`--repository`') { 'UsageError' } else { 'Error' }
-		return brew_runtime.object_value(error_type, err.msg())
+		return ruby.object_value(error_type, err.msg())
 	}
-	return brew_runtime.bool_value(result.updated)
+	return ruby.bool_value(result.updated)
 }
 
 // Original Ruby source (line-for-line):

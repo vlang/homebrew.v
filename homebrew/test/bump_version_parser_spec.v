@@ -1,6 +1,6 @@
 module test
 
-import brew_runtime
+import ruby
 import homebrew
 
 // Translated from Homebrew/brew `test/bump_version_parser_spec.rb`.
@@ -119,7 +119,7 @@ pub fn ruby_bump_version_parser_spec_l87_d17_new_version() !homebrew.BumpVersion
 // Ruby it `it "returns false" do` at line 90.
 pub fn ruby_bump_version_parser_spec_l90_d18_returns() bool {
 	parser := ruby_bump_version_parser_spec_l87_d17_new_version() or { return false }
-	equal := homebrew.ruby_bump_version_parser_l57_d8_anonymous(homebrew.bump_version_parser_value(parser), brew_runtime.object_value('Version', '1.2.3')).as_bool() or {
+	equal := homebrew.ruby_bump_version_parser_l57_d8_anonymous(homebrew.bump_version_parser_value(parser), ruby.object_value('Version', '1.2.3')).as_bool() or {
 		return false
 	}
 	return !equal

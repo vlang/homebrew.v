@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `cmd/log.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -85,8 +85,8 @@ pub fn git_log_plan(request GitLogRequest) GitLogPlan {
 	}
 }
 
-pub fn git_log_request_value(request GitLogRequest) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn git_log_request_value(request GitLogRequest) ruby.Value {
+	return ruby.Value{
 		type_name: 'GitLogRequest'
 		repr: request.cd_dir
 		attributes: {
@@ -110,7 +110,7 @@ pub fn git_log_request_value(request GitLogRequest) brew_runtime.Value {
 	}
 }
 
-fn git_log_request_from_value(value brew_runtime.Value) !GitLogRequest {
+fn git_log_request_from_value(value ruby.Value) !GitLogRequest {
 	if value.type_name != 'GitLogRequest' {
 		return error('expected GitLogRequest, got ${value.type_name}')
 	}
@@ -139,12 +139,12 @@ fn git_log_request_from_value(value brew_runtime.Value) !GitLogRequest {
 	}
 }
 
-fn git_log_plan_value(plan GitLogPlan) brew_runtime.Value {
-	mut environment := map[string]brew_runtime.Value{}
+fn git_log_plan_value(plan GitLogPlan) ruby.Value {
+	mut environment := map[string]ruby.Value{}
 	for name, value in plan.environment {
-		environment[name] = brew_runtime.string_value(value)
+		environment[name] = ruby.string_value(value)
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'GitLogPlan'
 		repr: '${plan.program} ${plan.arguments.join(' ')}'
 		attributes: {
@@ -153,25 +153,25 @@ fn git_log_plan_value(plan GitLogPlan) brew_runtime.Value {
 			'warning': plan.warning or { '' }
 		}
 		map_data: {
-			'arguments':   brew_runtime.string_array_value(plan.arguments)
-			'environment': brew_runtime.map_value(environment)
+			'arguments':   ruby.string_array_value(plan.arguments)
+			'environment': ruby.map_value(environment)
 		}
 	}
 }
 
 // Ruby method `run` at line 39.
-pub fn ruby_log_l39_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_log_l39_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'Log#run requires an execution request')
+		return ruby.object_value('ArgumentError', 'Log#run requires an execution request')
 	}
 	request := git_log_request_from_value(args[0]) or {
-		return brew_runtime.object_value('TypeError', err.msg())
+		return ruby.object_value('TypeError', err.msg())
 	}
 	return git_log_plan_value(git_log_plan(request))
 }
 
 // Ruby method `git_log(cd_dir, path = nil, tap = nil)` at line 56.
-pub fn ruby_log_l56_d2_git_log(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_log_l56_d2_git_log(args ...ruby.Value) ruby.Value {
 	return ruby_log_l39_d1_run(...args)
 }
 

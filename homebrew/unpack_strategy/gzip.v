@@ -1,6 +1,6 @@
 module unpack_strategy
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `unpack_strategy/gzip.rb`.
@@ -30,7 +30,7 @@ pub fn gzip_can_extract(path string) bool {
 }
 
 pub fn gzip_extract_to_dir(path string, unpack_dir string, basename string, verbose bool) ! {
-	target := brew_runtime.join_path(unpack_dir, basename)
+	target := ruby.join_path(unpack_dir, basename)
 	os.cp(path, target)!
 	mut arguments := []string{}
 	if !verbose {

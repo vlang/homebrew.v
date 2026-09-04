@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `test/dev-cmd/release_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -15,7 +15,7 @@ fn release_spec_base_options() ReleaseOptions {
 }
 
 // Ruby it `it "requires an up-to-date origin/main before triggering the release workflow" do` at line 11.
-pub fn ruby_release_spec_l11_d1_requires(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_release_spec_l11_d1_requires(args ...ruby.Value) ruby.Value {
 	options := ReleaseOptions{
 		...release_spec_base_options()
 		force: true
@@ -23,13 +23,13 @@ pub fn ruby_release_spec_l11_d1_requires(args ...brew_runtime.Value) brew_runtim
 		upstream_sha: 'upstream-sha'
 	}
 	run_release(options) or {
-		return brew_runtime.bool_value(err.msg().contains('Run `brew update` before `brew release --force`.'))
+		return ruby.bool_value(err.msg().contains('Run `brew update` before `brew release --force`.'))
 	}
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 // Ruby it `it "refuses to release when open release blockers exist" do` at line 36.
-pub fn ruby_release_spec_l36_d2_refuses(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_release_spec_l36_d2_refuses(args ...ruby.Value) ruby.Value {
 	options := ReleaseOptions{
 		...release_spec_base_options()
 		issues: {
@@ -39,13 +39,13 @@ pub fn ruby_release_spec_l36_d2_refuses(args ...brew_runtime.Value) brew_runtime
 		}
 	}
 	run_release(options) or {
-		return brew_runtime.bool_value(err.msg().contains('issues/12345'))
+		return ruby.bool_value(err.msg().contains('issues/12345'))
 	}
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 // Ruby it `it "refuses to release when open major/minor release blockers exist for a major release" do` at line 49.
-pub fn ruby_release_spec_l49_d3_refuses(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_release_spec_l49_d3_refuses(args ...ruby.Value) ruby.Value {
 	options := ReleaseOptions{
 		...release_spec_base_options()
 		major: true
@@ -57,19 +57,19 @@ pub fn ruby_release_spec_l49_d3_refuses(args ...brew_runtime.Value) brew_runtime
 		}
 	}
 	run_release(options) or {
-		return brew_runtime.bool_value(err.msg().contains('pull/54321'))
+		return ruby.bool_value(err.msg().contains('pull/54321'))
 	}
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 // Ruby let `let(:command) { described_class.new([]) }` at line 67.
-pub fn ruby_release_spec_l67_d4_command(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Homebrew::DevCmd::Release', 'brew release')
+pub fn ruby_release_spec_l67_d4_command(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Homebrew::DevCmd::Release', 'brew release')
 }
 
 // Ruby let `let(:releases) do` at line 68.
-pub fn ruby_release_spec_l68_d5_releases(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.array_value(release_spec_releases().map(release_record_value(it)))
+pub fn ruby_release_spec_l68_d5_releases(args ...ruby.Value) ruby.Value {
+	return ruby.array_value(release_spec_releases().map(release_record_value(it)))
 }
 
 pub fn release_spec_releases() []ReleaseRecord {
@@ -102,17 +102,17 @@ pub fn release_spec_releases() []ReleaseRecord {
 }
 
 // Ruby it `it "filters releases by name or tag name" do` at line 102.
-pub fn ruby_release_spec_l102_d6_filters(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_release_spec_l102_d6_filters(args ...ruby.Value) ruby.Value {
 	ids := matching_releases('1.2.3', release_spec_releases()).map(it.id)
-	return brew_runtime.bool_value(ids == [i64(1), 2, 4])
+	return ruby.bool_value(ids == [i64(1), 2, 4])
 }
 
 // Ruby it `it "selects the latest matching release by creation time" do` at line 107.
-pub fn ruby_release_spec_l107_d7_selects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_release_spec_l107_d7_selects(args ...ruby.Value) ruby.Value {
 	latest := latest_matching_release('1.2.3', release_spec_releases()) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(latest.id == 4)
+	return ruby.bool_value(latest.id == 4)
 }
 
 // Original Ruby source (line-for-line):

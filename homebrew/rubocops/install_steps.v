@@ -1,6 +1,6 @@
 module rubocops
 
-import brew_runtime
+import ruby
 import homebrew.rubocops.@shared as install_steps_shared
 
 // Translated from Homebrew/brew `rubocops/install_steps.rb`.
@@ -381,12 +381,12 @@ pub fn analyze_formula_install_steps(source string, file_path string) FormulaIns
 	return FormulaInstallStepsAnalysis{ source: source, file_path: file_path, offenses: offenses, corrected: corrected }
 }
 
-fn formula_install_steps_offense_value(offense FormulaInstallStepsOffense) brew_runtime.Value {
-	return brew_runtime.Value{
+fn formula_install_steps_offense_value(offense FormulaInstallStepsOffense) ruby.Value {
+	return ruby.Value{
 		type_name: 'RuboCop::Cop::Offense'
 		repr: offense.message
 		map_data: {
-			'message': brew_runtime.string_value(offense.message)
+			'message': ruby.string_value(offense.message)
 		}
 		attributes: {
 			'begin_pos': offense.begin_pos.str()
@@ -395,61 +395,61 @@ fn formula_install_steps_offense_value(offense FormulaInstallStepsOffense) brew_
 	}
 }
 
-fn formula_install_steps_analysis_value(analysis FormulaInstallStepsAnalysis) brew_runtime.Value {
-	return brew_runtime.Value{
+fn formula_install_steps_analysis_value(analysis FormulaInstallStepsAnalysis) ruby.Value {
+	return ruby.Value{
 		type_name: 'RuboCop::Cop::FormulaAudit::InstallSteps::Analysis'
 		repr: analysis.source
 		array_data: analysis.offenses.map(formula_install_steps_offense_value(it))
 		map_data: {
-			'offenses':  brew_runtime.array_value(analysis.offenses.map(formula_install_steps_offense_value(it)))
-			'corrected': brew_runtime.string_value(analysis.corrected)
+			'offenses':  ruby.array_value(analysis.offenses.map(formula_install_steps_offense_value(it)))
+			'corrected': ruby.string_value(analysis.corrected)
 		}
 	}
 }
 
-fn formula_install_steps_args(args []brew_runtime.Value) (string, string) {
+fn formula_install_steps_args(args []ruby.Value) (string, string) {
 	source := if args.len > 0 { args[0].as_string() } else { 'class Foo < Formula\nend\n' }
 	path := if args.len > 1 { args[1].as_string() } else { '' }
 	return source, path
 }
 
-fn formula_install_steps_path_value(path install_steps_shared.InstallStepPath) brew_runtime.Value {
-	return brew_runtime.Value{
+fn formula_install_steps_path_value(path install_steps_shared.InstallStepPath) ruby.Value {
+	return ruby.Value{
 		type_name: 'RuboCop::Cop::InstallStepsHelper::InstallStepPath'
 		repr: install_steps_shared.install_steps_path_source(path)
 		map_data: {
-			'path':   brew_runtime.string_value(path.path)
-			'base':   brew_runtime.string_value(path.base)
-			'source': brew_runtime.string_value(path.source)
+			'path':   ruby.string_value(path.path)
+			'base':   ruby.string_value(path.base)
+			'source': ruby.string_value(path.source)
 		}
 	}
 }
 
-fn formula_install_steps_path_arg(value brew_runtime.Value) ?install_steps_shared.InstallStepPath {
+fn formula_install_steps_path_arg(value ruby.Value) ?install_steps_shared.InstallStepPath {
 	if value.type_name == 'RuboCop::Cop::InstallStepsHelper::InstallStepPath' {
 		return install_steps_shared.InstallStepPath{
-			path: (value.map_data['path'] or { brew_runtime.string_value('') }).as_string()
-			base: (value.map_data['base'] or { brew_runtime.string_value('') }).as_string()
-			source: (value.map_data['source'] or { brew_runtime.string_value('') }).as_string()
+			path: (value.map_data['path'] or { ruby.string_value('') }).as_string()
+			base: (value.map_data['base'] or { ruby.string_value('') }).as_string()
+			source: (value.map_data['source'] or { ruby.string_value('') }).as_string()
 		}
 	}
 	return install_steps_shared.install_steps_parse_path(value.as_string())
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 85.
-pub fn ruby_install_steps_l85_d1_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_l85_d1_audit_formula(args ...ruby.Value) ruby.Value {
 	source, path := formula_install_steps_args(args)
 	return formula_install_steps_analysis_value(analyze_formula_install_steps(source, path))
 }
 
 // Ruby method `audit_step_block(block_node)` at line 121.
-pub fn ruby_install_steps_l121_d2_audit_step_block(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_l121_d2_audit_step_block(args ...ruby.Value) ruby.Value {
 	source, _ := formula_install_steps_args(args)
 	return formula_install_steps_analysis_value(analyze_formula_install_steps(source, ''))
 }
 
 // Ruby method `add_implicit_var_path_offenses(block_node)` at line 142.
-pub fn ruby_install_steps_l142_d3_add_implicit_var_path_offenses(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_l142_d3_add_implicit_var_path_offenses(args ...ruby.Value) ruby.Value {
 	source, _ := formula_install_steps_args(args)
 	offenses, corrected := formula_install_steps_implicit_analysis(source)
 	return formula_install_steps_analysis_value(FormulaInstallStepsAnalysis{
@@ -460,7 +460,7 @@ pub fn ruby_install_steps_l142_d3_add_implicit_var_path_offenses(args ...brew_ru
 }
 
 // Ruby method `add_implicit_var_base_offense(send_node)` at line 156.
-pub fn ruby_install_steps_l156_d4_add_implicit_var_base_offense(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_l156_d4_add_implicit_var_base_offense(args ...ruby.Value) ruby.Value {
 	statement := if args.len > 0 { args[0].as_string() } else { '' }
 	source := 'post_install_steps do\n  ${statement}\nend'
 	offenses, corrected := formula_install_steps_implicit_analysis(source)
@@ -472,87 +472,87 @@ pub fn ruby_install_steps_l156_d4_add_implicit_var_base_offense(args ...brew_run
 }
 
 // Ruby method `add_implicit_var_run_path_offenses(send_node)` at line 190.
-pub fn ruby_install_steps_l190_d5_add_implicit_var_run_path_offenses(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_l190_d5_add_implicit_var_run_path_offenses(args ...ruby.Value) ruby.Value {
 	return ruby_install_steps_l156_d4_add_implicit_var_base_offense(...args)
 }
 
 // Ruby method `explicit_formula_step_path?(node)` at line 208.
-pub fn ruby_install_steps_l208_d6_explicit_formula_step_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_l208_d6_explicit_formula_step_path(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	if args[0].type_name == 'Array' {
 		values := args[0].as_array() or { [] }
-		return brew_runtime.bool_value(values.len > 0 && values.all(install_steps_shared.install_steps_explicit_formula_path(it.as_string())))
+		return ruby.bool_value(values.len > 0 && values.all(install_steps_shared.install_steps_explicit_formula_path(it.as_string())))
 	}
 	value := args[0].as_string().trim('"\'')
-	return brew_runtime.bool_value(install_steps_shared.install_steps_explicit_formula_path(value))
+	return ruby.bool_value(install_steps_shared.install_steps_explicit_formula_path(value))
 }
 
 // Ruby method `autocorrect_post_install_method?(post_install_method, post_install_steps_block, formula_body,` at line 229.
-pub fn ruby_install_steps_l229_d7_autocorrect_post_install_method(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_l229_d7_autocorrect_post_install_method(args ...ruby.Value) ruby.Value {
 	source, path := formula_install_steps_args(args)
 	analysis := analyze_formula_install_steps(source, path)
-	return brew_runtime.bool_value(analysis.corrected != source)
+	return ruby.bool_value(analysis.corrected != source)
 }
 
 // Ruby method `add_postgresql_step_nodes(direct_nodes, formula_body, step_nodes, removable_methods)` at line 279.
-pub fn ruby_install_steps_l279_d8_add_postgresql_step_nodes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_l279_d8_add_postgresql_step_nodes(args ...ruby.Value) ruby.Value {
 	source, path := formula_install_steps_args(args)
-	return brew_runtime.string_value(analyze_formula_install_steps(source, path).corrected)
+	return ruby.string_value(analyze_formula_install_steps(source, path).corrected)
 }
 
 // Ruby method `add_mysql_step_nodes(direct_nodes, formula_body, step_nodes)` at line 322.
-pub fn ruby_install_steps_l322_d9_add_mysql_step_nodes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_l322_d9_add_mysql_step_nodes(args ...ruby.Value) ruby.Value {
 	return ruby_install_steps_l279_d8_add_postgresql_step_nodes(...args)
 }
 
 // Ruby method `add_mariadb_step_nodes(direct_nodes, step_nodes)` at line 336.
-pub fn ruby_install_steps_l336_d10_add_mariadb_step_nodes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_l336_d10_add_mariadb_step_nodes(args ...ruby.Value) ruby.Value {
 	return ruby_install_steps_l279_d8_add_postgresql_step_nodes(...args)
 }
 
 // Ruby method `add_mysql_data_step_nodes(direct_nodes, step_nodes, initialise_source, using)` at line 348.
-pub fn ruby_install_steps_l348_d11_add_mysql_data_step_nodes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_l348_d11_add_mysql_data_step_nodes(args ...ruby.Value) ruby.Value {
 	return ruby_install_steps_l279_d8_add_postgresql_step_nodes(...args)
 }
 
 // Ruby method `add_postgresql_link_step_nodes(direct_nodes, step_nodes)` at line 370.
-pub fn ruby_install_steps_l370_d12_add_postgresql_link_step_nodes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_l370_d12_add_postgresql_link_step_nodes(args ...ruby.Value) ruby.Value {
 	return ruby_install_steps_l279_d8_add_postgresql_step_nodes(...args)
 }
 
 // Ruby method `add_certificate_symlink_step_nodes(direct_nodes, step_nodes)` at line 391.
-pub fn ruby_install_steps_l391_d13_add_certificate_symlink_step_nodes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_l391_d13_add_certificate_symlink_step_nodes(args ...ruby.Value) ruby.Value {
 	return ruby_install_steps_l279_d8_add_postgresql_step_nodes(...args)
 }
 
 // Ruby method `nodes_in_source_order?(nodes)` at line 410.
-pub fn ruby_install_steps_l410_d14_nodes_in_source_order(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_l410_d14_nodes_in_source_order(args ...ruby.Value) ruby.Value {
 	values := if args.len > 0 { args[0].as_array() or { [] } } else { [] }
 	mut previous := -1
 	for value in values {
 		position := (value.attributes['begin_pos'] or { value.int_data.str() }).int()
 		if previous >= position {
-			return brew_runtime.bool_value(false)
+			return ruby.bool_value(false)
 		}
 		previous = position
 	}
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
 // Ruby method `add_formula_step_conversion_offense(post_install_def, post_install_steps_block, direct_nodes, step_nodes,` at line 425.
-pub fn ruby_install_steps_l425_d15_add_formula_step_conversion_offense(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_l425_d15_add_formula_step_conversion_offense(args ...ruby.Value) ruby.Value {
 	source, path := formula_install_steps_args(args)
 	return formula_install_steps_analysis_value(analyze_formula_install_steps(source, path))
 }
 
 // Ruby method `matched_install_step_node_groups(direct_nodes, step_nodes)` at line 467.
-pub fn ruby_install_steps_l467_d16_matched_install_step_node_groups(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_l467_d16_matched_install_step_node_groups(args ...ruby.Value) ruby.Value {
 	source, _ := formula_install_steps_args(args)
 	statements := install_steps_shared.install_steps_direct_statements(source, 'post_install')
-	return brew_runtime.array_value(statements.map(brew_runtime.array_value([
-		brew_runtime.structured_value('RuboCop::AST::Node', it.source, {
+	return ruby.array_value(statements.map(ruby.array_value([
+		ruby.structured_value('RuboCop::AST::Node', it.source, {
 			'begin_pos': it.begin_pos.str()
 			'end_pos':   it.end_pos.str()
 		}),
@@ -560,38 +560,38 @@ pub fn ruby_install_steps_l467_d16_matched_install_step_node_groups(args ...brew
 }
 
 // Ruby method `range_for_install_step_node_group(nodes)` at line 473.
-pub fn ruby_install_steps_l473_d17_range_for_install_step_node_group(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_l473_d17_range_for_install_step_node_group(args ...ruby.Value) ruby.Value {
 	values := if args.len > 0 { args[0].as_array() or { [] } } else { [] }
 	if values.len == 0 {
-		return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+		return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 	}
 	begin := (values[0].attributes['begin_pos'] or { '0' }).int()
 	end := (values.last().attributes['end_pos'] or { begin.str() }).int()
-	return brew_runtime.structured_value('Parser::Source::Range', '${begin}...${end}', {
+	return ruby.structured_value('Parser::Source::Range', '${begin}...${end}', {
 		'begin_pos': begin.str()
 		'end_pos':   end.str()
 	})
 }
 
 // Ruby method `add_redundant_service_path_dirs_offense(node, service_path_dirs, block_name)` at line 491.
-pub fn ruby_install_steps_l491_d18_add_redundant_service_path_dirs_offense(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_l491_d18_add_redundant_service_path_dirs_offense(args ...ruby.Value) ruby.Value {
 	source, path := formula_install_steps_args(args)
 	return formula_install_steps_analysis_value(analyze_formula_install_steps(source, path))
 }
 
 // Ruby method `redundant_service_path_dirs_block?(node, service_path_dirs, block_name)` at line 507.
-pub fn ruby_install_steps_l507_d19_redundant_service_path_dirs_block(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_l507_d19_redundant_service_path_dirs_block(args ...ruby.Value) ruby.Value {
 	source, _ := formula_install_steps_args(args)
 	name := if args.len > 1 { args[1].as_string().trim_left(':') } else { 'post_install_steps' }
-	return brew_runtime.bool_value(formula_install_steps_redundant(source, name, formula_install_steps_service_paths(source)))
+	return ruby.bool_value(formula_install_steps_redundant(source, name, formula_install_steps_service_paths(source)))
 }
 
 // Ruby method `redundant_service_path_dir?(node, path_dir, block_name)` at line 530.
-pub fn ruby_install_steps_l530_d20_redundant_service_path_dir(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_l530_d20_redundant_service_path_dir(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	path := formula_install_steps_path_arg(args[1]) or { return brew_runtime.bool_value(false) }
+	path := formula_install_steps_path_arg(args[1]) or { return ruby.bool_value(false) }
 	statement := install_steps_shared.InstallStepSpan{
 		name: install_steps_shared.install_steps_normalised_source(args[0].as_string()).all_before(' ')
 		source: args[0].as_string()
@@ -602,25 +602,25 @@ pub fn ruby_install_steps_l530_d20_redundant_service_path_dir(args ...brew_runti
 		'post_install_steps'
 	}
 	actual := formula_install_steps_statement_path(statement, block_name) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(install_steps_shared.install_steps_paths_match(actual, path))
+	return ruby.bool_value(install_steps_shared.install_steps_paths_match(actual, path))
 }
 
 // Ruby method `service_path_dirs(block_node)` at line 550.
-pub fn ruby_install_steps_l550_d21_service_path_dirs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_l550_d21_service_path_dirs(args ...ruby.Value) ruby.Value {
 	source, _ := formula_install_steps_args(args)
 	paths := formula_install_steps_service_paths(source)
-	return brew_runtime.array_value(paths.map(formula_install_steps_path_value(it)))
+	return ruby.array_value(paths.map(formula_install_steps_path_value(it)))
 }
 
 // Ruby method `install_step_path_with_base(node, last_arg, default_base:)` at line 581.
-pub fn ruby_install_steps_l581_d22_install_step_path_with_base(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_l581_d22_install_step_path_with_base(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+		return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 	}
 	mut path := formula_install_steps_path_arg(args[0]) or {
-		return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+		return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 	}
 	default_base := if args.len > 2 { args[2].as_string().trim_left(':') } else { 'var' }
 	if args.len > 1 && args[1].as_string().contains('base:') {
@@ -638,53 +638,53 @@ pub fn ruby_install_steps_l581_d22_install_step_path_with_base(args ...brew_runt
 }
 
 // Ruby method `install_step_path_hash_base(node)` at line 596.
-pub fn ruby_install_steps_l596_d23_install_step_path_hash_base(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_l596_d23_install_step_path_hash_base(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || !args[0].as_string().contains('base:') {
-		return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+		return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 	}
 	base := formula_install_steps_bare_symbol(args[0].as_string().all_after('base:'))
-	return brew_runtime.object_value('Symbol', ':${base}')
+	return ruby.object_value('Symbol', ':${base}')
 }
 
 // Ruby method `path_parent(path)` at line 611.
-pub fn ruby_install_steps_l611_d24_path_parent(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_l611_d24_path_parent(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+		return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 	}
 	path := formula_install_steps_path_arg(args[0]) or {
-		return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+		return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 	}
 	parent := install_steps_shared.install_steps_path_parent(path) or {
-		return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+		return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 	}
 	return formula_install_steps_path_value(parent)
 }
 
 // Ruby method `paths_match?(path, other_path)` at line 621.
-pub fn ruby_install_steps_l621_d25_paths_match(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_l621_d25_paths_match(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	path := formula_install_steps_path_arg(args[0]) or { return brew_runtime.bool_value(false) }
-	other := formula_install_steps_path_arg(args[1]) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(install_steps_shared.install_steps_paths_match(path, other))
+	path := formula_install_steps_path_arg(args[0]) or { return ruby.bool_value(false) }
+	other := formula_install_steps_path_arg(args[1]) or { return ruby.bool_value(false) }
+	return ruby.bool_value(install_steps_shared.install_steps_paths_match(path, other))
 }
 
 // Ruby method `path_key(path)` at line 628.
-pub fn ruby_install_steps_l628_d26_path_key(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_l628_d26_path_key(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+		return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 	}
 	path := formula_install_steps_path_arg(args[0]) or {
-		return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+		return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 	}
-	return brew_runtime.array_value([
+	return ruby.array_value([
 		if path.base == '' {
-			brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+			ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 		} else {
-			brew_runtime.object_value('Symbol', ':${path.base}')
+			ruby.object_value('Symbol', ':${path.base}')
 		},
-		brew_runtime.string_value(path.path),
+		ruby.string_value(path.path),
 	])
 }
 

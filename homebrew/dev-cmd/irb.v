@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `dev-cmd/irb.rb`.
@@ -72,54 +72,54 @@ pub:
 	options IrbOptions
 }
 
-pub fn irb_input_boundary(input &IrbInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::Irb::Input', '', {
+pub fn irb_input_boundary(input &IrbInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::Irb::Input', '', {
 		'irb_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn irb_input_from_value(value brew_runtime.Value) &IrbInput {
+fn irb_input_from_value(value ruby.Value) &IrbInput {
 	address := value.attributes['irb_input_address'] or { panic('invalid Irb input') }
 	return unsafe { &IrbInput(voidptr(address.u64())) }
 }
 
-fn irb_plan_value(plan IrbPlan) brew_runtime.Value {
-	mut environment := map[string]brew_runtime.Value{}
+fn irb_plan_value(plan IrbPlan) ruby.Value {
+	mut environment := map[string]ruby.Value{}
 	for name, value in plan.environment {
-		environment[name] = brew_runtime.string_value(value)
+		environment[name] = ruby.string_value(value)
 	}
-	return brew_runtime.map_value({
-		'argv': brew_runtime.string_array_value(plan.argv)
-		'stdout': brew_runtime.string_value(plan.stdout)
-		'required_files': brew_runtime.string_array_value(plan.required_files)
-		'heading': brew_runtime.string_value(plan.heading)
-		'subheading': brew_runtime.string_value(plan.subheading)
-		'environment': brew_runtime.map_value(environment)
-		'flush_stdout': brew_runtime.bool_value(plan.flush_stdout)
-		'flush_stderr': brew_runtime.bool_value(plan.flush_stderr)
-		'command': brew_runtime.string_array_value(plan.command)
+	return ruby.map_value({
+		'argv': ruby.string_array_value(plan.argv)
+		'stdout': ruby.string_value(plan.stdout)
+		'required_files': ruby.string_array_value(plan.required_files)
+		'heading': ruby.string_value(plan.heading)
+		'subheading': ruby.string_value(plan.subheading)
+		'environment': ruby.map_value(environment)
+		'flush_stdout': ruby.bool_value(plan.flush_stdout)
+		'flush_stderr': ruby.bool_value(plan.flush_stderr)
+		'command': ruby.string_array_value(plan.command)
 	})
 }
 
 // Ruby method `initialize(argv = nil) = super(argv || ARGV.dup.freeze)` at line 24.
-pub fn ruby_irb_l24_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_irb_l24_d1_initialize(args ...ruby.Value) ruby.Value {
 	argv_provided := args.len > 0 && args[0].type_name !in ['Nil', 'NilClass', '']
 	argv := if argv_provided { args[0].as_string_array() or {
-		return brew_runtime.object_value('TypeError', err.msg())
+		return ruby.object_value('TypeError', err.msg())
 	} } else { []string{} }
 	default_argv := if args.len > 1 { args[1].as_string_array() or { []string{} } } else { []string{} }
-	return brew_runtime.string_array_value(initialize_irb(argv, default_argv, argv_provided) or {
-		return brew_runtime.object_value('MethodDeprecatedError', err.msg())
+	return ruby.string_array_value(initialize_irb(argv, default_argv, argv_provided) or {
+		return ruby.object_value('MethodDeprecatedError', err.msg())
 	})
 }
 
 // Ruby method `run` at line 27.
-pub fn ruby_irb_l27_d2_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_irb_l27_d2_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'command input is required')
+		return ruby.object_value('ArgumentError', 'command input is required')
 	}
 	return irb_plan_value(irb_plan(irb_input_from_value(args[0]).options) or {
-		return brew_runtime.object_value('MethodDeprecatedError', err.msg())
+		return ruby.object_value('MethodDeprecatedError', err.msg())
 	})
 }
 

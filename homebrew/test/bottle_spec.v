@@ -1,6 +1,6 @@
 module test
 
-import brew_runtime
+import ruby
 import crypto.sha256
 import homebrew
 import homebrew.download_strategy
@@ -92,8 +92,8 @@ pub fn bottle_spec_cached_bottle(checksum string, content string,
 	}
 }
 
-fn bottle_spec_cached_bottle_value(fixture BottleSpecCachedBottle) brew_runtime.Value {
-	return brew_runtime.structured_value('Bottle', fixture.bottle.name, {
+fn bottle_spec_cached_bottle_value(fixture BottleSpecCachedBottle) ruby.Value {
+	return ruby.structured_value('Bottle', fixture.bottle.name, {
 		'name':            fixture.bottle.name
 		'version':         fixture.bottle.pkg_version.to_s()
 		'tag':             fixture.bottle.tag.symbol()
@@ -166,31 +166,31 @@ pub fn bottle_spec_test_bottle(root_url string) !homebrew.Bottle {
 }
 
 // Ruby it `it "renders the bottle filename" do` at line 9.
-pub fn ruby_bottle_spec_l9_d1_renders(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_spec_l9_d1_renders(args ...ruby.Value) ruby.Value {
 	_ = args
 	tag := homebrew.bottle_tag_from_symbol('arm64_big_sur') or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	bottle := bottle_spec_new_bottle('testball_bottle', '0.1', bottle_spec_default_domain, tag, 'deadbeef'.repeat(8)) or { return brew_runtime.bool_value(false) }
-	filename := bottle.filename() or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(filename.str() == 'testball_bottle--0.1.arm64_big_sur.bottle.tar.gz')
+	bottle := bottle_spec_new_bottle('testball_bottle', '0.1', bottle_spec_default_domain, tag, 'deadbeef'.repeat(8)) or { return ruby.bool_value(false) }
+	filename := bottle.filename() or { return ruby.bool_value(false) }
+	return ruby.bool_value(filename.str() == 'testball_bottle--0.1.arm64_big_sur.bottle.tar.gz')
 }
 
 // Ruby it `it "trusts cached immutable GitHub Packages bottle blobs matching the expected checksum" do` at line 20.
-pub fn ruby_bottle_spec_l20_d2_trusts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_spec_l20_d2_trusts(args ...ruby.Value) ruby.Value {
 	root := if args.len > 0 { args[0].as_string() } else { bottle_spec_root('immutable') }
 	defer { os.rmdir_all(root) or {} }
 	fixture := bottle_spec_cached_bottle(bottle_spec_checksum, 'cached', root) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	url := fixture.bottle.resource.url() or { return brew_runtime.bool_value(false) }
+	url := fixture.bottle.resource.url() or { return ruby.bool_value(false) }
 	mut strategy := download_strategy.new_curl_github_packages_download_strategy(url, 'foo', '1.2.3', download_strategy.DownloadMeta{}, true)
 	strategy.set_resolved_basename(fixture.bottle.filename() or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}.str())
 	blob_checksum := strategy.bottle_blob_sha256() or { '' }
 	actual_checksum := sha256.sum256('cached'.bytes()).hex()
-	return brew_runtime.bool_value(os.is_file(fixture.cache_path)
+	return ruby.bool_value(os.is_file(fixture.cache_path)
 		&& strategy.immutable_bottle_blob() && blob_checksum == bottle_spec_checksum
 		&& fixture.bottle.resource.download_strategy() or {
 			download_strategy.DownloadStrategy.curl
@@ -198,62 +198,62 @@ pub fn ruby_bottle_spec_l20_d2_trusts(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby method `cached_bottle(checksum, content)` at line 42.
-pub fn ruby_bottle_spec_l42_d3_cached_bottle(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_spec_l42_d3_cached_bottle(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'cached_bottle requires checksum and content')
+		return ruby.object_value('ArgumentError', 'cached_bottle requires checksum and content')
 	}
 	root := if args.len > 2 { args[2].as_string() } else { bottle_spec_root('cached') }
 	fixture := bottle_spec_cached_bottle(args[0].as_string(), args[1].as_string(), root) or {
-		return brew_runtime.object_value('RuntimeError', err.msg())
+		return ruby.object_value('RuntimeError', err.msg())
 	}
 	return bottle_spec_cached_bottle_value(fixture)
 }
 
 // Ruby it `it "downloads a corrupt cached bottle again and extracts it", :aggregate_failures do` at line 53.
-pub fn ruby_bottle_spec_l53_d4_downloads(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_spec_l53_d4_downloads(args ...ruby.Value) ruby.Value {
 	root := if args.len > 0 { args[0].as_string() } else { bottle_spec_root('corrupt') }
 	defer { os.rmdir_all(root) or {} }
 	mut fixture := bottle_spec_cached_bottle(bottle_spec_checksum, 'corrupt', root) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	result := bottle_spec_retry_corrupt_cache(mut fixture, 'valid') or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(result.stderr.contains('Removing corrupt cached download')
+	return ruby.bool_value(result.stderr.contains('Removing corrupt cached download')
 		&& result.extractions == 2 && result.fetches == 1 && result.cache_exists
 		&& result.staged)
 }
 
 // Ruby it `it "keeps a cached bottle matching its checksum that fails to extract", :aggregate_failures do` at line 72.
-pub fn ruby_bottle_spec_l72_d5_keeps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_spec_l72_d5_keeps(args ...ruby.Value) ruby.Value {
 	root := if args.len > 0 { args[0].as_string() } else { bottle_spec_root('unextractable') }
 	defer { os.rmdir_all(root) or {} }
 	content := 'valid but unextractable'
 	checksum := sha256.sum256(content.bytes()).hex()
 	mut fixture := bottle_spec_cached_bottle(checksum, content, root) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	result := bottle_spec_keep_valid_unextractable(mut fixture) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(result.error == 'gzip decompression failed'
+	return ruby.bool_value(result.error == 'gzip decompression failed'
 		&& result.extractions == 1 && result.fetches == 0 && result.cache_exists
 		&& os.read_file(result.cache_path) or { '' } == content)
 }
 
 // Ruby method `bottle_domain = "https://mirror.example.com/homebrew-bottles"` at line 87.
-pub fn ruby_bottle_spec_l87_d6_bottle_domain(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_spec_l87_d6_bottle_domain(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value(bottle_spec_mirror_domain)
+	return ruby.string_value(bottle_spec_mirror_domain)
 }
 
 // Ruby method `test_bottle(root_url = bottle_domain)` at line 90.
-pub fn ruby_bottle_spec_l90_d7_test_bottle(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_spec_l90_d7_test_bottle(args ...ruby.Value) ruby.Value {
 	root_url := if args.len > 0 { args[0].as_string() } else { bottle_spec_mirror_domain }
 	bottle := bottle_spec_test_bottle(root_url) or {
-		return brew_runtime.object_value('RuntimeError', err.msg())
+		return ruby.object_value('RuntimeError', err.msg())
 	}
-	return brew_runtime.structured_value('Bottle', bottle.name, {
+	return ruby.structured_value('Bottle', bottle.name, {
 		'name':        bottle.name
 		'pkg_version': bottle.pkg_version.to_s()
 		'tag':         bottle.tag.symbol()
@@ -263,7 +263,7 @@ pub fn ruby_bottle_spec_l90_d7_test_bottle(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby it `it "falls back to GHCR for a custom bottle domain" do` at line 105.
-pub fn ruby_bottle_spec_l105_d8_falls(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_spec_l105_d8_falls(args ...ruby.Value) ruby.Value {
 	_ = args
 	previous_domain, previous_default := bottle_spec_with_domains()
 	defer {
@@ -271,19 +271,19 @@ pub fn ruby_bottle_spec_l105_d8_falls(args ...brew_runtime.Value) brew_runtime.V
 		bottle_spec_restore_environment('HOMEBREW_BOTTLE_DEFAULT_DOMAIN', previous_default)
 	}
 	bottle := bottle_spec_test_bottle(bottle_spec_mirror_domain) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	manifest := bottle.new_manifest_resource() or { return brew_runtime.bool_value(false) }
+	manifest := bottle.new_manifest_resource() or { return ruby.bool_value(false) }
 	result := bottle_spec_manifest_result(manifest, bottle) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(result.strategy == 'CurlGitHubPackagesDownloadStrategy'
+	return ruby.bool_value(result.strategy == 'CurlGitHubPackagesDownloadStrategy'
 		&& result.resource_url == '${bottle_spec_mirror_domain}/foo/manifests/1.2.3'
 		&& result.mirrors == ['${bottle_spec_default_domain}/foo/manifests/1.2.3'])
 }
 
 // Ruby it `it "keeps the bottle mirror when neither manifest URL is available", :aggregate_failures do` at line 117.
-pub fn ruby_bottle_spec_l117_d9_keeps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_spec_l117_d9_keeps(args ...ruby.Value) ruby.Value {
 	_ = args
 	previous_domain, previous_default := bottle_spec_with_domains()
 	defer {
@@ -291,11 +291,11 @@ pub fn ruby_bottle_spec_l117_d9_keeps(args ...brew_runtime.Value) brew_runtime.V
 		bottle_spec_restore_environment('HOMEBREW_BOTTLE_DEFAULT_DOMAIN', previous_default)
 	}
 	bottle := bottle_spec_test_bottle(bottle_spec_mirror_domain) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	manifest := bottle.new_manifest_resource() or { return brew_runtime.bool_value(false) }
+	manifest := bottle.new_manifest_resource() or { return ruby.bool_value(false) }
 	mut result := bottle_spec_manifest_result(manifest, bottle) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	// The Ruby example replaces fetch with this DownloadError. The important
 	// state transition is that Bottle does not replace its archive mirror when
@@ -304,12 +304,12 @@ pub fn ruby_bottle_spec_l117_d9_keeps(args ...brew_runtime.Value) brew_runtime.V
 		...result
 		fetch_error: 'manifest missing'
 	}
-	return brew_runtime.bool_value(result.fetch_error == 'manifest missing'
+	return ruby.bool_value(result.fetch_error == 'manifest missing'
 		&& result.bottle_url.starts_with(bottle_spec_mirror_domain))
 }
 
 // Ruby it `it "does not create a manifest resource for an unrelated flat bottle domain" do` at line 129.
-pub fn ruby_bottle_spec_l129_d10_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_spec_l129_d10_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	previous_domain, previous_default := bottle_spec_with_domains()
 	defer {
@@ -317,18 +317,18 @@ pub fn ruby_bottle_spec_l129_d10_does(args ...brew_runtime.Value) brew_runtime.V
 		bottle_spec_restore_environment('HOMEBREW_BOTTLE_DEFAULT_DOMAIN', previous_default)
 	}
 	bottle := bottle_spec_test_bottle('https://example.com/bottles') or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(bottle.github_packages_manifest_plan() == none)
+	return ruby.bool_value(bottle.github_packages_manifest_plan() == none)
 }
 
 // Ruby it `it "reads the supplement from a valid bottle manifest" do` at line 137.
-pub fn ruby_bottle_spec_l137_d11_reads(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_spec_l137_d11_reads(args ...ruby.Value) ruby.Value {
 	_ = args
 	tag := homebrew.bottle_tag_from_symbol('arm64_big_sur') or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	mut bottle := bottle_spec_new_bottle('foo', '1.2.3', bottle_spec_default_domain, tag, 'deadbeef'.repeat(8)) or { return brew_runtime.bool_value(false) }
+	mut bottle := bottle_spec_new_bottle('foo', '1.2.3', bottle_spec_default_domain, tag, 'deadbeef'.repeat(8)) or { return ruby.bool_value(false) }
 	mut manifest := homebrew.new_bottle_manifest_resource(homebrew.BottleDescriptor{
 		name: 'foo'
 		version: '1.2.3'
@@ -341,15 +341,15 @@ pub fn ruby_bottle_spec_l137_d11_reads(args ...brew_runtime.Value) brew_runtime.
 	bottle.manifest = manifest
 	bottle.has_manifest = true
 	supplement := homebrew.ruby_bottle_l267_d37_sbom_supplement(mut bottle, tag.symbol()) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	packages_value := supplement['packages'] or { json2.Any([]json2.Any{}) }
 	packages := packages_value.as_array()
 	if packages.len != 1 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	package := packages[0].as_map()
-	return brew_runtime.bool_value(package['SPDXID'] or { json2.Any('') }.str() == 'SPDXRef-Compiler')
+	return ruby.bool_value(package['SPDXID'] or { json2.Any('') }.str() == 'SPDXRef-Compiler')
 }
 
 // Original Ruby source (line-for-line):

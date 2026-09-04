@@ -1,6 +1,6 @@
 module keg_relocate
 
-import brew_runtime
+import ruby
 import homebrew
 import os
 
@@ -8,41 +8,41 @@ import os
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:keg) { described_class.new(HOMEBREW_CELLAR/"foo/1.0.0") }` at line 7.
-pub fn ruby_binary_relocation_spec_l7_d1_keg(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_binary_relocation_spec_l7_d1_keg(args ...ruby.Value) ruby.Value {
 	return homebrew.keg_relocation_keg_value(binary_spec_keg(binary_spec_temp('keg')))
 }
 
 // Ruby let `let(:dir) { HOMEBREW_CELLAR/"foo/1.0.0" }` at line 9.
-pub fn ruby_binary_relocation_spec_l9_d2_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Pathname', binary_spec_temp('dir'))
+pub fn ruby_binary_relocation_spec_l9_d2_dir(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Pathname', binary_spec_temp('dir'))
 }
 
 // Ruby let `let(:newdir) { HOMEBREW_CELLAR/"foo" }` at line 10.
-pub fn ruby_binary_relocation_spec_l10_d3_newdir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Pathname', os.dir(binary_spec_temp('dir')))
+pub fn ruby_binary_relocation_spec_l10_d3_newdir(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Pathname', os.dir(binary_spec_temp('dir')))
 }
 
 // Ruby let `let(:binary_file) { dir/"file.bin" }` at line 11.
-pub fn ruby_binary_relocation_spec_l11_d4_binary_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Pathname', os.join_path(binary_spec_temp('dir'), 'file.bin'))
+pub fn ruby_binary_relocation_spec_l11_d4_binary_file(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Pathname', os.join_path(binary_spec_temp('dir'), 'file.bin'))
 }
 
 // Ruby method `setup_binary_file` at line 17.
-pub fn ruby_binary_relocation_spec_l17_d5_setup_binary_file(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_binary_relocation_spec_l17_d5_setup_binary_file(args ...ruby.Value) ruby.Value {
 	dir := if args.len > 0 { args[0].as_string() } else { binary_spec_temp('setup') }
-	file := binary_spec_write(dir) or { return brew_runtime.object_value('SystemCallError', err.msg()) }
-	return brew_runtime.object_value('Pathname', file)
+	file := binary_spec_write(dir) or { return ruby.object_value('SystemCallError', err.msg()) }
+	return ruby.object_value('Pathname', file)
 }
 
 // Ruby specify `specify "replace prefix in binary files" do` at line 24.
-pub fn ruby_binary_relocation_spec_l24_d6_replace(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_binary_relocation_spec_l24_d6_replace(args ...ruby.Value) ruby.Value {
 	dir := binary_spec_temp('replace')
 	defer { os.rmdir_all(os.dir(dir)) or {} }
 	newdir := os.dir(dir)
-	_ := binary_spec_write(dir) or { return brew_runtime.bool_value(false) }
+	_ := binary_spec_write(dir) or { return ruby.bool_value(false) }
 	keg := binary_spec_keg(dir)
-	_ := keg.relocate_build_prefix(dir, newdir) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(homebrew.keg_each_unique_file_matching(keg, dir).len == 0 && homebrew.keg_each_unique_file_matching(keg, newdir).len == 1)
+	_ := keg.relocate_build_prefix(dir, newdir) or { return ruby.bool_value(false) }
+	return ruby.bool_value(homebrew.keg_each_unique_file_matching(keg, dir).len == 0 && homebrew.keg_each_unique_file_matching(keg, newdir).len == 1)
 }
 
 fn binary_spec_temp(name string) string {

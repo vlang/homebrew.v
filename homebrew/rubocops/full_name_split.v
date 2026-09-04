@@ -1,6 +1,6 @@
 module rubocops
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `rubocops/full_name_split.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -815,8 +815,8 @@ pub fn correct_full_name_split(source string) string {
 	return corrected
 }
 
-fn full_name_split_offense_value(offense FullNameSplitOffense) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cop::Offense', offense.message, {
+fn full_name_split_offense_value(offense FullNameSplitOffense) ruby.Value {
+	return ruby.structured_value('RuboCop::Cop::Offense', offense.message, {
 		'begin_pos':       offense.begin_pos.str()
 		'end_pos':         offense.end_pos.str()
 		'message':         offense.message
@@ -827,7 +827,7 @@ fn full_name_split_offense_value(offense FullNameSplitOffense) brew_runtime.Valu
 	})
 }
 
-fn full_name_split_first_offense(source string, safe_navigation ?bool) brew_runtime.Value {
+fn full_name_split_first_offense(source string, safe_navigation ?bool) ruby.Value {
 	for offense in audit_full_name_split(source) {
 		if navigation := safe_navigation {
 			if offense.call.safe_navigation != navigation {
@@ -836,7 +836,7 @@ fn full_name_split_first_offense(source string, safe_navigation ?bool) brew_runt
 		}
 		return full_name_split_offense_value(offense)
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 fn full_name_split_outer_call(source string) ?FullNameSplitOuterCall {
@@ -889,85 +889,85 @@ fn full_name_split_valid_split_call(source string) ?FullNameSplitCall {
 }
 
 // Ruby method `on_send(node)` at line 46.
-pub fn ruby_full_name_split_l46_d1_on_send(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_full_name_split_l46_d1_on_send(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	return full_name_split_first_offense(source, false)
 }
 
 // Ruby method `on_csend(node)` at line 51.
-pub fn ruby_full_name_split_l51_d2_on_csend(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_full_name_split_l51_d2_on_csend(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	return full_name_split_first_offense(source, true)
 }
 
 // Ruby method `check_full_name_split(node)` at line 58.
-pub fn ruby_full_name_split_l58_d3_check_full_name_split(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_full_name_split_l58_d3_check_full_name_split(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	return full_name_split_first_offense(source, none)
 }
 
 // Ruby method `basename_call?(node)` at line 75.
-pub fn ruby_full_name_split_l75_d4_basename_call(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_full_name_split_l75_d4_basename_call(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.bool_value(full_name_split_basename_call(source))
+	return ruby.bool_value(full_name_split_basename_call(source))
 }
 
 // Ruby method `split_call?(node, split_call)` at line 87.
-pub fn ruby_full_name_split_l87_d5_split_call(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_full_name_split_l87_d5_split_call(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	outer_source := args[0].as_string()
 	split_source := args[1].as_string()
 	call := full_name_split_valid_split_call(split_source) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	outer := full_name_split_outer_call(outer_source) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(outer.safe_navigation == call.safe_navigation)
+	return ruby.bool_value(outer.safe_navigation == call.safe_navigation)
 }
 
 // Ruby method `full_name_receiver?(receiver)` at line 99.
-pub fn ruby_full_name_split_l99_d6_full_name_receiver(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_full_name_split_l99_d6_full_name_receiver(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || args[0].type_name.contains('ConstNode') || args[0].type_name.contains('StrNode') {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(is_full_name_split_receiver(args[0].as_string()))
+	return ruby.bool_value(is_full_name_split_receiver(args[0].as_string()))
 }
 
 // Ruby method `receiver_identifier(receiver)` at line 108.
-pub fn ruby_full_name_split_l108_d7_receiver_identifier(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_full_name_split_l108_d7_receiver_identifier(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || args[0].type_name.contains('ConstNode') || args[0].type_name.contains('StrNode') {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	identifier := full_name_split_receiver_identifier(args[0].as_string()) or {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
-	return brew_runtime.string_value(identifier)
+	return ruby.string_value(identifier)
 }
 
 // Ruby method `receiver_method_name(receiver)` at line 118.
-pub fn ruby_full_name_split_l118_d8_receiver_method_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_full_name_split_l118_d8_receiver_method_name(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	identifier := full_name_split_receiver_method_name(args[0].as_string()) or {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
-	return brew_runtime.string_value(identifier)
+	return ruby.string_value(identifier)
 }
 
 // Ruby method `replacement(node, receiver)` at line 130.
-pub fn ruby_full_name_split_l130_d9_replacement(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_full_name_split_l130_d9_replacement(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.string_value('')
+		return ruby.string_value('')
 	}
 	node := args[0].as_string()
 	receiver := args[1].as_string()
 	outer := full_name_split_outer_call(node) or { FullNameSplitOuterCall{} }
 	safe_navigation := outer.safe_navigation
-	return brew_runtime.string_value(if safe_navigation {
+	return ruby.string_value(if safe_navigation {
 		'${receiver}&.then { ::Utils.name_from_full_name(it) }'
 	} else {
 		'::Utils.name_from_full_name(${receiver})'

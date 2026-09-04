@@ -1,6 +1,6 @@
 module sections
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/elftools-1.3.1/lib/elftools/sections/sym_tab_section.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -52,7 +52,7 @@ fn table_endian(value string) ElfTableEndian {
 	return if value == 'big' { .big } else { .little }
 }
 
-fn table_header_from_value(value brew_runtime.Value) ElfTableSectionHeader {
+fn table_header_from_value(value ruby.Value) ElfTableSectionHeader {
 	return ElfTableSectionHeader{
 		sh_type: (value.attribute('sh_type') or { '0' }).u32()
 		sh_offset: (value.attribute('sh_offset') or { '0' }).u64()
@@ -227,8 +227,8 @@ pub fn (symbol ElfSymbol) name() !string {
 	return error('symbol name is not null-terminated')
 }
 
-fn sym_tab_section_value(section SymTabSection) brew_runtime.Value {
-	return brew_runtime.structured_value('ELFTools::Sections::SymTabSection', 'SymTabSection', {
+fn sym_tab_section_value(section SymTabSection) ruby.Value {
+	return ruby.structured_value('ELFTools::Sections::SymTabSection', 'SymTabSection', {
 		'sh_type':       section.header.sh_type.str()
 		'sh_offset':     section.header.sh_offset.str()
 		'sh_size':       section.header.sh_size.str()
@@ -242,7 +242,7 @@ fn sym_tab_section_value(section SymTabSection) brew_runtime.Value {
 	})
 }
 
-fn sym_tab_section_from_value(value brew_runtime.Value) SymTabSection {
+fn sym_tab_section_from_value(value ruby.Value) SymTabSection {
 	return SymTabSection{
 		header: table_header_from_value(value)
 		stream: (value.attribute('stream') or { '' }).bytes()
@@ -251,8 +251,8 @@ fn sym_tab_section_from_value(value brew_runtime.Value) SymTabSection {
 	}
 }
 
-fn elf_symbol_value(symbol ElfSymbol) brew_runtime.Value {
-	return brew_runtime.structured_value('ELFTools::Sections::Symbol', symbol.name() or { '' }, {
+fn elf_symbol_value(symbol ElfSymbol) ruby.Value {
+	return ruby.structured_value('ELFTools::Sections::Symbol', symbol.name() or { '' }, {
 		'st_name':       symbol.header.st_name.str()
 		'st_value':      symbol.header.st_value.str()
 		'st_size':       symbol.header.st_size.str()
@@ -267,7 +267,7 @@ fn elf_symbol_value(symbol ElfSymbol) brew_runtime.Value {
 	})
 }
 
-fn elf_symbol_from_value(value brew_runtime.Value) ElfSymbol {
+fn elf_symbol_from_value(value ruby.Value) ElfSymbol {
 	return ElfSymbol{
 		header: ElfSymbolHeader{
 			st_name: (value.attribute('st_name') or { '0' }).u32()
@@ -286,7 +286,7 @@ fn elf_symbol_from_value(value brew_runtime.Value) ElfSymbol {
 }
 
 // Ruby method `initialize(header, stream, section_at: nil, **_kwargs)` at line 21.
-pub fn ruby_sym_tab_section_l21_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sym_tab_section_l21_d1_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('SymTabSection#initialize requires a header and stream')
 	}
@@ -309,47 +309,47 @@ pub fn ruby_sym_tab_section_l21_d1_initialize(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby method `num_symbols` at line 32.
-pub fn ruby_sym_tab_section_l32_d2_num_symbols(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sym_tab_section_l32_d2_num_symbols(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('SymTabSection#num_symbols requires a receiver') }
-	return brew_runtime.int_value(sym_tab_section_from_value(args[0]).num_symbols() or { panic(err) })
+	return ruby.int_value(sym_tab_section_from_value(args[0]).num_symbols() or { panic(err) })
 }
 
 // Ruby method `symbol_at(n)` at line 43.
-pub fn ruby_sym_tab_section_l43_d3_symbol_at(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sym_tab_section_l43_d3_symbol_at(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('SymTabSection#symbol_at requires a receiver and index') }
 	symbol := sym_tab_section_from_value(args[0]).symbol_at(int(args[1].as_int() or { panic(err) })) or {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	return elf_symbol_value(symbol)
 }
 
 // Ruby method `each_symbols(&block)` at line 59.
-pub fn ruby_sym_tab_section_l59_d4_each_symbols(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sym_tab_section_l59_d4_each_symbols(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('SymTabSection#each_symbols requires a receiver') }
-	return brew_runtime.array_value(sym_tab_section_from_value(args[0]).symbols() or {
+	return ruby.array_value(sym_tab_section_from_value(args[0]).symbols() or {
 		panic(err)
 	}.map(elf_symbol_value(it)))
 }
 
 // Ruby method `symbols` at line 70.
-pub fn ruby_sym_tab_section_l70_d5_symbols(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sym_tab_section_l70_d5_symbols(args ...ruby.Value) ruby.Value {
 	return ruby_sym_tab_section_l59_d4_each_symbols(...args)
 }
 
 // Ruby method `symbol_by_name(name)` at line 78.
-pub fn ruby_sym_tab_section_l78_d6_symbol_by_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sym_tab_section_l78_d6_symbol_by_name(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('SymTabSection#symbol_by_name requires a receiver and name') }
 	symbol := sym_tab_section_from_value(args[0]).symbol_by_name(args[1].as_string()) or {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	return elf_symbol_value(symbol)
 }
 
 // Ruby method `symstr` at line 85.
-pub fn ruby_sym_tab_section_l85_d7_symstr(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sym_tab_section_l85_d7_symstr(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('SymTabSection#symstr requires a receiver') }
 	section := sym_tab_section_from_value(args[0])
-	return brew_runtime.structured_value('ELFTools::Sections::StrTabSection', 'StrTabSection', {
+	return ruby.structured_value('ELFTools::Sections::StrTabSection', 'StrTabSection', {
 		'sh_offset': section.symstr_offset.str()
 		'sh_link':   section.header.sh_link.str()
 		'stream':    section.symstr.bytestr()
@@ -357,7 +357,7 @@ pub fn ruby_sym_tab_section_l85_d7_symstr(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby method `create_symbol(n)` at line 91.
-pub fn ruby_sym_tab_section_l91_d8_create_symbol(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sym_tab_section_l91_d8_create_symbol(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('SymTabSection#create_symbol requires a receiver and index') }
 	return elf_symbol_value(sym_tab_section_from_value(args[0]).create_symbol(int(args[1].as_int() or {
 		panic(err)
@@ -365,9 +365,9 @@ pub fn ruby_sym_tab_section_l91_d8_create_symbol(args ...brew_runtime.Value) bre
 }
 
 // Ruby attr_reader `attr_reader :header` at line 103.
-pub fn ruby_sym_tab_section_l103_d9_header(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sym_tab_section_l103_d9_header(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Symbol#header requires a receiver') }
-	return brew_runtime.structured_value('ELF_sym', '', {
+	return ruby.structured_value('ELF_sym', '', {
 		'st_name':   args[0].attribute('st_name') or { '0' }
 		'st_value':  args[0].attribute('st_value') or { '0' }
 		'st_size':   args[0].attribute('st_size') or { '0' }
@@ -380,13 +380,13 @@ pub fn ruby_sym_tab_section_l103_d9_header(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby attr_reader `attr_reader :stream` at line 104.
-pub fn ruby_sym_tab_section_l104_d10_stream(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sym_tab_section_l104_d10_stream(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Symbol#stream requires a receiver') }
-	return brew_runtime.string_value(args[0].attribute('stream') or { panic('symbol has no stream') })
+	return ruby.string_value(args[0].attribute('stream') or { panic('symbol has no stream') })
 }
 
 // Ruby method `initialize(header, stream, symstr: nil)` at line 114.
-pub fn ruby_sym_tab_section_l114_d11_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sym_tab_section_l114_d11_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Symbol#initialize requires a header and stream') }
 	mut attributes := args[0].attributes.clone()
 	attributes['stream'] = args[1].as_string()
@@ -394,13 +394,13 @@ pub fn ruby_sym_tab_section_l114_d11_initialize(args ...brew_runtime.Value) brew
 		attributes['symstr'] = args[2].attribute('stream') or { args[2].as_string() }
 		attributes['symstr_offset'] = args[2].attribute('sh_offset') or { '0' }
 	}
-	return brew_runtime.structured_value('ELFTools::Sections::Symbol', '', attributes)
+	return ruby.structured_value('ELFTools::Sections::Symbol', '', attributes)
 }
 
 // Ruby method `name` at line 122.
-pub fn ruby_sym_tab_section_l122_d12_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sym_tab_section_l122_d12_name(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Symbol#name requires a receiver') }
-	return brew_runtime.string_value(elf_symbol_from_value(args[0]).name() or { panic(err) })
+	return ruby.string_value(elf_symbol_from_value(args[0]).name() or { panic(err) })
 }
 
 // Original Ruby source (line-for-line):

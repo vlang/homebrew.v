@@ -1,6 +1,6 @@
 module cask
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `cask/pkg.rb`.
@@ -236,106 +236,106 @@ pub fn (pkg &Pkg) uninstall() {
 	pkg.forget()
 }
 
-fn pkg_info_value(info PkgInfo) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'volume':           brew_runtime.string_value(info.volume)
-		'install-location': brew_runtime.string_value(info.install_location)
-		'paths':            brew_runtime.string_array_value(info.paths)
+fn pkg_info_value(info PkgInfo) ruby.Value {
+	return ruby.map_value({
+		'volume':           ruby.string_value(info.volume)
+		'install-location': ruby.string_value(info.install_location)
+		'paths':            ruby.string_array_value(info.paths)
 	})
 }
 
-fn pkg_command_value(command &PkgCommand) brew_runtime.Value {
-	return brew_runtime.structured_value('SystemCommand', '', {
+fn pkg_command_value(command &PkgCommand) ruby.Value {
+	return ruby.structured_value('SystemCommand', '', {
 		'pkg_command_address': u64(voidptr(command)).str()
 	})
 }
 
-fn pkg_command_from_value(value brew_runtime.Value) &PkgCommand {
+fn pkg_command_from_value(value ruby.Value) &PkgCommand {
 	address := value.attributes['pkg_command_address'] or { panic('invalid Pkg command') }
 	return unsafe { &PkgCommand(voidptr(address.u64())) }
 }
 
-pub fn pkg_command_boundary(command &PkgCommand) brew_runtime.Value {
+pub fn pkg_command_boundary(command &PkgCommand) ruby.Value {
 	return pkg_command_value(command)
 }
 
-fn pkg_value(pkg &Pkg) brew_runtime.Value {
-	return brew_runtime.structured_value('Cask::Pkg', pkg.package_id, {
+fn pkg_value(pkg &Pkg) ruby.Value {
+	return ruby.structured_value('Cask::Pkg', pkg.package_id, {
 		'pkg_address': u64(voidptr(pkg)).str()
 	})
 }
 
-fn pkg_from_value(value brew_runtime.Value) &Pkg {
+fn pkg_from_value(value ruby.Value) &Pkg {
 	address := value.attributes['pkg_address'] or { panic('invalid Cask::Pkg') }
 	return unsafe { &Pkg(voidptr(address.u64())) }
 }
 
 // Ruby method `self.all_matching(regexp, command)` at line 13.
-pub fn ruby_pkg_l13_d1_self_all_matching(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pkg_l13_d1_self_all_matching(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.array_value([])
+		return ruby.array_value([])
 	}
 	command := pkg_command_from_value(args[1])
-	return brew_runtime.array_value(pkg_all_matching(args[0].as_string(), command).map(pkg_value(it)))
+	return ruby.array_value(pkg_all_matching(args[0].as_string(), command).map(pkg_value(it)))
 }
 
 // Ruby attr_reader `attr_reader :package_id` at line 20.
-pub fn ruby_pkg_l20_d2_package_id(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(pkg_from_value(args[0]).package_id)
+pub fn ruby_pkg_l20_d2_package_id(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(pkg_from_value(args[0]).package_id)
 }
 
 // Ruby method `initialize(package_id, command = SystemCommand)` at line 23.
-pub fn ruby_pkg_l23_d3_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pkg_l23_d3_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'package_id and command are required')
+		return ruby.object_value('ArgumentError', 'package_id and command are required')
 	}
 	return pkg_value(new_pkg(args[0].as_string(), pkg_command_from_value(args[1])))
 }
 
 // Ruby method `uninstall` at line 29.
-pub fn ruby_pkg_l29_d4_uninstall(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pkg_l29_d4_uninstall(args ...ruby.Value) ruby.Value {
 	pkg_from_value(args[0]).uninstall()
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `forget` at line 63.
-pub fn ruby_pkg_l63_d5_forget(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pkg_l63_d5_forget(args ...ruby.Value) ruby.Value {
 	pkg_from_value(args[0]).forget()
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `pkgutil_bom_files` at line 74.
-pub fn ruby_pkg_l74_d6_pkgutil_bom_files(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(pkg_from_value(args[0]).pkgutil_bom_files())
+pub fn ruby_pkg_l74_d6_pkgutil_bom_files(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(pkg_from_value(args[0]).pkgutil_bom_files())
 }
 
 // Ruby method `pkgutil_bom_specials` at line 80.
-pub fn ruby_pkg_l80_d7_pkgutil_bom_specials(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(pkg_from_value(args[0]).pkgutil_bom_specials())
+pub fn ruby_pkg_l80_d7_pkgutil_bom_specials(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(pkg_from_value(args[0]).pkgutil_bom_specials())
 }
 
 // Ruby method `pkgutil_bom_dirs` at line 85.
-pub fn ruby_pkg_l85_d8_pkgutil_bom_dirs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(pkg_from_value(args[0]).pkgutil_bom_dirs())
+pub fn ruby_pkg_l85_d8_pkgutil_bom_dirs(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(pkg_from_value(args[0]).pkgutil_bom_dirs())
 }
 
 // Ruby method `pkgutil_bom_all` at line 91.
-pub fn ruby_pkg_l91_d9_pkgutil_bom_all(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(pkg_from_value(args[0]).pkgutil_bom_all().map(it.path))
+pub fn ruby_pkg_l91_d9_pkgutil_bom_all(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(pkg_from_value(args[0]).pkgutil_bom_all().map(it.path))
 }
 
 // Ruby method `root` at line 103.
-pub fn ruby_pkg_l103_d10_root(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Pathname', pkg_from_value(args[0]).root())
+pub fn ruby_pkg_l103_d10_root(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Pathname', pkg_from_value(args[0]).root())
 }
 
 // Ruby method `info` at line 108.
-pub fn ruby_pkg_l108_d11_info(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pkg_l108_d11_info(args ...ruby.Value) ruby.Value {
 	return pkg_info_value(pkg_from_value(args[0]).info())
 }
 
 // Ruby method `special?(path)` at line 115.
-pub fn ruby_pkg_l115_d12_special(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pkg_l115_d12_special(args ...ruby.Value) ruby.Value {
 	kind := if args.len > 2 {
 		match args[2].as_string() {
 			'symlink' { PkgPathKind.symlink }
@@ -346,26 +346,26 @@ pub fn ruby_pkg_l115_d12_special(args ...brew_runtime.Value) brew_runtime.Value 
 	} else {
 		PkgPathKind.unknown
 	}
-	return brew_runtime.bool_value(pkg_special(PkgBomEntry{
+	return ruby.bool_value(pkg_special(PkgBomEntry{
 		path: args[1].as_string()
 		kind: kind
 	}))
 }
 
 // Ruby method `rmdir(path)` at line 125.
-pub fn ruby_pkg_l125_d13_rmdir(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pkg_l125_d13_rmdir(args ...ruby.Value) ruby.Value {
 	paths := if args[1].type_name == 'Array' {
 		args[1].as_string_array() or { [] }
 	} else {
 		[args[1].as_string()]
 	}
 	pkg_from_value(args[0]).rmdir(paths)
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `deepest_path_first(paths)` at line 136.
-pub fn ruby_pkg_l136_d14_deepest_path_first(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(pkg_deepest_path_first(args[1].as_string_array() or { [] }))
+pub fn ruby_pkg_l136_d14_deepest_path_first(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(pkg_deepest_path_first(args[1].as_string_array() or { [] }))
 }
 
 // Original Ruby source (line-for-line):

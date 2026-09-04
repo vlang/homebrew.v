@@ -1,16 +1,16 @@
 module object
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `extend/object/deep_dup.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `deep_dup` at line 17.
-pub fn ruby_deep_dup_l17_d1_deep_dup(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_deep_dup_l17_d1_deep_dup(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.Value{}
+		return ruby.Value{}
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		...args[0]
 		string_array_data: args[0].string_array_data.clone()
 		array_data:        args[0].array_data.clone()

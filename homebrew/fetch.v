@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `fetch.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -43,9 +43,9 @@ pub fn fetch_bottle(formula FetchBottleFormula, options FetchBottleOptions) bool
 }
 
 // Ruby method `fetch_bottle?(formula, force_bottle:, bottle_tag:, build_from_source_formulae:, os:, arch:)` at line 16.
-pub fn ruby_fetch_l16_d1_fetch_bottle(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_fetch_l16_d1_fetch_bottle(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	formula_value := args[0]
 	formula := FetchBottleFormula{
@@ -65,7 +65,7 @@ pub fn ruby_fetch_l16_d1_fetch_bottle(args ...brew_runtime.Value) brew_runtime.V
 		arch: if args.len > 5 { args[5].as_string() } else { '' }
 		test_generic_os: if args.len > 6 { args[6].as_bool() or { false } } else { false }
 	}
-	return brew_runtime.bool_value(fetch_bottle(formula, options))
+	return ruby.bool_value(fetch_bottle(formula, options))
 }
 
 // Original Ruby source (line-for-line):

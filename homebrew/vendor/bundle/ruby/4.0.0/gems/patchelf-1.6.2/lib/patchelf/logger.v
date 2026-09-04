@@ -1,6 +1,6 @@
 module patchelf
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/patchelf-1.6.2/lib/patchelf/logger.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -44,7 +44,7 @@ pub fn (logger &PatchElfLogger) log_to_stderr(level PatchElfLogLevel, message st
 }
 
 // Ruby define_method `define_method(sym) do |msg|` at line 19.
-pub fn ruby_logger_l19_d1_sym(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_logger_l19_d1_sym(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('PatchELF::Logger method requires a message')
 	}
@@ -64,7 +64,7 @@ pub fn ruby_logger_l19_d1_sym(args ...brew_runtime.Value) brew_runtime.Value {
 	} else {
 		logger.log_to_stderr(.info, args[0].as_string())
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Original Ruby source (line-for-line):

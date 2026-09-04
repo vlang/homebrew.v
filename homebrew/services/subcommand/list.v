@@ -1,6 +1,6 @@
 module subcommand
 
-import brew_runtime
+import ruby
 import x.json2
 
 // Translated from Homebrew/brew `services/subcommand/list.rb`.
@@ -162,43 +162,43 @@ pub fn run_service_list(request ServiceListRequest) !ServiceListResult {
 	}
 }
 
-pub fn service_list_formula_value(formula ServiceListFormula) brew_runtime.Value {
-	mut fields := map[string]brew_runtime.Value{}
-	fields['name'] = brew_runtime.string_value(formula.name)
-	fields['status'] = brew_runtime.object_value('Symbol', formula.status)
+pub fn service_list_formula_value(formula ServiceListFormula) ruby.Value {
+	mut fields := map[string]ruby.Value{}
+	fields['name'] = ruby.string_value(formula.name)
+	fields['status'] = ruby.object_value('Symbol', formula.status)
 	if formula.user_present {
 		fields['user'] = if formula.user_nil {
-			brew_runtime.object_value('NilClass', '')
+			ruby.object_value('NilClass', '')
 		} else {
-			brew_runtime.string_value(formula.user)
+			ruby.string_value(formula.user)
 		}
 	}
 	if formula.file_present {
 		fields['file'] = if formula.file_nil {
-			brew_runtime.object_value('NilClass', '')
+			ruby.object_value('NilClass', '')
 		} else {
-			brew_runtime.object_value('Pathname', formula.file)
+			ruby.object_value('Pathname', formula.file)
 		}
 	}
 	if formula.exit_present {
 		fields['exit_code'] = if formula.exit_nil {
-			brew_runtime.object_value('NilClass', '')
+			ruby.object_value('NilClass', '')
 		} else {
-			brew_runtime.int_value(formula.exit_code)
+			ruby.int_value(formula.exit_code)
 		}
 	}
-	fields['loaded'] = brew_runtime.bool_value(formula.loaded)
-	return brew_runtime.map_value(fields)
+	fields['loaded'] = ruby.bool_value(formula.loaded)
+	return ruby.map_value(fields)
 }
 
-fn service_list_formula_from_value(value brew_runtime.Value) !ServiceListFormula {
+fn service_list_formula_from_value(value ruby.Value) !ServiceListFormula {
 	fields := value.as_map()!
-	user_value := fields['user'] or { brew_runtime.Value{} }
-	file_value := fields['file'] or { brew_runtime.Value{} }
-	exit_value := fields['exit_code'] or { brew_runtime.Value{} }
+	user_value := fields['user'] or { ruby.Value{} }
+	file_value := fields['file'] or { ruby.Value{} }
+	exit_value := fields['exit_code'] or { ruby.Value{} }
 	return ServiceListFormula{
-		name: (fields['name'] or { brew_runtime.string_value('') }).as_string()
-		status: (fields['status'] or { brew_runtime.object_value('Symbol', 'unknown') }).as_string()
+		name: (fields['name'] or { ruby.string_value('') }).as_string()
+		status: (fields['status'] or { ruby.object_value('Symbol', 'unknown') }).as_string()
 		user: user_value.as_string()
 		user_present: 'user' in fields
 		user_nil: user_value.type_name == 'NilClass'
@@ -208,75 +208,75 @@ fn service_list_formula_from_value(value brew_runtime.Value) !ServiceListFormula
 		exit_code: int(exit_value.as_int() or { 0 })
 		exit_present: 'exit_code' in fields
 		exit_nil: exit_value.type_name == 'NilClass'
-		loaded: (fields['loaded'] or { brew_runtime.bool_value(false) }).as_bool() or { false }
+		loaded: (fields['loaded'] or { ruby.bool_value(false) }).as_bool() or { false }
 	}
 }
 
-fn service_list_formulae_from_value(value brew_runtime.Value) ![]ServiceListFormula {
+fn service_list_formulae_from_value(value ruby.Value) ![]ServiceListFormula {
 	return value.as_array()!.map(service_list_formula_from_value(it)!)
 }
 
-fn service_list_result_value(result ServiceListResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'stdout': brew_runtime.string_value(result.stdout)
-		'stderr': brew_runtime.string_value(result.stderr)
+fn service_list_result_value(result ServiceListResult) ruby.Value {
+	return ruby.map_value({
+		'stdout': ruby.string_value(result.stdout)
+		'stderr': ruby.string_value(result.stderr)
 	})
 }
 
 // Ruby method `run` at line 25.
-pub fn ruby_list_l25_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_list_l25_d1_run(args ...ruby.Value) ruby.Value {
 	request_values := if args.len > 0 {
-		args[0].as_map() or { map[string]brew_runtime.Value{} }
+		args[0].as_map() or { map[string]ruby.Value{} }
 	} else {
-		map[string]brew_runtime.Value{}
+		map[string]ruby.Value{}
 	}
 	formulae := service_list_formulae_from_value(request_values['formulae'] or {
-		brew_runtime.array_value([]brew_runtime.Value{})
-	}) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+		ruby.array_value([]ruby.Value{})
+	}) or { return ruby.object_value('ArgumentError', err.msg()) }
 	request := ServiceListRequest{
 		formulae: formulae
-		json: (request_values['json'] or { brew_runtime.bool_value(false) }).as_bool() or { false }
-		stderr_tty: (request_values['stderr_tty'] or { brew_runtime.bool_value(false) }).as_bool() or { false }
-		service_bin: (request_values['service_bin'] or { brew_runtime.string_value('brew services') }).as_string()
-		home: (request_values['home'] or { brew_runtime.string_value(brew_runtime.environment_value('HOME')) }).as_string()
+		json: (request_values['json'] or { ruby.bool_value(false) }).as_bool() or { false }
+		stderr_tty: (request_values['stderr_tty'] or { ruby.bool_value(false) }).as_bool() or { false }
+		service_bin: (request_values['service_bin'] or { ruby.string_value('brew services') }).as_string()
+		home: (request_values['home'] or { ruby.string_value(ruby.environment_value('HOME')) }).as_string()
 	}
 	result := run_service_list(request) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	return service_list_result_value(result)
 }
 
 // Ruby method `self.print_json(formulae)` at line 47.
-pub fn ruby_list_l47_d2_self_print_json(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_list_l47_d2_self_print_json(args ...ruby.Value) ruby.Value {
 	formulae := service_list_formulae_from_value(if args.len > 0 {
 		args[0]
 	} else {
-		brew_runtime.array_value([]brew_runtime.Value{})
-	}) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
-	return brew_runtime.string_value(service_list_print_json(formulae))
+		ruby.array_value([]ruby.Value{})
+	}) or { return ruby.object_value('ArgumentError', err.msg()) }
+	return ruby.string_value(service_list_print_json(formulae))
 }
 
 // Ruby method `self.print_table(formulae)` at line 58.
-pub fn ruby_list_l58_d3_self_print_table(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_list_l58_d3_self_print_table(args ...ruby.Value) ruby.Value {
 	formulae := service_list_formulae_from_value(if args.len > 0 {
 		args[0]
 	} else {
-		brew_runtime.array_value([]brew_runtime.Value{})
-	}) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
-	home := if args.len > 1 { args[1].as_string() } else { brew_runtime.environment_value('HOME') }
+		ruby.array_value([]ruby.Value{})
+	}) or { return ruby.object_value('ArgumentError', err.msg()) }
+	home := if args.len > 1 { args[1].as_string() } else { ruby.environment_value('HOME') }
 	output := service_list_print_table(formulae, home, ServiceListStyle{}) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
-	return brew_runtime.string_value(output)
+	return ruby.string_value(output)
 }
 
 // Ruby method `self.get_status_string(status)` at line 89.
-pub fn ruby_list_l89_d4_self_get_status_string(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_list_l89_d4_self_get_status_string(args ...ruby.Value) ruby.Value {
 	status := if args.len > 0 { args[0].as_string() } else { '' }
 	value := service_list_get_status_string(status, ServiceListStyle{}) or {
-		return brew_runtime.object_value('NilClass', '')
+		return ruby.object_value('NilClass', '')
 	}
-	return brew_runtime.string_value(value)
+	return ruby.string_value(value)
 }
 
 // Original Ruby source (line-for-line):

@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 import os
 import time
 
@@ -29,7 +29,7 @@ pub mut:
 	tmpdir          string
 	messages        []string
 	warnings        []string
-	boundary_result brew_runtime.Value
+	boundary_result ruby.Value
 }
 
 pub fn new_mktemp(prefix string, config MktempConfig) &Mktemp {
@@ -132,7 +132,7 @@ fn (mut stage Mktemp) finish() {
 }
 
 pub fn (mut stage Mktemp) run(chdir bool,
-	action fn(mut Mktemp) !brew_runtime.Value) !brew_runtime.Value {
+	action fn(mut Mktemp) !ruby.Value) !ruby.Value {
 	stage.prepare()!
 	original_directory := os.getwd()
 	mut changed_directory := false
@@ -168,15 +168,15 @@ pub fn mktemp_chmod_rm_rf(path string) {
 	}
 }
 
-fn mktemp_value(stage &Mktemp) brew_runtime.Value {
-	return brew_runtime.structured_value('Mktemp', stage.str(), {
+fn mktemp_value(stage &Mktemp) ruby.Value {
+	return ruby.structured_value('Mktemp', stage.str(), {
 		'mktemp_address': u64(voidptr(stage)).str()
 		'prefix':         stage.prefix
 		'tmpdir':         stage.tmpdir
 	})
 }
 
-fn mktemp_from_args(args []brew_runtime.Value, method string) &Mktemp {
+fn mktemp_from_args(args []ruby.Value, method string) &Mktemp {
 	if args.len == 0 || args[0].type_name != 'Mktemp' {
 		panic('Mktemp#${method} requires a translated Mktemp receiver')
 	}
@@ -186,28 +186,28 @@ fn mktemp_from_args(args []brew_runtime.Value, method string) &Mktemp {
 	return unsafe { &Mktemp(voidptr(address.u64())) }
 }
 
-pub fn mktemp_boundary(stage &Mktemp) brew_runtime.Value {
+pub fn mktemp_boundary(stage &Mktemp) ruby.Value {
 	return mktemp_value(stage)
 }
 
-fn mktemp_boundary_action(mut stage Mktemp) !brew_runtime.Value {
+fn mktemp_boundary_action(mut stage Mktemp) !ruby.Value {
 	return stage.boundary_result
 }
 
 // Ruby attr_reader `attr_reader :tmpdir` at line 14.
-pub fn ruby_mktemp_l14_d1_tmpdir(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mktemp_l14_d1_tmpdir(args ...ruby.Value) ruby.Value {
 	stage := mktemp_from_args(args, 'tmpdir')
 	return if stage.tmpdir == '' {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	} else {
-		brew_runtime.object_value('Pathname', stage.tmpdir)
+		ruby.object_value('Pathname', stage.tmpdir)
 	}
 }
 
 // Ruby method `initialize(prefix, retain: false, retain_in_cache: false)` at line 17.
-pub fn ruby_mktemp_l17_d2_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mktemp_l17_d2_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'prefix is required')
+		return ruby.object_value('ArgumentError', 'prefix is required')
 	}
 	return mktemp_value(new_mktemp(args[0].as_string(), MktempConfig{
 		retain: args.len > 1 && args[1].bool_data
@@ -219,52 +219,52 @@ pub fn ruby_mktemp_l17_d2_initialize(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby method `retain!` at line 27.
-pub fn ruby_mktemp_l27_d3_retain(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mktemp_l27_d3_retain(args ...ruby.Value) ruby.Value {
 	mut stage := mktemp_from_args(args, 'retain!')
 	stage.retain_files()
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `retain?` at line 33.
-pub fn ruby_mktemp_l33_d4_retain(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(mktemp_from_args(args, 'retain?').should_retain())
+pub fn ruby_mktemp_l33_d4_retain(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(mktemp_from_args(args, 'retain?').should_retain())
 }
 
 // Ruby method `retain_in_cache?` at line 39.
-pub fn ruby_mktemp_l39_d5_retain_in_cache(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(mktemp_from_args(args, 'retain_in_cache?').should_retain_in_cache())
+pub fn ruby_mktemp_l39_d5_retain_in_cache(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(mktemp_from_args(args, 'retain_in_cache?').should_retain_in_cache())
 }
 
 // Ruby method `quiet!` at line 45.
-pub fn ruby_mktemp_l45_d6_quiet(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mktemp_l45_d6_quiet(args ...ruby.Value) ruby.Value {
 	mut stage := mktemp_from_args(args, 'quiet!')
 	stage.suppress_messages()
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `to_s` at line 50.
-pub fn ruby_mktemp_l50_d7_to_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(mktemp_from_args(args, 'to_s').str())
+pub fn ruby_mktemp_l50_d7_to_s(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(mktemp_from_args(args, 'to_s').str())
 }
 
 // Ruby method `run(chdir: true, &_block)` at line 60.
-pub fn ruby_mktemp_l60_d8_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mktemp_l60_d8_run(args ...ruby.Value) ruby.Value {
 	mut stage := mktemp_from_args(args, 'run')
 	chdir := if args.len > 1 { args[1].bool_data } else { true }
 	stage.boundary_result = if args.len > 2 {
 		args[2]
 	} else {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	}
 	return stage.run(chdir, mktemp_boundary_action) or {
-		brew_runtime.object_value('SystemCallError', err.msg())
+		ruby.object_value('SystemCallError', err.msg())
 	}
 }
 
 // Ruby method `chmod_rm_rf(path)` at line 114.
-pub fn ruby_mktemp_l114_d9_chmod_rm_rf(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mktemp_l114_d9_chmod_rm_rf(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	path := if args.len > 1 && args[0].type_name == 'Mktemp' {
 		args[1].as_string()
@@ -272,7 +272,7 @@ pub fn ruby_mktemp_l114_d9_chmod_rm_rf(args ...brew_runtime.Value) brew_runtime.
 		args[args.len - 1].as_string()
 	}
 	mktemp_chmod_rm_rf(path)
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Original Ruby source (line-for-line):

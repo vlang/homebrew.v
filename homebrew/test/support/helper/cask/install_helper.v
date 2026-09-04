@@ -1,6 +1,6 @@
 module cask
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `test/support/helper/cask/install_helper.rb`.
@@ -96,7 +96,7 @@ pub fn cask_install_with_caskfile(cask_definition InstallHelperCask) !InstallHel
 	}
 }
 
-fn install_helper_cask_from_value(value brew_runtime.Value) InstallHelperCask {
+fn install_helper_cask_from_value(value ruby.Value) InstallHelperCask {
 	return InstallHelperCask{
 		token: if value.attributes['token'] != '' {
 			value.attributes['token']
@@ -114,8 +114,8 @@ fn install_helper_cask_from_value(value brew_runtime.Value) InstallHelperCask {
 	}
 }
 
-fn install_helper_result_value(result InstallHelperResult) brew_runtime.Value {
-	return brew_runtime.structured_value('Cask::Installer', result.token, {
+fn install_helper_result_value(result InstallHelperResult) ruby.Value {
+	return ruby.structured_value('Cask::Installer', result.token, {
 		'downloaded':           result.downloaded.str()
 		'primary_extracted':    result.primary_extracted.str()
 		'caskfile_saved':       result.caskfile_saved.str()
@@ -126,39 +126,39 @@ fn install_helper_result_value(result InstallHelperResult) brew_runtime.Value {
 }
 
 // Ruby method `self.install_without_artifacts(cask)` at line 9.
-pub fn ruby_install_helper_l9_d1_self_install_without_artifacts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_helper_l9_d1_self_install_without_artifacts(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	return install_helper_result_value(cask_install_without_artifacts(install_helper_cask_from_value(args[0]), false) or { panic(err) })
 }
 
 // Ruby method `self.install_without_artifacts_with_caskfile(cask)` at line 16.
-pub fn ruby_install_helper_l16_d2_self_install_without_artifacts_with_caskfile(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_helper_l16_d2_self_install_without_artifacts_with_caskfile(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	return install_helper_result_value(cask_install_without_artifacts(install_helper_cask_from_value(args[0]), true) or { panic(err) })
 }
 
 // Ruby method `self.stub_cask_installation(cask, create_app_dirs: true)` at line 31.
-pub fn ruby_install_helper_l31_d3_self_stub_cask_installation(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_helper_l31_d3_self_stub_cask_installation(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	create_app_dirs := args.len < 2 || (args[1].as_bool() or { true })
 	return install_helper_result_value(cask_stub_installation(install_helper_cask_from_value(args[0]), create_app_dirs) or { panic(err) })
 }
 
 // Ruby method `install_without_artifacts(cask)` at line 56.
-pub fn ruby_install_helper_l56_d4_install_without_artifacts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_helper_l56_d4_install_without_artifacts(args ...ruby.Value) ruby.Value {
 	return ruby_install_helper_l9_d1_self_install_without_artifacts(...args)
 }
 
 // Ruby method `install_with_caskfile(cask)` at line 63.
-pub fn ruby_install_helper_l63_d5_install_with_caskfile(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_helper_l63_d5_install_with_caskfile(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	return install_helper_result_value(cask_install_with_caskfile(install_helper_cask_from_value(args[0])) or {
 		panic(err)

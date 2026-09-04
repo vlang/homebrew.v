@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `dev-cmd/pr-pull.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -345,13 +345,13 @@ pub:
 	conflicts   PrPullConflictsInput
 }
 
-pub fn pr_pull_boundary_input(input &PrPullBoundaryInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::PrPull::Input', '', {
+pub fn pr_pull_boundary_input(input &PrPullBoundaryInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::PrPull::Input', '', {
 		'pr_pull_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn pr_pull_boundary_input_from_value(value brew_runtime.Value) &PrPullBoundaryInput {
+fn pr_pull_boundary_input_from_value(value ruby.Value) &PrPullBoundaryInput {
 	address := value.attributes['pr_pull_input_address'] or { panic('invalid PrPull input') }
 	return unsafe { &PrPullBoundaryInput(voidptr(address.u64())) }
 }
@@ -1342,210 +1342,210 @@ pub fn run_pr_pull(input PrPullRunInput) !PrPullRunResult {
 	return result
 }
 
-fn pr_pull_package_value(package PrPullPackage) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'name':     brew_runtime.string_value(package.name)
-		'version':  brew_runtime.string_value(package.version)
-		'revision': brew_runtime.int_value(package.revision)
-		'sha256':   brew_runtime.string_value(package.sha256)
-		'is_cask':  brew_runtime.bool_value(package.is_cask)
+fn pr_pull_package_value(package PrPullPackage) ruby.Value {
+	return ruby.map_value({
+		'name':     ruby.string_value(package.name)
+		'version':  ruby.string_value(package.version)
+		'revision': ruby.int_value(package.revision)
+		'sha256':   ruby.string_value(package.sha256)
+		'is_cask':  ruby.bool_value(package.is_cask)
 	})
 }
 
-fn pr_pull_effect_value(effect PrPullEffect) brew_runtime.Value {
-	mut details := map[string]brew_runtime.Value{}
+fn pr_pull_effect_value(effect PrPullEffect) ruby.Value {
+	mut details := map[string]ruby.Value{}
 	for key, value in effect.details {
-		details[key] = brew_runtime.string_value(value)
+		details[key] = ruby.string_value(value)
 	}
-	return brew_runtime.map_value({
-		'kind':    brew_runtime.string_value(effect.kind)
-		'argv':    brew_runtime.string_array_value(effect.argv)
-		'details': brew_runtime.map_value(details)
+	return ruby.map_value({
+		'kind':    ruby.string_value(effect.kind)
+		'argv':    ruby.string_array_value(effect.argv)
+		'details': ruby.map_value(details)
 	})
 }
 
-fn pr_pull_parts_value(parts PrPullCommitParts) brew_runtime.Value {
-	return brew_runtime.string_array_value([parts.subject, parts.body, parts.trailers])
+fn pr_pull_parts_value(parts PrPullCommitParts) ruby.Value {
+	return ruby.string_array_value([parts.subject, parts.body, parts.trailers])
 }
 
-fn pr_pull_rewrite_value(result PrPullRewriteResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'subject': brew_runtime.string_value(result.subject)
-		'effects': brew_runtime.array_value(result.effects.map(pr_pull_effect_value(it)))
+fn pr_pull_rewrite_value(result PrPullRewriteResult) ruby.Value {
+	return ruby.map_value({
+		'subject': ruby.string_value(result.subject)
+		'effects': ruby.array_value(result.effects.map(pr_pull_effect_value(it)))
 	})
 }
 
-fn pr_pull_run_result_value(result PrPullRunResult) brew_runtime.Value {
-	mut environment := map[string]brew_runtime.Value{}
+fn pr_pull_run_result_value(result PrPullRunResult) ruby.Value {
+	mut environment := map[string]ruby.Value{}
 	for key, value in result.environment {
-		environment[key] = brew_runtime.string_value(value)
+		environment[key] = ruby.string_value(value)
 	}
-	mut writes := map[string]brew_runtime.Value{}
+	mut writes := map[string]ruby.Value{}
 	for key, value in result.output_writes {
-		writes[key] = brew_runtime.string_value(value)
+		writes[key] = ruby.string_value(value)
 	}
-	return brew_runtime.map_value({
-		'required_executables': brew_runtime.string_array_value(result.required_executables)
-		'environment':          brew_runtime.map_value(environment)
-		'effects':              brew_runtime.array_value(result.effects.map(pr_pull_effect_value(it)))
-		'downloads':            brew_runtime.array_value(result.downloads.map(brew_runtime.map_value({
-			'url':          brew_runtime.string_value(it.url)
-			'pull_request': brew_runtime.string_value(it.pull_request)
+	return ruby.map_value({
+		'required_executables': ruby.string_array_value(result.required_executables)
+		'environment':          ruby.map_value(environment)
+		'effects':              ruby.array_value(result.effects.map(pr_pull_effect_value(it)))
+		'downloads':            ruby.array_value(result.downloads.map(ruby.map_value({
+			'url':          ruby.string_value(it.url)
+			'pull_request': ruby.string_value(it.pull_request)
 		})))
-		'ohai':                 brew_runtime.string_array_value(result.ohai)
-		'warnings':             brew_runtime.string_array_value(result.warnings)
-		'debug':                brew_runtime.string_array_value(result.debug)
-		'removed_directories':  brew_runtime.string_array_value(result.removed_directories)
-		'retained_directories': brew_runtime.string_array_value(result.retained_directories)
-		'output_writes':        brew_runtime.map_value(writes)
+		'ohai':                 ruby.string_array_value(result.ohai)
+		'warnings':             ruby.string_array_value(result.warnings)
+		'debug':                ruby.string_array_value(result.debug)
+		'removed_directories':  ruby.string_array_value(result.removed_directories)
+		'retained_directories': ruby.string_array_value(result.retained_directories)
+		'output_writes':        ruby.map_value(writes)
 	})
 }
 
 // Ruby method `run` at line 79.
-pub fn ruby_pr_pull_l79_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pr_pull_l79_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'command input is required')
+		return ruby.object_value('ArgumentError', 'command input is required')
 	}
 	input := pr_pull_boundary_input_from_value(args[0])
 	return pr_pull_run_result_value(run_pr_pull(input.run) or {
-		return brew_runtime.object_value('Error', err.msg())
+		return ruby.object_value('Error', err.msg())
 	})
 }
 
 // Ruby method `separate_commit_message(message)` at line 203.
-pub fn ruby_pr_pull_l203_d2_separate_commit_message(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pr_pull_l203_d2_separate_commit_message(args ...ruby.Value) ruby.Value {
 	message := if args.len > 0 { args[0].as_string() } else { '' }
 	return pr_pull_parts_value(separate_pr_pull_commit_message(message))
 }
 
 // Ruby method `signoff!(git_repo, pull_request: nil, dry_run: false)` at line 218.
-pub fn ruby_pr_pull_l218_d3_signoff(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pr_pull_l218_d3_signoff(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'signoff input is required')
+		return ruby.object_value('ArgumentError', 'signoff input is required')
 	}
 	result := signoff_pr_pull(pr_pull_boundary_input_from_value(args[0]).signoff)
-	return brew_runtime.map_value({
+	return ruby.map_value({
 		'parts':   pr_pull_parts_value(result.parts)
-		'effects': brew_runtime.array_value(result.effects.map(pr_pull_effect_value(it)))
+		'effects': ruby.array_value(result.effects.map(pr_pull_effect_value(it)))
 	})
 }
 
 // Ruby method `get_package(tap, subject_name, subject_path, content)` at line 248.
-pub fn ruby_pr_pull_l248_d4_get_package(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pr_pull_l248_d4_get_package(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'package input is required')
+		return ruby.object_value('ArgumentError', 'package input is required')
 	}
 	package := get_pr_pull_package(pr_pull_boundary_input_from_value(args[0]).package) or {
-		return brew_runtime.Value{ type_name: 'NilClass' }
+		return ruby.Value{ type_name: 'NilClass' }
 	}
 	return pr_pull_package_value(package)
 }
 
 // Ruby method `determine_bump_subject(old_contents, new_contents, subject_path, reason: nil)` at line 269.
-pub fn ruby_pr_pull_l269_d5_determine_bump_subject(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pr_pull_l269_d5_determine_bump_subject(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'bump input is required')
+		return ruby.object_value('ArgumentError', 'bump input is required')
 	}
-	return brew_runtime.string_value(determine_pr_pull_bump_subject(pr_pull_boundary_input_from_value(args[0]).bump))
+	return ruby.string_value(determine_pr_pull_bump_subject(pr_pull_boundary_input_from_value(args[0]).bump))
 }
 
 // Ruby method `reword_package_commit(commit, file, git_repo:, reason: "", verbose: false, resolve: false)` at line 301.
-pub fn ruby_pr_pull_l301_d6_reword_package_commit(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pr_pull_l301_d6_reword_package_commit(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'reword input is required')
+		return ruby.object_value('ArgumentError', 'reword input is required')
 	}
 	return pr_pull_rewrite_value(reword_pr_pull_package_commit(pr_pull_boundary_input_from_value(args[0]).reword))
 }
 
 // Ruby method `squash_package_commits(commits, file, git_repo:, reason: "", verbose: false, resolve: false)` at line 333.
-pub fn ruby_pr_pull_l333_d7_squash_package_commits(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pr_pull_l333_d7_squash_package_commits(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'squash input is required')
+		return ruby.object_value('ArgumentError', 'squash input is required')
 	}
 	result := squash_pr_pull_package_commits(pr_pull_boundary_input_from_value(args[0]).squash) or {
-		return brew_runtime.object_value('Error', err.msg())
+		return ruby.object_value('Error', err.msg())
 	}
 	return pr_pull_rewrite_value(result)
 }
 
 // Ruby method `autosquash!(original_commit, tap:, reason: "", verbose: false, resolve: false, cherry_picked: false)` at line 386.
-pub fn ruby_pr_pull_l386_d8_autosquash(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pr_pull_l386_d8_autosquash(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'autosquash input is required')
+		return ruby.object_value('ArgumentError', 'autosquash input is required')
 	}
 	result := autosquash_pr_pull(pr_pull_boundary_input_from_value(args[0]).autosquash)
-	return brew_runtime.map_value({
-		'error':   brew_runtime.string_value(result.error)
-		'actions': brew_runtime.array_value(result.actions.map(brew_runtime.map_value({
-			'kind':    brew_runtime.string_value(it.kind)
-			'file':    brew_runtime.string_value(it.file)
-			'commits': brew_runtime.string_array_value(it.commits)
+	return ruby.map_value({
+		'error':   ruby.string_value(result.error)
+		'actions': ruby.array_value(result.actions.map(ruby.map_value({
+			'kind':    ruby.string_value(it.kind)
+			'file':    ruby.string_value(it.file)
+			'commits': ruby.string_array_value(it.commits)
 		})))
-		'effects': brew_runtime.array_value(result.effects.map(pr_pull_effect_value(it)))
+		'effects': ruby.array_value(result.effects.map(pr_pull_effect_value(it)))
 	})
 }
 
 // Ruby method `check_pull_request_head_sha!(user, repo, pull_request)` at line 457.
-pub fn ruby_pr_pull_l457_d9_check_pull_request_head_sha(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pr_pull_l457_d9_check_pull_request_head_sha(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'head input is required')
+		return ruby.object_value('ArgumentError', 'head input is required')
 	}
 	result := check_pr_pull_head_sha(pr_pull_boundary_input_from_value(args[0]).head) or {
-		return brew_runtime.object_value('Error', err.msg())
+		return ruby.object_value('Error', err.msg())
 	}
-	return brew_runtime.map_value({
-		'commits': brew_runtime.string_array_value(result.commits)
-		'message': brew_runtime.string_value(result.message)
+	return ruby.map_value({
+		'commits': ruby.string_array_value(result.commits)
+		'message': ruby.string_value(result.message)
 	})
 }
 
 // Ruby method `cherry_pick_pr!(user, repo, pull_request, head_sha:, path: ".", commits: nil)` at line 476.
-pub fn ruby_pr_pull_l476_d10_cherry_pick_pr(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pr_pull_l476_d10_cherry_pick_pr(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'cherry-pick input is required')
+		return ruby.object_value('ArgumentError', 'cherry-pick input is required')
 	}
 	result := cherry_pick_pr_pull(pr_pull_boundary_input_from_value(args[0]).cherry_pick) or {
-		return brew_runtime.object_value('Error', err.msg())
+		return ruby.object_value('Error', err.msg())
 	}
-	return brew_runtime.map_value({
-		'effects': brew_runtime.array_value(result.effects.map(pr_pull_effect_value(it)))
-		'stdout':  brew_runtime.string_array_value(result.stdout)
-		'ohai':    brew_runtime.string_array_value(result.ohai)
+	return ruby.map_value({
+		'effects': ruby.array_value(result.effects.map(pr_pull_effect_value(it)))
+		'stdout':  ruby.string_array_value(result.stdout)
+		'ohai':    ruby.string_array_value(result.ohai)
 	})
 }
 
 // Ruby method `formulae_need_bottles?(tap, original_commit, labels)` at line 499.
-pub fn ruby_pr_pull_l499_d11_formulae_need_bottles(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pr_pull_l499_d11_formulae_need_bottles(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(pr_pull_formulae_need_bottles(pr_pull_boundary_input_from_value(args[0]).bottles))
+	return ruby.bool_value(pr_pull_formulae_need_bottles(pr_pull_boundary_input_from_value(args[0]).bottles))
 }
 
 // Ruby method `changed_packages(tap, original_commit)` at line 510.
-pub fn ruby_pr_pull_l510_d12_changed_packages(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pr_pull_l510_d12_changed_packages(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'changed-packages input is required')
+		return ruby.object_value('ArgumentError', 'changed-packages input is required')
 	}
 	result := changed_pr_pull_packages(pr_pull_boundary_input_from_value(args[0]).changed)
-	return brew_runtime.map_value({
-		'packages': brew_runtime.array_value(result.packages.map(pr_pull_package_value(it)))
-		'warnings': brew_runtime.string_array_value(result.warnings)
-		'effects':  brew_runtime.array_value(result.effects.map(pr_pull_effect_value(it)))
+	return ruby.map_value({
+		'packages': ruby.array_value(result.packages.map(pr_pull_package_value(it)))
+		'warnings': ruby.string_array_value(result.warnings)
+		'effects':  ruby.array_value(result.effects.map(pr_pull_effect_value(it)))
 	})
 }
 
 // Ruby method `pr_check_conflicts(repo, pull_request)` at line 547.
-pub fn ruby_pr_pull_l547_d13_pr_check_conflicts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pr_pull_l547_d13_pr_check_conflicts(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'conflicts input is required')
+		return ruby.object_value('ArgumentError', 'conflicts input is required')
 	}
 	result := check_pr_pull_conflicts(pr_pull_boundary_input_from_value(args[0]).conflicts)
-	return brew_runtime.map_value({
-		'error':     brew_runtime.string_value(result.error)
-		'conflicts': brew_runtime.array_value(result.conflicts.map(brew_runtime.map_value({
-			'pull_request': brew_runtime.string_value(it.pull_request)
-			'files':        brew_runtime.string_array_value(it.files)
+	return ruby.map_value({
+		'error':     ruby.string_value(result.error)
+		'conflicts': ruby.array_value(result.conflicts.map(ruby.map_value({
+			'pull_request': ruby.string_value(it.pull_request)
+			'files':        ruby.string_array_value(it.files)
 		})))
 	})
 }

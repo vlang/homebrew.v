@@ -1,6 +1,6 @@
 module test
 
-import brew_runtime
+import ruby
 import homebrew
 
 // Translated from Homebrew/brew `test/dependency_expansion_spec.rb`.
@@ -26,8 +26,8 @@ fn dependency_expansion_spec_names(dependencies []homebrew.Dependency) []string 
 	return dependencies.map(it.name)
 }
 
-fn dependency_expansion_spec_boundary(dependency homebrew.Dependency) brew_runtime.Value {
-	return homebrew.ruby_dependency_l23_d4_initialize(brew_runtime.string_value(dependency.name), brew_runtime.string_array_value(dependency.tags.map(it.boundary_string())))
+fn dependency_expansion_spec_boundary(dependency homebrew.Dependency) ruby.Value {
+	return homebrew.ruby_dependency_l23_d4_initialize(ruby.string_value(dependency.name), ruby.string_array_value(dependency.tags.map(it.boundary_string())))
 }
 
 fn dependency_expansion_spec_prune_all(_ homebrew.DependencyNode,
@@ -51,39 +51,39 @@ fn dependency_expansion_spec_keep_test(_ homebrew.DependencyNode,
 }
 
 // Ruby let `let(:foo) { build_dep(:foo) }` at line 7.
-pub fn ruby_dependency_expansion_spec_l7_d1_foo(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_expansion_spec_l7_d1_foo(args ...ruby.Value) ruby.Value {
 	_ = args
 	return dependency_expansion_spec_boundary(dependency_expansion_spec_dep('foo', []))
 }
 
 // Ruby let `let(:bar) { build_dep(:bar) }` at line 8.
-pub fn ruby_dependency_expansion_spec_l8_d2_bar(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_expansion_spec_l8_d2_bar(args ...ruby.Value) ruby.Value {
 	_ = args
 	return dependency_expansion_spec_boundary(dependency_expansion_spec_dep('bar', []))
 }
 
 // Ruby let `let(:baz) { build_dep(:baz) }` at line 9.
-pub fn ruby_dependency_expansion_spec_l9_d3_baz(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_expansion_spec_l9_d3_baz(args ...ruby.Value) ruby.Value {
 	_ = args
 	return dependency_expansion_spec_boundary(dependency_expansion_spec_dep('baz', []))
 }
 
 // Ruby let `let(:qux) { build_dep(:qux) }` at line 10.
-pub fn ruby_dependency_expansion_spec_l10_d4_qux(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_expansion_spec_l10_d4_qux(args ...ruby.Value) ruby.Value {
 	_ = args
 	return dependency_expansion_spec_boundary(dependency_expansion_spec_dep('qux', []))
 }
 
 // Ruby let `let(:deps) { [foo, bar, baz, qux] }` at line 11.
-pub fn ruby_dependency_expansion_spec_l11_d5_deps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_expansion_spec_l11_d5_deps(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.array_value(dependency_expansion_spec_deps().map(dependency_expansion_spec_boundary(it)))
+	return ruby.array_value(dependency_expansion_spec_deps().map(dependency_expansion_spec_boundary(it)))
 }
 
 // Ruby let `let(:formula) { instance_double(Formula, deps:, name: "f") }` at line 12.
-pub fn ruby_dependency_expansion_spec_l12_d6_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_expansion_spec_l12_d6_formula(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'Formula'
 		repr: 'f'
 		map_data: {
@@ -97,14 +97,14 @@ pub fn ruby_dependency_expansion_spec_l12_d6_formula(args ...brew_runtime.Value)
 }
 
 // Ruby method `build_dep(name, tags = [], deps = [])` at line 14.
-pub fn ruby_dependency_expansion_spec_l14_d7_build_dep(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_expansion_spec_l14_d7_build_dep(args ...ruby.Value) ruby.Value {
 	name := if args.len > 0 { args[0].as_string().trim_left(':') } else { '' }
 	tags := if args.len > 1 { args[1].as_string_array() or { [] } } else { [] }
 	children := if args.len > 2 { args[2].as_array() or { [] } } else { [] }
 	mut value := dependency_expansion_spec_boundary(dependency_expansion_spec_dep(name, tags))
 	mut attributes := value.attributes.clone()
 	attributes['child_count'] = children.len.str()
-	value = brew_runtime.Value{
+	value = ruby.Value{
 		...value
 		array_data: children
 		attributes: attributes
@@ -113,100 +113,100 @@ pub fn ruby_dependency_expansion_spec_l14_d7_build_dep(args ...brew_runtime.Valu
 }
 
 // Ruby it `it "yields dependent and dependency pairs" do` at line 22.
-pub fn ruby_dependency_expansion_spec_l22_d8_yields(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_expansion_spec_l22_d8_yields(args ...ruby.Value) ruby.Value {
 	_ = args
 	dependencies := dependency_expansion_spec_deps()
 	mut expander := homebrew.new_dependency_expander(dependency_expansion_spec_nodes(dependencies))
-	expanded := expander.expand(dependency_expansion_spec_root(dependencies), dependencies, '', '', false) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(dependency_expansion_spec_names(expanded) == dependency_expansion_spec_names(dependencies))
+	expanded := expander.expand(dependency_expansion_spec_root(dependencies), dependencies, '', '', false) or { return ruby.bool_value(false) }
+	return ruby.bool_value(dependency_expansion_spec_names(expanded) == dependency_expansion_spec_names(dependencies))
 }
 
 // Ruby it `it "returns the dependencies" do` at line 32.
-pub fn ruby_dependency_expansion_spec_l32_d9_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_expansion_spec_l32_d9_returns(args ...ruby.Value) ruby.Value {
 	return ruby_dependency_expansion_spec_l22_d8_yields(...args)
 }
 
 // Ruby it `it "prunes all when given a block with PRUNE" do` at line 36.
-pub fn ruby_dependency_expansion_spec_l36_d10_prunes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_expansion_spec_l36_d10_prunes(args ...ruby.Value) ruby.Value {
 	_ = args
 	dependencies := dependency_expansion_spec_deps()
 	mut expander := homebrew.new_dependency_expander(dependency_expansion_spec_nodes(dependencies))
 	result := expander.expand_with_action(dependency_expansion_spec_root(dependencies), dependencies, '', '', false, dependency_expansion_spec_prune_all) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(result.len == 0)
+	return ruby.bool_value(result.len == 0)
 }
 
 // Ruby it `it "can prune selectively" do` at line 40.
-pub fn ruby_dependency_expansion_spec_l40_d11_can(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_expansion_spec_l40_d11_can(args ...ruby.Value) ruby.Value {
 	_ = args
 	dependencies := dependency_expansion_spec_deps()
 	mut expander := homebrew.new_dependency_expander(dependency_expansion_spec_nodes(dependencies))
 	result := expander.expand_with_action(dependency_expansion_spec_root(dependencies), dependencies, '', '', false, dependency_expansion_spec_prune_foo) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(dependency_expansion_spec_names(result) == ['bar', 'baz', 'qux'])
+	return ruby.bool_value(dependency_expansion_spec_names(result) == ['bar', 'baz', 'qux'])
 }
 
 // Ruby it `it "preserves dependency order" do` at line 48.
-pub fn ruby_dependency_expansion_spec_l48_d12_preserves(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_expansion_spec_l48_d12_preserves(args ...ruby.Value) ruby.Value {
 	_ = args
 	dependencies := dependency_expansion_spec_deps()
 	mut nodes := dependency_expansion_spec_nodes(dependencies)
 	nodes[0] = homebrew.new_dependency_node('foo', [dependencies[3], dependencies[2]], homebrew.new_build_options(homebrew.new_options(), homebrew.new_options()))
 	mut expander := homebrew.new_dependency_expander(nodes)
-	result := expander.expand(dependency_expansion_spec_root(dependencies), dependencies, '', '', false) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(dependency_expansion_spec_names(result) == ['qux', 'baz', 'foo',
+	result := expander.expand(dependency_expansion_spec_root(dependencies), dependencies, '', '', false) or { return ruby.bool_value(false) }
+	return ruby.bool_value(dependency_expansion_spec_names(result) == ['qux', 'baz', 'foo',
 		'bar'])
 }
 
 // Ruby it `it "skips optionals by default" do` at line 55.
-pub fn ruby_dependency_expansion_spec_l55_d13_skips(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_expansion_spec_l55_d13_skips(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut dependencies := dependency_expansion_spec_deps()
 	dependencies[0] = dependency_expansion_spec_dep('foo', [':optional'])
 	mut expander := homebrew.new_dependency_expander(dependency_expansion_spec_nodes(dependencies))
-	result := expander.expand(dependency_expansion_spec_root(dependencies), dependencies, '', '', false) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(dependency_expansion_spec_names(result) == ['bar', 'baz', 'qux'])
+	result := expander.expand(dependency_expansion_spec_root(dependencies), dependencies, '', '', false) or { return ruby.bool_value(false) }
+	return ruby.bool_value(dependency_expansion_spec_names(result) == ['bar', 'baz', 'qux'])
 }
 
 // Ruby it `it "keeps recommended dependencies by default" do` at line 61.
-pub fn ruby_dependency_expansion_spec_l61_d14_keeps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_expansion_spec_l61_d14_keeps(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut dependencies := dependency_expansion_spec_deps()
 	dependencies[0] = dependency_expansion_spec_dep('foo', [':recommended'])
 	mut expander := homebrew.new_dependency_expander(dependency_expansion_spec_nodes(dependencies))
 	root := homebrew.new_dependency_node('f', dependencies, homebrew.new_build_options(homebrew.new_options(), homebrew.new_options('--without-foo')))
-	result := expander.expand(root, dependencies, '', '', false) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(dependency_expansion_spec_names(result) == ['foo', 'bar', 'baz',
+	result := expander.expand(root, dependencies, '', '', false) or { return ruby.bool_value(false) }
+	return ruby.bool_value(dependency_expansion_spec_names(result) == ['foo', 'bar', 'baz',
 		'qux'])
 }
 
 // Ruby it `it "merges repeated dependencies with differing options" do` at line 67.
-pub fn ruby_dependency_expansion_spec_l67_d15_merges(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_expansion_spec_l67_d15_merges(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut dependencies := dependency_expansion_spec_deps()
 	dependencies << dependency_expansion_spec_dep('foo', ['option'])
 	dependencies << dependency_expansion_spec_dep('baz', ['option'])
 	mut expander := homebrew.new_dependency_expander(dependency_expansion_spec_nodes(dependencies))
-	result := expander.expand(dependency_expansion_spec_root(dependencies), dependencies, '', '', false) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(dependency_expansion_spec_names(result) == ['foo', 'bar', 'baz',
+	result := expander.expand(dependency_expansion_spec_root(dependencies), dependencies, '', '', false) or { return ruby.bool_value(false) }
+	return ruby.bool_value(dependency_expansion_spec_names(result) == ['foo', 'bar', 'baz',
 		'qux'] && result[0].tags.map(it.boundary_string()) == ['option']
 		&& result[2].tags.map(it.boundary_string()) == ['option'])
 }
 
 // Ruby it `it "merges tags without duplicating them" do` at line 78.
-pub fn ruby_dependency_expansion_spec_l78_d16_merges(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_expansion_spec_l78_d16_merges(args ...ruby.Value) ruby.Value {
 	_ = args
 	dependencies := [dependency_expansion_spec_dep('foo', ['option']),
 		dependency_expansion_spec_dep('foo', ['option'])]
 	merged := homebrew.merge_repeated_dependencies(dependencies)
-	return brew_runtime.bool_value(merged.len == 1
+	return ruby.bool_value(merged.len == 1
 		&& merged[0].tags.map(it.boundary_string()) == ['option'])
 }
 
 // Ruby it `it "skips parent but yields children with SKIP" do` at line 86.
-pub fn ruby_dependency_expansion_spec_l86_d17_skips(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_expansion_spec_l86_d17_skips(args ...ruby.Value) ruby.Value {
 	_ = args
 	bar := dependency_expansion_spec_dep('bar', [])
 	baz := dependency_expansion_spec_dep('baz', [])
@@ -221,13 +221,13 @@ pub fn ruby_dependency_expansion_spec_l86_d17_skips(args ...brew_runtime.Value) 
 		foo,
 		foo,
 	], '', '', false, dependency_expansion_spec_skip_foo_qux) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(dependency_expansion_spec_names(result) == ['bar', 'baz'])
+	return ruby.bool_value(dependency_expansion_spec_names(result) == ['bar', 'baz'])
 }
 
 // Ruby it `it "keeps dependency but prunes recursive dependencies with KEEP_BUT_PRUNE_RECURSIVE_DEPS" do` at line 103.
-pub fn ruby_dependency_expansion_spec_l103_d18_keeps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_expansion_spec_l103_d18_keeps(args ...ruby.Value) ruby.Value {
 	_ = args
 	bar := dependency_expansion_spec_dep('bar', [])
 	foo := dependency_expansion_spec_dep('foo', [':test'])
@@ -242,13 +242,13 @@ pub fn ruby_dependency_expansion_spec_l103_d18_keeps(args ...brew_runtime.Value)
 		foo,
 		baz,
 	], '', '', false, dependency_expansion_spec_keep_test) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(dependency_expansion_spec_names(result) == ['foo', 'baz'])
+	return ruby.bool_value(dependency_expansion_spec_names(result) == ['foo', 'baz'])
 }
 
 // Ruby it `it "reuses formulae from the provided formula cache" do` at line 115.
-pub fn ruby_dependency_expansion_spec_l115_d19_reuses(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_expansion_spec_l115_d19_reuses(args ...ruby.Value) ruby.Value {
 	_ = args
 	shared_dep := dependency_expansion_spec_dep('shared', [])
 	foo := dependency_expansion_spec_dep('foo', [])
@@ -259,13 +259,13 @@ pub fn ruby_dependency_expansion_spec_l115_d19_reuses(args ...brew_runtime.Value
 		homebrew.new_dependency_node('bar', [shared_dep], homebrew.new_build_options(homebrew.new_options(), homebrew.new_options())),
 	]
 	mut expander := homebrew.new_dependency_expander(nodes)
-	result := expander.expand(dependency_expansion_spec_root([foo, bar]), [foo, bar], 'formula-cache-spec', '', true) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(dependency_expansion_spec_names(result) == ['shared', 'foo',
+	result := expander.expand(dependency_expansion_spec_root([foo, bar]), [foo, bar], 'formula-cache-spec', '', true) or { return ruby.bool_value(false) }
+	return ruby.bool_value(dependency_expansion_spec_names(result) == ['shared', 'foo',
 		'bar'])
 }
 
 // Ruby it `it "does not reuse formulae for uses_from_macos dependencies with different bounds" do` at line 136.
-pub fn ruby_dependency_expansion_spec_l136_d20_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_expansion_spec_l136_d20_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	first := homebrew.new_uses_from_macos_dependency('shared', [], {
 		'since': 'ventura'
@@ -282,26 +282,26 @@ pub fn ruby_dependency_expansion_spec_l136_d20_does(args ...brew_runtime.Value) 
 	]
 	mut expander := homebrew.new_dependency_expander(nodes)
 	result := expander.expand(dependency_expansion_spec_root([foo, bar]), [foo, bar], 'uses-from-macos-formula-cache-spec', '', true) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(dependency_expansion_spec_names(result) == ['shared', 'foo',
+	return ruby.bool_value(dependency_expansion_spec_names(result) == ['shared', 'foo',
 		'bar'])
 }
 
 // Ruby it `it "returns only the dependencies given as a collection as second argument" do` at line 158.
-pub fn ruby_dependency_expansion_spec_l158_d21_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_expansion_spec_l158_d21_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	dependencies := dependency_expansion_spec_deps()
 	selected := dependencies[1..3].clone()
 	mut expander := homebrew.new_dependency_expander(dependency_expansion_spec_nodes(dependencies))
 	result := expander.expand(dependency_expansion_spec_root(dependencies), selected, '', '', false) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(dependency_expansion_spec_names(result) == ['bar', 'baz'])
+	return ruby.bool_value(dependency_expansion_spec_names(result) == ['bar', 'baz'])
 }
 
 // Ruby it `it "doesn't raise an error when a dependency is cyclic" do` at line 163.
-pub fn ruby_dependency_expansion_spec_l163_d22_doesn(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_expansion_spec_l163_d22_doesn(args ...ruby.Value) ruby.Value {
 	_ = args
 	foo := dependency_expansion_spec_dep('foo', [])
 	bar := dependency_expansion_spec_dep('bar', [])
@@ -310,19 +310,19 @@ pub fn ruby_dependency_expansion_spec_l163_d22_doesn(args ...brew_runtime.Value)
 		homebrew.new_dependency_node('bar', [foo], homebrew.new_build_options(homebrew.new_options(), homebrew.new_options())),
 	]
 	mut expander := homebrew.new_dependency_expander(nodes)
-	_ := expander.expand(dependency_expansion_spec_root([foo, bar]), [foo, bar], '', '', false) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(true)
+	_ := expander.expand(dependency_expansion_spec_root([foo, bar]), [foo, bar], '', '', false) or { return ruby.bool_value(false) }
+	return ruby.bool_value(true)
 }
 
 // Ruby it `it "cleans the expand stack" do` at line 172.
-pub fn ruby_dependency_expansion_spec_l172_d23_cleans(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_expansion_spec_l172_d23_cleans(args ...ruby.Value) ruby.Value {
 	_ = args
 	foo := dependency_expansion_spec_dep('foo', [])
 	mut expander := homebrew.new_dependency_expander([])
 	_ := expander.expand(dependency_expansion_spec_root([foo]), [foo], '', '', false) or {
-		return brew_runtime.bool_value(expander.expand_stack().len == 0)
+		return ruby.bool_value(expander.expand_stack().len == 0)
 	}
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 // Original Ruby source (line-for-line):

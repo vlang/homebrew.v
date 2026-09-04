@@ -1,14 +1,14 @@
 module rubocops
 
-import brew_runtime
+import ruby
 import homebrew.rubocops as lines
 
 // Translated from Homebrew/brew `test/rubocops/lines_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
-pub fn ruby_lines_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::Lines', 'Lines')
+pub fn ruby_lines_spec_l7_d1_cop(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('RuboCop::Cop::FormulaAudit::Lines', 'Lines')
 }
 
 fn lines_spec_dependency(symbol string, message string) bool {
@@ -18,28 +18,28 @@ fn lines_spec_dependency(symbol string, message string) bool {
 }
 
 // Ruby it `it "reports an offense when using depends_on :automake" do` at line 10.
-pub fn ruby_lines_spec_l10_d2_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(lines_spec_dependency('automake', ':automake is deprecated. Usage should be "automake".'))
+pub fn ruby_lines_spec_l10_d2_reports(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(lines_spec_dependency('automake', ':automake is deprecated. Usage should be "automake".'))
 }
 
 // Ruby it `it "reports an offense when using depends_on :autoconf" do` at line 20.
-pub fn ruby_lines_spec_l20_d3_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(lines_spec_dependency('autoconf', ':autoconf is deprecated. Usage should be "autoconf".'))
+pub fn ruby_lines_spec_l20_d3_reports(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(lines_spec_dependency('autoconf', ':autoconf is deprecated. Usage should be "autoconf".'))
 }
 
 // Ruby it `it "reports an offense when using depends_on :libtool" do` at line 30.
-pub fn ruby_lines_spec_l30_d4_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(lines_spec_dependency('libtool', ':libtool is deprecated. Usage should be "libtool".'))
+pub fn ruby_lines_spec_l30_d4_reports(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(lines_spec_dependency('libtool', ':libtool is deprecated. Usage should be "libtool".'))
 }
 
 // Ruby it `it "reports an offense when using depends_on :apr" do` at line 40.
-pub fn ruby_lines_spec_l40_d5_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(lines_spec_dependency('apr', ':apr is deprecated. Usage should be "apr-util".'))
+pub fn ruby_lines_spec_l40_d5_reports(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(lines_spec_dependency('apr', ':apr is deprecated. Usage should be "apr-util".'))
 }
 
 // Ruby it `it "reports an offense when using depends_on :tex" do` at line 50.
-pub fn ruby_lines_spec_l50_d6_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(lines_spec_dependency('tex', ':tex is deprecated.'))
+pub fn ruby_lines_spec_l50_d6_reports(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(lines_spec_dependency('tex', ':tex is deprecated.'))
 }
 
 // Original Ruby source (line-for-line):

@@ -1,6 +1,6 @@
 module linux
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `os/linux/ld.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -26,10 +26,10 @@ pub fn (mut state LdState) set_system_ld_so(path ?string) ?string {
 }
 
 fn ld_path_executable(path string) bool {
-	if !brew_runtime.path_exists(path) {
+	if !ruby.path_exists(path) {
 		return false
 	}
-	return brew_runtime.run_command('/usr/bin/test', ['-x', path]).exit_code == 0
+	return ruby.run_command('/usr/bin/test', ['-x', path]).exit_code == 0
 }
 
 pub fn find_system_ld_so_in(candidates []string, executable fn(string) bool) ?string {
@@ -47,17 +47,17 @@ pub fn system_ld_so() ?string {
 
 pub fn ld_so_diagnostics_for(linker ?string) string {
 	path := linker or { return '' }
-	if !brew_runtime.path_exists(path) {
+	if !ruby.path_exists(path) {
 		return ''
 	}
-	result := brew_runtime.run_command(path, ['--list-diagnostics'])
+	result := ruby.run_command(path, ['--list-diagnostics'])
 	return if result.exit_code == 0 { result.output } else { '' }
 }
 
 pub fn ld_so_diagnostics(brewed bool) string {
 	if brewed {
-		prefix := brew_runtime.environment_value('HOMEBREW_PREFIX')
-		return ld_so_diagnostics_for(brew_runtime.join_path(prefix, 'lib/ld.so'))
+		prefix := ruby.environment_value('HOMEBREW_PREFIX')
+		return ld_so_diagnostics_for(ruby.join_path(prefix, 'lib/ld.so'))
 	}
 	return ld_so_diagnostics_for(system_ld_so())
 }
@@ -107,7 +107,7 @@ fn ld_dirname(path string) string {
 }
 
 fn ld_join_path(directory string, path string) string {
-	return if path.starts_with('/') { path } else { brew_runtime.join_path(directory, path) }
+	return if path.starts_with('/') { path } else { ruby.join_path(directory, path) }
 }
 
 fn ld_glob_component_matches(pattern string, name string) bool {
@@ -139,7 +139,7 @@ fn ld_glob_component_matches(pattern string, name string) bool {
 
 fn ld_glob_walk(directory string, components []string, index int, mut matches []string) {
 	if index == components.len {
-		if brew_runtime.path_exists(directory) {
+		if ruby.path_exists(directory) {
 			matches << directory
 		}
 		return
@@ -149,7 +149,7 @@ fn ld_glob_walk(directory string, components []string, index int, mut matches []
 		ld_glob_walk(ld_join_path(directory, component), components, index + 1, mut matches)
 		return
 	}
-	mut entries := brew_runtime.list_dir(directory) or { return }
+	mut entries := ruby.list_dir(directory) or { return }
 	entries.sort()
 	for entry in entries {
 		if ld_glob_component_matches(component, entry) {
@@ -171,15 +171,15 @@ fn ld_expand_glob(pattern string) []string {
 }
 
 fn read_library_paths(conf_file string, mut seen map[string]bool) []string {
-	if !brew_runtime.is_file(conf_file) {
+	if !ruby.is_file(conf_file) {
 		return []
 	}
-	real_conf_file := brew_runtime.real_path(conf_file)
+	real_conf_file := ruby.real_path(conf_file)
 	if seen[real_conf_file] {
 		return []
 	}
 	seen[real_conf_file] = true
-	contents := brew_runtime.read_file(real_conf_file) or { return [] }
+	contents := ruby.read_file(real_conf_file) or { return [] }
 	directory := ld_dirname(real_conf_file)
 	mut paths := []string{}
 	for raw_line in contents.split_into_lines() {

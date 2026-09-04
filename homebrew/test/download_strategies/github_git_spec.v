@@ -1,13 +1,13 @@
 module download_strategies
 
-import brew_runtime
+import ruby
 import homebrew.download_strategy
 
 // Translated from Homebrew/brew `test/download_strategies/github_git_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:strategy) { described_class.new(url, name, version) }` at line 7.
-pub fn ruby_github_git_spec_l7_d1_strategy(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_github_git_spec_l7_d1_strategy(args ...ruby.Value) ruby.Value {
 	url := if args.len > 0 {
 		args[0].as_string()
 	} else {
@@ -24,7 +24,7 @@ pub fn ruby_github_git_spec_l7_d1_strategy(args ...brew_runtime.Value) brew_runt
 		''
 	}
 	strategy := download_strategy.new_github_git_download_strategy(url, name, version, download_strategy.VCSDownloadMeta{})
-	return brew_runtime.structured_value('GitHubGitDownloadStrategy', url, {
+	return ruby.structured_value('GitHubGitDownloadStrategy', url, {
 		'url':     url
 		'name':    name
 		'version': version
@@ -34,24 +34,24 @@ pub fn ruby_github_git_spec_l7_d1_strategy(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby let `let(:name) { "brew" }` at line 9.
-pub fn ruby_github_git_spec_l9_d2_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('brew')
+pub fn ruby_github_git_spec_l9_d2_name(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('brew')
 }
 
 // Ruby let `let(:url) { "https://github.com/homebrew/brew.git" }` at line 10.
-pub fn ruby_github_git_spec_l10_d3_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('https://github.com/homebrew/brew.git')
+pub fn ruby_github_git_spec_l10_d3_url(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('https://github.com/homebrew/brew.git')
 }
 
 // Ruby let `let(:version) { nil }` at line 11.
-pub fn ruby_github_git_spec_l11_d4_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+pub fn ruby_github_git_spec_l11_d4_version(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby it `it "parses the URL and sets the corresponding instance variables" do` at line 13.
-pub fn ruby_github_git_spec_l13_d5_parses(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_github_git_spec_l13_d5_parses(args ...ruby.Value) ruby.Value {
 	strategy := download_strategy.new_github_git_download_strategy(ruby_github_git_spec_l10_d3_url().as_string(), ruby_github_git_spec_l9_d2_name().as_string(), '', download_strategy.VCSDownloadMeta{})
-	return brew_runtime.bool_value((strategy.user() or { '' }) == 'homebrew'
+	return ruby.bool_value((strategy.user() or { '' }) == 'homebrew'
 		&& (strategy.repo() or { '' }) == 'brew')
 }
 

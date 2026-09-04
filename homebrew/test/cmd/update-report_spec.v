@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 import homebrew.cmd as update_report_cmd
 import homebrew.cmd.update_report
 import os
@@ -8,8 +8,8 @@ import time
 
 // Translated from Homebrew/brew `test/cmd/update-report_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
-fn update_report_spec_bool(value bool) brew_runtime.Value {
-	return brew_runtime.bool_value(value)
+fn update_report_spec_bool(value bool) ruby.Value {
+	return ruby.bool_value(value)
 }
 
 fn update_report_spec_temp(label string) string {
@@ -59,15 +59,15 @@ fn update_report_spec_scan_fixture(label string, extension string,
 	return migrated.len == 0 && warnings.len == 1 && warnings[0].contains(migration_error), warnings
 }
 
-fn update_report_spec_hub_value() brew_runtime.Value {
-	return brew_runtime.structured_value('ReporterHub', '0 reporter(s)', {
+fn update_report_spec_hub_value() ruby.Value {
+	return ruby.structured_value('ReporterHub', '0 reporter(s)', {
 		'reporter_count': '0'
 		'empty':          'true'
 	})
 }
 
 // Ruby it `it "links to the donations section" do` at line 15.
-pub fn ruby_update_report_spec_l15_d1_links(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_report_spec_l15_d1_links(args ...ruby.Value) ruby.Value {
 	mut settings := {
 		'donationmessage': 'false'
 	}
@@ -76,9 +76,9 @@ pub fn ruby_update_report_spec_l15_d1_links(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby method `setup_redirected_tap(name)` at line 23.
-pub fn ruby_update_report_spec_l23_d2_setup_redirected_tap(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_report_spec_l23_d2_setup_redirected_tap(args ...ruby.Value) ruby.Value {
 	name := if args.len > 0 { args[0].as_string() } else { 'foo' }
-	return brew_runtime.structured_value('RedirectedTap', 'allowed/${name}', {
+	return ruby.structured_value('RedirectedTap', 'allowed/${name}', {
 		'name':            name
 		'remote':          'https://allowed.example/homebrew-${name}'
 		'before_revision': '12345678'
@@ -87,7 +87,7 @@ pub fn ruby_update_report_spec_l23_d2_setup_redirected_tap(args ...brew_runtime.
 }
 
 // Ruby method `run_quiet_update_report` at line 40.
-pub fn ruby_update_report_spec_l40_d3_run_quiet_update_report(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_report_spec_l40_d3_run_quiet_update_report(args ...ruby.Value) ruby.Value {
 	mut context := update_report_cmd.UpdateReportContext{
 		environment: {
 			'HOMEBREW_UPDATE_BEFORE': 'abc'
@@ -103,7 +103,7 @@ pub fn ruby_update_report_spec_l40_d3_run_quiet_update_report(args ...brew_runti
 }
 
 // Ruby it `it "copies update revisions for redirected tap names" do` at line 48.
-pub fn ruby_update_report_spec_l48_d4_copies(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_report_spec_l48_d4_copies(args ...ruby.Value) ruby.Value {
 	mut context := update_report_cmd.UpdateReportContext{
 		environment: {
 			'HOMEBREW_UPDATE_BEFORE':                  'abc'
@@ -127,7 +127,7 @@ pub fn ruby_update_report_spec_l48_d4_copies(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby it `it "refuses an off-allowlist redirect and rolls the tap back to its pre-update revision" do` at line 76.
-pub fn ruby_update_report_spec_l76_d5_refuses(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_report_spec_l76_d5_refuses(args ...ruby.Value) ruby.Value {
 	mut context := update_report_cmd.UpdateReportContext{
 		environment: {
 			'HOMEBREW_UPDATE_BEFORE':                      'abc'
@@ -150,7 +150,7 @@ pub fn ruby_update_report_spec_l76_d5_refuses(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby it `it "rolls back every denied tap when several off-allowlist redirects are in the file" do` at line 102.
-pub fn ruby_update_report_spec_l102_d6_rolls(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_report_spec_l102_d6_rolls(args ...ruby.Value) ruby.Value {
 	mut context := update_report_cmd.UpdateReportContext{
 		environment: {
 			'HOMEBREW_UPDATE_BEFORE': 'abc'
@@ -168,7 +168,7 @@ pub fn ruby_update_report_spec_l102_d6_rolls(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby it `it "rolls back the remote-tracking ref for a denied redirect when HEAD is detached" do` at line 137.
-pub fn ruby_update_report_spec_l137_d7_rolls(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_report_spec_l137_d7_rolls(args ...ruby.Value) ruby.Value {
 	mut context := update_report_cmd.UpdateReportContext{
 		environment: {
 			'HOMEBREW_UPDATE_BEFORE':                      'abc'
@@ -191,46 +191,46 @@ pub fn ruby_update_report_spec_l137_d7_rolls(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby it `it "migrates supported Caskroom Ruby and internal JSON metadata to JSON for all users" do` at line 164.
-pub fn ruby_update_report_spec_l164_d8_migrates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_report_spec_l164_d8_migrates(args ...ruby.Value) ruby.Value {
 	ok, _ := update_report_spec_scan_fixture('supported', 'rb', '')
 	return update_report_spec_bool(ok)
 }
 
 // Ruby it `it "repairs migrated Cask metadata that differs" do` at line 283.
-pub fn ruby_update_report_spec_l283_d9_repairs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_report_spec_l283_d9_repairs(args ...ruby.Value) ruby.Value {
 	ok, _ := update_report_spec_scan_fixture('repair', 'rb', '')
 	return update_report_spec_bool(ok)
 }
 
 // Ruby it `it "repairs existing JSON metadata once" do` at line 324.
-pub fn ruby_update_report_spec_l324_d10_repairs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_report_spec_l324_d10_repairs(args ...ruby.Value) ruby.Value {
 	ok, _ := update_report_spec_scan_fixture('existing-json', 'json', '')
 	return update_report_spec_bool(ok)
 }
 
 // Ruby it `it "migrates the aged Caskroom fixture eras and preserves their artifacts" do` at line 343.
-pub fn ruby_update_report_spec_l343_d11_migrates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_report_spec_l343_d11_migrates(args ...ruby.Value) ruby.Value {
 	ok, _ := update_report_spec_scan_fixture('aged', 'rb', '')
 	failed, warnings := update_report_spec_scan_fixture('uninstall-flight', 'rb', 'uninstall flight blocks')
 	return update_report_spec_bool(ok && failed && warnings.len == 1)
 }
 
 // Ruby let `let(:tap) { CoreTap.instance }` at line 400.
-pub fn ruby_update_report_spec_l400_d12_tap(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_report_spec_l400_d12_tap(args ...ruby.Value) ruby.Value {
 	tap := update_report_spec_tap(true)
-	return brew_runtime.structured_value('Tap', tap.name, {
+	return ruby.structured_value('Tap', tap.name, {
 		'name': tap.name
 		'path': tap.path
 	})
 }
 
 // Ruby let `let(:reporter_class) do` at line 401.
-pub fn ruby_update_report_spec_l401_d13_reporter_class(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Class<Reporter>', 'Reporter fixture subclass')
+pub fn ruby_update_report_spec_l401_d13_reporter_class(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Class<Reporter>', 'Reporter fixture subclass')
 }
 
 // Ruby method `initialize(tap)` at line 403.
-pub fn ruby_update_report_spec_l403_d14_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_report_spec_l403_d14_initialize(args ...ruby.Value) ruby.Value {
 	reporter := update_report.Reporter{
 		tap: update_report_spec_tap(true)
 		initial_revision: '12345678'
@@ -240,28 +240,28 @@ pub fn ruby_update_report_spec_l403_d14_initialize(args ...brew_runtime.Value) b
 }
 
 // Ruby let `let(:reporter) { reporter_class.new(tap) }` at line 413.
-pub fn ruby_update_report_spec_l413_d15_reporter(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_report_spec_l413_d15_reporter(args ...ruby.Value) ruby.Value {
 	return ruby_update_report_spec_l403_d14_initialize(...args)
 }
 
 // Ruby let `let(:hub) { ReporterHub.new }` at line 414.
-pub fn ruby_update_report_spec_l414_d16_hub(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_report_spec_l414_d16_hub(args ...ruby.Value) ruby.Value {
 	return update_report_spec_hub_value()
 }
 
 // Ruby method `perform_update(fixture_name = "")` at line 416.
-pub fn ruby_update_report_spec_l416_d17_perform_update(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_report_spec_l416_d17_perform_update(args ...ruby.Value) ruby.Value {
 	diff := if args.len > 0 { args[0].as_string() } else { '' }
 	report := update_report_spec_report(diff, update_report_spec_tap(true))
-	return brew_runtime.map_value({
-		'A': brew_runtime.string_array_value(report.added_formulae)
-		'D': brew_runtime.string_array_value(report.deleted_formulae)
-		'M': brew_runtime.string_array_value(report.modified_formulae)
+	return ruby.map_value({
+		'A': ruby.string_array_value(report.added_formulae)
+		'D': ruby.string_array_value(report.deleted_formulae)
+		'M': ruby.string_array_value(report.modified_formulae)
 	})
 }
 
 // Ruby specify `specify "without revision variable" do` at line 426.
-pub fn ruby_update_report_spec_l426_d18_without(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_report_spec_l426_d18_without(args ...ruby.Value) ruby.Value {
 	update_report.new_reporter(update_report_spec_tap(true), map[string]string{}, '', '', '') or {
 		return update_report_spec_bool(err.msg().contains('HOMEBREW_UPDATE_BEFORE') && err.msg().ends_with('is unset!'))
 	}
@@ -269,19 +269,19 @@ pub fn ruby_update_report_spec_l426_d18_without(args ...brew_runtime.Value) brew
 }
 
 // Ruby specify `specify "without any changes" do` at line 434.
-pub fn ruby_update_report_spec_l434_d19_without(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_report_spec_l434_d19_without(args ...ruby.Value) ruby.Value {
 	report := update_report_spec_report('', update_report_spec_tap(true))
 	return update_report_spec_bool(report.added_formulae.len == 0 && report.deleted_formulae.len == 0 && report.modified_formulae.len == 0)
 }
 
 // Ruby specify `specify "without Formula changes" do` at line 439.
-pub fn ruby_update_report_spec_l439_d20_without(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_report_spec_l439_d20_without(args ...ruby.Value) ruby.Value {
 	report := update_report_spec_report('M README.md\nA cmd/foo.rb', update_report_spec_tap(true))
 	return update_report_spec_bool(report.added_formulae.len == 0 && report.deleted_formulae.len == 0 && report.modified_formulae.len == 0)
 }
 
 // Ruby specify `specify "with Formula changes" do` at line 447.
-pub fn ruby_update_report_spec_l447_d21_with(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_report_spec_l447_d21_with(args ...ruby.Value) ruby.Value {
 	report := update_report_spec_report('M Formula/xar.rb\nM Formula/yajl.rb\nA Formula/antiword.rb\nA Formula/bash-completion.rb\nA Formula/ddrescue.rb\nA Formula/dict.rb\nA Formula/lua.rb', update_report_spec_tap(true))
 	return update_report_spec_bool(report.modified_formulae == ['xar', 'yajl'] && report.added_formulae == [
 		'antiword',
@@ -293,13 +293,13 @@ pub fn ruby_update_report_spec_l447_d21_with(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby specify `specify "with removed Formulae" do` at line 454.
-pub fn ruby_update_report_spec_l454_d22_with(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_report_spec_l454_d22_with(args ...ruby.Value) ruby.Value {
 	report := update_report_spec_report('D Formula/libgsasl.rb', update_report_spec_tap(true))
 	return update_report_spec_bool(report.deleted_formulae == ['libgsasl'])
 }
 
 // Ruby specify `specify "with changed file type" do` at line 460.
-pub fn ruby_update_report_spec_l460_d23_with(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_report_spec_l460_d23_with(args ...ruby.Value) ruby.Value {
 	report := update_report_spec_report('M Formula/elixir.rb\nA Formula/libbson.rb\nD Formula/libgsasl.rb', update_report_spec_tap(true))
 	return update_report_spec_bool(report.modified_formulae == ['elixir'] && report.added_formulae == [
 		'libbson',
@@ -307,7 +307,7 @@ pub fn ruby_update_report_spec_l460_d23_with(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby specify `specify "with renamed Formula" do` at line 468.
-pub fn ruby_update_report_spec_l468_d24_with(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_report_spec_l468_d24_with(args ...ruby.Value) ruby.Value {
 	base := update_report_spec_tap(true)
 	tap := update_report.ReporterTap{
 		...base
@@ -322,20 +322,20 @@ pub fn ruby_update_report_spec_l468_d24_with(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby let `let(:tap) { Tap.fetch("foo", "bar") }` at line 478.
-pub fn ruby_update_report_spec_l478_d25_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.structured_value('Tap', 'foo/bar', {
+pub fn ruby_update_report_spec_l478_d25_tap(args ...ruby.Value) ruby.Value {
+	return ruby.structured_value('Tap', 'foo/bar', {
 		'name': 'foo/bar'
 	})
 }
 
 // Ruby specify `specify "with restructured Tap" do` at line 488.
-pub fn ruby_update_report_spec_l488_d26_with(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_report_spec_l488_d26_with(args ...ruby.Value) ruby.Value {
 	report := update_report_spec_report('R100 foo.rb Formula/foo.rb', update_report_spec_tap(false))
 	return update_report_spec_bool(report.added_formulae.len == 0 && report.deleted_formulae.len == 0 && report.renamed_formulae.len == 0)
 }
 
 // Ruby specify `specify "with renamed Formula and restructured Tap" do` at line 496.
-pub fn ruby_update_report_spec_l496_d27_with(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_report_spec_l496_d27_with(args ...ruby.Value) ruby.Value {
 	base := update_report_spec_tap(false)
 	tap := update_report.ReporterTap{
 		...base
@@ -351,13 +351,13 @@ pub fn ruby_update_report_spec_l496_d27_with(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby specify `specify "with simulated 'homebrew/php' restructuring" do` at line 505.
-pub fn ruby_update_report_spec_l505_d28_with(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_report_spec_l505_d28_with(args ...ruby.Value) ruby.Value {
 	report := update_report_spec_report('R100 foo.rb Formula/foo.rb', update_report_spec_tap(false))
 	return update_report_spec_bool(report.added_formulae.len == 0 && report.deleted_formulae.len == 0 && report.renamed_formulae.len == 0)
 }
 
 // Ruby specify `specify "with Formula changes" do` at line 513.
-pub fn ruby_update_report_spec_l513_d29_with(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_report_spec_l513_d29_with(args ...ruby.Value) ruby.Value {
 	report := update_report_spec_report('A Formula/lua.rb\nM Formula/git.rb', update_report_spec_tap(false))
 	return update_report_spec_bool(report.added_formulae == ['foo/bar/lua'] && report.modified_formulae == [
 		'foo/bar/git',
@@ -365,7 +365,7 @@ pub fn ruby_update_report_spec_l513_d29_with(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby specify `specify "with formula migrated to cask in same tap" do` at line 521.
-pub fn ruby_update_report_spec_l521_d30_with(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_report_spec_l521_d30_with(args ...ruby.Value) ruby.Value {
 	base := update_report_spec_tap(false)
 	tap := update_report.ReporterTap{
 		...base
@@ -378,33 +378,33 @@ pub fn ruby_update_report_spec_l521_d30_with(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby let `let(:other_tap) { Tap.fetch("foo", "bar") }` at line 542.
-pub fn ruby_update_report_spec_l542_d31_other_tap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.structured_value('Tap', 'foo/bar', {
+pub fn ruby_update_report_spec_l542_d31_other_tap(args ...ruby.Value) ruby.Value {
+	return ruby.structured_value('Tap', 'foo/bar', {
 		'name':      'foo/bar'
 		'installed': 'false'
 	})
 }
 
 // Ruby it `it "recommends trusting just the migrated package then migrating a rename" do` at line 546.
-pub fn ruby_update_report_spec_l546_d32_recommends(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_report_spec_l546_d32_recommends(args ...ruby.Value) ruby.Value {
 	result := update_report.reporter_ensure_trusted_tap_installed('oldfoo', 'newfoo', update_report.ReporterTap{ name: 'foo/bar', installed: false })
 	return update_report_spec_bool(!result.allowed && result.warning.contains('brew trust foo/bar/newfoo') && result.warning.contains('brew migrate oldfoo'))
 }
 
 // Ruby it `it "recommends a reinstall for an unchanged-name tap migration" do` at line 552.
-pub fn ruby_update_report_spec_l552_d33_recommends(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_report_spec_l552_d33_recommends(args ...ruby.Value) ruby.Value {
 	result := update_report.reporter_ensure_trusted_tap_installed('foo', 'foo', update_report.ReporterTap{ name: 'foo/bar', installed: false })
 	return update_report_spec_bool(!result.allowed && result.warning.contains('brew reinstall foo'))
 }
 
 // Ruby it `it "taps a trusted tap" do` at line 557.
-pub fn ruby_update_report_spec_l557_d34_taps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_report_spec_l557_d34_taps(args ...ruby.Value) ruby.Value {
 	result := update_report.reporter_ensure_trusted_tap_installed('foo', 'foo', update_report.ReporterTap{ name: 'foo/bar', installed: false, official: true })
 	return update_report_spec_bool(result.allowed && result.installed_tap)
 }
 
 // Ruby subject `subject(:reporter) do` at line 566.
-pub fn ruby_update_report_spec_l566_d35_reporter(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_report_spec_l566_d35_reporter(args ...ruby.Value) ruby.Value {
 	return update_report.reporter_to_value(update_report.Reporter{
 		tap: update_report_spec_tap(true)
 		api_names_txt: 'formula_names.txt'
@@ -414,24 +414,24 @@ pub fn ruby_update_report_spec_l566_d35_reporter(args ...brew_runtime.Value) bre
 }
 
 // Ruby it `it "ignore lines that haven't changed" do` at line 573.
-pub fn ruby_update_report_spec_l573_d36_ignore(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_report_spec_l573_d36_ignore(args ...ruby.Value) ruby.Value {
 	diff := update_report.reporter_api_diff('foo\n+bar\n-baz\n', 'api')
 	return update_report_spec_bool(diff == 'A api/bar.rb\nD api/baz.rb')
 }
 
 // Ruby it `it "handles moved lines" do` at line 586.
-pub fn ruby_update_report_spec_l586_d37_handles(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_report_spec_l586_d37_handles(args ...ruby.Value) ruby.Value {
 	diff := update_report.reporter_api_diff('+baz\nfoo\n+bar\n+baz\n-bar\n-baz\n', 'api')
 	return update_report_spec_bool(diff == 'A api/baz.rb')
 }
 
 // Ruby let `let(:hub) { described_class.new }` at line 605.
-pub fn ruby_update_report_spec_l605_d38_hub(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_report_spec_l605_d38_hub(args ...ruby.Value) ruby.Value {
 	return update_report_spec_hub_value()
 }
 
 // Ruby it `it "dumps new formulae report" do` at line 612.
-pub fn ruby_update_report_spec_l612_d39_dumps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_report_spec_l612_d39_dumps(args ...ruby.Value) ruby.Value {
 	hub := update_report.ReporterHub{
 		report: update_report.ReporterReport{ added_formulae: ['foo', 'bar', 'baz'] }
 	}
@@ -445,7 +445,7 @@ pub fn ruby_update_report_spec_l612_d39_dumps(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby it `it "dumps new casks report" do` at line 630.
-pub fn ruby_update_report_spec_l630_d40_dumps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_report_spec_l630_d40_dumps(args ...ruby.Value) ruby.Value {
 	hub := update_report.ReporterHub{
 		report: update_report.ReporterReport{ added_casks: ['cask1', 'cask2', 'foo/tap/cask3'] }
 	}
@@ -460,7 +460,7 @@ pub fn ruby_update_report_spec_l630_d40_dumps(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby it `it "does not dump update details when HOMEBREW_AUTO_UPDATE_QUIET is set during auto-update" do` at line 649.
-pub fn ruby_update_report_spec_l649_d41_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_report_spec_l649_d41_does(args ...ruby.Value) ruby.Value {
 	hub := update_report.ReporterHub{
 		report: update_report.ReporterReport{ added_formulae: ['foo'] }
 	}
@@ -471,7 +471,7 @@ pub fn ruby_update_report_spec_l649_d41_does(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby it `it "dumps update details when HOMEBREW_AUTO_UPDATE_QUIET is set during an explicit update" do` at line 657.
-pub fn ruby_update_report_spec_l657_d42_dumps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_report_spec_l657_d42_dumps(args ...ruby.Value) ruby.Value {
 	hub := update_report.ReporterHub{
 		report: update_report.ReporterReport{ added_formulae: ['foo'] }
 	}
@@ -481,7 +481,7 @@ pub fn ruby_update_report_spec_l657_d42_dumps(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby it `it "dumps deleted installed formulae and casks report" do` at line 665.
-pub fn ruby_update_report_spec_l665_d43_dumps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_report_spec_l665_d43_dumps(args ...ruby.Value) ruby.Value {
 	hub := update_report.ReporterHub{
 		report: update_report.ReporterReport{
 			deleted_formulae: ['baz', 'foo', 'bar']
@@ -496,7 +496,7 @@ pub fn ruby_update_report_spec_l665_d43_dumps(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby it `it "dumps outdated formulae and casks report" do` at line 686.
-pub fn ruby_update_report_spec_l686_d44_dumps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_report_spec_l686_d44_dumps(args ...ruby.Value) ruby.Value {
 	hub := update_report.ReporterHub{}
 	output := hub.dump(update_report.ReporterHubDumpContext{
 		outdated_formulae: ['foo', 'bar']
@@ -506,7 +506,7 @@ pub fn ruby_update_report_spec_l686_d44_dumps(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby it `it "skips the outdated count when auto-updating before a zero-argument upgrade or outdated" do` at line 709.
-pub fn ruby_update_report_spec_l709_d45_skips(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_report_spec_l709_d45_skips(args ...ruby.Value) ruby.Value {
 	hub := update_report.ReporterHub{}
 	return update_report_spec_bool(hub.dump(update_report.ReporterHubDumpContext{
 		auto_update: true
@@ -516,12 +516,12 @@ pub fn ruby_update_report_spec_l709_d45_skips(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby it `it "prints nothing if there are no changes" do` at line 718.
-pub fn ruby_update_report_spec_l718_d46_prints(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_report_spec_l718_d46_prints(args ...ruby.Value) ruby.Value {
 	return update_report_spec_bool(update_report.ReporterHub{}.dump(update_report.ReporterHubDumpContext{}) == '')
 }
 
 // Ruby it `it "merges frozen report arrays" do` at line 724.
-pub fn ruby_update_report_spec_l724_d47_merges(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_report_spec_l724_d47_merges(args ...ruby.Value) ruby.Value {
 	mut first := update_report.Reporter{
 		tap: update_report_spec_tap(true)
 		initial_revision: '1'

@@ -1,6 +1,6 @@
 module artifact
 
-import brew_runtime
+import ruby
 import homebrew.cask.artifact as cask_artifact
 import os
 import time
@@ -67,20 +67,20 @@ pub fn zsh_completion_spec_links(token string) bool {
 		&& os.real_path(target) == os.real_path(source)
 }
 
-fn zsh_completion_spec_cask_value(cask ZshCompletionSpecCask) brew_runtime.Value {
-	return brew_runtime.Value{
+fn zsh_completion_spec_cask_value(cask ZshCompletionSpecCask) ruby.Value {
+	return ruby.Value{
 		type_name: 'Cask::Cask'
 		repr: cask.token
 		map_data: {
-			'token':                    brew_runtime.string_value(cask.token)
-			'staged_path':              brew_runtime.string_value(cask.staged_path)
-			'zsh_completion_directory': brew_runtime.string_value(cask.zsh_completion_directory)
-			'completion_source':        brew_runtime.string_value(cask.completion_source)
+			'token':                    ruby.string_value(cask.token)
+			'staged_path':              ruby.string_value(cask.staged_path)
+			'zsh_completion_directory': ruby.string_value(cask.zsh_completion_directory)
+			'completion_source':        ruby.string_value(cask.completion_source)
 		}
 	}
 }
 
-fn zsh_completion_spec_cask_from_value(value brew_runtime.Value) !ZshCompletionSpecCask {
+fn zsh_completion_spec_cask_from_value(value ruby.Value) !ZshCompletionSpecCask {
 	if value.type_name != 'Cask::Cask' {
 		return error('expected Cask::Cask, got ${value.type_name}')
 	}
@@ -99,92 +99,92 @@ fn zsh_completion_spec_cask_from_value(value brew_runtime.Value) !ZshCompletionS
 }
 
 // Ruby let `let(:cask_token) { "with-shellcompletion" }` at line 5.
-pub fn ruby_zshcompletion_spec_l5_d1_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_zshcompletion_spec_l5_d1_cask_token(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('with-shellcompletion')
+	return ruby.string_value('with-shellcompletion')
 }
 
 // Ruby let `let(:cask) { Cask::CaskLoader.load(cask_token) }` at line 6.
-pub fn ruby_zshcompletion_spec_l6_d2_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_zshcompletion_spec_l6_d2_cask(args ...ruby.Value) ruby.Value {
 	token := if args.len > 0 { args[0].as_string() } else { 'with-shellcompletion' }
 	root := if args.len > 1 { args[1].as_string() } else { zsh_completion_spec_root('cask') }
 	cask := load_zsh_completion_spec_cask(token, root) or {
-		return brew_runtime.object_value('CaskUnavailableError', err.msg())
+		return ruby.object_value('CaskUnavailableError', err.msg())
 	}
 	return zsh_completion_spec_cask_value(cask)
 }
 
 // Ruby let `let(:install_phase) do` at line 9.
-pub fn ruby_zshcompletion_spec_l9_d3_install_phase(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_zshcompletion_spec_l9_d3_install_phase(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('Proc', 'install ZshCompletion artifacts without sudo or force')
+		return ruby.object_value('Proc', 'install ZshCompletion artifacts without sudo or force')
 	}
 	cask := zsh_completion_spec_cask_from_value(args[0]) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	return cask_artifact.symlinked_operation_to_value(zsh_completion_spec_install_phase(cask))
 }
 
 // Ruby let `let(:source_path) { cask.staged_path.join("_test") }` at line 17.
-pub fn ruby_zshcompletion_spec_l17_d4_source_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_zshcompletion_spec_l17_d4_source_path(args ...ruby.Value) ruby.Value {
 	cask_value := if args.len > 0 { args[0] } else { ruby_zshcompletion_spec_l6_d2_cask() }
 	cask := zsh_completion_spec_cask_from_value(cask_value) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
-	return brew_runtime.object_value('Pathname', os.join_path(cask.staged_path, '_test'))
+	return ruby.object_value('Pathname', os.join_path(cask.staged_path, '_test'))
 }
 
 // Ruby let `let(:target_path) { cask.config.zsh_completion.join("_test") }` at line 18.
-pub fn ruby_zshcompletion_spec_l18_d5_target_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_zshcompletion_spec_l18_d5_target_path(args ...ruby.Value) ruby.Value {
 	cask_value := if args.len > 0 { args[0] } else { ruby_zshcompletion_spec_l6_d2_cask() }
 	cask := zsh_completion_spec_cask_from_value(cask_value) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
-	return brew_runtime.object_value('Pathname', os.join_path(cask.zsh_completion_directory, '_test'))
+	return ruby.object_value('Pathname', os.join_path(cask.zsh_completion_directory, '_test'))
 }
 
 // Ruby let `let(:full_source_path) { cask.staged_path.join("test.zsh-completion") }` at line 19.
-pub fn ruby_zshcompletion_spec_l19_d6_full_source_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_zshcompletion_spec_l19_d6_full_source_path(args ...ruby.Value) ruby.Value {
 	cask_value := if args.len > 0 {
 		args[0]
 	} else {
-		ruby_zshcompletion_spec_l6_d2_cask(brew_runtime.string_value('with-shellcompletion-long'))
+		ruby_zshcompletion_spec_l6_d2_cask(ruby.string_value('with-shellcompletion-long'))
 	}
 	cask := zsh_completion_spec_cask_from_value(cask_value) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
-	return brew_runtime.object_value('Pathname', os.join_path(cask.staged_path, 'test.zsh-completion'))
+	return ruby.object_value('Pathname', os.join_path(cask.staged_path, 'test.zsh-completion'))
 }
 
 // Ruby let `let(:full_target_path) { cask.config.zsh_completion.join("_test") }` at line 20.
-pub fn ruby_zshcompletion_spec_l20_d7_full_target_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_zshcompletion_spec_l20_d7_full_target_path(args ...ruby.Value) ruby.Value {
 	cask_value := if args.len > 0 {
 		args[0]
 	} else {
-		ruby_zshcompletion_spec_l6_d2_cask(brew_runtime.string_value('with-shellcompletion-long'))
+		ruby_zshcompletion_spec_l6_d2_cask(ruby.string_value('with-shellcompletion-long'))
 	}
 	cask := zsh_completion_spec_cask_from_value(cask_value) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
-	return brew_runtime.object_value('Pathname', os.join_path(cask.zsh_completion_directory, '_test'))
+	return ruby.object_value('Pathname', os.join_path(cask.zsh_completion_directory, '_test'))
 }
 
 // Ruby it `it "links the completion to the proper directory" do` at line 23.
-pub fn ruby_zshcompletion_spec_l23_d8_links(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_zshcompletion_spec_l23_d8_links(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(zsh_completion_spec_links('with-shellcompletion'))
+	return ruby.bool_value(zsh_completion_spec_links('with-shellcompletion'))
 }
 
 // Ruby let `let(:cask_token) { "with-shellcompletion-long" }` at line 34.
-pub fn ruby_zshcompletion_spec_l34_d9_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_zshcompletion_spec_l34_d9_cask_token(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('with-shellcompletion-long')
+	return ruby.string_value('with-shellcompletion-long')
 }
 
 // Ruby it `it "links the completion to the proper directory" do` at line 36.
-pub fn ruby_zshcompletion_spec_l36_d10_links(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_zshcompletion_spec_l36_d10_links(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(zsh_completion_spec_links('with-shellcompletion-long'))
+	return ruby.bool_value(zsh_completion_spec_links('with-shellcompletion-long'))
 }
 
 // Original Ruby source (line-for-line):

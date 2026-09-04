@@ -1,6 +1,6 @@
 module helper
 
-import brew_runtime
+import ruby
 import homebrew
 import os
 
@@ -8,9 +8,9 @@ import os
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `generated_hash!` at line 10.
-pub fn ruby_api_hashable_l10_d1_generated_hash(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_hashable_l10_d1_generated_hash(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	mut state := homebrew.ApiHashableState{
 		generating_hash: (args[0].attribute('generating_hash') or { 'false' }).bool()
@@ -28,7 +28,7 @@ pub fn ruby_api_hashable_l10_d1_generated_hash(args ...brew_runtime.Value) brew_
 	} else {
 		os.setenv('GIT_CONFIG_GLOBAL', state.git_config_global, true)
 	}
-	return brew_runtime.structured_value('APIHashableState', state.homebrew_prefix, {
+	return ruby.structured_value('APIHashableState', state.homebrew_prefix, {
 		'generating_hash':       state.generating_hash.str()
 		'old_homebrew_prefix':   state.old_homebrew_prefix
 		'old_home':              state.old_home

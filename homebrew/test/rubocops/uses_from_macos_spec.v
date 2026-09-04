@@ -1,14 +1,14 @@
 module rubocops
 
-import brew_runtime
+import ruby
 import homebrew.rubocops as uses_from_macos_core
 
 // Translated from Homebrew/brew `test/rubocops/uses_from_macos_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
-pub fn ruby_uses_from_macos_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::UsesFromMacos', 'FormulaAudit/UsesFromMacos')
+pub fn ruby_uses_from_macos_spec_l7_d1_cop(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('RuboCop::Cop::FormulaAudit::UsesFromMacos', 'FormulaAudit/UsesFromMacos')
 }
 
 // Ruby it `it "reports an offense when used on non-macOS dependency" do` at line 10.

@@ -1,6 +1,6 @@
 module strategy
 
-import brew_runtime
+import ruby
 import json2
 import regex
 
@@ -238,21 +238,21 @@ fn header_match_empty_fetcher(url string) ![]HeaderMatchHeaders {
 }
 
 // Ruby method `self.match?(url)` at line 32.
-pub fn ruby_header_match_l32_d1_self_match(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_header_match_l32_d1_self_match(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(header_match_matches_url(args[0].as_string()))
+	return ruby.bool_value(header_match_matches_url(args[0].as_string()))
 }
 
 // Ruby method `self.versions_from_content(headers, regex = nil, &block)` at line 49.
-pub fn ruby_header_match_l49_d2_self_versions_from_content(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_header_match_l49_d2_self_versions_from_content(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_array_value([])
+		return ruby.string_array_value([])
 	}
 	content := args[0].as_string()
 	headers := header_match_headers_from_json(content) or {
-		return brew_runtime.object_value('JsonError', err.msg())
+		return ruby.object_value('JsonError', err.msg())
 	}
 	match_regex := if args.len > 1 && args[1].as_string() != '' {
 		?GithubReleasesRegex(GithubReleasesRegex{ pattern: args[1].as_string() })
@@ -262,40 +262,40 @@ pub fn ruby_header_match_l49_d2_self_versions_from_content(args ...brew_runtime.
 	versions := header_match_versions_from_content(HeaderMatchVersionsRequest{
 		headers: headers
 		regex: match_regex
-	}) or { return brew_runtime.object_value('Error', err.msg()) }
-	return brew_runtime.string_array_value(versions)
+	}) or { return ruby.object_value('Error', err.msg()) }
+	return ruby.string_array_value(versions)
 }
 
 // Ruby method `self.find_versions(url:, regex: nil, content: nil, options: Options.new, &block)` at line 98.
-pub fn ruby_header_match_l98_d3_self_find_versions(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_header_match_l98_d3_self_find_versions(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.map_value({})
+		return ruby.map_value({})
 	}
 	content := if args.len > 1 { ?string(args[1].as_string()) } else { none }
 	result := header_match_find_versions(HeaderMatchFindRequest{
 		url: args[0].as_string()
 		content: content
-	}, header_match_empty_fetcher) or { return brew_runtime.object_value('Error', err.msg()) }
-	mut matches := map[string]brew_runtime.Value{}
+	}, header_match_empty_fetcher) or { return ruby.object_value('Error', err.msg()) }
+	mut matches := map[string]ruby.Value{}
 	for version in result.matches.keys() {
-		matches[version] = brew_runtime.string_value(version)
+		matches[version] = ruby.string_value(version)
 	}
 	mut values := {
-		'matches': brew_runtime.map_value(matches)
-		'url':     brew_runtime.string_value(result.url)
+		'matches': ruby.map_value(matches)
+		'url':     ruby.string_value(result.url)
 	}
 	if match_regex := result.regex {
-		values['regex'] = brew_runtime.string_value(match_regex.pattern)
+		values['regex'] = ruby.string_value(match_regex.pattern)
 	} else {
-		values['regex'] = brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+		values['regex'] = ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 	}
 	if result.has_cached {
-		values['cached'] = brew_runtime.bool_value(result.cached)
+		values['cached'] = ruby.bool_value(result.cached)
 	}
 	if result.has_content {
-		values['content'] = brew_runtime.string_value(result.content)
+		values['content'] = ruby.string_value(result.content)
 	}
-	return brew_runtime.map_value(values)
+	return ruby.map_value(values)
 }
 
 // Original Ruby source (line-for-line):

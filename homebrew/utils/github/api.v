@@ -1,6 +1,6 @@
 module github
 
-import brew_runtime
+import ruby
 import time
 import x.json2
 
@@ -172,8 +172,8 @@ pub type GitHubApiOpenGraphql = fn(mut GitHubApiState, GitHubApiGraphqlRequest) 
 
 pub type GitHubApiGraphqlPage = fn(json2.Any) !GitHubApiPageInfo
 
-fn github_api_nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn github_api_nil_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 fn github_api_error_type(kind GitHubApiErrorKind) string {
@@ -189,8 +189,8 @@ fn github_api_error_type(kind GitHubApiErrorKind) string {
 	}
 }
 
-pub fn github_api_error_value(api_error GitHubApiError) brew_runtime.Value {
-	return brew_runtime.structured_value(github_api_error_type(api_error.kind), api_error.message, {
+pub fn github_api_error_value(api_error GitHubApiError) ruby.Value {
+	return ruby.structured_value(github_api_error_type(api_error.kind), api_error.message, {
 		'github_message': api_error.github_message
 		'reset':          api_error.reset.str()
 		'resource':       api_error.resource
@@ -199,7 +199,7 @@ pub fn github_api_error_value(api_error GitHubApiError) brew_runtime.Value {
 	})
 }
 
-fn github_api_error_from_value(value brew_runtime.Value) GitHubApiError {
+fn github_api_error_from_value(value ruby.Value) GitHubApiError {
 	kind := match value.type_name {
 		'GitHub::API::GitRepositoryIsEmptyError' { GitHubApiErrorKind.git_repository_is_empty }
 		'GitHub::API::HTTPNotFoundError' { GitHubApiErrorKind.http_not_found }
@@ -220,7 +220,7 @@ fn github_api_error_from_value(value brew_runtime.Value) GitHubApiError {
 	}
 }
 
-fn github_api_string_map_from_value(value brew_runtime.Value) map[string]string {
+fn github_api_string_map_from_value(value ruby.Value) map[string]string {
 	mut result := map[string]string{}
 	for key, item in value.map_data {
 		result[key] = item.as_string()
@@ -228,7 +228,7 @@ fn github_api_string_map_from_value(value brew_runtime.Value) map[string]string 
 	return result
 }
 
-fn github_api_json_from_value(value brew_runtime.Value) json2.Any {
+fn github_api_json_from_value(value ruby.Value) json2.Any {
 	return match value.type_name {
 		'NilClass' { json2.Any(json2.null) }
 		'Bool' { json2.Any(value.bool_data) }
@@ -252,36 +252,36 @@ fn github_api_json_from_value(value brew_runtime.Value) json2.Any {
 	}
 }
 
-fn github_api_value_from_json(value json2.Any) brew_runtime.Value {
+fn github_api_value_from_json(value json2.Any) ruby.Value {
 	if value is json2.Null {
 		return github_api_nil_value()
 	}
 	if value is bool {
-		return brew_runtime.bool_value(value)
+		return ruby.bool_value(value)
 	}
 	if value is int {
-		return brew_runtime.int_value(value)
+		return ruby.int_value(value)
 	}
 	if value is i64 {
-		return brew_runtime.int_value(value)
+		return ruby.int_value(value)
 	}
 	if value is f64 {
-		return brew_runtime.float_value(value)
+		return ruby.float_value(value)
 	}
 	if value is string {
-		return brew_runtime.string_value(value)
+		return ruby.string_value(value)
 	}
 	if value is []json2.Any {
-		return brew_runtime.array_value(value.map(github_api_value_from_json(it)))
+		return ruby.array_value(value.map(github_api_value_from_json(it)))
 	}
 	if value is map[string]json2.Any {
-		mut mapped := map[string]brew_runtime.Value{}
+		mut mapped := map[string]ruby.Value{}
 		for key, item in value {
 			mapped[key] = github_api_value_from_json(item)
 		}
-		return brew_runtime.map_value(mapped)
+		return ruby.map_value(mapped)
 	}
-	return brew_runtime.string_value(value.str())
+	return ruby.string_value(value.str())
 }
 
 pub fn github_api_pat_blurb(scopes []string) string {
@@ -654,17 +654,17 @@ pub fn github_api_open_rest(mut state GitHubApiState,
 }
 
 // Ruby method `self.pat_blurb(scopes = ALL_SCOPES)` at line 11.
-pub fn ruby_api_l11_d1_self_pat_blurb(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_l11_d1_self_pat_blurb(args ...ruby.Value) ruby.Value {
 	scopes := if args.len > 0 {
 		args[0].as_string_array() or { github_api_all_scopes }
 	} else {
 		github_api_all_scopes
 	}
-	return brew_runtime.string_value(github_api_pat_blurb(scopes))
+	return ruby.string_value(github_api_pat_blurb(scopes))
 }
 
 // Ruby method `initialize(message = nil, github_message = T.unsafe(nil))` at line 58.
-pub fn ruby_api_l58_d2_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_l58_d2_initialize(args ...ruby.Value) ruby.Value {
 	message := if args.len > 0 && args[0].type_name != 'NilClass' {
 		args[0].as_string()
 	} else {
@@ -675,7 +675,7 @@ pub fn ruby_api_l58_d2_initialize(args ...brew_runtime.Value) brew_runtime.Value
 }
 
 // Ruby method `initialize(github_message)` at line 67.
-pub fn ruby_api_l67_d3_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_l67_d3_initialize(args ...ruby.Value) ruby.Value {
 	return github_api_error_value(github_api_new_git_repository_is_empty_error(if args.len > 0 {
 		args[0].as_string()
 	} else {
@@ -684,7 +684,7 @@ pub fn ruby_api_l67_d3_initialize(args ...brew_runtime.Value) brew_runtime.Value
 }
 
 // Ruby method `initialize(github_message)` at line 75.
-pub fn ruby_api_l75_d4_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_l75_d4_initialize(args ...ruby.Value) ruby.Value {
 	return github_api_error_value(github_api_new_http_not_found_error(if args.len > 0 {
 		args[0].as_string()
 	} else {
@@ -693,7 +693,7 @@ pub fn ruby_api_l75_d4_initialize(args ...brew_runtime.Value) brew_runtime.Value
 }
 
 // Ruby method `initialize(github_message, reset:, resource:, limit:)` at line 83.
-pub fn ruby_api_l83_d5_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_l83_d5_initialize(args ...ruby.Value) ruby.Value {
 	github_message := if args.len > 0 { args[0].as_string() } else { '' }
 	reset := if args.len > 1 { args[1].as_int() or { i64(0) } } else { i64(0) }
 	resource := if args.len > 2 { args[2].as_string() } else { '' }
@@ -704,25 +704,25 @@ pub fn ruby_api_l83_d5_initialize(args ...brew_runtime.Value) brew_runtime.Value
 }
 
 // Ruby attr_reader `attr_reader :reset` at line 95.
-pub fn ruby_api_l95_d6_reset(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_l95_d6_reset(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.int_value(0)
+		return ruby.int_value(0)
 	}
-	return brew_runtime.int_value(github_api_error_from_value(args[0]).reset)
+	return ruby.int_value(github_api_error_from_value(args[0]).reset)
 }
 
 // Ruby method `pretty_ratelimit_reset` at line 98.
-pub fn ruby_api_l98_d7_pretty_ratelimit_reset(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_l98_d7_pretty_ratelimit_reset(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_value(github_api_pretty_duration(0))
+		return ruby.string_value(github_api_pretty_duration(0))
 	}
 	api_error := github_api_error_from_value(args[0])
 	now := if args.len > 1 { args[1].as_int() or { time.now().unix() } } else { time.now().unix() }
-	return brew_runtime.string_value(github_api_pretty_duration(f64(api_error.reset - now)))
+	return ruby.string_value(github_api_pretty_duration(f64(api_error.reset - now)))
 }
 
 // Ruby method `initialize(credentials_type, github_message)` at line 117.
-pub fn ruby_api_l117_d8_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_l117_d8_initialize(args ...ruby.Value) ruby.Value {
 	credentials_type := github_api_credentials_type_from_string(if args.len > 0 {
 		args[0].as_string()
 	} else {
@@ -733,61 +733,61 @@ pub fn ruby_api_l117_d8_initialize(args ...brew_runtime.Value) brew_runtime.Valu
 }
 
 // Ruby method `initialize` at line 148.
-pub fn ruby_api_l148_d9_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_l148_d9_initialize(args ...ruby.Value) ruby.Value {
 	_ = args
 	return github_api_error_value(github_api_new_missing_authentication_error())
 }
 
 // Ruby method `initialize(github_message, errors)` at line 156.
-pub fn ruby_api_l156_d10_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_l156_d10_initialize(args ...ruby.Value) ruby.Value {
 	github_message := if args.len > 0 { args[0].as_string() } else { '' }
 	errors := if args.len > 1 { args[1].as_string_array() or { []string{} } } else { []string{} }
 	return github_api_error_value(github_api_new_validation_failed_error(github_message, errors))
 }
 
 // Ruby method `self.sleep_for_rate_limit(exception)` at line 174.
-pub fn ruby_api_l174_d11_self_sleep_for_rate_limit(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_l174_d11_self_sleep_for_rate_limit(args ...ruby.Value) ruby.Value {
 	api_error := if args.len > 0 { github_api_error_from_value(args[0]) } else { GitHubApiError{} }
 	now := if args.len > 1 { args[1].as_int() or { time.now().unix() } } else { time.now().unix() }
 	mut sleep_state := GitHubApiSleepState{}
 	seconds := github_api_sleep_for_rate_limit(api_error, now, mut sleep_state)
-	return brew_runtime.structured_value('GitHubApiSleep', seconds.str(), {
+	return ruby.structured_value('GitHubApiSleep', seconds.str(), {
 		'seconds': seconds.str()
 		'warning': sleep_state.warnings[0]
 	})
 }
 
 // Ruby method `self.github_cli_token` at line 182.
-pub fn ruby_api_l182_d12_self_github_cli_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_l182_d12_self_github_cli_token(args ...ruby.Value) ruby.Value {
 	result := GitHubApiCommandResult{
 		stdout: if args.len > 0 { args[0].as_string() } else { '' }
 		success: if args.len > 1 { args[1].as_bool() or { false } } else { false }
 	}
 	return if token := github_api_token_from_command_result(result) {
-		brew_runtime.string_value(token)
+		ruby.string_value(token)
 	} else {
 		github_api_nil_value()
 	}
 }
 
 // Ruby method `self.keychain_username_password` at line 199.
-pub fn ruby_api_l199_d13_self_keychain_username_password(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_l199_d13_self_keychain_username_password(args ...ruby.Value) ruby.Value {
 	result := GitHubApiCommandResult{
 		stdout: if args.len > 0 { args[0].as_string() } else { '' }
 		success: if args.len > 1 { args[1].as_bool() or { false } } else { false }
 	}
 	return if token := github_api_keychain_username_password_from_result(result) {
-		brew_runtime.string_value(token)
+		ruby.string_value(token)
 	} else {
 		github_api_nil_value()
 	}
 }
 
 // Ruby method `self.credentials` at line 223.
-pub fn ruby_api_l223_d14_self_credentials(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_l223_d14_self_credentials(args ...ruby.Value) ruby.Value {
 	for argument in args {
 		if argument.as_string().trim_space() != '' && argument.type_name != 'NilClass' {
-			return brew_runtime.string_value(argument.as_string())
+			return ruby.string_value(argument.as_string())
 		}
 	}
 	return github_api_nil_value()
@@ -803,7 +803,7 @@ fn github_api_credentials_type_from_string(value string) GitHubApiCredentialsTyp
 }
 
 // Ruby method `self.credentials_type` at line 231.
-pub fn ruby_api_l231_d15_self_credentials_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_l231_d15_self_credentials_type(args ...ruby.Value) ruby.Value {
 	env_token := if args.len > 0 { args[0].as_string() } else { '' }
 	cli_token := if args.len > 1 { args[1].as_string() } else { '' }
 	keychain_token := if args.len > 2 { args[2].as_string() } else { '' }
@@ -816,11 +816,11 @@ pub fn ruby_api_l231_d15_self_credentials_type(args ...brew_runtime.Value) brew_
 	} else {
 		GitHubApiCredentialsType.none
 	}
-	return brew_runtime.object_value('Symbol', credentials_type.str())
+	return ruby.object_value('Symbol', credentials_type.str())
 }
 
 // Ruby method `self.credentials_error_message(response_headers, needed_scopes)` at line 253.
-pub fn ruby_api_l253_d16_self_credentials_error_message(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_l253_d16_self_credentials_error_message(args ...ruby.Value) ruby.Value {
 	headers := if args.len > 0 {
 		github_api_string_map_from_value(args[0])
 	} else {
@@ -831,7 +831,7 @@ pub fn ruby_api_l253_d16_self_credentials_error_message(args ...brew_runtime.Val
 		env_token: if args.len > 2 { args[2].as_string() } else { '' }
 	}
 	return if message := github_api_credentials_error_message(mut state, headers, scopes) {
-		brew_runtime.string_value(message)
+		ruby.string_value(message)
 	} else {
 		github_api_nil_value()
 	}

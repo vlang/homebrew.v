@@ -1,10 +1,10 @@
 module bundle
 
-import brew_runtime
+import ruby
 import homebrew.bundle.extensions
 
-fn flatpak_spec_bool(value bool) brew_runtime.Value {
-	return brew_runtime.bool_value(value)
+fn flatpak_spec_bool(value bool) ruby.Value {
+	return ruby.bool_value(value)
 }
 
 fn flatpak_spec_package(name string, remote string, remote_url string) extensions.FlatpakPackage {
@@ -16,17 +16,17 @@ fn flatpak_spec_package(name string, remote string, remote_url string) extension
 }
 
 fn flatpak_spec_entry(name string, remote string, url string) extensions.ExtensionEntry {
-	mut options := map[string]brew_runtime.Value{}
+	mut options := map[string]ruby.Value{}
 	if remote != '' {
-		options['remote'] = brew_runtime.string_value(remote)
+		options['remote'] = ruby.string_value(remote)
 	}
 	if url != '' {
-		options['url'] = brew_runtime.string_value(url)
+		options['url'] = ruby.string_value(url)
 	}
 	return extensions.flatpak_entry(name, options) or { panic(err) }
 }
 
-fn flatpak_spec_checkable(name string, remote string, url string) brew_runtime.Value {
+fn flatpak_spec_checkable(name string, remote string, url string) ruby.Value {
 	return extensions.extension_entry_value(flatpak_spec_entry(name, remote, url))
 }
 
@@ -43,40 +43,40 @@ fn flatpak_spec_install(name string, remote string, url string, existing_url str
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:checker) { described_class.new }` at line 10.
-pub fn ruby_flatpak_spec_l10_d1_checker(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_spec_l10_d1_checker(args ...ruby.Value) ruby.Value {
 	_ = args
 	return extensions.flatpak_state_value(extensions.FlatpakState{})
 }
 
 // Ruby it `it "returns false when package is not installed" do` at line 17.
-pub fn ruby_flatpak_spec_l17_d2_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_spec_l17_d2_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	return flatpak_spec_bool(!extensions.flatpak_package_installed([], 'org.gnome.Calculator', none))
 }
 
 // Ruby it `it "returns true when package is installed" do` at line 21.
-pub fn ruby_flatpak_spec_l21_d3_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_spec_l21_d3_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	installed := [flatpak_spec_package('org.gnome.Calculator', 'flathub', '')]
 	return flatpak_spec_bool(extensions.flatpak_package_installed(installed, 'org.gnome.Calculator', none))
 }
 
 // Ruby it `it "checks Tier 1 package with default remote (flathub)" do` at line 27.
-pub fn ruby_flatpak_spec_l27_d4_checks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_spec_l27_d4_checks(args ...ruby.Value) ruby.Value {
 	_ = args
 	installed := [flatpak_spec_package('org.gnome.Calculator', 'flathub', '')]
 	return flatpak_spec_bool(extensions.flatpak_package_installed(installed, 'org.gnome.Calculator', 'flathub'))
 }
 
 // Ruby it `it "checks Tier 1 package with named remote" do` at line 38.
-pub fn ruby_flatpak_spec_l38_d5_checks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_spec_l38_d5_checks(args ...ruby.Value) ruby.Value {
 	_ = args
 	installed := [flatpak_spec_package('org.gnome.Calculator', 'fedora', '')]
 	return flatpak_spec_bool(extensions.flatpak_package_installed(installed, 'org.gnome.Calculator', 'fedora'))
 }
 
 // Ruby it `it "checks Tier 2 package with URL remote (resolves to single-app remote)" do` at line 49.
-pub fn ruby_flatpak_spec_l49_d6_checks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_spec_l49_d6_checks(args ...ruby.Value) ruby.Value {
 	_ = args
 	installed := [
 		flatpak_spec_package('org.godotengine.Godot', 'org.godotengine.Godot-origin', ''),
@@ -85,28 +85,28 @@ pub fn ruby_flatpak_spec_l49_d6_checks(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby it `it "checks Tier 2 package with .flatpakref by name only" do` at line 60.
-pub fn ruby_flatpak_spec_l60_d7_checks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_spec_l60_d7_checks(args ...ruby.Value) ruby.Value {
 	_ = args
 	installed := [flatpak_spec_package('org.example.App', 'example-origin', '')]
 	return flatpak_spec_bool(extensions.flatpak_package_installed(installed, 'org.example.App', none))
 }
 
 // Ruby it `it "checks Tier 3 package with URL and remote name" do` at line 71.
-pub fn ruby_flatpak_spec_l71_d8_checks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_spec_l71_d8_checks(args ...ruby.Value) ruby.Value {
 	_ = args
 	installed := [flatpak_spec_package('org.godotengine.Godot', 'flathub-beta', '')]
 	return flatpak_spec_bool(extensions.flatpak_package_installed(installed, 'org.godotengine.Godot', 'flathub-beta'))
 }
 
 // Ruby it `it "returns the correct failure message" do` at line 86.
-pub fn ruby_flatpak_spec_l86_d9_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_spec_l86_d9_returns(args ...ruby.Value) ruby.Value {
 	_ = args
-	message := extensions.ruby_flatpak_l389_d26_failure_reason(brew_runtime.string_value('org.gnome.Calculator'))
+	message := extensions.ruby_flatpak_l389_d26_failure_reason(ruby.string_value('org.gnome.Calculator'))
 	return flatpak_spec_bool(message.as_string() == 'Flatpak org.gnome.Calculator needs to be installed.')
 }
 
 // Ruby it `it "returns the correct failure message for hash package" do` at line 91.
-pub fn ruby_flatpak_spec_l91_d10_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_spec_l91_d10_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	package := flatpak_spec_checkable('org.gnome.Calculator', '', '')
 	message := extensions.ruby_flatpak_l389_d26_failure_reason(package)
@@ -114,26 +114,26 @@ pub fn ruby_flatpak_spec_l91_d10_returns(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby it `it "flatpak is not available" do` at line 98.
-pub fn ruby_flatpak_spec_l98_d11_flatpak(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_spec_l98_d11_flatpak(args ...ruby.Value) ruby.Value {
 	_ = args
 	return extensions.ruby_extension_l52_d8_self_package_manager_installed(extensions.flatpak_state_value(extensions.FlatpakState{}))
 }
 
 // Ruby subject `subject(:dumper) { described_class }` at line 105.
-pub fn ruby_flatpak_spec_l105_d12_dumper(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_spec_l105_d12_dumper(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.object_value('Homebrew::Bundle::Flatpak', 'Homebrew::Bundle::Flatpak')
+	return ruby.object_value('Homebrew::Bundle::Flatpak', 'Homebrew::Bundle::Flatpak')
 }
 
 // Ruby it `it "returns an empty list and dumps an empty string" do` at line 113.
-pub fn ruby_flatpak_spec_l113_d13_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_spec_l113_d13_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	packages := extensions.flatpak_parse_packages('', {})
 	return flatpak_spec_bool(packages.len == 0 && packages.map(extensions.flatpak_dump_entry(it)).join('\n') == '')
 }
 
 // Ruby it `it "returns remote URLs" do` at line 125.
-pub fn ruby_flatpak_spec_l125_d14_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_spec_l125_d14_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	return flatpak_spec_bool(extensions.flatpak_parse_remote_urls('flathub\thttps://dl.flathub.org/repo/\nfedora\thttps://registry.fedoraproject.org/\n') == {
 		'flathub': 'https://dl.flathub.org/repo/'
@@ -142,7 +142,7 @@ pub fn ruby_flatpak_spec_l125_d14_returns(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby it `it "returns package list with remotes and URLs" do` at line 134.
-pub fn ruby_flatpak_spec_l134_d15_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_spec_l134_d15_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	packages := extensions.flatpak_parse_packages('org.gnome.Calculator\tflathub\ncom.spotify.Client\tflathub\n', {
 		'flathub': 'https://dl.flathub.org/repo/'
@@ -154,7 +154,7 @@ pub fn ruby_flatpak_spec_l134_d15_returns(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby it `it "returns package names only" do` at line 147.
-pub fn ruby_flatpak_spec_l147_d16_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_spec_l147_d16_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	packages := extensions.flatpak_parse_packages('org.gnome.Calculator\tflathub\ncom.spotify.Client\tflathub\n', {
 		'flathub': 'https://dl.flathub.org/repo/'
@@ -163,7 +163,7 @@ pub fn ruby_flatpak_spec_l147_d16_returns(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby it `it "dumps Tier 1 packages without remote (flathub default)" do` at line 158.
-pub fn ruby_flatpak_spec_l158_d17_dumps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_spec_l158_d17_dumps(args ...ruby.Value) ruby.Value {
 	_ = args
 	packages := [
 		flatpak_spec_package('org.gnome.Calculator', 'flathub', 'https://dl.flathub.org/repo/'),
@@ -173,35 +173,35 @@ pub fn ruby_flatpak_spec_l158_d17_dumps(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby it `it "dumps Tier 2 packages with URL only (single-app remote)" do` at line 166.
-pub fn ruby_flatpak_spec_l166_d18_dumps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_spec_l166_d18_dumps(args ...ruby.Value) ruby.Value {
 	_ = args
 	package := flatpak_spec_package('org.godotengine.Godot', 'org.godotengine.Godot-origin', 'https://dl.flathub.org/beta-repo/')
 	return flatpak_spec_bool(extensions.flatpak_dump_entry(package) == 'flatpak "org.godotengine.Godot", remote: "https://dl.flathub.org/beta-repo/"')
 }
 
 // Ruby it `it "dumps Tier 2 packages with remote name if URL not available" do` at line 176.
-pub fn ruby_flatpak_spec_l176_d19_dumps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_spec_l176_d19_dumps(args ...ruby.Value) ruby.Value {
 	_ = args
 	package := flatpak_spec_package('org.example.App', 'org.example.App-origin', '')
 	return flatpak_spec_bool(extensions.flatpak_dump_entry(package) == 'flatpak "org.example.App", remote: "org.example.App-origin"')
 }
 
 // Ruby it `it "dumps Tier 3 packages with remote name and URL (shared remote)" do` at line 185.
-pub fn ruby_flatpak_spec_l185_d20_dumps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_spec_l185_d20_dumps(args ...ruby.Value) ruby.Value {
 	_ = args
 	package := flatpak_spec_package('org.godotengine.Godot', 'flathub-beta', 'https://dl.flathub.org/beta-repo/')
 	return flatpak_spec_bool(extensions.flatpak_dump_entry(package) == 'flatpak "org.godotengine.Godot", remote: "flathub-beta", url: "https://dl.flathub.org/beta-repo/"')
 }
 
 // Ruby it `it "dumps named remote without URL when URL is not available" do` at line 195.
-pub fn ruby_flatpak_spec_l195_d21_dumps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_spec_l195_d21_dumps(args ...ruby.Value) ruby.Value {
 	_ = args
 	package := flatpak_spec_package('com.custom.App', 'custom-repo', '')
 	return flatpak_spec_bool(extensions.flatpak_dump_entry(package) == 'flatpak "com.custom.App", remote: "custom-repo"')
 }
 
 // Ruby it `it "dumps mixed packages correctly" do` at line 204.
-pub fn ruby_flatpak_spec_l204_d22_dumps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_spec_l204_d22_dumps(args ...ruby.Value) ruby.Value {
 	_ = args
 	packages := [
 		flatpak_spec_package('com.spotify.Client', 'flathub', 'https://dl.flathub.org/repo/'),
@@ -212,7 +212,7 @@ pub fn ruby_flatpak_spec_l204_d22_dumps(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby it `it "handles packages without origin" do` at line 220.
-pub fn ruby_flatpak_spec_l220_d23_handles(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_spec_l220_d23_handles(args ...ruby.Value) ruby.Value {
 	_ = args
 	packages := extensions.flatpak_parse_packages('org.gnome.Calculator\n', {
 		'flathub': 'https://dl.flathub.org/repo/'
@@ -223,7 +223,7 @@ pub fn ruby_flatpak_spec_l220_d23_handles(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby it `it "returns false without attempting installation" do` at line 239.
-pub fn ruby_flatpak_spec_l239_d24_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_spec_l239_d24_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut state := extensions.FlatpakState{}
 	install_result := extensions.flatpak_install(mut state, 'org.gnome.Calculator', 'flathub', '', true, false, '', true, '')
@@ -231,7 +231,7 @@ pub fn ruby_flatpak_spec_l239_d24_returns(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby it `it "skips" do` at line 257.
-pub fn ruby_flatpak_spec_l257_d25_skips(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_spec_l257_d25_skips(args ...ruby.Value) ruby.Value {
 	_ = args
 	state := extensions.FlatpakState{
 		executable: 'flatpak'
@@ -239,12 +239,12 @@ pub fn ruby_flatpak_spec_l257_d25_skips(args ...brew_runtime.Value) brew_runtime
 			flatpak_spec_package('org.gnome.Calculator', 'flathub', ''),
 		]
 	}
-	result := extensions.ruby_flatpak_l174_d14_preinstall(extensions.flatpak_state_value(state), brew_runtime.string_value('org.gnome.Calculator'))
+	result := extensions.ruby_flatpak_l174_d14_preinstall(extensions.flatpak_state_value(state), ruby.string_value('org.gnome.Calculator'))
 	return flatpak_spec_bool(result.type_name == 'Bool' && !(result.as_bool() or { true }))
 }
 
 // Ruby it `it "installs package from flathub" do` at line 269.
-pub fn ruby_flatpak_spec_l269_d26_installs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_spec_l269_d26_installs(args ...ruby.Value) ruby.Value {
 	_ = args
 	result, state := flatpak_spec_install('org.gnome.Calculator', 'flathub', '', '', '')
 	return flatpak_spec_bool(result && state.commands == [[
@@ -258,7 +258,7 @@ pub fn ruby_flatpak_spec_l269_d26_installs(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby it `it "installs package from named remote" do` at line 278.
-pub fn ruby_flatpak_spec_l278_d27_installs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_spec_l278_d27_installs(args ...ruby.Value) ruby.Value {
 	_ = args
 	result, state := flatpak_spec_install('org.gnome.Calculator', 'fedora', '', '', '')
 	return flatpak_spec_bool(result && state.commands == [[
@@ -272,7 +272,7 @@ pub fn ruby_flatpak_spec_l278_d27_installs(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby it `it "creates single-app remote with -origin suffix" do` at line 289.
-pub fn ruby_flatpak_spec_l289_d28_creates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_spec_l289_d28_creates(args ...ruby.Value) ruby.Value {
 	_ = args
 	url := 'https://dl.flathub.org/beta-repo/'
 	result, state := flatpak_spec_install('org.godotengine.Godot', url, '', '', '')
@@ -285,7 +285,7 @@ pub fn ruby_flatpak_spec_l289_d28_creates(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby it `it "replaces single-app remote when URL changes" do` at line 308.
-pub fn ruby_flatpak_spec_l308_d29_replaces(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_spec_l308_d29_replaces(args ...ruby.Value) ruby.Value {
 	_ = args
 	url := 'https://dl.flathub.org/beta-repo/'
 	result, state := flatpak_spec_install('org.godotengine.Godot', url, '', 'https://old.url/repo/', '')
@@ -299,7 +299,7 @@ pub fn ruby_flatpak_spec_l308_d29_replaces(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby it `it "installs from .flatpakref directly" do` at line 331.
-pub fn ruby_flatpak_spec_l331_d30_installs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_spec_l331_d30_installs(args ...ruby.Value) ruby.Value {
 	_ = args
 	url := 'https://example.com/app.flatpakref'
 	result, state := flatpak_spec_install('org.example.App', url, '', '', 'org.example.App\texample-origin\n')
@@ -315,7 +315,7 @@ pub fn ruby_flatpak_spec_l331_d30_installs(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby it `it "creates named shared remote" do` at line 346.
-pub fn ruby_flatpak_spec_l346_d31_creates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_spec_l346_d31_creates(args ...ruby.Value) ruby.Value {
 	_ = args
 	url := 'https://dl.flathub.org/beta-repo/'
 	result, state := flatpak_spec_install('org.godotengine.Godot', 'flathub-beta', url, '', '')
@@ -327,7 +327,7 @@ pub fn ruby_flatpak_spec_l346_d31_creates(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby it `it "warns but uses existing remote with different URL" do` at line 364.
-pub fn ruby_flatpak_spec_l364_d32_warns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_spec_l364_d32_warns(args ...ruby.Value) ruby.Value {
 	_ = args
 	url := 'https://dl.flathub.org/beta-repo/'
 	result, state := flatpak_spec_install('org.godotengine.Godot', 'flathub-beta', url, 'https://different.url/repo/', '')
@@ -344,7 +344,7 @@ pub fn ruby_flatpak_spec_l364_d32_warns(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby it `it "reuses existing shared remote when URL matches" do` at line 387.
-pub fn ruby_flatpak_spec_l387_d33_reuses(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_spec_l387_d33_reuses(args ...ruby.Value) ruby.Value {
 	_ = args
 	url := 'https://dl.flathub.org/beta-repo/'
 	result, state := flatpak_spec_install('org.godotengine.Godot', 'flathub-beta', url, url, '')
@@ -359,16 +359,16 @@ pub fn ruby_flatpak_spec_l387_d33_reuses(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby it `it "generates name with -origin suffix" do` at line 411.
-pub fn ruby_flatpak_spec_l411_d34_generates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_spec_l411_d34_generates(args ...ruby.Value) ruby.Value {
 	_ = args
-	value := extensions.ruby_flatpak_l277_d17_generate_single_app_remote_name(brew_runtime.string_value('org.godotengine.Godot'))
+	value := extensions.ruby_flatpak_l277_d17_generate_single_app_remote_name(ruby.string_value('org.godotengine.Godot'))
 	return flatpak_spec_bool(value.as_string() == 'org.godotengine.Godot-origin')
 }
 
 // Ruby it `it "handles various app ID formats" do` at line 416.
-pub fn ruby_flatpak_spec_l416_d35_handles(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_spec_l416_d35_handles(args ...ruby.Value) ruby.Value {
 	_ = args
-	value := extensions.ruby_flatpak_l277_d17_generate_single_app_remote_name(brew_runtime.string_value('com.example.App'))
+	value := extensions.ruby_flatpak_l277_d17_generate_single_app_remote_name(ruby.string_value('com.example.App'))
 	return flatpak_spec_bool(value.as_string() == 'com.example.App-origin')
 }
 

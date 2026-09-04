@@ -1,6 +1,6 @@
 module unpack_strategy
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `unpack_strategy/fossil.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -31,7 +31,7 @@ pub fn fossil_can_extract(path string) bool {
 	}
 	sqlite := command_path('sqlite3') or { return false }
 	query := "select count(*) from sqlite_master where type = 'view' and name = 'artifact'"
-	result := brew_runtime.run_command(sqlite, [path, query])
+	result := ruby.run_command(sqlite, [path, query])
 	return result.exit_code == 0 && result.output.trim_space().int() == 1
 }
 

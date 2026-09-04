@@ -1,6 +1,6 @@
 module concurrent
 
-import brew_runtime
+import ruby
 import sync
 import time
 
@@ -15,20 +15,20 @@ pub enum IVarState {
 	cancelled
 }
 
-pub type IVarTask = fn([]brew_runtime.Value) !brew_runtime.Value
+pub type IVarTask = fn([]ruby.Value) !ruby.Value
 
-pub type IVarCompletion = fn(bool, brew_runtime.Value, string)
+pub type IVarCompletion = fn(bool, ruby.Value, string)
 
-pub type IVarObserver = fn(i64, brew_runtime.Value, string)
+pub type IVarObserver = fn(i64, ruby.Value, string)
 
-pub type IVarCopy = fn(brew_runtime.Value) brew_runtime.Value
+pub type IVarCopy = fn(ruby.Value) ruby.Value
 
 pub struct IVarOptions {
 pub:
 	dup_on_deref    bool
 	freeze_on_deref bool
 	copy_on_deref   ?IVarCopy
-	args            []brew_runtime.Value
+	args            []ruby.Value
 }
 
 struct IVarObserverEntry {
@@ -42,7 +42,7 @@ struct IVarData {
 	condition &sync.Cond
 mut:
 	state     IVarState
-	value     brew_runtime.Value
+	value     ruby.Value
 	reason    string
 	observers []IVarObserverEntry
 }
@@ -71,14 +71,14 @@ pub fn new_ivar_with_options(options IVarOptions) &IVar {
 	}
 }
 
-pub fn new_fulfilled_ivar(value brew_runtime.Value, options IVarOptions) &IVar {
+pub fn new_fulfilled_ivar(value ruby.Value, options IVarOptions) &IVar {
 	mut ivar := new_ivar_with_options(options)
 	ivar.complete_without_notification(true, value, '') or { panic(err) }
 	return ivar
 }
 
-fn ivar_nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn ivar_nil_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 fn ivar_state_complete(state IVarState) bool {
@@ -97,8 +97,8 @@ fn ivar_state_from_string(value string) IVarState {
 	}
 }
 
-fn ivar_duplicate_value(value brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.Value{
+fn ivar_duplicate_value(value ruby.Value) ruby.Value {
+	return ruby.Value{
 		type_name: value.type_name
 		repr: value.repr
 		bool_data: value.bool_data
@@ -111,7 +111,7 @@ fn ivar_duplicate_value(value brew_runtime.Value) brew_runtime.Value {
 	}
 }
 
-fn ivar_apply_options(value brew_runtime.Value, options IVarOptions) brew_runtime.Value {
+fn ivar_apply_options(value ruby.Value, options IVarOptions) ruby.Value {
 	if value.type_name == 'NilClass' {
 		return value
 	}
@@ -200,7 +200,7 @@ pub fn (mut ivar IVar) wait(timeout ?time.Duration) bool {
 	return true
 }
 
-pub fn (mut ivar IVar) value(timeout ?time.Duration) brew_runtime.Value {
+pub fn (mut ivar IVar) value(timeout ?time.Duration) ruby.Value {
 	ivar.wait(timeout)
 	ivar.data.mutex.lock()
 	value := if ivar.data.state == .fulfilled {
@@ -212,7 +212,7 @@ pub fn (mut ivar IVar) value(timeout ?time.Duration) brew_runtime.Value {
 	return value
 }
 
-pub fn (mut ivar IVar) value_or_error(timeout ?time.Duration) !brew_runtime.Value {
+pub fn (mut ivar IVar) value_or_error(timeout ?time.Duration) !ruby.Value {
 	ivar.wait(timeout)
 	ivar.data.mutex.lock()
 	defer {
@@ -281,7 +281,7 @@ pub fn (mut ivar IVar) add_observer(id string, callback IVarObserver) string {
 	return id
 }
 
-pub fn (mut ivar IVar) notify_observers(value brew_runtime.Value, reason string) {
+pub fn (mut ivar IVar) notify_observers(value ruby.Value, reason string) {
 	ivar.data.mutex.lock()
 	observers := ivar.data.observers.clone()
 	ivar.data.observers.clear()
@@ -292,7 +292,7 @@ pub fn (mut ivar IVar) notify_observers(value brew_runtime.Value, reason string)
 	}
 }
 
-pub fn (mut ivar IVar) set(value brew_runtime.Value) !&IVar {
+pub fn (mut ivar IVar) set(value ruby.Value) !&IVar {
 	if !ivar.compare_and_set_state(.processing, [.pending]) {
 		return error('MultipleAssignmentError')
 	}
@@ -320,12 +320,12 @@ pub fn (mut ivar IVar) fail(reason string) !&IVar {
 	return ivar
 }
 
-pub fn (mut ivar IVar) try_set(value brew_runtime.Value) bool {
+pub fn (mut ivar IVar) try_set(value ruby.Value) bool {
 	ivar.set(value) or { return false }
 	return true
 }
 
-pub fn (mut ivar IVar) safe_execute(task IVarTask, args []brew_runtime.Value, completion ?IVarCompletion) bool {
+pub fn (mut ivar IVar) safe_execute(task IVarTask, args []ruby.Value, completion ?IVarCompletion) bool {
 	if !ivar.compare_and_set_state(.processing, [.pending]) {
 		return false
 	}
@@ -343,14 +343,14 @@ pub fn (mut ivar IVar) safe_execute(task IVarTask, args []brew_runtime.Value, co
 	return true
 }
 
-pub fn (mut ivar IVar) complete(success bool, value brew_runtime.Value, reason string) !&IVar {
+pub fn (mut ivar IVar) complete(success bool, value ruby.Value, reason string) !&IVar {
 	ivar.complete_without_notification(success, value, reason)!
 	notification_value := if success { ivar.value(time.Duration(0)) } else { ivar_nil_value() }
 	ivar.notify_observers(notification_value, reason)
 	return ivar
 }
 
-pub fn (mut ivar IVar) complete_without_notification(success bool, value brew_runtime.Value, reason string) !&IVar {
+pub fn (mut ivar IVar) complete_without_notification(success bool, value ruby.Value, reason string) !&IVar {
 	ivar.data.mutex.lock()
 	if ivar_state_complete(ivar.data.state) {
 		ivar.data.mutex.unlock()
@@ -370,13 +370,13 @@ pub fn (mut ivar IVar) complete_without_notification(success bool, value brew_ru
 	return ivar
 }
 
-fn ivar_boundary_value(ivar &IVar) brew_runtime.Value {
-	return brew_runtime.structured_value('Concurrent::IVar', '#<Concurrent::IVar>', {
+fn ivar_boundary_value(ivar &IVar) ruby.Value {
+	return ruby.structured_value('Concurrent::IVar', '#<Concurrent::IVar>', {
 		'ivar_address': u64(voidptr(ivar)).str()
 	})
 }
 
-fn ivar_boundary_receiver(args []brew_runtime.Value) &IVar {
+fn ivar_boundary_receiver(args []ruby.Value) &IVar {
 	if args.len == 0 {
 		panic('IVar method requires a receiver')
 	}
@@ -386,12 +386,12 @@ fn ivar_boundary_receiver(args []brew_runtime.Value) &IVar {
 	return unsafe { &IVar(voidptr(address)) }
 }
 
-fn ivar_boundary_reason(value brew_runtime.Value) string {
+fn ivar_boundary_reason(value ruby.Value) string {
 	return if value.type_name == 'NilClass' { '' } else { value.as_string() }
 }
 
 // Ruby method `initialize(value = NULL, opts = {}, &block)` at line 62.
-pub fn ruby_ivar_l62_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ivar_l62_d1_initialize(args ...ruby.Value) ruby.Value {
 	ivar := if args.len > 0 {
 		new_fulfilled_ivar(args[0], IVarOptions{})
 	} else {
@@ -401,7 +401,7 @@ pub fn ruby_ivar_l62_d1_initialize(args ...brew_runtime.Value) brew_runtime.Valu
 }
 
 // Ruby method `add_observer(observer = nil, func = :update, &block)` at line 81.
-pub fn ruby_ivar_l81_d2_add_observer(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ivar_l81_d2_add_observer(args ...ruby.Value) ruby.Value {
 	mut ivar := ivar_boundary_receiver(args)
 	if args.len < 2 || args[1].type_name == 'NilClass' {
 		panic('ArgumentError: should pass observer as a first argument or block')
@@ -415,7 +415,7 @@ pub fn ruby_ivar_l81_d2_add_observer(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby method `set(value = NULL)` at line 113.
-pub fn ruby_ivar_l113_d3_set(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ivar_l113_d3_set(args ...ruby.Value) ruby.Value {
 	mut ivar := ivar_boundary_receiver(args)
 	if args.len < 2 {
 		panic('ArgumentError: must set with either a value or a block')
@@ -425,7 +425,7 @@ pub fn ruby_ivar_l113_d3_set(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `fail(reason = StandardError.new)` at line 135.
-pub fn ruby_ivar_l135_d4_fail(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ivar_l135_d4_fail(args ...ruby.Value) ruby.Value {
 	mut ivar := ivar_boundary_receiver(args)
 	reason := if args.len > 1 { ivar_boundary_reason(args[1]) } else { 'StandardError' }
 	ivar.fail(reason) or { panic(err) }
@@ -433,21 +433,21 @@ pub fn ruby_ivar_l135_d4_fail(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `try_set(value = NULL, &block)` at line 145.
-pub fn ruby_ivar_l145_d5_try_set(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ivar_l145_d5_try_set(args ...ruby.Value) ruby.Value {
 	mut ivar := ivar_boundary_receiver(args)
 	if args.len < 2 {
 		panic('ArgumentError: must set with either a value or a block')
 	}
-	return brew_runtime.bool_value(ivar.try_set(args[1]))
+	return ruby.bool_value(ivar.try_set(args[1]))
 }
 
 // Ruby method `ns_initialize(value, opts)` at line 155.
-pub fn ruby_ivar_l155_d6_ns_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ivar_l155_d6_ns_initialize(args ...ruby.Value) ruby.Value {
 	return ruby_ivar_l62_d1_initialize(...args)
 }
 
 // Ruby method `safe_execute(task, args = [])` at line 168.
-pub fn ruby_ivar_l168_d7_safe_execute(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ivar_l168_d7_safe_execute(args ...ruby.Value) ruby.Value {
 	mut ivar := ivar_boundary_receiver(args)
 	if args.len < 2 {
 		panic('ArgumentError: no task result given')
@@ -463,7 +463,7 @@ pub fn ruby_ivar_l168_d7_safe_execute(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby method `complete(success, value, reason)` at line 177.
-pub fn ruby_ivar_l177_d8_complete(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ivar_l177_d8_complete(args ...ruby.Value) ruby.Value {
 	mut ivar := ivar_boundary_receiver(args)
 	if args.len < 4 {
 		panic('complete requires success, value, and reason')
@@ -475,7 +475,7 @@ pub fn ruby_ivar_l177_d8_complete(args ...brew_runtime.Value) brew_runtime.Value
 }
 
 // Ruby method `complete_without_notification(success, value, reason)` at line 184.
-pub fn ruby_ivar_l184_d9_complete_without_notification(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ivar_l184_d9_complete_without_notification(args ...ruby.Value) ruby.Value {
 	mut ivar := ivar_boundary_receiver(args)
 	if args.len < 4 {
 		panic('complete_without_notification requires success, value, and reason')
@@ -485,7 +485,7 @@ pub fn ruby_ivar_l184_d9_complete_without_notification(args ...brew_runtime.Valu
 }
 
 // Ruby method `notify_observers(value, reason)` at line 190.
-pub fn ruby_ivar_l190_d10_notify_observers(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ivar_l190_d10_notify_observers(args ...ruby.Value) ruby.Value {
 	mut ivar := ivar_boundary_receiver(args)
 	value := if args.len > 1 { args[1] } else { ivar_nil_value() }
 	reason := if args.len > 2 { ivar_boundary_reason(args[2]) } else { '' }
@@ -494,12 +494,12 @@ pub fn ruby_ivar_l190_d10_notify_observers(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `ns_complete_without_notification(success, value, reason)` at line 195.
-pub fn ruby_ivar_l195_d11_ns_complete_without_notification(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ivar_l195_d11_ns_complete_without_notification(args ...ruby.Value) ruby.Value {
 	return ruby_ivar_l184_d9_complete_without_notification(...args)
 }
 
 // Ruby method `check_for_block_or_value!(block_given, value) # :nodoc:` at line 202.
-pub fn ruby_ivar_l202_d12_check_for_block_or_value(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ivar_l202_d12_check_for_block_or_value(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('check_for_block_or_value! requires block_given and value')
 	}
@@ -508,7 +508,7 @@ pub fn ruby_ivar_l202_d12_check_for_block_or_value(args ...brew_runtime.Value) b
 	if (block_given && !value_missing) || (!block_given && value_missing) {
 		panic('ArgumentError: must set with either a value or a block')
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Original Ruby source (line-for-line):

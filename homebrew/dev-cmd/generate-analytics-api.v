@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 import os
 import time
 
@@ -258,78 +258,78 @@ pub fn run_generate_analytics_api(options GenerateAnalyticsApiOptions) !Generate
 	}
 }
 
-pub fn generate_analytics_api_input_boundary(input &GenerateAnalyticsApiInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::GenerateAnalyticsApi::Input', '', {
+pub fn generate_analytics_api_input_boundary(input &GenerateAnalyticsApiInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::GenerateAnalyticsApi::Input', '', {
 		'generate_analytics_api_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn generate_analytics_api_input_from_value(value brew_runtime.Value) &GenerateAnalyticsApiInput {
+fn generate_analytics_api_input_from_value(value ruby.Value) &GenerateAnalyticsApiInput {
 	address := value.attributes['generate_analytics_api_input_address'] or {
 		panic('invalid GenerateAnalyticsApi input')
 	}
 	return unsafe { &GenerateAnalyticsApiInput(voidptr(address.u64())) }
 }
 
-pub fn generate_analytics_api_formula_input_boundary(input &GenerateAnalyticsApiFormulaInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::GenerateAnalyticsApi::FormulaInput', '', {
+pub fn generate_analytics_api_formula_input_boundary(input &GenerateAnalyticsApiFormulaInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::GenerateAnalyticsApi::FormulaInput', '', {
 		'generate_analytics_api_formula_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn generate_analytics_api_formula_input_from_value(value brew_runtime.Value) &GenerateAnalyticsApiFormulaInput {
+fn generate_analytics_api_formula_input_from_value(value ruby.Value) &GenerateAnalyticsApiFormulaInput {
 	address := value.attributes['generate_analytics_api_formula_input_address'] or {
 		panic('invalid GenerateAnalyticsApi formula input')
 	}
 	return unsafe { &GenerateAnalyticsApiFormulaInput(voidptr(address.u64())) }
 }
 
-fn generate_analytics_api_output_value(output GenerateAnalyticsApiOutput) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'formula_analytics_args': brew_runtime.string_array_value(output.formula_analytics_args)
-		'days':                   brew_runtime.string_value(output.days)
-		'analytics_data_path':    brew_runtime.string_value(output.analytics_data_path)
-		'analytics_api_path':     brew_runtime.string_value(output.analytics_api_path)
-		'category_name':          brew_runtime.string_value(output.category_name)
-		'data_source':            brew_runtime.string_value(output.data_source)
+fn generate_analytics_api_output_value(output GenerateAnalyticsApiOutput) ruby.Value {
+	return ruby.map_value({
+		'formula_analytics_args': ruby.string_array_value(output.formula_analytics_args)
+		'days':                   ruby.string_value(output.days)
+		'analytics_data_path':    ruby.string_value(output.analytics_data_path)
+		'analytics_api_path':     ruby.string_value(output.analytics_api_path)
+		'category_name':          ruby.string_value(output.category_name)
+		'data_source':            ruby.string_value(output.data_source)
 	})
 }
 
-fn generate_analytics_api_result_value(result GenerateAnalyticsApiResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'outputs':       brew_runtime.array_value(result.outputs.map(generate_analytics_api_output_value(it)))
-		'messages':      brew_runtime.string_array_value(result.messages)
-		'retry_delays':  brew_runtime.array_value(result.retry_delays.map(brew_runtime.int_value(i64(it))))
-		'written_files': brew_runtime.string_array_value(result.written_files)
-		'worker_count':  brew_runtime.int_value(result.worker_count)
+fn generate_analytics_api_result_value(result GenerateAnalyticsApiResult) ruby.Value {
+	return ruby.map_value({
+		'outputs':       ruby.array_value(result.outputs.map(generate_analytics_api_output_value(it)))
+		'messages':      ruby.string_array_value(result.messages)
+		'retry_delays':  ruby.array_value(result.retry_delays.map(ruby.int_value(i64(it))))
+		'written_files': ruby.string_array_value(result.written_files)
+		'worker_count':  ruby.int_value(result.worker_count)
 	})
 }
 
 // Ruby method `analytics_json_template(category_name, data_source: nil)` at line 35.
-pub fn ruby_generate_analytics_api_l35_d1_analytics_json_template(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_analytics_api_l35_d1_analytics_json_template(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'category_name is required')
+		return ruby.object_value('ArgumentError', 'category_name is required')
 	}
 	data_source := if args.len > 1 { args[1].as_string() } else { '' }
-	return brew_runtime.string_value(generate_analytics_json_template(args[0].as_string(), data_source))
+	return ruby.string_value(generate_analytics_json_template(args[0].as_string(), data_source))
 }
 
 // Ruby method `run_formula_analytics(*args)` at line 49.
-pub fn ruby_generate_analytics_api_l49_d2_run_formula_analytics(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_analytics_api_l49_d2_run_formula_analytics(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'formula analytics input is required')
+		return ruby.object_value('ArgumentError', 'formula analytics input is required')
 	}
 	input := generate_analytics_api_formula_input_from_value(args[0])
 	result := run_formula_analytics(input.arguments, input.options) or {
-		return brew_runtime.object_value('FatalError', err.msg())
+		return ruby.object_value('FatalError', err.msg())
 	}
-	return brew_runtime.string_value(result.output)
+	return ruby.string_value(result.output)
 }
 
 // Ruby method `run` at line 70.
-pub fn ruby_generate_analytics_api_l70_d3_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_analytics_api_l70_d3_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'command input is required')
+		return ruby.object_value('ArgumentError', 'command input is required')
 	}
 	input := generate_analytics_api_input_from_value(args[0])
 	result := run_generate_analytics_api(input.options) or {
@@ -340,7 +340,7 @@ pub fn ruby_generate_analytics_api_l70_d3_run(args ...brew_runtime.Value) brew_r
 		} else {
 			'Error'
 		}
-		return brew_runtime.object_value(error_type, err.msg())
+		return ruby.object_value(error_type, err.msg())
 	}
 	return generate_analytics_api_result_value(result)
 }

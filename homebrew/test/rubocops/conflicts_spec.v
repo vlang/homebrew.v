@@ -1,14 +1,14 @@
 module rubocops
 
-import brew_runtime
+import ruby
 import homebrew.rubocops as conflicts_core
 
 // Translated from Homebrew/brew `test/rubocops/conflicts_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
-pub fn ruby_conflicts_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::Conflicts', 'FormulaAudit/Conflicts')
+pub fn ruby_conflicts_spec_l7_d1_cop(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('RuboCop::Cop::FormulaAudit::Conflicts', 'FormulaAudit/Conflicts')
 }
 
 // Ruby it `it "reports and corrects an offense if reason is capitalized" do` at line 10.

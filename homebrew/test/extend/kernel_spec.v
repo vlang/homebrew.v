@@ -1,6 +1,6 @@
 module extend
 
-import brew_runtime
+import ruby
 import homebrew.extend as kernel_ext
 import os
 import time
@@ -11,8 +11,8 @@ fn kernel_spec_root(label string) string {
 	return os.join_path(os.temp_dir(), 'brew-v-kernel-${label}-${os.getpid()}-${time.now().unix_micro()}')
 }
 
-fn kernel_spec_result(value bool) brew_runtime.Value {
-	return brew_runtime.bool_value(value)
+fn kernel_spec_result(value bool) ruby.Value {
+	return ruby.bool_value(value)
 }
 
 fn kernel_spec_quiet_delegate(plan kernel_ext.KernelCommandPlan) !bool {
@@ -23,29 +23,29 @@ fn kernel_spec_safe_delegate(plan kernel_ext.KernelCommandPlan) !bool {
 	return plan.program == 'true' && !plan.quiet
 }
 
-fn kernel_spec_failure_action() !brew_runtime.Value {
+fn kernel_spec_failure_action() !ruby.Value {
 	return error('boom')
 }
 
 // Ruby let `let(:dir) { mktmpdir }` at line 5.
-pub fn ruby_kernel_spec_l5_d1_dir(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_kernel_spec_l5_d1_dir(args ...ruby.Value) ruby.Value {
 	root := kernel_spec_root('dir')
 	os.mkdir_all(root) or { panic(err) }
-	return brew_runtime.object_value('Pathname', root)
+	return ruby.object_value('Pathname', root)
 }
 
 // Ruby let `let(:shell) { dir/"myshell" }` at line 8.
-pub fn ruby_kernel_spec_l8_d2_shell(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_kernel_spec_l8_d2_shell(args ...ruby.Value) ruby.Value {
 	root := if args.len > 0 {
 		args[0].as_string()
 	} else {
 		ruby_kernel_spec_l5_d1_dir().as_string()
 	}
-	return brew_runtime.object_value('Pathname', os.join_path(root, 'myshell'))
+	return ruby.object_value('Pathname', os.join_path(root, 'myshell'))
 }
 
 // Ruby it `it "starts an interactive shell session" do` at line 10.
-pub fn ruby_kernel_spec_l10_d3_starts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_kernel_spec_l10_d3_starts(args ...ruby.Value) ruby.Value {
 	root := kernel_spec_root('shell')
 	os.mkdir_all(root) or { return kernel_spec_result(false) }
 	defer { os.rmdir_all(root) or {} }
@@ -59,17 +59,17 @@ pub fn ruby_kernel_spec_l10_d3_starts(args ...brew_runtime.Value) brew_runtime.V
 		'SHELL': kernel_ext.EnvironmentValue{
 			value: shell
 		}
-	}, fn [shell] () !brew_runtime.Value {
+	}, fn [shell] () !ruby.Value {
 		kernel_ext.run_interactive_shell('', '', shell, fn (plan kernel_ext.KernelCommandPlan) !bool {
-			return brew_runtime.run_command(plan.program, plan.arguments).exit_code == 0
+			return ruby.run_command(plan.program, plan.arguments).exit_code == 0
 		})!
-		return brew_runtime.bool_value(true)
+		return ruby.bool_value(true)
 	}) or { return kernel_spec_result(false) }
 	return kernel_spec_result(result.as_bool() or { false } && os.exists(called))
 }
 
 // Ruby let `let(:cmd) { dir/"foo" }` at line 26.
-pub fn ruby_kernel_spec_l26_d4_cmd(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_kernel_spec_l26_d4_cmd(args ...ruby.Value) ruby.Value {
 	root := if args.len > 0 {
 		args[0].as_string()
 	} else {
@@ -77,11 +77,11 @@ pub fn ruby_kernel_spec_l26_d4_cmd(args ...brew_runtime.Value) brew_runtime.Valu
 	}
 	command := os.join_path(root, 'foo')
 	os.write_file(command, '') or { panic(err) }
-	return brew_runtime.object_value('Pathname', command)
+	return ruby.object_value('Pathname', command)
 }
 
 // Ruby it `it "returns the first executable that is found" do` at line 30.
-pub fn ruby_kernel_spec_l30_d5_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_kernel_spec_l30_d5_returns(args ...ruby.Value) ruby.Value {
 	root := kernel_spec_root('which-executable')
 	os.mkdir_all(root) or { return kernel_spec_result(false) }
 	defer { os.rmdir_all(root) or {} }
@@ -92,7 +92,7 @@ pub fn ruby_kernel_spec_l30_d5_returns(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby it `it "skips non-executables" do` at line 35.
-pub fn ruby_kernel_spec_l35_d6_skips(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_kernel_spec_l35_d6_skips(args ...ruby.Value) ruby.Value {
 	root := kernel_spec_root('which-non-executable')
 	os.mkdir_all(root) or { return kernel_spec_result(false) }
 	defer { os.rmdir_all(root) or {} }
@@ -101,7 +101,7 @@ pub fn ruby_kernel_spec_l35_d6_skips(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby it `it "skips malformed path and doesn't fail" do` at line 39.
-pub fn ruby_kernel_spec_l39_d7_skips(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_kernel_spec_l39_d7_skips(args ...ruby.Value) ruby.Value {
 	root := kernel_spec_root('which-malformed')
 	os.mkdir_all(root) or { return kernel_spec_result(false) }
 	defer { os.rmdir_all(root) or {} }
@@ -112,7 +112,7 @@ pub fn ruby_kernel_spec_l39_d7_skips(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby specify `specify "#which_editor" do` at line 50.
-pub fn ruby_kernel_spec_l50_d8_which_editor(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_kernel_spec_l50_d8_which_editor(args ...ruby.Value) ruby.Value {
 	root := kernel_spec_root('editor')
 	os.mkdir_all(root) or { return kernel_spec_result(false) }
 	defer { os.rmdir_all(root) or {} }
@@ -126,14 +126,14 @@ pub fn ruby_kernel_spec_l50_d8_which_editor(args ...brew_runtime.Value) brew_run
 		'HOMEBREW_PATH':   kernel_ext.EnvironmentValue{
 			value: root
 		}
-	}, fn () !brew_runtime.Value {
-		return brew_runtime.bool_value(kernel_ext.which_editor(false).command == 'vemate -w')
+	}, fn () !ruby.Value {
+		return ruby.bool_value(kernel_ext.which_editor(false).command == 'vemate -w')
 	}) or { return kernel_spec_result(false) }
 	return result
 }
 
 // Ruby it `it "sets environment variables within the block" do` at line 62.
-pub fn ruby_kernel_spec_l62_d9_sets(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_kernel_spec_l62_d9_sets(args ...ruby.Value) ruby.Value {
 	if os.getenv('PATH') == '/bin' {
 		return kernel_spec_result(false)
 	}
@@ -141,14 +141,14 @@ pub fn ruby_kernel_spec_l62_d9_sets(args ...brew_runtime.Value) brew_runtime.Val
 		'PATH': kernel_ext.EnvironmentValue{
 			value: '/bin'
 		}
-	}, fn () !brew_runtime.Value {
-		return brew_runtime.bool_value(os.getenv('PATH') == '/bin')
+	}, fn () !ruby.Value {
+		return ruby.bool_value(os.getenv('PATH') == '/bin')
 	}) or { return kernel_spec_result(false) }
 	return result
 }
 
 // Ruby it `it "restores ENV after the block" do` at line 69.
-pub fn ruby_kernel_spec_l69_d10_restores(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_kernel_spec_l69_d10_restores(args ...ruby.Value) ruby.Value {
 	before := os.getenv('PATH')
 	if before == '' || before == '/bin' {
 		return kernel_spec_result(false)
@@ -157,14 +157,14 @@ pub fn ruby_kernel_spec_l69_d10_restores(args ...brew_runtime.Value) brew_runtim
 		'PATH': kernel_ext.EnvironmentValue{
 			value: '/bin'
 		}
-	}, fn () !brew_runtime.Value {
-		return brew_runtime.bool_value(os.getenv('PATH') == '/bin')
+	}, fn () !ruby.Value {
+		return ruby.bool_value(os.getenv('PATH') == '/bin')
 	}) or { return kernel_spec_result(false) }
 	return kernel_spec_result(os.getenv('PATH') == before)
 }
 
 // Ruby it `it "restores ENV if an exception is raised" do` at line 78.
-pub fn ruby_kernel_spec_l78_d11_restores(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_kernel_spec_l78_d11_restores(args ...ruby.Value) ruby.Value {
 	before := os.getenv('PATH')
 	if before == '' || before == '/bin' {
 		return kernel_spec_result(false)
@@ -180,7 +180,7 @@ pub fn ruby_kernel_spec_l78_d11_restores(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby it `it "delegates to Homebrew.quiet_system" do` at line 92.
-pub fn ruby_kernel_spec_l92_d12_delegates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_kernel_spec_l92_d12_delegates(args ...ruby.Value) ruby.Value {
 	result := kernel_ext.quiet_system(kernel_ext.KernelCommandPlan{
 		program: 'true'
 	}, kernel_spec_quiet_delegate) or { false }
@@ -188,7 +188,7 @@ pub fn ruby_kernel_spec_l92_d12_delegates(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby it `it "delegates to Homebrew.safe_system" do` at line 99.
-pub fn ruby_kernel_spec_l99_d13_delegates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_kernel_spec_l99_d13_delegates(args ...ruby.Value) ruby.Value {
 	kernel_ext.safe_system(kernel_ext.KernelCommandPlan{
 		program: 'true'
 	}, kernel_spec_safe_delegate) or { return kernel_spec_result(false) }

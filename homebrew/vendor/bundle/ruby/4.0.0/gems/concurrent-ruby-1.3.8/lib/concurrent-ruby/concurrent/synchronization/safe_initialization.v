@@ -1,6 +1,6 @@
 module synchronization
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/synchronization/safe_initialization.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -15,12 +15,12 @@ pub fn safely_initialize[T](constructor fn() !T) !T {
 }
 
 // Ruby method `new(*args, &block)` at line 29.
-pub fn ruby_safe_initialization_l29_d1_new(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_safe_initialization_l29_d1_new(args ...ruby.Value) ruby.Value {
 	defer {
 		full_memory_barrier()
 	}
 	if args.len == 0 {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	return args[0]
 }

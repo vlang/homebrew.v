@@ -1,13 +1,13 @@
 module test
 
-import brew_runtime
+import ruby
 import homebrew
 
 // Translated from Homebrew/brew `test/unlink_spec.rb`.
 // The original source is retained below for exact boundary auditing.
 
-fn unlink_spec_keg_value(keg homebrew.UnlinkKeg) brew_runtime.Value {
-	return brew_runtime.structured_value('Keg', keg.path, {
+fn unlink_spec_keg_value(keg homebrew.UnlinkKeg) ruby.Value {
+	return ruby.structured_value('Keg', keg.path, {
 		'name':      keg.name
 		'path':      keg.path
 		'linked':    keg.linked.str()
@@ -16,8 +16,8 @@ fn unlink_spec_keg_value(keg homebrew.UnlinkKeg) brew_runtime.Value {
 	})
 }
 
-fn unlink_spec_formula_value(formula homebrew.LinkOverwriteFormula) brew_runtime.Value {
-	return brew_runtime.Value{
+fn unlink_spec_formula_value(formula homebrew.LinkOverwriteFormula) ruby.Value {
+	return ruby.Value{
 		type_name: 'Formula'
 		repr: formula.name
 		attributes: {
@@ -73,56 +73,56 @@ pub fn unlink_spec_selected_kegs(formula_keg_only bool) ![]string {
 }
 
 // Ruby let `let(:formula) { instance_double(Formula, keg_only?: false) }` at line 8.
-pub fn ruby_unlink_spec_l8_d1_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unlink_spec_l8_d1_formula(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.structured_value('Formula', 'target', {
+	return ruby.structured_value('Formula', 'target', {
 		'name':     'target'
 		'keg_only': 'false'
 	})
 }
 
 // Ruby let `let(:linked_keg_only_keg) { instance_double(Keg, directory?: true) }` at line 9.
-pub fn ruby_unlink_spec_l9_d2_linked_keg_only_keg(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unlink_spec_l9_d2_linked_keg_only_keg(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unlink_spec_keg_value(unlink_spec_link_overwrite_formulae()[0].kegs[0])
 }
 
 // Ruby let `let(:linked_keg_only_formula) do` at line 10.
-pub fn ruby_unlink_spec_l10_d3_linked_keg_only_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unlink_spec_l10_d3_linked_keg_only_formula(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unlink_spec_formula_value(unlink_spec_link_overwrite_formulae()[0])
 }
 
 // Ruby let `let(:linked_non_keg_only_keg) { instance_double(Keg, directory?: true) }` at line 13.
-pub fn ruby_unlink_spec_l13_d4_linked_non_keg_only_keg(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unlink_spec_l13_d4_linked_non_keg_only_keg(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unlink_spec_keg_value(unlink_spec_link_overwrite_formulae()[1].kegs[0])
 }
 
 // Ruby let `let(:linked_non_keg_only_formula) do` at line 14.
-pub fn ruby_unlink_spec_l14_d5_linked_non_keg_only_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unlink_spec_l14_d5_linked_non_keg_only_formula(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unlink_spec_formula_value(unlink_spec_link_overwrite_formulae()[1])
 }
 
 // Ruby let `let(:unlinked_formula) do` at line 18.
-pub fn ruby_unlink_spec_l18_d6_unlinked_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unlink_spec_l18_d6_unlinked_formula(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unlink_spec_formula_value(unlink_spec_link_overwrite_formulae()[2])
 }
 
 // Ruby it `it "only unlinks linked keg-only sibling formulae for non-keg-only formulae" do` at line 22.
-pub fn ruby_unlink_spec_l22_d7_only(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unlink_spec_l22_d7_only(args ...ruby.Value) ruby.Value {
 	_ = args
-	selected := unlink_spec_selected_kegs(false) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(selected == ['linked-keg-only'])
+	selected := unlink_spec_selected_kegs(false) or { return ruby.bool_value(false) }
+	return ruby.bool_value(selected == ['linked-keg-only'])
 }
 
 // Ruby it `it "unlinks all linked sibling formulae for keg-only formulae" do` at line 31.
-pub fn ruby_unlink_spec_l31_d8_unlinks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unlink_spec_l31_d8_unlinks(args ...ruby.Value) ruby.Value {
 	_ = args
-	selected := unlink_spec_selected_kegs(true) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(selected == ['linked-keg-only', 'linked-non-keg-only'])
+	selected := unlink_spec_selected_kegs(true) or { return ruby.bool_value(false) }
+	return ruby.bool_value(selected == ['linked-keg-only', 'linked-non-keg-only'])
 }
 
 // Original Ruby source (line-for-line):

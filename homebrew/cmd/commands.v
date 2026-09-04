@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 import homebrew.utils
 
 // Translated from Homebrew/brew `cmd/commands.rb`.
@@ -65,10 +65,10 @@ pub fn commands_command_output(config CommandsCommandConfig) string {
 }
 
 // Ruby method `run` at line 23.
-pub fn ruby_commands_l23_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
-	options := if args.len > 0 { args[0].map_data } else { map[string]brew_runtime.Value{} }
-	quiet := (options['quiet'] or { brew_runtime.bool_value(false) }).as_bool() or { false }
-	include_aliases := (options['include_aliases'] or { brew_runtime.bool_value(false) }).as_bool() or {
+pub fn ruby_commands_l23_d1_run(args ...ruby.Value) ruby.Value {
+	options := if args.len > 0 { args[0].map_data } else { map[string]ruby.Value{} }
+	quiet := (options['quiet'] or { ruby.bool_value(false) }).as_bool() or { false }
+	include_aliases := (options['include_aliases'] or { ruby.bool_value(false) }).as_bool() or {
 		false
 	}
 	internal := if value := options['internal'] {
@@ -91,7 +91,7 @@ pub fn ruby_commands_l23_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
 	} else {
 		[]string{}
 	}
-	return brew_runtime.string_value(commands_command_output(CommandsCommandConfig{
+	return ruby.string_value(commands_command_output(CommandsCommandConfig{
 		quiet: quiet
 		include_aliases: include_aliases
 		internal: internal

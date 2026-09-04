@@ -1,6 +1,6 @@
 module utils
 
-import brew_runtime
+import ruby
 import homebrew.utils as production_utils
 
 fn formatter_spec_first_row(items []string, min_width int) string {
@@ -11,26 +11,26 @@ fn formatter_spec_first_row(items []string, min_width int) string {
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "stretches few short items into wide columns that fill the terminal" do` at line 14.
-pub fn ruby_formatter_spec_l14_d1_stretches(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formatter_spec_l14_d1_stretches(args ...ruby.Value) ruby.Value {
 	first_row := formatter_spec_first_row(['aa', 'bb', 'cc', 'dd'], 0)
-	return brew_runtime.bool_value((first_row.index('bb') or { -1 }) > 2)
+	return ruby.bool_value((first_row.index('bb') or { -1 }) > 2)
 }
 
 // Ruby it `it "uses tighter columns when min_width fits more columns than the item count" do` at line 20.
-pub fn ruby_formatter_spec_l20_d2_uses(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formatter_spec_l20_d2_uses(args ...ruby.Value) ruby.Value {
 	default_first_row := formatter_spec_first_row(['aa', 'bb', 'cc', 'dd'], 0)
 	pinned_first_row := formatter_spec_first_row(['aa', 'bb', 'cc', 'dd'], 4)
-	return brew_runtime.bool_value((pinned_first_row.index('bb') or { 100 }) < (default_first_row.index('bb') or { -1 }))
+	return ruby.bool_value((pinned_first_row.index('bb') or { 100 }) < (default_first_row.index('bb') or { -1 }))
 }
 
 // Ruby it `it "produces matching column widths for two calls sharing the same min_width" do` at line 27.
-pub fn ruby_formatter_spec_l27_d3_produces(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formatter_spec_l27_d3_produces(args ...ruby.Value) ruby.Value {
 	many := []string{len: 20, init: 'item${index + 1}'}
 	few := ['a', 'b', 'c']
 	shared_min_width := 6
 	many_first_row := formatter_spec_first_row(many, shared_min_width)
 	few_first_row := formatter_spec_first_row(few, shared_min_width)
-	return brew_runtime.bool_value((many_first_row.index('item3') or { -1 }) == (few_first_row.index('b') or { -2 }))
+	return ruby.bool_value((many_first_row.index('item3') or { -1 }) == (few_first_row.index('b') or { -2 }))
 }
 
 // Original Ruby source (line-for-line):

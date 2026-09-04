@@ -1,6 +1,6 @@
 module extensions
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `bundle/extensions/vscode_extension.rb`.
@@ -211,161 +211,161 @@ pub fn (mut state VscodeExtensionState) cleanup(extensions []string) {
 	}
 }
 
-fn vscode_state_value(state &VscodeExtensionState) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::Bundle::VscodeExtension', '', {
+fn vscode_state_value(state &VscodeExtensionState) ruby.Value {
+	return ruby.structured_value('Homebrew::Bundle::VscodeExtension', '', {
 		'vscode_state_address': u64(voidptr(state)).str()
 	})
 }
 
-fn vscode_state_from_args(args []brew_runtime.Value, method string) &VscodeExtensionState {
+fn vscode_state_from_args(args []ruby.Value, method string) &VscodeExtensionState {
 	if args.len == 0 || 'vscode_state_address' !in args[0].attributes {
 		panic('VscodeExtension.${method} requires translated state')
 	}
 	return unsafe { &VscodeExtensionState(voidptr(args[0].attributes['vscode_state_address'].u64())) }
 }
 
-pub fn vscode_extension_state_boundary(state &VscodeExtensionState) brew_runtime.Value {
+pub fn vscode_extension_state_boundary(state &VscodeExtensionState) ruby.Value {
 	return vscode_state_value(state)
 }
 
 // Ruby method `type = :vscode` at line 13.
-pub fn ruby_vscode_extension_l13_d1_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vscode_extension_l13_d1_type(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.object_value('Symbol', 'vscode')
+	return ruby.object_value('Symbol', 'vscode')
 }
 
 // Ruby method `check_label = "VSCode Extension"` at line 16.
-pub fn ruby_vscode_extension_l16_d2_check_label(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vscode_extension_l16_d2_check_label(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value(vscode_extension_definition().check_label)
+	return ruby.string_value(vscode_extension_definition().check_label)
 }
 
 // Ruby method `banner_name = "VSCode (and forks/variants) extensions"` at line 19.
-pub fn ruby_vscode_extension_l19_d3_banner_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vscode_extension_l19_d3_banner_name(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value(vscode_extension_definition().banner_name)
+	return ruby.string_value(vscode_extension_definition().banner_name)
 }
 
 // Ruby method `reset!` at line 22.
-pub fn ruby_vscode_extension_l22_d4_reset(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vscode_extension_l22_d4_reset(args ...ruby.Value) ruby.Value {
 	mut state := vscode_state_from_args(args, 'reset!')
 	state.reset()
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `cleanup_heading` at line 28.
-pub fn ruby_vscode_extension_l28_d5_cleanup_heading(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vscode_extension_l28_d5_cleanup_heading(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value(vscode_extension_definition().cleanup_heading or { '' })
+	return ruby.string_value(vscode_extension_definition().cleanup_heading or { '' })
 }
 
 // Ruby method `package_record(name, with: nil)` at line 33.
-pub fn ruby_vscode_extension_l33_d6_package_record(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vscode_extension_l33_d6_package_record(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'name is required')
+		return ruby.object_value('ArgumentError', 'name is required')
 	}
-	return brew_runtime.string_value(vscode_package_record(args[0].as_string()))
+	return ruby.string_value(vscode_package_record(args[0].as_string()))
 }
 
 // Ruby method `package_manager_executable` at line 40.
-pub fn ruby_vscode_extension_l40_d7_package_manager_executable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vscode_extension_l40_d7_package_manager_executable(args ...ruby.Value) ruby.Value {
 	mut state := vscode_state_from_args(args, 'package_manager_executable')
 	executable := state.package_manager_executable()
 	return if executable == '' {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	} else {
-		brew_runtime.object_value('Pathname', executable)
+		ruby.object_value('Pathname', executable)
 	}
 }
 
 // Ruby method `extensions` at line 48.
-pub fn ruby_vscode_extension_l48_d8_extensions(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vscode_extension_l48_d8_extensions(args ...ruby.Value) ruby.Value {
 	mut state := vscode_state_from_args(args, 'extensions')
-	return brew_runtime.string_array_value(state.discover_extensions())
+	return ruby.string_array_value(state.discover_extensions())
 }
 
 // Ruby method `packages` at line 64.
-pub fn ruby_vscode_extension_l64_d9_packages(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vscode_extension_l64_d9_packages(args ...ruby.Value) ruby.Value {
 	mut state := vscode_state_from_args(args, 'packages')
-	return brew_runtime.string_array_value(state.discover_extensions())
+	return ruby.string_array_value(state.discover_extensions())
 }
 
 // Ruby method `installed_packages` at line 69.
-pub fn ruby_vscode_extension_l69_d10_installed_packages(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vscode_extension_l69_d10_installed_packages(args ...ruby.Value) ruby.Value {
 	mut state := vscode_state_from_args(args, 'installed_packages')
-	return brew_runtime.string_array_value(state.discover_installed_extensions())
+	return ruby.string_array_value(state.discover_installed_extensions())
 }
 
 // Ruby method `installed_extensions` at line 74.
-pub fn ruby_vscode_extension_l74_d11_installed_extensions(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vscode_extension_l74_d11_installed_extensions(args ...ruby.Value) ruby.Value {
 	mut state := vscode_state_from_args(args, 'installed_extensions')
-	return brew_runtime.string_array_value(state.discover_installed_extensions())
+	return ruby.string_array_value(state.discover_installed_extensions())
 }
 
 // Ruby method `package_installed?(name, with: nil)` at line 82.
-pub fn ruby_vscode_extension_l82_d12_package_installed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vscode_extension_l82_d12_package_installed(args ...ruby.Value) ruby.Value {
 	mut state := vscode_state_from_args(args, 'package_installed?')
 	if args.len < 2 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(vscode_package_record(args[1].as_string()) in state.discover_installed_extensions())
+	return ruby.bool_value(vscode_package_record(args[1].as_string()) in state.discover_installed_extensions())
 }
 
 // Ruby method `preinstall!(name, with: nil, no_upgrade: false, verbose: false, **_options)` at line 97.
-pub fn ruby_vscode_extension_l97_d13_preinstall(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vscode_extension_l97_d13_preinstall(args ...ruby.Value) ruby.Value {
 	mut state := vscode_state_from_args(args, 'preinstall!')
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'name is required')
+		return ruby.object_value('ArgumentError', 'name is required')
 	}
 	verbose := if args.len > 4 { args[4].bool_data } else { false }
-	return brew_runtime.bool_value(state.preinstall(args[1].as_string(), verbose) or {
-		return brew_runtime.object_value('RuntimeError', err.msg())
+	return ruby.bool_value(state.preinstall(args[1].as_string(), verbose) or {
+		return ruby.object_value('RuntimeError', err.msg())
 	})
 }
 
 // Ruby method `install_package!(name, with: nil, verbose: false)` at line 125.
-pub fn ruby_vscode_extension_l125_d14_install_package(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vscode_extension_l125_d14_install_package(args ...ruby.Value) ruby.Value {
 	mut state := vscode_state_from_args(args, 'install_package!')
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'name is required')
+		return ruby.object_value('ArgumentError', 'name is required')
 	}
 	result := if args.len > 4 { args[4].bool_data } else { false }
-	return brew_runtime.bool_value(state.install_package(args[1].as_string(), result) or {
-		return brew_runtime.object_value('RuntimeError', err.msg())
+	return ruby.bool_value(state.install_package(args[1].as_string(), result) or {
+		return ruby.object_value('RuntimeError', err.msg())
 	})
 }
 
 // Ruby method `install!(name, with: nil, preinstall: true, no_upgrade: false, verbose: false, force: false,` at line 146.
-pub fn ruby_vscode_extension_l146_d15_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vscode_extension_l146_d15_install(args ...ruby.Value) ruby.Value {
 	mut state := vscode_state_from_args(args, 'install!')
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'name is required')
+		return ruby.object_value('ArgumentError', 'name is required')
 	}
 	preinstall := if args.len > 3 { args[3].bool_data } else { true }
 	verbose := if args.len > 5 { args[5].bool_data } else { false }
 	result := if args.len > 7 { args[7].bool_data } else { false }
-	return brew_runtime.bool_value(state.install(args[1].as_string(), preinstall, verbose, result) or {
-		return brew_runtime.object_value('RuntimeError', err.msg())
+	return ruby.bool_value(state.install(args[1].as_string(), preinstall, verbose, result) or {
+		return ruby.object_value('RuntimeError', err.msg())
 	})
 }
 
 // Ruby method `cleanup_items(entries)` at line 169.
-pub fn ruby_vscode_extension_l169_d16_cleanup_items(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vscode_extension_l169_d16_cleanup_items(args ...ruby.Value) ruby.Value {
 	mut state := vscode_state_from_args(args, 'cleanup_items')
 	entries := if args.len > 1 {
 		(args[1].as_array() or { [] }).map(extension_entry_from_value(it))
 	} else {
 		[]
 	}
-	return brew_runtime.string_array_value(vscode_cleanup_items(entries, state.discover_extensions()))
+	return ruby.string_array_value(vscode_cleanup_items(entries, state.discover_extensions()))
 }
 
 // Ruby method `cleanup!(extensions)` at line 181.
-pub fn ruby_vscode_extension_l181_d17_cleanup(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vscode_extension_l181_d17_cleanup(args ...ruby.Value) ruby.Value {
 	mut state := vscode_state_from_args(args, 'cleanup!')
 	extensions := if args.len > 1 { args[1].as_string_array() or { [] } } else { [] }
 	state.cleanup(extensions)
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Original Ruby source (line-for-line):

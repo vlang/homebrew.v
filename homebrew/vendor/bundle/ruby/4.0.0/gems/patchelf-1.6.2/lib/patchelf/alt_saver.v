@@ -1,6 +1,6 @@
 module patchelf
 
-import brew_runtime
+import ruby
 import os
 
 const alt_dt_null = i64(0)
@@ -136,7 +136,7 @@ pub:
 	endian    AltEndian
 	elf_class int
 pub mut:
-	set                 map[string]brew_runtime.Value
+	set                 map[string]ruby.Value
 	buffer              []u8
 	ehdr                AltElfHeader
 	segments            []AltSegment
@@ -147,8 +147,8 @@ pub mut:
 	section_alignment   int
 }
 
-fn alt_nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn alt_nil_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 fn alt_alignup(value u64, alignment u64) u64 {
@@ -288,7 +288,7 @@ fn alt_copy_sections(sections []AltSection) []AltSection {
 	return sections.map(AltSection{ name: it.name, header: it.header })
 }
 
-pub fn new_alt_saver_from_bytes(in_file string, out_file string, set map[string]brew_runtime.Value,
+pub fn new_alt_saver_from_bytes(in_file string, out_file string, set map[string]ruby.Value,
 	data []u8) !&AltSaver {
 	if data.len < 6 || data[..4] != [u8(0x7f), `E`, `L`, `F`] {
 		return error('invalid ELF magic')
@@ -348,7 +348,7 @@ pub fn new_alt_saver_from_bytes(in_file string, out_file string, set map[string]
 	return saver
 }
 
-pub fn new_alt_saver(in_file string, out_file string, set map[string]brew_runtime.Value) !&AltSaver {
+pub fn new_alt_saver(in_file string, out_file string, set map[string]ruby.Value) !&AltSaver {
 	return new_alt_saver_from_bytes(in_file, out_file, set, os.read_bytes(in_file)!)
 }
 
@@ -1350,7 +1350,7 @@ pub fn (mut saver AltSaver) patch_out() ! {
 	os.write_file_array(saver.out_file, saver.buffer)!
 }
 
-fn alt_value_truthy(value brew_runtime.Value) bool {
+fn alt_value_truthy(value ruby.Value) bool {
 	return value.type_name != 'NilClass' && !(value.type_name == 'Bool' && !value.bool_data)
 }
 
@@ -1381,8 +1381,8 @@ pub fn (mut saver AltSaver) save() ! {
 	}
 }
 
-fn alt_header_value(header AltElfHeader) brew_runtime.Value {
-	return brew_runtime.structured_value('ELFTools::Structs::ELF_Ehdr', 'ELF_Ehdr', {
+fn alt_header_value(header AltElfHeader) ruby.Value {
+	return ruby.structured_value('ELFTools::Structs::ELF_Ehdr', 'ELF_Ehdr', {
 		'e_type':     header.e_type.str()
 		'e_machine':  header.e_machine.str()
 		'e_entry':    header.e_entry.str()
@@ -1394,8 +1394,8 @@ fn alt_header_value(header AltElfHeader) brew_runtime.Value {
 	})
 }
 
-fn alt_section_header_value(header AltSectionHeader) brew_runtime.Value {
-	return brew_runtime.structured_value('ELFTools::Structs::ELF_Shdr', 'ELF_Shdr', {
+fn alt_section_header_value(header AltSectionHeader) ruby.Value {
+	return ruby.structured_value('ELFTools::Structs::ELF_Shdr', 'ELF_Shdr', {
 		'sh_name':      header.sh_name.str()
 		'sh_type':      header.sh_type.str()
 		'sh_flags':     header.sh_flags.str()
@@ -1409,14 +1409,14 @@ fn alt_section_header_value(header AltSectionHeader) brew_runtime.Value {
 	})
 }
 
-fn alt_section_value(section AltSection) brew_runtime.Value {
+fn alt_section_value(section AltSection) ruby.Value {
 	mut attributes := alt_section_header_value(section.header).attributes.clone()
 	attributes['name'] = section.name
-	return brew_runtime.structured_value('ELFTools::Sections::Section', section.name, attributes)
+	return ruby.structured_value('ELFTools::Sections::Section', section.name, attributes)
 }
 
-fn alt_program_header_value(header AltProgramHeader) brew_runtime.Value {
-	return brew_runtime.structured_value('ELFTools::Structs::ELF_Phdr', 'ELF_Phdr', {
+fn alt_program_header_value(header AltProgramHeader) ruby.Value {
+	return ruby.structured_value('ELFTools::Structs::ELF_Phdr', 'ELF_Phdr', {
 		'p_type':   header.p_type.str()
 		'p_offset': header.p_offset.str()
 		'p_vaddr':  header.p_vaddr.str()
@@ -1428,15 +1428,15 @@ fn alt_program_header_value(header AltProgramHeader) brew_runtime.Value {
 	})
 }
 
-fn alt_dynamic_tag_value(tag AltDynamicTag) brew_runtime.Value {
-	return brew_runtime.structured_value('ELFTools::Structs::ELF_Dyn', 'ELF_Dyn', {
+fn alt_dynamic_tag_value(tag AltDynamicTag) ruby.Value {
+	return ruby.structured_value('ELFTools::Structs::ELF_Dyn', 'ELF_Dyn', {
 		'd_tag':  tag.d_tag.str()
 		'd_val':  tag.d_val.str()
 		'offset': tag.offset.str()
 	})
 }
 
-fn alt_section_header_from_value(value brew_runtime.Value) AltSectionHeader {
+fn alt_section_header_from_value(value ruby.Value) AltSectionHeader {
 	return AltSectionHeader{
 		sh_name: u32((value.attribute('sh_name') or { '0' }).u64())
 		sh_type: u32((value.attribute('sh_type') or { '0' }).u64())
@@ -1451,7 +1451,7 @@ fn alt_section_header_from_value(value brew_runtime.Value) AltSectionHeader {
 	}
 }
 
-fn alt_program_header_from_value(value brew_runtime.Value) AltProgramHeader {
+fn alt_program_header_from_value(value ruby.Value) AltProgramHeader {
 	return AltProgramHeader{
 		p_type: u32((value.attribute('p_type') or { '0' }).u64())
 		p_offset: (value.attribute('p_offset') or { '0' }).u64()
@@ -1464,15 +1464,15 @@ fn alt_program_header_from_value(value brew_runtime.Value) AltProgramHeader {
 	}
 }
 
-fn alt_saver_value(saver &AltSaver) brew_runtime.Value {
-	return brew_runtime.structured_value('PatchELF::AltSaver', 'AltSaver(${saver.in_file})', {
+fn alt_saver_value(saver &AltSaver) ruby.Value {
+	return ruby.structured_value('PatchELF::AltSaver', 'AltSaver(${saver.in_file})', {
 		'alt_saver_address': u64(voidptr(saver)).str()
 		'in_file':           saver.in_file
 		'out_file':          saver.out_file
 	})
 }
 
-fn alt_saver_from_args(args []brew_runtime.Value) &AltSaver {
+fn alt_saver_from_args(args []ruby.Value) &AltSaver {
 	if args.len == 0 {
 		panic('AltSaver method requires a receiver')
 	}
@@ -1480,19 +1480,19 @@ fn alt_saver_from_args(args []brew_runtime.Value) &AltSaver {
 	return unsafe { &AltSaver(voidptr(address.u64())) }
 }
 
-fn alt_runpath_tags_value(tags map[string]AltRunpathTag) brew_runtime.Value {
-	mut result := map[string]brew_runtime.Value{}
+fn alt_runpath_tags_value(tags map[string]AltRunpathTag) ruby.Value {
+	mut result := map[string]ruby.Value{}
 	for name, item in tags {
-		result[name] = brew_runtime.structured_value('Hash', name, {
+		result[name] = ruby.structured_value('Hash', name, {
 			'offset': item.offset.str()
 			'd_tag':  item.header.d_tag.str()
 			'd_val':  item.header.d_val.str()
 		})
 	}
-	return brew_runtime.map_value(result)
+	return ruby.map_value(result)
 }
 
-fn alt_runpath_tags_from_value(value brew_runtime.Value) map[string]AltRunpathTag {
+fn alt_runpath_tags_from_value(value ruby.Value) map[string]AltRunpathTag {
 	mut result := map[string]AltRunpathTag{}
 	for name, item in value.map_data {
 		offset := (item.attribute('offset') or { '0' }).int()
@@ -1508,36 +1508,36 @@ fn alt_runpath_tags_from_value(value brew_runtime.Value) map[string]AltRunpathTa
 	return result
 }
 
-fn alt_require(args []brew_runtime.Value, count int, name string) {
+fn alt_require(args []ruby.Value, count int, name string) {
 	if args.len < count {
 		panic('${name} requires ${count} argument(s), including receiver')
 	}
 }
 
-fn alt_sections_value(sections []AltSection) brew_runtime.Value {
-	return brew_runtime.array_value(sections.map(alt_section_value(it)))
+fn alt_sections_value(sections []AltSection) ruby.Value {
+	return ruby.array_value(sections.map(alt_section_value(it)))
 }
 
-fn alt_programs_value(programs []AltProgramHeader) brew_runtime.Value {
-	return brew_runtime.array_value(programs.map(alt_program_header_value(it)))
+fn alt_programs_value(programs []AltProgramHeader) ruby.Value {
+	return ruby.array_value(programs.map(alt_program_header_value(it)))
 }
 
-fn alt_refs_value(refs AltSectionReferences) brew_runtime.Value {
-	mut linkage := map[string]brew_runtime.Value{}
-	mut info := map[string]brew_runtime.Value{}
+fn alt_refs_value(refs AltSectionReferences) ruby.Value {
+	mut linkage := map[string]ruby.Value{}
+	mut info := map[string]ruby.Value{}
 	for name, target in refs.linkage {
-		linkage[name] = brew_runtime.string_value(target)
+		linkage[name] = ruby.string_value(target)
 	}
 	for name, target in refs.info {
-		info[name] = brew_runtime.string_value(target)
+		info[name] = ruby.string_value(target)
 	}
-	return brew_runtime.map_value({
-		'linkage': brew_runtime.map_value(linkage)
-		'info':    brew_runtime.map_value(info)
+	return ruby.map_value({
+		'linkage': ruby.map_value(linkage)
+		'info':    ruby.map_value(info)
 	})
 }
 
-fn alt_refs_from_value(value brew_runtime.Value) AltSectionReferences {
+fn alt_refs_from_value(value ruby.Value) AltSectionReferences {
 	mut linkage := map[string]string{}
 	mut info := map[string]string{}
 	if nested := value.map_data['linkage'] {
@@ -1553,9 +1553,9 @@ fn alt_refs_from_value(value brew_runtime.Value) AltSectionReferences {
 	return AltSectionReferences{ linkage: linkage, info: info }
 }
 
-fn alt_set_from_value(value brew_runtime.Value) map[string]brew_runtime.Value {
+fn alt_set_from_value(value ruby.Value) map[string]ruby.Value {
 	if value.type_name != 'Hash' {
-		return map[string]brew_runtime.Value{}
+		return map[string]ruby.Value{}
 	}
 	return value.map_data.clone()
 }
@@ -1564,28 +1564,28 @@ fn alt_set_from_value(value brew_runtime.Value) map[string]brew_runtime.Value {
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `fill(char, nbytes)` at line 24.
-pub fn ruby_alt_saver_l24_d1_fill(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l24_d1_fill(args ...ruby.Value) ruby.Value {
 	alt_require(args, 2, 'fill')
 	character := args[args.len - 2].as_string()
 	if character.len == 0 {
 		panic('fill requires a non-empty character')
 	}
 	count := int(args[args.len - 1].as_int() or { panic(err) })
-	return brew_runtime.string_value((alt_fill(character.bytes()[0], count) or { panic(err) }).bytestr())
+	return ruby.string_value((alt_fill(character.bytes()[0], count) or { panic(err) }).bytestr())
 }
 
 // Ruby attr_reader `attr_reader :in_file` at line 48.
-pub fn ruby_alt_saver_l48_d2_in_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(alt_saver_from_args(args).in_file)
+pub fn ruby_alt_saver_l48_d2_in_file(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(alt_saver_from_args(args).in_file)
 }
 
 // Ruby attr_reader `attr_reader :out_file` at line 49.
-pub fn ruby_alt_saver_l49_d3_out_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(alt_saver_from_args(args).out_file)
+pub fn ruby_alt_saver_l49_d3_out_file(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(alt_saver_from_args(args).out_file)
 }
 
 // Ruby method `initialize(in_file, out_file, set)` at line 56.
-pub fn ruby_alt_saver_l56_d4_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l56_d4_initialize(args ...ruby.Value) ruby.Value {
 	alt_require(args, 3, 'AltSaver#initialize')
 	saver := new_alt_saver(args[0].as_string(), args[1].as_string(), alt_set_from_value(args[2])) or {
 		panic(err)
@@ -1594,43 +1594,43 @@ pub fn ruby_alt_saver_l56_d4_initialize(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby method `save!` at line 90.
-pub fn ruby_alt_saver_l90_d5_save(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l90_d5_save(args ...ruby.Value) ruby.Value {
 	mut saver := alt_saver_from_args(args)
 	saver.save() or { panic(err) }
 	return alt_nil_value()
 }
 
 // Ruby attr_reader `attr_reader :ehdr, :endian, :elf_class` at line 102.
-pub fn ruby_alt_saver_l102_d6_ehdr(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l102_d6_ehdr(args ...ruby.Value) ruby.Value {
 	return alt_header_value(alt_saver_from_args(args).ehdr)
 }
 
 // Ruby attr_reader `attr_reader :ehdr, :endian, :elf_class` at line 102.
-pub fn ruby_alt_saver_l102_d7_endian(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(alt_saver_from_args(args).endian.str())
+pub fn ruby_alt_saver_l102_d7_endian(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(alt_saver_from_args(args).endian.str())
 }
 
 // Ruby attr_reader `attr_reader :ehdr, :endian, :elf_class` at line 102.
-pub fn ruby_alt_saver_l102_d8_elf_class(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(alt_saver_from_args(args).elf_class)
+pub fn ruby_alt_saver_l102_d8_elf_class(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(alt_saver_from_args(args).elf_class)
 }
 
 // Ruby method `old_sections` at line 104.
-pub fn ruby_alt_saver_l104_d9_old_sections(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l104_d9_old_sections(args ...ruby.Value) ruby.Value {
 	return alt_sections_value(alt_saver_from_args(args).original_sections)
 }
 
 // Ruby method `buf_cstr(off)` at line 108.
-pub fn ruby_alt_saver_l108_d10_buf_cstr(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l108_d10_buf_cstr(args ...ruby.Value) ruby.Value {
 	alt_require(args, 2, 'buf_cstr')
 	saver := alt_saver_from_args(args)
-	return brew_runtime.string_value(saver.buf_cstr(int(args[1].as_int() or { panic(err) })) or {
+	return ruby.string_value(saver.buf_cstr(int(args[1].as_int() or { panic(err) })) or {
 		panic(err)
 	})
 }
 
 // Ruby method `buf_move!(dst_idx, src_idx, n_bytes)` at line 121.
-pub fn ruby_alt_saver_l121_d11_buf_move(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l121_d11_buf_move(args ...ruby.Value) ruby.Value {
 	alt_require(args, 4, 'buf_move!')
 	mut saver := alt_saver_from_args(args)
 	saver.buf_move(int(args[1].as_int() or { panic(err) }), int(args[2].as_int() or { panic(err) }), int(args[3].as_int() or { panic(err) })) or { panic(err) }
@@ -1638,38 +1638,38 @@ pub fn ruby_alt_saver_l121_d11_buf_move(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby method `dynstr` at line 129.
-pub fn ruby_alt_saver_l129_d12_dynstr(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l129_d12_dynstr(args ...ruby.Value) ruby.Value {
 	saver := alt_saver_from_args(args)
 	return alt_section_value(saver.find_section('.dynstr') or { return alt_nil_value() })
 }
 
 // Ruby method `each_dynamic_tags` at line 136.
-pub fn ruby_alt_saver_l136_d13_each_dynamic_tags(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l136_d13_each_dynamic_tags(args ...ruby.Value) ruby.Value {
 	saver := alt_saver_from_args(args)
-	return brew_runtime.array_value((saver.dynamic_tags() or { panic(err) }).map(brew_runtime.array_value([
+	return ruby.array_value((saver.dynamic_tags() or { panic(err) }).map(ruby.array_value([
 		alt_dynamic_tag_value(it),
-		brew_runtime.int_value(it.offset),
+		ruby.int_value(it.offset),
 	])))
 }
 
 // Ruby method `find_section(sec_name)` at line 159.
-pub fn ruby_alt_saver_l159_d14_find_section(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l159_d14_find_section(args ...ruby.Value) ruby.Value {
 	alt_require(args, 2, 'find_section')
 	saver := alt_saver_from_args(args)
 	return alt_section_value(saver.find_section(args[1].as_string()) or { return alt_nil_value() })
 }
 
 // Ruby method `find_section_idx(sec_name)` at line 166.
-pub fn ruby_alt_saver_l166_d15_find_section_idx(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l166_d15_find_section_idx(args ...ruby.Value) ruby.Value {
 	alt_require(args, 2, 'find_section_idx')
 	saver := alt_saver_from_args(args)
-	return brew_runtime.int_value(saver.find_section_idx(args[1].as_string()) or {
+	return ruby.int_value(saver.find_section_idx(args[1].as_string()) or {
 		return alt_nil_value()
 	})
 }
 
 // Ruby method `buf_grow!(newsz)` at line 170.
-pub fn ruby_alt_saver_l170_d16_buf_grow(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l170_d16_buf_grow(args ...ruby.Value) ruby.Value {
 	alt_require(args, 2, 'buf_grow!')
 	mut saver := alt_saver_from_args(args)
 	saver.buf_grow(int(args[1].as_int() or { panic(err) })) or { panic(err) }
@@ -1677,41 +1677,41 @@ pub fn ruby_alt_saver_l170_d16_buf_grow(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby method `modify_interpreter` at line 177.
-pub fn ruby_alt_saver_l177_d17_modify_interpreter(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l177_d17_modify_interpreter(args ...ruby.Value) ruby.Value {
 	mut saver := alt_saver_from_args(args)
 	saver.modify_interpreter()
 	return alt_nil_value()
 }
 
 // Ruby method `modify_needed` at line 181.
-pub fn ruby_alt_saver_l181_d18_modify_needed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l181_d18_modify_needed(args ...ruby.Value) ruby.Value {
 	mut saver := alt_saver_from_args(args)
 	saver.modify_needed()
 	return alt_nil_value()
 }
 
 // Ruby method `modify_rpath` at line 187.
-pub fn ruby_alt_saver_l187_d19_modify_rpath(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l187_d19_modify_rpath(args ...ruby.Value) ruby.Value {
 	mut saver := alt_saver_from_args(args)
 	saver.modify_rpath() or { panic(err) }
 	return alt_nil_value()
 }
 
 // Ruby method `modify_runpath` at line 192.
-pub fn ruby_alt_saver_l192_d20_modify_runpath(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l192_d20_modify_runpath(args ...ruby.Value) ruby.Value {
 	mut saver := alt_saver_from_args(args)
 	saver.modify_runpath() or { panic(err) }
 	return alt_nil_value()
 }
 
 // Ruby method `collect_runpath_tags` at line 196.
-pub fn ruby_alt_saver_l196_d21_collect_runpath_tags(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l196_d21_collect_runpath_tags(args ...ruby.Value) ruby.Value {
 	saver := alt_saver_from_args(args)
 	return alt_runpath_tags_value(saver.collect_runpath_tags() or { panic(err) })
 }
 
 // Ruby method `resolve_rpath_tag_conflict(dyn_tags, force_rpath: false)` at line 216.
-pub fn ruby_alt_saver_l216_d22_resolve_rpath_tag_conflict(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l216_d22_resolve_rpath_tag_conflict(args ...ruby.Value) ruby.Value {
 	alt_require(args, 2, 'resolve_rpath_tag_conflict')
 	mut saver := alt_saver_from_args(args)
 	force := if args.len > 2 { args[2].as_bool() or { false } } else { false }
@@ -1720,7 +1720,7 @@ pub fn ruby_alt_saver_l216_d22_resolve_rpath_tag_conflict(args ...brew_runtime.V
 }
 
 // Ruby method `modify_rpath_helper(new_rpath, force_rpath: false)` at line 235.
-pub fn ruby_alt_saver_l235_d23_modify_rpath_helper(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l235_d23_modify_rpath_helper(args ...ruby.Value) ruby.Value {
 	alt_require(args, 2, 'modify_rpath_helper')
 	mut saver := alt_saver_from_args(args)
 	force := if args.len > 2 { args[2].as_bool() or { false } } else { false }
@@ -1729,14 +1729,14 @@ pub fn ruby_alt_saver_l235_d23_modify_rpath_helper(args ...brew_runtime.Value) b
 }
 
 // Ruby method `modify_soname` at line 275.
-pub fn ruby_alt_saver_l275_d24_modify_soname(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l275_d24_modify_soname(args ...ruby.Value) ruby.Value {
 	mut saver := alt_saver_from_args(args)
 	saver.modify_soname()
 	return alt_nil_value()
 }
 
 // Ruby method `add_segment!(**phdr_vals)` at line 282.
-pub fn ruby_alt_saver_l282_d25_add_segment(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l282_d25_add_segment(args ...ruby.Value) ruby.Value {
 	alt_require(args, 2, 'add_segment!')
 	mut saver := alt_saver_from_args(args)
 	saver.add_segment(alt_program_header_from_value(args[1]))
@@ -1744,7 +1744,7 @@ pub fn ruby_alt_saver_l282_d25_add_segment(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `add_dt_rpath!(d_tag: nil, d_val: nil)` at line 291.
-pub fn ruby_alt_saver_l291_d26_add_dt_rpath(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l291_d26_add_dt_rpath(args ...ruby.Value) ruby.Value {
 	alt_require(args, 3, 'add_dt_rpath!')
 	mut saver := alt_saver_from_args(args)
 	saver.add_dt_rpath(args[1].as_int() or { panic(err) }, u64(args[2].as_int() or { panic(err) })) or {
@@ -1754,75 +1754,75 @@ pub fn ruby_alt_saver_l291_d26_add_dt_rpath(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby method `new_section_idx(old_shndx)` at line 329.
-pub fn ruby_alt_saver_l329_d27_new_section_idx(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l329_d27_new_section_idx(args ...ruby.Value) ruby.Value {
 	alt_require(args, 2, 'new_section_idx')
 	saver := alt_saver_from_args(args)
 	index := saver.new_section_idx(int(args[1].as_int() or { panic(err) })) or { panic(err) }
-	return if index < 0 { alt_nil_value() } else { brew_runtime.int_value(index) }
+	return if index < 0 { alt_nil_value() } else { ruby.int_value(index) }
 }
 
 // Ruby method `page_size` at line 341.
-pub fn ruby_alt_saver_l341_d28_page_size(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(alt_saver_from_args(args).page_size())
+pub fn ruby_alt_saver_l341_d28_page_size(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(alt_saver_from_args(args).page_size())
 }
 
 // Ruby method `patch_out` at line 345.
-pub fn ruby_alt_saver_l345_d29_patch_out(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l345_d29_patch_out(args ...ruby.Value) ruby.Value {
 	mut saver := alt_saver_from_args(args)
 	saver.patch_out() or { panic(err) }
 	return alt_nil_value()
 }
 
 // Ruby method `replace_section(section_name, size)` at line 355.
-pub fn ruby_alt_saver_l355_d30_replace_section(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l355_d30_replace_section(args ...ruby.Value) ruby.Value {
 	alt_require(args, 3, 'replace_section')
 	mut saver := alt_saver_from_args(args)
-	return brew_runtime.string_value((saver.replace_section(args[1].as_string(), int(args[2].as_int() or { panic(err) })) or { panic(err) }).bytestr())
+	return ruby.string_value((saver.replace_section(args[1].as_string(), int(args[2].as_int() or { panic(err) })) or { panic(err) }).bytestr())
 }
 
 // Ruby method `write_phdrs_to_buf!` at line 375.
-pub fn ruby_alt_saver_l375_d31_write_phdrs_to_buf(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l375_d31_write_phdrs_to_buf(args ...ruby.Value) ruby.Value {
 	mut saver := alt_saver_from_args(args)
 	saver.write_phdrs_to_buf() or { panic(err) }
 	return alt_nil_value()
 }
 
 // Ruby method `write_shdrs_to_buf!` at line 382.
-pub fn ruby_alt_saver_l382_d32_write_shdrs_to_buf(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l382_d32_write_shdrs_to_buf(args ...ruby.Value) ruby.Value {
 	mut saver := alt_saver_from_args(args)
 	saver.write_shdrs_to_buf() or { panic(err) }
 	return alt_nil_value()
 }
 
 // Ruby method `meta_sym_pack` at line 393.
-pub fn ruby_alt_saver_l393_d33_meta_sym_pack(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l393_d33_meta_sym_pack(args ...ruby.Value) ruby.Value {
 	meta := alt_saver_from_args(args).meta_sym_pack()
-	return brew_runtime.map_value({
-		'num_bytes': brew_runtime.int_value(meta.num_bytes)
-		'code':      brew_runtime.string_value(meta.code)
-		'st_info':   brew_runtime.int_value(meta.st_info)
-		'st_shndx':  brew_runtime.int_value(meta.st_shndx)
-		'st_value':  brew_runtime.int_value(meta.st_value)
+	return ruby.map_value({
+		'num_bytes': ruby.int_value(meta.num_bytes)
+		'code':      ruby.string_value(meta.code)
+		'st_info':   ruby.int_value(meta.st_info)
+		'st_shndx':  ruby.int_value(meta.st_shndx)
+		'st_value':  ruby.int_value(meta.st_value)
 	})
 }
 
 // Ruby method `each_symbol(shdr)` at line 419.
-pub fn ruby_alt_saver_l419_d34_each_symbol(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l419_d34_each_symbol(args ...ruby.Value) ruby.Value {
 	alt_require(args, 2, 'each_symbol')
 	saver := alt_saver_from_args(args)
 	symbols := saver.symbols(alt_section_header_from_value(args[1])) or { panic(err) }
-	mut values := []brew_runtime.Value{}
+	mut values := []ruby.Value{}
 	for entry, symbol in symbols {
-		values << brew_runtime.array_value([
-			brew_runtime.array_value(symbol.map(brew_runtime.int_value(i64(it)))),
-			brew_runtime.int_value(entry),
+		values << ruby.array_value([
+			ruby.array_value(symbol.map(ruby.int_value(i64(it)))),
+			ruby.int_value(entry),
 		])
 	}
-	return brew_runtime.array_value(values)
+	return ruby.array_value(values)
 }
 
 // Ruby method `rewrite_headers(phdr_address)` at line 438.
-pub fn ruby_alt_saver_l438_d35_rewrite_headers(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l438_d35_rewrite_headers(args ...ruby.Value) ruby.Value {
 	alt_require(args, 2, 'rewrite_headers')
 	mut saver := alt_saver_from_args(args)
 	saver.rewrite_headers(u64(args[1].as_int() or { panic(err) })) or { panic(err) }
@@ -1830,61 +1830,61 @@ pub fn ruby_alt_saver_l438_d35_rewrite_headers(args ...brew_runtime.Value) brew_
 }
 
 // Ruby method `rewrite_sections` at line 472.
-pub fn ruby_alt_saver_l472_d36_rewrite_sections(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l472_d36_rewrite_sections(args ...ruby.Value) ruby.Value {
 	mut saver := alt_saver_from_args(args)
 	saver.rewrite_sections() or { panic(err) }
 	return alt_nil_value()
 }
 
 // Ruby method `replaced_section_indices` at line 485.
-pub fn ruby_alt_saver_l485_d37_replaced_section_indices(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l485_d37_replaced_section_indices(args ...ruby.Value) ruby.Value {
 	saver := alt_saver_from_args(args)
-	return brew_runtime.array_value((saver.replaced_section_indices() or { panic(err) }).map(brew_runtime.int_value(it)))
+	return ruby.array_value((saver.replaced_section_indices() or { panic(err) }).map(ruby.int_value(it)))
 }
 
 // Ruby method `start_replacement_shdr` at line 499.
-pub fn ruby_alt_saver_l499_d38_start_replacement_shdr(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l499_d38_start_replacement_shdr(args ...ruby.Value) ruby.Value {
 	mut saver := alt_saver_from_args(args)
 	return alt_section_header_value(saver.start_replacement_shdr() or { panic(err) })
 }
 
 // Ruby method `copy_shdrs_to_eof` at line 520.
-pub fn ruby_alt_saver_l520_d39_copy_shdrs_to_eof(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l520_d39_copy_shdrs_to_eof(args ...ruby.Value) ruby.Value {
 	mut saver := alt_saver_from_args(args)
 	saver.copy_shdrs_to_eof() or { panic(err) }
 	return alt_nil_value()
 }
 
 // Ruby method `rewrite_sections_executable` at line 537.
-pub fn ruby_alt_saver_l537_d40_rewrite_sections_executable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l537_d40_rewrite_sections_executable(args ...ruby.Value) ruby.Value {
 	mut saver := alt_saver_from_args(args)
 	saver.rewrite_sections_executable() or { panic(err) }
 	return alt_nil_value()
 }
 
 // Ruby method `replace_sections_in_the_way_of_phdr!` at line 588.
-pub fn ruby_alt_saver_l588_d41_replace_sections_in_the_way_of_phdr(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l588_d41_replace_sections_in_the_way_of_phdr(args ...ruby.Value) ruby.Value {
 	mut saver := alt_saver_from_args(args)
 	saver.replace_sections_in_the_way_of_phdr() or { panic(err) }
 	return alt_nil_value()
 }
 
 // Ruby method `rewrite_sections_library` at line 602.
-pub fn ruby_alt_saver_l602_d42_rewrite_sections_library(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l602_d42_rewrite_sections_library(args ...ruby.Value) ruby.Value {
 	mut saver := alt_saver_from_args(args)
 	saver.rewrite_sections_library() or { panic(err) }
 	return alt_nil_value()
 }
 
 // Ruby method `normalize_note_segments` at line 649.
-pub fn ruby_alt_saver_l649_d43_normalize_note_segments(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l649_d43_normalize_note_segments(args ...ruby.Value) ruby.Value {
 	mut saver := alt_saver_from_args(args)
 	saver.normalize_note_segments() or { panic(err) }
 	return alt_nil_value()
 }
 
 // Ruby method `normalize_note_segment(phdr)` at line 668.
-pub fn ruby_alt_saver_l668_d44_normalize_note_segment(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l668_d44_normalize_note_segment(args ...ruby.Value) ruby.Value {
 	alt_require(args, 2, 'normalize_note_segment')
 	mut saver := alt_saver_from_args(args)
 	target := alt_program_header_from_value(args[1])
@@ -1902,14 +1902,14 @@ pub fn ruby_alt_saver_l668_d44_normalize_note_segment(args ...brew_runtime.Value
 }
 
 // Ruby method `sections_at_aligned_offset(offset)` at line 705.
-pub fn ruby_alt_saver_l705_d45_sections_at_aligned_offset(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l705_d45_sections_at_aligned_offset(args ...ruby.Value) ruby.Value {
 	alt_require(args, 2, 'sections_at_aligned_offset')
 	saver := alt_saver_from_args(args)
 	return alt_sections_value(saver.sections_at_aligned_offset(u64(args[1].as_int() or { panic(err) })))
 }
 
 // Ruby method `shift_sections(shift, start_offset)` at line 718.
-pub fn ruby_alt_saver_l718_d46_shift_sections(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l718_d46_shift_sections(args ...ruby.Value) ruby.Value {
 	alt_require(args, 3, 'shift_sections')
 	mut saver := alt_saver_from_args(args)
 	saver.shift_sections(u64(args[1].as_int() or { panic(err) }), u64(args[2].as_int() or { panic(err) }))
@@ -1917,7 +1917,7 @@ pub fn ruby_alt_saver_l718_d46_shift_sections(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby method `shift_segment_offset(phdr, shift)` at line 731.
-pub fn ruby_alt_saver_l731_d47_shift_segment_offset(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l731_d47_shift_segment_offset(args ...ruby.Value) ruby.Value {
 	alt_require(args, 3, 'shift_segment_offset')
 	saver := alt_saver_from_args(args)
 	mut header := alt_program_header_from_value(args[1])
@@ -1926,7 +1926,7 @@ pub fn ruby_alt_saver_l731_d47_shift_segment_offset(args ...brew_runtime.Value) 
 }
 
 // Ruby method `shift_segment_virtual_address(phdr, shift)` at line 736.
-pub fn ruby_alt_saver_l736_d48_shift_segment_virtual_address(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l736_d48_shift_segment_virtual_address(args ...ruby.Value) ruby.Value {
 	alt_require(args, 3, 'shift_segment_virtual_address')
 	mut header := alt_program_header_from_value(args[1])
 	shift_segment_virtual_address(mut header, u64(args[2].as_int() or { panic(err) }))
@@ -1934,16 +1934,16 @@ pub fn ruby_alt_saver_l736_d48_shift_segment_virtual_address(args ...brew_runtim
 }
 
 // Ruby method `shift_segments(shift, start_offset)` at line 741.
-pub fn ruby_alt_saver_l741_d49_shift_segments(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l741_d49_shift_segments(args ...ruby.Value) ruby.Value {
 	alt_require(args, 3, 'shift_segments')
 	mut saver := alt_saver_from_args(args)
 	index, shift := saver.shift_segments(u64(args[1].as_int() or { panic(err) }), u64(args[2].as_int() or { panic(err) })) or { panic(err) }
-	return brew_runtime.array_value([brew_runtime.int_value(index),
-		brew_runtime.int_value(i64(shift))])
+	return ruby.array_value([ruby.int_value(index),
+		ruby.int_value(i64(shift))])
 }
 
 // Ruby method `shift_file(extra_pages, start_offset, extra_bytes)` at line 776.
-pub fn ruby_alt_saver_l776_d50_shift_file(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l776_d50_shift_file(args ...ruby.Value) ruby.Value {
 	alt_require(args, 4, 'shift_file')
 	mut saver := alt_saver_from_args(args)
 	saver.shift_file(int(args[1].as_int() or { panic(err) }), int(args[2].as_int() or { panic(err) }), int(args[3].as_int() or { panic(err) })) or { panic(err) }
@@ -1951,19 +1951,19 @@ pub fn ruby_alt_saver_l776_d50_shift_file(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby method `sort_phdrs!` at line 806.
-pub fn ruby_alt_saver_l806_d51_sort_phdrs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l806_d51_sort_phdrs(args ...ruby.Value) ruby.Value {
 	mut saver := alt_saver_from_args(args)
 	saver.sort_phdrs()
 	return alt_programs_value(saver.segments.map(it.header))
 }
 
 // Ruby method `collect_section_to_section_refs` at line 818.
-pub fn ruby_alt_saver_l818_d52_collect_section_to_section_refs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l818_d52_collect_section_to_section_refs(args ...ruby.Value) ruby.Value {
 	return alt_refs_value(alt_saver_from_args(args).collect_section_to_section_refs())
 }
 
 // Ruby method `restore_section_to_section_refs!(collected)` at line 830.
-pub fn ruby_alt_saver_l830_d53_restore_section_to_section_refs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l830_d53_restore_section_to_section_refs(args ...ruby.Value) ruby.Value {
 	alt_require(args, 2, 'restore_section_to_section_refs!')
 	mut saver := alt_saver_from_args(args)
 	saver.restore_section_to_section_refs(alt_refs_from_value(args[1]))
@@ -1971,28 +1971,28 @@ pub fn ruby_alt_saver_l830_d53_restore_section_to_section_refs(args ...brew_runt
 }
 
 // Ruby method `sort_shdrs!` at line 840.
-pub fn ruby_alt_saver_l840_d54_sort_shdrs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l840_d54_sort_shdrs(args ...ruby.Value) ruby.Value {
 	mut saver := alt_saver_from_args(args)
 	saver.sort_shdrs()
 	return alt_sections_value(saver.sections)
 }
 
 // Ruby method `jmprel_section_name` at line 853.
-pub fn ruby_alt_saver_l853_d55_jmprel_section_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(alt_saver_from_args(args).jmprel_section_name() or { panic(err) })
+pub fn ruby_alt_saver_l853_d55_jmprel_section_name(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(alt_saver_from_args(args).jmprel_section_name() or { panic(err) })
 }
 
 // Ruby method `dyn_tag_to_section_name(d_tag)` at line 863.
-pub fn ruby_alt_saver_l863_d56_dyn_tag_to_section_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l863_d56_dyn_tag_to_section_name(args ...ruby.Value) ruby.Value {
 	alt_require(args, 2, 'dyn_tag_to_section_name')
 	name := alt_saver_from_args(args).dyn_tag_to_section_name(args[1].as_int() or { panic(err) }) or {
 		panic(err)
 	}
-	return if name == '' { alt_nil_value() } else { brew_runtime.string_value(name) }
+	return if name == '' { alt_nil_value() } else { ruby.string_value(name) }
 }
 
 // Ruby method `dyn_tag_to_shdr(d_tag)` at line 897.
-pub fn ruby_alt_saver_l897_d57_dyn_tag_to_shdr(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l897_d57_dyn_tag_to_shdr(args ...ruby.Value) ruby.Value {
 	alt_require(args, 2, 'dyn_tag_to_shdr')
 	header := alt_saver_from_args(args).dyn_tag_to_shdr(args[1].as_int() or { panic(err) }) or {
 		return alt_nil_value()
@@ -2001,21 +2001,21 @@ pub fn ruby_alt_saver_l897_d57_dyn_tag_to_shdr(args ...brew_runtime.Value) brew_
 }
 
 // Ruby method `sync_dyn_tags!` at line 905.
-pub fn ruby_alt_saver_l905_d58_sync_dyn_tags(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l905_d58_sync_dyn_tags(args ...ruby.Value) ruby.Value {
 	mut saver := alt_saver_from_args(args)
 	saver.sync_dyn_tags() or { panic(err) }
 	return alt_nil_value()
 }
 
 // Ruby method `update_section_idx!` at line 931.
-pub fn ruby_alt_saver_l931_d59_update_section_idx(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l931_d59_update_section_idx(args ...ruby.Value) ruby.Value {
 	mut saver := alt_saver_from_args(args)
 	saver.update_section_idx()
 	return alt_nil_value()
 }
 
 // Ruby method `with_buf_at(pos)` at line 935.
-pub fn ruby_alt_saver_l935_d60_with_buf_at(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l935_d60_with_buf_at(args ...ruby.Value) ruby.Value {
 	alt_require(args, 2, 'with_buf_at')
 	saver := alt_saver_from_args(args)
 	position := int(args[1].as_int() or { panic(err) })
@@ -2027,7 +2027,7 @@ pub fn ruby_alt_saver_l935_d60_with_buf_at(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `sync_sec_to_seg(shdr, phdr)` at line 947.
-pub fn ruby_alt_saver_l947_d61_sync_sec_to_seg(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l947_d61_sync_sec_to_seg(args ...ruby.Value) ruby.Value {
 	alt_require(args, 3, 'sync_sec_to_seg')
 	mut program := alt_program_header_from_value(args[2])
 	sync_sec_to_seg(alt_section_header_from_value(args[1]), mut program)
@@ -2035,35 +2035,35 @@ pub fn ruby_alt_saver_l947_d61_sync_sec_to_seg(args ...brew_runtime.Value) brew_
 }
 
 // Ruby method `phdrs_by_type(seg_type)` at line 953.
-pub fn ruby_alt_saver_l953_d62_phdrs_by_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l953_d62_phdrs_by_type(args ...ruby.Value) ruby.Value {
 	alt_require(args, 2, 'phdrs_by_type')
 	saver := alt_saver_from_args(args)
 	kind := u32(args[1].as_int() or { panic(err) })
-	mut values := []brew_runtime.Value{}
+	mut values := []ruby.Value{}
 	for index in saver.phdr_indices_by_type(kind) {
-		values << brew_runtime.array_value([
+		values << ruby.array_value([
 			alt_program_header_value(saver.segments[index].header),
-			brew_runtime.int_value(index),
+			ruby.int_value(index),
 		])
 	}
-	return brew_runtime.array_value(values)
+	return ruby.array_value(values)
 }
 
 // Ruby method `find_or_create_section_header(rsec_name)` at line 966.
-pub fn ruby_alt_saver_l966_d63_find_or_create_section_header(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l966_d63_find_or_create_section_header(args ...ruby.Value) ruby.Value {
 	alt_require(args, 2, 'find_or_create_section_header')
 	return alt_section_header_value(alt_saver_from_args(args).find_or_create_section_header(args[1].as_string()))
 }
 
 // Ruby method `overwrite_replaced_sections` at line 972.
-pub fn ruby_alt_saver_l972_d64_overwrite_replaced_sections(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l972_d64_overwrite_replaced_sections(args ...ruby.Value) ruby.Value {
 	mut saver := alt_saver_from_args(args)
 	saver.overwrite_replaced_sections() or { panic(err) }
 	return alt_nil_value()
 }
 
 // Ruby method `write_section_alignment(shdr)` at line 985.
-pub fn ruby_alt_saver_l985_d65_write_section_alignment(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l985_d65_write_section_alignment(args ...ruby.Value) ruby.Value {
 	alt_require(args, 2, 'write_section_alignment')
 	saver := alt_saver_from_args(args)
 	mut header := alt_section_header_from_value(args[1])
@@ -2072,13 +2072,13 @@ pub fn ruby_alt_saver_l985_d65_write_section_alignment(args ...brew_runtime.Valu
 }
 
 // Ruby method `section_bounds_within_segment?(s_start, s_end, p_start, p_end)` at line 991.
-pub fn ruby_alt_saver_l991_d66_section_bounds_within_segment(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l991_d66_section_bounds_within_segment(args ...ruby.Value) ruby.Value {
 	alt_require(args, 5, 'section_bounds_within_segment?')
-	return brew_runtime.bool_value(section_bounds_within_segment(u64(args[1].as_int() or { panic(err) }), u64(args[2].as_int() or { panic(err) }), u64(args[3].as_int() or { panic(err) }), u64(args[4].as_int() or { panic(err) })))
+	return ruby.bool_value(section_bounds_within_segment(u64(args[1].as_int() or { panic(err) }), u64(args[2].as_int() or { panic(err) }), u64(args[3].as_int() or { panic(err) }), u64(args[4].as_int() or { panic(err) })))
 }
 
 // Ruby method `section_sync_correspondence_segment(sec_name, shdr)` at line 998.
-pub fn ruby_alt_saver_l998_d67_section_sync_correspondence_segment(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l998_d67_section_sync_correspondence_segment(args ...ruby.Value) ruby.Value {
 	alt_require(args, 3, 'section_sync_correspondence_segment')
 	mut saver := alt_saver_from_args(args)
 	saver.section_sync_correspondence_segment(args[1].as_string(), alt_section_header_from_value(args[2]))
@@ -2086,7 +2086,7 @@ pub fn ruby_alt_saver_l998_d67_section_sync_correspondence_segment(args ...brew_
 }
 
 // Ruby method `sync_note_segment(orig_sh_offset, orig_sh_size, shdr)` at line 1021.
-pub fn ruby_alt_saver_l1021_d68_sync_note_segment(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l1021_d68_sync_note_segment(args ...ruby.Value) ruby.Value {
 	alt_require(args, 4, 'sync_note_segment')
 	mut saver := alt_saver_from_args(args)
 	saver.sync_note_segment(u64(args[1].as_int() or { panic(err) }), u64(args[2].as_int() or { panic(err) }), alt_section_header_from_value(args[3])) or {
@@ -2096,13 +2096,13 @@ pub fn ruby_alt_saver_l1021_d68_sync_note_segment(args ...brew_runtime.Value) br
 }
 
 // Ruby method `write_replaced_sections(cur_off, start_addr, start_offset)` at line 1040.
-pub fn ruby_alt_saver_l1040_d69_write_replaced_sections(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_saver_l1040_d69_write_replaced_sections(args ...ruby.Value) ruby.Value {
 	alt_require(args, 4, 'write_replaced_sections')
 	mut saver := alt_saver_from_args(args)
 	current := saver.write_replaced_sections(int(args[1].as_int() or { panic(err) }), u64(args[2].as_int() or { panic(err) }), int(args[3].as_int() or { panic(err) })) or {
 		panic(err)
 	}
-	return brew_runtime.int_value(current)
+	return ruby.int_value(current)
 }
 
 // Original Ruby source (line-for-line):

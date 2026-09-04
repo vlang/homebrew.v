@@ -1,6 +1,6 @@
 module cask
 
-import brew_runtime
+import ruby
 import homebrew.cask as core
 
 // Translated from Homebrew/brew `test/cask/pkg_spec.rb`.
@@ -50,36 +50,36 @@ fn pkg_spec_plist() string {
 }
 
 // Ruby let `let(:fake_system_command) { NeverSudoSystemCommand }` at line 6.
-pub fn ruby_pkg_spec_l6_d1_fake_system_command(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pkg_spec_l6_d1_fake_system_command(args ...ruby.Value) ruby.Value {
 	_ = args
 	return core.pkg_command_boundary(pkg_spec_command())
 }
 
 // Ruby let `let(:empty_response) do` at line 7.
-pub fn ruby_pkg_spec_l7_d2_empty_response(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pkg_spec_l7_d2_empty_response(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.map_value({
-		'stdout':           brew_runtime.string_value('')
-		'volume':           brew_runtime.string_value('/')
-		'install-location': brew_runtime.string_value('')
-		'paths':            brew_runtime.string_array_value([])
+	return ruby.map_value({
+		'stdout':           ruby.string_value('')
+		'volume':           ruby.string_value('/')
+		'install-location': ruby.string_value('')
+		'paths':            ruby.string_array_value([])
 	})
 }
 
 // Ruby let `let(:pkg) { described_class.new("my.fake.pkg", fake_system_command) }` at line 14.
-pub fn ruby_pkg_spec_l14_d3_pkg(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pkg_spec_l14_d3_pkg(args ...ruby.Value) ruby.Value {
 	_ = args
 	command := pkg_spec_command()
-	return core.ruby_pkg_l23_d3_initialize(brew_runtime.string_value(pkg_spec_id), core.pkg_command_boundary(command))
+	return core.ruby_pkg_l23_d3_initialize(ruby.string_value(pkg_spec_id), core.pkg_command_boundary(command))
 }
 
 // Ruby it `it "removes files and dirs referenced by the pkg" do` at line 16.
-pub fn ruby_pkg_spec_l16_d4_removes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pkg_spec_l16_d4_removes(args ...ruby.Value) ruby.Value {
 	_ = args
 	command := pkg_spec_command()
 	pkg := core.new_pkg(pkg_spec_id, command)
 	pkg.uninstall()
-	return brew_runtime.bool_value(command.invocations.len == 5 && command.invocations[0].args == [
+	return ruby.bool_value(command.invocations.len == 5 && command.invocations[0].args == [
 		'-0',
 		'--',
 		'/bin/rm',
@@ -91,7 +91,7 @@ pub fn ruby_pkg_spec_l16_d4_removes(args ...brew_runtime.Value) brew_runtime.Val
 }
 
 // Ruby it `it "forgets the pkg" do` at line 52.
-pub fn ruby_pkg_spec_l52_d5_forgets(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pkg_spec_l52_d5_forgets(args ...ruby.Value) ruby.Value {
 	_ = args
 	command := &core.PkgCommand{
 		infos: {
@@ -102,13 +102,13 @@ pub fn ruby_pkg_spec_l52_d5_forgets(args ...brew_runtime.Value) brew_runtime.Val
 	}
 	pkg := core.new_pkg(pkg_spec_id, command)
 	pkg.uninstall()
-	return brew_runtime.bool_value(command.invocations.len == 1 && command.invocations[0].executable == '/usr/sbin/pkgutil' && command.invocations[0].sudo && command.invocations[0].sudo_as_root)
+	return ruby.bool_value(command.invocations.len == 1 && command.invocations[0].executable == '/usr/sbin/pkgutil' && command.invocations[0].sudo && command.invocations[0].sudo_as_root)
 }
 
 // Ruby it `it "removes broken symlinks" do` at line 74.
-pub fn ruby_pkg_spec_l74_d6_removes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pkg_spec_l74_d6_removes(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(core.pkg_special(core.PkgBomEntry{
+	return ruby.bool_value(core.pkg_special(core.PkgBomEntry{
 		path: 'broken_symlink'
 		kind: .symlink
 	}) && !core.pkg_special(core.PkgBomEntry{
@@ -118,61 +118,61 @@ pub fn ruby_pkg_spec_l74_d6_removes(args ...brew_runtime.Value) brew_runtime.Val
 }
 
 // Ruby it `it "snags permissions on ornery dirs, but returns them afterwards" do` at line 99.
-pub fn ruby_pkg_spec_l99_d7_snags(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pkg_spec_l99_d7_snags(args ...ruby.Value) ruby.Value {
 	_ = args
 	command := core.new_pkg_command()
 	pkg := core.new_pkg(pkg_spec_id, command)
 	pkg.rmdir(['/tmp/ornery-dir'])
-	return brew_runtime.bool_value(command.invocations.len == 1 && command.invocations[0].input == '/tmp/ornery-dir' && command.invocations[0].sudo && command.invocations[0].sudo_as_root)
+	return ruby.bool_value(command.invocations.len == 1 && command.invocations[0].input == '/tmp/ornery-dir' && command.invocations[0].sudo && command.invocations[0].sudo_as_root)
 }
 
 // Ruby let `let(:fake_system_command) { class_double(SystemCommand) }` at line 136.
-pub fn ruby_pkg_spec_l136_d8_fake_system_command(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pkg_spec_l136_d8_fake_system_command(args ...ruby.Value) ruby.Value {
 	_ = args
 	return core.pkg_command_boundary(core.new_pkg_command())
 }
 
 // Ruby let `let(:volume) { "/" }` at line 138.
-pub fn ruby_pkg_spec_l138_d9_volume(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pkg_spec_l138_d9_volume(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('/')
+	return ruby.string_value('/')
 }
 
 // Ruby let `let(:install_location) { "tmp" }` at line 139.
-pub fn ruby_pkg_spec_l139_d10_install_location(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pkg_spec_l139_d10_install_location(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('tmp')
+	return ruby.string_value('tmp')
 }
 
 // Ruby let `let(:pkg_id) { "my.fancy.package.main" }` at line 141.
-pub fn ruby_pkg_spec_l141_d11_pkg_id(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pkg_spec_l141_d11_pkg_id(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value(pkg_info_spec_id)
+	return ruby.string_value(pkg_info_spec_id)
 }
 
 // Ruby let `let(:pkg_files) do` at line 143.
-pub fn ruby_pkg_spec_l143_d12_pkg_files(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pkg_spec_l143_d12_pkg_files(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_array_value(['fancy/bin/fancy.exe', 'fancy/var/fancy.data'])
+	return ruby.string_array_value(['fancy/bin/fancy.exe', 'fancy/var/fancy.data'])
 }
 
 // Ruby let `let(:pkg_directories) do` at line 149.
-pub fn ruby_pkg_spec_l149_d13_pkg_directories(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pkg_spec_l149_d13_pkg_directories(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_array_value(['fancy', 'fancy/bin', 'fancy/var'])
+	return ruby.string_array_value(['fancy', 'fancy/bin', 'fancy/var'])
 }
 
 // Ruby let `let(:pkg_info_plist) do` at line 157.
-pub fn ruby_pkg_spec_l157_d14_pkg_info_plist(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pkg_spec_l157_d14_pkg_info_plist(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value(pkg_spec_plist())
+	return ruby.string_value(pkg_spec_plist())
 }
 
 // Ruby it `it "correctly parses a Property List" do` at line 176.
-pub fn ruby_pkg_spec_l176_d15_correctly(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pkg_spec_l176_d15_correctly(args ...ruby.Value) ruby.Value {
 	_ = args
 	info := core.parse_pkg_info_plist(pkg_spec_plist())
-	return brew_runtime.bool_value(info.install_location == 'tmp' && info.volume == '/' && info.paths == [
+	return ruby.bool_value(info.install_location == 'tmp' && info.volume == '/' && info.paths == [
 		'fancy/bin/fancy.exe',
 		'fancy/var/fancy.data',
 		'fancy',

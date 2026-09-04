@@ -1,15 +1,15 @@
 module subcommand
 
-import brew_runtime
+import ruby
 import homebrew.bundle
 
 // Translated from Homebrew/brew `bundle/subcommand/list.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `run` at line 38.
-pub fn ruby_list_l38_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_list_l38_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_array_value([])
+		return ruby.string_array_value([])
 	}
 	entries := args[0].as_array() or { [] }.map(bundle.BundleListEntry{
 		entry_type: it.attribute('type') or { it.attribute('entry_type') or { '' } }
@@ -23,7 +23,7 @@ pub fn ruby_list_l38_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
 			extension_flags_from_value(args[4])} else {
 			map[string]bool{}}
 	}
-	return brew_runtime.string_array_value(run_bundle_list(entries, options))
+	return ruby.string_array_value(run_bundle_list(entries, options))
 }
 
 pub struct BundleListCommandOptions {
@@ -49,7 +49,7 @@ pub fn run_bundle_list(entries []bundle.BundleListEntry,
 	return bundle.list_bundle_entries(entries, options.formulae || options.all || options.no_type_args, options.casks || options.all, options.taps || options.all, extensions)
 }
 
-fn extension_flags_from_value(value brew_runtime.Value) map[string]bool {
+fn extension_flags_from_value(value ruby.Value) map[string]bool {
 	flags := value.as_map() or { return map[string]bool{} }
 	mut result := map[string]bool{}
 	for name, enabled in flags {

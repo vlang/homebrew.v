@@ -1,6 +1,6 @@
 module shared
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `rubocops/shared/desc_helper.rb`.
 // The original source is retained below for line-level provenance.
@@ -817,8 +817,8 @@ pub fn audit_desc(desc_type string, name string, call DescCall, has_desc bool, m
 	return problems
 }
 
-fn desc_problem_value(problem DescProblem) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cop::Offense', problem.message, {
+fn desc_problem_value(problem DescProblem) ruby.Value {
+	return ruby.structured_value('RuboCop::Cop::Offense', problem.message, {
 		'kind':          problem.kind
 		'desc_type':     problem.desc_type
 		'name':          problem.name
@@ -833,7 +833,7 @@ fn desc_problem_value(problem DescProblem) brew_runtime.Value {
 }
 
 // Ruby method `audit_desc(type, name, desc_call)` at line 21.
-pub fn ruby_desc_helper_l21_d1_audit_desc(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_desc_helper_l21_d1_audit_desc(args ...ruby.Value) ruby.Value {
 	desc_type := if args.len > 0 { args[0].as_string() } else { 'formula' }
 	name := if args.len > 1 { args[1].as_string() } else { '' }
 	description := if args.len > 2 { args[2].as_string() } else { '' }
@@ -849,18 +849,18 @@ pub fn ruby_desc_helper_l21_d1_audit_desc(args ...brew_runtime.Value) brew_runti
 		content_begin_pos: begin_pos + 1
 		quote: `"`
 	}
-	return brew_runtime.array_value(audit_desc(desc_type, name, call, has_desc, begin_pos, end_pos).map(desc_problem_value(it)))
+	return ruby.array_value(audit_desc(desc_type, name, call, has_desc, begin_pos, end_pos).map(desc_problem_value(it)))
 }
 
 // Ruby method `desc_problem(message)` at line 89.
-pub fn ruby_desc_helper_l89_d2_desc_problem(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_desc_helper_l89_d2_desc_problem(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	name := if args.len > 1 { args[1].as_string() } else { '' }
 	if source.len < 2 || source[0] !in [`'`, `"`] || source[source.len - 1] != source[0] {
-		return brew_runtime.string_value(source)
+		return ruby.string_value(source)
 	}
 	corrected := correct_desc_content(source[1..source.len - 1], name)
-	return brew_runtime.string_value(source[..1] + corrected + source[source.len - 1..])
+	return ruby.string_value(source[..1] + corrected + source[source.len - 1..])
 }
 
 // Original Ruby source (line-for-line):

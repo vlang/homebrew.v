@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 import encoding.utf8
 import os
 import time
@@ -82,13 +82,13 @@ pub:
 	request GistLogsRequest
 }
 
-pub fn gist_logs_input_boundary(input &GistLogsInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::Cmd::GistLogs::Input', '', {
+pub fn gist_logs_input_boundary(input &GistLogsInput) ruby.Value {
+	return ruby.structured_value('Homebrew::Cmd::GistLogs::Input', '', {
 		'gist_logs_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn gist_logs_input_from_value(value brew_runtime.Value) &GistLogsInput {
+fn gist_logs_input_from_value(value ruby.Value) &GistLogsInput {
 	address := value.attributes['gist_logs_input_address'] or {
 		panic('invalid GistLogs command input')
 	}
@@ -254,44 +254,44 @@ pub fn run_gist_logs(request GistLogsRequest) !GistLogsResult {
 	return gistify_logs(request)!
 }
 
-fn gist_logs_files_value(files map[string]GistLogFile) brew_runtime.Value {
-	mut values := map[string]brew_runtime.Value{}
+fn gist_logs_files_value(files map[string]GistLogFile) ruby.Value {
+	mut values := map[string]ruby.Value{}
 	for name, file in files {
-		values[name] = brew_runtime.map_value({
-			'content': brew_runtime.string_value(file.content)
+		values[name] = ruby.map_value({
+			'content': ruby.string_value(file.content)
 		})
 	}
-	return brew_runtime.map_value(values)
+	return ruby.map_value(values)
 }
 
-fn gist_logs_result_value(result GistLogsResult) brew_runtime.Value {
-	return brew_runtime.Value{
+fn gist_logs_result_value(result GistLogsResult) ruby.Value {
+	return ruby.Value{
 		type_name: 'Hash'
 		repr: result.output
 		map_data: {
-			'preinstall_checked':   brew_runtime.bool_value(result.preinstall_checked)
-			'build_source_checked': brew_runtime.bool_value(result.build_source_checked)
-			'has_formula':          brew_runtime.bool_value(result.has_formula)
+			'preinstall_checked':   ruby.bool_value(result.preinstall_checked)
+			'build_source_checked': ruby.bool_value(result.build_source_checked)
+			'has_formula':          ruby.bool_value(result.has_formula)
 			'files':                gist_logs_files_value(result.files)
-			'description':          brew_runtime.string_value(result.description)
-			'private':              brew_runtime.bool_value(result.private)
-			'gist_url':             brew_runtime.string_value(result.gist_url)
-			'issue_url':            brew_runtime.string_value(result.issue_url)
-			'issue_repository':     brew_runtime.string_value(result.issue_repository)
-			'issue_title':          brew_runtime.string_value(result.issue_title)
-			'output':               brew_runtime.string_value(result.output)
+			'description':          ruby.string_value(result.description)
+			'private':              ruby.bool_value(result.private)
+			'gist_url':             ruby.string_value(result.gist_url)
+			'issue_url':            ruby.string_value(result.issue_url)
+			'issue_repository':     ruby.string_value(result.issue_repository)
+			'issue_title':          ruby.string_value(result.issue_title)
+			'output':               ruby.string_value(result.output)
 		}
 	}
 }
 
-fn gist_logs_error_value(message string) brew_runtime.Value {
-	return brew_runtime.object_value('SystemExit', message)
+fn gist_logs_error_value(message string) ruby.Value {
+	return ruby.object_value('SystemExit', message)
 }
 
 // Ruby method `run` at line 35.
-pub fn ruby_gist_logs_l35_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_gist_logs_l35_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'command input is required')
+		return ruby.object_value('ArgumentError', 'command input is required')
 	}
 	result := run_gist_logs(gist_logs_input_from_value(args[0]).request) or {
 		return gist_logs_error_value(err.msg())
@@ -300,28 +300,28 @@ pub fn ruby_gist_logs_l35_d1_run(args ...brew_runtime.Value) brew_runtime.Value 
 }
 
 // Ruby method `self.truncate_text_to_approximate_size(str, max_bytes, options = {})` at line 48.
-pub fn ruby_gist_logs_l48_d2_self_truncate_text_to_approximate_size(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_gist_logs_l48_d2_self_truncate_text_to_approximate_size(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'text and max_bytes are required')
+		return ruby.object_value('ArgumentError', 'text and max_bytes are required')
 	}
-	max_bytes := args[1].as_int() or { return brew_runtime.object_value('TypeError', err.msg()) }
+	max_bytes := args[1].as_int() or { return ruby.object_value('TypeError', err.msg()) }
 	front_weight := if args.len > 2 {
 		args[2].as_float() or {
-			return brew_runtime.object_value('TypeError', err.msg())
+			return ruby.object_value('TypeError', err.msg())
 		}
 	} else {
 		0.5
 	}
 	result := truncate_text_to_approximate_size(args[0].as_string(), int(max_bytes), front_weight) or {
-		return brew_runtime.object_value('RuntimeError', err.msg())
+		return ruby.object_value('RuntimeError', err.msg())
 	}
-	return brew_runtime.string_value(result)
+	return ruby.string_value(result)
 }
 
 // Ruby method `gistify_logs(formula)` at line 79.
-pub fn ruby_gist_logs_l79_d3_gistify_logs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_gist_logs_l79_d3_gistify_logs(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'command input is required')
+		return ruby.object_value('ArgumentError', 'command input is required')
 	}
 	result := gistify_logs(gist_logs_input_from_value(args[0]).request) or {
 		return gist_logs_error_value(err.msg())
@@ -330,18 +330,18 @@ pub fn ruby_gist_logs_l79_d3_gistify_logs(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby method `brief_build_info(formula, with_hostname:)` at line 131.
-pub fn ruby_gist_logs_l131_d4_brief_build_info(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_gist_logs_l131_d4_brief_build_info(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'command input is required')
+		return ruby.object_value('ArgumentError', 'command input is required')
 	}
 	request := gist_logs_input_from_value(args[0]).request
-	return brew_runtime.string_value(brief_gist_build_info(request.formula, request.environment.os_version, request.options.with_hostname, request.environment.hostname))
+	return ruby.string_value(brief_gist_build_info(request.formula, request.environment.os_version, request.options.with_hostname, request.environment.hostname))
 }
 
 // Ruby method `load_logs(dir, basedir = dir)` at line 145.
-pub fn ruby_gist_logs_l145_d5_load_logs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_gist_logs_l145_d5_load_logs(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'log directory is required')
+		return ruby.object_value('ArgumentError', 'log directory is required')
 	}
 	dir := args[0].as_string()
 	basedir := if args.len > 1 { args[1].as_string() } else { dir }

@@ -1,6 +1,6 @@
 module strategy
 
-import brew_runtime
+import ruby
 import homebrew.livecheck
 import homebrew.livecheck.strategy as pypi_core
 import homebrew.utils
@@ -97,8 +97,8 @@ fn pypi_spec_match_data_equal(left pypi_core.JsonMatchData,
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:pypi) { described_class }` at line 7.
-pub fn ruby_pypi_spec_l7_d1_pypi() brew_runtime.Value {
-	return brew_runtime.object_value('Class', 'Homebrew::Livecheck::Strategy::Pypi')
+pub fn ruby_pypi_spec_l7_d1_pypi() ruby.Value {
+	return ruby.object_value('Class', 'Homebrew::Livecheck::Strategy::Pypi')
 }
 
 // Ruby let `let(:pypi_url) { "https://files.pythonhosted.org/packages/ab/cd/efg/example-package-1.2.3.tar.gz" }` at line 9.

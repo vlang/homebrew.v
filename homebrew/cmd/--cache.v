@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `cmd/--cache.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -121,12 +121,12 @@ pub fn cache_command(cache_root string, entries []CacheEntry, combinations []Cac
 	return result
 }
 
-pub fn formula_cache_entry_value(formula FormulaCacheEntry) brew_runtime.Value {
-	mut bottles := map[string]brew_runtime.Value{}
+pub fn formula_cache_entry_value(formula FormulaCacheEntry) ruby.Value {
+	mut bottles := map[string]ruby.Value{}
 	for tag, path in formula.bottles {
-		bottles[tag] = brew_runtime.string_value(path)
+		bottles[tag] = ruby.string_value(path)
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'Formula'
 		repr: formula.full_name
 		attributes: {
@@ -136,19 +136,19 @@ pub fn formula_cache_entry_value(formula FormulaCacheEntry) brew_runtime.Value {
 			'has_head':             formula.has_head.str()
 		}
 		map_data: {
-			'bottles': brew_runtime.map_value(bottles)
+			'bottles': ruby.map_value(bottles)
 		}
 	}
 }
 
-pub fn cask_cache_entry_value(cask CaskCacheEntry) brew_runtime.Value {
-	return brew_runtime.structured_value('Cask', cask.token, {
+pub fn cask_cache_entry_value(cask CaskCacheEntry) ruby.Value {
+	return ruby.structured_value('Cask', cask.token, {
 		'token':           cask.token
 		'cached_location': cask.cached_location
 	})
 }
 
-fn cache_entry_from_value(value brew_runtime.Value) CacheEntry {
+fn cache_entry_from_value(value ruby.Value) CacheEntry {
 	if value.type_name == 'Cask' {
 		return CaskCacheEntry{
 			token: value.attribute('token') or { value.as_string() }
@@ -170,15 +170,15 @@ fn cache_entry_from_value(value brew_runtime.Value) CacheEntry {
 	}
 }
 
-pub fn cache_combination_value(combination CacheOsArch) brew_runtime.Value {
-	return brew_runtime.structured_value('OsArch', '${combination.os}/${combination.arch}', {
+pub fn cache_combination_value(combination CacheOsArch) ruby.Value {
+	return ruby.structured_value('OsArch', '${combination.os}/${combination.arch}', {
 		'os':   combination.os
 		'arch': combination.arch
 	})
 }
 
-pub fn cache_options_value(options CacheCommandOptions) brew_runtime.Value {
-	return brew_runtime.structured_value('CacheCommandOptions', '', {
+pub fn cache_options_value(options CacheCommandOptions) ruby.Value {
+	return ruby.structured_value('CacheCommandOptions', '', {
 		'fetch_bottle':   options.fetch_bottle.str()
 		'bottle_tag':     options.bottle_tag or { '' }
 		'has_bottle_tag': (options.bottle_tag != none).str()
@@ -186,7 +186,7 @@ pub fn cache_options_value(options CacheCommandOptions) brew_runtime.Value {
 	})
 }
 
-fn cache_options_from_value(value brew_runtime.Value) CacheCommandOptions {
+fn cache_options_from_value(value ruby.Value) CacheCommandOptions {
 	return CacheCommandOptions{
 		fetch_bottle: (value.attribute('fetch_bottle') or { 'false' }) == 'true'
 		bottle_tag: if (value.attribute('has_bottle_tag') or { 'false' }) == 'true' {
@@ -196,36 +196,36 @@ fn cache_options_from_value(value brew_runtime.Value) CacheCommandOptions {
 	}
 }
 
-fn cache_result_value(result CacheCommandResult) brew_runtime.Value {
-	return brew_runtime.Value{
+fn cache_result_value(result CacheCommandResult) ruby.Value {
+	return ruby.Value{
 		type_name: 'CacheCommandResult'
 		repr: result.paths.join('\n')
 		map_data: {
-			'paths':    brew_runtime.string_array_value(result.paths)
-			'warnings': brew_runtime.string_array_value(result.warnings)
+			'paths':    ruby.string_array_value(result.paths)
+			'warnings': ruby.string_array_value(result.warnings)
 		}
 	}
 }
 
 // Ruby method `self.command_name = "--cache"` at line 14.
-pub fn ruby_cache_l14_d1_self_command_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('--cache')
+pub fn ruby_cache_l14_d1_self_command_name(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('--cache')
 }
 
 // Ruby method `run` at line 50.
-pub fn ruby_cache_l50_d2_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cache_l50_d2_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', '--cache#run requires the cache root')
+		return ruby.object_value('ArgumentError', '--cache#run requires the cache root')
 	}
 	entry_values := if args.len > 1 {
-		args[1].as_array() or { []brew_runtime.Value{} }
+		args[1].as_array() or { []ruby.Value{} }
 	} else {
-		[]brew_runtime.Value{}
+		[]ruby.Value{}
 	}
 	combination_values := if args.len > 2 {
-		args[2].as_array() or { []brew_runtime.Value{} }
+		args[2].as_array() or { []ruby.Value{} }
 	} else {
-		[]brew_runtime.Value{}
+		[]ruby.Value{}
 	}
 	combinations := combination_values.map(CacheOsArch{
 		os: it.attribute('os') or { '' }
@@ -236,9 +236,9 @@ pub fn ruby_cache_l50_d2_run(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `print_formula_cache(formula, os:, arch:)` at line 87.
-pub fn ruby_cache_l87_d3_print_formula_cache(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cache_l87_d3_print_formula_cache(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'print_formula_cache requires a formula')
+		return ruby.object_value('ArgumentError', 'print_formula_cache requires a formula')
 	}
 	entry := cache_entry_from_value(args[0])
 	combination := CacheOsArch{
@@ -248,19 +248,19 @@ pub fn ruby_cache_l87_d3_print_formula_cache(args ...brew_runtime.Value) brew_ru
 	options := if args.len > 3 { cache_options_from_value(args[3]) } else { CacheCommandOptions{} }
 	return match entry {
 		FormulaCacheEntry { cache_result_value(formula_cache_result(entry, combination, options)) }
-		else { brew_runtime.object_value('TypeError', 'expected Formula') }
+		else { ruby.object_value('TypeError', 'expected Formula') }
 	}
 }
 
 // Ruby method `print_cask_cache(cask)` at line 118.
-pub fn ruby_cache_l118_d4_print_cask_cache(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cache_l118_d4_print_cask_cache(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'print_cask_cache requires a cask')
+		return ruby.object_value('ArgumentError', 'print_cask_cache requires a cask')
 	}
 	entry := cache_entry_from_value(args[0])
 	return match entry {
 		CaskCacheEntry { cache_result_value(cask_cache_result(entry)) }
-		else { brew_runtime.object_value('TypeError', 'expected Cask') }
+		else { ruby.object_value('TypeError', 'expected Cask') }
 	}
 }
 

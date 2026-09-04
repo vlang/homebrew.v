@@ -1,6 +1,6 @@
 module cask
 
-import brew_runtime
+import ruby
 import homebrew.rubocops.cask.mixin as cask_mixin
 import homebrew.rubocops.@shared as url_shared
 
@@ -601,8 +601,8 @@ pub fn correct_cask_url(source string, path string) string {
 	return corrected
 }
 
-fn cask_url_offense_value(offense CaskUrlOffense) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cop::Offense', offense.message, {
+fn cask_url_offense_value(offense CaskUrlOffense) ruby.Value {
+	return ruby.structured_value('RuboCop::Cop::Offense', offense.message, {
 		'kind':              offense.kind
 		'url':               offense.url
 		'begin_pos':         offense.begin_pos.str()
@@ -616,7 +616,7 @@ fn cask_url_offense_value(offense CaskUrlOffense) brew_runtime.Value {
 }
 
 // Ruby method `on_url_stanza(stanza)` at line 17.
-pub fn ruby_url_l17_d1_on_url_stanza(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_url_l17_d1_on_url_stanza(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	path := if args.len > 1 { args[1].as_string() } else { '' }
 	mut offenses := []CaskUrlOffense{}
@@ -629,11 +629,11 @@ pub fn ruby_url_l17_d1_on_url_stanza(args ...brew_runtime.Value) brew_runtime.Va
 		}
 	}
 	return if offenses.len == 0 {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	} else if offenses.len == 1 {
 		cask_url_offense_value(offenses[0])
 	} else {
-		brew_runtime.array_value(offenses.map(cask_url_offense_value(it)))
+		ruby.array_value(offenses.map(cask_url_offense_value(it)))
 	}
 }
 

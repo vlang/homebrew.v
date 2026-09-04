@@ -1,73 +1,73 @@
 module scripts
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `scripts/approve_stale_lead_maintainer_prs.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `initialize` at line 74.
-pub fn ruby_approve_stale_lead_maintainer_prs_l74_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('initialize', ...args)
+pub fn ruby_approve_stale_lead_maintainer_prs_l74_d1_initialize(args ...ruby.Value) ruby.Value {
+	return ruby.unimplemented_fn('initialize', ...args)
 }
 
 // Ruby method `run` at line 102.
-pub fn ruby_approve_stale_lead_maintainer_prs_l102_d2_run(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('run', ...args)
+pub fn ruby_approve_stale_lead_maintainer_prs_l102_d2_run(args ...ruby.Value) ruby.Value {
+	return ruby.unimplemented_fn('run', ...args)
 }
 
 // Ruby method `approve` at line 113.
-pub fn ruby_approve_stale_lead_maintainer_prs_l113_d3_approve(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('approve', ...args)
+pub fn ruby_approve_stale_lead_maintainer_prs_l113_d3_approve(args ...ruby.Value) ruby.Value {
+	return ruby.unimplemented_fn('approve', ...args)
 }
 
 // Ruby method `report` at line 164.
-pub fn ruby_approve_stale_lead_maintainer_prs_l164_d4_report(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('report', ...args)
+pub fn ruby_approve_stale_lead_maintainer_prs_l164_d4_report(args ...ruby.Value) ruby.Value {
+	return ruby.unimplemented_fn('report', ...args)
 }
 
 // Ruby method `evaluate(pull_request, exhaustive:)` at line 176.
-pub fn ruby_approve_stale_lead_maintainer_prs_l176_d5_evaluate(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('evaluate', ...args)
+pub fn ruby_approve_stale_lead_maintainer_prs_l176_d5_evaluate(args ...ruby.Value) ruby.Value {
+	return ruby.unimplemented_fn('evaluate', ...args)
 }
 
 // Ruby method `finish(data, failure_messages)` at line 369.
-pub fn ruby_approve_stale_lead_maintainer_prs_l369_d6_finish(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('finish', ...args)
+pub fn ruby_approve_stale_lead_maintainer_prs_l369_d6_finish(args ...ruby.Value) ruby.Value {
+	return ruby.unimplemented_fn('finish', ...args)
 }
 
 // Ruby method `status_label(value)` at line 440.
-pub fn ruby_approve_stale_lead_maintainer_prs_l440_d7_status_label(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('status_label', ...args)
+pub fn ruby_approve_stale_lead_maintainer_prs_l440_d7_status_label(args ...ruby.Value) ruby.Value {
+	return ruby.unimplemented_fn('status_label', ...args)
 }
 
 // Ruby method `failures_for(data, include_ci: true)` at line 447.
-pub fn ruby_approve_stale_lead_maintainer_prs_l447_d8_failures_for(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('failures_for', ...args)
+pub fn ruby_approve_stale_lead_maintainer_prs_l447_d8_failures_for(args ...ruby.Value) ruby.Value {
+	return ruby.unimplemented_fn('failures_for', ...args)
 }
 
 // Ruby method `summarise(facts)` at line 477.
-pub fn ruby_approve_stale_lead_maintainer_prs_l477_d9_summarise(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('summarise', ...args)
+pub fn ruby_approve_stale_lead_maintainer_prs_l477_d9_summarise(args ...ruby.Value) ruby.Value {
+	return ruby.unimplemented_fn('summarise', ...args)
 }
 
 // Ruby method `approved_pr_link(data)` at line 519.
-pub fn ruby_approve_stale_lead_maintainer_prs_l519_d10_approved_pr_link(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('approved_pr_link', ...args)
+pub fn ruby_approve_stale_lead_maintainer_prs_l519_d10_approved_pr_link(args ...ruby.Value) ruby.Value {
+	return ruby.unimplemented_fn('approved_pr_link', ...args)
 }
 
 // Ruby method `reviews_for(number)` at line 526.
-pub fn ruby_approve_stale_lead_maintainer_prs_l526_d11_reviews_for(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('reviews_for', ...args)
+pub fn ruby_approve_stale_lead_maintainer_prs_l526_d11_reviews_for(args ...ruby.Value) ruby.Value {
+	return ruby.unimplemented_fn('reviews_for', ...args)
 }
 
 // Ruby method `paginated_rest(url, additional_query_params = "")` at line 531.
-pub fn ruby_approve_stale_lead_maintainer_prs_l531_d12_paginated_rest(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('paginated_rest', ...args)
+pub fn ruby_approve_stale_lead_maintainer_prs_l531_d12_paginated_rest(args ...ruby.Value) ruby.Value {
+	return ruby.unimplemented_fn('paginated_rest', ...args)
 }
 
 // Ruby method `rest(url, data: {}, request_method: :GET)` at line 551.
-pub fn ruby_approve_stale_lead_maintainer_prs_l551_d13_rest(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.unimplemented_fn('rest', ...args)
+pub fn ruby_approve_stale_lead_maintainer_prs_l551_d13_rest(args ...ruby.Value) ruby.Value {
+	return ruby.unimplemented_fn('rest', ...args)
 }
 
 // Original Ruby source (line-for-line):

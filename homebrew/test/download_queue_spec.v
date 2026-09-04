@@ -1,6 +1,6 @@
 module test
 
-import brew_runtime
+import ruby
 import homebrew
 import os
 
@@ -20,8 +20,8 @@ fn download_queue_spec_entry() homebrew.DownloadQueueDownload {
 	}
 }
 
-fn download_queue_spec_bool(value bool) brew_runtime.Value {
-	return brew_runtime.bool_value(value)
+fn download_queue_spec_bool(value bool) ruby.Value {
+	return ruby.bool_value(value)
 }
 
 fn download_queue_spec_execute(download homebrew.DownloadQueueDownload, options homebrew.DownloadQueueExecutionOptions) (homebrew.DownloadQueueExecution, []homebrew.DownloadQueueDownload) {
@@ -30,15 +30,15 @@ fn download_queue_spec_execute(download homebrew.DownloadQueueDownload, options 
 	return execution, downloads
 }
 
-fn download_queue_spec_value(download homebrew.DownloadQueueDownload) brew_runtime.Value {
-	return brew_runtime.Value{
+fn download_queue_spec_value(download homebrew.DownloadQueueDownload) ruby.Value {
+	return ruby.Value{
 		type_name: 'Downloadable'
 		repr: download.key
 		map_data: {
-			'cached_download':        brew_runtime.string_value(download.cached_location)
-			'download_queue_message': brew_runtime.string_value(download.message)
-			'download_queue_name':    brew_runtime.string_value(download.key)
-			'download_queue_type':    brew_runtime.string_value('Bottle')
+			'cached_download':        ruby.string_value(download.cached_location)
+			'download_queue_message': ruby.string_value(download.message)
+			'download_queue_name':    ruby.string_value(download.key)
+			'download_queue_type':    ruby.string_value('Bottle')
 		}
 	}
 }
@@ -52,10 +52,10 @@ fn download_queue_strip_ansi(value string) string {
 }
 
 // Ruby subject `subject(:download_queue) { described_class.new }` at line 7.
-pub fn ruby_download_queue_spec_l7_d1_download_queue(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_download_queue_spec_l7_d1_download_queue(args ...ruby.Value) ruby.Value {
 	_ = args
 	queue := homebrew.new_download_queue(1, false, false)
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'Homebrew::DownloadQueue'
 		repr: queue.pool()
 		int_data: queue.concurrency
@@ -63,37 +63,37 @@ pub fn ruby_download_queue_spec_l7_d1_download_queue(args ...brew_runtime.Value)
 }
 
 // Ruby let `let(:cached_download) { HOMEBREW_CACHE/"downloads/testball--0.1.tar.gz" }` at line 9.
-pub fn ruby_download_queue_spec_l9_d2_cached_download(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_download_queue_spec_l9_d2_cached_download(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value(download_queue_spec_cache_path('testball--0.1.tar.gz'))
+	return ruby.string_value(download_queue_spec_cache_path('testball--0.1.tar.gz'))
 }
 
 // Ruby let `let(:downloadable) do` at line 10.
-pub fn ruby_download_queue_spec_l10_d3_downloadable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_download_queue_spec_l10_d3_downloadable(args ...ruby.Value) ruby.Value {
 	_ = args
 	return download_queue_spec_value(download_queue_spec_entry())
 }
 
 // Ruby let `let(:download_error) { DownloadError.new(downloadable, RuntimeError.new("network blew up")) }` at line 22.
-pub fn ruby_download_queue_spec_l22_d4_download_error(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_download_queue_spec_l22_d4_download_error(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.object_value('DownloadError', 'network blew up')
+	return ruby.object_value('DownloadError', 'network blew up')
 }
 
 // Ruby let `let(:multi_line_download_error) { DownloadError.new(downloadable, RuntimeError.new("line one\nline two")) }` at line 23.
-pub fn ruby_download_queue_spec_l23_d5_multi_line_download_error(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_download_queue_spec_l23_d5_multi_line_download_error(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.object_value('DownloadError', 'line one\nline two')
+	return ruby.object_value('DownloadError', 'line one\nline two')
 }
 
 // Ruby let `let(:retryable_download) { instance_double(Homebrew::RetryableDownload) }` at line 24.
-pub fn ruby_download_queue_spec_l24_d6_retryable_download(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_download_queue_spec_l24_d6_retryable_download(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.object_value('Homebrew::RetryableDownload', 'testball')
+	return ruby.object_value('Homebrew::RetryableDownload', 'testball')
 }
 
 // Ruby it `it "reports rejected download errors in parallel mode and marks the fetch as failed" do` at line 36.
-pub fn ruby_download_queue_spec_l36_d7_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_download_queue_spec_l36_d7_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut download := download_queue_spec_entry()
 	download.failure_kind = .download
@@ -105,7 +105,7 @@ pub fn ruby_download_queue_spec_l36_d7_reports(args ...brew_runtime.Value) brew_
 }
 
 // Ruby it `it "defers multi-line failure details on a TTY until the in-place redraw has finished" do` at line 45.
-pub fn ruby_download_queue_spec_l45_d8_defers(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_download_queue_spec_l45_d8_defers(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut download := download_queue_spec_entry()
 	download.failure_kind = .download
@@ -120,7 +120,7 @@ pub fn ruby_download_queue_spec_l45_d8_defers(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby it `it "fetches only downloads of the given class and keeps others queued unreported" do` at line 74.
-pub fn ruby_download_queue_spec_l74_d9_fetches(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_download_queue_spec_l74_d9_fetches(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut manifest := download_queue_spec_entry()
 	manifest.key = 'testball-manifest'
@@ -139,7 +139,7 @@ pub fn ruby_download_queue_spec_l74_d9_fetches(args ...brew_runtime.Value) brew_
 }
 
 // Ruby it `it "raises and clears queue state on a bottle manifest failure in parallel mode" do` at line 96.
-pub fn ruby_download_queue_spec_l96_d10_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_download_queue_spec_l96_d10_raises(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut download := download_queue_spec_entry()
 	download.failure_kind = .bottle_manifest
@@ -149,7 +149,7 @@ pub fn ruby_download_queue_spec_l96_d10_raises(args ...brew_runtime.Value) brew_
 }
 
 // Ruby it `it "reports but tolerates failed downloads when failures are allowed" do` at line 105.
-pub fn ruby_download_queue_spec_l105_d11_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_download_queue_spec_l105_d11_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut download := download_queue_spec_entry()
 	download.failure_kind = .bottle_manifest
@@ -161,7 +161,7 @@ pub fn ruby_download_queue_spec_l105_d11_reports(args ...brew_runtime.Value) bre
 }
 
 // Ruby it `it "tolerates failed downloads in serial mode when failures are allowed" do` at line 115.
-pub fn ruby_download_queue_spec_l115_d12_tolerates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_download_queue_spec_l115_d12_tolerates(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut download := download_queue_spec_entry()
 	download.failure_kind = .bottle_manifest
@@ -173,7 +173,7 @@ pub fn ruby_download_queue_spec_l115_d12_tolerates(args ...brew_runtime.Value) b
 }
 
 // Ruby it `it "removes known-bad cached files for tolerated checksum mismatches" do` at line 125.
-pub fn ruby_download_queue_spec_l125_d13_removes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_download_queue_spec_l125_d13_removes(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut download := download_queue_spec_entry()
 	download.failure_kind = .checksum
@@ -188,7 +188,7 @@ pub fn ruby_download_queue_spec_l125_d13_removes(args ...brew_runtime.Value) bre
 }
 
 // Ruby it `it "removes known-bad cached files for tolerated checksum mismatches in serial mode" do` at line 138.
-pub fn ruby_download_queue_spec_l138_d14_removes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_download_queue_spec_l138_d14_removes(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut download := download_queue_spec_entry()
 	download.failure_kind = .checksum
@@ -203,7 +203,7 @@ pub fn ruby_download_queue_spec_l138_d14_removes(args ...brew_runtime.Value) bre
 }
 
 // Ruby it `it "cancels remaining downloads and raises on a bottle manifest failure in serial mode" do` at line 152.
-pub fn ruby_download_queue_spec_l152_d15_cancels(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_download_queue_spec_l152_d15_cancels(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut download := download_queue_spec_entry()
 	download.failure_kind = .bottle_manifest
@@ -215,7 +215,7 @@ pub fn ruby_download_queue_spec_l152_d15_cancels(args ...brew_runtime.Value) bre
 }
 
 // Ruby it `it "brackets TTY redraw frames in a DEC 2026 synchronized update" do` at line 162.
-pub fn ruby_download_queue_spec_l162_d16_brackets(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_download_queue_spec_l162_d16_brackets(args ...ruby.Value) ruby.Value {
 	_ = args
 	download := download_queue_spec_entry()
 	execution, _ := download_queue_spec_execute(download, homebrew.DownloadQueueExecutionOptions{
@@ -227,7 +227,7 @@ pub fn ruby_download_queue_spec_l162_d16_brackets(args ...brew_runtime.Value) br
 }
 
 // Ruby it `it "leaves the final terminal column empty when rendering progress" do` at line 184.
-pub fn ruby_download_queue_spec_l184_d17_leaves(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_download_queue_spec_l184_d17_leaves(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut download := download_queue_spec_entry()
 	download.fetched_size = 559_300_000
@@ -250,7 +250,7 @@ pub fn ruby_download_queue_spec_l184_d17_leaves(args ...brew_runtime.Value) brew
 }
 
 // Ruby it `it "emits no synchronized update sequences when stdout is not a TTY" do` at line 202.
-pub fn ruby_download_queue_spec_l202_d18_emits(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_download_queue_spec_l202_d18_emits(args ...ruby.Value) ruby.Value {
 	_ = args
 	execution, _ := download_queue_spec_execute(download_queue_spec_entry(), homebrew.DownloadQueueExecutionOptions{
 		tty: false
@@ -259,7 +259,7 @@ pub fn ruby_download_queue_spec_l202_d18_emits(args ...brew_runtime.Value) brew_
 }
 
 // Ruby it `it "prints the heading to stderr when stdout is not a TTY" do` at line 211.
-pub fn ruby_download_queue_spec_l211_d19_prints(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_download_queue_spec_l211_d19_prints(args ...ruby.Value) ruby.Value {
 	_ = args
 	execution, _ := download_queue_spec_execute(download_queue_spec_entry(), homebrew.DownloadQueueExecutionOptions{
 		heading: 'Downloading Homebrew API data'
@@ -268,7 +268,7 @@ pub fn ruby_download_queue_spec_l211_d19_prints(args ...brew_runtime.Value) brew
 }
 
 // Ruby it `it "keeps the heading off stdout when stdout is not a TTY" do` at line 220.
-pub fn ruby_download_queue_spec_l220_d20_keeps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_download_queue_spec_l220_d20_keeps(args ...ruby.Value) ruby.Value {
 	_ = args
 	execution, _ := download_queue_spec_execute(download_queue_spec_entry(), homebrew.DownloadQueueExecutionOptions{
 		heading: 'Downloading Homebrew API data'
@@ -277,7 +277,7 @@ pub fn ruby_download_queue_spec_l220_d20_keeps(args ...brew_runtime.Value) brew_
 }
 
 // Ruby it `it "prints the heading to stdout on a TTY" do` at line 229.
-pub fn ruby_download_queue_spec_l229_d21_prints(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_download_queue_spec_l229_d21_prints(args ...ruby.Value) ruby.Value {
 	_ = args
 	execution, _ := download_queue_spec_execute(download_queue_spec_entry(), homebrew.DownloadQueueExecutionOptions{
 		tty: true
@@ -287,14 +287,14 @@ pub fn ruby_download_queue_spec_l229_d21_prints(args ...brew_runtime.Value) brew
 }
 
 // Ruby it `it "wakes when downloads complete instead of polling with sleep" do` at line 243.
-pub fn ruby_download_queue_spec_l243_d22_wakes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_download_queue_spec_l243_d22_wakes(args ...ruby.Value) ruby.Value {
 	_ = args
 	execution, _ := download_queue_spec_execute(download_queue_spec_entry(), homebrew.DownloadQueueExecutionOptions{})
 	return download_queue_spec_bool(execution.events.contains('resolution-wakeup:testball') && execution.stderr.contains('✔︎ Bottle testball'))
 }
 
 // Ruby it `it "skips fetching already downloaded files with a valid checksum" do` at line 258.
-pub fn ruby_download_queue_spec_l258_d23_skips(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_download_queue_spec_l258_d23_skips(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut download := download_queue_spec_entry()
 	download.downloaded_valid = true
@@ -303,7 +303,7 @@ pub fn ruby_download_queue_spec_l258_d23_skips(args ...brew_runtime.Value) brew_
 }
 
 // Ruby it `it "runs queued staging before completing the fetch" do` at line 271.
-pub fn ruby_download_queue_spec_l271_d24_runs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_download_queue_spec_l271_d24_runs(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut download := download_queue_spec_entry()
 	download.stage = true
@@ -318,7 +318,7 @@ pub fn ruby_download_queue_spec_l271_d24_runs(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby it `it "uses the fetched path for queued staging when it changes during fetch" do` at line 283.
-pub fn ruby_download_queue_spec_l283_d25_uses(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_download_queue_spec_l283_d25_uses(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut download := download_queue_spec_entry()
 	download.fetched_path = download_queue_spec_cache_path('fetched-testball--0.1.tar.gz')
@@ -329,7 +329,7 @@ pub fn ruby_download_queue_spec_l283_d25_uses(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby it `it "interrupts queued staging when the fetch is interrupted", timeout: 5 do` at line 296.
-pub fn ruby_download_queue_spec_l296_d26_interrupts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_download_queue_spec_l296_d26_interrupts(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut download := download_queue_spec_entry()
 	download.failure_kind = .interrupt
@@ -340,7 +340,7 @@ pub fn ruby_download_queue_spec_l296_d26_interrupts(args ...brew_runtime.Value) 
 }
 
 // Ruby it `it "promotes an in-flight download to queued staging" do` at line 335.
-pub fn ruby_download_queue_spec_l335_d27_promotes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_download_queue_spec_l335_d27_promotes(args ...ruby.Value) ruby.Value {
 	_ = args
 	first := download_queue_spec_entry()
 	mut promoted := download_queue_spec_entry()
@@ -352,7 +352,7 @@ pub fn ruby_download_queue_spec_l335_d27_promotes(args ...brew_runtime.Value) br
 }
 
 // Ruby it `it "checks attestations for valid cached bottles" do` at line 347.
-pub fn ruby_download_queue_spec_l347_d28_checks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_download_queue_spec_l347_d28_checks(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut bottle := download_queue_spec_entry()
 	bottle.downloaded_valid = true
@@ -363,7 +363,7 @@ pub fn ruby_download_queue_spec_l347_d28_checks(args ...brew_runtime.Value) brew
 }
 
 // Ruby it `it "memoizes the queue created on first use" do` at line 366.
-pub fn ruby_download_queue_spec_l366_d29_memoizes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_download_queue_spec_l366_d29_memoizes(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut state := homebrew.DefaultDownloadQueueState{}
 	first := homebrew.default_download_queue_from_state(mut state)
@@ -372,7 +372,7 @@ pub fn ruby_download_queue_spec_l366_d29_memoizes(args ...brew_runtime.Value) br
 }
 
 // Ruby it `it "does not leak a queue stubbed by an earlier example" do` at line 373.
-pub fn ruby_download_queue_spec_l373_d30_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_download_queue_spec_l373_d30_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut leaked := homebrew.DefaultDownloadQueueState{
 		initialized: false
@@ -382,7 +382,7 @@ pub fn ruby_download_queue_spec_l373_d30_does(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby it `it "shuts down a memoized real queue when reset" do` at line 377.
-pub fn ruby_download_queue_spec_l377_d31_shuts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_download_queue_spec_l377_d31_shuts(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut state := homebrew.DefaultDownloadQueueState{}
 	_ = homebrew.default_download_queue_from_state(mut state)

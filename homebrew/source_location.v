@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `source_location.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -39,15 +39,15 @@ pub fn (location SourceLocation) str() string {
 	}
 }
 
-fn source_location_boundary_value(location SourceLocation) brew_runtime.Value {
-	return brew_runtime.structured_value('SourceLocation', location.str(), {
+fn source_location_boundary_value(location SourceLocation) ruby.Value {
+	return ruby.structured_value('SourceLocation', location.str(), {
 		'line':       location.line.str()
 		'has_column': location.has_column.str()
 		'column':     location.column.str()
 	})
 }
 
-fn source_location_from_boundary(value brew_runtime.Value) SourceLocation {
+fn source_location_from_boundary(value ruby.Value) SourceLocation {
 	if value.type_name != 'SourceLocation' {
 		panic('expected SourceLocation, got ${value.type_name}')
 	}
@@ -62,28 +62,28 @@ fn source_location_from_boundary(value brew_runtime.Value) SourceLocation {
 }
 
 // Ruby attr_reader `attr_reader :line` at line 8.
-pub fn ruby_source_location_l8_d1_line(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_source_location_l8_d1_line(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('SourceLocation#line requires a receiver')
 	}
-	return brew_runtime.int_value(source_location_from_boundary(args[0]).line)
+	return ruby.int_value(source_location_from_boundary(args[0]).line)
 }
 
 // Ruby attr_reader `attr_reader :column` at line 11.
-pub fn ruby_source_location_l11_d2_column(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_source_location_l11_d2_column(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('SourceLocation#column requires a receiver')
 	}
 	location := source_location_from_boundary(args[0])
 	return if location.has_column {
-		brew_runtime.int_value(location.column)
+		ruby.int_value(location.column)
 	} else {
-		brew_runtime.object_value('NilClass', '')
+		ruby.object_value('NilClass', '')
 	}
 }
 
 // Ruby method `initialize(line, column = nil)` at line 14.
-pub fn ruby_source_location_l14_d3_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_source_location_l14_d3_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('SourceLocation#initialize requires a line')
 	}
@@ -98,11 +98,11 @@ pub fn ruby_source_location_l14_d3_initialize(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby method `to_s` at line 20.
-pub fn ruby_source_location_l20_d4_to_s(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_source_location_l20_d4_to_s(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('SourceLocation#to_s requires a receiver')
 	}
-	return brew_runtime.string_value(source_location_from_boundary(args[0]).str())
+	return ruby.string_value(source_location_from_boundary(args[0]).str())
 }
 
 // Original Ruby source (line-for-line):

@@ -1,6 +1,6 @@
 module vulns
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vulns/identify.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -12,11 +12,11 @@ pub:
 	purl      string
 }
 
-fn identify_nil() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn identify_nil() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-fn identify_optional_arg(value brew_runtime.Value) ?string {
+fn identify_optional_arg(value ruby.Value) ?string {
 	if value.type_name == 'NilClass' {
 		return none
 	}
@@ -85,50 +85,50 @@ pub fn identify_repo_url(urls []string) ?string {
 }
 
 // Ruby method `self.repo_url(*urls)` at line 58.
-pub fn ruby_identify_l58_d1_self_repo_url(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_identify_l58_d1_self_repo_url(args ...ruby.Value) ruby.Value {
 	mut urls := []string{cap: args.len}
 	for arg in args {
 		urls << identify_optional_arg(arg) or { '' }
 	}
 	return if repo := identify_repo_url(urls) {
-		brew_runtime.string_value(repo)
+		ruby.string_value(repo)
 	} else {
 		identify_nil()
 	}
 }
 
 // Ruby method `self.tag(url)` at line 76.
-pub fn ruby_identify_l76_d2_self_tag(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_identify_l76_d2_self_tag(args ...ruby.Value) ruby.Value {
 	url := if args.len > 0 { identify_optional_arg(args[0]) } else { none }
 	return if release_tag := identify_tag(url) {
-		brew_runtime.string_value(release_tag)
+		ruby.string_value(release_tag)
 	} else {
 		identify_nil()
 	}
 }
 
 // Ruby method `self.registry_package(url)` at line 118.
-pub fn ruby_identify_l118_d3_self_registry_package(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_identify_l118_d3_self_registry_package(args ...ruby.Value) ruby.Value {
 	url := if args.len > 0 { identify_optional_arg(args[0]) } else { none }
 	package := identify_registry_package(url) or { return identify_nil() }
 	return identify_registry_package_value(package)
 }
 
 // Ruby method `self.registry_purl(url)` at line 136.
-pub fn ruby_identify_l136_d4_self_registry_purl(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_identify_l136_d4_self_registry_purl(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || args[0].type_name == 'NilClass' {
 		return identify_nil()
 	}
 	ecosystem, package_url := identify_registry_purl(args[0].as_string()) or { return identify_nil() }
-	return brew_runtime.array_value([
-		brew_runtime.string_value(ecosystem),
+	return ruby.array_value([
+		ruby.string_value(ecosystem),
 		purl_value(package_url),
 	])
 }
 
 // Ruby method `self.decode(component)` at line 200.
-pub fn ruby_identify_l200_d5_self_decode(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(identify_decode(if args.len > 0 {
+pub fn ruby_identify_l200_d5_self_decode(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(identify_decode(if args.len > 0 {
 		args[0].as_string()
 	} else {
 		''
@@ -136,23 +136,23 @@ pub fn ruby_identify_l200_d5_self_decode(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `self.version_after_prefix(basename, name)` at line 208.
-pub fn ruby_identify_l208_d6_self_version_after_prefix(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_identify_l208_d6_self_version_after_prefix(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		return identify_nil()
 	}
 	return if version := identify_version_after_prefix(args[0].as_string(), args[1].as_string()) {
-		brew_runtime.string_value(version)
+		ruby.string_value(version)
 	} else {
 		identify_nil()
 	}
 }
 
 // Ruby method `self.gem_name_version(basename)` at line 219.
-pub fn ruby_identify_l219_d7_self_gem_name_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_identify_l219_d7_self_gem_name_version(args ...ruby.Value) ruby.Value {
 	name, version := identify_gem_name_version(if args.len > 0 { args[0].as_string() } else { '' })
-	return brew_runtime.array_value([
-		if value := name { brew_runtime.string_value(value) } else { identify_nil() },
-		if value := version { brew_runtime.string_value(value) } else { identify_nil() },
+	return ruby.array_value([
+		if value := name { ruby.string_value(value) } else { identify_nil() },
+		if value := version { ruby.string_value(value) } else { identify_nil() },
 	])
 }
 
@@ -562,12 +562,12 @@ pub fn identify_registry_package(url ?string) ?RegistryPackage {
 	}
 }
 
-pub fn identify_registry_package_value(package RegistryPackage) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'ecosystem': brew_runtime.string_value(package.ecosystem)
-		'name':      brew_runtime.string_value(package.name)
-		'version':   brew_runtime.string_value(package.version)
-		'purl':      brew_runtime.string_value(package.purl)
+pub fn identify_registry_package_value(package RegistryPackage) ruby.Value {
+	return ruby.map_value({
+		'ecosystem': ruby.string_value(package.ecosystem)
+		'name':      ruby.string_value(package.name)
+		'version':   ruby.string_value(package.version)
+		'purl':      ruby.string_value(package.purl)
 	})
 }
 

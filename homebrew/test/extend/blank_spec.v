@@ -1,132 +1,132 @@
 module extend
 
-import brew_runtime
+import ruby
 import homebrew.extend.blank
 
 // Translated from Homebrew/brew `test/extend/blank_spec.rb`.
 // The original source is retained below for exact boundary auditing.
 
-fn blank_spec_empty_true_instance() brew_runtime.Value {
-	return brew_runtime.structured_value('EmptyTrue', '#<EmptyTrue>', {
+fn blank_spec_empty_true_instance() ruby.Value {
+	return ruby.structured_value('EmptyTrue', '#<EmptyTrue>', {
 		'empty_result': '0'
 	})
 }
 
-fn blank_spec_empty_false_instance() brew_runtime.Value {
-	return brew_runtime.structured_value('EmptyFalse', '#<EmptyFalse>', {
+fn blank_spec_empty_false_instance() ruby.Value {
+	return ruby.structured_value('EmptyFalse', '#<EmptyFalse>', {
 		'empty_result': 'false'
 	})
 }
 
-pub fn blank_spec_blank_values() []brew_runtime.Value {
+pub fn blank_spec_blank_values() []ruby.Value {
 	return [
 		blank_spec_empty_true_instance(),
-		brew_runtime.object_value('NilClass', 'nil'),
-		brew_runtime.bool_value(false),
-		brew_runtime.string_value(''),
-		brew_runtime.string_value('   '),
-		brew_runtime.string_value('  \n\t  \r '),
-		brew_runtime.string_value('　'),
-		brew_runtime.string_value(' '),
-		brew_runtime.array_value([]),
-		brew_runtime.map_value({}),
+		ruby.object_value('NilClass', 'nil'),
+		ruby.bool_value(false),
+		ruby.string_value(''),
+		ruby.string_value('   '),
+		ruby.string_value('  \n\t  \r '),
+		ruby.string_value('　'),
+		ruby.string_value(' '),
+		ruby.array_value([]),
+		ruby.map_value({}),
 	]
 }
 
-pub fn blank_spec_present_values() []brew_runtime.Value {
+pub fn blank_spec_present_values() []ruby.Value {
 	return [
 		blank_spec_empty_false_instance(),
-		brew_runtime.object_value('Object', '#<Object>'),
-		brew_runtime.bool_value(true),
-		brew_runtime.int_value(0),
-		brew_runtime.int_value(1),
-		brew_runtime.string_value('a'),
-		brew_runtime.array_value([brew_runtime.object_value('NilClass', 'nil')]),
-		brew_runtime.map_value({
-			'nil': brew_runtime.int_value(0)
+		ruby.object_value('Object', '#<Object>'),
+		ruby.bool_value(true),
+		ruby.int_value(0),
+		ruby.int_value(1),
+		ruby.string_value('a'),
+		ruby.array_value([ruby.object_value('NilClass', 'nil')]),
+		ruby.map_value({
+			'nil': ruby.int_value(0)
 		}),
-		brew_runtime.object_value('Time', 'now'),
+		ruby.object_value('Time', 'now'),
 	]
 }
 
-fn blank_spec_presence_matches(original brew_runtime.Value, present brew_runtime.Value) bool {
+fn blank_spec_presence_matches(original ruby.Value, present ruby.Value) bool {
 	return present.type_name == original.type_name && present.repr == original.repr
 		&& present.array_data.len == original.array_data.len
 		&& present.map_data.len == original.map_data.len
 }
 
 // Ruby let `let(:empty_true) do` at line 7.
-pub fn ruby_blank_spec_l7_d1_empty_true(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_blank_spec_l7_d1_empty_true(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.object_value('Class', 'EmptyTrue')
+	return ruby.object_value('Class', 'EmptyTrue')
 }
 
 // Ruby method `empty?` at line 11.
-pub fn ruby_blank_spec_l11_d2_empty(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_blank_spec_l11_d2_empty(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.int_value(0)
+	return ruby.int_value(0)
 }
 
 // Ruby let `let(:empty_false) do` at line 17.
-pub fn ruby_blank_spec_l17_d3_empty_false(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_blank_spec_l17_d3_empty_false(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.object_value('Class', 'EmptyFalse')
+	return ruby.object_value('Class', 'EmptyFalse')
 }
 
 // Ruby method `empty?` at line 19.
-pub fn ruby_blank_spec_l19_d4_empty(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_blank_spec_l19_d4_empty(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 // Ruby let `let(:blank) { [empty_true.new, nil, false, "", "   ", "  \n\t  \r ", "　", "\u00a0", [], {}] }` at line 24.
-pub fn ruby_blank_spec_l24_d5_blank(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_blank_spec_l24_d5_blank(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.array_value(blank_spec_blank_values())
+	return ruby.array_value(blank_spec_blank_values())
 }
 
 // Ruby let `let(:present) { [empty_false.new, described_class.new, true, 0, 1, "a", [nil], { nil => 0 }, Time.now] }` at line 25.
-pub fn ruby_blank_spec_l25_d6_present(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_blank_spec_l25_d6_present(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.array_value(blank_spec_present_values())
+	return ruby.array_value(blank_spec_present_values())
 }
 
 // Ruby it `it "checks if an object is blank" do` at line 28.
-pub fn ruby_blank_spec_l28_d7_checks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_blank_spec_l28_d7_checks(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(blank_spec_blank_values().all(blank.value_is_blank(it))
+	return ruby.bool_value(blank_spec_blank_values().all(blank.value_is_blank(it))
 		&& blank_spec_present_values().all(!blank.value_is_blank(it)))
 }
 
 // Ruby it `it "checks if an object is blank with bundled string encodings" do` at line 33.
-pub fn ruby_blank_spec_l33_d8_checks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_blank_spec_l33_d8_checks(args ...ruby.Value) ruby.Value {
 	_ = args
 	whitespace := [' ', '\t', '\n', '\r', ' ', '　', ' ', ' ']
-	return brew_runtime.bool_value(whitespace.all(blank.value_is_blank(brew_runtime.string_value(it)))
-		&& !blank.value_is_blank(brew_runtime.string_value('a')))
+	return ruby.bool_value(whitespace.all(blank.value_is_blank(ruby.string_value(it)))
+		&& !blank.value_is_blank(ruby.string_value('a')))
 }
 
 // Ruby it `it "checks if an object is present" do` at line 42.
-pub fn ruby_blank_spec_l42_d9_checks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_blank_spec_l42_d9_checks(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(blank_spec_blank_values().all(!blank.value_is_present(it))
+	return ruby.bool_value(blank_spec_blank_values().all(!blank.value_is_present(it))
 		&& blank_spec_present_values().all(blank.value_is_present(it)))
 }
 
 // Ruby it `it "returns the object if present, or nil" do` at line 49.
-pub fn ruby_blank_spec_l49_d10_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_blank_spec_l49_d10_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	for value in blank_spec_blank_values() {
 		if blank.value_presence(value).type_name != 'NilClass' {
-			return brew_runtime.bool_value(false)
+			return ruby.bool_value(false)
 		}
 	}
 	for value in blank_spec_present_values() {
 		if !blank_spec_presence_matches(value, blank.value_presence(value)) {
-			return brew_runtime.bool_value(false)
+			return ruby.bool_value(false)
 		}
 	}
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
 // Original Ruby source (line-for-line):

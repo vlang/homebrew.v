@@ -1,6 +1,6 @@
 module artifact
 
-import brew_runtime
+import ruby
 import homebrew.cask.artifact as core
 import os
 
@@ -58,39 +58,39 @@ pub fn symlinked_spec_case(index int) bool {
 }
 
 // Ruby let `let(:cask) do` at line 7.
-pub fn ruby_symlinked_spec_l7_d1_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_symlinked_spec_l7_d1_cask(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('with-binary')
+	return ruby.string_value('with-binary')
 }
 
 // Ruby let `let(:binary_artifact) { cask.artifacts.find { |a| a.is_a?(Cask::Artifact::Binary) } }` at line 13.
-pub fn ruby_symlinked_spec_l13_d2_binary_artifact(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_symlinked_spec_l13_d2_binary_artifact(args ...ruby.Value) ruby.Value {
 	_ = args
 	return core.symlinked_artifact_to_value(symlinked_spec_artifact('/tmp/symlinked-spec'))
 }
 
 // Ruby let `let(:binarydir) { cask.config.binarydir }` at line 14.
-pub fn ruby_symlinked_spec_l14_d3_binarydir(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_symlinked_spec_l14_d3_binarydir(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('/tmp/symlinked-spec/bin')
+	return ruby.string_value('/tmp/symlinked-spec/bin')
 }
 
 // Ruby let `let(:target_path) { binarydir.join("binary") }` at line 15.
-pub fn ruby_symlinked_spec_l15_d4_target_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_symlinked_spec_l15_d4_target_path(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('/tmp/symlinked-spec/bin/binary')
+	return ruby.string_value('/tmp/symlinked-spec/bin/binary')
 }
 
 // Ruby it `it "detects the conflict and skips linking with warning" do` at line 29.
-pub fn ruby_symlinked_spec_l29_d5_detects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_symlinked_spec_l29_d5_detects(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(symlinked_spec_case(5))
+	return ruby.bool_value(symlinked_spec_case(5))
 }
 
 // Ruby it `it "proceeds with normal installation" do` at line 53.
-pub fn ruby_symlinked_spec_l53_d6_proceeds(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_symlinked_spec_l53_d6_proceeds(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(symlinked_spec_case(6))
+	return ruby.bool_value(symlinked_spec_case(6))
 }
 
 // Original Ruby source (line-for-line):

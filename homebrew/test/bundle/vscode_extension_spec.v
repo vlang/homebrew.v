@@ -1,6 +1,6 @@
 module bundle
 
-import brew_runtime
+import ruby
 import homebrew.bundle.extensions
 
 // Translated from Homebrew/brew `test/bundle/vscode_extension_spec.rb`.
@@ -62,63 +62,63 @@ fn vscode_spec_case(line int) bool {
 }
 
 // Ruby subject `subject(:dumper) { described_class }` at line 11.
-pub fn ruby_vscode_extension_spec_l11_d1_dumper(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vscode_extension_spec_l11_d1_dumper(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.object_value('Homebrew::Bundle::VscodeExtension', 'Homebrew::Bundle::VscodeExtension')
+	return ruby.object_value('Homebrew::Bundle::VscodeExtension', 'Homebrew::Bundle::VscodeExtension')
 }
 
 // Ruby specify `specify do` at line 19.
-pub fn ruby_vscode_extension_spec_l19_d2_do(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vscode_extension_spec_l19_d2_do(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(vscode_spec_case(19))
+	return ruby.bool_value(vscode_spec_case(19))
 }
 
 // Ruby it `it "returns package list" do` at line 31.
-pub fn ruby_vscode_extension_spec_l31_d3_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vscode_extension_spec_l31_d3_returns(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(vscode_spec_case(31))
+	return ruby.bool_value(vscode_spec_case(31))
 }
 
 // Ruby it `it "ignores VSCode server setup output" do` at line 50.
-pub fn ruby_vscode_extension_spec_l50_d4_ignores(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vscode_extension_spec_l50_d4_ignores(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(vscode_spec_case(50))
+	return ruby.bool_value(vscode_spec_case(50))
 }
 
 // Ruby it `it "tries to install vscode" do` at line 75.
-pub fn ruby_vscode_extension_spec_l75_d5_tries(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vscode_extension_spec_l75_d5_tries(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(vscode_spec_case(75))
+	return ruby.bool_value(vscode_spec_case(75))
 }
 
 // Ruby it `it "skips" do` at line 93.
-pub fn ruby_vscode_extension_spec_l93_d6_skips(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vscode_extension_spec_l93_d6_skips(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(vscode_spec_case(93))
+	return ruby.bool_value(vscode_spec_case(93))
 }
 
 // Ruby it `it "skips ignoring case" do` at line 98.
-pub fn ruby_vscode_extension_spec_l98_d7_skips(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vscode_extension_spec_l98_d7_skips(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(vscode_spec_case(98))
+	return ruby.bool_value(vscode_spec_case(98))
 }
 
 // Ruby it `it "installs extension" do` at line 109.
-pub fn ruby_vscode_extension_spec_l109_d8_installs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vscode_extension_spec_l109_d8_installs(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(vscode_spec_case(109))
+	return ruby.bool_value(vscode_spec_case(109))
 }
 
 // Ruby it `it "installs extension when euid != uid and Process::UID.re_exchangeable? returns true" do` at line 116.
-pub fn ruby_vscode_extension_spec_l116_d9_installs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vscode_extension_spec_l116_d9_installs(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(vscode_spec_case(116))
+	return ruby.bool_value(vscode_spec_case(116))
 }
 
 // Ruby it `it "installs extension when euid != uid and Process::UID.re_exchangeable? returns false" do` at line 129.
-pub fn ruby_vscode_extension_spec_l129_d10_installs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vscode_extension_spec_l129_d10_installs(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(vscode_spec_case(129))
+	return ruby.bool_value(vscode_spec_case(129))
 }
 
 // Original Ruby source (line-for-line):

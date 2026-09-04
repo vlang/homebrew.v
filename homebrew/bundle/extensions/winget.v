@@ -1,6 +1,6 @@
 module extensions
 
-import brew_runtime
+import ruby
 import json2
 
 pub const winget_default_source = 'winget'
@@ -36,14 +36,14 @@ pub:
 	output  string
 }
 
-pub fn winget_command_result_value(result WingetCommandResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'success': brew_runtime.bool_value(result.success)
-		'output':  brew_runtime.string_value(result.output)
+pub fn winget_command_result_value(result WingetCommandResult) ruby.Value {
+	return ruby.map_value({
+		'success': ruby.bool_value(result.success)
+		'output':  ruby.string_value(result.output)
 	})
 }
 
-pub fn winget_command_result_from_value(value brew_runtime.Value) WingetCommandResult {
+pub fn winget_command_result_from_value(value ruby.Value) WingetCommandResult {
 	values := value.as_map() or { return WingetCommandResult{} }
 	return WingetCommandResult{
 		success: if 'success' in values { values['success'].as_bool() or { false } } else { false }
@@ -51,8 +51,8 @@ pub fn winget_command_result_from_value(value brew_runtime.Value) WingetCommandR
 	}
 }
 
-fn winget_error(kind string, message string) brew_runtime.Value {
-	return brew_runtime.structured_value(kind, message, {
+fn winget_error(kind string, message string) ruby.Value {
+	return ruby.structured_value(kind, message, {
 		'message': message
 	})
 }
@@ -67,15 +67,15 @@ pub fn winget_definition() ExtensionDefinition {
 	}
 }
 
-pub fn winget_app_value(app WingetApp) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'id':     brew_runtime.string_value(app.id)
-		'name':   brew_runtime.string_value(app.name)
-		'source': brew_runtime.string_value(app.source)
+pub fn winget_app_value(app WingetApp) ruby.Value {
+	return ruby.map_value({
+		'id':     ruby.string_value(app.id)
+		'name':   ruby.string_value(app.name)
+		'source': ruby.string_value(app.source)
 	})
 }
 
-pub fn winget_app_from_value(value brew_runtime.Value) WingetApp {
+pub fn winget_app_from_value(value ruby.Value) WingetApp {
 	values := value.as_map() or {
 		return WingetApp{
 			id: value.as_string()
@@ -92,23 +92,23 @@ pub fn winget_app_from_value(value brew_runtime.Value) WingetApp {
 	}
 }
 
-pub fn winget_apps_value(apps []WingetApp) brew_runtime.Value {
-	return brew_runtime.array_value(apps.map(winget_app_value(it)))
+pub fn winget_apps_value(apps []WingetApp) ruby.Value {
+	return ruby.array_value(apps.map(winget_app_value(it)))
 }
 
-pub fn winget_apps_from_value(value brew_runtime.Value) []WingetApp {
+pub fn winget_apps_from_value(value ruby.Value) []WingetApp {
 	items := value.as_array() or { return [] }
 	return items.map(winget_app_from_value(it))
 }
 
-fn winget_records_value(records []WingetRecord) brew_runtime.Value {
-	return brew_runtime.array_value(records.map(brew_runtime.array_value([
-		brew_runtime.string_value(it.id),
-		brew_runtime.string_value(it.source),
+fn winget_records_value(records []WingetRecord) ruby.Value {
+	return ruby.array_value(records.map(ruby.array_value([
+		ruby.string_value(it.id),
+		ruby.string_value(it.source),
 	])))
 }
 
-fn winget_records_from_value(value brew_runtime.Value) []WingetRecord {
+fn winget_records_from_value(value ruby.Value) []WingetRecord {
 	items := value.as_array() or { return [] }
 	mut records := []WingetRecord{}
 	for item in items {
@@ -123,24 +123,24 @@ fn winget_records_from_value(value brew_runtime.Value) []WingetRecord {
 	return records
 }
 
-pub fn winget_state_value(state WingetState) brew_runtime.Value {
-	return brew_runtime.map_value({
+pub fn winget_state_value(state WingetState) ruby.Value {
+	return ruby.map_value({
 		'_definition': extension_definition_value(winget_definition())
-		'is_wsl':      brew_runtime.bool_value(state.is_wsl)
+		'is_wsl':      ruby.bool_value(state.is_wsl)
 		'executable':  if state.executable == '' {
-			brew_runtime.object_value('NilClass', '')
+			ruby.object_value('NilClass', '')
 		} else {
-			brew_runtime.object_value('Pathname', state.executable)
+			ruby.object_value('Pathname', state.executable)
 		}
 		'apps':        winget_apps_value(state.apps)
 		'packages':    winget_apps_value(state.packages)
 		'records':     winget_records_value(state.records)
-		'output':      brew_runtime.string_array_value(state.output)
-		'commands':    brew_runtime.array_value(state.commands.map(brew_runtime.string_array_value(it)))
+		'output':      ruby.string_array_value(state.output)
+		'commands':    ruby.array_value(state.commands.map(ruby.string_array_value(it)))
 	})
 }
 
-pub fn winget_state_from_value(value brew_runtime.Value) WingetState {
+pub fn winget_state_from_value(value ruby.Value) WingetState {
 	values := value.as_map() or { return WingetState{} }
 	mut commands := [][]string{}
 	if 'commands' in values {
@@ -161,7 +161,7 @@ pub fn winget_state_from_value(value brew_runtime.Value) WingetState {
 	}
 }
 
-pub fn winget_entry(name string, options map[string]brew_runtime.Value) !ExtensionEntry {
+pub fn winget_entry(name string, options map[string]ruby.Value) !ExtensionEntry {
 	mut unknown_options := []string{}
 	for key in options.keys() {
 		if key !in ['id', 'source'] {
@@ -171,14 +171,14 @@ pub fn winget_entry(name string, options map[string]brew_runtime.Value) !Extensi
 	if unknown_options.len > 0 {
 		return error('unknown options([${unknown_options.join(', ')}]) for winget')
 	}
-	id := if 'id' in options { options['id'] } else { brew_runtime.string_value(name) }
+	id := if 'id' in options { options['id'] } else { ruby.string_value(name) }
 	if id.type_name != 'String' {
 		return error('options[:id](${id.repr}) should be a String object')
 	}
 	source := if 'source' in options {
 		options['source']
 	} else {
-		brew_runtime.string_value(winget_default_source)
+		ruby.string_value(winget_default_source)
 	}
 	if source.type_name != 'String' {
 		return error('options[:source](${source.repr}) should be a String object')
@@ -495,102 +495,102 @@ pub fn winget_install_args(id string, source string) []string {
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `type = :winget` at line 49.
-pub fn ruby_winget_l49_d1_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_l49_d1_type(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.object_value('Symbol', 'winget')
+	return ruby.object_value('Symbol', 'winget')
 }
 
 // Ruby method `check_label = "WinGet Package"` at line 52.
-pub fn ruby_winget_l52_d2_check_label(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_l52_d2_check_label(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('WinGet Package')
+	return ruby.string_value('WinGet Package')
 }
 
 // Ruby method `banner_name = "WinGet packages"` at line 55.
-pub fn ruby_winget_l55_d3_banner_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_l55_d3_banner_name(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('WinGet packages')
+	return ruby.string_value('WinGet packages')
 }
 
 // Ruby method `switch_description(description)` at line 58.
-pub fn ruby_winget_l58_d4_switch_description(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_l58_d4_switch_description(args ...ruby.Value) ruby.Value {
 	description := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.string_value('${extension_switch_description(description)} Note: WSL only.')
+	return ruby.string_value('${extension_switch_description(description)} Note: WSL only.')
 }
 
 // Ruby method `add_supported?` at line 63.
-pub fn ruby_winget_l63_d5_add_supported(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_l63_d5_add_supported(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 // Ruby method `cleanup_heading` at line 68.
-pub fn ruby_winget_l68_d6_cleanup_heading(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_l68_d6_cleanup_heading(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('WinGet packages')
+	return ruby.string_value('WinGet packages')
 }
 
 // Ruby method `entry(name, options = {})` at line 73.
-pub fn ruby_winget_l73_d7_entry(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_l73_d7_entry(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return winget_error('ArgumentError', 'name is required')
 	}
 	options := if args.len > 1 {
 		args[1].as_map() or { return winget_error('ArgumentError', err.msg()) }
 	} else {
-		map[string]brew_runtime.Value{}
+		map[string]ruby.Value{}
 	}
 	entry := winget_entry(args[0].as_string(), options) or { return winget_error('RuntimeError', err.msg()) }
 	return extension_entry_value(entry)
 }
 
 // Ruby method `package_manager_executable` at line 90.
-pub fn ruby_winget_l90_d8_package_manager_executable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_l90_d8_package_manager_executable(args ...ruby.Value) ruby.Value {
 	state := if args.len > 0 { winget_state_from_value(args[0]) } else { WingetState{} }
 	if !state.is_wsl || state.executable == '' {
-		return brew_runtime.object_value('NilClass', '')
+		return ruby.object_value('NilClass', '')
 	}
-	return brew_runtime.object_value('Pathname', state.executable)
+	return ruby.object_value('Pathname', state.executable)
 }
 
 // Ruby method `windows_apps_executables` at line 97.
-pub fn ruby_winget_l97_d9_windows_apps_executables(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_l97_d9_windows_apps_executables(args ...ruby.Value) ruby.Value {
 	environment := if args.len > 0 {
-		args[0].as_map() or { map[string]brew_runtime.Value{} }
+		args[0].as_map() or { map[string]ruby.Value{} }
 	} else {
-		map[string]brew_runtime.Value{}
+		map[string]ruby.Value{}
 	}
 	mut strings := map[string]string{}
 	for key, value in environment {
 		strings[key] = value.as_string()
 	}
 	detected := if args.len > 1 { args[1].as_string() } else { '' }
-	return brew_runtime.array_value(winget_windows_apps_executables(strings, detected).map(brew_runtime.object_value('Pathname', it)))
+	return ruby.array_value(winget_windows_apps_executables(strings, detected).map(ruby.object_value('Pathname', it)))
 }
 
 // Ruby method `windows_local_appdata` at line 108.
-pub fn ruby_winget_l108_d10_windows_local_appdata(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_l108_d10_windows_local_appdata(args ...ruby.Value) ruby.Value {
 	cmd_executable := if args.len > 0 { args[0].as_bool() or { false } } else { false }
 	output := if args.len > 1 { args[1].as_string().trim_space() } else { '' }
 	if !cmd_executable || output == '' {
-		return brew_runtime.object_value('NilClass', '')
+		return ruby.object_value('NilClass', '')
 	}
-	return brew_runtime.string_value(output)
+	return ruby.string_value(output)
 }
 
 // Ruby method `windows_path_to_wsl_path(path)` at line 116.
-pub fn ruby_winget_l116_d11_windows_path_to_wsl_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_l116_d11_windows_path_to_wsl_path(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('NilClass', '')
+		return ruby.object_value('NilClass', '')
 	}
 	if path := winget_windows_path_to_wsl_path(args[0].as_string()) {
-		return brew_runtime.object_value('Pathname', path)
+		return ruby.object_value('Pathname', path)
 	}
-	return brew_runtime.object_value('NilClass', '')
+	return ruby.object_value('NilClass', '')
 }
 
 // Ruby method `reset!` at line 131.
-pub fn ruby_winget_l131_d12_reset(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_l131_d12_reset(args ...ruby.Value) ruby.Value {
 	mut state := if args.len > 0 { winget_state_from_value(args[0]) } else { WingetState{} }
 	state.apps = []
 	state.packages = []
@@ -599,7 +599,7 @@ pub fn ruby_winget_l131_d12_reset(args ...brew_runtime.Value) brew_runtime.Value
 }
 
 // Ruby method `apps` at line 138.
-pub fn ruby_winget_l138_d13_apps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_l138_d13_apps(args ...ruby.Value) ruby.Value {
 	state := if args.len > 0 { winget_state_from_value(args[0]) } else { WingetState{} }
 	if state.apps.len > 0 {
 		return winget_apps_value(state.apps)
@@ -614,12 +614,12 @@ pub fn ruby_winget_l138_d13_apps(args ...brew_runtime.Value) brew_runtime.Value 
 }
 
 // Ruby method `export_apps(winget, source:)` at line 153.
-pub fn ruby_winget_l153_d14_export_apps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_l153_d14_export_apps(args ...ruby.Value) ruby.Value {
 	exported := if args.len > 1 { winget_apps_from_value(args[1]) } else { [] }
 	name_values := if args.len > 2 {
-		args[2].as_map() or { map[string]brew_runtime.Value{} }
+		args[2].as_map() or { map[string]ruby.Value{} }
 	} else {
-		map[string]brew_runtime.Value{}
+		map[string]ruby.Value{}
 	}
 	mut names := map[string]string{}
 	for key, value in name_values {
@@ -629,7 +629,7 @@ pub fn ruby_winget_l153_d14_export_apps(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby method `exported_apps(winget, source:)` at line 161.
-pub fn ruby_winget_l161_d15_exported_apps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_l161_d15_exported_apps(args ...ruby.Value) ruby.Value {
 	success := if args.len > 2 { args[2].as_bool() or { false } } else { false }
 	if !success {
 		return winget_apps_value([])
@@ -640,112 +640,112 @@ pub fn ruby_winget_l161_d15_exported_apps(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby method `listed_app_names(winget, source:)` at line 172.
-pub fn ruby_winget_l172_d16_listed_app_names(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_l172_d16_listed_app_names(args ...ruby.Value) ruby.Value {
 	output := if args.len > 2 {
 		args[2].as_string()
 	} else if args.len > 0 { args[0].as_string() } else { '' }
-	mut names := map[string]brew_runtime.Value{}
+	mut names := map[string]ruby.Value{}
 	for key, value in winget_parse_list_names(output) {
-		names[key] = brew_runtime.string_value(value)
+		names[key] = ruby.string_value(value)
 	}
-	return brew_runtime.map_value(names)
+	return ruby.map_value(names)
 }
 
 // Ruby method `parse_list_names(output)` at line 180.
-pub fn ruby_winget_l180_d17_parse_list_names(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_l180_d17_parse_list_names(args ...ruby.Value) ruby.Value {
 	output := if args.len > 0 { args[0].as_string() } else { '' }
-	mut names := map[string]brew_runtime.Value{}
+	mut names := map[string]ruby.Value{}
 	for key, value in winget_parse_list_names(output) {
-		names[key] = brew_runtime.string_value(value)
+		names[key] = ruby.string_value(value)
 	}
-	return brew_runtime.map_value(names)
+	return ruby.map_value(names)
 }
 
 // Ruby method `windows_export_path(path)` at line 206.
-pub fn ruby_winget_l206_d18_windows_export_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_l206_d18_windows_export_path(args ...ruby.Value) ruby.Value {
 	path := if args.len > 0 { args[0].as_string() } else { '' }
 	converted := if args.len > 1 { args[1].as_string().trim_space() } else { '' }
 	failed := if args.len > 2 { args[2].as_bool() or { false } } else { false }
-	return brew_runtime.string_value(if !failed && converted != '' { converted } else { path })
+	return ruby.string_value(if !failed && converted != '' { converted } else { path })
 }
 
 // Ruby method `parse_export(output, source:)` at line 216.
-pub fn ruby_winget_l216_d19_parse_export(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_l216_d19_parse_export(args ...ruby.Value) ruby.Value {
 	output := if args.len > 0 { args[0].as_string() } else { '' }
 	source := if args.len > 1 { args[1].as_string() } else { winget_default_source }
 	return winget_apps_value(winget_parse_export(output, source))
 }
 
 // Ruby method `packages` at line 243.
-pub fn ruby_winget_l243_d20_packages(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_l243_d20_packages(args ...ruby.Value) ruby.Value {
 	apps := if args.len > 0 { winget_apps_from_value(args[0]) } else { [] }
 	return winget_apps_value(winget_packages(apps))
 }
 
 // Ruby method `installed_packages` at line 252.
-pub fn ruby_winget_l252_d21_installed_packages(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_l252_d21_installed_packages(args ...ruby.Value) ruby.Value {
 	apps := if args.len > 0 { winget_apps_from_value(args[0]) } else { [] }
 	return winget_apps_value(apps)
 }
 
 // Ruby method `internal_package?(app)` at line 257.
-pub fn ruby_winget_l257_d22_internal_package(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_l257_d22_internal_package(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(winget_internal_package(winget_app_from_value(args[0])))
+	return ruby.bool_value(winget_internal_package(winget_app_from_value(args[0])))
 }
 
 // Ruby method `installed_app_records` at line 264.
-pub fn ruby_winget_l264_d23_installed_app_records(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_l264_d23_installed_app_records(args ...ruby.Value) ruby.Value {
 	apps := if args.len > 0 { winget_apps_from_value(args[0]) } else { [] }
 	return winget_records_value(apps.map(WingetRecord{ id: it.id, source: it.source }))
 }
 
 // Ruby method `dump_name(package)` at line 272.
-pub fn ruby_winget_l272_d24_dump_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_l272_d24_dump_name(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return winget_error('ArgumentError', 'package is required')
 	}
-	return brew_runtime.string_value(winget_app_from_value(args[0]).name)
+	return ruby.string_value(winget_app_from_value(args[0]).name)
 }
 
 // Ruby method `dump_entry(package)` at line 277.
-pub fn ruby_winget_l277_d25_dump_entry(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_l277_d25_dump_entry(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return winget_error('ArgumentError', 'package is required')
 	}
-	return brew_runtime.string_value(winget_dump_entry(winget_app_from_value(args[0])))
+	return ruby.string_value(winget_dump_entry(winget_app_from_value(args[0])))
 }
 
 // Ruby method `cleanup_item(app)` at line 287.
-pub fn ruby_winget_l287_d26_cleanup_item(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_l287_d26_cleanup_item(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return winget_error('ArgumentError', 'app is required')
 	}
-	return brew_runtime.string_value(winget_cleanup_item(winget_app_from_value(args[0])))
+	return ruby.string_value(winget_cleanup_item(winget_app_from_value(args[0])))
 }
 
 // Ruby method `cleanup_item_name(item)` at line 292.
-pub fn ruby_winget_l292_d27_cleanup_item_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_l292_d27_cleanup_item_name(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return winget_error('ArgumentError', 'item is required')
 	}
 	name := winget_cleanup_item_name(args[0].as_string()) or { return winget_error('TypeError', err.msg()) }
-	return brew_runtime.string_value(name)
+	return ruby.string_value(name)
 }
 
 // Ruby method `cleanup_items(entries)` at line 303.
-pub fn ruby_winget_l303_d28_cleanup_items(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_l303_d28_cleanup_items(args ...ruby.Value) ruby.Value {
 	entries_value := if args.len > 0 { args[0].as_array() or { [] } } else { [] }
 	entries := entries_value.map(extension_entry_from_value(it))
 	executable := if args.len > 1 { args[1].as_string() } else { '' }
 	exported := if args.len > 2 { winget_apps_from_value(args[2]) } else { [] }
-	return brew_runtime.string_array_value(winget_cleanup_items(entries, executable, exported))
+	return ruby.string_array_value(winget_cleanup_items(entries, executable, exported))
 }
 
 // Ruby method `cleanup!(items)` at line 326.
-pub fn ruby_winget_l326_d29_cleanup(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_l326_d29_cleanup(args ...ruby.Value) ruby.Value {
 	mut state := if args.len > 0 { winget_state_from_value(args[0]) } else { WingetState{} }
 	items := if args.len > 1 { args[1].as_string_array() or { [] } } else { [] }
 	if state.executable == '' {
@@ -762,15 +762,15 @@ pub fn ruby_winget_l326_d29_cleanup(args ...brew_runtime.Value) brew_runtime.Val
 }
 
 // Ruby method `app_installed?(id, source:)` at line 339.
-pub fn ruby_winget_l339_d30_app_installed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_l339_d30_app_installed(args ...ruby.Value) ruby.Value {
 	records := if args.len > 0 { winget_records_from_value(args[0]) } else { [] }
 	id := if args.len > 1 { args[1].as_string() } else { '' }
 	source := if args.len > 2 { args[2].as_string() } else { winget_default_source }
-	return brew_runtime.bool_value(winget_app_installed(records, id, source))
+	return ruby.bool_value(winget_app_installed(records, id, source))
 }
 
 // Ruby method `preinstall!(name, id: nil, with: nil, no_upgrade: false, verbose: false, source: DEFAULT_SOURCE,` at line 354.
-pub fn ruby_winget_l354_d31_preinstall(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_l354_d31_preinstall(args ...ruby.Value) ruby.Value {
 	state := if args.len > 0 { winget_state_from_value(args[0]) } else { WingetState{} }
 	name := if args.len > 1 { args[1].as_string() } else { '' }
 	id := if args.len > 2 && args[2].type_name != 'NilClass' { args[2].as_string() } else { name }
@@ -781,25 +781,25 @@ pub fn ruby_winget_l354_d31_preinstall(args ...brew_runtime.Value) brew_runtime.
 	}
 	if winget_app_installed(state.records, id, source) {
 		if verbose {
-			return brew_runtime.map_value({
-				'result': brew_runtime.bool_value(false)
-				'output': brew_runtime.string_value('Skipping install of ${name} WinGet package. It is already installed.')
+			return ruby.map_value({
+				'result': ruby.bool_value(false)
+				'output': ruby.string_value('Skipping install of ${name} WinGet package. It is already installed.')
 			})
 		}
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
 // Ruby method `install!(name, id: nil, with: nil, preinstall: true, no_upgrade: false, verbose: false, force: false,` at line 387.
-pub fn ruby_winget_l387_d32_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_l387_d32_install(args ...ruby.Value) ruby.Value {
 	mut state := if args.len > 0 { winget_state_from_value(args[0]) } else { WingetState{} }
 	name := if args.len > 1 { args[1].as_string() } else { '' }
 	id := if args.len > 2 && args[2].type_name != 'NilClass' { args[2].as_string() } else { name }
 	source := if args.len > 3 { args[3].as_string() } else { winget_default_source }
 	preinstall := if args.len > 4 { args[4].as_bool() or { true } } else { true }
 	if !preinstall {
-		return brew_runtime.bool_value(true)
+		return ruby.bool_value(true)
 	}
 	if state.executable == '' {
 		return winget_error('RuntimeError', 'winget.exe is not installed')
@@ -827,8 +827,8 @@ pub fn ruby_winget_l387_d32_install(args ...brew_runtime.Value) brew_runtime.Val
 	}
 	if !success {
 		state.output << winget_report_install_failure(name, id, source, output)
-		return brew_runtime.map_value({
-			'result': brew_runtime.bool_value(false)
+		return ruby.map_value({
+			'result': ruby.bool_value(false)
 			'state':  winget_state_value(state)
 		})
 	}
@@ -839,14 +839,14 @@ pub fn ruby_winget_l387_d32_install(args ...brew_runtime.Value) brew_runtime.Val
 	if !winget_app_installed(state.records, id, source) {
 		state.records << WingetRecord{ id: id, source: source }
 	}
-	return brew_runtime.map_value({
-		'result': brew_runtime.bool_value(true)
+	return ruby.map_value({
+		'result': ruby.bool_value(true)
 		'state':  winget_state_value(state)
 	})
 }
 
 // Ruby method `run_install_command(winget, args, verbose:, elevated:)` at line 430.
-pub fn ruby_winget_l430_d33_run_install_command(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_l430_d33_run_install_command(args ...ruby.Value) ruby.Value {
 	if args.len > 4 {
 		return args[4]
 	}
@@ -854,7 +854,7 @@ pub fn ruby_winget_l430_d33_run_install_command(args ...brew_runtime.Value) brew
 }
 
 // Ruby method `run_elevated_install_command(winget, args, verbose:)` at line 448.
-pub fn ruby_winget_l448_d34_run_elevated_install_command(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_l448_d34_run_elevated_install_command(args ...ruby.Value) ruby.Value {
 	winget := if args.len > 0 { args[0].as_string() } else { '' }
 	command_args := if args.len > 1 { args[1].as_string_array() or { [] } } else { [] }
 	powershell := if args.len > 2 { args[2].as_string() } else { '' }
@@ -869,17 +869,17 @@ pub fn ruby_winget_l448_d34_run_elevated_install_command(args ...brew_runtime.Va
 	argument_list := command_args.map(winget_powershell_quote(it)).join(', ')
 	script := "\$startProcessArgs = @{\n  FilePath = ${winget_powershell_quote(winget_path)}\n  ArgumentList = @(${argument_list})\n  Verb = 'RunAs'\n  Wait = \$true\n  PassThru = \$true\n}\n\$process = Start-Process @startProcessArgs\n\$process.WaitForExit()\nexit \$process.ExitCode\n"
 	success := if args.len > 4 { args[4].as_bool() or { false } } else { false }
-	return brew_runtime.map_value({
-		'success':    brew_runtime.bool_value(success)
-		'output':     brew_runtime.string_value('')
-		'powershell': brew_runtime.object_value('Pathname', powershell)
-		'script':     brew_runtime.string_value(script)
+	return ruby.map_value({
+		'success':    ruby.bool_value(success)
+		'output':     ruby.string_value('')
+		'powershell': ruby.object_value('Pathname', powershell)
+		'script':     ruby.string_value(script)
 	})
 }
 
 // Ruby method `powershell_quote(value)` at line 472.
-pub fn ruby_winget_l472_d35_powershell_quote(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(winget_powershell_quote(if args.len > 0 {
+pub fn ruby_winget_l472_d35_powershell_quote(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(winget_powershell_quote(if args.len > 0 {
 		args[0].as_string()
 	} else {
 		''
@@ -887,8 +887,8 @@ pub fn ruby_winget_l472_d35_powershell_quote(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby method `elevation_failure?(output)` at line 477.
-pub fn ruby_winget_l477_d36_elevation_failure(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(winget_elevation_failure(if args.len > 0 {
+pub fn ruby_winget_l477_d36_elevation_failure(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(winget_elevation_failure(if args.len > 0 {
 		args[0].as_string()
 	} else {
 		''
@@ -896,8 +896,8 @@ pub fn ruby_winget_l477_d36_elevation_failure(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby method `installer_ui_failure?(output)` at line 482.
-pub fn ruby_winget_l482_d37_installer_ui_failure(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(winget_installer_ui_failure(if args.len > 0 {
+pub fn ruby_winget_l482_d37_installer_ui_failure(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(winget_installer_ui_failure(if args.len > 0 {
 		args[0].as_string()
 	} else {
 		''
@@ -905,16 +905,16 @@ pub fn ruby_winget_l482_d37_installer_ui_failure(args ...brew_runtime.Value) bre
 }
 
 // Ruby method `report_install_failure(name, id:, source:, output:)` at line 487.
-pub fn ruby_winget_l487_d38_report_install_failure(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_l487_d38_report_install_failure(args ...ruby.Value) ruby.Value {
 	name := if args.len > 0 { args[0].as_string() } else { '' }
 	id := if args.len > 1 { args[1].as_string() } else { name }
 	source := if args.len > 2 { args[2].as_string() } else { winget_default_source }
 	output := if args.len > 3 { args[3].as_string() } else { '' }
-	return brew_runtime.string_array_value(winget_report_install_failure(name, id, source, output))
+	return ruby.string_array_value(winget_report_install_failure(name, id, source, output))
 }
 
 // Ruby method `parse_cleanup_item(item)` at line 504.
-pub fn ruby_winget_l504_d39_parse_cleanup_item(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_l504_d39_parse_cleanup_item(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return winget_error('TypeError', 'Invalid WinGet cleanup item: ')
 	}
@@ -923,7 +923,7 @@ pub fn ruby_winget_l504_d39_parse_cleanup_item(args ...brew_runtime.Value) brew_
 }
 
 // Ruby method `format_checkable(entries)` at line 520.
-pub fn ruby_winget_l520_d40_format_checkable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_l520_d40_format_checkable(args ...ruby.Value) ruby.Value {
 	entries_value := if args.len > 0 { args[0].as_array() or { [] } } else { [] }
 	mut apps := []WingetApp{}
 	for entry_value in entries_value {
@@ -943,13 +943,13 @@ pub fn ruby_winget_l520_d40_format_checkable(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby method `installed_and_up_to_date?(package, no_upgrade: false)` at line 528.
-pub fn ruby_winget_l528_d41_installed_and_up_to_date(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_l528_d41_installed_and_up_to_date(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	records := winget_records_from_value(args[0])
 	app := winget_app_from_value(args[1])
-	return brew_runtime.bool_value(winget_app_installed(records, app.id, app.source))
+	return ruby.bool_value(winget_app_installed(records, app.id, app.source))
 }
 
 // Original Ruby source (line-for-line):

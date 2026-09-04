@@ -1,6 +1,6 @@
 module cask
 
-import brew_runtime
+import ruby
 import homebrew.cask as cask_info
 import homebrew.utils as brew_utils
 import os
@@ -8,8 +8,8 @@ import time
 
 // Translated from Homebrew/brew `test/cask/info_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
-fn cask_info_spec_bool(value bool) brew_runtime.Value {
-	return brew_runtime.bool_value(value)
+fn cask_info_spec_bool(value bool) ruby.Value {
+	return ruby.bool_value(value)
 }
 
 fn cask_info_spec_output_options() brew_utils.OutputOptions {
@@ -171,30 +171,30 @@ fn cask_info_spec_fixture(token string) cask_info.CaskInfoModel {
 }
 
 // Ruby let `let(:args) { instance_double(Homebrew::Cmd::Info::Args) }` at line 8.
-pub fn ruby_info_spec_l8_d1_args(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Homebrew::Cmd::Info::Args', 'instance_double(Homebrew::Cmd::Info::Args)')
+pub fn ruby_info_spec_l8_d1_args(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Homebrew::Cmd::Info::Args', 'instance_double(Homebrew::Cmd::Info::Args)')
 }
 
 // Ruby method `uninstalled(string)` at line 12.
-pub fn ruby_info_spec_l12_d2_uninstalled(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_spec_l12_d2_uninstalled(args ...ruby.Value) ruby.Value {
 	value := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.string_value(brew_utils.pretty_uninstalled(value, true, cask_info_spec_output_options()))
+	return ruby.string_value(brew_utils.pretty_uninstalled(value, true, cask_info_spec_output_options()))
 }
 
 // Ruby method `installed(string)` at line 16.
-pub fn ruby_info_spec_l16_d3_installed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_spec_l16_d3_installed(args ...ruby.Value) ruby.Value {
 	value := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.string_value(brew_utils.pretty_installed(value, cask_info_spec_output_options()))
+	return ruby.string_value(brew_utils.pretty_installed(value, cask_info_spec_output_options()))
 }
 
 // Ruby method `requirements_section(string)` at line 20.
-pub fn ruby_info_spec_l20_d4_requirements_section(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_spec_l20_d4_requirements_section(args ...ruby.Value) ruby.Value {
 	value := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.string_value('${brew_utils.output_ohai_title('Requirements', cask_info_spec_output_options())}\nRequired: ${value}')
+	return ruby.string_value('${brew_utils.output_ohai_title('Requirements', cask_info_spec_output_options())}\nRequired: ${value}')
 }
 
 // Ruby method `mock_cask_installed(cask_name)` at line 27.
-pub fn ruby_info_spec_l27_d5_mock_cask_installed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_spec_l27_d5_mock_cask_installed(args ...ruby.Value) ruby.Value {
 	name := if args.len > 0 { args[0].as_string() } else { 'local-transmission-zip' }
 	fixture := cask_info.CaskInfoModel{
 		...cask_info_spec_fixture(name)
@@ -205,25 +205,25 @@ pub fn ruby_info_spec_l27_d5_mock_cask_installed(args ...brew_runtime.Value) bre
 }
 
 // Ruby it `it "displays some nice info about the specified Cask" do` at line 43.
-pub fn ruby_info_spec_l43_d6_displays(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_spec_l43_d6_displays(args ...ruby.Value) ruby.Value {
 	output := cask_info.cask_info_get(cask_info_spec_fixture('local-transmission'))
 	return cask_info_spec_bool(output.contains('local-transmission') && output.contains('(Transmission): 2.61') && output.contains('BitTorrent client') && output.contains('https://transmissionbt.com/') && output.contains('Not installed') && output.contains('macOS >= 10.15') && output.ends_with('Transmission.app (App)\n'))
 }
 
 // Ruby it `it "omits a missing cask name and description" do` at line 60.
-pub fn ruby_info_spec_l60_d7_omits(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_spec_l60_d7_omits(args ...ruby.Value) ruby.Value {
 	output := cask_info.cask_info_get(cask_info_spec_fixture('with-depends-on-cask-multiple'))
 	return cask_info_spec_bool(!output.contains('==> Name') && !output.contains('==> Description') && output.contains('Required (2): local-caffeine (cask), local-transmission-zip (cask)') && output.contains('Recursive Runtime (2): 0 installed'))
 }
 
 // Ruby it `it "prints inline summary information for casks" do` at line 79.
-pub fn ruby_info_spec_l79_d8_prints(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_spec_l79_d8_prints(args ...ruby.Value) ruby.Value {
 	output := cask_info.cask_info_get(cask_info_spec_fixture('local-transmission'))
 	return cask_info_spec_bool(output.contains('Requirements') && output.contains('Required: ') && output.contains('macOS >= 10.15') && !output.contains('==> Name') && !output.contains('==> Description') && !output.contains('Metadata'))
 }
 
 // Ruby it `it "prints cask dependencies if the Cask has any" do` at line 91.
-pub fn ruby_info_spec_l91_d9_prints(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_spec_l91_d9_prints(args ...ruby.Value) ruby.Value {
 	mut fixture := cask_info_spec_fixture('with-depends-on-cask-multiple')
 	fixture = cask_info.CaskInfoModel{
 		...fixture
@@ -251,7 +251,7 @@ pub fn ruby_info_spec_l91_d9_prints(args ...brew_runtime.Value) brew_runtime.Val
 }
 
 // Ruby it `it "summarises recursive runtime dependencies as all installed when none are missing" do` at line 110.
-pub fn ruby_info_spec_l110_d10_summarises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_spec_l110_d10_summarises(args ...ruby.Value) ruby.Value {
 	mut fixture := cask_info_spec_fixture('with-depends-on-cask-multiple')
 	fixture = cask_info.CaskInfoModel{
 		...fixture
@@ -264,19 +264,19 @@ pub fn ruby_info_spec_l110_d10_summarises(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby it `it "prints cask and formulas dependencies if the Cask has both" do` at line 119.
-pub fn ruby_info_spec_l119_d11_prints(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_spec_l119_d11_prints(args ...ruby.Value) ruby.Value {
 	output := cask_info.cask_info_get(cask_info_spec_fixture('with-depends-on-everything'))
 	return cask_info_spec_bool(output.contains('Required (3): unar, local-caffeine (cask), with-depends-on-cask (cask)') && output.contains('Recursive Runtime (4): 0 installed') && output.contains('x86_64 architecture') && output.contains('arm64 architecture'))
 }
 
 // Ruby it `it "prints auto_updates if the Cask has `auto_updates true`" do` at line 143.
-pub fn ruby_info_spec_l143_d12_prints(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_spec_l143_d12_prints(args ...ruby.Value) ruby.Value {
 	output := cask_info.cask_info_get(cask_info_spec_fixture('with-auto-updates'))
 	return cask_info_spec_bool(output.contains('(AutoUpdates): 1.0 (auto_updates)'))
 }
 
 // Ruby it `it "prints pinned cask metadata" do` at line 159.
-pub fn ruby_info_spec_l159_d13_prints(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_spec_l159_d13_prints(args ...ruby.Value) ruby.Value {
 	fixture := cask_info.CaskInfoModel{
 		...cask_info_spec_fixture('local-caffeine')
 		pinned: true
@@ -288,24 +288,24 @@ pub fn ruby_info_spec_l159_d13_prints(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby it `it "prints caveats if the Cask provided one" do` at line 171.
-pub fn ruby_info_spec_l171_d14_prints(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_spec_l171_d14_prints(args ...ruby.Value) ruby.Value {
 	output := cask_info.cask_info_get(cask_info_spec_fixture('with-caveats'))
 	return cask_info_spec_bool(output.contains('Caveats') && output.contains('Here are some things you might want to know.') && output.contains('Cask token: with-caveats'))
 }
 
 // Ruby it `it 'does not print "Caveats" section divider if the caveats block has no output' do` at line 197.
-pub fn ruby_info_spec_l197_d15_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_spec_l197_d15_does(args ...ruby.Value) ruby.Value {
 	return cask_info_spec_bool(!cask_info.cask_info_get(cask_info_spec_fixture('with-conditional-caveats')).contains('Caveats'))
 }
 
 // Ruby it `it "prints languages specified in the Cask" do` at line 213.
-pub fn ruby_info_spec_l213_d16_prints(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_spec_l213_d16_prints(args ...ruby.Value) ruby.Value {
 	output := cask_info.cask_info_get(cask_info_spec_fixture('with-languages'))
 	return cask_info_spec_bool(output.contains('Languages') && output.contains('zh, en-US'))
 }
 
 // Ruby it `it 'does not print "Languages" section divider if the languages block has no output' do` at line 231.
-pub fn ruby_info_spec_l231_d17_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_spec_l231_d17_does(args ...ruby.Value) ruby.Value {
 	return cask_info_spec_bool(!cask_info.cask_info_get(cask_info_spec_fixture('without-languages')).contains('Languages'))
 }
 
@@ -339,17 +339,17 @@ fn cask_info_spec_installed_api(internal bool) bool {
 }
 
 // Ruby it `it "prints install information for an installed Cask loaded from the API" do` at line 247.
-pub fn ruby_info_spec_l247_d18_prints(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_spec_l247_d18_prints(args ...ruby.Value) ruby.Value {
 	return cask_info_spec_bool(cask_info_spec_installed_api(false))
 }
 
 // Ruby it `it "prints install information for an installed Cask loaded from the internal API" do` at line 282.
-pub fn ruby_info_spec_l282_d19_prints(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_spec_l282_d19_prints(args ...ruby.Value) ruby.Value {
 	return cask_info_spec_bool(cask_info_spec_installed_api(true))
 }
 
 // Ruby it `it "shows requirements" do` at line 317.
-pub fn ruby_info_spec_l317_d20_shows(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_spec_l317_d20_shows(args ...ruby.Value) ruby.Value {
 	output := cask_info.cask_info_get(cask_info_spec_fixture('with-non-executable-binary'))
 	return cask_info_spec_bool(!output.contains('Requirements') && output.contains('naked_non_executable (Binary)'))
 }

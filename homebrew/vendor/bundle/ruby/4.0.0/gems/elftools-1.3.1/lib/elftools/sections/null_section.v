@@ -1,14 +1,14 @@
 module sections
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/elftools-1.3.1/lib/elftools/sections/null_section.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `null?` at line 13.
-pub fn ruby_null_section_l13_d1_null(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_null_section_l13_d1_null(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
 // Original Ruby source (line-for-line):

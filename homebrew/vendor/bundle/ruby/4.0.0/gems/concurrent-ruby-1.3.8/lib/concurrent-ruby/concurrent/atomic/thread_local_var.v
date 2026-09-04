@@ -1,6 +1,6 @@
 module atomic
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/atomic/thread_local_var.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -10,41 +10,41 @@ mut:
 	variable &LocalVariable
 }
 
-pub fn new_thread_local_var(default_value brew_runtime.Value) &ThreadLocalVar {
+pub fn new_thread_local_var(default_value ruby.Value) &ThreadLocalVar {
 	mut storage := new_thread_locals()
 	return new_thread_local_var_with_storage(mut storage, default_value)
 }
 
-pub fn new_thread_local_var_with_storage(mut storage LocalStorage, default_value brew_runtime.Value) &ThreadLocalVar {
+pub fn new_thread_local_var_with_storage(mut storage LocalStorage, default_value ruby.Value) &ThreadLocalVar {
 	return &ThreadLocalVar{
 		variable: new_local_variable(mut storage, default_value)
 	}
 }
 
-pub fn new_thread_local_var_with_default_block(default_value brew_runtime.Value, default_block LocalDefaultBlock) !&ThreadLocalVar {
+pub fn new_thread_local_var_with_default_block(default_value ruby.Value, default_block LocalDefaultBlock) !&ThreadLocalVar {
 	mut storage := new_thread_locals()
 	return new_thread_local_var_with_storage_and_default_block(mut storage, default_value, default_block)
 }
 
-pub fn new_thread_local_var_with_storage_and_default_block(mut storage LocalStorage, default_value brew_runtime.Value, default_block LocalDefaultBlock) !&ThreadLocalVar {
+pub fn new_thread_local_var_with_storage_and_default_block(mut storage LocalStorage, default_value ruby.Value, default_block LocalDefaultBlock) !&ThreadLocalVar {
 	return &ThreadLocalVar{
 		variable: new_local_variable_with_default_block(mut storage, default_value, default_block)!
 	}
 }
 
-pub fn (mut local ThreadLocalVar) value() !brew_runtime.Value {
+pub fn (mut local ThreadLocalVar) value() !ruby.Value {
 	return local.variable.value()
 }
 
-pub fn (mut local ThreadLocalVar) set(value brew_runtime.Value) !brew_runtime.Value {
+pub fn (mut local ThreadLocalVar) set(value ruby.Value) !ruby.Value {
 	return local.variable.set(value)
 }
 
-pub fn (mut local ThreadLocalVar) bind(value brew_runtime.Value, action LocalBindingBlock) !brew_runtime.Value {
+pub fn (mut local ThreadLocalVar) bind(value ruby.Value, action LocalBindingBlock) !ruby.Value {
 	return local.variable.bind(value, action)
 }
 
-pub fn (mut local ThreadLocalVar) default_current() !brew_runtime.Value {
+pub fn (mut local ThreadLocalVar) default_current() !ruby.Value {
 	return local.variable.default_current()
 }
 
@@ -60,13 +60,13 @@ pub fn (local &ThreadLocalVar) slot_index() int {
 	return local.variable.slot_index()
 }
 
-fn thread_local_var_boundary(local &ThreadLocalVar) brew_runtime.Value {
-	return brew_runtime.structured_value('Concurrent::ThreadLocalVar', '#<Concurrent::ThreadLocalVar>', {
+fn thread_local_var_boundary(local &ThreadLocalVar) ruby.Value {
+	return ruby.structured_value('Concurrent::ThreadLocalVar', '#<Concurrent::ThreadLocalVar>', {
 		'thread_local_var_address': u64(voidptr(local)).str()
 	})
 }
 
-fn thread_local_var_boundary_receiver(args []brew_runtime.Value) &ThreadLocalVar {
+fn thread_local_var_boundary_receiver(args []ruby.Value) &ThreadLocalVar {
 	if args.len == 0 {
 		panic('ThreadLocalVar method requires a receiver')
 	}
@@ -77,7 +77,7 @@ fn thread_local_var_boundary_receiver(args []brew_runtime.Value) &ThreadLocalVar
 }
 
 // Ruby method `initialize(default = nil, &default_block)` at line 51.
-pub fn ruby_thread_local_var_l51_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_thread_local_var_l51_d1_initialize(args ...ruby.Value) ruby.Value {
 	default_value := if args.len > 0 { args[0] } else { local_nil_value() }
 	mut storage := new_thread_locals()
 	local := if args.len > 1 {
@@ -91,13 +91,13 @@ pub fn ruby_thread_local_var_l51_d1_initialize(args ...brew_runtime.Value) brew_
 }
 
 // Ruby method `value` at line 70.
-pub fn ruby_thread_local_var_l70_d2_value(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_thread_local_var_l70_d2_value(args ...ruby.Value) ruby.Value {
 	mut local := thread_local_var_boundary_receiver(args)
 	return local.value() or { panic(err) }
 }
 
 // Ruby method `value=(value)` at line 78.
-pub fn ruby_thread_local_var_l78_d3_value(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_thread_local_var_l78_d3_value(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('ThreadLocalVar#value= requires a value')
 	}
@@ -106,7 +106,7 @@ pub fn ruby_thread_local_var_l78_d3_value(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby method `bind(value)` at line 88.
-pub fn ruby_thread_local_var_l88_d4_bind(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_thread_local_var_l88_d4_bind(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('ThreadLocalVar#bind requires a value')
 	}
@@ -123,7 +123,7 @@ pub fn ruby_thread_local_var_l88_d4_bind(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `default` at line 103.
-pub fn ruby_thread_local_var_l103_d5_default(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_thread_local_var_l103_d5_default(args ...ruby.Value) ruby.Value {
 	mut local := thread_local_var_boundary_receiver(args)
 	return local.default_current() or { panic(err) }
 }

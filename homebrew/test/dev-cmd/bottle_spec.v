@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 import homebrew.dev_cmd as production_dev_cmd
 import os
 import time
@@ -56,9 +56,9 @@ fn bottle_spec_parameters(name string, version string, os_tag string, cellar str
 }
 
 fn bottle_spec_document(parameters BottleSpecStubParameters) production_dev_cmd.BottleJsonDocument {
-	mut sbom := brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+	mut sbom := ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 	if parameters.sbom_json != '' {
-		sbom = brew_runtime.parse_json_value(parameters.sbom_json) or { sbom }
+		sbom = ruby.parse_json_value(parameters.sbom_json) or { sbom }
 	}
 	root_url := if parameters.root_url == '' {
 		production_dev_cmd.bottle_default_domain
@@ -105,7 +105,7 @@ fn bottle_spec_write_documents(root string, documents []production_dev_cmd.Bottl
 	mut paths := []string{cap: documents.len}
 	for index, document in documents {
 		path := os.join_path(root, 'bottle-${index}.json')
-		os.write_file(path, brew_runtime.json_value_to_string(production_dev_cmd.bottle_json_document_value(document)))!
+		os.write_file(path, ruby.json_value_to_string(production_dev_cmd.bottle_json_document_value(document)))!
 		paths << path
 	}
 	return paths
@@ -199,33 +199,33 @@ fn bottle_spec_merge_documents() production_dev_cmd.BottleJsonDocument {
 	])
 }
 
-fn bottle_spec_bool(ok bool) brew_runtime.Value {
-	return brew_runtime.bool_value(ok)
+fn bottle_spec_bool(ok bool) ruby.Value {
+	return ruby.bool_value(ok)
 }
 
 // Ruby method `stub_hash(parameters)` at line 8.
-pub fn ruby_bottle_spec_l8_d1_stub_hash(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_spec_l8_d1_stub_hash(args ...ruby.Value) ruby.Value {
 	if args.len > 0 {
 		parameters := args[0].as_map() or {
-			return brew_runtime.object_value('ArgumentError', 'parameters must be a map')
+			return ruby.object_value('ArgumentError', 'parameters must be a map')
 		}
-		return brew_runtime.string_value(bottle_spec_stub_hash(BottleSpecStubParameters{
-			name: (parameters['name'] or { brew_runtime.string_value('') }).as_string()
-			version: (parameters['version'] or { brew_runtime.string_value('') }).as_string()
-			path: (parameters['path'] or { brew_runtime.string_value('') }).as_string()
-			root_url: (parameters['root_url'] or { brew_runtime.string_value('') }).as_string()
-			cellar: (parameters['cellar'] or { brew_runtime.string_value('') }).as_string()
-			os_tag: (parameters['os'] or { brew_runtime.string_value('') }).as_string()
-			filename: (parameters['filename'] or { brew_runtime.string_value('') }).as_string()
-			local_filename: (parameters['local_filename'] or { brew_runtime.string_value('') }).as_string()
-			sha256: (parameters['sha256'] or { brew_runtime.string_value('') }).as_string()
+		return ruby.string_value(bottle_spec_stub_hash(BottleSpecStubParameters{
+			name: (parameters['name'] or { ruby.string_value('') }).as_string()
+			version: (parameters['version'] or { ruby.string_value('') }).as_string()
+			path: (parameters['path'] or { ruby.string_value('') }).as_string()
+			root_url: (parameters['root_url'] or { ruby.string_value('') }).as_string()
+			cellar: (parameters['cellar'] or { ruby.string_value('') }).as_string()
+			os_tag: (parameters['os'] or { ruby.string_value('') }).as_string()
+			filename: (parameters['filename'] or { ruby.string_value('') }).as_string()
+			local_filename: (parameters['local_filename'] or { ruby.string_value('') }).as_string()
+			sha256: (parameters['sha256'] or { ruby.string_value('') }).as_string()
 		}))
 	}
-	return brew_runtime.string_value(bottle_spec_stub_hash(bottle_spec_parameters('hello', '1.0', 'big_sur', production_dev_cmd.bottle_any_skip_relocation_cellar, bottle_spec_hello_big_sur_sha)))
+	return ruby.string_value(bottle_spec_stub_hash(bottle_spec_parameters('hello', '1.0', 'big_sur', production_dev_cmd.bottle_any_skip_relocation_cellar, bottle_spec_hello_big_sur_sha)))
 }
 
 // Ruby it `it "builds a bottle for the given Formula", :integration_test, :needs_network do` at line 37.
-pub fn ruby_bottle_spec_l37_d2_builds(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_spec_l37_d2_builds(args ...ruby.Value) ruby.Value {
 	_ = args
 	root := bottle_spec_root('build')
 	os.mkdir_all(root) or { return bottle_spec_bool(false) }
@@ -258,65 +258,65 @@ pub fn ruby_bottle_spec_l37_d2_builds(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby let `let(:core_tap) { CoreTap.instance }` at line 58.
-pub fn ruby_bottle_spec_l58_d3_core_tap(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_spec_l58_d3_core_tap(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.structured_value('CoreTap', 'homebrew/core', {
+	return ruby.structured_value('CoreTap', 'homebrew/core', {
 		'name': 'homebrew/core'
 		'path': '/homebrew/core'
 	})
 }
 
 // Ruby let `let(:tarball) do` at line 59.
-pub fn ruby_bottle_spec_l59_d4_tarball(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_spec_l59_d4_tarball(args ...ruby.Value) ruby.Value {
 	_ = args
 	$if linux {
-		return brew_runtime.string_value('tarballs/testball-0.1-linux.tbz')
+		return ruby.string_value('tarballs/testball-0.1-linux.tbz')
 	} $else {
-		return brew_runtime.string_value('tarballs/testball-0.1.tbz')
+		return ruby.string_value('tarballs/testball-0.1.tbz')
 	}
 }
 
 // Ruby it `it "adds the bottle block to a formula that has none" do` at line 108.
-pub fn ruby_bottle_spec_l108_d5_adds(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_spec_l108_d5_adds(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := bottle_spec_merge_case(false, false) or { return bottle_spec_bool(false) }
 	return bottle_spec_bool(result.updated && result.commit.join(' ').contains('testball: add 1.0 bottle.'))
 }
 
 // Ruby method `install` at line 154.
-pub fn ruby_bottle_spec_l154_d6_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_spec_l154_d6_install(args ...ruby.Value) ruby.Value {
 	with_foo := args.len > 0 && (args[0].as_bool() or { false })
 	return bottle_spec_bool(bottle_spec_install_fixture('install-154', with_foo) or { false })
 }
 
 // Ruby it `it "replaces the bottle block in a formula that already has a bottle block" do` at line 171.
-pub fn ruby_bottle_spec_l171_d7_replaces(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_spec_l171_d7_replaces(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := bottle_spec_merge_case(true, false) or { return bottle_spec_bool(false) }
 	return bottle_spec_bool(result.updated && result.commit.join(' ').contains('testball: update 1.0 bottle.'))
 }
 
 // Ruby method `install` at line 224.
-pub fn ruby_bottle_spec_l224_d8_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_spec_l224_d8_install(args ...ruby.Value) ruby.Value {
 	with_foo := args.len > 0 && (args[0].as_bool() or { false })
 	return bottle_spec_bool(bottle_spec_install_fixture('install-224', with_foo) or { false })
 }
 
 // Ruby it `it "updates the bottle block in a formula that already has a bottle block when using --keep-old" do` at line 241.
-pub fn ruby_bottle_spec_l241_d9_updates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_spec_l241_d9_updates(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := bottle_spec_merge_case(true, true) or { return bottle_spec_bool(false) }
 	return bottle_spec_bool(result.updated && result.output.contains('sonoma:'))
 }
 
 // Ruby method `install` at line 295.
-pub fn ruby_bottle_spec_l295_d10_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_spec_l295_d10_install(args ...ruby.Value) ruby.Value {
 	with_foo := args.len > 0 && (args[0].as_bool() or { false })
 	return bottle_spec_bool(bottle_spec_install_fixture('install-295', with_foo) or { false })
 }
 
 // Ruby it `it "writes an all bottle JSON for matching platform bottles" do` at line 312.
-pub fn ruby_bottle_spec_l312_d11_writes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_spec_l312_d11_writes(args ...ruby.Value) ruby.Value {
 	_ = args
 	sha := '8f9aecd233463da6a4ea55f5f88fc5841718c013f3e2a7941350d6130f1dc149'
 	mut arm := bottle_spec_parameters('testball', '1.0', 'arm64_big_sur', production_dev_cmd.bottle_any_skip_relocation_cellar, sha)
@@ -337,7 +337,7 @@ pub fn ruby_bottle_spec_l312_d11_writes(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby it `it "merges when an all bottle cannot be created" do` at line 364.
-pub fn ruby_bottle_spec_l364_d12_merges(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_spec_l364_d12_merges(args ...ruby.Value) ruby.Value {
 	_ = args
 	root := bottle_spec_root('not-all')
 	os.mkdir_all(root) or { return bottle_spec_bool(false) }
@@ -355,40 +355,40 @@ pub fn ruby_bottle_spec_l364_d12_merges(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby subject `subject(:homebrew) { described_class.new(["foo"]) }` at line 396.
-pub fn ruby_bottle_spec_l396_d13_homebrew(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_spec_l396_d13_homebrew(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.map_value({
-		'command': brew_runtime.string_value('bottle')
-		'named':   brew_runtime.string_array_value(['foo'])
+	return ruby.map_value({
+		'command': ruby.string_value('bottle')
+		'named':   ruby.string_array_value(['foo'])
 	})
 }
 
 // Ruby let `let(:hello_hash_big_sur) do` at line 398.
-pub fn ruby_bottle_spec_l398_d14_hello_hash_big_sur(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_spec_l398_d14_hello_hash_big_sur(args ...ruby.Value) ruby.Value {
 	_ = args
 	return production_dev_cmd.bottle_json_document_value(bottle_spec_document(bottle_spec_parameters('hello', '1.0', 'big_sur', production_dev_cmd.bottle_any_skip_relocation_cellar, bottle_spec_hello_big_sur_sha)))
 }
 
 // Ruby let `let(:hello_hash_catalina) do` at line 410.
-pub fn ruby_bottle_spec_l410_d15_hello_hash_catalina(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_spec_l410_d15_hello_hash_catalina(args ...ruby.Value) ruby.Value {
 	_ = args
 	return production_dev_cmd.bottle_json_document_value(bottle_spec_document(bottle_spec_parameters('hello', '1.0', 'catalina', production_dev_cmd.bottle_any_skip_relocation_cellar, bottle_spec_hello_catalina_sha)))
 }
 
 // Ruby let `let(:unzip_hash_big_sur) do` at line 422.
-pub fn ruby_bottle_spec_l422_d16_unzip_hash_big_sur(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_spec_l422_d16_unzip_hash_big_sur(args ...ruby.Value) ruby.Value {
 	_ = args
 	return production_dev_cmd.bottle_json_document_value(bottle_spec_document(bottle_spec_parameters('unzip', '2.0', 'big_sur', production_dev_cmd.bottle_any_skip_relocation_cellar, bottle_spec_unzip_big_sur_sha)))
 }
 
 // Ruby let `let(:unzip_hash_catalina) do` at line 434.
-pub fn ruby_bottle_spec_l434_d17_unzip_hash_catalina(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_spec_l434_d17_unzip_hash_catalina(args ...ruby.Value) ruby.Value {
 	_ = args
 	return production_dev_cmd.bottle_json_document_value(bottle_spec_document(bottle_spec_parameters('unzip', '2.0', 'catalina', production_dev_cmd.bottle_any_cellar, bottle_spec_unzip_catalina_sha)))
 }
 
 // Ruby specify `specify "::parse_json_files" do` at line 447.
-pub fn ruby_bottle_spec_l447_d18_parse_json_files(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_spec_l447_d18_parse_json_files(args ...ruby.Value) ruby.Value {
 	_ = args
 	root := bottle_spec_root('parse')
 	os.mkdir_all(root) or { return bottle_spec_bool(false) }
@@ -404,7 +404,7 @@ pub fn ruby_bottle_spec_l447_d18_parse_json_files(args ...brew_runtime.Value) br
 }
 
 // Ruby it `it "merges JSON files" do` at line 467.
-pub fn ruby_bottle_spec_l467_d19_merges(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_spec_l467_d19_merges(args ...ruby.Value) ruby.Value {
 	_ = args
 	merged := bottle_spec_merge_documents()
 	hello := merged.entries['hello']
@@ -417,7 +417,7 @@ pub fn ruby_bottle_spec_l467_d19_merges(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby it `it "allows new bottle hash to be empty" do` at line 506.
-pub fn ruby_bottle_spec_l506_d20_allows(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_spec_l506_d20_allows(args ...ruby.Value) ruby.Value {
 	_ = args
 	_ := production_dev_cmd.merge_bottle_spec(['root_url', 'cellar', 'rebuild', 'sha256'], production_dev_cmd.BottleSpecification{}, production_dev_cmd.BottleJsonBottle{})
 	// This example asserts only that an empty incoming hash is accepted without
@@ -426,7 +426,7 @@ pub fn ruby_bottle_spec_l506_d20_allows(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby it `it "checks for conflicting root URL" do` at line 513.
-pub fn ruby_bottle_spec_l513_d21_checks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_spec_l513_d21_checks(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := production_dev_cmd.merge_bottle_spec(['root_url'], production_dev_cmd.BottleSpecification{ root_url: 'https://failbrew.bintray.com/bottles' }, production_dev_cmd.BottleJsonBottle{ root_url: 'https://testbrew.bintray.com/bottles' })
 	return bottle_spec_bool(result.mismatches == [
@@ -435,7 +435,7 @@ pub fn ruby_bottle_spec_l513_d21_checks(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby it `it "checks for conflicting rebuild number" do` at line 523.
-pub fn ruby_bottle_spec_l523_d22_checks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_spec_l523_d22_checks(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := production_dev_cmd.merge_bottle_spec(['rebuild'], production_dev_cmd.BottleSpecification{ rebuild: 1 }, production_dev_cmd.BottleJsonBottle{ rebuild: 2 })
 	return bottle_spec_bool(result.mismatches == ['rebuild: old: "1", new: "2"']
@@ -443,7 +443,7 @@ pub fn ruby_bottle_spec_l523_d22_checks(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby it `it "checks for conflicting checksums" do` at line 533.
-pub fn ruby_bottle_spec_l533_d23_checks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_spec_l533_d23_checks(args ...ruby.Value) ruby.Value {
 	_ = args
 	old_sequoia := '109c0cb581a7b5d84da36d84b221fb9dd0f8a927b3044d82611791c9907e202e'
 	new_sequoia := 'ec6d7f08412468f28dee2be17ad8cd8b883b16b34329efcecce019b8c9736428'
@@ -477,18 +477,18 @@ pub fn ruby_bottle_spec_l533_d23_checks(args ...brew_runtime.Value) brew_runtime
 }
 
 fn bottle_spec_sha_line(cellar production_dev_cmd.BottleCellar, tag_column int,
-	digest_column int, expected string) brew_runtime.Value {
+	digest_column int, expected string) ruby.Value {
 	return bottle_spec_bool(production_dev_cmd.generate_bottle_sha256_line('sequoia', 'deadbeef', cellar, tag_column, digest_column) == expected)
 }
 
 // Ruby it `it "generates a string without cellar" do` at line 550.
-pub fn ruby_bottle_spec_l550_d24_generates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_spec_l550_d24_generates(args ...ruby.Value) ruby.Value {
 	_ = args
 	return bottle_spec_sha_line(production_dev_cmd.BottleCellar{}, 0, 10, 'sha256 sequoia:  "deadbeef"')
 }
 
 // Ruby it `it "generates a string with cellar symbol" do` at line 558.
-pub fn ruby_bottle_spec_l558_d25_generates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_spec_l558_d25_generates(args ...ruby.Value) ruby.Value {
 	_ = args
 	return bottle_spec_sha_line(production_dev_cmd.BottleCellar{
 		value: production_dev_cmd.bottle_any_cellar
@@ -497,7 +497,7 @@ pub fn ruby_bottle_spec_l558_d25_generates(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby it `it "generates a string with default cellar path" do` at line 566.
-pub fn ruby_bottle_spec_l566_d26_generates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_spec_l566_d26_generates(args ...ruby.Value) ruby.Value {
 	_ = args
 	return bottle_spec_sha_line(production_dev_cmd.BottleCellar{
 		value: '/home/linuxbrew/.linuxbrew/Cellar'
@@ -505,19 +505,19 @@ pub fn ruby_bottle_spec_l566_d26_generates(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby it `it "generates a string with non-default cellar path" do` at line 574.
-pub fn ruby_bottle_spec_l574_d27_generates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_spec_l574_d27_generates(args ...ruby.Value) ruby.Value {
 	_ = args
 	return bottle_spec_sha_line(production_dev_cmd.BottleCellar{ value: '/home/test' }, 22, 32, 'sha256 cellar: "/home/test", sequoia:  "deadbeef"')
 }
 
 // Ruby it `it "generates a string without cellar" do` at line 583.
-pub fn ruby_bottle_spec_l583_d28_generates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_spec_l583_d28_generates(args ...ruby.Value) ruby.Value {
 	_ = args
 	return bottle_spec_sha_line(production_dev_cmd.BottleCellar{}, 0, 15, 'sha256 sequoia:       "deadbeef"')
 }
 
 // Ruby it `it "generates a string with cellar symbol" do` at line 591.
-pub fn ruby_bottle_spec_l591_d29_generates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_spec_l591_d29_generates(args ...ruby.Value) ruby.Value {
 	_ = args
 	return bottle_spec_sha_line(production_dev_cmd.BottleCellar{
 		value: production_dev_cmd.bottle_any_cellar
@@ -526,7 +526,7 @@ pub fn ruby_bottle_spec_l591_d29_generates(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby it `it "generates a string with default cellar path" do` at line 599.
-pub fn ruby_bottle_spec_l599_d30_generates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_spec_l599_d30_generates(args ...ruby.Value) ruby.Value {
 	_ = args
 	return bottle_spec_sha_line(production_dev_cmd.BottleCellar{
 		value: '/home/linuxbrew/.linuxbrew/Cellar'
@@ -534,7 +534,7 @@ pub fn ruby_bottle_spec_l599_d30_generates(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby it `it "generates a string with non-default cellar path" do` at line 607.
-pub fn ruby_bottle_spec_l607_d31_generates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_spec_l607_d31_generates(args ...ruby.Value) ruby.Value {
 	_ = args
 	return bottle_spec_sha_line(production_dev_cmd.BottleCellar{ value: '/home/test' }, 25, 36, 'sha256 cellar: "/home/test",    sequoia:   "deadbeef"')
 }
@@ -550,15 +550,15 @@ fn bottle_spec_custom_output(strategy string) string {
 }
 
 // Ruby it `it "includes a custom root_url" do` at line 618.
-pub fn ruby_bottle_spec_l618_d32_includes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_spec_l618_d32_includes(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value(bottle_spec_custom_output(''))
+	return ruby.string_value(bottle_spec_custom_output(''))
 }
 
 // Ruby it `it "includes download strategy for custom root_url" do` at line 633.
-pub fn ruby_bottle_spec_l633_d33_includes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_spec_l633_d33_includes(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value(bottle_spec_custom_output('ExampleStrategy'))
+	return ruby.string_value(bottle_spec_custom_output('ExampleStrategy'))
 }
 
 // Original Ruby source (line-for-line):

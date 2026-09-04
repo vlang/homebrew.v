@@ -1,14 +1,14 @@
 module rubocops
 
-import brew_runtime
+import ruby
 import homebrew.rubocops as resource_dependencies_core
 
 // Translated from Homebrew/brew `test/rubocops/resource_requires_dependencies_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
-pub fn ruby_resource_requires_dependencies_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::ResourceRequiresDependencies', 'FormulaAudit/ResourceRequiresDependencies')
+pub fn ruby_resource_requires_dependencies_spec_l7_d1_cop(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('RuboCop::Cop::FormulaAudit::ResourceRequiresDependencies', 'FormulaAudit/ResourceRequiresDependencies')
 }
 
 fn resource_requires_dependencies_spec_single_problem(source string, resource string, dependency_kind string, required_dependencies []string) bool {

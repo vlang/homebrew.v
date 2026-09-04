@@ -1,6 +1,6 @@
 module cask_loader
 
-import brew_runtime
+import ruby
 import homebrew
 import homebrew.cask as brew_cask
 import homebrew.cask.dsl as dsl_types
@@ -199,8 +199,8 @@ fn from_api_spec_load(setup FromApiLoaderSpecSetup, internal bool,
 }
 
 fn from_api_spec_artifact(key string, source string,
-	data map[string]brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.Value{
+	data map[string]ruby.Value) ruby.Value {
+	return ruby.Value{
 		type_name: 'Cask::Artifact::${key.split('_').map(it.title()).join('')}'
 		repr: source
 		map_data: data.clone()
@@ -211,10 +211,10 @@ fn from_api_spec_artifact(key string, source string,
 	}
 }
 
-fn from_api_spec_path_value(base string, path string) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'base': brew_runtime.string_value(base)
-		'path': brew_runtime.string_value(path)
+fn from_api_spec_path_value(base string, path string) ruby.Value {
+	return ruby.map_value({
+		'base': ruby.string_value(base)
+		'path': ruby.string_value(path)
 	})
 }
 
@@ -394,11 +394,11 @@ pub fn ruby_from_api_loader_spec_l199_d26_uses(root string) !bool {
 		caskroom_root: os.join_path(root, 'Caskroom')
 	}, from_api_spec_noop_block)!
 	uninstall := from_api_spec_artifact('uninstall', '', {
-		'quit': brew_runtime.string_value('com.example.receipt-less')
+		'quit': ruby.string_value('com.example.receipt-less')
 	})
 	app := from_api_spec_artifact('app', 'Receipt-less.app', {})
 	zap := from_api_spec_artifact('zap', '', {
-		'trash': brew_runtime.string_value('~/Library/Preferences/com.example.receipt-less.plist')
+		'trash': ruby.string_value('~/Library/Preferences/com.example.receipt-less.plist')
 	})
 	cask.dsl.artifacts = brew_cask.new_artifact_set([app, uninstall, zap])
 	list := cask.artifacts_list(true)
@@ -461,20 +461,20 @@ pub fn ruby_from_api_loader_spec_l303_d32_runs(root string) !bool {
 	os.write_file(os.join_path(staged, 'move-source'), 'moved')!
 	mut steps := homebrew.InstallSteps{}
 	mut mkdir_step := homebrew.InstallStep{}
-	mkdir_step['type'] = brew_runtime.string_value('mkdir_p')
+	mkdir_step['type'] = ruby.string_value('mkdir_p')
 	mkdir_step['path'] = from_api_spec_path_value('staged_path', 'Prepared')
 	steps << mkdir_step
 	mut touch_step := homebrew.InstallStep{}
-	touch_step['type'] = brew_runtime.string_value('touch')
+	touch_step['type'] = ruby.string_value('touch')
 	touch_step['path'] = from_api_spec_path_value('staged_path', 'Prepared/touched')
 	steps << touch_step
 	mut move_step := homebrew.InstallStep{}
-	move_step['type'] = brew_runtime.string_value('move')
+	move_step['type'] = ruby.string_value('move')
 	move_step['source'] = from_api_spec_path_value('staged_path', 'move-source')
 	move_step['target'] = from_api_spec_path_value('staged_path', 'Prepared/moved')
 	steps << move_step
 	mut symlink_step := homebrew.InstallStep{}
-	symlink_step['type'] = brew_runtime.string_value('symlink')
+	symlink_step['type'] = ruby.string_value('symlink')
 	symlink_step['source'] = from_api_spec_path_value('staged_path', 'container')
 	symlink_step['target'] = from_api_spec_path_value('staged_path', 'PreparedLink')
 	steps << symlink_step

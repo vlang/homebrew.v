@@ -1,22 +1,22 @@
 module artifact
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `test/cask/artifact/postflight_block_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "calls the specified block after installing, passing a Cask mini-dsl" do` at line 6.
-pub fn ruby_postflight_block_spec_l6_d1_calls(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_postflight_block_spec_l6_d1_calls(args ...ruby.Value) ruby.Value {
 	called := if args.len > 0 { args[0].bool_data } else { true }
 	dsl_type := if args.len > 1 { args[1].as_string() } else { 'Cask::DSL::Postflight' }
-	return brew_runtime.bool_value(called && dsl_type == 'Cask::DSL::Postflight')
+	return ruby.bool_value(called && dsl_type == 'Cask::DSL::Postflight')
 }
 
 // Ruby it `it "calls the specified block after uninstalling, passing a Cask mini-dsl" do` at line 27.
-pub fn ruby_postflight_block_spec_l27_d2_calls(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_postflight_block_spec_l27_d2_calls(args ...ruby.Value) ruby.Value {
 	called := if args.len > 0 { args[0].bool_data } else { true }
 	dsl_type := if args.len > 1 { args[1].as_string() } else { 'Cask::DSL::UninstallPostflight' }
-	return brew_runtime.bool_value(called && dsl_type == 'Cask::DSL::UninstallPostflight')
+	return ruby.bool_value(called && dsl_type == 'Cask::DSL::UninstallPostflight')
 }
 
 // Original Ruby source (line-for-line):

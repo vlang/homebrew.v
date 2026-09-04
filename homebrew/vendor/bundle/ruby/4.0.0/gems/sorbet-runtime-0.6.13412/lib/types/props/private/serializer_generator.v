@@ -1,6 +1,6 @@
 module private
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/props/private/serializer_generator.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -9,7 +9,7 @@ pub:
 	name               string
 	serialized_form    string
 	accessor_key       string
-	type_object        brew_runtime.Value
+	type_object        ruby.Value
 	dont_store         bool
 	fully_optional     bool
 	nilable_type       bool
@@ -43,7 +43,7 @@ fn ruby_symbol_literal(value string) string {
 	return ':${value.trim_left(':')}'
 }
 
-fn codegen_prop_from_rules(name string, rules map[string]brew_runtime.Value) !CodegenProp {
+fn codegen_prop_from_rules(name string, rules map[string]ruby.Value) !CodegenProp {
 	serialized_form := (private_rule(rules, 'serialized_form') or {
 		return error('key not found: serialized_form')
 	}).as_string()
@@ -68,7 +68,7 @@ fn codegen_prop_from_rules(name string, rules map[string]brew_runtime.Value) !Co
 	}
 }
 
-fn codegen_props_from_value(value brew_runtime.Value) ![]CodegenProp {
+fn codegen_props_from_value(value ruby.Value) ![]CodegenProp {
 	mut props := []CodegenProp{}
 	for name, rules_value in value.map_data {
 		props << codegen_prop_from_rules(name.trim_left(':'), rules_value.as_map()!)!
@@ -107,9 +107,9 @@ pub fn generate_serializer_source(props []CodegenProp) !string {
 	return 'def __t_props_generated_serialize(strict)\n  h = {}\n  ${body}\n  h\nend\n'
 }
 
-pub fn generated_serialize(props []CodegenProp, values map[string]brew_runtime.Value,
-	strict bool) !map[string]brew_runtime.Value {
-	mut result := map[string]brew_runtime.Value{}
+pub fn generated_serialize(props []CodegenProp, values map[string]ruby.Value,
+	strict bool) !map[string]ruby.Value {
+	mut result := map[string]ruby.Value{}
 	for prop in props {
 		if prop.dont_store {
 			continue
@@ -126,30 +126,30 @@ pub fn generated_serialize(props []CodegenProp, values map[string]brew_runtime.V
 	return result
 }
 
-fn generated_receiver_parts(receiver brew_runtime.Value) !([]CodegenProp, map[string]brew_runtime.Value) {
+fn generated_receiver_parts(receiver ruby.Value) !([]CodegenProp, map[string]ruby.Value) {
 	props_value := receiver.map_data['_props'] or { return error('generated receiver has no _props') }
 	values_value := receiver.map_data['_values'] or { return error('generated receiver has no _values') }
 	return codegen_props_from_value(props_value)!, values_value.as_map()!
 }
 
 // Ruby method `self.generate(props)` at line 28.
-pub fn ruby_serializer_generator_l28_d1_self_generate(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_serializer_generator_l28_d1_self_generate(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('SerializerGenerator.generate requires props')
 	}
-	return brew_runtime.string_value(generate_serializer_source(codegen_props_from_value(args[0]) or {
+	return ruby.string_value(generate_serializer_source(codegen_props_from_value(args[0]) or {
 		panic(err)
 	}) or { panic(err) })
 }
 
 // Ruby method `__t_props_generated_serialize(strict)` at line 71.
-pub fn ruby_serializer_generator_l71_d2_t_props_generated_serialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_serializer_generator_l71_d2_t_props_generated_serialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('__t_props_generated_serialize requires a receiver')
 	}
 	props, values := generated_receiver_parts(args[0]) or { panic(err) }
 	strict := if args.len > 1 { args[1].as_bool() or { panic(err) } } else { true }
-	return brew_runtime.map_value(generated_serialize(props, values, strict) or { panic(err) })
+	return ruby.map_value(generated_serialize(props, values, strict) or { panic(err) })
 }
 
 // Original Ruby source (line-for-line):

@@ -1,6 +1,6 @@
 module artifact
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `cask/artifact/uninstall.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -69,25 +69,25 @@ pub fn post_uninstall_phase(artifact AbstractUninstallArtifact,
 	return post_uninstall_phase_with_command(artifact, options, default_uninstall_runner)
 }
 
-fn uninstall_phase_options_from_value(value brew_runtime.Value) UninstallPhaseOptions {
+fn uninstall_phase_options_from_value(value ruby.Value) UninstallPhaseOptions {
 	values := value.as_map() or { return UninstallPhaseOptions{} }
 	return UninstallPhaseOptions{
 		upgrade: value_bool(values, 'upgrade', false)
 		reinstall: value_bool(values, 'reinstall', false)
 		quit: value_bool(values, 'quit', true)
 		operation: AbstractUninstallOptions{
-			home: (values['home'] or { brew_runtime.string_value('') }).as_string()
+			home: (values['home'] or { ruby.string_value('') }).as_string()
 			gui: value_bool(values, 'gui', true)
 			force: value_bool(values, 'force', false)
-			trash_directory: (values['trash_directory'] or { brew_runtime.string_value('') }).as_string()
+			trash_directory: (values['trash_directory'] or { ruby.string_value('') }).as_string()
 			undeletable: value_strings(values['undeletable'] or {
-				brew_runtime.string_array_value([])})
+				ruby.string_array_value([])})
 		}
 	}
 }
 
 // Ruby method `uninstall_phase(upgrade: false, reinstall: false, quit: true, **options)` at line 20.
-pub fn ruby_uninstall_l20_d1_uninstall_phase(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uninstall_l20_d1_uninstall_phase(args ...ruby.Value) ruby.Value {
 	mut artifact := adapter_artifact(args)
 	options := if args.len > 1 {
 		uninstall_phase_options_from_value(args[1])
@@ -98,7 +98,7 @@ pub fn ruby_uninstall_l20_d1_uninstall_phase(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby method `post_uninstall_phase(**options)` at line 52.
-pub fn ruby_uninstall_l52_d2_post_uninstall_phase(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uninstall_l52_d2_post_uninstall_phase(args ...ruby.Value) ruby.Value {
 	artifact := adapter_artifact(args)
 	return abstract_uninstall_result_to_value(post_uninstall_phase(artifact, adapter_options(args, 1)))
 }

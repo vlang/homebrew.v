@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `dev-cmd/verify.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -133,47 +133,47 @@ pub:
 	options VerifyOptions
 }
 
-pub fn verify_input_boundary(input &VerifyInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::Verify::Input', '', {
+pub fn verify_input_boundary(input &VerifyInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::Verify::Input', '', {
 		'verify_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn verify_input_from_value(value brew_runtime.Value) &VerifyInput {
+fn verify_input_from_value(value ruby.Value) &VerifyInput {
 	address := value.attributes['verify_input_address'] or { panic('invalid Verify input') }
 	return unsafe { &VerifyInput(voidptr(address.u64())) }
 }
 
-fn verify_attempt_value(attempt VerifyAttempt) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'formula': brew_runtime.string_value(attempt.formula)
-		'os': brew_runtime.string_value(attempt.os)
-		'arch': brew_runtime.string_value(attempt.arch)
-		'bottle_tag': brew_runtime.object_value('Symbol', attempt.bottle_tag)
-		'filename': brew_runtime.string_value(attempt.filename)
-		'cache_cleared': brew_runtime.bool_value(attempt.cache_cleared)
-		'fetched': brew_runtime.bool_value(attempt.fetched)
-		'valid': brew_runtime.bool_value(attempt.valid)
-		'attestation': brew_runtime.string_value(attempt.attestation)
+fn verify_attempt_value(attempt VerifyAttempt) ruby.Value {
+	return ruby.map_value({
+		'formula': ruby.string_value(attempt.formula)
+		'os': ruby.string_value(attempt.os)
+		'arch': ruby.string_value(attempt.arch)
+		'bottle_tag': ruby.object_value('Symbol', attempt.bottle_tag)
+		'filename': ruby.string_value(attempt.filename)
+		'cache_cleared': ruby.bool_value(attempt.cache_cleared)
+		'fetched': ruby.bool_value(attempt.fetched)
+		'valid': ruby.bool_value(attempt.valid)
+		'attestation': ruby.string_value(attempt.attestation)
 	})
 }
 
-fn verify_result_value(result VerifyResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'bucket': brew_runtime.string_array_value(result.bucket)
-		'attempts': brew_runtime.array_value(result.attempts.map(verify_attempt_value(it)))
-		'json_results': brew_runtime.string_array_value(result.json_results)
-		'stdout': brew_runtime.string_array_value(result.stdout)
-		'stderr': brew_runtime.string_array_value(result.stderr)
-		'json_output': brew_runtime.string_value(result.json_output)
-		'failed': brew_runtime.bool_value(result.failed)
+fn verify_result_value(result VerifyResult) ruby.Value {
+	return ruby.map_value({
+		'bucket': ruby.string_array_value(result.bucket)
+		'attempts': ruby.array_value(result.attempts.map(verify_attempt_value(it)))
+		'json_results': ruby.string_array_value(result.json_results)
+		'stdout': ruby.string_array_value(result.stdout)
+		'stderr': ruby.string_array_value(result.stderr)
+		'json_output': ruby.string_value(result.json_output)
+		'failed': ruby.bool_value(result.failed)
 	})
 }
 
 // Ruby method `run` at line 40.
-pub fn ruby_verify_l40_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_verify_l40_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'command input is required')
+		return ruby.object_value('ArgumentError', 'command input is required')
 	}
 	return verify_result_value(run_verify(verify_input_from_value(args[0]).options))
 }

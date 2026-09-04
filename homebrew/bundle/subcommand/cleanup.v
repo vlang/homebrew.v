@@ -1,6 +1,6 @@
 module subcommand
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `bundle/subcommand/cleanup.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -644,8 +644,8 @@ pub fn cleanup_system_output_no_stderr(argv []string, runner CleanupCommandRunne
 }
 
 fn cleanup_real_command(argv []string, _ bool) !string {
-	result := brew_runtime.run_captured_command(argv, brew_runtime.CapturedCommandOptions{
-		environment: brew_runtime.environment()
+	result := ruby.run_captured_command(argv, ruby.CapturedCommandOptions{
+		environment: ruby.environment()
 	})!
 	if result.exit_code != 0 {
 		return error('command failed with status ${result.exit_code}')
@@ -653,8 +653,8 @@ fn cleanup_real_command(argv []string, _ bool) !string {
 	return result.stdout
 }
 
-fn cleanup_entry_value(entry CleanupDslEntry) brew_runtime.Value {
-	return brew_runtime.structured_value('CleanupDslEntry', entry.name, {
+fn cleanup_entry_value(entry CleanupDslEntry) ruby.Value {
+	return ruby.structured_value('CleanupDslEntry', entry.name, {
 		'entry_type':     entry.entry_type.str()
 		'name':           entry.name
 		'full_name':      entry.full_name
@@ -663,7 +663,7 @@ fn cleanup_entry_value(entry CleanupDslEntry) brew_runtime.Value {
 	})
 }
 
-fn cleanup_entry_from_value(value brew_runtime.Value) CleanupDslEntry {
+fn cleanup_entry_from_value(value ruby.Value) CleanupDslEntry {
 	entry_type := match value.attributes['entry_type'] or { '' } {
 		'brew' { CleanupDslEntryType.brew }
 		'cask' { CleanupDslEntryType.cask }
@@ -680,8 +680,8 @@ fn cleanup_entry_from_value(value brew_runtime.Value) CleanupDslEntry {
 	}
 }
 
-pub fn cleanup_dsl_value(dsl CleanupDsl) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn cleanup_dsl_value(dsl CleanupDsl) ruby.Value {
+	return ruby.Value{
 		type_name: 'CleanupDsl'
 		repr: dsl.source
 		array_data: dsl.entries.map(cleanup_entry_value(it))
@@ -691,15 +691,15 @@ pub fn cleanup_dsl_value(dsl CleanupDsl) brew_runtime.Value {
 	}
 }
 
-fn cleanup_dsl_from_value(value brew_runtime.Value) CleanupDsl {
+fn cleanup_dsl_from_value(value ruby.Value) CleanupDsl {
 	return CleanupDsl{
 		entries: value.array_data.map(cleanup_entry_from_value(it))
 		source: value.attributes['source'] or { value.as_string() }
 	}
 }
 
-fn cleanup_formula_value(formula CleanupFormula) brew_runtime.Value {
-	return brew_runtime.structured_value('CleanupFormula', formula.full_name, {
+fn cleanup_formula_value(formula CleanupFormula) ruby.Value {
+	return ruby.structured_value('CleanupFormula', formula.full_name, {
 		'full_name':          formula.full_name
 		'dependencies':       formula.dependencies.join('\x1f')
 		'build_dependencies': formula.build_dependencies.join('\x1f')
@@ -714,7 +714,7 @@ fn cleanup_strings_attribute(value string) []string {
 	return if value == '' { [] } else { value.split('\x1f') }
 }
 
-fn cleanup_formula_from_value(value brew_runtime.Value) CleanupFormula {
+fn cleanup_formula_from_value(value ruby.Value) CleanupFormula {
 	return CleanupFormula{
 		full_name: value.attributes['full_name'] or { value.as_string() }
 		dependencies: cleanup_strings_attribute(value.attributes['dependencies'] or { '' })
@@ -726,15 +726,15 @@ fn cleanup_formula_from_value(value brew_runtime.Value) CleanupFormula {
 	}
 }
 
-fn cleanup_string_map_value(values map[string]string) brew_runtime.Value {
-	mut mapped := map[string]brew_runtime.Value{}
+fn cleanup_string_map_value(values map[string]string) ruby.Value {
+	mut mapped := map[string]ruby.Value{}
 	for key, value in values {
-		mapped[key] = brew_runtime.string_value(value)
+		mapped[key] = ruby.string_value(value)
 	}
-	return brew_runtime.map_value(mapped)
+	return ruby.map_value(mapped)
 }
 
-fn cleanup_string_map_from_value(value brew_runtime.Value) map[string]string {
+fn cleanup_string_map_from_value(value ruby.Value) map[string]string {
 	mut result := map[string]string{}
 	for key, item in value.map_data {
 		result[key] = item.as_string()
@@ -742,23 +742,23 @@ fn cleanup_string_map_from_value(value brew_runtime.Value) map[string]string {
 	return result
 }
 
-pub fn cleanup_inventory_value(inventory CleanupInventory) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn cleanup_inventory_value(inventory CleanupInventory) ruby.Value {
+	return ruby.Value{
 		type_name: 'CleanupInventory'
 		map_data: {
-			'formulae':      brew_runtime.array_value(inventory.formulae.map(cleanup_formula_value(it)))
-			'casks':         brew_runtime.array_value(inventory.casks.map(fn (cask CleanupCask) brew_runtime.Value {
-				return brew_runtime.structured_value('CleanupCask', cask.name, {
+			'formulae':      ruby.array_value(inventory.formulae.map(cleanup_formula_value(it)))
+			'casks':         ruby.array_value(inventory.casks.map(fn (cask CleanupCask) ruby.Value {
+				return ruby.structured_value('CleanupCask', cask.name, {
 					'name':                 cask.name
 					'formula_dependencies': cask.formula_dependencies.join('\x1f')
 				})
 			}))
-			'taps':          brew_runtime.string_array_value(inventory.taps)
+			'taps':          ruby.string_array_value(inventory.taps)
 			'aliases':       cleanup_string_map_value(inventory.aliases)
 			'oldnames':      cleanup_string_map_value(inventory.oldnames)
 			'cask_oldnames': cleanup_string_map_value(inventory.cask_oldnames)
-			'extensions':    brew_runtime.array_value(inventory.extensions.map(fn (extension CleanupExtensionInventory) brew_runtime.Value {
-				return brew_runtime.structured_value('CleanupExtensionInventory', extension.type_name, {
+			'extensions':    ruby.array_value(inventory.extensions.map(fn (extension CleanupExtensionInventory) ruby.Value {
+				return ruby.structured_value('CleanupExtensionInventory', extension.type_name, {
 					'type_name':         extension.type_name
 					'cleanup_heading':   extension.cleanup_heading
 					'installed_items':   extension.installed_items.join('\x1f')
@@ -771,20 +771,20 @@ pub fn cleanup_inventory_value(inventory CleanupInventory) brew_runtime.Value {
 	}
 }
 
-fn cleanup_inventory_from_value(value brew_runtime.Value) CleanupInventory {
+fn cleanup_inventory_from_value(value ruby.Value) CleanupInventory {
 	return CleanupInventory{
-		formulae: (value.map_data['formulae'] or { brew_runtime.array_value([]) }).array_data.map(cleanup_formula_from_value(it))
-		casks: (value.map_data['casks'] or { brew_runtime.array_value([]) }).array_data.map(fn (item brew_runtime.Value) CleanupCask {
+		formulae: (value.map_data['formulae'] or { ruby.array_value([]) }).array_data.map(cleanup_formula_from_value(it))
+		casks: (value.map_data['casks'] or { ruby.array_value([]) }).array_data.map(fn (item ruby.Value) CleanupCask {
 			return CleanupCask{
 				name: item.attributes['name'] or { item.as_string() }
 				formula_dependencies: cleanup_strings_attribute(item.attributes['formula_dependencies'] or { '' })
 			}
 		})
-		taps: (value.map_data['taps'] or { brew_runtime.string_array_value([]) }).string_array_data
-		aliases: cleanup_string_map_from_value(value.map_data['aliases'] or { brew_runtime.map_value({}) })
-		oldnames: cleanup_string_map_from_value(value.map_data['oldnames'] or { brew_runtime.map_value({}) })
-		cask_oldnames: cleanup_string_map_from_value(value.map_data['cask_oldnames'] or { brew_runtime.map_value({}) })
-		extensions: (value.map_data['extensions'] or { brew_runtime.array_value([]) }).array_data.map(fn (item brew_runtime.Value) CleanupExtensionInventory {
+		taps: (value.map_data['taps'] or { ruby.string_array_value([]) }).string_array_data
+		aliases: cleanup_string_map_from_value(value.map_data['aliases'] or { ruby.map_value({}) })
+		oldnames: cleanup_string_map_from_value(value.map_data['oldnames'] or { ruby.map_value({}) })
+		cask_oldnames: cleanup_string_map_from_value(value.map_data['cask_oldnames'] or { ruby.map_value({}) })
+		extensions: (value.map_data['extensions'] or { ruby.array_value([]) }).array_data.map(fn (item ruby.Value) CleanupExtensionInventory {
 			return CleanupExtensionInventory{
 				type_name: item.attributes['type_name'] or { item.as_string() }
 				cleanup_heading: item.attributes['cleanup_heading'] or { '' }
@@ -797,14 +797,14 @@ fn cleanup_inventory_from_value(value brew_runtime.Value) CleanupInventory {
 	}
 }
 
-pub fn cleanup_state_value(state CleanupState) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn cleanup_state_value(state CleanupState) ruby.Value {
+	return ruby.Value{
 		type_name: 'CleanupState'
 		map_data: {
 			'dsl':              cleanup_dsl_value(state.dsl)
-			'kept_formulae':    brew_runtime.string_array_value(state.kept_formulae)
-			'kept_casks':       brew_runtime.string_array_value(state.kept_casks)
-			'checked_formulae': brew_runtime.string_array_value(state.checked_formulae)
+			'kept_formulae':    ruby.string_array_value(state.kept_formulae)
+			'kept_casks':       ruby.string_array_value(state.kept_casks)
+			'checked_formulae': ruby.string_array_value(state.checked_formulae)
 		}
 		attributes: {
 			'has_dsl':           state.has_dsl.str()
@@ -815,28 +815,28 @@ pub fn cleanup_state_value(state CleanupState) brew_runtime.Value {
 	}
 }
 
-fn cleanup_state_from_value(value brew_runtime.Value) CleanupState {
+fn cleanup_state_from_value(value ruby.Value) CleanupState {
 	return CleanupState{
 		dsl: cleanup_dsl_from_value(value.map_data['dsl'] or { cleanup_dsl_value(CleanupDsl{}) })
 		has_dsl: (value.attributes['has_dsl'] or { 'false' }) == 'true'
-		kept_formulae: (value.map_data['kept_formulae'] or { brew_runtime.string_array_value([]) }).string_array_data
+		kept_formulae: (value.map_data['kept_formulae'] or { ruby.string_array_value([]) }).string_array_data
 		has_kept_formulae: (value.attributes['has_kept_formulae'] or { 'false' }) == 'true'
-		kept_casks: (value.map_data['kept_casks'] or { brew_runtime.string_array_value([]) }).string_array_data
+		kept_casks: (value.map_data['kept_casks'] or { ruby.string_array_value([]) }).string_array_data
 		has_kept_casks: (value.attributes['has_kept_casks'] or { 'false' }) == 'true'
-		checked_formulae: (value.map_data['checked_formulae'] or { brew_runtime.string_array_value([]) }).string_array_data
+		checked_formulae: (value.map_data['checked_formulae'] or { ruby.string_array_value([]) }).string_array_data
 		reset_epoch: (value.attributes['reset_epoch'] or { '0' }).int()
 	}
 }
 
-pub fn cleanup_options_value(options CleanupOptions) brew_runtime.Value {
-	mut extension_values := map[string]brew_runtime.Value{}
+pub fn cleanup_options_value(options CleanupOptions) ruby.Value {
+	mut extension_values := map[string]ruby.Value{}
 	for name, selected in options.selection.extension_types {
-		extension_values[name] = brew_runtime.bool_value(selected)
+		extension_values[name] = ruby.bool_value(selected)
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'CleanupOptions'
 		map_data: {
-			'extension_types': brew_runtime.map_value(extension_values)
+			'extension_types': ruby.map_value(extension_values)
 		}
 		attributes: {
 			'global':             options.global.str()
@@ -852,9 +852,9 @@ pub fn cleanup_options_value(options CleanupOptions) brew_runtime.Value {
 	}
 }
 
-fn cleanup_options_from_value(value brew_runtime.Value) CleanupOptions {
+fn cleanup_options_from_value(value ruby.Value) CleanupOptions {
 	mut extension_types := map[string]bool{}
-	for name, selected in (value.map_data['extension_types'] or { brew_runtime.map_value({}) }).map_data {
+	for name, selected in (value.map_data['extension_types'] or { ruby.map_value({}) }).map_data {
 		extension_types[name] = selected.bool_data
 	}
 	return CleanupOptions{
@@ -873,15 +873,15 @@ fn cleanup_options_from_value(value brew_runtime.Value) CleanupOptions {
 	}
 }
 
-fn cleanup_plan_value(plan CleanupPlan) brew_runtime.Value {
-	return brew_runtime.Value{
+fn cleanup_plan_value(plan CleanupPlan) ruby.Value {
+	return ruby.Value{
 		type_name: 'CleanupPlan'
 		map_data: {
-			'formulae':   brew_runtime.string_array_value(plan.formulae)
-			'casks':      brew_runtime.string_array_value(plan.casks)
-			'taps':       brew_runtime.string_array_value(plan.taps)
-			'extensions': brew_runtime.array_value(plan.extensions.map(fn (extension CleanupExtensionPlan) brew_runtime.Value {
-				return brew_runtime.structured_value('CleanupExtensionPlan', extension.type_name, {
+			'formulae':   ruby.string_array_value(plan.formulae)
+			'casks':      ruby.string_array_value(plan.casks)
+			'taps':       ruby.string_array_value(plan.taps)
+			'extensions': ruby.array_value(plan.extensions.map(fn (extension CleanupExtensionPlan) ruby.Value {
+				return ruby.structured_value('CleanupExtensionPlan', extension.type_name, {
 					'type_name': extension.type_name
 					'heading':   extension.heading
 					'items':     extension.items.join('\x1f')
@@ -894,13 +894,13 @@ fn cleanup_plan_value(plan CleanupPlan) brew_runtime.Value {
 	}
 }
 
-fn cleanup_result_value(result CleanupResult) brew_runtime.Value {
-	return brew_runtime.Value{
+fn cleanup_result_value(result CleanupResult) ruby.Value {
+	return ruby.Value{
 		type_name: 'CleanupResult'
 		map_data: {
 			'plan':     cleanup_plan_value(result.plan)
-			'output':   brew_runtime.string_array_value(result.output)
-			'commands': brew_runtime.array_value(result.commands.map(brew_runtime.string_array_value(it)))
+			'output':   ruby.string_array_value(result.output)
+			'commands': ruby.array_value(result.commands.map(ruby.string_array_value(it)))
 		}
 		attributes: {
 			'force':           result.force.str()
@@ -913,7 +913,7 @@ fn cleanup_result_value(result CleanupResult) brew_runtime.Value {
 	}
 }
 
-fn cleanup_boundary_inputs(args []brew_runtime.Value) !(CleanupState, CleanupDsl, CleanupInventory, CleanupOptions) {
+fn cleanup_boundary_inputs(args []ruby.Value) !(CleanupState, CleanupDsl, CleanupInventory, CleanupOptions) {
 	if args.len < 4 {
 		return error('expected state, dsl, inventory, and options')
 	}
@@ -921,158 +921,158 @@ fn cleanup_boundary_inputs(args []brew_runtime.Value) !(CleanupState, CleanupDsl
 }
 
 // Ruby method `run` at line 78.
-pub fn ruby_cleanup_l78_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cleanup_l78_d1_run(args ...ruby.Value) ruby.Value {
 	mut state, dsl, inventory, options := cleanup_boundary_inputs(args) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	result := run_cleanup(mut state, dsl, inventory, options, cleanup_default_callbacks()) or {
-		return brew_runtime.object_value('CleanupError', err.msg())
+		return ruby.object_value('CleanupError', err.msg())
 	}
 	return cleanup_result_value(result)
 }
 
 // Ruby method `self.reset!` at line 100.
-pub fn ruby_cleanup_l100_d2_self_reset(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cleanup_l100_d2_self_reset(args ...ruby.Value) ruby.Value {
 	mut state := if args.len > 0 { cleanup_state_from_value(args[0]) } else { CleanupState{} }
 	reset_cleanup_state(mut state, cleanup_no_reset) or {
-		return brew_runtime.object_value('CleanupError', err.msg())
+		return ruby.object_value('CleanupError', err.msg())
 	}
 	return cleanup_state_value(state)
 }
 
 // Ruby method `self.cleanup(global: false, file: nil, force: false, zap: false, dsl: nil,` at line 121.
-pub fn ruby_cleanup_l121_d3_self_cleanup(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cleanup_l121_d3_self_cleanup(args ...ruby.Value) ruby.Value {
 	mut state, dsl, inventory, options := cleanup_boundary_inputs(args) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	read_cleanup_dsl(mut state, dsl, options.global, options.file, cleanup_no_dsl_loader) or {
-		return brew_runtime.object_value('CleanupError', err.msg())
+		return ruby.object_value('CleanupError', err.msg())
 	}
 	result := execute_cleanup(mut state, inventory, options, cleanup_default_callbacks()) or {
-		return brew_runtime.object_value('CleanupError', err.msg())
+		return ruby.object_value('CleanupError', err.msg())
 	}
 	return cleanup_result_value(result)
 }
 
 // Ruby method `self.read_dsl_from_brewfile!(global: false, file: nil, dsl: nil)` at line 233.
-pub fn ruby_cleanup_l233_d4_self_read_dsl_from_brewfile(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cleanup_l233_d4_self_read_dsl_from_brewfile(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'expected state and DSL')
+		return ruby.object_value('ArgumentError', 'expected state and DSL')
 	}
 	mut state := cleanup_state_from_value(args[0])
 	read_cleanup_dsl(mut state, cleanup_dsl_from_value(args[1]), false, '', cleanup_no_dsl_loader) or {
-		return brew_runtime.object_value('CleanupError', err.msg())
+		return ruby.object_value('CleanupError', err.msg())
 	}
 	return cleanup_state_value(state)
 }
 
 // Ruby method `self.dsl` at line 246.
-pub fn ruby_cleanup_l246_d5_self_dsl(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cleanup_l246_d5_self_dsl(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	state := cleanup_state_from_value(args[0])
 	return cleanup_dsl_value(cleanup_dsl(state) or {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	})
 }
 
 // Ruby method `self.casks_to_uninstall(global: false, file: nil)` at line 251.
-pub fn ruby_cleanup_l251_d6_self_casks_to_uninstall(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cleanup_l251_d6_self_casks_to_uninstall(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'expected state and inventory')
+		return ruby.object_value('ArgumentError', 'expected state and inventory')
 	}
 	mut state := cleanup_state_from_value(args[0])
 	items := cleanup_casks_to_uninstall(mut state, cleanup_inventory_from_value(args[1])) or {
-		return brew_runtime.object_value('CleanupError', err.msg())
+		return ruby.object_value('CleanupError', err.msg())
 	}
-	return brew_runtime.string_array_value(items)
+	return ruby.string_array_value(items)
 }
 
 // Ruby method `self.formulae_to_uninstall(global: false, file: nil)` at line 259.
-pub fn ruby_cleanup_l259_d7_self_formulae_to_uninstall(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cleanup_l259_d7_self_formulae_to_uninstall(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'expected state and inventory')
+		return ruby.object_value('ArgumentError', 'expected state and inventory')
 	}
 	mut state := cleanup_state_from_value(args[0])
 	items := cleanup_formulae_to_uninstall(mut state, cleanup_inventory_from_value(args[1])) or {
-		return brew_runtime.object_value('CleanupError', err.msg())
+		return ruby.object_value('CleanupError', err.msg())
 	}
-	return brew_runtime.string_array_value(items)
+	return ruby.string_array_value(items)
 }
 
 // Ruby method `self.kept_formulae(global: false, file: nil)` at line 280.
-pub fn ruby_cleanup_l280_d8_self_kept_formulae(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cleanup_l280_d8_self_kept_formulae(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'expected state and inventory')
+		return ruby.object_value('ArgumentError', 'expected state and inventory')
 	}
 	mut state := cleanup_state_from_value(args[0])
 	items := cleanup_kept_formulae(mut state, cleanup_inventory_from_value(args[1])) or {
-		return brew_runtime.object_value('CleanupError', err.msg())
+		return ruby.object_value('CleanupError', err.msg())
 	}
-	return brew_runtime.string_array_value(items)
+	return ruby.string_array_value(items)
 }
 
 // Ruby method `self.kept_casks(global: false, file: nil)` at line 304.
-pub fn ruby_cleanup_l304_d9_self_kept_casks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cleanup_l304_d9_self_kept_casks(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'expected state and inventory')
+		return ruby.object_value('ArgumentError', 'expected state and inventory')
 	}
 	mut state := cleanup_state_from_value(args[0])
 	items := cleanup_kept_casks(mut state, cleanup_inventory_from_value(args[1])) or {
-		return brew_runtime.object_value('CleanupError', err.msg())
+		return ruby.object_value('CleanupError', err.msg())
 	}
-	return brew_runtime.string_array_value(items)
+	return ruby.string_array_value(items)
 }
 
 // Ruby method `self.recursive_dependencies(current_formulae, formulae_names, top_level: true)` at line 322.
-pub fn ruby_cleanup_l322_d10_self_recursive_dependencies(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cleanup_l322_d10_self_recursive_dependencies(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'expected formulae and names')
+		return ruby.object_value('ArgumentError', 'expected formulae and names')
 	}
 	formulae := args[0].array_data.map(cleanup_formula_from_value(it))
-	names := args[1].as_string_array() or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+	names := args[1].as_string_array() or { return ruby.object_value('ArgumentError', err.msg()) }
 	mut state := CleanupState{}
-	return brew_runtime.string_array_value(cleanup_recursive_dependencies(mut state, formulae, names))
+	return ruby.string_array_value(cleanup_recursive_dependencies(mut state, formulae, names))
 }
 
 // Ruby method `self.taps_to_untap(global: false, file: nil)` at line 352.
-pub fn ruby_cleanup_l352_d11_self_taps_to_untap(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cleanup_l352_d11_self_taps_to_untap(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'expected state and inventory')
+		return ruby.object_value('ArgumentError', 'expected state and inventory')
 	}
 	mut state := cleanup_state_from_value(args[0])
 	items := cleanup_taps_to_untap(mut state, cleanup_inventory_from_value(args[1])) or {
-		return brew_runtime.object_value('CleanupError', err.msg())
+		return ruby.object_value('CleanupError', err.msg())
 	}
-	return brew_runtime.string_array_value(items)
+	return ruby.string_array_value(items)
 }
 
 // Ruby method `self.lookup_formula(formula)` at line 373.
-pub fn ruby_cleanup_l373_d12_self_lookup_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cleanup_l373_d12_self_lookup_formula(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'expected formula and inventory')
+		return ruby.object_value('ArgumentError', 'expected formula and inventory')
 	}
 	formula := cleanup_lookup_formula(args[0].as_string(), cleanup_inventory_from_value(args[1])) or {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	return cleanup_formula_value(formula)
 }
 
 // Ruby method `self.system_output_no_stderr(cmd, *args)` at line 381.
-pub fn ruby_cleanup_l381_d13_self_system_output_no_stderr(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cleanup_l381_d13_self_system_output_no_stderr(args ...ruby.Value) ruby.Value {
 	mut argv := []string{}
 	for argument in args {
 		if argument.type_name == 'Array' {
-			argv << argument.as_string_array() or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+			argv << argument.as_string_array() or { return ruby.object_value('ArgumentError', err.msg()) }
 		} else {
 			argv << argument.as_string()
 		}
 	}
 	output := cleanup_system_output_no_stderr(argv, cleanup_real_command) or {
-		return brew_runtime.object_value('ErrorDuringExecution', err.msg())
+		return ruby.object_value('ErrorDuringExecution', err.msg())
 	}
-	return brew_runtime.string_value(output)
+	return ruby.string_value(output)
 }
 
 // Original Ruby source (line-for-line):

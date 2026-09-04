@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `cmd/--repository.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -40,11 +40,11 @@ pub fn repository_lines(arguments []string, repository string, library string) !
 }
 
 pub fn repository_lines_from_environment(arguments []string) ![]string {
-	mut repository := brew_runtime.environment_value('HOMEBREW_REPOSITORY')
+	mut repository := ruby.environment_value('HOMEBREW_REPOSITORY')
 	if repository == '' {
 		repository = @VMODROOT
 	}
-	mut library := brew_runtime.environment_value('HOMEBREW_LIBRARY')
+	mut library := ruby.environment_value('HOMEBREW_LIBRARY')
 	if library == '' {
 		// `Library/Homebrew` maps to the top-level `homebrew` module in this
 		// translation, so the module's parent is the translated library root.
@@ -54,9 +54,9 @@ pub fn repository_lines_from_environment(arguments []string) ![]string {
 }
 
 // Ruby method `self.command_name = "--repository"` at line 13.
-pub fn ruby_repository_l13_d1_self_command_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_repository_l13_d1_self_command_name(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('--repository')
+	return ruby.string_value('--repository')
 }
 
 // Original Ruby source (line-for-line):

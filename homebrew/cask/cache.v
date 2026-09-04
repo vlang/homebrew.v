@@ -1,22 +1,22 @@
 module cask
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `cask/cache.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `self.path` at line 8.
-pub fn ruby_cache_l8_d1_self_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cache_l8_d1_self_path(args ...ruby.Value) ruby.Value {
 	root := if args.len > 0 {
 		args[0].as_string()
 	} else {
-		brew_runtime.environment_value('HOMEBREW_CACHE')
+		ruby.environment_value('HOMEBREW_CACHE')
 	}
-	return brew_runtime.object_value('Pathname', cask_cache_path(root))
+	return ruby.object_value('Pathname', cask_cache_path(root))
 }
 
 pub fn cask_cache_path(homebrew_cache string) string {
-	return brew_runtime.join_path(homebrew_cache, 'Cask')
+	return ruby.join_path(homebrew_cache, 'Cask')
 }
 
 // Original Ruby source (line-for-line):

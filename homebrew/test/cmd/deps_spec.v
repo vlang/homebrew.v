@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 import homebrew.cmd as deps_cmd
 
 fn deps_spec_dependency(name string) deps_cmd.DepsItem {
@@ -91,15 +91,15 @@ fn deps_spec_command(options deps_cmd.DepsCommandOptions, named []deps_cmd.DepsD
 	}
 }
 
-fn deps_spec_truth(value bool) brew_runtime.Value {
-	return brew_runtime.bool_value(value)
+fn deps_spec_truth(value bool) ruby.Value {
+	return ruby.bool_value(value)
 }
 
 // Translated from Homebrew/brew `test/cmd/deps_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "outputs all of a Formula's dependencies and their dependencies on separate lines" do` at line 39.
-pub fn ruby_deps_spec_l39_d1_outputs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_deps_spec_l39_d1_outputs(args ...ruby.Value) ruby.Value {
 	baz, _ := deps_spec_fixture(false)
 	mut command := deps_spec_command(deps_cmd.DepsCommandOptions{
 		include_test: true
@@ -111,7 +111,7 @@ pub fn ruby_deps_spec_l39_d1_outputs(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby it `it "outputs all requested recursive dependencies" do` at line 50.
-pub fn ruby_deps_spec_l50_d2_outputs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_deps_spec_l50_d2_outputs(args ...ruby.Value) ruby.Value {
 	baz, _ := deps_spec_fixture(false)
 	mut command := deps_spec_command(deps_cmd.DepsCommandOptions{
 		tree: true
@@ -124,7 +124,7 @@ pub fn ruby_deps_spec_l50_d2_outputs(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby it `it "--prune skips already seen recursive dependencies" do` at line 71.
-pub fn ruby_deps_spec_l71_d3_prune(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_deps_spec_l71_d3_prune(args ...ruby.Value) ruby.Value {
 	baz, _ := deps_spec_fixture(false)
 	mut command := deps_spec_command(deps_cmd.DepsCommandOptions{
 		tree: true
@@ -137,7 +137,7 @@ pub fn ruby_deps_spec_l71_d3_prune(args ...brew_runtime.Value) brew_runtime.Valu
 }
 
 // Ruby it `it "reads inputs from a Brewfile alongside named arguments" do` at line 90.
-pub fn ruby_deps_spec_l90_d4_reads(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_deps_spec_l90_d4_reads(args ...ruby.Value) ruby.Value {
 	baz, registry := deps_spec_fixture(false)
 	bar := registry['bar'] or { return deps_spec_truth(false) }
 	mut reads_registry := registry.clone()
@@ -163,7 +163,7 @@ pub fn ruby_deps_spec_l90_d4_reads(args ...brew_runtime.Value) brew_runtime.Valu
 }
 
 // Ruby it `it "detects circular dependencies" do` at line 113.
-pub fn ruby_deps_spec_l113_d5_detects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_deps_spec_l113_d5_detects(args ...ruby.Value) ruby.Value {
 	baz, _ := deps_spec_fixture(true)
 	mut command := deps_spec_command(deps_cmd.DepsCommandOptions{
 		tree: true

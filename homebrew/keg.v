@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 import hash.fnv1a
 import json2
 import os
@@ -32,16 +32,16 @@ pub:
 }
 
 fn configured_keg_prefix() string {
-	return brew_runtime.environment_value('HOMEBREW_PREFIX')
+	return ruby.environment_value('HOMEBREW_PREFIX')
 }
 
 fn configured_keg_cellar(prefix string) string {
-	cellar := brew_runtime.environment_value('HOMEBREW_CELLAR')
-	return if cellar == '' { brew_runtime.join_path(prefix, 'Cellar') } else { cellar }
+	cellar := ruby.environment_value('HOMEBREW_CELLAR')
+	return if cellar == '' { ruby.join_path(prefix, 'Cellar') } else { cellar }
 }
 
 fn normalized_keg_path(path string) string {
-	return brew_runtime.real_path(path).trim_right('/')
+	return ruby.real_path(path).trim_right('/')
 }
 
 pub fn new_keg(path string) !Keg {
@@ -66,7 +66,7 @@ pub fn new_keg_with_paths(path string, cellar string, prefix string) !Keg {
 	if normalized_keg_path(os.dir(os.dir(real_path))) != real_cellar {
 		return error('${path} is not a valid keg')
 	}
-	if !brew_runtime.is_dir(stored_path) {
+	if !ruby.is_dir(stored_path) {
 		return error('${path} is not a directory')
 	}
 	name := os.base(os.dir(stored_path))
@@ -101,28 +101,28 @@ pub fn (keg Keg) hash_code() u64 {
 }
 
 pub fn (keg Keg) exists() bool {
-	return brew_runtime.path_exists(keg.path)
+	return ruby.path_exists(keg.path)
 }
 
 pub fn (keg Keg) directory() bool {
-	return brew_runtime.is_dir(keg.path)
+	return ruby.is_dir(keg.path)
 }
 
 pub fn (keg Keg) join(parts ...string) string {
 	mut path := keg.path
 	for part in parts {
-		path = brew_runtime.join_path(path, part)
+		path = ruby.join_path(path, part)
 	}
 	return path
 }
 
 fn keg_walk(path string) []string {
 	mut found := []string{}
-	entries := brew_runtime.list_dir(path) or { return found }
+	entries := ruby.list_dir(path) or { return found }
 	for entry in entries {
-		child := brew_runtime.join_path(path, entry)
+		child := ruby.join_path(path, entry)
 		found << child
-		if brew_runtime.is_dir(child) && !brew_runtime.is_link(child) {
+		if ruby.is_dir(child) && !ruby.is_link(child) {
 			found << keg_walk(child)
 		}
 	}
@@ -136,7 +136,7 @@ pub fn (keg Keg) find() []string {
 pub fn (keg Keg) disk_usage() u64 {
 	mut total := u64(0)
 	for path in keg.find() {
-		if brew_runtime.is_file(path) {
+		if ruby.is_file(path) {
 			total += os.file_size(path)
 		}
 	}
@@ -144,7 +144,7 @@ pub fn (keg Keg) disk_usage() u64 {
 }
 
 pub fn (keg Keg) file_count() int {
-	return keg.find().filter(brew_runtime.is_file(it)).len
+	return keg.find().filter(ruby.is_file(it)).len
 }
 
 pub fn (keg Keg) abbreviated_size() string {
@@ -181,11 +181,11 @@ fn relative_keg_path(target string, directory string) string {
 }
 
 pub fn (keg Keg) linked() bool {
-	return brew_runtime.is_link(keg.linked_keg_record) && brew_runtime.is_dir(keg.linked_keg_record) && same_resolved_path(keg.path, keg.linked_keg_record)
+	return ruby.is_link(keg.linked_keg_record) && ruby.is_dir(keg.linked_keg_record) && same_resolved_path(keg.path, keg.linked_keg_record)
 }
 
 pub fn (keg Keg) optlinked() bool {
-	return brew_runtime.is_link(keg.opt_record) && same_resolved_path(keg.path, keg.opt_record)
+	return ruby.is_link(keg.opt_record) && same_resolved_path(keg.path, keg.opt_record)
 }
 
 pub fn (keg Keg) remove_linked_keg_record() ! {
@@ -199,18 +199,18 @@ pub fn (keg Keg) remove_opt_record() ! {
 }
 
 fn remove_empty_parent(path string) {
-	entries := brew_runtime.list_dir(path) or { return }
+	entries := ruby.list_dir(path) or { return }
 	if entries.len == 0 {
 		os.rmdir(path) or {}
 	}
 }
 
 pub fn (keg Keg) empty_installation() bool {
-	entries := brew_runtime.list_dir(keg.path) or { return true }
+	entries := ruby.list_dir(keg.path) or { return true }
 	for entry in entries {
-		path := brew_runtime.join_path(keg.path, entry)
-		if brew_runtime.is_dir(path) {
-			children := (brew_runtime.list_dir(path) or { []string{} }).filter(it != '.DS_Store')
+		path := ruby.join_path(keg.path, entry)
+		if ruby.is_dir(path) {
+			children := (ruby.list_dir(path) or { []string{} }).filter(it != '.DS_Store')
 			if children.len > 0 {
 				return false
 			}
@@ -225,18 +225,18 @@ pub fn (keg Keg) empty_installation() bool {
 }
 
 pub fn keg_for_path(path string, cellar string, prefix string) !Keg {
-	if !brew_runtime.path_exists(path) {
+	if !ruby.path_exists(path) {
 		return error('${path} does not exist')
 	}
 	real_cellar := normalized_keg_path(cellar)
 	mut current := normalized_keg_path(path)
-	if brew_runtime.is_file(current) {
+	if ruby.is_file(current) {
 		current = os.dir(current)
 	}
 	for current != os.dir(current) {
 		if normalized_keg_path(os.dir(os.dir(current))) == real_cellar {
 			relative := current[real_cellar.len..].trim_left('/')
-			stored_path := brew_runtime.join_path(cellar.trim_right('/'), relative)
+			stored_path := ruby.join_path(cellar.trim_right('/'), relative)
 			return new_keg_with_paths(stored_path, cellar, prefix)
 		}
 		current = normalized_keg_path(os.dir(current))
@@ -250,13 +250,13 @@ pub fn keg_for(path string) !Keg {
 }
 
 pub fn keg_from_rack_with_paths(rack string, cellar string, prefix string) ?Keg {
-	if !brew_runtime.is_dir(rack) {
+	if !ruby.is_dir(rack) {
 		return none
 	}
 	mut kegs := []Keg{}
-	for entry in brew_runtime.list_dir(rack) or { return none } {
-		path := brew_runtime.join_path(rack, entry)
-		if brew_runtime.is_dir(path) {
+	for entry in ruby.list_dir(rack) or { return none } {
+		path := ruby.join_path(rack, entry)
+		if ruby.is_dir(path) {
 			if keg := new_keg_with_paths(path, cellar, prefix) {
 				kegs << keg
 			}
@@ -290,7 +290,7 @@ pub fn keg_from_rack(rack string) ?Keg {
 }
 
 pub fn installed_tab_for_name_with_paths(name string, cellar string, prefix string) ?Tab {
-	rack := brew_runtime.join_path(cellar, name)
+	rack := ruby.join_path(cellar, name)
 	keg := keg_from_rack_with_paths(rack, cellar, prefix) or { return none }
 	return keg.tab() or { return none }
 }
@@ -302,13 +302,13 @@ pub fn installed_tab_for_name(name string) ?Tab {
 
 pub fn all_kegs(cellar string, prefix string) []Keg {
 	mut kegs := []Keg{}
-	for rack_name in brew_runtime.list_dir(cellar) or { return kegs } {
-		rack := brew_runtime.join_path(cellar, rack_name)
-		if !brew_runtime.is_dir(rack) {
+	for rack_name in ruby.list_dir(cellar) or { return kegs } {
+		rack := ruby.join_path(cellar, rack_name)
+		if !ruby.is_dir(rack) {
 			continue
 		}
-		for version in brew_runtime.list_dir(rack) or { continue } {
-			if keg := new_keg_with_paths(brew_runtime.join_path(rack, version), cellar, prefix) {
+		for version in ruby.list_dir(rack) or { continue } {
+			if keg := new_keg_with_paths(ruby.join_path(rack, version), cellar, prefix) {
 				kegs << keg
 			}
 		}
@@ -317,8 +317,8 @@ pub fn all_kegs(cellar string, prefix string) []Keg {
 }
 
 pub fn keg_must_exist_subdirectories(prefix string) []string {
-	mut paths := keg_link_directories.filter(it != 'var').map(brew_runtime.join_path(prefix, it))
-	paths << brew_runtime.join_path(prefix, 'opt')
+	mut paths := keg_link_directories.filter(it != 'var').map(ruby.join_path(prefix, it))
+	paths << ruby.join_path(prefix, 'opt')
 	paths << os.join_path(prefix, 'var', 'homebrew', 'linked')
 	paths.sort()
 	return paths
@@ -375,22 +375,22 @@ pub fn (keg Keg) completion_installed(shell string) bool {
 			return false
 		}
 	}
-	entries := brew_runtime.list_dir(path) or { return false }
+	entries := ruby.list_dir(path) or { return false }
 	if shell.trim_left(':') == 'zsh' {
 		return entries.any(it.starts_with('_'))
 	}
-	return brew_runtime.is_dir(path) && entries.len > 0
+	return ruby.is_dir(path) && entries.len > 0
 }
 
 pub fn (keg Keg) functions_installed(shell string) bool {
 	match shell.trim_left(':') {
 		'fish' {
 			path := keg.join('share/fish/vendor_functions.d')
-			return brew_runtime.is_dir(path) && (brew_runtime.list_dir(path) or { []string{} }).len > 0
+			return ruby.is_dir(path) && (ruby.list_dir(path) or { []string{} }).len > 0
 		}
 		'zsh' {
 			path := keg.join('share/zsh/site-functions')
-			return brew_runtime.is_dir(path) && (brew_runtime.list_dir(path) or { []string{} }).any(!it.starts_with('_'))
+			return ruby.is_dir(path) && (ruby.list_dir(path) or { []string{} }).any(!it.starts_with('_'))
 		}
 		else {
 			return false
@@ -399,16 +399,16 @@ pub fn (keg Keg) functions_installed(shell string) bool {
 }
 
 pub fn (keg Keg) plist_installed() bool {
-	return (brew_runtime.list_dir(keg.path) or { []string{} }).any(it.ends_with('.plist'))
+	return (ruby.list_dir(keg.path) or { []string{} }).any(it.ends_with('.plist'))
 }
 
 pub fn (keg Keg) apps() []string {
 	base := if keg.optlinked() { keg.opt_record } else { keg.path }
 	mut apps := []string{}
-	for directory in [base, brew_runtime.join_path(base, 'libexec')] {
-		for entry in brew_runtime.list_dir(directory) or { continue } {
+	for directory in [base, ruby.join_path(base, 'libexec')] {
+		for entry in ruby.list_dir(directory) or { continue } {
 			if entry.ends_with('.app') {
-				apps << brew_runtime.join_path(directory, entry)
+				apps << ruby.join_path(directory, entry)
 			}
 		}
 	}
@@ -417,15 +417,15 @@ pub fn (keg Keg) apps() []string {
 
 pub fn (keg Keg) elisp_installed() bool {
 	directory := os.join_path(keg.path, 'share', 'emacs', 'site-lisp', keg.name)
-	return (brew_runtime.list_dir(directory) or { []string{} }).any(it.ends_with('.el') || it.ends_with('.elc'))
+	return (ruby.list_dir(directory) or { []string{} }).any(it.ends_with('.el') || it.ends_with('.elc'))
 }
 
 pub fn (keg Keg) oldname_opt_records() []string {
 	directory := os.dir(keg.opt_record)
 	mut records := []string{}
-	for entry in brew_runtime.list_dir(directory) or { return records } {
-		record := brew_runtime.join_path(directory, entry)
-		if record != keg.opt_record && brew_runtime.is_link(record) && normalized_keg_path(os.dir(normalized_keg_path(record))) == normalized_keg_path(keg.rack()) {
+	for entry in ruby.list_dir(directory) or { return records } {
+		record := ruby.join_path(directory, entry)
+		if record != keg.opt_record && ruby.is_link(record) && normalized_keg_path(os.dir(normalized_keg_path(record))) == normalized_keg_path(keg.rack()) {
 			records << record
 		}
 	}
@@ -433,19 +433,19 @@ pub fn (keg Keg) oldname_opt_records() []string {
 }
 
 fn remove_existing_link_target(path string) ! {
-	if brew_runtime.is_link(path) || brew_runtime.is_file(path) {
+	if ruby.is_link(path) || ruby.is_file(path) {
 		os.rm(path)!
-	} else if brew_runtime.is_dir(path) {
+	} else if ruby.is_dir(path) {
 		os.rmdir(path)!
 	}
 }
 
 pub fn make_relative_keg_symlink(dst string, src string, dry_run bool, overwrite bool) !bool {
-	if brew_runtime.path_exists(dst) || brew_runtime.is_link(dst) {
-		if brew_runtime.is_link(dst) && brew_runtime.path_exists(dst) && same_resolved_path(dst, src) {
+	if ruby.path_exists(dst) || ruby.is_link(dst) {
+		if ruby.is_link(dst) && ruby.path_exists(dst) && same_resolved_path(dst, src) {
 			return false
 		}
-		if !overwrite && !brew_runtime.is_link(dst) {
+		if !overwrite && !ruby.is_link(dst) {
 			return error('Target ${dst} already exists')
 		}
 		if !dry_run {
@@ -465,7 +465,7 @@ pub fn make_relative_keg_symlink(dst string, src string, dry_run bool, overwrite
 pub fn (keg Keg) optlink(dry_run bool, overwrite bool) ! {
 	make_relative_keg_symlink(keg.opt_record, keg.path, dry_run, true)!
 	for alias in keg.aliases() {
-		make_relative_keg_symlink(brew_runtime.join_path(os.dir(keg.opt_record), alias), keg.path, dry_run, true)!
+		make_relative_keg_symlink(ruby.join_path(os.dir(keg.opt_record), alias), keg.path, dry_run, true)!
 	}
 	for record in keg.oldname_opt_records() {
 		make_relative_keg_symlink(record, keg.path, dry_run, true)!
@@ -476,8 +476,8 @@ fn (keg Keg) link_tree(src_root string, dry_run bool, overwrite bool) !int {
 	mut count := 0
 	for src in keg_walk(src_root) {
 		relative := relative_keg_path(src, keg.path)
-		dst := brew_runtime.join_path(keg.prefix, relative)
-		if brew_runtime.is_dir(src) && !brew_runtime.is_link(src) {
+		dst := ruby.join_path(keg.prefix, relative)
+		if ruby.is_dir(src) && !ruby.is_link(src) {
 			if !dry_run {
 				os.mkdir_all(dst)!
 			}
@@ -491,7 +491,7 @@ fn (keg Keg) link_tree(src_root string, dry_run bool, overwrite bool) !int {
 }
 
 pub fn (keg Keg) link(dry_run bool, overwrite bool) !int {
-	if brew_runtime.is_dir(keg.linked_keg_record) {
+	if ruby.is_dir(keg.linked_keg_record) {
 		return error('Cannot link ${keg.name}\nAnother version is already linked: ${normalized_keg_path(keg.linked_keg_record)}')
 	}
 	if !dry_run {
@@ -500,7 +500,7 @@ pub fn (keg Keg) link(dry_run bool, overwrite bool) !int {
 	mut count := 0
 	for directory in keg_link_directories {
 		source := keg.join(directory)
-		if brew_runtime.path_exists(source) {
+		if ruby.path_exists(source) {
 			count += keg.link_tree(source, dry_run, overwrite)!
 		}
 	}
@@ -515,8 +515,8 @@ pub fn (keg Keg) unlink(dry_run bool) !int {
 	for directory in keg_link_directories {
 		source_root := keg.join(directory)
 		for src in keg_walk(source_root) {
-			dst := brew_runtime.join_path(keg.prefix, relative_keg_path(src, keg.path))
-			if brew_runtime.is_link(dst) && same_resolved_path(src, dst) {
+			dst := ruby.join_path(keg.prefix, relative_keg_path(src, keg.path))
+			if ruby.is_link(dst) && same_resolved_path(src, dst) {
 				if dry_run {
 					println(dst)
 				} else {
@@ -542,11 +542,11 @@ pub fn (keg Keg) remove_oldname_opt_records() ! {
 }
 
 pub fn remove_keg_alias_symlink(alias_symlink string, alias_match_path string) ! {
-	if brew_runtime.is_link(alias_symlink) {
-		if !brew_runtime.path_exists(alias_symlink) || (brew_runtime.path_exists(alias_match_path) && same_resolved_path(alias_symlink, alias_match_path)) {
+	if ruby.is_link(alias_symlink) {
+		if !ruby.path_exists(alias_symlink) || (ruby.path_exists(alias_match_path) && same_resolved_path(alias_symlink, alias_match_path)) {
 			os.rm(alias_symlink)!
 		}
-	} else if brew_runtime.path_exists(alias_symlink) {
+	} else if ruby.path_exists(alias_symlink) {
 		remove_existing_link_target(alias_symlink)!
 	}
 }
@@ -559,15 +559,15 @@ pub fn (keg Keg) remove_old_aliases() ! {
 		if alias.contains('@') {
 			continue
 		}
-		remove_keg_alias_symlink(brew_runtime.join_path(opt_directory, alias), keg.opt_record)!
-		remove_keg_alias_symlink(brew_runtime.join_path(linked_directory, alias), keg.linked_keg_record)!
+		remove_keg_alias_symlink(ruby.join_path(opt_directory, alias), keg.opt_record)!
+		remove_keg_alias_symlink(ruby.join_path(linked_directory, alias), keg.linked_keg_record)!
 	}
-	for entry in brew_runtime.list_dir(opt_directory) or { []string{} } {
+	for entry in ruby.list_dir(opt_directory) or { []string{} } {
 		if !entry.starts_with('${keg.name}@') || entry in aliases {
 			continue
 		}
-		remove_keg_alias_symlink(brew_runtime.join_path(opt_directory, entry), keg.rack())!
-		remove_keg_alias_symlink(brew_runtime.join_path(linked_directory, entry), keg.rack())!
+		remove_keg_alias_symlink(ruby.join_path(opt_directory, entry), keg.rack())!
+		remove_keg_alias_symlink(ruby.join_path(linked_directory, entry), keg.rack())!
 	}
 }
 
@@ -585,7 +585,7 @@ pub fn (keg Keg) uninstall() ! {
 	}
 	keg.remove_old_aliases()!
 	for record in oldname_records {
-		if brew_runtime.is_link(record) {
+		if ruby.is_link(record) {
 			os.rm(record)!
 		}
 	}
@@ -593,8 +593,8 @@ pub fn (keg Keg) uninstall() ! {
 
 pub fn (keg Keg) keepme_refs() []string {
 	keepme := keg.join(keg_keepme_file)
-	content := brew_runtime.read_file(keepme) or { return []string{} }
-	return content.split_into_lines().map(it.trim_space()).filter(it != '' && brew_runtime.path_exists(it))
+	content := ruby.read_file(keepme) or { return []string{} }
+	return content.split_into_lines().map(it.trim_space()).filter(it != '' && ruby.path_exists(it))
 }
 
 pub fn (keg Keg) delete_pyc_files() ! {
@@ -602,7 +602,7 @@ pub fn (keg Keg) delete_pyc_files() ! {
 	for path in keg.find() {
 		if path.ends_with('.pyc') || path.ends_with('.pyo') {
 			os.rm(path)!
-		} else if os.base(path) == '__pycache__' && brew_runtime.is_dir(path) {
+		} else if os.base(path) == '__pycache__' && ruby.is_dir(path) {
 			cache_directories << path
 		}
 	}
@@ -652,10 +652,10 @@ fn is_uncompressed_manpage(path string) bool {
 pub fn (keg Keg) normalize_pod2man_outputs() ! {
 	man_root := keg.join('share/man')
 	for manpage in keg_walk(man_root) {
-		if !brew_runtime.is_file(manpage) || !is_uncompressed_manpage(manpage) {
+		if !ruby.is_file(manpage) || !is_uncompressed_manpage(manpage) {
 			continue
 		}
-		content := brew_runtime.read_file(manpage)!
+		content := ruby.read_file(manpage)!
 		mut lines := content.split_into_lines()
 		if lines.len > 0 && lines[0].starts_with('.\\"') && lines[0].contains('Automatically generated by ') {
 			lines.delete(0)
@@ -678,8 +678,8 @@ pub fn (keg Keg) normalize_pod2man_outputs() ! {
 	}
 }
 
-fn keg_link_error_value(link_error KegLinkError) brew_runtime.Value {
-	return brew_runtime.structured_value(if link_error.conflict {
+fn keg_link_error_value(link_error KegLinkError) ruby.Value {
+	return ruby.structured_value(if link_error.conflict {
 		'Keg::ConflictError'
 	} else {
 		'Keg::LinkError'
@@ -693,7 +693,7 @@ fn keg_link_error_value(link_error KegLinkError) brew_runtime.Value {
 	})
 }
 
-fn keg_link_error_from_boundary(value brew_runtime.Value) KegLinkError {
+fn keg_link_error_from_boundary(value ruby.Value) KegLinkError {
 	path := value.attribute('keg') or { panic('Keg link error has no keg') }
 	prefix := value.attribute('prefix') or { configured_keg_prefix() }
 	cellar := value.attribute('cellar') or { configured_keg_cellar(prefix) }
@@ -706,8 +706,8 @@ fn keg_link_error_from_boundary(value brew_runtime.Value) KegLinkError {
 	}
 }
 
-fn keg_boundary_value(keg Keg) brew_runtime.Value {
-	return brew_runtime.structured_value('Keg', keg.path, {
+fn keg_boundary_value(keg Keg) ruby.Value {
+	return ruby.structured_value('Keg', keg.path, {
 		'path':               keg.path
 		'prefix':             keg.prefix
 		'cellar':             keg.cellar
@@ -718,7 +718,7 @@ fn keg_boundary_value(keg Keg) brew_runtime.Value {
 	})
 }
 
-fn keg_from_boundary(value brew_runtime.Value) Keg {
+fn keg_from_boundary(value ruby.Value) Keg {
 	if value.type_name != 'Keg' {
 		panic('expected Keg, got ${value.type_name}')
 	}
@@ -730,50 +730,50 @@ fn keg_from_boundary(value brew_runtime.Value) Keg {
 	return keg
 }
 
-fn keg_receiver(args []brew_runtime.Value, method string) Keg {
+fn keg_receiver(args []ruby.Value, method string) Keg {
 	if args.len == 0 {
 		panic('Keg#${method} requires a receiver')
 	}
 	return keg_from_boundary(args[0])
 }
 
-fn keg_array_value(kegs []Keg) brew_runtime.Value {
-	return brew_runtime.array_value(kegs.map(keg_boundary_value(it)))
+fn keg_array_value(kegs []Keg) ruby.Value {
+	return ruby.array_value(kegs.map(keg_boundary_value(it)))
 }
 
-fn keg_bool_argument(args []brew_runtime.Value, index int) bool {
+fn keg_bool_argument(args []ruby.Value, index int) bool {
 	return index < args.len && args[index].type_name == 'Boolean' && (args[index].as_bool() or {
 		false
 	})
 }
 
 // Ruby method `initialize(keg)` at line 22.
-pub fn ruby_keg_l22_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_l22_d1_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('AlreadyLinkedError#initialize requires a keg') }
 	keg := keg_from_boundary(args[0])
-	return brew_runtime.object_value('Keg::AlreadyLinkedError', 'Cannot link ${keg.name}\nAnother version is already linked: ${normalized_keg_path(keg.linked_keg_record)}\n')
+	return ruby.object_value('Keg::AlreadyLinkedError', 'Cannot link ${keg.name}\nAnother version is already linked: ${normalized_keg_path(keg.linked_keg_record)}\n')
 }
 
 // Ruby attr_reader `attr_reader :keg` at line 33.
-pub fn ruby_keg_l33_d2_keg(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_l33_d2_keg(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('LinkError#keg requires a receiver') }
 	return keg_boundary_value(keg_link_error_from_boundary(args[0]).keg)
 }
 
 // Ruby attr_reader `attr_reader :src, :dst` at line 36.
-pub fn ruby_keg_l36_d3_src(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_l36_d3_src(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('LinkError#src requires a receiver') }
-	return brew_runtime.string_value(keg_link_error_from_boundary(args[0]).src)
+	return ruby.string_value(keg_link_error_from_boundary(args[0]).src)
 }
 
 // Ruby attr_reader `attr_reader :src, :dst` at line 36.
-pub fn ruby_keg_l36_d4_dst(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_l36_d4_dst(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('LinkError#dst requires a receiver') }
-	return brew_runtime.string_value(keg_link_error_from_boundary(args[0]).dst)
+	return ruby.string_value(keg_link_error_from_boundary(args[0]).dst)
 }
 
 // Ruby method `initialize(keg, src, dst, cause)` at line 39.
-pub fn ruby_keg_l39_d5_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_l39_d5_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 4 { panic('LinkError#initialize requires keg, src, dst, and cause') }
 	return keg_link_error_value(KegLinkError{
 		keg: keg_from_boundary(args[0])
@@ -784,253 +784,253 @@ pub fn ruby_keg_l39_d5_initialize(args ...brew_runtime.Value) brew_runtime.Value
 }
 
 // Ruby method `suggestion` at line 52.
-pub fn ruby_keg_l52_d6_suggestion(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_l52_d6_suggestion(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('ConflictError#suggestion requires a receiver') }
 	link_error := keg_link_error_from_boundary(args[0])
 	conflict := keg_for_path(link_error.dst, link_error.keg.cellar, link_error.keg.prefix) or {
-		return brew_runtime.string_value("already exists. You may want to remove it:\n  rm '${link_error.dst}'\n")
+		return ruby.string_value("already exists. You may want to remove it:\n  rm '${link_error.dst}'\n")
 	}
-	return brew_runtime.string_value('is a symlink belonging to ${conflict.name}. You can unlink it:\n  brew unlink ${conflict.name}\n')
+	return ruby.string_value('is a symlink belonging to ${conflict.name}. You can unlink it:\n  brew unlink ${conflict.name}\n')
 }
 
 // Ruby method `to_s` at line 64.
-pub fn ruby_keg_l64_d7_to_s(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_l64_d7_to_s(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('ConflictError#to_s requires a receiver') }
 	link_error := keg_link_error_from_boundary(args[0])
 	suggestion := ruby_keg_l52_d6_suggestion(...args).as_string()
-	return brew_runtime.string_value('Could not symlink ${link_error.src}\nTarget ${link_error.dst}\n${suggestion}\nTo force the link and overwrite all conflicting files:\n  brew link --overwrite ${link_error.keg.name}\n\nTo list all files that would be deleted:\n  brew link --overwrite ${link_error.keg.name} --dry-run\n')
+	return ruby.string_value('Could not symlink ${link_error.src}\nTarget ${link_error.dst}\n${suggestion}\nTo force the link and overwrite all conflicting files:\n  brew link --overwrite ${link_error.keg.name}\n\nTo list all files that would be deleted:\n  brew link --overwrite ${link_error.keg.name} --dry-run\n')
 }
 
 // Ruby method `to_s` at line 82.
-pub fn ruby_keg_l82_d8_to_s(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_l82_d8_to_s(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('DirectoryNotWritableError#to_s requires a receiver') }
 	link_error := keg_link_error_from_boundary(args[0])
-	return brew_runtime.string_value('Could not symlink ${link_error.src}\n${os.dir(link_error.dst)} is not writable.\n')
+	return ruby.string_value('Could not symlink ${link_error.src}\n${os.dir(link_error.dst)} is not writable.\n')
 }
 
 // Ruby method `self.for(path)` at line 115.
-pub fn ruby_keg_l115_d9_self_for(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_l115_d9_self_for(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Keg.for requires a path') }
 	return keg_boundary_value(keg_for(args[0].as_string()) or { panic(err) })
 }
 
 // Ruby method `self.from_rack(rack)` at line 130.
-pub fn ruby_keg_l130_d10_self_from_rack(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_l130_d10_self_from_rack(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Keg.from_rack requires a rack') }
 	if keg := keg_from_rack(args[0].as_string()) {
 		return keg_boundary_value(keg)
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `self.all` at line 138.
-pub fn ruby_keg_l138_d11_self_all(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_l138_d11_self_all(args ...ruby.Value) ruby.Value {
 	prefix := configured_keg_prefix()
 	return keg_array_value(all_kegs(configured_keg_cellar(prefix), prefix))
 }
 
 // Ruby method `self.keg_link_directories` at line 143.
-pub fn ruby_keg_l143_d12_self_keg_link_directories(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(keg_link_directories)
+pub fn ruby_keg_l143_d12_self_keg_link_directories(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(keg_link_directories)
 }
 
 // Ruby method `self.must_exist_subdirectories` at line 150.
-pub fn ruby_keg_l150_d13_self_must_exist_subdirectories(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(keg_must_exist_subdirectories(configured_keg_prefix()))
+pub fn ruby_keg_l150_d13_self_must_exist_subdirectories(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(keg_must_exist_subdirectories(configured_keg_prefix()))
 }
 
 // Ruby method `self.must_exist_directories` at line 160.
-pub fn ruby_keg_l160_d14_self_must_exist_directories(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_l160_d14_self_must_exist_directories(args ...ruby.Value) ruby.Value {
 	prefix := configured_keg_prefix()
-	return brew_runtime.string_array_value(keg_must_exist_directories(prefix, configured_keg_cellar(prefix)))
+	return ruby.string_array_value(keg_must_exist_directories(prefix, configured_keg_cellar(prefix)))
 }
 
 // Ruby method `self.must_be_writable_directories` at line 169.
-pub fn ruby_keg_l169_d15_self_must_be_writable_directories(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_l169_d15_self_must_be_writable_directories(args ...ruby.Value) ruby.Value {
 	prefix := configured_keg_prefix()
 	mut paths := keg_must_exist_directories(prefix, configured_keg_cellar(prefix))
 	for relative in ['etc/bash_completion.d', 'lib/cps', 'lib/pkgconfig', 'share/aclocal', 'share/doc',
 		'share/info', 'share/locale', 'share/man', 'share/cps', 'share/zsh',
 		'share/zsh/site-functions', 'share/pwsh', 'share/pwsh/completions', 'var/log'] {
-		path := brew_runtime.join_path(prefix, relative)
+		path := ruby.join_path(prefix, relative)
 		if path !in paths { paths << path }
 	}
 	paths.sort()
-	return brew_runtime.string_array_value(paths)
+	return ruby.string_array_value(paths)
 }
 
 // Ruby attr_reader `attr_reader :name` at line 189.
-pub fn ruby_keg_l189_d16_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(keg_receiver(args, 'name').name)
+pub fn ruby_keg_l189_d16_name(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(keg_receiver(args, 'name').name)
 }
 
 // Ruby attr_reader `attr_reader :path, :linked_keg_record, :opt_record` at line 192.
-pub fn ruby_keg_l192_d17_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(keg_receiver(args, 'path').path)
+pub fn ruby_keg_l192_d17_path(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(keg_receiver(args, 'path').path)
 }
 
 // Ruby attr_reader `attr_reader :path, :linked_keg_record, :opt_record` at line 192.
-pub fn ruby_keg_l192_d18_linked_keg_record(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(keg_receiver(args, 'linked_keg_record').linked_keg_record)
+pub fn ruby_keg_l192_d18_linked_keg_record(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(keg_receiver(args, 'linked_keg_record').linked_keg_record)
 }
 
 // Ruby attr_reader `attr_reader :path, :linked_keg_record, :opt_record` at line 192.
-pub fn ruby_keg_l192_d19_opt_record(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(keg_receiver(args, 'opt_record').opt_record)
+pub fn ruby_keg_l192_d19_opt_record(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(keg_receiver(args, 'opt_record').opt_record)
 }
 
 // Ruby def_delegators `def_delegators :path, :to_path, :hash, :abv, :disk_usage, :file_count, :directory?, :exist?, :/, :join, :rename, :find` at line 198.
-pub fn ruby_keg_l198_d20_to_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(keg_receiver(args, 'to_path').path)
+pub fn ruby_keg_l198_d20_to_path(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(keg_receiver(args, 'to_path').path)
 }
 
 // Ruby def_delegators `def_delegators :path, :to_path, :hash, :abv, :disk_usage, :file_count, :directory?, :exist?, :/, :join, :rename, :find` at line 198.
-pub fn ruby_keg_l198_d21_hash(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(i64(keg_receiver(args, 'hash').hash_code()))
+pub fn ruby_keg_l198_d21_hash(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(i64(keg_receiver(args, 'hash').hash_code()))
 }
 
 // Ruby def_delegators `def_delegators :path, :to_path, :hash, :abv, :disk_usage, :file_count, :directory?, :exist?, :/, :join, :rename, :find` at line 198.
-pub fn ruby_keg_l198_d22_abv(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(keg_receiver(args, 'abv').abbreviated_size())
+pub fn ruby_keg_l198_d22_abv(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(keg_receiver(args, 'abv').abbreviated_size())
 }
 
 // Ruby def_delegators `def_delegators :path, :to_path, :hash, :abv, :disk_usage, :file_count, :directory?, :exist?, :/, :join, :rename, :find` at line 198.
-pub fn ruby_keg_l198_d23_disk_usage(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(i64(keg_receiver(args, 'disk_usage').disk_usage()))
+pub fn ruby_keg_l198_d23_disk_usage(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(i64(keg_receiver(args, 'disk_usage').disk_usage()))
 }
 
 // Ruby def_delegators `def_delegators :path, :to_path, :hash, :abv, :disk_usage, :file_count, :directory?, :exist?, :/, :join, :rename, :find` at line 198.
-pub fn ruby_keg_l198_d24_file_count(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(keg_receiver(args, 'file_count').file_count())
+pub fn ruby_keg_l198_d24_file_count(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(keg_receiver(args, 'file_count').file_count())
 }
 
 // Ruby def_delegators `def_delegators :path, :to_path, :hash, :abv, :disk_usage, :file_count, :directory?, :exist?, :/, :join, :rename, :find` at line 198.
-pub fn ruby_keg_l198_d25_directory(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(keg_receiver(args, 'directory?').directory())
+pub fn ruby_keg_l198_d25_directory(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(keg_receiver(args, 'directory?').directory())
 }
 
 // Ruby def_delegators `def_delegators :path, :to_path, :hash, :abv, :disk_usage, :file_count, :directory?, :exist?, :/, :join, :rename, :find` at line 198.
-pub fn ruby_keg_l198_d26_exist(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(keg_receiver(args, 'exist?').exists())
+pub fn ruby_keg_l198_d26_exist(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(keg_receiver(args, 'exist?').exists())
 }
 
 // Ruby def_delegators `def_delegators :path, :to_path, :hash, :abv, :disk_usage, :file_count, :directory?, :exist?, :/, :join, :rename, :find` at line 198.
-pub fn ruby_keg_l198_d27_join(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_l198_d27_join(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Keg#join requires a path') }
-	return brew_runtime.string_value(keg_receiver(args, 'join').join(...args[1..].map(it.as_string())))
+	return ruby.string_value(keg_receiver(args, 'join').join(...args[1..].map(it.as_string())))
 }
 
 // Ruby def_delegators `def_delegators :path, :to_path, :hash, :abv, :disk_usage, :file_count, :directory?, :exist?, :/, :join, :rename, :find` at line 198.
-pub fn ruby_keg_l198_d28_rename(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_l198_d28_rename(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Keg#rename requires a destination') }
 	keg := keg_receiver(args, 'rename')
 	os.rename(keg.path, args[1].as_string()) or { panic(err) }
-	return brew_runtime.string_value(args[1].as_string())
+	return ruby.string_value(args[1].as_string())
 }
 
 // Ruby def_delegators `def_delegators :path, :to_path, :hash, :abv, :disk_usage, :file_count, :directory?, :exist?, :/, :join, :rename, :find` at line 198.
-pub fn ruby_keg_l198_d29_find(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(keg_receiver(args, 'find').find())
+pub fn ruby_keg_l198_d29_find(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(keg_receiver(args, 'find').find())
 }
 
 // Ruby method `initialize(path)` at line 203.
-pub fn ruby_keg_l203_d30_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_l203_d30_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Keg#initialize requires a path') }
 	return keg_boundary_value(new_keg(args[0].as_string()) or { panic(err) })
 }
 
 // Ruby method `rack` at line 217.
-pub fn ruby_keg_l217_d31_rack(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(keg_receiver(args, 'rack').rack())
+pub fn ruby_keg_l217_d31_rack(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(keg_receiver(args, 'rack').rack())
 }
 
 // Ruby method `to_s = path.to_s` at line 222.
-pub fn ruby_keg_l222_d32_to_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(keg_receiver(args, 'to_s').str())
+pub fn ruby_keg_l222_d32_to_s(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(keg_receiver(args, 'to_s').str())
 }
 
 // Ruby method `inspect` at line 225.
-pub fn ruby_keg_l225_d33_inspect(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(keg_receiver(args, 'inspect').inspect())
+pub fn ruby_keg_l225_d33_inspect(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(keg_receiver(args, 'inspect').inspect())
 }
 
 // Ruby method `==(other)` at line 230.
-pub fn ruby_keg_l230_d34_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_l230_d34_anonymous(args ...ruby.Value) ruby.Value {
 	if args.len < 2 || args[1].type_name != 'Keg' {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(keg_from_boundary(args[0]).equal(keg_from_boundary(args[1])))
+	return ruby.bool_value(keg_from_boundary(args[0]).equal(keg_from_boundary(args[1])))
 }
 
 // Ruby alias `alias eql? ==` at line 238.
-pub fn ruby_keg_l238_d35_eql(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_l238_d35_eql(args ...ruby.Value) ruby.Value {
 	return ruby_keg_l230_d34_anonymous(...args)
 }
 
 // Ruby method `empty_installation?` at line 241.
-pub fn ruby_keg_l241_d36_empty_installation(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(keg_receiver(args, 'empty_installation?').empty_installation())
+pub fn ruby_keg_l241_d36_empty_installation(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(keg_receiver(args, 'empty_installation?').empty_installation())
 }
 
 // Ruby method `require_relocation? = @require_relocation` at line 258.
-pub fn ruby_keg_l258_d37_require_relocation(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(keg_receiver(args, 'require_relocation?').require_relocation)
+pub fn ruby_keg_l258_d37_require_relocation(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(keg_receiver(args, 'require_relocation?').require_relocation)
 }
 
 // Ruby method `require_relocation!` at line 261.
-pub fn ruby_keg_l261_d38_require_relocation(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_l261_d38_require_relocation(args ...ruby.Value) ruby.Value {
 	mut keg := keg_receiver(args, 'require_relocation!')
 	keg.require_relocation = true
 	return keg_boundary_value(keg)
 }
 
 // Ruby method `linked?` at line 266.
-pub fn ruby_keg_l266_d39_linked(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(keg_receiver(args, 'linked?').linked())
+pub fn ruby_keg_l266_d39_linked(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(keg_receiver(args, 'linked?').linked())
 }
 
 // Ruby method `remove_linked_keg_record` at line 273.
-pub fn ruby_keg_l273_d40_remove_linked_keg_record(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_l273_d40_remove_linked_keg_record(args ...ruby.Value) ruby.Value {
 	keg_receiver(args, 'remove_linked_keg_record').remove_linked_keg_record() or { panic(err) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `optlinked?` at line 279.
-pub fn ruby_keg_l279_d41_optlinked(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(keg_receiver(args, 'optlinked?').optlinked())
+pub fn ruby_keg_l279_d41_optlinked(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(keg_receiver(args, 'optlinked?').optlinked())
 }
 
 // Ruby method `remove_old_aliases` at line 284.
-pub fn ruby_keg_l284_d42_remove_old_aliases(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_l284_d42_remove_old_aliases(args ...ruby.Value) ruby.Value {
 	keg_receiver(args, 'remove_old_aliases').remove_old_aliases() or { panic(err) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `remove_opt_record` at line 318.
-pub fn ruby_keg_l318_d43_remove_opt_record(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_l318_d43_remove_opt_record(args ...ruby.Value) ruby.Value {
 	keg_receiver(args, 'remove_opt_record').remove_opt_record() or { panic(err) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `uninstall(raise_failures: false)` at line 324.
-pub fn ruby_keg_l324_d44_uninstall(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_l324_d44_uninstall(args ...ruby.Value) ruby.Value {
 	keg_receiver(args, 'uninstall').uninstall() or { panic(err) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `ignore_interrupts_and_uninstall!` at line 349.
-pub fn ruby_keg_l349_d45_ignore_interrupts_and_uninstall(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_l349_d45_ignore_interrupts_and_uninstall(args ...ruby.Value) ruby.Value {
 	return ruby_keg_l324_d44_uninstall(...args)
 }
 
 // Ruby method `unlink(verbose: false, dry_run: false)` at line 356.
-pub fn ruby_keg_l356_d46_unlink(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_l356_d46_unlink(args ...ruby.Value) ruby.Value {
 	count := keg_receiver(args, 'unlink').unlink(keg_bool_argument(args, 2)) or { panic(err) }
-	return brew_runtime.int_value(count)
+	return ruby.int_value(count)
 }
 
 // Ruby method `lock(&_block)` at line 396.
-pub fn ruby_keg_l396_d47_lock(keg Keg, action LockFileAction) !brew_runtime.Value {
+pub fn ruby_keg_l396_d47_lock(keg Keg, action LockFileAction) !ruby.Value {
 	mut primary := new_lock_file('formula', os.join_path(keg.cellar, keg.name), '')
 	primary.lock()!
 	defer {
@@ -1056,175 +1056,175 @@ pub fn ruby_keg_l396_d47_lock(keg Keg, action LockFileAction) !brew_runtime.Valu
 }
 
 // Ruby method `completion_installed?(shell)` at line 409.
-pub fn ruby_keg_l409_d48_completion_installed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_l409_d48_completion_installed(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Keg#completion_installed? requires a shell') }
-	return brew_runtime.bool_value(keg_receiver(args, 'completion_installed?').completion_installed(args[1].as_string()))
+	return ruby.bool_value(keg_receiver(args, 'completion_installed?').completion_installed(args[1].as_string()))
 }
 
 // Ruby method `functions_installed?(shell)` at line 422.
-pub fn ruby_keg_l422_d49_functions_installed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_l422_d49_functions_installed(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Keg#functions_installed? requires a shell') }
-	return brew_runtime.bool_value(keg_receiver(args, 'functions_installed?').functions_installed(args[1].as_string()))
+	return ruby.bool_value(keg_receiver(args, 'functions_installed?').functions_installed(args[1].as_string()))
 }
 
 // Ruby method `plist_installed?` at line 438.
-pub fn ruby_keg_l438_d50_plist_installed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(keg_receiver(args, 'plist_installed?').plist_installed())
+pub fn ruby_keg_l438_d50_plist_installed(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(keg_receiver(args, 'plist_installed?').plist_installed())
 }
 
 // Ruby method `apps` at line 443.
-pub fn ruby_keg_l443_d51_apps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(keg_receiver(args, 'apps').apps())
+pub fn ruby_keg_l443_d51_apps(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(keg_receiver(args, 'apps').apps())
 }
 
 // Ruby method `elisp_installed?` at line 449.
-pub fn ruby_keg_l449_d52_elisp_installed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(keg_receiver(args, 'elisp_installed?').elisp_installed())
+pub fn ruby_keg_l449_d52_elisp_installed(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(keg_receiver(args, 'elisp_installed?').elisp_installed())
 }
 
 // Ruby method `version` at line 456.
-pub fn ruby_keg_l456_d53_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_l456_d53_version(args ...ruby.Value) ruby.Value {
 	version := keg_receiver(args, 'version').version() or { panic(err) }
-	return brew_runtime.object_value('PkgVersion', version.to_s())
+	return ruby.object_value('PkgVersion', version.to_s())
 }
 
 // Ruby method `version_scheme` at line 461.
-pub fn ruby_keg_l461_d54_version_scheme(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(keg_receiver(args, 'version_scheme').version_scheme())
+pub fn ruby_keg_l461_d54_version_scheme(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(keg_receiver(args, 'version_scheme').version_scheme())
 }
 
 // Ruby method `scheme_and_version` at line 468.
-pub fn ruby_keg_l468_d55_scheme_and_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_l468_d55_scheme_and_version(args ...ruby.Value) ruby.Value {
 	keg := keg_receiver(args, 'scheme_and_version')
 	version := keg.version() or { panic(err) }
-	return brew_runtime.structured_value('Array', '[${keg.version_scheme()}, ${version.to_s()}]', {
+	return ruby.structured_value('Array', '[${keg.version_scheme()}, ${version.to_s()}]', {
 		'version_scheme': keg.version_scheme().str()
 		'version':        version.to_s()
 	})
 }
 
 // Ruby method `to_formula` at line 473.
-pub fn ruby_keg_l473_d56_to_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_l473_d56_to_formula(args ...ruby.Value) ruby.Value {
 	formula := formulary_from_keg_default(keg_receiver(args, 'to_formula')) or { panic(err) }
 	return formula_boundary_value(formula)
 }
 
 // Ruby method `oldname_opt_records` at line 478.
-pub fn ruby_keg_l478_d57_oldname_opt_records(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(keg_receiver(args, 'oldname_opt_records').oldname_opt_records())
+pub fn ruby_keg_l478_d57_oldname_opt_records(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(keg_receiver(args, 'oldname_opt_records').oldname_opt_records())
 }
 
 // Ruby method `link(verbose: false, dry_run: false, overwrite: false)` at line 491.
-pub fn ruby_keg_l491_d58_link(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_l491_d58_link(args ...ruby.Value) ruby.Value {
 	count := keg_receiver(args, 'link').link(keg_bool_argument(args, 2), keg_bool_argument(args, 3)) or {
 		panic(err)
 	}
-	return brew_runtime.int_value(count)
+	return ruby.int_value(count)
 }
 
 // Ruby method `prepare_debug_symbols; end` at line 583.
-pub fn ruby_keg_l583_d59_prepare_debug_symbols(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+pub fn ruby_keg_l583_d59_prepare_debug_symbols(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `consistent_reproducible_symlink_permissions!; end` at line 586.
-pub fn ruby_keg_l586_d60_consistent_reproducible_symlink_permissions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+pub fn ruby_keg_l586_d60_consistent_reproducible_symlink_permissions(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `remove_oldname_opt_records` at line 589.
-pub fn ruby_keg_l589_d61_remove_oldname_opt_records(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_l589_d61_remove_oldname_opt_records(args ...ruby.Value) ruby.Value {
 	keg_receiver(args, 'remove_oldname_opt_records').remove_oldname_opt_records() or { panic(err) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `tab` at line 600.
-pub fn ruby_keg_l600_d62_tab(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_l600_d62_tab(args ...ruby.Value) ruby.Value {
 	return tab_boundary_value(keg_receiver(args, 'tab').tab() or { panic(err) })
 }
 
 // Ruby method `runtime_dependencies` at line 605.
-pub fn ruby_keg_l605_d63_runtime_dependencies(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_l605_d63_runtime_dependencies(args ...ruby.Value) ruby.Value {
 	if dependencies := keg_receiver(args, 'runtime_dependencies').runtime_dependencies() {
-		return brew_runtime.object_value('Array', json2.encode(dependencies))
+		return ruby.object_value('Array', json2.encode(dependencies))
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `aliases` at line 611.
-pub fn ruby_keg_l611_d64_aliases(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(keg_receiver(args, 'aliases').aliases())
+pub fn ruby_keg_l611_d64_aliases(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(keg_receiver(args, 'aliases').aliases())
 }
 
 // Ruby method `optlink(verbose: false, dry_run: false, overwrite: false)` at line 616.
-pub fn ruby_keg_l616_d65_optlink(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_l616_d65_optlink(args ...ruby.Value) ruby.Value {
 	keg_receiver(args, 'optlink').optlink(keg_bool_argument(args, 2), keg_bool_argument(args, 3)) or {
 		panic(err)
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `delete_pyc_files!` at line 632.
-pub fn ruby_keg_l632_d66_delete_pyc_files(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_l632_d66_delete_pyc_files(args ...ruby.Value) ruby.Value {
 	keg_receiver(args, 'delete_pyc_files!').delete_pyc_files() or { panic(err) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `normalize_pod2man_outputs!` at line 638.
-pub fn ruby_keg_l638_d67_normalize_pod2man_outputs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_l638_d67_normalize_pod2man_outputs(args ...ruby.Value) ruby.Value {
 	keg_receiver(args, 'normalize_pod2man_outputs!').normalize_pod2man_outputs() or { panic(err) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `keepme_refs` at line 689.
-pub fn ruby_keg_l689_d68_keepme_refs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(keg_receiver(args, 'keepme_refs').keepme_refs())
+pub fn ruby_keg_l689_d68_keepme_refs(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(keg_receiver(args, 'keepme_refs').keepme_refs())
 }
 
 // Ruby method `binary_executable_or_library_files` at line 697.
-pub fn ruby_keg_l697_d69_binary_executable_or_library_files(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value([]string{})
+pub fn ruby_keg_l697_d69_binary_executable_or_library_files(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value([]string{})
 }
 
 // Ruby method `codesign_patched_binary(file); end` at line 702.
-pub fn ruby_keg_l702_d70_codesign_patched_binary(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+pub fn ruby_keg_l702_d70_codesign_patched_binary(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `resolve_any_conflicts(dst, dry_run: false, verbose: false, overwrite: false)` at line 714.
-pub fn ruby_keg_l714_d71_resolve_any_conflicts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_l714_d71_resolve_any_conflicts(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Keg#resolve_any_conflicts requires a destination') }
 	dst := args[1].as_string()
-	if !brew_runtime.is_link(dst) {
-		return brew_runtime.object_value('NilClass', 'nil')
+	if !ruby.is_link(dst) {
+		return ruby.object_value('NilClass', 'nil')
 	}
-	if !brew_runtime.path_exists(dst) {
+	if !ruby.path_exists(dst) {
 		if !keg_bool_argument(args, 2) { os.rm(dst) or { panic(err) } }
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 // Ruby method `make_relative_symlink(dst, src, verbose: false, dry_run: false, overwrite: false)` at line 746.
-pub fn ruby_keg_l746_d72_make_relative_symlink(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_l746_d72_make_relative_symlink(args ...ruby.Value) ruby.Value {
 	if args.len < 3 { panic('Keg#make_relative_symlink requires dst and src') }
 	created := make_relative_keg_symlink(args[1].as_string(), args[2].as_string(), keg_bool_argument(args, 4), keg_bool_argument(args, 5)) or { panic(err) }
-	return brew_runtime.bool_value(created)
+	return ruby.bool_value(created)
 }
 
 // Ruby method `remove_alias_symlink(alias_symlink, alias_match_path)` at line 784.
-pub fn ruby_keg_l784_d73_remove_alias_symlink(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_l784_d73_remove_alias_symlink(args ...ruby.Value) ruby.Value {
 	if args.len < 3 { panic('Keg#remove_alias_symlink requires alias and match paths') }
 	remove_keg_alias_symlink(args[1].as_string(), args[2].as_string()) or { panic(err) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `link_dir(relative_dir, verbose: false, dry_run: false, overwrite: false, &_block)` at line 804.
-pub fn ruby_keg_l804_d74_link_dir(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_l804_d74_link_dir(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Keg#link_dir requires a relative directory') }
 	keg := keg_receiver(args, 'link_dir')
 	count := keg.link_tree(keg.join(args[1].as_string()), keg_bool_argument(args, 3), keg_bool_argument(args, 4)) or { panic(err) }
-	return brew_runtime.int_value(count)
+	return ruby.int_value(count)
 }
 
 // Original Ruby source (line-for-line):

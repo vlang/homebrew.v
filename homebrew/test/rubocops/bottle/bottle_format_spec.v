@@ -1,6 +1,6 @@
 module bottle
 
-import brew_runtime
+import ruby
 import homebrew.rubocops as bottle_core
 
 // Translated from Homebrew/brew `test/rubocops/bottle/bottle_format_spec.rb`.
@@ -10,8 +10,8 @@ fn bottle_spec_formula(body string) string {
 }
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
-pub fn ruby_bottle_format_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::BottleFormat', 'FormulaAudit/BottleFormat')
+pub fn ruby_bottle_format_spec_l7_d1_cop(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('RuboCop::Cop::FormulaAudit::BottleFormat', 'FormulaAudit/BottleFormat')
 }
 
 // Ruby it `it "reports no offenses for `bottle :unneeded`" do` at line 9.

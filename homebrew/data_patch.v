@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `data_patch.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -35,7 +35,7 @@ pub fn (patch DataPatch) contents() !string {
 	if !patch.has_path {
 		return error('DATAPatch#contents called before path was set!')
 	}
-	data := brew_runtime.read_file(patch.path)!
+	data := ruby.read_file(patch.path)!
 	mut line_start := 0
 	for index, character in data.bytes() {
 		if character != `\n` {
@@ -49,15 +49,15 @@ pub fn (patch DataPatch) contents() !string {
 	return ''
 }
 
-fn data_patch_boundary_value(patch DataPatch) brew_runtime.Value {
-	return brew_runtime.structured_value('DATAPatch', patch.filename(), {
+fn data_patch_boundary_value(patch DataPatch) ruby.Value {
+	return ruby.structured_value('DATAPatch', patch.filename(), {
 		'strip':    patch.strip
 		'has_path': patch.has_path.str()
 		'path':     patch.path
 	})
 }
 
-fn data_patch_from_boundary(value brew_runtime.Value) DataPatch {
+fn data_patch_from_boundary(value ruby.Value) DataPatch {
 	if value.type_name != 'DATAPatch' {
 		panic('expected DATAPatch, got ${value.type_name}')
 	}
@@ -69,20 +69,20 @@ fn data_patch_from_boundary(value brew_runtime.Value) DataPatch {
 }
 
 // Ruby attr_accessor `attr_accessor :path` at line 9.
-pub fn ruby_data_patch_l9_d1_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_data_patch_l9_d1_path(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('DATAPatch#path requires a receiver')
 	}
 	patch := data_patch_from_boundary(args[0])
 	return if patch.has_path {
-		brew_runtime.string_value(patch.path)
+		ruby.string_value(patch.path)
 	} else {
-		brew_runtime.object_value('NilClass', '')
+		ruby.object_value('NilClass', '')
 	}
 }
 
 // Ruby attr_accessor `attr_accessor :path` at line 9.
-pub fn ruby_data_patch_l9_d2_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_data_patch_l9_d2_path(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('DATAPatch#path= requires a receiver and path')
 	}
@@ -90,7 +90,7 @@ pub fn ruby_data_patch_l9_d2_path(args ...brew_runtime.Value) brew_runtime.Value
 }
 
 // Ruby method `initialize(strip)` at line 12.
-pub fn ruby_data_patch_l12_d3_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_data_patch_l12_d3_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('DATAPatch#initialize requires a strip value')
 	}
@@ -98,19 +98,19 @@ pub fn ruby_data_patch_l12_d3_initialize(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `filename = "embedded DATA patch"` at line 18.
-pub fn ruby_data_patch_l18_d4_filename(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_data_patch_l18_d4_filename(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('DATAPatch#filename requires a receiver')
 	}
-	return brew_runtime.string_value(data_patch_from_boundary(args[0]).filename())
+	return ruby.string_value(data_patch_from_boundary(args[0]).filename())
 }
 
 // Ruby method `contents` at line 21.
-pub fn ruby_data_patch_l21_d5_contents(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_data_patch_l21_d5_contents(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('DATAPatch#contents requires a receiver')
 	}
-	return brew_runtime.string_value(data_patch_from_boundary(args[0]).contents() or { panic(err) })
+	return ruby.string_value(data_patch_from_boundary(args[0]).contents() or { panic(err) })
 }
 
 // Original Ruby source (line-for-line):

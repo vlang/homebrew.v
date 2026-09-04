@@ -1,6 +1,6 @@
 module file
 
-import brew_runtime
+import ruby
 import os
 import time
 
@@ -8,9 +8,9 @@ import time
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `self.atomic_write(file_name, temp_dir = dirname(file_name), &_block)` at line 29.
-pub fn ruby_atomic_l29_d1_self_atomic_write(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_atomic_l29_d1_self_atomic_write(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'file name and contents are required')
+		return ruby.object_value('ArgumentError', 'file name and contents are required')
 	}
 	file_name := args[0].as_string()
 	// The boundary accepts the common translated form `(file_name, contents)` and
@@ -18,22 +18,22 @@ pub fn ruby_atomic_l29_d1_self_atomic_write(args ...brew_runtime.Value) brew_run
 	temp_dir := if args.len > 2 { args[1].as_string() } else { os.dir(file_name) }
 	contents_index := if args.len > 2 { 2 } else { 1 }
 	atomic_write_contents(file_name, temp_dir, args[contents_index].as_string()) or {
-		return brew_runtime.object_value('IOError', err.msg())
+		return ruby.object_value('IOError', err.msg())
 	}
 	return if args.len > contents_index + 1 {
 		args[contents_index + 1]
 	} else {
-		brew_runtime.string_value(args[contents_index].as_string())
+		ruby.string_value(args[contents_index].as_string())
 	}
 }
 
 // Ruby method `self.probe_stat_in(dir) # :nodoc:` at line 65.
-pub fn ruby_atomic_l65_d2_self_probe_stat_in(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_atomic_l65_d2_self_probe_stat_in(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('NilClass', '')
+		return ruby.object_value('NilClass', '')
 	}
 	stat := probe_stat_in(args[0].as_string()) or {
-		return brew_runtime.object_value('NilClass', '')
+		return ruby.object_value('NilClass', '')
 	}
 	return atomic_file_stat_value(stat)
 }
@@ -54,8 +54,8 @@ fn atomic_file_stat(path string) !AtomicFileStat {
 	}
 }
 
-fn atomic_file_stat_value(stat AtomicFileStat) brew_runtime.Value {
-	return brew_runtime.structured_value('File::Stat', 'mode=${stat.mode:o}', {
+fn atomic_file_stat_value(stat AtomicFileStat) ruby.Value {
+	return ruby.structured_value('File::Stat', 'mode=${stat.mode:o}', {
 		'uid':  stat.uid.str()
 		'gid':  stat.gid.str()
 		'mode': stat.mode.str()

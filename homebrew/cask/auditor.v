@@ -1,6 +1,6 @@
 module cask
 
-import brew_runtime
+import ruby
 import rand
 
 // Translated from Homebrew/brew `cask/auditor.rb`.
@@ -185,85 +185,85 @@ pub fn (mut auditor CaskAuditor) audit() []AuditError {
 	return errors
 }
 
-fn auditor_nil() brew_runtime.Value {
-	return brew_runtime.Value{
+fn auditor_nil() ruby.Value {
+	return ruby.Value{
 		type_name: 'NilClass'
 		repr: 'nil'
 	}
 }
 
-fn auditor_optional_bool(value ?bool) brew_runtime.Value {
+fn auditor_optional_bool(value ?bool) ruby.Value {
 	resolved := value or { return auditor_nil() }
-	return brew_runtime.bool_value(resolved)
+	return ruby.bool_value(resolved)
 }
 
-fn auditor_error_value(problem AuditError) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'message':   brew_runtime.string_value(problem.message)
+fn auditor_error_value(problem AuditError) ruby.Value {
+	return ruby.map_value({
+		'message':   ruby.string_value(problem.message)
 		'location':  if problem.location == '' {
 			auditor_nil()
 		} else {
-			brew_runtime.string_value(problem.location)
+			ruby.string_value(problem.location)
 		}
-		'corrected': brew_runtime.bool_value(problem.corrected)
+		'corrected': ruby.bool_value(problem.corrected)
 	})
 }
 
-fn auditor_error_set_value(errors []AuditError) brew_runtime.Value {
-	return brew_runtime.Value{
+fn auditor_error_set_value(errors []AuditError) ruby.Value {
+	return ruby.Value{
 		type_name: 'Set'
 		repr: errors.map(it.message).str()
 		array_data: errors.map(auditor_error_value(it))
 	}
 }
 
-fn auditor_language_block_value(block AuditorLanguageBlock) brew_runtime.Value {
+fn auditor_language_block_value(block AuditorLanguageBlock) ruby.Value {
 	mut values := {
-		'languages': brew_runtime.string_array_value(block.languages)
+		'languages': ruby.string_array_value(block.languages)
 	}
 	if block.has_cask {
 		values['cask'] = audit_cask_boundary(block.cask)
 	}
-	return brew_runtime.map_value(values)
+	return ruby.map_value(values)
 }
 
-fn auditor_boundary_value(auditor CaskAuditor) brew_runtime.Value {
+fn auditor_boundary_value(auditor CaskAuditor) ruby.Value {
 	base_cask_value := audit_cask_boundary(auditor.cask)
 	mut cask_data := base_cask_value.map_data.clone()
-	cask_data['language_blocks'] = brew_runtime.array_value(auditor.language_entries.map(auditor_language_block_value(it)))
-	cask_value := brew_runtime.Value{
+	cask_data['language_blocks'] = ruby.array_value(auditor.language_entries.map(auditor_language_block_value(it)))
+	cask_value := ruby.Value{
 		...base_cask_value
 		map_data: cask_data
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'Cask::Auditor'
 		repr: auditor.cask.token
 		map_data: {
 			'cask':              cask_value
-			'audit_download':    brew_runtime.bool_value(auditor.audit_download)
+			'audit_download':    ruby.bool_value(auditor.audit_download)
 			'audit_online':      auditor_optional_bool(auditor.audit_online)
 			'audit_strict':      auditor_optional_bool(auditor.audit_strict)
 			'audit_signing':     auditor_optional_bool(auditor.audit_signing)
 			'audit_new_cask':    auditor_optional_bool(auditor.audit_new_cask)
-			'any_named_args':    brew_runtime.bool_value(auditor.any_named_args)
+			'any_named_args':    ruby.bool_value(auditor.any_named_args)
 			'language':          if auditor.language_set {
-				brew_runtime.string_value(auditor.language)
+				ruby.string_value(auditor.language)
 			} else {
 				auditor_nil()
 			}
-			'only':              brew_runtime.string_array_value(auditor.only)
-			'except':            brew_runtime.string_array_value(auditor.except)
-			'output_lines':      brew_runtime.string_array_value(auditor.output_lines)
-			'audited_languages': brew_runtime.array_value(auditor.audited_languages.map(brew_runtime.string_array_value(it)))
+			'only':              ruby.string_array_value(auditor.only)
+			'except':            ruby.string_array_value(auditor.except)
+			'output_lines':      ruby.string_array_value(auditor.output_lines)
+			'audited_languages': ruby.array_value(auditor.audited_languages.map(ruby.string_array_value(it)))
 		}
 	}
 }
 
-fn auditor_value_bool(values map[string]brew_runtime.Value, key string, fallback bool) bool {
+fn auditor_value_bool(values map[string]ruby.Value, key string, fallback bool) bool {
 	return if value := values[key] { value.as_bool() or { fallback } } else { fallback }
 }
 
-fn auditor_optional_bool_from_value(values map[string]brew_runtime.Value, key string) ?bool {
+fn auditor_optional_bool_from_value(values map[string]ruby.Value, key string) ?bool {
 	value := values[key] or { return none }
 	if value.type_name == 'NilClass' || value.type_name == 'Nil' {
 		return none
@@ -271,20 +271,20 @@ fn auditor_optional_bool_from_value(values map[string]brew_runtime.Value, key st
 	return value.as_bool() or { return none }
 }
 
-fn auditor_optional_bool_alias(values map[string]brew_runtime.Value, primary string, fallback string) ?bool {
+fn auditor_optional_bool_alias(values map[string]ruby.Value, primary string, fallback string) ?bool {
 	if primary in values {
 		return auditor_optional_bool_from_value(values, primary)
 	}
 	return auditor_optional_bool_from_value(values, fallback)
 }
 
-fn auditor_language_blocks_from_value(cask_value brew_runtime.Value) []AuditorLanguageBlock {
+fn auditor_language_blocks_from_value(cask_value ruby.Value) []AuditorLanguageBlock {
 	values := cask_value.as_map() or { return []AuditorLanguageBlock{} }
 	raw_blocks := values['language_blocks'] or { return []AuditorLanguageBlock{} }
 	mut blocks := []AuditorLanguageBlock{}
-	for raw in raw_blocks.as_array() or { []brew_runtime.Value{} } {
+	for raw in raw_blocks.as_array() or { []ruby.Value{} } {
 		block_values := raw.as_map() or { continue }
-		languages := (block_values['languages'] or { brew_runtime.string_array_value([]) }).as_string_array() or {
+		languages := (block_values['languages'] or { ruby.string_array_value([]) }).as_string_array() or {
 			[]string{}
 		}
 		if localized := block_values['cask'] {
@@ -302,8 +302,8 @@ fn auditor_language_blocks_from_value(cask_value brew_runtime.Value) []AuditorLa
 	return blocks
 }
 
-fn auditor_options_from_value(cask_value brew_runtime.Value, value brew_runtime.Value) AuditorOptions {
-	values := value.as_map() or { map[string]brew_runtime.Value{} }
+fn auditor_options_from_value(cask_value ruby.Value, value ruby.Value) AuditorOptions {
+	values := value.as_map() or { map[string]ruby.Value{} }
 	language_value := values['language'] or { auditor_nil() }
 	return AuditorOptions{
 		audit_download: auditor_value_bool(values, 'audit_download', auditor_value_bool(values, 'download', false))
@@ -314,78 +314,78 @@ fn auditor_options_from_value(cask_value brew_runtime.Value, value brew_runtime.
 		any_named_args: auditor_value_bool(values, 'any_named_args', false)
 		language: language_value.as_string()
 		language_set: language_value.type_name !in ['NilClass', 'Nil']
-		only: (values['only'] or { brew_runtime.string_array_value([]) }).as_string_array() or {
+		only: (values['only'] or { ruby.string_array_value([]) }).as_string_array() or {
 			[]string{}
 		}
-		except: (values['except'] or { brew_runtime.string_array_value([]) }).as_string_array() or {
+		except: (values['except'] or { ruby.string_array_value([]) }).as_string_array() or {
 			[]string{}
 		}
 		language_blocks: auditor_language_blocks_from_value(cask_value)
 	}
 }
 
-fn auditor_from_value(value brew_runtime.Value) CaskAuditor {
+fn auditor_from_value(value ruby.Value) CaskAuditor {
 	if value.type_name == 'Cask::Auditor' {
 		values := value.map_data.clone()
-		cask_value := values['cask'] or { brew_runtime.string_value(value.as_string()) }
-		return new_cask_auditor(audit_cask_from_value(cask_value), auditor_options_from_value(cask_value, brew_runtime.map_value(values)))
+		cask_value := values['cask'] or { ruby.string_value(value.as_string()) }
+		return new_cask_auditor(audit_cask_from_value(cask_value), auditor_options_from_value(cask_value, ruby.map_value(values)))
 	}
-	return new_cask_auditor(audit_cask_from_value(value), auditor_options_from_value(value, brew_runtime.map_value({})))
+	return new_cask_auditor(audit_cask_from_value(value), auditor_options_from_value(value, ruby.map_value({})))
 }
 
-fn auditor_from_args(args []brew_runtime.Value) CaskAuditor {
+fn auditor_from_args(args []ruby.Value) CaskAuditor {
 	if args.len > 0 && args[0].type_name == 'Cask::Auditor' {
 		return auditor_from_value(args[0])
 	}
-	cask_value := if args.len > 0 { args[0] } else { brew_runtime.string_value('') }
-	options_value := if args.len > 1 { args[1] } else { brew_runtime.map_value({}) }
+	cask_value := if args.len > 0 { args[0] } else { ruby.string_value('') }
+	options_value := if args.len > 1 { args[1] } else { ruby.map_value({}) }
 	return new_cask_auditor(audit_cask_from_value(cask_value), auditor_options_from_value(cask_value, options_value))
 }
 
 // Ruby method `self.audit(` at line 21.
-pub fn ruby_auditor_l21_d1_self_audit(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_auditor_l21_d1_self_audit(args ...ruby.Value) ruby.Value {
 	mut auditor := auditor_from_args(args)
 	return auditor_error_set_value(auditor.audit())
 }
 
 // Ruby attr_reader `attr_reader :cask` at line 33.
-pub fn ruby_auditor_l33_d2_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_auditor_l33_d2_cask(args ...ruby.Value) ruby.Value {
 	auditor := auditor_from_args(args)
 	return audit_cask_boundary(auditor.cask)
 }
 
 // Ruby attr_reader `attr_reader :language` at line 36.
-pub fn ruby_auditor_l36_d3_language(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_auditor_l36_d3_language(args ...ruby.Value) ruby.Value {
 	auditor := auditor_from_args(args)
 	return if auditor.language_set {
-		brew_runtime.string_value(auditor.language)
+		ruby.string_value(auditor.language)
 	} else {
 		auditor_nil()
 	}
 }
 
 // Ruby method `initialize(` at line 46.
-pub fn ruby_auditor_l46_d4_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_auditor_l46_d4_initialize(args ...ruby.Value) ruby.Value {
 	return auditor_boundary_value(auditor_from_args(args))
 }
 
 // Ruby method `audit` at line 73.
-pub fn ruby_auditor_l73_d5_audit(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_auditor_l73_d5_audit(args ...ruby.Value) ruby.Value {
 	mut auditor := auditor_from_args(args)
 	return auditor_error_set_value(auditor.audit())
 }
 
 // Ruby method `output_summary?(audit = nil)` at line 104.
-pub fn ruby_auditor_l104_d6_output_summary(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_auditor_l104_d6_output_summary(args ...ruby.Value) ruby.Value {
 	auditor := auditor_from_args(args)
 	if args.len < 2 || args[1].type_name in ['NilClass', 'Nil'] {
-		return brew_runtime.bool_value(auditor.output_summary(none))
+		return ruby.bool_value(auditor.output_summary(none))
 	}
-	return brew_runtime.bool_value(auditor.output_summary(audit_from_value(args[1])))
+	return ruby.bool_value(auditor.output_summary(audit_from_value(args[1])))
 }
 
 // Ruby method `audit_languages(languages)` at line 115.
-pub fn ruby_auditor_l115_d7_audit_languages(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_auditor_l115_d7_audit_languages(args ...ruby.Value) ruby.Value {
 	auditor := auditor_from_args(args)
 	languages := if args.len > 1 { args[1].as_string_array() or { []string{} } } else { []string{} }
 	mut block := AuditorLanguageBlock{
@@ -402,7 +402,7 @@ pub fn ruby_auditor_l115_d7_audit_languages(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby method `audit_cask_instance(cask)` at line 128.
-pub fn ruby_auditor_l128_d8_audit_cask_instance(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_auditor_l128_d8_audit_cask_instance(args ...ruby.Value) ruby.Value {
 	auditor := auditor_from_args(args)
 	cask := if args.len > 1 { audit_cask_from_value(args[1]) } else { auditor.cask }
 	mut audit := auditor.audit_cask_instance(cask)
@@ -410,9 +410,9 @@ pub fn ruby_auditor_l128_d8_audit_cask_instance(args ...brew_runtime.Value) brew
 }
 
 // Ruby method `language_blocks` at line 143.
-pub fn ruby_auditor_l143_d9_language_blocks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_auditor_l143_d9_language_blocks(args ...ruby.Value) ruby.Value {
 	auditor := auditor_from_args(args)
-	return brew_runtime.array_value(auditor.language_blocks().map(auditor_language_block_value(it)))
+	return ruby.array_value(auditor.language_blocks().map(auditor_language_block_value(it)))
 }
 
 // Original Ruby source (line-for-line):

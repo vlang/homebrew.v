@@ -1,6 +1,6 @@
 module methods
 
-import brew_runtime
+import ruby
 import sync
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/private/methods/_methods.rb`.
@@ -8,10 +8,10 @@ import sync
 @[heap]
 pub struct RuntimeDeclarationBlock {
 pub mut:
-	mod         brew_runtime.Value
+	mod         ruby.Value
 	method_name string
 	location    string
-	blk_or_decl brew_runtime.Value
+	blk_or_decl ruby.Value
 	final_      bool
 	abstract_   bool
 	override_   string
@@ -23,18 +23,18 @@ struct MethodsRuntimeRegistry {
 	mutex &sync.Mutex = sync.new_mutex()
 mut:
 	installed_hooks       map[string]bool
-	signatures_by_method  map[string]brew_runtime.Value
-	sig_wrappers          map[string]brew_runtime.Value
+	signatures_by_method  map[string]ruby.Value
+	sig_wrappers          map[string]ruby.Value
 	sigs_that_raised      map[string]bool
 	was_ever_final_names  map[string]bool
 	modules_with_final    map[string]map[string]bool
-	active_declaration    brew_runtime.Value
-	previous_declaration  brew_runtime.Value
+	active_declaration    ruby.Value
+	previous_declaration  ruby.Value
 	final_checks_on_hooks bool
 }
 
-fn methods_nil() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn methods_nil() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 fn new_methods_runtime_registry() &MethodsRuntimeRegistry {
@@ -50,8 +50,8 @@ fn methods_runtime_registry() &MethodsRuntimeRegistry {
 	return unsafe { &MethodsRuntimeRegistry(methods_runtime_registry_global) }
 }
 
-fn declaration_block_value(block &RuntimeDeclarationBlock) brew_runtime.Value {
-	return brew_runtime.Value{
+fn declaration_block_value(block &RuntimeDeclarationBlock) ruby.Value {
+	return ruby.Value{
 		type_name: 'T::Private::Methods::DeclarationBlock'
 		repr: '${block.mod.as_string()}#${block.method_name}'
 		map_data: {
@@ -70,28 +70,28 @@ fn declaration_block_value(block &RuntimeDeclarationBlock) brew_runtime.Value {
 	}
 }
 
-fn declaration_block_from_value(value brew_runtime.Value) &RuntimeDeclarationBlock {
+fn declaration_block_from_value(value ruby.Value) &RuntimeDeclarationBlock {
 	address := value.attribute('declaration_block_address') or { panic('invalid DeclarationBlock value') }
 	return unsafe { &RuntimeDeclarationBlock(voidptr(address.u64())) }
 }
 
-fn module_identity(mod brew_runtime.Value) string {
+fn module_identity(mod ruby.Value) string {
 	return mod.attribute('object_id') or { mod.as_string() }
 }
 
-pub fn method_owner_and_name_key(owner brew_runtime.Value, name string) string {
+pub fn method_owner_and_name_key(owner ruby.Value, name string) string {
 	return '${module_identity(owner)}#${name.trim_string_left(':')}'
 }
 
-pub fn method_value_key(method brew_runtime.Value) string {
+pub fn method_value_key(method ruby.Value) string {
 	owner := method.map_data['owner'] or {
-		brew_runtime.object_value('Module', method.attribute('owner') or { '<unknown>' })
+		ruby.object_value('Module', method.attribute('owner') or { '<unknown>' })
 	}
 	return method_owner_and_name_key(owner, method.attribute('name') or { method.as_string() })
 }
 
-pub fn declare_runtime_signature(mod brew_runtime.Value, location string, argument string,
-	block_value brew_runtime.Value) !brew_runtime.Value {
+pub fn declare_runtime_signature(mod ruby.Value, location string, argument string,
+	block_value ruby.Value) !ruby.Value {
 	mut registry := methods_runtime_registry()
 	registry.mutex.lock()
 	defer { registry.mutex.unlock() }
@@ -115,7 +115,7 @@ pub fn declare_runtime_signature(mod brew_runtime.Value, location string, argume
 	return methods_nil()
 }
 
-fn previous_runtime_declaration(mod brew_runtime.Value, method_name string,
+fn previous_runtime_declaration(mod ruby.Value, method_name string,
 	dsl_name string) !&RuntimeDeclarationBlock {
 	mut registry := methods_runtime_registry()
 	registry.mutex.lock()
@@ -135,7 +135,7 @@ fn previous_runtime_declaration(mod brew_runtime.Value, method_name string,
 	return block
 }
 
-pub fn add_runtime_final_method(mod brew_runtime.Value, method_name string) {
+pub fn add_runtime_final_method(mod ruby.Value, method_name string) {
 	mut registry := methods_runtime_registry()
 	registry.mutex.lock()
 	clean_name := method_name.trim_string_left(':')
@@ -147,12 +147,12 @@ pub fn add_runtime_final_method(mod brew_runtime.Value, method_name string) {
 	registry.mutex.unlock()
 }
 
-fn module_ancestors(mod brew_runtime.Value) []string {
+fn module_ancestors(mod ruby.Value) []string {
 	return mod.attribute('ancestors') or { mod.as_string() }.split(',').map(it.trim_space()).filter(it != '')
 }
 
-pub fn check_runtime_final_ancestors(target brew_runtime.Value, source_method_names []string,
-	source brew_runtime.Value) !bool {
+pub fn check_runtime_final_ancestors(target ruby.Value, source_method_names []string,
+	source ruby.Value) !bool {
 	mut registry := methods_runtime_registry()
 	registry.mutex.lock()
 	modules_with_final := registry.modules_with_final.clone()
@@ -181,8 +181,8 @@ pub fn check_runtime_final_ancestors(target brew_runtime.Value, source_method_na
 	return !found_error
 }
 
-pub fn consume_runtime_method_added(hook_mod brew_runtime.Value, mod brew_runtime.Value,
-	method_name string, original_method brew_runtime.Value) !brew_runtime.Value {
+pub fn consume_runtime_method_added(hook_mod ruby.Value, mod ruby.Value,
+	method_name string, original_method ruby.Value) !ruby.Value {
 	mut registry := methods_runtime_registry()
 	registry.mutex.lock()
 	current_value := registry.active_declaration
@@ -207,7 +207,7 @@ pub fn consume_runtime_method_added(hook_mod brew_runtime.Value, mod brew_runtim
 	}
 	declaration.mod = mod
 	key := method_owner_and_name_key(mod, method_name)
-	wrapper := brew_runtime.Value{
+	wrapper := ruby.Value{
 		type_name: 'T::Private::Methods::SignatureThunk'
 		repr: key
 		map_data: {
@@ -232,7 +232,7 @@ fn declaration_from_block(block &RuntimeDeclarationBlock) !&SignatureDeclaration
 		return declaration_from_value(block.blk_or_decl)
 	}
 	mut result := block.blk_or_decl.map_data['declaration'] or {
-		block.blk_or_decl.map_data['result'] or { return error('SignatureThunk requires a translated `declaration` result because brew_runtime.Value cannot execute Ruby blocks') }
+		block.blk_or_decl.map_data['result'] or { return error('SignatureThunk requires a translated `declaration` result because ruby.Value cannot execute Ruby blocks') }
 	}
 	if result.type_name == 'T::Private::Methods::DeclBuilder' {
 		mut builder := declaration_builder_from_args([result])
@@ -256,17 +256,17 @@ fn declaration_from_block(block &RuntimeDeclarationBlock) !&SignatureDeclaration
 	return declaration_from_value(result)
 }
 
-pub fn build_runtime_signature(method_name string, original_method brew_runtime.Value,
+pub fn build_runtime_signature(method_name string, original_method ruby.Value,
 	declaration &SignatureDeclaration) &RuntimeMethodSignature {
-	raw_args := declaration.params.as_map() or { map[string]brew_runtime.Value{} }
+	raw_args := declaration.params.as_map() or { map[string]ruby.Value{} }
 	parameters := signature_parameters_from_method(original_method)
 	return new_runtime_method_signature(original_method, method_name, raw_args, declaration.returns, declaration.bind, declaration.mode, declaration.checked, declaration.on_failure, parameters, declaration.override_allow_incompatible, declaration.raw) or {
 		new_untyped_runtime_method_signature(original_method, 'untyped', parameters) or { panic(err) }
 	}
 }
 
-pub fn run_runtime_signature(method_name string, original_method brew_runtime.Value,
-	block &RuntimeDeclarationBlock) !brew_runtime.Value {
+pub fn run_runtime_signature(method_name string, original_method ruby.Value,
+	block &RuntimeDeclarationBlock) !ruby.Value {
 	declaration := declaration_from_block(block)!
 	signature := build_runtime_signature(method_name, original_method, declaration)
 	value := runtime_signature_value(signature)
@@ -282,7 +282,7 @@ pub fn run_runtime_signature(method_name string, original_method brew_runtime.Va
 	return value
 }
 
-pub fn run_runtime_signature_for_key(key string, force_type_init bool) !brew_runtime.Value {
+pub fn run_runtime_signature_for_key(key string, force_type_init bool) !ruby.Value {
 	mut registry := methods_runtime_registry()
 	registry.mutex.lock()
 	wrapper := registry.sig_wrappers[key] or {
@@ -342,7 +342,7 @@ pub fn run_all_runtime_signatures(force_type_init bool) ! {
 	registry.mutex.unlock()
 }
 
-fn signature_for_runtime_key(key string) ?brew_runtime.Value {
+fn signature_for_runtime_key(key string) ?ruby.Value {
 	mut registry := methods_runtime_registry()
 	registry.mutex.lock()
 	has_wrapper := key in registry.sig_wrappers
@@ -366,20 +366,20 @@ fn wrapper_has_key(key string) bool {
 	return key in registry.sig_wrappers
 }
 
-fn methods_bool_arg(value brew_runtime.Value) bool {
+fn methods_bool_arg(value ruby.Value) bool {
 	return value.as_bool() or { value.as_string() in ['true', ':true'] }
 }
 
 // Ruby method `self.declare_sig(mod, loc, arg, &blk)` at line 53.
-pub fn ruby_methods_l53_d1_self_declare_sig(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_methods_l53_d1_self_declare_sig(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Methods.declare_sig requires mod and location') }
 	argument := if args.len > 2 { args[2].as_string() } else { 'nil' }
-	block_value := if args.len > 3 { args[3] } else { brew_runtime.object_value('Proc', '#<Proc>') }
+	block_value := if args.len > 3 { args[3] } else { ruby.object_value('Proc', '#<Proc>') }
 	return declare_runtime_signature(args[0], args[1].as_string(), argument, block_value) or { panic(err) }
 }
 
 // Ruby method `self.ensure_valid_declare_dsl!(mod, method_name, dsl_name)` at line 72.
-pub fn ruby_methods_l72_d2_self_ensure_valid_declare_dsl(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_methods_l72_d2_self_ensure_valid_declare_dsl(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('Methods.ensure_valid_declare_dsl! requires mod, method_name, and DSL name')
 	}
@@ -387,7 +387,7 @@ pub fn ruby_methods_l72_d2_self_ensure_valid_declare_dsl(args ...brew_runtime.Va
 }
 
 // Ruby method `self.declare_abstract(mod, method_name)` at line 97.
-pub fn ruby_methods_l97_d3_self_declare_abstract(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_methods_l97_d3_self_declare_abstract(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Methods.declare_abstract requires mod and method_name') }
 	mut block := previous_runtime_declaration(args[0], args[1].as_string().trim_string_left(':'), 'abstract') or { panic(err) }
 	if block.abstract_ { panic('Cannot call `abstract` twice for the method `${block.method_name}`') }
@@ -396,7 +396,7 @@ pub fn ruby_methods_l97_d3_self_declare_abstract(args ...brew_runtime.Value) bre
 }
 
 // Ruby method `self.declare_override(mod, method_name, allow_incompatible:)` at line 122.
-pub fn ruby_methods_l122_d4_self_declare_override(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_methods_l122_d4_self_declare_override(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Methods.declare_override requires mod and method_name') }
 	method_name := args[1].as_string().trim_string_left(':')
 	mut block := previous_runtime_declaration(args[0], method_name, 'override') or { panic(err) }
@@ -407,7 +407,7 @@ pub fn ruby_methods_l122_d4_self_declare_override(args ...brew_runtime.Value) br
 }
 
 // Ruby method `self.declare_final(mod, method_name)` at line 142.
-pub fn ruby_methods_l142_d5_self_declare_final(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_methods_l142_d5_self_declare_final(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Methods.declare_final requires mod and method_name') }
 	method_name := args[1].as_string().trim_string_left(':')
 	mut block := previous_runtime_declaration(args[0], method_name, 'final') or { panic(err) }
@@ -420,7 +420,7 @@ pub fn ruby_methods_l142_d5_self_declare_final(args ...brew_runtime.Value) brew_
 }
 
 // Ruby method `self.declare_overridable(mod, method_name)` at line 160.
-pub fn ruby_methods_l160_d6_self_declare_overridable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_methods_l160_d6_self_declare_overridable(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Methods.declare_overridable requires mod and method_name') }
 	method_name := args[1].as_string().trim_string_left(':')
 	mut block := previous_runtime_declaration(args[0], method_name, 'overridable') or { panic(err) }
@@ -430,12 +430,12 @@ pub fn ruby_methods_l160_d6_self_declare_overridable(args ...brew_runtime.Value)
 }
 
 // Ruby method `self.start_proc` at line 173.
-pub fn ruby_methods_l173_d7_self_start_proc(args ...brew_runtime.Value) brew_runtime.Value {
-	return declaration_builder_value(new_declaration_builder(brew_runtime.object_value('T::Private::Methods::PROC_TYPE', 'PROC_TYPE'), false, '', false) or { panic(err) })
+pub fn ruby_methods_l173_d7_self_start_proc(args ...ruby.Value) ruby.Value {
+	return declaration_builder_value(new_declaration_builder(ruby.object_value('T::Private::Methods::PROC_TYPE', 'PROC_TYPE'), false, '', false) or { panic(err) })
 }
 
 // Ruby method `self.finalize_proc(decl)` at line 181.
-pub fn ruby_methods_l181_d8_self_finalize_proc(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_methods_l181_d8_self_finalize_proc(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Methods.finalize_proc requires a Declaration') }
 	mut declaration := declaration_from_value(args[0])
 	declaration.finalized = true
@@ -446,9 +446,9 @@ pub fn ruby_methods_l181_d8_self_finalize_proc(args ...brew_runtime.Value) brew_
 	if declaration_is_missing(declaration.returns) { panic('Procs must specify a return type') }
 	if !declaration_is_missing(declaration.on_failure) { panic('Procs cannot use .on_failure') }
 	if declaration_is_missing(declaration.params) {
-		declaration.params = brew_runtime.map_value({})
+		declaration.params = ruby.map_value({})
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'T::Types::Proc'
 		repr: 'T.proc'
 		map_data: {
@@ -459,28 +459,28 @@ pub fn ruby_methods_l181_d8_self_finalize_proc(args ...brew_runtime.Value) brew_
 }
 
 // Ruby method `self._check_final_ancestors(target, source_method_names, source)` at line 220.
-pub fn ruby_methods_l220_d9_self_check_final_ancestors(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_methods_l220_d9_self_check_final_ancestors(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Methods._check_final_ancestors requires target and method names') }
-	names := args[1].as_string_array() or { args[1].as_array() or { []brew_runtime.Value{} }.map(it.as_string().trim_string_left(':')) }
+	names := args[1].as_string_array() or { args[1].as_array() or { []ruby.Value{} }.map(it.as_string().trim_string_left(':')) }
 	source := if args.len > 2 { args[2] } else { methods_nil() }
-	return brew_runtime.bool_value(check_runtime_final_ancestors(args[0], names, source) or { panic(err) })
+	return ruby.bool_value(check_runtime_final_ancestors(args[0], names, source) or { panic(err) })
 }
 
 // Ruby method `self.add_module_with_final_method(mod, method_name)` at line 287.
-pub fn ruby_methods_l287_d10_self_add_module_with_final_method(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_methods_l287_d10_self_add_module_with_final_method(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Methods.add_module_with_final_method requires module and method name') }
 	add_runtime_final_method(args[0], args[1].as_string())
 	return methods_nil()
 }
 
 // Ruby method `self._on_method_added(hook_mod, mod, method_name)` at line 301.
-pub fn ruby_methods_l301_d11_self_on_method_added(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_methods_l301_d11_self_on_method_added(args ...ruby.Value) ruby.Value {
 	if args.len < 3 { panic('Methods._on_method_added requires hook module, module, and method name') }
 	name := args[2].as_string().trim_string_left(':')
 	original := if args.len > 3 {
 		args[3]
 	} else {
-		brew_runtime.Value{
+		ruby.Value{
 			type_name: 'UnboundMethod'
 			repr: name
 			map_data: {
@@ -497,8 +497,8 @@ pub fn ruby_methods_l301_d11_self_on_method_added(args ...brew_runtime.Value) br
 }
 
 // Ruby alias_method `"This should only be executed if you used `alias_method` to grab a handle to a method after `sig`ing it, but that clearly isn't what you are doing. " \` at line 366.
-pub fn ruby_methods_l366_d12_alias_method_dynamic(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.structured_value('T::Private::Methods::AliasLookup', if args.len > 0 {
+pub fn ruby_methods_l366_d12_alias_method_dynamic(args ...ruby.Value) ruby.Value {
+	return ruby.structured_value('T::Private::Methods::AliasLookup', if args.len > 0 {
 		args.last().as_string()
 	} else {
 		''
@@ -508,7 +508,7 @@ pub fn ruby_methods_l366_d12_alias_method_dynamic(args ...brew_runtime.Value) br
 }
 
 // Ruby method `self._unwrap_alias(method_sig, receiver, original_method, callee)` at line 403.
-pub fn ruby_methods_l403_d13_self_unwrap_alias(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_methods_l403_d13_self_unwrap_alias(args ...ruby.Value) ruby.Value {
 	if args.len < 4 {
 		panic('Methods._unwrap_alias requires signature, receiver, original method, and callee')
 	}
@@ -524,7 +524,7 @@ pub fn ruby_methods_l403_d13_self_unwrap_alias(args ...brew_runtime.Value) brew_
 }
 
 // Ruby method `self.run_sig(method_name, original_method, declaration_block)` at line 435.
-pub fn ruby_methods_l435_d14_self_run_sig(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_methods_l435_d14_self_run_sig(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('Methods.run_sig requires method name, original method, and declaration block')
 	}
@@ -532,13 +532,13 @@ pub fn ruby_methods_l435_d14_self_run_sig(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby method `self.run_builder(declaration_block)` at line 465.
-pub fn ruby_methods_l465_d15_self_run_builder(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_methods_l465_d15_self_run_builder(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Methods.run_builder requires a declaration block') }
 	return declaration_value(declaration_from_block(declaration_block_from_value(args[0])) or { panic(err) })
 }
 
 // Ruby method `self.build_sig(method_name, original_method, current_declaration)` at line 484.
-pub fn ruby_methods_l484_d16_self_build_sig(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_methods_l484_d16_self_build_sig(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('Methods.build_sig requires method name, original method, and declaration')
 	}
@@ -546,7 +546,7 @@ pub fn ruby_methods_l484_d16_self_build_sig(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby method `self.signature_for_method(method)` at line 521.
-pub fn ruby_methods_l521_d17_self_signature_for_method(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_methods_l521_d17_self_signature_for_method(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return methods_nil()
 	}
@@ -554,7 +554,7 @@ pub fn ruby_methods_l521_d17_self_signature_for_method(args ...brew_runtime.Valu
 }
 
 // Ruby method `self.signature_for_key(key)` at line 525.
-pub fn ruby_methods_l525_d18_self_signature_for_key(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_methods_l525_d18_self_signature_for_key(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return methods_nil()
 	}
@@ -562,7 +562,7 @@ pub fn ruby_methods_l525_d18_self_signature_for_key(args ...brew_runtime.Value) 
 }
 
 // Ruby method `self.unwrap_method(mod, signature, original_method)` at line 530.
-pub fn ruby_methods_l530_d19_self_unwrap_method(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_methods_l530_d19_self_unwrap_method(args ...ruby.Value) ruby.Value {
 	if args.len < 3 { panic('Methods.unwrap_method requires module, signature, and original method') }
 	plan := ruby_call_validation_l18_d1_self_wrap_method_if_needed(args[0], args[1], args[2])
 	mut registry := methods_runtime_registry()
@@ -573,17 +573,17 @@ pub fn ruby_methods_l530_d19_self_unwrap_method(args ...brew_runtime.Value) brew
 }
 
 // Ruby method `self.has_sig_block_for_method(method)` at line 535.
-pub fn ruby_methods_l535_d20_self_has_sig_block_for_method(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(args.len > 0 && wrapper_has_key(method_value_key(args[0])))
+pub fn ruby_methods_l535_d20_self_has_sig_block_for_method(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(args.len > 0 && wrapper_has_key(method_value_key(args[0])))
 }
 
 // Ruby method `self.has_sig_block_for_key(key)` at line 539.
-pub fn ruby_methods_l539_d21_self_has_sig_block_for_key(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(args.len > 0 && wrapper_has_key(args[0].as_string()))
+pub fn ruby_methods_l539_d21_self_has_sig_block_for_key(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(args.len > 0 && wrapper_has_key(args[0].as_string()))
 }
 
 // Ruby method `self.maybe_run_sig_block_for_method(method)` at line 543.
-pub fn ruby_methods_l543_d22_self_maybe_run_sig_block_for_method(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_methods_l543_d22_self_maybe_run_sig_block_for_method(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return methods_nil()
 	}
@@ -596,7 +596,7 @@ pub fn ruby_methods_l543_d22_self_maybe_run_sig_block_for_method(args ...brew_ru
 }
 
 // Ruby method `self.maybe_run_sig_block_for_key(key)` at line 548.
-pub fn ruby_methods_l548_d23_self_maybe_run_sig_block_for_key(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_methods_l548_d23_self_maybe_run_sig_block_for_key(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return methods_nil()
 	}
@@ -609,48 +609,48 @@ pub fn ruby_methods_l548_d23_self_maybe_run_sig_block_for_key(args ...brew_runti
 }
 
 // Ruby method `self.run_sig_block_for_method(method)` at line 552.
-pub fn ruby_methods_l552_d24_self_run_sig_block_for_method(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_methods_l552_d24_self_run_sig_block_for_method(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Methods.run_sig_block_for_method requires a method') }
 	return run_runtime_signature_for_key(method_value_key(args[0]), false) or { panic(err) }
 }
 
 // Ruby method `self.method_owner_and_name_to_key(owner, name)` at line 557.
-pub fn ruby_methods_l557_d25_self_method_owner_and_name_to_key(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_methods_l557_d25_self_method_owner_and_name_to_key(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Methods.method_owner_and_name_to_key requires owner and name') }
-	return brew_runtime.string_value(method_owner_and_name_key(args[0], args[1].as_string()))
+	return ruby.string_value(method_owner_and_name_key(args[0], args[1].as_string()))
 }
 
 // Ruby method `self.method_to_key(method)` at line 561.
-pub fn ruby_methods_l561_d26_self_method_to_key(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_methods_l561_d26_self_method_to_key(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Methods.method_to_key requires a method') }
-	return brew_runtime.string_value(method_value_key(args[0]))
+	return ruby.string_value(method_value_key(args[0]))
 }
 
 // Ruby method `self.run_sig_block_for_key(key, force_type_init: false)` at line 569.
-pub fn ruby_methods_l569_d27_self_run_sig_block_for_key(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_methods_l569_d27_self_run_sig_block_for_key(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Methods.run_sig_block_for_key requires a key') }
 	force := args.len > 1 && methods_bool_arg(args[1])
 	return run_runtime_signature_for_key(args[0].as_string(), force) or { panic(err) }
 }
 
 // Ruby method `self.run_all_sig_blocks(force_type_init: true)` at line 598.
-pub fn ruby_methods_l598_d28_self_run_all_sig_blocks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_methods_l598_d28_self_run_all_sig_blocks(args ...ruby.Value) ruby.Value {
 	force := if args.len > 0 { methods_bool_arg(args[0]) } else { true }
 	run_all_runtime_signatures(force) or { panic(err) }
 	return methods_nil()
 }
 
 // Ruby method `self.all_checked_tests_sigs` at line 617.
-pub fn ruby_methods_l617_d29_self_all_checked_tests_sigs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_methods_l617_d29_self_all_checked_tests_sigs(args ...ruby.Value) ruby.Value {
 	mut registry := methods_runtime_registry()
 	registry.mutex.lock()
 	values := registry.signatures_by_method.values().filter(it.attribute('check_level') or { '' } == 'tests')
 	registry.mutex.unlock()
-	return brew_runtime.array_value(values)
+	return ruby.array_value(values)
 }
 
 // Ruby method `self._hook_impl(target, source)` at line 623.
-pub fn ruby_methods_l623_d30_self_hook_impl(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_methods_l623_d30_self_hook_impl(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Methods._hook_impl requires target and source') }
 	method_names := args[1].attribute('instance_methods') or { '' }.split(',').map(it.trim_space()).filter(it != '')
 	mut registry := methods_runtime_registry()
@@ -660,11 +660,11 @@ pub fn ruby_methods_l623_d30_self_hook_impl(args ...brew_runtime.Value) brew_run
 	if interesting.len == 0 {
 		return methods_nil()
 	}
-	return brew_runtime.bool_value(check_runtime_final_ancestors(args[0], interesting, args[1]) or { panic(err) })
+	return ruby.bool_value(check_runtime_final_ancestors(args[0], interesting, args[1]) or { panic(err) })
 }
 
 // Ruby method `self.set_final_checks_on_hooks(enable)` at line 648.
-pub fn ruby_methods_l648_d31_self_set_final_checks_on_hooks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_methods_l648_d31_self_set_final_checks_on_hooks(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Methods.set_final_checks_on_hooks requires a boolean') }
 	mut registry := methods_runtime_registry()
 	registry.mutex.lock()
@@ -674,31 +674,31 @@ pub fn ruby_methods_l648_d31_self_set_final_checks_on_hooks(args ...brew_runtime
 }
 
 // Ruby define_method `Module.define_method(:included, @old_hooks[0])` at line 657.
-pub fn ruby_methods_l657_d32_included(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.structured_value('T::Private::Methods::RestoredHook', 'included', {
+pub fn ruby_methods_l657_d32_included(args ...ruby.Value) ruby.Value {
+	return ruby.structured_value('T::Private::Methods::RestoredHook', 'included', {
 		'hook': 'included'
 	})
 }
 
 // Ruby define_method `Module.define_method(:extended, @old_hooks[1])` at line 658.
-pub fn ruby_methods_l658_d33_extended(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.structured_value('T::Private::Methods::RestoredHook', 'extended', {
+pub fn ruby_methods_l658_d33_extended(args ...ruby.Value) ruby.Value {
+	return ruby.structured_value('T::Private::Methods::RestoredHook', 'extended', {
 		'hook': 'extended'
 	})
 }
 
 // Ruby define_method `Class.define_method(:inherited, @old_hooks[2])` at line 659.
-pub fn ruby_methods_l659_d34_inherited(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.structured_value('T::Private::Methods::RestoredHook', 'inherited', {
+pub fn ruby_methods_l659_d34_inherited(args ...ruby.Value) ruby.Value {
+	return ruby.structured_value('T::Private::Methods::RestoredHook', 'inherited', {
 		'hook': 'inherited'
 	})
 }
 
 // Ruby method `method_added(name)` at line 687.
-pub fn ruby_methods_l687_d35_method_added(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_methods_l687_d35_method_added(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('MethodHooks#method_added requires receiver and name') }
 	name := args[1].as_string().trim_string_left(':')
-	method := brew_runtime.Value{
+	method := ruby.Value{
 		type_name: 'UnboundMethod'
 		repr: name
 		map_data: {
@@ -714,13 +714,13 @@ pub fn ruby_methods_l687_d35_method_added(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby method `singleton_method_added(name)` at line 694.
-pub fn ruby_methods_l694_d36_singleton_method_added(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_methods_l694_d36_singleton_method_added(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('SingletonMethodHooks#singleton_method_added requires receiver and name') }
 	name := args[1].as_string().trim_string_left(':')
-	singleton := brew_runtime.structured_value('Class', '${args[0].as_string()}.singleton_class', {
+	singleton := ruby.structured_value('Class', '${args[0].as_string()}.singleton_class', {
 		'object_id': '${module_identity(args[0])}:singleton'
 	})
-	method := brew_runtime.Value{
+	method := ruby.Value{
 		type_name: 'UnboundMethod'
 		repr: name
 		map_data: {
@@ -736,7 +736,7 @@ pub fn ruby_methods_l694_d36_singleton_method_added(args ...brew_runtime.Value) 
 }
 
 // Ruby method `self.install_hooks(mod)` at line 708.
-pub fn ruby_methods_l708_d37_self_install_hooks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_methods_l708_d37_self_install_hooks(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Methods.install_hooks requires a module') }
 	mod := args[0]
 	key := module_identity(mod)
@@ -745,7 +745,7 @@ pub fn ruby_methods_l708_d37_self_install_hooks(args ...brew_runtime.Value) brew
 	already := registry.installed_hooks[key] or { false }
 	registry.installed_hooks[key] = true
 	registry.mutex.unlock()
-	return brew_runtime.structured_value('T::Private::Methods::InstalledHooks', mod.as_string(), {
+	return ruby.structured_value('T::Private::Methods::InstalledHooks', mod.as_string(), {
 		'already_installed': already.str()
 		'method_hook':       if mod.attribute('singleton_class') or { 'false' } == 'true' {
 			'included'

@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `test/dev-cmd/tap-new_spec.rb`.
@@ -67,7 +67,7 @@ pub fn tap_new_spec_initializes(root string) !bool {
 }
 
 // Ruby it `it "initializes a new tap with a README file and GitHub Actions CI", :integration_test do` at line 11.
-pub fn ruby_tap_new_spec_l11_d1_initializes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tap_new_spec_l11_d1_initializes(args ...ruby.Value) ruby.Value {
 	root := if args.len > 0 {
 		args[0].as_string()
 	} else {
@@ -81,12 +81,12 @@ pub fn ruby_tap_new_spec_l11_d1_initializes(args ...brew_runtime.Value) brew_run
 		if created_temporary_root {
 			os.rmdir_all(root) or {}
 		}
-		return brew_runtime.object_value('Error', err.msg())
+		return ruby.object_value('Error', err.msg())
 	}
 	if created_temporary_root {
 		os.rmdir_all(root) or {}
 	}
-	return brew_runtime.bool_value(result)
+	return ruby.bool_value(result)
 }
 
 // Original Ruby source (line-for-line):

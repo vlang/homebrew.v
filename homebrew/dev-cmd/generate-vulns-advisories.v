@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 import homebrew.vulns
 import os
 import time
@@ -277,105 +277,105 @@ pub fn run_generate_vulns_advisories(mut command GenerateVulnsAdvisoriesCommand)
 	return result
 }
 
-pub fn generate_vulns_advisories_input_boundary(input &GenerateVulnsAdvisoriesInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::GenerateVulnsAdvisories::Input', '', {
+pub fn generate_vulns_advisories_input_boundary(input &GenerateVulnsAdvisoriesInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::GenerateVulnsAdvisories::Input', '', {
 		'generate_vulns_advisories_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn generate_vulns_advisories_input_from_value(value brew_runtime.Value) &GenerateVulnsAdvisoriesInput {
+fn generate_vulns_advisories_input_from_value(value ruby.Value) &GenerateVulnsAdvisoriesInput {
 	address := value.attributes['generate_vulns_advisories_input_address'] or {
 		panic('invalid GenerateVulnsAdvisories input')
 	}
 	return unsafe { &GenerateVulnsAdvisoriesInput(voidptr(address.u64())) }
 }
 
-pub fn generate_vulns_formula_input_boundary(input &GenerateVulnsFormulaInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::GenerateVulnsAdvisories::FormulaInput', '', {
+pub fn generate_vulns_formula_input_boundary(input &GenerateVulnsFormulaInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::GenerateVulnsAdvisories::FormulaInput', '', {
 		'generate_vulns_formula_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn generate_vulns_formula_input_from_value(value brew_runtime.Value) &GenerateVulnsFormulaInput {
+fn generate_vulns_formula_input_from_value(value ruby.Value) &GenerateVulnsFormulaInput {
 	address := value.attributes['generate_vulns_formula_input_address'] or {
 		panic('invalid GenerateVulnsAdvisories formula input')
 	}
 	return unsafe { &GenerateVulnsFormulaInput(voidptr(address.u64())) }
 }
 
-pub fn generate_vulns_first_fixed_input_boundary(input &GenerateVulnsFirstFixedInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::GenerateVulnsAdvisories::FirstFixedInput', '', {
+pub fn generate_vulns_first_fixed_input_boundary(input &GenerateVulnsFirstFixedInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::GenerateVulnsAdvisories::FirstFixedInput', '', {
 		'generate_vulns_first_fixed_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn generate_vulns_first_fixed_input_from_value(value brew_runtime.Value) &GenerateVulnsFirstFixedInput {
+fn generate_vulns_first_fixed_input_from_value(value ruby.Value) &GenerateVulnsFirstFixedInput {
 	address := value.attributes['generate_vulns_first_fixed_input_address'] or {
 		panic('invalid GenerateVulnsAdvisories first-fixed input')
 	}
 	return unsafe { &GenerateVulnsFirstFixedInput(voidptr(address.u64())) }
 }
 
-fn generate_vulns_patch_value(patch vulns.OsvExportPatch) brew_runtime.Value {
-	mut resolves := []brew_runtime.Value{}
+fn generate_vulns_patch_value(patch vulns.OsvExportPatch) ruby.Value {
+	mut resolves := []ruby.Value{}
 	for resolve in patch.resolves {
-		resolves << brew_runtime.map_value({
-			'type': brew_runtime.string_value(resolve.resolve_type)
-			'id':   brew_runtime.string_value(resolve.id)
+		resolves << ruby.map_value({
+			'type': ruby.string_value(resolve.resolve_type)
+			'id':   ruby.string_value(resolve.id)
 		})
 	}
-	return brew_runtime.map_value({
-		'type':     brew_runtime.string_value(patch.patch_type)
-		'url':      brew_runtime.string_value(patch.url)
-		'file':     brew_runtime.string_value(patch.file)
-		'apply':    brew_runtime.string_array_value(patch.apply)
-		'resolves': brew_runtime.array_value(resolves)
+	return ruby.map_value({
+		'type':     ruby.string_value(patch.patch_type)
+		'url':      ruby.string_value(patch.url)
+		'file':     ruby.string_value(patch.file)
+		'apply':    ruby.string_array_value(patch.apply)
+		'resolves': ruby.array_value(resolves)
 	})
 }
 
-fn generate_vulns_result_value(result GenerateVulnsAdvisoriesResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'annotated_count': brew_runtime.int_value(result.annotated_count)
-		'output_lines':    brew_runtime.string_array_value(result.output_lines)
-		'messages':        brew_runtime.string_array_value(result.messages)
-		'written_files':   brew_runtime.string_array_value(result.written_files)
+fn generate_vulns_result_value(result GenerateVulnsAdvisoriesResult) ruby.Value {
+	return ruby.map_value({
+		'annotated_count': ruby.int_value(result.annotated_count)
+		'output_lines':    ruby.string_array_value(result.output_lines)
+		'messages':        ruby.string_array_value(result.messages)
+		'written_files':   ruby.string_array_value(result.written_files)
 	})
 }
 
 // Ruby method `run` at line 29.
-pub fn ruby_generate_vulns_advisories_l29_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_vulns_advisories_l29_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'command input is required')
+		return ruby.object_value('ArgumentError', 'command input is required')
 	}
 	input := generate_vulns_advisories_input_from_value(args[0])
 	mut command := new_generate_vulns_advisories_command(input.options)
 	result := run_generate_vulns_advisories(mut command) or {
 		error_type := if !input.options.tap_installed { 'TapUnavailableError' } else { 'Error' }
-		return brew_runtime.object_value(error_type, err.msg())
+		return ruby.object_value(error_type, err.msg())
 	}
 	return generate_vulns_result_value(result)
 }
 
 // Ruby method `all_variation_patches(formula)` at line 75.
-pub fn ruby_generate_vulns_advisories_l75_d2_all_variation_patches(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_vulns_advisories_l75_d2_all_variation_patches(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'formula input is required')
+		return ruby.object_value('ArgumentError', 'formula input is required')
 	}
 	input := generate_vulns_formula_input_from_value(args[0])
 	patches := generate_vulns_all_variation_patches(input.formula)
-	return brew_runtime.array_value(patches.map(generate_vulns_patch_value(it)))
+	return ruby.array_value(patches.map(generate_vulns_patch_value(it)))
 }
 
 // Ruby method `first_fixed_version(formula, vuln_id)` at line 103.
-pub fn ruby_generate_vulns_advisories_l103_d3_first_fixed_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_vulns_advisories_l103_d3_first_fixed_version(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'first-fixed input is required')
+		return ruby.object_value('ArgumentError', 'first-fixed input is required')
 	}
 	mut input := generate_vulns_first_fixed_input_from_value(args[0])
 	if fixed := generate_vulns_first_fixed_version(mut input.command, input.formula, input.vuln_id) {
-		return brew_runtime.string_value(fixed)
+		return ruby.string_value(fixed)
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Original Ruby source (line-for-line):

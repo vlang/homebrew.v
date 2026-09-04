@@ -1,24 +1,24 @@
 module dsl
 
-import brew_runtime
+import ruby
 import homebrew.cask.dsl as version_dsl
 
 // Translated from Homebrew/brew `test/cask/dsl/version_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:version) { described_class.new(raw_version) }` at line 5.
-pub fn ruby_version_spec_l5_d1_version(raw_version brew_runtime.Value) !version_dsl.CaskVersion {
+pub fn ruby_version_spec_l5_d1_version(raw_version ruby.Value) !version_dsl.CaskVersion {
 	return version_dsl.new_cask_version(raw_version)
 }
 
 // Ruby let `let(input_name.to_sym) { input_value }` at line 10.
-pub fn ruby_version_spec_l10_d2_let_dynamic(input_value brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_version_spec_l10_d2_let_dynamic(input_value ruby.Value) ruby.Value {
 	return input_value
 }
 
 // Ruby it `it { is_expected.to eq expected_output }` at line 12.
-pub fn ruby_version_spec_l12_d3_anonymous(method string, input_value brew_runtime.Value,
-	expected_output brew_runtime.Value) !bool {
+pub fn ruby_version_spec_l12_d3_anonymous(method string, input_value ruby.Value,
+	expected_output ruby.Value) !bool {
 	version := ruby_version_spec_l5_d1_version(ruby_version_spec_l10_d2_let_dynamic(input_value))!
 	actual := ruby_version_spec_l76_d18_subject_dynamic(version, method)
 	if method == 'csv' {
@@ -36,58 +36,58 @@ pub fn ruby_version_spec_l18_d4_raw_version() string {
 }
 
 // Ruby let `let(:other) { nil }` at line 21.
-pub fn ruby_version_spec_l21_d5_other() brew_runtime.Value {
-	return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+pub fn ruby_version_spec_l21_d5_other() ruby.Value {
+	return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 }
 
 // Ruby it `it { is_expected.to be false }` at line 23.
 pub fn ruby_version_spec_l23_d6_anonymous() !bool {
-	return !ruby_version_spec_l64_d16_subject_dynamic(ruby_version_spec_l5_d1_version(brew_runtime.string_value(ruby_version_spec_l18_d4_raw_version()))!, ruby_version_spec_l21_d5_other())
+	return !ruby_version_spec_l64_d16_subject_dynamic(ruby_version_spec_l5_d1_version(ruby.string_value(ruby_version_spec_l18_d4_raw_version()))!, ruby_version_spec_l21_d5_other())
 }
 
 // Ruby let `let(:other) { "1.2.3" }` at line 28.
-pub fn ruby_version_spec_l28_d7_other() brew_runtime.Value {
-	return brew_runtime.string_value('1.2.3')
+pub fn ruby_version_spec_l28_d7_other() ruby.Value {
+	return ruby.string_value('1.2.3')
 }
 
 // Ruby it `it { is_expected.to be true }` at line 30.
 pub fn ruby_version_spec_l30_d8_anonymous() !bool {
-	return ruby_version_spec_l64_d16_subject_dynamic(ruby_version_spec_l5_d1_version(brew_runtime.string_value(ruby_version_spec_l18_d4_raw_version()))!, ruby_version_spec_l28_d7_other())
+	return ruby_version_spec_l64_d16_subject_dynamic(ruby_version_spec_l5_d1_version(ruby.string_value(ruby_version_spec_l18_d4_raw_version()))!, ruby_version_spec_l28_d7_other())
 }
 
 // Ruby let `let(:other) { "1.2.3.4" }` at line 34.
-pub fn ruby_version_spec_l34_d9_other() brew_runtime.Value {
-	return brew_runtime.string_value('1.2.3.4')
+pub fn ruby_version_spec_l34_d9_other() ruby.Value {
+	return ruby.string_value('1.2.3.4')
 }
 
 // Ruby it `it { is_expected.to be false }` at line 36.
 pub fn ruby_version_spec_l36_d10_anonymous() !bool {
-	return !ruby_version_spec_l64_d16_subject_dynamic(ruby_version_spec_l5_d1_version(brew_runtime.string_value(ruby_version_spec_l18_d4_raw_version()))!, ruby_version_spec_l34_d9_other())
+	return !ruby_version_spec_l64_d16_subject_dynamic(ruby_version_spec_l5_d1_version(ruby.string_value(ruby_version_spec_l18_d4_raw_version()))!, ruby_version_spec_l34_d9_other())
 }
 
 // Ruby let `let(:other) { described_class.new("1.2.3") }` at line 42.
-pub fn ruby_version_spec_l42_d11_other() !brew_runtime.Value {
+pub fn ruby_version_spec_l42_d11_other() !ruby.Value {
 	return version_dsl.cask_version_value(version_dsl.cask_version_from_string('1.2.3')!)
 }
 
 // Ruby it `it { is_expected.to be true }` at line 44.
 pub fn ruby_version_spec_l44_d12_anonymous() !bool {
-	return ruby_version_spec_l64_d16_subject_dynamic(ruby_version_spec_l5_d1_version(brew_runtime.string_value(ruby_version_spec_l18_d4_raw_version()))!, ruby_version_spec_l42_d11_other()!)
+	return ruby_version_spec_l64_d16_subject_dynamic(ruby_version_spec_l5_d1_version(ruby.string_value(ruby_version_spec_l18_d4_raw_version()))!, ruby_version_spec_l42_d11_other()!)
 }
 
 // Ruby let `let(:other) { described_class.new("1.2.3.4") }` at line 48.
-pub fn ruby_version_spec_l48_d13_other() !brew_runtime.Value {
+pub fn ruby_version_spec_l48_d13_other() !ruby.Value {
 	return version_dsl.cask_version_value(version_dsl.cask_version_from_string('1.2.3.4')!)
 }
 
 // Ruby it `it { is_expected.to be false }` at line 50.
 pub fn ruby_version_spec_l50_d14_anonymous() !bool {
-	return !ruby_version_spec_l64_d16_subject_dynamic(ruby_version_spec_l5_d1_version(brew_runtime.string_value(ruby_version_spec_l18_d4_raw_version()))!, ruby_version_spec_l48_d13_other()!)
+	return !ruby_version_spec_l64_d16_subject_dynamic(ruby_version_spec_l5_d1_version(ruby.string_value(ruby_version_spec_l18_d4_raw_version()))!, ruby_version_spec_l48_d13_other()!)
 }
 
 // Ruby it `it "raises an error when the version contains a slash" do` at line 56.
 pub fn ruby_version_spec_l56_d15_raises() bool {
-	version_dsl.new_cask_version(brew_runtime.string_value('0.1,../../directory/traversal')) or {
+	version_dsl.new_cask_version(ruby.string_value('0.1,../../directory/traversal')) or {
 		return err.msg().contains('invalid characters: /')
 	}
 	return false
@@ -95,7 +95,7 @@ pub fn ruby_version_spec_l56_d15_raises() bool {
 
 // Ruby subject `subject { version == other }` at line 64.
 pub fn ruby_version_spec_l64_d16_subject_dynamic(version version_dsl.CaskVersion,
-	other brew_runtime.Value) bool {
+	other ruby.Value) bool {
 	if other.type_name == 'NilClass' {
 		return false
 	}
@@ -108,15 +108,15 @@ pub fn ruby_version_spec_l64_d16_subject_dynamic(version version_dsl.CaskVersion
 
 // Ruby subject `subject { version.eql?(other) }` at line 70.
 pub fn ruby_version_spec_l70_d17_subject_dynamic(version version_dsl.CaskVersion,
-	other brew_runtime.Value) bool {
+	other ruby.Value) bool {
 	return ruby_version_spec_l64_d16_subject_dynamic(version, other)
 }
 
 // Ruby subject `subject { version.public_send(method) }` at line 76.
 pub fn ruby_version_spec_l76_d18_subject_dynamic(version version_dsl.CaskVersion,
-	method string) brew_runtime.Value {
+	method string) ruby.Value {
 	return match method {
-		'latest?' { brew_runtime.bool_value(version.latest()) }
+		'latest?' { ruby.bool_value(version.latest()) }
 		'major' { version_dsl.cask_version_value(version.major()) }
 		'minor' { version_dsl.cask_version_value(version.minor()) }
 		'patch' { version_dsl.cask_version_value(version.patch()) }
@@ -140,13 +140,13 @@ pub fn ruby_version_spec_l76_d18_subject_dynamic(version version_dsl.CaskVersion
 		'no_hyphens' { version_dsl.cask_version_value(version.delete_divider('-')) }
 		'no_underscores' { version_dsl.cask_version_value(version.delete_divider('_')) }
 		'no_dividers' { version_dsl.cask_version_value(version.no_dividers()) }
-		else { brew_runtime.object_value('NoMethodError', method) }
+		else { ruby.object_value('NoMethodError', method) }
 	}
 }
 
 // Ruby subject `subject { version.csv }` at line 144.
-pub fn ruby_version_spec_l144_d19_subject_dynamic(version version_dsl.CaskVersion) brew_runtime.Value {
-	return brew_runtime.string_array_value(version.csv().map(it.text))
+pub fn ruby_version_spec_l144_d19_subject_dynamic(version version_dsl.CaskVersion) ruby.Value {
+	return ruby.string_array_value(version.csv().map(it.text))
 }
 
 // Ruby it `it "detects` at line 354.
@@ -302,8 +302,8 @@ fn version_spec_unstable_versions() []string {
 	]
 }
 
-fn version_spec_value(value string) brew_runtime.Value {
-	return brew_runtime.string_value(value)
+fn version_spec_value(value string) ruby.Value {
+	return ruby.string_value(value)
 }
 
 fn version_spec_expectation(method string, input string, expected string) !bool {
@@ -315,9 +315,9 @@ pub fn version_spec_all_expectations() !bool {
 		'before_comma', 'after_comma', 'dots_to_hyphens', 'dots_to_underscores', 'hyphens_to_dots',
 		'hyphens_to_underscores', 'underscores_to_dots', 'underscores_to_hyphens', 'no_dots',
 		'no_hyphens', 'no_underscores', 'no_dividers'] {
-		for raw in [brew_runtime.Value{ type_name: 'Symbol', repr: 'latest' },
-			brew_runtime.string_value('latest'), brew_runtime.string_value(''),
-			brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }] {
+		for raw in [ruby.Value{ type_name: 'Symbol', repr: 'latest' },
+			ruby.string_value('latest'), ruby.string_value(''),
+			ruby.Value{ type_name: 'NilClass', repr: 'nil' }] {
 			if !ruby_version_spec_l12_d3_anonymous(method, raw, version_spec_value(if raw.as_string() == 'latest' {
 				'latest'} else {
 				''}))! {
@@ -412,13 +412,13 @@ pub fn version_spec_all_expectations() !bool {
 			}
 		}
 	}
-	if !ruby_version_spec_l12_d3_anonymous('latest?', brew_runtime.Value{
+	if !ruby_version_spec_l12_d3_anonymous('latest?', ruby.Value{
 		type_name: 'Symbol'
 		repr: 'latest'
-	}, brew_runtime.bool_value(true))! || !ruby_version_spec_l12_d3_anonymous('latest?', brew_runtime.string_value('latest'), brew_runtime.bool_value(true))! || !ruby_version_spec_l12_d3_anonymous('latest?', brew_runtime.string_value(''), brew_runtime.bool_value(false))! || !ruby_version_spec_l12_d3_anonymous('latest?', brew_runtime.Value{
+	}, ruby.bool_value(true))! || !ruby_version_spec_l12_d3_anonymous('latest?', ruby.string_value('latest'), ruby.bool_value(true))! || !ruby_version_spec_l12_d3_anonymous('latest?', ruby.string_value(''), ruby.bool_value(false))! || !ruby_version_spec_l12_d3_anonymous('latest?', ruby.Value{
 		type_name: 'NilClass'
 		repr: 'nil'
-	}, brew_runtime.bool_value(false))! || !ruby_version_spec_l12_d3_anonymous('latest?', brew_runtime.string_value('1.2.3'), brew_runtime.bool_value(false))! {
+	}, ruby.bool_value(false))! || !ruby_version_spec_l12_d3_anonymous('latest?', ruby.string_value('1.2.3'), ruby.bool_value(false))! {
 		return false
 	}
 	csv_cases := {
@@ -430,7 +430,7 @@ pub fn version_spec_all_expectations() !bool {
 		'1.2.3,abc': ['1.2.3', 'abc']
 	}
 	for input, expected in csv_cases {
-		if !ruby_version_spec_l12_d3_anonymous('csv', version_spec_value(input), brew_runtime.string_array_value(expected))! {
+		if !ruby_version_spec_l12_d3_anonymous('csv', version_spec_value(input), ruby.string_array_value(expected))! {
 			return false
 		}
 	}

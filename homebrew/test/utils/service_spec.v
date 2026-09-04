@@ -1,22 +1,22 @@
 module utils
 
-import brew_runtime
+import ruby
 import homebrew.utils
 
 // Translated from Homebrew/brew `test/utils/service_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "returns false when neither launchctl nor systemctl is available" do` at line 8.
-pub fn ruby_service_spec_l8_d1_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(!utils.service_running(utils.ServiceFormula{
+pub fn ruby_service_spec_l8_d1_returns(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(!utils.service_running(utils.ServiceFormula{
 		plist_name: 'homebrew.mxcl.foo'
 		service_name: 'homebrew.foo'
 	}, utils.ServiceManagerState{}))
 }
 
 // Ruby it `it "delegates to System.launchctl_service_running? on macOS" do` at line 17.
-pub fn ruby_service_spec_l17_d2_delegates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(utils.service_running(utils.ServiceFormula{
+pub fn ruby_service_spec_l17_d2_delegates(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(utils.service_running(utils.ServiceFormula{
 		plist_name: 'homebrew.mxcl.foo'
 	}, utils.ServiceManagerState{
 		launchctl_path: '/bin/launchctl'
@@ -25,8 +25,8 @@ pub fn ruby_service_spec_l17_d2_delegates(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby it `it "uses systemctl is-active when systemctl is available" do` at line 28.
-pub fn ruby_service_spec_l28_d3_uses(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(utils.service_running(utils.ServiceFormula{
+pub fn ruby_service_spec_l28_d3_uses(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(utils.service_running(utils.ServiceFormula{
 		service_name: 'homebrew.foo'
 	}, utils.ServiceManagerState{
 		systemctl_path: '/bin/systemctl'
@@ -35,19 +35,19 @@ pub fn ruby_service_spec_l28_d3_uses(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby it `it "quotes empty strings correctly" do` at line 43.
-pub fn ruby_service_spec_l43_d4_quotes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(utils.systemd_quote('') == '""')
+pub fn ruby_service_spec_l43_d4_quotes(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(utils.systemd_quote('') == '""')
 }
 
 // Ruby it `it "quotes strings with special characters escaped correctly" do` at line 47.
-pub fn ruby_service_spec_l47_d5_quotes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(utils.systemd_quote('\a\b\f\n\r\t\v\\') == r'"\a\b\f\n\r\t\v\\"'
+pub fn ruby_service_spec_l47_d5_quotes(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(utils.systemd_quote('\a\b\f\n\r\t\v\\') == r'"\a\b\f\n\r\t\v\\"'
 		&& utils.systemd_quote('"\' ') == '"\\"\' "')
 }
 
 // Ruby it `it "does not escape characters that do not need escaping" do` at line 53.
-pub fn ruby_service_spec_l53_d6_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(utils.systemd_quote('daemon off;') == '"daemon off;"'
+pub fn ruby_service_spec_l53_d6_does(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(utils.systemd_quote('daemon off;') == '"daemon off;"'
 		&& utils.systemd_quote('--timeout=3') == '"--timeout=3"'
 		&& utils.systemd_quote('--answer=foo bar') == '"--answer=foo bar"')
 }

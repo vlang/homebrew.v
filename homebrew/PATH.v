@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `PATH.rb`.
@@ -116,13 +116,13 @@ pub fn (path BrewPath) existing() ?BrewPath {
 	return path.existing_with(os.is_dir)
 }
 
-pub fn brew_path_value(path BrewPath) brew_runtime.Value {
-	return brew_runtime.structured_value('PATH', path.str(), {
+pub fn brew_path_value(path BrewPath) ruby.Value {
+	return ruby.structured_value('PATH', path.str(), {
 		'paths': path.paths.join(os.path_delimiter)
 	})
 }
 
-pub fn brew_path_equals_value(path BrewPath, other brew_runtime.Value) bool {
+pub fn brew_path_equals_value(path BrewPath, other ruby.Value) bool {
 	if other.type_name == 'Array' {
 		return path.paths == (other.as_string_array() or { return false })
 	}
@@ -191,7 +191,7 @@ pub fn ruby_path_l63_d11_to_s(path BrewPath) string {
 }
 
 // Ruby method `==(other)` at line 66.
-pub fn ruby_path_l66_d12_anonymous(path BrewPath, other brew_runtime.Value) bool {
+pub fn ruby_path_l66_d12_anonymous(path BrewPath, other ruby.Value) bool {
 	return brew_path_equals_value(path, other)
 }
 

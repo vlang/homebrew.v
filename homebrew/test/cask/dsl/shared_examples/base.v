@@ -1,6 +1,6 @@
 module shared_examples
 
-import brew_runtime
+import ruby
 import homebrew.cask.dsl as core
 
 // Translated from Homebrew/brew `test/cask/dsl/shared_examples/base.rb`.
@@ -17,44 +17,44 @@ fn base_shared_example() &core.Base {
 		representation: 'Cask sample'
 	}
 	command := &core.BaseCommand{
-		result: brew_runtime.object_value('SystemCommand::Result', 'ok')
+		result: ruby.object_value('SystemCommand::Result', 'ok')
 	}
 	return core.new_base(cask, command)
 }
 
 // Ruby it `it "supports the token method" do` at line 7.
-pub fn ruby_base_l7_d1_supports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_base_l7_d1_supports(args ...ruby.Value) ruby.Value {
 	_ = args
 	base := base_shared_example()
-	return brew_runtime.bool_value(base.cask.token == 'sample')
+	return ruby.bool_value(base.cask.token == 'sample')
 }
 
 // Ruby it `it "supports the version method" do` at line 11.
-pub fn ruby_base_l11_d2_supports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_base_l11_d2_supports(args ...ruby.Value) ruby.Value {
 	_ = args
 	base := base_shared_example()
-	return brew_runtime.bool_value(base.cask.version == '1.2.3')
+	return ruby.bool_value(base.cask.version == '1.2.3')
 }
 
 // Ruby it `it "supports the caskroom_path method" do` at line 15.
-pub fn ruby_base_l15_d3_supports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_base_l15_d3_supports(args ...ruby.Value) ruby.Value {
 	_ = args
 	base := base_shared_example()
-	return brew_runtime.bool_value(base.cask.caskroom_path == '/opt/homebrew/Caskroom/sample')
+	return ruby.bool_value(base.cask.caskroom_path == '/opt/homebrew/Caskroom/sample')
 }
 
 // Ruby it `it "supports the staged_path method" do` at line 19.
-pub fn ruby_base_l19_d4_supports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_base_l19_d4_supports(args ...ruby.Value) ruby.Value {
 	_ = args
 	base := base_shared_example()
-	return brew_runtime.bool_value(base.cask.staged_path == '/opt/homebrew/Caskroom/sample/1.2.3')
+	return ruby.bool_value(base.cask.staged_path == '/opt/homebrew/Caskroom/sample/1.2.3')
 }
 
 // Ruby it `it "supports the appdir method" do` at line 23.
-pub fn ruby_base_l23_d5_supports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_base_l23_d5_supports(args ...ruby.Value) ruby.Value {
 	_ = args
 	base := base_shared_example()
-	return brew_runtime.bool_value(base.cask.appdir == '/Applications')
+	return ruby.bool_value(base.cask.appdir == '/Applications')
 }
 
 // Original Ruby source (line-for-line):

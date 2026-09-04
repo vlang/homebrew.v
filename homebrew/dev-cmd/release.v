@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 import time
 
 // Translated from Homebrew/brew `dev-cmd/release.rb`.
@@ -302,74 +302,74 @@ fn release_blog_post_notes(body string) []string {
 	return notes
 }
 
-fn release_result_value(result ReleaseResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'new_version':         brew_runtime.string_value(result.new_version)
-		'latest_version':      brew_runtime.string_value(result.latest_version)
-		'blog_post_notes':     brew_runtime.string_array_value(result.blog_post_notes)
-		'release_notes':       brew_runtime.string_value(result.release_notes)
-		'stdout':              brew_runtime.string_array_value(result.stdout)
-		'warnings':            brew_runtime.string_array_value(result.warnings)
-		'commands':            brew_runtime.array_value(result.commands.map(brew_runtime.string_array_value(it)))
-		'blocking_labels':     brew_runtime.string_array_value(result.blocking_labels)
-		'dispatched':          brew_runtime.bool_value(result.dispatched)
-		'dispatched_tag':      brew_runtime.string_value(result.dispatched_tag)
-		'workflow_attempts':   brew_runtime.int_value(result.workflow_attempts)
-		'workflow_conclusion': brew_runtime.string_value(result.workflow_conclusion)
-		'release_url':         brew_runtime.string_value(result.release_url)
-		'browser_url':         brew_runtime.string_value(result.browser_url)
+fn release_result_value(result ReleaseResult) ruby.Value {
+	return ruby.map_value({
+		'new_version':         ruby.string_value(result.new_version)
+		'latest_version':      ruby.string_value(result.latest_version)
+		'blog_post_notes':     ruby.string_array_value(result.blog_post_notes)
+		'release_notes':       ruby.string_value(result.release_notes)
+		'stdout':              ruby.string_array_value(result.stdout)
+		'warnings':            ruby.string_array_value(result.warnings)
+		'commands':            ruby.array_value(result.commands.map(ruby.string_array_value(it)))
+		'blocking_labels':     ruby.string_array_value(result.blocking_labels)
+		'dispatched':          ruby.bool_value(result.dispatched)
+		'dispatched_tag':      ruby.string_value(result.dispatched_tag)
+		'workflow_attempts':   ruby.int_value(result.workflow_attempts)
+		'workflow_conclusion': ruby.string_value(result.workflow_conclusion)
+		'release_url':         ruby.string_value(result.release_url)
+		'browser_url':         ruby.string_value(result.browser_url)
 	})
 }
 
-fn release_record_value(release ReleaseRecord) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'id':           brew_runtime.int_value(release.id)
+fn release_record_value(release ReleaseRecord) ruby.Value {
+	return ruby.map_value({
+		'id':           ruby.int_value(release.id)
 		'name':         if release.name == '' {
-			brew_runtime.object_value('NilClass', 'nil')
+			ruby.object_value('NilClass', 'nil')
 		} else {
-			brew_runtime.string_value(release.name)
+			ruby.string_value(release.name)
 		}
-		'tag_name':     brew_runtime.string_value(release.tag_name)
-		'created_at':   brew_runtime.string_value(release.created_at)
-		'published_at': brew_runtime.string_value(release.published_at)
-		'html_url':     brew_runtime.string_value(release.html_url)
-		'draft':        brew_runtime.bool_value(release.draft)
+		'tag_name':     ruby.string_value(release.tag_name)
+		'created_at':   ruby.string_value(release.created_at)
+		'published_at': ruby.string_value(release.published_at)
+		'html_url':     ruby.string_value(release.html_url)
+		'draft':        ruby.bool_value(release.draft)
 	})
 }
 
-pub fn release_run_input_boundary(input &ReleaseRunInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::Release::RunInput', '', {
+pub fn release_run_input_boundary(input &ReleaseRunInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::Release::RunInput', '', {
 		'release_run_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn release_run_input_from_value(value brew_runtime.Value) &ReleaseRunInput {
+fn release_run_input_from_value(value ruby.Value) &ReleaseRunInput {
 	address := value.attributes['release_run_input_address'] or {
 		panic('invalid Release run input')
 	}
 	return unsafe { &ReleaseRunInput(voidptr(address.u64())) }
 }
 
-pub fn release_lookup_input_boundary(input &ReleaseLookupInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::Release::LookupInput', '', {
+pub fn release_lookup_input_boundary(input &ReleaseLookupInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::Release::LookupInput', '', {
 		'release_lookup_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn release_lookup_input_from_value(value brew_runtime.Value) &ReleaseLookupInput {
+fn release_lookup_input_from_value(value ruby.Value) &ReleaseLookupInput {
 	address := value.attributes['release_lookup_input_address'] or {
 		panic('invalid Release lookup input')
 	}
 	return unsafe { &ReleaseLookupInput(voidptr(address.u64())) }
 }
 
-pub fn release_urls_input_boundary(input &ReleaseUrlsInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::Release::UrlsInput', '', {
+pub fn release_urls_input_boundary(input &ReleaseUrlsInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::Release::UrlsInput', '', {
 		'release_urls_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn release_urls_input_from_value(value brew_runtime.Value) &ReleaseUrlsInput {
+fn release_urls_input_from_value(value ruby.Value) &ReleaseUrlsInput {
 	address := value.attributes['release_urls_input_address'] or {
 		panic('invalid Release URLs input')
 	}
@@ -546,45 +546,45 @@ pub fn run_release(options ReleaseOptions) !ReleaseResult {
 }
 
 // Ruby method `run` at line 39.
-pub fn ruby_release_l39_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_release_l39_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'command input is required')
+		return ruby.object_value('ArgumentError', 'command input is required')
 	}
 	input := release_run_input_from_value(args[0])
 	result := run_release(input.options) or {
-		return brew_runtime.object_value('SystemExit', err.msg())
+		return ruby.object_value('SystemExit', err.msg())
 	}
 	return release_result_value(result)
 }
 
 // Ruby method `matching_releases(name)` at line 233.
-pub fn ruby_release_l233_d2_matching_releases(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_release_l233_d2_matching_releases(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'lookup input is required')
+		return ruby.object_value('ArgumentError', 'lookup input is required')
 	}
 	input := release_lookup_input_from_value(args[0])
-	return brew_runtime.array_value(matching_releases(input.name, input.releases).map(release_record_value(it)))
+	return ruby.array_value(matching_releases(input.name, input.releases).map(release_record_value(it)))
 }
 
 // Ruby method `latest_matching_release(name)` at line 247.
-pub fn ruby_release_l247_d3_latest_matching_release(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_release_l247_d3_latest_matching_release(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'lookup input is required')
+		return ruby.object_value('ArgumentError', 'lookup input is required')
 	}
 	input := release_lookup_input_from_value(args[0])
 	if release := latest_matching_release(input.name, input.releases) {
 		return release_record_value(release)
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `release_urls(releases)` at line 258.
-pub fn ruby_release_l258_d4_release_urls(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_release_l258_d4_release_urls(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'releases input is required')
+		return ruby.object_value('ArgumentError', 'releases input is required')
 	}
 	input := release_urls_input_from_value(args[0])
-	return brew_runtime.string_array_value(release_urls(input.releases))
+	return ruby.string_array_value(release_urls(input.releases))
 }
 
 // Original Ruby source (line-for-line):

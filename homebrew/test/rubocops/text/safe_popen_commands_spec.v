@@ -1,6 +1,6 @@
 module text
 
-import brew_runtime
+import ruby
 import homebrew.rubocops as line_cops
 
 // Translated from Homebrew/brew `test/rubocops/text/safe_popen_commands_spec.rb`.
@@ -25,52 +25,52 @@ fn safe_popen_spec_reports(command string) bool {
 }
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
-pub fn ruby_safe_popen_commands_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::SafePopenCommands', 'SafePopenCommands')
+pub fn ruby_safe_popen_commands_spec_l7_d1_cop(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('RuboCop::Cop::FormulaAudit::SafePopenCommands', 'SafePopenCommands')
 }
 
 // Ruby it `it "reports and corrects `Utils.popen_read` usage" do` at line 10.
-pub fn ruby_safe_popen_commands_spec_l10_d2_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(safe_popen_spec_reports('popen_read'))
+pub fn ruby_safe_popen_commands_spec_l10_d2_reports(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(safe_popen_spec_reports('popen_read'))
 }
 
 // Ruby method `install` at line 13.
-pub fn ruby_safe_popen_commands_spec_l13_d3_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(safe_popen_spec_install('Utils.popen_read "foo"'))
+pub fn ruby_safe_popen_commands_spec_l13_d3_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(safe_popen_spec_install('Utils.popen_read "foo"'))
 }
 
 // Ruby method `install` at line 22.
-pub fn ruby_safe_popen_commands_spec_l22_d4_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(safe_popen_spec_install('Utils.safe_popen_read "foo"'))
+pub fn ruby_safe_popen_commands_spec_l22_d4_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(safe_popen_spec_install('Utils.safe_popen_read "foo"'))
 }
 
 // Ruby it `it "reports and corrects `Utils.popen_write` usage" do` at line 29.
-pub fn ruby_safe_popen_commands_spec_l29_d5_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(safe_popen_spec_reports('popen_write'))
+pub fn ruby_safe_popen_commands_spec_l29_d5_reports(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(safe_popen_spec_reports('popen_write'))
 }
 
 // Ruby method `install` at line 32.
-pub fn ruby_safe_popen_commands_spec_l32_d6_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(safe_popen_spec_install('Utils.popen_write "foo"'))
+pub fn ruby_safe_popen_commands_spec_l32_d6_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(safe_popen_spec_install('Utils.popen_write "foo"'))
 }
 
 // Ruby method `install` at line 41.
-pub fn ruby_safe_popen_commands_spec_l41_d7_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(safe_popen_spec_install('Utils.safe_popen_write "foo"'))
+pub fn ruby_safe_popen_commands_spec_l41_d7_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(safe_popen_spec_install('Utils.safe_popen_write "foo"'))
 }
 
 // Ruby it `it "does not report an offense when `Utils.popen_read` is used in a test block" do` at line 48.
-pub fn ruby_safe_popen_commands_spec_l48_d8_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_safe_popen_commands_spec_l48_d8_does(args ...ruby.Value) ruby.Value {
 	source := safe_popen_spec_formula('def install; end\ntest do\n  Utils.popen_read "foo"\nend')
 	analysis := line_cops.audit_lines_safe_popen(line_cops.LinesContext{
 		source: source
 	})
-	return brew_runtime.bool_value(analysis.offenses.len == 0 && analysis.corrected == source)
+	return ruby.bool_value(analysis.offenses.len == 0 && analysis.corrected == source)
 }
 
 // Ruby method `install; end` at line 51.
-pub fn ruby_safe_popen_commands_spec_l51_d9_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('def install; end')
+pub fn ruby_safe_popen_commands_spec_l51_d9_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('def install; end')
 }
 
 // Original Ruby source (line-for-line):

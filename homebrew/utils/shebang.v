@@ -1,6 +1,6 @@
 module utils
 
-import brew_runtime
+import ruby
 import os
 import regex
 
@@ -26,15 +26,15 @@ pub fn new_shebang_rewrite_info(pattern string, max_length int,
 	}
 }
 
-pub fn rewrite_info_value(info RewriteInfo) brew_runtime.Value {
-	return brew_runtime.structured_value('Utils::Shebang::RewriteInfo', info.replacement, {
+pub fn rewrite_info_value(info RewriteInfo) ruby.Value {
+	return ruby.structured_value('Utils::Shebang::RewriteInfo', info.replacement, {
 		'regex':       info.regex
 		'max_length':  info.max_length.str()
 		'replacement': info.replacement
 	})
 }
 
-pub fn rewrite_info_from_value(value brew_runtime.Value) !RewriteInfo {
+pub fn rewrite_info_from_value(value ruby.Value) !RewriteInfo {
 	if value.type_name != 'Utils::Shebang::RewriteInfo' {
 		return error('expected Utils::Shebang::RewriteInfo, got ${value.type_name}')
 	}
@@ -136,14 +136,14 @@ pub fn rewrite_shebang(info RewriteInfo, paths []string) !int {
 	return rewritten_count
 }
 
-fn shebang_boundary_info(args []brew_runtime.Value) ?RewriteInfo {
+fn shebang_boundary_info(args []ruby.Value) ?RewriteInfo {
 	if args.len == 0 {
 		return none
 	}
 	return rewrite_info_from_value(args[0]) or { none }
 }
 
-fn shebang_boundary_paths(args []brew_runtime.Value) []string {
+fn shebang_boundary_paths(args []ruby.Value) []string {
 	if args.len < 2 {
 		return []
 	}
@@ -159,44 +159,44 @@ fn shebang_boundary_paths(args []brew_runtime.Value) []string {
 }
 
 // Ruby attr_reader `attr_reader :regex` at line 16.
-pub fn ruby_shebang_l16_d1_regex(args ...brew_runtime.Value) brew_runtime.Value {
-	info := shebang_boundary_info(args) or { return brew_runtime.string_value('') }
-	return brew_runtime.string_value(info.regex)
+pub fn ruby_shebang_l16_d1_regex(args ...ruby.Value) ruby.Value {
+	info := shebang_boundary_info(args) or { return ruby.string_value('') }
+	return ruby.string_value(info.regex)
 }
 
 // Ruby attr_reader `attr_reader :max_length` at line 19.
-pub fn ruby_shebang_l19_d2_max_length(args ...brew_runtime.Value) brew_runtime.Value {
-	info := shebang_boundary_info(args) or { return brew_runtime.int_value(0) }
-	return brew_runtime.int_value(info.max_length)
+pub fn ruby_shebang_l19_d2_max_length(args ...ruby.Value) ruby.Value {
+	info := shebang_boundary_info(args) or { return ruby.int_value(0) }
+	return ruby.int_value(info.max_length)
 }
 
 // Ruby attr_reader `attr_reader :replacement` at line 22.
-pub fn ruby_shebang_l22_d3_replacement(args ...brew_runtime.Value) brew_runtime.Value {
-	info := shebang_boundary_info(args) or { return brew_runtime.string_value('') }
-	return brew_runtime.string_value(info.replacement)
+pub fn ruby_shebang_l22_d3_replacement(args ...ruby.Value) ruby.Value {
+	info := shebang_boundary_info(args) or { return ruby.string_value('') }
+	return ruby.string_value(info.replacement)
 }
 
 // Ruby method `initialize(regex, max_length, replacement)` at line 25.
-pub fn ruby_shebang_l25_d4_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shebang_l25_d4_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
-		return brew_runtime.object_value('ArgumentError', 'expected regex, max_length, and replacement')
+		return ruby.object_value('ArgumentError', 'expected regex, max_length, and replacement')
 	}
 	max_length := int(args[1].as_int() or { 0 })
 	info := new_shebang_rewrite_info(args[0].as_string(), max_length, args[2].as_string()) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	return rewrite_info_value(info)
 }
 
 // Ruby method `rewrite_shebang(rewrite_info, *paths)` at line 42.
-pub fn ruby_shebang_l42_d5_rewrite_shebang(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shebang_l42_d5_rewrite_shebang(args ...ruby.Value) ruby.Value {
 	info := shebang_boundary_info(args) or {
-		return brew_runtime.object_value('ArgumentError', 'expected rewrite information')
+		return ruby.object_value('ArgumentError', 'expected rewrite information')
 	}
 	rewrite_shebang(info, shebang_boundary_paths(args)) or {
-		return brew_runtime.object_value('RuntimeError', err.msg())
+		return ruby.object_value('RuntimeError', err.msg())
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Original Ruby source (line-for-line):

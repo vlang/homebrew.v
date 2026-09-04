@@ -1,6 +1,6 @@
 module linux
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `extend/os/linux/test_bot.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -51,7 +51,7 @@ pub fn linux_hosted_runner_cleanup_plan() LinuxTestBotCleanupPlan {
 	}
 }
 
-fn linux_test_bot_formula_from_value(value brew_runtime.Value) LinuxTestBotFormula {
+fn linux_test_bot_formula_from_value(value ruby.Value) LinuxTestBotFormula {
 	return LinuxTestBotFormula{
 		name: if value.attributes['name'] != '' {
 			value.attributes['name']
@@ -63,52 +63,52 @@ fn linux_test_bot_formula_from_value(value brew_runtime.Value) LinuxTestBotFormu
 }
 
 // Ruby method `runner_os_title` at line 13.
-pub fn ruby_test_bot_l13_d1_runner_os_title(args ...brew_runtime.Value) brew_runtime.Value {
-	name := if args.len > 0 { args[0].as_string() } else { brew_runtime.kernel_info().name }
-	return brew_runtime.string_value(linux_runner_os_title(name))
+pub fn ruby_test_bot_l13_d1_runner_os_title(args ...ruby.Value) ruby.Value {
+	name := if args.len > 0 { args[0].as_string() } else { ruby.kernel_info().name }
+	return ruby.string_value(linux_runner_os_title(name))
 }
 
 // Ruby method `runner_os_title_with_arch` at line 18.
-pub fn ruby_test_bot_l18_d2_runner_os_title_with_arch(args ...brew_runtime.Value) brew_runtime.Value {
-	name := if args.len > 0 { args[0].as_string() } else { brew_runtime.kernel_info().name }
+pub fn ruby_test_bot_l18_d2_runner_os_title_with_arch(args ...ruby.Value) ruby.Value {
+	name := if args.len > 0 { args[0].as_string() } else { ruby.kernel_info().name }
 	arch := if args.len > 1 { args[1].as_string() } else { '' }
-	return brew_runtime.string_value(linux_runner_os_title_with_arch(name, arch))
+	return ruby.string_value(linux_runner_os_title_with_arch(name, arch))
 }
 
 // Ruby method `configure_sandbox!` at line 23.
-pub fn ruby_test_bot_l23_d3_configure_sandbox(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(linux_configure_sandbox(args.len > 0
+pub fn ruby_test_bot_l23_d3_configure_sandbox(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(linux_configure_sandbox(args.len > 0
 		&& (args[0].as_bool() or { false })))
 }
 
 // Ruby method `previous_run_artifact_specifier` at line 35.
-pub fn ruby_test_bot_l35_d4_previous_run_artifact_specifier(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(linux_previous_run_artifact_specifier)
+pub fn ruby_test_bot_l35_d4_previous_run_artifact_specifier(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(linux_previous_run_artifact_specifier)
 }
 
 // Ruby method `skip_recursive_dependents?(formula, args:)` at line 46.
-pub fn ruby_test_bot_l46_d5_skip_recursive_dependents(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_bot_l46_d5_skip_recursive_dependents(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(true)
+		return ruby.bool_value(true)
 	}
-	return brew_runtime.bool_value(linux_skip_recursive_dependents(args.len > 1
+	return ruby.bool_value(linux_skip_recursive_dependents(args.len > 1
 		&& (args[1].as_bool() or { false }), linux_test_bot_formula_from_value(args[0])))
 }
 
 // Ruby method `build_dependent_from_source?(dependent)` at line 51.
-pub fn ruby_test_bot_l51_d6_build_dependent_from_source(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_bot_l51_d6_build_dependent_from_source(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(linux_build_dependent_from_source(linux_test_bot_formula_from_value(args[0])))
+	return ruby.bool_value(linux_build_dependent_from_source(linux_test_bot_formula_from_value(args[0])))
 }
 
 // Ruby method `cleanup_github_actions_hosted_runner` at line 62.
-pub fn ruby_test_bot_l62_d7_cleanup_github_actions_hosted_runner(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_bot_l62_d7_cleanup_github_actions_hosted_runner(args ...ruby.Value) ruby.Value {
 	plan := linux_hosted_runner_cleanup_plan()
-	return brew_runtime.map_value({
-		'paths': brew_runtime.string_array_value(plan.paths)
-		'sudo':  brew_runtime.bool_value(plan.sudo)
+	return ruby.map_value({
+		'paths': ruby.string_array_value(plan.paths)
+		'sudo':  ruby.bool_value(plan.sudo)
 	})
 }
 

@@ -1,6 +1,6 @@
 module rubocops
 
-import brew_runtime
+import ruby
 import homebrew.rubocops.@shared as api_annotations
 import os
 
@@ -695,8 +695,8 @@ pub fn audit_non_public_api_usage(source string, formula_tap string, homebrew_di
 	return audit_non_public_api_usage_with_methods(source, formula_tap, non_public_api_internal_methods(homebrew_dir), non_public_api_private_methods(homebrew_dir))
 }
 
-fn non_public_api_offense_value(offense NonPublicApiUsageOffense) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cop::Offense', offense.message, {
+fn non_public_api_offense_value(offense NonPublicApiUsageOffense) ruby.Value {
+	return ruby.structured_value('RuboCop::Cop::Offense', offense.message, {
 		'method':    offense.method
 		'receiver':  offense.receiver
 		'begin_pos': offense.begin_pos.str()
@@ -708,7 +708,7 @@ fn non_public_api_offense_value(offense NonPublicApiUsageOffense) brew_runtime.V
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 40.
-pub fn ruby_non_public_api_usage_l40_d1_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_non_public_api_usage_l40_d1_audit_formula(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	formula_tap := if args.len > 1 { args[1].as_string() } else { '' }
 	offenses := if args.len > 3 && args[2].type_name == 'Array' && args[3].type_name == 'Array' {
@@ -723,46 +723,46 @@ pub fn ruby_non_public_api_usage_l40_d1_audit_formula(args ...brew_runtime.Value
 		}
 		audit_non_public_api_usage(source, formula_tap, homebrew_dir)
 	}
-	return brew_runtime.array_value(offenses.map(non_public_api_offense_value(it)))
+	return ruby.array_value(offenses.map(non_public_api_offense_value(it)))
 }
 
 // Ruby method `internal_methods` at line 51.
-pub fn ruby_non_public_api_usage_l51_d2_internal_methods(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_non_public_api_usage_l51_d2_internal_methods(args ...ruby.Value) ruby.Value {
 	homebrew_dir := if args.len > 0 {
 		args[0].as_string()
 	} else {
 		api_annotations.api_annotation_homebrew_dir()
 	}
-	return brew_runtime.string_array_value(non_public_api_internal_methods(homebrew_dir))
+	return ruby.string_array_value(non_public_api_internal_methods(homebrew_dir))
 }
 
 // Ruby method `private_methods` at line 59.
-pub fn ruby_non_public_api_usage_l59_d3_private_methods(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_non_public_api_usage_l59_d3_private_methods(args ...ruby.Value) ruby.Value {
 	homebrew_dir := if args.len > 0 {
 		args[0].as_string()
 	} else {
 		api_annotations.api_annotation_homebrew_dir()
 	}
-	return brew_runtime.string_array_value(non_public_api_private_methods(homebrew_dir))
+	return ruby.string_array_value(non_public_api_private_methods(homebrew_dir))
 }
 
 // Ruby method `load_methods_for_level(level)` at line 67.
-pub fn ruby_non_public_api_usage_l67_d4_load_methods_for_level(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_non_public_api_usage_l67_d4_load_methods_for_level(args ...ruby.Value) ruby.Value {
 	level := if args.len > 0 { args[0].as_string() } else { '' }
 	homebrew_dir := if args.len > 1 {
 		args[1].as_string()
 	} else {
 		api_annotations.api_annotation_homebrew_dir()
 	}
-	return brew_runtime.string_array_value(load_non_public_api_methods_for_level(homebrew_dir, level))
+	return ruby.string_array_value(load_non_public_api_methods_for_level(homebrew_dir, level))
 }
 
 // Ruby method `check_method_calls(body_node, methods, msg)` at line 84.
-pub fn ruby_non_public_api_usage_l84_d5_check_method_calls(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_non_public_api_usage_l84_d5_check_method_calls(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	methods := if args.len > 1 { args[1].as_string_array() or { [] } } else { [] }
 	message := if args.len > 2 { args[2].as_string() } else { '' }
-	return brew_runtime.array_value(check_non_public_api_method_calls(source, methods, message).map(non_public_api_offense_value(it)))
+	return ruby.array_value(check_non_public_api_method_calls(source, methods, message).map(non_public_api_offense_value(it)))
 }
 
 // Original Ruby source (line-for-line):

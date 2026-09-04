@@ -1,6 +1,6 @@
 module mac
 
-import brew_runtime
+import ruby
 import homebrew
 
 pub fn mac_missing_formula_disallowed_reason(name string) homebrew.MissingFormulaReason {
@@ -23,7 +23,7 @@ pub fn mac_missing_formula_suggest_command(name string, command string,
 	return homebrew.missing_formula_suggest_command(name, command, cask)
 }
 
-fn mac_missing_cask_from_args(args []brew_runtime.Value, offset int,
+fn mac_missing_cask_from_args(args []ruby.Value, offset int,
 	name string) homebrew.MissingFormulaCask {
 	return homebrew.MissingFormulaCask{
 		name: name
@@ -39,13 +39,13 @@ fn mac_missing_cask_from_args(args []brew_runtime.Value, offset int,
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `disallowed_reason(name)` at line 13.
-pub fn ruby_missing_formula_l13_d1_disallowed_reason(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_missing_formula_l13_d1_disallowed_reason(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('disallowed_reason requires a formula name') }
 	return homebrew.missing_formula_reason_value(mac_missing_formula_disallowed_reason(args[0].as_string()))
 }
 
 // Ruby method `cask_reason(name, silent: false, show_info: false)` at line 25.
-pub fn ruby_missing_formula_l25_d2_cask_reason(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_missing_formula_l25_d2_cask_reason(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('cask_reason requires a formula name') }
 	name := args[0].as_string()
 	silent := if args.len > 1 { args[1].as_bool() or { false } } else { false }
@@ -54,7 +54,7 @@ pub fn ruby_missing_formula_l25_d2_cask_reason(args ...brew_runtime.Value) brew_
 }
 
 // Ruby method `suggest_command(name, command)` at line 32.
-pub fn ruby_missing_formula_l32_d3_suggest_command(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_missing_formula_l32_d3_suggest_command(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('suggest_command requires a name and command') }
 	name := args[0].as_string()
 	return homebrew.missing_formula_reason_value(mac_missing_formula_suggest_command(name, args[1].as_string(), mac_missing_cask_from_args(args, 2, name)))

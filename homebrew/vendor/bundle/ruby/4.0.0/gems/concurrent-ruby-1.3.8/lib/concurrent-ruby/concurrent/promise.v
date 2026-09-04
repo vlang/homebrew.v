@@ -1,23 +1,23 @@
 module concurrent
 
-import brew_runtime
+import ruby
 import sync
 import time
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/promise.rb`.
 // The original source is retained below for source-parity auditing.
-pub type PromiseTask = fn([]brew_runtime.Value) !brew_runtime.Value
+pub type PromiseTask = fn([]ruby.Value) !ruby.Value
 
-pub type PromiseFulfillHandler = fn(brew_runtime.Value) !brew_runtime.Value
+pub type PromiseFulfillHandler = fn(ruby.Value) !ruby.Value
 
-pub type PromiseRejectHandler = fn(string) !brew_runtime.Value
+pub type PromiseRejectHandler = fn(string) !ruby.Value
 
-pub type PromiseFlatMapper = fn(brew_runtime.Value) !&Promise
+pub type PromiseFlatMapper = fn(ruby.Value) !&Promise
 
 pub struct PromiseOptions {
 pub:
 	executor ?ScheduledExecutor
-	args     []brew_runtime.Value
+	args     []ruby.Value
 }
 
 enum PromiseAggregateMode {
@@ -33,10 +33,10 @@ pub struct Promise {
 	condition &sync.Cond
 	executor  ScheduledExecutor
 mut:
-	args               []brew_runtime.Value
+	args               []ruby.Value
 	parent             &Promise = unsafe { nil }
 	state              IVarState
-	value              brew_runtime.Value
+	value              ruby.Value
 	reason             string
 	body               PromiseTask = promise_identity_task
 	on_fulfill         PromiseFulfillHandler = promise_identity_handler
@@ -44,29 +44,29 @@ mut:
 	flat_mapper        ?PromiseFlatMapper
 	children           []&Promise
 	input_success      bool
-	input_value        brew_runtime.Value
+	input_value        ruby.Value
 	input_reason       string
 	aggregate_mode     PromiseAggregateMode
 	aggregate_promises []&Promise
 }
 
-fn promise_nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn promise_nil_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-fn promise_identity_task(args []brew_runtime.Value) !brew_runtime.Value {
+fn promise_identity_task(args []ruby.Value) !ruby.Value {
 	return if args.len > 0 { args[0] } else { promise_nil_value() }
 }
 
-fn promise_identity_handler(value brew_runtime.Value) !brew_runtime.Value {
+fn promise_identity_handler(value ruby.Value) !ruby.Value {
 	return value
 }
 
-fn promise_raise_handler(reason string) !brew_runtime.Value {
+fn promise_raise_handler(reason string) !ruby.Value {
 	return error(reason)
 }
 
-fn promise_constant_task(args []brew_runtime.Value) !brew_runtime.Value {
+fn promise_constant_task(args []ruby.Value) !ruby.Value {
 	if args.len == 0 {
 		return error('ArgumentError: no block given')
 	}
@@ -105,7 +105,7 @@ fn new_child_promise(parent &Promise, executor ScheduledExecutor, on_fulfill Pro
 	}
 }
 
-pub fn fulfilled_promise(value brew_runtime.Value, options PromiseOptions) &Promise {
+pub fn fulfilled_promise(value ruby.Value, options PromiseOptions) &Promise {
 	mut promise := new_promise(promise_identity_task, options)
 	promise.complete(true, value, '')
 	return promise
@@ -117,7 +117,7 @@ pub fn rejected_promise(reason string, options PromiseOptions) &Promise {
 	return promise
 }
 
-fn promise_execute_post(args []brew_runtime.Value) {
+fn promise_execute_post(args []ruby.Value) {
 	if args.len == 0 {
 		return
 	}
@@ -125,7 +125,7 @@ fn promise_execute_post(args []brew_runtime.Value) {
 	promise.realize()
 }
 
-fn promise_child_post(args []brew_runtime.Value) {
+fn promise_child_post(args []ruby.Value) {
 	if args.len == 0 {
 		return
 	}
@@ -163,7 +163,7 @@ pub fn (mut promise Promise) execute() &Promise {
 			child.set_pending()
 		}
 		promise.executor.post(promise_execute_post, [
-			brew_runtime.int_value(i64(voidptr(&promise))),
+			ruby.int_value(i64(voidptr(&promise))),
 		])
 	} else {
 		promise.set_pending()
@@ -197,7 +197,7 @@ fn (mut promise Promise) realize() {
 }
 
 fn (mut promise Promise) realize_aggregate(mode PromiseAggregateMode, aggregates []&Promise) {
-	mut values := []brew_runtime.Value{cap: aggregates.len}
+	mut values := []ruby.Value{cap: aggregates.len}
 	mut fulfilled_count := 0
 	mut mutable_aggregates := aggregates.clone()
 	for mut item in mutable_aggregates {
@@ -212,7 +212,7 @@ fn (mut promise Promise) realize_aggregate(mode PromiseAggregateMode, aggregates
 		}
 	}
 	match mode {
-		.zip { promise.complete(true, brew_runtime.array_value(values), '') }
+		.zip { promise.complete(true, ruby.array_value(values), '') }
 		.all {
 			if aggregates.len == 0 || fulfilled_count == aggregates.len {
 				promise.complete(true, promise_nil_value(), '')
@@ -231,7 +231,7 @@ fn (mut promise Promise) realize_aggregate(mode PromiseAggregateMode, aggregates
 	}
 }
 
-fn (mut promise Promise) prepare_child(success bool, value brew_runtime.Value, reason string) {
+fn (mut promise Promise) prepare_child(success bool, value ruby.Value, reason string) {
 	promise.mutex.lock()
 	if promise.state in [.fulfilled, .rejected] {
 		promise.mutex.unlock()
@@ -243,7 +243,7 @@ fn (mut promise Promise) prepare_child(success bool, value brew_runtime.Value, r
 	promise.input_reason = reason
 	promise.mutex.unlock()
 	promise.executor.post(promise_child_post, [
-		brew_runtime.int_value(i64(voidptr(&promise))),
+		ruby.int_value(i64(voidptr(&promise))),
 	])
 }
 
@@ -285,7 +285,7 @@ fn (mut promise Promise) realize_child() {
 	}
 }
 
-fn (mut promise Promise) complete(success bool, value brew_runtime.Value, reason string) {
+fn (mut promise Promise) complete(success bool, value ruby.Value, reason string) {
 	promise.mutex.lock()
 	if promise.state in [.fulfilled, .rejected] {
 		promise.mutex.unlock()
@@ -378,7 +378,7 @@ pub fn any_promises(promises []&Promise) &Promise {
 	return aggregate_promise(promises, .any, PromiseOptions{})
 }
 
-pub fn (mut promise Promise) set(value brew_runtime.Value) !&Promise {
+pub fn (mut promise Promise) set(value ruby.Value) !&Promise {
 	if !promise.root() {
 		return error('supported only on root promise')
 	}
@@ -459,7 +459,7 @@ pub fn (mut promise Promise) wait(timeout ?time.Duration) bool {
 	return true
 }
 
-pub fn (mut promise Promise) value_for(timeout ?time.Duration) brew_runtime.Value {
+pub fn (mut promise Promise) value_for(timeout ?time.Duration) ruby.Value {
 	promise.wait(timeout)
 	promise.mutex.lock()
 	value := if promise.state == .fulfilled { promise.value } else { promise_nil_value() }
@@ -467,7 +467,7 @@ pub fn (mut promise Promise) value_for(timeout ?time.Duration) brew_runtime.Valu
 	return value
 }
 
-pub fn (mut promise Promise) value_or_error(timeout ?time.Duration) !brew_runtime.Value {
+pub fn (mut promise Promise) value_or_error(timeout ?time.Duration) !ruby.Value {
 	promise.wait(timeout)
 	promise.mutex.lock()
 	defer { promise.mutex.unlock() }
@@ -484,13 +484,13 @@ pub fn (mut promise Promise) reason() string {
 	return reason
 }
 
-fn promise_boundary_value(promise &Promise) brew_runtime.Value {
-	return brew_runtime.structured_value('Concurrent::Promise', '#<Concurrent::Promise>', {
+fn promise_boundary_value(promise &Promise) ruby.Value {
+	return ruby.structured_value('Concurrent::Promise', '#<Concurrent::Promise>', {
 		'promise_address': u64(voidptr(promise)).str()
 	})
 }
 
-fn promise_boundary_receiver(args []brew_runtime.Value) &Promise {
+fn promise_boundary_receiver(args []ruby.Value) &Promise {
 	if args.len == 0 { panic('Promise method requires a receiver') }
 	address := (args[0].attribute('promise_address') or {
 		panic('${args[0].type_name} has no translated Promise state')
@@ -498,11 +498,11 @@ fn promise_boundary_receiver(args []brew_runtime.Value) &Promise {
 	return unsafe { &Promise(voidptr(address)) }
 }
 
-fn promise_boundary_reason(value brew_runtime.Value) string {
+fn promise_boundary_reason(value ruby.Value) string {
 	return if value.type_name == 'NilClass' { 'StandardError' } else { value.as_string() }
 }
 
-fn promise_boundary_array(args []brew_runtime.Value, start int) []&Promise {
+fn promise_boundary_array(args []ruby.Value, start int) []&Promise {
 	mut promises := []&Promise{}
 	for index in start .. args.len {
 		promises << promise_boundary_receiver([args[index]])
@@ -511,7 +511,7 @@ fn promise_boundary_array(args []brew_runtime.Value, start int) []&Promise {
 }
 
 // Ruby method `initialize(opts = {}, &block)` at line 210.
-pub fn ruby_promise_l210_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promise_l210_d1_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('ArgumentError: no block given') }
 	return promise_boundary_value(new_promise(promise_constant_task, PromiseOptions{
 		args: [
@@ -521,26 +521,26 @@ pub fn ruby_promise_l210_d1_initialize(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby method `self.fulfill(value, opts = {})` at line 224.
-pub fn ruby_promise_l224_d2_self_fulfill(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promise_l224_d2_self_fulfill(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Promise.fulfill requires a value') }
 	return promise_boundary_value(fulfilled_promise(args[0], PromiseOptions{}))
 }
 
 // Ruby method `self.reject(reason, opts = {})` at line 237.
-pub fn ruby_promise_l237_d3_self_reject(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promise_l237_d3_self_reject(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Promise.reject requires a reason') }
 	return promise_boundary_value(rejected_promise(promise_boundary_reason(args[0]), PromiseOptions{}))
 }
 
 // Ruby method `execute` at line 246.
-pub fn ruby_promise_l246_d4_execute(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promise_l246_d4_execute(args ...ruby.Value) ruby.Value {
 	mut promise := promise_boundary_receiver(args)
 	promise.execute()
 	return args[0]
 }
 
 // Ruby method `set(value = NULL, &block)` at line 262.
-pub fn ruby_promise_l262_d5_set(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promise_l262_d5_set(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Promise#set requires a value') }
 	mut promise := promise_boundary_receiver(args)
 	promise.set(args[1]) or { panic(err) }
@@ -548,7 +548,7 @@ pub fn ruby_promise_l262_d5_set(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `fail(reason = StandardError.new)` at line 278.
-pub fn ruby_promise_l278_d6_fail(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promise_l278_d6_fail(args ...ruby.Value) ruby.Value {
 	mut promise := promise_boundary_receiver(args)
 	reason := if args.len > 1 { promise_boundary_reason(args[1]) } else { 'StandardError' }
 	promise.fail(reason) or { panic(err) }
@@ -556,7 +556,7 @@ pub fn ruby_promise_l278_d6_fail(args ...brew_runtime.Value) brew_runtime.Value 
 }
 
 // Ruby method `self.execute(opts = {}, &block)` at line 296.
-pub fn ruby_promise_l296_d7_self_execute(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promise_l296_d7_self_execute(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('ArgumentError: no block given') }
 	mut promise := new_promise(promise_constant_task, PromiseOptions{
 		args: [
@@ -568,70 +568,70 @@ pub fn ruby_promise_l296_d7_self_execute(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `then(*args, &block)` at line 314.
-pub fn ruby_promise_l314_d8_then(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promise_l314_d8_then(args ...ruby.Value) ruby.Value {
 	mut promise := promise_boundary_receiver(args)
 	return promise_boundary_value(promise.then(promise_identity_handler, none, none))
 }
 
 // Ruby method `on_success(&block)` at line 349.
-pub fn ruby_promise_l349_d9_on_success(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promise_l349_d9_on_success(args ...ruby.Value) ruby.Value {
 	mut promise := promise_boundary_receiver(args)
 	return promise_boundary_value(promise.on_success(promise_identity_handler))
 }
 
 // Ruby method `rescue(&block)` at line 360.
-pub fn ruby_promise_l360_d10_rescue(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promise_l360_d10_rescue(args ...ruby.Value) ruby.Value {
 	mut promise := promise_boundary_receiver(args)
-	return promise_boundary_value(promise.on_error(fn (reason string) !brew_runtime.Value {
-		return brew_runtime.string_value(reason)
+	return promise_boundary_value(promise.on_error(fn (reason string) !ruby.Value {
+		return ruby.string_value(reason)
 	}))
 }
 
 // Ruby alias_method `alias_method :catch, :rescue` at line 364.
-pub fn ruby_promise_l364_d11_catch(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promise_l364_d11_catch(args ...ruby.Value) ruby.Value {
 	return ruby_promise_l360_d10_rescue(...args)
 }
 
 // Ruby alias_method `alias_method :on_error, :rescue` at line 365.
-pub fn ruby_promise_l365_d12_on_error(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promise_l365_d12_on_error(args ...ruby.Value) ruby.Value {
 	return ruby_promise_l360_d10_rescue(...args)
 }
 
 // Ruby method `flat_map(&block)` at line 375.
-pub fn ruby_promise_l375_d13_flat_map(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promise_l375_d13_flat_map(args ...ruby.Value) ruby.Value {
 	mut promise := promise_boundary_receiver(args)
 	// Generic values cannot carry a V closure; the typed flat_map API accepts the source block.
 	return promise_boundary_value(promise.then(promise_identity_handler, none, none))
 }
 
 // Ruby method `self.zip(*promises)` at line 409.
-pub fn ruby_promise_l409_d14_self_zip(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promise_l409_d14_self_zip(args ...ruby.Value) ruby.Value {
 	return promise_boundary_value(zip_promises(promise_boundary_array(args, 0), PromiseOptions{}, true))
 }
 
 // Ruby method `zip(*others)` at line 440.
-pub fn ruby_promise_l440_d15_zip(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promise_l440_d15_zip(args ...ruby.Value) ruby.Value {
 	mut promises := promise_boundary_array(args, 0)
 	return promise_boundary_value(zip_promises(promises, PromiseOptions{}, true))
 }
 
 // Ruby method `self.all?(*promises)` at line 464.
-pub fn ruby_promise_l464_d16_self_all(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promise_l464_d16_self_all(args ...ruby.Value) ruby.Value {
 	return promise_boundary_value(all_promises(promise_boundary_array(args, 0)))
 }
 
 // Ruby method `self.any?(*promises)` at line 475.
-pub fn ruby_promise_l475_d17_self_any(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promise_l475_d17_self_any(args ...ruby.Value) ruby.Value {
 	return promise_boundary_value(any_promises(promise_boundary_array(args, 0)))
 }
 
 // Ruby method `ns_initialize(value, opts)` at line 481.
-pub fn ruby_promise_l481_d18_ns_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promise_l481_d18_ns_initialize(args ...ruby.Value) ruby.Value {
 	return ruby_promise_l210_d1_initialize(...args)
 }
 
 // Ruby method `self.aggregate(method, *promises)` at line 505.
-pub fn ruby_promise_l505_d19_self_aggregate(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promise_l505_d19_self_aggregate(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Promise.aggregate requires a predicate') }
 	mode := args[0].as_string().trim_left(':')
 	promises := promise_boundary_array(args, 1)
@@ -643,20 +643,20 @@ pub fn ruby_promise_l505_d19_self_aggregate(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby method `set_pending` at line 520.
-pub fn ruby_promise_l520_d20_set_pending(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promise_l520_d20_set_pending(args ...ruby.Value) ruby.Value {
 	mut promise := promise_boundary_receiver(args)
 	promise.set_pending()
 	return promise_nil_value()
 }
 
 // Ruby method `root? # :nodoc:` at line 528.
-pub fn ruby_promise_l528_d21_root(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promise_l528_d21_root(args ...ruby.Value) ruby.Value {
 	mut promise := promise_boundary_receiver(args)
-	return brew_runtime.bool_value(promise.root())
+	return ruby.bool_value(promise.root())
 }
 
 // Ruby method `on_fulfill(result)` at line 533.
-pub fn ruby_promise_l533_d22_on_fulfill(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promise_l533_d22_on_fulfill(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Promise#on_fulfill requires a result') }
 	mut promise := promise_boundary_receiver(args)
 	promise.prepare_child(true, args[1], '')
@@ -664,7 +664,7 @@ pub fn ruby_promise_l533_d22_on_fulfill(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby method `on_reject(reason)` at line 539.
-pub fn ruby_promise_l539_d23_on_reject(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promise_l539_d23_on_reject(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Promise#on_reject requires a reason') }
 	mut promise := promise_boundary_receiver(args)
 	promise.prepare_child(false, promise_nil_value(), promise_boundary_reason(args[1]))
@@ -672,7 +672,7 @@ pub fn ruby_promise_l539_d23_on_reject(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby method `notify_child(child)` at line 545.
-pub fn ruby_promise_l545_d24_notify_child(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promise_l545_d24_notify_child(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Promise#notify_child requires a child') }
 	mut promise := promise_boundary_receiver(args)
 	mut child := promise_boundary_receiver([args[1]])
@@ -685,7 +685,7 @@ pub fn ruby_promise_l545_d24_notify_child(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby method `complete(success, value, reason)` at line 551.
-pub fn ruby_promise_l551_d25_complete(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promise_l551_d25_complete(args ...ruby.Value) ruby.Value {
 	if args.len < 4 { panic('Promise#complete requires success, value, and reason') }
 	mut promise := promise_boundary_receiver(args)
 	promise.complete(args[1].as_bool() or { panic(err) }, args[2], promise_boundary_reason(args[3]))
@@ -693,19 +693,19 @@ pub fn ruby_promise_l551_d25_complete(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby method `realize(task)` at line 562.
-pub fn ruby_promise_l562_d26_realize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promise_l562_d26_realize(args ...ruby.Value) ruby.Value {
 	mut promise := promise_boundary_receiver(args)
 	promise.realize()
 	return promise_nil_value()
 }
 
 // Ruby method `set_state!(success, value, reason)` at line 570.
-pub fn ruby_promise_l570_d27_set_state(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promise_l570_d27_set_state(args ...ruby.Value) ruby.Value {
 	return ruby_promise_l551_d25_complete(...args)
 }
 
 // Ruby method `synchronized_set_state!(success, value, reason)` at line 576.
-pub fn ruby_promise_l576_d28_synchronized_set_state(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_promise_l576_d28_synchronized_set_state(args ...ruby.Value) ruby.Value {
 	return ruby_promise_l551_d25_complete(...args)
 }
 

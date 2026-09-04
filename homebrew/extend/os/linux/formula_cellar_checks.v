@@ -1,13 +1,13 @@
 module linux
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `extend/os/linux/formula_cellar_checks.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `valid_library_extension?(filename)` at line 8.
-pub fn ruby_formula_cellar_checks_l8_d1_valid_library_extension(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(args.len >= 2 && valid_library_extension(args[0].as_string(), args[1].as_bool() or {
+pub fn ruby_formula_cellar_checks_l8_d1_valid_library_extension(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(args.len >= 2 && valid_library_extension(args[0].as_string(), args[1].as_bool() or {
 		false
 	}))
 }

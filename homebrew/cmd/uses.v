@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 import homebrew.utils
 
 pub struct UsesCommandOptions {
@@ -267,8 +267,8 @@ pub fn run_uses_command(input UsesCommandInput) UsesCommandResult {
 	return result
 }
 
-pub fn uses_formula_value(formula UsesFormula) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn uses_formula_value(formula UsesFormula) ruby.Value {
+	return ruby.Value{
 		type_name: 'Formula'
 		repr: formula.full_name
 		attributes: {
@@ -276,15 +276,15 @@ pub fn uses_formula_value(formula UsesFormula) brew_runtime.Value {
 			'full_name': formula.full_name
 		}
 		map_data: {
-			'runtime_installed_formula_dependents': brew_runtime.array_value(formula.runtime_installed_formula_dependents.map(deps_dependent_value(it)))
+			'runtime_installed_formula_dependents': ruby.array_value(formula.runtime_installed_formula_dependents.map(deps_dependent_value(it)))
 		}
 	}
 }
 
-fn uses_formula_from_value(value brew_runtime.Value) UsesFormula {
+fn uses_formula_from_value(value ruby.Value) UsesFormula {
 	runtime_values := (value.map_data['runtime_installed_formula_dependents'] or {
-		brew_runtime.array_value([])
-	}).as_array() or { []brew_runtime.Value{} }
+		ruby.array_value([])
+	}).as_array() or { []ruby.Value{} }
 	return UsesFormula{
 		name: value.attributes['name'] or { value.repr.all_after_last('/') }
 		full_name: value.attributes['full_name'] or { value.repr }
@@ -292,11 +292,11 @@ fn uses_formula_from_value(value brew_runtime.Value) UsesFormula {
 	}
 }
 
-fn uses_option_bool(value brew_runtime.Value, name string) bool {
+fn uses_option_bool(value ruby.Value, name string) bool {
 	return if option := value.map_data[name] { option.as_bool() or { false } } else { false }
 }
 
-fn uses_options_from_value(value brew_runtime.Value) UsesCommandOptions {
+fn uses_options_from_value(value ruby.Value) UsesCommandOptions {
 	width := if option := value.map_data['console_width'] {
 		int(option.as_int() or { 80 })
 	} else {
@@ -320,48 +320,48 @@ fn uses_options_from_value(value brew_runtime.Value) UsesCommandOptions {
 	}
 }
 
-pub fn uses_options_value(options UsesCommandOptions) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'recursive':            brew_runtime.bool_value(options.recursive)
-		'installed':            brew_runtime.bool_value(options.installed)
-		'missing':              brew_runtime.bool_value(options.missing)
-		'eval_all':             brew_runtime.bool_value(options.eval_all)
-		'include_implicit':     brew_runtime.bool_value(options.include_implicit)
-		'include_build':        brew_runtime.bool_value(options.include_build)
-		'include_test':         brew_runtime.bool_value(options.include_test)
-		'include_optional':     brew_runtime.bool_value(options.include_optional)
-		'skip_recommended':     brew_runtime.bool_value(options.skip_recommended)
-		'formula':              brew_runtime.bool_value(options.formula)
-		'cask':                 brew_runtime.bool_value(options.cask)
-		'tap_trust_configured': brew_runtime.bool_value(options.tap_trust_configured)
-		'stdout_tty':           brew_runtime.bool_value(options.stdout_tty)
-		'console_width':        brew_runtime.int_value(options.console_width)
+pub fn uses_options_value(options UsesCommandOptions) ruby.Value {
+	return ruby.map_value({
+		'recursive':            ruby.bool_value(options.recursive)
+		'installed':            ruby.bool_value(options.installed)
+		'missing':              ruby.bool_value(options.missing)
+		'eval_all':             ruby.bool_value(options.eval_all)
+		'include_implicit':     ruby.bool_value(options.include_implicit)
+		'include_build':        ruby.bool_value(options.include_build)
+		'include_test':         ruby.bool_value(options.include_test)
+		'include_optional':     ruby.bool_value(options.include_optional)
+		'skip_recommended':     ruby.bool_value(options.skip_recommended)
+		'formula':              ruby.bool_value(options.formula)
+		'cask':                 ruby.bool_value(options.cask)
+		'tap_trust_configured': ruby.bool_value(options.tap_trust_configured)
+		'stdout_tty':           ruby.bool_value(options.stdout_tty)
+		'console_width':        ruby.int_value(options.console_width)
 	})
 }
 
-fn uses_values(value brew_runtime.Value, name string) []brew_runtime.Value {
-	return (value.map_data[name] or { brew_runtime.array_value([]) }).as_array() or {
-		[]brew_runtime.Value{}
+fn uses_values(value ruby.Value, name string) []ruby.Value {
+	return (value.map_data[name] or { ruby.array_value([]) }).as_array() or {
+		[]ruby.Value{}
 	}
 }
 
-pub fn uses_command_input_value(input UsesCommandInput) brew_runtime.Value {
-	mut registry := map[string]brew_runtime.Value{}
+pub fn uses_command_input_value(input UsesCommandInput) ruby.Value {
+	mut registry := map[string]ruby.Value{}
 	for name, dependent in input.registry {
 		registry[name] = deps_dependent_value(dependent)
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'Homebrew::Cmd::Uses'
 		map_data: {
 			'options':            uses_options_value(input.options)
-			'named':              brew_runtime.string_array_value(input.named)
-			'used_formulae':      brew_runtime.array_value(input.used_formulae.map(uses_formula_value(it)))
-			'installed_formulae': brew_runtime.array_value(input.installed_formulae.map(deps_dependent_value(it)))
-			'installed_casks':    brew_runtime.array_value(input.installed_casks.map(deps_dependent_value(it)))
-			'all_formulae':       brew_runtime.array_value(input.all_formulae.map(deps_dependent_value(it)))
-			'all_casks':          brew_runtime.array_value(input.all_casks.map(deps_dependent_value(it)))
-			'caskroom_casks':     brew_runtime.array_value(input.caskroom_casks.map(deps_dependent_value(it)))
-			'registry':           brew_runtime.map_value(registry)
+			'named':              ruby.string_array_value(input.named)
+			'used_formulae':      ruby.array_value(input.used_formulae.map(uses_formula_value(it)))
+			'installed_formulae': ruby.array_value(input.installed_formulae.map(deps_dependent_value(it)))
+			'installed_casks':    ruby.array_value(input.installed_casks.map(deps_dependent_value(it)))
+			'all_formulae':       ruby.array_value(input.all_formulae.map(deps_dependent_value(it)))
+			'all_casks':          ruby.array_value(input.all_casks.map(deps_dependent_value(it)))
+			'caskroom_casks':     ruby.array_value(input.caskroom_casks.map(deps_dependent_value(it)))
+			'registry':           ruby.map_value(registry)
 		}
 		attributes: {
 			'formula_unavailable_error': input.formula_unavailable_error
@@ -369,10 +369,10 @@ pub fn uses_command_input_value(input UsesCommandInput) brew_runtime.Value {
 	}
 }
 
-fn uses_command_input_from_value(value brew_runtime.Value) UsesCommandInput {
-	options_value := value.map_data['options'] or { brew_runtime.map_value({}) }
-	registry_value := (value.map_data['registry'] or { brew_runtime.map_value({}) }).as_map() or {
-		map[string]brew_runtime.Value{}
+fn uses_command_input_from_value(value ruby.Value) UsesCommandInput {
+	options_value := value.map_data['options'] or { ruby.map_value({}) }
+	registry_value := (value.map_data['registry'] or { ruby.map_value({}) }).as_map() or {
+		map[string]ruby.Value{}
 	}
 	mut registry := map[string]DepsDependent{}
 	for name, dependent in registry_value {
@@ -380,7 +380,7 @@ fn uses_command_input_from_value(value brew_runtime.Value) UsesCommandInput {
 	}
 	return UsesCommandInput{
 		options: uses_options_from_value(options_value)
-		named: (value.map_data['named'] or { brew_runtime.string_array_value([]) }).as_string_array() or {
+		named: (value.map_data['named'] or { ruby.string_array_value([]) }).as_string_array() or {
 			[]string{}
 		}
 		used_formulae: uses_values(value, 'used_formulae').map(uses_formula_from_value(it))
@@ -394,8 +394,8 @@ fn uses_command_input_from_value(value brew_runtime.Value) UsesCommandInput {
 	}
 }
 
-fn uses_result_value(result UsesCommandResult) brew_runtime.Value {
-	return brew_runtime.Value{
+fn uses_result_value(result UsesCommandResult) ruby.Value {
+	return ruby.Value{
 		type_name: if result.error == '' { 'UsesCommandResult' } else { 'UsageError' }
 		repr: if result.error == '' { result.stdout } else { result.error }
 		attributes: {
@@ -414,56 +414,56 @@ fn uses_result_value(result UsesCommandResult) brew_runtime.Value {
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby specify `specify <formula> as a required or recommended dependency for their stable builds.` at line 27.
-pub fn ruby_uses_l27_d1_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.structured_value('CommandArgument', '<formula>', {
+pub fn ruby_uses_l27_d1_formula(args ...ruby.Value) ruby.Value {
+	return ruby.structured_value('CommandArgument', '<formula>', {
 		'name':        '<formula>'
 		'description': 'required or recommended dependency for stable builds'
 	})
 }
 
 // Ruby method `run` at line 66.
-pub fn ruby_uses_l66_d2_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uses_l66_d2_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'run requires a Uses command input')
+		return ruby.object_value('ArgumentError', 'run requires a Uses command input')
 	}
 	return uses_result_value(run_uses_command(uses_command_input_from_value(args[0])))
 }
 
 // Ruby method `intersection_of_dependents(use_runtime_dependents, used_formulae)` at line 101.
-pub fn ruby_uses_l101_d3_intersection_of_dependents(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uses_l101_d3_intersection_of_dependents(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'intersection_of_dependents requires use_runtime_dependents and used_formulae')
+		return ruby.object_value('ArgumentError', 'intersection_of_dependents requires use_runtime_dependents and used_formulae')
 	}
 	use_runtime := args[0].as_bool() or { false }
-	formula_values := args[1].as_array() or { []brew_runtime.Value{} }
+	formula_values := args[1].as_array() or { []ruby.Value{} }
 	input := if args.len > 2 { uses_command_input_from_value(args[2]) } else { UsesCommandInput{} }
 	dependents := intersection_of_dependents(input, use_runtime, formula_values.map(uses_formula_from_value(it))) or {
-		return brew_runtime.object_value('UsageError', err.msg())
+		return ruby.object_value('UsageError', err.msg())
 	}
-	return brew_runtime.array_value(dependents.map(deps_dependent_value(it)))
+	return ruby.array_value(dependents.map(deps_dependent_value(it)))
 }
 
 // Ruby method `select_used_dependents(dependents, used_formulae, recursive, includes, ignores)` at line 158.
-pub fn ruby_uses_l158_d4_select_used_dependents(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uses_l158_d4_select_used_dependents(args ...ruby.Value) ruby.Value {
 	if args.len < 5 {
-		return brew_runtime.object_value('ArgumentError', 'select_used_dependents requires dependents, used_formulae, recursive, includes and ignores')
+		return ruby.object_value('ArgumentError', 'select_used_dependents requires dependents, used_formulae, recursive, includes and ignores')
 	}
-	dependent_values := args[0].as_array() or { []brew_runtime.Value{} }
-	formula_values := args[1].as_array() or { []brew_runtime.Value{} }
+	dependent_values := args[0].as_array() or { []ruby.Value{} }
+	formula_values := args[1].as_array() or { []ruby.Value{} }
 	recursive := args[2].as_bool() or { false }
 	includes := args[3].as_string_array() or { []string{} }
 	ignores := args[4].as_string_array() or { []string{} }
 	registry_values := if args.len > 5 {
-		args[5].as_map() or { map[string]brew_runtime.Value{} }
+		args[5].as_map() or { map[string]ruby.Value{} }
 	} else {
-		map[string]brew_runtime.Value{}
+		map[string]ruby.Value{}
 	}
 	mut registry := map[string]DepsDependent{}
 	for name, dependent in registry_values {
 		registry[name] = deps_dependent_from_value(dependent)
 	}
 	selected := select_used_dependents(dependent_values.map(deps_dependent_from_value(it)), formula_values.map(uses_formula_from_value(it)), recursive, includes, ignores, registry)
-	return brew_runtime.array_value(selected.map(deps_dependent_value(it)))
+	return ruby.array_value(selected.map(deps_dependent_value(it)))
 }
 
 // Original Ruby source (line-for-line):

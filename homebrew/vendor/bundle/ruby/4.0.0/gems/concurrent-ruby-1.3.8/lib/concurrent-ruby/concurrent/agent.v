@@ -1,18 +1,18 @@
 module concurrent
 
-import brew_runtime
+import ruby
 import sync
 import time
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/agent.rb`.
 // The original source is retained below for source-parity auditing.
-pub type AgentAction = fn(brew_runtime.Value, []brew_runtime.Value) !brew_runtime.Value
+pub type AgentAction = fn(ruby.Value, []ruby.Value) !ruby.Value
 
-pub type AgentValidator = fn(brew_runtime.Value) !bool
+pub type AgentValidator = fn(ruby.Value) !bool
 
 pub type AgentErrorHandler = fn(&Agent, string)
 
-pub type AgentObserver = fn(i64, brew_runtime.Value, brew_runtime.Value)
+pub type AgentObserver = fn(i64, ruby.Value, ruby.Value)
 
 pub struct AgentOptions {
 pub:
@@ -23,7 +23,7 @@ pub:
 
 struct AgentJob {
 	action   ?AgentAction
-	args     []brew_runtime.Value
+	args     []ruby.Value
 	executor ScheduledExecutor
 	done     chan bool
 }
@@ -32,7 +32,7 @@ struct AgentJob {
 pub struct Agent {
 	mutex &sync.Mutex
 mut:
-	current       brew_runtime.Value
+	current       ruby.Value
 	error_message string
 	error_mode    string
 	error_handler AgentErrorHandler = agent_default_error_handler
@@ -42,24 +42,24 @@ mut:
 	observers     []AgentObserver
 }
 
-fn agent_nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn agent_nil_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 fn agent_default_error_handler(_ &Agent, _ string) {}
 
-fn agent_default_validator(_ brew_runtime.Value) !bool {
+fn agent_default_validator(_ ruby.Value) !bool {
 	return true
 }
 
-fn agent_constant_action(_ brew_runtime.Value, args []brew_runtime.Value) !brew_runtime.Value {
+fn agent_constant_action(_ ruby.Value, args []ruby.Value) !ruby.Value {
 	if args.len == 0 {
 		return error('no action value given')
 	}
 	return args.last()
 }
 
-pub fn new_agent(initial brew_runtime.Value, options AgentOptions) &Agent {
+pub fn new_agent(initial ruby.Value, options AgentOptions) &Agent {
 	mode := if options.error_mode.len > 0 {
 		options.error_mode.trim_left(':')
 	} else if options.error_handler != none {
@@ -84,7 +84,7 @@ pub fn new_agent(initial brew_runtime.Value, options AgentOptions) &Agent {
 	return agent
 }
 
-pub fn (agent &Agent) value() brew_runtime.Value {
+pub fn (agent &Agent) value() ruby.Value {
 	agent.mutex.lock()
 	value := agent.current
 	agent.mutex.unlock()
@@ -112,7 +112,7 @@ pub fn (mut agent Agent) add_observer(observer AgentObserver) {
 	agent.mutex.unlock()
 }
 
-fn agent_execute_post(args []brew_runtime.Value) {
+fn agent_execute_post(args []ruby.Value) {
 	if args.len == 0 {
 		return
 	}
@@ -138,22 +138,22 @@ fn (mut agent Agent) post_job(job AgentJob, allow_failed bool, index ?int) bool 
 	agent.mutex.unlock()
 	if start {
 		job.executor.post(agent_execute_post, [
-			brew_runtime.int_value(i64(voidptr(&agent))),
+			ruby.int_value(i64(voidptr(&agent))),
 		])
 	}
 	return true
 }
 
-pub fn (mut agent Agent) send_action(action AgentAction, args []brew_runtime.Value) bool {
+pub fn (mut agent Agent) send_action(action AgentAction, args []ruby.Value) bool {
 	return agent.send_via(global_fast_executor().adapter, action, args)
 }
 
-pub fn (mut agent Agent) send_off(action AgentAction, args []brew_runtime.Value) bool {
+pub fn (mut agent Agent) send_off(action AgentAction, args []ruby.Value) bool {
 	return agent.send_via(global_io_executor().adapter, action, args)
 }
 
 pub fn (mut agent Agent) send_via(executor ScheduledExecutor, action AgentAction,
-	args []brew_runtime.Value) bool {
+	args []ruby.Value) bool {
 	return agent.post_job(AgentJob{
 		action: action
 		args: args.clone()
@@ -162,14 +162,14 @@ pub fn (mut agent Agent) send_via(executor ScheduledExecutor, action AgentAction
 	}, false, none)
 }
 
-pub fn (mut agent Agent) send_bang(action AgentAction, args []brew_runtime.Value) !bool {
+pub fn (mut agent Agent) send_bang(action AgentAction, args []ruby.Value) !bool {
 	if !agent.send_action(action, args) {
 		return error('agent must be restarted before jobs can post')
 	}
 	return true
 }
 
-pub fn (mut agent Agent) send_off_bang(action AgentAction, args []brew_runtime.Value) !bool {
+pub fn (mut agent Agent) send_off_bang(action AgentAction, args []ruby.Value) !bool {
 	if !agent.send_off(action, args) {
 		return error('agent must be restarted before jobs can post')
 	}
@@ -177,7 +177,7 @@ pub fn (mut agent Agent) send_off_bang(action AgentAction, args []brew_runtime.V
 }
 
 pub fn (mut agent Agent) send_via_bang(executor ScheduledExecutor, action AgentAction,
-	args []brew_runtime.Value) !bool {
+	args []ruby.Value) !bool {
 	if !agent.send_via(executor, action, args) {
 		return error('agent must be restarted before jobs can post')
 	}
@@ -237,7 +237,7 @@ pub fn (mut agent Agent) await_for_bang(timeout time.Duration) !bool {
 	return true
 }
 
-pub fn (mut agent Agent) restart(new_value brew_runtime.Value, clear_actions bool) !bool {
+pub fn (mut agent Agent) restart(new_value ruby.Value, clear_actions bool) !bool {
 	valid := agent.validator(new_value) or { false }
 	if !valid {
 		return error('invalid value')
@@ -260,7 +260,7 @@ pub fn (mut agent Agent) restart(new_value brew_runtime.Value, clear_actions boo
 	agent.mutex.unlock()
 	if start {
 		executor.post(agent_execute_post, [
-			brew_runtime.int_value(i64(voidptr(&agent))),
+			ruby.int_value(i64(voidptr(&agent))),
 		])
 	}
 	return true
@@ -328,7 +328,7 @@ fn (mut agent Agent) finish_job(_ AgentJob) {
 	agent.mutex.unlock()
 	if can_continue {
 		executor.post(agent_execute_post, [
-			brew_runtime.int_value(i64(voidptr(&agent))),
+			ruby.int_value(i64(voidptr(&agent))),
 		])
 	}
 }
@@ -351,7 +351,7 @@ pub fn await_agents_for(timeout time.Duration, mut agents []&Agent) bool {
 	return true
 }
 
-fn agent_options_from_value(value brew_runtime.Value) AgentOptions {
+fn agent_options_from_value(value ruby.Value) AgentOptions {
 	if value.type_name != 'Hash' {
 		return AgentOptions{}
 	}
@@ -361,13 +361,13 @@ fn agent_options_from_value(value brew_runtime.Value) AgentOptions {
 	}
 }
 
-fn agent_boundary_value(agent &Agent) brew_runtime.Value {
-	return brew_runtime.structured_value('Concurrent::Agent', '#<Concurrent::Agent>', {
+fn agent_boundary_value(agent &Agent) ruby.Value {
+	return ruby.structured_value('Concurrent::Agent', '#<Concurrent::Agent>', {
 		'agent_address': u64(voidptr(agent)).str()
 	})
 }
 
-fn agent_boundary_receiver(args []brew_runtime.Value) &Agent {
+fn agent_boundary_receiver(args []ruby.Value) &Agent {
 	if args.len == 0 {
 		panic('Agent method requires a receiver')
 	}
@@ -377,11 +377,11 @@ fn agent_boundary_receiver(args []brew_runtime.Value) &Agent {
 	return unsafe { &Agent(voidptr(address)) }
 }
 
-fn agent_boundary_timeout(value brew_runtime.Value) time.Duration {
+fn agent_boundary_timeout(value ruby.Value) time.Duration {
 	return time.Duration(value.as_float() or { panic(err) } * f64(time.second))
 }
 
-fn agent_boundary_send(args []brew_runtime.Value, mode string) brew_runtime.Value {
+fn agent_boundary_send(args []ruby.Value, mode string) ruby.Value {
 	if args.len < 2 {
 		panic('ArgumentError: no action given')
 	}
@@ -392,218 +392,218 @@ fn agent_boundary_send(args []brew_runtime.Value, mode string) brew_runtime.Valu
 		'io' { agent.send_off(agent_constant_action, values) }
 		else { agent.send_via(global_immediate_executor().adapter, agent_constant_action, values) }
 	}
-	return brew_runtime.bool_value(ok)
+	return ruby.bool_value(ok)
 }
 
 // Ruby method `initialize(message = nil)` at line 168.
-pub fn ruby_agent_l168_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_agent_l168_d1_initialize(args ...ruby.Value) ruby.Value {
 	message := if args.len > 0 {
 		args[0].as_string()
 	} else {
 		'agent must be restarted before jobs can post'
 	}
-	return brew_runtime.object_value('Concurrent::Agent::Error', message)
+	return ruby.object_value('Concurrent::Agent::Error', message)
 }
 
 // Ruby method `initialize(message = nil)` at line 177.
-pub fn ruby_agent_l177_d2_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_agent_l177_d2_initialize(args ...ruby.Value) ruby.Value {
 	message := if args.len > 0 { args[0].as_string() } else { 'invalid value' }
-	return brew_runtime.object_value('Concurrent::Agent::ValidationError', message)
+	return ruby.object_value('Concurrent::Agent::ValidationError', message)
 }
 
 // Ruby attr_reader `attr_reader :error_mode` at line 184.
-pub fn ruby_agent_l184_d3_error_mode(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(agent_boundary_receiver(args).error_mode())
+pub fn ruby_agent_l184_d3_error_mode(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(agent_boundary_receiver(args).error_mode())
 }
 
 // Ruby method `initialize(initial, opts = {})` at line 220.
-pub fn ruby_agent_l220_d4_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_agent_l220_d4_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Agent.new requires an initial value') }
 	options := if args.len > 1 { agent_options_from_value(args[1]) } else { AgentOptions{} }
 	return agent_boundary_value(new_agent(args[0], options))
 }
 
 // Ruby method `value` at line 229.
-pub fn ruby_agent_l229_d5_value(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_agent_l229_d5_value(args ...ruby.Value) ruby.Value {
 	return agent_boundary_receiver(args).value()
 }
 
 // Ruby alias_method `alias_method :deref, :value` at line 233.
-pub fn ruby_agent_l233_d6_deref(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_agent_l233_d6_deref(args ...ruby.Value) ruby.Value {
 	return ruby_agent_l229_d5_value(...args)
 }
 
 // Ruby method `error` at line 240.
-pub fn ruby_agent_l240_d7_error(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_agent_l240_d7_error(args ...ruby.Value) ruby.Value {
 	message := agent_boundary_receiver(args).error()
 	return if message.len == 0 {
 		agent_nil_value()
 	} else {
-		brew_runtime.object_value('StandardError', message)
+		ruby.object_value('StandardError', message)
 	}
 }
 
 // Ruby alias_method `alias_method :reason, :error` at line 244.
-pub fn ruby_agent_l244_d8_reason(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_agent_l244_d8_reason(args ...ruby.Value) ruby.Value {
 	return ruby_agent_l240_d7_error(...args)
 }
 
 // Ruby method `send(*args, &action)` at line 278.
-pub fn ruby_agent_l278_d9_send(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_agent_l278_d9_send(args ...ruby.Value) ruby.Value {
 	return agent_boundary_send(args, 'fast')
 }
 
 // Ruby method `send!(*args, &action)` at line 287.
-pub fn ruby_agent_l287_d10_send(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_agent_l287_d10_send(args ...ruby.Value) ruby.Value {
 	value := agent_boundary_send(args, 'fast')
 	if !value.bool_data { panic('agent must be restarted before jobs can post') }
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
 // Ruby method `send_off(*args, &action)` at line 294.
-pub fn ruby_agent_l294_d11_send_off(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_agent_l294_d11_send_off(args ...ruby.Value) ruby.Value {
 	return agent_boundary_send(args, 'io')
 }
 
 // Ruby alias_method `alias_method :post, :send_off` at line 298.
-pub fn ruby_agent_l298_d12_post(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_agent_l298_d12_post(args ...ruby.Value) ruby.Value {
 	return ruby_agent_l294_d11_send_off(...args)
 }
 
 // Ruby method `send_off!(*args, &action)` at line 302.
-pub fn ruby_agent_l302_d13_send_off(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_agent_l302_d13_send_off(args ...ruby.Value) ruby.Value {
 	value := agent_boundary_send(args, 'io')
 	if !value.bool_data { panic('agent must be restarted before jobs can post') }
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
 // Ruby method `send_via(executor, *args, &action)` at line 311.
-pub fn ruby_agent_l311_d14_send_via(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_agent_l311_d14_send_via(args ...ruby.Value) ruby.Value {
 	return agent_boundary_send(args, 'via')
 }
 
 // Ruby method `send_via!(executor, *args, &action)` at line 319.
-pub fn ruby_agent_l319_d15_send_via(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_agent_l319_d15_send_via(args ...ruby.Value) ruby.Value {
 	value := agent_boundary_send(args, 'via')
 	if !value.bool_data { panic('agent must be restarted before jobs can post') }
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
 // Ruby method `<<(action)` at line 331.
-pub fn ruby_agent_l331_d16_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_agent_l331_d16_anonymous(args ...ruby.Value) ruby.Value {
 	agent_boundary_send(args, 'io')
 	return args[0]
 }
 
 // Ruby method `await` at line 350.
-pub fn ruby_agent_l350_d17_await(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_agent_l350_d17_await(args ...ruby.Value) ruby.Value {
 	mut agent := agent_boundary_receiver(args)
 	agent.await()
 	return args[0]
 }
 
 // Ruby method `await_for(timeout)` at line 363.
-pub fn ruby_agent_l363_d18_await_for(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_agent_l363_d18_await_for(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Agent#await_for requires timeout') }
 	mut agent := agent_boundary_receiver(args)
-	return brew_runtime.bool_value(agent.await_for(agent_boundary_timeout(args[1])))
+	return ruby.bool_value(agent.await_for(agent_boundary_timeout(args[1])))
 }
 
 // Ruby method `await_for!(timeout)` at line 377.
-pub fn ruby_agent_l377_d19_await_for(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_agent_l377_d19_await_for(args ...ruby.Value) ruby.Value {
 	if !ruby_agent_l363_d18_await_for(...args).bool_data { panic('TimeoutError') }
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
 // Ruby method `wait(timeout = nil)` at line 393.
-pub fn ruby_agent_l393_d20_wait(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_agent_l393_d20_wait(args ...ruby.Value) ruby.Value {
 	mut agent := agent_boundary_receiver(args)
 	timeout := if args.len > 1 && args[1].type_name != 'NilClass' {
 		?time.Duration(agent_boundary_timeout(args[1]))
 	} else {
 		none
 	}
-	return brew_runtime.bool_value(agent.wait(timeout))
+	return ruby.bool_value(agent.wait(timeout))
 }
 
 // Ruby method `failed?` at line 402.
-pub fn ruby_agent_l402_d21_failed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(agent_boundary_receiver(args).failed())
+pub fn ruby_agent_l402_d21_failed(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(agent_boundary_receiver(args).failed())
 }
 
 // Ruby alias_method `alias_method :stopped?, :failed?` at line 406.
-pub fn ruby_agent_l406_d22_stopped(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_agent_l406_d22_stopped(args ...ruby.Value) ruby.Value {
 	return ruby_agent_l402_d21_failed(...args)
 }
 
 // Ruby method `restart(new_value, opts = {})` at line 424.
-pub fn ruby_agent_l424_d23_restart(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_agent_l424_d23_restart(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Agent#restart requires a new value') }
 	mut agent := agent_boundary_receiver(args)
 	clear := if args.len > 2 && args[2].type_name == 'Hash' {
-		(args[2].as_map() or { map[string]brew_runtime.Value{} })['clear_actions'].as_bool() or { false }
+		(args[2].as_map() or { map[string]ruby.Value{} })['clear_actions'].as_bool() or { false }
 	} else {
 		false
 	}
-	return brew_runtime.bool_value(agent.restart(args[1], clear) or { panic(err) })
+	return ruby.bool_value(agent.restart(args[1], clear) or { panic(err) })
 }
 
 // Ruby method `await(*agents)` at line 449.
-pub fn ruby_agent_l449_d24_await(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_agent_l449_d24_await(args ...ruby.Value) ruby.Value {
 	for value in args {
 		mut agent := agent_boundary_receiver([value])
 		agent.await()
 	}
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
 // Ruby method `await_for(timeout, *agents)` at line 463.
-pub fn ruby_agent_l463_d25_await_for(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_agent_l463_d25_await_for(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Agent.await_for requires timeout') }
 	deadline := time.sys_mono_now() + u64(agent_boundary_timeout(args[0]))
 	for value in args[1..] {
 		now := time.sys_mono_now()
 		if now >= deadline {
-			return brew_runtime.bool_value(false)
+			return ruby.bool_value(false)
 		}
 		mut agent := agent_boundary_receiver([value])
 		if !agent.await_for(time.Duration(deadline - now)) {
-			return brew_runtime.bool_value(false)
+			return ruby.bool_value(false)
 		}
 	}
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
 // Ruby method `await_for!(timeout, *agents)` at line 482.
-pub fn ruby_agent_l482_d26_await_for(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_agent_l482_d26_await_for(args ...ruby.Value) ruby.Value {
 	if !ruby_agent_l463_d25_await_for(...args).bool_data { panic('TimeoutError') }
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
 // Ruby method `ns_initialize(initial, opts)` at line 490.
-pub fn ruby_agent_l490_d27_ns_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_agent_l490_d27_ns_initialize(args ...ruby.Value) ruby.Value {
 	return ruby_agent_l220_d4_initialize(...args)
 }
 
 // Ruby method `enqueue_action_job(action, args, executor)` at line 510.
-pub fn ruby_agent_l510_d28_enqueue_action_job(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_agent_l510_d28_enqueue_action_job(args ...ruby.Value) ruby.Value {
 	return agent_boundary_send(args, 'fast')
 }
 
 // Ruby method `enqueue_await_job(latch)` at line 516.
-pub fn ruby_agent_l516_d29_enqueue_await_job(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_agent_l516_d29_enqueue_await_job(args ...ruby.Value) ruby.Value {
 	mut agent := agent_boundary_receiver(args)
 	agent.enqueue_await_job()
-	return brew_runtime.object_value('Concurrent::CountDownLatch', '#<CountDownLatch>')
+	return ruby.object_value('Concurrent::CountDownLatch', '#<CountDownLatch>')
 }
 
 // Ruby method `ns_enqueue_job(job, index = nil)` at line 529.
-pub fn ruby_agent_l529_d30_ns_enqueue_job(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_agent_l529_d30_ns_enqueue_job(args ...ruby.Value) ruby.Value {
 	return agent_boundary_send(args, 'fast')
 }
 
 // Ruby method `ns_post_next_job` at line 539.
-pub fn ruby_agent_l539_d31_ns_post_next_job(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_agent_l539_d31_ns_post_next_job(args ...ruby.Value) ruby.Value {
 	mut agent := agent_boundary_receiver(args)
 	agent.mutex.lock()
 	should_post := !agent.processing && agent.queue.len > 0
@@ -618,28 +618,28 @@ pub fn ruby_agent_l539_d31_ns_post_next_job(args ...brew_runtime.Value) brew_run
 	agent.mutex.unlock()
 	if should_post {
 		executor.post(agent_execute_post, [
-			brew_runtime.int_value(i64(voidptr(agent))),
+			ruby.int_value(i64(voidptr(agent))),
 		])
 	}
 	return agent_nil_value()
 }
 
 // Ruby method `execute_next_job` at line 543.
-pub fn ruby_agent_l543_d32_execute_next_job(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_agent_l543_d32_execute_next_job(args ...ruby.Value) ruby.Value {
 	mut agent := agent_boundary_receiver(args)
 	agent.execute_next_job()
 	return agent_nil_value()
 }
 
 // Ruby method `ns_validate(value)` at line 570.
-pub fn ruby_agent_l570_d33_ns_validate(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_agent_l570_d33_ns_validate(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Agent#ns_validate requires a value') }
 	agent := agent_boundary_receiver(args)
-	return brew_runtime.bool_value(agent.validator(args[1]) or { false })
+	return ruby.bool_value(agent.validator(args[1]) or { false })
 }
 
 // Ruby method `handle_error(error)` at line 576.
-pub fn ruby_agent_l576_d34_handle_error(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_agent_l576_d34_handle_error(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Agent#handle_error requires an error') }
 	mut agent := agent_boundary_receiver(args)
 	agent.handle_error(args[1].as_string())
@@ -647,12 +647,12 @@ pub fn ruby_agent_l576_d34_handle_error(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby method `ns_find_last_job_for_thread` at line 584.
-pub fn ruby_agent_l584_d35_ns_find_last_job_for_thread(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_agent_l584_d35_ns_find_last_job_for_thread(args ...ruby.Value) ruby.Value {
 	agent := agent_boundary_receiver(args)
 	agent.mutex.lock()
 	index := agent.queue.len - 1
 	agent.mutex.unlock()
-	return if index < 0 { agent_nil_value() } else { brew_runtime.int_value(index) }
+	return if index < 0 { agent_nil_value() } else { ruby.int_value(index) }
 }
 
 // Original Ruby source (line-for-line):

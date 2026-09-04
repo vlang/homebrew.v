@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `keg_only_reason.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -81,15 +81,15 @@ pub fn (reason KegOnlyReason) to_hash() map[string]string {
 	}
 }
 
-fn keg_only_reason_boundary_value(reason KegOnlyReason) brew_runtime.Value {
-	return brew_runtime.structured_value('KegOnlyReason', reason.str(), {
+fn keg_only_reason_boundary_value(reason KegOnlyReason) ruby.Value {
+	return ruby.structured_value('KegOnlyReason', reason.str(), {
 		'reason':        reason.reason
 		'explanation':   reason.explanation
 		'reason_symbol': reason.reason_symbol.str()
 	})
 }
 
-fn keg_only_reason_from_boundary(value brew_runtime.Value) KegOnlyReason {
+fn keg_only_reason_from_boundary(value ruby.Value) KegOnlyReason {
 	if value.type_name != 'KegOnlyReason' {
 		panic('expected KegOnlyReason, got ${value.type_name}')
 	}
@@ -100,7 +100,7 @@ fn keg_only_reason_from_boundary(value brew_runtime.Value) KegOnlyReason {
 	}
 }
 
-fn keg_only_reason_receiver(args []brew_runtime.Value, method string) KegOnlyReason {
+fn keg_only_reason_receiver(args []ruby.Value, method string) KegOnlyReason {
 	if args.len == 0 {
 		panic('KegOnlyReason#${method} requires a receiver')
 	}
@@ -108,17 +108,17 @@ fn keg_only_reason_receiver(args []brew_runtime.Value, method string) KegOnlyRea
 }
 
 // Ruby attr_reader `attr_reader :reason` at line 8.
-pub fn ruby_keg_only_reason_l8_d1_reason(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_only_reason_l8_d1_reason(args ...ruby.Value) ruby.Value {
 	reason := keg_only_reason_receiver(args, 'reason')
 	return if reason.reason_symbol {
-		brew_runtime.object_value('Symbol', reason.reason)
+		ruby.object_value('Symbol', reason.reason)
 	} else {
-		brew_runtime.string_value(reason.reason)
+		ruby.string_value(reason.reason)
 	}
 }
 
 // Ruby method `initialize(reason, explanation)` at line 11.
-pub fn ruby_keg_only_reason_l11_d2_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_only_reason_l11_d2_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('KegOnlyReason#initialize requires a reason and explanation')
 	}
@@ -131,40 +131,40 @@ pub fn ruby_keg_only_reason_l11_d2_initialize(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby method `versioned_formula?` at line 17.
-pub fn ruby_keg_only_reason_l17_d3_versioned_formula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(keg_only_reason_receiver(args, 'versioned_formula?').versioned_formula())
+pub fn ruby_keg_only_reason_l17_d3_versioned_formula(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(keg_only_reason_receiver(args, 'versioned_formula?').versioned_formula())
 }
 
 // Ruby method `provided_by_macos?` at line 22.
-pub fn ruby_keg_only_reason_l22_d4_provided_by_macos(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(keg_only_reason_receiver(args, 'provided_by_macos?').provided_by_macos())
+pub fn ruby_keg_only_reason_l22_d4_provided_by_macos(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(keg_only_reason_receiver(args, 'provided_by_macos?').provided_by_macos())
 }
 
 // Ruby method `shadowed_by_macos?` at line 27.
-pub fn ruby_keg_only_reason_l27_d5_shadowed_by_macos(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(keg_only_reason_receiver(args, 'shadowed_by_macos?').shadowed_by_macos())
+pub fn ruby_keg_only_reason_l27_d5_shadowed_by_macos(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(keg_only_reason_receiver(args, 'shadowed_by_macos?').shadowed_by_macos())
 }
 
 // Ruby method `by_macos?` at line 32.
-pub fn ruby_keg_only_reason_l32_d6_by_macos(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(keg_only_reason_receiver(args, 'by_macos?').by_macos())
+pub fn ruby_keg_only_reason_l32_d6_by_macos(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(keg_only_reason_receiver(args, 'by_macos?').by_macos())
 }
 
 // Ruby method `applicable?` at line 37.
-pub fn ruby_keg_only_reason_l37_d7_applicable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(keg_only_reason_receiver(args, 'applicable?').applicable())
+pub fn ruby_keg_only_reason_l37_d7_applicable(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(keg_only_reason_receiver(args, 'applicable?').applicable())
 }
 
 // Ruby method `to_s` at line 44.
-pub fn ruby_keg_only_reason_l44_d8_to_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(keg_only_reason_receiver(args, 'to_s').str())
+pub fn ruby_keg_only_reason_l44_d8_to_s(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(keg_only_reason_receiver(args, 'to_s').str())
 }
 
 // Ruby method `to_hash` at line 67.
-pub fn ruby_keg_only_reason_l67_d9_to_hash(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_only_reason_l67_d9_to_hash(args ...ruby.Value) ruby.Value {
 	reason := keg_only_reason_receiver(args, 'to_hash')
 	hash := reason.to_hash()
-	return brew_runtime.structured_value('Hash', hash.str(), hash)
+	return ruby.structured_value('Hash', hash.str(), hash)
 }
 
 // Original Ruby source (line-for-line):

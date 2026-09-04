@@ -1,6 +1,6 @@
 module strategy
 
-import brew_runtime
+import ruby
 import homebrew.livecheck
 import homebrew.livecheck.strategy as npm_core
 import homebrew.utils
@@ -81,8 +81,8 @@ fn npm_spec_match_data_equal(left npm_core.JsonMatchData,
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:npm) { described_class }` at line 7.
-pub fn ruby_npm_spec_l7_d1_npm() brew_runtime.Value {
-	return brew_runtime.object_value('Class', 'Homebrew::Livecheck::Strategy::Npm')
+pub fn ruby_npm_spec_l7_d1_npm() ruby.Value {
+	return ruby.object_value('Class', 'Homebrew::Livecheck::Strategy::Npm')
 }
 
 // Ruby let `let(:npm_urls) do` at line 9.

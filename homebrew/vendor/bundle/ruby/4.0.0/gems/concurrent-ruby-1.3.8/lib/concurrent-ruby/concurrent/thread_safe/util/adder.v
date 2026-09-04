@@ -1,6 +1,6 @@
 module util
 
-import brew_runtime
+import ruby
 import sync
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/thread_safe/util/adder.rb`.
@@ -44,14 +44,14 @@ pub fn (mut adder Adder) reset() {
 	adder.lock.unlock()
 }
 
-pub fn new_adder_boundary_value() brew_runtime.Value {
+pub fn new_adder_boundary_value() ruby.Value {
 	adder := new_adder()
-	return brew_runtime.structured_value('Concurrent::ThreadSafe::Util::Adder', '#<Concurrent::ThreadSafe::Util::Adder>', {
+	return ruby.structured_value('Concurrent::ThreadSafe::Util::Adder', '#<Concurrent::ThreadSafe::Util::Adder>', {
 		'adder_address': u64(voidptr(adder)).str()
 	})
 }
 
-fn adder_boundary_receiver(args []brew_runtime.Value) &Adder {
+fn adder_boundary_receiver(args []ruby.Value) &Adder {
 	if args.len == 0 {
 		panic('Adder method requires a receiver')
 	}
@@ -62,40 +62,40 @@ fn adder_boundary_receiver(args []brew_runtime.Value) &Adder {
 }
 
 // Ruby method `add(x)` at line 35.
-pub fn ruby_adder_l35_d1_add(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_adder_l35_d1_add(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Adder#add requires value')
 	}
 	mut adder := adder_boundary_receiver(args)
 	adder.add(args[1].as_int() or { panic(err) })
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `increment` at line 45.
-pub fn ruby_adder_l45_d2_increment(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_adder_l45_d2_increment(args ...ruby.Value) ruby.Value {
 	mut adder := adder_boundary_receiver(args)
 	adder.increment()
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `decrement` at line 49.
-pub fn ruby_adder_l49_d3_decrement(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_adder_l49_d3_decrement(args ...ruby.Value) ruby.Value {
 	mut adder := adder_boundary_receiver(args)
 	adder.decrement()
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `sum` at line 58.
-pub fn ruby_adder_l58_d4_sum(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_adder_l58_d4_sum(args ...ruby.Value) ruby.Value {
 	mut adder := adder_boundary_receiver(args)
-	return brew_runtime.int_value(adder.value())
+	return ruby.int_value(adder.value())
 }
 
 // Ruby method `reset` at line 68.
-pub fn ruby_adder_l68_d5_reset(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_adder_l68_d5_reset(args ...ruby.Value) ruby.Value {
 	mut adder := adder_boundary_receiver(args)
 	adder.reset()
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Original Ruby source (line-for-line):

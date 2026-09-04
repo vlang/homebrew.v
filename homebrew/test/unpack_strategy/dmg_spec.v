@@ -1,6 +1,6 @@
 module unpack_strategy
 
-import brew_runtime
+import ruby
 import homebrew.unpack_strategy as typed_unpack
 import os
 
@@ -8,12 +8,12 @@ import os
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:path) { TEST_FIXTURE_DIR/"cask/container.dmg" }` at line 8.
-pub fn ruby_dmg_spec_l8_d1_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(spec_dmg_fixture())
+pub fn ruby_dmg_spec_l8_d1_path(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(spec_dmg_fixture())
 }
 
 // Ruby specify `specify "#extract" do` at line 12.
-pub fn ruby_dmg_spec_l12_d2_extract(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dmg_spec_l12_d2_extract(args ...ruby.Value) ruby.Value {
 	if !spec_tool_available('hdiutil') || !spec_tool_available('ditto') {
 		return spec_bool(true)
 	}
@@ -22,7 +22,7 @@ pub fn ruby_dmg_spec_l12_d2_extract(args ...brew_runtime.Value) brew_runtime.Val
 }
 
 // Ruby it `it "does not treat an unrelated attach failure as a license agreement" do` at line 31.
-pub fn ruby_dmg_spec_l31_d3_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dmg_spec_l31_d3_does(args ...ruby.Value) ruby.Value {
 	if !spec_tool_available('hdiutil') {
 		return spec_bool(true)
 	}

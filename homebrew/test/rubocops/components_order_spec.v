@@ -1,6 +1,6 @@
 module rubocops
 
-import brew_runtime
+import ruby
 import homebrew.rubocops as components_order_core
 import homebrew.utils
 
@@ -14,12 +14,12 @@ fn components_order_spec_formula(body string) string {
 	return 'class Foo < Formula\n${lines.join('\n')}\nend\n'
 }
 
-fn components_order_spec_bool(value bool) brew_runtime.Value {
-	return brew_runtime.bool_value(value)
+fn components_order_spec_bool(value bool) ruby.Value {
+	return ruby.bool_value(value)
 }
 
 fn components_order_spec_order(body string, corrected_body string, first string,
-	second string) brew_runtime.Value {
+	second string) ruby.Value {
 	source := components_order_spec_formula(body)
 	analysis := components_order_core.analyze_components_order(source)
 	if analysis.offenses.len == 0 {
@@ -30,28 +30,28 @@ fn components_order_spec_order(body string, corrected_body string, first string,
 	return components_order_spec_bool(offense.node_name == first && offense.other_name == second && offense.message == expected_message && analysis.corrected == components_order_spec_formula(corrected_body) && components_order_core.analyze_components_order(analysis.corrected).offenses.len == 0)
 }
 
-fn components_order_spec_no_offenses(body string) brew_runtime.Value {
+fn components_order_spec_no_offenses(body string) ruby.Value {
 	analysis := components_order_core.analyze_components_order(components_order_spec_formula(body))
 	return components_order_spec_bool(analysis.offenses.len == 0 && analysis.corrected == analysis.source)
 }
 
-fn components_order_spec_message(body string, node string, message string) brew_runtime.Value {
+fn components_order_spec_message(body string, node string, message string) ruby.Value {
 	analysis := components_order_core.analyze_components_order(components_order_spec_formula(body))
 	return components_order_spec_bool(analysis.offenses.any(it.node_name == node && it.message == message))
 }
 
-fn components_order_spec_message_prefix(body string, node string, prefix string) brew_runtime.Value {
+fn components_order_spec_message_prefix(body string, node string, prefix string) ruby.Value {
 	analysis := components_order_core.analyze_components_order(components_order_spec_formula(body))
 	return components_order_spec_bool(analysis.offenses.any(it.node_name == node && it.message.starts_with(prefix)))
 }
 
-fn components_order_spec_method(name string) brew_runtime.Value {
+fn components_order_spec_method(name string) ruby.Value {
 	source := components_order_spec_formula('def ${name}\nend')
 	_, root := utils.ast_process_source(source)
 	if root.children.len == 1 {
 		return utils.ast_node_value(root.children[0])
 	}
-	return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+	return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 }
 
 fn components_order_spec_simple_system(method string, action string) string {
@@ -107,330 +107,330 @@ fn components_order_spec_if_resource(method string, valid bool) string {
 }
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
-pub fn ruby_components_order_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l7_d1_cop(args ...ruby.Value) ruby.Value {
 	return components_order_core.ruby_components_order_l18_d1_initialize(...args)
 }
 
 // Ruby it `it "reports and corrects an offense when `uses_from_macos` precedes `depends_on`" do` at line 10.
-pub fn ruby_components_order_spec_l10_d2_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l10_d2_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_order('homepage "https://brew.sh"\nurl "https://brew.sh/foo-1.0.tgz"\n\nuses_from_macos "apple"\ndepends_on "foo"', 'homepage "https://brew.sh"\nurl "https://brew.sh/foo-1.0.tgz"\n\ndepends_on "foo"\n\nuses_from_macos "apple"', 'depends_on', 'uses_from_macos')
 }
 
 // Ruby it `it "reports and corrects an offense when `license` precedes `sha256`" do` at line 34.
-pub fn ruby_components_order_spec_l34_d3_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l34_d3_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_order('homepage "https://brew.sh"\nurl "https://brew.sh/foo-1.0.tgz"\nlicense "0BSD"\nsha256 "samplesha256"', 'homepage "https://brew.sh"\nurl "https://brew.sh/foo-1.0.tgz"\nsha256 "samplesha256"\nlicense "0BSD"', 'sha256', 'license')
 }
 
 // Ruby it `it "reports and corrects an offense when `bottle` precedes `livecheck`" do` at line 55.
-pub fn ruby_components_order_spec_l55_d4_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l55_d4_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_order('homepage "https://brew.sh"\nurl "https://brew.sh/foo-1.0.tgz"\n\nbottle :unneeded\n\nlivecheck do\n  url "https://brew.sh/foo/versions/"\n  regex(/foo/)\nend', 'homepage "https://brew.sh"\nurl "https://brew.sh/foo-1.0.tgz"\n\nlivecheck do\n  url "https://brew.sh/foo/versions/"\n  regex(/foo/)\nend\n\nbottle :unneeded', 'livecheck', 'bottle')
 }
 
 // Ruby it `it "reports and corrects an offense when `url` precedes `homepage`" do` at line 86.
-pub fn ruby_components_order_spec_l86_d5_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l86_d5_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_order('url "https://brew.sh/foo-1.0.tgz"\nhomepage "https://brew.sh"', 'homepage "https://brew.sh"\nurl "https://brew.sh/foo-1.0.tgz"', 'homepage', 'url')
 }
 
 // Ruby it `it "reports and corrects an offense when `resource` precedes `depends_on`" do` at line 103.
-pub fn ruby_components_order_spec_l103_d6_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l103_d6_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_order('url "https://brew.sh/foo-1.0.tgz"\n\nresource "foo2" do\n  url "https://brew.sh/foo-2.0.tgz"\nend\n\ndepends_on "openssl"', 'url "https://brew.sh/foo-1.0.tgz"\n\ndepends_on "openssl"\n\nresource "foo2" do\n  url "https://brew.sh/foo-2.0.tgz"\nend', 'depends_on', 'resource')
 }
 
 // Ruby it `it "reports and corrects an offense when `test` precedes `plist`" do` at line 130.
-pub fn ruby_components_order_spec_l130_d7_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l130_d7_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_order('url "https://brew.sh/foo-1.0.tgz"\n\ntest do\n  expect(shell_output("./dogs")).to match("Dogs are terrific")\nend\n\ndef plist\nend', 'url "https://brew.sh/foo-1.0.tgz"\n\ndef plist\nend\n\ntest do\n  expect(shell_output("./dogs")).to match("Dogs are terrific")\nend', 'plist', 'test')
 }
 
 // Ruby method `plist` at line 139.
-pub fn ruby_components_order_spec_l139_d8_plist(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l139_d8_plist(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_method('plist')
 }
 
 // Ruby method `plist` at line 149.
-pub fn ruby_components_order_spec_l149_d9_plist(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l149_d9_plist(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_method('plist')
 }
 
 // Ruby it `it "reports and corrects an offense when `install` precedes `depends_on`" do` at line 159.
-pub fn ruby_components_order_spec_l159_d10_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l159_d10_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_order('url "https://brew.sh/foo-1.0.tgz"\n\ndef install\nend\n\ndepends_on "openssl"', 'url "https://brew.sh/foo-1.0.tgz"\n\ndepends_on "openssl"\n\ndef install\nend', 'depends_on', 'install')
 }
 
 // Ruby method `install` at line 164.
-pub fn ruby_components_order_spec_l164_d11_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l164_d11_install(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_method('install')
 }
 
 // Ruby method `install` at line 178.
-pub fn ruby_components_order_spec_l178_d12_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l178_d12_install(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_method('install')
 }
 
 // Ruby it `it "orders `post_install_steps` before `post_install`" do` at line 184.
-pub fn ruby_components_order_spec_l184_d13_orders(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l184_d13_orders(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_order('def post_install\nend\n\npost_install_steps do\n  touch "foo"\nend', 'post_install_steps do\n  touch "foo"\nend\n\ndef post_install\nend', 'post_install_steps', 'post_install')
 }
 
 // Ruby method `post_install` at line 187.
-pub fn ruby_components_order_spec_l187_d14_post_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l187_d14_post_install(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_method('post_install')
 }
 
 // Ruby method `post_install` at line 203.
-pub fn ruby_components_order_spec_l203_d15_post_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l203_d15_post_install(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_method('post_install')
 }
 
 // Ruby it `it "reports and corrects an offense when `test` precedes `depends_on`" do` at line 209.
-pub fn ruby_components_order_spec_l209_d16_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l209_d16_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_order('url "https://brew.sh/foo-1.0.tgz"\n\ndef install\nend\n\ndef test\nend\n\ndepends_on "openssl"', 'url "https://brew.sh/foo-1.0.tgz"\n\ndepends_on "openssl"\n\ndef install\nend\n\ndef test\nend', 'depends_on', 'install')
 }
 
 // Ruby method `install` at line 214.
-pub fn ruby_components_order_spec_l214_d17_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l214_d17_install(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_method('install')
 }
 
 // Ruby method `test` at line 217.
-pub fn ruby_components_order_spec_l217_d18_test(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l217_d18_test(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_method('test')
 }
 
 // Ruby method `install` at line 231.
-pub fn ruby_components_order_spec_l231_d19_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l231_d19_install(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_method('install')
 }
 
 // Ruby method `test` at line 234.
-pub fn ruby_components_order_spec_l234_d20_test(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l234_d20_test(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_method('test')
 }
 
 // Ruby it `it "reports and corrects an offense when only one of many `depends_on` precedes `conflicts_with`" do` at line 240.
-pub fn ruby_components_order_spec_l240_d21_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l240_d21_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_order('depends_on "autoconf" => :build\nconflicts_with "visionmedia-watch"\ndepends_on "automake" => :build\ndepends_on "libtool" => :build\ndepends_on "pkgconf" => :build\ndepends_on "gettext"', 'depends_on "autoconf" => :build\ndepends_on "automake" => :build\ndepends_on "libtool" => :build\ndepends_on "pkgconf" => :build\ndepends_on "gettext"\nconflicts_with "visionmedia-watch"', 'depends_on', 'conflicts_with')
 }
 
 // Ruby it `it "reports and corrects an offense when the `on_macos` block precedes `uses_from_macos`" do` at line 265.
-pub fn ruby_components_order_spec_l265_d22_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l265_d22_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_order('url "https://brew.sh/foo-1.0.tgz"\non_macos do\n  depends_on "readline"\nend\nuses_from_macos "bar"', 'url "https://brew.sh/foo-1.0.tgz"\nuses_from_macos "bar"\n\non_macos do\n  depends_on "readline"\nend', 'uses_from_macos', 'on_macos')
 }
 
 // Ruby it `it "reports and corrects an offense when the `on_linux` block precedes `uses_from_macos`" do` at line 289.
-pub fn ruby_components_order_spec_l289_d23_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l289_d23_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_order('url "https://brew.sh/foo-1.0.tgz"\non_linux do\n  depends_on "readline"\nend\nuses_from_macos "bar"', 'url "https://brew.sh/foo-1.0.tgz"\nuses_from_macos "bar"\n\non_linux do\n  depends_on "readline"\nend', 'uses_from_macos', 'on_linux')
 }
 
 // Ruby it `it "reports and corrects an offense when the `on_linux` block precedes the `on_macos` block" do` at line 313.
-pub fn ruby_components_order_spec_l313_d24_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l313_d24_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_order('url "https://brew.sh/foo-1.0.tgz"\non_linux do\n  depends_on "vim"\nend\non_macos do\n  depends_on "readline"\nend', 'url "https://brew.sh/foo-1.0.tgz"\non_macos do\n  depends_on "readline"\nend\n\non_linux do\n  depends_on "vim"\nend', 'on_macos', 'on_linux')
 }
 
 // Ruby it `it "reports and corrects an offense when `depends_on` precedes `deprecate!`" do` at line 342.
-pub fn ruby_components_order_spec_l342_d25_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l342_d25_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_order('url "https://brew.sh/foo-1.0.tgz"\n\ndepends_on "openssl"\n\ndeprecate! because: "has been replaced by bar"', 'url "https://brew.sh/foo-1.0.tgz"\n\ndeprecate! because: "has been replaced by bar"\n\ndepends_on "openssl"', 'deprecate!', 'depends_on')
 }
 
 // Ruby it `it "reports no offenses" do` at line 366.
-pub fn ruby_components_order_spec_l366_d26_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l366_d26_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_no_offenses('homepage "https://brew.sh"\n\ndepends_on "pkgconf" => :build\n\ndef install\nend')
 }
 
 // Ruby method `install` at line 373.
-pub fn ruby_components_order_spec_l373_d27_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l373_d27_install(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_method('install')
 }
 
 // Ruby it `it "reports no offenses when `on_macos` and `on_linux` are used correctly" do` at line 381.
-pub fn ruby_components_order_spec_l381_d28_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l381_d28_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_no_offenses('homepage "https://brew.sh"\n\ndepends_on "pkgconf" => :build\n\nuses_from_macos "libxml2"\n\non_macos do\n  on_arm do\n    depends_on "perl"\n  end\n\n  on_intel do\n    depends_on "python"\n  end\n\n  resource "resource1" do\n    url "resource1"\n    sha256 "one"\n\n    patch do\n      url "patch3"\n      sha256 "three"\n    end\n  end\n\n  resource "resource2" do\n    url "resource2"\n    sha256 "two"\n  end\n\n  patch do\n    url "patch1"\n    sha256 "one"\n  end\n\n  patch do\n    url "patch2"\n    sha256 "two"\n  end\nend\n\non_linux do\n  depends_on "readline"\nend\n\ndef install\nend')
 }
 
 // Ruby method `install` at line 429.
-pub fn ruby_components_order_spec_l429_d29_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l429_d29_install(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_method('install')
 }
 
 // Ruby it `it "reports no offenses when `on_macos` is used correctly" do` at line 435.
-pub fn ruby_components_order_spec_l435_d30_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l435_d30_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_no_offenses(components_order_spec_simple_system('on_macos', 'disable! because: :does_not_build'))
 }
 
 // Ruby method `install` at line 445.
-pub fn ruby_components_order_spec_l445_d31_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l445_d31_install(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_method('install')
 }
 
 // Ruby it `it "reports and corrects an offense when `patch` precedes `resource` in `on_macos`" do` at line 451.
-pub fn ruby_components_order_spec_l451_d32_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l451_d32_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_order('homepage "https://brew.sh"\n\non_macos do\n  depends_on "readline"\n\n  patch do\n    url "patch"\n    sha256 "patch"\n  end\n\n  resource "foo" do\n    url "foo"\n    sha256 "foo"\n  end\nend', 'homepage "https://brew.sh"\n\non_macos do\n  depends_on "readline"\n\n  resource "foo" do\n    url "foo"\n    sha256 "foo"\n  end\n  patch do\n    url "patch"\n    sha256 "patch"\n  end\nend', 'resource', 'patch')
 }
 
 // Ruby it `it "reports no offenses when `on_linux` is used correctly" do` at line 493.
-pub fn ruby_components_order_spec_l493_d33_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l493_d33_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_no_offenses(components_order_spec_simple_system('on_linux', 'deprecate! because: "it is deprecated"'))
 }
 
 // Ruby method `install` at line 503.
-pub fn ruby_components_order_spec_l503_d34_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l503_d34_install(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_method('install')
 }
 
 // Ruby it `it "reports no offenses when `on_intel` is used correctly" do` at line 509.
-pub fn ruby_components_order_spec_l509_d35_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l509_d35_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_no_offenses(components_order_spec_simple_system('on_intel', 'disable! because: :does_not_build'))
 }
 
 // Ruby method `install` at line 519.
-pub fn ruby_components_order_spec_l519_d36_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l519_d36_install(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_method('install')
 }
 
 // Ruby it `it "reports no offenses when `on_arm` is used correctly" do` at line 525.
-pub fn ruby_components_order_spec_l525_d37_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l525_d37_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_no_offenses(components_order_spec_simple_system('on_arm', 'deprecate! because: "it is deprecated"'))
 }
 
 // Ruby method `install` at line 535.
-pub fn ruby_components_order_spec_l535_d38_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l535_d38_install(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_method('install')
 }
 
 // Ruby it `it "reports no offenses when `on_monterey` is used correctly" do` at line 541.
-pub fn ruby_components_order_spec_l541_d39_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l541_d39_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_no_offenses(components_order_spec_simple_system('on_monterey', 'disable! because: :does_not_build'))
 }
 
 // Ruby method `install` at line 551.
-pub fn ruby_components_order_spec_l551_d40_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l551_d40_install(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_method('install')
 }
 
 // Ruby it `it "reports no offenses when `on_monterey :or_older` is used correctly" do` at line 557.
-pub fn ruby_components_order_spec_l557_d41_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l557_d41_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_no_offenses(components_order_spec_simple_system('on_monterey :or_older', 'deprecate! because: "it is deprecated"'))
 }
 
 // Ruby method `install` at line 567.
-pub fn ruby_components_order_spec_l567_d42_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l567_d42_install(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_method('install')
 }
 
 // Ruby it `it "reports an offense when there are multiple `on_macos` blocks" do` at line 573.
-pub fn ruby_components_order_spec_l573_d43_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l573_d43_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_message(components_order_spec_duplicate_system('on_macos', ''), 'on_macos', 'There can only be one `on_macos` block in a formula.')
 }
 
 // Ruby it `it "reports an offense when there are multiple `on_linux` blocks" do` at line 589.
-pub fn ruby_components_order_spec_l589_d44_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l589_d44_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_message(components_order_spec_duplicate_system('on_linux', ''), 'on_linux', 'There can only be one `on_linux` block in a formula.')
 }
 
 // Ruby it `it "reports an offense when there are multiple `on_intel` blocks" do` at line 605.
-pub fn ruby_components_order_spec_l605_d45_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l605_d45_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_message(components_order_spec_duplicate_system('on_intel', ''), 'on_intel', 'There can only be one `on_intel` block in a formula.')
 }
 
 // Ruby it `it "reports an offense when there are multiple `on_arm` blocks" do` at line 621.
-pub fn ruby_components_order_spec_l621_d46_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l621_d46_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_message(components_order_spec_duplicate_system('on_arm', ''), 'on_arm', 'There can only be one `on_arm` block in a formula.')
 }
 
 // Ruby it `it "reports an offense when there are multiple `on_monterey` blocks" do` at line 637.
-pub fn ruby_components_order_spec_l637_d47_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l637_d47_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_message(components_order_spec_duplicate_system('on_monterey', ''), 'on_monterey', 'There can only be one `on_monterey` block in a formula.')
 }
 
 // Ruby it `it "reports an offense when there are multiple `on_monterey` blocks with parameters" do` at line 653.
-pub fn ruby_components_order_spec_l653_d48_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l653_d48_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_message(components_order_spec_duplicate_system('on_monterey', ' :or_older'), 'on_monterey', 'There can only be one `on_monterey` block in a formula.')
 }
 
 // Ruby it `it "reports an offense when the `on_macos` block contains nodes other than `depends_on`, `patch` or `resource`" do` at line 669.
-pub fn ruby_components_order_spec_l669_d49_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l669_d49_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_message_prefix(components_order_spec_invalid_system_child('on_macos', ''), 'uses_from_macos', '`on_macos` cannot include `uses_from_macos`.')
 }
 
 // Ruby it `it "reports an offense when the `on_linux` block contains nodes other than `depends_on`, `patch` or `resource`" do` at line 682.
-pub fn ruby_components_order_spec_l682_d50_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l682_d50_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_message_prefix(components_order_spec_invalid_system_child('on_linux', ''), 'uses_from_macos', '`on_linux` cannot include `uses_from_macos`.')
 }
 
 // Ruby it `it "reports an offense when the `on_intel` block contains nodes other than `depends_on`, `patch` or `resource`" do` at line 695.
-pub fn ruby_components_order_spec_l695_d51_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l695_d51_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_message_prefix(components_order_spec_invalid_system_child('on_intel', ''), 'uses_from_macos', '`on_intel` cannot include `uses_from_macos`.')
 }
 
 // Ruby it `it "reports an offense when the `on_arm` block contains nodes other than `depends_on`, `patch` or `resource`" do` at line 708.
-pub fn ruby_components_order_spec_l708_d52_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l708_d52_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_message_prefix(components_order_spec_invalid_system_child('on_arm', ''), 'uses_from_macos', '`on_arm` cannot include `uses_from_macos`.')
 }
 
 // Ruby it `it "reports an offense when the `on_monterey` block contains nodes other than " \` at line 721.
-pub fn ruby_components_order_spec_l721_d53_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l721_d53_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_message_prefix(components_order_spec_invalid_system_child('on_monterey', ''), 'uses_from_macos', '`on_monterey` cannot include `uses_from_macos`.')
 }
 
 // Ruby it `it "reports an offense when the `on_monterey :or_older` block contains nodes other than " \` at line 735.
-pub fn ruby_components_order_spec_l735_d54_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l735_d54_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_message_prefix(components_order_spec_invalid_system_child('on_monterey', ' :or_older'), 'uses_from_macos', '`on_monterey` cannot include `uses_from_macos`.')
 }
 
 // Ruby it `it "reports an offense when a single `patch` block is inside the `on_arm` block" do` at line 749.
-pub fn ruby_components_order_spec_l749_d55_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l749_d55_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	body := components_order_spec_nested_single('on_arm', '', 'patch')
 	analysis := components_order_core.analyze_components_order(components_order_spec_formula(body))
@@ -438,7 +438,7 @@ pub fn ruby_components_order_spec_l749_d55_reports(args ...brew_runtime.Value) b
 }
 
 // Ruby it `it "reports an offense when a single `resource` block is inside the `on_linux` block" do` at line 776.
-pub fn ruby_components_order_spec_l776_d56_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l776_d56_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	body := components_order_spec_nested_single('on_linux', '', 'resource')
 	analysis := components_order_core.analyze_components_order(components_order_spec_formula(body))
@@ -446,7 +446,7 @@ pub fn ruby_components_order_spec_l776_d56_reports(args ...brew_runtime.Value) b
 }
 
 // Ruby it `it "reports an offense when a single `patch` block is inside the `on_monterey :or_newer` block" do` at line 803.
-pub fn ruby_components_order_spec_l803_d57_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l803_d57_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	body := components_order_spec_nested_single('on_monterey', ' :or_newer', 'patch')
 	analysis := components_order_core.analyze_components_order(components_order_spec_formula(body))
@@ -454,7 +454,7 @@ pub fn ruby_components_order_spec_l803_d57_reports(args ...brew_runtime.Value) b
 }
 
 // Ruby it `it "reports an offense when a single `resource` block is inside the `on_system` block" do` at line 830.
-pub fn ruby_components_order_spec_l830_d58_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l830_d58_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	body := components_order_spec_nested_single('on_system', ' :linux, macos: :monterey_or_older', 'resource')
 	analysis := components_order_core.analyze_components_order(components_order_spec_formula(body))
@@ -462,13 +462,13 @@ pub fn ruby_components_order_spec_l830_d58_reports(args ...brew_runtime.Value) b
 }
 
 // Ruby it `it "reports no offenses when a single `on_arm` block is inside the `on_macos` block" do` at line 857.
-pub fn ruby_components_order_spec_l857_d59_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l857_d59_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_no_offenses('url "https://brew.sh/foo-1.0.tgz"\non_macos do\n  on_arm do\n    resource do\n      url "resource"\n      sha256 "sum"\n    end\n  end\nend')
 }
 
 // Ruby it `it "reports an offense if stanzas inside `head` blocks are out of order" do` at line 874.
-pub fn ruby_components_order_spec_l874_d60_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l874_d60_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	source := components_order_spec_formula('homepage "https://brew.sh"\n\nhead do\n  depends_on "bar"\n  url "https://github.com/foo/foo.git", branch: "main"\nend')
 	analysis := components_order_core.analyze_components_order(source)
@@ -476,7 +476,7 @@ pub fn ruby_components_order_spec_l874_d60_reports(args ...brew_runtime.Value) b
 }
 
 // Ruby it `it "reports an offense if stanzas inside `resource` blocks are out of order" do` at line 890.
-pub fn ruby_components_order_spec_l890_d61_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l890_d61_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	source := components_order_spec_formula('homepage "https://brew.sh"\n\nresource do\n  sha256 "sum"\n  url "resource"\nend')
 	analysis := components_order_core.analyze_components_order(source)
@@ -484,7 +484,7 @@ pub fn ruby_components_order_spec_l890_d61_reports(args ...brew_runtime.Value) b
 }
 
 // Ruby it `it "reports no offenses for a valid `on_macos` and `on_linux` block" do` at line 904.
-pub fn ruby_components_order_spec_l904_d62_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l904_d62_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_no_offenses(components_order_spec_resource_pair('on_macos', [
 		'url',
@@ -493,7 +493,7 @@ pub fn ruby_components_order_spec_l904_d62_reports(args ...brew_runtime.Value) b
 }
 
 // Ruby it `it "reports no offenses for a valid `on_arm` and `on_intel` block (with `version`)" do` at line 924.
-pub fn ruby_components_order_spec_l924_d63_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l924_d63_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_no_offenses(components_order_spec_resource_pair('on_arm', [
 		'url',
@@ -503,37 +503,37 @@ pub fn ruby_components_order_spec_l924_d63_reports(args ...brew_runtime.Value) b
 }
 
 // Ruby it `it "reports an offense if there are two `on_macos` blocks" do` at line 946.
-pub fn ruby_components_order_spec_l946_d64_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l946_d64_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_message(components_order_spec_duplicate_resource('on_macos', ''), 'resource', 'There can only be one `on_macos` block in a resource block.')
 }
 
 // Ruby it `it "reports an offense if there are two `on_linux` blocks" do` at line 967.
-pub fn ruby_components_order_spec_l967_d65_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l967_d65_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_message(components_order_spec_duplicate_resource('on_linux', ''), 'resource', 'There can only be one `on_linux` block in a resource block.')
 }
 
 // Ruby it `it "reports an offense if there are two `on_intel` blocks" do` at line 988.
-pub fn ruby_components_order_spec_l988_d66_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l988_d66_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_message(components_order_spec_duplicate_resource('on_intel', ''), 'resource', 'There can only be one `on_intel` block in a resource block.')
 }
 
 // Ruby it `it "reports an offense if there are two `on_arm` blocks" do` at line 1009.
-pub fn ruby_components_order_spec_l1009_d67_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l1009_d67_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_message(components_order_spec_duplicate_resource('on_arm', ''), 'resource', 'There can only be one `on_arm` block in a resource block.')
 }
 
 // Ruby it `it "reports an offense if there are two `on_monterey` blocks" do` at line 1030.
-pub fn ruby_components_order_spec_l1030_d68_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l1030_d68_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_message(components_order_spec_duplicate_resource('on_monterey', ' :or_older'), 'resource', 'There can only be one `on_monterey` block in a resource block.')
 }
 
 // Ruby it `it "reports no offenses if there is an `on_macos` block but no `on_linux` block" do` at line 1051.
-pub fn ruby_components_order_spec_l1051_d69_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l1051_d69_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_no_offenses(components_order_spec_resource_system('on_macos', [
 		'url',
@@ -542,7 +542,7 @@ pub fn ruby_components_order_spec_l1051_d69_reports(args ...brew_runtime.Value) 
 }
 
 // Ruby it `it "reports no offenses if there is an `on_linux` block but no `on_macos` block" do` at line 1065.
-pub fn ruby_components_order_spec_l1065_d70_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l1065_d70_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_no_offenses(components_order_spec_resource_system('on_linux', [
 		'url',
@@ -551,7 +551,7 @@ pub fn ruby_components_order_spec_l1065_d70_reports(args ...brew_runtime.Value) 
 }
 
 // Ruby it `it "reports no offenses if there is an `on_intel` block but no `on_arm` block" do` at line 1079.
-pub fn ruby_components_order_spec_l1079_d71_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l1079_d71_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_no_offenses(components_order_spec_resource_system('on_intel', [
 		'url',
@@ -560,7 +560,7 @@ pub fn ruby_components_order_spec_l1079_d71_reports(args ...brew_runtime.Value) 
 }
 
 // Ruby it `it "reports no offenses if there is an `on_arm` block but no `on_intel` block" do` at line 1093.
-pub fn ruby_components_order_spec_l1093_d72_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l1093_d72_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_no_offenses(components_order_spec_resource_system('on_arm', [
 		'url',
@@ -569,7 +569,7 @@ pub fn ruby_components_order_spec_l1093_d72_reports(args ...brew_runtime.Value) 
 }
 
 // Ruby it `it "reports an offense if the content of an `on_macos` block is improperly formatted" do` at line 1107.
-pub fn ruby_components_order_spec_l1107_d73_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l1107_d73_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	body := components_order_spec_resource_pair('on_macos', ['sha256', 'url'], 'on_linux', [
 		'url',
@@ -579,7 +579,7 @@ pub fn ruby_components_order_spec_l1107_d73_reports(args ...brew_runtime.Value) 
 }
 
 // Ruby it `it "reports no offenses if the content of an `on_macos` block in a resource contains a mirror" do` at line 1128.
-pub fn ruby_components_order_spec_l1128_d74_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l1128_d74_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_no_offenses(components_order_spec_resource_pair('on_macos', [
 		'url',
@@ -589,19 +589,19 @@ pub fn ruby_components_order_spec_l1128_d74_reports(args ...brew_runtime.Value) 
 }
 
 // Ruby it `it "reports no offenses if an `on_macos` block has if-else branches that are properly formatted" do` at line 1149.
-pub fn ruby_components_order_spec_l1149_d75_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l1149_d75_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_no_offenses(components_order_spec_if_resource('on_macos', true))
 }
 
 // Ruby it `it "reports an offense if an `on_macos` block has if-else branches that aren't properly formatted" do` at line 1174.
-pub fn ruby_components_order_spec_l1174_d76_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l1174_d76_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_message(components_order_spec_if_resource('on_macos', false), 'on_macos', '`on_macos` blocks within `resource` blocks must contain at least `url` and `sha256` and at most `url`, `mirror`, `version` and `sha256` (in order).')
 }
 
 // Ruby it `it "reports an offense if the content of an `on_arm` block is improperly formatted" do` at line 1200.
-pub fn ruby_components_order_spec_l1200_d77_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l1200_d77_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	body := components_order_spec_resource_pair('on_arm', ['sha256', 'url'], 'on_intel', [
 		'url',
@@ -611,13 +611,13 @@ pub fn ruby_components_order_spec_l1200_d77_reports(args ...brew_runtime.Value) 
 }
 
 // Ruby it `it "reports no offenses if an `on_arm` block has if-else branches that are properly formatted" do` at line 1220.
-pub fn ruby_components_order_spec_l1220_d78_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l1220_d78_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_no_offenses(components_order_spec_if_resource('on_arm', true))
 }
 
 // Ruby it `it "reports an offense if an `on_arm` block has if-else branches that aren't properly formatted" do` at line 1244.
-pub fn ruby_components_order_spec_l1244_d79_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_components_order_spec_l1244_d79_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	return components_order_spec_message(components_order_spec_if_resource('on_arm', false), 'on_arm', '`on_arm` blocks within `resource` blocks must contain at least `url` and `sha256` and at most `url`, `mirror`, `version` and `sha256` (in order).')
 }

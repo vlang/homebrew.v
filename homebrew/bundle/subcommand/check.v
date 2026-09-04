@@ -1,13 +1,13 @@
 module subcommand
 
-import brew_runtime
+import ruby
 import homebrew.bundle
 
 // Translated from Homebrew/brew `bundle/subcommand/check.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `run` at line 30.
-pub fn ruby_check_l30_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_check_l30_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len > 0 && args[0].type_name == 'Hash' && '_dsl_set' in args[0].map_data {
 		verbose := if args.len > 1 { args[1].as_bool() or { false } } else { false }
 		quiet := if args.len > 2 { args[2].as_bool() or { false } } else { false }
@@ -22,7 +22,7 @@ pub fn ruby_check_l30_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
 			quiet: quiet
 			no_upgrade: no_upgrade
 			already_output_formulae: already_output_formulae
-		}) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+		}) or { return ruby.object_value('ArgumentError', err.msg()) }
 		return bundle_check_result_value(result)
 	}
 	check := BundleDependencyCheck{
@@ -38,8 +38,8 @@ pub fn ruby_check_l30_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
 	return bundle_check_result_value(result)
 }
 
-fn bundle_check_result_value(result BundleCheckCommandResult) brew_runtime.Value {
-	return brew_runtime.structured_value('Bundle::CheckSubcommand::Result', result.exit_code.str(), {
+fn bundle_check_result_value(result BundleCheckCommandResult) ruby.Value {
+	return ruby.structured_value('Bundle::CheckSubcommand::Result', result.exit_code.str(), {
 		'exit_code': result.exit_code.str()
 		'stdout':    result.stdout
 		'stderr':    result.stderr

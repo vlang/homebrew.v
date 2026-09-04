@@ -1,6 +1,6 @@
 module abstract
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/private/abstract/validate.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -100,7 +100,7 @@ pub fn validate_abstract_subclass(mod AbstractValidationModule) ! {
 	}
 }
 
-fn abstract_validation_method_from_value(value brew_runtime.Value) AbstractValidationMethod {
+fn abstract_validation_method_from_value(value ruby.Value) AbstractValidationMethod {
 	return AbstractValidationMethod{
 		name: value.attribute('name') or { value.as_string() }
 		owner: value.attribute('owner') or { '' }
@@ -115,80 +115,80 @@ fn abstract_validation_method_from_value(value brew_runtime.Value) AbstractValid
 	}
 }
 
-fn abstract_validation_module_from_value(value brew_runtime.Value) AbstractValidationModule {
-	methods_value := value.map_data['methods'] or { brew_runtime.array_value(value.array_data) }
+fn abstract_validation_module_from_value(value ruby.Value) AbstractValidationModule {
+	methods_value := value.map_data['methods'] or { ruby.array_value(value.array_data) }
 	return AbstractValidationModule{
 		name: value.as_string()
 		abstract_type: value.attribute('abstract_type') or { '' }
 		allows_abstract_methods: value.attribute('can_have_abstract_methods') or { 'false' } == 'true'
 		is_singleton_class: value.attribute('singleton_class') or { 'false' } == 'true'
-		methods: (methods_value.as_array() or { []brew_runtime.Value{} }).map(abstract_validation_method_from_value(it))
+		methods: (methods_value.as_array() or { []ruby.Value{} }).map(abstract_validation_method_from_value(it))
 	}
 }
 
-fn abstract_validation_names(args []brew_runtime.Value, mod AbstractValidationModule) []string {
+fn abstract_validation_names(args []ruby.Value, mod AbstractValidationModule) []string {
 	if args.len < 2 {
 		return mod.methods.map(it.name)
 	}
-	return args[1].as_string_array() or { args[1].as_array() or { []brew_runtime.Value{} }.map(it.as_string()) }
+	return args[1].as_string_array() or { args[1].as_array() or { []ruby.Value{} }.map(it.as_string()) }
 }
 
 // Ruby method `self.validate_abstract_module(mod)` at line 10.
-pub fn ruby_validate_l10_d1_self_validate_abstract_module(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_validate_l10_d1_self_validate_abstract_module(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Validate.validate_abstract_module requires a module')
 	}
 	validate_abstract_module(abstract_validation_module_from_value(args[0])) or { panic(err.msg()) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `self.validate_subclass(mod)` at line 17.
-pub fn ruby_validate_l17_d2_self_validate_subclass(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_validate_l17_d2_self_validate_subclass(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Validate.validate_subclass requires a module')
 	}
 	validate_abstract_subclass(abstract_validation_module_from_value(args[0])) or {
 		panic(err.msg())
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `self.validate_interface_all_abstract(mod, method_names)` at line 79.
-pub fn ruby_validate_l79_d3_self_validate_interface_all_abstract(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_validate_l79_d3_self_validate_interface_all_abstract(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Validate.validate_interface_all_abstract requires a module')
 	}
 	mod := abstract_validation_module_from_value(args[0])
 	validate_interface_all_abstract(mod, abstract_validation_names(args, mod)) or { panic(err.msg()) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `self.validate_interface(mod)` at line 93.
-pub fn ruby_validate_l93_d4_self_validate_interface(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_validate_l93_d4_self_validate_interface(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Validate.validate_interface requires a module')
 	}
 	validate_interface(abstract_validation_module_from_value(args[0])) or { panic(err.msg()) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `self.validate_interface_all_public(mod, method_names)` at line 99.
-pub fn ruby_validate_l99_d5_self_validate_interface_all_public(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_validate_l99_d5_self_validate_interface_all_public(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Validate.validate_interface_all_public requires a module')
 	}
 	mod := abstract_validation_module_from_value(args[0])
 	validate_interface_all_public(mod, abstract_validation_names(args, mod)) or { panic(err.msg()) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `self.describe_method(method, show_owner: true)` at line 113.
-pub fn ruby_validate_l113_d6_self_describe_method(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_validate_l113_d6_self_describe_method(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Validate.describe_method requires a method')
 	}
 	show_owner := if args.len > 1 { args[1].as_bool() or { true } } else { true }
-	return brew_runtime.string_value(describe_abstract_method(abstract_validation_method_from_value(args[0]), show_owner))
+	return ruby.string_value(describe_abstract_method(abstract_validation_method_from_value(args[0]), show_owner))
 }
 
 // Original Ruby source (line-for-line):

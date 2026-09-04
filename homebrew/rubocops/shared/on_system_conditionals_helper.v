@@ -1,6 +1,6 @@
 module shared
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `rubocops/shared/on_system_conditionals_helper.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -500,21 +500,21 @@ pub fn if_macos_version_matches(source string, version string) []OnSystemMatch {
 	return matches
 }
 
-fn on_system_analysis_value(analysis OnSystemAnalysis) brew_runtime.Value {
-	findings := analysis.findings.map(brew_runtime.structured_value('RuboCop::Cop::Offense', it.message, {
+fn on_system_analysis_value(analysis OnSystemAnalysis) ruby.Value {
+	findings := analysis.findings.map(ruby.structured_value('RuboCop::Cop::Offense', it.message, {
 		'begin_pos':   it.begin_pos.str()
 		'end_pos':     it.end_pos.str()
 		'message':     it.message
 		'replacement': it.replacement
 	}))
-	return brew_runtime.map_value({
-		'offenses':  brew_runtime.array_value(findings)
-		'corrected': brew_runtime.string_value(analysis.corrected)
+	return ruby.map_value({
+		'offenses':  ruby.array_value(findings)
+		'corrected': ruby.string_value(analysis.corrected)
 	})
 }
 
-fn on_system_matches_value(matches []OnSystemMatch) brew_runtime.Value {
-	return brew_runtime.array_value(matches.map(brew_runtime.structured_value('RuboCop::AST::Node', it.source, {
+fn on_system_matches_value(matches []OnSystemMatch) ruby.Value {
+	return ruby.array_value(matches.map(ruby.structured_value('RuboCop::AST::Node', it.source, {
 		'method':      it.method
 		'argument':    it.argument
 		'operator':    it.operator
@@ -524,18 +524,18 @@ fn on_system_matches_value(matches []OnSystemMatch) brew_runtime.Value {
 }
 
 // Ruby method `audit_on_system_blocks(body_node, parent_name)` at line 33.
-pub fn ruby_on_system_conditionals_helper_l33_d1_audit_on_system_blocks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_on_system_conditionals_helper_l33_d1_audit_on_system_blocks(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'source and parent name are required')
+		return ruby.object_value('ArgumentError', 'source and parent name are required')
 	}
 	definition := args.len > 2 && args[2].type_name == 'Bool' && args[2].bool_data
 	return on_system_analysis_value(audit_on_system_blocks(args[0].as_string(), args[1].as_string(), definition))
 }
 
 // Ruby method `audit_arch_conditionals(body_node, allowed_methods: [], allowed_blocks: [])` at line 95.
-pub fn ruby_on_system_conditionals_helper_l95_d2_audit_arch_conditionals(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_on_system_conditionals_helper_l95_d2_audit_arch_conditionals(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'source is required')
+		return ruby.object_value('ArgumentError', 'source is required')
 	}
 	methods := if args.len > 1 { args[1].string_array_data.clone() } else { []string{} }
 	blocks := if args.len > 2 { args[2].string_array_data.clone() } else { []string{} }
@@ -543,9 +543,9 @@ pub fn ruby_on_system_conditionals_helper_l95_d2_audit_arch_conditionals(args ..
 }
 
 // Ruby method `audit_base_os_conditionals(body_node, allowed_methods: [], allowed_blocks: [])` at line 126.
-pub fn ruby_on_system_conditionals_helper_l126_d3_audit_base_os_conditionals(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_on_system_conditionals_helper_l126_d3_audit_base_os_conditionals(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'source is required')
+		return ruby.object_value('ArgumentError', 'source is required')
 	}
 	methods := if args.len > 1 { args[1].string_array_data.clone() } else { []string{} }
 	blocks := if args.len > 2 { args[2].string_array_data.clone() } else { []string{} }
@@ -553,9 +553,9 @@ pub fn ruby_on_system_conditionals_helper_l126_d3_audit_base_os_conditionals(arg
 }
 
 // Ruby method `audit_macos_version_conditionals(body_node, allowed_methods: [], allowed_blocks: [],` at line 152.
-pub fn ruby_on_system_conditionals_helper_l152_d4_audit_macos_version_conditionals(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_on_system_conditionals_helper_l152_d4_audit_macos_version_conditionals(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'source is required')
+		return ruby.object_value('ArgumentError', 'source is required')
 	}
 	methods := if args.len > 1 { args[1].string_array_data.clone() } else { []string{} }
 	blocks := if args.len > 2 { args[2].string_array_data.clone() } else { []string{} }
@@ -564,9 +564,9 @@ pub fn ruby_on_system_conditionals_helper_l152_d4_audit_macos_version_conditiona
 }
 
 // Ruby method `audit_macos_references(body_node, allowed_methods: [], allowed_blocks: [])` at line 194.
-pub fn ruby_on_system_conditionals_helper_l194_d5_audit_macos_references(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_on_system_conditionals_helper_l194_d5_audit_macos_references(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'source is required')
+		return ruby.object_value('ArgumentError', 'source is required')
 	}
 	methods := if args.len > 1 { args[1].string_array_data.clone() } else { []string{} }
 	blocks := if args.len > 2 { args[2].string_array_data.clone() } else { []string{} }
@@ -574,9 +574,9 @@ pub fn ruby_on_system_conditionals_helper_l194_d5_audit_macos_references(args ..
 }
 
 // Ruby method `if_statement_problem(if_node, if_statement_string, on_system_method_string,` at line 219.
-pub fn ruby_on_system_conditionals_helper_l219_d6_if_statement_problem(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_on_system_conditionals_helper_l219_d6_if_statement_problem(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
-		return brew_runtime.object_value('ArgumentError', 'if source, statement, and method are required')
+		return ruby.object_value('ArgumentError', 'if source, statement, and method are required')
 	}
 	nodes := on_system_if_nodes(args[0].as_string())
 	if nodes.len == 0 {
@@ -589,67 +589,67 @@ pub fn ruby_on_system_conditionals_helper_l219_d6_if_statement_problem(args ...b
 }
 
 // Ruby method `node_is_allowed?(node, allowed_methods: [], allowed_blocks: [])` at line 243.
-pub fn ruby_on_system_conditionals_helper_l243_d7_node_is_allowed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_on_system_conditionals_helper_l243_d7_node_is_allowed(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	methods := if args.len > 2 { args[2].string_array_data.clone() } else { []string{} }
 	blocks := if args.len > 3 { args[3].string_array_data.clone() } else { []string{} }
-	return brew_runtime.bool_value(on_system_node_is_allowed(args[0].as_string(), int(args[1].int_data), methods, blocks))
+	return ruby.bool_value(on_system_node_is_allowed(args[0].as_string(), int(args[1].int_data), methods, blocks))
 }
 
 // Ruby def_node_matcher `def_node_matcher :on_macos_version_method_call, <<~PATTERN` at line 265.
-pub fn ruby_on_system_conditionals_helper_l265_d8_on_macos_version_method_call(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_on_system_conditionals_helper_l265_d8_on_macos_version_method_call(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.array_value([]brew_runtime.Value{})
+		return ruby.array_value([]ruby.Value{})
 	}
 	return on_system_matches_value(on_macos_version_method_matches(args[0].as_string(), args[1].as_string()))
 }
 
 // Ruby def_node_matcher `def_node_matcher :on_system_method_call, <<~PATTERN` at line 269.
-pub fn ruby_on_system_conditionals_helper_l269_d9_on_system_method_call(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_on_system_conditionals_helper_l269_d9_on_system_method_call(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.array_value([]brew_runtime.Value{})
+		return ruby.array_value([]ruby.Value{})
 	}
 	return on_system_matches_value(on_system_method_matches(args[0].as_string()))
 }
 
 // Ruby def_node_search `def_node_search :hardware_cpu_search, <<~PATTERN` at line 273.
-pub fn ruby_on_system_conditionals_helper_l273_d10_hardware_cpu_search(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_on_system_conditionals_helper_l273_d10_hardware_cpu_search(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.array_value([]brew_runtime.Value{})
+		return ruby.array_value([]ruby.Value{})
 	}
 	return on_system_matches_value(hardware_cpu_matches(args[0].as_string(), args[1].as_string()))
 }
 
 // Ruby def_node_search `def_node_search :macos_version_comparison_search, <<~PATTERN` at line 277.
-pub fn ruby_on_system_conditionals_helper_l277_d11_macos_version_comparison_search(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_on_system_conditionals_helper_l277_d11_macos_version_comparison_search(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.array_value([]brew_runtime.Value{})
+		return ruby.array_value([]ruby.Value{})
 	}
 	return on_system_matches_value(macos_version_comparison_matches(args[0].as_string(), args[1].as_string()))
 }
 
 // Ruby def_node_search `def_node_search :if_arch_node_search, <<~PATTERN` at line 281.
-pub fn ruby_on_system_conditionals_helper_l281_d12_if_arch_node_search(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_on_system_conditionals_helper_l281_d12_if_arch_node_search(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.array_value([]brew_runtime.Value{})
+		return ruby.array_value([]ruby.Value{})
 	}
 	return on_system_matches_value(if_arch_matches(args[0].as_string(), args[1].as_string()))
 }
 
 // Ruby def_node_search `def_node_search :if_base_os_node_search, <<~PATTERN` at line 285.
-pub fn ruby_on_system_conditionals_helper_l285_d13_if_base_os_node_search(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_on_system_conditionals_helper_l285_d13_if_base_os_node_search(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.array_value([]brew_runtime.Value{})
+		return ruby.array_value([]ruby.Value{})
 	}
 	return on_system_matches_value(if_base_os_matches(args[0].as_string(), args[1].as_string()))
 }
 
 // Ruby def_node_search `def_node_search :if_macos_version_node_search, <<~PATTERN` at line 289.
-pub fn ruby_on_system_conditionals_helper_l289_d14_if_macos_version_node_search(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_on_system_conditionals_helper_l289_d14_if_macos_version_node_search(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.array_value([]brew_runtime.Value{})
+		return ruby.array_value([]ruby.Value{})
 	}
 	return on_system_matches_value(if_macos_version_matches(args[0].as_string(), args[1].as_string()))
 }

@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 import homebrew.utils as link_utils
 import os
 
@@ -48,8 +48,8 @@ pub:
 const completion_shells = ['bash', 'fish', 'zsh']
 const completions_exclusion_list = ['instal', 'uninstal', 'update-report']
 
-fn completion_nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn completion_nil_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 fn completion_sorted_distinct(values []string) []string {
@@ -65,7 +65,7 @@ fn completion_sorted_distinct(values []string) []string {
 	return result
 }
 
-fn completion_taps_from_value(value brew_runtime.Value) []CompletionTap {
+fn completion_taps_from_value(value ruby.Value) []CompletionTap {
 	return value.array_data.map(CompletionTap{
 		path: it.attributes['path'] or { it.as_string() }
 		official: (it.attributes['official'] or { 'false' }) == 'true'
@@ -332,7 +332,7 @@ pub fn completion_commands_from_names(names []string) []CompletionCommand {
 	return result
 }
 
-fn completion_subcommands_from_value(value brew_runtime.Value) []CompletionSubcommand {
+fn completion_subcommands_from_value(value ruby.Value) []CompletionSubcommand {
 	if value.array_data.len == 0 && value.string_array_data.len > 0 {
 		return value.string_array_data.map(CompletionSubcommand{
 			name: it
@@ -346,7 +346,7 @@ fn completion_subcommands_from_value(value brew_runtime.Value) []CompletionSubco
 	})
 }
 
-fn completion_options_from_value(value brew_runtime.Value) []CompletionOption {
+fn completion_options_from_value(value ruby.Value) []CompletionOption {
 	if value.map_data.len > 0 {
 		mut names := value.map_data.keys()
 		names.sort()
@@ -366,7 +366,7 @@ fn completion_options_from_value(value brew_runtime.Value) []CompletionOption {
 	})
 }
 
-fn completion_named_args_from_value(value brew_runtime.Value) []CompletionNamedArgument {
+fn completion_named_args_from_value(value ruby.Value) []CompletionNamedArgument {
 	raw := value.array_data.clone()
 	if raw.len == 0 && value.string_array_data.len > 0 {
 		return value.string_array_data.map(CompletionNamedArgument{
@@ -380,7 +380,7 @@ fn completion_named_args_from_value(value brew_runtime.Value) []CompletionNamedA
 	})
 }
 
-fn completion_command_from_values(args []brew_runtime.Value, index int) CompletionCommand {
+fn completion_command_from_values(args []ruby.Value, index int) CompletionCommand {
 	if args.len <= index {
 		return CompletionCommand{}
 	}
@@ -418,35 +418,35 @@ fn completion_command_with_subcommands(command CompletionCommand,
 	}
 }
 
-fn completion_commands_from_value(value brew_runtime.Value) []CompletionCommand {
+fn completion_commands_from_value(value ruby.Value) []CompletionCommand {
 	if value.array_data.len > 0 {
 		return value.array_data.map(completion_command_from_values([it], 0))
 	}
 	return completion_commands_from_names(value.string_array_data)
 }
 
-fn completion_boundary_repository(args []brew_runtime.Value, index int) string {
+fn completion_boundary_repository(args []ruby.Value, index int) string {
 	if args.len > index && args[index].as_string() != '' {
 		return args[index].as_string()
 	}
-	repository := brew_runtime.environment_value('HOMEBREW_REPOSITORY')
-	return if repository == '' { brew_runtime.real_path('.') } else { repository }
+	repository := ruby.environment_value('HOMEBREW_REPOSITORY')
+	return if repository == '' { ruby.real_path('.') } else { repository }
 }
 
-fn completion_boundary_prefix(args []brew_runtime.Value, index int, repository string) string {
+fn completion_boundary_prefix(args []ruby.Value, index int, repository string) string {
 	if args.len > index && args[index].as_string() != '' {
 		return args[index].as_string()
 	}
-	prefix := brew_runtime.environment_value('HOMEBREW_PREFIX')
+	prefix := ruby.environment_value('HOMEBREW_PREFIX')
 	return if prefix == '' { repository } else { prefix }
 }
 
-fn completion_boundary_taps(args []brew_runtime.Value, index int,
+fn completion_boundary_taps(args []ruby.Value, index int,
 	repository string) []CompletionTap {
 	if args.len > index {
 		return completion_taps_from_value(args[index])
 	}
-	mut tap_directory := brew_runtime.environment_value('HOMEBREW_TAP_DIRECTORY')
+	mut tap_directory := ruby.environment_value('HOMEBREW_TAP_DIRECTORY')
 	if tap_directory == '' {
 		tap_directory = os.join_path(repository, 'Library', 'Taps')
 	}
@@ -781,7 +781,7 @@ pub fn completion_update_shell_completions(repository string, commands []Complet
 	for relative, contents in outputs {
 		path := os.join_path(repository, 'completions', relative)
 		os.mkdir_all(os.dir(path))!
-		brew_runtime.atomic_write_file(path, contents)!
+		ruby.atomic_write_file(path, contents)!
 		paths << path
 	}
 	paths.sort()
@@ -789,7 +789,7 @@ pub fn completion_update_shell_completions(repository string, commands []Complet
 }
 
 // Ruby method `self.link!` at line 78.
-pub fn ruby_completions_l78_d1_self_link(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_l78_d1_self_link(args ...ruby.Value) ruby.Value {
 	repository := completion_boundary_repository(args, 0)
 	taps := completion_boundary_taps(args, 1, repository)
 	prefix := completion_boundary_prefix(args, 2, repository)
@@ -799,7 +799,7 @@ pub fn ruby_completions_l78_d1_self_link(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `self.unlink!` at line 86.
-pub fn ruby_completions_l86_d2_self_unlink(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_l86_d2_self_unlink(args ...ruby.Value) ruby.Value {
 	repository := completion_boundary_repository(args, 0)
 	taps := completion_boundary_taps(args, 1, repository)
 	prefix := completion_boundary_prefix(args, 2, repository)
@@ -809,31 +809,31 @@ pub fn ruby_completions_l86_d2_self_unlink(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `self.link_completions?` at line 96.
-pub fn ruby_completions_l96_d3_self_link_completions(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_l96_d3_self_link_completions(args ...ruby.Value) ruby.Value {
 	repository := completion_boundary_repository(args, 0)
 	mut settings := new_settings(repository)
-	return brew_runtime.bool_value(completion_link_enabled(mut settings))
+	return ruby.bool_value(completion_link_enabled(mut settings))
 }
 
 // Ruby method `self.completions_to_link?` at line 101.
-pub fn ruby_completions_l101_d4_self_completions_to_link(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_l101_d4_self_completions_to_link(args ...ruby.Value) ruby.Value {
 	repository := completion_boundary_repository(args, 1)
 	taps := completion_boundary_taps(args, 0, repository)
-	return brew_runtime.bool_value(completion_taps_have_unlinked_files(taps))
+	return ruby.bool_value(completion_taps_have_unlinked_files(taps))
 }
 
 // Ruby method `self.show_completions_message_if_needed` at line 114.
-pub fn ruby_completions_l114_d5_self_show_completions_message_if_needed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_l114_d5_self_show_completions_message_if_needed(args ...ruby.Value) ruby.Value {
 	repository := completion_boundary_repository(args, 0)
 	taps := completion_boundary_taps(args, 1, repository)
 	mut settings := new_settings(repository)
-	return brew_runtime.string_value(completion_show_message_if_needed(mut settings, taps) or {
+	return ruby.string_value(completion_show_message_if_needed(mut settings, taps) or {
 		panic(err)
 	})
 }
 
 // Ruby method `self.update_shell_completions!` at line 129.
-pub fn ruby_completions_l129_d6_self_update_shell_completions(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_l129_d6_self_update_shell_completions(args ...ruby.Value) ruby.Value {
 	repository := completion_boundary_repository(args, 0)
 	command_models := if args.len > 1 {
 		completion_commands_from_value(args[1])
@@ -847,7 +847,7 @@ pub fn ruby_completions_l129_d6_self_update_shell_completions(args ...brew_runti
 }
 
 // Ruby method `self.command_gets_completions?(command)` at line 143.
-pub fn ruby_completions_l143_d7_self_command_gets_completions(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_l143_d7_self_command_gets_completions(args ...ruby.Value) ruby.Value {
 	options := if args.len > 1 {
 		completion_options_from_value(args[1])
 	} else {
@@ -858,122 +858,122 @@ pub fn ruby_completions_l143_d7_self_command_gets_completions(args ...brew_runti
 	} else {
 		[]CompletionSubcommand{}
 	}
-	return brew_runtime.bool_value(completion_command_gets_completions(options, subcommands))
+	return ruby.bool_value(completion_command_gets_completions(options, subcommands))
 }
 
 // Ruby method `self.command_hidden_from_manpage?(command)` at line 148.
-pub fn ruby_completions_l148_d8_self_command_hidden_from_manpage(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_l148_d8_self_command_hidden_from_manpage(args ...ruby.Value) ruby.Value {
 	found := args.len > 1 && (args[1].as_bool() or { false })
 	hidden := args.len > 2 && (args[2].as_bool() or { false })
-	return brew_runtime.bool_value(completion_command_hidden_from_manpage(found, hidden))
+	return ruby.bool_value(completion_command_hidden_from_manpage(found, hidden))
 }
 
 // Ruby method `self.zsh_command_description(command)` at line 155.
-pub fn ruby_completions_l155_d9_self_zsh_command_description(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_l155_d9_self_zsh_command_description(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	if description := completion_zsh_command_description(args[0].as_string(), args[1].as_string()) {
-		return brew_runtime.string_value(description)
+		return ruby.string_value(description)
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `self.subcommand_completion_names(subcommands)` at line 163.
-pub fn ruby_completions_l163_d10_self_subcommand_completion_names(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_l163_d10_self_subcommand_completion_names(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_array_value([])
+		return ruby.string_array_value([])
 	}
-	return brew_runtime.string_array_value(completion_subcommand_names(completion_subcommands_from_value(args[0])))
+	return ruby.string_array_value(completion_subcommand_names(completion_subcommands_from_value(args[0])))
 }
 
 // Ruby method `self.format_description(description, fish: false)` at line 168.
-pub fn ruby_completions_l168_d11_self_format_description(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_l168_d11_self_format_description(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('format_description requires a description')
 	}
 	fish := args.len > 1 && (args[1].as_bool() or { false })
-	return brew_runtime.string_value(completion_format_description(args[0].as_string(), fish))
+	return ruby.string_value(completion_format_description(args[0].as_string(), fish))
 }
 
 // Ruby method `self.command_options(command, subcommand: nil)` at line 178.
-pub fn ruby_completions_l178_d12_self_command_options(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_l178_d12_self_command_options(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.map_value(map[string]brew_runtime.Value{})
+		return ruby.map_value(map[string]ruby.Value{})
 	}
 	options := completion_command_options(completion_options_from_value(args[1]))
-	mut values := map[string]brew_runtime.Value{}
+	mut values := map[string]ruby.Value{}
 	for name, description in options {
-		values[name] = brew_runtime.string_value(description)
+		values[name] = ruby.string_value(description)
 	}
-	return brew_runtime.map_value(values)
+	return ruby.map_value(values)
 }
 
 // Ruby method `self.generate_bash_named_args_completion(types)` at line 196.
-pub fn ruby_completions_l196_d13_self_generate_bash_named_args_completion(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_l196_d13_self_generate_bash_named_args_completion(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_value('')
+		return ruby.string_value('')
 	}
 	arguments := args[0].array_data.map(CompletionNamedArgument{
 		value: it.as_string()
 		is_symbol: it.type_name == 'Symbol'
 	})
-	return brew_runtime.string_value(completion_generate_bash_named_args(arguments))
+	return ruby.string_value(completion_generate_bash_named_args(arguments))
 }
 
 // Ruby method `self.generate_bash_nested_subcommand_completion(command, subcommands)` at line 213.
-pub fn ruby_completions_l213_d14_self_generate_bash_nested_subcommand_completion(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_l213_d14_self_generate_bash_nested_subcommand_completion(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('generate_bash_nested_subcommand_completion requires a command and subcommands')
 	}
 	command := completion_command_with_subcommands(completion_command_from_values([
 		args[0],
 	], 0), completion_subcommands_from_value(args[1]))
-	return brew_runtime.string_value(completion_generate_bash_nested(command))
+	return ruby.string_value(completion_generate_bash_nested(command))
 }
 
 // Ruby method `self.generate_bash_subcommand_completion(command)` at line 281.
-pub fn ruby_completions_l281_d15_self_generate_bash_subcommand_completion(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_l281_d15_self_generate_bash_subcommand_completion(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('generate_bash_subcommand_completion requires a command')
 	}
 	if generated := completion_generate_bash_command(completion_command_from_values(args, 0)) {
-		return brew_runtime.string_value(generated)
+		return ruby.string_value(generated)
 	}
 	return completion_nil_value()
 }
 
 // Ruby method `self.generate_bash_completion_file(commands)` at line 306.
-pub fn ruby_completions_l306_d16_self_generate_bash_completion_file(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_l306_d16_self_generate_bash_completion_file(args ...ruby.Value) ruby.Value {
 	command_models := if args.len == 0 {
 		[]CompletionCommand{}
 	} else {
 		completion_commands_from_value(args[0])
 	}
-	return brew_runtime.string_value(completion_generate_bash_file(command_models))
+	return ruby.string_value(completion_generate_bash_file(command_models))
 }
 
 // Ruby method `self.format_zsh_argument(opt)` at line 328.
-pub fn ruby_completions_l328_d17_self_format_zsh_argument(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_l328_d17_self_format_zsh_argument(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('format_zsh_argument requires an option')
 	}
-	return brew_runtime.string_value(completion_format_zsh_argument(args[0].as_string()))
+	return ruby.string_value(completion_format_zsh_argument(args[0].as_string()))
 }
 
 // Ruby method `self.generate_zsh_subcommand_completion(command)` at line 337.
-pub fn ruby_completions_l337_d18_self_generate_zsh_subcommand_completion(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_l337_d18_self_generate_zsh_subcommand_completion(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('generate_zsh_subcommand_completion requires a command')
 	}
 	if generated := completion_generate_zsh_command(completion_command_from_values(args, 0)) {
-		return brew_runtime.string_value(generated)
+		return ruby.string_value(generated)
 	}
 	return completion_nil_value()
 }
 
 // Ruby method `self.generate_zsh_arguments(command, options, types)` at line 362.
-pub fn ruby_completions_l362_d19_self_generate_zsh_arguments(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_l362_d19_self_generate_zsh_arguments(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('generate_zsh_arguments requires a command and options')
 	}
@@ -983,80 +983,80 @@ pub fn ruby_completions_l362_d19_self_generate_zsh_arguments(args ...brew_runtim
 	} else {
 		[]CompletionNamedArgument{}
 	}
-	return brew_runtime.string_array_value(completion_generate_zsh_arguments(command, completion_options_from_value(args[1]), arguments))
+	return ruby.string_array_value(completion_generate_zsh_arguments(command, completion_options_from_value(args[1]), arguments))
 }
 
 // Ruby method `self.generate_zsh_nested_subcommand_completion(command, subcommands)` at line 407.
-pub fn ruby_completions_l407_d20_self_generate_zsh_nested_subcommand_completion(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_l407_d20_self_generate_zsh_nested_subcommand_completion(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('generate_zsh_nested_subcommand_completion requires a command and subcommands')
 	}
 	command := completion_command_with_subcommands(completion_command_from_values([
 		args[0],
 	], 0), completion_subcommands_from_value(args[1]))
-	return brew_runtime.string_value(completion_generate_zsh_nested(command))
+	return ruby.string_value(completion_generate_zsh_nested(command))
 }
 
 // Ruby method `self.generate_zsh_option_exclusions(command, option)` at line 470.
-pub fn ruby_completions_l470_d21_self_generate_zsh_option_exclusions(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_l470_d21_self_generate_zsh_option_exclusions(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('generate_zsh_option_exclusions requires a command and option')
 	}
-	return brew_runtime.string_value(completion_generate_zsh_option_exclusions(completion_command_from_values([
+	return ruby.string_value(completion_generate_zsh_option_exclusions(completion_command_from_values([
 		args[0],
 	], 0), args[1].as_string()))
 }
 
 // Ruby method `self.generate_zsh_completion_file(commands)` at line 478.
-pub fn ruby_completions_l478_d22_self_generate_zsh_completion_file(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_l478_d22_self_generate_zsh_completion_file(args ...ruby.Value) ruby.Value {
 	command_models := if args.len == 0 {
 		[]CompletionCommand{}
 	} else {
 		completion_commands_from_value(args[0])
 	}
-	return brew_runtime.string_value(completion_generate_zsh_file(command_models))
+	return ruby.string_value(completion_generate_zsh_file(command_models))
 }
 
 // Ruby method `self.generate_fish_subcommand_completion(command)` at line 510.
-pub fn ruby_completions_l510_d23_self_generate_fish_subcommand_completion(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_l510_d23_self_generate_fish_subcommand_completion(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('generate_fish_subcommand_completion requires a command')
 	}
 	if generated := completion_generate_fish_command(completion_command_from_values(args, 0)) {
-		return brew_runtime.string_value(generated)
+		return ruby.string_value(generated)
 	}
 	return completion_nil_value()
 }
 
 // Ruby method `self.generate_fish_named_args(command, types, subcommand: nil)` at line 570.
-pub fn ruby_completions_l570_d24_self_generate_fish_named_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_l570_d24_self_generate_fish_named_args(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.string_array_value([])
+		return ruby.string_array_value([])
 	}
 	command := completion_command_from_values([args[0]], 0)
 	subcommand := if args.len > 2 { args[2].as_string() } else { '' }
-	return brew_runtime.string_array_value(completion_generate_fish_named_args(command, completion_named_args_from_value(args[1]), subcommand))
+	return ruby.string_array_value(completion_generate_fish_named_args(command, completion_named_args_from_value(args[1]), subcommand))
 }
 
 // Ruby method `self.generate_fish_nested_subcommand_completion(command, subcommands)` at line 607.
-pub fn ruby_completions_l607_d25_self_generate_fish_nested_subcommand_completion(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_l607_d25_self_generate_fish_nested_subcommand_completion(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('generate_fish_nested_subcommand_completion requires a command and subcommands')
 	}
 	command := completion_command_with_subcommands(completion_command_from_values([
 		args[0],
 	], 0), completion_subcommands_from_value(args[1]))
-	return brew_runtime.string_value(completion_generate_fish_nested(command))
+	return ruby.string_value(completion_generate_fish_nested(command))
 }
 
 // Ruby method `self.generate_fish_completion_file(commands)` at line 653.
-pub fn ruby_completions_l653_d26_self_generate_fish_completion_file(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_completions_l653_d26_self_generate_fish_completion_file(args ...ruby.Value) ruby.Value {
 	command_models := if args.len == 0 {
 		[]CompletionCommand{}
 	} else {
 		completion_commands_from_value(args[0])
 	}
-	return brew_runtime.string_value(completion_generate_fish_file(command_models))
+	return ruby.string_value(completion_generate_fish_file(command_models))
 }
 
 // Original Ruby source (line-for-line):

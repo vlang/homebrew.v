@@ -1,6 +1,6 @@
 module cli
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `cli/error.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -61,13 +61,13 @@ pub fn number_of_named_arguments_error(number int, types []string) IError {
 	return error('This command requires exactly ${number} ${argument_types(types)} ${plural_argument(number)}.')
 }
 
-fn cli_error_value(type_name string, value IError) brew_runtime.Value {
-	return brew_runtime.structured_value(type_name, value.msg(), {
+fn cli_error_value(type_name string, value IError) ruby.Value {
+	return ruby.structured_value(type_name, value.msg(), {
 		'message': value.msg()
 	})
 }
 
-fn cli_error_types(args []brew_runtime.Value, index int) []string {
+fn cli_error_types(args []ruby.Value, index int) []string {
 	return if args.len > index {
 		args[index].as_string_array() or { []string{} }
 	} else {
@@ -76,7 +76,7 @@ fn cli_error_types(args []brew_runtime.Value, index int) []string {
 }
 
 // Ruby method `initialize(arg1, arg2, missing: false)` at line 10.
-pub fn ruby_error_l10_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_error_l10_d1_initialize(args ...ruby.Value) ruby.Value {
 	arg1 := if args.len > 0 { args[0].as_string() } else { '' }
 	arg2 := if args.len > 1 { args[1].as_string() } else { '' }
 	missing := if args.len > 2 { args[2].as_bool() or { false } } else { false }
@@ -84,32 +84,32 @@ pub fn ruby_error_l10_d1_initialize(args ...brew_runtime.Value) brew_runtime.Val
 }
 
 // Ruby method `initialize(args)` at line 22.
-pub fn ruby_error_l22_d2_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_error_l22_d2_initialize(args ...ruby.Value) ruby.Value {
 	options := if args.len > 0 { args[0].as_string_array() or { []string{} } } else { []string{} }
 	return cli_error_value('Homebrew::CLI::OptionConflictError', option_conflict_error(options))
 }
 
 // Ruby method `initialize(arg1, arg2)` at line 30.
-pub fn ruby_error_l30_d3_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_error_l30_d3_initialize(args ...ruby.Value) ruby.Value {
 	arg1 := if args.len > 0 { args[0].as_string() } else { '' }
 	arg2 := if args.len > 1 { args[1].as_string() } else { '' }
 	return cli_error_value('Homebrew::CLI::InvalidConstraintError', invalid_constraint_error(arg1, arg2))
 }
 
 // Ruby method `initialize(maximum, types: [])` at line 37.
-pub fn ruby_error_l37_d4_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_error_l37_d4_initialize(args ...ruby.Value) ruby.Value {
 	maximum := if args.len > 0 { int(args[0].as_int() or { 0 }) } else { 0 }
 	return cli_error_value('Homebrew::CLI::MaxNamedArgumentsError', max_named_arguments_error(maximum, cli_error_types(args, 1)))
 }
 
 // Ruby method `initialize(minimum, types: [])` at line 53.
-pub fn ruby_error_l53_d5_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_error_l53_d5_initialize(args ...ruby.Value) ruby.Value {
 	minimum := if args.len > 0 { int(args[0].as_int() or { 0 }) } else { 0 }
 	return cli_error_value('Homebrew::CLI::MinNamedArgumentsError', min_named_arguments_error(minimum, cli_error_types(args, 1)))
 }
 
 // Ruby method `initialize(minimum, types: [])` at line 64.
-pub fn ruby_error_l64_d6_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_error_l64_d6_initialize(args ...ruby.Value) ruby.Value {
 	number := if args.len > 0 { int(args[0].as_int() or { 0 }) } else { 0 }
 	return cli_error_value('Homebrew::CLI::NumberOfNamedArgumentsError', number_of_named_arguments_error(number, cli_error_types(args, 1)))
 }

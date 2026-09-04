@@ -1,6 +1,6 @@
 module rubocops
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `rubocops/class.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -461,8 +461,8 @@ pub fn audit_formula_test_present(source string) []ClassAuditProblem {
 	}]
 }
 
-fn class_problem_value(problem ClassAuditProblem) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cop::Problem', problem.message, {
+fn class_problem_value(problem ClassAuditProblem) ruby.Value {
+	return ruby.structured_value('RuboCop::Cop::Problem', problem.message, {
 		'kind':        problem.kind
 		'call_name':   problem.call_name
 		'begin_pos':   problem.begin_pos.str()
@@ -472,8 +472,8 @@ fn class_problem_value(problem ClassAuditProblem) brew_runtime.Value {
 	})
 }
 
-fn formula_test_call_value(call FormulaTestCall) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::AST::SendNode', call.name, {
+fn formula_test_call_value(call FormulaTestCall) ruby.Value {
+	return ruby.structured_value('RuboCop::AST::SendNode', call.name, {
 		'name':          call.name
 		'begin_pos':     call.begin_pos.str()
 		'end_pos':       call.end_pos.str()
@@ -486,27 +486,27 @@ fn formula_test_call_value(call FormulaTestCall) brew_runtime.Value {
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 20.
-pub fn ruby_class_l20_d1_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_class_l20_d1_audit_formula(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.array_value(audit_formula_class_name(source).map(class_problem_value(it)))
+	return ruby.array_value(audit_formula_class_name(source).map(class_problem_value(it)))
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 37.
-pub fn ruby_class_l37_d2_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_class_l37_d2_audit_formula(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.array_value(audit_formula_test(source).map(class_problem_value(it)))
+	return ruby.array_value(audit_formula_test(source).map(class_problem_value(it)))
 }
 
 // Ruby def_node_search `def_node_search :test_calls, <<~EOS` at line 67.
-pub fn ruby_class_l67_d3_test_calls(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_class_l67_d3_test_calls(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.array_value(find_formula_test_calls(source).map(formula_test_call_value(it)))
+	return ruby.array_value(find_formula_test_calls(source).map(formula_test_call_value(it)))
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 77.
-pub fn ruby_class_l77_d4_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_class_l77_d4_audit_formula(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.array_value(audit_formula_test_present(source).map(class_problem_value(it)))
+	return ruby.array_value(audit_formula_test_present(source).map(class_problem_value(it)))
 }
 
 // Original Ruby source (line-for-line):

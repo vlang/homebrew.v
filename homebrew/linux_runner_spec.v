@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `linux_runner_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -21,28 +21,28 @@ pub:
 	testing_formulae []string
 }
 
-pub fn linux_runner_spec_to_map(spec LinuxRunnerSpec) map[string]brew_runtime.Value {
+pub fn linux_runner_spec_to_map(spec LinuxRunnerSpec) map[string]ruby.Value {
 	mut result := {
-		'name':             brew_runtime.string_value(spec.name)
-		'runner':           brew_runtime.string_value(spec.runner)
-		'timeout':          brew_runtime.int_value(i64(spec.timeout))
-		'cleanup':          brew_runtime.bool_value(spec.cleanup)
-		'testing_formulae': brew_runtime.string_value(spec.testing_formulae.join(','))
+		'name':             ruby.string_value(spec.name)
+		'runner':           ruby.string_value(spec.runner)
+		'timeout':          ruby.int_value(i64(spec.timeout))
+		'cleanup':          ruby.bool_value(spec.cleanup)
+		'testing_formulae': ruby.string_value(spec.testing_formulae.join(','))
 	}
 	if container := spec.container {
-		result['container'] = brew_runtime.structured_value('Container', container.image, {
+		result['container'] = ruby.structured_value('Container', container.image, {
 			'image':   container.image
 			'options': container.options
 		})
 	}
 	if spec.workdir != '' {
-		result['workdir'] = brew_runtime.string_value(spec.workdir)
+		result['workdir'] = ruby.string_value(spec.workdir)
 	}
 	return result
 }
 
 // Ruby method `to_h` at line 14.
-pub fn ruby_linux_runner_spec_l14_d1_to_h(spec LinuxRunnerSpec) map[string]brew_runtime.Value {
+pub fn ruby_linux_runner_spec_l14_d1_to_h(spec LinuxRunnerSpec) map[string]ruby.Value {
 	return linux_runner_spec_to_map(spec)
 }
 

@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 import homebrew.unpack_strategy
 import os
 
@@ -339,106 +339,106 @@ pub fn run_unpack(options UnpackOptions) !UnpackResult {
 	}
 }
 
-pub fn unpack_input_boundary(input &UnpackInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::Unpack::Input', '', {
+pub fn unpack_input_boundary(input &UnpackInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::Unpack::Input', '', {
 		'unpack_input_address': u64(voidptr(input)).str()
 	})
 }
 
-pub fn unpack_item_input_boundary(input &UnpackItemInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::Unpack::ItemInput', '', {
+pub fn unpack_item_input_boundary(input &UnpackItemInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::Unpack::ItemInput', '', {
 		'unpack_item_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn unpack_input_from_value(value brew_runtime.Value) &UnpackInput {
+fn unpack_input_from_value(value ruby.Value) &UnpackInput {
 	address := value.attributes['unpack_input_address'] or { panic('invalid Unpack input') }
 	return unsafe { &UnpackInput(voidptr(address.u64())) }
 }
 
-fn unpack_item_input_from_value(value brew_runtime.Value) &UnpackItemInput {
+fn unpack_item_input_from_value(value ruby.Value) &UnpackItemInput {
 	address := value.attributes['unpack_item_input_address'] or {
 		panic('invalid Unpack item input')
 	}
 	return unsafe { &UnpackItemInput(voidptr(address.u64())) }
 }
 
-fn unpack_command_value(command UnpackCommand) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'program':           brew_runtime.string_value(command.program)
-		'arguments':         brew_runtime.string_array_value(command.arguments)
-		'working_directory': brew_runtime.string_value(command.working_directory)
+fn unpack_command_value(command UnpackCommand) ruby.Value {
+	return ruby.map_value({
+		'program':           ruby.string_value(command.program)
+		'arguments':         ruby.string_array_value(command.arguments)
+		'working_directory': ruby.string_value(command.working_directory)
 	})
 }
 
-fn unpack_item_result_value(result UnpackItemResult) brew_runtime.Value {
-	mut environment := map[string]brew_runtime.Value{}
+fn unpack_item_result_value(result UnpackItemResult) ruby.Value {
+	mut environment := map[string]ruby.Value{}
 	for name, value in result.verbose_environment {
-		environment[name] = brew_runtime.string_value(value)
+		environment[name] = ruby.string_value(value)
 	}
-	return brew_runtime.map_value({
-		'kind':                 brew_runtime.object_value('Symbol', result.kind.str())
-		'name':                 brew_runtime.string_value(result.name)
-		'full_name':            brew_runtime.string_value(result.full_name)
-		'version':              brew_runtime.string_value(result.version)
-		'stage_dir':            brew_runtime.object_value('Pathname', result.stage_dir)
-		'headline':             brew_runtime.string_value(result.headline)
-		'removed_existing':     brew_runtime.bool_value(result.removed_existing)
-		'brew':                 brew_runtime.bool_value(result.brew)
-		'verbose_environment':  brew_runtime.map_value(environment)
-		'patch_applied':        brew_runtime.bool_value(result.patch_applied)
-		'copy_source':          brew_runtime.object_value('Pathname', result.copy_source)
-		'copy_preserve':        brew_runtime.bool_value(result.copy_preserve)
-		'download_path':        brew_runtime.object_value('Pathname', result.download_path)
-		'used_cached_download': brew_runtime.bool_value(result.used_cached_download)
-		'fetched':              brew_runtime.bool_value(result.fetched)
-		'fetch_quiet':          brew_runtime.bool_value(result.fetch_quiet)
-		'created_stage_dir':    brew_runtime.bool_value(result.created_stage_dir)
-		'strategy':             brew_runtime.string_value(result.strategy)
-		'extract_nestedly':     brew_runtime.bool_value(result.extract_nestedly)
-		'extraction_verbose':   brew_runtime.bool_value(result.extraction_verbose)
-		'git_setup_message':    brew_runtime.string_value(result.git_setup_message)
-		'git_commands':         brew_runtime.array_value(result.git_commands.map(unpack_command_value(it)))
+	return ruby.map_value({
+		'kind':                 ruby.object_value('Symbol', result.kind.str())
+		'name':                 ruby.string_value(result.name)
+		'full_name':            ruby.string_value(result.full_name)
+		'version':              ruby.string_value(result.version)
+		'stage_dir':            ruby.object_value('Pathname', result.stage_dir)
+		'headline':             ruby.string_value(result.headline)
+		'removed_existing':     ruby.bool_value(result.removed_existing)
+		'brew':                 ruby.bool_value(result.brew)
+		'verbose_environment':  ruby.map_value(environment)
+		'patch_applied':        ruby.bool_value(result.patch_applied)
+		'copy_source':          ruby.object_value('Pathname', result.copy_source)
+		'copy_preserve':        ruby.bool_value(result.copy_preserve)
+		'download_path':        ruby.object_value('Pathname', result.download_path)
+		'used_cached_download': ruby.bool_value(result.used_cached_download)
+		'fetched':              ruby.bool_value(result.fetched)
+		'fetch_quiet':          ruby.bool_value(result.fetch_quiet)
+		'created_stage_dir':    ruby.bool_value(result.created_stage_dir)
+		'strategy':             ruby.string_value(result.strategy)
+		'extract_nestedly':     ruby.bool_value(result.extract_nestedly)
+		'extraction_verbose':   ruby.bool_value(result.extraction_verbose)
+		'git_setup_message':    ruby.string_value(result.git_setup_message)
+		'git_commands':         ruby.array_value(result.git_commands.map(unpack_command_value(it)))
 	})
 }
 
-fn unpack_result_value(result UnpackResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'unpack_dir':      brew_runtime.object_value('Pathname', result.unpack_dir)
-		'resolution_mode': brew_runtime.object_value('Symbol', result.resolution_mode)
-		'items':           brew_runtime.array_value(result.items.map(unpack_item_result_value(it)))
+fn unpack_result_value(result UnpackResult) ruby.Value {
+	return ruby.map_value({
+		'unpack_dir':      ruby.object_value('Pathname', result.unpack_dir)
+		'resolution_mode': ruby.object_value('Symbol', result.resolution_mode)
+		'items':           ruby.array_value(result.items.map(unpack_item_result_value(it)))
 	})
 }
 
 // Ruby method `run` at line 44.
-pub fn ruby_unpack_l44_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unpack_l44_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'command input is required')
+		return ruby.object_value('ArgumentError', 'command input is required')
 	}
 	return unpack_result_value(run_unpack(unpack_input_from_value(args[0]).options) or {
-		return brew_runtime.object_value('FatalError', err.msg())
+		return ruby.object_value('FatalError', err.msg())
 	})
 }
 
 // Ruby method `unpack_formula(formula, unpack_dir)` at line 74.
-pub fn ruby_unpack_l74_d2_unpack_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unpack_l74_d2_unpack_formula(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'formula input is required')
+		return ruby.object_value('ArgumentError', 'formula input is required')
 	}
 	input := unpack_item_input_from_value(args[0])
 	return unpack_item_result_value(unpack_formula(input.package, input.unpack_dir, input.options) or {
-		return brew_runtime.object_value('FatalError', err.msg())
+		return ruby.object_value('FatalError', err.msg())
 	})
 }
 
 // Ruby method `unpack_cask(cask, unpack_dir)` at line 104.
-pub fn ruby_unpack_l104_d3_unpack_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unpack_l104_d3_unpack_cask(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'cask input is required')
+		return ruby.object_value('ArgumentError', 'cask input is required')
 	}
 	input := unpack_item_input_from_value(args[0])
 	return unpack_item_result_value(unpack_cask(input.package, input.unpack_dir, input.options) or {
-		return brew_runtime.object_value('FatalError', err.msg())
+		return ruby.object_value('FatalError', err.msg())
 	})
 }
 

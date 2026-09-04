@@ -1,6 +1,6 @@
 module test
 
-import brew_runtime
+import ruby
 import homebrew
 import homebrew.compilers as compiler_model
 
@@ -14,12 +14,12 @@ fn compiler_failure_spec_compiler(compiler_type string, name string, version str
 	}
 }
 
-fn compiler_failure_spec_result(value bool) brew_runtime.Value {
-	return brew_runtime.bool_value(value)
+fn compiler_failure_spec_result(value bool) ruby.Value {
+	return ruby.bool_value(value)
 }
 
 // Ruby alias_matcher `alias_matcher :fail_with, :be_fails_with` at line 7.
-pub fn ruby_compiler_failure_spec_l7_d1_fail_with(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_compiler_failure_spec_l7_d1_fail_with(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		return compiler_failure_spec_result(false)
 	}
@@ -27,7 +27,7 @@ pub fn ruby_compiler_failure_spec_l7_d1_fail_with(args ...brew_runtime.Value) br
 }
 
 // Ruby it `it "creates a failure when given a symbol" do` at line 10.
-pub fn ruby_compiler_failure_spec_l10_d2_creates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_compiler_failure_spec_l10_d2_creates(args ...ruby.Value) ruby.Value {
 	failure := compiler_model.create_symbol_failure('clang') or {
 		return compiler_failure_spec_result(false)
 	}
@@ -36,7 +36,7 @@ pub fn ruby_compiler_failure_spec_l10_d2_creates(args ...brew_runtime.Value) bre
 }
 
 // Ruby it `it "can be given a build number in a block" do` at line 17.
-pub fn ruby_compiler_failure_spec_l17_d3_can(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_compiler_failure_spec_l17_d3_can(args ...ruby.Value) ruby.Value {
 	failure := compiler_model.create_symbol_failure_with('clang', fn (mut configured compiler_model.CompilerFailure) ! {
 		configured.set_version('700')!
 	}) or {
@@ -47,7 +47,7 @@ pub fn ruby_compiler_failure_spec_l17_d3_can(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby it `it "can be given an empty block" do` at line 24.
-pub fn ruby_compiler_failure_spec_l24_d4_can(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_compiler_failure_spec_l24_d4_can(args ...ruby.Value) ruby.Value {
 	failure := compiler_model.create_symbol_failure('clang') or {
 		return compiler_failure_spec_result(false)
 	}
@@ -56,7 +56,7 @@ pub fn ruby_compiler_failure_spec_l24_d4_can(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby it `it "creates a failure when given a hash" do` at line 33.
-pub fn ruby_compiler_failure_spec_l33_d5_creates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_compiler_failure_spec_l33_d5_creates(args ...ruby.Value) ruby.Value {
 	failure := compiler_model.create_gcc_failure('7') or {
 		return compiler_failure_spec_result(false)
 	}
@@ -64,7 +64,7 @@ pub fn ruby_compiler_failure_spec_l33_d5_creates(args ...brew_runtime.Value) bre
 }
 
 // Ruby it `it "creates a failure when given a hash and a block with aversion" do` at line 50.
-pub fn ruby_compiler_failure_spec_l50_d6_creates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_compiler_failure_spec_l50_d6_creates(args ...ruby.Value) ruby.Value {
 	failure := compiler_model.create_gcc_failure_with('7', fn (mut configured compiler_model.CompilerFailure) ! {
 		configured.set_version('7.1')!
 	}) or {

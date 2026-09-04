@@ -1,12 +1,12 @@
 module bindata
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/bindata-2.5.1/lib/bindata/rest.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `value_to_binary_string(val)` at line 22.
-pub fn ruby_rest_l22_d1_value_to_binary_string(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_rest_l22_d1_value_to_binary_string(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Rest#value_to_binary_string requires a value')
 	}
@@ -14,22 +14,22 @@ pub fn ruby_rest_l22_d1_value_to_binary_string(args ...brew_runtime.Value) brew_
 }
 
 // Ruby method `read_and_return_value(io)` at line 26.
-pub fn ruby_rest_l26_d2_read_and_return_value(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_rest_l26_d2_read_and_return_value(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Rest#read_and_return_value requires an IO value')
 	}
 	return if args[0].type_name == 'String' {
 		args[0]
 	} else {
-		brew_runtime.string_value(args[0].attribute('all_bytes') or {
+		ruby.string_value(args[0].attribute('all_bytes') or {
 			panic('IO value has no all_bytes attribute')
 		})
 	}
 }
 
 // Ruby method `sensible_default` at line 30.
-pub fn ruby_rest_l30_d3_sensible_default(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('')
+pub fn ruby_rest_l30_d3_sensible_default(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('')
 }
 
 // Original Ruby source (line-for-line):

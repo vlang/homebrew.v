@@ -1,6 +1,6 @@
 module rubocops
 
-import brew_runtime
+import ruby
 import homebrew.utils
 
 // Translated from Homebrew/brew `rubocops/service.rb`.
@@ -333,8 +333,8 @@ pub fn correct_service_block(source string) string {
 	return corrected
 }
 
-fn service_offense_value(offense ServiceOffense) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cop::Offense', offense.message, {
+fn service_offense_value(offense ServiceOffense) ruby.Value {
+	return ruby.structured_value('RuboCop::Cop::Offense', offense.message, {
 		'kind':        offense.kind
 		'method':      offense.method
 		'begin_pos':   offense.begin_pos.str()
@@ -347,9 +347,9 @@ fn service_offense_value(offense ServiceOffense) brew_runtime.Value {
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 29.
-pub fn ruby_service_l29_d1_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_service_l29_d1_audit_formula(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.array_value(audit_service_block(source).map(service_offense_value(it)))
+	return ruby.array_value(audit_service_block(source).map(service_offense_value(it)))
 }
 
 // Original Ruby source (line-for-line):

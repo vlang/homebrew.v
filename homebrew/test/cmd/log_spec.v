@@ -1,13 +1,13 @@
 module cmd
 
-import brew_runtime
+import ruby
 import homebrew.cmd as cmd_core
 
 // Translated from Homebrew/brew `test/cmd/log_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "shows the Git log for a given Formula", :integration_test do` at line 10.
-pub fn ruby_log_spec_l10_d1_shows(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_log_spec_l10_d1_shows(args ...ruby.Value) ruby.Value {
 	request := cmd_core.GitLogRequest{
 		cd_dir: '/tmp/homebrew-shallow'
 		path: '/tmp/homebrew-shallow/Formula/testball.rb'
@@ -19,7 +19,7 @@ pub fn ruby_log_spec_l10_d1_shows(args ...brew_runtime.Value) brew_runtime.Value
 		original_path: '/usr/bin:/bin'
 	}
 	plan := cmd_core.git_log_plan(request)
-	return brew_runtime.bool_value(plan.arguments == [
+	return ruby.bool_value(plan.arguments == [
 		'log',
 		'--follow',
 		'--',

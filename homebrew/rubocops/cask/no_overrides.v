@@ -1,6 +1,6 @@
 module cask
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `rubocops/cask/no_overrides.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -323,8 +323,8 @@ pub fn correct_no_overrides(source string) string {
 	return source
 }
 
-fn no_overrides_offense_value(offense NoOverridesOffense) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cop::Offense', offense.message, {
+fn no_overrides_offense_value(offense NoOverridesOffense) ruby.Value {
+	return ruby.structured_value('RuboCop::Cop::Offense', offense.message, {
 		'stanza':      offense.stanza
 		'begin_pos':   offense.begin_pos.str()
 		'end_pos':     offense.end_pos.str()
@@ -333,7 +333,7 @@ fn no_overrides_offense_value(offense NoOverridesOffense) brew_runtime.Value {
 	})
 }
 
-fn no_overrides_node_ancestry(node brew_runtime.Value) []string {
+fn no_overrides_node_ancestry(node ruby.Value) []string {
 	path := if 'ancestry' in node.attributes {
 		node.attributes['ancestry']
 	} else {
@@ -342,44 +342,44 @@ fn no_overrides_node_ancestry(node brew_runtime.Value) []string {
 	return path.split('>').map(it.trim_space()).filter(it != '')
 }
 
-fn no_overrides_single_livecheck_node(node brew_runtime.Value) bool {
+fn no_overrides_single_livecheck_node(node ruby.Value) bool {
 	path := no_overrides_node_ancestry(node)
 	return path.len >= 2 && path[path.len - 2] == 'livecheck'
 }
 
-fn no_overrides_multi_livecheck_node(node brew_runtime.Value) bool {
+fn no_overrides_multi_livecheck_node(node ruby.Value) bool {
 	path := no_overrides_node_ancestry(node)
 	return path.len >= 3 && path[path.len - 2] == 'begin' && path[path.len - 3] == 'livecheck'
 }
 
 // Ruby method `on_cask(cask_block)` at line 18.
-pub fn ruby_no_overrides_l18_d1_on_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_no_overrides_l18_d1_on_cask(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.array_value(audit_no_overrides(source).map(no_overrides_offense_value(it)))
+	return ruby.array_value(audit_no_overrides(source).map(no_overrides_offense_value(it)))
 }
 
 // Ruby method `on_system_stanzas(on_system)` at line 39.
-pub fn ruby_no_overrides_l39_d2_on_system_stanzas(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_no_overrides_l39_d2_on_system_stanzas(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.string_array_value(no_overrides_analyze(source).names)
+	return ruby.string_array_value(no_overrides_analyze(source).names)
 }
 
 // Ruby method `inside_livecheck_defined?(node)` at line 91.
-pub fn ruby_no_overrides_l91_d3_inside_livecheck_defined(args ...brew_runtime.Value) brew_runtime.Value {
-	node := if args.len > 0 { args[0] } else { brew_runtime.string_value('') }
-	return brew_runtime.bool_value(no_overrides_single_livecheck_node(node) || no_overrides_multi_livecheck_node(node))
+pub fn ruby_no_overrides_l91_d3_inside_livecheck_defined(args ...ruby.Value) ruby.Value {
+	node := if args.len > 0 { args[0] } else { ruby.string_value('') }
+	return ruby.bool_value(no_overrides_single_livecheck_node(node) || no_overrides_multi_livecheck_node(node))
 }
 
 // Ruby method `single_stanza_livecheck_defined?(node)` at line 96.
-pub fn ruby_no_overrides_l96_d4_single_stanza_livecheck_defined(args ...brew_runtime.Value) brew_runtime.Value {
-	node := if args.len > 0 { args[0] } else { brew_runtime.string_value('') }
-	return brew_runtime.bool_value(no_overrides_single_livecheck_node(node))
+pub fn ruby_no_overrides_l96_d4_single_stanza_livecheck_defined(args ...ruby.Value) ruby.Value {
+	node := if args.len > 0 { args[0] } else { ruby.string_value('') }
+	return ruby.bool_value(no_overrides_single_livecheck_node(node))
 }
 
 // Ruby method `multi_stanza_livecheck_defined?(node)` at line 101.
-pub fn ruby_no_overrides_l101_d5_multi_stanza_livecheck_defined(args ...brew_runtime.Value) brew_runtime.Value {
-	node := if args.len > 0 { args[0] } else { brew_runtime.string_value('') }
-	return brew_runtime.bool_value(no_overrides_multi_livecheck_node(node))
+pub fn ruby_no_overrides_l101_d5_multi_stanza_livecheck_defined(args ...ruby.Value) ruby.Value {
+	node := if args.len > 0 { args[0] } else { ruby.string_value('') }
+	return ruby.bool_value(no_overrides_multi_livecheck_node(node))
 }
 
 // Original Ruby source (line-for-line):

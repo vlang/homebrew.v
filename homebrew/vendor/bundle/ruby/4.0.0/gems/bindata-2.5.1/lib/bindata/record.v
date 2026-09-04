@@ -1,6 +1,6 @@
 module bindata
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/bindata-2.5.1/lib/bindata/record.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -15,7 +15,7 @@ pub fn record_metadata() RecordMetadata {
 	return RecordMetadata{}
 }
 
-pub fn merge_record_dsl_parameters(parameters map[string]brew_runtime.Value, dsl_parameters map[string]brew_runtime.Value) map[string]brew_runtime.Value {
+pub fn merge_record_dsl_parameters(parameters map[string]ruby.Value, dsl_parameters map[string]ruby.Value) map[string]ruby.Value {
 	mut merged := parameters.clone()
 	for name, value in dsl_parameters {
 		merged[name] = value
@@ -24,12 +24,12 @@ pub fn merge_record_dsl_parameters(parameters map[string]brew_runtime.Value, dsl
 }
 
 // Ruby method `sanitize_parameters!(obj_class, params)` at line 19.
-pub fn ruby_record_l19_d1_sanitize_parameters(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_record_l19_d1_sanitize_parameters(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('RecordArgProcessor#sanitize_parameters! requires a receiver, object class and parameters')
 	}
 	parameters := args[2].as_map() or { panic(err) }
-	merged := brew_runtime.map_value(merge_record_dsl_parameters(parameters, args[1].map_data))
+	merged := ruby.map_value(merge_record_dsl_parameters(parameters, args[1].map_data))
 	return ruby_struct_l368_d41_sanitize_parameters(args[0], args[1], merged)
 }
 

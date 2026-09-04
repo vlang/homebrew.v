@@ -1,6 +1,6 @@
 module test_bot
 
-import brew_runtime
+import ruby
 
 pub struct SetupStep {
 pub:
@@ -19,18 +19,18 @@ pub:
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `run!(args:)` at line 8.
-pub fn ruby_setup_l8_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_setup_l8_d1_run(args ...ruby.Value) ruby.Value {
 	verbose_doctor := if args.len > 0 {
 		args[0].bool_data
 	} else {
-		brew_runtime.environment_value('HOMEBREW_TEST_BOT_VERBOSE_DOCTOR') != ''
+		ruby.environment_value('HOMEBREW_TEST_BOT_VERBOSE_DOCTOR') != ''
 	}
 	run := setup_run(verbose_doctor)
-	return brew_runtime.map_value({
-		'header':   brew_runtime.string_value(run.header)
-		'commands': brew_runtime.array_value(run.steps.map(brew_runtime.string_array_value(it.command)))
-		'verbose':  brew_runtime.array_value(run.steps.map(brew_runtime.bool_value(it.verbose)))
-		'passed':   brew_runtime.bool_value(run.steps.last().passed)
+	return ruby.map_value({
+		'header':   ruby.string_value(run.header)
+		'commands': ruby.array_value(run.steps.map(ruby.string_array_value(it.command)))
+		'verbose':  ruby.array_value(run.steps.map(ruby.bool_value(it.verbose)))
+		'passed':   ruby.bool_value(run.steps.last().passed)
 	})
 }
 

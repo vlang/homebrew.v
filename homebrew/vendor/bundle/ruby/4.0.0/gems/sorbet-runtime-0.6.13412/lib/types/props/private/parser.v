@@ -1,25 +1,25 @@
 module private
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/props/private/parser.rb`.
 // The original source is retained below until every stub has a typed V body.
 pub struct RubyAstNode {
 pub:
 	node_type string
-	children  []brew_runtime.Value
+	children  []ruby.Value
 	source    string
 }
 
-pub fn new_ruby_ast_node(node_type string, children []brew_runtime.Value) RubyAstNode {
+pub fn new_ruby_ast_node(node_type string, children []ruby.Value) RubyAstNode {
 	return RubyAstNode{
 		node_type: node_type.trim_left(':')
 		children: children.clone()
 	}
 }
 
-fn ast_node_value(node RubyAstNode) brew_runtime.Value {
-	return brew_runtime.Value{
+fn ast_node_value(node RubyAstNode) ruby.Value {
+	return ruby.Value{
 		type_name: 'Parser::AST::Node'
 		repr: 's(:${node.node_type}${if node.children.len > 0 { ', ...' } else { '' }})'
 		array_data: node.children.clone()
@@ -30,7 +30,7 @@ fn ast_node_value(node RubyAstNode) brew_runtime.Value {
 	}
 }
 
-pub fn ast_node_from_value(value brew_runtime.Value) RubyAstNode {
+pub fn ast_node_from_value(value ruby.Value) RubyAstNode {
 	return RubyAstNode{
 		node_type: value.attribute('type') or { value.as_string().trim_left(':') }
 		children: value.array_data.clone()
@@ -47,7 +47,7 @@ pub fn parse_ruby_source(source string) !RubyAstNode {
 	if !trimmed.starts_with('def ') {
 		return RubyAstNode{
 			node_type: 'source'
-			children: [brew_runtime.string_value(source)]
+			children: [ruby.string_value(source)]
 			source: source
 		}
 	}
@@ -58,7 +58,7 @@ pub fn parse_ruby_source(source string) !RubyAstNode {
 	name := header[..open]
 	arguments := header[open + 1..close].split(',').map(it.trim_space()).filter(it.len > 0)
 	arg_nodes := arguments.map(ast_node_value(new_ruby_ast_node('arg', [
-		brew_runtime.object_value('Symbol', ':${it}'),
+		ruby.object_value('Symbol', ':${it}'),
 	])))
 	args_node := ast_node_value(new_ruby_ast_node('args', arg_nodes))
 	body_source := if header_end < trimmed.len {
@@ -73,7 +73,7 @@ pub fn parse_ruby_source(source string) !RubyAstNode {
 	}
 	body := ast_node_value(RubyAstNode{
 		node_type: 'begin'
-		children: [brew_runtime.structured_value('Parser::AST::Node', body_without_end, {
+		children: [ruby.structured_value('Parser::AST::Node', body_without_end, {
 			'type':   'raw'
 			'source': body_without_end
 		})]
@@ -81,7 +81,7 @@ pub fn parse_ruby_source(source string) !RubyAstNode {
 	})
 	return RubyAstNode{
 		node_type: 'def'
-		children: [brew_runtime.object_value('Symbol', ':${name}'), args_node, body]
+		children: [ruby.object_value('Symbol', ':${name}'), args_node, body]
 		source: source
 	}
 }
@@ -93,7 +93,7 @@ pub fn require_parser_constant(constants []string) string {
 }
 
 // Ruby method `parse(source)` at line 7.
-pub fn ruby_parser_l7_d1_parse(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_parser_l7_d1_parse(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Parse#parse requires source')
 	}
@@ -101,7 +101,7 @@ pub fn ruby_parser_l7_d1_parse(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `s(type, *children)` at line 12.
-pub fn ruby_parser_l12_d2_s(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_parser_l12_d2_s(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Parse#s requires a node type')
 	}
@@ -109,12 +109,12 @@ pub fn ruby_parser_l12_d2_s(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `require_parser(*constants)` at line 17.
-pub fn ruby_parser_l17_d3_require_parser(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_parser_l17_d3_require_parser(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('Class', 'Parser')
+		return ruby.object_value('Class', 'Parser')
 	}
 	path := require_parser_constant(args.map(it.as_string()))
-	return brew_runtime.object_value('Class', path)
+	return ruby.object_value('Class', path)
 }
 
 // Original Ruby source (line-for-line):

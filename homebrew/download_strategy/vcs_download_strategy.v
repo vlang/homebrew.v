@@ -1,6 +1,6 @@
 module download_strategy
 
-import brew_runtime
+import ruby
 import os
 import time
 
@@ -357,7 +357,7 @@ fn vcs_executable(program string, environment map[string]string) !string {
 	return error('${program} is required for this download strategy')
 }
 
-fn vcs_command(program string, arguments []string, directory string, environment map[string]string, deadline ?i64) !brew_runtime.CommandResult {
+fn vcs_command(program string, arguments []string, directory string, environment map[string]string, deadline ?i64) !ruby.CommandResult {
 	executable := vcs_executable(program, environment)!
 	mut process := os.new_process(executable)
 	process.set_args(arguments)
@@ -389,7 +389,7 @@ fn vcs_command(program string, arguments []string, directory string, environment
 	}
 	process.wait()
 	output += process.stdout_slurp()
-	result := brew_runtime.CommandResult{
+	result := ruby.CommandResult{
 		exit_code: process.code
 		output: output
 	}
@@ -397,7 +397,7 @@ fn vcs_command(program string, arguments []string, directory string, environment
 	return result
 }
 
-fn vcs_command_checked(program string, arguments []string, directory string, environment map[string]string, deadline ?i64) !brew_runtime.CommandResult {
+fn vcs_command_checked(program string, arguments []string, directory string, environment map[string]string, deadline ?i64) !ruby.CommandResult {
 	result := vcs_command(program, arguments, directory, environment, deadline)!
 	if result.exit_code != 0 {
 		return error('command failed (${result.exit_code}): ${program}: ${result.output.trim_space()}')

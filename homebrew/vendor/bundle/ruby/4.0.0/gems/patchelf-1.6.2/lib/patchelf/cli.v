@@ -1,6 +1,6 @@
 module patchelf
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/patchelf-1.6.2/lib/patchelf/cli.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -38,7 +38,7 @@ pub mut:
 	in_file      string
 	out_file     string
 	has_out_file bool
-	set          map[string]brew_runtime.Value
+	set          map[string]ruby.Value
 	print        []string
 	needed       []PatchElfNeededRequest
 	force_rpath  bool
@@ -58,17 +58,17 @@ pub mut:
 	has_patcher bool
 }
 
-fn cli_nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn cli_nil_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-fn cli_value(cli &PatchElfCli) brew_runtime.Value {
-	return brew_runtime.structured_value('PatchELF::CLI', '#<PatchELF::CLI>', {
+fn cli_value(cli &PatchElfCli) ruby.Value {
+	return ruby.structured_value('PatchELF::CLI', '#<PatchELF::CLI>', {
 		'patch_elf_cli_address': u64(voidptr(cli)).str()
 	})
 }
 
-fn cli_from_args(args []brew_runtime.Value) &PatchElfCli {
+fn cli_from_args(args []ruby.Value) &PatchElfCli {
 	if args.len == 0 {
 		panic('PatchELF::CLI method requires a receiver')
 	}
@@ -78,7 +78,7 @@ fn cli_from_args(args []brew_runtime.Value) &PatchElfCli {
 	return unsafe { &PatchElfCli(voidptr(address.u64())) }
 }
 
-fn cli_arguments(args []brew_runtime.Value) []string {
+fn cli_arguments(args []ruby.Value) []string {
 	if args.len == 0 {
 		return []string{}
 	}
@@ -100,7 +100,7 @@ fn cli_take_value(argv []string, index int, inline string, option string) !(stri
 
 pub fn parse_patch_elf_cli(argv []string) !PatchElfCliParse {
 	mut options := PatchElfCliOptions{
-		set: map[string]brew_runtime.Value{}
+		set: map[string]ruby.Value{}
 	}
 	mut remain := []string{}
 	mut index := 0
@@ -128,12 +128,12 @@ pub fn parse_patch_elf_cli(argv []string) !PatchElfCliParse {
 			'--set-interpreter', '--interp' {
 				value, next := cli_take_value(argv, index, inline, option)!
 				index = next
-				options.set['interpreter'] = brew_runtime.string_value(value)
+				options.set['interpreter'] = ruby.string_value(value)
 			}
 			'--set-needed', '--needed' {
 				value, next := cli_take_value(argv, index, inline, option)!
 				index = next
-				options.set['needed'] = brew_runtime.string_array_value(value.split(','))
+				options.set['needed'] = ruby.string_array_value(value.split(','))
 			}
 			'--add-needed', '--remove-needed' {
 				value, next := cli_take_value(argv, index, inline, option)!
@@ -158,12 +158,12 @@ pub fn parse_patch_elf_cli(argv []string) !PatchElfCliParse {
 			'--set-runpath', '--runpath' {
 				value, next := cli_take_value(argv, index, inline, option)!
 				index = next
-				options.set['runpath'] = brew_runtime.string_value(value)
+				options.set['runpath'] = ruby.string_value(value)
 			}
 			'--set-soname', '--so' {
 				value, next := cli_take_value(argv, index, inline, option)!
 				index = next
-				options.set['soname'] = brew_runtime.string_value(value)
+				options.set['soname'] = ruby.string_value(value)
 			}
 			else {
 				if argument.starts_with('-') {
@@ -289,39 +289,39 @@ pub fn patch_elf_cli_work(argv []string) !string {
 }
 
 // Ruby method `work(argv)` at line 27.
-pub fn ruby_cli_l27_d1_work(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cli_l27_d1_work(args ...ruby.Value) ruby.Value {
 	output := patch_elf_cli_work(cli_arguments(args)) or { panic(err) }
-	return if output == '' { cli_nil_value() } else { brew_runtime.string_value(output) }
+	return if output == '' { cli_nil_value() } else { ruby.string_value(output) }
 }
 
 // Ruby method `patcher` at line 50.
-pub fn ruby_cli_l50_d2_patcher(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cli_l50_d2_patcher(args ...ruby.Value) ruby.Value {
 	cli := cli_from_args(args)
 	return if cli.has_patcher { patcher_value(cli.patcher) } else { cli_nil_value() }
 }
 
 // Ruby method `readonly` at line 54.
-pub fn ruby_cli_l54_d3_readonly(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cli_l54_d3_readonly(args ...ruby.Value) ruby.Value {
 	lines := cli_from_args(args).readonly() or { panic(err) }
-	return brew_runtime.string_array_value(lines)
+	return ruby.string_array_value(lines)
 }
 
 // Ruby method `patch_requests` at line 64.
-pub fn ruby_cli_l64_d4_patch_requests(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cli_l64_d4_patch_requests(args ...ruby.Value) ruby.Value {
 	mut cli := cli_from_args(args)
 	cli.patch_requests() or { panic(err) }
 	return cli_nil_value()
 }
 
 // Ruby method `parse?(argv)` at line 74.
-pub fn ruby_cli_l74_d5_parse(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cli_l74_d5_parse(args ...ruby.Value) ruby.Value {
 	parsed := parse_patch_elf_cli(cli_arguments(args)) or { panic(err) }
-	return brew_runtime.bool_value(parsed.valid)
+	return ruby.bool_value(parsed.valid)
 }
 
 // Ruby method `option_parser` at line 83.
-pub fn ruby_cli_l83_d6_option_parser(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(patch_elf_cli_help())
+pub fn ruby_cli_l83_d6_option_parser(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(patch_elf_cli_help())
 }
 
 // Original Ruby source (line-for-line):

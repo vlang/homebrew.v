@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 import os
 import time
 import x.json2
@@ -107,8 +107,8 @@ pub:
 	bottle_size                  i64
 	installed_size               i64
 	bottle_binaries              []string
-	related                      []brew_runtime.Value
-	resolution_formula           brew_runtime.Value
+	related                      []ruby.Value
+	resolution_formula           ruby.Value
 	installed_tap                string
 	installed_keg_name           string
 	available                    bool = true
@@ -123,20 +123,20 @@ pub:
 	size i64
 }
 
-fn info_nil() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn info_nil() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-fn info_bool_attr(value brew_runtime.Value, name string, fallback bool) bool {
+fn info_bool_attr(value ruby.Value, name string, fallback bool) bool {
 	raw := value.attributes[name] or { return fallback }
 	return raw == 'true' || raw == '1'
 }
 
-fn info_int_attr(value brew_runtime.Value, name string, fallback i64) i64 {
+fn info_int_attr(value ruby.Value, name string, fallback i64) i64 {
 	return (value.attributes[name] or { return fallback }).i64()
 }
 
-fn info_string_list(value brew_runtime.Value, name string) []string {
+fn info_string_list(value ruby.Value, name string) []string {
 	raw := value.attributes[name] or { return [] }
 	if raw == '' {
 		return []
@@ -144,12 +144,12 @@ fn info_string_list(value brew_runtime.Value, name string) []string {
 	return raw.split('\x1f')
 }
 
-fn info_values(value brew_runtime.Value, key string) []brew_runtime.Value {
+fn info_values(value ruby.Value, key string) []ruby.Value {
 	items := value.map_data[key] or { return [] }
 	return items.as_array() or { [] }
 }
 
-fn info_tab_from_value(value brew_runtime.Value) InfoTabModel {
+fn info_tab_from_value(value ruby.Value) InfoTabModel {
 	return InfoTabModel{
 		installed_on_request_present: info_bool_attr(value, 'installed_on_request_present', 'installed_on_request' in value.attributes)
 		installed_on_request: info_bool_attr(value, 'installed_on_request', false)
@@ -162,8 +162,8 @@ fn info_tab_from_value(value brew_runtime.Value) InfoTabModel {
 	}
 }
 
-fn info_keg_from_value(value brew_runtime.Value) InfoKegModel {
-	tab_value := value.map_data['tab'] or { brew_runtime.Value{} }
+fn info_keg_from_value(value ruby.Value) InfoKegModel {
+	tab_value := value.map_data['tab'] or { ruby.Value{} }
 	return InfoKegModel{
 		name: value.attributes['name'] or { value.repr }
 		version: value.attributes['version'] or { value.repr }
@@ -175,7 +175,7 @@ fn info_keg_from_value(value brew_runtime.Value) InfoKegModel {
 	}
 }
 
-fn info_dependency_from_value(value brew_runtime.Value) InfoDependencyModel {
+fn info_dependency_from_value(value ruby.Value) InfoDependencyModel {
 	return InfoDependencyModel{
 		name: value.attributes['name'] or { value.repr }
 		kind: value.attributes['kind'] or { 'required' }
@@ -188,7 +188,7 @@ fn info_dependency_from_value(value brew_runtime.Value) InfoDependencyModel {
 	}
 }
 
-fn info_requirement_from_value(value brew_runtime.Value) InfoRequirementModel {
+fn info_requirement_from_value(value ruby.Value) InfoRequirementModel {
 	return InfoRequirementModel{
 		display: value.attributes['display'] or { value.repr }
 		kind: value.attributes['kind'] or { 'required' }
@@ -201,7 +201,7 @@ fn info_requirement_from_value(value brew_runtime.Value) InfoRequirementModel {
 	}
 }
 
-fn info_tap_from_value(value brew_runtime.Value) InfoTapModel {
+fn info_tap_from_value(value ruby.Value) InfoTapModel {
 	return InfoTapModel{
 		name: value.attributes['name'] or { value.repr }
 		path: value.attributes['path'] or { '' }
@@ -211,8 +211,8 @@ fn info_tap_from_value(value brew_runtime.Value) InfoTapModel {
 	}
 }
 
-fn info_package_from_value(value brew_runtime.Value) InfoPackageModel {
-	tap_value := value.map_data['tap'] or { brew_runtime.Value{} }
+fn info_package_from_value(value ruby.Value) InfoPackageModel {
+	tap_value := value.map_data['tap'] or { ruby.Value{} }
 	mut conflicts := []InfoConflictModel{}
 	for item in info_values(value, 'conflicts') {
 		conflicts << InfoConflictModel{
@@ -266,7 +266,7 @@ fn info_package_from_value(value brew_runtime.Value) InfoPackageModel {
 		installed_size: info_int_attr(value, 'installed_size', 0)
 		bottle_binaries: info_string_list(value, 'bottle_binaries')
 		related: info_values(value, 'related')
-		resolution_formula: value.map_data['resolution_formula'] or { brew_runtime.Value{} }
+		resolution_formula: value.map_data['resolution_formula'] or { ruby.Value{} }
 		installed_tap: value.attributes['installed_tap'] or { '' }
 		installed_keg_name: value.attributes['installed_keg_name'] or { value.attributes['name'] or { value.repr } }
 		available: info_bool_attr(value, 'available', true)
@@ -276,8 +276,8 @@ fn info_package_from_value(value brew_runtime.Value) InfoPackageModel {
 	}
 }
 
-fn info_tab_value(tab InfoTabModel) brew_runtime.Value {
-	return brew_runtime.structured_value('Tab', 'Tab', {
+fn info_tab_value(tab InfoTabModel) ruby.Value {
+	return ruby.structured_value('Tab', 'Tab', {
 		'installed_on_request_present': tab.installed_on_request_present.str()
 		'installed_on_request':         tab.installed_on_request.str()
 		'source_tap':                   tab.source_tap
@@ -289,8 +289,8 @@ fn info_tab_value(tab InfoTabModel) brew_runtime.Value {
 	})
 }
 
-fn info_keg_value(keg InfoKegModel) brew_runtime.Value {
-	return brew_runtime.Value{
+fn info_keg_value(keg InfoKegModel) ruby.Value {
+	return ruby.Value{
 		type_name: 'Keg'
 		repr: keg.version
 		map_data: {
@@ -307,11 +307,11 @@ fn info_keg_value(keg InfoKegModel) brew_runtime.Value {
 	}
 }
 
-fn info_tap_value(tap InfoTapModel) brew_runtime.Value {
+fn info_tap_value(tap InfoTapModel) ruby.Value {
 	if tap.name == '' {
 		return info_nil()
 	}
-	return brew_runtime.structured_value('Tap', tap.name, {
+	return ruby.structured_value('Tap', tap.name, {
 		'name':           tap.name
 		'path':           tap.path
 		'remote':         tap.remote
@@ -394,7 +394,7 @@ fn info_decorate_requirements(requirements []InfoRequirementModel, mark_uninstal
 	return requirements.map(info_status_text(it.display, it.satisfied, false, false, false, mark_uninstalled, false, tty)).join(', ')
 }
 
-fn info_value_to_json(value brew_runtime.Value) json2.Any {
+fn info_value_to_json(value ruby.Value) json2.Any {
 	return match value.type_name {
 		'Bool' { json2.Any(value.bool_data) }
 		'Integer' { json2.Any(value.int_data) }
@@ -418,20 +418,20 @@ fn info_value_to_json(value brew_runtime.Value) json2.Any {
 	}
 }
 
-fn info_package_hash(value brew_runtime.Value) brew_runtime.Value {
+fn info_package_hash(value ruby.Value) ruby.Value {
 	package := info_package_from_value(value)
 	if hash := value.map_data['json'] {
 		return hash
 	}
-	return brew_runtime.map_value({
-		'name':      brew_runtime.string_value(package.name)
-		'full_name': brew_runtime.string_value(package.full_name)
-		'tap':       brew_runtime.string_value(package.tap.name)
-		'version':   brew_runtime.string_value(package.version)
+	return ruby.map_value({
+		'name':      ruby.string_value(package.name)
+		'full_name': ruby.string_value(package.full_name)
+		'tap':       ruby.string_value(package.tap.name)
+		'version':   ruby.string_value(package.version)
 	})
 }
 
-fn info_github_path(value brew_runtime.Value) string {
+fn info_github_path(value ruby.Value) string {
 	package := info_package_from_value(value)
 	if package.kind == 'formula' {
 		if package.tap.name == '' || package.tap.remote == '' {
@@ -442,7 +442,7 @@ fn info_github_path(value brew_runtime.Value) string {
 			return package.path
 		}
 		relative := package.path[prefix.len..]
-		return ruby_info_l147_d2_github_remote_path(brew_runtime.string_value(package.tap.remote), brew_runtime.string_value(relative)).as_string()
+		return ruby_info_l147_d2_github_remote_path(ruby.string_value(package.tap.remote), ruby.string_value(relative)).as_string()
 	}
 	if package.tap.name == '' || package.tap.remote == '' {
 		return package.sourcefile_path
@@ -456,7 +456,7 @@ fn info_github_path(value brew_runtime.Value) string {
 	} else {
 		package.sourcefile_path
 	}
-	return ruby_info_l147_d2_github_remote_path(brew_runtime.string_value(package.tap.remote), brew_runtime.string_value(relative)).as_string()
+	return ruby_info_l147_d2_github_remote_path(ruby.string_value(package.tap.remote), ruby.string_value(relative)).as_string()
 }
 
 fn info_summary_title(package InfoPackageModel, installed bool) string {
@@ -471,7 +471,7 @@ fn info_summary_title(package InfoPackageModel, installed bool) string {
 	return title
 }
 
-fn info_installed_section_lines(value brew_runtime.Value, verbose bool) []string {
+fn info_installed_section_lines(value ruby.Value, verbose bool) []string {
 	package := info_package_from_value(value)
 	mut related_values := [value]
 	for item in package.related {
@@ -481,7 +481,7 @@ fn info_installed_section_lines(value brew_runtime.Value, verbose bool) []string
 		}
 	}
 	mut installed := related_values.filter(info_package_from_value(it).installed_kegs.len > 0)
-	installed.sort_with_compare(fn (left &brew_runtime.Value, right &brew_runtime.Value) int {
+	installed.sort_with_compare(fn (left &ruby.Value, right &ruby.Value) int {
 		left_package := info_package_from_value(*left)
 		right_package := info_package_from_value(*right)
 		mut left_version := left_package.version
@@ -531,7 +531,7 @@ fn info_installed_section_lines(value brew_runtime.Value, verbose bool) []string
 	return result
 }
 
-fn info_formula_summary_text(value brew_runtime.Value) string {
+fn info_formula_summary_text(value ruby.Value) string {
 	package := info_package_from_value(value)
 	mut lines := [
 		'==> ${info_summary_title(package, package.installed_kegs.len > 0)}',
@@ -556,17 +556,17 @@ fn info_formula_summary_text(value brew_runtime.Value) string {
 			info_github_path(value)
 		}
 		lines << 'Formula from ${source}'
-		lines << ruby_info_l192_d6_self_installation_summary(brew_runtime.string_value(version), info_tab_value(tab)).as_string()
+		lines << ruby_info_l192_d6_self_installation_summary(ruby.string_value(version), info_tab_value(tab)).as_string()
 	}
 	return lines.join('\n') + '\n'
 }
 
-fn info_cask_summary_text(value brew_runtime.Value) string {
+fn info_cask_summary_text(value ruby.Value) string {
 	package := info_package_from_value(value)
 	installed := package.installed_version != ''
 	mut lines := ['==> ${info_summary_title(package, installed)}']
 	if installed {
-		tab_value := value.map_data['tab'] or { brew_runtime.Value{} }
+		tab_value := value.map_data['tab'] or { ruby.Value{} }
 		tab := info_tab_from_value(tab_value)
 		source := if package.tap.name != '' {
 			package.tap.name
@@ -580,7 +580,7 @@ fn info_cask_summary_text(value brew_runtime.Value) string {
 			info_github_path(value)
 		}
 		lines << 'Cask from ${source}'
-		lines << ruby_info_l192_d6_self_installation_summary(brew_runtime.string_value(package.installed_version), info_tab_value(tab)).as_string()
+		lines << ruby_info_l192_d6_self_installation_summary(ruby.string_value(package.installed_version), info_tab_value(tab)).as_string()
 	} else {
 		lines << 'Cask from ${info_github_path(value)}'
 		lines << 'Not installed'
@@ -588,7 +588,7 @@ fn info_cask_summary_text(value brew_runtime.Value) string {
 	return lines.join('\n') + '\n'
 }
 
-fn info_formula_text(value brew_runtime.Value, verbose bool, shadowed_by string) string {
+fn info_formula_text(value ruby.Value, verbose bool, shadowed_by string) string {
 	package := info_package_from_value(value)
 	shadowing_value := ruby_info_l703_d26_shadowing_installed_formula(value)
 	has_shadowing := shadowing_value.type_name != 'NilClass'
@@ -660,7 +660,7 @@ fn info_formula_text(value brew_runtime.Value, verbose bool, shadowed_by string)
 	if package.tap.name != '' && !package.tap.official { lines << 'Tap: ${package.tap.name}' }
 	if package.license != '' { lines << 'License: ${package.license}' }
 	if info_bool_attr(value, 'tty', false) {
-		metadata := ruby_info_l156_d3_self_metadata_lines(value, brew_runtime.bool_value(true)).as_string_array() or { [] }
+		metadata := ruby_info_l156_d3_self_metadata_lines(value, ruby.bool_value(true)).as_string_array() or { [] }
 		lines << metadata
 	}
 	installed_lines := info_installed_section_lines(if has_shadowing {
@@ -696,7 +696,7 @@ fn info_formula_text(value brew_runtime.Value, verbose bool, shadowed_by string)
 		lines << dependency_lines
 		if runtime_deps.len > 0 {
 			installed_count := runtime_deps.filter(it in package.runtime_dependency_installed).len
-			lines << 'Recursive Runtime (${runtime_deps.len}): ${ruby_info_l204_d8_self_dependency_status_counts(brew_runtime.int_value(installed_count), brew_runtime.int_value(runtime_deps.len)).as_string()}'
+			lines << 'Recursive Runtime (${runtime_deps.len}): ${ruby_info_l204_d8_self_dependency_status_counts(ruby.int_value(installed_count), ruby.int_value(runtime_deps.len)).as_string()}'
 		}
 		if package.dependent_names.len > 0 {
 			mut names := package.dependent_names.clone()
@@ -767,40 +767,40 @@ fn info_sizes_table(title string, items []InfoNameSize) string {
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `run` at line 93.
-pub fn ruby_info_l93_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
-	config := if args.len > 0 { args[0] } else { brew_runtime.map_value({}) }
+pub fn ruby_info_l93_d1_run(args ...ruby.Value) ruby.Value {
+	config := if args.len > 0 { args[0] } else { ruby.map_value({}) }
 	if info_bool_attr(config, 'sizes', false) {
 		return ruby_info_l950_d38_print_sizes(config, config.map_data['formulae'] or {
-			brew_runtime.array_value([])
-		}, config.map_data['casks'] or { brew_runtime.array_value([]) })
+			ruby.array_value([])
+		}, config.map_data['casks'] or { ruby.array_value([]) })
 	}
 	if info_bool_attr(config, 'analytics', false) {
 		days := config.attributes['days'] or { '' }
 		if days != '' && days !in ['30', '90', '365'] {
-			return brew_runtime.object_value('UsageError', '`--days` must be one of 30, 90, 365.')
+			return ruby.object_value('UsageError', '`--days` must be one of 30, 90, 365.')
 		}
 		category := config.attributes['category'] or { '' }
 		named := info_values(config, 'named')
 		if category != '' && named.len > 0 && category !in ['install', 'install-on-request',
 			'build-error'] {
-			return brew_runtime.object_value('UsageError', '`--category` must be one of install, install-on-request, build-error when querying formulae.')
+			return ruby.object_value('UsageError', '`--category` must be one of install, install-on-request, build-error when querying formulae.')
 		}
 		if category != '' && category !in ['install', 'install-on-request', 'build-error',
 			'cask-install', 'os-version'] {
-			return brew_runtime.object_value('UsageError', '`--category` must be one of install, install-on-request, build-error, cask-install, os-version.')
+			return ruby.object_value('UsageError', '`--category` must be one of install, install-on-request, build-error, cask-install, os-version.')
 		}
 		return ruby_info_l643_d22_print_analytics(config)
 	}
 	json_value := config.map_data['json'] or { info_nil() }
 	if json_value.type_name != 'NilClass' && json_value.type_name != '' {
-		return ruby_info_l729_d29_print_json(config, json_value, brew_runtime.bool_value(info_bool_attr(config, 'eval_all', false)))
+		return ruby_info_l729_d29_print_json(config, json_value, ruby.bool_value(info_bool_attr(config, 'eval_all', false)))
 	}
 	if info_bool_attr(config, 'installed', false) {
 		mut blocks := []string{}
 		for value in info_values(config, 'installed_packages') {
-			blocks << ruby_info_l685_d25_info_formula_or_cask(value, brew_runtime.bool_value(!info_bool_attr(config, 'verbose', false))).as_string()
+			blocks << ruby_info_l685_d25_info_formula_or_cask(value, ruby.bool_value(!info_bool_attr(config, 'verbose', false))).as_string()
 		}
-		return brew_runtime.string_value(blocks.join('\n\n') + if blocks.len > 0 {
+		return ruby.string_value(blocks.join('\n\n') + if blocks.len > 0 {
 			'\n'
 		} else {
 			''
@@ -809,18 +809,18 @@ pub fn ruby_info_l93_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
 	if info_bool_attr(config, 'github', false) {
 		objects := info_values(config, 'named')
 		if objects.len == 0 {
-			return brew_runtime.object_value('FormulaOrCaskUnspecifiedError', 'Formula or cask unspecified')
+			return ruby.object_value('FormulaOrCaskUnspecifiedError', 'Formula or cask unspecified')
 		}
-		return brew_runtime.string_array_value(objects.map(ruby_info_l371_d18_github_info(it).as_string()))
+		return ruby.string_array_value(objects.map(ruby_info_l371_d18_github_info(it).as_string()))
 	}
 	if info_values(config, 'named').len == 0 {
 		return ruby_info_l635_d21_print_statistics(config)
 	}
-	return ruby_info_l318_d15_print_info(config, brew_runtime.bool_value(info_bool_attr(config, 'quiet', false)))
+	return ruby_info_l318_d15_print_info(config, ruby.bool_value(info_bool_attr(config, 'quiet', false)))
 }
 
 // Ruby method `github_remote_path(remote, path)` at line 147.
-pub fn ruby_info_l147_d2_github_remote_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_l147_d2_github_remote_path(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('github_remote_path requires remote and path') }
 	remote := args[0].as_string().trim_string_right('/')
 	path := args[1].as_string().trim_string_left('/')
@@ -832,43 +832,43 @@ pub fn ruby_info_l147_d2_github_remote_path(args ...brew_runtime.Value) brew_run
 	}
 	if repository != '' {
 		repository = repository.trim_string_right('.git')
-		return brew_runtime.string_value('https://github.com/${repository}/blob/HEAD/${path}')
+		return ruby.string_value('https://github.com/${repository}/blob/HEAD/${path}')
 	}
-	return brew_runtime.string_value('${remote}/${path}')
+	return ruby.string_value('${remote}/${path}')
 }
 
 // Ruby method `self.metadata_lines(formula_or_cask)` at line 156.
-pub fn ruby_info_l156_d3_self_metadata_lines(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_l156_d3_self_metadata_lines(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('metadata_lines requires a formula or cask') }
 	tty := args.len < 2 || args[1].bool_data
 	if !tty {
-		return brew_runtime.string_array_value([])
+		return ruby.string_array_value([])
 	}
 	package := info_package_from_value(args[0])
 	if package.kind == 'cask' {
 		if !package.pinned {
-			return brew_runtime.string_array_value([])
+			return ruby.string_array_value([])
 		}
 		mut line := 'Pinned: ${package.pinned_version}'
 		mtime := if package.pin_mtime > 0 {
 			package.pin_mtime
 		} else {
-			pin := ruby_info_l264_d12_self_pin_path_mtime(brew_runtime.object_value('Pathname', package.pin_path))
+			pin := ruby_info_l264_d12_self_pin_path_mtime(ruby.object_value('Pathname', package.pin_path))
 			if pin.type_name == 'Integer' { pin.int_data } else { i64(0) }
 		}
 		if mtime > 0 {
-			line += ' on ${ruby_info_l257_d11_self_formatted_time(brew_runtime.int_value(mtime)).as_string()}'
+			line += ' on ${ruby_info_l257_d11_self_formatted_time(ruby.int_value(mtime)).as_string()}'
 		}
-		return brew_runtime.string_array_value([line])
+		return ruby.string_array_value([line])
 	}
 	return ruby_info_l238_d10_self_formula_metadata_lines(args[0])
 }
 
 // Ruby method `self.installation_status(tab)` at line 178.
-pub fn ruby_info_l178_d4_self_installation_status(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_l178_d4_self_installation_status(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('installation_status requires a tab') }
 	tab := info_tab_from_value(args[0])
-	return brew_runtime.string_value(if tab.installed_on_request {
+	return ruby.string_value(if tab.installed_on_request {
 		'Installed (on request)'
 	} else {
 		'Installed (as dependency)'
@@ -876,13 +876,13 @@ pub fn ruby_info_l178_d4_self_installation_status(args ...brew_runtime.Value) br
 }
 
 // Ruby method `self.installation_reason(tab)` at line 185.
-pub fn ruby_info_l185_d5_self_installation_reason(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_l185_d5_self_installation_reason(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('installation_reason requires a tab') }
 	tab := info_tab_from_value(args[0])
 	if !tab.installed_on_request_present {
-		return brew_runtime.string_value('-')
+		return ruby.string_value('-')
 	}
-	return brew_runtime.string_value(if tab.installed_on_request {
+	return ruby.string_value(if tab.installed_on_request {
 		'on request'
 	} else {
 		'dependency'
@@ -890,40 +890,40 @@ pub fn ruby_info_l185_d5_self_installation_reason(args ...brew_runtime.Value) br
 }
 
 // Ruby method `self.installation_summary(version, tab)` at line 192.
-pub fn ruby_info_l192_d6_self_installation_summary(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_l192_d6_self_installation_summary(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('installation_summary requires version and tab') }
 	reason := ruby_info_l185_d5_self_installation_reason(args[1]).as_string()
 	mut summary := 'Installed: ${args[0].as_string()}'
 	if reason != '-' {
 		summary += ' (${reason})'
 	}
-	return brew_runtime.string_value(summary)
+	return ruby.string_value(summary)
 }
 
 // Ruby method `self.requirement_for_other_os?(requirement)` at line 199.
-pub fn ruby_info_l199_d7_self_requirement_for_other_os(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_l199_d7_self_requirement_for_other_os(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('requirement_for_other_os requires a requirement') }
-	return brew_runtime.bool_value(info_requirement_from_value(args[0]).other_os)
+	return ruby.bool_value(info_requirement_from_value(args[0]).other_os)
 }
 
 // Ruby method `self.dependency_status_counts(installed_count, total_count)` at line 204.
-pub fn ruby_info_l204_d8_self_dependency_status_counts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_l204_d8_self_dependency_status_counts(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('dependency_status_counts requires two counts') }
 	installed := args[0].as_int() or { panic(err) }
 	total := args[1].as_int() or { panic(err) }
 	missing := total - installed
 	if missing == 0 {
-		return brew_runtime.string_value('all installed ✔')
+		return ruby.string_value('all installed ✔')
 	}
-	return brew_runtime.string_value('${installed} installed ✔, ${missing} missing ✘')
+	return ruby.string_value('${installed} installed ✔, ${missing} missing ✘')
 }
 
 // Ruby method `self.installed_dependent_names(full_name, name)` at line 213.
-pub fn ruby_info_l213_d9_self_installed_dependent_names(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_l213_d9_self_installed_dependent_names(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('installed_dependent_names requires full_name and name') }
 	full_name := args[0].as_string()
 	name := args[1].as_string()
-	racks := if args.len > 2 { args[2].as_array() or { [] } } else { []brew_runtime.Value{} }
+	racks := if args.len > 2 { args[2].as_array() or { [] } } else { []ruby.Value{} }
 	mut result := []string{}
 	for rack in racks {
 		content := rack.attributes['receipt_content'] or { '' }
@@ -936,11 +936,11 @@ pub fn ruby_info_l213_d9_self_installed_dependent_names(args ...brew_runtime.Val
 		}
 	}
 	result.sort()
-	return brew_runtime.string_array_value(info_unique_strings(result))
+	return ruby.string_array_value(info_unique_strings(result))
 }
 
 // Ruby method `self.formula_metadata_lines(formula)` at line 238.
-pub fn ruby_info_l238_d10_self_formula_metadata_lines(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_l238_d10_self_formula_metadata_lines(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('formula_metadata_lines requires a formula') }
 	package := info_package_from_value(args[0])
 	mut metadata := []string{}
@@ -949,56 +949,56 @@ pub fn ruby_info_l238_d10_self_formula_metadata_lines(args ...brew_runtime.Value
 		mtime := if package.pin_mtime > 0 {
 			package.pin_mtime
 		} else {
-			pin := ruby_info_l264_d12_self_pin_path_mtime(brew_runtime.object_value('Pathname', package.pin_path))
+			pin := ruby_info_l264_d12_self_pin_path_mtime(ruby.object_value('Pathname', package.pin_path))
 			if pin.type_name == 'Integer' { pin.int_data } else { i64(0) }
 		}
 		if mtime > 0 {
-			pinned += ' on ${ruby_info_l257_d11_self_formatted_time(brew_runtime.int_value(mtime)).as_string()}'
+			pinned += ' on ${ruby_info_l257_d11_self_formatted_time(ruby.int_value(mtime)).as_string()}'
 		}
 		metadata << pinned
 	}
 	if !package.any_version_installed && ruby_info_l271_d13_self_formula_installs_from_source(args[0]).bool_data && package.requirements.all(!it.other_os) {
 		metadata << 'Installs from source: yes'
 	}
-	return brew_runtime.string_array_value(metadata)
+	return ruby.string_array_value(metadata)
 }
 
 // Ruby method `self.formatted_time(time)` at line 257.
-pub fn ruby_info_l257_d11_self_formatted_time(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_l257_d11_self_formatted_time(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('formatted_time requires a time') }
 	seconds := if args[0].type_name == 'Integer' {
 		args[0].int_data
 	} else {
 		info_int_attr(args[0], 'unix', args[0].repr.i64())
 	}
-	return brew_runtime.string_value(time.unix(seconds).local().custom_format('YYYY-MM-DD at HH:mm:ss'))
+	return ruby.string_value(time.unix(seconds).local().custom_format('YYYY-MM-DD at HH:mm:ss'))
 }
 
 // Ruby method `self.pin_path_mtime(pin_path)` at line 264.
-pub fn ruby_info_l264_d12_self_pin_path_mtime(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_l264_d12_self_pin_path_mtime(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('pin_path_mtime requires a path') }
 	path := args[0].as_string()
 	if !os.exists(path) && !os.is_link(path) {
 		return info_nil()
 	}
-	return brew_runtime.int_value(os.file_last_mod_unix(path))
+	return ruby.int_value(os.file_last_mod_unix(path))
 }
 
 // Ruby method `self.formula_installs_from_source?(formula)` at line 271.
-pub fn ruby_info_l271_d13_self_formula_installs_from_source(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_l271_d13_self_formula_installs_from_source(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('formula_installs_from_source requires a formula') }
 	package := info_package_from_value(args[0])
 	if !package.has_stable && package.has_head {
-		return brew_runtime.bool_value(true)
+		return ruby.bool_value(true)
 	}
 	if !package.has_stable {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(!package.stable_bottled || !package.pour_bottle)
+	return ruby.bool_value(!package.stable_bottled || !package.pour_bottle)
 }
 
 // Ruby method `self.collect_cask_dependency_names(cask, formula_dependencies, cask_dependencies, visited_casks)` at line 282.
-pub fn ruby_info_l282_d14_self_collect_cask_dependency_names(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_l282_d14_self_collect_cask_dependency_names(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('collect_cask_dependency_names requires a cask') }
 	mut formulae := if args.len > 1 { args[1].as_string_array() or { [] } } else { []string{} }
 	mut casks := if args.len > 2 { args[2].as_string_array() or { [] } } else { []string{} }
@@ -1009,14 +1009,14 @@ pub fn ruby_info_l282_d14_self_collect_cask_dependency_names(args ...brew_runtim
 		pending.delete(0)
 		for name in info_string_list(current, 'formula_dependencies') {
 			if name !in formulae { formulae << name }
-			runtime_map := current.map_data['formula_runtime_dependencies'] or { brew_runtime.map_value({}) }
+			runtime_map := current.map_data['formula_runtime_dependencies'] or { ruby.map_value({}) }
 			if runtime := runtime_map.map_data[name] {
 				for dep in runtime.as_string_array() or { [] } {
 					if dep !in formulae { formulae << dep }
 				}
 			}
 		}
-		dependency_map := current.map_data['cask_dependency_values'] or { brew_runtime.map_value({}) }
+		dependency_map := current.map_data['cask_dependency_values'] or { ruby.map_value({}) }
 		for token in info_string_list(current, 'cask_dependencies') {
 			if token in visited {
 				continue
@@ -1028,30 +1028,30 @@ pub fn ruby_info_l282_d14_self_collect_cask_dependency_names(args ...brew_runtim
 			}
 		}
 	}
-	return brew_runtime.map_value({
-		'formula_dependencies': brew_runtime.string_array_value(formulae)
-		'cask_dependencies':    brew_runtime.string_array_value(casks)
-		'visited_casks':        brew_runtime.string_array_value(visited)
+	return ruby.map_value({
+		'formula_dependencies': ruby.string_array_value(formulae)
+		'cask_dependencies':    ruby.string_array_value(casks)
+		'visited_casks':        ruby.string_array_value(visited)
 	})
 }
 
 // Ruby method `print_info(quiet: false)` at line 318.
-pub fn ruby_info_l318_d15_print_info(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_l318_d15_print_info(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('print_info requires a command context') }
 	context := args[0]
 	quiet := args.len > 1 && args[1].bool_data
 	objects := info_values(context, 'objects')
 	inputs := info_string_list(context, 'input_names')
-	mut resolved := []brew_runtime.Value{}
+	mut resolved := []ruby.Value{}
 	for index, object in objects {
 		qualified := index < inputs.len && inputs[index].contains('/')
 		if info_package_from_value(object).kind == 'formula' {
-			resolved << ruby_info_l678_d24_display_resolution(object, brew_runtime.bool_value(qualified))
+			resolved << ruby_info_l678_d24_display_resolution(object, ruby.bool_value(qualified))
 		} else {
-			resolved << brew_runtime.array_value([object, info_nil()])
+			resolved << ruby.array_value([object, info_nil()])
 		}
 	}
-	unique := ruby_info_l668_d23_unique_by_display_name(brew_runtime.array_value(resolved)).as_array() or { [] }
+	unique := ruby_info_l668_d23_unique_by_display_name(ruby.array_value(resolved)).as_array() or { [] }
 	mut output := []string{}
 	mut errors := []string{}
 	for pair in unique {
@@ -1068,13 +1068,13 @@ pub fn ruby_info_l318_d15_print_info(args ...brew_runtime.Value) brew_runtime.Va
 			continue
 		}
 		shadowed := if parts.len > 1 { parts[1] } else { info_nil() }
-		output << ruby_info_l685_d25_info_formula_or_cask(object, brew_runtime.bool_value(quiet), shadowed).as_string().trim_string_right('\n')
+		output << ruby_info_l685_d25_info_formula_or_cask(object, ruby.bool_value(quiet), shadowed).as_string().trim_string_right('\n')
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'InfoResult'
 		repr: if output.len > 0 { output.join('\n\n') + '\n' } else { '' }
 		map_data: {
-			'stderr': brew_runtime.string_value(if errors.len > 0 {
+			'stderr': ruby.string_value(if errors.len > 0 {
 				errors.join('\n') + '\n'} else {
 				''})
 		}
@@ -1082,42 +1082,42 @@ pub fn ruby_info_l318_d15_print_info(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby method `formula_qualified_by_user?(formula_or_cask, qualified_inputs)` at line 347.
-pub fn ruby_info_l347_d16_formula_qualified_by_user(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_l347_d16_formula_qualified_by_user(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('formula_qualified_by_user requires a package and names') }
 	qualified := args[1].as_string_array() or { [] }
 	if qualified.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	package := info_package_from_value(args[0])
 	mut names := [package.full_name.to_lower()]
 	if package.tap.name != '' { names << '${package.tap.name}/${package.name}'.to_lower() }
-	return brew_runtime.bool_value(names.any(it in qualified.map(it.to_lower())))
+	return ruby.bool_value(names.any(it in qualified.map(it.to_lower())))
 }
 
 // Ruby method `installed_resolution(formula)` at line 358.
-pub fn ruby_info_l358_d17_installed_resolution(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_l358_d17_installed_resolution(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('installed_resolution requires a formula') }
 	package := info_package_from_value(args[0])
 	if package.installed_kegs.len == 0 || package.installed_tap == '' || package.installed_tap == package.tap.name || package.resolution_formula.type_name == '' {
-		return brew_runtime.array_value([args[0], info_nil()])
+		return ruby.array_value([args[0], info_nil()])
 	}
-	return brew_runtime.array_value([package.resolution_formula, info_tap_value(package.tap)])
+	return ruby.array_value([package.resolution_formula, info_tap_value(package.tap)])
 }
 
 // Ruby method `github_info(formula_or_cask)` at line 371.
-pub fn ruby_info_l371_d18_github_info(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_l371_d18_github_info(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('github_info requires a formula or cask') }
-	return brew_runtime.string_value(info_github_path(args[0]))
+	return ruby.string_value(info_github_path(args[0]))
 }
 
 // Ruby method `info_formula_summary(formula)` at line 404.
-pub fn ruby_info_l404_d19_info_formula_summary(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_l404_d19_info_formula_summary(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('info_formula_summary requires a formula') }
-	return brew_runtime.string_value(info_formula_summary_text(args[0]))
+	return ruby.string_value(info_formula_summary_text(args[0]))
 }
 
 // Ruby method `info_formula(formula, shadowed_by: nil)` at line 426.
-pub fn ruby_info_l426_d20_info_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_l426_d20_info_formula(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('info_formula requires a formula') }
 	shadowed_by := if args.len > 1 && args[1].type_name != 'NilClass' {
 		info_tap_from_value(args[1]).name
@@ -1125,28 +1125,28 @@ pub fn ruby_info_l426_d20_info_formula(args ...brew_runtime.Value) brew_runtime.
 		''
 	}
 	verbose := args.len > 2 && args[2].bool_data
-	return brew_runtime.string_value(info_formula_text(args[0], verbose, shadowed_by))
+	return ruby.string_value(info_formula_text(args[0], verbose, shadowed_by))
 }
 
 // Ruby method `print_statistics` at line 635.
-pub fn ruby_info_l635_d21_print_statistics(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_l635_d21_print_statistics(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || !info_bool_attr(args[0], 'cellar_exists', false) {
-		return brew_runtime.string_value('')
+		return ruby.string_value('')
 	}
 	count := info_int_attr(args[0], 'rack_count', 0)
 	size := info_int_attr(args[0], 'cellar_size', 0)
-	return brew_runtime.string_value('${count} ${if count == 1 { 'keg' } else { 'kegs' }}, ${size}B\n')
+	return ruby.string_value('${count} ${if count == 1 { 'keg' } else { 'kegs' }}, ${size}B\n')
 }
 
 // Ruby method `print_analytics` at line 643.
-pub fn ruby_info_l643_d22_print_analytics(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_l643_d22_print_analytics(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_value('')
+		return ruby.string_value('')
 	}
 	context := args[0]
 	objects := info_values(context, 'named')
 	if objects.len == 0 {
-		return context.map_data['global_analytics'] or { brew_runtime.string_value('') }
+		return context.map_data['global_analytics'] or { ruby.string_value('') }
 	}
 	mut blocks := []string{}
 	for object in objects {
@@ -1154,17 +1154,17 @@ pub fn ruby_info_l643_d22_print_analytics(args ...brew_runtime.Value) brew_runti
 			blocks << analytics.as_string()
 		}
 	}
-	return brew_runtime.string_value(blocks.join('\n\n') + if blocks.len > 0 { '\n' } else { '' })
+	return ruby.string_value(blocks.join('\n\n') + if blocks.len > 0 { '\n' } else { '' })
 }
 
 // Ruby method `unique_by_display_name(resolved)` at line 668.
-pub fn ruby_info_l668_d23_unique_by_display_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_l668_d23_unique_by_display_name(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.array_value([])
+		return ruby.array_value([])
 	}
 	pairs := args[0].as_array() or { [] }
 	mut seen := map[string]bool{}
-	mut result := []brew_runtime.Value{}
+	mut result := []ruby.Value{}
 	for pair in pairs {
 		items := pair.as_array() or { [] }
 		if items.len == 0 {
@@ -1183,20 +1183,20 @@ pub fn ruby_info_l668_d23_unique_by_display_name(args ...brew_runtime.Value) bre
 		seen[key] = true
 		result << pair
 	}
-	return brew_runtime.array_value(result)
+	return ruby.array_value(result)
 }
 
 // Ruby method `display_resolution(formula, user_qualified:)` at line 678.
-pub fn ruby_info_l678_d24_display_resolution(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_l678_d24_display_resolution(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('display_resolution requires a formula') }
 	if args.len > 1 && args[1].bool_data {
-		return brew_runtime.array_value([args[0], info_nil()])
+		return ruby.array_value([args[0], info_nil()])
 	}
 	return ruby_info_l358_d17_installed_resolution(args[0])
 }
 
 // Ruby method `info_formula_or_cask(formula_or_cask, quiet:, shadowed_by: nil)` at line 685.
-pub fn ruby_info_l685_d25_info_formula_or_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_l685_d25_info_formula_or_cask(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('info_formula_or_cask requires a package') }
 	quiet := args.len > 1 && args[1].bool_data
 	shadowed := if args.len > 2 { args[2] } else { info_nil() }
@@ -1205,7 +1205,7 @@ pub fn ruby_info_l685_d25_info_formula_or_cask(args ...brew_runtime.Value) brew_
 		return if quiet {
 			ruby_info_l404_d19_info_formula_summary(args[0])
 		} else {
-			ruby_info_l426_d20_info_formula(args[0], shadowed, brew_runtime.bool_value(info_bool_attr(args[0], 'verbose', false)))
+			ruby_info_l426_d20_info_formula(args[0], shadowed, ruby.bool_value(info_bool_attr(args[0], 'verbose', false)))
 		}
 	}
 	return if quiet {
@@ -1216,7 +1216,7 @@ pub fn ruby_info_l685_d25_info_formula_or_cask(args ...brew_runtime.Value) brew_
 }
 
 // Ruby method `shadowing_installed_formula(formula)` at line 703.
-pub fn ruby_info_l703_d26_shadowing_installed_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_l703_d26_shadowing_installed_formula(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('shadowing_installed_formula requires a formula') }
 	resolution := ruby_info_l358_d17_installed_resolution(args[0]).as_array() or { [] }
 	if resolution.len > 1 && resolution[1].type_name != 'NilClass' {
@@ -1226,7 +1226,7 @@ pub fn ruby_info_l703_d26_shadowing_installed_formula(args ...brew_runtime.Value
 }
 
 // Ruby method `swap_to_installed_formula(formula, qualified_inputs)` at line 709.
-pub fn ruby_info_l709_d27_swap_to_installed_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_l709_d27_swap_to_installed_formula(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('swap_to_installed_formula requires formula and qualified inputs') }
 	if ruby_info_l347_d16_formula_qualified_by_user(args[0], args[1]).bool_data {
 		return args[0]
@@ -1236,7 +1236,7 @@ pub fn ruby_info_l709_d27_swap_to_installed_formula(args ...brew_runtime.Value) 
 }
 
 // Ruby method `json_version(version)` at line 716.
-pub fn ruby_info_l716_d28_json_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_l716_d28_json_version(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('json_version requires a value') }
 	version := if args[0].type_name == 'Bool' && args[0].bool_data {
 		'default'
@@ -1244,13 +1244,13 @@ pub fn ruby_info_l716_d28_json_version(args ...brew_runtime.Value) brew_runtime.
 		args[0].as_string()
 	}
 	if version !in ['default', 'v1', 'v2'] {
-		return brew_runtime.object_value('UsageError', 'invalid JSON version: ${version}')
+		return ruby.object_value('UsageError', 'invalid JSON version: ${version}')
 	}
-	return brew_runtime.object_value('Symbol', ':${version}')
+	return ruby.object_value('Symbol', ':${version}')
 }
 
 // Ruby method `print_json(json, eval_all)` at line 729.
-pub fn ruby_info_l729_d29_print_json(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_l729_d29_print_json(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('print_json requires context and version') }
 	context := args[0]
 	eval_all := args.len > 2 && args[2].bool_data
@@ -1258,13 +1258,13 @@ pub fn ruby_info_l729_d29_print_json(args ...brew_runtime.Value) brew_runtime.Va
 	named := info_values(context, 'named_formulae')
 	named_casks := info_values(context, 'named_casks')
 	if !eval_all && !installed && named.len == 0 && named_casks.len == 0 {
-		return brew_runtime.object_value('FormulaOrCaskUnspecifiedError', 'Formula or cask unspecified')
+		return ruby.object_value('FormulaOrCaskUnspecifiedError', 'Formula or cask unspecified')
 	}
 	version := ruby_info_l716_d28_json_version(args[1])
 	if version.type_name == 'UsageError' {
 		return version
 	}
-	qualified := brew_runtime.string_array_value(info_string_list(context, 'qualified_inputs'))
+	qualified := ruby.string_array_value(info_string_list(context, 'qualified_inputs'))
 	mut formulae := if eval_all {
 		info_values(context, 'all_formulae')
 	} else if installed {
@@ -1277,10 +1277,10 @@ pub fn ruby_info_l729_d29_print_json(args ...brew_runtime.Value) brew_runtime.Va
 	}
 	if version.repr in [':default', ':v1'] {
 		if info_bool_attr(context, 'cask_only', false) {
-			return brew_runtime.object_value('UsageError', 'Cannot specify `--cask` when using `--json=v1`!')
+			return ruby.object_value('UsageError', 'Cannot specify `--cask` when using `--json=v1`!')
 		}
-		result := brew_runtime.array_value(formulae.map(info_package_hash(it)))
-		return brew_runtime.string_value('${json2.encode(info_value_to_json(result), prettify: true)}\n')
+		result := ruby.array_value(formulae.map(info_package_hash(it)))
+		return ruby.string_value('${json2.encode(info_value_to_json(result), prettify: true)}\n')
 	}
 	mut casks := if eval_all {
 		info_values(context, 'all_casks')
@@ -1295,15 +1295,15 @@ pub fn ruby_info_l729_d29_print_json(args ...brew_runtime.Value) brew_runtime.Va
 	if info_bool_attr(context, 'cask_only', false) {
 		formulae = []
 	}
-	result := brew_runtime.map_value({
-		'formulae': brew_runtime.array_value(formulae.map(info_package_hash(it)))
-		'casks':    brew_runtime.array_value(casks.map(info_package_hash(it)))
+	result := ruby.map_value({
+		'formulae': ruby.array_value(formulae.map(info_package_hash(it)))
+		'casks':    ruby.array_value(casks.map(info_package_hash(it)))
 	})
-	return brew_runtime.string_value('${json2.encode(info_value_to_json(result), prettify: true)}\n')
+	return ruby.string_value('${json2.encode(info_value_to_json(result), prettify: true)}\n')
 }
 
 // Ruby method `info_summary_title(name, description, installed:)` at line 792.
-pub fn ruby_info_l792_d30_info_summary_title(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_l792_d30_info_summary_title(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('info_summary_title requires name and description') }
 	installed := args.len > 2 && args[2].bool_data
 	tty := args.len > 3 && args[3].bool_data
@@ -1312,73 +1312,73 @@ pub fn ruby_info_l792_d30_info_summary_title(args ...brew_runtime.Value) brew_ru
 		name += ' ✔'
 	}
 	description := args[1].as_string()
-	return brew_runtime.string_value(name + if description != '' { ': ${description}' } else { '' })
+	return ruby.string_value(name + if description != '' { ': ${description}' } else { '' })
 }
 
 // Ruby method `installed_section_lines(formula, verbose: false)` at line 799.
-pub fn ruby_info_l799_d31_installed_section_lines(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_l799_d31_installed_section_lines(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('installed_section_lines requires a formula') }
 	verbose := args.len > 1 && args[1].bool_data
-	return brew_runtime.string_array_value(info_installed_section_lines(args[0], verbose))
+	return ruby.string_array_value(info_installed_section_lines(args[0], verbose))
 }
 
 // Ruby method `decorate_dependencies(dependencies, tab_runtime_deps: nil, mark_uninstalled: true,` at line 854.
-pub fn ruby_info_l854_d32_decorate_dependencies(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_l854_d32_decorate_dependencies(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_value('')
+		return ruby.string_value('')
 	}
 	dependencies := (args[0].as_array() or { [] }).map(info_dependency_from_value(it))
 	mark_uninstalled := args.len < 3 || args[2].bool_data
 	tty := args.len > 4 && args[4].bool_data
-	return brew_runtime.string_value(info_decorate_dependencies(dependencies, mark_uninstalled, tty))
+	return ruby.string_value(info_decorate_dependencies(dependencies, mark_uninstalled, tty))
 }
 
 // Ruby method `decorate_requirements(requirements, mark_uninstalled: true)` at line 877.
-pub fn ruby_info_l877_d33_decorate_requirements(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_l877_d33_decorate_requirements(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_value('')
+		return ruby.string_value('')
 	}
 	requirements := (args[0].as_array() or { [] }).map(info_requirement_from_value(it))
 	mark_uninstalled := args.len < 2 || args[1].bool_data
 	tty := args.len > 2 && args[2].bool_data
-	return brew_runtime.string_value(info_decorate_requirements(requirements, mark_uninstalled, tty))
+	return ruby.string_value(info_decorate_requirements(requirements, mark_uninstalled, tty))
 }
 
 // Ruby method `dep_display_s(dep)` at line 886.
-pub fn ruby_info_l886_d34_dep_display_s(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_l886_d34_dep_display_s(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('dep_display_s requires a dependency') }
-	return brew_runtime.string_value(info_dep_display(info_dependency_from_value(args[0])))
+	return ruby.string_value(info_dep_display(info_dependency_from_value(args[0])))
 }
 
 // Ruby method `info_cask(cask)` at line 893.
-pub fn ruby_info_l893_d35_info_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_l893_d35_info_cask(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('info_cask requires a cask') }
 	package := info_package_from_value(args[0])
-	return brew_runtime.string_value(if package.info != '' { package.info } else { args[0].repr })
+	return ruby.string_value(if package.info != '' { package.info } else { args[0].repr })
 }
 
 // Ruby method `info_cask_summary(cask)` at line 900.
-pub fn ruby_info_l900_d36_info_cask_summary(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_l900_d36_info_cask_summary(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('info_cask_summary requires a cask') }
-	return brew_runtime.string_value(info_cask_summary_text(args[0]))
+	return ruby.string_value(info_cask_summary_text(args[0]))
 }
 
 // Ruby method `print_sizes_table(title, items)` at line 928.
-pub fn ruby_info_l928_d37_print_sizes_table(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_l928_d37_print_sizes_table(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('print_sizes_table requires a title and items') }
 	items := (args[1].as_array() or { [] }).map(InfoNameSize{
 		name: it.attributes['name'] or { it.repr }
 		size: info_int_attr(it, 'size', 0)
 	})
-	return brew_runtime.string_value(info_sizes_table(args[0].as_string(), items))
+	return ruby.string_value(info_sizes_table(args[0].as_string(), items))
 }
 
 // Ruby method `print_sizes(formulae: [], casks: [])` at line 950.
-pub fn ruby_info_l950_d38_print_sizes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_l950_d38_print_sizes(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('print_sizes requires a context') }
 	context := args[0]
-	mut formulae := if args.len > 1 { args[1].as_array() or { [] } } else { []brew_runtime.Value{} }
-	mut casks := if args.len > 2 { args[2].as_array() or { [] } } else { []brew_runtime.Value{} }
+	mut formulae := if args.len > 1 { args[1].as_array() or { [] } } else { []ruby.Value{} }
+	mut casks := if args.len > 2 { args[2].as_array() or { [] } } else { []ruby.Value{} }
 	formula_only := info_bool_attr(context, 'formula_only', false)
 	cask_only := info_bool_attr(context, 'cask_only', false)
 	if formulae.len == 0 && (formula_only || (!cask_only && info_bool_attr(context, 'no_named', true))) {
@@ -1416,7 +1416,7 @@ pub fn ruby_info_l950_d38_print_sizes(args ...brew_runtime.Value) brew_runtime.V
 		})
 		output += info_sizes_table('Casks sizes:', items)
 	}
-	return brew_runtime.string_value(output)
+	return ruby.string_value(output)
 }
 
 // Original Ruby source (line-for-line):

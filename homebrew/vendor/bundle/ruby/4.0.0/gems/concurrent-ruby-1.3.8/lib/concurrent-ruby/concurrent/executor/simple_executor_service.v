@@ -1,6 +1,6 @@
 module executor
 
-import brew_runtime
+import ruby
 import sync
 import time
 
@@ -35,7 +35,7 @@ pub fn new_simple_executor_service(options AbstractExecutorOptions) &SimpleExecu
 	}
 }
 
-fn execute_simple_task(mut state &SimpleExecutorState, task ExecutorTask, args []brew_runtime.Value) {
+fn execute_simple_task(mut state &SimpleExecutorState, task ExecutorTask, args []ruby.Value) {
 	task(args) or {
 		// Ruby worker threads disable abort-on-exception; task failures stay on the worker.
 	}
@@ -47,7 +47,7 @@ fn execute_simple_task(mut state &SimpleExecutorState, task ExecutorTask, args [
 	state.mutex.unlock()
 }
 
-pub fn simple_post(task ExecutorTask, args []brew_runtime.Value) bool {
+pub fn simple_post(task ExecutorTask, args []ruby.Value) bool {
 
 	// Match Thread.abort_on_exception = false from the Ruby class method.
 	spawn fn [task, args] () {
@@ -57,7 +57,7 @@ pub fn simple_post(task ExecutorTask, args []brew_runtime.Value) bool {
 	return true
 }
 
-pub fn (mut executor SimpleExecutorService) post(task ExecutorTask, args []brew_runtime.Value) bool {
+pub fn (mut executor SimpleExecutorService) post(task ExecutorTask, args []ruby.Value) bool {
 	executor.state.mutex.lock()
 	if !executor.state.running {
 		executor.state.mutex.unlock()
@@ -132,7 +132,7 @@ pub fn (executor &SimpleExecutorService) adapter() ExecutorAdapter {
 	}
 }
 
-fn simple_executor_adapter_post(context voidptr, task ExecutorTask, args []brew_runtime.Value) bool {
+fn simple_executor_adapter_post(context voidptr, task ExecutorTask, args []ruby.Value) bool {
 	mut executor := unsafe { &SimpleExecutorService(context) }
 	return executor.post(task, args)
 }
@@ -142,13 +142,13 @@ fn simple_executor_adapter_running(context voidptr) bool {
 	return executor.running()
 }
 
-fn simple_executor_boundary_value(executor &SimpleExecutorService) brew_runtime.Value {
-	return brew_runtime.structured_value('Concurrent::SimpleExecutorService', '#<Concurrent::SimpleExecutorService>', {
+fn simple_executor_boundary_value(executor &SimpleExecutorService) ruby.Value {
+	return ruby.structured_value('Concurrent::SimpleExecutorService', '#<Concurrent::SimpleExecutorService>', {
 		'simple_executor_address': u64(voidptr(executor)).str()
 	})
 }
 
-fn simple_executor_boundary_receiver(args []brew_runtime.Value) &SimpleExecutorService {
+fn simple_executor_boundary_receiver(args []ruby.Value) &SimpleExecutorService {
 	if args.len == 0 {
 		panic('SimpleExecutorService method requires a receiver')
 	}
@@ -158,7 +158,7 @@ fn simple_executor_boundary_receiver(args []brew_runtime.Value) &SimpleExecutorS
 	return unsafe { &SimpleExecutorService(voidptr(address)) }
 }
 
-fn simple_executor_boundary_timeout(args []brew_runtime.Value, index int) ?time.Duration {
+fn simple_executor_boundary_timeout(args []ruby.Value, index int) ?time.Duration {
 	if index >= args.len || args[index].type_name == 'NilClass' {
 		return none
 	}
@@ -167,33 +167,33 @@ fn simple_executor_boundary_timeout(args []brew_runtime.Value, index int) ?time.
 }
 
 // Ruby method `self.post(*args)` at line 24.
-pub fn ruby_simple_executor_service_l24_d1_self_post(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_simple_executor_service_l24_d1_self_post(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('ArgumentError: no block given')
 	}
-	return brew_runtime.bool_value(simple_post(boundary_noop_executor_task, args))
+	return ruby.bool_value(simple_post(boundary_noop_executor_task, args))
 }
 
 // Ruby method `self.<<(task)` at line 34.
-pub fn ruby_simple_executor_service_l34_d2_self(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_simple_executor_service_l34_d2_self(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('ArgumentError: no block given')
 	}
 	simple_post(boundary_noop_executor_task, args)
-	return brew_runtime.object_value('Class', 'Concurrent::SimpleExecutorService')
+	return ruby.object_value('Class', 'Concurrent::SimpleExecutorService')
 }
 
 // Ruby method `post(*args, &task)` at line 40.
-pub fn ruby_simple_executor_service_l40_d3_post(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_simple_executor_service_l40_d3_post(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('ArgumentError: no block given')
 	}
 	mut executor := simple_executor_boundary_receiver(args)
-	return brew_runtime.bool_value(executor.post(boundary_noop_executor_task, args[1..].clone()))
+	return ruby.bool_value(executor.post(boundary_noop_executor_task, args[1..].clone()))
 }
 
 // Ruby method `<<(task)` at line 56.
-pub fn ruby_simple_executor_service_l56_d4_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_simple_executor_service_l56_d4_anonymous(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('ArgumentError: no block given')
 	}
@@ -203,43 +203,43 @@ pub fn ruby_simple_executor_service_l56_d4_anonymous(args ...brew_runtime.Value)
 }
 
 // Ruby method `running?` at line 62.
-pub fn ruby_simple_executor_service_l62_d5_running(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_simple_executor_service_l62_d5_running(args ...ruby.Value) ruby.Value {
 	mut executor := simple_executor_boundary_receiver(args)
-	return brew_runtime.bool_value(executor.running())
+	return ruby.bool_value(executor.running())
 }
 
 // Ruby method `shuttingdown?` at line 67.
-pub fn ruby_simple_executor_service_l67_d6_shuttingdown(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_simple_executor_service_l67_d6_shuttingdown(args ...ruby.Value) ruby.Value {
 	mut executor := simple_executor_boundary_receiver(args)
-	return brew_runtime.bool_value(executor.shutting_down())
+	return ruby.bool_value(executor.shutting_down())
 }
 
 // Ruby method `shutdown?` at line 72.
-pub fn ruby_simple_executor_service_l72_d7_shutdown(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_simple_executor_service_l72_d7_shutdown(args ...ruby.Value) ruby.Value {
 	mut executor := simple_executor_boundary_receiver(args)
-	return brew_runtime.bool_value(executor.is_shutdown())
+	return ruby.bool_value(executor.is_shutdown())
 }
 
 // Ruby method `shutdown` at line 77.
-pub fn ruby_simple_executor_service_l77_d8_shutdown(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_simple_executor_service_l77_d8_shutdown(args ...ruby.Value) ruby.Value {
 	mut executor := simple_executor_boundary_receiver(args)
-	return brew_runtime.bool_value(executor.shutdown())
+	return ruby.bool_value(executor.shutdown())
 }
 
 // Ruby method `kill` at line 84.
-pub fn ruby_simple_executor_service_l84_d9_kill(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_simple_executor_service_l84_d9_kill(args ...ruby.Value) ruby.Value {
 	mut executor := simple_executor_boundary_receiver(args)
-	return brew_runtime.bool_value(executor.kill())
+	return ruby.bool_value(executor.kill())
 }
 
 // Ruby method `wait_for_termination(timeout = nil)` at line 91.
-pub fn ruby_simple_executor_service_l91_d10_wait_for_termination(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_simple_executor_service_l91_d10_wait_for_termination(args ...ruby.Value) ruby.Value {
 	mut executor := simple_executor_boundary_receiver(args)
-	return brew_runtime.bool_value(executor.wait_for_termination(simple_executor_boundary_timeout(args, 1)))
+	return ruby.bool_value(executor.wait_for_termination(simple_executor_boundary_timeout(args, 1)))
 }
 
 // Ruby method `ns_initialize(*args)` at line 97.
-pub fn ruby_simple_executor_service_l97_d11_ns_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_simple_executor_service_l97_d11_ns_initialize(args ...ruby.Value) ruby.Value {
 	return simple_executor_boundary_value(new_simple_executor_service(AbstractExecutorOptions{}))
 }
 

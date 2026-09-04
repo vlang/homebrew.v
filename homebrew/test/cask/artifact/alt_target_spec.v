@@ -1,6 +1,6 @@
 module artifact
 
-import brew_runtime
+import ruby
 import homebrew.cask.artifact as app_core
 import os
 import time
@@ -12,8 +12,8 @@ fn alt_target_spec_root(label string) string {
 	return os.join_path(os.temp_dir(), 'brew-v-alt-target-spec', '${label}-${os.getpid()}-${time.now().unix_micro()}')
 }
 
-fn alt_target_spec_cask(root string, subdirectory bool) brew_runtime.Value {
-	return brew_runtime.structured_value('Cask::Cask', if subdirectory {
+fn alt_target_spec_cask(root string, subdirectory bool) ruby.Value {
+	return ruby.structured_value('Cask::Cask', if subdirectory {
 		'subdir'
 	} else {
 		'with-alt-target'
@@ -42,18 +42,18 @@ fn alt_target_spec_cask(root string, subdirectory bool) brew_runtime.Value {
 	})
 }
 
-fn alt_target_spec_attribute(cask brew_runtime.Value, name string) string {
+fn alt_target_spec_attribute(cask ruby.Value, name string) string {
 	return cask.attributes[name] or { '' }
 }
 
-fn alt_target_spec_artifact(cask brew_runtime.Value) app_core.AppArtifact {
+fn alt_target_spec_artifact(cask ruby.Value) app_core.AppArtifact {
 	return app_core.AppArtifact{
 		source: os.join_path(alt_target_spec_attribute(cask, 'staged_path'), alt_target_spec_attribute(cask, 'source_relative'))
 		target: os.join_path(alt_target_spec_attribute(cask, 'appdir'), alt_target_spec_attribute(cask, 'target_name'))
 	}
 }
 
-fn alt_target_spec_install(cask brew_runtime.Value) app_core.AppOperationResult {
+fn alt_target_spec_install(cask ruby.Value) app_core.AppOperationResult {
 	return app_core.install_app(alt_target_spec_artifact(cask), app_core.AppInstallOptions{})
 }
 
@@ -92,53 +92,53 @@ fn alt_target_spec_case(label string, subdirectory bool, extra_app bool, existin
 }
 
 // Ruby let `let(:cask) { Cask::CaskLoader.load(cask_path("with-alt-target")) }` at line 6.
-pub fn ruby_alt_target_spec_l6_d1_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_target_spec_l6_d1_cask(args ...ruby.Value) ruby.Value {
 	root := if args.len > 0 { args[0].as_string() } else { alt_target_spec_root('cask') }
 	return alt_target_spec_cask(root, false)
 }
 
 // Ruby let `let(:install_phase) do` at line 8.
-pub fn ruby_alt_target_spec_l8_d2_install_phase(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_target_spec_l8_d2_install_phase(args ...ruby.Value) ruby.Value {
 	cask := if args.len > 0 { args[0] } else { ruby_alt_target_spec_l6_d1_cask() }
 	return app_core.app_operation_value(alt_target_spec_install(cask))
 }
 
 // Ruby let `let(:source_path) { cask.staged_path.join("Caffeine.app") }` at line 13.
-pub fn ruby_alt_target_spec_l13_d3_source_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_target_spec_l13_d3_source_path(args ...ruby.Value) ruby.Value {
 	cask := if args.len > 0 { args[0] } else { ruby_alt_target_spec_l6_d1_cask() }
-	return brew_runtime.object_value('Pathname', alt_target_spec_artifact(cask).source)
+	return ruby.object_value('Pathname', alt_target_spec_artifact(cask).source)
 }
 
 // Ruby let `let(:target_path) { Pathname(cask.config.appdir).join("AnotherName.app") }` at line 14.
-pub fn ruby_alt_target_spec_l14_d4_target_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_target_spec_l14_d4_target_path(args ...ruby.Value) ruby.Value {
 	cask := if args.len > 0 { args[0] } else { ruby_alt_target_spec_l6_d1_cask() }
-	return brew_runtime.object_value('Pathname', alt_target_spec_artifact(cask).target)
+	return ruby.object_value('Pathname', alt_target_spec_artifact(cask).target)
 }
 
 // Ruby it `it "installs the given apps using the proper target directory" do` at line 16.
-pub fn ruby_alt_target_spec_l16_d5_installs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(alt_target_spec_case('top-level', false, false, false))
+pub fn ruby_alt_target_spec_l16_d5_installs(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(alt_target_spec_case('top-level', false, false, false))
 }
 
 // Ruby let `let(:cask) do` at line 29.
-pub fn ruby_alt_target_spec_l29_d6_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_alt_target_spec_l29_d6_cask(args ...ruby.Value) ruby.Value {
 	root := if args.len > 0 { args[0].as_string() } else { alt_target_spec_root('subdir-cask') }
 	return alt_target_spec_cask(root, true)
 }
 
 // Ruby it `it "installs the given apps using the proper target directory" do` at line 39.
-pub fn ruby_alt_target_spec_l39_d7_installs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(alt_target_spec_case('subdirectory', true, false, false))
+pub fn ruby_alt_target_spec_l39_d7_installs(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(alt_target_spec_case('subdirectory', true, false, false))
 }
 
 // Ruby it `it "only uses apps when they are specified" do` at line 50.
-pub fn ruby_alt_target_spec_l50_d8_only(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(alt_target_spec_case('specified-only', false, true, false))
+pub fn ruby_alt_target_spec_l50_d8_only(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(alt_target_spec_case('specified-only', false, true, false))
 }
 
 // Ruby it `it "avoids clobbering an existing app by moving over it" do` at line 64.
-pub fn ruby_alt_target_spec_l64_d9_avoids(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(alt_target_spec_case('existing-target', false, false, true))
+pub fn ruby_alt_target_spec_l64_d9_avoids(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(alt_target_spec_case('existing-target', false, false, true))
 }
 
 // Original Ruby source (line-for-line):

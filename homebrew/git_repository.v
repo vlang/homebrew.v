@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `git_repository.rb`.
@@ -34,7 +34,7 @@ pub:
 	no_global_config bool
 }
 
-pub type GitRepositoryRunner = fn(GitRepository, []string, GitPopenOptions) !brew_runtime.CapturedCommandResult
+pub type GitRepositoryRunner = fn(GitRepository, []string, GitPopenOptions) !ruby.CapturedCommandResult
 
 fn git_repository_some(value string) GitRepositoryText {
 	return GitRepositoryText{
@@ -44,14 +44,14 @@ fn git_repository_some(value string) GitRepositoryText {
 }
 
 fn default_git_repository_runner(repository GitRepository, arguments []string,
-	options GitPopenOptions) !brew_runtime.CapturedCommandResult {
+	options GitPopenOptions) !ruby.CapturedCommandResult {
 	mut environment := map[string]string{}
 	if options.no_global_config {
 		environment['GIT_CONFIG_GLOBAL'] = os.path_devnull
 	}
 	mut argv := [repository.git_executable]
 	argv << arguments
-	return brew_runtime.run_captured_command(argv, brew_runtime.CapturedCommandOptions{
+	return ruby.run_captured_command(argv, ruby.CapturedCommandOptions{
 		environment: environment
 		chdir: repository.pathname
 	})

@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `dependable.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -72,85 +72,85 @@ pub fn (dependency Dependency) prune_if_build_and_dependency_installed(installed
 }
 
 // Ruby method `tags` at line 29.
-pub fn ruby_dependable_l29_d1_tags(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependable_l29_d1_tags(args ...ruby.Value) ruby.Value {
 	dependency := dependable_boundary_receiver(args, 'tags')
-	return brew_runtime.string_array_value(dependency.tags.map(it.boundary_string()))
+	return ruby.string_array_value(dependency.tags.map(it.boundary_string()))
 }
 
 // Ruby method `option_names; end` at line 34.
-pub fn ruby_dependable_l34_d2_option_names(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(dependable_boundary_receiver(args, 'option_names').option_names())
+pub fn ruby_dependable_l34_d2_option_names(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(dependable_boundary_receiver(args, 'option_names').option_names())
 }
 
 // Ruby method `build?` at line 37.
-pub fn ruby_dependable_l37_d3_build(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(dependable_boundary_receiver(args, 'build?').build())
+pub fn ruby_dependable_l37_d3_build(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(dependable_boundary_receiver(args, 'build?').build())
 }
 
 // Ruby method `optional?` at line 42.
-pub fn ruby_dependable_l42_d4_optional(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(dependable_boundary_receiver(args, 'optional?').optional())
+pub fn ruby_dependable_l42_d4_optional(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(dependable_boundary_receiver(args, 'optional?').optional())
 }
 
 // Ruby method `recommended?` at line 47.
-pub fn ruby_dependable_l47_d5_recommended(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(dependable_boundary_receiver(args, 'recommended?').recommended())
+pub fn ruby_dependable_l47_d5_recommended(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(dependable_boundary_receiver(args, 'recommended?').recommended())
 }
 
 // Ruby method `test?` at line 52.
-pub fn ruby_dependable_l52_d6_test(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(dependable_boundary_receiver(args, 'test?').test())
+pub fn ruby_dependable_l52_d6_test(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(dependable_boundary_receiver(args, 'test?').test())
 }
 
 // Ruby method `implicit?` at line 57.
-pub fn ruby_dependable_l57_d7_implicit(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(dependable_boundary_receiver(args, 'implicit?').implicit())
+pub fn ruby_dependable_l57_d7_implicit(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(dependable_boundary_receiver(args, 'implicit?').implicit())
 }
 
 // Ruby method `no_linkage?` at line 62.
-pub fn ruby_dependable_l62_d8_no_linkage(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(dependable_boundary_receiver(args, 'no_linkage?').no_linkage())
+pub fn ruby_dependable_l62_d8_no_linkage(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(dependable_boundary_receiver(args, 'no_linkage?').no_linkage())
 }
 
 // Ruby method `required?` at line 67.
-pub fn ruby_dependable_l67_d9_required(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(dependable_boundary_receiver(args, 'required?').required())
+pub fn ruby_dependable_l67_d9_required(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(dependable_boundary_receiver(args, 'required?').required())
 }
 
 // Ruby method `option_tags` at line 72.
-pub fn ruby_dependable_l72_d10_option_tags(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(dependable_boundary_receiver(args, 'option_tags').option_tags())
+pub fn ruby_dependable_l72_d10_option_tags(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(dependable_boundary_receiver(args, 'option_tags').option_tags())
 }
 
 // Ruby method `options` at line 77.
-pub fn ruby_dependable_l77_d11_options(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependable_l77_d11_options(args ...ruby.Value) ruby.Value {
 	options := dependable_boundary_receiver(args, 'options').options()
-	return brew_runtime.object_value('Options', options.inspect())
+	return ruby.object_value('Options', options.inspect())
 }
 
 // Ruby method `prune_from_option?(build)` at line 82.
-pub fn ruby_dependable_l82_d12_prune_from_option(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependable_l82_d12_prune_from_option(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Dependable#prune_from_option? requires a receiver and BuildOptions')
 	}
 	dependency := dependency_from_boundary(args[0])
 	build := build_options_from_boundary(args[1])
-	return brew_runtime.bool_value(dependency.prune_from_option(build))
+	return ruby.bool_value(dependency.prune_from_option(build))
 }
 
 // Ruby method `prune_if_build_and_not_dependent?(dependent, formula = nil)` at line 89.
-pub fn ruby_dependable_l89_d13_prune_if_build_and_not_dependent(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependable_l89_d13_prune_if_build_and_not_dependent(args ...ruby.Value) ruby.Value {
 	dependency := dependable_boundary_receiver(args, 'prune_if_build_and_not_dependent?')
 	if !dependency.build() {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	if args.len > 2 && args[2].type_name != 'NilClass' {
-		return brew_runtime.bool_value(dependency.prune_if_build_and_not_formula(args[1].as_string(),
+		return ruby.bool_value(dependency.prune_if_build_and_not_formula(args[1].as_string(),
 			args[2].as_string()))
 	}
 	if args.len > 1 && args[1].type_name == 'Dependency' {
 		dependent := dependency_from_boundary(args[1])
-		return brew_runtime.bool_value(dependent.installed_with_formulary(DependencyMinimum{},
+		return ruby.bool_value(dependent.installed_with_formulary(DependencyMinimum{},
 			default_formulary_lookup_config()))
 	}
 	panic('dependent is not a formula or cask dependent')

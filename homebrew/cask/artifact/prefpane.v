@@ -1,13 +1,13 @@
 module artifact
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `cask/artifact/prefpane.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `self.english_name` at line 11.
-pub fn ruby_prefpane_l11_d1_self_english_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('Preference Pane')
+pub fn ruby_prefpane_l11_d1_self_english_name(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('Preference Pane')
 }
 
 // Original Ruby source (line-for-line):

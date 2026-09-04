@@ -1,6 +1,6 @@
 module test
 
-import brew_runtime
+import ruby
 import homebrew
 import os
 import time
@@ -176,28 +176,28 @@ pub fn bot_spec_setup_sandbox(github_actions bool, sandbox_linux bool, configure
 }
 
 // Ruby it `it "trusts a third-party tap before running test-bot", :trust_store do` at line 8.
-pub fn ruby_test_bot_spec_l8_d1_trusts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_bot_spec_l8_d1_trusts(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(bot_spec_trusts('third-party', 'thirdparty/foo', '', false))
+	return ruby.bool_value(bot_spec_trusts('third-party', 'thirdparty/foo', '', false))
 }
 
 // Ruby it `it "trusts a custom-remote third-party tap by its remote URL", :trust_store do` at line 41.
-pub fn ruby_test_bot_spec_l41_d2_trusts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_bot_spec_l41_d2_trusts(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(bot_spec_trusts('custom-remote', 'thirdparty/custom', 'https://gitlab.com/other/repo', false))
+	return ruby.bool_value(bot_spec_trusts('custom-remote', 'thirdparty/custom', 'https://gitlab.com/other/repo', false))
 }
 
 // Ruby it `it "trusts a third-party tap in the local test-bot config home", :trust_store do` at line 76.
-pub fn ruby_test_bot_spec_l76_d3_trusts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_bot_spec_l76_d3_trusts(args ...ruby.Value) ruby.Value {
 	_ = args
 	root := bot_spec_root('local-home')
 	defer {
 		os.rmdir_all(root) or {}
 	}
 	result := bot_spec_run_trust_scenario(root, 'thirdparty/foo', '', true) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(result.trusted
+	return ruby.bool_value(result.trusted
 		&& result.trusted_entries.contains('thirdparty/foo')
 		&& result.output.contains('==> Trusted tap: thirdparty/foo')
 		&& result.trust_file == os.join_path(root, 'home', '.homebrew', 'trust.json')
@@ -206,20 +206,20 @@ pub fn ruby_test_bot_spec_l76_d3_trusts(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby it `it "does not set up the sandbox for only runs without sandboxed code" do` at line 123.
-pub fn ruby_test_bot_spec_l123_d4_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_bot_spec_l123_d4_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	root := bot_spec_root('exclusive-runs')
 	defer {
 		os.rmdir_all(root) or {}
 	}
 	results := bot_spec_run_exclusive_sandbox_cases(root) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(results.len == 5 && results.all(!it.attempted))
+	return ruby.bool_value(results.len == 5 && results.all(!it.attempted))
 }
 
 // Ruby it `it "sets up the sandbox for formulae runs" do` at line 157.
-pub fn ruby_test_bot_spec_l157_d5_sets(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_bot_spec_l157_d5_sets(args ...ruby.Value) ruby.Value {
 	_ = args
 	root := bot_spec_root('formula-runs')
 	defer {
@@ -228,71 +228,71 @@ pub fn ruby_test_bot_spec_l157_d5_sets(args ...brew_runtime.Value) brew_runtime.
 	mut results := []homebrew.TestBotSandboxResult{}
 	for mode in [TestBotSpecFormulaMode.setup, .formulae, .formulae_dependents] {
 		results << bot_spec_run_formula_sandbox_case(root, mode) or {
-			return brew_runtime.bool_value(false)
+			return ruby.bool_value(false)
 		}
 	}
-	return brew_runtime.bool_value(results.len == 3
+	return ruby.bool_value(results.len == 3
 		&& results.all(it.attempted && it.configured && !it.disabled && !it.reset))
 }
 
 // Ruby it `it "enables the Linux sandbox for GitHub Actions developers" do` at line 197.
-pub fn ruby_test_bot_spec_l197_d6_enables(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_bot_spec_l197_d6_enables(args ...ruby.Value) ruby.Value {
 	_ = args
 	// EnvConfig enables the Linux sandbox for developers when no explicit
 	// HOMEBREW_SANDBOX_LINUX override is present.
 	result := bot_spec_setup_sandbox(true, true, true, '', true) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(result.attempted && result.configured && !result.disabled)
+	return ruby.bool_value(result.attempted && result.configured && !result.disabled)
 }
 
 // Ruby it `it "configures the Linux sandbox for GitHub Actions" do` at line 206.
-pub fn ruby_test_bot_spec_l206_d7_configures(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_bot_spec_l206_d7_configures(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := bot_spec_setup_sandbox(true, true, true, '', true) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(result.attempted && result.configured && !result.ensured)
+	return ruby.bool_value(result.attempted && result.configured && !result.ensured)
 }
 
 // Ruby it `it "raises when GitHub Actions cannot configure the Linux sandbox for Homebrew repositories" do` at line 212.
-pub fn ruby_test_bot_spec_l212_d8_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_bot_spec_l212_d8_raises(args ...ruby.Value) ruby.Value {
 	_ = args
 	_ := bot_spec_setup_sandbox(true, true, false, 'Homebrew', false) or {
-		return brew_runtime.bool_value(err.msg().contains('sandbox is unavailable'))
+		return ruby.bool_value(err.msg().contains('sandbox is unavailable'))
 	}
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 // Ruby it `it "disables the Linux sandbox if GitHub Actions cannot configure it for external repositories" do` at line 220.
-pub fn ruby_test_bot_spec_l220_d9_disables(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_bot_spec_l220_d9_disables(args ...ruby.Value) ruby.Value {
 	_ = args
 	root := bot_spec_root('external-repository')
 	defer {
 		os.rmdir_all(root) or {}
 	}
-	run := homebrew.test_bot_run(homebrew.TestBotArgs{}, bot_spec_run_context(root, false, 'foo')) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(run.sandbox.attempted && !run.sandbox.configured
+	run := homebrew.test_bot_run(homebrew.TestBotArgs{}, bot_spec_run_context(root, false, 'foo')) or { return ruby.bool_value(false) }
+	return ruby.bool_value(run.sandbox.attempted && !run.sandbox.configured
 		&& !run.sandbox.ensured && run.sandbox.disabled && run.sandbox.reset
 		&& run.environment['HOMEBREW_NO_SANDBOX_LINUX'] == '1')
 }
 
 // Ruby it `it "does nothing outside GitHub Actions" do` at line 229.
-pub fn ruby_test_bot_spec_l229_d10_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_bot_spec_l229_d10_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := bot_spec_setup_sandbox(false, true, true, '', true) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(!result.attempted && !result.configured && !result.disabled)
+	return ruby.bool_value(!result.attempted && !result.configured && !result.disabled)
 }
 
 // Ruby it `it "does nothing when the Linux sandbox is disabled" do` at line 236.
-pub fn ruby_test_bot_spec_l236_d11_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_bot_spec_l236_d11_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := bot_spec_setup_sandbox(true, false, true, '', true) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(!result.attempted && !result.configured && !result.disabled)
+	return ruby.bool_value(!result.attempted && !result.configured && !result.disabled)
 }
 
 // Original Ruby source (line-for-line):

@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 
 pub struct CollectorRequirement {
 pub:
@@ -57,7 +57,7 @@ fn (collector DependencyCollectorState) tool_available(name string) bool {
 	if name in collector.available_tools {
 		return collector.available_tools[name]
 	}
-	brew_runtime.find_executable(name) or { return false }
+	ruby.find_executable(name) or { return false }
 	return true
 }
 
@@ -235,34 +235,34 @@ pub fn collector_add_resource(mut collector DependencyCollectorState,
 	return result
 }
 
-pub fn dependency_collector_value(collector &DependencyCollectorState) brew_runtime.Value {
-	return brew_runtime.structured_value('DependencyCollector', 'DependencyCollector', {
+pub fn dependency_collector_value(collector &DependencyCollectorState) ruby.Value {
+	return ruby.structured_value('DependencyCollector', 'DependencyCollector', {
 		'collector_address': u64(voidptr(collector)).str()
 	})
 }
 
-fn dependency_collector_from_value(value brew_runtime.Value) &DependencyCollectorState {
+fn dependency_collector_from_value(value ruby.Value) &DependencyCollectorState {
 	address := value.attributes['collector_address'] or { panic('invalid DependencyCollector') }
 	return unsafe { &DependencyCollectorState(voidptr(address.u64())) }
 }
 
-fn collector_requirement_value(requirement CollectorRequirement) brew_runtime.Value {
-	return brew_runtime.structured_value('${requirement.name.capitalize()}Requirement', requirement.name, {
+fn collector_requirement_value(requirement CollectorRequirement) ruby.Value {
+	return ruby.structured_value('${requirement.name.capitalize()}Requirement', requirement.name, {
 		'name': requirement.name
 		'tags': requirement.tags.join(',')
 	})
 }
 
-fn collector_result_value(result CollectorResult) brew_runtime.Value {
+fn collector_result_value(result CollectorResult) ruby.Value {
 	return match result.kind {
-		.nil_value { brew_runtime.object_value('NilClass', 'nil') }
+		.nil_value { ruby.object_value('NilClass', 'nil') }
 		.dependency { dependency_boundary_value(result.dependency) }
 		.requirement { collector_requirement_value(result.requirement) }
 		.dependencies { dependency_list_boundary_value(result.dependencies) }
 	}
 }
 
-fn collector_tags_from_value(value brew_runtime.Value) []string {
+fn collector_tags_from_value(value ruby.Value) []string {
 	if value.type_name == 'Array' {
 		return value.as_array() or { [] }.map(it.as_string())
 	}
@@ -272,7 +272,7 @@ fn collector_tags_from_value(value brew_runtime.Value) []string {
 	return []string{}
 }
 
-fn collector_from_boundary_args(args []brew_runtime.Value) (&DependencyCollectorState, int) {
+fn collector_from_boundary_args(args []ruby.Value) (&DependencyCollectorState, int) {
 	if args.len > 0 && args[0].type_name == 'DependencyCollector' {
 		return dependency_collector_from_value(args[0]), 1
 	}
@@ -280,7 +280,7 @@ fn collector_from_boundary_args(args []brew_runtime.Value) (&DependencyCollector
 }
 
 fn collector_build_boundary(mut collector DependencyCollectorState,
-	spec brew_runtime.Value) !CollectorResult {
+	spec ruby.Value) !CollectorResult {
 	if spec.type_name == 'Hash' {
 		keys := spec.map_data.keys()
 		if keys.len == 0 {
@@ -340,25 +340,25 @@ fn collector_store_result(mut collector DependencyCollectorState, result Collect
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby attr_reader `attr_reader :deps` at line 27.
-pub fn ruby_dependency_collector_l27_d1_deps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_collector_l27_d1_deps(args ...ruby.Value) ruby.Value {
 	collector, _ := collector_from_boundary_args(args)
 	return dependency_list_boundary_value(collector.deps)
 }
 
 // Ruby attr_reader `attr_reader :requirements` at line 30.
-pub fn ruby_dependency_collector_l30_d2_requirements(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_collector_l30_d2_requirements(args ...ruby.Value) ruby.Value {
 	collector, _ := collector_from_boundary_args(args)
-	return brew_runtime.array_value(collector.requirements.map(collector_requirement_value(it)))
+	return ruby.array_value(collector.requirements.map(collector_requirement_value(it)))
 }
 
 // Ruby method `initialize` at line 33.
-pub fn ruby_dependency_collector_l33_d3_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_collector_l33_d3_initialize(args ...ruby.Value) ruby.Value {
 	macos := if args.len > 0 { args[0].as_bool() or { false } } else { false }
 	return dependency_collector_value(new_dependency_collector(macos, map[string]bool{}))
 }
 
 // Ruby method `initialize_dup(other)` at line 42.
-pub fn ruby_dependency_collector_l42_d4_initialize_dup(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_collector_l42_d4_initialize_dup(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('initialize_dup requires a collector') }
 	other := dependency_collector_from_value(args[0])
 	mut duplicate := new_dependency_collector(other.macos, other.available_tools)
@@ -368,14 +368,14 @@ pub fn ruby_dependency_collector_l42_d4_initialize_dup(args ...brew_runtime.Valu
 }
 
 // Ruby method `freeze` at line 49.
-pub fn ruby_dependency_collector_l49_d5_freeze(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_collector_l49_d5_freeze(args ...ruby.Value) ruby.Value {
 	mut collector, _ := collector_from_boundary_args(args)
 	collector.frozen = true
 	return dependency_collector_value(collector)
 }
 
 // Ruby method `add(spec)` at line 56.
-pub fn ruby_dependency_collector_l56_d6_add(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_collector_l56_d6_add(args ...ruby.Value) ruby.Value {
 	mut collector, offset := collector_from_boundary_args(args)
 	if args.len <= offset { panic('add requires a specification') }
 	result := collector_build_boundary(mut collector, args[offset]) or { panic(err) }
@@ -384,7 +384,7 @@ pub fn ruby_dependency_collector_l56_d6_add(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby method `fetch(spec)` at line 74.
-pub fn ruby_dependency_collector_l74_d7_fetch(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_collector_l74_d7_fetch(args ...ruby.Value) ruby.Value {
 	mut collector, offset := collector_from_boundary_args(args)
 	if args.len <= offset { panic('fetch requires a specification') }
 	return collector_result_value(collector_build_boundary(mut collector, args[offset]) or {
@@ -393,7 +393,7 @@ pub fn ruby_dependency_collector_l74_d7_fetch(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby method `cache_key(spec)` at line 79.
-pub fn ruby_dependency_collector_l79_d8_cache_key(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_collector_l79_d8_cache_key(args ...ruby.Value) ruby.Value {
 	_, offset := collector_from_boundary_args(args)
 	if args.len <= offset { panic('cache_key requires a specification') }
 	spec := args[offset]
@@ -401,7 +401,7 @@ pub fn ruby_dependency_collector_l79_d8_cache_key(args ...brew_runtime.Value) br
 		strategy := spec.attributes['strategy'] or { '' }
 		url := (spec.attributes['url'] or { '' }).split('?')[0]
 		extension := if dot := url.last_index('.') { url[dot..] } else { '' }
-		return brew_runtime.string_value(if strategy in ['', 'curl', 'homebrew_curl', 'no_unzip'] {
+		return ruby.string_value(if strategy in ['', 'curl', 'homebrew_curl', 'no_unzip'] {
 			'${strategy}${extension}'
 		} else {
 			strategy
@@ -411,7 +411,7 @@ pub fn ruby_dependency_collector_l79_d8_cache_key(args ...brew_runtime.Value) br
 }
 
 // Ruby method `build(spec)` at line 91.
-pub fn ruby_dependency_collector_l91_d9_build(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_collector_l91_d9_build(args ...ruby.Value) ruby.Value {
 	mut collector, offset := collector_from_boundary_args(args)
 	if args.len <= offset { panic('build requires a specification') }
 	return collector_result_value(collector_build_boundary(mut collector, args[offset]) or {
@@ -420,120 +420,120 @@ pub fn ruby_dependency_collector_l91_d9_build(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby method `gcc_dep_if_needed(related_formula_names); end` at line 97.
-pub fn ruby_dependency_collector_l97_d10_gcc_dep_if_needed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+pub fn ruby_dependency_collector_l97_d10_gcc_dep_if_needed(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `glibc_dep_if_needed(related_formula_names); end` at line 100.
-pub fn ruby_dependency_collector_l100_d11_glibc_dep_if_needed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+pub fn ruby_dependency_collector_l100_d11_glibc_dep_if_needed(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `implicit_dependency_names` at line 105.
-pub fn ruby_dependency_collector_l105_d12_implicit_dependency_names(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value([]string{})
+pub fn ruby_dependency_collector_l105_d12_implicit_dependency_names(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value([]string{})
 }
 
 // Ruby method `git_dep_if_needed(tags)` at line 113.
-pub fn ruby_dependency_collector_l113_d13_git_dep_if_needed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_collector_l113_d13_git_dep_if_needed(args ...ruby.Value) ruby.Value {
 	collector, offset := collector_from_boundary_args(args)
 	tags := if args.len > offset { collector_tags_from_value(args[offset]) } else { []string{} }
 	if dependency := collector.git_dep_if_needed(tags) {
 		return dependency_boundary_value(dependency)
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `curl_dep_if_needed(tags)` at line 121.
-pub fn ruby_dependency_collector_l121_d14_curl_dep_if_needed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_collector_l121_d14_curl_dep_if_needed(args ...ruby.Value) ruby.Value {
 	_, offset := collector_from_boundary_args(args)
 	tags := if args.len > offset { collector_tags_from_value(args[offset]) } else { []string{} }
 	return dependency_boundary_value(collector_implicit_dependency('curl', tags))
 }
 
 // Ruby method `subversion_dep_if_needed(tags)` at line 126.
-pub fn ruby_dependency_collector_l126_d15_subversion_dep_if_needed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_collector_l126_d15_subversion_dep_if_needed(args ...ruby.Value) ruby.Value {
 	collector, offset := collector_from_boundary_args(args)
 	tags := if args.len > offset { collector_tags_from_value(args[offset]) } else { []string{} }
 	if dependency := collector.subversion_dep_if_needed(tags) {
 		return dependency_boundary_value(dependency)
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `cvs_dep_if_needed(tags)` at line 134.
-pub fn ruby_dependency_collector_l134_d16_cvs_dep_if_needed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_collector_l134_d16_cvs_dep_if_needed(args ...ruby.Value) ruby.Value {
 	collector, offset := collector_from_boundary_args(args)
 	tags := if args.len > offset { collector_tags_from_value(args[offset]) } else { []string{} }
 	if dependency := collector.cvs_dep_if_needed(tags) {
 		return dependency_boundary_value(dependency)
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `xz_dep_if_needed(tags)` at line 139.
-pub fn ruby_dependency_collector_l139_d17_xz_dep_if_needed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_collector_l139_d17_xz_dep_if_needed(args ...ruby.Value) ruby.Value {
 	collector, offset := collector_from_boundary_args(args)
 	tags := if args.len > offset { collector_tags_from_value(args[offset]) } else { []string{} }
 	if dependency := collector.archive_dep_if_needed('xz', tags) {
 		return dependency_boundary_value(dependency)
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `zstd_dep_if_needed(tags)` at line 144.
-pub fn ruby_dependency_collector_l144_d18_zstd_dep_if_needed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_collector_l144_d18_zstd_dep_if_needed(args ...ruby.Value) ruby.Value {
 	collector, offset := collector_from_boundary_args(args)
 	tags := if args.len > offset { collector_tags_from_value(args[offset]) } else { []string{} }
 	if dependency := collector.archive_dep_if_needed('zstd', tags) {
 		return dependency_boundary_value(dependency)
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `unzip_dep_if_needed(tags)` at line 149.
-pub fn ruby_dependency_collector_l149_d19_unzip_dep_if_needed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_collector_l149_d19_unzip_dep_if_needed(args ...ruby.Value) ruby.Value {
 	collector, offset := collector_from_boundary_args(args)
 	tags := if args.len > offset { collector_tags_from_value(args[offset]) } else { []string{} }
 	if dependency := collector.archive_dep_if_needed('unzip', tags) {
 		return dependency_boundary_value(dependency)
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `bzip2_dep_if_needed(tags)` at line 154.
-pub fn ruby_dependency_collector_l154_d20_bzip2_dep_if_needed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_collector_l154_d20_bzip2_dep_if_needed(args ...ruby.Value) ruby.Value {
 	collector, offset := collector_from_boundary_args(args)
 	tags := if args.len > offset { collector_tags_from_value(args[offset]) } else { []string{} }
 	if dependency := collector.archive_dep_if_needed('bzip2', tags) {
 		return dependency_boundary_value(dependency)
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `self.tar_needs_xz_dependency?` at line 159.
-pub fn ruby_dependency_collector_l159_d21_self_tar_needs_xz_dependency(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_collector_l159_d21_self_tar_needs_xz_dependency(args ...ruby.Value) ruby.Value {
 	collector := new_dependency_collector(false, {
 		'xz': false
 	})
-	return brew_runtime.bool_value(collector.archive_dep_if_needed('xz', []string{}) != none)
+	return ruby.bool_value(collector.archive_dep_if_needed('xz', []string{}) != none)
 }
 
 // Ruby method `self.tar_needs_bzip2_dependency?` at line 164.
-pub fn ruby_dependency_collector_l164_d22_self_tar_needs_bzip2_dependency(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_collector_l164_d22_self_tar_needs_bzip2_dependency(args ...ruby.Value) ruby.Value {
 	collector := new_dependency_collector(false, {
 		'bzip2': false
 	})
-	return brew_runtime.bool_value(collector.archive_dep_if_needed('bzip2', []string{}) != none)
+	return ruby.bool_value(collector.archive_dep_if_needed('bzip2', []string{}) != none)
 }
 
 // Ruby method `init_global_dep_tree_if_needed!; end` at line 171.
-pub fn ruby_dependency_collector_l171_d23_init_global_dep_tree_if_needed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+pub fn ruby_dependency_collector_l171_d23_init_global_dep_tree_if_needed(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `parse_spec(spec, tags)` at line 177.
-pub fn ruby_dependency_collector_l177_d24_parse_spec(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_collector_l177_d24_parse_spec(args ...ruby.Value) ruby.Value {
 	mut collector, offset := collector_from_boundary_args(args)
 	if args.len <= offset { panic('parse_spec requires a specification') }
 	return collector_result_value(collector_build_boundary(mut collector, args[offset]) or {
@@ -542,7 +542,7 @@ pub fn ruby_dependency_collector_l177_d24_parse_spec(args ...brew_runtime.Value)
 }
 
 // Ruby method `parse_string_spec(spec, tags)` at line 195.
-pub fn ruby_dependency_collector_l195_d25_parse_string_spec(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_collector_l195_d25_parse_string_spec(args ...ruby.Value) ruby.Value {
 	_, offset := collector_from_boundary_args(args)
 	if args.len <= offset { panic('parse_string_spec requires a name') }
 	tags := if args.len > offset + 1 {
@@ -554,7 +554,7 @@ pub fn ruby_dependency_collector_l195_d25_parse_string_spec(args ...brew_runtime
 }
 
 // Ruby method `parse_symbol_spec(spec, tags)` at line 200.
-pub fn ruby_dependency_collector_l200_d26_parse_symbol_spec(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_collector_l200_d26_parse_symbol_spec(args ...ruby.Value) ruby.Value {
 	_, offset := collector_from_boundary_args(args)
 	if args.len <= offset { panic('parse_symbol_spec requires a symbol') }
 	tags := if args.len > offset + 1 {
@@ -566,7 +566,7 @@ pub fn ruby_dependency_collector_l200_d26_parse_symbol_spec(args ...brew_runtime
 }
 
 // Ruby method `parse_class_spec(spec, tags)` at line 215.
-pub fn ruby_dependency_collector_l215_d27_parse_class_spec(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_collector_l215_d27_parse_class_spec(args ...ruby.Value) ruby.Value {
 	_, offset := collector_from_boundary_args(args)
 	if args.len <= offset { panic('parse_class_spec requires a class') }
 	name := args[offset].attributes['requirement_name'] or {
@@ -581,7 +581,7 @@ pub fn ruby_dependency_collector_l215_d27_parse_class_spec(args ...brew_runtime.
 }
 
 // Ruby method `resource_dep(spec, tags)` at line 222.
-pub fn ruby_dependency_collector_l222_d28_resource_dep(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_collector_l222_d28_resource_dep(args ...ruby.Value) ruby.Value {
 	mut collector, offset := collector_from_boundary_args(args)
 	if args.len <= offset { panic('resource_dep requires a resource') }
 	spec := args[offset]
@@ -597,7 +597,7 @@ pub fn ruby_dependency_collector_l222_d28_resource_dep(args ...brew_runtime.Valu
 }
 
 // Ruby method `parse_url_spec(url, tags)` at line 253.
-pub fn ruby_dependency_collector_l253_d29_parse_url_spec(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_collector_l253_d29_parse_url_spec(args ...ruby.Value) ruby.Value {
 	mut collector, offset := collector_from_boundary_args(args)
 	if args.len <= offset { panic('parse_url_spec requires a URL') }
 	tags := if args.len > offset + 1 {
@@ -608,7 +608,7 @@ pub fn ruby_dependency_collector_l253_d29_parse_url_spec(args ...brew_runtime.Va
 	if dependency := collector_parse_url(mut collector, args[offset].as_string(), tags) {
 		return dependency_boundary_value(dependency)
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Original Ruby source (line-for-line):

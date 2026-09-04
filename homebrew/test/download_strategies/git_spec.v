@@ -1,6 +1,6 @@
 module download_strategies
 
-import brew_runtime
+import ruby
 import homebrew.download_strategy
 import os
 
@@ -8,40 +8,40 @@ import os
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:strategy) { described_class.new(url, name, version) }` at line 7.
-pub fn ruby_git_spec_l7_d1_strategy(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_git_spec_l7_d1_strategy(args ...ruby.Value) ruby.Value {
 	cache := if args.len > 0 { args[0].as_string() } else { os.temp_dir() }
 	strategy := download_strategy.new_git_download_strategy('https://github.com/homebrew/foo', 'baz', '', download_strategy.VCSDownloadMeta{ cache: cache })
 	return git_strategy_boundary(strategy)
 }
 
 // Ruby let `let(:name) { "baz" }` at line 9.
-pub fn ruby_git_spec_l9_d2_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('baz')
+pub fn ruby_git_spec_l9_d2_name(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('baz')
 }
 
 // Ruby let `let(:url) { "https://github.com/homebrew/foo" }` at line 10.
-pub fn ruby_git_spec_l10_d3_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('https://github.com/homebrew/foo')
+pub fn ruby_git_spec_l10_d3_url(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('https://github.com/homebrew/foo')
 }
 
 // Ruby let `let(:version) { nil }` at line 11.
-pub fn ruby_git_spec_l11_d4_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', '')
+pub fn ruby_git_spec_l11_d4_version(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('NilClass', '')
 }
 
 // Ruby let `let(:cached_location) { subject.cached_location }` at line 12.
-pub fn ruby_git_spec_l12_d5_cached_location(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_git_spec_l12_d5_cached_location(args ...ruby.Value) ruby.Value {
 	cache := if args.len > 0 { args[0].as_string() } else { os.temp_dir() }
 	strategy := download_strategy.new_git_download_strategy('https://github.com/homebrew/foo', 'baz', '', download_strategy.VCSDownloadMeta{ cache: cache })
-	return brew_runtime.string_value(strategy.cached_location())
+	return ruby.string_value(strategy.cached_location())
 }
 
 // Ruby it `it "terminates options before the URL" do` at line 20.
-pub fn ruby_git_spec_l20_d6_terminates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_git_spec_l20_d6_terminates(args ...ruby.Value) ruby.Value {
 	cache := if args.len > 0 { args[0].as_string() } else { os.temp_dir() }
 	strategy := download_strategy.new_git_download_strategy('https://github.com/homebrew/foo', 'baz', '', download_strategy.VCSDownloadMeta{ cache: cache })
 	arguments := strategy.git_clone_args()
-	return brew_runtime.bool_value(arguments[arguments.len - 3..] == [
+	return ruby.bool_value(arguments[arguments.len - 3..] == [
 		'--end-of-options',
 		'https://github.com/homebrew/foo',
 		strategy.cached_location(),
@@ -49,115 +49,115 @@ pub fn ruby_git_spec_l20_d6_terminates(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby it `it "terminates options before the ref" do` at line 26.
-pub fn ruby_git_spec_l26_d7_terminates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_git_spec_l26_d7_terminates(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	strategy := git_strategy_for_repository(args[0].as_string())
-	return brew_runtime.bool_value(strategy.git_ref())
+	return ruby.bool_value(strategy.git_ref())
 }
 
 // Ruby method `git_commit_all` at line 39.
-pub fn ruby_git_spec_l39_d8_git_commit_all(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_git_spec_l39_d8_git_commit_all(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	directory := args[0].as_string()
 	identifier := if args.len > 1 { args[1].as_string() } else { '1' }
 	added := git_spec_command(directory, ['add', '--all'], map[string]string{})
 	committed := git_spec_command(directory, ['commit', '-m', 'commit number ${identifier}'], map[string]string{})
-	return brew_runtime.bool_value(added.exit_code == 0 && committed.exit_code == 0)
+	return ruby.bool_value(added.exit_code == 0 && committed.exit_code == 0)
 }
 
 // Ruby method `setup_git_repo` at line 48.
-pub fn ruby_git_spec_l48_d9_setup_git_repo(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_git_spec_l48_d9_setup_git_repo(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	directory := args[0].as_string()
-	os.mkdir_all(directory) or { return brew_runtime.bool_value(false) }
+	os.mkdir_all(directory) or { return ruby.bool_value(false) }
 	if git_spec_command(directory, ['init', '-b', 'master'], map[string]string{}).exit_code != 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	git_spec_command(directory, ['config', 'user.name', 'Brew V'], map[string]string{})
 	git_spec_command(directory, ['config', 'user.email', 'brew-v@example.invalid'], map[string]string{})
 	git_spec_command(directory, ['remote', 'add', 'origin', 'https://github.com/Homebrew/homebrew-foo'], map[string]string{})
-	os.write_file(os.join_path(directory, 'README'), '') or { return brew_runtime.bool_value(false) }
-	return ruby_git_spec_l39_d8_git_commit_all(brew_runtime.string_value(directory), brew_runtime.string_value('1'))
+	os.write_file(os.join_path(directory, 'README'), '') or { return ruby.bool_value(false) }
+	return ruby_git_spec_l39_d8_git_commit_all(ruby.string_value(directory), ruby.string_value('1'))
 }
 
 // Ruby it `it "returns the right modification time" do` at line 56.
-pub fn ruby_git_spec_l56_d10_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_git_spec_l56_d10_returns(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	strategy := git_strategy_for_repository(args[0].as_string())
-	modified := strategy.git_source_modified_time() or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(modified > 0)
+	modified := strategy.git_source_modified_time() or { return ruby.bool_value(false) }
+	return ruby.bool_value(modified > 0)
 }
 
 // Ruby it `it "nulls the global Git config so sandboxed staging reads do not fail" do` at line 63.
-pub fn ruby_git_spec_l63_d11_nulls(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_git_spec_l63_d11_nulls(args ...ruby.Value) ruby.Value {
 	strategy := download_strategy.new_git_download_strategy('https://github.com/homebrew/foo', 'baz', '', download_strategy.VCSDownloadMeta{})
 	environment := strategy.git_local_env()
-	return brew_runtime.bool_value(environment['GIT_TERMINAL_PROMPT'] == '0' && environment['GIT_CONFIG_GLOBAL'] == '/dev/null')
+	return ruby.bool_value(environment['GIT_TERMINAL_PROMPT'] == '0' && environment['GIT_CONFIG_GLOBAL'] == '/dev/null')
 }
 
 // Ruby it `it "raises the underlying Git error instead of a Time parsing error on failure" do` at line 77.
-pub fn ruby_git_spec_l77_d12_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_git_spec_l77_d12_raises(args ...ruby.Value) ruby.Value {
 	strategy := git_strategy_for_repository('/not/a/git/repository')
 	_ := strategy.git_source_modified_time() or {
-		return brew_runtime.bool_value(err.msg().contains('command failed'))
+		return ruby.bool_value(err.msg().contains('command failed'))
 	}
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 // Ruby specify `specify "returns the short hash of the last commit" do` at line 87.
-pub fn ruby_git_spec_l87_d13_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_git_spec_l87_d13_returns(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	strategy := git_strategy_for_repository(args[0].as_string())
-	commit := strategy.git_last_commit() or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(commit.len == 7)
+	commit := strategy.git_last_commit() or { return ruby.bool_value(false) }
+	return ruby.bool_value(commit.len == 7)
 }
 
 // Ruby it `it "nulls the global Git config so sandboxed staging reads do not fail" do` at line 96.
-pub fn ruby_git_spec_l96_d14_nulls(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_git_spec_l96_d14_nulls(args ...ruby.Value) ruby.Value {
 	strategy := download_strategy.new_git_download_strategy('https://github.com/homebrew/foo', 'baz', '', download_strategy.VCSDownloadMeta{})
-	return brew_runtime.bool_value(strategy.git_local_env()['GIT_CONFIG_GLOBAL'] == '/dev/null')
+	return ruby.bool_value(strategy.git_local_env()['GIT_CONFIG_GLOBAL'] == '/dev/null')
 }
 
 // Ruby let `let(:url) { "file://#{remote_repo}" }` at line 111.
-pub fn ruby_git_spec_l111_d15_url(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_git_spec_l111_d15_url(args ...ruby.Value) ruby.Value {
 	remote := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.string_value('file://${remote}')
+	return ruby.string_value('file://${remote}')
 }
 
 // Ruby let `let(:version) { Version.new("HEAD") }` at line 112.
-pub fn ruby_git_spec_l112_d16_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('HEAD')
+pub fn ruby_git_spec_l112_d16_version(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('HEAD')
 }
 
 // Ruby let `let(:remote_repo) { HOMEBREW_PREFIX/"remote_repo" }` at line 113.
-pub fn ruby_git_spec_l113_d17_remote_repo(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_git_spec_l113_d17_remote_repo(args ...ruby.Value) ruby.Value {
 	return if args.len > 0 {
-		brew_runtime.string_value(args[0].as_string())
+		ruby.string_value(args[0].as_string())
 	} else {
-		brew_runtime.object_value('NilClass', '')
+		ruby.object_value('NilClass', '')
 	}
 }
 
 // Ruby it `it "fetches the hash of the last commit" do` at line 119.
-pub fn ruby_git_spec_l119_d18_fetches(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_git_spec_l119_d18_fetches(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	remote := args[0].as_string()
 	cache := args[1].as_string()
 	mut strategy := download_strategy.new_git_download_strategy('file://${remote}', 'baz', 'HEAD', download_strategy.VCSDownloadMeta{ cache: cache })
-	commit := strategy.fetch_last_commit() or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(commit.len == 7)
+	commit := strategy.fetch_last_commit() or { return ruby.bool_value(false) }
+	return ruby.bool_value(commit.len == 7)
 }
 
 fn git_strategy_for_repository(repository string) download_strategy.VCSDownloadStrategy {
@@ -166,16 +166,16 @@ fn git_strategy_for_repository(repository string) download_strategy.VCSDownloadS
 	return strategy
 }
 
-fn git_strategy_boundary(strategy download_strategy.VCSDownloadStrategy) brew_runtime.Value {
-	return brew_runtime.structured_value('GitDownloadStrategy', strategy.url, {
+fn git_strategy_boundary(strategy download_strategy.VCSDownloadStrategy) ruby.Value {
+	return ruby.structured_value('GitDownloadStrategy', strategy.url, {
 		'url':             strategy.url
 		'cached_location': strategy.cached_location()
 		'ref':             strategy.ref
 	})
 }
 
-fn git_spec_command(directory string, arguments []string, environment map[string]string) brew_runtime.CommandResult {
-	git := os.find_abs_path_of_executable('git') or { return brew_runtime.CommandResult{ exit_code: 127 } }
+fn git_spec_command(directory string, arguments []string, environment map[string]string) ruby.CommandResult {
+	git := os.find_abs_path_of_executable('git') or { return ruby.CommandResult{ exit_code: 127 } }
 	mut process := os.new_process(git)
 	process.set_args(arguments)
 	process.set_work_folder(directory)
@@ -188,7 +188,7 @@ fn git_spec_command(directory string, arguments []string, environment map[string
 	process.run()
 	output := process.stdout_slurp()
 	process.wait()
-	result := brew_runtime.CommandResult{
+	result := ruby.CommandResult{
 		exit_code: process.code
 		output: output
 	}

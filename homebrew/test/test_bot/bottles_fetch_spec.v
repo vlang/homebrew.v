@@ -1,6 +1,6 @@
 module test_bot
 
-import brew_runtime
+import ruby
 import homebrew.test_bot as bottles_fetch_core
 import homebrew.utils
 
@@ -8,11 +8,11 @@ import homebrew.utils
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "accepts Utils::Bottles::Tag objects from the bottle collector" do` at line 9.
-pub fn ruby_bottles_fetch_spec_l9_d1_accepts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottles_fetch_spec_l9_d1_accepts(args ...ruby.Value) ruby.Value {
 	tag := utils.new_bottles_tag('sequoia', 'arm64')
 	formula_name := if args.len > 0 { args[0].as_string() } else { 'some-formula' }
 	plan := bottles_fetch_core.bottles_fetch_for_tag(tag, [formula_name])
-	return brew_runtime.bool_value(plan.passed && plan.cleanup && plan.operations.len == 3
+	return ruby.bool_value(plan.passed && plan.cleanup && plan.operations.len == 3
 		&& plan.operations[0].kind == .test_header && plan.operations[1].kind == .cleanup
 		&& plan.operations[2].kind == .fetch && plan.command.contains('--bottle-tag=${tag}')
 		&& plan.command.last() == formula_name)

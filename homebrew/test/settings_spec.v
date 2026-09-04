@@ -1,6 +1,6 @@
 module test
 
-import brew_runtime
+import ruby
 import homebrew
 import os
 import time
@@ -10,7 +10,7 @@ import time
 
 // Ruby method `setup_setting` at line 14.
 pub fn ruby_settings_spec_l14_d1_setup_setting(repository string) ! {
-	result := brew_runtime.run_command('git', ['-C', repository, 'config', '--replace-all',
+	result := ruby.run_command('git', ['-C', repository, 'config', '--replace-all',
 		'homebrew.foo', 'true'])
 	if result.exit_code != 0 {
 		return error(result.output.trim_space())
@@ -20,7 +20,7 @@ pub fn ruby_settings_spec_l14_d1_setup_setting(repository string) ! {
 fn settings_spec_repository(label string) !string {
 	repository := os.join_path(os.temp_dir(), 'brew-v-settings-${label}-${os.getpid()}-${time.now().unix_nano()}')
 	os.mkdir_all(repository)!
-	result := brew_runtime.run_command('git', ['-C', repository, 'init'])
+	result := ruby.run_command('git', ['-C', repository, 'init'])
 	if result.exit_code != 0 {
 		os.rmdir_all(repository) or {}
 		return error(result.output.trim_space())
@@ -71,7 +71,7 @@ pub fn ruby_settings_spec_l40_d6_reads() !bool {
 	ruby_settings_spec_l14_d1_setup_setting(repository)!
 	mut settings := homebrew.new_settings(repository)
 	first := settings.read('foo') or { return false }
-	changed := brew_runtime.run_command('git', ['-C', repository, 'config', '--replace-all',
+	changed := ruby.run_command('git', ['-C', repository, 'config', '--replace-all',
 		'homebrew.foo', 'false'])
 	if changed.exit_code != 0 {
 		return error(changed.output.trim_space())

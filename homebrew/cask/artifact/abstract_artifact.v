@@ -1,6 +1,6 @@
 module artifact
 
-import brew_runtime
+import ruby
 import os
 import time
 
@@ -12,8 +12,8 @@ const abstract_artifact_permitted_script_keys = ['args', 'input', 'executable', 
 
 pub struct AbstractArtifact {
 pub:
-	cask       brew_runtime.Value
-	dsl_args   []brew_runtime.Value
+	cask       ruby.Value
+	dsl_args   []ruby.Value
 	class_name string
 	summary    string
 }
@@ -22,7 +22,7 @@ pub struct AbstractArtifactScriptArguments {
 pub:
 	executable     string
 	has_executable bool
-	arguments      map[string]brew_runtime.Value
+	arguments      map[string]ruby.Value
 	warnings       []string
 	errors         []string
 }
@@ -62,23 +62,23 @@ pub:
 
 pub type AbstractArtifactSandboxRunner = fn(AbstractArtifactSandboxInvocation) !
 
-fn abstract_artifact_nil() brew_runtime.Value {
-	return brew_runtime.Value{
+fn abstract_artifact_nil() ruby.Value {
+	return ruby.Value{
 		type_name: 'NilClass'
 		repr: 'nil'
 	}
 }
 
-fn abstract_artifact_deep_dup(value brew_runtime.Value) brew_runtime.Value {
-	mut entries := []brew_runtime.Value{cap: value.array_data.len}
+fn abstract_artifact_deep_dup(value ruby.Value) ruby.Value {
+	mut entries := []ruby.Value{cap: value.array_data.len}
 	for entry in value.array_data {
 		entries << abstract_artifact_deep_dup(entry)
 	}
-	mut values := map[string]brew_runtime.Value{}
+	mut values := map[string]ruby.Value{}
 	for key, entry in value.map_data {
 		values[key] = abstract_artifact_deep_dup(entry)
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: value.type_name
 		repr: value.repr
 		bool_data: value.bool_data
@@ -91,7 +91,7 @@ fn abstract_artifact_deep_dup(value brew_runtime.Value) brew_runtime.Value {
 	}
 }
 
-fn abstract_artifact_class_name(value brew_runtime.Value) string {
+fn abstract_artifact_class_name(value ruby.Value) string {
 	if class_name := value.attributes['class_name'] {
 		if class_name != '' {
 			return class_name
@@ -151,8 +151,8 @@ pub fn abstract_artifact_dirmethod(class_name string) string {
 	return '${abstract_artifact_dsl_key(class_name)}dir'
 }
 
-pub fn new_abstract_artifact(cask brew_runtime.Value, class_name string, summary string,
-	dsl_args []brew_runtime.Value) AbstractArtifact {
+pub fn new_abstract_artifact(cask ruby.Value, class_name string, summary string,
+	dsl_args []ruby.Value) AbstractArtifact {
 	return AbstractArtifact{
 		cask: cask
 		class_name: if class_name == '' { abstract_artifact_default_class } else { class_name }
@@ -161,14 +161,14 @@ pub fn new_abstract_artifact(cask brew_runtime.Value, class_name string, summary
 	}
 }
 
-pub fn abstract_artifact_value(artifact AbstractArtifact) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn abstract_artifact_value(artifact AbstractArtifact) ruby.Value {
+	return ruby.Value{
 		type_name: artifact.class_name
 		repr: artifact.summary
 		map_data: {
 			'cask':     artifact.cask
-			'dsl_args': brew_runtime.array_value(artifact.dsl_args)
-			'summary':  brew_runtime.string_value(artifact.summary)
+			'dsl_args': ruby.array_value(artifact.dsl_args)
+			'summary':  ruby.string_value(artifact.summary)
 		}
 		attributes: {
 			'class_name': artifact.class_name
@@ -176,14 +176,14 @@ pub fn abstract_artifact_value(artifact AbstractArtifact) brew_runtime.Value {
 	}
 }
 
-pub fn abstract_artifact_from_value(value brew_runtime.Value) AbstractArtifact {
-	dsl_args := (value.map_data['dsl_args'] or { brew_runtime.array_value([]) }).as_array() or {
-		[]brew_runtime.Value{}
+pub fn abstract_artifact_from_value(value ruby.Value) AbstractArtifact {
+	dsl_args := (value.map_data['dsl_args'] or { ruby.array_value([]) }).as_array() or {
+		[]ruby.Value{}
 	}
 	return new_abstract_artifact(value.map_data['cask'] or {
-		brew_runtime.object_value('Cask', '')
+		ruby.object_value('Cask', '')
 	}, abstract_artifact_class_name(value), (value.map_data['summary'] or {
-		brew_runtime.string_value(value.as_string())
+		ruby.string_value(value.as_string())
 	}).as_string(), dsl_args)
 }
 
@@ -194,7 +194,7 @@ pub fn abstract_artifact_staged_path_join_executable(artifact AbstractArtifact,
 		path = os.expand_tilde_to_home(path)
 	}
 	staged_path := (artifact.cask.map_data['staged_path'] or {
-		brew_runtime.string_value(artifact.cask.attributes['staged_path'] or { '' })
+		ruby.string_value(artifact.cask.attributes['staged_path'] or { '' })
 	}).as_string()
 	absolute_path := if os.is_abs_path(path) { path } else { os.join_path(staged_path, path) }
 	if os.exists(absolute_path) {
@@ -260,8 +260,8 @@ fn abstract_artifact_symbol_array(keys []string) string {
 	return '[${symbols.join(', ')}]'
 }
 
-pub fn read_abstract_artifact_script_arguments(arguments brew_runtime.Value, stanza string,
-	default_arguments map[string]brew_runtime.Value, override_arguments map[string]brew_runtime.Value,
+pub fn read_abstract_artifact_script_arguments(arguments ruby.Value, stanza string,
+	default_arguments map[string]ruby.Value, override_arguments map[string]ruby.Value,
 	key string) !AbstractArtifactScriptArguments {
 	description := if key == '' { stanza } else { '${stanza} :${key}' }
 	mut supplied := if arguments.type_name == 'String' {
@@ -306,7 +306,7 @@ pub fn read_abstract_artifact_script_arguments(arguments brew_runtime.Value, sta
 		}
 		supplied.delete('executable')
 	}
-	mut merged := map[string]brew_runtime.Value{}
+	mut merged := map[string]ruby.Value{}
 	for argument_key, value in default_arguments {
 		merged[argument_key] = value
 	}
@@ -325,18 +325,18 @@ pub fn read_abstract_artifact_script_arguments(arguments brew_runtime.Value, sta
 	}
 }
 
-fn abstract_artifact_blank(value brew_runtime.Value) bool {
+fn abstract_artifact_blank(value ruby.Value) bool {
 	return match value.type_name {
 		'NilClass' { true }
 		'Bool' { !value.bool_data }
 		'String' { value.as_string().trim_space() == '' }
-		'Array' { (value.as_array() or { []brew_runtime.Value{} }).len == 0 }
+		'Array' { (value.as_array() or { []ruby.Value{} }).len == 0 }
 		'Hash' { value.map_data.len == 0 }
 		else { false }
 	}
 }
 
-pub fn abstract_artifact_to_args(artifact AbstractArtifact) []brew_runtime.Value {
+pub fn abstract_artifact_to_args(artifact AbstractArtifact) []ruby.Value {
 	return artifact.dsl_args.filter(!abstract_artifact_blank(it)).map(abstract_artifact_deep_dup(it))
 }
 
@@ -344,8 +344,8 @@ pub fn abstract_artifact_to_string(artifact AbstractArtifact) string {
 	return '${artifact.summary} (${abstract_artifact_english_name(artifact.class_name)})'
 }
 
-pub fn abstract_artifact_config(artifact AbstractArtifact) brew_runtime.Value {
-	return artifact.cask.map_data['config'] or { brew_runtime.object_value('Cask::Config', '') }
+pub fn abstract_artifact_config(artifact AbstractArtifact) ruby.Value {
+	return artifact.cask.map_data['config'] or { ruby.object_value('Cask::Config', '') }
 }
 
 pub fn new_abstract_artifact_sandbox(artifact AbstractArtifact, use_sandbox bool,
@@ -354,7 +354,7 @@ pub fn new_abstract_artifact_sandbox(artifact AbstractArtifact, use_sandbox bool
 		return none
 	}
 	staged_path := (artifact.cask.map_data['staged_path'] or {
-		brew_runtime.string_value(artifact.cask.attributes['staged_path'] or { '' })
+		ruby.string_value(artifact.cask.attributes['staged_path'] or { '' })
 	}).as_string()
 	return AbstractArtifactSandbox{
 		staged_path: staged_path
@@ -364,33 +364,33 @@ pub fn new_abstract_artifact_sandbox(artifact AbstractArtifact, use_sandbox bool
 	}
 }
 
-pub fn abstract_artifact_sandbox_value(sandbox AbstractArtifactSandbox) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn abstract_artifact_sandbox_value(sandbox AbstractArtifactSandbox) ruby.Value {
+	return ruby.Value{
 		type_name: 'Sandbox'
 		repr: sandbox.staged_path
 		map_data: {
-			'staged_path':            brew_runtime.string_value(sandbox.staged_path)
-			'network_access_allowed': brew_runtime.bool_value(sandbox.network_access_allowed)
-			'install_hook_rules':     brew_runtime.bool_value(sandbox.install_hook_rules)
-			'allowed_read_paths':     brew_runtime.string_array_value(sandbox.allowed_read_paths)
+			'staged_path':            ruby.string_value(sandbox.staged_path)
+			'network_access_allowed': ruby.bool_value(sandbox.network_access_allowed)
+			'install_hook_rules':     ruby.bool_value(sandbox.install_hook_rules)
+			'allowed_read_paths':     ruby.string_array_value(sandbox.allowed_read_paths)
 		}
 	}
 }
 
-pub fn abstract_artifact_sandbox_from_value(value brew_runtime.Value) !AbstractArtifactSandbox {
+pub fn abstract_artifact_sandbox_from_value(value ruby.Value) !AbstractArtifactSandbox {
 	if value.type_name != 'Sandbox' {
 		return error('expected Sandbox, got ${value.type_name}')
 	}
 	return AbstractArtifactSandbox{
-		staged_path: (value.map_data['staged_path'] or { brew_runtime.string_value(value.as_string()) }).as_string()
+		staged_path: (value.map_data['staged_path'] or { ruby.string_value(value.as_string()) }).as_string()
 		network_access_allowed: (value.map_data['network_access_allowed'] or {
-			brew_runtime.bool_value(false)
+			ruby.bool_value(false)
 		}).as_bool() or { false }
 		install_hook_rules: (value.map_data['install_hook_rules'] or {
-			brew_runtime.bool_value(false)
+			ruby.bool_value(false)
 		}).as_bool() or { false }
 		allowed_read_paths: (value.map_data['allowed_read_paths'] or {
-			brew_runtime.string_array_value([])
+			ruby.string_array_value([])
 		}).as_string_array() or { []string{} }
 	}
 }
@@ -400,7 +400,7 @@ fn abstract_artifact_noop_sandbox_runner(invocation AbstractArtifactSandboxInvoc
 }
 
 pub fn run_abstract_artifact_cask_sandbox(sandbox AbstractArtifactSandbox,
-	payload map[string]brew_runtime.Value, options AbstractArtifactSandboxOptions,
+	payload map[string]ruby.Value, options AbstractArtifactSandboxOptions,
 	runner AbstractArtifactSandboxRunner) !AbstractArtifactSandboxRunResult {
 	temporary_root := if options.temporary_root == '' {
 		os.temp_dir()
@@ -414,7 +414,7 @@ pub fn run_abstract_artifact_cask_sandbox(sandbox AbstractArtifactSandbox,
 	defer {
 		os.rmdir_all(temporary_path) or {}
 	}
-	payload_json := brew_runtime.json_value_to_string(brew_runtime.map_value(payload))
+	payload_json := ruby.json_value_to_string(ruby.map_value(payload))
 	os.write_file(payload_path, payload_json)!
 	mut command := ['/usr/bin/env', 'HOME=${home}', 'nice']
 	command << options.ruby_exec_args
@@ -441,168 +441,168 @@ pub fn run_abstract_artifact_cask_sandbox(sandbox AbstractArtifactSandbox,
 	}
 }
 
-fn abstract_artifact_sandbox_options_from_value(value brew_runtime.Value) AbstractArtifactSandboxOptions {
+fn abstract_artifact_sandbox_options_from_value(value ruby.Value) AbstractArtifactSandboxOptions {
 	return AbstractArtifactSandboxOptions{
 		temporary_root: (value.map_data['temporary_root'] or {
-			brew_runtime.string_value(os.temp_dir())
+			ruby.string_value(os.temp_dir())
 		}).as_string()
 		ruby_exec_args: (value.map_data['ruby_exec_args'] or {
-			brew_runtime.string_array_value([])
+			ruby.string_array_value([])
 		}).as_string_array() or { []string{} }
 		load_path: (value.map_data['load_path'] or {
-			brew_runtime.string_array_value([])
+			ruby.string_array_value([])
 		}).as_string_array() or { []string{} }
 		library_path: (value.map_data['library_path'] or {
-			brew_runtime.string_value('')
+			ruby.string_value('')
 		}).as_string()
 	}
 }
 
-fn abstract_artifact_sandbox_run_value(result AbstractArtifactSandboxRunResult) brew_runtime.Value {
-	return brew_runtime.Value{
+fn abstract_artifact_sandbox_run_value(result AbstractArtifactSandboxRunResult) ruby.Value {
+	return ruby.Value{
 		type_name: 'Cask::Artifact::SandboxRun'
 		repr: result.invocation.command.join(' ')
 		map_data: {
 			'sandbox':             abstract_artifact_sandbox_value(result.sandbox)
-			'temporary_path':      brew_runtime.string_value(result.invocation.temporary_path)
-			'home':                brew_runtime.string_value(result.invocation.home)
-			'payload_path':        brew_runtime.string_value(result.invocation.payload_path)
-			'payload_json':        brew_runtime.string_value(result.invocation.payload_json)
-			'command':             brew_runtime.string_array_value(result.invocation.command)
-			'preserved_brew_file': brew_runtime.bool_value(result.invocation.preserved_brew_file)
-			'temporary_removed':   brew_runtime.bool_value(result.temporary_removed)
+			'temporary_path':      ruby.string_value(result.invocation.temporary_path)
+			'home':                ruby.string_value(result.invocation.home)
+			'payload_path':        ruby.string_value(result.invocation.payload_path)
+			'payload_json':        ruby.string_value(result.invocation.payload_json)
+			'command':             ruby.string_array_value(result.invocation.command)
+			'preserved_brew_file': ruby.bool_value(result.invocation.preserved_brew_file)
+			'temporary_removed':   ruby.bool_value(result.temporary_removed)
 		}
 	}
 }
 
 // Ruby method `self.english_name` at line 28.
-pub fn ruby_abstract_artifact_l28_d1_self_english_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_artifact_l28_d1_self_english_name(args ...ruby.Value) ruby.Value {
 	class_name := if args.len > 0 {
 		abstract_artifact_class_name(args[0])
 	} else {
 		abstract_artifact_default_class
 	}
-	return brew_runtime.string_value(abstract_artifact_english_name(class_name))
+	return ruby.string_value(abstract_artifact_english_name(class_name))
 }
 
 // Ruby method `self.english_article` at line 33.
-pub fn ruby_abstract_artifact_l33_d2_self_english_article(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_artifact_l33_d2_self_english_article(args ...ruby.Value) ruby.Value {
 	class_name := if args.len > 0 {
 		abstract_artifact_class_name(args[0])
 	} else {
 		abstract_artifact_default_class
 	}
-	return brew_runtime.string_value(abstract_artifact_english_article(class_name))
+	return ruby.string_value(abstract_artifact_english_article(class_name))
 }
 
 // Ruby method `self.dsl_key` at line 38.
-pub fn ruby_abstract_artifact_l38_d3_self_dsl_key(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_artifact_l38_d3_self_dsl_key(args ...ruby.Value) ruby.Value {
 	class_name := if args.len > 0 {
 		abstract_artifact_class_name(args[0])
 	} else {
 		abstract_artifact_default_class
 	}
-	return brew_runtime.object_value('Symbol', abstract_artifact_dsl_key(class_name))
+	return ruby.object_value('Symbol', abstract_artifact_dsl_key(class_name))
 }
 
 // Ruby method `self.dirmethod` at line 44.
-pub fn ruby_abstract_artifact_l44_d4_self_dirmethod(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_artifact_l44_d4_self_dirmethod(args ...ruby.Value) ruby.Value {
 	class_name := if args.len > 0 {
 		abstract_artifact_class_name(args[0])
 	} else {
 		abstract_artifact_default_class
 	}
-	return brew_runtime.object_value('Symbol', abstract_artifact_dirmethod(class_name))
+	return ruby.object_value('Symbol', abstract_artifact_dirmethod(class_name))
 }
 
 // Ruby method `summarize; end` at line 49.
-pub fn ruby_abstract_artifact_l49_d5_summarize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_artifact_l49_d5_summarize(args ...ruby.Value) ruby.Value {
 	_ = args
 	return abstract_artifact_nil()
 }
 
 // Ruby method `staged_path_join_executable(path)` at line 52.
-pub fn ruby_abstract_artifact_l52_d6_staged_path_join_executable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_artifact_l52_d6_staged_path_join_executable(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'staged_path_join_executable requires a receiver and path')
+		return ruby.object_value('ArgumentError', 'staged_path_join_executable requires a receiver and path')
 	}
-	path := abstract_artifact_staged_path_join_executable(abstract_artifact_from_value(args[0]), args[1].as_string()) or { return brew_runtime.object_value('SystemCallError', err.msg()) }
-	return brew_runtime.object_value('Pathname', path)
+	path := abstract_artifact_staged_path_join_executable(abstract_artifact_from_value(args[0]), args[1].as_string()) or { return ruby.object_value('SystemCallError', err.msg()) }
+	return ruby.object_value('Pathname', path)
 }
 
 // Ruby method `sort_order` at line 72.
-pub fn ruby_abstract_artifact_l72_d7_sort_order(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_artifact_l72_d7_sort_order(args ...ruby.Value) ruby.Value {
 	_ = args
-	mut order := map[string]brew_runtime.Value{}
+	mut order := map[string]ruby.Value{}
 	for class_name, index in abstract_artifact_sort_order() {
-		order[class_name] = brew_runtime.int_value(index)
+		order[class_name] = ruby.int_value(index)
 	}
-	return brew_runtime.map_value(order)
+	return ruby.map_value(order)
 }
 
 // Ruby method `<=>(other)` at line 129.
-pub fn ruby_abstract_artifact_l129_d8_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_artifact_l129_d8_anonymous(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		return abstract_artifact_nil()
 	}
 	comparison := compare_abstract_artifacts(abstract_artifact_class_name(args[0]), abstract_artifact_class_name(args[1])) or { return abstract_artifact_nil() }
-	return brew_runtime.int_value(comparison)
+	return ruby.int_value(comparison)
 }
 
 // Ruby method `self.read_script_arguments(arguments, stanza, default_arguments = {}, override_arguments = {}, key = nil)` at line 149.
-pub fn ruby_abstract_artifact_l149_d9_self_read_script_arguments(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_artifact_l149_d9_self_read_script_arguments(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'read_script_arguments requires arguments and stanza')
+		return ruby.object_value('ArgumentError', 'read_script_arguments requires arguments and stanza')
 	}
 	defaults := if args.len > 2 && args[2].type_name == 'Hash' {
 		args[2].map_data
 	} else {
-		map[string]brew_runtime.Value{}
+		map[string]ruby.Value{}
 	}
 	overrides := if args.len > 3 && args[3].type_name == 'Hash' {
 		args[3].map_data
 	} else {
-		map[string]brew_runtime.Value{}
+		map[string]ruby.Value{}
 	}
 	key := if args.len > 4 && args[4].type_name != 'NilClass' { args[4].as_string() } else { '' }
-	result := read_abstract_artifact_script_arguments(args[0], args[1].as_string(), defaults, overrides, key) or { return brew_runtime.object_value('FatalError', err.msg()) }
+	result := read_abstract_artifact_script_arguments(args[0], args[1].as_string(), defaults, overrides, key) or { return ruby.object_value('FatalError', err.msg()) }
 	executable := if result.has_executable {
-		brew_runtime.string_value(result.executable)
+		ruby.string_value(result.executable)
 	} else {
 		abstract_artifact_nil()
 	}
-	return brew_runtime.array_value([executable, brew_runtime.map_value(result.arguments)])
+	return ruby.array_value([executable, ruby.map_value(result.arguments)])
 }
 
 // Ruby attr_reader `attr_reader :cask` at line 187.
-pub fn ruby_abstract_artifact_l187_d10_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_artifact_l187_d10_cask(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'cask requires a receiver')
+		return ruby.object_value('ArgumentError', 'cask requires a receiver')
 	}
 	return abstract_artifact_from_value(args[0]).cask
 }
 
 // Ruby method `initialize(cask, *dsl_args)` at line 190.
-pub fn ruby_abstract_artifact_l190_d11_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_artifact_l190_d11_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'initialize requires a cask')
+		return ruby.object_value('ArgumentError', 'initialize requires a cask')
 	}
 	class_name := args[0].attributes['artifact_class'] or { abstract_artifact_default_class }
 	return abstract_artifact_value(new_abstract_artifact(args[0], class_name, '', args[1..]))
 }
 
 // Ruby method `config` at line 201.
-pub fn ruby_abstract_artifact_l201_d12_config(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_artifact_l201_d12_config(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'config requires a receiver')
+		return ruby.object_value('ArgumentError', 'config requires a receiver')
 	}
 	return abstract_artifact_config(abstract_artifact_from_value(args[0]))
 }
 
 // Ruby method `cask_sandbox(network_access_allowed: false)` at line 206.
-pub fn ruby_abstract_artifact_l206_d13_cask_sandbox(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_artifact_l206_d13_cask_sandbox(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'cask_sandbox requires a receiver')
+		return ruby.object_value('ArgumentError', 'cask_sandbox requires a receiver')
 	}
 	network_access_allowed := if args.len > 1 { args[1].as_bool() or { false } } else { false }
 	use_sandbox := if args.len > 2 { args[2].as_bool() or { false } } else { false }
@@ -611,15 +611,15 @@ pub fn ruby_abstract_artifact_l206_d13_cask_sandbox(args ...brew_runtime.Value) 
 }
 
 // Ruby method `run_cask_sandbox(sandbox, payload)` at line 221.
-pub fn ruby_abstract_artifact_l221_d14_run_cask_sandbox(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_artifact_l221_d14_run_cask_sandbox(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
-		return brew_runtime.object_value('ArgumentError', 'run_cask_sandbox requires a receiver, sandbox, and payload')
+		return ruby.object_value('ArgumentError', 'run_cask_sandbox requires a receiver, sandbox, and payload')
 	}
 	sandbox := abstract_artifact_sandbox_from_value(args[1]) or {
-		return brew_runtime.object_value('TypeError', err.msg())
+		return ruby.object_value('TypeError', err.msg())
 	}
 	if args[2].type_name != 'Hash' {
-		return brew_runtime.object_value('TypeError', 'payload must be a Hash')
+		return ruby.object_value('TypeError', 'payload must be a Hash')
 	}
 	options := if args.len > 3 && args[3].type_name == 'Hash' {
 		abstract_artifact_sandbox_options_from_value(args[3])
@@ -627,25 +627,25 @@ pub fn ruby_abstract_artifact_l221_d14_run_cask_sandbox(args ...brew_runtime.Val
 		AbstractArtifactSandboxOptions{}
 	}
 	result := run_abstract_artifact_cask_sandbox(sandbox, args[2].map_data, options, abstract_artifact_noop_sandbox_runner) or {
-		return brew_runtime.object_value('SystemCallError', err.msg())
+		return ruby.object_value('SystemCallError', err.msg())
 	}
 	return abstract_artifact_sandbox_run_value(result)
 }
 
 // Ruby method `to_s` at line 252.
-pub fn ruby_abstract_artifact_l252_d15_to_s(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_artifact_l252_d15_to_s(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'to_s requires a receiver')
+		return ruby.object_value('ArgumentError', 'to_s requires a receiver')
 	}
-	return brew_runtime.string_value(abstract_artifact_to_string(abstract_artifact_from_value(args[0])))
+	return ruby.string_value(abstract_artifact_to_string(abstract_artifact_from_value(args[0])))
 }
 
 // Ruby method `to_args` at line 257.
-pub fn ruby_abstract_artifact_l257_d16_to_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_artifact_l257_d16_to_args(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'to_args requires a receiver')
+		return ruby.object_value('ArgumentError', 'to_args requires a receiver')
 	}
-	return brew_runtime.array_value(abstract_artifact_to_args(abstract_artifact_from_value(args[0])))
+	return ruby.array_value(abstract_artifact_to_args(abstract_artifact_from_value(args[0])))
 }
 
 // Original Ruby source (line-for-line):

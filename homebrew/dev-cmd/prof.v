@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `dev-cmd/prof.rb`.
@@ -156,47 +156,47 @@ pub:
 	options ProfOptions
 }
 
-pub fn prof_input_boundary(input &ProfInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::Prof::Input', '', {
+pub fn prof_input_boundary(input &ProfInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::Prof::Input', '', {
 		'prof_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn prof_input_from_value(value brew_runtime.Value) &ProfInput {
+fn prof_input_from_value(value ruby.Value) &ProfInput {
 	address := value.attributes['prof_input_address'] or { panic('invalid Prof input') }
 	return unsafe { &ProfInput(voidptr(address.u64())) }
 }
 
-fn prof_plan_value(plan ProfPlan) brew_runtime.Value {
-	mut environment := map[string]brew_runtime.Value{}
+fn prof_plan_value(plan ProfPlan) ruby.Value {
+	mut environment := map[string]ruby.Value{}
 	for name, value in plan.environment {
-		environment[name] = brew_runtime.string_value(value)
+		environment[name] = ruby.string_value(value)
 	}
-	return brew_runtime.map_value({
-		'install_bundler_gems': brew_runtime.bool_value(plan.install_bundler_gems)
-		'bundler_groups': brew_runtime.string_array_value(plan.bundler_groups)
-		'setup_gem_environment': brew_runtime.bool_value(plan.setup_gem_environment)
-		'directory': brew_runtime.string_value(plan.directory)
-		'mode': brew_runtime.object_value('Symbol', plan.mode)
-		'environment': brew_runtime.map_value(environment)
-		'command': brew_runtime.string_array_value(plan.command)
-		'command_is_safe': brew_runtime.bool_value(plan.command_is_safe)
-		'post_command': brew_runtime.string_array_value(plan.post_command)
-		'output_filename': brew_runtime.string_value(plan.output_filename)
-		'browser_path': brew_runtime.string_value(plan.browser_path)
-		'messages': brew_runtime.string_array_value(plan.messages)
-		'invalid_option': brew_runtime.string_value(plan.invalid_option)
-		'suggestion': brew_runtime.string_value(plan.suggestion)
+	return ruby.map_value({
+		'install_bundler_gems': ruby.bool_value(plan.install_bundler_gems)
+		'bundler_groups': ruby.string_array_value(plan.bundler_groups)
+		'setup_gem_environment': ruby.bool_value(plan.setup_gem_environment)
+		'directory': ruby.string_value(plan.directory)
+		'mode': ruby.object_value('Symbol', plan.mode)
+		'environment': ruby.map_value(environment)
+		'command': ruby.string_array_value(plan.command)
+		'command_is_safe': ruby.bool_value(plan.command_is_safe)
+		'post_command': ruby.string_array_value(plan.post_command)
+		'output_filename': ruby.string_value(plan.output_filename)
+		'browser_path': ruby.string_value(plan.browser_path)
+		'messages': ruby.string_array_value(plan.messages)
+		'invalid_option': ruby.string_value(plan.invalid_option)
+		'suggestion': ruby.string_value(plan.suggestion)
 	})
 }
 
 // Ruby method `run` at line 27.
-pub fn ruby_prof_l27_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_prof_l27_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'command input is required')
+		return ruby.object_value('ArgumentError', 'command input is required')
 	}
 	return prof_plan_value(prof_plan(prof_input_from_value(args[0]).options) or {
-		return brew_runtime.object_value('UsageError', err.msg())
+		return ruby.object_value('UsageError', err.msg())
 	})
 }
 

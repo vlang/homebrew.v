@@ -1,6 +1,6 @@
 module utils
 
-import brew_runtime
+import ruby
 import homebrew.cask.utils as base_trash
 import homebrew.os.mac.ffi
 import os
@@ -37,9 +37,9 @@ fn mac_trash_fixture_retry(path string) !string {
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `trash(*paths, command: nil)` at line 16.
-pub fn ruby_trash_l16_d1_trash(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_trash_l16_d1_trash(args ...ruby.Value) ruby.Value {
 	paths := if args.len > 0 && args[0].type_name == 'Array' {
-		args[0].as_array() or { []brew_runtime.Value{} }.map(it.as_string())
+		args[0].as_array() or { []ruby.Value{} }.map(it.as_string())
 	} else {
 		args.filter(it.type_name in ['String', 'Pathname']).map(it.as_string())
 	}

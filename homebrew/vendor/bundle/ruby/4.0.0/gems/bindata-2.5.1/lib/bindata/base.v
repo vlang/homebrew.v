@@ -1,6 +1,6 @@
 module bindata
 
-import brew_runtime
+import ruby
 import math
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/bindata-2.5.1/lib/bindata/base.rb`.
@@ -10,42 +10,42 @@ pub struct BaseObject {
 pub:
 	type_name string
 mut:
-	parameters       map[string]brew_runtime.Value
-	parent           brew_runtime.Value
+	parameters       map[string]ruby.Value
+	parent           ruby.Value
 	has_parent       bool
-	assigned_value   brew_runtime.Value
+	assigned_value   ruby.Value
 	has_assignment   bool
-	snapshot_value   brew_runtime.Value
+	snapshot_value   ruby.Value
 	binary_value     string
 	do_num_bytes     f64
 	clear            bool = true
 	reading          bool
-	top_level_values map[string]brew_runtime.Value
+	top_level_values map[string]ruby.Value
 	method_names     []string
 }
 
 pub struct BaseSeparatedArguments {
 pub:
-	value      brew_runtime.Value
+	value      ruby.Value
 	has_value  bool
-	parameters map[string]brew_runtime.Value
-	parent     brew_runtime.Value
+	parameters map[string]ruby.Value
+	parent     ruby.Value
 	has_parent bool
 }
 
-fn base_nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn base_nil_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-fn base_value_truthy(value brew_runtime.Value) bool {
+fn base_value_truthy(value ruby.Value) bool {
 	return value.type_name != 'NilClass' && !(value.type_name == 'Bool' && !value.bool_data)
 }
 
-fn base_name(value brew_runtime.Value) string {
+fn base_name(value ruby.Value) string {
 	return value.as_string().trim_left(':')
 }
 
-fn base_object_value(object &BaseObject) brew_runtime.Value {
+fn base_object_value(object &BaseObject) ruby.Value {
 	mut attributes := {
 		'base_object_address': u64(voidptr(object)).str()
 		'clear':               object.clear.str()
@@ -53,7 +53,7 @@ fn base_object_value(object &BaseObject) brew_runtime.Value {
 	if object.method_names.len > 0 {
 		attributes['method_names'] = object.method_names.join(',')
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: object.type_name
 		repr: object.snapshot_value.repr
 		int_data: i64(u64(voidptr(object)))
@@ -62,7 +62,7 @@ fn base_object_value(object &BaseObject) brew_runtime.Value {
 	}
 }
 
-fn base_object_from_value(value brew_runtime.Value) &BaseObject {
+fn base_object_from_value(value ruby.Value) &BaseObject {
 	if address := value.attributes['base_object_address'] {
 		actual := if value.int_data != 0 { u64(value.int_data) } else { address.u64() }
 		return unsafe { &BaseObject(voidptr(actual)) }
@@ -79,12 +79,12 @@ fn base_object_from_value(value brew_runtime.Value) &BaseObject {
 		binary_value: value.attributes['binary'] or { '' }
 		do_num_bytes: (value.attributes['do_num_bytes'] or { '0' }).f64()
 		clear: (value.attributes['clear'] or { 'true' }).bool()
-		top_level_values: map[string]brew_runtime.Value{}
+		top_level_values: map[string]ruby.Value{}
 		method_names: methods
 	}
 }
 
-pub fn new_base_object(type_name string, parameters map[string]brew_runtime.Value) &BaseObject {
+pub fn new_base_object(type_name string, parameters map[string]ruby.Value) &BaseObject {
 	nil_value := base_nil_value()
 	return &BaseObject{
 		type_name: type_name
@@ -92,19 +92,19 @@ pub fn new_base_object(type_name string, parameters map[string]brew_runtime.Valu
 		parent: nil_value
 		assigned_value: nil_value
 		snapshot_value: nil_value
-		top_level_values: map[string]brew_runtime.Value{}
+		top_level_values: map[string]ruby.Value{}
 	}
 }
 
-pub fn base_boundary_value(object &BaseObject) brew_runtime.Value {
+pub fn base_boundary_value(object &BaseObject) ruby.Value {
 	return base_object_value(object)
 }
 
-pub fn (object &BaseObject) params() map[string]brew_runtime.Value {
+pub fn (object &BaseObject) params() map[string]ruby.Value {
 	return object.parameters.clone()
 }
 
-pub fn (object &BaseObject) snapshot() brew_runtime.Value {
+pub fn (object &BaseObject) snapshot() ruby.Value {
 	return object.snapshot_value
 }
 
@@ -112,7 +112,7 @@ pub fn (object &BaseObject) is_clear() bool {
 	return object.clear
 }
 
-fn values_equal(left brew_runtime.Value, right brew_runtime.Value) bool {
+fn values_equal(left ruby.Value, right ruby.Value) bool {
 	if left.type_name != right.type_name || left.repr != right.repr || left.bool_data != right.bool_data || left.int_data != right.int_data || left.float_data != right.float_data || left.string_array_data != right.string_array_data || left.attributes != right.attributes {
 		return false
 	}
@@ -133,11 +133,11 @@ fn values_equal(left brew_runtime.Value, right brew_runtime.Value) bool {
 	return true
 }
 
-pub fn separate_base_arguments(obj_args []brew_runtime.Value) BaseSeparatedArguments {
+pub fn separate_base_arguments(obj_args []ruby.Value) BaseSeparatedArguments {
 	mut args := obj_args.clone()
 	mut result := BaseSeparatedArguments{
 		value: base_nil_value()
-		parameters: map[string]brew_runtime.Value{}
+		parameters: map[string]ruby.Value{}
 		parent: base_nil_value()
 	}
 	if args.len > 1 && args.last().type_name.starts_with('BinData::') {
@@ -163,15 +163,15 @@ pub fn separate_base_arguments(obj_args []brew_runtime.Value) BaseSeparatedArgum
 	return result
 }
 
-fn normalized_base_parameters(parameters map[string]brew_runtime.Value) map[string]brew_runtime.Value {
-	mut normalized := map[string]brew_runtime.Value{}
+fn normalized_base_parameters(parameters map[string]ruby.Value) map[string]ruby.Value {
+	mut normalized := map[string]ruby.Value{}
 	for key, value in parameters {
 		normalized[key.trim_left(':')] = value
 	}
 	return normalized
 }
 
-pub fn sanitize_base_parameters(parameters map[string]brew_runtime.Value, object_class brew_runtime.Value) !map[string]brew_runtime.Value {
+pub fn sanitize_base_parameters(parameters map[string]ruby.Value, object_class ruby.Value) !map[string]ruby.Value {
 	mut result := normalized_base_parameters(parameters)
 	for key, value in result {
 		if value.type_name == 'NilClass' {
@@ -203,7 +203,7 @@ pub fn sanitize_base_parameters(parameters map[string]brew_runtime.Value, object
 	return result
 }
 
-pub fn initialize_base_object(receiver brew_runtime.Value, obj_args []brew_runtime.Value) brew_runtime.Value {
+pub fn initialize_base_object(receiver ruby.Value, obj_args []ruby.Value) ruby.Value {
 	separated := separate_base_arguments(obj_args)
 	parameters := sanitize_base_parameters(separated.parameters, receiver) or { panic(err) }
 	processor := receiver.attributes['arg_processor'] or { '' }
@@ -225,15 +225,15 @@ pub fn initialize_base_object(receiver brew_runtime.Value, obj_args []brew_runti
 	return base_object_value(object)
 }
 
-fn base_arguments_value(separated BaseSeparatedArguments) brew_runtime.Value {
-	return brew_runtime.array_value([
+fn base_arguments_value(separated BaseSeparatedArguments) ruby.Value {
+	return ruby.array_value([
 		if separated.has_value { separated.value } else { base_nil_value() },
-		brew_runtime.map_value(separated.parameters),
+		ruby.map_value(separated.parameters),
 		if separated.has_parent { separated.parent } else { base_nil_value() },
 	])
 }
 
-fn base_top_level(receiver brew_runtime.Value) brew_runtime.Value {
+fn base_top_level(receiver ruby.Value) ruby.Value {
 	mut current := receiver
 	for {
 		object := base_object_from_value(current)
@@ -245,12 +245,12 @@ fn base_top_level(receiver brew_runtime.Value) brew_runtime.Value {
 	return current
 }
 
-fn base_integer_value(value brew_runtime.Value) i64 {
+fn base_integer_value(value ruby.Value) i64 {
 	return if value.type_name == 'Float' { i64(value.float_data) } else { value.int_data }
 }
 
 // Ruby method `read(io, *args, &block)` at line 19.
-pub fn ruby_base_l19_d1_read(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_base_l19_d1_read(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Base.read requires a class and IO')
 	}
@@ -260,7 +260,7 @@ pub fn ruby_base_l19_d1_read(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `arg_processor(name = nil)` at line 26.
-pub fn ruby_base_l26_d2_arg_processor(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_base_l26_d2_arg_processor(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Base.arg_processor requires a class')
 	}
@@ -268,7 +268,7 @@ pub fn ruby_base_l26_d2_arg_processor(args ...brew_runtime.Value) brew_runtime.V
 		name := base_name(args[1]) + '_arg_processor'
 		parts := name.split('_').filter(it.len > 0)
 		camelized := parts.map(it[..1].to_upper() + it[1..]).join('')
-		return brew_runtime.object_value('Symbol', ':${camelized}')
+		return ruby.object_value('Symbol', ':${camelized}')
 	}
 	processor := args[0].attributes['arg_processor'] or {
 		if ancestor := args[0].map_data['superclass'] {
@@ -276,30 +276,30 @@ pub fn ruby_base_l26_d2_arg_processor(args ...brew_runtime.Value) brew_runtime.V
 		}
 		'base'
 	}
-	return brew_runtime.object_value('BinData::ArgProcessor', processor)
+	return ruby.object_value('BinData::ArgProcessor', processor)
 }
 
 // Ruby method `bindata_name` at line 41.
-pub fn ruby_base_l41_d3_bindata_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_base_l41_d3_bindata_name(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Base.bindata_name requires a class')
 	}
-	return brew_runtime.string_value(underscore_registry_name(args[0].repr))
+	return ruby.string_value(underscore_registry_name(args[0].repr))
 }
 
 // Ruby method `unregister_self` at line 46.
-pub fn ruby_base_l46_d4_unregister_self(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_base_l46_d4_unregister_self(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Base.unregister_self requires a class')
 	}
 	if args.len > 1 && args[1].type_name == 'BinData::Registry' {
-		return ruby_registry_l34_d3_unregister(args[1], brew_runtime.string_value(args[0].repr))
+		return ruby_registry_l34_d3_unregister(args[1], ruby.string_value(args[0].repr))
 	}
 	return base_nil_value()
 }
 
 // Ruby method `register_subclasses # :nodoc:` at line 51.
-pub fn ruby_base_l51_d5_register_subclasses(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_base_l51_d5_register_subclasses(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Base.register_subclasses requires a class')
 	}
@@ -307,18 +307,18 @@ pub fn ruby_base_l51_d5_register_subclasses(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby define_singleton_method `define_singleton_method(:inherited) do |subclass|` at line 53.
-pub fn ruby_base_l53_d6_inherited(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_base_l53_d6_inherited(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Base.inherited requires a class and subclass')
 	}
 	if args.len > 2 && args[2].type_name == 'BinData::Registry' {
-		return ruby_registry_l25_d2_register(args[2], brew_runtime.string_value(args[1].repr), args[1])
+		return ruby_registry_l25_d2_register(args[2], ruby.string_value(args[1].repr), args[1])
 	}
 	return args[1]
 }
 
 // Ruby method `initialize(*args)` at line 80.
-pub fn ruby_base_l80_d7_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_base_l80_d7_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Base#initialize requires a receiver')
 	}
@@ -326,7 +326,7 @@ pub fn ruby_base_l80_d7_initialize(args ...brew_runtime.Value) brew_runtime.Valu
 }
 
 // Ruby attr_accessor `attr_accessor :parent` at line 88.
-pub fn ruby_base_l88_d8_parent(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_base_l88_d8_parent(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Base#parent requires a receiver')
 	}
@@ -335,7 +335,7 @@ pub fn ruby_base_l88_d8_parent(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby attr_accessor `attr_accessor :parent` at line 88.
-pub fn ruby_base_l88_d9_parent(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_base_l88_d9_parent(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Base#parent= requires a receiver and parent')
 	}
@@ -346,7 +346,7 @@ pub fn ruby_base_l88_d9_parent(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `new(value = nil, parent = nil)` at line 97.
-pub fn ruby_base_l97_d10_new(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_base_l97_d10_new(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Base#new requires a prototype')
 	}
@@ -371,7 +371,7 @@ pub fn ruby_base_l97_d10_new(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `eval_parameter(key, overrides = nil)` at line 112.
-pub fn ruby_base_l112_d11_eval_parameter(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_base_l112_d11_eval_parameter(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Base#eval_parameter requires a receiver and key')
 	}
@@ -381,7 +381,7 @@ pub fn ruby_base_l112_d11_eval_parameter(args ...brew_runtime.Value) brew_runtim
 		overrides := if args.len > 2 && args[2].type_name == 'Hash' {
 			args[2].map_data
 		} else {
-			map[string]brew_runtime.Value{}
+			map[string]ruby.Value{}
 		}
 		if result := overrides[name] {
 			return result
@@ -395,11 +395,11 @@ pub fn ruby_base_l112_d11_eval_parameter(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `lazy_evaluator # :nodoc:` at line 122.
-pub fn ruby_base_l122_d12_lazy_evaluator(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_base_l122_d12_lazy_evaluator(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Base#lazy_evaluator requires a receiver')
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'BinData::LazyEvaluator'
 		repr: args[0].repr
 		map_data: {
@@ -409,7 +409,7 @@ pub fn ruby_base_l122_d12_lazy_evaluator(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `get_parameter(key)` at line 129.
-pub fn ruby_base_l129_d13_get_parameter(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_base_l129_d13_get_parameter(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Base#get_parameter requires a receiver and key')
 	}
@@ -418,16 +418,16 @@ pub fn ruby_base_l129_d13_get_parameter(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby method `has_parameter?(key)` at line 134.
-pub fn ruby_base_l134_d14_has_parameter(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_base_l134_d14_has_parameter(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Base#has_parameter? requires a receiver and key')
 	}
 	object := base_object_from_value(args[0])
-	return brew_runtime.bool_value(base_name(args[1]) in object.parameters)
+	return ruby.bool_value(base_name(args[1]) in object.parameters)
 }
 
 // Ruby method `clear` at line 139.
-pub fn ruby_base_l139_d15_clear(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_base_l139_d15_clear(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Base#clear requires a receiver')
 	}
@@ -440,7 +440,7 @@ pub fn ruby_base_l139_d15_clear(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `read(io, &block)` at line 144.
-pub fn ruby_base_l144_d16_read(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_base_l144_d16_read(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Base#read requires a receiver and IO')
 	}
@@ -466,7 +466,7 @@ pub fn ruby_base_l144_d16_read(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `write(io, &block)` at line 157.
-pub fn ruby_base_l157_d17_write(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_base_l157_d17_write(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Base#write requires a receiver and IO')
 	}
@@ -474,7 +474,7 @@ pub fn ruby_base_l157_d17_write(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `num_bytes` at line 169.
-pub fn ruby_base_l169_d18_num_bytes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_base_l169_d18_num_bytes(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Base#num_bytes requires a receiver')
 	}
@@ -484,38 +484,38 @@ pub fn ruby_base_l169_d18_num_bytes(args ...brew_runtime.Value) brew_runtime.Val
 	} else {
 		f64(object.binary_value.len)
 	}
-	return brew_runtime.int_value(i64(math.ceil(value)))
+	return ruby.int_value(i64(math.ceil(value)))
 }
 
 // Ruby method `to_binary_s(&block)` at line 174.
-pub fn ruby_base_l174_d19_to_binary_s(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_base_l174_d19_to_binary_s(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Base#to_binary_s requires a receiver')
 	}
-	return brew_runtime.string_value(base_object_from_value(args[0]).binary_value)
+	return ruby.string_value(base_object_from_value(args[0]).binary_value)
 }
 
 // Ruby method `to_hex(&block)` at line 181.
-pub fn ruby_base_l181_d20_to_hex(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_base_l181_d20_to_hex(args ...ruby.Value) ruby.Value {
 	binary := ruby_base_l174_d19_to_binary_s(...args).as_string()
-	return brew_runtime.string_value(binary.bytes().map(it.hex()).join(''))
+	return ruby.string_value(binary.bytes().map(it.hex()).join(''))
 }
 
 // Ruby method `inspect` at line 186.
-pub fn ruby_base_l186_d21_inspect(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_base_l186_d21_inspect(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Base#inspect requires a receiver')
 	}
-	return brew_runtime.string_value(base_object_from_value(args[0]).snapshot_value.repr)
+	return ruby.string_value(base_object_from_value(args[0]).snapshot_value.repr)
 }
 
 // Ruby method `to_s` at line 191.
-pub fn ruby_base_l191_d22_to_s(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_base_l191_d22_to_s(args ...ruby.Value) ruby.Value {
 	return ruby_base_l186_d21_inspect(...args)
 }
 
 // Ruby method `pretty_print(pp) # :nodoc:` at line 196.
-pub fn ruby_base_l196_d23_pretty_print(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_base_l196_d23_pretty_print(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Base#pretty_print requires a receiver and printer')
 	}
@@ -523,15 +523,15 @@ pub fn ruby_base_l196_d23_pretty_print(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby method `=~(other)` at line 201.
-pub fn ruby_base_l201_d24_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_base_l201_d24_anonymous(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Base#=~ requires a receiver and pattern')
 	}
-	return brew_runtime.bool_value(base_object_from_value(args[0]).snapshot_value.repr.contains(args[1].repr))
+	return ruby.bool_value(base_object_from_value(args[0]).snapshot_value.repr.contains(args[1].repr))
 }
 
 // Ruby method `debug_name` at line 206.
-pub fn ruby_base_l206_d25_debug_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_base_l206_d25_debug_name(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Base#debug_name requires a receiver')
 	}
@@ -539,25 +539,25 @@ pub fn ruby_base_l206_d25_debug_name(args ...brew_runtime.Value) brew_runtime.Va
 	if object.has_parent {
 		return struct_debug_name_of_value(object.parent, args[0])
 	}
-	return brew_runtime.string_value('obj')
+	return ruby.string_value('obj')
 }
 
 // Ruby method `abs_offset` at line 212.
-pub fn ruby_base_l212_d26_abs_offset(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_base_l212_d26_abs_offset(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Base#abs_offset requires a receiver')
 	}
 	object := base_object_from_value(args[0])
 	if !object.has_parent {
-		return brew_runtime.int_value(0)
+		return ruby.int_value(0)
 	}
 	parent_offset := ruby_base_l212_d26_abs_offset(object.parent)
 	relative := struct_offset_of_value(object.parent, args[0])
-	return brew_runtime.int_value(base_integer_value(parent_offset) + base_integer_value(relative))
+	return ruby.int_value(base_integer_value(parent_offset) + base_integer_value(relative))
 }
 
 // Ruby method `rel_offset` at line 217.
-pub fn ruby_base_l217_d27_rel_offset(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_base_l217_d27_rel_offset(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Base#rel_offset requires a receiver')
 	}
@@ -565,20 +565,20 @@ pub fn ruby_base_l217_d27_rel_offset(args ...brew_runtime.Value) brew_runtime.Va
 	return if object.has_parent {
 		struct_offset_of_value(object.parent, args[0])
 	} else {
-		brew_runtime.int_value(0)
+		ruby.int_value(0)
 	}
 }
 
 // Ruby method `==(other) # :nodoc:` at line 221.
-pub fn ruby_base_l221_d28_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_base_l221_d28_anonymous(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(values_equal(args[1], base_object_from_value(args[0]).snapshot_value))
+	return ruby.bool_value(values_equal(args[1], base_object_from_value(args[0]).snapshot_value))
 }
 
 // Ruby method `safe_respond_to?(symbol, include_private = false) # :nodoc:` at line 228.
-pub fn ruby_base_l228_d29_safe_respond_to(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_base_l228_d29_safe_respond_to(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Base#safe_respond_to? requires a receiver and method')
 	}
@@ -588,16 +588,16 @@ pub fn ruby_base_l228_d29_safe_respond_to(args ...brew_runtime.Value) brew_runti
 		'to_s', 'pretty_print', '=~', 'debug_name', 'abs_offset', 'rel_offset', '==',
 		'safe_respond_to?', 'base_respond_to?']
 	object := base_object_from_value(args[0])
-	return brew_runtime.bool_value(name in base_methods || name in object.method_names)
+	return ruby.bool_value(name in base_methods || name in object.method_names)
 }
 
 // Ruby alias `alias base_respond_to? respond_to?` at line 232.
-pub fn ruby_base_l232_d30_base_respond_to(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_base_l232_d30_base_respond_to(args ...ruby.Value) ruby.Value {
 	return ruby_base_l228_d29_safe_respond_to(...args)
 }
 
 // Ruby method `extract_args(args)` at line 237.
-pub fn ruby_base_l237_d31_extract_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_base_l237_d31_extract_args(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Base#extract_args requires a receiver and argument array')
 	}
@@ -610,7 +610,7 @@ pub fn ruby_base_l237_d31_extract_args(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby method `start_read` at line 241.
-pub fn ruby_base_l241_d32_start_read(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_base_l241_d32_start_read(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Base#start_read requires a receiver')
 	}
@@ -622,15 +622,15 @@ pub fn ruby_base_l241_d32_start_read(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby method `reading?` at line 249.
-pub fn ruby_base_l249_d33_reading(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_base_l249_d33_reading(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Base#reading? requires a receiver')
 	}
-	return brew_runtime.bool_value(base_object_from_value(base_top_level(args[0])).reading)
+	return ruby.bool_value(base_object_from_value(base_top_level(args[0])).reading)
 }
 
 // Ruby method `top_level_set(sym, value)` at line 253.
-pub fn ruby_base_l253_d34_top_level_set(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_base_l253_d34_top_level_set(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('Base#top_level_set requires a receiver, name and value')
 	}
@@ -643,7 +643,7 @@ pub fn ruby_base_l253_d34_top_level_set(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby method `top_level_get(sym)` at line 257.
-pub fn ruby_base_l257_d35_top_level_get(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_base_l257_d35_top_level_get(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Base#top_level_get requires a receiver and name')
 	}
@@ -652,7 +652,7 @@ pub fn ruby_base_l257_d35_top_level_get(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby method `top_level` at line 263.
-pub fn ruby_base_l263_d36_top_level(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_base_l263_d36_top_level(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Base#top_level requires a receiver')
 	}
@@ -660,15 +660,15 @@ pub fn ruby_base_l263_d36_top_level(args ...brew_runtime.Value) brew_runtime.Val
 }
 
 // Ruby method `binary_string(str)` at line 274.
-pub fn ruby_base_l274_d37_binary_string(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_base_l274_d37_binary_string(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Base#binary_string requires a receiver and string')
 	}
-	return brew_runtime.string_value(args[1].as_string())
+	return ruby.string_value(args[1].as_string())
 }
 
 // Ruby method `extract_args(obj_class, obj_args)` at line 289.
-pub fn ruby_base_l289_d38_extract_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_base_l289_d38_extract_args(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('BaseArgProcessor#extract_args requires a receiver, class and argument array')
 	}
@@ -681,7 +681,7 @@ pub fn ruby_base_l289_d38_extract_args(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby method `separate_args(_obj_class, obj_args)` at line 298.
-pub fn ruby_base_l298_d39_separate_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_base_l298_d39_separate_args(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('BaseArgProcessor#separate_args requires a receiver, class and argument array')
 	}
@@ -689,7 +689,7 @@ pub fn ruby_base_l298_d39_separate_args(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby method `sanitize_parameters!(obj_class, obj_params); end` at line 322.
-pub fn ruby_base_l322_d40_sanitize_parameters(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_base_l322_d40_sanitize_parameters(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('BaseArgProcessor#sanitize_parameters! requires a receiver, class and parameters')
 	}

@@ -1,6 +1,6 @@
 module utils
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `utils/link.rb`.
@@ -129,65 +129,65 @@ pub fn link_docs(path string, prefix string, command string) ![]string {
 }
 
 // Ruby method `self.link_src_dst_dirs(src_dir, dst_dir, command, link_dir: false)` at line 12.
-pub fn ruby_link_l12_d1_self_link_src_dst_dirs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_link_l12_d1_self_link_src_dst_dirs(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('link_src_dst_dirs requires source, destination, and command')
 	}
 	link_dir := if args.len > 3 { args[3].as_bool() or { false } } else { false }
 	conflicts := link_src_dst_dirs(args[0].as_string(), args[1].as_string(), args[2].as_string(), link_dir) or { panic(err) }
-	return brew_runtime.string_array_value(conflicts)
+	return ruby.string_array_value(conflicts)
 }
 
 // Ruby method `self.unlink_src_dst_dirs(src_dir, dst_dir, unlink_dir: false)` at line 47.
-pub fn ruby_link_l47_d2_self_unlink_src_dst_dirs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_link_l47_d2_self_unlink_src_dst_dirs(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('unlink_src_dst_dirs requires source and destination')
 	}
 	unlink_dir := if args.len > 2 { args[2].as_bool() or { false } } else { false }
 	unlink_src_dst_dirs(args[0].as_string(), args[1].as_string(), unlink_dir) or { panic(err) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `self.link_manpages(path, command)` at line 62.
-pub fn ruby_link_l62_d3_self_link_manpages(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_link_l62_d3_self_link_manpages(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('link_manpages requires path, command, and prefix')
 	}
-	return brew_runtime.string_array_value(link_manpages(args[0].as_string(), args[2].as_string(), args[1].as_string()) or { panic(err) })
+	return ruby.string_array_value(link_manpages(args[0].as_string(), args[2].as_string(), args[1].as_string()) or { panic(err) })
 }
 
 // Ruby method `self.unlink_manpages(path)` at line 67.
-pub fn ruby_link_l67_d4_self_unlink_manpages(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_link_l67_d4_self_unlink_manpages(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('unlink_manpages requires path and prefix')
 	}
 	unlink_manpages(args[0].as_string(), args[1].as_string()) or { panic(err) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `self.link_completions(path, command)` at line 72.
-pub fn ruby_link_l72_d5_self_link_completions(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_link_l72_d5_self_link_completions(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('link_completions requires path, command, and prefix')
 	}
-	return brew_runtime.string_array_value(link_completions(args[0].as_string(), args[2].as_string(), args[1].as_string()) or { panic(err) })
+	return ruby.string_array_value(link_completions(args[0].as_string(), args[2].as_string(), args[1].as_string()) or { panic(err) })
 }
 
 // Ruby method `self.unlink_completions(path)` at line 79.
-pub fn ruby_link_l79_d6_self_unlink_completions(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_link_l79_d6_self_unlink_completions(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('unlink_completions requires path and prefix')
 	}
 	unlink_completions(args[0].as_string(), args[1].as_string()) or { panic(err) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `self.link_docs(path, command)` at line 86.
-pub fn ruby_link_l86_d7_self_link_docs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_link_l86_d7_self_link_docs(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('link_docs requires path, command, and prefix')
 	}
-	return brew_runtime.string_array_value(link_docs(args[0].as_string(), args[2].as_string(), args[1].as_string()) or { panic(err) })
+	return ruby.string_array_value(link_docs(args[0].as_string(), args[2].as_string(), args[1].as_string()) or { panic(err) })
 }
 
 // Original Ruby source (line-for-line):

@@ -1,6 +1,6 @@
 module utils
 
-import brew_runtime
+import ruby
 import net.urllib
 import os
 import x.json2
@@ -123,7 +123,7 @@ pub fn bottles_tag_from_arg(argument ?string, system string, arch string) !Bottl
 }
 
 pub fn current_bottles_tag() BottlesTag {
-	information := brew_runtime.kernel_info()
+	information := ruby.kernel_info()
 	mut system := information.name.to_lower()
 	if system == 'darwin' {
 		system = match information.release.all_before('.').int() {
@@ -138,7 +138,7 @@ pub fn current_bottles_tag() BottlesTag {
 			else { information.release.all_before('.') }
 		}
 	}
-	configured_system := brew_runtime.environment_value('HOMEBREW_BOTTLE_SYSTEM')
+	configured_system := ruby.environment_value('HOMEBREW_BOTTLE_SYSTEM')
 	if configured_system != '' {
 		system = configured_system.to_lower()
 	}
@@ -148,7 +148,7 @@ pub fn current_bottles_tag() BottlesTag {
 	} $else $if aarch64 {
 		arch = 'arm64'
 	}
-	configured_arch := brew_runtime.environment_value('HOMEBREW_PROCESSOR')
+	configured_arch := ruby.environment_value('HOMEBREW_PROCESSOR')
 	if configured_arch != '' {
 		arch = configured_arch.to_lower()
 	}
@@ -508,33 +508,33 @@ pub fn (collector BottlesCollector) specification_for(tag BottlesTag,
 	return collector.tag_specs[matching.symbol()]
 }
 
-fn bottles_tag_value(tag BottlesTag) brew_runtime.Value {
-	return brew_runtime.structured_value('Utils::Bottles::Tag', tag.symbol(), {
+fn bottles_tag_value(tag BottlesTag) ruby.Value {
+	return ruby.structured_value('Utils::Bottles::Tag', tag.symbol(), {
 		'system': tag.system
 		'arch':   tag.arch
 	})
 }
 
-fn bottles_tag_from_value(value brew_runtime.Value) !BottlesTag {
+fn bottles_tag_from_value(value ruby.Value) !BottlesTag {
 	if value.type_name == 'Utils::Bottles::Tag' || ('system' in value.attributes && 'arch' in value.attributes) {
 		return new_bottles_tag(value.attributes['system'], value.attributes['arch'])
 	}
 	return bottles_tag_from_symbol(value.repr)
 }
 
-fn bottles_specification_value(specification BottlesTagSpecification) brew_runtime.Value {
-	return brew_runtime.Value{
+fn bottles_specification_value(specification BottlesTagSpecification) ruby.Value {
+	return ruby.Value{
 		type_name: 'Utils::Bottles::TagSpecification'
 		repr: specification.tag.symbol()
 		map_data: {
 			'tag':      bottles_tag_value(specification.tag)
-			'checksum': brew_runtime.string_value(specification.checksum)
-			'cellar':   brew_runtime.string_value(specification.cellar)
+			'checksum': ruby.string_value(specification.checksum)
+			'cellar':   ruby.string_value(specification.cellar)
 		}
 	}
 }
 
-fn bottles_specification_from_value(value brew_runtime.Value) !BottlesTagSpecification {
+fn bottles_specification_from_value(value ruby.Value) !BottlesTagSpecification {
 	if value.type_name != 'Utils::Bottles::TagSpecification' {
 		return error('expected Utils::Bottles::TagSpecification, got ${value.type_name}')
 	}
@@ -546,16 +546,16 @@ fn bottles_specification_from_value(value brew_runtime.Value) !BottlesTagSpecifi
 	}
 }
 
-fn bottles_collector_value(collector BottlesCollector) brew_runtime.Value {
+fn bottles_collector_value(collector BottlesCollector) ruby.Value {
 	values := collector.tags().map(bottles_specification_value(collector.tag_specs[it.symbol()]))
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'Utils::Bottles::Collector'
 		repr: collector.tags().map(it.symbol()).str()
 		array_data: values
 	}
 }
 
-fn bottles_collector_from_value(value brew_runtime.Value) !BottlesCollector {
+fn bottles_collector_from_value(value ruby.Value) !BottlesCollector {
 	if value.type_name != 'Utils::Bottles::Collector' {
 		return error('expected Utils::Bottles::Collector, got ${value.type_name}')
 	}
@@ -567,11 +567,11 @@ fn bottles_collector_from_value(value brew_runtime.Value) !BottlesCollector {
 	return collector
 }
 
-fn bottles_bool_attribute(value brew_runtime.Value, key string) bool {
+fn bottles_bool_attribute(value ruby.Value, key string) bool {
 	return (value.attributes[key] or { 'false' }).to_lower() in ['true', '1', 'yes']
 }
 
-fn bottles_formula_state_from_value(value brew_runtime.Value) BottlesFormulaState {
+fn bottles_formula_state_from_value(value ruby.Value) BottlesFormulaState {
 	return BottlesFormulaState{
 		latest_version_installed: bottles_bool_attribute(value, 'latest_version_installed')
 		built_as_bottle: bottles_bool_attribute(value, 'built_as_bottle')
@@ -581,16 +581,16 @@ fn bottles_formula_state_from_value(value brew_runtime.Value) BottlesFormulaStat
 	}
 }
 
-fn bottles_nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn bottles_nil_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-fn bottles_no_older_versions(args []brew_runtime.Value, index int) bool {
+fn bottles_no_older_versions(args []ruby.Value, index int) bool {
 	return args.len > index && args[index].type_name == 'Bool' && args[index].bool_data
 }
 
 // Ruby method `tag(tag = nil)` at line 16.
-pub fn ruby_bottles_l16_d1_tag(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottles_l16_d1_tag(args ...ruby.Value) ruby.Value {
 	if args.len > 0 && args[0].type_name != 'NilClass' {
 		return bottles_tag_value(bottles_tag_from_value(args[0]) or { panic(err) })
 	}
@@ -598,31 +598,31 @@ pub fn ruby_bottles_l16_d1_tag(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `built_as?(formula)` at line 31.
-pub fn ruby_bottles_l31_d2_built_as(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottles_l31_d2_built_as(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('built_as? requires a formula')
 	}
-	return brew_runtime.bool_value(bottles_built_as(bottles_formula_state_from_value(args[0])))
+	return ruby.bool_value(bottles_built_as(bottles_formula_state_from_value(args[0])))
 }
 
 // Ruby method `file_outdated?(formula, file)` at line 39.
-pub fn ruby_bottles_l39_d3_file_outdated(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottles_l39_d3_file_outdated(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('file_outdated? requires a formula and file')
 	}
-	return brew_runtime.bool_value(bottles_file_outdated(bottles_formula_state_from_value(args[0]), args[1].repr))
+	return ruby.bool_value(bottles_file_outdated(bottles_formula_state_from_value(args[0]), args[1].repr))
 }
 
 // Ruby method `extname_tag_rebuild(filename)` at line 53.
-pub fn ruby_bottles_l53_d4_extname_tag_rebuild(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottles_l53_d4_extname_tag_rebuild(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('extname_tag_rebuild requires a filename')
 	}
-	return brew_runtime.string_array_value(bottles_extname_tag_rebuild(args[0].repr))
+	return ruby.string_array_value(bottles_extname_tag_rebuild(args[0].repr))
 }
 
 // Ruby method `receipt_path(bottle_file)` at line 58.
-pub fn ruby_bottles_l58_d5_receipt_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottles_l58_d5_receipt_path(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('receipt_path requires a bottle file')
 	}
@@ -630,42 +630,42 @@ pub fn ruby_bottles_l58_d5_receipt_path(args ...brew_runtime.Value) brew_runtime
 	return if path == '' {
 		bottles_nil_value()
 	} else {
-		brew_runtime.string_value(path)
+		ruby.string_value(path)
 	}
 }
 
 // Ruby method `file_from_bottle(bottle_file, file_path)` at line 65.
-pub fn ruby_bottles_l65_d6_file_from_bottle(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottles_l65_d6_file_from_bottle(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('file_from_bottle requires a bottle file and file path')
 	}
-	return brew_runtime.string_value(bottles_file_from_bottle(args[0].repr, args[1].repr) or {
+	return ruby.string_value(bottles_file_from_bottle(args[0].repr, args[1].repr) or {
 		panic(err)
 	})
 }
 
 // Ruby method `resolve_formula_names(bottle_file)` at line 70.
-pub fn ruby_bottles_l70_d7_resolve_formula_names(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottles_l70_d7_resolve_formula_names(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('resolve_formula_names requires a bottle file')
 	}
-	return brew_runtime.string_array_value(bottles_resolve_formula_names(args[0].repr) or {
+	return ruby.string_array_value(bottles_resolve_formula_names(args[0].repr) or {
 		panic(err)
 	})
 }
 
 // Ruby method `resolve_version(bottle_file)` at line 91.
-pub fn ruby_bottles_l91_d8_resolve_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottles_l91_d8_resolve_version(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('resolve_version requires a bottle file')
 	}
-	return brew_runtime.object_value('PkgVersion', bottles_resolve_version(args[0].repr) or {
+	return ruby.object_value('PkgVersion', bottles_resolve_version(args[0].repr) or {
 		panic(err)
 	})
 }
 
 // Ruby method `formula_contents(bottle_file, name: resolve_formula_names(bottle_file)[0])` at line 97.
-pub fn ruby_bottles_l97_d9_formula_contents(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottles_l97_d9_formula_contents(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('formula_contents requires a bottle file')
 	}
@@ -674,11 +674,11 @@ pub fn ruby_bottles_l97_d9_formula_contents(args ...brew_runtime.Value) brew_run
 	} else {
 		none
 	}
-	return brew_runtime.string_value(bottles_formula_contents(args[0].repr, name) or { panic(err) })
+	return ruby.string_value(bottles_formula_contents(args[0].repr, name) or { panic(err) })
 }
 
 // Ruby method `path_resolved_basename(root_url, name, checksum, filename)` at line 110.
-pub fn ruby_bottles_l110_d10_path_resolved_basename(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottles_l110_d10_path_resolved_basename(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('path_resolved_basename requires root URL, name, and checksum')
 	}
@@ -689,20 +689,20 @@ pub fn ruby_bottles_l110_d10_path_resolved_basename(args ...brew_runtime.Value) 
 	}
 	resolution := bottles_path_resolved_basename(args[0].repr, args[1].repr, args[2].repr, filename) or { return bottles_nil_value() }
 	if resolution.github_packages {
-		return brew_runtime.array_value([
-			brew_runtime.string_value(resolution.path),
+		return ruby.array_value([
+			ruby.string_value(resolution.path),
 			if resolution.resolved_basename != '' {
-				brew_runtime.string_value(resolution.resolved_basename)
+				ruby.string_value(resolution.resolved_basename)
 			} else {
 				bottles_nil_value()
 			},
 		])
 	}
-	return brew_runtime.string_value(resolution.path)
+	return ruby.string_value(resolution.path)
 }
 
 // Ruby method `load_tab(formula)` at line 120.
-pub fn ruby_bottles_l120_d11_load_tab(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottles_l120_d11_load_tab(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('load_tab requires a formula')
 	}
@@ -723,16 +723,16 @@ pub fn ruby_bottles_l120_d11_load_tab(args ...brew_runtime.Value) brew_runtime.V
 		existing_tab_json: formula.attributes['existing_tab'] or { '' }
 		runtime_dependencies: dependencies
 		current_system: formula.attributes['current_system'] or {
-			brew_runtime.kernel_info().name}
+			ruby.kernel_info().name}
 	}
 	tab := bottles_load_tab(input) or { panic(err) }
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'Tab'
 		repr: tab.built_os
 		attributes: {
 			'built_os': tab.built_os
 		}
-		array_data: tab.runtime_dependencies.map(brew_runtime.structured_value('RuntimeDependency', it.full_name, {
+		array_data: tab.runtime_dependencies.map(ruby.structured_value('RuntimeDependency', it.full_name, {
 			'full_name': it.full_name
 			'version':   it.version
 		}))
@@ -740,36 +740,36 @@ pub fn ruby_bottles_l120_d11_load_tab(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby method `missing_all_bottle_publish_note` at line 146.
-pub fn ruby_bottles_l146_d12_missing_all_bottle_publish_note(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(bottles_missing_all_bottle_publish_note())
+pub fn ruby_bottles_l146_d12_missing_all_bottle_publish_note(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(bottles_missing_all_bottle_publish_note())
 }
 
 // Ruby method `bottle_file_list(bottle_file)` at line 153.
-pub fn ruby_bottles_l153_d13_bottle_file_list(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottles_l153_d13_bottle_file_list(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('bottle_file_list requires a bottle file')
 	}
-	return brew_runtime.string_array_value(bottles_file_list(args[0].repr) or { panic(err) })
+	return ruby.string_array_value(bottles_file_list(args[0].repr) or { panic(err) })
 }
 
 // Ruby attr_reader `attr_reader :system, :arch` at line 164.
-pub fn ruby_bottles_l164_d14_system(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottles_l164_d14_system(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Tag#system requires a receiver')
 	}
-	return brew_runtime.object_value('Symbol', bottles_tag_from_value(args[0]) or { panic(err) }.system)
+	return ruby.object_value('Symbol', bottles_tag_from_value(args[0]) or { panic(err) }.system)
 }
 
 // Ruby attr_reader `attr_reader :system, :arch` at line 164.
-pub fn ruby_bottles_l164_d15_arch(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottles_l164_d15_arch(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Tag#arch requires a receiver')
 	}
-	return brew_runtime.object_value('Symbol', bottles_tag_from_value(args[0]) or { panic(err) }.arch)
+	return ruby.object_value('Symbol', bottles_tag_from_value(args[0]) or { panic(err) }.arch)
 }
 
 // Ruby method `self.from_symbol(value)` at line 167.
-pub fn ruby_bottles_l167_d16_self_from_symbol(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottles_l167_d16_self_from_symbol(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Tag.from_symbol requires a symbol')
 	}
@@ -777,7 +777,7 @@ pub fn ruby_bottles_l167_d16_self_from_symbol(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby method `self.from_arg(arg, os:, arch:)` at line 186.
-pub fn ruby_bottles_l186_d17_self_from_arg(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottles_l186_d17_self_from_arg(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('Tag.from_arg requires argument, os, and arch')
 	}
@@ -788,7 +788,7 @@ pub fn ruby_bottles_l186_d17_self_from_arg(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `initialize(system:, arch:)` at line 195.
-pub fn ruby_bottles_l195_d18_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottles_l195_d18_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Tag#initialize requires system and arch')
 	}
@@ -796,28 +796,28 @@ pub fn ruby_bottles_l195_d18_initialize(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby method `==(other)` at line 201.
-pub fn ruby_bottles_l201_d19_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottles_l201_d19_anonymous(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	left := bottles_tag_from_value(args[0]) or { return brew_runtime.bool_value(false) }
+	left := bottles_tag_from_value(args[0]) or { return ruby.bool_value(false) }
 	if args[1].type_name in ['Symbol', 'String'] {
-		return brew_runtime.bool_value(left.symbol() == args[1].repr)
+		return ruby.bool_value(left.symbol() == args[1].repr)
 	}
-	right := bottles_tag_from_value(args[1]) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(left.equals(right))
+	right := bottles_tag_from_value(args[1]) or { return ruby.bool_value(false) }
+	return ruby.bool_value(left.equals(right))
 }
 
 // Ruby method `eql?(other)` at line 212.
-pub fn ruby_bottles_l212_d20_eql(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottles_l212_d20_eql(args ...ruby.Value) ruby.Value {
 	if args.len < 2 || args[1].type_name != 'Utils::Bottles::Tag' {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	return ruby_bottles_l201_d19_anonymous(...args)
 }
 
 // Ruby method `hash` at line 221.
-pub fn ruby_bottles_l221_d21_hash(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottles_l221_d21_hash(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Tag#hash requires a receiver')
 	}
@@ -826,115 +826,115 @@ pub fn ruby_bottles_l221_d21_hash(args ...brew_runtime.Value) brew_runtime.Value
 	for character in '${tag.system}\0${tag.standardized_arch()}' {
 		hash = ((hash << 5) + hash) ^ u64(character)
 	}
-	return brew_runtime.int_value(i64(hash))
+	return ruby.int_value(i64(hash))
 }
 
 // Ruby method `standardized_arch` at line 226.
-pub fn ruby_bottles_l226_d22_standardized_arch(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottles_l226_d22_standardized_arch(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Tag#standardized_arch requires a receiver')
 	}
-	return brew_runtime.object_value('Symbol', bottles_tag_from_value(args[0]) or {
+	return ruby.object_value('Symbol', bottles_tag_from_value(args[0]) or {
 		panic(err)
 	}.standardized_arch())
 }
 
 // Ruby method `to_sym` at line 234.
-pub fn ruby_bottles_l234_d23_to_sym(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottles_l234_d23_to_sym(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Tag#to_sym requires a receiver')
 	}
-	return brew_runtime.object_value('Symbol', bottles_tag_from_value(args[0]) or {
+	return ruby.object_value('Symbol', bottles_tag_from_value(args[0]) or {
 		panic(err)
 	}.symbol())
 }
 
 // Ruby method `to_s` at line 239.
-pub fn ruby_bottles_l239_d24_to_s(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottles_l239_d24_to_s(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Tag#to_s requires a receiver')
 	}
-	return brew_runtime.string_value(bottles_tag_from_value(args[0]) or { panic(err) }.str())
+	return ruby.string_value(bottles_tag_from_value(args[0]) or { panic(err) }.str())
 }
 
 // Ruby method `to_unstandardized_sym` at line 244.
-pub fn ruby_bottles_l244_d25_to_unstandardized_sym(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottles_l244_d25_to_unstandardized_sym(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Tag#to_unstandardized_sym requires a receiver')
 	}
-	return brew_runtime.object_value('Symbol', bottles_tag_from_value(args[0]) or {
+	return ruby.object_value('Symbol', bottles_tag_from_value(args[0]) or {
 		panic(err)
 	}.unstandardized_symbol())
 }
 
 // Ruby method `to_macos_version` at line 253.
-pub fn ruby_bottles_l253_d26_to_macos_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottles_l253_d26_to_macos_version(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Tag#to_macos_version requires a receiver')
 	}
-	return brew_runtime.object_value('MacOSVersion', bottles_tag_from_value(args[0]) or {
+	return ruby.object_value('MacOSVersion', bottles_tag_from_value(args[0]) or {
 		panic(err)
 	}.macos_version() or { panic(err) })
 }
 
 // Ruby method `linux?` at line 258.
-pub fn ruby_bottles_l258_d27_linux(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottles_l258_d27_linux(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Tag#linux? requires a receiver')
 	}
-	return brew_runtime.bool_value(bottles_tag_from_value(args[0]) or { panic(err) }.linux())
+	return ruby.bool_value(bottles_tag_from_value(args[0]) or { panic(err) }.linux())
 }
 
 // Ruby method `macos?` at line 263.
-pub fn ruby_bottles_l263_d28_macos(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottles_l263_d28_macos(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Tag#macos? requires a receiver')
 	}
-	return brew_runtime.bool_value(bottles_tag_from_value(args[0]) or { panic(err) }.macos())
+	return ruby.bool_value(bottles_tag_from_value(args[0]) or { panic(err) }.macos())
 }
 
 // Ruby method `valid_combination?` at line 268.
-pub fn ruby_bottles_l268_d29_valid_combination(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottles_l268_d29_valid_combination(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Tag#valid_combination? requires a receiver')
 	}
-	return brew_runtime.bool_value(bottles_tag_from_value(args[0]) or {
+	return ruby.bool_value(bottles_tag_from_value(args[0]) or {
 		panic(err)
 	}.valid_combination())
 }
 
 // Ruby method `default_prefix` at line 277.
-pub fn ruby_bottles_l277_d30_default_prefix(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottles_l277_d30_default_prefix(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Tag#default_prefix requires a receiver')
 	}
-	return brew_runtime.string_value(bottles_tag_from_value(args[0]) or {
+	return ruby.string_value(bottles_tag_from_value(args[0]) or {
 		panic(err)
 	}.default_prefix())
 }
 
 // Ruby method `default_cellar` at line 288.
-pub fn ruby_bottles_l288_d31_default_cellar(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottles_l288_d31_default_cellar(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Tag#default_cellar requires a receiver')
 	}
-	return brew_runtime.string_value(bottles_tag_from_value(args[0]) or {
+	return ruby.string_value(bottles_tag_from_value(args[0]) or {
 		panic(err)
 	}.default_cellar())
 }
 
 // Ruby method `arch_to_symbol(arch)` at line 301.
-pub fn ruby_bottles_l301_d32_arch_to_symbol(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottles_l301_d32_arch_to_symbol(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Tag#arch_to_symbol requires a receiver and arch')
 	}
-	return brew_runtime.object_value('Symbol', bottles_arch_symbol(bottles_tag_from_value(args[0]) or {
+	return ruby.object_value('Symbol', bottles_arch_symbol(bottles_tag_from_value(args[0]) or {
 		panic(err)
 	}, args[1].repr))
 }
 
 // Ruby attr_reader `attr_reader :tag` at line 315.
-pub fn ruby_bottles_l315_d33_tag(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottles_l315_d33_tag(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('TagSpecification#tag requires a receiver')
 	}
@@ -942,27 +942,27 @@ pub fn ruby_bottles_l315_d33_tag(args ...brew_runtime.Value) brew_runtime.Value 
 }
 
 // Ruby attr_reader `attr_reader :checksum` at line 318.
-pub fn ruby_bottles_l318_d34_checksum(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottles_l318_d34_checksum(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('TagSpecification#checksum requires a receiver')
 	}
-	return brew_runtime.object_value('Checksum', bottles_specification_from_value(args[0]) or {
+	return ruby.object_value('Checksum', bottles_specification_from_value(args[0]) or {
 		panic(err)
 	}.checksum)
 }
 
 // Ruby attr_reader `attr_reader :cellar` at line 321.
-pub fn ruby_bottles_l321_d35_cellar(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottles_l321_d35_cellar(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('TagSpecification#cellar requires a receiver')
 	}
-	return brew_runtime.object_value('SymbolOrString', bottles_specification_from_value(args[0]) or {
+	return ruby.object_value('SymbolOrString', bottles_specification_from_value(args[0]) or {
 		panic(err)
 	}.cellar)
 }
 
 // Ruby method `initialize(tag:, checksum:, cellar:)` at line 324.
-pub fn ruby_bottles_l324_d36_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottles_l324_d36_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('TagSpecification#initialize requires tag, checksum, and cellar')
 	}
@@ -974,51 +974,51 @@ pub fn ruby_bottles_l324_d36_initialize(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby method `==(other)` at line 331.
-pub fn ruby_bottles_l331_d37_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottles_l331_d37_anonymous(args ...ruby.Value) ruby.Value {
 	if args.len < 2 || args[1].type_name != 'Utils::Bottles::TagSpecification' {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	left := bottles_specification_from_value(args[0]) or { return brew_runtime.bool_value(false) }
-	right := bottles_specification_from_value(args[1]) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(left.tag.equals(right.tag) && left.checksum == right.checksum && left.cellar == right.cellar)
+	left := bottles_specification_from_value(args[0]) or { return ruby.bool_value(false) }
+	right := bottles_specification_from_value(args[1]) or { return ruby.bool_value(false) }
+	return ruby.bool_value(left.tag.equals(right.tag) && left.checksum == right.checksum && left.cellar == right.cellar)
 }
 
 // Ruby alias `alias eql? ==` at line 338.
-pub fn ruby_bottles_l338_d38_eql(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottles_l338_d38_eql(args ...ruby.Value) ruby.Value {
 	return ruby_bottles_l331_d37_anonymous(...args)
 }
 
 // Ruby method `initialize` at line 344.
-pub fn ruby_bottles_l344_d39_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottles_l344_d39_initialize(args ...ruby.Value) ruby.Value {
 	return bottles_collector_value(new_bottles_collector())
 }
 
 // Ruby method `tags` at line 349.
-pub fn ruby_bottles_l349_d40_tags(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottles_l349_d40_tags(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Collector#tags requires a receiver')
 	}
 	collector := bottles_collector_from_value(args[0]) or { panic(err) }
-	return brew_runtime.array_value(collector.tags().map(bottles_tag_value(it)))
+	return ruby.array_value(collector.tags().map(bottles_tag_value(it)))
 }
 
 // Ruby method `==(other)` at line 354.
-pub fn ruby_bottles_l354_d41_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottles_l354_d41_anonymous(args ...ruby.Value) ruby.Value {
 	if args.len < 2 || args[1].type_name != 'Utils::Bottles::Collector' {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	left := bottles_collector_from_value(args[0]) or { return brew_runtime.bool_value(false) }
-	right := bottles_collector_from_value(args[1]) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(left.equals(right))
+	left := bottles_collector_from_value(args[0]) or { return ruby.bool_value(false) }
+	right := bottles_collector_from_value(args[1]) or { return ruby.bool_value(false) }
+	return ruby.bool_value(left.equals(right))
 }
 
 // Ruby alias `alias eql? ==` at line 361.
-pub fn ruby_bottles_l361_d42_eql(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottles_l361_d42_eql(args ...ruby.Value) ruby.Value {
 	return ruby_bottles_l354_d41_anonymous(...args)
 }
 
 // Ruby method `add(tag, checksum:, cellar:)` at line 364.
-pub fn ruby_bottles_l364_d43_add(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottles_l364_d43_add(args ...ruby.Value) ruby.Value {
 	if args.len < 4 {
 		panic('Collector#add requires receiver, tag, checksum, and cellar')
 	}
@@ -1028,29 +1028,29 @@ pub fn ruby_bottles_l364_d43_add(args ...brew_runtime.Value) brew_runtime.Value 
 }
 
 // Ruby method `tag?(tag, no_older_versions: false)` at line 370.
-pub fn ruby_bottles_l370_d44_tag(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottles_l370_d44_tag(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Collector#tag? requires a receiver and tag')
 	}
 	collector := bottles_collector_from_value(args[0]) or { panic(err) }
-	return brew_runtime.bool_value(collector.has_tag(bottles_tag_from_value(args[1]) or {
+	return ruby.bool_value(collector.has_tag(bottles_tag_from_value(args[1]) or {
 		panic(err)
 	}, bottles_no_older_versions(args, 2)))
 }
 
 // Ruby method `each_tag(&block)` at line 376.
-pub fn ruby_bottles_l376_d45_each_tag(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottles_l376_d45_each_tag(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Collector#each_tag requires a receiver')
 	}
 	collector := bottles_collector_from_value(args[0]) or { panic(err) }
 	// V callbacks cannot cross the generic Value boundary, so return the exact
 	// source iteration sequence for typed callers to consume.
-	return brew_runtime.array_value(collector.tags().map(bottles_tag_value(it)))
+	return ruby.array_value(collector.tags().map(bottles_tag_value(it)))
 }
 
 // Ruby method `specification_for(tag, no_older_versions: false)` at line 384.
-pub fn ruby_bottles_l384_d46_specification_for(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottles_l384_d46_specification_for(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Collector#specification_for requires a receiver and tag')
 	}
@@ -1064,7 +1064,7 @@ pub fn ruby_bottles_l384_d46_specification_for(args ...brew_runtime.Value) brew_
 }
 
 // Ruby method `find_matching_tag(tag, no_older_versions: false)` at line 390.
-pub fn ruby_bottles_l390_d47_find_matching_tag(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottles_l390_d47_find_matching_tag(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Collector#find_matching_tag requires a receiver and tag')
 	}
@@ -1078,16 +1078,16 @@ pub fn ruby_bottles_l390_d47_find_matching_tag(args ...brew_runtime.Value) brew_
 }
 
 // Ruby attr_reader `attr_reader :tag_specs` at line 402.
-pub fn ruby_bottles_l402_d48_tag_specs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottles_l402_d48_tag_specs(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Collector#tag_specs requires a receiver')
 	}
 	collector := bottles_collector_from_value(args[0]) or { panic(err) }
-	mut values := map[string]brew_runtime.Value{}
+	mut values := map[string]ruby.Value{}
 	for symbol, specification in collector.tag_specs {
 		values[symbol] = bottles_specification_value(specification)
 	}
-	return brew_runtime.map_value(values)
+	return ruby.map_value(values)
 }
 
 // Original Ruby source (line-for-line):

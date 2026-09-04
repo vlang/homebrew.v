@@ -1,6 +1,6 @@
 module services
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `services/subcommand.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -38,10 +38,10 @@ pub:
 	xdg_runtime_dir           ?string
 	systemctl_environment_set bool
 	exited_early              bool
-	execution                 brew_runtime.Value
+	execution                 ruby.Value
 }
 
-pub type ServicesSubcommandRunner = fn (subcommand string, args ServicesDispatchArgs, targets []ServiceFormula) !brew_runtime.Value
+pub type ServicesSubcommandRunner = fn (subcommand string, args ServicesDispatchArgs, targets []ServiceFormula) !ruby.Value
 
 fn services_registered_subcommands(context ServicesDispatchContext) []string {
 	if context.registered_subcommands.len > 0 {
@@ -110,7 +110,7 @@ pub fn dispatch_services(args ServicesDispatchArgs, context ServicesDispatchCont
 			warnings: warnings
 			sudo_service_user: args.sudo_service_user
 			exited_early: true
-			execution: brew_runtime.object_value('NilClass', '')
+			execution: ruby.object_value('NilClass', '')
 		}
 	}
 
@@ -138,7 +138,7 @@ pub fn dispatch_services(args ServicesDispatchArgs, context ServicesDispatchCont
 	}
 }
 
-fn services_optional_string(values map[string]brew_runtime.Value, key string) ?string {
+fn services_optional_string(values map[string]ruby.Value, key string) ?string {
 	if value := values[key] {
 		if value.type_name != 'NilClass' {
 			return value.as_string()
@@ -147,11 +147,11 @@ fn services_optional_string(values map[string]brew_runtime.Value, key string) ?s
 	return none
 }
 
-fn services_formulae_from_value(value brew_runtime.Value) ![]ServiceFormula {
+fn services_formulae_from_value(value ruby.Value) ![]ServiceFormula {
 	return value.as_array()!.map(service_formula_from_value(it))
 }
 
-fn services_resolved_formulae_from_value(value brew_runtime.Value) !map[string]ServiceFormula {
+fn services_resolved_formulae_from_value(value ruby.Value) !map[string]ServiceFormula {
 	mut formulae := map[string]ServiceFormula{}
 	for item in value.as_array()! {
 		formula := service_formula_from_value(item)
@@ -160,103 +160,103 @@ fn services_resolved_formulae_from_value(value brew_runtime.Value) !map[string]S
 	return formulae
 }
 
-fn services_dispatch_args_from_value(value brew_runtime.Value) !ServicesDispatchArgs {
+fn services_dispatch_args_from_value(value ruby.Value) !ServicesDispatchArgs {
 	values := value.as_map()!
 	return ServicesDispatchArgs{
-		all: (values['all'] or { brew_runtime.bool_value(false) }).as_bool()!
+		all: (values['all'] or { ruby.bool_value(false) }).as_bool()!
 		sudo_service_user: services_optional_string(values, 'sudo_service_user')
-		subcommand: (values['subcommand'] or { brew_runtime.string_value('list') }).as_string()
-		formulae: (values['formulae'] or { brew_runtime.string_array_value([]string{}) }).as_string_array()!
+		subcommand: (values['subcommand'] or { ruby.string_value('list') }).as_string()
+		formulae: (values['formulae'] or { ruby.string_array_value([]string{}) }).as_string_array()!
 	}
 }
 
-fn services_dispatch_context_from_value(value brew_runtime.Value) !ServicesDispatchContext {
+fn services_dispatch_context_from_value(value ruby.Value) !ServicesDispatchContext {
 	values := value.as_map()!
 	return ServicesDispatchContext{
-		tmux: (values['tmux'] or { brew_runtime.bool_value(false) }).as_bool()!
-		pbpaste_exists: (values['pbpaste_exists'] or { brew_runtime.bool_value(false) }).as_bool()!
-		pbpaste_success: (values['pbpaste_success'] or { brew_runtime.bool_value(true) }).as_bool()!
-		launchctl: (values['launchctl'] or { brew_runtime.bool_value(false) }).as_bool()!
-		systemctl: (values['systemctl'] or { brew_runtime.bool_value(false) }).as_bool()!
-		root: (values['root'] or { brew_runtime.bool_value(false) }).as_bool()!
+		tmux: (values['tmux'] or { ruby.bool_value(false) }).as_bool()!
+		pbpaste_exists: (values['pbpaste_exists'] or { ruby.bool_value(false) }).as_bool()!
+		pbpaste_success: (values['pbpaste_success'] or { ruby.bool_value(true) }).as_bool()!
+		launchctl: (values['launchctl'] or { ruby.bool_value(false) }).as_bool()!
+		systemctl: (values['systemctl'] or { ruby.bool_value(false) }).as_bool()!
+		root: (values['root'] or { ruby.bool_value(false) }).as_bool()!
 		installed_formulae: services_formulae_from_value(values['installed_formulae'] or {
-			brew_runtime.array_value([]brew_runtime.Value{})
+			ruby.array_value([]ruby.Value{})
 		})!
 		resolved_formulae: services_resolved_formulae_from_value(values['resolved_formulae'] or {
-			brew_runtime.array_value([]brew_runtime.Value{})
+			ruby.array_value([]ruby.Value{})
 		})!
 		registered_subcommands: (values['registered_subcommands'] or {
-			brew_runtime.string_array_value([]string{})
+			ruby.string_array_value([]string{})
 		}).as_string_array()!
 		homebrew_dbus_session_bus_address: services_optional_string(values, 'homebrew_dbus_session_bus_address')
 		homebrew_xdg_runtime_dir: services_optional_string(values, 'homebrew_xdg_runtime_dir')
 	}
 }
 
-fn services_optional_value(value ?string) brew_runtime.Value {
+fn services_optional_value(value ?string) ruby.Value {
 	return if concrete := value {
-		brew_runtime.string_value(concrete)
+		ruby.string_value(concrete)
 	} else {
-		brew_runtime.object_value('NilClass', '')
+		ruby.object_value('NilClass', '')
 	}
 }
 
-fn services_dispatch_result_value(result ServicesDispatchResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'subcommand':                brew_runtime.string_value(result.subcommand)
-		'targets':                   brew_runtime.array_value(result.targets.map(service_formula_value(it)))
-		'warnings':                  brew_runtime.string_array_value(result.warnings)
+fn services_dispatch_result_value(result ServicesDispatchResult) ruby.Value {
+	return ruby.map_value({
+		'subcommand':                ruby.string_value(result.subcommand)
+		'targets':                   ruby.array_value(result.targets.map(service_formula_value(it)))
+		'warnings':                  ruby.string_array_value(result.warnings)
 		'sudo_service_user':         services_optional_value(result.sudo_service_user)
 		'dbus_session_bus_address':  services_optional_value(result.dbus_session_bus_address)
 		'xdg_runtime_dir':           services_optional_value(result.xdg_runtime_dir)
-		'systemctl_environment_set': brew_runtime.bool_value(result.systemctl_environment_set)
-		'exited_early':              brew_runtime.bool_value(result.exited_early)
+		'systemctl_environment_set': ruby.bool_value(result.systemctl_environment_set)
+		'exited_early':              ruby.bool_value(result.exited_early)
 		'execution':                 result.execution
 	})
 }
 
 fn services_boundary_runner(subcommand string, _ ServicesDispatchArgs,
-	targets []ServiceFormula) !brew_runtime.Value {
-	return brew_runtime.map_value({
-		'subcommand': brew_runtime.string_value(subcommand)
-		'targets':    brew_runtime.array_value(targets.map(service_formula_value(it)))
+	targets []ServiceFormula) !ruby.Value {
+	return ruby.map_value({
+		'subcommand': ruby.string_value(subcommand)
+		'targets':    ruby.array_value(targets.map(service_formula_value(it)))
 	})
 }
 
 // Ruby method `dispatch(args)` at line 22.
-pub fn ruby_subcommand_l22_d1_dispatch(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_subcommand_l22_d1_dispatch(args ...ruby.Value) ruby.Value {
 	request := services_dispatch_args_from_value(if args.len > 0 {
 		args[0]
 	} else {
-		brew_runtime.map_value(map[string]brew_runtime.Value{})
-	}) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+		ruby.map_value(map[string]ruby.Value{})
+	}) or { return ruby.object_value('ArgumentError', err.msg()) }
 	context := services_dispatch_context_from_value(if args.len > 1 {
 		args[1]
 	} else {
-		brew_runtime.map_value(map[string]brew_runtime.Value{})
-	}) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+		ruby.map_value(map[string]ruby.Value{})
+	}) or { return ruby.object_value('ArgumentError', err.msg()) }
 	result := dispatch_services(request, context, services_boundary_runner) or {
-		return brew_runtime.object_value('UsageError', err.msg())
+		return ruby.object_value('UsageError', err.msg())
 	}
 	return services_dispatch_result_value(result)
 }
 
 // Ruby method `targets(args, subcommand:, formulae:)` at line 76.
-pub fn ruby_subcommand_l76_d2_targets(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_subcommand_l76_d2_targets(args ...ruby.Value) ruby.Value {
 	request := services_dispatch_args_from_value(if args.len > 0 {
 		args[0]
 	} else {
-		brew_runtime.map_value(map[string]brew_runtime.Value{})
-	}) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+		ruby.map_value(map[string]ruby.Value{})
+	}) or { return ruby.object_value('ArgumentError', err.msg()) }
 	context := services_dispatch_context_from_value(if args.len > 1 {
 		args[1]
 	} else {
-		brew_runtime.map_value(map[string]brew_runtime.Value{})
-	}) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+		ruby.map_value(map[string]ruby.Value{})
+	}) or { return ruby.object_value('ArgumentError', err.msg()) }
 	targets := services_subcommand_targets(request, context) or {
-		return brew_runtime.object_value('FormulaUnavailableError', err.msg())
+		return ruby.object_value('FormulaUnavailableError', err.msg())
 	}
-	return brew_runtime.array_value(targets.map(service_formula_value(it)))
+	return ruby.array_value(targets.map(service_formula_value(it)))
 }
 
 // Original Ruby source (line-for-line):

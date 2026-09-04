@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 import homebrew.cmd as cmd_core
 
 // Translated from Homebrew/brew `test/cmd/untap_spec.rb`.
@@ -41,8 +41,8 @@ fn untap_spec_cask(token string, tap_name string, installed bool,
 	}
 }
 
-fn untap_spec_tap_value(tap cmd_core.UntapTap) brew_runtime.Value {
-	return brew_runtime.structured_value('Tap', tap.name, {
+fn untap_spec_tap_value(tap cmd_core.UntapTap) ruby.Value {
+	return ruby.structured_value('Tap', tap.name, {
 		'name':          tap.name
 		'core_tap':      tap.core_tap.str()
 		'core_cask_tap': tap.core_cask_tap.str()
@@ -51,8 +51,8 @@ fn untap_spec_tap_value(tap cmd_core.UntapTap) brew_runtime.Value {
 	})
 }
 
-fn untap_spec_formula_value(formula cmd_core.UntapFormula) brew_runtime.Value {
-	return brew_runtime.structured_value('Formula', formula.full_name, {
+fn untap_spec_formula_value(formula cmd_core.UntapFormula) ruby.Value {
+	return ruby.structured_value('Formula', formula.full_name, {
 		'name':      formula.name
 		'full_name': formula.full_name
 		'installed': (formula.installed_kegs.len > 0).str()
@@ -60,8 +60,8 @@ fn untap_spec_formula_value(formula cmd_core.UntapFormula) brew_runtime.Value {
 	})
 }
 
-fn untap_spec_cask_value(cask cmd_core.UntapCask) brew_runtime.Value {
-	return brew_runtime.structured_value('Cask::Cask', cask.full_name, {
+fn untap_spec_cask_value(cask cmd_core.UntapCask) ruby.Value {
+	return ruby.structured_value('Cask::Cask', cask.full_name, {
 		'token':      cask.token
 		'full_name':  cask.full_name
 		'installed':  cask.installed.str()
@@ -70,37 +70,37 @@ fn untap_spec_cask_value(cask cmd_core.UntapCask) brew_runtime.Value {
 }
 
 // Ruby let `let(:class_instance) { described_class.new(%w[arg1]) }` at line 8.
-pub fn ruby_untap_spec_l8_d1_class_instance(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn ruby_untap_spec_l8_d1_class_instance(args ...ruby.Value) ruby.Value {
+	return ruby.Value{
 		type_name: 'Homebrew::Cmd::Untap'
 		repr: 'Homebrew::Cmd::Untap(arg1)'
 		map_data: {
-			'named': brew_runtime.string_array_value(['arg1'])
+			'named': ruby.string_array_value(['arg1'])
 		}
 	}
 }
 
 // Ruby it `it "untaps a given Tap", :integration_test do` at line 12.
-pub fn ruby_untap_spec_l12_d2_untaps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_untap_spec_l12_d2_untaps(args ...ruby.Value) ruby.Value {
 	result := cmd_core.run_untap_command(cmd_core.UntapCommandInput{
 		named: ['homebrew/foo']
 		taps: [untap_spec_tap('homebrew/foo', [], [])]
-	}) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(result.untapped == ['homebrew/foo'] && result.stdout == '' && !result.failed)
+	}) or { return ruby.bool_value(false) }
+	return ruby.bool_value(result.untapped == ['homebrew/foo'] && result.stdout == '' && !result.failed)
 }
 
 // Ruby it `it "fails without a traceback when given a formula name" do` at line 21.
-pub fn ruby_untap_spec_l21_d3_fails(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_untap_spec_l21_d3_fails(args ...ruby.Value) ruby.Value {
 	cmd_core.run_untap_command(cmd_core.UntapCommandInput{
 		named: ['homebrew/foo/bar']
 	}) or {
-		return brew_runtime.bool_value(err.msg() == "Invalid tap name: 'homebrew/foo/bar'")
+		return ruby.bool_value(err.msg() == "Invalid tap name: 'homebrew/foo/bar'")
 	}
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 // Ruby it `it "continues untapping remaining taps when uninstallation is declined" do` at line 27.
-pub fn ruby_untap_spec_l27_d4_continues(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_untap_spec_l27_d4_continues(args ...ruby.Value) ruby.Value {
 	foo := untap_spec_tap('homebrew/foo', ['homebrew/foo/testball'], [])
 	bar := untap_spec_tap('homebrew/bar', [], [])
 	result := cmd_core.run_untap_command(cmd_core.UntapCommandInput{
@@ -109,14 +109,14 @@ pub fn ruby_untap_spec_l27_d4_continues(args ...brew_runtime.Value) brew_runtime
 		formulae: [untap_spec_formula('testball', foo.name, true, true)]
 		installed_formula_names: ['testball']
 		confirmation_exits: [foo.name]
-	}) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(result.failed && result.untapped == [bar.name]
+	}) or { return ruby.bool_value(false) }
+	return ruby.bool_value(result.failed && result.untapped == [bar.name]
 		&& result.stdout.contains('Would untap homebrew/foo')
 		&& result.stderr.contains('Refusing to untap homebrew/foo'))
 }
 
 // Ruby it `it "lists installed packages before offering to uninstall them and untap" do` at line 54.
-pub fn ruby_untap_spec_l54_d5_lists(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_untap_spec_l54_d5_lists(args ...ruby.Value) ruby.Value {
 	tap := untap_spec_tap('homebrew/foo', ['homebrew/foo/testball'], [
 		'homebrew/foo/testcask',
 	])
@@ -130,15 +130,15 @@ pub fn ruby_untap_spec_l54_d5_lists(args ...brew_runtime.Value) brew_runtime.Val
 		confirmations: {
 			tap.name: true
 		}
-	}) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(result.stdout == '==> Would untap homebrew/foo after uninstalling the following formulae and casks:\nhomebrew/foo/testball\nhomebrew/foo/testcask\n'
+	}) or { return ruby.bool_value(false) }
+	return ruby.bool_value(result.stdout == '==> Would untap homebrew/foo after uninstalling the following formulae and casks:\nhomebrew/foo/testball\nhomebrew/foo/testcask\n'
 		&& result.uninstalled_formulae == ['homebrew/foo/testball']
 		&& result.uninstalled_casks == ['homebrew/foo/testcask']
 		&& result.untapped == [tap.name])
 }
 
 // Ruby it `it "force-uninstalls installed packages without prompting before untapping" do` at line 88.
-pub fn ruby_untap_spec_l88_d6_force_uninstalls(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_untap_spec_l88_d6_force_uninstalls(args ...ruby.Value) ruby.Value {
 	tap := untap_spec_tap('homebrew/foo', ['homebrew/foo/testball'], [
 		'homebrew/foo/testcask',
 	])
@@ -150,15 +150,15 @@ pub fn ruby_untap_spec_l88_d6_force_uninstalls(args ...brew_runtime.Value) brew_
 		installed_formula_names: ['testball']
 		installed_cask_tokens: ['testcask']
 		force: true
-	}) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(result.stdout == '' && !result.failed
+	}) or { return ruby.bool_value(false) }
+	return ruby.bool_value(result.stdout == '' && !result.failed
 		&& result.actions.contains('uninstall_kegs:homebrew/foo:force=true')
 		&& result.actions.contains('uninstall_cask:homebrew/foo/testcask:force=true')
 		&& result.untapped == [tap.name])
 }
 
 // Ruby it `it "does not untap when an installation remains" do` at line 115.
-pub fn ruby_untap_spec_l115_d7_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_untap_spec_l115_d7_does(args ...ruby.Value) ruby.Value {
 	tap := untap_spec_tap('homebrew/foo', [], ['homebrew/foo/testcask'])
 	result := cmd_core.run_untap_command(cmd_core.UntapCommandInput{
 		named: [tap.name]
@@ -173,57 +173,57 @@ pub fn ruby_untap_spec_l115_d7_does(args ...brew_runtime.Value) brew_runtime.Val
 		confirmations: {
 			tap.name: true
 		}
-	}) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(result.failed && result.untapped.len == 0
+	}) or { return ruby.bool_value(false) }
+	return ruby.bool_value(result.failed && result.untapped.len == 0
 		&& result.stderr.contains('Failed to fully uninstall casks from homebrew/foo'))
 }
 
 // Ruby method `load_formula(name:, with_formula_file: false, mock_install: false)` at line 139.
-pub fn ruby_untap_spec_l139_d8_load_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_untap_spec_l139_d8_load_formula(args ...ruby.Value) ruby.Value {
 	values := if args.len > 0 {
-		args[0].as_map() or { map[string]brew_runtime.Value{} }
+		args[0].as_map() or { map[string]ruby.Value{} }
 	} else {
-		map[string]brew_runtime.Value{}
+		map[string]ruby.Value{}
 	}
-	name := (values['name'] or { brew_runtime.string_value('testball') }).as_string()
-	tap_name := (values['tap'] or { brew_runtime.string_value('homebrew/foo') }).as_string()
-	installed := (values['mock_install'] or { brew_runtime.bool_value(false) }).as_bool() or {
+	name := (values['name'] or { ruby.string_value('testball') }).as_string()
+	tap_name := (values['tap'] or { ruby.string_value('homebrew/foo') }).as_string()
+	installed := (values['mock_install'] or { ruby.bool_value(false) }).as_bool() or {
 		false
 	}
-	valid := (values['valid'] or { brew_runtime.bool_value(true) }).as_bool() or { true }
+	valid := (values['valid'] or { ruby.bool_value(true) }).as_bool() or { true }
 	return untap_spec_formula_value(untap_spec_formula(name, tap_name, installed, valid))
 }
 
 // Ruby let! `let!(:currently_installed_formula) do` at line 174.
-pub fn ruby_untap_spec_l174_d9_currently_installed_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_untap_spec_l174_d9_currently_installed_formula(args ...ruby.Value) ruby.Value {
 	return untap_spec_formula_value(untap_spec_formula('current_install', 'homebrew/foo', true, true))
 }
 
 // Ruby it `it "returns the expected formulae" do` at line 188.
-pub fn ruby_untap_spec_l188_d10_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_untap_spec_l188_d10_returns(args ...ruby.Value) ruby.Value {
 	tap := untap_spec_tap('homebrew/foo', ['homebrew/foo/current_install', 'homebrew/foo/no_install'], [])
 	formulae := [untap_spec_formula('current_install', tap.name, true, true),
 		untap_spec_formula('no_install', tap.name, false, true),
 		untap_spec_formula('legacy_install', tap.name, true, true)]
 	found := cmd_core.installed_formulae_for(tap, formulae, ['current_install', 'legacy_install'])
-	return brew_runtime.bool_value(found.map(it.full_name) == [
+	return ruby.bool_value(found.map(it.full_name) == [
 		'homebrew/foo/current_install',
 	])
 }
 
 // Ruby it `it "ignores formulae with invalid specs" do` at line 193.
-pub fn ruby_untap_spec_l193_d11_ignores(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_untap_spec_l193_d11_ignores(args ...ruby.Value) ruby.Value {
 	tap := untap_spec_tap('homebrew/foo', ['homebrew/foo/current_install', 'homebrew/foo/invalid-spec'], [])
 	formulae := [untap_spec_formula('current_install', tap.name, true, true),
 		untap_spec_formula('invalid-spec', tap.name, true, false)]
 	found := cmd_core.installed_formulae_for(tap, formulae, ['current_install', 'invalid-spec'])
-	return brew_runtime.bool_value(found.map(it.full_name) == [
+	return ruby.bool_value(found.map(it.full_name) == [
 		'homebrew/foo/current_install',
 	])
 }
 
 // Ruby let `let(:tap) { CoreTap.instance }` at line 218.
-pub fn ruby_untap_spec_l218_d12_tap(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_untap_spec_l218_d12_tap(args ...ruby.Value) ruby.Value {
 	return untap_spec_tap_value(cmd_core.UntapTap{
 		name: 'homebrew/core'
 		core_tap: true
@@ -231,38 +231,38 @@ pub fn ruby_untap_spec_l218_d12_tap(args ...brew_runtime.Value) brew_runtime.Val
 }
 
 // Ruby let `let(:tap) { Tap.fetch("homebrew", "foo") }` at line 224.
-pub fn ruby_untap_spec_l224_d13_tap(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_untap_spec_l224_d13_tap(args ...ruby.Value) ruby.Value {
 	return untap_spec_tap_value(untap_spec_tap('homebrew/foo', [], []))
 }
 
 // Ruby method `load_cask(token:, with_cask_file: false, mock_install: false, deprecated: false)` at line 236.
-pub fn ruby_untap_spec_l236_d14_load_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_untap_spec_l236_d14_load_cask(args ...ruby.Value) ruby.Value {
 	values := if args.len > 0 {
-		args[0].as_map() or { map[string]brew_runtime.Value{} }
+		args[0].as_map() or { map[string]ruby.Value{} }
 	} else {
-		map[string]brew_runtime.Value{}
+		map[string]ruby.Value{}
 	}
-	token := (values['token'] or { brew_runtime.string_value('testcask') }).as_string()
-	tap_name := (values['tap'] or { brew_runtime.string_value('homebrew/foo') }).as_string()
-	installed := (values['mock_install'] or { brew_runtime.bool_value(false) }).as_bool() or {
+	token := (values['token'] or { ruby.string_value('testcask') }).as_string()
+	tap_name := (values['tap'] or { ruby.string_value('homebrew/foo') }).as_string()
+	installed := (values['mock_install'] or { ruby.bool_value(false) }).as_bool() or {
 		false
 	}
-	deprecated := (values['deprecated'] or { brew_runtime.bool_value(false) }).as_bool() or {
+	deprecated := (values['deprecated'] or { ruby.bool_value(false) }).as_bool() or {
 		false
 	}
 	if deprecated {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	return untap_spec_cask_value(untap_spec_cask(token, tap_name, installed, false))
 }
 
 // Ruby let! `let!(:currently_installed_cask) do` at line 264.
-pub fn ruby_untap_spec_l264_d15_currently_installed_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_untap_spec_l264_d15_currently_installed_cask(args ...ruby.Value) ruby.Value {
 	return untap_spec_cask_value(untap_spec_cask('current_install', 'homebrew/foo', true, false))
 }
 
 // Ruby it `it "returns the expected casks" do` at line 279.
-pub fn ruby_untap_spec_l279_d16_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_untap_spec_l279_d16_returns(args ...ruby.Value) ruby.Value {
 	tap := untap_spec_tap('homebrew/foo', [], ['homebrew/foo/current_install',
 		'homebrew/foo/no_install', 'homebrew/foo/deprecated_method'])
 	casks := [untap_spec_cask('current_install', tap.name, true, false),
@@ -270,13 +270,13 @@ pub fn ruby_untap_spec_l279_d16_returns(args ...brew_runtime.Value) brew_runtime
 		untap_spec_cask('legacy_install', tap.name, true, false),
 		untap_spec_cask('deprecated_method', tap.name, false, true)]
 	found := cmd_core.installed_casks_for(tap, casks, ['current_install', 'legacy_install'])
-	return brew_runtime.bool_value(found.map(it.full_name) == [
+	return ruby.bool_value(found.map(it.full_name) == [
 		'homebrew/foo/current_install',
 	])
 }
 
 // Ruby let `let(:tap) { CoreCaskTap.instance }` at line 285.
-pub fn ruby_untap_spec_l285_d17_tap(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_untap_spec_l285_d17_tap(args ...ruby.Value) ruby.Value {
 	return untap_spec_tap_value(cmd_core.UntapTap{
 		name: 'homebrew/cask'
 		core_cask_tap: true
@@ -284,7 +284,7 @@ pub fn ruby_untap_spec_l285_d17_tap(args ...brew_runtime.Value) brew_runtime.Val
 }
 
 // Ruby let `let(:tap) { Tap.fetch("homebrew", "foo") }` at line 291.
-pub fn ruby_untap_spec_l291_d18_tap(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_untap_spec_l291_d18_tap(args ...ruby.Value) ruby.Value {
 	return untap_spec_tap_value(untap_spec_tap('homebrew/foo', [], []))
 }
 

@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `ignorable.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -24,7 +24,7 @@ pub struct IgnorableProgram {
 pub:
 	exception        ?IgnorableException
 	decision         IgnorableDecision
-	result           brew_runtime.Value
+	result           ruby.Value
 	rescued_in_block bool
 	ensure_block     bool
 }
@@ -74,7 +74,7 @@ pub fn (mut state IgnorableState) handle_raise(exception IgnorableException,
 	}
 }
 
-pub fn (mut state IgnorableState) hook_raise(program IgnorableProgram) !brew_runtime.Value {
+pub fn (mut state IgnorableState) hook_raise(program IgnorableProgram) !ruby.Value {
 	state.hook_installed = true
 	state.ensure_ran = false
 	defer {
@@ -87,7 +87,7 @@ pub fn (mut state IgnorableState) hook_raise(program IgnorableProgram) !brew_run
 	if exception := program.exception {
 		resumed := state.handle_raise(exception, program.decision) or {
 			if program.rescued_in_block && program.decision == .raise_exception && !exception.external && !exception.script_error {
-				return brew_runtime.object_value('Symbol', 'rescued_in_block')
+				return ruby.object_value('Symbol', 'rescued_in_block')
 			}
 			return err
 		}
@@ -98,22 +98,22 @@ pub fn (mut state IgnorableState) hook_raise(program IgnorableProgram) !brew_run
 	return program.result
 }
 
-fn ignorable_state_value(state &IgnorableState) brew_runtime.Value {
-	return brew_runtime.structured_value('Ignorable::State', '', {
+fn ignorable_state_value(state &IgnorableState) ruby.Value {
+	return ruby.structured_value('Ignorable::State', '', {
 		'ignorable_state_address': u64(voidptr(state)).str()
 	})
 }
 
-fn ignorable_state_from_value(value brew_runtime.Value) &IgnorableState {
+fn ignorable_state_from_value(value ruby.Value) &IgnorableState {
 	address := value.attributes['ignorable_state_address'] or { panic('invalid Ignorable state') }
 	return unsafe { &IgnorableState(voidptr(address.u64())) }
 }
 
-pub fn ignorable_state_boundary(state &IgnorableState) brew_runtime.Value {
+pub fn ignorable_state_boundary(state &IgnorableState) ruby.Value {
 	return ignorable_state_value(state)
 }
 
-fn ignorable_exception_from_value(value brew_runtime.Value) IgnorableException {
+fn ignorable_exception_from_value(value ruby.Value) IgnorableException {
 	return IgnorableException{
 		type_name: value.attributes['type_name'] or { value.type_name }
 		message: value.attributes['message'] or { value.repr }
@@ -132,16 +132,16 @@ fn ignorable_decision(value string) IgnorableDecision {
 	}
 }
 
-fn ignorable_error_value(exception IgnorableException, message string) brew_runtime.Value {
-	return brew_runtime.structured_value(exception.type_name, message, {
+fn ignorable_error_value(exception IgnorableException, message string) ruby.Value {
+	return ruby.structured_value(exception.type_name, message, {
 		'backtrace': exception.backtrace.join('\n')
 	})
 }
 
 // Ruby method `self.hook_raise(on_ignorable:, &block)` at line 20.
-pub fn ruby_ignorable_l20_d1_self_hook_raise(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ignorable_l20_d1_self_hook_raise(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'Ignorable state is required')
+		return ruby.object_value('ArgumentError', 'Ignorable state is required')
 	}
 	mut state := ignorable_state_from_value(args[0])
 	has_exception := args.len > 1 && args[1].type_name != 'NilClass'
@@ -157,7 +157,7 @@ pub fn ruby_ignorable_l20_d1_self_hook_raise(args ...brew_runtime.Value) brew_ru
 		} else {
 			.raise_exception
 		}
-		result: if args.len > 3 { args[3] } else { brew_runtime.object_value('NilClass', 'nil') }
+		result: if args.len > 3 { args[3] } else { ruby.object_value('NilClass', 'nil') }
 		rescued_in_block: args.len > 4 && args[4].bool_data
 		ensure_block: args.len > 5 && args[5].bool_data
 	}
@@ -165,9 +165,9 @@ pub fn ruby_ignorable_l20_d1_self_hook_raise(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby define_method `define_method(:raise) do |*args, **kwargs|` at line 25.
-pub fn ruby_ignorable_l25_d2_raise(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ignorable_l25_d2_raise(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'state and exception are required')
+		return ruby.object_value('ArgumentError', 'state and exception are required')
 	}
 	mut state := ignorable_state_from_value(args[0])
 	exception := ignorable_exception_from_value(args[1])
@@ -176,13 +176,13 @@ pub fn ruby_ignorable_l25_d2_raise(args ...brew_runtime.Value) brew_runtime.Valu
 	} else {
 		.raise_exception
 	}
-	return brew_runtime.bool_value(state.handle_raise(exception, decision) or {
+	return ruby.bool_value(state.handle_raise(exception, decision) or {
 		return ignorable_error_value(exception, err.msg())
 	})
 }
 
 // Ruby alias_method `alias_method :fail, :raise` at line 37.
-pub fn ruby_ignorable_l37_d3_fail(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ignorable_l37_d3_fail(args ...ruby.Value) ruby.Value {
 	return ruby_ignorable_l25_d2_raise(...args)
 }
 

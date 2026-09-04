@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 import homebrew.cmd as uses_cmd
 
 fn uses_spec_dependency(name string, optional bool) uses_cmd.DepsItem {
@@ -27,7 +27,7 @@ fn uses_spec_formula(name string, dependencies []uses_cmd.DepsItem,
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "uses tap trust configuration to evaluate all formulae" do` at line 14.
-pub fn ruby_uses_spec_l14_d1_uses(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uses_spec_l14_d1_uses(args ...ruby.Value) ruby.Value {
 	used_formula := uses_cmd.UsesFormula{
 		name: 'foo'
 		full_name: 'foo'
@@ -40,12 +40,12 @@ pub fn ruby_uses_spec_l14_d1_uses(args ...brew_runtime.Value) brew_runtime.Value
 		named: ['foo']
 		used_formulae: [used_formula]
 	})
-	return brew_runtime.bool_value(!result.failed && result.stdout == '' && result.stderr == ''
+	return ruby.bool_value(!result.failed && result.stdout == '' && result.stderr == ''
 		&& result.formula_all_called && result.formula_all_eval_all)
 }
 
 // Ruby it `it "handles unavailable formula" do` at line 25.
-pub fn ruby_uses_spec_l25_d2_handles(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uses_spec_l25_d2_handles(args ...ruby.Value) ruby.Value {
 	bar := uses_spec_formula('bar', [uses_spec_dependency('foo', false)], false)
 	optional := uses_spec_formula('optional', [uses_spec_dependency('foo', true)], false)
 	result := uses_cmd.run_uses_command(uses_cmd.UsesCommandInput{
@@ -58,7 +58,7 @@ pub fn ruby_uses_spec_l25_d2_handles(args ...brew_runtime.Value) brew_runtime.Va
 		formula_unavailable_error: 'foo'
 		all_formulae: [bar, optional]
 	})
-	return brew_runtime.bool_value(result.failed && result.stdout == 'bar\noptional\n'
+	return ruby.bool_value(result.failed && result.stdout == 'bar\noptional\n'
 		&& result.stderr.contains('Error: Missing formulae should not have dependents!\n')
 		&& result.error == 'Missing formulae should not have dependents!')
 }

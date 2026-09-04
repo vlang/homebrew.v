@@ -1,51 +1,51 @@
 module types
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/private/types/void.rb`.
 // The original source is retained below until every stub has a typed V body.
 const void_validation_error = 'Validation is being done on an `Void`. Please report this bug at https://github.com/sorbet/sorbet/issues'
 
-pub fn void_build_type() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+pub fn void_build_type() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 pub fn void_name() string {
 	return '<VOID>'
 }
 
-pub fn void_valid(_ brew_runtime.Value) !bool {
+pub fn void_valid(_ ruby.Value) !bool {
 	return error(void_validation_error)
 }
 
-pub fn void_subtype_of_single(_ brew_runtime.Value) !bool {
+pub fn void_subtype_of_single(_ ruby.Value) !bool {
 	return error(void_validation_error)
 }
 
 // Ruby method `build_type` at line 21.
-pub fn ruby_void_l21_d1_build_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_void_l21_d1_build_type(args ...ruby.Value) ruby.Value {
 	return void_build_type()
 }
 
 // Ruby method `name` at line 26.
-pub fn ruby_void_l26_d2_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(void_name())
+pub fn ruby_void_l26_d2_name(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(void_name())
 }
 
 // Ruby method `valid?(obj)` at line 31.
-pub fn ruby_void_l31_d3_valid(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_void_l31_d3_valid(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Void#valid? requires an object')
 	}
-	return brew_runtime.bool_value(void_valid(args[1]) or { panic(err) })
+	return ruby.bool_value(void_valid(args[1]) or { panic(err) })
 }
 
 // Ruby method `subtype_of_single?(other)` at line 36.
-pub fn ruby_void_l36_d4_subtype_of_single(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_void_l36_d4_subtype_of_single(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Void#subtype_of_single? requires another type')
 	}
-	return brew_runtime.bool_value(void_subtype_of_single(args[1]) or { panic(err) })
+	return ruby.bool_value(void_subtype_of_single(args[1]) or { panic(err) })
 }
 
 // Original Ruby source (line-for-line):

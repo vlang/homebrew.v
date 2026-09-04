@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 import homebrew.utils
 import os
 
@@ -229,7 +229,7 @@ fn (mut checker LinkageChecker) classify_existing_dylib(dylib string) bool {
 	if !os.exists(dylib) {
 		return false
 	}
-	real_dylib := brew_runtime.real_path(dylib)
+	real_dylib := ruby.real_path(dylib)
 	cellar_prefix := checker.keg.cellar.trim_right('/') + '/'
 	if !real_dylib.starts_with(cellar_prefix) {
 		linkage_append_unique(mut checker.system_dylibs, dylib)
@@ -271,7 +271,7 @@ fn linkage_python_version(value string) bool {
 
 pub fn (checker LinkageChecker) broken_dylibs_allowed(file string) bool {
 	formula := checker.formula or { return false }
-	formula_prefix := brew_runtime.real_path(formula.prefix()).trim_right('/')
+	formula_prefix := ruby.real_path(formula.prefix()).trim_right('/')
 	if formula.name() == 'julia' {
 		return file.starts_with('${formula_prefix}/share/julia/compiled/')
 	}
@@ -583,26 +583,26 @@ pub fn (mut checker LinkageChecker) resolve_formula(keg Keg) ?Formula {
 	return formula
 }
 
-fn linkage_checker_value(checker &LinkageChecker) brew_runtime.Value {
-	return brew_runtime.structured_value('LinkageChecker', checker.keg.path, {
+fn linkage_checker_value(checker &LinkageChecker) ruby.Value {
+	return ruby.structured_value('LinkageChecker', checker.keg.path, {
 		'linkage_checker_address': u64(voidptr(checker)).str()
 	})
 }
 
-fn linkage_checker_from_value(value brew_runtime.Value) &LinkageChecker {
+fn linkage_checker_from_value(value ruby.Value) &LinkageChecker {
 	address := value.attributes['linkage_checker_address'] or {
 		panic('invalid LinkageChecker receiver')
 	}
 	return unsafe { &LinkageChecker(voidptr(address.u64())) }
 }
 
-pub fn linkage_checker_boundary(checker &LinkageChecker) brew_runtime.Value {
+pub fn linkage_checker_boundary(checker &LinkageChecker) ruby.Value {
 	return linkage_checker_value(checker)
 }
 
 pub fn linkage_checker_keg_boundary(keg Keg,
-	config &LinkageCheckerConfig) brew_runtime.Value {
-	return brew_runtime.structured_value('Keg', keg.path, {
+	config &LinkageCheckerConfig) ruby.Value {
+	return ruby.structured_value('Keg', keg.path, {
 		'path':                           keg.path
 		'prefix':                         keg.prefix
 		'cellar':                         keg.cellar
@@ -611,22 +611,22 @@ pub fn linkage_checker_keg_boundary(keg Keg,
 	})
 }
 
-fn linkage_checker_keg_from_value(value brew_runtime.Value) Keg {
+fn linkage_checker_keg_from_value(value ruby.Value) Keg {
 	path := value.attribute('path') or { value.as_string() }
-	prefix := value.attribute('prefix') or { brew_runtime.environment_value('HOMEBREW_PREFIX') }
+	prefix := value.attribute('prefix') or { ruby.environment_value('HOMEBREW_PREFIX') }
 	cellar := value.attribute('cellar') or { os.join_path(prefix, 'Cellar') }
 	return new_keg_with_paths(path, cellar, prefix) or { panic(err) }
 }
 
-fn linkage_config_from_keg_value(value brew_runtime.Value) LinkageCheckerConfig {
+fn linkage_config_from_keg_value(value ruby.Value) LinkageCheckerConfig {
 	address := value.attributes['linkage_checker_config_address'] or {
 		return LinkageCheckerConfig{}
 	}
 	return unsafe { *&LinkageCheckerConfig(voidptr(address.u64())) }
 }
 
-fn linkage_checker_keg_value(keg Keg) brew_runtime.Value {
-	return brew_runtime.structured_value('Keg', keg.path, {
+fn linkage_checker_keg_value(keg Keg) ruby.Value {
+	return ruby.structured_value('Keg', keg.path, {
 		'path':   keg.path
 		'prefix': keg.prefix
 		'cellar': keg.cellar
@@ -634,15 +634,15 @@ fn linkage_checker_keg_value(keg Keg) brew_runtime.Value {
 	})
 }
 
-fn linkage_string_map_value(values map[string][]string) brew_runtime.Value {
-	mut mapped := map[string]brew_runtime.Value{}
+fn linkage_string_map_value(values map[string][]string) ruby.Value {
+	mut mapped := map[string]ruby.Value{}
 	for key, entries in values {
-		mapped[key] = brew_runtime.string_array_value(entries)
+		mapped[key] = ruby.string_array_value(entries)
 	}
-	return brew_runtime.map_value(mapped)
+	return ruby.map_value(mapped)
 }
 
-fn linkage_bool_argument(args []brew_runtime.Value, index int, fallback bool) bool {
+fn linkage_bool_argument(args []ruby.Value, index int, fallback bool) bool {
 	if index >= args.len {
 		return fallback
 	}
@@ -650,59 +650,59 @@ fn linkage_bool_argument(args []brew_runtime.Value, index int, fallback bool) bo
 }
 
 // Ruby attr_reader `attr_reader :keg` at line 14.
-pub fn ruby_linkage_checker_l14_d1_keg(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_linkage_checker_l14_d1_keg(args ...ruby.Value) ruby.Value {
 	return linkage_checker_keg_value(linkage_checker_from_value(args[0]).keg)
 }
 
 // Ruby attr_reader `attr_reader :formula` at line 17.
-pub fn ruby_linkage_checker_l17_d2_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_linkage_checker_l17_d2_formula(args ...ruby.Value) ruby.Value {
 	formula := linkage_checker_from_value(args[0]).formula or {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	return formula_boundary_value(formula)
 }
 
 // Ruby attr_reader `attr_reader :store` at line 20.
-pub fn ruby_linkage_checker_l20_d3_store(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_linkage_checker_l20_d3_store(args ...ruby.Value) ruby.Value {
 	store := linkage_checker_from_value(args[0]).store
-	return brew_runtime.structured_value('LinkageCacheStore', store.keg_path, {
+	return ruby.structured_value('LinkageCacheStore', store.keg_path, {
 		'keg_path': store.keg_path
 		'exists':   store.exists.str()
 	})
 }
 
 // Ruby attr_reader `attr_reader :indirect_deps, :undeclared_deps, :unwanted_system_dylibs` at line 23.
-pub fn ruby_linkage_checker_l23_d4_indirect_deps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(linkage_checker_from_value(args[0]).indirect_deps)
+pub fn ruby_linkage_checker_l23_d4_indirect_deps(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(linkage_checker_from_value(args[0]).indirect_deps)
 }
 
 // Ruby attr_reader `attr_reader :indirect_deps, :undeclared_deps, :unwanted_system_dylibs` at line 23.
-pub fn ruby_linkage_checker_l23_d5_undeclared_deps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(linkage_checker_from_value(args[0]).undeclared_deps)
+pub fn ruby_linkage_checker_l23_d5_undeclared_deps(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(linkage_checker_from_value(args[0]).undeclared_deps)
 }
 
 // Ruby attr_reader `attr_reader :indirect_deps, :undeclared_deps, :unwanted_system_dylibs` at line 23.
-pub fn ruby_linkage_checker_l23_d6_unwanted_system_dylibs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(linkage_checker_from_value(args[0]).unwanted_system_dylibs)
+pub fn ruby_linkage_checker_l23_d6_unwanted_system_dylibs(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(linkage_checker_from_value(args[0]).unwanted_system_dylibs)
 }
 
 // Ruby attr_reader `attr_reader :system_dylibs, :broken_dylibs` at line 26.
-pub fn ruby_linkage_checker_l26_d7_system_dylibs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(linkage_checker_from_value(args[0]).system_dylibs)
+pub fn ruby_linkage_checker_l26_d7_system_dylibs(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(linkage_checker_from_value(args[0]).system_dylibs)
 }
 
 // Ruby attr_reader `attr_reader :system_dylibs, :broken_dylibs` at line 26.
-pub fn ruby_linkage_checker_l26_d8_broken_dylibs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(linkage_checker_from_value(args[0]).broken_dylibs)
+pub fn ruby_linkage_checker_l26_d8_broken_dylibs(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(linkage_checker_from_value(args[0]).broken_dylibs)
 }
 
 // Ruby attr_reader `attr_reader :broken_deps` at line 29.
-pub fn ruby_linkage_checker_l29_d9_broken_deps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_linkage_checker_l29_d9_broken_deps(args ...ruby.Value) ruby.Value {
 	return linkage_string_map_value(linkage_checker_from_value(args[0]).broken_deps)
 }
 
 // Ruby method `initialize(keg, formula = nil, cache_db:, rebuild_cache: false)` at line 38.
-pub fn ruby_linkage_checker_l38_d10_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_linkage_checker_l38_d10_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('LinkageChecker#initialize requires a keg')
 	}
@@ -713,7 +713,7 @@ pub fn ruby_linkage_checker_l38_d10_initialize(args ...brew_runtime.Value) brew_
 	}
 	mut rebuild_cache := false
 	if args.len > 2 && args[2].type_name == 'Hash' {
-		options := args[2].as_map() or { map[string]brew_runtime.Value{} }
+		options := args[2].as_map() or { map[string]ruby.Value{} }
 		if value := options['rebuild_cache'] {
 			rebuild_cache = value.as_bool() or { false }
 		}
@@ -722,118 +722,118 @@ pub fn ruby_linkage_checker_l38_d10_initialize(args ...brew_runtime.Value) brew_
 }
 
 // Ruby method `display_normal_output` at line 63.
-pub fn ruby_linkage_checker_l63_d11_display_normal_output(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_linkage_checker_l63_d11_display_normal_output(args ...ruby.Value) ruby.Value {
 	mut checker := linkage_checker_from_value(args[0])
 	checker.display_normal_output()
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `display_reverse_output` at line 80.
-pub fn ruby_linkage_checker_l80_d12_display_reverse_output(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_linkage_checker_l80_d12_display_reverse_output(args ...ruby.Value) ruby.Value {
 	mut checker := linkage_checker_from_value(args[0])
 	checker.display_reverse_output()
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `display_test_output(puts_output: true, strict: false)` at line 95.
-pub fn ruby_linkage_checker_l95_d13_display_test_output(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_linkage_checker_l95_d13_display_test_output(args ...ruby.Value) ruby.Value {
 	mut checker := linkage_checker_from_value(args[0])
 	checker.display_test_output(linkage_bool_argument(args, 1, true), linkage_bool_argument(args, 2, false))
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `broken_library_linkage?(test: false, strict: false)` at line 110.
-pub fn ruby_linkage_checker_l110_d14_broken_library_linkage(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_linkage_checker_l110_d14_broken_library_linkage(args ...ruby.Value) ruby.Value {
 	checker := linkage_checker_from_value(args[0])
 	broken := checker.broken_library_linkage(linkage_bool_argument(args, 1, false), linkage_bool_argument(args, 2, false)) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
-	return brew_runtime.bool_value(broken)
+	return ruby.bool_value(broken)
 }
 
 // Ruby method `dylib_to_dep(dylib)` at line 124.
-pub fn ruby_linkage_checker_l124_d15_dylib_to_dep(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_linkage_checker_l124_d15_dylib_to_dep(args ...ruby.Value) ruby.Value {
 	dependency := linkage_checker_from_value(args[0]).dylib_to_dep(args[1].as_string()) or {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
-	return brew_runtime.string_value(dependency)
+	return ruby.string_value(dependency)
 }
 
 // Ruby method `broken_dylibs_allowed?(file)` at line 130.
-pub fn ruby_linkage_checker_l130_d16_broken_dylibs_allowed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(linkage_checker_from_value(args[0]).broken_dylibs_allowed(args[1].as_string()))
+pub fn ruby_linkage_checker_l130_d16_broken_dylibs_allowed(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(linkage_checker_from_value(args[0]).broken_dylibs_allowed(args[1].as_string()))
 }
 
 // Ruby method `check_dylibs(rebuild_cache:)` at line 147.
-pub fn ruby_linkage_checker_l147_d17_check_dylibs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_linkage_checker_l147_d17_check_dylibs(args ...ruby.Value) ruby.Value {
 	mut checker := linkage_checker_from_value(args[0])
 	checker.check_dylibs(linkage_bool_argument(args, 1, false))
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `dylib_found_in_shared_cache?(_dylib)` at line 245.
-pub fn ruby_linkage_checker_l245_d18_dylib_found_in_shared_cache(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(linkage_checker_from_value(args[0]).dylib_found_in_shared_cache(args[1].as_string()))
+pub fn ruby_linkage_checker_l245_d18_dylib_found_in_shared_cache(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(linkage_checker_from_value(args[0]).dylib_found_in_shared_cache(args[1].as_string()))
 }
 
 // Ruby method `check_formula_deps` at line 253.
-pub fn ruby_linkage_checker_l253_d19_check_formula_deps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_linkage_checker_l253_d19_check_formula_deps(args ...ruby.Value) ruby.Value {
 	result := linkage_checker_from_value(args[0]).check_formula_deps() or {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
-	return brew_runtime.array_value([
-		brew_runtime.string_array_value(result.indirect_deps),
-		brew_runtime.string_array_value(result.undeclared_deps),
-		brew_runtime.string_array_value(result.unnecessary_deps),
-		brew_runtime.string_array_value(result.version_conflict_deps),
-		brew_runtime.string_array_value(result.no_linkage_deps),
-		brew_runtime.string_array_value(result.unexpected_linkage_deps),
+	return ruby.array_value([
+		ruby.string_array_value(result.indirect_deps),
+		ruby.string_array_value(result.undeclared_deps),
+		ruby.string_array_value(result.unnecessary_deps),
+		ruby.string_array_value(result.version_conflict_deps),
+		ruby.string_array_value(result.no_linkage_deps),
+		ruby.string_array_value(result.unexpected_linkage_deps),
 	])
 }
 
 // Ruby method `sort_by_formula_full_name!(arr)` at line 336.
-pub fn ruby_linkage_checker_l336_d20_sort_by_formula_full_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_linkage_checker_l336_d20_sort_by_formula_full_name(args ...ruby.Value) ruby.Value {
 	mut values := args[1].as_string_array() or { []string{} }
 	sort_linkage_formula_full_names(mut values)
-	return brew_runtime.string_array_value(values)
+	return ruby.string_array_value(values)
 }
 
 // Ruby method `harmless_broken_link?(dylib)` at line 351.
-pub fn ruby_linkage_checker_l351_d21_harmless_broken_link(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(linkage_checker_from_value(args[0]).harmless_broken_link(args[1].as_string()))
+pub fn ruby_linkage_checker_l351_d21_harmless_broken_link(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(linkage_checker_from_value(args[0]).harmless_broken_link(args[1].as_string()))
 }
 
 // Ruby method `system_framework?(dylib)` at line 364.
-pub fn ruby_linkage_checker_l364_d22_system_framework(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(linkage_checker_from_value(args[0]).system_framework(args[1].as_string()))
+pub fn ruby_linkage_checker_l364_d22_system_framework(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(linkage_checker_from_value(args[0]).system_framework(args[1].as_string()))
 }
 
 // Ruby method `display_items(label, things, puts_output: true)` at line 376.
-pub fn ruby_linkage_checker_l376_d23_display_items(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_linkage_checker_l376_d23_display_items(args ...ruby.Value) ruby.Value {
 	mut checker := linkage_checker_from_value(args[0])
 	label := args[1].as_string()
 	things := args[2]
 	mut values := []string{}
 	mut grouped := map[string][]string{}
 	if things.type_name == 'Hash' {
-		for key, value in things.as_map() or { map[string]brew_runtime.Value{} } {
+		for key, value in things.as_map() or { map[string]ruby.Value{} } {
 			grouped[key] = value.as_string_array() or { []string{} }
 		}
 	} else {
 		values = things.as_string_array() or { []string{} }
 	}
 	output := checker.display_items(label, values, grouped, linkage_bool_argument(args, 3, true)) or {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
-	return brew_runtime.string_value(output)
+	return ruby.string_value(output)
 }
 
 // Ruby method `resolve_formula(keg)` at line 395.
-pub fn ruby_linkage_checker_l395_d24_resolve_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_linkage_checker_l395_d24_resolve_formula(args ...ruby.Value) ruby.Value {
 	mut checker := linkage_checker_from_value(args[0])
 	keg := if args.len > 1 { linkage_checker_keg_from_value(args[1]) } else { checker.keg }
 	formula := checker.resolve_formula(keg) or {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	return formula_boundary_value(formula)
 }

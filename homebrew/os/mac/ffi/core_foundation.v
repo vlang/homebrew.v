@@ -1,6 +1,6 @@
 module ffi
 
-import brew_runtime
+import ruby
 
 pub fn core_foundation_autorelease(pointer NativePointer) NativePointer {
 	if pointer.is_null() {
@@ -73,34 +73,34 @@ pub fn core_foundation_url_set_property(mut url NativePointer, key NativePointer
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `self.autorelease(ptr)` at line 16.
-pub fn ruby_core_foundation_l16_d1_self_autorelease(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_core_foundation_l16_d1_self_autorelease(args ...ruby.Value) ruby.Value {
 	pointer := NativePointer{ address: (args[0].attributes['address'] or { '0' }).u64(), value: args[0].as_string(), properties: map[string]string{} }
 	return native_pointer_value(core_foundation_autorelease(pointer))
 }
 
 // Ruby method `self.type_dictionary_key_call_backs = constant("kCFTypeDictionaryKeyCallBacks")` at line 28.
-pub fn ruby_core_foundation_l28_d2_self_type_dictionary_key_call_backs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_core_foundation_l28_d2_self_type_dictionary_key_call_backs(args ...ruby.Value) ruby.Value {
 	return native_pointer_value(core_foundation_constant('kCFTypeDictionaryKeyCallBacks', false))
 }
 
 // Ruby method `self.type_dictionary_value_call_backs = constant("kCFTypeDictionaryValueCallBacks")` at line 33.
-pub fn ruby_core_foundation_l33_d3_self_type_dictionary_value_call_backs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_core_foundation_l33_d3_self_type_dictionary_value_call_backs(args ...ruby.Value) ruby.Value {
 	return native_pointer_value(core_foundation_constant('kCFTypeDictionaryValueCallBacks', false))
 }
 
 // Ruby method `self.url_quarantine_properties_key = constant("kCFURLQuarantinePropertiesKey", dereference: true)` at line 38.
-pub fn ruby_core_foundation_l38_d4_self_url_quarantine_properties_key(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_core_foundation_l38_d4_self_url_quarantine_properties_key(args ...ruby.Value) ruby.Value {
 	return native_pointer_value(core_foundation_constant('kCFURLQuarantinePropertiesKey', true))
 }
 
 // Ruby method `self.string_create(string)` at line 43.
-pub fn ruby_core_foundation_l43_d5_self_string_create(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_core_foundation_l43_d5_self_string_create(args ...ruby.Value) ruby.Value {
 	encoding := if args.len > 1 { args[1].as_string() } else { 'UTF-8' }
 	return native_pointer_value(core_foundation_string_create(args[0].as_string(), encoding))
 }
 
 // Ruby method `self.dictionary_create(hash)` at line 76.
-pub fn ruby_core_foundation_l76_d6_self_dictionary_create(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_core_foundation_l76_d6_self_dictionary_create(args ...ruby.Value) ruby.Value {
 	mut values := map[u64]NativePointer{}
 	for key, value in args[0].map_data {
 		values[key.u64()] = NativePointer{
@@ -113,17 +113,17 @@ pub fn ruby_core_foundation_l76_d6_self_dictionary_create(args ...brew_runtime.V
 }
 
 // Ruby method `self.url_create_with_file_system_path(path)` at line 103.
-pub fn ruby_core_foundation_l103_d7_self_url_create_with_file_system_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_core_foundation_l103_d7_self_url_create_with_file_system_path(args ...ruby.Value) ruby.Value {
 	path := NativePointer{ address: (args[0].attributes['address'] or { '0' }).u64(), value: args[0].as_string(), properties: map[string]string{} }
 	return native_pointer_value(core_foundation_url_create(path))
 }
 
 // Ruby method `self.url_set_resource_property_for_key(url, key, value)` at line 116.
-pub fn ruby_core_foundation_l116_d8_self_url_set_resource_property_for_key(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_core_foundation_l116_d8_self_url_set_resource_property_for_key(args ...ruby.Value) ruby.Value {
 	mut url := NativePointer{ address: (args[0].attributes['address'] or { '0' }).u64(), value: args[0].as_string(), properties: map[string]string{} }
 	key := NativePointer{ address: (args[1].attributes['address'] or { '0' }).u64(), value: args[1].as_string(), properties: map[string]string{} }
 	value := NativePointer{ address: (args[2].attributes['address'] or { '0' }).u64(), value: args[2].as_string(), properties: map[string]string{} }
-	return brew_runtime.bool_value(core_foundation_url_set_property(mut url, key, value))
+	return ruby.bool_value(core_foundation_url_set_property(mut url, key, value))
 }
 
 // Original Ruby source (line-for-line):

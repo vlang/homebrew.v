@@ -1,6 +1,6 @@
 module artifact
 
-import brew_runtime
+import ruby
 import homebrew.cask.artifact as app_core
 import os
 
@@ -46,7 +46,7 @@ fn app_spec_command_ok(command app_core.AppCommand) ! {
 	_ = command
 }
 
-fn app_spec_value() brew_runtime.Value {
+fn app_spec_value() ruby.Value {
 	return app_core.app_artifact_value(app_core.AppArtifact{
 		source: app_spec_path('values/staged/Caffeine.app')
 		target: app_spec_path('values/Applications/Caffeine.app')
@@ -191,49 +191,49 @@ fn app_spec_case(index int) bool {
 }
 
 // Ruby let `let(:cask) { Cask::CaskLoader.load(cask_path("local-caffeine")) }` at line 5.
-pub fn ruby_app_spec_l5_d1_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.structured_value('Cask', 'local-caffeine', {
+pub fn ruby_app_spec_l5_d1_cask(args ...ruby.Value) ruby.Value {
+	return ruby.structured_value('Cask', 'local-caffeine', {
 		'token': 'local-caffeine'
 	})
 }
 
 // Ruby let `let(:command) { NeverSudoSystemCommand }` at line 6.
-pub fn ruby_app_spec_l6_d2_command(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('NeverSudoSystemCommand', 'NeverSudoSystemCommand')
+pub fn ruby_app_spec_l6_d2_command(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('NeverSudoSystemCommand', 'NeverSudoSystemCommand')
 }
 
 // Ruby let `let(:adopt) { false }` at line 7.
-pub fn ruby_app_spec_l7_d3_adopt(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(false)
+pub fn ruby_app_spec_l7_d3_adopt(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(false)
 }
 
 // Ruby let `let(:force) { false }` at line 8.
-pub fn ruby_app_spec_l8_d4_force(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(false)
+pub fn ruby_app_spec_l8_d4_force(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(false)
 }
 
 // Ruby let `let(:auto_updates) { false }` at line 9.
-pub fn ruby_app_spec_l9_d5_auto_updates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(false)
+pub fn ruby_app_spec_l9_d5_auto_updates(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(false)
 }
 
 // Ruby let `let(:app) { cask.artifacts.find { |a| a.is_a?(described_class) } }` at line 10.
-pub fn ruby_app_spec_l10_d6_app(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_app_spec_l10_d6_app(args ...ruby.Value) ruby.Value {
 	return app_spec_value()
 }
 
 // Ruby let `let(:source_path) { cask.staged_path.join("Caffeine.app") }` at line 12.
-pub fn ruby_app_spec_l12_d7_source_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(app_spec_value().attributes['source'])
+pub fn ruby_app_spec_l12_d7_source_path(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(app_spec_value().attributes['source'])
 }
 
 // Ruby let `let(:target_path) { Pathname(cask.config.appdir).join("Caffeine.app") }` at line 13.
-pub fn ruby_app_spec_l13_d8_target_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(app_spec_value().attributes['target'])
+pub fn ruby_app_spec_l13_d8_target_path(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(app_spec_value().attributes['target'])
 }
 
 // Ruby let `let(:install_phase) { app.install_phase(command:, adopt:, force:, auto_updates:) }` at line 15.
-pub fn ruby_app_spec_l15_d9_install_phase(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_app_spec_l15_d9_install_phase(args ...ruby.Value) ruby.Value {
 	fixture := app_spec_fixture('boundary-install', false) or {
 		return app_core.app_operation_value(app_core.AppOperationResult{
 			error: err.msg()
@@ -244,7 +244,7 @@ pub fn ruby_app_spec_l15_d9_install_phase(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby let `let(:uninstall_phase) { app.uninstall_phase(command:, force:) }` at line 16.
-pub fn ruby_app_spec_l16_d10_uninstall_phase(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_app_spec_l16_d10_uninstall_phase(args ...ruby.Value) ruby.Value {
 	fixture := app_spec_fixture('boundary-uninstall', false) or {
 		return app_core.app_operation_value(app_core.AppOperationResult{
 			error: err.msg()
@@ -260,10 +260,10 @@ pub fn ruby_app_spec_l16_d10_uninstall_phase(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby let `let(:setup_cask) { InstallHelper.install_without_artifacts(cask) }` at line 18.
-pub fn ruby_app_spec_l18_d11_setup_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	fixture := app_spec_fixture('boundary-setup', false) or { return brew_runtime.bool_value(false) }
+pub fn ruby_app_spec_l18_d11_setup_cask(args ...ruby.Value) ruby.Value {
+	fixture := app_spec_fixture('boundary-setup', false) or { return ruby.bool_value(false) }
 	defer { app_spec_cleanup(fixture) }
-	return brew_runtime.bool_value(os.is_dir(fixture.artifact.source))
+	return ruby.bool_value(os.is_dir(fixture.artifact.source))
 }
 
 // Ruby it `it "installs the given app using the proper target directory" do` at line 25.
@@ -272,8 +272,8 @@ pub fn ruby_app_spec_l25_d12_installs() bool {
 }
 
 // Ruby let `let(:cask) do` at line 33.
-pub fn ruby_app_spec_l33_d13_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.structured_value('Cask', 'subdir', {
+pub fn ruby_app_spec_l33_d13_cask(args ...ruby.Value) ruby.Value {
+	return ruby.structured_value('Cask', 'subdir', {
 		'token': 'subdir'
 	})
 }
@@ -294,8 +294,8 @@ pub fn ruby_app_spec_l72_d16_avoids() bool {
 }
 
 // Ruby let `let(:adopt) { true }` at line 87.
-pub fn ruby_app_spec_l87_d17_adopt(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(true)
+pub fn ruby_app_spec_l87_d17_adopt(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(true)
 }
 
 // Ruby it `it "avoids clobbering the existing app if brew manages updates" do` at line 91.
@@ -304,8 +304,8 @@ pub fn ruby_app_spec_l91_d18_avoids() bool {
 }
 
 // Ruby let `let(:auto_updates) { true }` at line 119.
-pub fn ruby_app_spec_l119_d19_auto_updates(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(true)
+pub fn ruby_app_spec_l119_d19_auto_updates(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(true)
 }
 
 // Ruby it `it "adopts the existing app" do` at line 121.
@@ -319,8 +319,8 @@ pub fn ruby_app_spec_l148_d21_adopts() bool {
 }
 
 // Ruby let `let(:force) { true }` at line 169.
-pub fn ruby_app_spec_l169_d22_force(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(true)
+pub fn ruby_app_spec_l169_d22_force(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(true)
 }
 
 // Ruby it `it "overwrites the existing app" do` at line 176.
@@ -334,8 +334,8 @@ pub fn ruby_app_spec_l208_d24_overwrites() bool {
 }
 
 // Ruby let `let(:deleted_path) { cask.staged_path.join("Deleted.app") }` at line 235.
-pub fn ruby_app_spec_l235_d25_deleted_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(app_spec_path('values/staged/Deleted.app'))
+pub fn ruby_app_spec_l235_d25_deleted_path(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(app_spec_path('values/staged/Deleted.app'))
 }
 
 // Ruby it `it "leaves the target alone" do` at line 243.
@@ -344,8 +344,8 @@ pub fn ruby_app_spec_l243_d26_leaves() bool {
 }
 
 // Ruby let `let(:force) { true }` at line 251.
-pub fn ruby_app_spec_l251_d27_force(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(true)
+pub fn ruby_app_spec_l251_d27_force(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(true)
 }
 
 // Ruby it `it "overwrites the existing app" do` at line 253.
@@ -354,8 +354,8 @@ pub fn ruby_app_spec_l253_d28_overwrites() bool {
 }
 
 // Ruby let `let(:setup_cask) { cask.staged_path.mkpath }` at line 277.
-pub fn ruby_app_spec_l277_d29_setup_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(app_spec_path('values/staged'))
+pub fn ruby_app_spec_l277_d29_setup_cask(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(app_spec_path('values/staged'))
 }
 
 // Ruby it `it "gives a warning if the source doesn't exist" do` at line 279.
@@ -389,18 +389,18 @@ pub fn ruby_app_spec_l329_d35_uses() bool {
 }
 
 // Ruby let `let(:description) { app.class.english_description }` at line 343.
-pub fn ruby_app_spec_l343_d36_description(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('Apps')
+pub fn ruby_app_spec_l343_d36_description(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('Apps')
 }
 
 // Ruby let `let(:contents) { app.summarize_installed }` at line 344.
-pub fn ruby_app_spec_l344_d37_contents(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(app_core.summarize_installed_app(app_core.app_artifact_from_value(app_spec_value())))
+pub fn ruby_app_spec_l344_d37_contents(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(app_core.summarize_installed_app(app_core.app_artifact_from_value(app_spec_value())))
 }
 
 // Ruby let `let(:setup_cask) { nil }` at line 347.
-pub fn ruby_app_spec_l347_d38_setup_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+pub fn ruby_app_spec_l347_d38_setup_cask(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby it `it "returns the correct english_description" do` at line 349.

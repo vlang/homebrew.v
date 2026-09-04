@@ -1,6 +1,6 @@
 module rubocops
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `rubocops/install_steps_source_independence.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -94,8 +94,8 @@ pub fn audit_install_steps_source_independence(source string) []InstallStepsSour
 	return offenses
 }
 
-fn install_steps_source_offense_value(offense InstallStepsSourceOffense) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cop::Offense', offense.message, {
+fn install_steps_source_offense_value(offense InstallStepsSourceOffense) ruby.Value {
+	return ruby.structured_value('RuboCop::Cop::Offense', offense.message, {
 		'kind':       offense.kind
 		'expression': offense.expression
 		'begin_pos':  offense.begin_pos.str()
@@ -105,7 +105,7 @@ fn install_steps_source_offense_value(offense InstallStepsSourceOffense) brew_ru
 }
 
 // Ruby method `on_send(node)` at line 15.
-pub fn ruby_install_steps_source_independence_l15_d1_on_send(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_source_independence_l15_d1_on_send(args ...ruby.Value) ruby.Value {
 	expression := if args.len > 0 { args[0].as_string() } else { '' }
 	return if install_steps_source_dependent(expression) {
 		install_steps_source_offense_value(InstallStepsSourceOffense{
@@ -115,17 +115,17 @@ pub fn ruby_install_steps_source_independence_l15_d1_on_send(args ...brew_runtim
 			message: install_steps_source_independence_message
 		})
 	} else {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	}
 }
 
 // Ruby alias `alias on_csend on_send` at line 18.
-pub fn ruby_install_steps_source_independence_l18_d2_on_csend(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_source_independence_l18_d2_on_csend(args ...ruby.Value) ruby.Value {
 	return ruby_install_steps_source_independence_l15_d1_on_send(...args)
 }
 
 // Ruby method `on_const(node)` at line 21.
-pub fn ruby_install_steps_source_independence_l21_d3_on_const(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_source_independence_l21_d3_on_const(args ...ruby.Value) ruby.Value {
 	constant := if args.len > 0 { args[0].as_string() } else { '' }
 	is_send_receiver := if args.len > 1 { args[1].bool_data } else { false }
 	return if constant in ['Formula', 'Formulary', 'Resource'] && !is_send_receiver {
@@ -136,14 +136,14 @@ pub fn ruby_install_steps_source_independence_l21_d3_on_const(args ...brew_runti
 			message: install_steps_source_independence_message
 		})
 	} else {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	}
 }
 
 // Ruby method `source_dependent?(node)` at line 33.
-pub fn ruby_install_steps_source_independence_l33_d4_source_dependent(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_source_independence_l33_d4_source_dependent(args ...ruby.Value) ruby.Value {
 	expression := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.bool_value(install_steps_source_dependent(expression))
+	return ruby.bool_value(install_steps_source_dependent(expression))
 }
 
 // Original Ruby source (line-for-line):

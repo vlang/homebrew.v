@@ -1,6 +1,6 @@
 module unpack_strategy
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `unpack_strategy/zip.rb`.
@@ -40,7 +40,7 @@ pub fn zip_extract_to_dir(path string, unpack_dir string, basename string, verbo
 	}
 	arguments << ['-o', path, '-d', unpack_dir]
 	checked_command(unzip, arguments)!
-	macosx := brew_runtime.join_path(unpack_dir, '__MACOSX')
+	macosx := ruby.join_path(unpack_dir, '__MACOSX')
 	if os.is_dir(macosx) {
 		os.rmdir_all(macosx)!
 	}

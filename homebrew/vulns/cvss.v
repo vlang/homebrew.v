@@ -1,6 +1,6 @@
 module vulns
 
-import brew_runtime
+import ruby
 import math
 
 // Translated from Homebrew/brew `vulns/cvss.rb`.
@@ -292,15 +292,15 @@ pub fn cvss_severity(vector string) ?CvssSeverity {
 	return cvss_severity_for_score(score)
 }
 
-fn cvss_metrics_value(metrics CvssMetrics) brew_runtime.Value {
-	mut values := map[string]brew_runtime.Value{}
+fn cvss_metrics_value(metrics CvssMetrics) ruby.Value {
+	mut values := map[string]ruby.Value{}
 	for name, value in metrics.values() {
-		values[name] = brew_runtime.string_value(value)
+		values[name] = ruby.string_value(value)
 	}
-	return brew_runtime.map_value(values)
+	return ruby.map_value(values)
 }
 
-fn cvss_values_from_boundary(value brew_runtime.Value) ?map[string]string {
+fn cvss_values_from_boundary(value ruby.Value) ?map[string]string {
 	if value.type_name != 'Hash' {
 		return none
 	}
@@ -315,53 +315,53 @@ fn cvss_values_from_boundary(value brew_runtime.Value) ?map[string]string {
 }
 
 // Ruby method `self.base_score(vector)` at line 23.
-pub fn ruby_cvss_l23_d1_self_base_score(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cvss_l23_d1_self_base_score(args ...ruby.Value) ruby.Value {
 	vector := if args.len > 0 { args[0].as_string() } else { '' }
 	return if score := cvss_base_score(vector) {
-		brew_runtime.float_value(score)
+		ruby.float_value(score)
 	} else {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	}
 }
 
 // Ruby method `self.severity(vector)` at line 53.
-pub fn ruby_cvss_l53_d2_self_severity(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cvss_l53_d2_self_severity(args ...ruby.Value) ruby.Value {
 	vector := if args.len > 0 { args[0].as_string() } else { '' }
 	return if severity := cvss_severity(vector) {
-		brew_runtime.object_value('Symbol', severity.symbol())
+		ruby.object_value('Symbol', severity.symbol())
 	} else {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	}
 }
 
 // Ruby method `self.parse(vector)` at line 68.
-pub fn ruby_cvss_l68_d3_self_parse(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cvss_l68_d3_self_parse(args ...ruby.Value) ruby.Value {
 	vector := if args.len > 0 { args[0].as_string() } else { '' }
 	return if metrics := parse_cvss_vector(vector) {
 		cvss_metrics_value(metrics)
 	} else {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	}
 }
 
 // Ruby method `self.valid_values?(metrics)` at line 83.
-pub fn ruby_cvss_l83_d4_self_valid_values(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cvss_l83_d4_self_valid_values(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	values := cvss_values_from_boundary(args[0]) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(cvss_valid_values(values))
+	return ruby.bool_value(cvss_valid_values(values))
 }
 
 // Ruby method `self.round_up(value)` at line 96.
-pub fn ruby_cvss_l96_d5_self_round_up(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cvss_l96_d5_self_round_up(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	value := args[0].as_float() or { panic(err) }
-	return brew_runtime.float_value(cvss_round_up(value))
+	return ruby.float_value(cvss_round_up(value))
 }
 
 // Original Ruby source (line-for-line):

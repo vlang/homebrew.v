@@ -1,19 +1,19 @@
 module cmd
 
-import brew_runtime
+import ruby
 import homebrew
 import homebrew.cmd as upgrade_cmd
 
-fn upgrade_spec_truth(value bool) brew_runtime.Value {
-	return brew_runtime.bool_value(value)
+fn upgrade_spec_truth(value bool) ruby.Value {
+	return ruby.bool_value(value)
 }
 
-fn upgrade_spec_list(value brew_runtime.Value, key string) []string {
+fn upgrade_spec_list(value ruby.Value, key string) []string {
 	raw := value.attributes[key] or { return [] }
 	return if raw == '' { [] } else { raw.split('\x1f') }
 }
 
-fn upgrade_spec_formula(name string, old_version string, version string, extras map[string]string) brew_runtime.Value {
+fn upgrade_spec_formula(name string, old_version string, version string, extras map[string]string) ruby.Value {
 	mut attributes := extras.clone()
 	attributes['name'] = name
 	attributes['full_name'] = attributes['full_name'] or { name }
@@ -24,21 +24,21 @@ fn upgrade_spec_formula(name string, old_version string, version string, extras 
 	attributes['outdated'] = attributes['outdated'] or { (old_version != version).str() }
 	attributes['core_formula'] = attributes['core_formula'] or { 'true' }
 	attributes['pour_bottle'] = attributes['pour_bottle'] or { 'true' }
-	return brew_runtime.structured_value('Formula', name, attributes)
+	return ruby.structured_value('Formula', name, attributes)
 }
 
-fn upgrade_spec_cask(name string, installed string, version string, extras map[string]string) brew_runtime.Value {
+fn upgrade_spec_cask(name string, installed string, version string, extras map[string]string) ruby.Value {
 	mut attributes := extras.clone()
 	attributes['token'] = name
 	attributes['full_name'] = attributes['full_name'] or { name }
 	attributes['installed_version'] = installed
 	attributes['version'] = version
 	attributes['outdated'] = attributes['outdated'] or { (installed != version).str() }
-	return brew_runtime.structured_value('Cask::Cask', name, attributes)
+	return ruby.structured_value('Cask::Cask', name, attributes)
 }
 
-fn upgrade_spec_installer(formula brew_runtime.Value, valid bool, upgraded bool, pour_bottle bool) brew_runtime.Value {
-	return brew_runtime.Value{
+fn upgrade_spec_installer(formula ruby.Value, valid bool, upgraded bool, pour_bottle bool) ruby.Value {
+	return ruby.Value{
 		type_name: 'FormulaInstaller'
 		repr: formula.repr
 		attributes: {
@@ -52,26 +52,26 @@ fn upgrade_spec_installer(formula brew_runtime.Value, valid bool, upgraded bool,
 	}
 }
 
-fn upgrade_spec_context(formulae []brew_runtime.Value, installers []brew_runtime.Value,
-	upgradeable []brew_runtime.Value, pinned []brew_runtime.Value, pinned_formulae []brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.Value{
+fn upgrade_spec_context(formulae []ruby.Value, installers []ruby.Value,
+	upgradeable []ruby.Value, pinned []ruby.Value, pinned_formulae []ruby.Value) ruby.Value {
+	return ruby.Value{
 		type_name: 'FormulaeUpgradeContext'
 		map_data: {
-			'formulae_to_install': brew_runtime.array_value(formulae)
-			'formulae_installer':  brew_runtime.array_value(installers)
-			'dependants':          brew_runtime.map_value({
-				'upgradeable': brew_runtime.array_value(upgradeable)
-				'pinned':      brew_runtime.array_value(pinned)
-				'skipped':     brew_runtime.array_value([])
+			'formulae_to_install': ruby.array_value(formulae)
+			'formulae_installer':  ruby.array_value(installers)
+			'dependants':          ruby.map_value({
+				'upgradeable': ruby.array_value(upgradeable)
+				'pinned':      ruby.array_value(pinned)
+				'skipped':     ruby.array_value([])
 			})
-			'pinned_formulae':     brew_runtime.array_value(pinned_formulae)
+			'pinned_formulae':     ruby.array_value(pinned_formulae)
 		}
 	}
 }
 
 fn upgrade_spec_summary(changes []string, pinned_formulae []string, pinned_casks []string,
-	deprecated []string, disabled []string, source_build []string) brew_runtime.Value {
-	return brew_runtime.structured_value('FinalUpgradeSummary', 'FinalUpgradeSummary', {
+	deprecated []string, disabled []string, source_build []string) ruby.Value {
+	return ruby.structured_value('FinalUpgradeSummary', 'FinalUpgradeSummary', {
 		'version_changes':       changes.join('\x1f')
 		'pinned_formulae':       pinned_formulae.join('\x1f')
 		'pinned_casks':          pinned_casks.join('\x1f')
@@ -81,8 +81,8 @@ fn upgrade_spec_summary(changes []string, pinned_formulae []string, pinned_casks
 	})
 }
 
-fn upgrade_spec_config(attributes map[string]string, mapped map[string]brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.Value{
+fn upgrade_spec_config(attributes map[string]string, mapped map[string]ruby.Value) ruby.Value {
+	return ruby.Value{
 		type_name: 'UpgradeCmd'
 		attributes: attributes.clone()
 		map_data: mapped.clone()
@@ -93,19 +93,19 @@ fn upgrade_spec_config(attributes map[string]string, mapped map[string]brew_runt
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "trusts fully-qualified named items before resolving them" do` at line 13.
-pub fn ruby_upgrade_spec_l13_d1_trusts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_spec_l13_d1_trusts(args ...ruby.Value) ruby.Value {
 	config := upgrade_spec_config({
 		'named':  'thirdparty/foo/bar'
 		'no_ask': 'true'
 	}, {
-		'resolved_items': brew_runtime.array_value([])
+		'resolved_items': ruby.array_value([])
 	})
 	result := upgrade_cmd.ruby_upgrade_l167_d2_run(config)
 	return upgrade_spec_truth('trust_fully_qualified_items' in upgrade_spec_list(result, 'events'))
 }
 
 // Ruby method `install_formula_version(name, version, optlinked: false)` at line 27.
-pub fn ruby_upgrade_spec_l27_d2_install_formula_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_spec_l27_d2_install_formula_version(args ...ruby.Value) ruby.Value {
 	name := if args.len > 0 { args[0].as_string() } else { 'testball' }
 	version := if args.len > 1 { args[1].as_string() } else { '1.0' }
 	optlinked := args.len > 2 && args[2].bool_data
@@ -118,7 +118,7 @@ pub fn ruby_upgrade_spec_l27_d2_install_formula_version(args ...brew_runtime.Val
 }
 
 // Ruby method `install_head_formula_version(name, commit, installed_stable_version: "1.0", current_stable_version: "1.1")` at line 39.
-pub fn ruby_upgrade_spec_l39_d3_install_head_formula_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_spec_l39_d3_install_head_formula_version(args ...ruby.Value) ruby.Value {
 	name := if args.len > 0 { args[0].as_string() } else { 'head-formula' }
 	commit := if args.len > 1 { args[1].as_string() } else { '1234567' }
 	installed_stable := if args.len > 2 { args[2].as_string() } else { '1.0' }
@@ -134,10 +134,10 @@ pub fn ruby_upgrade_spec_l39_d3_install_head_formula_version(args ...brew_runtim
 }
 
 // Ruby method `write_formula(name, content)` at line 63.
-pub fn ruby_upgrade_spec_l63_d4_write_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_spec_l63_d4_write_formula(args ...ruby.Value) ruby.Value {
 	name := if args.len > 0 { args[0].as_string() } else { 'testball' }
 	content := if args.len > 1 { args[1].as_string() } else { '' }
-	return brew_runtime.structured_value('FormulaSource', name, {
+	return ruby.structured_value('FormulaSource', name, {
 		'name':        name
 		'class_name':  name.split('-').map(it.capitalize()).join('')
 		'content':     content
@@ -146,7 +146,7 @@ pub fn ruby_upgrade_spec_l63_d4_write_formula(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby method `setup_pinned_dependency_upgrade` at line 75.
-pub fn ruby_upgrade_spec_l75_d5_setup_pinned_dependency_upgrade(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_spec_l75_d5_setup_pinned_dependency_upgrade(args ...ruby.Value) ruby.Value {
 	pinned := upgrade_spec_formula('pinned-dep', '1.0', '2.0', {
 		'optlinked': 'true'
 		'pinned':    'true'
@@ -155,14 +155,14 @@ pub fn ruby_upgrade_spec_l75_d5_setup_pinned_dependency_upgrade(args ...brew_run
 		'optlinked':    'true'
 		'dependencies': 'pinned-dep'
 	})
-	return brew_runtime.map_value({
+	return ruby.map_value({
 		'pinned':    pinned
 		'dependent': dependent
 	})
 }
 
 // Ruby it `it "upgrades a Formula and Cask", :cask, :integration_test do` at line 89.
-pub fn ruby_upgrade_spec_l89_d6_upgrades(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_spec_l89_d6_upgrades(args ...ruby.Value) ruby.Value {
 	formula := upgrade_spec_formula('testball_bottle', '0.0.1', '0.1', {
 		'optlinked': 'true'
 	})
@@ -173,43 +173,43 @@ pub fn ruby_upgrade_spec_l89_d6_upgrades(args ...brew_runtime.Value) brew_runtim
 		'formulae_context': upgrade_spec_context([formula], [
 			upgrade_spec_installer(formula, true, true, true),
 		], [], [], [])
-	}), brew_runtime.array_value([formula]))
-	cask_result := upgrade_cmd.ruby_upgrade_l787_d10_upgrade_outdated_casks(upgrade_spec_config({}, {}), brew_runtime.array_value([
+	}), ruby.array_value([formula]))
+	cask_result := upgrade_cmd.ruby_upgrade_l787_d10_upgrade_outdated_casks(upgrade_spec_config({}, {}), ruby.array_value([
 		cask,
 	]))
 	return upgrade_spec_truth(formula_result.bool_data && cask_result.bool_data && (cask_result.map_data['casks'].as_array() or { [] }).len == 1)
 }
 
 // Ruby it `it "links a newer Formula version when upgrade was interrupted" do` at line 127.
-pub fn ruby_upgrade_spec_l127_d7_links(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_spec_l127_d7_links(args ...ruby.Value) ruby.Value {
 	formula := upgrade_spec_formula('testball_bottle', '0.1', '0.1', {
 		'optlinked':                'false'
 		'outdated':                 'true'
 		'latest_version_installed': 'true'
 	})
 	context := upgrade_cmd.ruby_upgrade_l344_d3_formulae_upgrade_context(upgrade_spec_config({}, {
-		'formula_installers': brew_runtime.array_value([
+		'formula_installers': ruby.array_value([
 			upgrade_spec_installer(formula, true, true, true),
 		])
-	}), brew_runtime.array_value([formula]))
+	}), ruby.array_value([formula]))
 	selected := context.map_data['formulae_to_install'].as_array() or { [] }
 	return upgrade_spec_truth(selected.len == 1 && selected[0].repr == 'testball_bottle')
 }
 
 // Ruby it `it "refuses to upgrade a forbidden Formula" do` at line 149.
-pub fn ruby_upgrade_spec_l149_d8_refuses(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_spec_l149_d8_refuses(args ...ruby.Value) ruby.Value {
 	formula := upgrade_spec_formula('testball_bottle', '0.0.1', '0.1', {
 		'outdated': 'true'
 		'disabled': 'true'
 	})
-	result := upgrade_cmd.ruby_upgrade_l344_d3_formulae_upgrade_context(upgrade_spec_config({}, {}), brew_runtime.array_value([
+	result := upgrade_cmd.ruby_upgrade_l344_d3_formulae_upgrade_context(upgrade_spec_config({}, {}), ruby.array_value([
 		formula,
 	]))
 	return upgrade_spec_truth(result.type_name == 'NilClass' || !(result.attributes['stdout'] or { '' }).contains('testball_bottle 0.1'))
 }
 
 // Ruby it `it "upgrades a named formula installed below the minimum version" do` at line 166.
-pub fn ruby_upgrade_spec_l166_d9_upgrades(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_spec_l166_d9_upgrades(args ...ruby.Value) ruby.Value {
 	formula := upgrade_spec_formula('minimum-version-formula', '1.2.2', '1.2.3', {
 		'optlinked': 'true'
 	})
@@ -220,8 +220,8 @@ pub fn ruby_upgrade_spec_l166_d9_upgrades(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby it `it "aligns formula-only no-ask upgrade summaries", :no_api do` at line 176.
-pub fn ruby_upgrade_spec_l176_d10_aligns(args ...brew_runtime.Value) brew_runtime.Value {
-	formatted := homebrew.ruby_upgrade_l26_d1_format_upgrade_summary(brew_runtime.string_array_value([
+pub fn ruby_upgrade_spec_l176_d10_aligns(args ...ruby.Value) ruby.Value {
+	formatted := homebrew.ruby_upgrade_l26_d1_format_upgrade_summary(ruby.string_array_value([
 		'gh 2.93.0 -> 2.95.0',
 		'visual-studio-code 1.111.0 -> 1.125.1',
 	])).as_string_array() or { [] }
@@ -230,17 +230,17 @@ pub fn ruby_upgrade_spec_l176_d10_aligns(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby it `it "describes unresolved HEAD formula upgrades as latest HEAD", :no_api do` at line 201.
-pub fn ruby_upgrade_spec_l201_d11_describes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_spec_l201_d11_describes(args ...ruby.Value) ruby.Value {
 	formula := upgrade_spec_formula('head-formula', 'HEAD-1234567', 'HEAD-1234567', {
 		'head':      'true'
 		'optlinked': 'true'
 	})
-	value := upgrade_cmd.ruby_upgrade_l884_d16_formula_upgrade_display_version(upgrade_spec_config({}, {}), formula, brew_runtime.string_value('HEAD-1234567'))
+	value := upgrade_cmd.ruby_upgrade_l884_d16_formula_upgrade_display_version(upgrade_spec_config({}, {}), formula, ruby.string_value('HEAD-1234567'))
 	return upgrade_spec_truth(value.as_string() == 'latest HEAD')
 }
 
 // Ruby it `it "describes fetched HEAD formula upgrades with the resolved commit", :no_api do` at line 218.
-pub fn ruby_upgrade_spec_l218_d12_describes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_spec_l218_d12_describes(args ...ruby.Value) ruby.Value {
 	formula := upgrade_spec_formula('head-formula', 'HEAD-1234567', 'HEAD-1234567', {
 		'head':                    'true'
 		'optlinked':               'true'
@@ -248,12 +248,12 @@ pub fn ruby_upgrade_spec_l218_d12_describes(args ...brew_runtime.Value) brew_run
 	})
 	value := upgrade_cmd.ruby_upgrade_l884_d16_formula_upgrade_display_version(upgrade_spec_config({
 		'fetch_head': 'true'
-	}, {}), formula, brew_runtime.string_value('HEAD-1234567'))
+	}, {}), formula, ruby.string_value('HEAD-1234567'))
 	return upgrade_spec_truth(value.as_string() == 'HEAD-7654321')
 }
 
 // Ruby it `it "skips fetched HEAD formula upgrades when the resolved commit is unchanged", :no_api do` at line 237.
-pub fn ruby_upgrade_spec_l237_d13_skips(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_spec_l237_d13_skips(args ...ruby.Value) ruby.Value {
 	formula := upgrade_spec_formula('head-formula', 'HEAD-1234567', 'HEAD-1234567', {
 		'head':                    'true'
 		'optlinked':               'true'
@@ -265,7 +265,7 @@ pub fn ruby_upgrade_spec_l237_d13_skips(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby it `it "does not upgrade a named formula installed at --minimum-version" do` at line 254.
-pub fn ruby_upgrade_spec_l254_d14_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_spec_l254_d14_does(args ...ruby.Value) ruby.Value {
 	formula := upgrade_spec_formula('minimum-version-formula', '1.2.3', '1.2.4', {
 		'optlinked': 'true'
 	})
@@ -276,11 +276,11 @@ pub fn ruby_upgrade_spec_l254_d14_does(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby it `it "warns once for a named formula that is already up-to-date" do` at line 267.
-pub fn ruby_upgrade_spec_l267_d15_warns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_spec_l267_d15_warns(args ...ruby.Value) ruby.Value {
 	formula := upgrade_spec_formula('up-to-date-formula', '1.2.3', '1.2.3', {
 		'outdated': 'false'
 	})
-	result := upgrade_cmd.ruby_upgrade_l344_d3_formulae_upgrade_context(upgrade_spec_config({}, {}), brew_runtime.array_value([
+	result := upgrade_cmd.ruby_upgrade_l344_d3_formulae_upgrade_context(upgrade_spec_config({}, {}), ruby.array_value([
 		formula,
 	]))
 	warning := 'Warning: up-to-date-formula 1.2.3 already installed\n'
@@ -288,48 +288,48 @@ pub fn ruby_upgrade_spec_l267_d15_warns(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby it `it "warns once for a named cask that is already up-to-date", :cask do` at line 278.
-pub fn ruby_upgrade_spec_l278_d16_warns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_spec_l278_d16_warns(args ...ruby.Value) ruby.Value {
 	cask := upgrade_spec_cask('local-caffeine', '1.2.3', '1.2.3', {
 		'outdated': 'false'
 	})
 	result := upgrade_cmd.ruby_upgrade_l858_d14_minimum_version_casks(upgrade_spec_config({
 		'minimum_version': '1.2.3'
-	}, {}), brew_runtime.array_value([cask]), brew_runtime.bool_value(false))
+	}, {}), ruby.array_value([cask]), ruby.bool_value(false))
 	return upgrade_spec_truth((result.attributes['stderr'] or { '' }).count('Not upgrading local-caffeine') == 1)
 }
 
 // Ruby it `it "does not summarize dry-run formula upgrades blocked by pinned dependencies" do` at line 286.
-pub fn ruby_upgrade_spec_l286_d17_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_spec_l286_d17_does(args ...ruby.Value) ruby.Value {
 	fixture := ruby_upgrade_spec_l75_d5_setup_pinned_dependency_upgrade()
-	pinned := fixture.map_data['pinned'] or { brew_runtime.Value{} }
-	dependent := fixture.map_data['dependent'] or { brew_runtime.Value{} }
+	pinned := fixture.map_data['pinned'] or { ruby.Value{} }
+	dependent := fixture.map_data['dependent'] or { ruby.Value{} }
 	context := upgrade_spec_context([dependent], [], [], [pinned], [])
 	result := upgrade_cmd.ruby_upgrade_l610_d8_upgrade_outdated_formulae(upgrade_spec_config({
 		'no_ask': 'true'
 	}, {
 		'formulae_context': context
-	}), brew_runtime.array_value([dependent]), brew_runtime.bool_value(false), brew_runtime.bool_value(false), brew_runtime.bool_value(true))
-	summary := result.map_data['final_upgrade_summary'] or { brew_runtime.Value{} }
+	}), ruby.array_value([dependent]), ruby.bool_value(false), ruby.bool_value(false), ruby.bool_value(true))
+	summary := result.map_data['final_upgrade_summary'] or { ruby.Value{} }
 	return upgrade_spec_truth(upgrade_spec_list(summary, 'version_changes').len == 0)
 }
 
 // Ruby it `it "does not warn about pinned formulae before ask-mode pinned dependency failures" do` at line 301.
-pub fn ruby_upgrade_spec_l301_d18_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_spec_l301_d18_does(args ...ruby.Value) ruby.Value {
 	fixture := ruby_upgrade_spec_l75_d5_setup_pinned_dependency_upgrade()
-	pinned := fixture.map_data['pinned'] or { brew_runtime.Value{} }
-	dependent := fixture.map_data['dependent'] or { brew_runtime.Value{} }
+	pinned := fixture.map_data['pinned'] or { ruby.Value{} }
+	dependent := fixture.map_data['dependent'] or { ruby.Value{} }
 	context := upgrade_cmd.ruby_upgrade_l344_d3_formulae_upgrade_context(upgrade_spec_config({}, {
-		'dependants': brew_runtime.map_value({
-			'upgradeable': brew_runtime.array_value([])
-			'pinned':      brew_runtime.array_value([pinned])
-			'skipped':     brew_runtime.array_value([])
+		'dependants': ruby.map_value({
+			'upgradeable': ruby.array_value([])
+			'pinned':      ruby.array_value([pinned])
+			'skipped':     ruby.array_value([])
 		})
-	}), brew_runtime.array_value([dependent]), brew_runtime.bool_value(false), brew_runtime.bool_value(true))
+	}), ruby.array_value([dependent]), ruby.bool_value(false), ruby.bool_value(true))
 	return upgrade_spec_truth(!(context.attributes['stdout'] or { '' }).contains('Not upgrading 1 pinned package'))
 }
 
 // Ruby it `it "requires one named argument with --minimum-version" do` at line 317.
-pub fn ruby_upgrade_spec_l317_d19_requires(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_spec_l317_d19_requires(args ...ruby.Value) ruby.Value {
 	result := upgrade_cmd.ruby_upgrade_l167_d2_run(upgrade_spec_config({
 		'minimum_version': '1.2.3'
 	}, {}))
@@ -337,7 +337,7 @@ pub fn ruby_upgrade_spec_l317_d19_requires(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby it `it "rejects multiple named arguments with --minimum-version" do` at line 322.
-pub fn ruby_upgrade_spec_l322_d20_rejects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_spec_l322_d20_rejects(args ...ruby.Value) ruby.Value {
 	result := upgrade_cmd.ruby_upgrade_l167_d2_run(upgrade_spec_config({
 		'named':           'foo\x1fbar'
 		'minimum_version': '1.2.3'
@@ -346,71 +346,71 @@ pub fn ruby_upgrade_spec_l322_d20_rejects(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby it `it "upgrades a named cask installed below --minimum-version", :cask do` at line 327.
-pub fn ruby_upgrade_spec_l327_d21_upgrades(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_spec_l327_d21_upgrades(args ...ruby.Value) ruby.Value {
 	cask := upgrade_spec_cask('local-caffeine', '1.2.2', '1.2.3', {})
 	result := upgrade_cmd.ruby_upgrade_l858_d14_minimum_version_casks(upgrade_spec_config({
 		'minimum_version': '1.2.3'
-	}, {}), brew_runtime.array_value([cask]), brew_runtime.bool_value(false))
+	}, {}), ruby.array_value([cask]), ruby.bool_value(false))
 	return upgrade_spec_truth((result.map_data['casks'].as_array() or { [] }).len == 1)
 }
 
 // Ruby it `it "does not upgrade a named cask installed at --minimum-version", :cask do` at line 334.
-pub fn ruby_upgrade_spec_l334_d22_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_spec_l334_d22_does(args ...ruby.Value) ruby.Value {
 	cask := upgrade_spec_cask('local-caffeine', '1.2.3', '1.2.3', {})
 	result := upgrade_cmd.ruby_upgrade_l858_d14_minimum_version_casks(upgrade_spec_config({
 		'minimum_version': '1.2.3'
-	}, {}), brew_runtime.array_value([cask]), brew_runtime.bool_value(false))
+	}, {}), ruby.array_value([cask]), ruby.bool_value(false))
 	return upgrade_spec_truth((result.map_data['casks'].as_array() or { [] }).len == 0 && (result.attributes['stderr'] or { '' }).contains('installed version is not below'))
 }
 
 // Ruby it `it "reports unavailable names via ofail and continues upgrading" do` at line 343.
-pub fn ruby_upgrade_spec_l343_d23_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_spec_l343_d23_reports(args ...ruby.Value) ruby.Value {
 	formula := upgrade_spec_formula('testball', '0.1', '0.2', {
 		'outdated': 'false'
 	})
-	unavailable := brew_runtime.object_value('FormulaOrCaskUnavailableError', 'nonexistent')
+	unavailable := ruby.object_value('FormulaOrCaskUnavailableError', 'nonexistent')
 	result := upgrade_cmd.ruby_upgrade_l167_d2_run(upgrade_spec_config({
 		'named':  'testball\x1fnonexistent'
 		'no_ask': 'true'
 	}, {
-		'resolved_items': brew_runtime.array_value([formula, unavailable])
+		'resolved_items': ruby.array_value([formula, unavailable])
 	}))
 	return upgrade_spec_truth((result.attributes['stderr'] or { '' }).contains('nonexistent') && 'upgrade_formulae' in upgrade_spec_list(result, 'events'))
 }
 
 // Ruby it `it "catches cask upgrade errors and sets Homebrew.failed" do` at line 361.
-pub fn ruby_upgrade_spec_l361_d24_catches(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_spec_l361_d24_catches(args ...ruby.Value) ruby.Value {
 	result := upgrade_cmd.ruby_upgrade_l787_d10_upgrade_outdated_casks(upgrade_spec_config({
 		'cask_upgrade_error': 'test cask error'
-	}, {}), brew_runtime.array_value([]))
+	}, {}), ruby.array_value([]))
 	return upgrade_spec_truth(!result.bool_data && (result.attributes['stderr'] or { '' }).contains('test cask error'))
 }
 
 // Ruby it `it "does not ask again when upgrading discovered outdated casks" do` at line 371.
-pub fn ruby_upgrade_spec_l371_d25_does(args ...brew_runtime.Value) brew_runtime.Value {
-	result := upgrade_cmd.ruby_upgrade_l787_d10_upgrade_outdated_casks(upgrade_spec_config({}, {}), brew_runtime.array_value([]))
+pub fn ruby_upgrade_spec_l371_d25_does(args ...ruby.Value) ruby.Value {
+	result := upgrade_cmd.ruby_upgrade_l787_d10_upgrade_outdated_casks(upgrade_spec_config({}, {}), ruby.array_value([]))
 	return upgrade_spec_truth(result.bool_data && result.attributes['skip_prefetch'] == 'false')
 }
 
 // Ruby it `it "passes --no-quit to cask upgrades" do` at line 380.
-pub fn ruby_upgrade_spec_l380_d26_passes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_spec_l380_d26_passes(args ...ruby.Value) ruby.Value {
 	result := upgrade_cmd.ruby_upgrade_l787_d10_upgrade_outdated_casks(upgrade_spec_config({
 		'no_quit': 'true'
-	}, {}), brew_runtime.array_value([]))
+	}, {}), ruby.array_value([]))
 	return upgrade_spec_truth(result.attributes['quit'] == 'false')
 }
 
 // Ruby it `it "passes HOMEBREW_NO_UPGRADE_QUIT_CASKS to cask upgrades" do` at line 391.
-pub fn ruby_upgrade_spec_l391_d27_passes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_spec_l391_d27_passes(args ...ruby.Value) ruby.Value {
 	config := upgrade_spec_config({
 		'no_quit': 'true'
 	}, {})
-	result := upgrade_cmd.ruby_upgrade_l787_d10_upgrade_outdated_casks(config, brew_runtime.array_value([]))
+	result := upgrade_cmd.ruby_upgrade_l787_d10_upgrade_outdated_casks(config, ruby.array_value([]))
 	return upgrade_spec_truth(result.attributes['quit'] == 'false')
 }
 
 // Ruby it `it "prints formula and cask ask plans before upgrading" do` at line 405.
-pub fn ruby_upgrade_spec_l405_d28_prints(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_spec_l405_d28_prints(args ...ruby.Value) ruby.Value {
 	summary := upgrade_spec_summary(['testball 0.1 -> 0.2'], [], [], [], [], [])
 	config := upgrade_spec_config({
 		'ask_prompt_needed': 'true'
@@ -427,13 +427,13 @@ pub fn ruby_upgrade_spec_l405_d28_prints(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby it `it "does not ask before upgrading when nothing would upgrade" do` at line 466.
-pub fn ruby_upgrade_spec_l466_d29_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_spec_l466_d29_does(args ...ruby.Value) ruby.Value {
 	result := upgrade_cmd.ruby_upgrade_l167_d2_run(upgrade_spec_config({}, {}))
 	return upgrade_spec_truth('ask_upgrade' !in upgrade_spec_list(result, 'events'))
 }
 
 // Ruby it `it "does not prompt for confirmation in dry-run mode" do` at line 493.
-pub fn ruby_upgrade_spec_l493_d30_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_spec_l493_d30_does(args ...ruby.Value) ruby.Value {
 	result := upgrade_cmd.ruby_upgrade_l167_d2_run(upgrade_spec_config({
 		'dry_run': 'true'
 	}, {}))
@@ -441,65 +441,65 @@ pub fn ruby_upgrade_spec_l493_d30_does(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby it `it "does not ask before upgrading only explicitly named formulae" do` at line 512.
-pub fn ruby_upgrade_spec_l512_d31_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_spec_l512_d31_does(args ...ruby.Value) ruby.Value {
 	formula := upgrade_spec_formula('testball', '0.1', '0.2', {})
 	result := upgrade_cmd.ruby_upgrade_l167_d2_run(upgrade_spec_config({
 		'named':             'testball'
 		'ask_prompt_needed': 'false'
 	}, {
-		'resolved_items': brew_runtime.array_value([formula])
+		'resolved_items': ruby.array_value([formula])
 	}))
 	return upgrade_spec_truth('ask_upgrade' !in upgrade_spec_list(result, 'events'))
 }
 
 // Ruby it `it "asks before upgrading formulae that resolve from a different name" do` at line 519.
-pub fn ruby_upgrade_spec_l519_d32_asks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_spec_l519_d32_asks(args ...ruby.Value) ruby.Value {
 	formula := upgrade_spec_formula('testball', '0.1', '0.2', {})
 	summary := upgrade_spec_summary(['testball 0.1 -> 0.2'], [], [], [], [], [])
 	result := upgrade_cmd.ruby_upgrade_l167_d2_run(upgrade_spec_config({
 		'named':             'oldtestball'
 		'ask_prompt_needed': 'true'
 	}, {
-		'resolved_items':  brew_runtime.array_value([formula])
+		'resolved_items':  ruby.array_value([formula])
 		'planned_summary': summary
 	}))
 	return upgrade_spec_truth('ask_upgrade' in upgrade_spec_list(result, 'events') && (result.attributes['stdout'] or { '' }).contains('testball 0.1 -> 0.2'))
 }
 
 // Ruby it `it "prints formula download sizes in dry-run upgrade summaries" do` at line 549.
-pub fn ruby_upgrade_spec_l549_d33_prints(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_spec_l549_d33_prints(args ...ruby.Value) ruby.Value {
 	formula := upgrade_spec_formula('testball', '0.1', '0.2', {
 		'optlinked':   'true'
 		'has_bottle':  'true'
 		'bottle_size': '500'
 	})
-	descriptions := upgrade_cmd.ruby_upgrade_l578_d7_formula_upgrade_descriptions(upgrade_spec_config({}, {}), brew_runtime.array_value([
+	descriptions := upgrade_cmd.ruby_upgrade_l578_d7_formula_upgrade_descriptions(upgrade_spec_config({}, {}), ruby.array_value([
 		formula,
-	]), brew_runtime.bool_value(true)).as_string_array() or { [] }
+	]), ruby.bool_value(true)).as_string_array() or { [] }
 	return upgrade_spec_truth(descriptions == ['testball 0.1 -> 0.2 (500B)'])
 }
 
 // Ruby it `it "omits formula download sizes in dry-run source build upgrade summaries" do` at line 565.
-pub fn ruby_upgrade_spec_l565_d34_omits(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_spec_l565_d34_omits(args ...ruby.Value) ruby.Value {
 	formula := upgrade_spec_formula('testball', '0.1', '0.2', {
 		'optlinked':         'true'
 		'has_bottle':        'true'
 		'bottle_size':       '500'
 		'build_from_source': 'true'
 	})
-	descriptions := upgrade_cmd.ruby_upgrade_l578_d7_formula_upgrade_descriptions(upgrade_spec_config({}, {}), brew_runtime.array_value([
+	descriptions := upgrade_cmd.ruby_upgrade_l578_d7_formula_upgrade_descriptions(upgrade_spec_config({}, {}), ruby.array_value([
 		formula,
-	]), brew_runtime.bool_value(true)).as_string_array() or { [] }
+	]), ruby.bool_value(true)).as_string_array() or { [] }
 	return upgrade_spec_truth(descriptions == ['testball 0.1 -> 0.2'])
 }
 
 // Ruby it `it "prints dry-run cleanup output from one formula cleanup run" do` at line 583.
-pub fn ruby_upgrade_spec_l583_d35_prints(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_spec_l583_d35_prints(args ...ruby.Value) ruby.Value {
 	formula := upgrade_spec_formula('testball', '0.1', '0.2', {})
 	other := upgrade_spec_formula('otherball', '0.1', '0.2', {})
 	installers := [upgrade_spec_installer(formula, true, true, true),
 		upgrade_spec_installer(other, true, true, true)]
-	result := homebrew.ruby_upgrade_l178_d3_upgrade_formulae(brew_runtime.array_value(installers), upgrade_spec_config({
+	result := homebrew.ruby_upgrade_l178_d3_upgrade_formulae(ruby.array_value(installers), upgrade_spec_config({
 		'dry_run':            'true'
 		'cleanup_output':     'Would remove: /cellar/testball/0.1 (1KB)\n'
 		'no_install_cleanup': 'true'
@@ -508,15 +508,15 @@ pub fn ruby_upgrade_spec_l583_d35_prints(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby it `it "omits dry-run dependencies already listed in the final summary" do` at line 613.
-pub fn ruby_upgrade_spec_l613_d36_omits(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_spec_l613_d36_omits(args ...ruby.Value) ruby.Value {
 	formula := upgrade_spec_formula('yt-dlp', '', '2026.3.17_2', {})
 	dependency := upgrade_spec_formula('python@3.14', '', '3.14.5', {})
 	mut installer := upgrade_spec_installer(formula, true, true, true)
-	installer = brew_runtime.Value{
+	installer = ruby.Value{
 		...installer
 		map_data: {
 			'formula':      formula
-			'dependencies': brew_runtime.array_value([dependency])
+			'dependencies': ruby.array_value([dependency])
 		}
 	}
 	result := homebrew.ruby_upgrade_l466_d8_upgrade_formula(installer, upgrade_spec_config({
@@ -527,11 +527,11 @@ pub fn ruby_upgrade_spec_l613_d36_omits(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby it `it "omits dry-run dependents already listed in the final summary" do` at line 637.
-pub fn ruby_upgrade_spec_l637_d37_omits(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_spec_l637_d37_omits(args ...ruby.Value) ruby.Value {
 	sqlite := upgrade_spec_formula('sqlite', '', '3.53.1', {})
 	dependent := upgrade_spec_formula('python@3.14', '', '3.14.5', {})
-	deps := upgrade_spec_context([], [], [dependent], [], []).map_data['dependants'] or { brew_runtime.Value{} }
-	result := homebrew.ruby_upgrade_l283_d7_upgrade_dependents(deps, brew_runtime.array_value([
+	deps := upgrade_spec_context([], [], [dependent], [], []).map_data['dependants'] or { ruby.Value{} }
+	result := homebrew.ruby_upgrade_l283_d7_upgrade_dependents(deps, ruby.array_value([
 		sqlite,
 	]), upgrade_spec_config({
 		'dry_run':            'true'
@@ -542,12 +542,12 @@ pub fn ruby_upgrade_spec_l637_d37_omits(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby it `it "aligns dependent formula upgrade summaries" do` at line 659.
-pub fn ruby_upgrade_spec_l659_d38_aligns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_spec_l659_d38_aligns(args ...ruby.Value) ruby.Value {
 	sqlite := upgrade_spec_formula('sqlite', '', '3.53.2', {})
 	gh := upgrade_spec_formula('gh', '', '2.95.0', {})
 	code := upgrade_spec_formula('visual-studio-code', '', '1.125.1', {})
-	deps := upgrade_spec_context([], [], [gh, code], [], []).map_data['dependants'] or { brew_runtime.Value{} }
-	result := homebrew.ruby_upgrade_l283_d7_upgrade_dependents(deps, brew_runtime.array_value([
+	deps := upgrade_spec_context([], [], [gh, code], [], []).map_data['dependants'] or { ruby.Value{} }
+	result := homebrew.ruby_upgrade_l283_d7_upgrade_dependents(deps, ruby.array_value([
 		sqlite,
 	]), upgrade_spec_config({
 		'dry_run':      'true'
@@ -558,27 +558,27 @@ pub fn ruby_upgrade_spec_l659_d38_aligns(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby it `it "does not claim to upgrade dependents whose runtime dependencies are satisfied" do` at line 690.
-pub fn ruby_upgrade_spec_l690_d39_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_spec_l690_d39_does(args ...ruby.Value) ruby.Value {
 	sqlite := upgrade_spec_formula('sqlite', '', '3.53.2', {})
 	dependent := upgrade_spec_formula('python@3.14', '', '3.14.5', {})
-	deps := upgrade_spec_context([], [], [dependent], [], []).map_data['dependants'] or { brew_runtime.Value{} }
-	result := homebrew.ruby_upgrade_l283_d7_upgrade_dependents(deps, brew_runtime.array_value([
+	deps := upgrade_spec_context([], [], [dependent], [], []).map_data['dependants'] or { ruby.Value{} }
+	result := homebrew.ruby_upgrade_l283_d7_upgrade_dependents(deps, ruby.array_value([
 		sqlite,
 	]), upgrade_spec_config({}, {
-		'installed_formulae': brew_runtime.array_value([dependent])
+		'installed_formulae': ruby.array_value([dependent])
 	}))
 	return upgrade_spec_truth(!(result.attributes['stdout'] or { '' }).contains('Upgrading 1 dependent'))
 }
 
 // Ruby it `it "does not print aggregate package sizes" do` at line 709.
-pub fn ruby_upgrade_spec_l709_d40_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_spec_l709_d40_does(args ...ruby.Value) ruby.Value {
 	summary := upgrade_spec_summary(['testball 0.1 -> 0.2 (500B)', 'codex 1.0 -> 2.0'], [], [], [], [], [])
-	output := upgrade_cmd.ruby_upgrade_l528_d6_show_final_upgrade_summary(summary, brew_runtime.bool_value(true)).as_string()
+	output := upgrade_cmd.ruby_upgrade_l528_d6_show_final_upgrade_summary(summary, ruby.bool_value(true)).as_string()
 	return upgrade_spec_truth(output == '==> Would upgrade 2 outdated packages\ntestball  0.1 -> 0.2 (500B)\ncodex     1.0 -> 2.0\n' && !output.contains('total'))
 }
 
 // Ruby it `it "uses the final summary for dry-run upgrade lists" do` at line 724.
-pub fn ruby_upgrade_spec_l724_d41_uses(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_spec_l724_d41_uses(args ...ruby.Value) ruby.Value {
 	result := upgrade_cmd.ruby_upgrade_l167_d2_run(upgrade_spec_config({
 		'dry_run': 'true'
 		'no_ask':  'true'
@@ -590,7 +590,7 @@ pub fn ruby_upgrade_spec_l724_d41_uses(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby it `it "prints a combined upgrade summary before fetching combined downloads" do` at line 740.
-pub fn ruby_upgrade_spec_l740_d42_prints(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_spec_l740_d42_prints(args ...ruby.Value) ruby.Value {
 	formula := upgrade_spec_formula('deno', '2.7.10', '2.7.11', {
 		'optlinked': 'true'
 	})
@@ -602,8 +602,8 @@ pub fn ruby_upgrade_spec_l740_d42_prints(args ...brew_runtime.Value) brew_runtim
 		'no_ask': 'true'
 	}, {
 		'formulae_context':            context
-		'outdated_casks':              brew_runtime.array_value([cask])
-		'formatted_prefetch_upgrades': brew_runtime.string_array_value([
+		'outdated_casks':              ruby.array_value([cask])
+		'formatted_prefetch_upgrades': ruby.string_array_value([
 			'deno   2.7.10  -> 2.7.11',
 			'codex  0.117.0 -> 0.118.0',
 		])
@@ -614,7 +614,7 @@ pub fn ruby_upgrade_spec_l740_d42_prints(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby it `it "asks before fetching formulae and casks in the same download queue" do` at line 788.
-pub fn ruby_upgrade_spec_l788_d43_asks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_spec_l788_d43_asks(args ...ruby.Value) ruby.Value {
 	formula := upgrade_spec_formula('deno', '2.7.10', '2.7.11', {
 		'optlinked': 'true'
 	})
@@ -627,14 +627,14 @@ pub fn ruby_upgrade_spec_l788_d43_asks(args ...brew_runtime.Value) brew_runtime.
 		'formulae_context': upgrade_spec_context([formula], [
 			upgrade_spec_installer(formula, true, true, true),
 		], [], [], [])
-		'outdated_casks':   brew_runtime.array_value([cask])
+		'outdated_casks':   ruby.array_value([cask])
 	}))
 	events := upgrade_spec_list(result, 'events')
 	return upgrade_spec_truth(events.index('ask_upgrade') >= 0 && events.index('ask_upgrade') < events.index('new_shared_download_queue') && events.index('new_shared_download_queue') < events.index('fetch_shared_downloads'))
 }
 
 // Ruby it `it "uses prefetched compatible casks and carries requirement errors into upgrade" do` at line 838.
-pub fn ruby_upgrade_spec_l838_d44_uses(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_spec_l838_d44_uses(args ...ruby.Value) ruby.Value {
 	compatible := upgrade_spec_cask('codex', '0.117.0', '0.118.0', {})
 	incompatible := upgrade_spec_cask('bad-cask', '1.0', '2.0', {
 		'requirements_error': 'bad-cask: This cask requires Linux.'
@@ -642,32 +642,32 @@ pub fn ruby_upgrade_spec_l838_d44_uses(args ...brew_runtime.Value) brew_runtime.
 	result := upgrade_cmd.ruby_upgrade_l167_d2_run(upgrade_spec_config({
 		'no_ask': 'true'
 	}, {
-		'outdated_casks': brew_runtime.array_value([incompatible, compatible])
+		'outdated_casks': ruby.array_value([incompatible, compatible])
 	}))
 	return upgrade_spec_truth(result.attributes['casks_prefetched'] == 'true' && 'upgrade_casks' in upgrade_spec_list(result, 'events'))
 }
 
 // Ruby it `it "prefetches language cask files before fetching combined downloads" do` at line 871.
-pub fn ruby_upgrade_spec_l871_d45_prefetches(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_spec_l871_d45_prefetches(args ...ruby.Value) ruby.Value {
 	cask := upgrade_spec_cask('codex', '0.117.0', '0.118.0', {
 		'source_download_prefetch':  'true'
 		'source_download_available': 'true'
 	})
 	result := upgrade_cmd.ruby_upgrade_l715_d9_prefetch_outdated_casks(upgrade_spec_config({}, {
-		'outdated_casks': brew_runtime.array_value([cask])
-	}), brew_runtime.array_value([]))
+		'outdated_casks': ruby.array_value([cask])
+	}), ruby.array_value([]))
 	return upgrade_spec_truth(upgrade_spec_list(result, 'source_downloads') == ['codex'] && result.attributes['cask_file_heading'] == 'Downloading Cask files')
 }
 
 // Ruby it `it "skips incompatible casks during combined prefetch" do` at line 924.
-pub fn ruby_upgrade_spec_l924_d46_skips(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_spec_l924_d46_skips(args ...ruby.Value) ruby.Value {
 	incompatible := upgrade_spec_cask('bad-cask', '1.0', '2.0', {
 		'requirements_error': 'bad-cask: This cask requires Linux.'
 	})
 	compatible := upgrade_spec_cask('codex', '0.117.0', '0.118.0', {})
 	result := upgrade_cmd.ruby_upgrade_l715_d9_prefetch_outdated_casks(upgrade_spec_config({}, {
-		'outdated_casks': brew_runtime.array_value([incompatible, compatible])
-	}), brew_runtime.array_value([]))
+		'outdated_casks': ruby.array_value([incompatible, compatible])
+	}), ruby.array_value([]))
 	casks := result.map_data['prefetch_casks'].as_array() or { [] }
 	return upgrade_spec_truth(upgrade_spec_list(result, 'prefetch_names') == ['codex'] && upgrade_spec_list(result, 'prefetch_upgrades') == [
 		'codex 0.117.0 -> 0.118.0',
@@ -677,23 +677,23 @@ pub fn ruby_upgrade_spec_l924_d46_skips(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby it `it "omits the cask file heading for cached language cask files" do` at line 975.
-pub fn ruby_upgrade_spec_l975_d47_omits(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_spec_l975_d47_omits(args ...ruby.Value) ruby.Value {
 	cask := upgrade_spec_cask('codex', '0.117.0', '0.118.0', {
 		'source_download_prefetch':  'true'
 		'source_download_available': 'false'
 	})
 	result := upgrade_cmd.ruby_upgrade_l715_d9_prefetch_outdated_casks(upgrade_spec_config({}, {
-		'outdated_casks': brew_runtime.array_value([cask])
-	}), brew_runtime.array_value([]))
+		'outdated_casks': ruby.array_value([cask])
+	}), ruby.array_value([]))
 	return upgrade_spec_truth((result.attributes['cask_file_heading'] or { '' }) == '')
 }
 
 // Ruby it `it "passes a bottle manifest heading to the tab prefetch queue" do` at line 1023.
-pub fn ruby_upgrade_spec_l1023_d48_passes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_spec_l1023_d48_passes(args ...ruby.Value) ruby.Value {
 	formula := upgrade_spec_formula('deno', '', '2.7.11', {
 		'has_bottle': 'true'
 	})
-	result := homebrew.ruby_upgrade_l65_d2_formula_installers(brew_runtime.array_value([
+	result := homebrew.ruby_upgrade_l65_d2_formula_installers(ruby.array_value([
 		formula,
 	]), upgrade_spec_config({
 		'bottle_manifest_heading': 'Downloading bottle manifests'
@@ -703,19 +703,19 @@ pub fn ruby_upgrade_spec_l1023_d48_passes(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby it `it "only distrusts the formula half of a shared prefetch whose bottle download failed" do` at line 1046.
-pub fn ruby_upgrade_spec_l1046_d49_only(args ...brew_runtime.Value) brew_runtime.Value {
-	result := ruby_upgrade_spec_l1056_d51_run_upgrade_with_failed_shared_prefetch(brew_runtime.string_value('formula'))
+pub fn ruby_upgrade_spec_l1046_d49_only(args ...ruby.Value) ruby.Value {
+	result := ruby_upgrade_spec_l1056_d51_run_upgrade_with_failed_shared_prefetch(ruby.string_value('formula'))
 	return upgrade_spec_truth(result.attributes['use_prefetched'] == 'false' && result.attributes['skip_prefetch'] == 'true')
 }
 
 // Ruby it `it "only distrusts the cask half of a shared prefetch whose cask download failed" do` at line 1051.
-pub fn ruby_upgrade_spec_l1051_d50_only(args ...brew_runtime.Value) brew_runtime.Value {
-	result := ruby_upgrade_spec_l1056_d51_run_upgrade_with_failed_shared_prefetch(brew_runtime.string_value('cask'))
+pub fn ruby_upgrade_spec_l1051_d50_only(args ...ruby.Value) ruby.Value {
+	result := ruby_upgrade_spec_l1056_d51_run_upgrade_with_failed_shared_prefetch(ruby.string_value('cask'))
 	return upgrade_spec_truth(result.attributes['use_prefetched'] == 'true' && result.attributes['skip_prefetch'] == 'false')
 }
 
 // Ruby method `run_upgrade_with_failed_shared_prefetch(failed_download)` at line 1056.
-pub fn ruby_upgrade_spec_l1056_d51_run_upgrade_with_failed_shared_prefetch(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_spec_l1056_d51_run_upgrade_with_failed_shared_prefetch(args ...ruby.Value) ruby.Value {
 	failed := if args.len > 0 { args[0].as_string() } else { 'formula' }
 	formula := upgrade_spec_formula('deno', '2.7.10', '2.7.11', {
 		'optlinked': 'true'
@@ -730,37 +730,37 @@ pub fn ruby_upgrade_spec_l1056_d51_run_upgrade_with_failed_shared_prefetch(args 
 		'formulae_context': upgrade_spec_context([formula], [
 			upgrade_spec_installer(formula, true, true, true),
 		], [], [], [])
-		'outdated_casks':   brew_runtime.array_value([cask])
+		'outdated_casks':   ruby.array_value([cask])
 	}))
-	return brew_runtime.structured_value('FailedSharedPrefetchResult', failed, {
+	return ruby.structured_value('FailedSharedPrefetchResult', failed, {
 		'use_prefetched': result.attributes['formula_prefetched'] or { 'false' }
 		'skip_prefetch':  result.attributes['casks_prefetched'] or { 'false' }
 	})
 }
 
 // Ruby it `it "does not print removed caveats method errors for installed casks", :cask do` at line 1108.
-pub fn ruby_upgrade_spec_l1108_d52_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_spec_l1108_d52_does(args ...ruby.Value) ruby.Value {
 	cask := upgrade_spec_cask('local-caffeine', '1.2.3', '1.2.3', {
 		'outdated': 'false'
 	})
 	result := upgrade_cmd.ruby_upgrade_l787_d10_upgrade_outdated_casks(upgrade_spec_config({
 		'dry_run': 'true'
-	}, {}), brew_runtime.array_value([cask]))
+	}, {}), ruby.array_value([cask]))
 	return upgrade_spec_truth(!(result.attributes['stderr'] or { '' }).contains("Unexpected method 'discontinued'"))
 }
 
 // Ruby it `it "prints a narrow final upgrade summary" do` at line 1136.
-pub fn ruby_upgrade_spec_l1136_d53_prints(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_spec_l1136_d53_prints(args ...ruby.Value) ruby.Value {
 	summary := upgrade_spec_summary(['testball 0.1 -> 0.2'], ['pinnedball 1.0'], [
 		'pinned-cask 2.0',
 	], ['oldball'], ['disabledball'], ['sourceball'])
-	output := upgrade_cmd.ruby_upgrade_l528_d6_show_final_upgrade_summary(summary, brew_runtime.bool_value(false)).as_string()
+	output := upgrade_cmd.ruby_upgrade_l528_d6_show_final_upgrade_summary(summary, ruby.bool_value(false)).as_string()
 	expected := '==> Upgraded 1 outdated package\ntestball 0.1 -> 0.2\n==> 1 Pinned formula\npinnedball 1.0\n==> 1 Pinned cask\npinned-cask 2.0\n==> 2 Deprecated or disabled packages\noldball (deprecated)\ndisabledball (disabled)\n==> 1 homebrew/core formula built from source\nsourceball\n'
 	return upgrade_spec_truth(output == expected)
 }
 
 // Ruby it `it "records final formula upgrade summary details" do` at line 1164.
-pub fn ruby_upgrade_spec_l1164_d54_records(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_spec_l1164_d54_records(args ...ruby.Value) ruby.Value {
 	formula := upgrade_spec_formula('testball', '0.1', '0.2', {
 		'optlinked': 'true'
 	})
@@ -788,7 +788,7 @@ pub fn ruby_upgrade_spec_l1164_d54_records(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby it `it "records formula upgrade versions before upgrading" do` at line 1214.
-pub fn ruby_upgrade_spec_l1214_d55_records(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_spec_l1214_d55_records(args ...ruby.Value) ruby.Value {
 	formula := upgrade_spec_formula('testball', '0.1', '0.2', {
 		'optlinked': 'true'
 	})
@@ -797,13 +797,13 @@ pub fn ruby_upgrade_spec_l1214_d55_records(args ...brew_runtime.Value) brew_runt
 	], [], [], [])
 	result := upgrade_cmd.ruby_upgrade_l610_d8_upgrade_outdated_formulae(upgrade_spec_config({}, {
 		'formulae_context': context
-	}), brew_runtime.array_value([]))
-	summary := result.map_data['final_upgrade_summary'] or { brew_runtime.Value{} }
+	}), ruby.array_value([]))
+	summary := result.map_data['final_upgrade_summary'] or { ruby.Value{} }
 	return upgrade_spec_truth('testball 0.1 -> 0.2' in upgrade_spec_list(summary, 'version_changes'))
 }
 
 // Ruby it `it "omits failed formula version changes from the final summary" do` at line 1245.
-pub fn ruby_upgrade_spec_l1245_d56_omits(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_spec_l1245_d56_omits(args ...ruby.Value) ruby.Value {
 	success := upgrade_spec_formula('testball', '0.1', '0.2', {
 		'optlinked': 'true'
 	})
@@ -819,15 +819,15 @@ pub fn ruby_upgrade_spec_l1245_d56_omits(args ...brew_runtime.Value) brew_runtim
 		'upgraded_formula_names': 'testball'
 	}, {
 		'formulae_context': context
-	}), brew_runtime.array_value([]))
-	summary := result.map_data['final_upgrade_summary'] or { brew_runtime.Value{} }
+	}), ruby.array_value([]))
+	summary := result.map_data['final_upgrade_summary'] or { ruby.Value{} }
 	return upgrade_spec_truth(upgrade_spec_list(summary, 'version_changes') == [
 		'testball 0.1 -> 0.2',
 	] && upgrade_spec_list(summary, 'deprecated') == ['failball'])
 }
 
 // Ruby it `it "reports only successful dependent version changes in the final summary" do` at line 1283.
-pub fn ruby_upgrade_spec_l1283_d57_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_spec_l1283_d57_reports(args ...ruby.Value) ruby.Value {
 	formula := upgrade_spec_formula('testball', '0.1', '0.2', {
 		'optlinked': 'true'
 	})
@@ -848,8 +848,8 @@ pub fn ruby_upgrade_spec_l1283_d57_reports(args ...brew_runtime.Value) brew_runt
 		'upgraded_dependent_names': 'upgraded-dependent'
 	}, {
 		'formulae_context': context
-	}), brew_runtime.array_value([]))
-	summary := result.map_data['final_upgrade_summary'] or { brew_runtime.Value{} }
+	}), ruby.array_value([]))
+	summary := result.map_data['final_upgrade_summary'] or { ruby.Value{} }
 	return upgrade_spec_truth(upgrade_spec_list(summary, 'version_changes') == [
 		'testball 0.1 -> 0.2',
 		'upgraded-dependent 0.1 -> 0.2',

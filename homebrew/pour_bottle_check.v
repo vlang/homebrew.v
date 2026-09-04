@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 
 pub struct PourBottleFormula {
 pub:
@@ -20,7 +20,7 @@ pub mut:
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `initialize(formula)` at line 8.
-pub fn ruby_pour_bottle_check_l8_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pour_bottle_check_l8_d1_initialize(args ...ruby.Value) ruby.Value {
 	formula := PourBottleFormula{
 		name: if args.len > 0 { args[0].as_string() } else { '' }
 	}
@@ -28,7 +28,7 @@ pub fn ruby_pour_bottle_check_l8_d1_initialize(args ...brew_runtime.Value) brew_
 }
 
 // Ruby method `reason(reason)` at line 13.
-pub fn ruby_pour_bottle_check_l13_d2_reason(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pour_bottle_check_l13_d2_reason(args ...ruby.Value) ruby.Value {
 	mut check := new_pour_bottle_check(PourBottleFormula{
 		name: if args.len > 0 { args[0].as_string() } else { '' }
 	})
@@ -37,7 +37,7 @@ pub fn ruby_pour_bottle_check_l13_d2_reason(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby method `satisfy(&block)` at line 18.
-pub fn ruby_pour_bottle_check_l18_d3_satisfy(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pour_bottle_check_l18_d3_satisfy(args ...ruby.Value) ruby.Value {
 	mut check := new_pour_bottle_check(PourBottleFormula{
 		name: if args.len > 0 { args[0].as_string() } else { '' }
 	})
@@ -46,8 +46,8 @@ pub fn ruby_pour_bottle_check_l18_d3_satisfy(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby define_method `@formula.send(:define_method, :pour_bottle?, &block)` at line 19.
-pub fn ruby_pour_bottle_check_l19_d4_pour_bottle(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(args.len > 0 && args[0].bool_data)
+pub fn ruby_pour_bottle_check_l19_d4_pour_bottle(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(args.len > 0 && args[0].bool_data)
 }
 
 pub fn new_pour_bottle_check(formula PourBottleFormula) PourBottleCheck {
@@ -63,8 +63,8 @@ pub fn (mut check PourBottleCheck) satisfy(allowed bool) {
 	check.formula.pour_bottle_allowed = allowed
 }
 
-fn pour_bottle_check_value(check PourBottleCheck) brew_runtime.Value {
-	return brew_runtime.structured_value('PourBottleCheck', check.formula.name, {
+fn pour_bottle_check_value(check PourBottleCheck) ruby.Value {
+	return ruby.structured_value('PourBottleCheck', check.formula.name, {
 		'formula':                              check.formula.name
 		'pour_bottle_check_unsatisfied_reason': check.formula.unsatisfied_reason
 		'pour_bottle_defined':                  check.formula.pour_bottle_defined.str()

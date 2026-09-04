@@ -1,6 +1,6 @@
 module rubocops
 
-import brew_runtime
+import ruby
 import homebrew.rubocops as patch_cop
 
 // Translated from Homebrew/brew `test/rubocops/patches_spec.rb`.
@@ -50,47 +50,47 @@ fn patches_spec_corrects(url string, corrected_url string, reset_sha bool, messa
 }
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
-pub fn ruby_patches_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::Patches', 'Patches')
+pub fn ruby_patches_spec_l7_d1_cop(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('RuboCop::Cop::FormulaAudit::Patches', 'Patches')
 }
 
 // Ruby method `expect_offense_hash(message:, severity:, line:, column:, source:)` at line 9.
-pub fn ruby_patches_spec_l9_d2_expect_offense_hash(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_patches_spec_l9_d2_expect_offense_hash(args ...ruby.Value) ruby.Value {
 	message := if args.len > 0 { args[0].as_string() } else { '' }
 	severity := if args.len > 1 { args[1].as_string() } else { 'convention' }
 	line := if args.len > 2 { args[2].as_string() } else { '0' }
 	column := if args.len > 3 { args[3].as_string() } else { '0' }
 	source := if args.len > 4 { args[4].as_string() } else { '' }
-	return brew_runtime.array_value([brew_runtime.map_value({
-		'message':  brew_runtime.string_value(message)
-		'severity': brew_runtime.string_value(severity)
-		'line':     brew_runtime.string_value(line)
-		'column':   brew_runtime.string_value(column)
-		'source':   brew_runtime.string_value(source)
+	return ruby.array_value([ruby.map_value({
+		'message':  ruby.string_value(message)
+		'severity': ruby.string_value(severity)
+		'line':     ruby.string_value(line)
+		'column':   ruby.string_value(column)
+		'source':   ruby.string_value(source)
 	})])
 }
 
 // Ruby it `it "reports no offenses if there is no legacy patch" do` at line 14.
-pub fn ruby_patches_spec_l14_d3_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_patches_spec_l14_d3_reports(args ...ruby.Value) ruby.Value {
 	source := patches_spec_formula('')
-	return brew_runtime.bool_value(patches_spec_messages(source).len == 0)
+	return ruby.bool_value(patches_spec_messages(source).len == 0)
 }
 
 // Ruby it `it "reports an offense if `def patches` is present" do` at line 22.
-pub fn ruby_patches_spec_l22_d4_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_patches_spec_l22_d4_reports(args ...ruby.Value) ruby.Value {
 	source := patches_spec_formula(ruby_patches_spec_l27_d5_patches().as_string())
-	return brew_runtime.bool_value(patches_spec_messages(source) == [
+	return ruby.bool_value(patches_spec_messages(source) == [
 		'Use the `patch` DSL instead of defining a `patches` method',
 	])
 }
 
 // Ruby method `patches` at line 27.
-pub fn ruby_patches_spec_l27_d5_patches(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('def patches\n  DATA\nend')
+pub fn ruby_patches_spec_l27_d5_patches(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('def patches\n  DATA\nend')
 }
 
 // Ruby it `it "reports an offense for various patch URLs" do` at line 35.
-pub fn ruby_patches_spec_l35_d6_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_patches_spec_l35_d6_reports(args ...ruby.Value) ruby.Value {
 	urls := {
 		'https://raw.github.com/mogaal/sendemail':                                                           'GitHub/Gist patches should specify a revision: https://raw.github.com/mogaal/sendemail'
 		'https://mirrors.ustc.edu.cn/macports/trunk/':                                                       'MacPorts patches should specify a revision instead of trunk: https://mirrors.ustc.edu.cn/macports/trunk/'
@@ -102,61 +102,61 @@ pub fn ruby_patches_spec_l35_d6_reports(args ...brew_runtime.Value) brew_runtime
 		source := patches_spec_formula('def patches\n  "${url}"\nend')
 		messages := patches_spec_messages(source)
 		if messages.len != 2 || messages[0] != 'Use the `patch` DSL instead of defining a `patches` method' || messages[1] != message {
-			return brew_runtime.bool_value(false)
+			return ruby.bool_value(false)
 		}
 	}
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
 // Ruby method `patches` at line 48.
-pub fn ruby_patches_spec_l48_d7_patches(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('def patches\n  "#{patch_url}"\nend')
+pub fn ruby_patches_spec_l48_d7_patches(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('def patches\n  "#{patch_url}"\nend')
 }
 
 // Ruby it `it "reports an offense with nested `def patches`" do` at line 88.
-pub fn ruby_patches_spec_l88_d8_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_patches_spec_l88_d8_reports(args ...ruby.Value) ruby.Value {
 	source := patches_spec_formula(ruby_patches_spec_l93_d9_patches().as_string())
-	return brew_runtime.bool_value(patches_spec_messages(source) == [
+	return ruby.bool_value(patches_spec_messages(source) == [
 		'Use the `patch` DSL instead of defining a `patches` method',
 		'Patches from MacPorts Trac should be https://, not http: http://trac.macports.org/export/68507/trunk/dports/net/trafshow/files/',
 	])
 }
 
 // Ruby method `patches` at line 93.
-pub fn ruby_patches_spec_l93_d9_patches(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('def patches\n  files = %w[patch-domain_resolver.c patch-colormask.c]\n  {\n    :p0 => files.collect{|p| "http://trac.macports.org/export/68507/trunk/dports/net/trafshow/files/#{p}"}\n  }\nend')
+pub fn ruby_patches_spec_l93_d9_patches(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('def patches\n  files = %w[patch-domain_resolver.c patch-colormask.c]\n  {\n    :p0 => files.collect{|p| "http://trac.macports.org/export/68507/trunk/dports/net/trafshow/files/#{p}"}\n  }\nend')
 }
 
 // Ruby it `it "reports no offenses for valid inline patches" do` at line 130.
-pub fn ruby_patches_spec_l130_d10_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_patches_spec_l130_d10_reports(args ...ruby.Value) ruby.Value {
 	source := patches_spec_formula('patch :DATA') + '\n__END__\npatch content here'
-	return brew_runtime.bool_value(patches_spec_messages(source).len == 0)
+	return ruby.bool_value(patches_spec_messages(source).len == 0)
 }
 
 // Ruby it `it "reports no offenses for valid nested inline patches" do` at line 141.
-pub fn ruby_patches_spec_l141_d11_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_patches_spec_l141_d11_reports(args ...ruby.Value) ruby.Value {
 	source := patches_spec_formula('stable do\n  patch :DATA\nend') + '\n__END__\npatch content here'
-	return brew_runtime.bool_value(patches_spec_messages(source).len == 0)
+	return ruby.bool_value(patches_spec_messages(source).len == 0)
 }
 
 // Ruby it `it "reports an offense when DATA is found with no __END__" do` at line 154.
-pub fn ruby_patches_spec_l154_d12_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_patches_spec_l154_d12_reports(args ...ruby.Value) ruby.Value {
 	source := patches_spec_formula('patch :DATA')
-	return brew_runtime.bool_value(patches_spec_messages(source) == [
+	return ruby.bool_value(patches_spec_messages(source) == [
 		'Patch is missing `__END__`',
 	])
 }
 
 // Ruby it `it "reports an offense when __END__ is found with no DATA" do` at line 164.
-pub fn ruby_patches_spec_l164_d13_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_patches_spec_l164_d13_reports(args ...ruby.Value) ruby.Value {
 	source := patches_spec_formula('') + '\n__END__\npatch content here'
-	return brew_runtime.bool_value(patches_spec_messages(source) == [
+	return ruby.bool_value(patches_spec_messages(source) == [
 		'Patch is missing `patch :DATA`',
 	])
 }
 
 // Ruby it `it "reports an offense for various patch URLs" do` at line 177.
-pub fn ruby_patches_spec_l177_d14_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_patches_spec_l177_d14_reports(args ...ruby.Value) ruby.Value {
 	urls := {
 		'https://raw.github.com/mogaal/sendemail':                                 'GitHub/Gist patches should specify a revision: https://raw.github.com/mogaal/sendemail'
 		'https://mirrors.ustc.edu.cn/macports/trunk/':                             'MacPorts patches should specify a revision instead of trunk: https://mirrors.ustc.edu.cn/macports/trunk/'
@@ -166,125 +166,125 @@ pub fn ruby_patches_spec_l177_d14_reports(args ...brew_runtime.Value) brew_runti
 	}
 	for url, message in urls {
 		if !patches_spec_external_message(url, message) {
-			return brew_runtime.bool_value(false)
+			return ruby.bool_value(false)
 		}
 	}
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
 // Ruby it `it "reports no offenses for local file patches" do` at line 231.
-pub fn ruby_patches_spec_l231_d15_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_patches_spec_l231_d15_reports(args ...ruby.Value) ruby.Value {
 	source := patches_spec_formula('patch do\n  file "Patches/foo.diff"\nend')
-	return brew_runtime.bool_value(patches_spec_messages(source).len == 0)
+	return ruby.bool_value(patches_spec_messages(source).len == 0)
 }
 
 // Ruby it `it "corrects Bitbucket patch URLs to use API format" do` at line 244.
-pub fn ruby_patches_spec_l244_d16_corrects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_patches_spec_l244_d16_corrects(args ...ruby.Value) ruby.Value {
 	url := 'https://bitbucket.org/multicoreware/x265_git/commits/b354c009a60bcd6d7fc04014e200a1ee9c45c167/raw'
 	corrected := 'https://api.bitbucket.org/2.0/repositories/multicoreware/x265_git/diff/b354c009a60bcd6d7fc04014e200a1ee9c45c167'
-	return brew_runtime.bool_value(patches_spec_corrects(url, corrected, true, 'Bitbucket patches should use the API URL: ${corrected}'))
+	return ruby.bool_value(patches_spec_corrects(url, corrected, true, 'Bitbucket patches should use the API URL: ${corrected}'))
 }
 
 // Ruby it `it "corrects HTTP MacPorts Trac URLs to HTTPS" do` at line 267.
-pub fn ruby_patches_spec_l267_d17_corrects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_patches_spec_l267_d17_corrects(args ...ruby.Value) ruby.Value {
 	url := 'http://trac.macports.org/export/102865/trunk/dports/mail/uudeview/files/inews.c.patch'
 	corrected := 'https://trac.macports.org/export/102865/trunk/dports/mail/uudeview/files/inews.c.patch'
-	return brew_runtime.bool_value(patches_spec_corrects(url, corrected, false, 'Patches from MacPorts Trac should be https://, not http: ${url}'))
+	return ruby.bool_value(patches_spec_corrects(url, corrected, false, 'Patches from MacPorts Trac should be https://, not http: ${url}'))
 }
 
 // Ruby it `it "corrects HTTP Debian bug URLs to HTTPS" do` at line 290.
-pub fn ruby_patches_spec_l290_d18_corrects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_patches_spec_l290_d18_corrects(args ...ruby.Value) ruby.Value {
 	url := 'http://bugs.debian.org/cgi-bin/bugreport.cgi?msg=5;filename=patch-libunac1.txt;att=1;bug=623340'
 	corrected := 'https://bugs.debian.org/cgi-bin/bugreport.cgi?msg=5;filename=patch-libunac1.txt;att=1;bug=623340'
-	return brew_runtime.bool_value(patches_spec_corrects(url, corrected, false, 'Patches from Debian should be https://, not http: ${url}'))
+	return ruby.bool_value(patches_spec_corrects(url, corrected, false, 'Patches from Debian should be https://, not http: ${url}'))
 }
 
 // Ruby it `it "corrects GitHub commit URLs from .diff to .patch" do` at line 313.
-pub fn ruby_patches_spec_l313_d19_corrects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_patches_spec_l313_d19_corrects(args ...ruby.Value) ruby.Value {
 	url := 'https://github.com/michaeldv/pit/commit/f64978d.diff'
 	corrected := 'https://github.com/michaeldv/pit/commit/f64978d.patch?full_index=1'
-	return brew_runtime.bool_value(patches_spec_corrects(url, corrected, true, 'GitHub patches should end with .patch, not .diff: ${url}'))
+	return ruby.bool_value(patches_spec_corrects(url, corrected, true, 'GitHub patches should end with .patch, not .diff: ${url}'))
 }
 
 // Ruby it `it "corrects GitLab commit URLs from .patch to .diff" do` at line 336.
-pub fn ruby_patches_spec_l336_d20_corrects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_patches_spec_l336_d20_corrects(args ...ruby.Value) ruby.Value {
 	url := 'https://gitlab.com/inkscape/lib2geom/-/commit/0b8b4c26b4a.patch'
 	corrected := 'https://gitlab.com/inkscape/lib2geom/-/commit/0b8b4c26b4a.diff'
-	return brew_runtime.bool_value(patches_spec_corrects(url, corrected, true, 'GitLab patches should end with .diff, not .patch: ${url}'))
+	return ruby.bool_value(patches_spec_corrects(url, corrected, true, 'GitLab patches should end with .diff, not .patch: ${url}'))
 }
 
 // Ruby it `it "corrects GitHub patch URLs to add full_index parameter" do` at line 359.
-pub fn ruby_patches_spec_l359_d21_corrects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_patches_spec_l359_d21_corrects(args ...ruby.Value) ruby.Value {
 	url := 'https://github.com/foo/bar/commit/abc123.patch'
 	corrected := '${url}?full_index=1'
-	return brew_runtime.bool_value(patches_spec_corrects(url, corrected, true, 'GitHub patches should use the full_index parameter: ${corrected}'))
+	return ruby.bool_value(patches_spec_corrects(url, corrected, true, 'GitHub patches should use the full_index parameter: ${corrected}'))
 }
 
 // Ruby it `it "corrects GitHub URLs with 'diff' in the path" do` at line 382.
-pub fn ruby_patches_spec_l382_d22_corrects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_patches_spec_l382_d22_corrects(args ...ruby.Value) ruby.Value {
 	url := 'https://github.com/diff-tool/diff-utils/commit/abc123.diff'
 	corrected := 'https://github.com/diff-tool/diff-utils/commit/abc123.patch?full_index=1'
-	return brew_runtime.bool_value(patches_spec_corrects(url, corrected, true, 'GitHub patches should end with .patch, not .diff: ${url}'))
+	return ruby.bool_value(patches_spec_corrects(url, corrected, true, 'GitHub patches should end with .patch, not .diff: ${url}'))
 }
 
 // Ruby it `it "corrects GitLab URLs with 'patch' in the path" do` at line 405.
-pub fn ruby_patches_spec_l405_d23_corrects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_patches_spec_l405_d23_corrects(args ...ruby.Value) ruby.Value {
 	url := 'https://gitlab.com/patch-tool/patch-utils/-/commit/abc123.patch'
 	corrected := 'https://gitlab.com/patch-tool/patch-utils/-/commit/abc123.diff'
-	return brew_runtime.bool_value(patches_spec_corrects(url, corrected, true, 'GitLab patches should end with .diff, not .patch: ${url}'))
+	return ruby.bool_value(patches_spec_corrects(url, corrected, true, 'GitLab patches should end with .diff, not .patch: ${url}'))
 }
 
 // Ruby it `it "corrects GitHub URLs without sha256 field (e.g. with on_linux block)" do` at line 428.
-pub fn ruby_patches_spec_l428_d24_corrects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_patches_spec_l428_d24_corrects(args ...ruby.Value) ruby.Value {
 	url := 'https://github.com/foo/bar/commit/abc123.diff'
 	body := 'patch :p2 do\n  on_linux do\n    url "${url}"\n    directory "gl"\n  end\nend'
 	source := patches_spec_formula(body)
 	analysis := patches_spec_analysis(source)
 	corrected := 'https://github.com/foo/bar/commit/abc123.patch?full_index=1'
-	return brew_runtime.bool_value(analysis.offenses.len == 1 && analysis.offenses[0].message == 'GitHub patches should end with .patch, not .diff: ${url}' && analysis.corrected == source.replace(url, corrected))
+	return ruby.bool_value(analysis.offenses.len == 1 && analysis.offenses[0].message == 'GitHub patches should end with .patch, not .diff: ${url}' && analysis.corrected == source.replace(url, corrected))
 }
 
 // Ruby it `it "reports no offenses for CVE ids, GHSA ids, OSV ids and issue URLs" do` at line 457.
-pub fn ruby_patches_spec_l457_d25_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_patches_spec_l457_d25_reports(args ...ruby.Value) ruby.Value {
 	source := patches_spec_external_metadata('https://brew.sh/foo.diff', 'resolves "CVE-2024-1234", "GHSA-xr7r-f8xq-vfvv", "OSV-2023-298", "https://github.com/foo/bar/issues/1"')
-	return brew_runtime.bool_value(patches_spec_messages(source).len == 0)
+	return ruby.bool_value(patches_spec_messages(source).len == 0)
 }
 
 // Ruby it `it "reports and corrects non-canonical CVE identifiers" do` at line 470.
-pub fn ruby_patches_spec_l470_d26_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_patches_spec_l470_d26_reports(args ...ruby.Value) ruby.Value {
 	source := patches_spec_external_metadata('https://brew.sh/foo.diff', 'resolves "cve-2024-1234"')
 	analysis := patches_spec_analysis(source)
-	return brew_runtime.bool_value(analysis.offenses.map(it.message) == [
+	return ruby.bool_value(analysis.offenses.map(it.message) == [
 		'`resolves` should use the canonical CVE format: CVE-2024-1234',
 	] && analysis.corrected == source.replace('"cve-2024-1234"', '"CVE-2024-1234"'))
 }
 
 // Ruby it `it "reports an offense for unrecognised identifiers" do` at line 495.
-pub fn ruby_patches_spec_l495_d27_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_patches_spec_l495_d27_reports(args ...ruby.Value) ruby.Value {
 	source := patches_spec_external_metadata('https://brew.sh/foo.diff', 'resolves "issue-123"')
-	return brew_runtime.bool_value(patches_spec_messages(source) == [
+	return ruby.bool_value(patches_spec_messages(source) == [
 		'`resolves` should be a CVE/GHSA/OSV identifier or issue URL, got: "issue-123"',
 	])
 }
 
 // Ruby it `it "reports an offense for non-string arguments" do` at line 509.
-pub fn ruby_patches_spec_l509_d28_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_patches_spec_l509_d28_reports(args ...ruby.Value) ruby.Value {
 	source := patches_spec_external_metadata('https://brew.sh/foo.diff', 'resolves :CVE_2024_1234')
-	return brew_runtime.bool_value(patches_spec_messages(source) == [
+	return ruby.bool_value(patches_spec_messages(source) == [
 		'`resolves` should be passed identifier strings (CVE/GHSA/OSV id or issue URL)',
 	])
 }
 
 // Ruby it `it "reports no offenses for valid types" do` at line 525.
-pub fn ruby_patches_spec_l525_d29_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_patches_spec_l525_d29_reports(args ...ruby.Value) ruby.Value {
 	source := patches_spec_external_metadata('https://brew.sh/foo.diff', 'type :backport')
-	return brew_runtime.bool_value(patches_spec_messages(source).len == 0)
+	return ruby.bool_value(patches_spec_messages(source).len == 0)
 }
 
 // Ruby it `it "reports an offense for invalid types" do` at line 538.
-pub fn ruby_patches_spec_l538_d30_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_patches_spec_l538_d30_reports(args ...ruby.Value) ruby.Value {
 	source := patches_spec_external_metadata('https://brew.sh/foo.diff', 'type :hotfix')
-	return brew_runtime.bool_value(patches_spec_messages(source) == [
+	return ruby.bool_value(patches_spec_messages(source) == [
 		'Patch `type` should be one of: :unofficial, :backport, :cherry_pick',
 	])
 }

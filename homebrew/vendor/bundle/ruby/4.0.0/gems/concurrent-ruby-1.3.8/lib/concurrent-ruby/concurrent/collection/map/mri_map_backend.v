@@ -1,6 +1,6 @@
 module map
 
-import brew_runtime
+import ruby
 import sync
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/collection/map/mri_map_backend.rb`.
@@ -174,7 +174,7 @@ pub fn (mut backend MriMapBackend) clear() &MriMapBackend {
 }
 
 // Ruby method `initialize(options = nil, &default_proc)` at line 12.
-pub fn ruby_mri_map_backend_l12_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mri_map_backend_l12_d1_initialize(args ...ruby.Value) ruby.Value {
 	options := if args.len > 0 && args[0].type_name == 'Hash' {
 		map_options_from_boundary(args[0])
 	} else {
@@ -185,57 +185,57 @@ pub fn ruby_mri_map_backend_l12_d1_initialize(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby method `[]=(key, value)` at line 17.
-pub fn ruby_mri_map_backend_l17_d2_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mri_map_backend_l17_d2_anonymous(args ...ruby.Value) ruby.Value {
 	return ruby_non_concurrent_map_backend_l25_d3_anonymous(...args)
 }
 
 // Ruby method `compute_if_absent(key)` at line 21.
-pub fn ruby_mri_map_backend_l21_d3_compute_if_absent(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mri_map_backend_l21_d3_compute_if_absent(args ...ruby.Value) ruby.Value {
 	return ruby_non_concurrent_map_backend_l29_d4_compute_if_absent(...args)
 }
 
 // Ruby method `compute_if_present(key)` at line 29.
-pub fn ruby_mri_map_backend_l29_d4_compute_if_present(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mri_map_backend_l29_d4_compute_if_present(args ...ruby.Value) ruby.Value {
 	return ruby_non_concurrent_map_backend_l53_d7_compute_if_present(...args)
 }
 
 // Ruby method `compute(key)` at line 33.
-pub fn ruby_mri_map_backend_l33_d5_compute(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mri_map_backend_l33_d5_compute(args ...ruby.Value) ruby.Value {
 	return ruby_non_concurrent_map_backend_l59_d8_compute(...args)
 }
 
 // Ruby method `merge_pair(key, value)` at line 37.
-pub fn ruby_mri_map_backend_l37_d6_merge_pair(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mri_map_backend_l37_d6_merge_pair(args ...ruby.Value) ruby.Value {
 	return ruby_non_concurrent_map_backend_l63_d9_merge_pair(...args)
 }
 
 // Ruby method `replace_pair(key, old_value, new_value)` at line 41.
-pub fn ruby_mri_map_backend_l41_d7_replace_pair(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mri_map_backend_l41_d7_replace_pair(args ...ruby.Value) ruby.Value {
 	return ruby_non_concurrent_map_backend_l37_d5_replace_pair(...args)
 }
 
 // Ruby method `replace_if_exists(key, new_value)` at line 45.
-pub fn ruby_mri_map_backend_l45_d8_replace_if_exists(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mri_map_backend_l45_d8_replace_if_exists(args ...ruby.Value) ruby.Value {
 	return ruby_non_concurrent_map_backend_l46_d6_replace_if_exists(...args)
 }
 
 // Ruby method `get_and_set(key, value)` at line 49.
-pub fn ruby_mri_map_backend_l49_d9_get_and_set(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mri_map_backend_l49_d9_get_and_set(args ...ruby.Value) ruby.Value {
 	return ruby_non_concurrent_map_backend_l71_d10_get_and_set(...args)
 }
 
 // Ruby method `delete(key)` at line 53.
-pub fn ruby_mri_map_backend_l53_d10_delete(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mri_map_backend_l53_d10_delete(args ...ruby.Value) ruby.Value {
 	return ruby_non_concurrent_map_backend_l81_d12_delete(...args)
 }
 
 // Ruby method `delete_pair(key, value)` at line 57.
-pub fn ruby_mri_map_backend_l57_d11_delete_pair(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mri_map_backend_l57_d11_delete_pair(args ...ruby.Value) ruby.Value {
 	return ruby_non_concurrent_map_backend_l85_d13_delete_pair(...args)
 }
 
 // Ruby method `clear` at line 61.
-pub fn ruby_mri_map_backend_l61_d12_clear(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mri_map_backend_l61_d12_clear(args ...ruby.Value) ruby.Value {
 	return ruby_non_concurrent_map_backend_l94_d14_clear(...args)
 }
 

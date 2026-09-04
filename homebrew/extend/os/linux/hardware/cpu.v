@@ -1,6 +1,6 @@
 module hardware
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `extend/os/linux/hardware/cpu.rb`.
@@ -154,15 +154,15 @@ pub fn linux_cpuinfo(path string) !string {
 	return os.read_file(path)
 }
 
-fn linux_cpu_optional_value(value ?string) brew_runtime.Value {
+fn linux_cpu_optional_value(value ?string) ruby.Value {
 	return if actual := value {
-		brew_runtime.object_value('Symbol', actual)
+		ruby.object_value('Symbol', actual)
 	} else {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	}
 }
 
-fn linux_cpu_flags_arg(args []brew_runtime.Value, index int) []string {
+fn linux_cpu_flags_arg(args []ruby.Value, index int) []string {
 	if args.len <= index {
 		return linux_cpu_flags(linux_cpuinfo('/proc/cpuinfo') or { '' })
 	}
@@ -170,7 +170,7 @@ fn linux_cpu_flags_arg(args []brew_runtime.Value, index int) []string {
 }
 
 // Ruby method `optimization_flags` at line 14.
-pub fn ruby_cpu_l14_d1_optimization_flags(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cpu_l14_d1_optimization_flags(args ...ruby.Value) ruby.Value {
 	mut base := map[string]string{}
 	if args.len > 0 && args[0].type_name == 'Hash' {
 		for key, value in args[0].map_data {
@@ -179,75 +179,75 @@ pub fn ruby_cpu_l14_d1_optimization_flags(args ...brew_runtime.Value) brew_runti
 	}
 	arch := if args.len > 1 { args[1].as_string() } else { 'native' }
 	ppc := if args.len > 2 { args[2].as_bool() or { false } } else { false }
-	mut values := map[string]brew_runtime.Value{}
+	mut values := map[string]ruby.Value{}
 	for key, value in linux_cpu_optimization_flags(base, arch, ppc) {
-		values[key] = brew_runtime.string_value(value)
+		values[key] = ruby.string_value(value)
 	}
-	return brew_runtime.map_value(values)
+	return ruby.map_value(values)
 }
 
 // Ruby method `family` at line 23.
-pub fn ruby_cpu_l23_d2_family(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cpu_l23_d2_family(args ...ruby.Value) ruby.Value {
 	kind := if args.len > 0 { args[0].as_string() } else { 'dunno' }
 	cpuinfo := if args.len > 1 {
 		args[1].as_string()
 	} else {
 		linux_cpuinfo('/proc/cpuinfo') or { '' }
 	}
-	return brew_runtime.object_value('Symbol', linux_cpu_family(kind, cpuinfo))
+	return ruby.object_value('Symbol', linux_cpu_family(kind, cpuinfo))
 }
 
 // Ruby method `intel_family(family, cpu_model)` at line 44.
-pub fn ruby_cpu_l44_d3_intel_family(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cpu_l44_d3_intel_family(args ...ruby.Value) ruby.Value {
 	family := if args.len > 0 { int(args[0].as_int() or { 0 }) } else { 0 }
 	model := if args.len > 1 { int(args[1].as_int() or { 0 }) } else { 0 }
 	return linux_cpu_optional_value(linux_intel_family(family, model))
 }
 
 // Ruby method `amd_family(family, cpu_model)` at line 100.
-pub fn ruby_cpu_l100_d4_amd_family(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cpu_l100_d4_amd_family(args ...ruby.Value) ruby.Value {
 	family := if args.len > 0 { int(args[0].as_int() or { 0 }) } else { 0 }
 	model := if args.len > 1 { int(args[1].as_int() or { 0 }) } else { 0 }
 	return linux_cpu_optional_value(linux_amd_family(family, model))
 }
 
 // Ruby method `flags` at line 139.
-pub fn ruby_cpu_l139_d5_flags(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cpu_l139_d5_flags(args ...ruby.Value) ruby.Value {
 	cpuinfo := if args.len > 0 {
 		args[0].as_string()
 	} else {
 		linux_cpuinfo('/proc/cpuinfo') or { '' }
 	}
-	return brew_runtime.string_array_value(linux_cpu_flags(cpuinfo))
+	return ruby.string_array_value(linux_cpu_flags(cpuinfo))
 }
 
 // Ruby method `features` at line 147.
-pub fn ruby_cpu_l147_d6_features(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cpu_l147_d6_features(args ...ruby.Value) ruby.Value {
 	flags := linux_cpu_flags_arg(args, 0)
-	return brew_runtime.array_value(flags.map(brew_runtime.object_value('Symbol', it)))
+	return ruby.array_value(flags.map(ruby.object_value('Symbol', it)))
 }
 
 // Ruby define_method `define_method(:"#{flag}?") do` at line 152.
-pub fn ruby_cpu_l152_d7_flag(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cpu_l152_d7_flag(args ...ruby.Value) ruby.Value {
 	flag := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.bool_value(linux_cpu_has_flag(linux_cpu_flags_arg(args, 1), flag))
+	return ruby.bool_value(linux_cpu_has_flag(linux_cpu_flags_arg(args, 1), flag))
 }
 
 // Ruby method `sse3?` at line 159.
-pub fn ruby_cpu_l159_d8_sse3(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(linux_cpu_sse3(linux_cpu_flags_arg(args, 0)))
+pub fn ruby_cpu_l159_d8_sse3(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(linux_cpu_sse3(linux_cpu_flags_arg(args, 0)))
 }
 
 // Ruby method `sse4?` at line 164.
-pub fn ruby_cpu_l164_d9_sse4(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(linux_cpu_sse4(linux_cpu_flags_arg(args, 0)))
+pub fn ruby_cpu_l164_d9_sse4(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(linux_cpu_sse4(linux_cpu_flags_arg(args, 0)))
 }
 
 // Ruby method `cpuinfo` at line 171.
-pub fn ruby_cpu_l171_d10_cpuinfo(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cpu_l171_d10_cpuinfo(args ...ruby.Value) ruby.Value {
 	path := if args.len > 0 { args[0].as_string() } else { '/proc/cpuinfo' }
-	return brew_runtime.string_value(linux_cpuinfo(path) or {
-		return brew_runtime.object_value('FileError', err.msg())
+	return ruby.string_value(linux_cpuinfo(path) or {
+		return ruby.object_value('FileError', err.msg())
 	})
 }
 

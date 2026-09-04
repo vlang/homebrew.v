@@ -1,6 +1,6 @@
 module artifact
 
-import brew_runtime
+import ruby
 import homebrew.cask.artifact as production_artifact
 import os
 import time
@@ -21,7 +21,7 @@ struct TwoAppsInstallResult {
 	stdout  string
 }
 
-fn two_apps_correct_root(args []brew_runtime.Value, label string) string {
+fn two_apps_correct_root(args []ruby.Value, label string) string {
 	if args.len > 0 && args[0].as_string() != '' {
 		return args[0].as_string()
 	}
@@ -108,16 +108,16 @@ fn two_apps_correct_install(fixture TwoAppsCorrectFixture) TwoAppsInstallResult 
 	}
 }
 
-fn two_apps_fixture_value(fixture TwoAppsCorrectFixture) brew_runtime.Value {
-	return brew_runtime.structured_value('Cask', fixture.root, {
+fn two_apps_fixture_value(fixture TwoAppsCorrectFixture) ruby.Value {
+	return ruby.structured_value('Cask', fixture.root, {
 		'staged_path':   fixture.staged_path
 		'appdir':        fixture.appdir
 		'source_subdir': fixture.source_subdir
 	})
 }
 
-fn two_apps_result_value(result TwoAppsInstallResult) brew_runtime.Value {
-	return brew_runtime.structured_value('InstallPhaseResult', result.error, {
+fn two_apps_result_value(result TwoAppsInstallResult) ruby.Value {
+	return ruby.structured_value('InstallPhaseResult', result.error, {
 		'success': result.success.str()
 		'error':   result.error
 		'stdout':  result.stdout
@@ -125,53 +125,53 @@ fn two_apps_result_value(result TwoAppsInstallResult) brew_runtime.Value {
 }
 
 // Ruby let `let(:cask) { Cask::CaskLoader.load(cask_path("with-two-apps-correct")) }` at line 6.
-pub fn ruby_two_apps_correct_spec_l6_d1_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_two_apps_correct_spec_l6_d1_cask(args ...ruby.Value) ruby.Value {
 	root := two_apps_correct_root(args, 'cask')
 	fixture := two_apps_correct_fixture(root, false) or {
-		return brew_runtime.object_value('RuntimeError', err.msg())
+		return ruby.object_value('RuntimeError', err.msg())
 	}
 	return two_apps_fixture_value(fixture)
 }
 
 // Ruby let `let(:install_phase) do` at line 8.
-pub fn ruby_two_apps_correct_spec_l8_d2_install_phase(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_two_apps_correct_spec_l8_d2_install_phase(args ...ruby.Value) ruby.Value {
 	root := two_apps_correct_root(args, 'install')
 	fixture := two_apps_correct_fixture(root, false) or {
-		return brew_runtime.object_value('RuntimeError', err.msg())
+		return ruby.object_value('RuntimeError', err.msg())
 	}
 	return two_apps_result_value(two_apps_correct_install(fixture))
 }
 
 // Ruby let `let(:source_path_mini) { cask.staged_path.join("Caffeine Mini.app") }` at line 14.
-pub fn ruby_two_apps_correct_spec_l14_d3_source_path_mini(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_two_apps_correct_spec_l14_d3_source_path_mini(args ...ruby.Value) ruby.Value {
 	root := two_apps_correct_root(args, 'source-mini')
-	return brew_runtime.string_value(os.join_path(root, 'staged', 'Caffeine Mini.app'))
+	return ruby.string_value(os.join_path(root, 'staged', 'Caffeine Mini.app'))
 }
 
 // Ruby let `let(:target_path_mini) { Pathname(cask.config.appdir).join("Caffeine Mini.app") }` at line 15.
-pub fn ruby_two_apps_correct_spec_l15_d4_target_path_mini(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_two_apps_correct_spec_l15_d4_target_path_mini(args ...ruby.Value) ruby.Value {
 	root := two_apps_correct_root(args, 'target-mini')
-	return brew_runtime.string_value(os.join_path(root, 'Applications', 'Caffeine Mini.app'))
+	return ruby.string_value(os.join_path(root, 'Applications', 'Caffeine Mini.app'))
 }
 
 // Ruby let `let(:source_path_pro) { cask.staged_path.join("Caffeine Pro.app") }` at line 17.
-pub fn ruby_two_apps_correct_spec_l17_d5_source_path_pro(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_two_apps_correct_spec_l17_d5_source_path_pro(args ...ruby.Value) ruby.Value {
 	root := two_apps_correct_root(args, 'source-pro')
-	return brew_runtime.string_value(os.join_path(root, 'staged', 'Caffeine Pro.app'))
+	return ruby.string_value(os.join_path(root, 'staged', 'Caffeine Pro.app'))
 }
 
 // Ruby let `let(:target_path_pro) { Pathname(cask.config.appdir).join("Caffeine Pro.app") }` at line 18.
-pub fn ruby_two_apps_correct_spec_l18_d6_target_path_pro(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_two_apps_correct_spec_l18_d6_target_path_pro(args ...ruby.Value) ruby.Value {
 	root := two_apps_correct_root(args, 'target-pro')
-	return brew_runtime.string_value(os.join_path(root, 'Applications', 'Caffeine Pro.app'))
+	return ruby.string_value(os.join_path(root, 'Applications', 'Caffeine Pro.app'))
 }
 
 // Ruby it `it "installs both apps using the proper target directory" do` at line 24.
-pub fn ruby_two_apps_correct_spec_l24_d7_installs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_two_apps_correct_spec_l24_d7_installs(args ...ruby.Value) ruby.Value {
 	root := two_apps_correct_root(args, 'both')
-	fixture := two_apps_correct_fixture(root, false) or { return brew_runtime.bool_value(false) }
+	fixture := two_apps_correct_fixture(root, false) or { return ruby.bool_value(false) }
 	result := two_apps_correct_install(fixture)
-	return brew_runtime.bool_value(result.success
+	return ruby.bool_value(result.success
 		&& os.is_dir(two_apps_correct_target(fixture, 'Caffeine Mini.app'))
 		&& os.is_link(two_apps_correct_source(fixture, 'Caffeine Mini.app'))
 		&& os.is_dir(two_apps_correct_target(fixture, 'Caffeine Pro.app'))
@@ -179,32 +179,32 @@ pub fn ruby_two_apps_correct_spec_l24_d7_installs(args ...brew_runtime.Value) br
 }
 
 // Ruby let `let(:cask) { Cask::CaskLoader.load(cask_path("with-two-apps-subdir")) }` at line 35.
-pub fn ruby_two_apps_correct_spec_l35_d8_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_two_apps_correct_spec_l35_d8_cask(args ...ruby.Value) ruby.Value {
 	root := two_apps_correct_root(args, 'subdir-cask')
 	fixture := two_apps_correct_fixture(root, true) or {
-		return brew_runtime.object_value('RuntimeError', err.msg())
+		return ruby.object_value('RuntimeError', err.msg())
 	}
 	return two_apps_fixture_value(fixture)
 }
 
 // Ruby let `let(:source_path_mini) { cask.staged_path.join("Caffeines", "Caffeine Mini.app") }` at line 37.
-pub fn ruby_two_apps_correct_spec_l37_d9_source_path_mini(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_two_apps_correct_spec_l37_d9_source_path_mini(args ...ruby.Value) ruby.Value {
 	root := two_apps_correct_root(args, 'subdir-source-mini')
-	return brew_runtime.string_value(os.join_path(root, 'staged', 'Caffeines', 'Caffeine Mini.app'))
+	return ruby.string_value(os.join_path(root, 'staged', 'Caffeines', 'Caffeine Mini.app'))
 }
 
 // Ruby let `let(:source_path_pro) { cask.staged_path.join("Caffeines", "Caffeine Pro.app") }` at line 38.
-pub fn ruby_two_apps_correct_spec_l38_d10_source_path_pro(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_two_apps_correct_spec_l38_d10_source_path_pro(args ...ruby.Value) ruby.Value {
 	root := two_apps_correct_root(args, 'subdir-source-pro')
-	return brew_runtime.string_value(os.join_path(root, 'staged', 'Caffeines', 'Caffeine Pro.app'))
+	return ruby.string_value(os.join_path(root, 'staged', 'Caffeines', 'Caffeine Pro.app'))
 }
 
 // Ruby it `it "installs both apps using the proper target directory" do` at line 40.
-pub fn ruby_two_apps_correct_spec_l40_d11_installs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_two_apps_correct_spec_l40_d11_installs(args ...ruby.Value) ruby.Value {
 	root := two_apps_correct_root(args, 'subdir-both')
-	fixture := two_apps_correct_fixture(root, true) or { return brew_runtime.bool_value(false) }
+	fixture := two_apps_correct_fixture(root, true) or { return ruby.bool_value(false) }
 	result := two_apps_correct_install(fixture)
-	return brew_runtime.bool_value(result.success
+	return ruby.bool_value(result.success
 		&& os.is_dir(two_apps_correct_target(fixture, 'Caffeine Mini.app'))
 		&& os.is_link(two_apps_correct_source(fixture, 'Caffeine Mini.app'))
 		&& os.is_dir(two_apps_correct_target(fixture, 'Caffeine Pro.app'))
@@ -212,46 +212,46 @@ pub fn ruby_two_apps_correct_spec_l40_d11_installs(args ...brew_runtime.Value) b
 }
 
 // Ruby it `it "only uses apps when they are specified" do` at line 51.
-pub fn ruby_two_apps_correct_spec_l51_d12_only(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_two_apps_correct_spec_l51_d12_only(args ...ruby.Value) ruby.Value {
 	root := two_apps_correct_root(args, 'specified-only')
-	fixture := two_apps_correct_fixture(root, false) or { return brew_runtime.bool_value(false) }
+	fixture := two_apps_correct_fixture(root, false) or { return ruby.bool_value(false) }
 	deluxe := two_apps_correct_source(fixture, 'Caffeine Deluxe.app')
-	os.mkdir_all(os.join_path(deluxe, 'Contents')) or { return brew_runtime.bool_value(false) }
+	os.mkdir_all(os.join_path(deluxe, 'Contents')) or { return ruby.bool_value(false) }
 	os.write_file(os.join_path(deluxe, 'Contents', 'fixture.txt'), 'deluxe') or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	result := two_apps_correct_install(fixture)
-	return brew_runtime.bool_value(result.success
+	return ruby.bool_value(result.success
 		&& os.is_dir(two_apps_correct_target(fixture, 'Caffeine Mini.app'))
 		&& os.is_link(two_apps_correct_source(fixture, 'Caffeine Mini.app'))
 		&& !os.exists(two_apps_correct_target(fixture, 'Caffeine Deluxe.app')) && os.is_dir(deluxe))
 }
 
 // Ruby it `it "when the first app of two already exists" do` at line 64.
-pub fn ruby_two_apps_correct_spec_l64_d13_when(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_two_apps_correct_spec_l64_d13_when(args ...ruby.Value) ruby.Value {
 	root := two_apps_correct_root(args, 'first-exists')
-	fixture := two_apps_correct_fixture(root, false) or { return brew_runtime.bool_value(false) }
+	fixture := two_apps_correct_fixture(root, false) or { return ruby.bool_value(false) }
 	mini_source := two_apps_correct_source(fixture, 'Caffeine Mini.app')
 	mini_target := two_apps_correct_target(fixture, 'Caffeine Mini.app')
 	pro_target := two_apps_correct_target(fixture, 'Caffeine Pro.app')
-	os.mkdir_all(mini_target) or { return brew_runtime.bool_value(false) }
+	os.mkdir_all(mini_target) or { return ruby.bool_value(false) }
 	result := two_apps_correct_install(fixture)
-	return brew_runtime.bool_value(!result.success
+	return ruby.bool_value(!result.success
 		&& result.error == "It seems there is already an App at '${mini_target}'."
 		&& result.stdout == "==> Moving App 'Caffeine Pro.app' to '${pro_target}'\n"
 		&& os.is_dir(mini_source) && os.is_dir(mini_target) && !os.is_link(mini_source))
 }
 
 // Ruby it `it "when the second app of two already exists" do` at line 78.
-pub fn ruby_two_apps_correct_spec_l78_d14_when(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_two_apps_correct_spec_l78_d14_when(args ...ruby.Value) ruby.Value {
 	root := two_apps_correct_root(args, 'second-exists')
-	fixture := two_apps_correct_fixture(root, false) or { return brew_runtime.bool_value(false) }
+	fixture := two_apps_correct_fixture(root, false) or { return ruby.bool_value(false) }
 	pro_source := two_apps_correct_source(fixture, 'Caffeine Pro.app')
 	mini_target := two_apps_correct_target(fixture, 'Caffeine Mini.app')
 	pro_target := two_apps_correct_target(fixture, 'Caffeine Pro.app')
-	os.mkdir_all(pro_target) or { return brew_runtime.bool_value(false) }
+	os.mkdir_all(pro_target) or { return ruby.bool_value(false) }
 	result := two_apps_correct_install(fixture)
-	return brew_runtime.bool_value(!result.success
+	return ruby.bool_value(!result.success
 		&& result.error == "It seems there is already an App at '${pro_target}'."
 		&& result.stdout == "==> Moving App 'Caffeine Mini.app' to '${mini_target}'\n"
 		&& os.is_dir(pro_source) && os.is_dir(pro_target) && !os.is_link(pro_source))

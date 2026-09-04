@@ -1,6 +1,6 @@
 module artifact
 
-import brew_runtime
+import ruby
 import homebrew
 import os
 
@@ -9,7 +9,7 @@ import os
 
 pub struct CaskInstallStepsArtifact {
 pub:
-	cask       brew_runtime.Value
+	cask       ruby.Value
 	steps      homebrew.InstallSteps
 	class_name string
 }
@@ -21,7 +21,7 @@ pub:
 	allow_sudo             bool
 	allowed_write_paths    []string
 	allowed_read_paths     []string
-	payload                map[string]brew_runtime.Value
+	payload                map[string]ruby.Value
 }
 
 pub struct CaskInstallStepsRunResult {
@@ -32,24 +32,24 @@ pub:
 	plan      CaskInstallStepsSandboxPlan
 }
 
-fn cask_install_steps_error(message string) brew_runtime.Value {
-	return brew_runtime.structured_value('ArgumentError', message, {
+fn cask_install_steps_error(message string) ruby.Value {
+	return ruby.structured_value('ArgumentError', message, {
 		'message': message
 	})
 }
 
-fn cask_install_steps_string(value brew_runtime.Value) string {
+fn cask_install_steps_string(value ruby.Value) string {
 	if value.type_name == 'Symbol' {
 		return value.as_string().trim_left(':')
 	}
 	return value.as_string()
 }
 
-fn cask_install_steps_bool(value brew_runtime.Value, fallback bool) bool {
+fn cask_install_steps_bool(value ruby.Value, fallback bool) bool {
 	return if value.type_name == 'Bool' { value.bool_data } else { fallback }
 }
 
-fn cask_install_steps_value_at(cask brew_runtime.Value, key string) string {
+fn cask_install_steps_value_at(cask ruby.Value, key string) string {
 	if value := cask.map_data[key] {
 		if value.type_name != 'NilClass' {
 			return cask_install_steps_string(value)
@@ -58,7 +58,7 @@ fn cask_install_steps_value_at(cask brew_runtime.Value, key string) string {
 	return cask.attributes[key] or { '' }
 }
 
-fn cask_install_steps_config_at(cask brew_runtime.Value, key string) string {
+fn cask_install_steps_config_at(cask ruby.Value, key string) string {
 	if config := cask.map_data['config'] {
 		if value := config.map_data[key] {
 			return cask_install_steps_string(value)
@@ -71,10 +71,10 @@ fn cask_install_steps_config_at(cask brew_runtime.Value, key string) string {
 }
 
 fn cask_install_steps_normalise(steps homebrew.InstallSteps) homebrew.InstallSteps {
-	return homebrew.install_steps_normalise(steps.map(brew_runtime.map_value(it)))
+	return homebrew.install_steps_normalise(steps.map(ruby.map_value(it)))
 }
 
-pub fn new_cask_install_steps_artifact(cask brew_runtime.Value, steps homebrew.InstallSteps,
+pub fn new_cask_install_steps_artifact(cask ruby.Value, steps homebrew.InstallSteps,
 	class_name string) CaskInstallStepsArtifact {
 	return CaskInstallStepsArtifact{
 		cask: cask
@@ -87,8 +87,8 @@ pub fn new_cask_install_steps_artifact(cask brew_runtime.Value, steps homebrew.I
 	}
 }
 
-fn cask_install_steps_artifact_value(artifact CaskInstallStepsArtifact) brew_runtime.Value {
-	return brew_runtime.Value{
+fn cask_install_steps_artifact_value(artifact CaskInstallStepsArtifact) ruby.Value {
+	return ruby.Value{
 		type_name: artifact.class_name
 		repr: cask_install_steps_summarize(artifact)
 		map_data: {
@@ -101,7 +101,7 @@ fn cask_install_steps_artifact_value(artifact CaskInstallStepsArtifact) brew_run
 	}
 }
 
-fn cask_install_steps_artifact_from_value(value brew_runtime.Value) CaskInstallStepsArtifact {
+fn cask_install_steps_artifact_from_value(value ruby.Value) CaskInstallStepsArtifact {
 	class_name := value.attributes['class_name'] or {
 		if value.type_name.starts_with('Cask::Artifact::') {
 			value.type_name
@@ -110,14 +110,14 @@ fn cask_install_steps_artifact_from_value(value brew_runtime.Value) CaskInstallS
 		}
 	}
 	return new_cask_install_steps_artifact(value.map_data['cask'] or {
-		brew_runtime.object_value('Cask::Cask', '')
+		ruby.object_value('Cask::Cask', '')
 	}, homebrew.install_steps_from_value(value.map_data['steps'] or {
-		brew_runtime.array_value([])
+		ruby.array_value([])
 	}), class_name)
 }
 
-pub fn cask_install_steps_to_args(artifact CaskInstallStepsArtifact) []brew_runtime.Value {
-	return [brew_runtime.map_value({
+pub fn cask_install_steps_to_args(artifact CaskInstallStepsArtifact) []ruby.Value {
+	return [ruby.map_value({
 		'steps': homebrew.install_steps_value(artifact.steps)
 	})]
 }
@@ -141,10 +141,10 @@ fn cask_install_steps_context(artifact CaskInstallStepsArtifact) homebrew.Instal
 		values['token'] = artifact.cask.as_string()
 	}
 	if values['home'] or { '' } == '' {
-		values['home'] = brew_runtime.environment_value('HOME')
+		values['home'] = ruby.environment_value('HOME')
 	}
 	if values['prefix'] or { '' } == '' {
-		values['prefix'] = brew_runtime.environment_value('HOMEBREW_PREFIX')
+		values['prefix'] = ruby.environment_value('HOMEBREW_PREFIX')
 	}
 	return homebrew.InstallStepsContext{
 		values: values
@@ -183,8 +183,8 @@ fn cask_install_steps_is_within(path string, root string) bool {
 }
 
 fn cask_install_steps_context_value(context homebrew.InstallStepsContext,
-	key string) brew_runtime.Value {
-	return brew_runtime.string_value(context.values[key] or { '' })
+	key string) ruby.Value {
+	return ruby.string_value(context.values[key] or { '' })
 }
 
 pub fn plan_cask_install_steps(artifact CaskInstallStepsArtifact,
@@ -204,15 +204,15 @@ pub fn plan_cask_install_steps(artifact CaskInstallStepsArtifact,
 	}
 	mut read_paths := []string{}
 	cask_install_steps_append_unique(mut read_paths, context.values['staged_path'] or { '' })
-	home := context.values['home'] or { brew_runtime.environment_value('HOME') }
+	home := context.values['home'] or { ruby.environment_value('HOME') }
 	for path in write_paths {
 		if cask_install_steps_is_within(path, home) {
 			cask_install_steps_append_unique(mut read_paths, path)
 		}
 	}
-	mut config := map[string]brew_runtime.Value{}
+	mut config := map[string]ruby.Value{}
 	for key, value in context.config {
-		config[key] = brew_runtime.string_value(value)
+		config[key] = ruby.string_value(value)
 	}
 	return CaskInstallStepsSandboxPlan{
 		phase: phase
@@ -221,17 +221,17 @@ pub fn plan_cask_install_steps(artifact CaskInstallStepsArtifact,
 		allowed_write_paths: write_paths
 		allowed_read_paths: read_paths
 		payload: {
-			'action':  brew_runtime.string_value('install_steps')
-			'context': brew_runtime.map_value({
+			'action':  ruby.string_value('install_steps')
+			'context': ruby.map_value({
 				'name':          cask_install_steps_context_value(context, 'name')
 				'token':         cask_install_steps_context_value(context, 'token')
 				'version':       cask_install_steps_context_value(context, 'version')
 				'staged_path':   cask_install_steps_context_value(context, 'staged_path')
 				'caskroom_path': cask_install_steps_context_value(context, 'caskroom_path')
-				'home':          brew_runtime.string_value(home)
-				'config':        brew_runtime.map_value(config)
+				'home':          ruby.string_value(home)
+				'config':        ruby.map_value(config)
 			})
-			'phase':   brew_runtime.string_value(phase)
+			'phase':   ruby.string_value(phase)
 			'steps':   homebrew.install_steps_value(artifact.steps)
 		}
 	}
@@ -256,44 +256,44 @@ pub fn run_cask_install_steps(artifact CaskInstallStepsArtifact, phase string, s
 	}
 }
 
-fn cask_install_steps_plan_value(plan CaskInstallStepsSandboxPlan) brew_runtime.Value {
-	return brew_runtime.Value{
+fn cask_install_steps_plan_value(plan CaskInstallStepsSandboxPlan) ruby.Value {
+	return ruby.Value{
 		type_name: 'Cask::Artifact::InstallSteps::SandboxPlan'
 		repr: '${plan.phase}: ${plan.allowed_write_paths.len} write paths'
 		map_data: {
-			'phase':                  brew_runtime.string_value(plan.phase)
-			'network_access_allowed': brew_runtime.bool_value(plan.network_access_allowed)
-			'allow_sudo':             brew_runtime.bool_value(plan.allow_sudo)
-			'allowed_write_paths':    brew_runtime.string_array_value(plan.allowed_write_paths)
-			'allowed_read_paths':     brew_runtime.string_array_value(plan.allowed_read_paths)
-			'payload':                brew_runtime.map_value(plan.payload)
+			'phase':                  ruby.string_value(plan.phase)
+			'network_access_allowed': ruby.bool_value(plan.network_access_allowed)
+			'allow_sudo':             ruby.bool_value(plan.allow_sudo)
+			'allowed_write_paths':    ruby.string_array_value(plan.allowed_write_paths)
+			'allowed_read_paths':     ruby.string_array_value(plan.allowed_read_paths)
+			'payload':                ruby.map_value(plan.payload)
 		}
 	}
 }
 
-fn cask_install_steps_run_result_value(result CaskInstallStepsRunResult) brew_runtime.Value {
-	return brew_runtime.Value{
+fn cask_install_steps_run_result_value(result CaskInstallStepsRunResult) ruby.Value {
+	return ruby.Value{
 		type_name: 'Cask::Artifact::InstallSteps::RunResult'
 		repr: result.phase
 		map_data: {
-			'phase':     brew_runtime.string_value(result.phase)
-			'sandboxed': brew_runtime.bool_value(result.sandboxed)
-			'executed':  brew_runtime.bool_value(result.executed)
+			'phase':     ruby.string_value(result.phase)
+			'sandboxed': ruby.bool_value(result.sandboxed)
+			'executed':  ruby.bool_value(result.executed)
 			'plan':      cask_install_steps_plan_value(result.plan)
 		}
 	}
 }
 
-fn cask_install_steps_options(args []brew_runtime.Value, start int) map[string]brew_runtime.Value {
+fn cask_install_steps_options(args []ruby.Value, start int) map[string]ruby.Value {
 	for index := args.len - 1; index >= start; index-- {
 		if args[index].type_name == 'Hash' {
 			return args[index].map_data.clone()
 		}
 	}
-	return map[string]brew_runtime.Value{}
+	return map[string]ruby.Value{}
 }
 
-fn cask_install_steps_run_boundary(args []brew_runtime.Value, default_phase string) brew_runtime.Value {
+fn cask_install_steps_run_boundary(args []ruby.Value, default_phase string) ruby.Value {
 	if args.len == 0 {
 		return cask_install_steps_error('install steps require an artifact receiver')
 	}
@@ -305,10 +305,10 @@ fn cask_install_steps_run_boundary(args []brew_runtime.Value, default_phase stri
 		default_phase
 	}
 	sandboxed := cask_install_steps_bool(options['sandboxed'] or {
-		brew_runtime.bool_value(false)
+		ruby.bool_value(false)
 	}, false)
 	result := run_cask_install_steps(artifact, phase, sandboxed, homebrew.NativeInstallStepsCommandExecutor{}) or {
-		return brew_runtime.structured_value('RuntimeError', err.msg(), {
+		return ruby.structured_value('RuntimeError', err.msg(), {
 			'message': err.msg()
 		})
 	}
@@ -316,7 +316,7 @@ fn cask_install_steps_run_boundary(args []brew_runtime.Value, default_phase stri
 }
 
 // Ruby method `initialize(cask, steps)` at line 15.
-pub fn ruby_install_steps_l15_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_l15_d1_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		return cask_install_steps_error('initialize requires a cask and steps')
 	}
@@ -330,7 +330,7 @@ pub fn ruby_install_steps_l15_d1_initialize(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby attr_reader `attr_reader :steps` at line 21.
-pub fn ruby_install_steps_l21_d2_steps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_l21_d2_steps(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return homebrew.install_steps_value(homebrew.InstallSteps{})
 	}
@@ -338,53 +338,53 @@ pub fn ruby_install_steps_l21_d2_steps(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby method `to_args = [{ steps: }]` at line 24.
-pub fn ruby_install_steps_l24_d3_to_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_l24_d3_to_args(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.array_value([])
+		return ruby.array_value([])
 	}
-	return brew_runtime.array_value(cask_install_steps_to_args(cask_install_steps_artifact_from_value(args[0])))
+	return ruby.array_value(cask_install_steps_to_args(cask_install_steps_artifact_from_value(args[0])))
 }
 
 // Ruby method `summarize` at line 27.
-pub fn ruby_install_steps_l27_d4_summarize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_l27_d4_summarize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_value('0 install steps')
+		return ruby.string_value('0 install steps')
 	}
-	return brew_runtime.string_value(cask_install_steps_summarize(cask_install_steps_artifact_from_value(args[0])))
+	return ruby.string_value(cask_install_steps_summarize(cask_install_steps_artifact_from_value(args[0])))
 }
 
 // Ruby method `run_steps(command, phase: :install)` at line 34.
-pub fn ruby_install_steps_l34_d5_run_steps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_l34_d5_run_steps(args ...ruby.Value) ruby.Value {
 	return cask_install_steps_run_boundary(args, 'install')
 }
 
 // Ruby method `install_phase(command: SystemCommand, **_options)` at line 76.
-pub fn ruby_install_steps_l76_d6_install_phase(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_l76_d6_install_phase(args ...ruby.Value) ruby.Value {
 	return cask_install_steps_run_boundary(args, 'install')
 }
 
 // Ruby method `uninstall_phase(command: SystemCommand, **_options)` at line 81.
-pub fn ruby_install_steps_l81_d7_uninstall_phase(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_l81_d7_uninstall_phase(args ...ruby.Value) ruby.Value {
 	return cask_install_steps_run_boundary(args, 'uninstall')
 }
 
 // Ruby method `install_phase(command: SystemCommand, **_options)` at line 89.
-pub fn ruby_install_steps_l89_d8_install_phase(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_l89_d8_install_phase(args ...ruby.Value) ruby.Value {
 	return cask_install_steps_run_boundary(args, 'install')
 }
 
 // Ruby method `uninstall_phase(command: SystemCommand, **_options)` at line 94.
-pub fn ruby_install_steps_l94_d9_uninstall_phase(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_l94_d9_uninstall_phase(args ...ruby.Value) ruby.Value {
 	return cask_install_steps_run_boundary(args, 'uninstall')
 }
 
 // Ruby method `uninstall_phase(command: SystemCommand, **_options)` at line 102.
-pub fn ruby_install_steps_l102_d10_uninstall_phase(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_l102_d10_uninstall_phase(args ...ruby.Value) ruby.Value {
 	return cask_install_steps_run_boundary(args, 'install')
 }
 
 // Ruby method `uninstall_phase(command: SystemCommand, **_options)` at line 110.
-pub fn ruby_install_steps_l110_d11_uninstall_phase(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_l110_d11_uninstall_phase(args ...ruby.Value) ruby.Value {
 	return cask_install_steps_run_boundary(args, 'install')
 }
 

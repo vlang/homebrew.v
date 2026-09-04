@@ -1,26 +1,26 @@
 module abstract
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/private/abstract/hooks.rb`.
 // The original source is retained below until every stub has a typed V body.
-fn abstract_hook_values(args []brew_runtime.Value) (brew_runtime.Value, brew_runtime.Value) {
+fn abstract_hook_values(args []ruby.Value) (ruby.Value, ruby.Value) {
 	if args.len < 2 {
 		panic('abstract hook requires a module and consumer')
 	}
 	return args[0], args[1]
 }
 
-pub fn record_abstract_usage(mod brew_runtime.Value, other brew_runtime.Value) brew_runtime.Value {
+pub fn record_abstract_usage(mod ruby.Value, other ruby.Value) ruby.Value {
 	mut data := global_abstract_data()
 	return data.set(mod, 'last_used_by', other)
 }
 
-pub fn record_abstract_inheritance(mod brew_runtime.Value,
-	other brew_runtime.Value) brew_runtime.Value {
+pub fn record_abstract_inheritance(mod ruby.Value,
+	other ruby.Value) ruby.Value {
 	mut data := global_abstract_data()
 	if !data.has_key(mod, 'abstract_type') {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	return data.set(mod, 'last_used_by', other)
 }
@@ -30,29 +30,29 @@ pub fn reject_abstract_prepend() ! {
 }
 
 // Ruby method `extend_object(other)` at line 9.
-pub fn ruby_hooks_l9_d1_extend_object(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_hooks_l9_d1_extend_object(args ...ruby.Value) ruby.Value {
 	mod, other := abstract_hook_values(args)
 	record_abstract_usage(mod, other)
 	return other
 }
 
 // Ruby method `append_features(other)` at line 18.
-pub fn ruby_hooks_l18_d2_append_features(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_hooks_l18_d2_append_features(args ...ruby.Value) ruby.Value {
 	mod, other := abstract_hook_values(args)
 	record_abstract_usage(mod, other)
 	return other
 }
 
 // Ruby method `inherited(other)` at line 25.
-pub fn ruby_hooks_l25_d3_inherited(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_hooks_l25_d3_inherited(args ...ruby.Value) ruby.Value {
 	mod, other := abstract_hook_values(args)
 	return record_abstract_inheritance(mod, other)
 }
 
 // Ruby method `prepended(other)` at line 37.
-pub fn ruby_hooks_l37_d4_prepended(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_hooks_l37_d4_prepended(args ...ruby.Value) ruby.Value {
 	reject_abstract_prepend() or { panic(err.msg()) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Original Ruby source (line-for-line):

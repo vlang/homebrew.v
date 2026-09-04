@@ -1,6 +1,6 @@
 module atomic
 
-import brew_runtime
+import ruby
 import sync
 import time
 
@@ -119,14 +119,14 @@ pub fn (mut event Event) ns_initialize() {
 	event.state.mutex.unlock()
 }
 
-fn event_boundary_new() brew_runtime.Value {
+fn event_boundary_new() ruby.Value {
 	event := new_event()
-	return brew_runtime.structured_value('Concurrent::Event', '#<Concurrent::Event>', {
+	return ruby.structured_value('Concurrent::Event', '#<Concurrent::Event>', {
 		'event_address': u64(voidptr(event)).str()
 	})
 }
 
-fn event_boundary_receiver(args []brew_runtime.Value) &Event {
+fn event_boundary_receiver(args []ruby.Value) &Event {
 	if args.len == 0 {
 		panic('Event method requires a receiver')
 	}
@@ -136,7 +136,7 @@ fn event_boundary_receiver(args []brew_runtime.Value) &Event {
 	return unsafe { &Event(voidptr(address)) }
 }
 
-fn event_boundary_timeout(args []brew_runtime.Value, index int) ?time.Duration {
+fn event_boundary_timeout(args []ruby.Value, index int) ?time.Duration {
 	if index >= args.len || args[index].type_name == 'NilClass' {
 		return none
 	}
@@ -145,48 +145,48 @@ fn event_boundary_timeout(args []brew_runtime.Value, index int) ?time.Duration {
 }
 
 // Ruby method `initialize` at line 40.
-pub fn ruby_event_l40_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_event_l40_d1_initialize(args ...ruby.Value) ruby.Value {
 	return event_boundary_new()
 }
 
 // Ruby method `set?` at line 48.
-pub fn ruby_event_l48_d2_set(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_event_l48_d2_set(args ...ruby.Value) ruby.Value {
 	mut event := event_boundary_receiver(args)
-	return brew_runtime.bool_value(event.is_set())
+	return ruby.bool_value(event.is_set())
 }
 
 // Ruby method `set` at line 56.
-pub fn ruby_event_l56_d3_set(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_event_l56_d3_set(args ...ruby.Value) ruby.Value {
 	mut event := event_boundary_receiver(args)
-	return brew_runtime.bool_value(event.set())
+	return ruby.bool_value(event.set())
 }
 
 // Ruby method `try?` at line 60.
-pub fn ruby_event_l60_d4_try(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_event_l60_d4_try(args ...ruby.Value) ruby.Value {
 	mut event := event_boundary_receiver(args)
-	return brew_runtime.bool_value(event.try_set())
+	return ruby.bool_value(event.try_set())
 }
 
 // Ruby method `reset` at line 68.
-pub fn ruby_event_l68_d5_reset(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_event_l68_d5_reset(args ...ruby.Value) ruby.Value {
 	mut event := event_boundary_receiver(args)
-	return brew_runtime.bool_value(event.reset())
+	return ruby.bool_value(event.reset())
 }
 
 // Ruby method `wait(timeout = nil)` at line 83.
-pub fn ruby_event_l83_d6_wait(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_event_l83_d6_wait(args ...ruby.Value) ruby.Value {
 	mut event := event_boundary_receiver(args)
-	return brew_runtime.bool_value(event.wait(event_boundary_timeout(args, 1)))
+	return ruby.bool_value(event.wait(event_boundary_timeout(args, 1)))
 }
 
 // Ruby method `ns_set` at line 96.
-pub fn ruby_event_l96_d7_ns_set(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_event_l96_d7_ns_set(args ...ruby.Value) ruby.Value {
 	mut event := event_boundary_receiver(args)
-	return brew_runtime.bool_value(event.set())
+	return ruby.bool_value(event.set())
 }
 
 // Ruby method `ns_initialize` at line 104.
-pub fn ruby_event_l104_d8_ns_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_event_l104_d8_ns_initialize(args ...ruby.Value) ruby.Value {
 	mut event := event_boundary_receiver(args)
 	event.ns_initialize()
 	return args[0]

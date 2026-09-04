@@ -1,6 +1,6 @@
 module test
 
-import brew_runtime
+import ruby
 import homebrew
 import homebrew.api
 import os
@@ -25,25 +25,25 @@ fn formulary_spec_struct() api.FormulaStruct {
 		stable_version: '0.1'
 		stable_checksum: 'abc'
 		stable_url_args: api.ApiStructArgPair{
-			first: brew_runtime.string_value('file:///tmp/testball-0.1.tbz')
+			first: ruby.string_value('file:///tmp/testball-0.1.tbz')
 		}
 		stable_dependencies: [
-			brew_runtime.string_value('dep'),
-			brew_runtime.map_value({
-				'build_dep': brew_runtime.string_value(':build')
+			ruby.string_value('dep'),
+			ruby.map_value({
+				'build_dep': ruby.string_value(':build')
 			}),
-			brew_runtime.map_value({
-				'test_dep': brew_runtime.string_value(':test')
+			ruby.map_value({
+				'test_dep': ruby.string_value(':test')
 			}),
-			brew_runtime.map_value({
-				'recommended_dep': brew_runtime.string_value(':recommended')
+			ruby.map_value({
+				'recommended_dep': ruby.string_value(':recommended')
 			}),
-			brew_runtime.map_value({
-				'optional_dep': brew_runtime.string_value(':optional')
+			ruby.map_value({
+				'optional_dep': ruby.string_value(':optional')
 			}),
 		]
 		stable_uses_from_macos: [api.ApiStructArgPair{
-			first: brew_runtime.string_value('uses_from_macos_dep')
+			first: ruby.string_value('uses_from_macos_dep')
 		}]
 		oldnames: ['old-testball']
 		aliases: ['testball']
@@ -51,21 +51,21 @@ fn formulary_spec_struct() api.FormulaStruct {
 		caveats: 'example caveat string\n/\$HOME\n\$HOMEBREW_PREFIX'
 		ruby_source_checksum: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 		post_install_defined: true
-		post_install_steps: [brew_runtime.map_value({
-			'type':    brew_runtime.string_value('warn')
-			'message': brew_runtime.string_value('loaded from internal API')
+		post_install_steps: [ruby.map_value({
+			'type':    ruby.string_value('warn')
+			'message': ruby.string_value('loaded from internal API')
 		})]
 		conflicts: [api.ApiStructArgPair{
-			first: brew_runtime.string_value('conflicting_formula')
-			second: brew_runtime.map_value({
-				'because': brew_runtime.string_value('it does')
+			first: ruby.string_value('conflicting_formula')
+			second: ruby.map_value({
+				'because': ruby.string_value('it does')
 			})
 		}]
 		link_overwrite_paths: ['bin/abc']
-		keg_only_args: [brew_runtime.string_value(':provided_by_macos')]
+		keg_only_args: [ruby.string_value(':provided_by_macos')]
 		service_args: [api.ApiStructArgPair{
-			first: brew_runtime.string_value(':run_type')
-			second: brew_runtime.string_value(':immediate')
+			first: ruby.string_value(':run_type')
+			second: ruby.string_value(':immediate')
 		}]
 		predicates: api.FormulaStructPredicates{
 			stable: true
@@ -81,17 +81,17 @@ fn formulary_spec_struct_for_line(line int) api.FormulaStruct {
 		668 {
 			api.FormulaStruct{
 				...base
-				stable_patches: [brew_runtime.map_value({
-					'strip':    brew_runtime.string_value('p1')
-					'url':      brew_runtime.string_value('https://example.com/test.patch')
-					'resolves': brew_runtime.array_value([
-						brew_runtime.map_value({
-							'type': brew_runtime.string_value('security')
-							'id':   brew_runtime.string_value('CVE-2024-1234')
+				stable_patches: [ruby.map_value({
+					'strip':    ruby.string_value('p1')
+					'url':      ruby.string_value('https://example.com/test.patch')
+					'resolves': ruby.array_value([
+						ruby.map_value({
+							'type': ruby.string_value('security')
+							'id':   ruby.string_value('CVE-2024-1234')
 						}),
-						brew_runtime.map_value({
-							'type': brew_runtime.string_value('defect')
-							'id':   brew_runtime.string_value('https://github.com/foo/bar/issues/1')
+						ruby.map_value({
+							'type': ruby.string_value('defect')
+							'id':   ruby.string_value('https://github.com/foo/bar/issues/1')
 						}),
 					])
 				})]
@@ -101,8 +101,8 @@ fn formulary_spec_struct_for_line(line int) api.FormulaStruct {
 			api.FormulaStruct{
 				...base
 				deprecate_args: {
-					'date':    brew_runtime.string_value('2022-06-15')
-					'because': brew_runtime.string_value(':repo_archived')
+					'date':    ruby.string_value('2022-06-15')
+					'because': ruby.string_value(':repo_archived')
 				}
 				predicates: api.FormulaStructPredicates{ ...base.predicates, deprecate: true }
 			}
@@ -111,8 +111,8 @@ fn formulary_spec_struct_for_line(line int) api.FormulaStruct {
 			api.FormulaStruct{
 				...base
 				disable_args: {
-					'date':    brew_runtime.string_value('2022-06-15')
-					'because': brew_runtime.string_value('requires something else')
+					'date':    ruby.string_value('2022-06-15')
+					'because': ruby.string_value('requires something else')
 				}
 				predicates: api.FormulaStructPredicates{ ...base.predicates, disable: true }
 			}
@@ -121,9 +121,9 @@ fn formulary_spec_struct_for_line(line int) api.FormulaStruct {
 			api.FormulaStruct{
 				...base
 				deprecate_args: {
-					'date':             brew_runtime.string_value('2099-06-15')
-					'because':          brew_runtime.string_value(':repo_archived')
-					'replacement_cask': brew_runtime.string_value('bar')
+					'date':             ruby.string_value('2099-06-15')
+					'because':          ruby.string_value(':repo_archived')
+					'replacement_cask': ruby.string_value('bar')
 				}
 				predicates: api.FormulaStructPredicates{ ...base.predicates, deprecate: true }
 			}
@@ -132,20 +132,20 @@ fn formulary_spec_struct_for_line(line int) api.FormulaStruct {
 			api.FormulaStruct{
 				...base
 				deprecate_args: {
-					'because':             brew_runtime.string_value('requires something else')
-					'replacement_formula': brew_runtime.string_value('foo')
+					'because':             ruby.string_value('requires something else')
+					'replacement_formula': ruby.string_value('foo')
 				}
 				disable_args: {
-					'date':                brew_runtime.string_value('2099-06-15')
-					'because':             brew_runtime.string_value('requires something else')
-					'replacement_formula': brew_runtime.string_value('foo')
+					'date':                ruby.string_value('2099-06-15')
+					'because':             ruby.string_value('requires something else')
+					'replacement_formula': ruby.string_value('foo')
 				}
 				predicates: api.FormulaStructPredicates{ ...base.predicates, deprecate: true, disable: true }
 			}
 		}
 		753 {
 			mut dependencies := base.stable_dependencies.clone()
-			dependencies << brew_runtime.string_value('variations_dep')
+			dependencies << ruby.string_value('variations_dep')
 			api.FormulaStruct{
 				...base
 				stable_dependencies: dependencies
@@ -153,7 +153,7 @@ fn formulary_spec_struct_for_line(line int) api.FormulaStruct {
 		}
 		764 {
 			mut dependencies := base.stable_dependencies.clone()
-			dependencies << brew_runtime.string_value('dep')
+			dependencies << ruby.string_value('dep')
 			api.FormulaStruct{
 				...base
 				stable_dependencies: dependencies

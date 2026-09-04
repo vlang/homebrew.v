@@ -1,27 +1,27 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `test/dev-cmd/extract_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let! `let!(:target) do` at line 11.
-pub fn ruby_extract_spec_l11_d1_target(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extract_spec_l11_d1_target(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || args[0].as_string() == '' {
-		return brew_runtime.object_value('ArgumentError', 'target path is required')
+		return ruby.object_value('ArgumentError', 'target path is required')
 	}
 	path := args[0].as_string()
 	os.mkdir_all(os.join_path(path, 'Formula')) or {
-		return brew_runtime.object_value('SystemCallError', err.msg())
+		return ruby.object_value('SystemCallError', err.msg())
 	}
-	return brew_runtime.map_value({
-		'name': brew_runtime.string_value('homebrew/foo')
-		'path': brew_runtime.object_value('Pathname', path)
+	return ruby.map_value({
+		'name': ruby.string_value('homebrew/foo')
+		'path': ruby.object_value('Pathname', path)
 	})
 }
 
-fn extract_spec_retrieves(value brew_runtime.Value, requested_version string,
+fn extract_spec_retrieves(value ruby.Value, requested_version string,
 	formula_version string) bool {
 	input := extract_input_from_value(value) or { return false }
 	result := run_extract(input.options) or { return false }
@@ -32,27 +32,27 @@ fn extract_spec_retrieves(value brew_runtime.Value, requested_version string,
 }
 
 // Ruby it `it "retrieves the most recent version of formula", :integration_test do` at line 45.
-pub fn ruby_extract_spec_l45_d2_retrieves(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extract_spec_l45_d2_retrieves(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(extract_spec_retrieves(args[0], '0.2', '0.2'))
+	return ruby.bool_value(extract_spec_retrieves(args[0], '0.2', '0.2'))
 }
 
 // Ruby it `it "retrieves the specified version of formula" do` at line 55.
-pub fn ruby_extract_spec_l55_d3_retrieves(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extract_spec_l55_d3_retrieves(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(extract_spec_retrieves(args[0], '0.1', '0.1'))
+	return ruby.bool_value(extract_spec_retrieves(args[0], '0.1', '0.1'))
 }
 
 // Ruby it `it "retrieves the compatible version of formula" do` at line 63.
-pub fn ruby_extract_spec_l63_d4_retrieves(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extract_spec_l63_d4_retrieves(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(extract_spec_retrieves(args[0], '0', '0.2'))
+	return ruby.bool_value(extract_spec_retrieves(args[0], '0', '0.2'))
 }
 
 // Original Ruby source (line-for-line):

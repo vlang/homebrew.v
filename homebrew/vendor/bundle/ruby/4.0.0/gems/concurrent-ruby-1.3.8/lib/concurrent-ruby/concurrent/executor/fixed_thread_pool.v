@@ -1,11 +1,11 @@
 module executor
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/executor/fixed_thread_pool.rb`.
 // The original source is retained below until every stub has a typed V body.
 pub fn fixed_thread_pool_options(number_of_threads int,
-	options map[string]brew_runtime.Value) !ThreadPoolOptions {
+	options map[string]ruby.Value) !ThreadPoolOptions {
 	if number_of_threads < 1 {
 		return error('number of threads must be greater than zero')
 	}
@@ -19,12 +19,12 @@ pub fn fixed_thread_pool_options(number_of_threads int,
 }
 
 // Ruby method `initialize(num_threads, opts = {})` at line 213.
-pub fn ruby_fixed_thread_pool_l213_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_fixed_thread_pool_l213_d1_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('FixedThreadPool#initialize requires num_threads') }
 	options := if args.len >= 2 {
 		args[1].as_map() or { panic(err) }
 	} else {
-		map[string]brew_runtime.Value{}
+		map[string]ruby.Value{}
 	}
 	config := fixed_thread_pool_options(int(args[0].as_int() or { panic(err) }), options) or {
 		panic(err)

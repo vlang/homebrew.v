@@ -1,6 +1,6 @@
 module rubocops
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `rubocops/move_to_extend_os.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -343,16 +343,16 @@ pub fn audit_move_to_extend_os(source string, file_path string) []MoveToExtendOs
 	return offenses
 }
 
-fn move_to_extend_os_call_value(call MoveToExtendOsCall) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::AST::NodeMatch', 'OS.${call.method}?', {
+fn move_to_extend_os_call_value(call MoveToExtendOsCall) ruby.Value {
+	return ruby.structured_value('RuboCop::AST::NodeMatch', 'OS.${call.method}?', {
 		'method':    call.method
 		'begin_pos': call.begin_pos.str()
 		'end_pos':   call.end_pos.str()
 	})
 }
 
-fn move_to_extend_os_offense_value(offense MoveToExtendOsOffense) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cop::Offense', offense.message, {
+fn move_to_extend_os_offense_value(offense MoveToExtendOsOffense) ruby.Value {
+	return ruby.structured_value('RuboCop::Cop::Offense', offense.message, {
 		'method':    offense.method
 		'file_path': offense.file_path
 		'begin_pos': offense.begin_pos.str()
@@ -362,41 +362,41 @@ fn move_to_extend_os_offense_value(offense MoveToExtendOsOffense) brew_runtime.V
 }
 
 // Ruby def_node_matcher `def_node_matcher :os_mac?, <<~PATTERN` at line 12.
-pub fn ruby_move_to_extend_os_l12_d1_os_mac(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_move_to_extend_os_l12_d1_os_mac(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	for call in find_move_to_extend_os_calls(source) {
 		if call.method == 'mac' {
 			return move_to_extend_os_call_value(call)
 		}
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby def_node_matcher `def_node_matcher :os_linux?, <<~PATTERN` at line 16.
-pub fn ruby_move_to_extend_os_l16_d2_os_linux(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_move_to_extend_os_l16_d2_os_linux(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	for call in find_move_to_extend_os_calls(source) {
 		if call.method == 'linux' {
 			return move_to_extend_os_call_value(call)
 		}
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `extend_offense_message(extend_os, os_method)` at line 21.
-pub fn ruby_move_to_extend_os_l21_d3_extend_offense_message(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_move_to_extend_os_l21_d3_extend_offense_message(args ...ruby.Value) ruby.Value {
 	extend_os := if args.len > 0 { args[0].as_string() } else { '' }
 	os_method := if args.len > 1 { args[1].as_string() } else { '' }
-	return brew_runtime.string_value(move_to_extend_os_offense_message(extend_os, os_method))
+	return ruby.string_value(move_to_extend_os_offense_message(extend_os, os_method))
 }
 
 // Ruby method `on_send(node)` at line 27.
-pub fn ruby_move_to_extend_os_l27_d4_on_send(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_move_to_extend_os_l27_d4_on_send(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	file_path := if args.len > 1 { args[1].as_string() } else { '' }
 	offenses := audit_move_to_extend_os(source, file_path)
 	return if offenses.len == 0 {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	} else {
 		move_to_extend_os_offense_value(offenses[0])
 	}

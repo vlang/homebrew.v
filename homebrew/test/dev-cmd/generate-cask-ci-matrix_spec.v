@@ -1,11 +1,11 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `test/dev-cmd/generate-cask-ci-matrix_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
-fn cask_ci_spec_value(cask CaskCIItem) brew_runtime.Value {
+fn cask_ci_spec_value(cask CaskCIItem) ruby.Value {
 	return cask_ci_cask_value(&cask)
 }
 
@@ -101,126 +101,126 @@ fn cask_ci_spec_names(cask CaskCIItem) []string {
 }
 
 // Ruby subject `subject(:generate_matrix) { described_class.new(["test"]) }` at line 8.
-pub fn ruby_generate_cask_ci_matrix_spec_l8_d1_generate_matrix(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_cask_ci_matrix_spec_l8_d1_generate_matrix(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.map_value({
-		'named': brew_runtime.string_array_value(['test'])
+	return ruby.map_value({
+		'named': ruby.string_array_value(['test'])
 	})
 }
 
 // Ruby let `let(:c_on_system_depends_on_mixed) do` at line 10.
-pub fn ruby_generate_cask_ci_matrix_spec_l10_d2_c_on_system_depends_on_mixed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_cask_ci_matrix_spec_l10_d2_c_on_system_depends_on_mixed(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cask_ci_spec_value(cask_ci_spec_item('mixed'))
 }
 
 // Ruby let `let(:c_on_macos_depends_on_intel) do` at line 30.
-pub fn ruby_generate_cask_ci_matrix_spec_l30_d3_c_on_macos_depends_on_intel(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_cask_ci_matrix_spec_l30_d3_c_on_macos_depends_on_intel(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cask_ci_spec_value(cask_ci_spec_item('macos_intel'))
 }
 
 // Ruby let `let(:c_on_linux_depends_on_intel) do` at line 46.
-pub fn ruby_generate_cask_ci_matrix_spec_l46_d4_c_on_linux_depends_on_intel(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_cask_ci_matrix_spec_l46_d4_c_on_linux_depends_on_intel(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cask_ci_spec_value(cask_ci_spec_item('linux_intel'))
 }
 
 // Ruby let `let(:c_on_system_depends_on_intel) do` at line 62.
-pub fn ruby_generate_cask_ci_matrix_spec_l62_d5_c_on_system_depends_on_intel(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_cask_ci_matrix_spec_l62_d5_c_on_system_depends_on_intel(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cask_ci_spec_value(cask_ci_spec_item('system_intel'))
 }
 
 // Ruby let `let(:c_on_system) do` at line 76.
-pub fn ruby_generate_cask_ci_matrix_spec_l76_d6_c_on_system(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_cask_ci_matrix_spec_l76_d6_c_on_system(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cask_ci_spec_value(cask_ci_spec_item('system'))
 }
 
 // Ruby let `let(:c_on_macos_depends_on_arm) do` at line 88.
-pub fn ruby_generate_cask_ci_matrix_spec_l88_d7_c_on_macos_depends_on_arm(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_cask_ci_matrix_spec_l88_d7_c_on_macos_depends_on_arm(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cask_ci_spec_value(cask_ci_spec_item('macos_arm'))
 }
 
 // Ruby let `let(:c_depends_macos_on_intel) do` at line 104.
-pub fn ruby_generate_cask_ci_matrix_spec_l104_d8_c_depends_macos_on_intel(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_cask_ci_matrix_spec_l104_d8_c_depends_macos_on_intel(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cask_ci_spec_value(cask_ci_spec_item('macos_intel_only'))
 }
 
 // Ruby let `let(:c_app) do` at line 119.
-pub fn ruby_generate_cask_ci_matrix_spec_l119_d9_c_app(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_cask_ci_matrix_spec_l119_d9_c_app(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cask_ci_spec_value(cask_ci_spec_item('app'))
 }
 
 // Ruby let `let(:c_minimum_macos) do` at line 133.
-pub fn ruby_generate_cask_ci_matrix_spec_l133_d10_c_minimum_macos(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_cask_ci_matrix_spec_l133_d10_c_minimum_macos(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cask_ci_spec_value(cask_ci_spec_item('minimum'))
 }
 
 // Ruby let `let(:c_maximum_macos) do` at line 147.
-pub fn ruby_generate_cask_ci_matrix_spec_l147_d11_c_maximum_macos(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_cask_ci_matrix_spec_l147_d11_c_maximum_macos(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cask_ci_spec_value(cask_ci_spec_item('maximum'))
 }
 
 // Ruby let `let(:c_maximum_macos_below_all_runners) do` at line 161.
-pub fn ruby_generate_cask_ci_matrix_spec_l161_d12_c_maximum_macos_below_all_runners(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_cask_ci_matrix_spec_l161_d12_c_maximum_macos_below_all_runners(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cask_ci_spec_value(cask_ci_spec_item('maximum_below'))
 }
 
 // Ruby let `let(:c_minimum_and_maximum_macos) do` at line 175.
-pub fn ruby_generate_cask_ci_matrix_spec_l175_d13_c_minimum_and_maximum_macos(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_cask_ci_matrix_spec_l175_d13_c_minimum_and_maximum_macos(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cask_ci_spec_value(cask_ci_spec_item('minimum_maximum'))
 }
 
 // Ruby let `let(:c_linux) do` at line 190.
-pub fn ruby_generate_cask_ci_matrix_spec_l190_d14_c_linux(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_cask_ci_matrix_spec_l190_d14_c_linux(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cask_ci_spec_value(cask_ci_spec_item('linux'))
 }
 
 // Ruby let `let(:c_app_only_macos) do` at line 204.
-pub fn ruby_generate_cask_ci_matrix_spec_l204_d15_c_app_only_macos(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_cask_ci_matrix_spec_l204_d15_c_app_only_macos(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cask_ci_spec_value(cask_ci_spec_item('app_on_macos'))
 }
 
 // Ruby let `let(:c) do` at line 219.
-pub fn ruby_generate_cask_ci_matrix_spec_l219_d16_c(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_cask_ci_matrix_spec_l219_d16_c(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cask_ci_spec_value(cask_ci_spec_item('font'))
 }
 
 // Ruby let `let(:newest_macos) { MacOSVersion.new(HOMEBREW_MACOS_NEWEST_SUPPORTED).to_sym }` at line 231.
-pub fn ruby_generate_cask_ci_matrix_spec_l231_d17_newest_macos(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_cask_ci_matrix_spec_l231_d17_newest_macos(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.object_value('Symbol', 'tahoe')
+	return ruby.object_value('Symbol', 'tahoe')
 }
 
 // Ruby it `it "generates current and stable tap syntax jobs" do` at line 235.
-pub fn ruby_generate_cask_ci_matrix_spec_l235_d18_generates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_cask_ci_matrix_spec_l235_d18_generates(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := run_generate_cask_ci_matrix(GenerateCaskCICommandOptions{
 		repository: 'Homebrew/homebrew-cask'
 		syntax_only: true
 		tap: CaskCITap{ name: 'homebrew/cask' }
 		random_samples: [0.0, 0.0, 1.0]
-	}) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(result.jobs.len == 2
+	}) or { return ruby.bool_value(false) }
+	return ruby.bool_value(result.jobs.len == 2
 		&& result.jobs[0].name == 'tap_syntax (macos-26)' && !result.jobs[0].stable
 		&& result.jobs[1].name == 'tap_syntax (stable) (macos-26)'
 		&& result.jobs[1].stable && result.jobs[1].skip_audit)
 }
 
 // Ruby it `it "rejects a matrix exceeding GitHub's job limit" do` at line 264.
-pub fn ruby_generate_cask_ci_matrix_spec_l264_d19_rejects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_cask_ci_matrix_spec_l264_d19_rejects(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut names := []string{}
 	mut cask_paths := map[string]string{}
@@ -247,37 +247,37 @@ pub fn ruby_generate_cask_ci_matrix_spec_l264_d19_rejects(args ...brew_runtime.V
 		casks: casks
 		random_samples: [0.0, 0.0, 1.0]
 	}) or {
-		return brew_runtime.structured_value('SystemExit', err.msg(), {
+		return ruby.structured_value('SystemExit', err.msg(), {
 			'stderr': 'Error: ${err.msg()}'
 		})
 	}
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 // Ruby let `let(:arm_linux_runner) { OS::LINUX_CI_ARM_RUNNER }` at line 279.
-pub fn ruby_generate_cask_ci_matrix_spec_l279_d20_arm_linux_runner(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_cask_ci_matrix_spec_l279_d20_arm_linux_runner(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('ubuntu-24.04-arm')
+	return ruby.string_value('ubuntu-24.04-arm')
 }
 
 // Ruby let `let(:older_macos) { :big_sur }` at line 282.
-pub fn ruby_generate_cask_ci_matrix_spec_l282_d21_older_macos(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_cask_ci_matrix_spec_l282_d21_older_macos(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.object_value('Symbol', 'big_sur')
+	return ruby.object_value('Symbol', 'big_sur')
 }
 
 // Ruby it `it "returns an array including everything" do` at line 285.
-pub fn ruby_generate_cask_ci_matrix_spec_l285_d22_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_cask_ci_matrix_spec_l285_d22_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	all := ['macos-15-intel', 'macos-14', 'macos-15', 'macos-26', 'ubuntu-latest', 'ubuntu-24.04-arm']
-	return brew_runtime.bool_value(cask_ci_spec_names(cask_ci_spec_item('font')) == all
+	return ruby.bool_value(cask_ci_spec_names(cask_ci_spec_item('font')) == all
 		&& cask_ci_spec_names(cask_ci_spec_item('app_on_macos')) == all)
 }
 
 // Ruby it `it "returns an array including all macOS" do` at line 309.
-pub fn ruby_generate_cask_ci_matrix_spec_l309_d23_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_cask_ci_matrix_spec_l309_d23_returns(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(cask_ci_spec_names(cask_ci_spec_item('app')) == [
+	return ruby.bool_value(cask_ci_spec_names(cask_ci_spec_item('app')) == [
 		'macos-15-intel',
 		'macos-14',
 		'macos-15',
@@ -286,9 +286,9 @@ pub fn ruby_generate_cask_ci_matrix_spec_l309_d23_returns(args ...brew_runtime.V
 }
 
 // Ruby it `it "filters macOS runners by the minimum and maximum macOS requirements" do` at line 321.
-pub fn ruby_generate_cask_ci_matrix_spec_l321_d24_filters(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_cask_ci_matrix_spec_l321_d24_filters(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(cask_ci_spec_names(cask_ci_spec_item('minimum')) == [
+	return ruby.bool_value(cask_ci_spec_names(cask_ci_spec_item('minimum')) == [
 		'macos-15-intel',
 		'macos-15',
 		'macos-26',
@@ -301,32 +301,32 @@ pub fn ruby_generate_cask_ci_matrix_spec_l321_d24_filters(args ...brew_runtime.V
 }
 
 // Ruby it `it "returns an array including all Linux" do` at line 345.
-pub fn ruby_generate_cask_ci_matrix_spec_l345_d25_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_cask_ci_matrix_spec_l345_d25_returns(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(cask_ci_spec_names(cask_ci_spec_item('linux')) == [
+	return ruby.bool_value(cask_ci_spec_names(cask_ci_spec_item('linux')) == [
 		'ubuntu-latest',
 		'ubuntu-24.04-arm',
 	])
 }
 
 // Ruby it `it "returns an array only including macOS/`depends_on arch` value" do` at line 355.
-pub fn ruby_generate_cask_ci_matrix_spec_l355_d26_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_cask_ci_matrix_spec_l355_d26_returns(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(cask_ci_spec_names(cask_ci_spec_item('macos_intel_only')) == [
+	return ruby.bool_value(cask_ci_spec_names(cask_ci_spec_item('macos_intel_only')) == [
 		'macos-15-intel',
 	])
 }
 
 // Ruby it `it "returns an array with combinations of OS and architectures" do` at line 362.
-pub fn ruby_generate_cask_ci_matrix_spec_l362_d27_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_cask_ci_matrix_spec_l362_d27_returns(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(cask_ci_spec_names(cask_ci_spec_item('system')).len == 6)
+	return ruby.bool_value(cask_ci_spec_names(cask_ci_spec_item('system')).len == 6)
 }
 
 // Ruby it `it "returns an array with combinations of OS and `depends_on arch` value" do` at line 376.
-pub fn ruby_generate_cask_ci_matrix_spec_l376_d28_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_cask_ci_matrix_spec_l376_d28_returns(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(cask_ci_spec_names(cask_ci_spec_item('system_intel')) == [
+	return ruby.bool_value(cask_ci_spec_names(cask_ci_spec_item('system_intel')) == [
 		'macos-15-intel',
 		'ubuntu-latest',
 	] && cask_ci_spec_names(cask_ci_spec_item('linux_intel')) == [
@@ -352,10 +352,10 @@ pub fn ruby_generate_cask_ci_matrix_spec_l376_d28_returns(args ...brew_runtime.V
 }
 
 // Ruby it `it "selects macOS and Linux runners independently" do` at line 418.
-pub fn ruby_generate_cask_ci_matrix_spec_l418_d29_selects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_cask_ci_matrix_spec_l418_d29_selects(args ...ruby.Value) ruby.Value {
 	_ = args
 	selected := cask_ci_runners(cask_ci_spec_item('font'), [0.0, 0.0, 1.0, 1.0]) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	mut combinations := selected.runners.map(if it.symbol == 'linux' {
 		'linux:${it.arch}'
@@ -363,7 +363,7 @@ pub fn ruby_generate_cask_ci_matrix_spec_l418_d29_selects(args ...brew_runtime.V
 		'macos:${it.arch}'
 	})
 	combinations.sort()
-	return brew_runtime.bool_value(!selected.multi_os && combinations == [
+	return ruby.bool_value(!selected.multi_os && combinations == [
 		'linux:arm',
 		'linux:intel',
 		'macos:arm',
@@ -372,13 +372,13 @@ pub fn ruby_generate_cask_ci_matrix_spec_l418_d29_selects(args ...brew_runtime.V
 }
 
 // Ruby let `let(:arm_linux_runner) { OS::LINUX_CI_ARM_RUNNER }` at line 432.
-pub fn ruby_generate_cask_ci_matrix_spec_l432_d30_arm_linux_runner(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_cask_ci_matrix_spec_l432_d30_arm_linux_runner(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('ubuntu-24.04-arm')
+	return ruby.string_value('ubuntu-24.04-arm')
 }
 
 // Ruby it `it "emits both Linux runners and no cross-arch macOS jobs when macOS is single-arch" do` at line 434.
-pub fn ruby_generate_cask_ci_matrix_spec_l434_d31_emits(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_cask_ci_matrix_spec_l434_d31_emits(args ...ruby.Value) ruby.Value {
 	_ = args
 	runners := cask_ci_filter_runners(cask_ci_spec_item('macos_arm'))
 	pairs := cask_ci_runner_arch_pairs(runners, true)
@@ -386,7 +386,7 @@ pub fn ruby_generate_cask_ci_matrix_spec_l434_d31_emits(args ...brew_runtime.Val
 	for pair in pairs {
 		archs[pair.runner.name] << pair.arch
 	}
-	return brew_runtime.bool_value(archs['ubuntu-24.04-arm'] == ['arm']
+	return ruby.bool_value(archs['ubuntu-24.04-arm'] == ['arm']
 		&& archs['ubuntu-latest'] == ['intel'] && archs['macos-14'] == ['arm']
 		&& archs['macos-15'] == ['arm'] && archs['macos-26'] == ['arm'])
 }

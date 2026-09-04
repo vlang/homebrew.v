@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 import homebrew.extend
 import os
 
@@ -8,7 +8,7 @@ import os
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `install_p(src, new_basename, &_block)` at line 10.
-pub fn ruby_install_renamed_l10_d1_install_p(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_renamed_l10_d1_install_p(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('InstallRenamed#install_p requires destination, source, and basename')
 	}
@@ -16,41 +16,41 @@ pub fn ruby_install_renamed_l10_d1_install_p(args ...brew_runtime.Value) brew_ru
 	install_renamed_install_p(args[0].as_string(), args[1].as_string(), args[2].as_string(), cellar) or {
 		panic(err)
 	}
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
 // Ruby method `cp_path_sub(pattern, replacement, &_block)` at line 25.
-pub fn ruby_install_renamed_l25_d2_cp_path_sub(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_renamed_l25_d2_cp_path_sub(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('InstallRenamed#cp_path_sub requires path, pattern, and replacement')
 	}
 	cellar := if args.len > 3 { args[3].as_string() } else { '' }
-	return brew_runtime.string_value(install_renamed_cp_path_sub(args[0].as_string(), args[1].as_string(), args[2].as_string(), cellar) or { panic(err) })
+	return ruby.string_value(install_renamed_cp_path_sub(args[0].as_string(), args[1].as_string(), args[2].as_string(), cellar) or { panic(err) })
 }
 
 // Ruby method `+(other)` at line 32.
-pub fn ruby_install_renamed_l32_d3_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_renamed_l32_d3_anonymous(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('InstallRenamed#+ requires a path and other value')
 	}
-	return brew_runtime.string_value(install_renamed_add(args[0].as_string(), args[1].as_string()))
+	return ruby.string_value(install_renamed_add(args[0].as_string(), args[1].as_string()))
 }
 
 // Ruby method `/(other)` at line 37.
-pub fn ruby_install_renamed_l37_d4_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_renamed_l37_d4_anonymous(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('InstallRenamed#/ requires a path and other value')
 	}
-	return brew_runtime.string_value(install_renamed_join(args[0].as_string(), args[1].as_string()))
+	return ruby.string_value(install_renamed_join(args[0].as_string(), args[1].as_string()))
 }
 
 // Ruby method `append_default_if_different(src, dst)` at line 44.
-pub fn ruby_install_renamed_l44_d5_append_default_if_different(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_renamed_l44_d5_append_default_if_different(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('InstallRenamed#append_default_if_different requires source and destination')
 	}
 	cellar := if args.len > 2 { args[2].as_string() } else { '' }
-	return brew_runtime.string_value(install_renamed_append_default_if_different(args[0].as_string(), args[1].as_string(), cellar) or { panic(err) })
+	return ruby.string_value(install_renamed_append_default_if_different(args[0].as_string(), args[1].as_string(), cellar) or { panic(err) })
 }
 
 pub fn install_renamed_install_p(destination string, source string, new_basename string, cellar string) ! {

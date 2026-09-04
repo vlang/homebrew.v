@@ -1,6 +1,6 @@
 module test
 
-import brew_runtime
+import ruby
 import homebrew
 
 // Translated from Homebrew/brew `test/ignorable_spec.rb`.
@@ -17,45 +17,45 @@ fn ignorable_spec_program(decision homebrew.IgnorableDecision) homebrew.Ignorabl
 	return homebrew.IgnorableProgram{
 		exception: ignorable_spec_exception()
 		decision: decision
-		result: brew_runtime.string_array_value(['before', 'after'])
+		result: ruby.string_array_value(['before', 'after'])
 	}
 }
 
 // Ruby method `raise_runtime_error` at line 7.
-pub fn ruby_ignorable_spec_l7_d1_raise_runtime_error(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ignorable_spec_l7_d1_raise_runtime_error(args ...ruby.Value) ruby.Value {
 	_ = args
 	exception := ignorable_spec_exception()
-	return brew_runtime.structured_value(exception.type_name, exception.message, {
+	return ruby.structured_value(exception.type_name, exception.message, {
 		'message':   exception.message
 		'backtrace': exception.backtrace.join('\n')
 	})
 }
 
 // Ruby it `it "resumes execution after the raise site when the handler returns :ignore" do` at line 12.
-pub fn ruby_ignorable_spec_l12_d2_resumes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ignorable_spec_l12_d2_resumes(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut state := homebrew.new_ignorable_state()
 	result := state.hook_raise(ignorable_spec_program(.ignore)) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(result.as_string_array() or { return brew_runtime.bool_value(false) } == [
+	return ruby.bool_value(result.as_string_array() or { return ruby.bool_value(false) } == [
 		'before',
 		'after',
 	] && state.steps == ['before', 'after'])
 }
 
 // Ruby it `it "extends exceptions passed to the handler with ExceptionMixin" do` at line 23.
-pub fn ruby_ignorable_spec_l23_d3_extends(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ignorable_spec_l23_d3_extends(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut state := homebrew.new_ignorable_state()
 	state.hook_raise(ignorable_spec_program(.ignore)) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(state.exception_was_marked)
+	return ruby.bool_value(state.exception_was_marked)
 }
 
 // Ruby it `it "raises at the raise site when the handler returns :raise" do` at line 32.
-pub fn ruby_ignorable_spec_l32_d4_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ignorable_spec_l32_d4_raises(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut state := homebrew.new_ignorable_state()
 	program := homebrew.IgnorableProgram{
@@ -63,32 +63,32 @@ pub fn ruby_ignorable_spec_l32_d4_raises(args ...brew_runtime.Value) brew_runtim
 		decision: .raise_exception
 		rescued_in_block: true
 	}
-	result := state.hook_raise(program) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(result.type_name == 'Symbol' && result.as_string() == 'rescued_in_block')
+	result := state.hook_raise(program) or { return ruby.bool_value(false) }
+	return ruby.bool_value(result.type_name == 'Symbol' && result.as_string() == 'rescued_in_block')
 }
 
 // Ruby it `it "propagates unrescued exceptions when the handler returns :raise" do` at line 41.
-pub fn ruby_ignorable_spec_l41_d5_propagates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ignorable_spec_l41_d5_propagates(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut state := homebrew.new_ignorable_state()
 	state.hook_raise(ignorable_spec_program(.raise_exception)) or {
-		return brew_runtime.bool_value(err.msg() == 'raised in block')
+		return ruby.bool_value(err.msg() == 'raised in block')
 	}
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 // Ruby it `it "preserves the exception's backtrace when the handler returns :raise" do` at line 47.
-pub fn ruby_ignorable_spec_l47_d6_preserves(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ignorable_spec_l47_d6_preserves(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut state := homebrew.new_ignorable_state()
 	state.hook_raise(ignorable_spec_program(.raise_exception)) or {
-		return brew_runtime.bool_value(state.propagated_backtrace == state.yielded_backtrace)
+		return ruby.bool_value(state.propagated_backtrace == state.yielded_backtrace)
 	}
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 // Ruby it `it "runs the block's ensure blocks when the handler raises" do` at line 61.
-pub fn ruby_ignorable_spec_l61_d7_runs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ignorable_spec_l61_d7_runs(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut state := homebrew.new_ignorable_state()
 	program := homebrew.IgnorableProgram{
@@ -97,13 +97,13 @@ pub fn ruby_ignorable_spec_l61_d7_runs(args ...brew_runtime.Value) brew_runtime.
 		ensure_block: true
 	}
 	state.hook_raise(program) or {
-		return brew_runtime.bool_value(err.msg() == 'raised in block' && state.ensure_ran)
+		return ruby.bool_value(err.msg() == 'raised in block' && state.ensure_ran)
 	}
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 // Ruby it `it "does not consult the handler for exceptions not raised from Ruby code" do` at line 73.
-pub fn ruby_ignorable_spec_l73_d8_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ignorable_spec_l73_d8_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut state := homebrew.new_ignorable_state()
 	exception := homebrew.IgnorableException{
@@ -117,13 +117,13 @@ pub fn ruby_ignorable_spec_l73_d8_does(args ...brew_runtime.Value) brew_runtime.
 		decision: .ignore
 	}
 	state.hook_raise(program) or {
-		return brew_runtime.bool_value(err.msg() == 'raised in block' && state.handler_calls == 0)
+		return ruby.bool_value(err.msg() == 'raised in block' && state.handler_calls == 0)
 	}
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 // Ruby it `it "does not consult the handler for ScriptError" do` at line 79.
-pub fn ruby_ignorable_spec_l79_d9_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ignorable_spec_l79_d9_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut state := homebrew.new_ignorable_state()
 	exception := homebrew.IgnorableException{
@@ -137,30 +137,30 @@ pub fn ruby_ignorable_spec_l79_d9_does(args ...brew_runtime.Value) brew_runtime.
 		decision: .ignore
 	}
 	state.hook_raise(program) or {
-		return brew_runtime.bool_value(err.msg() == 'raised in block' && state.handler_calls == 0)
+		return ruby.bool_value(err.msg() == 'raised in block' && state.handler_calls == 0)
 	}
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 // Ruby it `it "restores the original raise afterwards" do` at line 85.
-pub fn ruby_ignorable_spec_l85_d10_restores(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ignorable_spec_l85_d10_restores(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut state := homebrew.new_ignorable_state()
 	result := state.hook_raise(homebrew.IgnorableProgram{
 		decision: .raise_exception
-		result: brew_runtime.object_value('Symbol', 'noop')
-	}) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(result.as_string() == 'noop' && !state.hook_installed)
+		result: ruby.object_value('Symbol', 'noop')
+	}) or { return ruby.bool_value(false) }
+	return ruby.bool_value(result.as_string() == 'noop' && !state.hook_installed)
 }
 
 // Ruby it `it "restores the original raise when an exception propagates" do` at line 90.
-pub fn ruby_ignorable_spec_l90_d11_restores(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ignorable_spec_l90_d11_restores(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut state := homebrew.new_ignorable_state()
 	state.hook_raise(ignorable_spec_program(.raise_exception)) or {
-		return brew_runtime.bool_value(!state.hook_installed)
+		return ruby.bool_value(!state.hook_installed)
 	}
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 // Original Ruby source (line-for-line):

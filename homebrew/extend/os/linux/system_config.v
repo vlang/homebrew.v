@@ -1,6 +1,6 @@
 module linux
 
-import brew_runtime
+import ruby
 import os
 import strconv
 
@@ -85,7 +85,7 @@ pub fn linux_system_config_run(config &LinuxSystemConfig,
 	if key in config.command_results {
 		return config.command_results[key]
 	}
-	result := brew_runtime.run_command(command.executable, command.arguments)
+	result := ruby.run_command(command.executable, command.arguments)
 	return LinuxSystemConfigCommandResult{
 		stdout: result.output
 		success: result.exit_code == 0
@@ -283,7 +283,7 @@ fn linux_system_config_detect_libstdcxx_version() ?string {
 		if !os.is_file(compiler) || !os.is_executable(compiler) {
 			continue
 		}
-		result := brew_runtime.run_command(compiler, ['-print-file-name=libstdc++.so.6'])
+		result := ruby.run_command(compiler, ['-print-file-name=libstdc++.so.6'])
 		path := result.output.trim_space()
 		if result.exit_code != 0 || path == '' || path == 'libstdc++.so.6' || !os.exists(path) {
 			continue
@@ -297,7 +297,7 @@ fn linux_system_config_detect_libstdcxx_version() ?string {
 }
 
 fn linux_system_config_detect_os_version() string {
-	result := brew_runtime.run_command('lsb_release', ['-a'])
+	result := ruby.run_command('lsb_release', ['-a'])
 	if result.exit_code != 0 {
 		return if value := os.getenv_opt('OS_VERSION') { value } else { 'Unknown' }
 	}
@@ -339,9 +339,9 @@ fn linux_system_config_wsl_version(kernel string) string {
 }
 
 pub fn new_linux_system_config() &LinuxSystemConfig {
-	glibc_result := brew_runtime.run_command('/usr/bin/ldd', ['--version'])
+	glibc_result := ruby.run_command('/usr/bin/ldd', ['--version'])
 	glibc_version := linux_system_config_glibc_version_from_output(glibc_result.output)
-	kernel := brew_runtime.kernel_info().release
+	kernel := ruby.kernel_info().release
 	wsl := kernel.to_lower().contains('-microsoft')
 	preferred_gcc := 'gcc@13'
 	versioned_gcc := '/usr/bin/${preferred_gcc.replace('@', '-')}'
@@ -374,20 +374,20 @@ pub fn new_linux_system_config() &LinuxSystemConfig {
 	}
 }
 
-fn linux_system_config_value(config &LinuxSystemConfig) brew_runtime.Value {
-	return brew_runtime.structured_value('SystemConfig', '', {
+fn linux_system_config_value(config &LinuxSystemConfig) ruby.Value {
+	return ruby.structured_value('SystemConfig', '', {
 		'linux_system_config_address': u64(voidptr(config)).str()
 	})
 }
 
-fn linux_system_config_from_args(args []brew_runtime.Value) (&LinuxSystemConfig, int) {
+fn linux_system_config_from_args(args []ruby.Value) (&LinuxSystemConfig, int) {
 	if args.len > 0 && 'linux_system_config_address' in args[0].attributes {
 		return unsafe { &LinuxSystemConfig(voidptr(args[0].attributes['linux_system_config_address'].u64())) }, 1
 	}
 	return new_linux_system_config(), 0
 }
 
-pub fn linux_system_config_boundary(config &LinuxSystemConfig) brew_runtime.Value {
+pub fn linux_system_config_boundary(config &LinuxSystemConfig) ruby.Value {
 	return linux_system_config_value(config)
 }
 
@@ -395,98 +395,98 @@ pub fn linux_system_config_boundary(config &LinuxSystemConfig) brew_runtime.Valu
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `host_glibc_version` at line 19.
-pub fn ruby_system_config_l19_d1_host_glibc_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_system_config_l19_d1_host_glibc_version(args ...ruby.Value) ruby.Value {
 	config, _ := linux_system_config_from_args(args)
 	version := linux_system_config_host_glibc_version(config)
 	return if version == 'N/A' {
-		brew_runtime.string_value(version)
+		ruby.string_value(version)
 	} else {
-		brew_runtime.object_value('Version', version)
+		ruby.object_value('Version', version)
 	}
 }
 
 // Ruby method `host_libstdcxx_version` at line 27.
-pub fn ruby_system_config_l27_d2_host_libstdcxx_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_system_config_l27_d2_host_libstdcxx_version(args ...ruby.Value) ruby.Value {
 	config, _ := linux_system_config_from_args(args)
 	version := linux_system_config_host_libstdcxx_version(config)
 	return if version == 'N/A' {
-		brew_runtime.string_value(version)
+		ruby.string_value(version)
 	} else {
-		brew_runtime.object_value('Version', version)
+		ruby.object_value('Version', version)
 	}
 }
 
 // Ruby method `host_gcc_version` at line 35.
-pub fn ruby_system_config_l35_d3_host_gcc_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_system_config_l35_d3_host_gcc_version(args ...ruby.Value) ruby.Value {
 	config, _ := linux_system_config_from_args(args)
-	return brew_runtime.string_value(linux_system_config_host_gcc_version(config))
+	return ruby.string_value(linux_system_config_host_gcc_version(config))
 }
 
 // Ruby method `formula_linked_version(formula)` at line 43.
-pub fn ruby_system_config_l43_d4_formula_linked_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_system_config_l43_d4_formula_linked_version(args ...ruby.Value) ruby.Value {
 	config, offset := linux_system_config_from_args(args)
 	if args.len <= offset {
-		return brew_runtime.string_value('N/A')
+		return ruby.string_value('N/A')
 	}
 	version := linux_system_config_formula_linked_version(config, args[offset].as_string())
 	return if version == 'N/A' {
-		brew_runtime.string_value(version)
+		ruby.string_value(version)
 	} else {
-		brew_runtime.object_value('PkgVersion', version)
+		ruby.object_value('PkgVersion', version)
 	}
 }
 
 // Ruby method `host_ruby_version` at line 52.
-pub fn ruby_system_config_l52_d5_host_ruby_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_system_config_l52_d5_host_ruby_version(args ...ruby.Value) ruby.Value {
 	config, _ := linux_system_config_from_args(args)
-	return brew_runtime.string_value(linux_system_config_host_ruby_version(config))
+	return ruby.string_value(linux_system_config_host_ruby_version(config))
 }
 
 // Ruby method `windows_version` at line 60.
-pub fn ruby_system_config_l60_d6_windows_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_system_config_l60_d6_windows_version(args ...ruby.Value) ruby.Value {
 	config, _ := linux_system_config_from_args(args)
 	version := linux_system_config_windows_version(config) or {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
-	return brew_runtime.string_value(version)
+	return ruby.string_value(version)
 }
 
 // Ruby method `windows_registry_version(cmd)` at line 74.
-pub fn ruby_system_config_l74_d7_windows_registry_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_system_config_l74_d7_windows_registry_version(args ...ruby.Value) ruby.Value {
 	config, offset := linux_system_config_from_args(args)
 	if args.len <= offset {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	version := linux_system_config_registry_version(config, args[offset].as_string()) or {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
-	return brew_runtime.string_value(version)
+	return ruby.string_value(version)
 }
 
 // Ruby method `windows_registry_values(cmd)` at line 90.
-pub fn ruby_system_config_l90_d8_windows_registry_values(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_system_config_l90_d8_windows_registry_values(args ...ruby.Value) ruby.Value {
 	config, offset := linux_system_config_from_args(args)
 	if args.len <= offset {
-		return brew_runtime.map_value({})
+		return ruby.map_value({})
 	}
 	values := linux_system_config_registry_values(config, args[offset].as_string())
-	mut result := map[string]brew_runtime.Value{}
+	mut result := map[string]ruby.Value{}
 	for key, value in values {
-		result[key] = brew_runtime.string_value(value)
+		result[key] = ruby.string_value(value)
 	}
-	return brew_runtime.map_value(result)
+	return ruby.map_value(result)
 }
 
 // Ruby method `linux_config(out = $stdout)` at line 108.
-pub fn ruby_system_config_l108_d9_linux_config(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_system_config_l108_d9_linux_config(args ...ruby.Value) ruby.Value {
 	config, _ := linux_system_config_from_args(args)
-	return brew_runtime.string_value(linux_system_config_output(config))
+	return ruby.string_value(linux_system_config_output(config))
 }
 
 // Ruby method `config_sections` at line 127.
-pub fn ruby_system_config_l127_d10_config_sections(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_system_config_l127_d10_config_sections(args ...ruby.Value) ruby.Value {
 	config, _ := linux_system_config_from_args(args)
-	return brew_runtime.array_value(linux_system_config_sections(config).map(brew_runtime.object_value('Symbol', it)))
+	return ruby.array_value(linux_system_config_sections(config).map(ruby.object_value('Symbol', it)))
 }
 
 // Original Ruby source (line-for-line):

@@ -1,6 +1,6 @@
 module rubocops
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `rubocops/keg_only.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -341,8 +341,8 @@ pub fn autocorrect_keg_only_reason(reason string) string {
 	return '"${corrected}"'
 }
 
-fn keg_only_problem_value(problem KegOnlyProblem) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cop::Problem', problem.message, {
+fn keg_only_problem_value(problem KegOnlyProblem) ruby.Value {
+	return ruby.structured_value('RuboCop::Cop::Problem', problem.message, {
 		'kind':        problem.kind
 		'reason':      problem.reason
 		'first_word':  problem.first_word
@@ -354,25 +354,25 @@ fn keg_only_problem_value(problem KegOnlyProblem) brew_runtime.Value {
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 14.
-pub fn ruby_keg_only_l14_d1_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_only_l14_d1_audit_formula(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	formula_name := if args.len > 1 { args[1].as_string() } else { '' }
-	return brew_runtime.array_value(audit_formula_keg_only(source, formula_name).map(keg_only_problem_value(it)))
+	return ruby.array_value(audit_formula_keg_only(source, formula_name).map(keg_only_problem_value(it)))
 }
 
 // Ruby method `autocorrect(node)` at line 51.
-pub fn ruby_keg_only_l51_d2_autocorrect(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_only_l51_d2_autocorrect(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_value('')
+		return ruby.string_value('')
 	}
 	source := args[0].as_string()
 	if source.len >= 2 && source[0] in [`'`, `"`] {
 		end_pos := keg_only_quoted_end(source, 0)
 		if end_pos == source.len && source[end_pos - 1] == source[0] {
-			return brew_runtime.string_value(autocorrect_keg_only_reason(keg_only_decode_string(source, source[0])))
+			return ruby.string_value(autocorrect_keg_only_reason(keg_only_decode_string(source, source[0])))
 		}
 	}
-	return brew_runtime.string_value(autocorrect_keg_only_reason(source))
+	return ruby.string_value(autocorrect_keg_only_reason(source))
 }
 
 // Original Ruby source (line-for-line):

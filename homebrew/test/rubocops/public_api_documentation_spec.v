@@ -1,14 +1,14 @@
 module rubocops
 
-import brew_runtime
+import ruby
 import homebrew.rubocops as public_api_documentation_core
 
 // Translated from Homebrew/brew `test/rubocops/public_api_documentation_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
-pub fn ruby_public_api_documentation_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('RuboCop::Cop::Homebrew::PublicApiDocumentation', 'Homebrew/PublicApiDocumentation')
+pub fn ruby_public_api_documentation_spec_l7_d1_cop(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('RuboCop::Cop::Homebrew::PublicApiDocumentation', 'Homebrew/PublicApiDocumentation')
 }
 
 // Ruby it `it "reports an offense" do` at line 10.
@@ -20,8 +20,8 @@ pub fn ruby_public_api_documentation_spec_l10_d2_reports() bool {
 }
 
 // Ruby method `foo; end` at line 15.
-pub fn ruby_public_api_documentation_spec_l15_d3_foo(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('def foo; end')
+pub fn ruby_public_api_documentation_spec_l15_d3_foo(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('def foo; end')
 }
 
 // Ruby it `it "reports an offense" do` at line 21.
@@ -33,7 +33,7 @@ pub fn ruby_public_api_documentation_spec_l21_d4_reports() bool {
 }
 
 // Ruby method `foo; end` at line 27.
-pub fn ruby_public_api_documentation_spec_l27_d5_foo(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_public_api_documentation_spec_l27_d5_foo(args ...ruby.Value) ruby.Value {
 	return ruby_public_api_documentation_spec_l15_d3_foo(...args)
 }
 
@@ -46,7 +46,7 @@ pub fn ruby_public_api_documentation_spec_l33_d6_reports() bool {
 }
 
 // Ruby method `foo; end` at line 39.
-pub fn ruby_public_api_documentation_spec_l39_d7_foo(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_public_api_documentation_spec_l39_d7_foo(args ...ruby.Value) ruby.Value {
 	return ruby_public_api_documentation_spec_l15_d3_foo(...args)
 }
 
@@ -57,8 +57,8 @@ pub fn ruby_public_api_documentation_spec_l45_d8_does() bool {
 }
 
 // Ruby method `name; end` at line 51.
-pub fn ruby_public_api_documentation_spec_l51_d9_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('def name; end')
+pub fn ruby_public_api_documentation_spec_l51_d9_name(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('def name; end')
 }
 
 // Ruby it `it "does not report an offense" do` at line 57.
@@ -68,8 +68,8 @@ pub fn ruby_public_api_documentation_spec_l57_d10_does() bool {
 }
 
 // Ruby method `bin; end` at line 64.
-pub fn ruby_public_api_documentation_spec_l64_d11_bin(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('def bin; end')
+pub fn ruby_public_api_documentation_spec_l64_d11_bin(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('def bin; end')
 }
 
 // Ruby it `it "does not report an offense" do` at line 70.
@@ -79,7 +79,7 @@ pub fn ruby_public_api_documentation_spec_l70_d12_does() bool {
 }
 
 // Ruby method `foo; end` at line 74.
-pub fn ruby_public_api_documentation_spec_l74_d13_foo(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_public_api_documentation_spec_l74_d13_foo(args ...ruby.Value) ruby.Value {
 	return ruby_public_api_documentation_spec_l15_d3_foo(...args)
 }
 
@@ -90,13 +90,13 @@ pub fn ruby_public_api_documentation_spec_l80_d14_does() bool {
 }
 
 // Ruby method `prefix; end` at line 92.
-pub fn ruby_public_api_documentation_spec_l92_d15_prefix(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('def prefix; end')
+pub fn ruby_public_api_documentation_spec_l92_d15_prefix(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('def prefix; end')
 }
 
 // Ruby subject `subject(:cop) do` at line 98.
-pub fn ruby_public_api_documentation_spec_l98_d16_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cop::Homebrew::PublicApiDocumentation', 'Homebrew/PublicApiDocumentation', {
+pub fn ruby_public_api_documentation_spec_l98_d16_cop(args ...ruby.Value) ruby.Value {
+	return ruby.structured_value('RuboCop::Cop::Homebrew::PublicApiDocumentation', 'Homebrew/PublicApiDocumentation', {
 		'Style/Documentation.Include': '[]'
 	})
 }
@@ -114,13 +114,13 @@ pub fn ruby_public_api_documentation_spec_l104_d17_reports() bool {
 }
 
 // Ruby method `foo; end` at line 110.
-pub fn ruby_public_api_documentation_spec_l110_d18_foo(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_public_api_documentation_spec_l110_d18_foo(args ...ruby.Value) ruby.Value {
 	return ruby_public_api_documentation_spec_l15_d3_foo(...args)
 }
 
 // Ruby subject `subject(:cop) do` at line 116.
-pub fn ruby_public_api_documentation_spec_l116_d19_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cop::Homebrew::PublicApiDocumentation', 'Homebrew/PublicApiDocumentation', {
+pub fn ruby_public_api_documentation_spec_l116_d19_cop(args ...ruby.Value) ruby.Value {
+	return ruby.structured_value('RuboCop::Cop::Homebrew::PublicApiDocumentation', 'Homebrew/PublicApiDocumentation', {
 		'Style/Documentation.Include': '["stale.rb"]'
 	})
 }

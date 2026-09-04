@@ -1,6 +1,6 @@
 module test
 
-import brew_runtime
+import ruby
 import homebrew
 import homebrew.cli as brew_cli
 
@@ -45,7 +45,7 @@ pub fn ruby_abstract_subcommand_spec_l26_d2_defines() !bool {
 
 // Ruby it `it "allows access to args" do` at line 37.
 pub fn ruby_abstract_subcommand_spec_l37_d3_allows() bool {
-	argument := brew_runtime.object_value('Symbol', 'args')
+	argument := ruby.object_value('Symbol', 'args')
 	subcommand := homebrew.ruby_abstract_subcommand_l86_d7_initialize(argument, homebrew.AbstractSubcommandInitOptions{})
 	actual := homebrew.ruby_abstract_subcommand_l83_d6_args(subcommand)
 	return actual.type_name == 'Symbol' && actual.repr == 'args'

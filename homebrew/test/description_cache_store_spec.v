@@ -1,6 +1,6 @@
 module test
 
-import brew_runtime
+import ruby
 import homebrew
 import homebrew.description_cache_store as cask_descriptions
 import os
@@ -41,7 +41,7 @@ fn description_cache_spec_formula_loader(name string) !homebrew.DescriptionFormu
 	}
 	return homebrew.DescriptionFormula{
 		full_name: name
-		description: brew_runtime.string_value('desc')
+		description: ruby.string_value('desc')
 	}
 }
 
@@ -65,7 +65,7 @@ fn description_cache_spec_untrusted_cask(_ string) !cask_descriptions.CaskDescri
 }
 
 fn description_cache_spec_seed(mut store homebrew.DescriptionCacheStore, key string) ! {
-	store.update(key, brew_runtime.string_value('seed'))
+	store.update(key, ruby.string_value('seed'))
 	store.database.write_if_dirty()!
 }
 
@@ -74,8 +74,8 @@ pub fn ruby_description_cache_store_spec_l17_d5_sets() !bool {
 	root := description_cache_spec_root()!
 	defer { os.rmdir_all(root) or {} }
 	mut store := ruby_description_cache_store_spec_l8_d1_cache_store(ruby_description_cache_store_spec_l10_d2_database(root))
-	store.update(ruby_description_cache_store_spec_l11_d3_formula_name(), brew_runtime.string_value(ruby_description_cache_store_spec_l12_d4_description()))
-	return (store.database.values['test_name'] or { brew_runtime.Value{} }).repr == 'test_description'
+	store.update(ruby_description_cache_store_spec_l11_d3_formula_name(), ruby.string_value(ruby_description_cache_store_spec_l12_d4_description()))
+	return (store.database.values['test_name'] or { ruby.Value{} }).repr == 'test_description'
 }
 
 // Ruby it `it "deletes the formula description" do` at line 24.
@@ -110,7 +110,7 @@ pub fn ruby_description_cache_store_spec_l40_d9_sets() !bool {
 	mut store := ruby_description_cache_store_spec_l8_d1_cache_store(ruby_description_cache_store_spec_l10_d2_database(root))
 	description_cache_spec_seed(mut store, 'existing')!
 	store.update_from_formula_names(['formula_name'], true, [], description_cache_spec_formula_loader)
-	return (store.database.values['formula_name'] or { brew_runtime.Value{} }).repr == 'desc'
+	return (store.database.values['formula_name'] or { ruby.Value{} }).repr == 'desc'
 }
 
 // Ruby it `it "deletes untrusted formulae descriptions" do` at line 52.

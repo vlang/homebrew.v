@@ -1,6 +1,6 @@
 module rubocops
 
-import brew_runtime
+import ruby
 import homebrew.rubocops.@shared as desc_shared
 
 // Translated from Homebrew/brew `rubocops/desc.rb`.
@@ -197,8 +197,8 @@ pub fn correct_formula_desc(source string, formula_name string) string {
 	return corrected
 }
 
-fn formula_desc_problem_value(problem desc_shared.DescProblem) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cop::Offense', problem.message, {
+fn formula_desc_problem_value(problem desc_shared.DescProblem) ruby.Value {
+	return ruby.structured_value('RuboCop::Cop::Offense', problem.message, {
 		'kind':          problem.kind
 		'desc_type':     problem.desc_type
 		'name':          problem.name
@@ -213,10 +213,10 @@ fn formula_desc_problem_value(problem desc_shared.DescProblem) brew_runtime.Valu
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 17.
-pub fn ruby_desc_l17_d1_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_desc_l17_d1_audit_formula(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	formula_name := if args.len > 1 { args[1].as_string() } else { '' }
-	return brew_runtime.array_value(audit_formula_desc(source, formula_name).map(formula_desc_problem_value(it)))
+	return ruby.array_value(audit_formula_desc(source, formula_name).map(formula_desc_problem_value(it)))
 }
 
 // Original Ruby source (line-for-line):

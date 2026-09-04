@@ -1,6 +1,6 @@
 module artifact
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `cask/artifact/bashcompletion.rb`.
@@ -12,22 +12,22 @@ pub fn resolve_bash_completion_target(target string, completion_directory string
 	} else {
 		os.base(target).trim_string_right(extension)
 	}
-	return brew_runtime.join_path(completion_directory, name)
+	return ruby.join_path(completion_directory, name)
 }
 
 // Ruby method `resolve_target(target, base_dir: nil)` at line 11.
-pub fn ruby_bashcompletion_l11_d1_resolve_target(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bashcompletion_l11_d1_resolve_target(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('BashCompletion#resolve_target requires a target') }
 	directory := if args.len > 1 {
 		args[1].as_string()
 	} else {
-		brew_runtime.join_path(cask_artifact_prefix(), 'etc/bash_completion.d')
+		ruby.join_path(cask_artifact_prefix(), 'etc/bash_completion.d')
 	}
-	return brew_runtime.object_value('Pathname', resolve_bash_completion_target(args[0].as_string(), directory))
+	return ruby.object_value('Pathname', resolve_bash_completion_target(args[0].as_string(), directory))
 }
 
 fn cask_artifact_prefix() string {
-	prefix := brew_runtime.environment_value('HOMEBREW_PREFIX')
+	prefix := ruby.environment_value('HOMEBREW_PREFIX')
 	return if prefix == '' { '/opt/homebrew' } else { prefix }
 }
 

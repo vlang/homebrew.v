@@ -1,6 +1,6 @@
 module test_bot
 
-import brew_runtime
+import ruby
 import homebrew.test_bot as production_test_bot
 
 fn cleanup_spec_has_command(actions []production_test_bot.CleanupAction, command []string) bool {
@@ -84,18 +84,18 @@ pub fn cleanup_regression_keeps_current_untrusted_tap() bool {
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "passes a String to checkout_branch_if_needed, reset_if_needed, and clean_if_needed when tap is set" do` at line 12.
-pub fn ruby_test_cleanup_spec_l12_d1_passes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(cleanup_regression_uses_string_repositories())
+pub fn ruby_test_cleanup_spec_l12_d1_passes(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(cleanup_regression_uses_string_repositories())
 }
 
 // Ruby it `it "restores trust for the tap being tested after cleanup" do` at line 45.
-pub fn ruby_test_cleanup_spec_l45_d2_restores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(cleanup_regression_restores_test_tap_trust())
+pub fn ruby_test_cleanup_spec_l45_d2_restores(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(cleanup_regression_restores_test_tap_trust())
 }
 
 // Ruby it `it "does not untap the tap being tested" do` at line 78.
-pub fn ruby_test_cleanup_spec_l78_d3_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(cleanup_regression_keeps_current_untrusted_tap())
+pub fn ruby_test_cleanup_spec_l78_d3_does(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(cleanup_regression_keeps_current_untrusted_tap())
 }
 
 // Original Ruby source (line-for-line):

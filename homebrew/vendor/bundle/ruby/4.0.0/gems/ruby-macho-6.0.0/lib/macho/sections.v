@@ -1,6 +1,6 @@
 module macho
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/ruby-macho-6.0.0/lib/macho/sections.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -156,31 +156,31 @@ pub fn (section &MachoSection) has_flag(symbol string) bool {
 	return section.flags & value == value
 }
 
-pub fn (section &MachoSection) to_h() brew_runtime.Value {
+pub fn (section &MachoSection) to_h() ruby.Value {
 	mut values := {
-		'sectname':  brew_runtime.string_value(section.sectname)
-		'segname':   brew_runtime.string_value(section.segname)
-		'addr':      brew_runtime.int_value(i64(section.addr))
-		'size':      brew_runtime.int_value(i64(section.size))
-		'offset':    brew_runtime.int_value(section.offset)
-		'align':     brew_runtime.int_value(section.align)
-		'reloff':    brew_runtime.int_value(section.reloff)
-		'nreloc':    brew_runtime.int_value(section.nreloc)
-		'flags':     brew_runtime.int_value(section.flags)
-		'reserved1': brew_runtime.int_value(section.reserved1)
-		'reserved2': brew_runtime.int_value(section.reserved2)
+		'sectname':  ruby.string_value(section.sectname)
+		'segname':   ruby.string_value(section.segname)
+		'addr':      ruby.int_value(i64(section.addr))
+		'size':      ruby.int_value(i64(section.size))
+		'offset':    ruby.int_value(section.offset)
+		'align':     ruby.int_value(section.align)
+		'reloff':    ruby.int_value(section.reloff)
+		'nreloc':    ruby.int_value(section.nreloc)
+		'flags':     ruby.int_value(section.flags)
+		'reserved1': ruby.int_value(section.reserved1)
+		'reserved2': ruby.int_value(section.reserved2)
 	}
 	if section.is_64 {
-		values['reserved3'] = brew_runtime.int_value(section.reserved3)
+		values['reserved3'] = ruby.int_value(section.reserved3)
 		values['structure'] = header_structure_value('Z16Z16Q=Q=L=L=L=L=L=L=L=L=', 80)
 	} else {
 		values['structure'] = header_structure_value('Z16Z16L=L=L=L=L=L=L=L=L=', 68)
 	}
-	return brew_runtime.map_value(values)
+	return ruby.map_value(values)
 }
 
-fn macho_section_value(section &MachoSection) brew_runtime.Value {
-	return brew_runtime.structured_value(if section.is_64 {
+fn macho_section_value(section &MachoSection) ruby.Value {
+	return ruby.structured_value(if section.is_64 {
 		'MachO::Sections::Section64'
 	} else {
 		'MachO::Sections::Section'
@@ -189,7 +189,7 @@ fn macho_section_value(section &MachoSection) brew_runtime.Value {
 	})
 }
 
-fn macho_section_from_args(args []brew_runtime.Value) &MachoSection {
+fn macho_section_from_args(args []ruby.Value) &MachoSection {
 	if args.len == 0 {
 		panic('Mach-O section method requires a receiver')
 	}
@@ -198,63 +198,63 @@ fn macho_section_from_args(args []brew_runtime.Value) &MachoSection {
 }
 
 // Ruby method `section_name` at line 126.
-pub fn ruby_sections_l126_d1_section_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(macho_section_from_args(args).section_name())
+pub fn ruby_sections_l126_d1_section_name(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(macho_section_from_args(args).section_name())
 }
 
 // Ruby method `segment_name` at line 131.
-pub fn ruby_sections_l131_d2_segment_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(macho_section_from_args(args).segment_name())
+pub fn ruby_sections_l131_d2_segment_name(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(macho_section_from_args(args).segment_name())
 }
 
 // Ruby method `empty?` at line 136.
-pub fn ruby_sections_l136_d3_empty(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(macho_section_from_args(args).empty())
+pub fn ruby_sections_l136_d3_empty(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(macho_section_from_args(args).empty())
 }
 
 // Ruby method `type` at line 141.
-pub fn ruby_sections_l141_d4_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(macho_section_from_args(args).section_type())
+pub fn ruby_sections_l141_d4_type(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(macho_section_from_args(args).section_type())
 }
 
 // Ruby method `type?(type_sym)` at line 149.
-pub fn ruby_sections_l149_d5_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sections_l149_d5_type(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Section#type? requires a type symbol')
 	}
-	return brew_runtime.bool_value(macho_section_from_args(args).is_type(args[1].as_string()))
+	return ruby.bool_value(macho_section_from_args(args).is_type(args[1].as_string()))
 }
 
 // Ruby method `attributes` at line 154.
-pub fn ruby_sections_l154_d6_attributes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(macho_section_from_args(args).attributes())
+pub fn ruby_sections_l154_d6_attributes(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(macho_section_from_args(args).attributes())
 }
 
 // Ruby method `attribute?(attr_sym)` at line 162.
-pub fn ruby_sections_l162_d7_attribute(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sections_l162_d7_attribute(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Section#attribute? requires an attribute symbol')
 	}
-	return brew_runtime.bool_value(macho_section_from_args(args).has_attribute(args[1].as_string()) or {
+	return ruby.bool_value(macho_section_from_args(args).has_attribute(args[1].as_string()) or {
 		panic(err)
 	})
 }
 
 // Ruby method `flag?(flag)` at line 171.
-pub fn ruby_sections_l171_d8_flag(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sections_l171_d8_flag(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Section#flag? requires a flag symbol')
 	}
-	return brew_runtime.bool_value(macho_section_from_args(args).has_flag(args[1].as_string()))
+	return ruby.bool_value(macho_section_from_args(args).has_flag(args[1].as_string()))
 }
 
 // Ruby method `to_h` at line 180.
-pub fn ruby_sections_l180_d9_to_h(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sections_l180_d9_to_h(args ...ruby.Value) ruby.Value {
 	return macho_section_from_args(args).to_h()
 }
 
 // Ruby method `to_h` at line 209.
-pub fn ruby_sections_l209_d10_to_h(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sections_l209_d10_to_h(args ...ruby.Value) ruby.Value {
 	return macho_section_from_args(args).to_h()
 }
 

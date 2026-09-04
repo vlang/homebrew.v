@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `cmd/services.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -76,24 +76,24 @@ pub fn run_services_command(argv []string) !ServicesCommandResult {
 	}
 }
 
-pub fn services_result_to_value(result ServicesCommandResult) brew_runtime.Value {
-	mut options := map[string]brew_runtime.Value{}
+pub fn services_result_to_value(result ServicesCommandResult) ruby.Value {
+	mut options := map[string]ruby.Value{}
 	for name, value in result.options {
-		options[name] = brew_runtime.string_value(value)
+		options[name] = ruby.string_value(value)
 	}
-	return brew_runtime.map_value({
-		'subcommand': brew_runtime.string_value(result.subcommand)
-		'named':      brew_runtime.string_array_value(result.named)
-		'options':    brew_runtime.map_value(options)
-		'output':     brew_runtime.string_value(result.output)
+	return ruby.map_value({
+		'subcommand': ruby.string_value(result.subcommand)
+		'named':      ruby.string_array_value(result.named)
+		'options':    ruby.map_value(options)
+		'output':     ruby.string_value(result.output)
 	})
 }
 
 // Ruby method `run` at line 37.
-pub fn ruby_services_l37_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_services_l37_d1_run(args ...ruby.Value) ruby.Value {
 	argv := if args.len > 0 { args[0].as_string_array() or { []string{} } } else { []string{} }
 	result := run_services_command(argv) or {
-		return brew_runtime.object_value('UsageError', err.msg())
+		return ruby.object_value('UsageError', err.msg())
 	}
 	return services_result_to_value(result)
 }

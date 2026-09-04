@@ -1,23 +1,23 @@
 module rubocops
 
-import brew_runtime
+import ruby
 import homebrew.rubocops as unreferenced_core
 
 // Translated from Homebrew/brew `test/rubocops/unreferenced_let_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
-fn unreferenced_let_spec_bool(value bool) brew_runtime.Value {
-	return brew_runtime.bool_value(value)
+fn unreferenced_let_spec_bool(value bool) ruby.Value {
+	return ruby.bool_value(value)
 }
 
 fn analyze_unreferenced_lets(source string) unreferenced_core.UnreferencedLetAnalysis {
 	return unreferenced_core.analyze_unreferenced_lets(source)
 }
 
-fn unreferenced_let_definition_value(definition unreferenced_core.UnreferencedLetDefinition) brew_runtime.Value {
+fn unreferenced_let_definition_value(definition unreferenced_core.UnreferencedLetDefinition) ruby.Value {
 	return unreferenced_core.unreferenced_let_definition_value(definition)
 }
 
-fn unreferenced_let_spec_example(source string, names []string, correction string) brew_runtime.Value {
+fn unreferenced_let_spec_example(source string, names []string, correction string) ruby.Value {
 	analysis := analyze_unreferenced_lets(source)
 	if analysis.offenses.map(it.name) != names {
 		return unreferenced_let_spec_bool(false)
@@ -31,11 +31,11 @@ fn unreferenced_let_spec_example(source string, names []string, correction strin
 	return unreferenced_let_spec_bool(analysis.corrected == correction)
 }
 
-fn unreferenced_let_spec_no_offenses(source string) brew_runtime.Value {
+fn unreferenced_let_spec_no_offenses(source string) ruby.Value {
 	return unreferenced_let_spec_bool(analyze_unreferenced_lets(source).offenses.len == 0)
 }
 
-fn unreferenced_let_spec_definition(source string, name string, method string, occurrence int) brew_runtime.Value {
+fn unreferenced_let_spec_definition(source string, name string, method string, occurrence int) ruby.Value {
 	analysis := analyze_unreferenced_lets(source)
 	mut seen := 0
 	for definition in analysis.definitions {
@@ -46,7 +46,7 @@ fn unreferenced_let_spec_definition(source string, name string, method string, o
 			seen++
 		}
 	}
-	return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+	return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 }
 
 fn unreferenced_let_spec_flags_source() string {
@@ -150,17 +150,17 @@ fn unreferenced_let_spec_receiver_source() string {
 }
 
 // Ruby let `let(:other_cops) do` at line 11.
-pub fn ruby_unreferenced_let_spec_l11_d1_other_cops(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l11_d1_other_cops(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.map_value({
-		'RSpec': brew_runtime.map_value({
-			'Language': brew_runtime.map_value({})
+	return ruby.map_value({
+		'RSpec': ruby.map_value({
+			'Language': ruby.map_value({})
 		})
 	})
 }
 
 // Ruby it `it "flags and removes unreferenced lazy lets" do` at line 20.
-pub fn ruby_unreferenced_let_spec_l20_d2_flags(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l20_d2_flags(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_example(unreferenced_let_spec_flags_source(), [
 		'unused',
@@ -169,57 +169,57 @@ pub fn ruby_unreferenced_let_spec_l20_d2_flags(args ...brew_runtime.Value) brew_
 }
 
 // Ruby let `let(:unused) { create(:thing) }` at line 23.
-pub fn ruby_unreferenced_let_spec_l23_d3_unused(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l23_d3_unused(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_definition(unreferenced_let_spec_flags_source(), 'unused', 'let', 0)
 }
 
 // Ruby let `let(:also_unused) { create(:other) }` at line 25.
-pub fn ruby_unreferenced_let_spec_l25_d4_also_unused(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l25_d4_also_unused(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_definition(unreferenced_let_spec_flags_source(), 'also_unused', 'let', 0)
 }
 
 // Ruby it `it { expect(1).to eq(1) }` at line 28.
-pub fn ruby_unreferenced_let_spec_l28_d5_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l28_d5_anonymous(args ...ruby.Value) ruby.Value {
 	_ = args
 	analysis := analyze_unreferenced_lets(unreferenced_let_spec_flags_source())
 	return unreferenced_let_spec_bool(1 == 1 && analysis.offenses.len == 2)
 }
 
 // Ruby it `it { expect(1).to eq(1) }` at line 35.
-pub fn ruby_unreferenced_let_spec_l35_d6_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l35_d6_anonymous(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_bool(analyze_unreferenced_lets(unreferenced_let_spec_flags_source()).corrected.contains('expect(1).to eq(1)'))
 }
 
 // Ruby it `it "removes a preceding Sorbet signature along with the let" do` at line 40.
-pub fn ruby_unreferenced_let_spec_l40_d7_removes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l40_d7_removes(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_example(unreferenced_let_spec_sig_source(), ['unused'], 'RSpec.describe Thing do\n  it { expect(1).to eq(1) }\nend\n')
 }
 
 // Ruby let `let(:unused) { 1 }` at line 44.
-pub fn ruby_unreferenced_let_spec_l44_d8_unused(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l44_d8_unused(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_definition(unreferenced_let_spec_sig_source(), 'unused', 'let', 0)
 }
 
 // Ruby it `it { expect(1).to eq(1) }` at line 47.
-pub fn ruby_unreferenced_let_spec_l47_d9_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l47_d9_anonymous(args ...ruby.Value) ruby.Value {
 	_ = args
 	analysis := analyze_unreferenced_lets(unreferenced_let_spec_sig_source())
 	return unreferenced_let_spec_bool(analysis.offenses.len == 1 && analysis.offenses[0].removal.first_line == 1)
 }
 
 // Ruby it `it { expect(1).to eq(1) }` at line 53.
-pub fn ruby_unreferenced_let_spec_l53_d10_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l53_d10_anonymous(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_bool(!analyze_unreferenced_lets(unreferenced_let_spec_sig_source()).corrected.contains('sig'))
 }
 
 // Ruby it `it "flags an unreferenced let written as a numbered-parameter block" do` at line 58.
-pub fn ruby_unreferenced_let_spec_l58_d11_flags(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l58_d11_flags(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_example(unreferenced_let_spec_numbered_source(), [
 		'unused',
@@ -227,13 +227,13 @@ pub fn ruby_unreferenced_let_spec_l58_d11_flags(args ...brew_runtime.Value) brew
 }
 
 // Ruby let `let(:unused) { create(_1) }` at line 61.
-pub fn ruby_unreferenced_let_spec_l61_d12_unused(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l61_d12_unused(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_definition(unreferenced_let_spec_numbered_source(), 'unused', 'let', 0)
 }
 
 // Ruby it `it "removes an explanatory comment attached directly above the let" do` at line 72.
-pub fn ruby_unreferenced_let_spec_l72_d13_removes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l72_d13_removes(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_example(unreferenced_let_spec_comment_source(), [
 		'unused',
@@ -241,38 +241,38 @@ pub fn ruby_unreferenced_let_spec_l72_d13_removes(args ...brew_runtime.Value) br
 }
 
 // Ruby let `let(:kept) { 1 }` at line 75.
-pub fn ruby_unreferenced_let_spec_l75_d14_kept(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l75_d14_kept(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_definition(unreferenced_let_spec_comment_source(), 'kept', 'let', 0)
 }
 
 // Ruby let `let(:unused) { false }` at line 78.
-pub fn ruby_unreferenced_let_spec_l78_d15_unused(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l78_d15_unused(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_definition(unreferenced_let_spec_comment_source(), 'unused', 'let', 0)
 }
 
 // Ruby it `it { expect(kept).to eq(1) }` at line 81.
-pub fn ruby_unreferenced_let_spec_l81_d16_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l81_d16_anonymous(args ...ruby.Value) ruby.Value {
 	_ = args
 	analysis := analyze_unreferenced_lets(unreferenced_let_spec_comment_source())
 	return unreferenced_let_spec_bool('kept' in analysis.referenced_names && !analysis.corrected.contains('allows us to see'))
 }
 
 // Ruby let `let(:kept) { 1 }` at line 89.
-pub fn ruby_unreferenced_let_spec_l89_d17_kept(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l89_d17_kept(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_definition(unreferenced_let_spec_comment_source(), 'kept', 'let', 0)
 }
 
 // Ruby it `it { expect(kept).to eq(1) }` at line 91.
-pub fn ruby_unreferenced_let_spec_l91_d18_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l91_d18_anonymous(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_bool(analyze_unreferenced_lets(unreferenced_let_spec_comment_source()).corrected.contains('expect(kept).to eq(1)'))
 }
 
 // Ruby it `it "consumes a trailing blank at a block-body edge but keeps the blank after a final let" do` at line 96.
-pub fn ruby_unreferenced_let_spec_l96_d19_consumes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l96_d19_consumes(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_example(unreferenced_let_spec_final_let_source(), [
 		'unused',
@@ -280,38 +280,38 @@ pub fn ruby_unreferenced_let_spec_l96_d19_consumes(args ...brew_runtime.Value) b
 }
 
 // Ruby let `let(:kept) { 1 }` at line 99.
-pub fn ruby_unreferenced_let_spec_l99_d20_kept(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l99_d20_kept(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_definition(unreferenced_let_spec_final_let_source(), 'kept', 'let', 0)
 }
 
 // Ruby let `let(:unused) { 2 }` at line 100.
-pub fn ruby_unreferenced_let_spec_l100_d21_unused(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l100_d21_unused(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_definition(unreferenced_let_spec_final_let_source(), 'unused', 'let', 0)
 }
 
 // Ruby it `it { expect(kept).to eq(1) }` at line 103.
-pub fn ruby_unreferenced_let_spec_l103_d22_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l103_d22_anonymous(args ...ruby.Value) ruby.Value {
 	_ = args
 	corrected := analyze_unreferenced_lets(unreferenced_let_spec_final_let_source()).corrected
 	return unreferenced_let_spec_bool(corrected.contains('let(:kept) { 1 }\n\n  it'))
 }
 
 // Ruby let `let(:kept) { 1 }` at line 110.
-pub fn ruby_unreferenced_let_spec_l110_d23_kept(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l110_d23_kept(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_definition(unreferenced_let_spec_final_let_source(), 'kept', 'let', 0)
 }
 
 // Ruby it `it { expect(kept).to eq(1) }` at line 112.
-pub fn ruby_unreferenced_let_spec_l112_d24_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l112_d24_anonymous(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_bool(analyze_unreferenced_lets(unreferenced_let_spec_final_let_source()).corrected.contains('expect(kept).to eq(1)'))
 }
 
 // Ruby it `it "does not absorb a rubocop directive comment above the let" do` at line 117.
-pub fn ruby_unreferenced_let_spec_l117_d25_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l117_d25_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_example(unreferenced_let_spec_directive_source(), [
 		'unused',
@@ -319,168 +319,168 @@ pub fn ruby_unreferenced_let_spec_l117_d25_does(args ...brew_runtime.Value) brew
 }
 
 // Ruby let `let(:unused) { false }` at line 121.
-pub fn ruby_unreferenced_let_spec_l121_d26_unused(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l121_d26_unused(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_definition(unreferenced_let_spec_directive_source(), 'unused', 'let', 0)
 }
 
 // Ruby it `it "does not flag an eager let! (out of scope)" do` at line 135.
-pub fn ruby_unreferenced_let_spec_l135_d27_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l135_d27_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_no_offenses(unreferenced_let_spec_eager_source())
 }
 
 // Ruby let! `let!(:unused) { create(:thing) }` at line 138.
-pub fn ruby_unreferenced_let_spec_l138_d28_unused(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l138_d28_unused(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_definition(unreferenced_let_spec_eager_source(), 'unused', 'let!', 0)
 }
 
 // Ruby it `it { expect(1).to eq(1) }` at line 140.
-pub fn ruby_unreferenced_let_spec_l140_d29_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l140_d29_anonymous(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_bool(1 == 1 && analyze_unreferenced_lets(unreferenced_let_spec_eager_source()).offenses.len == 0)
 }
 
 // Ruby it `it "does not flag a referenced lazy let" do` at line 145.
-pub fn ruby_unreferenced_let_spec_l145_d30_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l145_d30_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_no_offenses(unreferenced_let_spec_referenced_source())
 }
 
 // Ruby let `let(:thing) { create(:thing) }` at line 148.
-pub fn ruby_unreferenced_let_spec_l148_d31_thing(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l148_d31_thing(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_definition(unreferenced_let_spec_referenced_source(), 'thing', 'let', 0)
 }
 
 // Ruby it `it { expect(thing).to be_present }` at line 150.
-pub fn ruby_unreferenced_let_spec_l150_d32_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l150_d32_anonymous(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_bool('thing' in analyze_unreferenced_lets(unreferenced_let_spec_referenced_source()).referenced_names)
 }
 
 // Ruby it `it "does not flag `let(:cop_config)` (a rubocop-rspec framework contract)" do` at line 155.
-pub fn ruby_unreferenced_let_spec_l155_d33_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l155_d33_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_no_offenses(unreferenced_let_spec_reserved_source())
 }
 
 // Ruby let `let(:cop_config) { { "Enabled" => true } }` at line 158.
-pub fn ruby_unreferenced_let_spec_l158_d34_cop_config(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l158_d34_cop_config(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_definition(unreferenced_let_spec_reserved_source(), 'cop_config', 'let', 0)
 }
 
 // Ruby it `it { expect(1).to eq(1) }` at line 160.
-pub fn ruby_unreferenced_let_spec_l160_d35_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l160_d35_anonymous(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_bool(1 == 1 && analyze_unreferenced_lets(unreferenced_let_spec_reserved_source()).offenses.len == 0)
 }
 
 // Ruby it `it "does not flag a let referenced via dynamic dispatch" do` at line 165.
-pub fn ruby_unreferenced_let_spec_l165_d36_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l165_d36_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_no_offenses(unreferenced_let_spec_symbol_dispatch_source())
 }
 
 // Ruby let `let(:thing) { create(:thing) }` at line 168.
-pub fn ruby_unreferenced_let_spec_l168_d37_thing(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l168_d37_thing(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_definition(unreferenced_let_spec_symbol_dispatch_source(), 'thing', 'let', 0)
 }
 
 // Ruby it `it { expect(send(:thing)).to be_present }` at line 170.
-pub fn ruby_unreferenced_let_spec_l170_d38_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l170_d38_anonymous(args ...ruby.Value) ruby.Value {
 	_ = args
 	analysis := analyze_unreferenced_lets(unreferenced_let_spec_symbol_dispatch_source())
 	return unreferenced_let_spec_bool('thing' in analysis.referenced_names && !analysis.dynamic_dispatch)
 }
 
 // Ruby it `it "does not flag a let referenced only as a symbol literal (data-table dispatch)" do` at line 175.
-pub fn ruby_unreferenced_let_spec_l175_d39_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l175_d39_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_no_offenses(unreferenced_let_spec_data_dispatch_source())
 }
 
 // Ruby let `let(:special_formula) { build(:formula) }` at line 178.
-pub fn ruby_unreferenced_let_spec_l178_d40_special_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l178_d40_special_formula(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_definition(unreferenced_let_spec_data_dispatch_source(), 'special_formula', 'let', 0)
 }
 
 // Ruby it `it "dispatches by name" do` at line 180.
-pub fn ruby_unreferenced_let_spec_l180_d41_dispatches(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l180_d41_dispatches(args ...ruby.Value) ruby.Value {
 	_ = args
 	analysis := analyze_unreferenced_lets(unreferenced_let_spec_data_dispatch_source())
 	return unreferenced_let_spec_bool('special_formula' in analysis.referenced_names && analysis.dynamic_dispatch)
 }
 
 // Ruby it `it "does not flag a let referenced only as a string literal (string dispatch)" do` at line 189.
-pub fn ruby_unreferenced_let_spec_l189_d42_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l189_d42_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_no_offenses(unreferenced_let_spec_string_dispatch_source())
 }
 
 // Ruby let `let(:special_formula) { build(:formula) }` at line 192.
-pub fn ruby_unreferenced_let_spec_l192_d43_special_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l192_d43_special_formula(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_definition(unreferenced_let_spec_string_dispatch_source(), 'special_formula', 'let', 0)
 }
 
 // Ruby it `it { expect(send("special_formula")).to be_present }` at line 194.
-pub fn ruby_unreferenced_let_spec_l194_d44_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l194_d44_anonymous(args ...ruby.Value) ruby.Value {
 	_ = args
 	analysis := analyze_unreferenced_lets(unreferenced_let_spec_string_dispatch_source())
 	return unreferenced_let_spec_bool('special_formula' in analysis.referenced_names && !analysis.dynamic_dispatch)
 }
 
 // Ruby it `it "does not flag a let referenced only inside a heredoc body" do` at line 199.
-pub fn ruby_unreferenced_let_spec_l199_d45_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l199_d45_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_no_offenses(unreferenced_let_spec_heredoc_source())
 }
 
 // Ruby let `let(:cutoff_date) { Date.today }` at line 202.
-pub fn ruby_unreferenced_let_spec_l202_d46_cutoff_date(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l202_d46_cutoff_date(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_definition(unreferenced_let_spec_heredoc_source(), 'cutoff_date', 'let', 0)
 }
 
 // Ruby let `let(:query) do` at line 203.
-pub fn ruby_unreferenced_let_spec_l203_d47_query(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l203_d47_query(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_definition(unreferenced_let_spec_heredoc_source(), 'query', 'let', 0)
 }
 
 // Ruby it `it { expect(described_class.run(query)).to be_present }` at line 209.
-pub fn ruby_unreferenced_let_spec_l209_d48_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l209_d48_anonymous(args ...ruby.Value) ruby.Value {
 	_ = args
 	names := analyze_unreferenced_lets(unreferenced_let_spec_heredoc_source()).referenced_names
 	return unreferenced_let_spec_bool('cutoff_date' in names && 'query' in names)
 }
 
 // Ruby it `it "skips every let in a file that dispatches through an interpolated string" do` at line 214.
-pub fn ruby_unreferenced_let_spec_l214_d49_skips(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l214_d49_skips(args ...ruby.Value) ruby.Value {
 	_ = args
 	analysis := analyze_unreferenced_lets(unreferenced_let_spec_interpolated_source())
 	return unreferenced_let_spec_bool(analysis.dynamic_dispatch && analysis.offenses.len == 0)
 }
 
 // Ruby let `let(:expected_dental_value) { 1 }` at line 217.
-pub fn ruby_unreferenced_let_spec_l217_d50_expected_dental_value(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l217_d50_expected_dental_value(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_definition(unreferenced_let_spec_interpolated_source(), 'expected_dental_value', 'let', 0)
 }
 
 // Ruby it `it "dispatches by interpolated name" do` at line 219.
-pub fn ruby_unreferenced_let_spec_l219_d51_dispatches(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l219_d51_dispatches(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_bool(analyze_unreferenced_lets(unreferenced_let_spec_interpolated_source()).dynamic_dispatch)
 }
 
 // Ruby it `it "still flags a dead let in a file whose only send target is a static string" do` at line 228.
-pub fn ruby_unreferenced_let_spec_l228_d52_still(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l228_d52_still(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_example(unreferenced_let_spec_static_send_source(), [
 		'unused',
@@ -488,26 +488,26 @@ pub fn ruby_unreferenced_let_spec_l228_d52_still(args ...brew_runtime.Value) bre
 }
 
 // Ruby let `let(:unused) { create(:thing) }` at line 231.
-pub fn ruby_unreferenced_let_spec_l231_d53_unused(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l231_d53_unused(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_definition(unreferenced_let_spec_static_send_source(), 'unused', 'let', 0)
 }
 
 // Ruby it `it { expect(send("other")).to be_present }` at line 234.
-pub fn ruby_unreferenced_let_spec_l234_d54_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l234_d54_anonymous(args ...ruby.Value) ruby.Value {
 	_ = args
 	analysis := analyze_unreferenced_lets(unreferenced_let_spec_static_send_source())
 	return unreferenced_let_spec_bool('other' in analysis.referenced_names && !analysis.dynamic_dispatch && analysis.offenses.len == 1)
 }
 
 // Ruby it `it { expect(send("other")).to be_present }` at line 240.
-pub fn ruby_unreferenced_let_spec_l240_d55_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l240_d55_anonymous(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_bool(analyze_unreferenced_lets(unreferenced_let_spec_static_send_source()).corrected.contains('send("other")'))
 }
 
 // Ruby it `it "does not crash on a let whose block contains an invalid-UTF-8 string literal" do` at line 245.
-pub fn ruby_unreferenced_let_spec_l245_d56_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l245_d56_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_example(unreferenced_let_spec_invalid_utf8_source(), [
 		'unused',
@@ -515,125 +515,125 @@ pub fn ruby_unreferenced_let_spec_l245_d56_does(args ...brew_runtime.Value) brew
 }
 
 // Ruby let `let(:unused) { String.new("\xc2invalid", encoding: "UTF-8") }` at line 248.
-pub fn ruby_unreferenced_let_spec_l248_d57_unused(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l248_d57_unused(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_definition(unreferenced_let_spec_invalid_utf8_source(), 'unused', 'let', 0)
 }
 
 // Ruby it `it { expect(1).to eq(1) }` at line 251.
-pub fn ruby_unreferenced_let_spec_l251_d58_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l251_d58_anonymous(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_bool(analyze_unreferenced_lets(unreferenced_let_spec_invalid_utf8_source()).offenses.len == 1)
 }
 
 // Ruby it `it { expect(1).to eq(1) }` at line 257.
-pub fn ruby_unreferenced_let_spec_l257_d59_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l257_d59_anonymous(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_bool(analyze_unreferenced_lets(unreferenced_let_spec_invalid_utf8_source()).corrected.contains('expect(1).to eq(1)'))
 }
 
 // Ruby it `it "does not flag a name defined by more than one let/let! (override / super chain)" do` at line 262.
-pub fn ruby_unreferenced_let_spec_l262_d60_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l262_d60_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	analysis := analyze_unreferenced_lets(unreferenced_let_spec_override_source())
 	return unreferenced_let_spec_bool(analysis.definitions_by_name['value'] == 2 && analysis.offenses.len == 0)
 }
 
 // Ruby let `let(:value) { 1 }` at line 265.
-pub fn ruby_unreferenced_let_spec_l265_d61_value(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l265_d61_value(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_definition(unreferenced_let_spec_override_source(), 'value', 'let', 0)
 }
 
 // Ruby let! `let!(:value) { 2 }` at line 268.
-pub fn ruby_unreferenced_let_spec_l268_d62_value(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l268_d62_value(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_definition(unreferenced_let_spec_override_source(), 'value', 'let!', 0)
 }
 
 // Ruby it `it { expect(1).to eq(1) }` at line 270.
-pub fn ruby_unreferenced_let_spec_l270_d63_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l270_d63_anonymous(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_bool(1 == 1 && analyze_unreferenced_lets(unreferenced_let_spec_override_source()).offenses.len == 0)
 }
 
 // Ruby it `it "does not flag a let overridden by a subject of the same name (super chain)" do` at line 276.
-pub fn ruby_unreferenced_let_spec_l276_d64_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l276_d64_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	analysis := analyze_unreferenced_lets(unreferenced_let_spec_subject_override_source())
 	return unreferenced_let_spec_bool(analysis.definitions_by_name['described'] == 2 && analysis.offenses.len == 0)
 }
 
 // Ruby let `let(:described) { build(:thing) }` at line 279.
-pub fn ruby_unreferenced_let_spec_l279_d65_described(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l279_d65_described(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_definition(unreferenced_let_spec_subject_override_source(), 'described', 'let', 0)
 }
 
 // Ruby subject `subject(:described) { super().tap(&:activate) }` at line 282.
-pub fn ruby_unreferenced_let_spec_l282_d66_described(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l282_d66_described(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_definition(unreferenced_let_spec_subject_override_source(), 'described', 'subject', 0)
 }
 
 // Ruby it `it { is_expected.to be_active }` at line 284.
-pub fn ruby_unreferenced_let_spec_l284_d67_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l284_d67_anonymous(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_bool(analyze_unreferenced_lets(unreferenced_let_spec_subject_override_source()).offenses.len == 0)
 }
 
 // Ruby it `it "does not flag an unreferenced subject (only lazy let is in scope)" do` at line 290.
-pub fn ruby_unreferenced_let_spec_l290_d68_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l290_d68_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_no_offenses(unreferenced_let_spec_subject_source())
 }
 
 // Ruby subject `subject(:unused) { build(:thing) }` at line 293.
-pub fn ruby_unreferenced_let_spec_l293_d69_unused(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l293_d69_unused(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_definition(unreferenced_let_spec_subject_source(), 'unused', 'subject', 0)
 }
 
 // Ruby it `it { expect(1).to eq(1) }` at line 295.
-pub fn ruby_unreferenced_let_spec_l295_d70_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l295_d70_anonymous(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_bool(1 == 1 && analyze_unreferenced_lets(unreferenced_let_spec_subject_source()).offenses.len == 0)
 }
 
 // Ruby it `it "skips every let in a file that consumes shared examples" do` at line 300.
-pub fn ruby_unreferenced_let_spec_l300_d71_skips(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l300_d71_skips(args ...ruby.Value) ruby.Value {
 	_ = args
 	analysis := analyze_unreferenced_lets(unreferenced_let_spec_consumer_source())
 	return unreferenced_let_spec_bool(analysis.consumes_shared_examples && analysis.offenses.len == 0)
 }
 
 // Ruby let `let(:unused) { create(:thing) }` at line 303.
-pub fn ruby_unreferenced_let_spec_l303_d72_unused(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l303_d72_unused(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_definition(unreferenced_let_spec_consumer_source(), 'unused', 'let', 0)
 }
 
 // Ruby it `it "skips a let declared inside a shared example definition" do` at line 310.
-pub fn ruby_unreferenced_let_spec_l310_d73_skips(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l310_d73_skips(args ...ruby.Value) ruby.Value {
 	_ = args
 	analysis := analyze_unreferenced_lets(unreferenced_let_spec_inside_shared_source())
 	return unreferenced_let_spec_bool(analysis.definitions.len == 1 && analysis.definitions[0].within_shared && analysis.offenses.len == 0)
 }
 
 // Ruby let `let(:unused_inner) { create(:thing) }` at line 313.
-pub fn ruby_unreferenced_let_spec_l313_d74_unused_inner(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l313_d74_unused_inner(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_definition(unreferenced_let_spec_inside_shared_source(), 'unused_inner', 'let', 0)
 }
 
 // Ruby it `it { expect(1).to eq(1) }` at line 315.
-pub fn ruby_unreferenced_let_spec_l315_d75_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l315_d75_anonymous(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_bool(1 == 1 && analyze_unreferenced_lets(unreferenced_let_spec_inside_shared_source()).offenses.len == 0)
 }
 
 // Ruby it `it "still flags an unreferenced let declared outside a shared example definition" do` at line 320.
-pub fn ruby_unreferenced_let_spec_l320_d76_still(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l320_d76_still(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_example(unreferenced_let_spec_outside_shared_source(), [
 		'unused',
@@ -641,67 +641,67 @@ pub fn ruby_unreferenced_let_spec_l320_d76_still(args ...brew_runtime.Value) bre
 }
 
 // Ruby let `let(:unused) { create(:thing) }` at line 323.
-pub fn ruby_unreferenced_let_spec_l323_d77_unused(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l323_d77_unused(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_definition(unreferenced_let_spec_outside_shared_source(), 'unused', 'let', 0)
 }
 
 // Ruby it `it { expect(1).to eq(1) }` at line 327.
-pub fn ruby_unreferenced_let_spec_l327_d78_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l327_d78_anonymous(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_bool(analyze_unreferenced_lets(unreferenced_let_spec_outside_shared_source()).offenses.len == 1)
 }
 
 // Ruby it `it { expect(1).to eq(1) }` at line 335.
-pub fn ruby_unreferenced_let_spec_l335_d79_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l335_d79_anonymous(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_bool(analyze_unreferenced_lets(unreferenced_let_spec_outside_shared_source()).corrected.contains('shared_examples "a thing"'))
 }
 
 // Ruby it `it "ignores let declarations without a symbol name" do` at line 341.
-pub fn ruby_unreferenced_let_spec_l341_d80_ignores(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l341_d80_ignores(args ...ruby.Value) ruby.Value {
 	_ = args
 	analysis := analyze_unreferenced_lets(unreferenced_let_spec_dynamic_name_source())
 	return unreferenced_let_spec_bool(analysis.definitions.len == 2 && analysis.definitions.all(!it.has_symbol_name) && analysis.offenses.len == 0)
 }
 
 // Ruby let `let(name) { create(:thing) }` at line 345.
-pub fn ruby_unreferenced_let_spec_l345_d81_thing(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l345_d81_thing(args ...ruby.Value) ruby.Value {
 	_ = args
 	definitions := analyze_unreferenced_lets(unreferenced_let_spec_dynamic_name_source()).definitions
 	return if definitions.len > 0 {
 		unreferenced_let_definition_value(definitions[0])
 	} else {
-		brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+		ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 	}
 }
 
 // Ruby let `let { create(:thing) }` at line 346.
-pub fn ruby_unreferenced_let_spec_l346_d82_thing(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l346_d82_thing(args ...ruby.Value) ruby.Value {
 	_ = args
 	definitions := analyze_unreferenced_lets(unreferenced_let_spec_dynamic_name_source()).definitions
 	return if definitions.len > 1 {
 		unreferenced_let_definition_value(definitions[1])
 	} else {
-		brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+		ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 	}
 }
 
 // Ruby it `it "ignores a let call with no block" do` at line 351.
-pub fn ruby_unreferenced_let_spec_l351_d83_ignores(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l351_d83_ignores(args ...ruby.Value) ruby.Value {
 	_ = args
 	analysis := analyze_unreferenced_lets(unreferenced_let_spec_no_block_source())
 	return unreferenced_let_spec_bool(analysis.definitions.len == 1 && !analysis.definitions[0].has_block && analysis.offenses.len == 0)
 }
 
 // Ruby let `let(:unused)` at line 354.
-pub fn ruby_unreferenced_let_spec_l354_d84_unused(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l354_d84_unused(args ...ruby.Value) ruby.Value {
 	_ = args
 	return unreferenced_let_spec_definition(unreferenced_let_spec_no_block_source(), 'unused', 'let', 0)
 }
 
 // Ruby it `it "ignores a let-like call with an explicit receiver" do` at line 359.
-pub fn ruby_unreferenced_let_spec_l359_d85_ignores(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_spec_l359_d85_ignores(args ...ruby.Value) ruby.Value {
 	_ = args
 	analysis := analyze_unreferenced_lets(unreferenced_let_spec_receiver_source())
 	return unreferenced_let_spec_bool(analysis.definitions.len == 0 && analysis.offenses.len == 0)

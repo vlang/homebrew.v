@@ -1,6 +1,6 @@
 module types
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/struct.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -12,12 +12,12 @@ pub enum SorbetStructKind {
 pub struct StructSubclassGuard {
 pub:
 	kind     SorbetStructKind
-	base     brew_runtime.Value
-	subclass brew_runtime.Value
+	base     ruby.Value
+	subclass ruby.Value
 }
 
-pub fn install_struct_subclass_guard(kind SorbetStructKind, base brew_runtime.Value,
-	subclass brew_runtime.Value) !StructSubclassGuard {
+pub fn install_struct_subclass_guard(kind SorbetStructKind, base ruby.Value,
+	subclass ruby.Value) !StructSubclassGuard {
 	if base.type_name != 'Class' || subclass.type_name != 'Class' {
 		return error('T::Struct inherited hooks require class values')
 	}
@@ -33,9 +33,9 @@ pub fn (guard StructSubclassGuard) reject_subclassing() ! {
 	return error('${guard.subclass.as_string()} is a subclass of ${struct_name} and cannot be subclassed')
 }
 
-fn struct_guard_value(guard StructSubclassGuard) brew_runtime.Value {
+fn struct_guard_value(guard StructSubclassGuard) ruby.Value {
 	struct_name := if guard.kind == .immutable { 'T::ImmutableStruct' } else { 'T::Struct' }
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'T::Private::ClassUtils::ReplacementMethod'
 		repr: 'inherited'
 		map_data: {
@@ -49,7 +49,7 @@ fn struct_guard_value(guard StructSubclassGuard) brew_runtime.Value {
 	}
 }
 
-fn struct_inherited_boundary(args []brew_runtime.Value, kind SorbetStructKind) brew_runtime.Value {
+fn struct_inherited_boundary(args []ruby.Value, kind SorbetStructKind) ruby.Value {
 	if args.len < 2 {
 		panic('T::Struct inherited hook requires a base and subclass')
 	}
@@ -58,23 +58,23 @@ fn struct_inherited_boundary(args []brew_runtime.Value, kind SorbetStructKind) b
 	})
 }
 
-pub fn initialize_immutable_struct(instance brew_runtime.Value,
-	hash map[string]brew_runtime.Value) brew_runtime.Value {
+pub fn initialize_immutable_struct(instance ruby.Value,
+	hash map[string]ruby.Value) ruby.Value {
 	mut attributes := instance.attributes.clone()
 	attributes['frozen'] = 'true'
 	attributes['class_name'] = instance.attribute('class_name') or { instance.type_name }
-	return brew_runtime.Value{
+	return ruby.Value{
 		...instance
 		map_data: hash.clone()
 		attributes: attributes
 	}
 }
 
-fn struct_truthy(value brew_runtime.Value) bool {
+fn struct_truthy(value ruby.Value) bool {
 	return value.type_name != 'NilClass' && !(value.type_name == 'Bool' && !value.bool_data)
 }
 
-fn immutable_rule(hash map[string]brew_runtime.Value) bool {
+fn immutable_rule(hash map[string]ruby.Value) bool {
 	for key in [':immutable', 'immutable'] {
 		if value := hash[key] {
 			return struct_truthy(value)
@@ -83,20 +83,20 @@ fn immutable_rule(hash map[string]brew_runtime.Value) bool {
 	return false
 }
 
-pub fn immutable_struct_prop(target brew_runtime.Value, name brew_runtime.Value,
-	class_or_rules brew_runtime.Value, rules map[string]brew_runtime.Value) !brew_runtime.Value {
+pub fn immutable_struct_prop(target ruby.Value, name ruby.Value,
+	class_or_rules ruby.Value, rules map[string]ruby.Value) !ruby.Value {
 	class_is_immutable := class_or_rules.type_name == 'Hash' && immutable_rule(class_or_rules.map_data)
 	if !class_is_immutable && !immutable_rule(rules) {
 		return error('Cannot use `prop` in ${target.as_string()} because it is an immutable struct. Use `const` instead')
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'T::Props::PropDeclaration'
 		repr: name.as_string()
 		map_data: {
 			'target': target
 			'name':   name
 			'class':  class_or_rules
-			'rules':  brew_runtime.map_value(rules)
+			'rules':  ruby.map_value(rules)
 		}
 		attributes: {
 			'immutable': 'true'
@@ -104,52 +104,52 @@ pub fn immutable_struct_prop(target brew_runtime.Value, name brew_runtime.Value,
 	}
 }
 
-pub fn immutable_struct_with(instance brew_runtime.Value,
-	_changed_props brew_runtime.Value) !brew_runtime.Value {
+pub fn immutable_struct_with(instance ruby.Value,
+	_changed_props ruby.Value) !ruby.Value {
 	class_name := instance.attribute('class_name') or { instance.type_name }
 	return error('Cannot use `with` in ${class_name} because it is an immutable struct')
 }
 
 // Ruby method `self.inherited(subclass)` at line 11.
-pub fn ruby_struct_l11_d1_self_inherited(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_struct_l11_d1_self_inherited(args ...ruby.Value) ruby.Value {
 	_ = struct_inherited_boundary(args, .mutable)
-	return brew_runtime.object_value('Symbol', ':inherited')
+	return ruby.object_value('Symbol', ':inherited')
 }
 
 // Ruby method `self.inherited(subclass)` at line 24.
-pub fn ruby_struct_l24_d2_self_inherited(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_struct_l24_d2_self_inherited(args ...ruby.Value) ruby.Value {
 	_ = struct_inherited_boundary(args, .immutable)
-	return brew_runtime.object_value('Symbol', ':inherited')
+	return ruby.object_value('Symbol', ':inherited')
 }
 
 // Ruby method `initialize(hash={})` at line 36.
-pub fn ruby_struct_l36_d3_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_struct_l36_d3_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('T::ImmutableStruct#initialize requires a receiver')
 	}
 	hash := if args.len > 1 {
 		args[1].as_map() or { panic(err.msg()) }
 	} else {
-		map[string]brew_runtime.Value{}
+		map[string]ruby.Value{}
 	}
 	return initialize_immutable_struct(args[0], hash)
 }
 
 // Ruby method `self.prop(name, cls, **rules)` at line 44.
-pub fn ruby_struct_l44_d4_self_prop(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_struct_l44_d4_self_prop(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('T::ImmutableStruct.prop requires a class, name, and type')
 	}
 	rules := if args.len > 3 {
 		args[3].as_map() or { panic(err.msg()) }
 	} else {
-		map[string]brew_runtime.Value{}
+		map[string]ruby.Value{}
 	}
 	return immutable_struct_prop(args[0], args[1], args[2], rules) or { panic(err.msg()) }
 }
 
 // Ruby method `with(changed_props)` at line 50.
-pub fn ruby_struct_l50_d5_with(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_struct_l50_d5_with(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('T::ImmutableStruct#with requires a receiver and changed properties')
 	}

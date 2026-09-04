@@ -1,6 +1,6 @@
 module types
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/types/fixed_hash.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -10,7 +10,7 @@ pub:
 	types map[string]&BaseType
 }
 
-pub fn new_fixed_hash_type(values map[string]brew_runtime.Value) !&FixedHashType {
+pub fn new_fixed_hash_type(values map[string]ruby.Value) !&FixedHashType {
 	mut types := map[string]&BaseType{}
 	for key, value in values {
 		types[key] = union_coerce(value)!
@@ -45,21 +45,21 @@ pub fn (fixed &FixedHashType) name() string {
 	return fixed_hash_serialize(fixed.types)
 }
 
-pub fn (fixed &FixedHashType) recursively_valid(value brew_runtime.Value) !bool {
+pub fn (fixed &FixedHashType) recursively_valid(value ruby.Value) !bool {
 	return fixed.validate_fields(value, true)
 }
 
-pub fn (fixed &FixedHashType) valid(value brew_runtime.Value) !bool {
+pub fn (fixed &FixedHashType) valid(value ruby.Value) !bool {
 	return fixed.validate_fields(value, false)
 }
 
-fn (fixed &FixedHashType) validate_fields(value brew_runtime.Value, recursive bool) !bool {
+fn (fixed &FixedHashType) validate_fields(value ruby.Value, recursive bool) !bool {
 	if value.type_name != 'Hash' {
 		return false
 	}
 	fields := value.as_map()!
 	for key, type_value in fixed.types {
-		field := fields[key] or { brew_runtime.object_value('NilClass', 'nil') }
+		field := fields[key] or { ruby.object_value('NilClass', 'nil') }
 		valid := if recursive {
 			type_value.recursively_valid(field)!
 		} else {
@@ -101,7 +101,7 @@ fn fixed_hash_union(types []&BaseType) &BaseType {
 	}
 }
 
-pub fn (fixed &FixedHashType) subtype_of_single(other brew_runtime.Value) !bool {
+pub fn (fixed &FixedHashType) subtype_of_single(other ruby.Value) !bool {
 	if other.type_name == 'T::Types::FixedHash' {
 		return fixed_hash_types_equal(fixed.types, fixed_hash_type_from_value(other).types)
 	}
@@ -121,7 +121,7 @@ pub fn (fixed &FixedHashType) subtype_of_single(other brew_runtime.Value) !bool 
 	return false
 }
 
-pub fn (fixed &FixedHashType) describe_obj(value brew_runtime.Value) string {
+pub fn (fixed &FixedHashType) describe_obj(value ruby.Value) string {
 	if value.type_name != 'Hash' {
 		return new_custom_base_type('T::Types::FixedHash', fixed.name(), [], []).describe_obj(value)
 	}
@@ -132,12 +132,12 @@ pub fn (fixed &FixedHashType) describe_obj(value brew_runtime.Value) string {
 	return 'type ${fixed_hash_serialize(actual_types)}'
 }
 
-fn fixed_hash_type_value(fixed &FixedHashType) brew_runtime.Value {
-	mut values := map[string]brew_runtime.Value{}
+fn fixed_hash_type_value(fixed &FixedHashType) ruby.Value {
+	mut values := map[string]ruby.Value{}
 	for key, type_value in fixed.types {
 		values[key] = base_type_boundary_value(type_value)
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'T::Types::FixedHash'
 		repr: fixed.name()
 		map_data: values
@@ -147,14 +147,14 @@ fn fixed_hash_type_value(fixed &FixedHashType) brew_runtime.Value {
 	}
 }
 
-fn fixed_hash_type_from_value(value brew_runtime.Value) &FixedHashType {
+fn fixed_hash_type_from_value(value ruby.Value) &FixedHashType {
 	address := value.attribute('fixed_hash_type_address') or {
 		panic('invalid FixedHash receiver')
 	}
 	return unsafe { &FixedHashType(voidptr(address.u64())) }
 }
 
-fn fixed_hash_type_from_args(args []brew_runtime.Value) &FixedHashType {
+fn fixed_hash_type_from_args(args []ruby.Value) &FixedHashType {
 	if args.len == 0 {
 		panic('FixedHash method requires a receiver')
 	}
@@ -162,7 +162,7 @@ fn fixed_hash_type_from_args(args []brew_runtime.Value) &FixedHashType {
 }
 
 // Ruby method `initialize(types)` at line 8.
-pub fn ruby_fixed_hash_l8_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_fixed_hash_l8_d1_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('FixedHash#initialize requires types')
 	}
@@ -172,66 +172,66 @@ pub fn ruby_fixed_hash_l8_d1_initialize(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby method `types` at line 12.
-pub fn ruby_fixed_hash_l12_d2_types(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_fixed_hash_l12_d2_types(args ...ruby.Value) ruby.Value {
 	fixed := fixed_hash_type_from_args(args)
-	mut values := map[string]brew_runtime.Value{}
+	mut values := map[string]ruby.Value{}
 	for key, type_value in fixed.types {
 		values[key] = base_type_boundary_value(type_value)
 	}
-	return brew_runtime.map_value(values)
+	return ruby.map_value(values)
 }
 
 // Ruby method `build_type` at line 16.
-pub fn ruby_fixed_hash_l16_d3_build_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_fixed_hash_l16_d3_build_type(args ...ruby.Value) ruby.Value {
 	fixed_hash_type_from_args(args).build_type() or { panic(err) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `name` at line 22.
-pub fn ruby_fixed_hash_l22_d4_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(fixed_hash_type_from_args(args).name())
+pub fn ruby_fixed_hash_l22_d4_name(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(fixed_hash_type_from_args(args).name())
 }
 
 // Ruby method `recursively_valid?(obj)` at line 27.
-pub fn ruby_fixed_hash_l27_d5_recursively_valid(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_fixed_hash_l27_d5_recursively_valid(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('FixedHash#recursively_valid? requires an object')
 	}
-	return brew_runtime.bool_value(fixed_hash_type_from_args(args).recursively_valid(args[1]) or {
+	return ruby.bool_value(fixed_hash_type_from_args(args).recursively_valid(args[1]) or {
 		panic(err)
 	})
 }
 
 // Ruby method `valid?(obj)` at line 42.
-pub fn ruby_fixed_hash_l42_d6_valid(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_fixed_hash_l42_d6_valid(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('FixedHash#valid? requires an object')
 	}
-	return brew_runtime.bool_value(fixed_hash_type_from_args(args).valid(args[1]) or {
+	return ruby.bool_value(fixed_hash_type_from_args(args).valid(args[1]) or {
 		panic(err)
 	})
 }
 
 // Ruby method `subtype_of_single?(other)` at line 57.
-pub fn ruby_fixed_hash_l57_d7_subtype_of_single(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_fixed_hash_l57_d7_subtype_of_single(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('FixedHash#subtype_of_single? requires another type')
 	}
-	return brew_runtime.bool_value(fixed_hash_type_from_args(args).subtype_of_single(args[1]) or {
+	return ruby.bool_value(fixed_hash_type_from_args(args).subtype_of_single(args[1]) or {
 		panic(err)
 	})
 }
 
 // Ruby method `describe_obj(obj)` at line 95.
-pub fn ruby_fixed_hash_l95_d8_describe_obj(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_fixed_hash_l95_d8_describe_obj(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('FixedHash#describe_obj requires an object')
 	}
-	return brew_runtime.string_value(fixed_hash_type_from_args(args).describe_obj(args[1]))
+	return ruby.string_value(fixed_hash_type_from_args(args).describe_obj(args[1]))
 }
 
 // Ruby method `serialize_hash(hash)` at line 105.
-pub fn ruby_fixed_hash_l105_d9_serialize_hash(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_fixed_hash_l105_d9_serialize_hash(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('FixedHash#serialize_hash requires a hash')
 	}
@@ -240,7 +240,7 @@ pub fn ruby_fixed_hash_l105_d9_serialize_hash(args ...brew_runtime.Value) brew_r
 	for key, value in values {
 		types[key] = union_coerce(value) or { panic(err) }
 	}
-	return brew_runtime.string_value(fixed_hash_serialize(types))
+	return ruby.string_value(fixed_hash_serialize(types))
 }
 
 // Original Ruby source (line-for-line):

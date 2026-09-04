@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `github_releases.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -137,7 +137,7 @@ fn github_boundary_create_release(_ string, _ string, _ string) !i64 {
 
 fn github_boundary_upload_asset(_ string, _ string, _ i64, _ string, _ string) ! {}
 
-fn github_bottles_from_value(value brew_runtime.Value) []GitHubBottleUpload {
+fn github_bottles_from_value(value ruby.Value) []GitHubBottleUpload {
 	mut bottles := []GitHubBottleUpload{}
 	for formula_name, bottle_value in value.map_data {
 		mut assets := []GitHubBottleAsset{}
@@ -157,9 +157,9 @@ fn github_bottles_from_value(value brew_runtime.Value) []GitHubBottleUpload {
 }
 
 // Ruby method `upload_bottles(bottles_hash)` at line 16.
-pub fn ruby_github_releases_l16_d1_upload_bottles(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_github_releases_l16_d1_upload_bottles(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_array_value([])
+		return ruby.string_array_value([])
 	}
 	mut bottles := github_bottles_from_value(args[0])
 	bottles.sort_with_compare(fn (left &GitHubBottleUpload, right &GitHubBottleUpload) int {
@@ -170,7 +170,7 @@ pub fn ruby_github_releases_l16_d1_upload_bottles(args ...brew_runtime.Value) br
 		create_release: github_boundary_create_release
 		upload_asset: github_boundary_upload_asset
 	}) or { panic(err) }
-	return brew_runtime.string_array_value(events.map(it.message))
+	return ruby.string_array_value(events.map(it.message))
 }
 
 // Original Ruby source (line-for-line):

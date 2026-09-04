@@ -1,71 +1,71 @@
 module test
 
 import compress.gzip
-import brew_runtime
+import ruby
 import homebrew as github_core
 import os
 import time
 
-fn github_packages_spec_bottle(path string) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'formula': brew_runtime.map_value({
-			'name':             brew_runtime.string_value('testball')
-			'pkg_version':      brew_runtime.string_value('1.0')
-			'tap_git_path':     brew_runtime.string_value('Formula/t/testball.rb')
-			'tap_git_revision': brew_runtime.string_value('abcdef')
-			'desc':             brew_runtime.string_value('Test formula')
-			'license':          brew_runtime.string_value('MIT')
-			'homepage':         brew_runtime.string_value('https://brew.sh/testball')
+fn github_packages_spec_bottle(path string) ruby.Value {
+	return ruby.map_value({
+		'formula': ruby.map_value({
+			'name':             ruby.string_value('testball')
+			'pkg_version':      ruby.string_value('1.0')
+			'tap_git_path':     ruby.string_value('Formula/t/testball.rb')
+			'tap_git_revision': ruby.string_value('abcdef')
+			'desc':             ruby.string_value('Test formula')
+			'license':          ruby.string_value('MIT')
+			'homepage':         ruby.string_value('https://brew.sh/testball')
 		})
-		'bottle':  brew_runtime.map_value({
-			'root_url': brew_runtime.string_value('https://ghcr.io/v2/homebrew/core')
-			'rebuild':  brew_runtime.int_value(0)
-			'date':     brew_runtime.string_value('2026-05-10T00:00:00Z')
-			'tags':     brew_runtime.map_value({
-				'all':          brew_runtime.map_value({
-					'local_filename': brew_runtime.string_value(path)
-					'tab':            brew_runtime.map_value({
-						'arch':     brew_runtime.string_value('arm64')
-						'built_on': brew_runtime.map_value({
-							'os':         brew_runtime.string_value('Macintosh')
-							'os_version': brew_runtime.string_value('macOS 15')
+		'bottle':  ruby.map_value({
+			'root_url': ruby.string_value('https://ghcr.io/v2/homebrew/core')
+			'rebuild':  ruby.int_value(0)
+			'date':     ruby.string_value('2026-05-10T00:00:00Z')
+			'tags':     ruby.map_value({
+				'all':          ruby.map_value({
+					'local_filename': ruby.string_value(path)
+					'tab':            ruby.map_value({
+						'arch':     ruby.string_value('arm64')
+						'built_on': ruby.map_value({
+							'os':         ruby.string_value('Macintosh')
+							'os_version': ruby.string_value('macOS 15')
 						})
 					})
-					'sbom':           brew_runtime.map_value({
-						'documentDescribes': brew_runtime.string_array_value([
+					'sbom':           ruby.map_value({
+						'documentDescribes': ruby.string_array_value([
 							'SPDXRef-Compiler',
 						])
-						'packages':          brew_runtime.array_value([
-							brew_runtime.map_value({
-								'SPDXID': brew_runtime.string_value('SPDXRef-Compiler')
+						'packages':          ruby.array_value([
+							ruby.map_value({
+								'SPDXID': ruby.string_value('SPDXRef-Compiler')
 							}),
 						])
-						'relationships':     brew_runtime.array_value([])
+						'relationships':     ruby.array_value([])
 					})
-					'installed_size': brew_runtime.int_value(100)
+					'installed_size': ruby.int_value(100)
 				})
-				'arm64_sonoma': brew_runtime.map_value({
-					'local_filename': brew_runtime.string_value(path)
-					'tab':            brew_runtime.map_value({
-						'arch':     brew_runtime.string_value('arm64')
-						'built_on': brew_runtime.map_value({
-							'os':         brew_runtime.string_value('Macintosh')
-							'os_version': brew_runtime.string_value('macOS 14')
+				'arm64_sonoma': ruby.map_value({
+					'local_filename': ruby.string_value(path)
+					'tab':            ruby.map_value({
+						'arch':     ruby.string_value('arm64')
+						'built_on': ruby.map_value({
+							'os':         ruby.string_value('Macintosh')
+							'os_version': ruby.string_value('macOS 14')
 						})
 					})
-					'installed_size': brew_runtime.int_value(100)
+					'installed_size': ruby.int_value(100)
 				})
 			})
 		})
 	})
 }
 
-fn github_packages_spec_manifest_map(root string) !map[string]brew_runtime.Value {
-	index := brew_runtime.parse_json_value(os.read_file(os.join_path(root, 'index.json'))!)!.as_map()!
+fn github_packages_spec_manifest_map(root string) !map[string]ruby.Value {
+	index := ruby.parse_json_value(os.read_file(os.join_path(root, 'index.json'))!)!.as_map()!
 	descriptor := index['manifests']!.as_array()![0].as_map()!
 	digest := descriptor['digest']!.as_string().trim_string_left('sha256:')
-	image_index := brew_runtime.parse_json_value(os.read_file(os.join_path(root, 'blobs', 'sha256', digest))!)!.as_map()!
-	mut result := map[string]brew_runtime.Value{}
+	image_index := ruby.parse_json_value(os.read_file(os.join_path(root, 'blobs', 'sha256', digest))!)!.as_map()!
+	mut result := map[string]ruby.Value{}
 	for manifest in image_index['manifests']!.as_array()! {
 		manifest_map := manifest.as_map()!
 		annotations := manifest_map['annotations']!.as_map()!
@@ -78,9 +78,9 @@ fn github_packages_spec_manifest_map(root string) !map[string]brew_runtime.Value
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "reports progress when uploading many bottles" do` at line 8.
-pub fn ruby_github_packages_spec_l8_d1_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_github_packages_spec_l8_d1_reports(args ...ruby.Value) ruby.Value {
 	result := github_core.github_packages_upload_progress(['foo', 'bar', 'baz'], {})
-	return brew_runtime.bool_value(result.events == [
+	return ruby.bool_value(result.events == [
 		'Uploaded foo',
 		'Upload progress: 1 formula(e) uploaded, 2 remaining',
 		'Uploaded bar',
@@ -91,19 +91,19 @@ pub fn ruby_github_packages_spec_l8_d1_reports(args ...brew_runtime.Value) brew_
 }
 
 // Ruby it `it "does not report progress when uploading fewer than three bottles" do` at line 41.
-pub fn ruby_github_packages_spec_l41_d2_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_github_packages_spec_l41_d2_does(args ...ruby.Value) ruby.Value {
 	result := github_core.github_packages_upload_progress(['foo', 'bar'], {})
-	return brew_runtime.bool_value(result.events == ['Uploaded foo', 'Uploaded bar'])
+	return ruby.bool_value(result.events == ['Uploaded foo', 'Uploaded bar'])
 }
 
 // Ruby it `it "includes skipped bottles in progress" do` at line 69.
-pub fn ruby_github_packages_spec_l69_d3_includes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_github_packages_spec_l69_d3_includes(args ...ruby.Value) ruby.Value {
 	result := github_core.github_packages_upload_progress(['foo', 'bar', 'baz'], {
 		'foo': true
 		'bar': true
 		'baz': true
 	})
-	return brew_runtime.bool_value(result.events == [
+	return ruby.bool_value(result.events == [
 		'Upload progress: 1 formula(e) uploaded, 2 remaining',
 		'Upload progress: 2 formula(e) uploaded, 1 remaining',
 		'Upload progress: 3 formula(e) uploaded, 0 remaining',
@@ -111,45 +111,45 @@ pub fn ruby_github_packages_spec_l69_d3_includes(args ...brew_runtime.Value) bre
 }
 
 // Ruby it `it "omits platform metadata from image index descriptors for all bottles" do` at line 96.
-pub fn ruby_github_packages_spec_l96_d4_omits(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_github_packages_spec_l96_d4_omits(args ...ruby.Value) ruby.Value {
 	root_parent := os.join_path(os.temp_dir(), 'brew-v-github-packages-spec-${os.getpid()}-${time.now().unix_micro()}')
-	os.mkdir_all(root_parent) or { return brew_runtime.bool_value(false) }
+	os.mkdir_all(root_parent) or { return ruby.bool_value(false) }
 	defer { os.rmdir_all(root_parent) or {} }
 	bottle := os.join_path(root_parent, 'testball--1.0.all.bottle.tar.gz')
-	compressed := gzip.compress('test'.bytes()) or { return brew_runtime.bool_value(false) }
-	os.write_file_array(bottle, compressed) or { return brew_runtime.bool_value(false) }
+	compressed := gzip.compress('test'.bytes()) or { return ruby.bool_value(false) }
+	os.write_file_array(bottle, compressed) or { return ruby.bool_value(false) }
 	result := github_core.github_packages_upload_bottle(github_packages_spec_bottle(bottle), 'testball', github_core.GitHubPackagesUploadOptions{
 		user: 'brewtest'
 		token: 'ghp_test'
 		root_parent: root_parent
 		dry_run: true
-	}) or { return brew_runtime.bool_value(false) }
+	}) or { return ruby.bool_value(false) }
 	manifests := github_packages_spec_manifest_map(result.root) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	all := manifests['1.0.all'] or { return brew_runtime.bool_value(false) }
-	all_map := all.as_map() or { return brew_runtime.bool_value(false) }
+	all := manifests['1.0.all'] or { return ruby.bool_value(false) }
+	all_map := all.as_map() or { return ruby.bool_value(false) }
 	if 'platform' in all_map {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	all_annotations := all_map['annotations'] or { return brew_runtime.bool_value(false) }
-	all_annotation_map := all_annotations.as_map() or { return brew_runtime.bool_value(false) }
-	all_tab_value := all_annotation_map['sh.brew.tab'] or { return brew_runtime.bool_value(false) }
-	all_tab := brew_runtime.parse_json_value(all_tab_value.as_string()) or {
-		return brew_runtime.bool_value(false)
+	all_annotations := all_map['annotations'] or { return ruby.bool_value(false) }
+	all_annotation_map := all_annotations.as_map() or { return ruby.bool_value(false) }
+	all_tab_value := all_annotation_map['sh.brew.tab'] or { return ruby.bool_value(false) }
+	all_tab := ruby.parse_json_value(all_tab_value.as_string()) or {
+		return ruby.bool_value(false)
 	}
 	if 'arch' in all_tab.map_data || 'built_on' in all_tab.map_data {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	supplement_value := all_annotation_map['sh.brew.sbom.supplement'] or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	supplement := brew_runtime.parse_json_value(supplement_value.as_string()) or {
-		return brew_runtime.bool_value(false)
+	supplement := ruby.parse_json_value(supplement_value.as_string()) or {
+		return ruby.bool_value(false)
 	}
-	packages_value := supplement.map_data['packages'] or { return brew_runtime.bool_value(false) }
+	packages_value := supplement.map_data['packages'] or { return ruby.bool_value(false) }
 	package_ids := packages_value.as_array() or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	mut ids := []string{}
 	mut checksum := ''
@@ -166,30 +166,30 @@ pub fn ruby_github_packages_spec_l96_d4_omits(args ...brew_runtime.Value) brew_r
 			checksum = checksum_value.as_string()
 		}
 	}
-	arm := manifests['1.0.arm64_sonoma'] or { return brew_runtime.bool_value(false) }
-	arm_map := arm.as_map() or { return brew_runtime.bool_value(false) }
-	platform := arm_map['platform'] or { return brew_runtime.bool_value(false) }
-	platform_map := platform.as_map() or { return brew_runtime.bool_value(false) }
-	arm_annotations := arm_map['annotations'] or { return brew_runtime.bool_value(false) }
+	arm := manifests['1.0.arm64_sonoma'] or { return ruby.bool_value(false) }
+	arm_map := arm.as_map() or { return ruby.bool_value(false) }
+	platform := arm_map['platform'] or { return ruby.bool_value(false) }
+	platform_map := platform.as_map() or { return ruby.bool_value(false) }
+	arm_annotations := arm_map['annotations'] or { return ruby.bool_value(false) }
 	arm_tab_value := arm_annotations.map_data['sh.brew.tab'] or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	arm_tab := brew_runtime.parse_json_value(arm_tab_value.as_string()) or {
-		return brew_runtime.bool_value(false)
+	arm_tab := ruby.parse_json_value(arm_tab_value.as_string()) or {
+		return ruby.bool_value(false)
 	}
 	describes_value := supplement.map_data['documentDescribes'] or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	describes := describes_value.as_array() or { return brew_runtime.bool_value(false) }
+	describes := describes_value.as_array() or { return ruby.bool_value(false) }
 	bottle_digest := all_annotation_map['sh.brew.bottle.digest'] or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	architecture := platform_map['architecture'] or { return brew_runtime.bool_value(false) }
-	platform_os := platform_map['os'] or { return brew_runtime.bool_value(false) }
-	arm_arch := arm_tab.map_data['arch'] or { return brew_runtime.bool_value(false) }
-	built_on := arm_tab.map_data['built_on'] or { return brew_runtime.bool_value(false) }
-	built_on_os := built_on.map_data['os'] or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(ids.contains('SPDXRef-Compiler')
+	architecture := platform_map['architecture'] or { return ruby.bool_value(false) }
+	platform_os := platform_map['os'] or { return ruby.bool_value(false) }
+	arm_arch := arm_tab.map_data['arch'] or { return ruby.bool_value(false) }
+	built_on := arm_tab.map_data['built_on'] or { return ruby.bool_value(false) }
+	built_on_os := built_on.map_data['os'] or { return ruby.bool_value(false) }
+	return ruby.bool_value(ids.contains('SPDXRef-Compiler')
 		&& ids.contains('SPDXRef-Bottle-testball')
 		&& describes.map(it.as_string()).contains('SPDXRef-Bottle-testball')
 		&& checksum == bottle_digest.as_string() && architecture.as_string() == 'arm64'
@@ -198,8 +198,8 @@ pub fn ruby_github_packages_spec_l96_d4_omits(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby method `validate_schema!(_schema_uri, _json); end` at line 104.
-pub fn ruby_github_packages_spec_l104_d5_validate_schema(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+pub fn ruby_github_packages_spec_l104_d5_validate_schema(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Original Ruby source (line-for-line):

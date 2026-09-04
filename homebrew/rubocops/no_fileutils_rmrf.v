@@ -1,6 +1,6 @@
 module rubocops
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `rubocops/no_fileutils_rmrf.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -286,7 +286,7 @@ pub fn correct_no_fileutils_rmrf(source string) string {
 	return corrected
 }
 
-fn fileutils_call_argument(args []brew_runtime.Value) ?FileutilsCall {
+fn fileutils_call_argument(args []ruby.Value) ?FileutilsCall {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	calls := find_fileutils_calls(source)
 	if calls.len == 0 {
@@ -295,8 +295,8 @@ fn fileutils_call_argument(args []brew_runtime.Value) ?FileutilsCall {
 	return calls[0]
 }
 
-fn fileutils_call_value(call FileutilsCall) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::AST::SendNode', call.method, {
+fn fileutils_call_value(call FileutilsCall) ruby.Value {
+	return ruby.structured_value('RuboCop::AST::SendNode', call.method, {
 		'method':       call.method
 		'receiver':     call.receiver
 		'has_receiver': call.has_receiver.str()
@@ -306,8 +306,8 @@ fn fileutils_call_value(call FileutilsCall) brew_runtime.Value {
 	})
 }
 
-fn fileutils_offense_value(offense FileutilsRmrfOffense) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cop::Offense', offense.message, {
+fn fileutils_offense_value(offense FileutilsRmrfOffense) ruby.Value {
+	return ruby.structured_value('RuboCop::Cop::Offense', offense.message, {
 		'begin_pos':   offense.begin_pos.str()
 		'end_pos':     offense.end_pos.str()
 		'message':     offense.message
@@ -316,39 +316,39 @@ fn fileutils_offense_value(offense FileutilsRmrfOffense) brew_runtime.Value {
 }
 
 // Ruby def_node_matcher `def_node_matcher :any_receiver_rm_r_f?, <<~PATTERN` at line 14.
-pub fn ruby_no_fileutils_rmrf_l14_d1_any_receiver_rm_r_f(args ...brew_runtime.Value) brew_runtime.Value {
-	call := fileutils_call_argument(args) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(any_receiver_rm_r_f(call))
+pub fn ruby_no_fileutils_rmrf_l14_d1_any_receiver_rm_r_f(args ...ruby.Value) ruby.Value {
+	call := fileutils_call_argument(args) or { return ruby.bool_value(false) }
+	return ruby.bool_value(any_receiver_rm_r_f(call))
 }
 
 // Ruby def_node_matcher `def_node_matcher :no_receiver_rm_r_f?, <<~PATTERN` at line 21.
-pub fn ruby_no_fileutils_rmrf_l21_d2_no_receiver_rm_r_f(args ...brew_runtime.Value) brew_runtime.Value {
-	call := fileutils_call_argument(args) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(no_receiver_rm_r_f(call))
+pub fn ruby_no_fileutils_rmrf_l21_d2_no_receiver_rm_r_f(args ...ruby.Value) ruby.Value {
+	call := fileutils_call_argument(args) or { return ruby.bool_value(false) }
+	return ruby.bool_value(no_receiver_rm_r_f(call))
 }
 
 // Ruby def_node_matcher `def_node_matcher :no_receiver_rmtree?, <<~PATTERN` at line 25.
-pub fn ruby_no_fileutils_rmrf_l25_d3_no_receiver_rmtree(args ...brew_runtime.Value) brew_runtime.Value {
-	call := fileutils_call_argument(args) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(no_receiver_rmtree(call))
+pub fn ruby_no_fileutils_rmrf_l25_d3_no_receiver_rmtree(args ...ruby.Value) ruby.Value {
+	call := fileutils_call_argument(args) or { return ruby.bool_value(false) }
+	return ruby.bool_value(no_receiver_rmtree(call))
 }
 
 // Ruby def_node_matcher `def_node_matcher :any_receiver_rmtree?, <<~PATTERN` at line 29.
-pub fn ruby_no_fileutils_rmrf_l29_d4_any_receiver_rmtree(args ...brew_runtime.Value) brew_runtime.Value {
-	call := fileutils_call_argument(args) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(any_receiver_rmtree(call))
+pub fn ruby_no_fileutils_rmrf_l29_d4_any_receiver_rmtree(args ...ruby.Value) ruby.Value {
+	call := fileutils_call_argument(args) or { return ruby.bool_value(false) }
+	return ruby.bool_value(any_receiver_rmtree(call))
 }
 
 // Ruby method `on_send(node)` at line 34.
-pub fn ruby_no_fileutils_rmrf_l34_d5_on_send(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_no_fileutils_rmrf_l34_d5_on_send(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.array_value(audit_no_fileutils_rmrf(source).map(fileutils_offense_value(it)))
+	return ruby.array_value(audit_no_fileutils_rmrf(source).map(fileutils_offense_value(it)))
 }
 
 // Ruby method `neither_rm_rf_nor_rmtree?(node)` at line 56.
-pub fn ruby_no_fileutils_rmrf_l56_d6_neither_rm_rf_nor_rmtree(args ...brew_runtime.Value) brew_runtime.Value {
-	call := fileutils_call_argument(args) or { return brew_runtime.bool_value(true) }
-	return brew_runtime.bool_value(neither_rm_rf_nor_rmtree(call))
+pub fn ruby_no_fileutils_rmrf_l56_d6_neither_rm_rf_nor_rmtree(args ...ruby.Value) ruby.Value {
+	call := fileutils_call_argument(args) or { return ruby.bool_value(true) }
+	return ruby.bool_value(neither_rm_rf_nor_rmtree(call))
 }
 
 // Original Ruby source (line-for-line):

@@ -1,6 +1,6 @@
 module shared
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `rubocops/shared/api_annotation_helper.rb`.
@@ -186,27 +186,27 @@ pub fn api_annotation_homebrew_dir() string {
 }
 
 // Ruby method `self.methods_with_api_level(source_path, level)` at line 156.
-pub fn ruby_api_annotation_helper_l156_d1_self_methods_with_api_level(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_annotation_helper_l156_d1_self_methods_with_api_level(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.string_array_value([])
+		return ruby.string_array_value([])
 	}
-	return brew_runtime.string_array_value(methods_with_api_level(args[0].as_string(), args[1].as_string()))
+	return ruby.string_array_value(methods_with_api_level(args[0].as_string(), args[1].as_string()))
 }
 
 // Ruby attr_reader `m = target_line.match(/\A(?:def\s+(?:self\.)?|attr_reader\s+:|attr_accessor\s+:)(\w+[!?]?)/) ||` at line 174.
-pub fn ruby_api_annotation_helper_l174_d2_attr_reader_dynamic(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_api_annotation_helper_l174_d2_attr_reader_dynamic(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	if method := api_annotation_method_name(args[0].as_string()) {
-		return brew_runtime.string_value(method)
+		return ruby.string_value(method)
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `self.homebrew_dir` at line 189.
-pub fn ruby_api_annotation_helper_l189_d3_self_homebrew_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(api_annotation_homebrew_dir())
+pub fn ruby_api_annotation_helper_l189_d3_self_homebrew_dir(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(api_annotation_homebrew_dir())
 }
 
 // Original Ruby source (line-for-line):

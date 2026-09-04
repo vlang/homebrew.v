@@ -1,6 +1,6 @@
 module cask
 
-import brew_runtime
+import ruby
 import homebrew
 import homebrew.cask as uninstall_core
 import os
@@ -16,7 +16,7 @@ fn uninstall_spec_temp(label string) string {
 	return os.join_path(os.temp_dir(), 'brew-v-cask-uninstall-${label}-${os.getpid()}-${time.now().unix_micro()}')
 }
 
-fn uninstall_spec_arg_root(args []brew_runtime.Value, label string) string {
+fn uninstall_spec_arg_root(args []ruby.Value, label string) string {
 	return if args.len > 0 && args[0].as_string() != '' {
 		args[0].as_string()
 	} else {
@@ -55,7 +55,7 @@ fn uninstall_spec_target(token string) uninstall_core.CaskUninstallCask {
 }
 
 // Ruby it `it "displays the uninstallation progress" do` at line 8.
-pub fn ruby_uninstall_spec_l8_d1_displays(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uninstall_spec_l8_d1_displays(args ...ruby.Value) ruby.Value {
 	root := uninstall_spec_arg_root(args, 'progress')
 	cask := uninstall_core.CaskUninstallCask{
 		...uninstall_spec_cask('local-caffeine', root, true)
@@ -67,46 +67,46 @@ pub fn ruby_uninstall_spec_l8_d1_displays(args ...brew_runtime.Value) brew_runti
 		]
 	}
 	result := uninstall_core.uninstall_casks([cask], uninstall_core.CaskUninstallOptions{})
-	return brew_runtime.bool_value(result.final_failure == none && result.stdout.contains('==> Uninstalling Cask local-caffeine') && result.stdout.contains("==> Backing up App 'Caffeine.app'") && result.stdout.contains("==> Removing App '") && result.stdout.contains('==> Purging files for version 1.2.3 of Cask local-caffeine'))
+	return ruby.bool_value(result.final_failure == none && result.stdout.contains('==> Uninstalling Cask local-caffeine') && result.stdout.contains("==> Backing up App 'Caffeine.app'") && result.stdout.contains("==> Removing App '") && result.stdout.contains('==> Purging files for version 1.2.3 of Cask local-caffeine'))
 }
 
 // Ruby it `it "shows an error when a Cask is provided that's not installed" do` at line 25.
-pub fn ruby_uninstall_spec_l25_d2_shows(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uninstall_spec_l25_d2_shows(args ...ruby.Value) ruby.Value {
 	result := uninstall_core.uninstall_casks([
 		uninstall_spec_cask('local-caffeine', uninstall_spec_arg_root(args, 'not-installed'), false),
 	], uninstall_core.CaskUninstallOptions{})
-	failure := result.final_failure or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(failure.type_name == 'Cask::CaskNotInstalledError' && failure.message.contains('is not installed'))
+	failure := result.final_failure or { return ruby.bool_value(false) }
+	return ruby.bool_value(failure.type_name == 'Cask::CaskNotInstalledError' && failure.message.contains('is not installed'))
 }
 
 // Ruby it `it "tries anyway on a non-present Cask when --force is given" do` at line 32.
-pub fn ruby_uninstall_spec_l32_d3_tries(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uninstall_spec_l32_d3_tries(args ...ruby.Value) ruby.Value {
 	result := uninstall_core.uninstall_casks([
 		uninstall_spec_cask('local-caffeine', uninstall_spec_arg_root(args, 'force-absent'), false),
 	], uninstall_core.CaskUninstallOptions{
 		force: true
 	})
-	return brew_runtime.bool_value(result.final_failure == none && result.errors.len == 0)
+	return ruby.bool_value(result.final_failure == none && result.errors.len == 0)
 }
 
 // Ruby it `it "does not uninstall a pinned Cask" do` at line 40.
-pub fn ruby_uninstall_spec_l40_d4_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uninstall_spec_l40_d4_does(args ...ruby.Value) ruby.Value {
 	root := uninstall_spec_arg_root(args, 'pinned')
 	cask := uninstall_core.CaskUninstallCask{
 		...uninstall_spec_cask('local-caffeine', root, true)
 		pinned: true
 	}
 	result := uninstall_core.uninstall_casks([cask], uninstall_core.CaskUninstallOptions{})
-	return brew_runtime.bool_value(result.final_failure == none && result.casks[0].pinned && result.casks[0].installed && result.uninstalled.len == 0 && result.stderr.contains('local-caffeine is pinned. You must unpin it to uninstall.'))
+	return ruby.bool_value(result.final_failure == none && result.casks[0].pinned && result.casks[0].installed && result.uninstalled.len == 0 && result.stderr.contains('local-caffeine is pinned. You must unpin it to uninstall.'))
 }
 
 // Ruby it `it "can uninstall and unlink multiple Casks at once" do` at line 54.
-pub fn ruby_uninstall_spec_l54_d5_can(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uninstall_spec_l54_d5_can(args ...ruby.Value) ruby.Value {
 	root := uninstall_spec_arg_root(args, 'multiple')
 	caffeine_app := os.join_path(root, 'Applications', 'Caffeine.app')
 	transmission_app := os.join_path(root, 'Applications', 'Transmission.app')
-	os.mkdir_all(caffeine_app) or { return brew_runtime.bool_value(false) }
-	os.mkdir_all(transmission_app) or { return brew_runtime.bool_value(false) }
+	os.mkdir_all(caffeine_app) or { return ruby.bool_value(false) }
+	os.mkdir_all(transmission_app) or { return ruby.bool_value(false) }
 	caffeine := uninstall_core.CaskUninstallCask{
 		...uninstall_spec_cask('local-caffeine', root, true)
 		artifact_paths: [caffeine_app]
@@ -119,11 +119,11 @@ pub fn ruby_uninstall_spec_l54_d5_can(args ...brew_runtime.Value) brew_runtime.V
 	defer {
 		os.rmdir_all(root) or {}
 	}
-	return brew_runtime.bool_value(result.final_failure == none && !result.casks[0].installed && !result.casks[1].installed && !os.exists(caffeine_app) && !os.exists(transmission_app))
+	return ruby.bool_value(result.final_failure == none && !result.casks[0].installed && !result.casks[1].installed && !os.exists(caffeine_app) && !os.exists(transmission_app))
 }
 
 // Ruby it `it "can uninstall Casks when the uninstall script is missing, but only when using `--force`" do` at line 72.
-pub fn ruby_uninstall_spec_l72_d6_can(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uninstall_spec_l72_d6_can(args ...ruby.Value) ruby.Value {
 	root := uninstall_spec_arg_root(args, 'missing-script')
 	cask := uninstall_core.CaskUninstallCask{
 		...uninstall_spec_cask('with-uninstall-script-app', root, true)
@@ -131,15 +131,15 @@ pub fn ruby_uninstall_spec_l72_d6_can(args ...brew_runtime.Value) brew_runtime.V
 		uninstall_script_missing: true
 	}
 	failed := uninstall_core.uninstall_casks([cask], uninstall_core.CaskUninstallOptions{})
-	failure := failed.final_failure or { return brew_runtime.bool_value(false) }
+	failure := failed.final_failure or { return ruby.bool_value(false) }
 	forced := uninstall_core.uninstall_casks(failed.casks, uninstall_core.CaskUninstallOptions{
 		force: true
 	})
-	return brew_runtime.bool_value(failure.type_name == 'Cask::CaskError' && failure.message.contains('uninstall script') && failed.casks[0].installed && forced.final_failure == none && !forced.casks[0].installed)
+	return ruby.bool_value(failure.type_name == 'Cask::CaskError' && failure.message.contains('uninstall script') && failed.casks[0].installed && forced.final_failure == none && !forced.casks[0].installed)
 }
 
 // Ruby it `it "continues uninstalling remaining casks when one fails" do` at line 93.
-pub fn ruby_uninstall_spec_l93_d7_continues(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uninstall_spec_l93_d7_continues(args ...ruby.Value) ruby.Value {
 	root := uninstall_spec_arg_root(args, 'continue')
 	caffeine := uninstall_core.CaskUninstallCask{
 		...uninstall_spec_cask('local-caffeine', root, true)
@@ -150,49 +150,49 @@ pub fn ruby_uninstall_spec_l93_d7_continues(args ...brew_runtime.Value) brew_run
 	}
 	transmission := uninstall_spec_cask('local-transmission-zip', root, true)
 	result := uninstall_core.uninstall_casks([caffeine, transmission], uninstall_core.CaskUninstallOptions{})
-	failure := result.final_failure or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(failure.type_name == 'Cask::CaskError' && failure.message.contains('caffeine uninstall failed') && result.casks[0].installed && !result.casks[1].installed)
+	failure := result.final_failure or { return ruby.bool_value(false) }
+	return ruby.bool_value(failure.type_name == 'Cask::CaskError' && failure.message.contains('caffeine uninstall failed') && result.casks[0].installed && !result.casks[1].installed)
 }
 
 // Ruby let `let(:token) { "versioned-cask" }` at line 118.
-pub fn ruby_uninstall_spec_l118_d8_token(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('versioned-cask')
+pub fn ruby_uninstall_spec_l118_d8_token(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('versioned-cask')
 }
 
 // Ruby let `let(:first_installed_version) { "1.2.3" }` at line 119.
-pub fn ruby_uninstall_spec_l119_d9_first_installed_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('1.2.3')
+pub fn ruby_uninstall_spec_l119_d9_first_installed_version(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('1.2.3')
 }
 
 // Ruby let `let(:last_installed_version) { "4.5.6" }` at line 120.
-pub fn ruby_uninstall_spec_l120_d10_last_installed_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('4.5.6')
+pub fn ruby_uninstall_spec_l120_d10_last_installed_version(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('4.5.6')
 }
 
 // Ruby let `let(:timestamped_versions) do` at line 121.
-pub fn ruby_uninstall_spec_l121_d11_timestamped_versions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.array_value([
-		brew_runtime.string_array_value(['1.2.3', '123000']),
-		brew_runtime.string_array_value(['4.5.6', '456000']),
+pub fn ruby_uninstall_spec_l121_d11_timestamped_versions(args ...ruby.Value) ruby.Value {
+	return ruby.array_value([
+		ruby.string_array_value(['1.2.3', '123000']),
+		ruby.string_array_value(['4.5.6', '456000']),
 	])
 }
 
 // Ruby let `let(:caskroom_path) { Cask::Caskroom.path.join(token).tap(&:mkpath) }` at line 127.
-pub fn ruby_uninstall_spec_l127_d12_caskroom_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uninstall_spec_l127_d12_caskroom_path(args ...ruby.Value) ruby.Value {
 	root := uninstall_spec_arg_root(args, 'versioned-path')
 	path := uninstall_spec_core('versioned-cask', root).caskroom_path()
-	os.mkdir_all(path) or { return brew_runtime.object_value('IOError', err.msg()) }
-	return brew_runtime.object_value('Pathname', path)
+	os.mkdir_all(path) or { return ruby.object_value('IOError', err.msg()) }
+	return ruby.object_value('Pathname', path)
 }
 
 // Ruby it `it "uninstalls one version at a time" do` at line 143.
-pub fn ruby_uninstall_spec_l143_d13_uninstalls(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uninstall_spec_l143_d13_uninstalls(args ...ruby.Value) ruby.Value {
 	root := uninstall_spec_arg_root(args, 'versioned')
 	core := uninstall_spec_core('versioned-cask', root)
 	first := os.join_path(core.caskroom_path(), '1.2.3')
 	last := os.join_path(core.caskroom_path(), '4.5.6')
-	os.mkdir_all(first) or { return brew_runtime.bool_value(false) }
-	os.mkdir_all(last) or { return brew_runtime.bool_value(false) }
+	os.mkdir_all(first) or { return ruby.bool_value(false) }
+	os.mkdir_all(last) or { return ruby.bool_value(false) }
 	cask := uninstall_core.CaskUninstallCask{
 		core: core
 		installed: true
@@ -205,40 +205,40 @@ pub fn ruby_uninstall_spec_l143_d13_uninstalls(args ...brew_runtime.Value) brew_
 	defer {
 		os.rmdir_all(root) or {}
 	}
-	return brew_runtime.bool_value(one.final_failure == none && two.final_failure == none && first_pass && second_pass)
+	return ruby.bool_value(one.final_failure == none && two.final_failure == none && first_pass && second_pass)
 }
 
 // Ruby let `let(:app) { Cask::Config.new.appdir.join("ive-been-renamed.app") }` at line 158.
-pub fn ruby_uninstall_spec_l158_d14_app(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uninstall_spec_l158_d14_app(args ...ruby.Value) ruby.Value {
 	root := uninstall_spec_arg_root(args, 'renamed-app')
-	return brew_runtime.object_value('Pathname', os.join_path(root, 'Applications', 'ive-been-renamed.app'))
+	return ruby.object_value('Pathname', os.join_path(root, 'Applications', 'ive-been-renamed.app'))
 }
 
 // Ruby let `let(:caskroom_path) { Cask::Caskroom.path.join("ive-been-renamed").tap(&:mkpath) }` at line 159.
-pub fn ruby_uninstall_spec_l159_d15_caskroom_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uninstall_spec_l159_d15_caskroom_path(args ...ruby.Value) ruby.Value {
 	root := uninstall_spec_arg_root(args, 'renamed-caskroom')
 	path := uninstall_spec_core('ive-been-renamed', root).caskroom_path()
-	os.mkdir_all(path) or { return brew_runtime.object_value('IOError', err.msg()) }
-	return brew_runtime.object_value('Pathname', path)
+	os.mkdir_all(path) or { return ruby.object_value('IOError', err.msg()) }
+	return ruby.object_value('Pathname', path)
 }
 
 // Ruby let `let(:saved_caskfile) do` at line 160.
-pub fn ruby_uninstall_spec_l160_d16_saved_caskfile(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uninstall_spec_l160_d16_saved_caskfile(args ...ruby.Value) ruby.Value {
 	root := uninstall_spec_arg_root(args, 'renamed-file')
 	path := os.join_path(uninstall_spec_core('ive-been-renamed', root).caskroom_path(), '.metadata', 'latest', 'timestamp', 'Casks', 'ive-been-renamed.rb')
-	return brew_runtime.object_value('Pathname', path)
+	return ruby.object_value('Pathname', path)
 }
 
 // Ruby it `it "can still uninstall them" do` at line 184.
-pub fn ruby_uninstall_spec_l184_d17_can(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uninstall_spec_l184_d17_can(args ...ruby.Value) ruby.Value {
 	root := uninstall_spec_arg_root(args, 'renamed')
 	core := uninstall_spec_core('ive-been-renamed', root)
 	app := os.join_path(root, 'Applications', 'ive-been-renamed.app')
 	saved := os.join_path(core.caskroom_path(), '.metadata', 'latest', 'timestamp', 'Casks', 'ive-been-renamed.rb')
-	os.mkdir_all(os.join_path(app, 'Contents')) or { return brew_runtime.bool_value(false) }
-	os.mkdir_all(os.dir(saved)) or { return brew_runtime.bool_value(false) }
+	os.mkdir_all(os.join_path(app, 'Contents')) or { return ruby.bool_value(false) }
+	os.mkdir_all(os.dir(saved)) or { return ruby.bool_value(false) }
 	os.write_file(saved, "cask 'ive-been-renamed' do\n  version :latest\n  app 'ive-been-renamed.app'\nend\n") or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	result := uninstall_core.uninstall_casks([uninstall_core.CaskUninstallCask{
 		core: core
@@ -248,34 +248,34 @@ pub fn ruby_uninstall_spec_l184_d17_can(args ...brew_runtime.Value) brew_runtime
 	defer {
 		os.rmdir_all(root) or {}
 	}
-	return brew_runtime.bool_value(result.final_failure == none && !os.exists(app) && !os.exists(core.caskroom_path()))
+	return ruby.bool_value(result.final_failure == none && !os.exists(app) && !os.exists(core.caskroom_path()))
 }
 
 // Ruby let `let(:token) { "removed-cask" }` at line 193.
-pub fn ruby_uninstall_spec_l193_d18_token(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('removed-cask')
+pub fn ruby_uninstall_spec_l193_d18_token(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('removed-cask')
 }
 
 // Ruby let `let(:caskroom_path) { Cask::Caskroom.path.join(token) }` at line 194.
-pub fn ruby_uninstall_spec_l194_d19_caskroom_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uninstall_spec_l194_d19_caskroom_path(args ...ruby.Value) ruby.Value {
 	root := uninstall_spec_arg_root(args, 'removed-caskroom')
-	return brew_runtime.object_value('Pathname', uninstall_spec_core('removed-cask', root).caskroom_path())
+	return ruby.object_value('Pathname', uninstall_spec_core('removed-cask', root).caskroom_path())
 }
 
 // Ruby let `let(:saved_caskfile) do` at line 195.
-pub fn ruby_uninstall_spec_l195_d20_saved_caskfile(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uninstall_spec_l195_d20_saved_caskfile(args ...ruby.Value) ruby.Value {
 	root := uninstall_spec_arg_root(args, 'removed-file')
 	path := os.join_path(uninstall_spec_core('removed-cask', root).caskroom_path(), '.metadata', '1.0', '20250101000000.000', 'Casks', 'removed-cask.json')
-	return brew_runtime.object_value('Pathname', path)
+	return ruby.object_value('Pathname', path)
 }
 
 // Ruby it `it "removes Homebrew's records and warns that installed files may remain" do` at line 208.
-pub fn ruby_uninstall_spec_l208_d21_removes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uninstall_spec_l208_d21_removes(args ...ruby.Value) ruby.Value {
 	root := uninstall_spec_arg_root(args, 'removed')
 	core := uninstall_spec_core('removed-cask', root)
 	saved := os.join_path(core.caskroom_path(), '.metadata', '1.0', '20250101000000.000', 'Casks', 'removed-cask.json')
-	os.mkdir_all(os.dir(saved)) or { return brew_runtime.bool_value(false) }
-	os.write_file(saved, '{}') or { return brew_runtime.bool_value(false) }
+	os.mkdir_all(os.dir(saved)) or { return ruby.bool_value(false) }
+	os.write_file(saved, '{}') or { return ruby.bool_value(false) }
 	result := uninstall_core.uninstall_casks([uninstall_core.CaskUninstallCask{
 		core: core
 		installed: true
@@ -284,33 +284,33 @@ pub fn ruby_uninstall_spec_l208_d21_removes(args ...brew_runtime.Value) brew_run
 	defer {
 		os.rmdir_all(root) or {}
 	}
-	return brew_runtime.bool_value(result.final_failure == none && result.stderr.contains('files installed by the Cask may remain') && !os.exists(core.caskroom_path()))
+	return ruby.bool_value(result.final_failure == none && result.stderr.contains('files installed by the Cask may remain') && !os.exists(core.caskroom_path()))
 }
 
 // Ruby it `it "does not warn when uninstalling as part of an upgrade" do` at line 216.
-pub fn ruby_uninstall_spec_l216_d22_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uninstall_spec_l216_d22_does(args ...ruby.Value) ruby.Value {
 	cask := uninstall_core.CaskUninstallCask{
 		...uninstall_spec_cask('removed-cask', uninstall_spec_arg_root(args, 'upgrade'), true)
 		incomplete_metadata: true
 		upgrade: true
 	}
 	installer := uninstall_core.cask_uninstall_installer(cask, uninstall_core.CaskUninstallInstallerRequest{})
-	return brew_runtime.bool_value(installer.failure == none && !installer.stderr.any(it.contains('files installed by the Cask may remain')))
+	return ruby.bool_value(installer.failure == none && !installer.stderr.any(it.contains('files installed by the Cask may remain')))
 }
 
 // Ruby it `it "shows error message when trying to uninstall a cask with dependents" do` at line 225.
-pub fn ruby_uninstall_spec_l225_d23_shows(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uninstall_spec_l225_d23_shows(args ...ruby.Value) ruby.Value {
 	transmission := uninstall_spec_target('local-transmission-zip')
 	result := uninstall_core.check_dependent_casks([transmission], [
 		uninstall_spec_dependent('with-depends-on-cask', ['local-transmission-zip']),
 		uninstall_spec_dependent('local-transmission-zip', []),
 	], ['local-transmission-zip'])
 	expected := 'Error: Refusing to uninstall local-transmission-zip\nbecause it is required by with-depends-on-cask, which is currently installed.\nYou can override this and force removal with:\n  brew uninstall --ignore-dependencies local-transmission-zip\n'
-	return brew_runtime.bool_value(result.stderr == expected)
+	return ruby.bool_value(result.stderr == expected)
 }
 
 // Ruby it `it "shows error message when trying to uninstall a cask with multiple dependents" do` at line 243.
-pub fn ruby_uninstall_spec_l243_d24_shows(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uninstall_spec_l243_d24_shows(args ...ruby.Value) ruby.Value {
 	transmission := uninstall_spec_target('local-transmission-zip')
 	result := uninstall_core.check_dependent_casks([transmission], [
 		uninstall_spec_dependent('with-depends-on-cask', ['local-transmission-zip']),
@@ -319,11 +319,11 @@ pub fn ruby_uninstall_spec_l243_d24_shows(args ...brew_runtime.Value) brew_runti
 		uninstall_spec_dependent('local-transmission-zip', []),
 	], ['local-transmission-zip'])
 	expected := 'Error: Refusing to uninstall local-transmission-zip\nbecause it is required by with-depends-on-cask and with-depends-on-cask-multiple, which are currently installed.\nYou can override this and force removal with:\n  brew uninstall --ignore-dependencies local-transmission-zip\n'
-	return brew_runtime.bool_value(result.stderr == expected)
+	return ruby.bool_value(result.stderr == expected)
 }
 
 // Ruby it `it "shows error message when trying to uninstall multiple casks with dependents" do` at line 266.
-pub fn ruby_uninstall_spec_l266_d25_shows(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uninstall_spec_l266_d25_shows(args ...ruby.Value) ruby.Value {
 	transmission := uninstall_spec_target('local-transmission-zip')
 	caffeine := uninstall_spec_target('local-caffeine')
 	result := uninstall_core.check_dependent_casks([transmission, caffeine], [
@@ -334,22 +334,22 @@ pub fn ruby_uninstall_spec_l266_d25_shows(args ...brew_runtime.Value) brew_runti
 		uninstall_spec_dependent('local-transmission-zip', []),
 	], ['local-transmission-zip', 'local-caffeine'])
 	expected := 'Error: Refusing to uninstall local-transmission-zip and local-caffeine\nbecause they are required by with-depends-on-cask and with-depends-on-everything, which are currently installed.\nYou can override this and force removal with:\n  brew uninstall --ignore-dependencies local-transmission-zip local-caffeine\n'
-	return brew_runtime.bool_value(result.stderr == expected)
+	return ruby.bool_value(result.stderr == expected)
 }
 
 // Ruby it `it "does not output an error if no dependents found" do` at line 292.
-pub fn ruby_uninstall_spec_l292_d26_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uninstall_spec_l292_d26_does(args ...ruby.Value) ruby.Value {
 	result := uninstall_core.check_dependent_casks([
 		uninstall_spec_target('with-depends-on-cask'),
 	], [
 		uninstall_spec_dependent('with-depends-on-cask', ['local-transmission-zip']),
 		uninstall_spec_dependent('local-transmission', []),
 	], ['with-depends-on-cask'])
-	return brew_runtime.bool_value(result.stderr == '')
+	return ruby.bool_value(result.stderr == '')
 }
 
 // Ruby it `it "does not show an error when the dependent is also being uninstalled" do` at line 303.
-pub fn ruby_uninstall_spec_l303_d27_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uninstall_spec_l303_d27_does(args ...ruby.Value) ruby.Value {
 	result := uninstall_core.check_dependent_casks([
 		uninstall_spec_target('local-transmission-zip'),
 		uninstall_spec_target('with-depends-on-cask'),
@@ -357,11 +357,11 @@ pub fn ruby_uninstall_spec_l303_d27_does(args ...brew_runtime.Value) brew_runtim
 		uninstall_spec_dependent('with-depends-on-cask', ['local-transmission-zip']),
 		uninstall_spec_dependent('local-transmission-zip', []),
 	], ['local-transmission-zip', 'with-depends-on-cask'])
-	return brew_runtime.bool_value(result.stderr == '')
+	return ruby.bool_value(result.stderr == '')
 }
 
 // Ruby it `it "still shows an error when a non-uninstalled cask depends on one being uninstalled" do` at line 318.
-pub fn ruby_uninstall_spec_l318_d28_still(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uninstall_spec_l318_d28_still(args ...ruby.Value) ruby.Value {
 	result := uninstall_core.check_dependent_casks([
 		uninstall_spec_target('local-transmission-zip'),
 		uninstall_spec_target('with-depends-on-cask'),
@@ -371,11 +371,11 @@ pub fn ruby_uninstall_spec_l318_d28_still(args ...brew_runtime.Value) brew_runti
 			'local-transmission-zip']),
 		uninstall_spec_dependent('local-transmission-zip', []),
 	], ['local-transmission-zip', 'with-depends-on-cask'])
-	return brew_runtime.bool_value(result.stderr.contains('Refusing to uninstall'))
+	return ruby.bool_value(result.stderr.contains('Refusing to uninstall'))
 }
 
 // Ruby it `it "lists other named args when showing the error message" do` at line 338.
-pub fn ruby_uninstall_spec_l338_d29_lists(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uninstall_spec_l338_d29_lists(args ...ruby.Value) ruby.Value {
 	result := uninstall_core.check_dependent_casks([
 		uninstall_spec_target('local-transmission-zip'),
 	], [
@@ -383,7 +383,7 @@ pub fn ruby_uninstall_spec_l338_d29_lists(args ...brew_runtime.Value) brew_runti
 		uninstall_spec_dependent('local-transmission-zip', []),
 	], ['local-transmission-zip', 'foo', 'bar', 'baz', 'qux'])
 	expected := 'Error: Refusing to uninstall local-transmission-zip\nbecause it is required by with-depends-on-cask, which is currently installed.\nYou can override this and force removal with:\n  brew uninstall --ignore-dependencies local-transmission-zip foo bar baz qux\n'
-	return brew_runtime.bool_value(result.stderr == expected)
+	return ruby.bool_value(result.stderr == expected)
 }
 
 // Original Ruby source (line-for-line):

@@ -1,10 +1,10 @@
 module executor
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/executor/ruby_single_thread_executor.rb`.
 // The original source is retained below until every stub has a typed V body.
-pub fn single_thread_pool_options(options map[string]brew_runtime.Value) ThreadPoolOptions {
+pub fn single_thread_pool_options(options map[string]ruby.Value) ThreadPoolOptions {
 	return ThreadPoolOptions{
 		min_threads: 1
 		max_threads: 1
@@ -15,7 +15,7 @@ pub fn single_thread_pool_options(options map[string]brew_runtime.Value) ThreadP
 }
 
 // Ruby method `initialize(opts = {})` at line 13.
-pub fn ruby_ruby_single_thread_executor_l13_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ruby_single_thread_executor_l13_d1_initialize(args ...ruby.Value) ruby.Value {
 	return thread_pool_value('Concurrent::RubySingleThreadExecutor', single_thread_pool_options(thread_pool_arguments(args)))
 }
 

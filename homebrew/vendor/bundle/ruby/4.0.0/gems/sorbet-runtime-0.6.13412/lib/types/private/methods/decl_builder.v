@@ -1,34 +1,34 @@
 module methods
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/private/methods/decl_builder.rb`.
 // The original source is retained below until every stub has a typed V body.
-fn declaration_missing() brew_runtime.Value {
-	return brew_runtime.object_value('T::Private::Methods::ARG_NOT_PROVIDED', 'ARG_NOT_PROVIDED')
+fn declaration_missing() ruby.Value {
+	return ruby.object_value('T::Private::Methods::ARG_NOT_PROVIDED', 'ARG_NOT_PROVIDED')
 }
 
-fn declaration_nil() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn declaration_nil() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-fn declaration_is_missing(value brew_runtime.Value) bool {
+fn declaration_is_missing(value ruby.Value) bool {
 	return value.type_name == 'T::Private::Methods::ARG_NOT_PROVIDED'
 }
 
 @[heap]
 pub struct SignatureDeclaration {
 pub mut:
-	mod                         brew_runtime.Value
-	params                      brew_runtime.Value
-	returns                     brew_runtime.Value
-	bind                        brew_runtime.Value
+	mod                         ruby.Value
+	params                      ruby.Value
+	returns                     ruby.Value
+	bind                        ruby.Value
 	mode                        string
 	checked                     string
 	finalized                   bool
-	on_failure                  brew_runtime.Value
+	on_failure                  ruby.Value
 	override_allow_incompatible string
-	type_parameters             []brew_runtime.Value
+	type_parameters             []ruby.Value
 	type_parameters_provided    bool
 	raw                         bool
 }
@@ -39,7 +39,7 @@ pub mut:
 	decl &SignatureDeclaration
 }
 
-pub fn new_declaration_builder(mod brew_runtime.Value, abstract bool,
+pub fn new_declaration_builder(mod ruby.Value, abstract bool,
 	override_allow_incompatible string, overridable bool) !&DeclarationBuilder {
 	mut builder := &DeclarationBuilder{
 		decl: &SignatureDeclaration{
@@ -70,7 +70,7 @@ fn (builder &DeclarationBuilder) check_live() ! {
 	}
 }
 
-pub fn (mut builder DeclarationBuilder) set_params(params map[string]brew_runtime.Value,
+pub fn (mut builder DeclarationBuilder) set_params(params map[string]ruby.Value,
 	positional_count int) ! {
 	builder.check_live()!
 	if !declaration_is_missing(builder.decl.params) {
@@ -83,10 +83,10 @@ pub fn (mut builder DeclarationBuilder) set_params(params map[string]brew_runtim
 	if params.len == 0 {
 		return error("'params' was called without any arguments, but it needs to be called with keyword arguments.\nThe keyword arguments' keys must match the name and order of the method's parameters.\n\nOmit 'params' entirely for methods with no parameters.\n")
 	}
-	builder.decl.params = brew_runtime.map_value(params)
+	builder.decl.params = ruby.map_value(params)
 }
 
-pub fn (mut builder DeclarationBuilder) set_returns(type_value brew_runtime.Value) ! {
+pub fn (mut builder DeclarationBuilder) set_returns(type_value ruby.Value) ! {
 	builder.check_live()!
 	if builder.decl.returns.type_name == 'T::Private::Types::Void' {
 		return error("You can't call .returns after calling .void.")
@@ -102,10 +102,10 @@ pub fn (mut builder DeclarationBuilder) set_void() ! {
 	if !declaration_is_missing(builder.decl.returns) {
 		return error("You can't call .void after calling .returns.")
 	}
-	builder.decl.returns = brew_runtime.object_value('T::Private::Types::Void', 'void')
+	builder.decl.returns = ruby.object_value('T::Private::Types::Void', 'void')
 }
 
-pub fn (mut builder DeclarationBuilder) set_bind(type_value brew_runtime.Value) ! {
+pub fn (mut builder DeclarationBuilder) set_bind(type_value ruby.Value) ! {
 	builder.check_live()!
 	if !declaration_is_missing(builder.decl.bind) {
 		return error("You can't call .bind multiple times in a signature.")
@@ -128,7 +128,7 @@ pub fn (mut builder DeclarationBuilder) set_checked(level string) ! {
 	builder.decl.checked = clean
 }
 
-pub fn (mut builder DeclarationBuilder) set_on_failure(arguments []brew_runtime.Value,
+pub fn (mut builder DeclarationBuilder) set_on_failure(arguments []ruby.Value,
 	default_checked_level string) ! {
 	builder.check_live()!
 	if !declaration_is_missing(builder.decl.on_failure) {
@@ -145,7 +145,7 @@ pub fn (mut builder DeclarationBuilder) set_on_failure(arguments []brew_runtime.
 		}
 		return error("You can't use .on_failure with .checked(:${effective}) because .on_failure will have no effect.")
 	}
-	builder.decl.on_failure = brew_runtime.array_value(arguments)
+	builder.decl.on_failure = ruby.array_value(arguments)
 }
 
 pub fn (mut builder DeclarationBuilder) set_abstract() ! {
@@ -204,7 +204,7 @@ pub fn (mut builder DeclarationBuilder) set_overridable() ! {
 	}
 }
 
-pub fn (mut builder DeclarationBuilder) set_type_parameters(names []brew_runtime.Value) ! {
+pub fn (mut builder DeclarationBuilder) set_type_parameters(names []ruby.Value) ! {
 	builder.check_live()!
 	for name in names {
 		if name.type_name != 'Symbol' {
@@ -230,7 +230,7 @@ pub fn (mut builder DeclarationBuilder) finalize() ! {
 		builder.decl.on_failure = declaration_nil()
 	}
 	if declaration_is_missing(builder.decl.params) {
-		builder.decl.params = brew_runtime.map_value({})
+		builder.decl.params = ruby.map_value({})
 	}
 	if !builder.decl.type_parameters_provided {
 		builder.decl.type_parameters = []
@@ -239,8 +239,8 @@ pub fn (mut builder DeclarationBuilder) finalize() ! {
 	builder.decl.finalized = true
 }
 
-fn declaration_value(decl &SignatureDeclaration) brew_runtime.Value {
-	return brew_runtime.Value{
+fn declaration_value(decl &SignatureDeclaration) ruby.Value {
+	return ruby.Value{
 		type_name: 'T::Private::Methods::Declaration'
 		repr: '#<T::Private::Methods::Declaration>'
 		map_data: {
@@ -262,18 +262,18 @@ fn declaration_value(decl &SignatureDeclaration) brew_runtime.Value {
 	}
 }
 
-fn declaration_from_value(value brew_runtime.Value) &SignatureDeclaration {
+fn declaration_from_value(value ruby.Value) &SignatureDeclaration {
 	address := value.attribute('declaration_address') or { panic('invalid Declaration value') }
 	return unsafe { &SignatureDeclaration(voidptr(address.u64())) }
 }
 
-fn declaration_builder_value(builder &DeclarationBuilder) brew_runtime.Value {
-	return brew_runtime.structured_value('T::Private::Methods::DeclBuilder', '#<T::Private::Methods::DeclBuilder>', {
+fn declaration_builder_value(builder &DeclarationBuilder) ruby.Value {
+	return ruby.structured_value('T::Private::Methods::DeclBuilder', '#<T::Private::Methods::DeclBuilder>', {
 		'declaration_builder_address': u64(voidptr(builder)).str()
 	})
 }
 
-fn declaration_builder_from_args(args []brew_runtime.Value) &DeclarationBuilder {
+fn declaration_builder_from_args(args []ruby.Value) &DeclarationBuilder {
 	if args.len == 0 {
 		panic('DeclBuilder method requires a receiver')
 	}
@@ -282,18 +282,18 @@ fn declaration_builder_from_args(args []brew_runtime.Value) &DeclarationBuilder 
 }
 
 // Ruby attr_reader `attr_reader :decl` at line 8.
-pub fn ruby_decl_builder_l8_d1_decl(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_decl_builder_l8_d1_decl(args ...ruby.Value) ruby.Value {
 	return declaration_value(declaration_builder_from_args(args).decl)
 }
 
 // Ruby method `check_live!` at line 12.
-pub fn ruby_decl_builder_l12_d2_check_live(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_decl_builder_l12_d2_check_live(args ...ruby.Value) ruby.Value {
 	declaration_builder_from_args(args).check_live() or { panic(err) }
 	return declaration_nil()
 }
 
 // Ruby method `initialize(mod, abstract, override, overridable)` at line 18.
-pub fn ruby_decl_builder_l18_d3_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_decl_builder_l18_d3_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 4 {
 		panic('DeclBuilder.initialize requires mod, abstract, override, and overridable')
 	}
@@ -308,13 +308,13 @@ pub fn ruby_decl_builder_l18_d3_initialize(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `params(*unused_positional_params, **params)` at line 48.
-pub fn ruby_decl_builder_l48_d4_params(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_decl_builder_l48_d4_params(args ...ruby.Value) ruby.Value {
 	mut builder := declaration_builder_from_args(args)
 	has_keyword_hash := args.len > 1 && args[args.len - 1].type_name == 'Hash'
 	params := if has_keyword_hash {
 		args[args.len - 1].as_map() or { panic(err) }
 	} else {
-		map[string]brew_runtime.Value{}
+		map[string]ruby.Value{}
 	}
 	positional_count := if has_keyword_hash { args.len - 2 } else { args.len - 1 }
 	builder.set_params(params, positional_count) or { panic(err) }
@@ -322,7 +322,7 @@ pub fn ruby_decl_builder_l48_d4_params(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby method `returns(type)` at line 76.
-pub fn ruby_decl_builder_l76_d5_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_decl_builder_l76_d5_returns(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('DeclBuilder#returns requires a type') }
 	mut builder := declaration_builder_from_args(args)
 	builder.set_returns(args[1]) or { panic(err) }
@@ -330,14 +330,14 @@ pub fn ruby_decl_builder_l76_d5_returns(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby method `void` at line 90.
-pub fn ruby_decl_builder_l90_d6_void(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_decl_builder_l90_d6_void(args ...ruby.Value) ruby.Value {
 	mut builder := declaration_builder_from_args(args)
 	builder.set_void() or { panic(err) }
 	return args[0]
 }
 
 // Ruby method `bind(type)` at line 101.
-pub fn ruby_decl_builder_l101_d7_bind(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_decl_builder_l101_d7_bind(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('DeclBuilder#bind requires a type') }
 	mut builder := declaration_builder_from_args(args)
 	builder.set_bind(args[1]) or { panic(err) }
@@ -345,7 +345,7 @@ pub fn ruby_decl_builder_l101_d7_bind(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby method `checked(level)` at line 112.
-pub fn ruby_decl_builder_l112_d8_checked(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_decl_builder_l112_d8_checked(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('DeclBuilder#checked requires a level') }
 	mut builder := declaration_builder_from_args(args)
 	builder.set_checked(args[1].as_string()) or { panic(err) }
@@ -353,27 +353,27 @@ pub fn ruby_decl_builder_l112_d8_checked(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `on_failure(*args)` at line 130.
-pub fn ruby_decl_builder_l130_d9_on_failure(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_decl_builder_l130_d9_on_failure(args ...ruby.Value) ruby.Value {
 	mut builder := declaration_builder_from_args(args)
 	builder.set_on_failure(args[1..], 'always') or { panic(err) }
 	return args[0]
 }
 
 // Ruby method `abstract` at line 150.
-pub fn ruby_decl_builder_l150_d10_abstract(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_decl_builder_l150_d10_abstract(args ...ruby.Value) ruby.Value {
 	mut builder := declaration_builder_from_args(args)
 	builder.set_abstract() or { panic(err) }
 	return args[0]
 }
 
 // Ruby method `final` at line 165.
-pub fn ruby_decl_builder_l165_d11_final(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_decl_builder_l165_d11_final(args ...ruby.Value) ruby.Value {
 	declaration_builder_from_args(args).check_live() or { panic(err) }
 	panic('The syntax for declaring a method final is `sig(:final) {...}`, not `sig {final. ...}`')
 }
 
 // Ruby method `override(allow_incompatible: false)` at line 170.
-pub fn ruby_decl_builder_l170_d12_override(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_decl_builder_l170_d12_override(args ...ruby.Value) ruby.Value {
 	mut builder := declaration_builder_from_args(args)
 	allow := if args.len > 1 { args[1].as_string().trim_string_left(':') } else { 'false' }
 	builder.set_override(allow) or { panic(err) }
@@ -381,21 +381,21 @@ pub fn ruby_decl_builder_l170_d12_override(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `overridable` at line 193.
-pub fn ruby_decl_builder_l193_d13_overridable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_decl_builder_l193_d13_overridable(args ...ruby.Value) ruby.Value {
 	mut builder := declaration_builder_from_args(args)
 	builder.set_overridable() or { panic(err) }
 	return args[0]
 }
 
 // Ruby method `type_parameters(*names)` at line 221.
-pub fn ruby_decl_builder_l221_d14_type_parameters(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_decl_builder_l221_d14_type_parameters(args ...ruby.Value) ruby.Value {
 	mut builder := declaration_builder_from_args(args)
 	builder.set_type_parameters(args[1..]) or { panic(err) }
 	return args[0]
 }
 
 // Ruby method `finalize!` at line 237.
-pub fn ruby_decl_builder_l237_d15_finalize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_decl_builder_l237_d15_finalize(args ...ruby.Value) ruby.Value {
 	mut builder := declaration_builder_from_args(args)
 	builder.finalize() or { panic(err) }
 	return args[0]

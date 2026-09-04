@@ -1,24 +1,24 @@
 module deep_dup
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `extend/object/deep_dup/module.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `deep_dup` at line 12.
-pub fn ruby_module_l12_d1_deep_dup(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_module_l12_d1_deep_dup(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.Value{}
+		return ruby.Value{}
 	}
 	return deep_dup_module(args[0], args[0].attribute('name') or { '' })
 }
 
 // deep_dup_module preserves named modules and copies anonymous modules.
-pub fn deep_dup_module(value brew_runtime.Value, name string) brew_runtime.Value {
+pub fn deep_dup_module(value ruby.Value, name string) ruby.Value {
 	if name.len > 0 {
 		return value
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		...value
 		string_array_data: value.string_array_data.clone()
 		array_data:        value.array_data.clone()

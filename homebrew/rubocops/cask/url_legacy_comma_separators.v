@@ -1,6 +1,6 @@
 module cask
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `rubocops/cask/url_legacy_comma_separators.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -93,8 +93,8 @@ pub fn correct_url_legacy_comma_separators(source string) string {
 	return corrected
 }
 
-fn url_legacy_comma_separator_value(offense UrlLegacyCommaSeparatorOffense) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cop::Offense', offense.message, {
+fn url_legacy_comma_separator_value(offense UrlLegacyCommaSeparatorOffense) ruby.Value {
+	return ruby.structured_value('RuboCop::Cop::Offense', offense.message, {
 		'begin_pos':   offense.begin_pos.str()
 		'end_pos':     offense.end_pos.str()
 		'message':     offense.message
@@ -103,14 +103,14 @@ fn url_legacy_comma_separator_value(offense UrlLegacyCommaSeparatorOffense) brew
 }
 
 // Ruby method `on_url_stanza(stanza)` at line 16.
-pub fn ruby_url_legacy_comma_separators_l16_d1_on_url_stanza(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_url_legacy_comma_separators_l16_d1_on_url_stanza(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	// The RuboCop callback receives a URL stanza. Accept a bare URL argument as a
 	// convenience at the generic boundary while keeping full-source scans typed.
 	input := if source.trim_space().starts_with('url') { source } else { 'url ${source}' }
 	offenses := audit_url_legacy_comma_separators(input)
 	return if offenses.len == 0 {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	} else {
 		url_legacy_comma_separator_value(offenses[0])
 	}

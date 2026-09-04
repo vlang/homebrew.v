@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 import os
 import x.json2
 
@@ -118,51 +118,51 @@ pub:
 	options GenerateCaskApiOptions
 }
 
-pub fn generate_cask_api_input_boundary(input &GenerateCaskApiInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::GenerateCaskApi::Input', '', {
+pub fn generate_cask_api_input_boundary(input &GenerateCaskApiInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::GenerateCaskApi::Input', '', {
 		'generate_cask_api_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn generate_cask_api_input_from_value(value brew_runtime.Value) &GenerateCaskApiInput {
+fn generate_cask_api_input_from_value(value ruby.Value) &GenerateCaskApiInput {
 	address := value.attributes['generate_cask_api_input_address'] or {
 		panic('invalid GenerateCaskApi input')
 	}
 	return unsafe { &GenerateCaskApiInput(voidptr(address.u64())) }
 }
 
-fn generate_cask_api_result_value(result GenerateCaskApiResult) brew_runtime.Value {
-	mut writes := map[string]brew_runtime.Value{}
+fn generate_cask_api_result_value(result GenerateCaskApiResult) ruby.Value {
+	mut writes := map[string]ruby.Value{}
 	for path, contents in result.writes {
-		writes[path] = brew_runtime.string_value(contents)
+		writes[path] = ruby.string_value(contents)
 	}
-	return brew_runtime.map_value({
-		'directories': brew_runtime.string_array_value(result.directories)
-		'writes': brew_runtime.map_value(writes)
-		'no_api': brew_runtime.bool_value(result.no_api)
-		'generating_hash': brew_runtime.bool_value(result.generating_hash)
-		'simulated_os': brew_runtime.object_value('Symbol', result.simulated_os)
-		'simulated_arch': brew_runtime.object_value('Symbol', result.simulated_arch)
-		'processed_casks': brew_runtime.string_array_value(result.processed_casks)
+	return ruby.map_value({
+		'directories': ruby.string_array_value(result.directories)
+		'writes': ruby.map_value(writes)
+		'no_api': ruby.bool_value(result.no_api)
+		'generating_hash': ruby.bool_value(result.generating_hash)
+		'simulated_os': ruby.object_value('Symbol', result.simulated_os)
+		'simulated_arch': ruby.object_value('Symbol', result.simulated_arch)
+		'processed_casks': ruby.string_array_value(result.processed_casks)
 	})
 }
 
 // Ruby method `run` at line 33.
-pub fn ruby_generate_cask_api_l33_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_cask_api_l33_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'command input is required')
+		return ruby.object_value('ArgumentError', 'command input is required')
 	}
 	return generate_cask_api_result_value(run_generate_cask_api(generate_cask_api_input_from_value(args[0]).options) or {
-		return brew_runtime.object_value('TapUnavailableError', err.msg())
+		return ruby.object_value('TapUnavailableError', err.msg())
 	})
 }
 
 // Ruby method `html_template(title)` at line 97.
-pub fn ruby_generate_cask_api_l97_d2_html_template(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_cask_api_l97_d2_html_template(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'title is required')
+		return ruby.object_value('ArgumentError', 'title is required')
 	}
-	return brew_runtime.string_value(generate_cask_html_template(args[0].as_string()))
+	return ruby.string_value(generate_cask_html_template(args[0].as_string()))
 }
 
 // Original Ruby source (line-for-line):

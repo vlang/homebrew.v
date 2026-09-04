@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 import homebrew.upgrade_helpers
 
 pub struct UpgradeCmdFormula {
@@ -75,23 +75,23 @@ pub:
 	source_build_formulae []string
 }
 
-fn upgrade_cmd_bool(value brew_runtime.Value, key string, fallback bool) bool {
+fn upgrade_cmd_bool(value ruby.Value, key string, fallback bool) bool {
 	raw := value.attributes[key] or { return fallback }
 	return raw == 'true' || raw == '1'
 }
 
-fn upgrade_cmd_string_list(value brew_runtime.Value, key string) []string {
+fn upgrade_cmd_string_list(value ruby.Value, key string) []string {
 	raw := value.attributes[key] or { return [] }
 	return if raw == '' { [] } else { raw.split('\x1f') }
 }
 
-fn upgrade_cmd_values(value brew_runtime.Value, key string) []brew_runtime.Value {
+fn upgrade_cmd_values(value ruby.Value, key string) []ruby.Value {
 	item := value.map_data[key] or { return [] }
 	return item.as_array() or { [] }
 }
 
-fn upgrade_cmd_nil() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn upgrade_cmd_nil() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 fn upgrade_cmd_unique(values []string) []string {
@@ -107,7 +107,7 @@ fn upgrade_cmd_unique(values []string) []string {
 	return result
 }
 
-fn upgrade_cmd_formula(value brew_runtime.Value) UpgradeCmdFormula {
+fn upgrade_cmd_formula(value ruby.Value) UpgradeCmdFormula {
 	name := value.attributes['name'] or { value.repr }
 	full_name := value.attributes['full_name'] or { name }
 	return UpgradeCmdFormula{
@@ -133,7 +133,7 @@ fn upgrade_cmd_formula(value brew_runtime.Value) UpgradeCmdFormula {
 	}
 }
 
-fn upgrade_cmd_cask(value brew_runtime.Value) UpgradeCmdCask {
+fn upgrade_cmd_cask(value ruby.Value) UpgradeCmdCask {
 	token := value.attributes['token'] or { value.repr }
 	return UpgradeCmdCask{
 		token: token
@@ -151,8 +151,8 @@ fn upgrade_cmd_cask(value brew_runtime.Value) UpgradeCmdCask {
 	}
 }
 
-fn upgrade_cmd_formula_value(formula UpgradeCmdFormula) brew_runtime.Value {
-	return brew_runtime.structured_value('Formula', formula.full_specified_name, {
+fn upgrade_cmd_formula_value(formula UpgradeCmdFormula) ruby.Value {
+	return ruby.structured_value('Formula', formula.full_specified_name, {
 		'name':                     formula.name
 		'full_name':                formula.full_name
 		'full_specified_name':      formula.full_specified_name
@@ -175,8 +175,8 @@ fn upgrade_cmd_formula_value(formula UpgradeCmdFormula) brew_runtime.Value {
 	})
 }
 
-fn upgrade_cmd_cask_value(cask UpgradeCmdCask) brew_runtime.Value {
-	return brew_runtime.structured_value('Cask::Cask', cask.full_name, {
+fn upgrade_cmd_cask_value(cask UpgradeCmdCask) ruby.Value {
+	return ruby.structured_value('Cask::Cask', cask.full_name, {
 		'token':                     cask.token
 		'full_name':                 cask.full_name
 		'installed_version':         cask.installed_version
@@ -192,7 +192,7 @@ fn upgrade_cmd_cask_value(cask UpgradeCmdCask) brew_runtime.Value {
 	})
 }
 
-fn upgrade_cmd_installer(value brew_runtime.Value) UpgradeCmdInstaller {
+fn upgrade_cmd_installer(value ruby.Value) UpgradeCmdInstaller {
 	formula_value := value.map_data['formula'] or { value }
 	return UpgradeCmdInstaller{
 		formula: upgrade_cmd_formula(formula_value)
@@ -202,8 +202,8 @@ fn upgrade_cmd_installer(value brew_runtime.Value) UpgradeCmdInstaller {
 	}
 }
 
-fn upgrade_cmd_installer_value(installer UpgradeCmdInstaller) brew_runtime.Value {
-	return brew_runtime.Value{
+fn upgrade_cmd_installer_value(installer UpgradeCmdInstaller) ruby.Value {
+	return ruby.Value{
 		type_name: 'FormulaInstaller'
 		repr: installer.formula.full_specified_name
 		attributes: {
@@ -217,7 +217,7 @@ fn upgrade_cmd_installer_value(installer UpgradeCmdInstaller) brew_runtime.Value
 	}
 }
 
-fn upgrade_cmd_dependents(value brew_runtime.Value) UpgradeCmdDependents {
+fn upgrade_cmd_dependents(value ruby.Value) UpgradeCmdDependents {
 	return UpgradeCmdDependents{
 		upgradeable: upgrade_cmd_values(value, 'upgradeable').map(upgrade_cmd_formula(it))
 		pinned: upgrade_cmd_values(value, 'pinned').map(upgrade_cmd_formula(it))
@@ -225,16 +225,16 @@ fn upgrade_cmd_dependents(value brew_runtime.Value) UpgradeCmdDependents {
 	}
 }
 
-fn upgrade_cmd_dependents_value(dependants UpgradeCmdDependents) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'upgradeable': brew_runtime.array_value(dependants.upgradeable.map(upgrade_cmd_formula_value(it)))
-		'pinned':      brew_runtime.array_value(dependants.pinned.map(upgrade_cmd_formula_value(it)))
-		'skipped':     brew_runtime.array_value(dependants.skipped.map(upgrade_cmd_formula_value(it)))
+fn upgrade_cmd_dependents_value(dependants UpgradeCmdDependents) ruby.Value {
+	return ruby.map_value({
+		'upgradeable': ruby.array_value(dependants.upgradeable.map(upgrade_cmd_formula_value(it)))
+		'pinned':      ruby.array_value(dependants.pinned.map(upgrade_cmd_formula_value(it)))
+		'skipped':     ruby.array_value(dependants.skipped.map(upgrade_cmd_formula_value(it)))
 	})
 }
 
-fn upgrade_cmd_context(value brew_runtime.Value) UpgradeCmdFormulaeContext {
-	dependants_value := value.map_data['dependants'] or { brew_runtime.map_value({}) }
+fn upgrade_cmd_context(value ruby.Value) UpgradeCmdFormulaeContext {
+	dependants_value := value.map_data['dependants'] or { ruby.map_value({}) }
 	return UpgradeCmdFormulaeContext{
 		formulae_to_install: upgrade_cmd_values(value, 'formulae_to_install').map(upgrade_cmd_formula(it))
 		formulae_installer: upgrade_cmd_values(value, 'formulae_installer').map(upgrade_cmd_installer(it))
@@ -243,19 +243,19 @@ fn upgrade_cmd_context(value brew_runtime.Value) UpgradeCmdFormulaeContext {
 	}
 }
 
-fn upgrade_cmd_context_value(context UpgradeCmdFormulaeContext) brew_runtime.Value {
-	return brew_runtime.Value{
+fn upgrade_cmd_context_value(context UpgradeCmdFormulaeContext) ruby.Value {
+	return ruby.Value{
 		type_name: 'FormulaeUpgradeContext'
 		map_data: {
-			'formulae_to_install': brew_runtime.array_value(context.formulae_to_install.map(upgrade_cmd_formula_value(it)))
-			'formulae_installer':  brew_runtime.array_value(context.formulae_installer.map(upgrade_cmd_installer_value(it)))
+			'formulae_to_install': ruby.array_value(context.formulae_to_install.map(upgrade_cmd_formula_value(it)))
+			'formulae_installer':  ruby.array_value(context.formulae_installer.map(upgrade_cmd_installer_value(it)))
 			'dependants':          upgrade_cmd_dependents_value(context.dependants)
-			'pinned_formulae':     brew_runtime.array_value(context.pinned_formulae.map(upgrade_cmd_formula_value(it)))
+			'pinned_formulae':     ruby.array_value(context.pinned_formulae.map(upgrade_cmd_formula_value(it)))
 		}
 	}
 }
 
-fn upgrade_cmd_summary(value brew_runtime.Value) UpgradeCmdFinalSummary {
+fn upgrade_cmd_summary(value ruby.Value) UpgradeCmdFinalSummary {
 	return UpgradeCmdFinalSummary{
 		version_changes: upgrade_cmd_string_list(value, 'version_changes')
 		pinned_formulae: upgrade_cmd_string_list(value, 'pinned_formulae')
@@ -266,8 +266,8 @@ fn upgrade_cmd_summary(value brew_runtime.Value) UpgradeCmdFinalSummary {
 	}
 }
 
-fn upgrade_cmd_summary_value(summary UpgradeCmdFinalSummary) brew_runtime.Value {
-	return brew_runtime.structured_value('FinalUpgradeSummary', 'FinalUpgradeSummary', {
+fn upgrade_cmd_summary_value(summary UpgradeCmdFinalSummary) ruby.Value {
+	return ruby.structured_value('FinalUpgradeSummary', 'FinalUpgradeSummary', {
 		'version_changes':       summary.version_changes.join('\x1f')
 		'pinned_formulae':       summary.pinned_formulae.join('\x1f')
 		'pinned_casks':          summary.pinned_casks.join('\x1f')
@@ -311,13 +311,13 @@ fn upgrade_cmd_disk_size(size i64) string {
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `initialize(argv = ARGV.freeze)` at line 161.
-pub fn ruby_upgrade_l161_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_l161_d1_initialize(args ...ruby.Value) ruby.Value {
 	argv := if args.len > 0 {
 		args[0].as_string_array() or { [] }
 	} else {
 		[]string{}
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'UpgradeCmd'
 		attributes: {
 			'argv':                argv.join('\x1f')
@@ -330,23 +330,23 @@ pub fn ruby_upgrade_l161_d1_initialize(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby method `run` at line 167.
-pub fn ruby_upgrade_l167_d2_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_l167_d2_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'upgrade command state is required')
+		return ruby.object_value('ArgumentError', 'upgrade command state is required')
 	}
 	config := args[0]
 	named := upgrade_cmd_string_list(config, 'named')
 	if upgrade_cmd_bool(config, 'build_from_source', false) && named.len == 0 {
-		return brew_runtime.object_value('ArgumentError', '`--build-from-source` requires at least one formula')
+		return ruby.object_value('ArgumentError', '`--build-from-source` requires at least one formula')
 	}
 	minimum := ruby_upgrade_l832_d11_minimum_version(config)
 	if minimum.type_name != 'NilClass' && named.len != 1 {
-		return brew_runtime.object_value('UsageError', '`--minimum-version` requires exactly one formula or cask argument.')
+		return ruby.object_value('UsageError', '`--minimum-version` requires exactly one formula or cask argument.')
 	}
 	mut events := []string{}
-	mut formulae := []brew_runtime.Value{}
-	mut casks := []brew_runtime.Value{}
-	mut unavailable := []brew_runtime.Value{}
+	mut formulae := []ruby.Value{}
+	mut casks := []ruby.Value{}
+	mut unavailable := []ruby.Value{}
 	if named.len > 0 {
 		events << 'trust_fully_qualified_items'
 		for item in upgrade_cmd_values(config, 'resolved_items') {
@@ -374,7 +374,7 @@ pub fn ruby_upgrade_l167_d2_run(args ...brew_runtime.Value) brew_runtime.Value {
 	if ask {
 		if !only_casks {
 			events << 'preview_formulae'
-			preview := ruby_upgrade_l610_d8_upgrade_outdated_formulae(config, brew_runtime.array_value(formulae), brew_runtime.bool_value(false), brew_runtime.bool_value(false), brew_runtime.bool_value(true), brew_runtime.bool_value(false))
+			preview := ruby_upgrade_l610_d8_upgrade_outdated_formulae(config, ruby.array_value(formulae), ruby.bool_value(false), ruby.bool_value(false), ruby.bool_value(true), ruby.bool_value(false))
 			stdout += preview.attributes['stdout'] or { '' }
 			stderr += preview.attributes['stderr'] or { '' }
 			if preview_summary := preview.map_data['final_upgrade_summary'] {
@@ -386,19 +386,19 @@ pub fn ruby_upgrade_l167_d2_run(args ...brew_runtime.Value) brew_runtime.Value {
 		}
 		if !only_formulae {
 			events << 'preview_casks'
-			preview := ruby_upgrade_l787_d10_upgrade_outdated_casks(config, brew_runtime.array_value(casks), brew_runtime.bool_value(false), brew_runtime.bool_value(false), brew_runtime.bool_value(true))
+			preview := ruby_upgrade_l787_d10_upgrade_outdated_casks(config, ruby.array_value(casks), ruby.bool_value(false), ruby.bool_value(false), ruby.bool_value(true))
 			stderr += preview.attributes['stderr'] or { '' }
 		}
 		mut display_summary := summary_value
 		if formatted := config.map_data['formatted_version_changes'] {
 			mut display_map := summary_value.map_data.clone()
 			display_map['formatted_version_changes'] = formatted
-			display_summary = brew_runtime.Value{
+			display_summary = ruby.Value{
 				...summary_value
 				map_data: display_map
 			}
 		}
-		stdout += ruby_upgrade_l528_d6_show_final_upgrade_summary(display_summary, brew_runtime.bool_value(true)).as_string()
+		stdout += ruby_upgrade_l528_d6_show_final_upgrade_summary(display_summary, ruby.bool_value(true)).as_string()
 		ask_planned = upgrade_cmd_summary(summary_value).version_changes.len > 0
 		if upgrade_cmd_bool(config, 'ask_prompt_needed', ask_planned) {
 			events << 'ask_upgrade'
@@ -407,13 +407,13 @@ pub fn ruby_upgrade_l167_d2_run(args ...brew_runtime.Value) brew_runtime.Value {
 	}
 	mut formula_prefetched := false
 	mut casks_prefetched := false
-	mut prefetched_casks := []brew_runtime.Value{}
+	mut prefetched_casks := []ruby.Value{}
 	mut prefetched_errors := []string{}
 	if !dry_run && (!ask || ask_planned) && !only_formulae && !only_casks {
 		events << 'new_shared_download_queue'
-		formula_prefetch := ruby_upgrade_l610_d8_upgrade_outdated_formulae(config, brew_runtime.array_value(formulae), brew_runtime.bool_value(true), brew_runtime.bool_value(false), brew_runtime.bool_value(false), brew_runtime.bool_value(false))
+		formula_prefetch := ruby_upgrade_l610_d8_upgrade_outdated_formulae(config, ruby.array_value(formulae), ruby.bool_value(true), ruby.bool_value(false), ruby.bool_value(false), ruby.bool_value(false))
 		formula_prefetched = formula_prefetch.bool_data
-		cask_prefetch := ruby_upgrade_l715_d9_prefetch_outdated_casks(config, brew_runtime.array_value(casks))
+		cask_prefetch := ruby_upgrade_l715_d9_prefetch_outdated_casks(config, ruby.array_value(casks))
 		casks_prefetched = cask_prefetch.bool_data
 		prefetched_casks = upgrade_cmd_values(cask_prefetch, 'prefetch_casks')
 		prefetched_errors = upgrade_cmd_string_list(cask_prefetch, 'prefetch_errors')
@@ -442,7 +442,7 @@ pub fn ruby_upgrade_l167_d2_run(args ...brew_runtime.Value) brew_runtime.Value {
 	}
 	if !only_casks && !skip_after_preview {
 		events << 'upgrade_formulae'
-		actual := ruby_upgrade_l610_d8_upgrade_outdated_formulae(config, brew_runtime.array_value(formulae), brew_runtime.bool_value(false), brew_runtime.bool_value(formula_prefetched), brew_runtime.bool_value(dry_run), brew_runtime.bool_value(false))
+		actual := ruby_upgrade_l610_d8_upgrade_outdated_formulae(config, ruby.array_value(formulae), ruby.bool_value(false), ruby.bool_value(formula_prefetched), ruby.bool_value(dry_run), ruby.bool_value(false))
 		stdout += actual.attributes['stdout'] or { '' }
 		stderr += actual.attributes['stderr'] or { '' }
 		if actual_summary := actual.map_data['final_upgrade_summary'] {
@@ -455,10 +455,10 @@ pub fn ruby_upgrade_l167_d2_run(args ...brew_runtime.Value) brew_runtime.Value {
 		if prefetched_errors.len > 0 {
 			mut attributes := config.attributes.clone()
 			attributes['prefetched_cask_errors'] = prefetched_errors.join('\x1f')
-			cask_config = brew_runtime.Value{ ...config, attributes: attributes }
+			cask_config = ruby.Value{ ...config, attributes: attributes }
 		}
 		actual_casks := if casks_prefetched { prefetched_casks } else { casks }
-		actual := ruby_upgrade_l787_d10_upgrade_outdated_casks(cask_config, brew_runtime.array_value(actual_casks), brew_runtime.bool_value(casks_prefetched), brew_runtime.bool_value(false), brew_runtime.bool_value(dry_run))
+		actual := ruby_upgrade_l787_d10_upgrade_outdated_casks(cask_config, ruby.array_value(actual_casks), ruby.bool_value(casks_prefetched), ruby.bool_value(false), ruby.bool_value(dry_run))
 		stderr += actual.attributes['stderr'] or { '' }
 	}
 	for error_value in unavailable {
@@ -469,13 +469,13 @@ pub fn ruby_upgrade_l167_d2_run(args ...brew_runtime.Value) brew_runtime.Value {
 	if formatted := config.map_data['formatted_version_changes'] {
 		mut display_map := summary_value.map_data.clone()
 		display_map['formatted_version_changes'] = formatted
-		display_summary = brew_runtime.Value{
+		display_summary = ruby.Value{
 			...summary_value
 			map_data: display_map
 		}
 	}
-	stdout += ruby_upgrade_l528_d6_show_final_upgrade_summary(display_summary, brew_runtime.bool_value(dry_run)).as_string()
-	return brew_runtime.Value{
+	stdout += ruby_upgrade_l528_d6_show_final_upgrade_summary(display_summary, ruby.bool_value(dry_run)).as_string()
+	return ruby.Value{
 		type_name: 'UpgradeRunResult'
 		bool_data: stderr == ''
 		attributes: {
@@ -492,7 +492,7 @@ pub fn ruby_upgrade_l167_d2_run(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `formulae_upgrade_context(formulae, show_upgrade_summary: true, dry_run: args.dry_run?)` at line 344.
-pub fn ruby_upgrade_l344_d3_formulae_upgrade_context(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_l344_d3_formulae_upgrade_context(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		return upgrade_cmd_nil()
 	}
@@ -508,7 +508,7 @@ pub fn ruby_upgrade_l344_d3_formulae_upgrade_context(args ...brew_runtime.Value)
 	mut stderr := ''
 	if upgrade_cmd_bool(config, 'build_from_source', false) {
 		if !upgrade_cmd_bool(config, 'development_tools_installed', true) {
-			return brew_runtime.object_value('BuildFlagsError', '--build-from-source')
+			return ruby.object_value('BuildFlagsError', '--build-from-source')
 		}
 		if !upgrade_cmd_bool(config, 'developer', false) {
 			stderr += 'Warning: building from source is not supported!\n'
@@ -521,8 +521,8 @@ pub fn ruby_upgrade_l344_d3_formulae_upgrade_context(args ...brew_runtime.Value)
 	} else {
 		requested
 	}
-	mut outdated_values := []brew_runtime.Value{}
-	mut not_outdated := []brew_runtime.Value{}
+	mut outdated_values := []ruby.Value{}
+	mut not_outdated := []ruby.Value{}
 	for formula in formula_values {
 		if ruby_upgrade_l835_d12_formula_outdated(config, formula).bool_data {
 			outdated_values << formula
@@ -547,7 +547,7 @@ pub fn ruby_upgrade_l344_d3_formulae_upgrade_context(args ...brew_runtime.Value)
 		}
 	}
 	if outdated_values.len == 0 {
-		return brew_runtime.Value{
+		return ruby.Value{
 			type_name: 'NilClass'
 			repr: 'nil'
 			attributes: {
@@ -556,8 +556,8 @@ pub fn ruby_upgrade_l344_d3_formulae_upgrade_context(args ...brew_runtime.Value)
 			}
 		}
 	}
-	mut pinned_values := []brew_runtime.Value{}
-	mut install_values := []brew_runtime.Value{}
+	mut pinned_values := []ruby.Value{}
+	mut install_values := []ruby.Value{}
 	for value in outdated_values {
 		if upgrade_cmd_bool(value, 'pinned', false) {
 			pinned_values << value
@@ -579,7 +579,7 @@ pub fn ruby_upgrade_l344_d3_formulae_upgrade_context(args ...brew_runtime.Value)
 		plural := if install_values.len == 1 { 'package' } else { 'packages' }
 		stdout += '==> ${verb} ${install_values.len} outdated ${plural}:\n'
 		if upgrade_cmd_bool(config, 'no_ask', false) {
-			descriptions := ruby_upgrade_l578_d7_formula_upgrade_descriptions(config, brew_runtime.array_value(install_values), brew_runtime.bool_value(false)).as_string_array() or { [] }
+			descriptions := ruby_upgrade_l578_d7_formula_upgrade_descriptions(config, ruby.array_value(install_values), ruby.bool_value(false)).as_string_array() or { [] }
 			formatted := if injected := config.map_data['formatted_descriptions'] {
 				injected.as_string_array() or { descriptions }
 			} else {
@@ -600,7 +600,7 @@ pub fn ruby_upgrade_l344_d3_formulae_upgrade_context(args ...brew_runtime.Value)
 		}
 	}
 	if installers.len == 0 && install_values.len > 0 {
-		return brew_runtime.Value{
+		return ruby.Value{
 			type_name: 'NilClass'
 			repr: 'nil'
 			attributes: {
@@ -619,7 +619,7 @@ pub fn ruby_upgrade_l344_d3_formulae_upgrade_context(args ...brew_runtime.Value)
 		}
 		stdout += pinned_values.map('${upgrade_cmd_formula(it).full_specified_name} ${upgrade_cmd_formula(it).pkg_version}').join(', ') + '\n'
 	}
-	dependants_value := config.map_data['dependants'] or { brew_runtime.map_value({}) }
+	dependants_value := config.map_data['dependants'] or { ruby.map_value({}) }
 	context := UpgradeCmdFormulaeContext{
 		formulae_to_install: install_values.map(upgrade_cmd_formula(it))
 		formulae_installer: installers
@@ -627,7 +627,7 @@ pub fn ruby_upgrade_l344_d3_formulae_upgrade_context(args ...brew_runtime.Value)
 		pinned_formulae: pinned_values.map(upgrade_cmd_formula(it))
 	}
 	base := upgrade_cmd_context_value(context)
-	return brew_runtime.Value{
+	return ruby.Value{
 		...base
 		attributes: {
 			'stdout': stdout
@@ -637,7 +637,7 @@ pub fn ruby_upgrade_l344_d3_formulae_upgrade_context(args ...brew_runtime.Value)
 }
 
 // Ruby method `final_upgrade_summary` at line 484.
-pub fn ruby_upgrade_l484_d4_final_upgrade_summary(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_l484_d4_final_upgrade_summary(args ...ruby.Value) ruby.Value {
 	if args.len > 0 {
 		if summary := args[0].map_data['final_upgrade_summary'] {
 			if summary.type_name == 'FinalUpgradeSummary' {
@@ -652,7 +652,7 @@ pub fn ruby_upgrade_l484_d4_final_upgrade_summary(args ...brew_runtime.Value) br
 }
 
 // Ruby method `record_formula_upgrade_summary(context, include_sizes: false, formulae_installer: nil, version_changes: nil)` at line 497.
-pub fn ruby_upgrade_l497_d5_record_formula_upgrade_summary(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_l497_d5_record_formula_upgrade_summary(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		return upgrade_cmd_summary_value(UpgradeCmdFinalSummary{})
 	}
@@ -673,8 +673,8 @@ pub fn ruby_upgrade_l497_d5_record_formula_upgrade_summary(args ...brew_runtime.
 	if args.len <= 4 || args[4].type_name == 'NilClass' {
 		formula_values := installers.map(upgrade_cmd_formula_value(it.formula))
 		dependent_values := context.dependants.upgradeable.map(upgrade_cmd_formula_value(it))
-		changes = ruby_upgrade_l578_d7_formula_upgrade_descriptions(brew_runtime.Value{}, brew_runtime.array_value(formula_values), brew_runtime.bool_value(include_sizes)).as_string_array() or { [] }
-		changes << ruby_upgrade_l578_d7_formula_upgrade_descriptions(brew_runtime.Value{}, brew_runtime.array_value(dependent_values), brew_runtime.bool_value(include_sizes)).as_string_array() or { [] }
+		changes = ruby_upgrade_l578_d7_formula_upgrade_descriptions(ruby.Value{}, ruby.array_value(formula_values), ruby.bool_value(include_sizes)).as_string_array() or { [] }
+		changes << ruby_upgrade_l578_d7_formula_upgrade_descriptions(ruby.Value{}, ruby.array_value(dependent_values), ruby.bool_value(include_sizes)).as_string_array() or { [] }
 	}
 	mut pinned := context.pinned_formulae.clone()
 	pinned << context.dependants.pinned
@@ -711,9 +711,9 @@ pub fn ruby_upgrade_l497_d5_record_formula_upgrade_summary(args ...brew_runtime.
 }
 
 // Ruby method `show_final_upgrade_summary(dry_run: args.dry_run?)` at line 528.
-pub fn ruby_upgrade_l528_d6_show_final_upgrade_summary(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_l528_d6_show_final_upgrade_summary(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_value('')
+		return ruby.string_value('')
 	}
 	summary := upgrade_cmd_summary(args[0])
 	dry_run := args.len > 1 && args[1].bool_data
@@ -726,28 +726,28 @@ pub fn ruby_upgrade_l528_d6_show_final_upgrade_summary(args ...brew_runtime.Valu
 		} else {
 			upgrade_helpers.format_summary(version_changes)
 		}
-		output += ruby_upgrade_l875_d15_show_final_upgrade_summary_section(brew_runtime.string_value('${if dry_run {
+		output += ruby_upgrade_l875_d15_show_final_upgrade_summary_section(ruby.string_value('${if dry_run {
 			'Would upgrade'
 		} else {
 			'Upgraded'
-		}} ${version_changes.len} outdated ${plural}'), brew_runtime.string_array_value(formatted_changes)).as_string()
+		}} ${version_changes.len} outdated ${plural}'), ruby.string_array_value(formatted_changes)).as_string()
 	}
 	pinned_formulae := upgrade_cmd_unique(summary.pinned_formulae)
 	if pinned_formulae.len > 0 {
 		plural := if pinned_formulae.len == 1 { 'formula' } else { 'formulae' }
-		output += ruby_upgrade_l875_d15_show_final_upgrade_summary_section(brew_runtime.string_value('${pinned_formulae.len} Pinned ${plural}'), brew_runtime.string_array_value(pinned_formulae)).as_string()
+		output += ruby_upgrade_l875_d15_show_final_upgrade_summary_section(ruby.string_value('${pinned_formulae.len} Pinned ${plural}'), ruby.string_array_value(pinned_formulae)).as_string()
 	}
 	pinned_casks := upgrade_cmd_unique(summary.pinned_casks)
 	if pinned_casks.len > 0 {
 		plural := if pinned_casks.len == 1 { 'cask' } else { 'casks' }
-		output += ruby_upgrade_l875_d15_show_final_upgrade_summary_section(brew_runtime.string_value('${pinned_casks.len} Pinned ${plural}'), brew_runtime.string_array_value(pinned_casks)).as_string()
+		output += ruby_upgrade_l875_d15_show_final_upgrade_summary_section(ruby.string_value('${pinned_casks.len} Pinned ${plural}'), ruby.string_array_value(pinned_casks)).as_string()
 	}
 	mut deprecate_disable := summary.deprecated.map('${it} (deprecated)')
 	deprecate_disable << summary.disabled.map('${it} (disabled)')
 	deprecate_disable = upgrade_cmd_unique(deprecate_disable)
 	if deprecate_disable.len > 0 {
 		plural := if deprecate_disable.len == 1 { 'package' } else { 'packages' }
-		output += ruby_upgrade_l875_d15_show_final_upgrade_summary_section(brew_runtime.string_value('${deprecate_disable.len} Deprecated or disabled ${plural}'), brew_runtime.string_array_value(deprecate_disable)).as_string()
+		output += ruby_upgrade_l875_d15_show_final_upgrade_summary_section(ruby.string_value('${deprecate_disable.len} Deprecated or disabled ${plural}'), ruby.string_array_value(deprecate_disable)).as_string()
 	}
 	source_build := upgrade_cmd_unique(summary.source_build_formulae)
 	if source_build.len > 0 {
@@ -757,15 +757,15 @@ pub fn ruby_upgrade_l528_d6_show_final_upgrade_summary(args ...brew_runtime.Valu
 		} else {
 			'${source_build.len} homebrew/core ${plural} built from source'
 		}
-		output += ruby_upgrade_l875_d15_show_final_upgrade_summary_section(brew_runtime.string_value(title), brew_runtime.string_array_value(source_build)).as_string()
+		output += ruby_upgrade_l875_d15_show_final_upgrade_summary_section(ruby.string_value(title), ruby.string_array_value(source_build)).as_string()
 	}
-	return brew_runtime.string_value(output)
+	return ruby.string_value(output)
 }
 
 // Ruby method `formula_upgrade_descriptions(formulae, include_sizes: false)` at line 578.
-pub fn ruby_upgrade_l578_d7_formula_upgrade_descriptions(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_l578_d7_formula_upgrade_descriptions(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.string_array_value([])
+		return ruby.string_array_value([])
 	}
 	config := args[0]
 	formulae := args[1].as_array() or { [] }
@@ -774,7 +774,7 @@ pub fn ruby_upgrade_l578_d7_formula_upgrade_descriptions(args ...brew_runtime.Va
 	for value in formulae {
 		formula := upgrade_cmd_formula(value)
 		if formula.optlinked {
-			new_version := ruby_upgrade_l884_d16_formula_upgrade_display_version(config, value, brew_runtime.string_value(formula.old_version)).as_string()
+			new_version := ruby_upgrade_l884_d16_formula_upgrade_display_version(config, value, ruby.string_value(formula.old_version)).as_string()
 			size := if include_sizes {
 				ruby_upgrade_l896_d17_formula_upgrade_size(config, value).as_string()
 			} else {
@@ -787,13 +787,13 @@ pub fn ruby_upgrade_l578_d7_formula_upgrade_descriptions(args ...brew_runtime.Va
 			descriptions << '${formula.full_specified_name} ${formula.pkg_version}'
 		}
 	}
-	return brew_runtime.string_array_value(descriptions)
+	return ruby.string_array_value(descriptions)
 }
 
 // Ruby method `upgrade_outdated_formulae!(formulae, prefetch_only: false, use_prefetched: false,` at line 610.
-pub fn ruby_upgrade_l610_d8_upgrade_outdated_formulae(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_l610_d8_upgrade_outdated_formulae(args ...ruby.Value) ruby.Value {
 	if args.len < 2 || upgrade_cmd_bool(args[0], 'cask_only', false) {
-		return brew_runtime.Value{ type_name: 'FormulaUpgradeResult', bool_data: false }
+		return ruby.Value{ type_name: 'FormulaUpgradeResult', bool_data: false }
 	}
 	config := args[0]
 	formulae := args[1]
@@ -805,7 +805,7 @@ pub fn ruby_upgrade_l610_d8_upgrade_outdated_formulae(args ...brew_runtime.Value
 		upgrade_cmd_bool(config, 'dry_run', false)
 	}
 	show_summary := args.len < 6 || args[5].bool_data
-	mut context_value := brew_runtime.Value{}
+	mut context_value := ruby.Value{}
 	mut used_prefetched := false
 	if use_prefetched {
 		if prefetched := config.map_data['prefetched_formulae_context'] {
@@ -819,11 +819,11 @@ pub fn ruby_upgrade_l610_d8_upgrade_outdated_formulae(args ...brew_runtime.Value
 		if injected := config.map_data['formulae_context'] {
 			context_value = injected
 		} else {
-			context_value = ruby_upgrade_l344_d3_formulae_upgrade_context(config, formulae, brew_runtime.bool_value(show_summary), brew_runtime.bool_value(dry_run))
+			context_value = ruby_upgrade_l344_d3_formulae_upgrade_context(config, formulae, ruby.bool_value(show_summary), ruby.bool_value(dry_run))
 		}
 	}
 	if context_value.type_name != 'FormulaeUpgradeContext' {
-		return brew_runtime.Value{
+		return ruby.Value{
 			type_name: 'FormulaUpgradeResult'
 			bool_data: false
 			attributes: {
@@ -837,14 +837,14 @@ pub fn ruby_upgrade_l610_d8_upgrade_outdated_formulae(args ...brew_runtime.Value
 	mut stderr := context_value.attributes['stderr'] or { '' }
 	if prefetch_only {
 		valid := context.formulae_installer.filter(it.valid)
-		prefetch_upgrades := ruby_upgrade_l578_d7_formula_upgrade_descriptions(config, brew_runtime.array_value(valid.map(upgrade_cmd_formula_value(it.formula))), brew_runtime.bool_value(false)).as_string_array() or { [] }
+		prefetch_upgrades := ruby_upgrade_l578_d7_formula_upgrade_descriptions(config, ruby.array_value(valid.map(upgrade_cmd_formula_value(it.formula))), ruby.bool_value(false)).as_string_array() or { [] }
 		prefetched := UpgradeCmdFormulaeContext{
 			formulae_to_install: context.formulae_to_install
 			formulae_installer: valid
 			dependants: context.dependants
 			pinned_formulae: context.pinned_formulae
 		}
-		return brew_runtime.Value{
+		return ruby.Value{
 			type_name: 'FormulaUpgradeResult'
 			bool_data: valid.len > 0
 			attributes: {
@@ -860,15 +860,15 @@ pub fn ruby_upgrade_l610_d8_upgrade_outdated_formulae(args ...brew_runtime.Value
 	}
 	formula_values := context.formulae_installer.map(upgrade_cmd_formula_value(it.formula))
 	dependent_values := context.dependants.upgradeable.map(upgrade_cmd_formula_value(it))
-	formula_changes := ruby_upgrade_l578_d7_formula_upgrade_descriptions(config, brew_runtime.array_value(formula_values), brew_runtime.bool_value(dry_run)).as_string_array() or { [] }
-	dependent_changes := ruby_upgrade_l578_d7_formula_upgrade_descriptions(config, brew_runtime.array_value(dependent_values), brew_runtime.bool_value(dry_run)).as_string_array() or { [] }
+	formula_changes := ruby_upgrade_l578_d7_formula_upgrade_descriptions(config, ruby.array_value(formula_values), ruby.bool_value(dry_run)).as_string_array() or { [] }
+	dependent_changes := ruby_upgrade_l578_d7_formula_upgrade_descriptions(config, ruby.array_value(dependent_values), ruby.bool_value(dry_run)).as_string_array() or { [] }
 	mut summary := upgrade_cmd_summary(config.map_data['final_upgrade_summary'] or {
 		upgrade_cmd_summary_value(UpgradeCmdFinalSummary{})
 	})
 	if dry_run {
 		mut planned_changes := formula_changes.clone()
 		planned_changes << dependent_changes
-		summary = upgrade_cmd_summary(ruby_upgrade_l497_d5_record_formula_upgrade_summary(upgrade_cmd_summary_value(summary), context_value, brew_runtime.bool_value(false), upgrade_cmd_nil(), brew_runtime.string_array_value(planned_changes)))
+		summary = upgrade_cmd_summary(ruby_upgrade_l497_d5_record_formula_upgrade_summary(upgrade_cmd_summary_value(summary), context_value, ruby.bool_value(false), upgrade_cmd_nil(), ruby.string_array_value(planned_changes)))
 	}
 	ask_required := !upgrade_cmd_bool(config, 'no_ask', false) && dry_run && upgrade_cmd_bool(config, 'named_present', false) && upgrade_cmd_bool(config, 'formulae_ask_prompt_needed', false)
 	mut upgraded_installers := context.formulae_installer.filter(it.upgraded)
@@ -892,12 +892,12 @@ pub fn ruby_upgrade_l610_d8_upgrade_outdated_formulae(args ...brew_runtime.Value
 		for index, name in planned_names {
 			if name in successful_names && index < all_changes.len { successful_changes << all_changes[index] }
 		}
-		summary = upgrade_cmd_summary(ruby_upgrade_l497_d5_record_formula_upgrade_summary(upgrade_cmd_summary_value(summary), context_value, brew_runtime.bool_value(false), brew_runtime.array_value(upgraded_installers.map(upgrade_cmd_installer_value(it))), brew_runtime.string_array_value(successful_changes)))
+		summary = upgrade_cmd_summary(ruby_upgrade_l497_d5_record_formula_upgrade_summary(upgrade_cmd_summary_value(summary), context_value, ruby.bool_value(false), ruby.array_value(upgraded_installers.map(upgrade_cmd_installer_value(it))), ruby.string_array_value(successful_changes)))
 	}
 	if used_prefetched {
 		stdout += config.attributes['prefetched_formula_output'] or { '' }
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'FormulaUpgradeResult'
 		bool_data: true
 		attributes: {
@@ -908,23 +908,23 @@ pub fn ruby_upgrade_l610_d8_upgrade_outdated_formulae(args ...brew_runtime.Value
 		}
 		map_data: {
 			'final_upgrade_summary': upgrade_cmd_summary_value(summary)
-			'upgraded_installers':   brew_runtime.array_value(upgraded_installers.map(upgrade_cmd_installer_value(it)))
-			'upgraded_dependents':   brew_runtime.array_value(upgraded_dependents.map(upgrade_cmd_formula_value(it)))
+			'upgraded_installers':   ruby.array_value(upgraded_installers.map(upgrade_cmd_installer_value(it)))
+			'upgraded_dependents':   ruby.array_value(upgraded_dependents.map(upgrade_cmd_formula_value(it)))
 		}
 	}
 }
 
 // Ruby method `prefetch_outdated_casks!(casks, download_queue:, prefetch_names: nil,` at line 715.
-pub fn ruby_upgrade_l715_d9_prefetch_outdated_casks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_l715_d9_prefetch_outdated_casks(args ...ruby.Value) ruby.Value {
 	if args.len < 2 || upgrade_cmd_bool(args[0], 'formula_only', false) {
-		return brew_runtime.Value{ type_name: 'CaskPrefetchResult', bool_data: false }
+		return ruby.Value{ type_name: 'CaskPrefetchResult', bool_data: false }
 	}
 	config := args[0]
-	minimum_result := ruby_upgrade_l858_d14_minimum_version_casks(config, args[1], brew_runtime.bool_value(true))
+	minimum_result := ruby_upgrade_l858_d14_minimum_version_casks(config, args[1], ruby.bool_value(true))
 	casks := upgrade_cmd_values(minimum_result, 'casks')
 	minimum := ruby_upgrade_l832_d11_minimum_version(config)
 	if minimum.type_name != 'NilClass' && casks.len == 0 {
-		return brew_runtime.Value{ type_name: 'CaskPrefetchResult', bool_data: false }
+		return ruby.Value{ type_name: 'CaskPrefetchResult', bool_data: false }
 	}
 	mut outdated := if injected := config.map_data['outdated_casks'] {
 		injected.as_array() or { [] }
@@ -932,15 +932,15 @@ pub fn ruby_upgrade_l715_d9_prefetch_outdated_casks(args ...brew_runtime.Value) 
 		casks.filter(upgrade_cmd_bool(it, 'outdated', false))
 	}
 	if outdated.len == 0 {
-		return brew_runtime.Value{ type_name: 'CaskPrefetchResult', bool_data: false }
+		return ruby.Value{ type_name: 'CaskPrefetchResult', bool_data: false }
 	}
 	outdated = outdated.filter(!upgrade_cmd_bool(it, 'manual_installer', false))
 	if outdated.len == 0 {
-		return brew_runtime.Value{ type_name: 'CaskPrefetchResult', bool_data: false }
+		return ruby.Value{ type_name: 'CaskPrefetchResult', bool_data: false }
 	}
-	mut compatible := []brew_runtime.Value{}
+	mut compatible := []ruby.Value{}
 	mut errors := []string{}
-	mut installers := []brew_runtime.Value{}
+	mut installers := []ruby.Value{}
 	mut source_downloads := []string{}
 	for value in outdated {
 		cask := upgrade_cmd_cask(value)
@@ -949,7 +949,7 @@ pub fn ruby_upgrade_l715_d9_prefetch_outdated_casks(args ...brew_runtime.Value) 
 			continue
 		}
 		compatible << value
-		installers << brew_runtime.Value{
+		installers << ruby.Value{
 			type_name: 'Cask::Installer'
 			repr: cask.full_name
 			attributes: {
@@ -973,7 +973,7 @@ pub fn ruby_upgrade_l715_d9_prefetch_outdated_casks(args ...brew_runtime.Value) 
 		names << cask.full_name
 		upgrades << '${cask.full_name} ${cask.installed_version} -> ${cask.version}'
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'CaskPrefetchResult'
 		bool_data: compatible.len > 0 || errors.len > 0
 		attributes: {
@@ -986,16 +986,16 @@ pub fn ruby_upgrade_l715_d9_prefetch_outdated_casks(args ...brew_runtime.Value) 
 				''}
 		}
 		map_data: {
-			'prefetch_casks': brew_runtime.array_value(compatible)
-			'installers':     brew_runtime.array_value(installers)
+			'prefetch_casks': ruby.array_value(compatible)
+			'installers':     ruby.array_value(installers)
 		}
 	}
 }
 
 // Ruby method `upgrade_outdated_casks!(casks, skip_prefetch: false, show_upgrade_summary: true,` at line 787.
-pub fn ruby_upgrade_l787_d10_upgrade_outdated_casks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_l787_d10_upgrade_outdated_casks(args ...ruby.Value) ruby.Value {
 	if args.len < 2 || upgrade_cmd_bool(args[0], 'formula_only', false) {
-		return brew_runtime.Value{ type_name: 'CaskUpgradeResult', bool_data: false }
+		return ruby.Value{ type_name: 'CaskUpgradeResult', bool_data: false }
 	}
 	config := args[0]
 	skip_prefetch := args.len > 2 && args[2].bool_data
@@ -1006,12 +1006,12 @@ pub fn ruby_upgrade_l787_d10_upgrade_outdated_casks(args ...brew_runtime.Value) 
 		upgrade_cmd_bool(config, 'dry_run', false)
 	}
 	quiet := upgrade_cmd_bool(config, 'quiet', false) || (dry_run && !upgrade_cmd_bool(config, 'dry_run', false))
-	minimum_result := ruby_upgrade_l858_d14_minimum_version_casks(config, args[1], brew_runtime.bool_value(quiet))
+	minimum_result := ruby_upgrade_l858_d14_minimum_version_casks(config, args[1], ruby.bool_value(quiet))
 	casks := upgrade_cmd_values(minimum_result, 'casks')
 	mut stderr := minimum_result.attributes['stderr'] or { '' }
 	minimum := ruby_upgrade_l832_d11_minimum_version(config)
 	if minimum.type_name != 'NilClass' && casks.len == 0 {
-		return brew_runtime.Value{
+		return ruby.Value{
 			type_name: 'CaskUpgradeResult'
 			bool_data: false
 			attributes: {
@@ -1022,7 +1022,7 @@ pub fn ruby_upgrade_l787_d10_upgrade_outdated_casks(args ...brew_runtime.Value) 
 	prefetched_errors := upgrade_cmd_string_list(config, 'prefetched_cask_errors')
 	if skip_prefetch && casks.len == 0 && prefetched_errors.len > 0 {
 		stderr += prefetched_errors.map('Error: ${it}').join('\n') + '\n'
-		return brew_runtime.Value{
+		return ruby.Value{
 			type_name: 'CaskUpgradeResult'
 			bool_data: false
 			attributes: {
@@ -1032,7 +1032,7 @@ pub fn ruby_upgrade_l787_d10_upgrade_outdated_casks(args ...brew_runtime.Value) 
 	}
 	if error_message := config.attributes['cask_upgrade_error'] {
 		stderr += 'Error: ${error_message}\n'
-		return brew_runtime.Value{
+		return ruby.Value{
 			type_name: 'CaskUpgradeResult'
 			bool_data: false
 			attributes: {
@@ -1040,7 +1040,7 @@ pub fn ruby_upgrade_l787_d10_upgrade_outdated_casks(args ...brew_runtime.Value) 
 			}
 		}
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'CaskUpgradeResult'
 		bool_data: true
 		attributes: {
@@ -1060,56 +1060,56 @@ pub fn ruby_upgrade_l787_d10_upgrade_outdated_casks(args ...brew_runtime.Value) 
 			'show_upgrade_summary': show_summary.str()
 		}
 		map_data: {
-			'casks': brew_runtime.array_value(casks)
+			'casks': ruby.array_value(casks)
 		}
 	}
 }
 
 // Ruby method `minimum_version = args.minimum_version || args.min_version` at line 832.
-pub fn ruby_upgrade_l832_d11_minimum_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_l832_d11_minimum_version(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return upgrade_cmd_nil()
 	}
 	version := args[0].attributes['minimum_version'] or {
 		args[0].attributes['min_version'] or { '' }
 	}
-	return if version == '' { upgrade_cmd_nil() } else { brew_runtime.string_value(version) }
+	return if version == '' { upgrade_cmd_nil() } else { ruby.string_value(version) }
 }
 
 // Ruby method `formula_outdated?(formula)` at line 835.
-pub fn ruby_upgrade_l835_d12_formula_outdated(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_l835_d12_formula_outdated(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	config := args[0]
 	formula := upgrade_cmd_formula(args[1])
 	if !formula.outdated {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	if ruby_upgrade_l846_d13_fetched_head_formula_current(config, args[1]).bool_data {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	minimum := ruby_upgrade_l832_d11_minimum_version(config)
 	if minimum.type_name == 'NilClass' {
-		return brew_runtime.bool_value(true)
+		return ruby.bool_value(true)
 	}
-	return brew_runtime.bool_value(formula.installed_versions.any(upgrade_cmd_compare_version(it, minimum.as_string()) < 0))
+	return ruby.bool_value(formula.installed_versions.any(upgrade_cmd_compare_version(it, minimum.as_string()) < 0))
 }
 
 // Ruby method `fetched_head_formula_current?(formula)` at line 846.
-pub fn ruby_upgrade_l846_d13_fetched_head_formula_current(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_l846_d13_fetched_head_formula_current(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	formula := upgrade_cmd_formula(args[1])
-	return brew_runtime.bool_value(upgrade_cmd_bool(args[0], 'fetch_head', false) && formula.head && formula.optlinked && formula.old_version.starts_with('HEAD-') && formula.latest_head_pkg_version == formula.old_version)
+	return ruby.bool_value(upgrade_cmd_bool(args[0], 'fetch_head', false) && formula.head && formula.optlinked && formula.old_version.starts_with('HEAD-') && formula.latest_head_pkg_version == formula.old_version)
 }
 
 // Ruby method `minimum_version_casks(casks, quiet: args.quiet?)` at line 858.
-pub fn ruby_upgrade_l858_d14_minimum_version_casks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_l858_d14_minimum_version_casks(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.map_value({
-			'casks': brew_runtime.array_value([])
+		return ruby.map_value({
+			'casks': ruby.array_value([])
 		})
 	}
 	config := args[0]
@@ -1117,14 +1117,14 @@ pub fn ruby_upgrade_l858_d14_minimum_version_casks(args ...brew_runtime.Value) b
 	quiet := args.len > 2 && args[2].bool_data
 	minimum := ruby_upgrade_l832_d11_minimum_version(config)
 	if minimum.type_name == 'NilClass' {
-		return brew_runtime.Value{
+		return ruby.Value{
 			type_name: 'MinimumVersionCasksResult'
 			map_data: {
-				'casks': brew_runtime.array_value(casks)
+				'casks': ruby.array_value(casks)
 			}
 		}
 	}
-	mut selected := []brew_runtime.Value{}
+	mut selected := []ruby.Value{}
 	mut warnings := []string{}
 	for value in casks {
 		cask := upgrade_cmd_cask(value)
@@ -1134,60 +1134,60 @@ pub fn ruby_upgrade_l858_d14_minimum_version_casks(args ...brew_runtime.Value) b
 			warnings << 'Warning: Not upgrading ${cask.token}, the installed version is not below the minimum version ${minimum.as_string()}'
 		}
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'MinimumVersionCasksResult'
 		attributes: {
 			'stderr': if warnings.len > 0 { warnings.join('\n') + '\n' } else { '' }
 		}
 		map_data: {
-			'casks': brew_runtime.array_value(selected)
+			'casks': ruby.array_value(selected)
 		}
 	}
 }
 
 // Ruby method `show_final_upgrade_summary_section(title, items)` at line 875.
-pub fn ruby_upgrade_l875_d15_show_final_upgrade_summary_section(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_l875_d15_show_final_upgrade_summary_section(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.string_value('')
+		return ruby.string_value('')
 	}
 	items := upgrade_cmd_unique(args[1].as_string_array() or { [] })
 	if items.len == 0 {
-		return brew_runtime.string_value('')
+		return ruby.string_value('')
 	}
-	return brew_runtime.string_value('==> ${args[0].as_string()}\n${items.join('\n')}\n')
+	return ruby.string_value('==> ${args[0].as_string()}\n${items.join('\n')}\n')
 }
 
 // Ruby method `formula_upgrade_display_version(formula, old_version)` at line 884.
-pub fn ruby_upgrade_l884_d16_formula_upgrade_display_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_l884_d16_formula_upgrade_display_version(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
-		return brew_runtime.string_value('')
+		return ruby.string_value('')
 	}
 	config := args[0]
 	formula := upgrade_cmd_formula(args[1])
 	old_version := args[2].as_string()
 	if !old_version.starts_with('HEAD-') || !formula.head || formula.pkg_version != old_version {
-		return brew_runtime.string_value(formula.pkg_version)
+		return ruby.string_value(formula.pkg_version)
 	}
 	if !upgrade_cmd_bool(config, 'fetch_head', false) {
-		return brew_runtime.string_value('latest HEAD')
+		return ruby.string_value('latest HEAD')
 	}
 	if formula.latest_head_pkg_version == old_version {
-		return brew_runtime.string_value('latest HEAD')
+		return ruby.string_value('latest HEAD')
 	}
-	return brew_runtime.string_value(formula.latest_head_pkg_version)
+	return ruby.string_value(formula.latest_head_pkg_version)
 }
 
 // Ruby method `formula_upgrade_size(formula)` at line 896.
-pub fn ruby_upgrade_l896_d17_formula_upgrade_size(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_l896_d17_formula_upgrade_size(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.string_value('')
+		return ruby.string_value('')
 	}
 	config := args[0]
 	formula := upgrade_cmd_formula(args[1])
 	if formula.name in upgrade_cmd_string_list(config, 'build_from_source_formulae') || formula.build_from_source || !formula.has_bottle || formula.bottle_size <= 0 {
-		return brew_runtime.string_value('')
+		return ruby.string_value('')
 	}
-	return brew_runtime.string_value(' (${upgrade_cmd_disk_size(formula.bottle_size)})')
+	return ruby.string_value(' (${upgrade_cmd_disk_size(formula.bottle_size)})')
 }
 
 // Original Ruby source (line-for-line):

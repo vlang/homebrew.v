@@ -1,6 +1,6 @@
 module elftools
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/elftools-1.3.1/lib/elftools/constants.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -32,19 +32,19 @@ pub fn elf_type_name(value int) string {
 }
 
 // Ruby method `self.mapping(val)` at line 427.
-pub fn ruby_constants_l427_d1_self_mapping(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_constants_l427_d1_self_mapping(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('ELFTools::Constants::EM.mapping requires a value')
 	}
-	return brew_runtime.string_value(machine_name(int(args[0].as_int() or { panic(err) })))
+	return ruby.string_value(machine_name(int(args[0].as_int() or { panic(err) })))
 }
 
 // Ruby method `self.mapping(type)` at line 454.
-pub fn ruby_constants_l454_d2_self_mapping(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_constants_l454_d2_self_mapping(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('ELFTools::Constants::ET.mapping requires a value')
 	}
-	return brew_runtime.string_value(elf_type_name(int(args[0].as_int() or { panic(err) })))
+	return ruby.string_value(elf_type_name(int(args[0].as_int() or { panic(err) })))
 }
 
 // Original Ruby source (line-for-line):

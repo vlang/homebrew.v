@@ -1,6 +1,6 @@
 module test
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `test/formula_spec_selection_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -24,40 +24,40 @@ fn formula_spec_selection(stable_url string, head_url string, requested string) 
 }
 
 // Ruby it `it "selects stable by default" do` at line 8.
-pub fn ruby_formula_spec_selection_spec_l8_d1_selects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(formula_spec_selection('foo-1.0', 'foo', '') == 'stable')
+pub fn ruby_formula_spec_selection_spec_l8_d1_selects(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(formula_spec_selection('foo-1.0', 'foo', '') == 'stable')
 }
 
 // Ruby it `it "selects stable when exclusive" do` at line 18.
-pub fn ruby_formula_spec_selection_spec_l18_d2_selects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(formula_spec_selection('foo-1.0', '', '') == 'stable')
+pub fn ruby_formula_spec_selection_spec_l18_d2_selects(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(formula_spec_selection('foo-1.0', '', '') == 'stable')
 }
 
 // Ruby it `it "selects HEAD when exclusive" do` at line 26.
-pub fn ruby_formula_spec_selection_spec_l26_d3_selects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(formula_spec_selection('', 'foo', '') == 'head')
+pub fn ruby_formula_spec_selection_spec_l26_d3_selects(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(formula_spec_selection('', 'foo', '') == 'head')
 }
 
 // Ruby it `it "does not select an incomplete spec" do` at line 34.
-pub fn ruby_formula_spec_selection_spec_l34_d4_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_spec_selection_spec_l34_d4_does(args ...ruby.Value) ruby.Value {
 	// A checksum and explicit version do not complete a stable spec without a URL.
-	return brew_runtime.bool_value(formula_spec_selection('', 'foo', '') == 'head')
+	return ruby.bool_value(formula_spec_selection('', 'foo', '') == 'head')
 }
 
 // Ruby it `it "does not set an incomplete stable spec" do` at line 45.
-pub fn ruby_formula_spec_selection_spec_l45_d5_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_spec_selection_spec_l45_d5_does(args ...ruby.Value) ruby.Value {
 	stable := formula_spec_selection('', 'foo', '')
-	return brew_runtime.bool_value(stable == 'head')
+	return ruby.bool_value(stable == 'head')
 }
 
 // Ruby it `it "selects HEAD when requested" do` at line 56.
-pub fn ruby_formula_spec_selection_spec_l56_d6_selects(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(formula_spec_selection('foo-1.0', 'foo', 'head') == 'head')
+pub fn ruby_formula_spec_selection_spec_l56_d6_selects(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(formula_spec_selection('foo-1.0', 'foo', 'head') == 'head')
 }
 
 // Ruby it `it "does not raise an error for a missing spec" do` at line 66.
-pub fn ruby_formula_spec_selection_spec_l66_d7_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(formula_spec_selection('foo-1.0', '', 'head') == 'stable')
+pub fn ruby_formula_spec_selection_spec_l66_d7_does(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(formula_spec_selection('foo-1.0', '', 'head') == 'stable')
 }
 
 // Original Ruby source (line-for-line):

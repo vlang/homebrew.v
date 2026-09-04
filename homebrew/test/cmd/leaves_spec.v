@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 import homebrew.cmd as cmd_core
 
 fn leaves_spec_formula(name string, possible_names []string, tab_dependencies []string, has_tab bool) cmd_core.LeavesFormula {
@@ -16,32 +16,32 @@ fn leaves_spec_formula(name string, possible_names []string, tab_dependencies []
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "prints nothing" do` at line 11.
-pub fn ruby_leaves_spec_l11_d1_prints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(cmd_core.formula_leaves([], [], .all) == []string{})
+pub fn ruby_leaves_spec_l11_d1_prints(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(cmd_core.formula_leaves([], [], .all) == []string{})
 }
 
 // Ruby it `it "prints all installed Formulae" do` at line 22.
-pub fn ruby_leaves_spec_l22_d2_prints(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_leaves_spec_l22_d2_prints(args ...ruby.Value) ruby.Value {
 	formula := leaves_spec_formula('foo', ['foo'], [], false)
-	return brew_runtime.bool_value(cmd_core.formula_leaves([formula], [], .all) == [
+	return ruby.bool_value(cmd_core.formula_leaves([formula], [], .all) == [
 		'foo',
 	])
 }
 
 // Ruby it `it "prints all installed Formulae that are not dependencies of another installed Formula", :integration_test do` at line 41.
-pub fn ruby_leaves_spec_l41_d3_prints(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_leaves_spec_l41_d3_prints(args ...ruby.Value) ruby.Value {
 	foo := leaves_spec_formula('foo', ['foo'], [], false)
 	bar := leaves_spec_formula('bar', ['bar'], ['homebrew/core/foo'], true)
-	return brew_runtime.bool_value(cmd_core.formula_leaves([foo, bar], [], .all) == [
+	return ruby.bool_value(cmd_core.formula_leaves([foo, bar], [], .all) == [
 		'bar',
 	])
 }
 
 // Ruby it `it "does not list a renamed formula as a leaf when a stale tab records its old name" do` at line 53.
-pub fn ruby_leaves_spec_l53_d4_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_leaves_spec_l53_d4_does(args ...ruby.Value) ruby.Value {
 	renamed := leaves_spec_formula('newname', ['newname', 'foo'], [], false)
 	bar := leaves_spec_formula('bar', ['bar'], ['homebrew/core/foo'], true)
-	return brew_runtime.bool_value(cmd_core.formula_leaves([renamed, bar], [], .all) == [
+	return ruby.bool_value(cmd_core.formula_leaves([renamed, bar], [], .all) == [
 		'bar',
 	])
 }

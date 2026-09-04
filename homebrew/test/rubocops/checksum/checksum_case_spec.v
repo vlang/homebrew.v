@@ -1,14 +1,14 @@
 module checksum
 
-import brew_runtime
+import ruby
 import homebrew.rubocops as checksum_core
 
 // Translated from Homebrew/brew `test/rubocops/checksum/checksum_case_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
-pub fn ruby_checksum_case_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::ChecksumCase', 'FormulaAudit/ChecksumCase')
+pub fn ruby_checksum_case_spec_l7_d1_cop(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('RuboCop::Cop::FormulaAudit::ChecksumCase', 'FormulaAudit/ChecksumCase')
 }
 
 // Ruby it `it "reports an offense if a checksum contains uppercase letters" do` at line 10.

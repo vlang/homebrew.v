@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `dev-cmd/pr-upload.rb`.
@@ -31,7 +31,7 @@ pub:
 pub struct PrUploadResult {
 pub:
 	json_files             []string
-	bottles                map[string]brew_runtime.Value
+	bottles                map[string]ruby.Value
 	bottle_args            []string
 	audit_args             []string
 	messages               []string
@@ -53,22 +53,22 @@ pub:
 	options PrUploadOptions
 }
 
-fn pr_upload_error(kind string, message string) brew_runtime.Value {
-	return brew_runtime.object_value(kind, message)
+fn pr_upload_error(kind string, message string) ruby.Value {
+	return ruby.object_value(kind, message)
 }
 
-fn pr_upload_nested_map(value brew_runtime.Value, key string) !map[string]brew_runtime.Value {
+fn pr_upload_nested_map(value ruby.Value, key string) !map[string]ruby.Value {
 	nested := value.map_data[key] or { return error('missing ${key}') }
 	return nested.as_map() or { return error('${key} must be a Hash') }
 }
 
-fn pr_upload_deep_merge(left map[string]brew_runtime.Value,
-	right map[string]brew_runtime.Value) map[string]brew_runtime.Value {
+fn pr_upload_deep_merge(left map[string]ruby.Value,
+	right map[string]ruby.Value) map[string]ruby.Value {
 	mut merged := left.clone()
 	for key, right_value in right {
 		if left_value := merged[key] {
 			if left_value.type_name == 'Hash' && right_value.type_name == 'Hash' {
-				merged[key] = brew_runtime.map_value(pr_upload_deep_merge(left_value.map_data, right_value.map_data))
+				merged[key] = ruby.map_value(pr_upload_deep_merge(left_value.map_data, right_value.map_data))
 				continue
 			}
 		}
@@ -78,11 +78,11 @@ fn pr_upload_deep_merge(left map[string]brew_runtime.Value,
 }
 
 pub fn pr_upload_bottles_hash_from_json_files(json_files []string,
-	root_url string) !map[string]brew_runtime.Value {
-	mut bottles := map[string]brew_runtime.Value{}
+	root_url string) !map[string]ruby.Value {
+	mut bottles := map[string]ruby.Value{}
 	for json_file in json_files {
 		contents := os.read_file(json_file) or { return error('${json_file}: ${err.msg()}') }
-		parsed_value := brew_runtime.parse_json_value(contents) or {
+		parsed_value := ruby.parse_json_value(contents) or {
 			return error('${json_file}: ${err.msg()}')
 		}
 		parsed := parsed_value.as_map() or { return error('${json_file}: JSON root must be an object') }
@@ -96,27 +96,27 @@ pub fn pr_upload_bottles_hash_from_json_files(json_files []string,
 			mut bottle := pr_upload_nested_map(bottle_value, 'bottle') or {
 				return error('${name}: ${err.msg()}')
 			}
-			bottle['root_url'] = brew_runtime.string_value(root_url)
-			bottle_hash['bottle'] = brew_runtime.map_value(bottle)
-			bottles[name] = brew_runtime.map_value(bottle_hash)
+			bottle['root_url'] = ruby.string_value(root_url)
+			bottle_hash['bottle'] = ruby.map_value(bottle)
+			bottles[name] = ruby.map_value(bottle_hash)
 		}
 	}
 	return bottles
 }
 
-fn pr_upload_formula_version(bottle_hash brew_runtime.Value) !string {
+fn pr_upload_formula_version(bottle_hash ruby.Value) !string {
 	formula := pr_upload_nested_map(bottle_hash, 'formula')!
 	version := formula['pkg_version'] or { return error('missing formula.pkg_version') }
 	return version.as_string()
 }
 
-fn pr_upload_formula_path(bottle_hash brew_runtime.Value) !string {
+fn pr_upload_formula_path(bottle_hash ruby.Value) !string {
 	formula := pr_upload_nested_map(bottle_hash, 'formula')!
 	path := formula['path'] or { return error('missing formula.path') }
 	return path.as_string()
 }
 
-pub fn check_pr_upload_bottled_formulae(bottles map[string]brew_runtime.Value,
+pub fn check_pr_upload_bottled_formulae(bottles map[string]ruby.Value,
 	formula_versions map[string]string) ! {
 	for name, bottle_hash in bottles {
 		bottle_version := pr_upload_formula_version(bottle_hash)!
@@ -165,7 +165,7 @@ fn pr_upload_github_packages_root(root_url string) bool {
 		&& pr_upload_component_valid(parts[1])
 }
 
-pub fn pr_upload_github_releases(bottles map[string]brew_runtime.Value) bool {
+pub fn pr_upload_github_releases(bottles map[string]ruby.Value) bool {
 	for _, bottle_hash in bottles {
 		bottle := pr_upload_nested_map(bottle_hash, 'bottle') or { return false }
 		root_url := bottle['root_url'] or { return false }
@@ -176,7 +176,7 @@ pub fn pr_upload_github_releases(bottles map[string]brew_runtime.Value) bool {
 	return true
 }
 
-pub fn pr_upload_github_packages(bottles map[string]brew_runtime.Value) bool {
+pub fn pr_upload_github_packages(bottles map[string]ruby.Value) bool {
 	for _, bottle_hash in bottles {
 		bottle := pr_upload_nested_map(bottle_hash, 'bottle') or { return false }
 		root_url := bottle['root_url'] or { return false }
@@ -345,41 +345,41 @@ pub fn run_pr_upload(options PrUploadOptions) !PrUploadResult {
 	}
 }
 
-pub fn pr_upload_input_boundary(input &PrUploadInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::PrUpload::Input', '', {
+pub fn pr_upload_input_boundary(input &PrUploadInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::PrUpload::Input', '', {
 		'pr_upload_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn pr_upload_input_from_value(value brew_runtime.Value) !&PrUploadInput {
+fn pr_upload_input_from_value(value ruby.Value) !&PrUploadInput {
 	address := value.attributes['pr_upload_input_address'] or {
 		return error('invalid PrUpload input')
 	}
 	return unsafe { &PrUploadInput(voidptr(address.u64())) }
 }
 
-fn pr_upload_result_value(result PrUploadResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'json_files':             brew_runtime.string_array_value(result.json_files)
-		'bottles':                brew_runtime.map_value(result.bottles)
-		'bottle_args':            brew_runtime.string_array_value(result.bottle_args)
-		'audit_args':             brew_runtime.string_array_value(result.audit_args)
-		'messages':               brew_runtime.string_array_value(result.messages)
-		'service':                brew_runtime.string_value(result.service)
-		'committer_name':         brew_runtime.string_value(result.committer_name)
-		'committer_email':        brew_runtime.string_value(result.committer_email)
-		'install_bundler_gems':   brew_runtime.bool_value(result.install_bundler_gems)
-		'merge_bottles':          brew_runtime.bool_value(result.merge_bottles)
-		'upload_bottles':         brew_runtime.bool_value(result.upload_bottles)
-		'keep_old':               brew_runtime.bool_value(result.keep_old)
-		'dry_run':                brew_runtime.bool_value(result.dry_run)
-		'warn_on_upload_failure': brew_runtime.bool_value(result.warn_on_upload_failure)
-		'returned_before_upload': brew_runtime.bool_value(result.returned_before_upload)
+fn pr_upload_result_value(result PrUploadResult) ruby.Value {
+	return ruby.map_value({
+		'json_files':             ruby.string_array_value(result.json_files)
+		'bottles':                ruby.map_value(result.bottles)
+		'bottle_args':            ruby.string_array_value(result.bottle_args)
+		'audit_args':             ruby.string_array_value(result.audit_args)
+		'messages':               ruby.string_array_value(result.messages)
+		'service':                ruby.string_value(result.service)
+		'committer_name':         ruby.string_value(result.committer_name)
+		'committer_email':        ruby.string_value(result.committer_email)
+		'install_bundler_gems':   ruby.bool_value(result.install_bundler_gems)
+		'merge_bottles':          ruby.bool_value(result.merge_bottles)
+		'upload_bottles':         ruby.bool_value(result.upload_bottles)
+		'keep_old':               ruby.bool_value(result.keep_old)
+		'dry_run':                ruby.bool_value(result.dry_run)
+		'warn_on_upload_failure': ruby.bool_value(result.warn_on_upload_failure)
+		'returned_before_upload': ruby.bool_value(result.returned_before_upload)
 	})
 }
 
 // Ruby method `run` at line 47.
-pub fn ruby_pr_upload_l47_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pr_upload_l47_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return pr_upload_error('ArgumentError', 'command input is required')
 	}
@@ -391,7 +391,7 @@ pub fn ruby_pr_upload_l47_d1_run(args ...brew_runtime.Value) brew_runtime.Value 
 }
 
 // Ruby method `check_bottled_formulae!(bottles_hash)` at line 132.
-pub fn ruby_pr_upload_l132_d2_check_bottled_formulae(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pr_upload_l132_d2_check_bottled_formulae(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return pr_upload_error('ArgumentError', 'bottles_hash is required')
 	}
@@ -405,29 +405,29 @@ pub fn ruby_pr_upload_l132_d2_check_bottled_formulae(args ...brew_runtime.Value)
 	check_pr_upload_bottled_formulae(bottles, formula_versions) or {
 		return pr_upload_error('RuntimeError', err.msg())
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `github_releases?(bottles_hash)` at line 144.
-pub fn ruby_pr_upload_l144_d3_github_releases(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pr_upload_l144_d3_github_releases(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return pr_upload_error('ArgumentError', 'bottles_hash is required')
 	}
 	bottles := args[0].as_map() or { return pr_upload_error('TypeError', err.msg()) }
-	return brew_runtime.bool_value(pr_upload_github_releases(bottles))
+	return ruby.bool_value(pr_upload_github_releases(bottles))
 }
 
 // Ruby method `github_packages?(bottles_hash)` at line 155.
-pub fn ruby_pr_upload_l155_d4_github_packages(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pr_upload_l155_d4_github_packages(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return pr_upload_error('ArgumentError', 'bottles_hash is required')
 	}
 	bottles := args[0].as_map() or { return pr_upload_error('TypeError', err.msg()) }
-	return brew_runtime.bool_value(pr_upload_github_packages(bottles))
+	return ruby.bool_value(pr_upload_github_packages(bottles))
 }
 
 // Ruby method `bottles_hash_from_json_files(json_files, args)` at line 162.
-pub fn ruby_pr_upload_l162_d5_bottles_hash_from_json_files(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pr_upload_l162_d5_bottles_hash_from_json_files(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return pr_upload_error('ArgumentError', 'json_files is required')
 	}
@@ -441,7 +441,7 @@ pub fn ruby_pr_upload_l162_d5_bottles_hash_from_json_files(args ...brew_runtime.
 	bottles := pr_upload_bottles_hash_from_json_files(json_files, root_url) or {
 		return pr_upload_error('Error', err.msg())
 	}
-	return brew_runtime.map_value(bottles)
+	return ruby.map_value(bottles)
 }
 
 // Original Ruby source (line-for-line):

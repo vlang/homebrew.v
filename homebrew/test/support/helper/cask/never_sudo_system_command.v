@@ -1,6 +1,6 @@
 module cask
 
-import brew_runtime
+import ruby
 import homebrew
 
 // Translated from Homebrew/brew `test/support/helper/cask/never_sudo_system_command.rb`.
@@ -28,28 +28,28 @@ pub fn never_sudo_system_command(command string,
 }
 
 // Ruby method `self.run(command, **options)` at line 7.
-pub fn ruby_never_sudo_system_command_l7_d1_self_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_never_sudo_system_command_l7_d1_self_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'command is required')
+		return ruby.object_value('ArgumentError', 'command is required')
 	}
 	option_values := if args.len > 1 {
-		args[1].as_map() or { map[string]brew_runtime.Value{} }
+		args[1].as_map() or { map[string]ruby.Value{} }
 	} else {
-		map[string]brew_runtime.Value{}
+		map[string]ruby.Value{}
 	}
 	result := never_sudo_system_command(args[0].as_string(), homebrew.SystemCommandOptions{
-		args: (option_values['args'] or { brew_runtime.string_array_value([]) }).as_string_array() or { [] }
-		input: (option_values['input'] or { brew_runtime.string_array_value([]) }).as_string_array() or { [] }
-		must_succeed: (option_values['must_succeed'] or { brew_runtime.bool_value(false) }).bool_data
+		args: (option_values['args'] or { ruby.string_array_value([]) }).as_string_array() or { [] }
+		input: (option_values['input'] or { ruby.string_array_value([]) }).as_string_array() or { [] }
+		must_succeed: (option_values['must_succeed'] or { ruby.bool_value(false) }).bool_data
 		sudo: true
 		sudo_as_root: true
-	}) or { return brew_runtime.object_value('SystemCommand::Error', err.msg()) }
-	return brew_runtime.map_value({
-		'stdout':       brew_runtime.string_value(result.stdout_text())
-		'stderr':       brew_runtime.string_value(result.stderr_text())
-		'success':      brew_runtime.bool_value(result.success())
-		'sudo':         brew_runtime.bool_value(false)
-		'sudo_as_root': brew_runtime.bool_value(false)
+	}) or { return ruby.object_value('SystemCommand::Error', err.msg()) }
+	return ruby.map_value({
+		'stdout':       ruby.string_value(result.stdout_text())
+		'stderr':       ruby.string_value(result.stderr_text())
+		'success':      ruby.bool_value(result.success())
+		'sudo':         ruby.bool_value(false)
+		'sudo_as_root': ruby.bool_value(false)
 	})
 }
 

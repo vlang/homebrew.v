@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `dev-cmd/style.rb`.
@@ -104,55 +104,55 @@ pub:
 	options StyleCommandOptions
 }
 
-pub fn style_command_input_boundary(input &StyleCommandInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::StyleCmd::Input', '', {
+pub fn style_command_input_boundary(input &StyleCommandInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::StyleCmd::Input', '', {
 		'style_command_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn style_command_input_from_value(value brew_runtime.Value) &StyleCommandInput {
+fn style_command_input_from_value(value ruby.Value) &StyleCommandInput {
 	address := value.attributes['style_command_input_address'] or {
 		panic('invalid StyleCmd input')
 	}
 	return unsafe { &StyleCommandInput(voidptr(address.u64())) }
 }
 
-fn style_command_result_value(result StyleCommandResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'bundler_groups': brew_runtime.string_array_value(result.bundler_groups)
-		'target': brew_runtime.string_array_value(result.target)
-		'fix': brew_runtime.bool_value(result.fix)
-		'todo': brew_runtime.bool_value(result.todo)
-		'reset_cache': brew_runtime.bool_value(result.reset_cache)
-		'debug': brew_runtime.bool_value(result.debug)
-		'verbose': brew_runtime.bool_value(result.verbose)
-		'only_cops': brew_runtime.string_array_value(result.only_cops)
-		'except_cops': brew_runtime.string_array_value(result.except_cops)
-		'style_checked': brew_runtime.bool_value(result.style_checked)
-		'warnings': brew_runtime.string_array_value(result.warnings)
-		'failed': brew_runtime.bool_value(result.failed)
+fn style_command_result_value(result StyleCommandResult) ruby.Value {
+	return ruby.map_value({
+		'bundler_groups': ruby.string_array_value(result.bundler_groups)
+		'target': ruby.string_array_value(result.target)
+		'fix': ruby.bool_value(result.fix)
+		'todo': ruby.bool_value(result.todo)
+		'reset_cache': ruby.bool_value(result.reset_cache)
+		'debug': ruby.bool_value(result.debug)
+		'verbose': ruby.bool_value(result.verbose)
+		'only_cops': ruby.string_array_value(result.only_cops)
+		'except_cops': ruby.string_array_value(result.except_cops)
+		'style_checked': ruby.bool_value(result.style_checked)
+		'warnings': ruby.string_array_value(result.warnings)
+		'failed': ruby.bool_value(result.failed)
 	})
 }
 
 // Ruby method `run` at line 52.
-pub fn ruby_style_l52_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_style_l52_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'command input is required')
+		return ruby.object_value('ArgumentError', 'command input is required')
 	}
 	return style_command_result_value(run_style_command(style_command_input_from_value(args[0]).options) or {
-		return brew_runtime.object_value('UsageError', err.msg())
+		return ruby.object_value('UsageError', err.msg())
 	})
 }
 
 // Ruby method `changed_ruby_or_shell_files` at line 94.
-pub fn ruby_style_l94_d2_changed_ruby_or_shell_files(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_style_l94_d2_changed_ruby_or_shell_files(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'command input is required')
+		return ruby.object_value('ArgumentError', 'command input is required')
 	}
 	options := style_command_input_from_value(args[0]).options
-	return brew_runtime.string_array_value(changed_ruby_or_shell_files(options.repository,
+	return ruby.string_array_value(changed_ruby_or_shell_files(options.repository,
 		options.rev_parse_success, options.changed_files) or {
-		return brew_runtime.object_value('Error', err.msg())
+		return ruby.object_value('Error', err.msg())
 	})
 }
 

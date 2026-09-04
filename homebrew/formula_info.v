@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 import x.json2
 
 // Translated from Homebrew/brew `formula_info.rb`.
@@ -125,48 +125,48 @@ pub fn (formula FormulaInfo) pkg_version(spec_type string) !PkgVersion {
 	return new_pkg_version(formula.version(spec_type)!, formula.revision())
 }
 
-fn formula_info_value(formula &FormulaInfo) brew_runtime.Value {
-	return brew_runtime.structured_value('FormulaInfo', json2.encode(json2.Any(formula.info)), {
+fn formula_info_value(formula &FormulaInfo) ruby.Value {
+	return ruby.structured_value('FormulaInfo', json2.encode(json2.Any(formula.info)), {
 		'formula_info_address': u64(voidptr(formula)).str()
 	})
 }
 
-fn formula_info_from_value(value brew_runtime.Value) &FormulaInfo {
+fn formula_info_from_value(value ruby.Value) &FormulaInfo {
 	address := value.attributes['formula_info_address'] or { panic('invalid FormulaInfo') }
 	return unsafe { &FormulaInfo(voidptr(address.u64())) }
 }
 
-pub fn formula_info_boundary(formula &FormulaInfo) brew_runtime.Value {
+pub fn formula_info_boundary(formula &FormulaInfo) ruby.Value {
 	return formula_info_value(formula)
 }
 
-fn formula_info_map_value(values map[string]string) brew_runtime.Value {
-	mut result := map[string]brew_runtime.Value{}
+fn formula_info_map_value(values map[string]string) ruby.Value {
+	mut result := map[string]ruby.Value{}
 	for key, value in values {
-		result[key] = brew_runtime.string_value(value)
+		result[key] = ruby.string_value(value)
 	}
-	return brew_runtime.map_value(result)
+	return ruby.map_value(result)
 }
 
 // Ruby attr_accessor `attr_accessor :info` at line 8.
-pub fn ruby_formula_info_l8_d1_info(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_info_l8_d1_info(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'FormulaInfo is required')
+		return ruby.object_value('ArgumentError', 'FormulaInfo is required')
 	}
 	formula := formula_info_from_value(args[0])
-	return brew_runtime.object_value('Hash', json2.encode(json2.Any(formula.info)))
+	return ruby.object_value('Hash', json2.encode(json2.Any(formula.info)))
 }
 
 // Ruby attr_accessor `attr_accessor :info` at line 8.
-pub fn ruby_formula_info_l8_d2_info(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_info_l8_d2_info(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'FormulaInfo and info are required')
+		return ruby.object_value('ArgumentError', 'FormulaInfo and info are required')
 	}
 	decoded := json2.decode[json2.Any](args[1].as_string()) or {
-		return brew_runtime.object_value('JSON::ParserError', err.msg())
+		return ruby.object_value('JSON::ParserError', err.msg())
 	}
 	if decoded !is map[string]json2.Any {
-		return brew_runtime.object_value('TypeError', 'info must be a Hash')
+		return ruby.object_value('TypeError', 'info must be a Hash')
 	}
 	mut formula := formula_info_from_value(args[0])
 	formula.info = (decoded as map[string]json2.Any).clone()
@@ -174,34 +174,34 @@ pub fn ruby_formula_info_l8_d2_info(args ...brew_runtime.Value) brew_runtime.Val
 }
 
 // Ruby method `initialize(info)` at line 11.
-pub fn ruby_formula_info_l11_d3_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_info_l11_d3_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'info is required')
+		return ruby.object_value('ArgumentError', 'info is required')
 	}
 	formula := formula_info_from_json(args[0].as_string(), if args.len > 1 {
 		args[1].as_string()
 	} else {
 		''
-	}) or { return brew_runtime.object_value('JSON::ParserError', err.msg()) }
+	}) or { return ruby.object_value('JSON::ParserError', err.msg()) }
 	return formula_info_value(formula)
 }
 
 // Ruby method `self.lookup(name)` at line 18.
-pub fn ruby_formula_info_l18_d4_self_lookup(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_info_l18_d4_self_lookup(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	success := if args.len > 2 { args[2].bool_data } else { true }
 	native_tag := if args.len > 3 { args[3].as_string() } else { '' }
 	formula := formula_info_lookup_output(args[1].as_string(), success, native_tag) or {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	return formula_info_value(formula)
 }
 
 // Ruby method `bottle_tags` at line 34.
-pub fn ruby_formula_info_l34_d5_bottle_tags(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(if args.len > 0 {
+pub fn ruby_formula_info_l34_d5_bottle_tags(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(if args.len > 0 {
 		formula_info_from_value(args[0]).bottle_tags()
 	} else {
 		[]
@@ -209,64 +209,64 @@ pub fn ruby_formula_info_l34_d5_bottle_tags(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby method `bottle_info(my_bottle_tag = Utils::Bottles.tag)` at line 43.
-pub fn ruby_formula_info_l43_d6_bottle_info(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_info_l43_d6_bottle_info(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	formula := formula_info_from_value(args[0])
 	tag := if args.len > 1 { args[1].as_string() } else { formula.native_bottle_tag }
-	info := formula.bottle_info(tag) or { return brew_runtime.object_value('NilClass', 'nil') }
+	info := formula.bottle_info(tag) or { return ruby.object_value('NilClass', 'nil') }
 	return formula_info_map_value(info)
 }
 
 // Ruby method `bottle_info_any` at line 54.
-pub fn ruby_formula_info_l54_d7_bottle_info_any(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_info_l54_d7_bottle_info_any(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	info := formula_info_from_value(args[0]).bottle_info_any() or {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	return formula_info_map_value(info)
 }
 
 // Ruby method `any_bottle_tag` at line 59.
-pub fn ruby_formula_info_l59_d8_any_bottle_tag(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_info_l59_d8_any_bottle_tag(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	tag := formula_info_from_value(args[0]).any_bottle_tag() or {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
-	return brew_runtime.string_value(tag)
+	return ruby.string_value(tag)
 }
 
 // Ruby method `version(spec_type)` at line 66.
-pub fn ruby_formula_info_l66_d9_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_info_l66_d9_version(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'FormulaInfo and spec type are required')
+		return ruby.object_value('ArgumentError', 'FormulaInfo and spec type are required')
 	}
 	version := formula_info_from_value(args[0]).version(args[1].as_string()) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
-	return brew_runtime.object_value('Version', version.to_s())
+	return ruby.object_value('Version', version.to_s())
 }
 
 // Ruby method `pkg_version(spec_type = :stable)` at line 72.
-pub fn ruby_formula_info_l72_d10_pkg_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_info_l72_d10_pkg_version(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'FormulaInfo is required')
+		return ruby.object_value('ArgumentError', 'FormulaInfo is required')
 	}
 	spec_type := if args.len > 1 { args[1].as_string() } else { 'stable' }
 	version := formula_info_from_value(args[0]).pkg_version(spec_type) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
-	return brew_runtime.object_value('PkgVersion', version.to_s())
+	return ruby.object_value('PkgVersion', version.to_s())
 }
 
 // Ruby method `revision` at line 77.
-pub fn ruby_formula_info_l77_d11_revision(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(if args.len > 0 {
+pub fn ruby_formula_info_l77_d11_revision(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(if args.len > 0 {
 		formula_info_from_value(args[0]).revision()
 	} else {
 		0
@@ -274,8 +274,8 @@ pub fn ruby_formula_info_l77_d11_revision(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby method `self.force_utf8!(str)` at line 82.
-pub fn ruby_formula_info_l82_d12_self_force_utf8(args ...brew_runtime.Value) brew_runtime.Value {
-	return if args.len > 0 { args[0] } else { brew_runtime.object_value('NilClass', 'nil') }
+pub fn ruby_formula_info_l82_d12_self_force_utf8(args ...ruby.Value) ruby.Value {
+	return if args.len > 0 { args[0] } else { ruby.object_value('NilClass', 'nil') }
 }
 
 // Original Ruby source (line-for-line):

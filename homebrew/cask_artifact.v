@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 import x.json2
 
 // Translated from Homebrew/brew `cask_artifact.rb`.
@@ -9,15 +9,15 @@ import x.json2
 pub struct CaskArtifactConfig {
 pub:
 	raw             string
-	default_values  map[string]brew_runtime.Value
-	env_values      map[string]brew_runtime.Value
-	explicit_values map[string]brew_runtime.Value
+	default_values  map[string]ruby.Value
+	env_values      map[string]ruby.Value
+	explicit_values map[string]ruby.Value
 	ignored_keys    []string
 }
 
 pub struct CaskArtifactInstallStepsContext {
 pub:
-	name          brew_runtime.Value
+	name          ruby.Value
 	token         string
 	version       string
 	staged_path   string
@@ -31,10 +31,10 @@ const cask_artifact_config_keys = ['languages', 'appdir', 'appimagedir', 'keyboa
 	'servicedir', 'input_methoddir', 'internet_plugindir', 'audio_unit_plugindir', 'vst_plugindir',
 	'vst3_plugindir', 'screen_saverdir']
 
-fn cask_artifact_json_value(value json2.Any) !brew_runtime.Value {
+fn cask_artifact_json_value(value json2.Any) !ruby.Value {
 	match value {
 		string {
-			return brew_runtime.string_value(value)
+			return ruby.string_value(value)
 		}
 		[]json2.Any {
 			mut values := []string{}
@@ -44,7 +44,7 @@ fn cask_artifact_json_value(value json2.Any) !brew_runtime.Value {
 				}
 				values << item.str()
 			}
-			return brew_runtime.string_array_value(values)
+			return ruby.string_array_value(values)
 		}
 		else {
 			return error('Cask configuration values must be strings or arrays of strings')
@@ -52,13 +52,13 @@ fn cask_artifact_json_value(value json2.Any) !brew_runtime.Value {
 	}
 }
 
-fn cask_artifact_config_section(value json2.Any, mut ignored []string) !map[string]brew_runtime.Value {
+fn cask_artifact_config_section(value json2.Any, mut ignored []string) !map[string]ruby.Value {
 	match value {
 		json2.Null {
-			return map[string]brew_runtime.Value{}
+			return map[string]ruby.Value{}
 		}
 		map[string]json2.Any {
-			mut section := map[string]brew_runtime.Value{}
+			mut section := map[string]ruby.Value{}
 			for name, item in value {
 				if name !in cask_artifact_config_keys {
 					if name !in ignored {
@@ -100,11 +100,11 @@ pub fn cask_artifact_config_from_json(contents string) !CaskArtifactConfig {
 	}
 }
 
-fn cask_artifact_required(values map[string]brew_runtime.Value, key string) !brew_runtime.Value {
+fn cask_artifact_required(values map[string]ruby.Value, key string) !ruby.Value {
 	return values[key] or { error('KeyError: key not found: "${key}"') }
 }
 
-pub fn new_cask_artifact_install_steps_context(values map[string]brew_runtime.Value) !CaskArtifactInstallStepsContext {
+pub fn new_cask_artifact_install_steps_context(values map[string]ruby.Value) !CaskArtifactInstallStepsContext {
 	name := cask_artifact_required(values, 'name')!
 	token := cask_artifact_required(values, 'token')!.as_string()
 	version := cask_artifact_required(values, 'version')!.as_string()
@@ -127,23 +127,23 @@ pub fn (context CaskArtifactInstallStepsContext) str() string {
 	return context.token
 }
 
-fn cask_artifact_config_value(config CaskArtifactConfig) brew_runtime.Value {
-	return brew_runtime.Value{
+fn cask_artifact_config_value(config CaskArtifactConfig) ruby.Value {
+	return ruby.Value{
 		type_name: 'Cask::Config'
 		repr: config.raw
 		attributes: {
 			'ignored_keys': config.ignored_keys.join('|')
 		}
 		map_data: {
-			'default':  brew_runtime.map_value(config.default_values)
-			'env':      brew_runtime.map_value(config.env_values)
-			'explicit': brew_runtime.map_value(config.explicit_values)
+			'default':  ruby.map_value(config.default_values)
+			'env':      ruby.map_value(config.env_values)
+			'explicit': ruby.map_value(config.explicit_values)
 		}
 	}
 }
 
-fn cask_artifact_context_value(context CaskArtifactInstallStepsContext) brew_runtime.Value {
-	return brew_runtime.Value{
+fn cask_artifact_context_value(context CaskArtifactInstallStepsContext) ruby.Value {
+	return ruby.Value{
 		type_name: 'Cask::InstallStepsContext'
 		repr: context.token
 		attributes: {
@@ -160,9 +160,9 @@ fn cask_artifact_context_value(context CaskArtifactInstallStepsContext) brew_run
 	}
 }
 
-fn cask_artifact_context_from_value(value brew_runtime.Value) !CaskArtifactInstallStepsContext {
-	name := value.map_data['name'] or { brew_runtime.string_value(value.attributes['name'] or { '' }) }
-	config_value := value.map_data['config'] or { brew_runtime.string_value('{}') }
+fn cask_artifact_context_from_value(value ruby.Value) !CaskArtifactInstallStepsContext {
+	name := value.map_data['name'] or { ruby.string_value(value.attributes['name'] or { '' }) }
+	config_value := value.map_data['config'] or { ruby.string_value('{}') }
 	config_json := if config_value.type_name == 'Cask::Config' {
 		config_value.repr
 	} else {
@@ -170,112 +170,112 @@ fn cask_artifact_context_from_value(value brew_runtime.Value) !CaskArtifactInsta
 	}
 	return new_cask_artifact_install_steps_context({
 		'name':          name
-		'token':         brew_runtime.string_value(value.attributes['token'] or { value.as_string() })
-		'version':       brew_runtime.string_value(value.attributes['version'] or { '' })
-		'staged_path':   brew_runtime.string_value(value.attributes['staged_path'] or { '' })
-		'caskroom_path': brew_runtime.string_value(value.attributes['caskroom_path'] or { '' })
-		'home':          brew_runtime.string_value(value.attributes['home'] or { '' })
-		'config':        brew_runtime.string_value(config_json)
+		'token':         ruby.string_value(value.attributes['token'] or { value.as_string() })
+		'version':       ruby.string_value(value.attributes['version'] or { '' })
+		'staged_path':   ruby.string_value(value.attributes['staged_path'] or { '' })
+		'caskroom_path': ruby.string_value(value.attributes['caskroom_path'] or { '' })
+		'home':          ruby.string_value(value.attributes['home'] or { '' })
+		'config':        ruby.string_value(config_json)
 	})
 }
 
 // Ruby attr_reader `attr_reader :name` at line 21.
-pub fn ruby_cask_artifact_l21_d1_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_artifact_l21_d1_name(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	context := cask_artifact_context_from_value(args[0]) or {
-		return brew_runtime.object_value('KeyError', err.msg())
+		return ruby.object_value('KeyError', err.msg())
 	}
 	return context.name
 }
 
 // Ruby attr_reader `attr_reader :token` at line 24.
-pub fn ruby_cask_artifact_l24_d2_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_artifact_l24_d2_token(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_value('')
+		return ruby.string_value('')
 	}
 	context := cask_artifact_context_from_value(args[0]) or {
-		return brew_runtime.object_value('KeyError', err.msg())
+		return ruby.object_value('KeyError', err.msg())
 	}
-	return brew_runtime.string_value(context.token)
+	return ruby.string_value(context.token)
 }
 
 // Ruby attr_reader `attr_reader :version` at line 27.
-pub fn ruby_cask_artifact_l27_d3_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_artifact_l27_d3_version(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_value('')
+		return ruby.string_value('')
 	}
 	context := cask_artifact_context_from_value(args[0]) or {
-		return brew_runtime.object_value('KeyError', err.msg())
+		return ruby.object_value('KeyError', err.msg())
 	}
-	return brew_runtime.string_value(context.version)
+	return ruby.string_value(context.version)
 }
 
 // Ruby attr_reader `attr_reader :staged_path` at line 30.
-pub fn ruby_cask_artifact_l30_d4_staged_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_artifact_l30_d4_staged_path(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	context := cask_artifact_context_from_value(args[0]) or {
-		return brew_runtime.object_value('KeyError', err.msg())
+		return ruby.object_value('KeyError', err.msg())
 	}
-	return brew_runtime.object_value('Pathname', context.staged_path)
+	return ruby.object_value('Pathname', context.staged_path)
 }
 
 // Ruby attr_reader `attr_reader :caskroom_path` at line 33.
-pub fn ruby_cask_artifact_l33_d5_caskroom_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_artifact_l33_d5_caskroom_path(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	context := cask_artifact_context_from_value(args[0]) or {
-		return brew_runtime.object_value('KeyError', err.msg())
+		return ruby.object_value('KeyError', err.msg())
 	}
-	return brew_runtime.object_value('Pathname', context.caskroom_path)
+	return ruby.object_value('Pathname', context.caskroom_path)
 }
 
 // Ruby attr_reader `attr_reader :home` at line 36.
-pub fn ruby_cask_artifact_l36_d6_home(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_artifact_l36_d6_home(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	context := cask_artifact_context_from_value(args[0]) or {
-		return brew_runtime.object_value('KeyError', err.msg())
+		return ruby.object_value('KeyError', err.msg())
 	}
-	return brew_runtime.object_value('Pathname', context.home)
+	return ruby.object_value('Pathname', context.home)
 }
 
 // Ruby attr_reader `attr_reader :config` at line 39.
-pub fn ruby_cask_artifact_l39_d7_config(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_artifact_l39_d7_config(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	context := cask_artifact_context_from_value(args[0]) or {
-		return brew_runtime.object_value('KeyError', err.msg())
+		return ruby.object_value('KeyError', err.msg())
 	}
 	return cask_artifact_config_value(context.config)
 }
 
 // Ruby method `initialize(context)` at line 42.
-pub fn ruby_cask_artifact_l42_d8_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_artifact_l42_d8_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || args[0].type_name != 'Hash' {
-		return brew_runtime.object_value('ArgumentError', 'InstallStepsContext requires a context hash')
+		return ruby.object_value('ArgumentError', 'InstallStepsContext requires a context hash')
 	}
 	context := new_cask_artifact_install_steps_context(args[0].map_data) or {
-		return brew_runtime.object_value('KeyError', err.msg())
+		return ruby.object_value('KeyError', err.msg())
 	}
 	return cask_artifact_context_value(context)
 }
 
 // Ruby method `to_s = token` at line 53.
-pub fn ruby_cask_artifact_l53_d9_to_s(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_artifact_l53_d9_to_s(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_value('')
+		return ruby.string_value('')
 	}
 	context := cask_artifact_context_from_value(args[0]) or {
-		return brew_runtime.object_value('KeyError', err.msg())
+		return ruby.object_value('KeyError', err.msg())
 	}
-	return brew_runtime.string_value(context.str())
+	return ruby.string_value(context.str())
 }
 
 // Original Ruby source (line-for-line):

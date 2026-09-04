@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `cmd/tap.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -73,50 +73,50 @@ pub fn run_tap_command(request TapCommandRequest) !TapCommandResult {
 	}
 }
 
-pub fn tap_command_tap_to_value(tap TapCommandTap) brew_runtime.Value {
-	return brew_runtime.structured_value('Tap', tap.name, {
+pub fn tap_command_tap_to_value(tap TapCommandTap) ruby.Value {
+	return ruby.structured_value('Tap', tap.name, {
 		'name':      tap.name
 		'installed': tap.installed.str()
 	})
 }
 
-fn tap_command_tap_from_value(value brew_runtime.Value) TapCommandTap {
+fn tap_command_tap_from_value(value ruby.Value) TapCommandTap {
 	return TapCommandTap{
 		name: value.attributes['name'] or { value.as_string() }
 		installed: (value.attributes['installed'] or { 'true' }) == 'true'
 	}
 }
 
-pub fn tap_command_result_to_value(result TapCommandResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'listed':         brew_runtime.string_array_value(result.listed)
-		'repaired':       brew_runtime.string_array_value(result.repaired)
+pub fn tap_command_result_to_value(result TapCommandResult) ruby.Value {
+	return ruby.map_value({
+		'listed':         ruby.string_array_value(result.listed)
+		'repaired':       ruby.string_array_value(result.repaired)
 		'installed':      if value := result.installed {
-			brew_runtime.string_value(value)
+			ruby.string_value(value)
 		} else {
-			brew_runtime.object_value('NilClass', 'nil')
+			ruby.object_value('NilClass', 'nil')
 		}
 		'clone_target':   if value := result.clone_target {
-			brew_runtime.string_value(value)
+			ruby.string_value(value)
 		} else {
-			brew_runtime.object_value('NilClass', 'nil')
+			ruby.object_value('NilClass', 'nil')
 		}
-		'already_tapped': brew_runtime.bool_value(result.already_tapped)
-		'output':         brew_runtime.string_value(result.output)
+		'already_tapped': ruby.bool_value(result.already_tapped)
+		'output':         ruby.string_value(result.output)
 	})
 }
 
 // Ruby method `run` at line 43.
-pub fn ruby_tap_l43_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tap_l43_d1_run(args ...ruby.Value) ruby.Value {
 	values := if args.len > 0 {
-		args[0].as_map() or { return brew_runtime.object_value('UsageError', err.msg()) }
+		args[0].as_map() or { return ruby.object_value('UsageError', err.msg()) }
 	} else {
-		map[string]brew_runtime.Value{}
+		map[string]ruby.Value{}
 	}
 	installed_values := if value := values['installed'] {
-		value.as_array() or { []brew_runtime.Value{} }
+		value.as_array() or { []ruby.Value{} }
 	} else {
-		[]brew_runtime.Value{}
+		[]ruby.Value{}
 	}
 	request := TapCommandRequest{
 		named: if value := values['named'] {
@@ -132,7 +132,7 @@ pub fn ruby_tap_l43_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
 		force: if value := values['force'] { value.as_bool() or { false } } else { false }
 	}
 	result := run_tap_command(request) or {
-		return brew_runtime.object_value('Tap::InvalidNameError', err.msg())
+		return ruby.object_value('Tap::InvalidNameError', err.msg())
 	}
 	return tap_command_result_to_value(result)
 }

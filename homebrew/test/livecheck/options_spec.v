@@ -1,6 +1,6 @@
 module livecheck
 
-import brew_runtime
+import ruby
 import homebrew.livecheck as livecheck_core
 
 const livecheck_options_spec_names = ['compressed', 'cookies', 'header', 'homebrew_curl', 'post_form',
@@ -10,124 +10,124 @@ const livecheck_options_spec_names = ['compressed', 'cookies', 'header', 'homebr
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:options) { described_class }` at line 7.
-pub fn ruby_options_spec_l7_d1_options(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Class', 'Homebrew::Livecheck::Options')
+pub fn ruby_options_spec_l7_d1_options(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Class', 'Homebrew::Livecheck::Options')
 }
 
 // Ruby let `let(:cookies) { { "cookie_key" => "cookie_value" } }` at line 9.
-pub fn ruby_options_spec_l9_d2_cookies(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'cookie_key': brew_runtime.string_value('cookie_value')
+pub fn ruby_options_spec_l9_d2_cookies(args ...ruby.Value) ruby.Value {
+	return ruby.map_value({
+		'cookie_key': ruby.string_value('cookie_value')
 	})
 }
 
 // Ruby let `let(:header_string) { "Accept: */*" }` at line 10.
-pub fn ruby_options_spec_l10_d3_header_string(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('Accept: */*')
+pub fn ruby_options_spec_l10_d3_header_string(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('Accept: */*')
 }
 
 // Ruby let `let(:referer_url) { "https://example.com/referer" }` at line 11.
-pub fn ruby_options_spec_l11_d4_referer_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('https://example.com/referer')
+pub fn ruby_options_spec_l11_d4_referer_url(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('https://example.com/referer')
 }
 
 // Ruby let `let(:post_hash) do` at line 12.
-pub fn ruby_options_spec_l12_d5_post_hash(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'empty':   brew_runtime.string_value('')
-		'boolean': brew_runtime.string_value('true')
-		'number':  brew_runtime.string_value('1')
-		'string':  brew_runtime.string_value('a + b = c')
+pub fn ruby_options_spec_l12_d5_post_hash(args ...ruby.Value) ruby.Value {
+	return ruby.map_value({
+		'empty':   ruby.string_value('')
+		'boolean': ruby.string_value('true')
+		'number':  ruby.string_value('1')
+		'string':  ruby.string_value('a + b = c')
 	})
 }
 
 // Ruby let `let(:args) do` at line 20.
-pub fn ruby_options_spec_l20_d6_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_options_spec_l20_d6_args(args ...ruby.Value) ruby.Value {
 	post_hash := ruby_options_spec_l12_d5_post_hash()
-	return brew_runtime.map_value({
-		'compressed':    brew_runtime.bool_value(false)
+	return ruby.map_value({
+		'compressed':    ruby.bool_value(false)
 		'cookies':       ruby_options_spec_l9_d2_cookies()
 		'header':        ruby_options_spec_l10_d3_header_string()
-		'homebrew_curl': brew_runtime.bool_value(true)
+		'homebrew_curl': ruby.bool_value(true)
 		'post_form':     post_hash
 		'post_json':     post_hash
 		'referer':       ruby_options_spec_l11_d4_referer_url()
-		'user_agent':    brew_runtime.Value{ type_name: 'Symbol', repr: 'browser' }
+		'user_agent':    ruby.Value{ type_name: 'Symbol', repr: 'browser' }
 	})
 }
 
 // Ruby let `let(:other_args) do` at line 32.
-pub fn ruby_options_spec_l32_d7_other_args(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'post_form': brew_runtime.map_value({
-			'something': brew_runtime.string_value('else')
+pub fn ruby_options_spec_l32_d7_other_args(args ...ruby.Value) ruby.Value {
+	return ruby.map_value({
+		'post_form': ruby.map_value({
+			'something': ruby.string_value('else')
 		})
 	})
 }
 
 // Ruby let `let(:merged_hash) { args.merge(other_args) }` at line 37.
-pub fn ruby_options_spec_l37_d8_merged_hash(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_options_spec_l37_d8_merged_hash(args ...ruby.Value) ruby.Value {
 	mut values := ruby_options_spec_l20_d6_args().map_data.clone()
 	for key, value in ruby_options_spec_l32_d7_other_args().map_data {
 		values[key] = value
 	}
-	return brew_runtime.map_value(values)
+	return ruby.map_value(values)
 }
 
 // Ruby let `let(:base_options) { options.new(**args) }` at line 38.
-pub fn ruby_options_spec_l38_d9_base_options(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_options_spec_l38_d9_base_options(args ...ruby.Value) ruby.Value {
 	return livecheck_core.livecheck_options_value(livecheck_core.new_livecheck_options(ruby_options_spec_l20_d6_args().map_data))
 }
 
 // Ruby let `let(:other_options) { options.new(**other_args) }` at line 39.
-pub fn ruby_options_spec_l39_d10_other_options(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_options_spec_l39_d10_other_options(args ...ruby.Value) ruby.Value {
 	return livecheck_core.livecheck_options_value(livecheck_core.new_livecheck_options(ruby_options_spec_l32_d7_other_args().map_data))
 }
 
 // Ruby let `let(:merged_options) { options.new(**merged_hash) }` at line 40.
-pub fn ruby_options_spec_l40_d11_merged_options(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_options_spec_l40_d11_merged_options(args ...ruby.Value) ruby.Value {
 	return livecheck_core.livecheck_options_value(livecheck_core.new_livecheck_options(ruby_options_spec_l37_d8_merged_hash().map_data))
 }
 
 // Ruby it `it "returns a Hash of the options that are provided as arguments to the `url` DSL method" do` at line 43.
-pub fn ruby_options_spec_l43_d12_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	values := livecheck_core.new_livecheck_options(map[string]brew_runtime.Value{}).url_options()
+pub fn ruby_options_spec_l43_d12_returns(args ...ruby.Value) ruby.Value {
+	values := livecheck_core.new_livecheck_options(map[string]ruby.Value{}).url_options()
 	if values.len != livecheck_options_spec_names.len {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	for name in livecheck_options_spec_names {
-		value := values[name] or { return brew_runtime.bool_value(false) }
+		value := values[name] or { return ruby.bool_value(false) }
 		if value.type_name != 'NilClass' {
-			return brew_runtime.bool_value(false)
+			return ruby.bool_value(false)
 		}
 	}
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
 // Ruby it `it "returns a Hash of all instance variables" do` at line 58.
-pub fn ruby_options_spec_l58_d13_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	empty := livecheck_core.new_livecheck_options(map[string]brew_runtime.Value{})
+pub fn ruby_options_spec_l58_d13_returns(args ...ruby.Value) ruby.Value {
+	empty := livecheck_core.new_livecheck_options(map[string]ruby.Value{})
 	with_args := livecheck_core.new_livecheck_options(ruby_options_spec_l20_d6_args().map_data)
-	return brew_runtime.bool_value(empty.values.len == 0 && livecheck_options_maps_equal(with_args.values, ruby_options_spec_l20_d6_args().map_data))
+	return ruby.bool_value(empty.values.len == 0 && livecheck_options_maps_equal(with_args.values, ruby_options_spec_l20_d6_args().map_data))
 }
 
 // Ruby it `it "returns a Hash of all instance variables, using String keys" do` at line 67.
-pub fn ruby_options_spec_l67_d14_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	empty_hash := livecheck_core.ruby_options_l54_d2_to_hash(livecheck_core.livecheck_options_value(livecheck_core.new_livecheck_options(map[string]brew_runtime.Value{})))
+pub fn ruby_options_spec_l67_d14_returns(args ...ruby.Value) ruby.Value {
+	empty_hash := livecheck_core.ruby_options_l54_d2_to_hash(livecheck_core.livecheck_options_value(livecheck_core.new_livecheck_options(map[string]ruby.Value{})))
 	args_hash := livecheck_core.ruby_options_l54_d2_to_hash(ruby_options_spec_l38_d9_base_options())
-	return brew_runtime.bool_value(empty_hash.map_data.len == 0 && livecheck_options_maps_equal(args_hash.map_data, ruby_options_spec_l20_d6_args().map_data))
+	return ruby.bool_value(empty_hash.map_data.len == 0 && livecheck_options_maps_equal(args_hash.map_data, ruby_options_spec_l20_d6_args().map_data))
 }
 
 // Ruby it `it "returns an Options object with merged values" do` at line 76.
-pub fn ruby_options_spec_l76_d15_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_options_spec_l76_d15_returns(args ...ruby.Value) ruby.Value {
 	base := livecheck_core.new_livecheck_options(ruby_options_spec_l20_d6_args().map_data)
 	other := livecheck_core.new_livecheck_options(ruby_options_spec_l32_d7_other_args().map_data)
 	merged := livecheck_core.new_livecheck_options(ruby_options_spec_l37_d8_merged_hash().map_data)
-	return brew_runtime.bool_value(base.merge(other).equals(merged) && base.merge(livecheck_core.new_livecheck_options(ruby_options_spec_l32_d7_other_args().map_data)).equals(merged) && base.merge(base).equals(base) && base.merge(livecheck_core.new_livecheck_options(map[string]brew_runtime.Value{})).equals(base))
+	return ruby.bool_value(base.merge(other).equals(merged) && base.merge(livecheck_core.new_livecheck_options(ruby_options_spec_l32_d7_other_args().map_data)).equals(merged) && base.merge(base).equals(base) && base.merge(livecheck_core.new_livecheck_options(map[string]ruby.Value{})).equals(base))
 }
 
 // Ruby it `it "merges values from `other` into `self` and returns `self`" do` at line 89.
-pub fn ruby_options_spec_l89_d16_merges(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_options_spec_l89_d16_merges(args ...ruby.Value) ruby.Value {
 	other := livecheck_core.new_livecheck_options(ruby_options_spec_l32_d7_other_args().map_data)
 	merged := livecheck_core.new_livecheck_options(ruby_options_spec_l37_d8_merged_hash().map_data)
 	mut o1 := livecheck_core.new_livecheck_options(ruby_options_spec_l20_d6_args().map_data)
@@ -139,57 +139,57 @@ pub fn ruby_options_spec_l89_d16_merges(args ...brew_runtime.Value) brew_runtime
 	mut o4 := livecheck_core.new_livecheck_options(ruby_options_spec_l20_d6_args().map_data)
 	r4 := o4.merge_in_place(livecheck_core.new_livecheck_options(ruby_options_spec_l20_d6_args().map_data))
 	mut o5 := livecheck_core.new_livecheck_options(ruby_options_spec_l20_d6_args().map_data)
-	r5 := o5.merge_in_place(livecheck_core.new_livecheck_options(map[string]brew_runtime.Value{}))
+	r5 := o5.merge_in_place(livecheck_core.new_livecheck_options(map[string]ruby.Value{}))
 	mut o6 := livecheck_core.new_livecheck_options(ruby_options_spec_l20_d6_args().map_data)
-	r6 := o6.merge_in_place(livecheck_core.new_livecheck_options(map[string]brew_runtime.Value{}))
+	r6 := o6.merge_in_place(livecheck_core.new_livecheck_options(map[string]ruby.Value{}))
 	base := livecheck_core.new_livecheck_options(ruby_options_spec_l20_d6_args().map_data)
-	return brew_runtime.bool_value(r1.equals(merged) && o1.equals(merged) && r2.equals(merged) && o2.equals(merged) && r3.equals(base) && o3.equals(base) && r4.equals(base) && o4.equals(base) && r5.equals(base) && o5.equals(base) && r6.equals(base) && o6.equals(base))
+	return ruby.bool_value(r1.equals(merged) && o1.equals(merged) && r2.equals(merged) && o2.equals(merged) && r3.equals(base) && o3.equals(base) && r4.equals(base) && o4.equals(base) && r5.equals(base) && o5.equals(base) && r6.equals(base) && o6.equals(base))
 }
 
 // Ruby it `it "skips over hash values without a corresponding Options value" do` at line 115.
-pub fn ruby_options_spec_l115_d17_skips(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_options_spec_l115_d17_skips(args ...ruby.Value) ruby.Value {
 	base := livecheck_core.new_livecheck_options(ruby_options_spec_l20_d6_args().map_data)
 	mut o1 := base
 	result := o1.merge_in_place(livecheck_core.new_livecheck_options({
-		'nonexistent': brew_runtime.bool_value(true)
+		'nonexistent': ruby.bool_value(true)
 	}))
-	return brew_runtime.bool_value(result.equals(base) && o1.equals(base) && 'nonexistent' !in o1.values)
+	return ruby.bool_value(result.equals(base) && o1.equals(base) && 'nonexistent' !in o1.values)
 }
 
 // Ruby it `it "returns true if all instance variables are the same" do` at line 123.
-pub fn ruby_options_spec_l123_d18_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_options_spec_l123_d18_returns(args ...ruby.Value) ruby.Value {
 	first := livecheck_core.new_livecheck_options(ruby_options_spec_l20_d6_args().map_data)
 	second := livecheck_core.new_livecheck_options(ruby_options_spec_l20_d6_args().map_data)
-	empty := livecheck_core.new_livecheck_options(map[string]brew_runtime.Value{})
-	return brew_runtime.bool_value(first.equals(second) && empty.equals(livecheck_core.new_livecheck_options(map[string]brew_runtime.Value{})))
+	empty := livecheck_core.new_livecheck_options(map[string]ruby.Value{})
+	return ruby.bool_value(first.equals(second) && empty.equals(livecheck_core.new_livecheck_options(map[string]ruby.Value{})))
 }
 
 // Ruby it `it "returns false if any instance variables differ" do` at line 133.
-pub fn ruby_options_spec_l133_d19_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(!livecheck_core.new_livecheck_options(map[string]brew_runtime.Value{}).equals(livecheck_core.new_livecheck_options(ruby_options_spec_l20_d6_args().map_data)))
+pub fn ruby_options_spec_l133_d19_returns(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(!livecheck_core.new_livecheck_options(map[string]ruby.Value{}).equals(livecheck_core.new_livecheck_options(ruby_options_spec_l20_d6_args().map_data)))
 }
 
 // Ruby it `it "returns false if other object is not the same class" do` at line 137.
-pub fn ruby_options_spec_l137_d20_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	result := livecheck_core.ruby_options_l108_d6_anonymous(livecheck_core.livecheck_options_value(livecheck_core.new_livecheck_options(map[string]brew_runtime.Value{})), brew_runtime.Value{ type_name: 'Symbol', repr: 'other' })
-	return brew_runtime.bool_value(result.type_name == 'Bool' && !result.bool_data)
+pub fn ruby_options_spec_l137_d20_returns(args ...ruby.Value) ruby.Value {
+	result := livecheck_core.ruby_options_l108_d6_anonymous(livecheck_core.livecheck_options_value(livecheck_core.new_livecheck_options(map[string]ruby.Value{})), ruby.Value{ type_name: 'Symbol', repr: 'other' })
+	return ruby.bool_value(result.type_name == 'Bool' && !result.bool_data)
 }
 
 // Ruby specify `specify do` at line 143.
-pub fn ruby_options_spec_l143_d21_do(args ...brew_runtime.Value) brew_runtime.Value {
-	empty := livecheck_core.ruby_options_l124_d8_empty(livecheck_core.livecheck_options_value(livecheck_core.new_livecheck_options(map[string]brew_runtime.Value{})))
+pub fn ruby_options_spec_l143_d21_do(args ...ruby.Value) ruby.Value {
+	empty := livecheck_core.ruby_options_l124_d8_empty(livecheck_core.livecheck_options_value(livecheck_core.new_livecheck_options(map[string]ruby.Value{})))
 	present := livecheck_core.ruby_options_l124_d8_empty(ruby_options_spec_l38_d9_base_options())
-	return brew_runtime.bool_value(empty.type_name == 'Bool' && empty.bool_data && present.type_name == 'Bool' && !present.bool_data)
+	return ruby.bool_value(empty.type_name == 'Bool' && empty.bool_data && present.type_name == 'Bool' && !present.bool_data)
 }
 
 // Ruby specify `specify do` at line 150.
-pub fn ruby_options_spec_l150_d22_do(args ...brew_runtime.Value) brew_runtime.Value {
-	empty := livecheck_core.ruby_options_l128_d9_present(livecheck_core.livecheck_options_value(livecheck_core.new_livecheck_options(map[string]brew_runtime.Value{})))
+pub fn ruby_options_spec_l150_d22_do(args ...ruby.Value) ruby.Value {
+	empty := livecheck_core.ruby_options_l128_d9_present(livecheck_core.livecheck_options_value(livecheck_core.new_livecheck_options(map[string]ruby.Value{})))
 	present := livecheck_core.ruby_options_l128_d9_present(ruby_options_spec_l38_d9_base_options())
-	return brew_runtime.bool_value(empty.type_name == 'Bool' && !empty.bool_data && present.type_name == 'Bool' && present.bool_data)
+	return ruby.bool_value(empty.type_name == 'Bool' && !empty.bool_data && present.type_name == 'Bool' && present.bool_data)
 }
 
-fn livecheck_options_maps_equal(left map[string]brew_runtime.Value, right map[string]brew_runtime.Value) bool {
+fn livecheck_options_maps_equal(left map[string]ruby.Value, right map[string]ruby.Value) bool {
 	if left.len != right.len {
 		return false
 	}
@@ -202,7 +202,7 @@ fn livecheck_options_maps_equal(left map[string]brew_runtime.Value, right map[st
 	return true
 }
 
-fn livecheck_options_values_equal(left brew_runtime.Value, right brew_runtime.Value) bool {
+fn livecheck_options_values_equal(left ruby.Value, right ruby.Value) bool {
 	if left.type_name != right.type_name || left.repr != right.repr || left.bool_data != right.bool_data || left.int_data != right.int_data || left.string_array_data != right.string_array_data || left.array_data.len != right.array_data.len || left.map_data.len != right.map_data.len {
 		return false
 	}

@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `dev-cmd/ruby.rb`.
@@ -28,15 +28,15 @@ pub fn build_ruby_command_exec_args(options RubyCommandOptions) []string {
 }
 
 // Ruby method `run` at line 26.
-pub fn ruby_ruby_l26_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ruby_l26_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'Ruby exec args and load path are required')
+		return ruby.object_value('ArgumentError', 'Ruby exec args and load path are required')
 	}
 	ruby_exec_args := args[0].as_string_array() or {
-		return brew_runtime.object_value('TypeError', err.msg())
+		return ruby.object_value('TypeError', err.msg())
 	}
 	load_path := args[1].as_string_array() or {
-		return brew_runtime.object_value('TypeError', err.msg())
+		return ruby.object_value('TypeError', err.msg())
 	}
 	require_name := if args.len > 2 && args[2].type_name !in ['Nil', 'NilClass', ''] {
 		?string(args[2].as_string())
@@ -49,7 +49,7 @@ pub fn ruby_ruby_l26_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
 		?string(none)
 	}
 	named := if args.len > 4 { args[4].as_string_array() or { []string{} } } else { []string{} }
-	return brew_runtime.string_array_value(build_ruby_command_exec_args(RubyCommandOptions{
+	return ruby.string_array_value(build_ruby_command_exec_args(RubyCommandOptions{
 		ruby_exec_args: ruby_exec_args
 		load_path: load_path
 		require_name: require_name

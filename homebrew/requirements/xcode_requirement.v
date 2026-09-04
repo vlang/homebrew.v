@@ -1,6 +1,6 @@
 module requirements
 
-import brew_runtime
+import ruby
 import homebrew
 
 // Translated from Homebrew/brew `requirements/xcode_requirement.rb`.
@@ -46,10 +46,10 @@ pub fn (requirement XcodeRequirement) xcode_installed_version(installed bool,
 }
 
 pub fn (requirement XcodeRequirement) satisfied() bool {
-	if brew_runtime.kernel_info().name == 'Linux' {
+	if ruby.kernel_info().name == 'Linux' {
 		return true
 	}
-	installed_version := brew_runtime.environment_value('HOMEBREW_XCODE_VERSION')
+	installed_version := ruby.environment_value('HOMEBREW_XCODE_VERSION')
 	return requirement.xcode_installed_version(installed_version.len > 0, installed_version)
 }
 
@@ -96,7 +96,7 @@ pub fn ruby_xcode_requirement_l28_d3_xcode_installed_version(requirement XcodeRe
 
 // Ruby method `message` at line 36.
 pub fn ruby_xcode_requirement_l36_d4_message(requirement XcodeRequirement) string {
-	return requirement.message(brew_runtime.environment_value('HOMEBREW_LATEST_XCODE_VERSION'), brew_runtime.environment_value('HOMEBREW_MACOS_VERSION'))
+	return requirement.message(ruby.environment_value('HOMEBREW_LATEST_XCODE_VERSION'), ruby.environment_value('HOMEBREW_MACOS_VERSION'))
 }
 
 // Ruby method `inspect` at line 57.

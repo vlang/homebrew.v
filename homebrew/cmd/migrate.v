@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `cmd/migrate.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -51,8 +51,8 @@ pub fn run_migrate_command(packages []MigratePackage, options MigrateOptions) Mi
 	}
 }
 
-pub fn migrate_package_to_value(package MigratePackage) brew_runtime.Value {
-	return brew_runtime.structured_value('MigratePackage', package.old_name, {
+pub fn migrate_package_to_value(package MigratePackage) ruby.Value {
+	return ruby.structured_value('MigratePackage', package.old_name, {
 		'kind':      package.kind.str()
 		'old_name':  package.old_name
 		'new_name':  package.new_name
@@ -60,7 +60,7 @@ pub fn migrate_package_to_value(package MigratePackage) brew_runtime.Value {
 	})
 }
 
-fn migrate_package_from_value(value brew_runtime.Value) MigratePackage {
+fn migrate_package_from_value(value ruby.Value) MigratePackage {
 	return MigratePackage{
 		kind: if (value.attributes['kind'] or { 'formula' }) == 'cask' {
 			MigratePackageKind.cask} else {
@@ -71,27 +71,27 @@ fn migrate_package_from_value(value brew_runtime.Value) MigratePackage {
 	}
 }
 
-pub fn migrate_result_to_value(result MigrateResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'migrated': brew_runtime.string_array_value(result.migrated)
-		'output':   brew_runtime.string_array_value(result.output)
-		'dry_run':  brew_runtime.bool_value(result.dry_run)
+pub fn migrate_result_to_value(result MigrateResult) ruby.Value {
+	return ruby.map_value({
+		'migrated': ruby.string_array_value(result.migrated)
+		'output':   ruby.string_array_value(result.output)
+		'dry_run':  ruby.bool_value(result.dry_run)
 	})
 }
 
 // Ruby method `run` at line 32.
-pub fn ruby_migrate_l32_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrate_l32_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'at least one installed formula or cask is required')
+		return ruby.object_value('ArgumentError', 'at least one installed formula or cask is required')
 	}
-	values := args[0].as_map() or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+	values := args[0].as_map() or { return ruby.object_value('ArgumentError', err.msg()) }
 	package_values := if value := values['packages'] {
-		value.as_array() or { []brew_runtime.Value{} }
+		value.as_array() or { []ruby.Value{} }
 	} else {
-		[]brew_runtime.Value{}
+		[]ruby.Value{}
 	}
 	if package_values.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'at least one installed formula or cask is required')
+		return ruby.object_value('ArgumentError', 'at least one installed formula or cask is required')
 	}
 	options := MigrateOptions{
 		force: if value := values['force'] { value.as_bool() or { false } } else { false }

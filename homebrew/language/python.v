@@ -1,6 +1,6 @@
 module language
 
-import brew_runtime
+import ruby
 import homebrew.utils
 import os
 
@@ -8,38 +8,38 @@ import os
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `self.major_minor_version(python)` at line 16.
-pub fn ruby_python_l16_d1_self_major_minor_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_python_l16_d1_self_major_minor_version(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || args[0].as_string() == '' {
 		return python_error('ArgumentError', 'python is required')
 	}
 	output := if args.len > 1 {
 		args[1].as_string()
 	} else {
-		brew_runtime.run_command(args[0].as_string(), ['--version']).output
+		ruby.run_command(args[0].as_string(), ['--version']).output
 	}
 	version := python_major_minor_from_output(output) or { return python_nil() }
-	return brew_runtime.object_value('Version', version)
+	return ruby.object_value('Version', version)
 }
 
 // Ruby method `self.homebrew_site_packages(python = "python3.7")` at line 24.
-pub fn ruby_python_l24_d2_self_homebrew_site_packages(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_python_l24_d2_self_homebrew_site_packages(args ...ruby.Value) ruby.Value {
 	python := if args.len > 0 { args[0].as_string() } else { 'python3.7' }
 	prefix := if args.len > 1 { args[1].as_string() } else { python_homebrew_prefix() }
 	version_output := if args.len > 2 { args[2].as_string() } else { '' }
-	return brew_runtime.string_value(os.join_path(prefix, python_site_packages(python, version_output)))
+	return ruby.string_value(os.join_path(prefix, python_site_packages(python, version_output)))
 }
 
 // Ruby method `self.site_packages(python = "python3.7")` at line 29.
-pub fn ruby_python_l29_d3_self_site_packages(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_python_l29_d3_self_site_packages(args ...ruby.Value) ruby.Value {
 	python := if args.len > 0 { args[0].as_string() } else { 'python3.7' }
 	version_output := if args.len > 1 { args[1].as_string() } else { '' }
-	return brew_runtime.string_value(python_site_packages(python, version_output))
+	return ruby.string_value(python_site_packages(python, version_output))
 }
 
 // Ruby method `self.each_python(build, &block)` at line 43.
-pub fn ruby_python_l43_d4_self_each_python(args ...brew_runtime.Value) brew_runtime.Value {
-	build := if args.len > 0 { args[0] } else { brew_runtime.map_value({}) }
-	build_map := build.as_map() or { map[string]brew_runtime.Value{} }
+pub fn ruby_python_l43_d4_self_each_python(args ...ruby.Value) ruby.Value {
+	build := if args.len > 0 { args[0] } else { ruby.map_value({}) }
+	build_map := build.as_map() or { map[string]ruby.Value{} }
 	without := python_value_strings(build_map['without'] or { python_nil() })
 	latest := python_value_map(build_map['latest_installed'] or { python_nil() })
 	versions := python_value_map(build_map['versions'] or { python_nil() })
@@ -54,15 +54,15 @@ pub fn ruby_python_l43_d4_self_each_python(args ...brew_runtime.Value) brew_runt
 	}
 	formulae := ['python@3', 'pypy', 'pypy3']
 	interpreters := ['python3', 'pypy', 'pypy3']
-	mut yielded := []brew_runtime.Value{}
+	mut yielded := []ruby.Value{}
 	for index, formula_name in formulae {
 		if formula_name in without {
 			continue
 		}
 		python := interpreters[index]
-		output := (versions[python] or { brew_runtime.string_value('') }).as_string()
+		output := (versions[python] or { ruby.string_value('') }).as_string()
 		version := python_major_minor_from_output(output) or { '' }
-		latest_installed := (latest[formula_name] or { brew_runtime.bool_value(false) }).as_bool() or {
+		latest_installed := (latest[formula_name] or { ruby.bool_value(false) }).as_bool() or {
 			false
 		}
 		pythonpath := if latest_installed {
@@ -77,13 +77,13 @@ pub fn ruby_python_l43_d4_self_each_python(args ...brew_runtime.Value) brew_runt
 		}
 		yielded << python_iteration_value(python, version, pythonpath)
 	}
-	return brew_runtime.array_value(yielded)
+	return ruby.array_value(yielded)
 }
 
 // Ruby method `self.reads_brewed_pth_files?(python)` at line 64.
-pub fn ruby_python_l64_d5_self_reads_brewed_pth_files(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_python_l64_d5_self_reads_brewed_pth_files(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	python := args[0].as_string()
 	site_packages := if args.len > 1 {
@@ -92,11 +92,11 @@ pub fn ruby_python_l64_d5_self_reads_brewed_pth_files(args ...brew_runtime.Value
 		os.join_path(python_homebrew_prefix(), python_site_packages(python, ''))
 	}
 	if !os.is_dir(site_packages) || !python_directory_writable(site_packages) {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	probe_file := os.join_path(site_packages, 'homebrew-pth-probe.pth')
 	os.write_file(probe_file, 'import site; site.homebrew_was_here = True') or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	defer {
 		if os.exists(probe_file) {
@@ -104,43 +104,43 @@ pub fn ruby_python_l64_d5_self_reads_brewed_pth_files(args ...brew_runtime.Value
 		}
 	}
 	if args.len > 2 && args[2].type_name == 'Bool' {
-		return brew_runtime.bool_value(args[2].as_bool() or { false })
+		return ruby.bool_value(args[2].as_bool() or { false })
 	}
-	result := brew_runtime.run_command(python, ['-c', 'import site; assert(site.homebrew_was_here)'])
-	return brew_runtime.bool_value(result.exit_code == 0)
+	result := ruby.run_command(python, ['-c', 'import site; assert(site.homebrew_was_here)'])
+	return ruby.bool_value(result.exit_code == 0)
 }
 
 // Ruby method `self.user_site_packages(python)` at line 78.
-pub fn ruby_python_l78_d6_self_user_site_packages(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_python_l78_d6_self_user_site_packages(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return python_error('ArgumentError', 'python is required')
 	}
 	output := if args.len > 1 {
 		args[1].as_string()
 	} else {
-		brew_runtime.run_command(args[0].as_string(), ['-c',
+		ruby.run_command(args[0].as_string(), ['-c',
 			'import site; print(site.getusersitepackages())']).output
 	}
-	return brew_runtime.string_value(output.trim_space())
+	return ruby.string_value(output.trim_space())
 }
 
 // Ruby method `self.in_sys_path?(python, path)` at line 83.
-pub fn ruby_python_l83_d7_self_in_sys_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_python_l83_d7_self_in_sys_path(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	path := os.real_path(args[1].as_string())
 	if args.len > 2 {
 		paths := python_value_strings(args[2])
-		return brew_runtime.bool_value(paths.any(os.real_path(it) == path))
+		return ruby.bool_value(paths.any(os.real_path(it) == path))
 	}
 	script := 'import os, sys\n[os.path.realpath(p) for p in sys.path].index(os.path.realpath("${args[1].as_string()}"))\n'
-	result := brew_runtime.run_command(args[0].as_string(), ['-c', script])
-	return brew_runtime.bool_value(result.exit_code == 0)
+	result := ruby.run_command(args[0].as_string(), ['-c', script])
+	return ruby.bool_value(result.exit_code == 0)
 }
 
 // Ruby method `python_shebang_rewrite_info(python_path)` at line 107.
-pub fn ruby_python_l107_d8_python_shebang_rewrite_info(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_python_l107_d8_python_shebang_rewrite_info(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return python_error('ArgumentError', 'python path is required')
 	}
@@ -151,11 +151,11 @@ pub fn ruby_python_l107_d8_python_shebang_rewrite_info(args ...brew_runtime.Valu
 }
 
 // Ruby method `detected_python_shebang(formula = T.cast(self, Formula), use_python_from_path: false)` at line 116.
-pub fn ruby_python_l116_d9_detected_python_shebang(args ...brew_runtime.Value) brew_runtime.Value {
-	formula := if args.len > 0 { args[0] } else { brew_runtime.map_value({}) }
+pub fn ruby_python_l116_d9_detected_python_shebang(args ...ruby.Value) ruby.Value {
+	formula := if args.len > 0 { args[0] } else { ruby.map_value({}) }
 	use_python_from_path := if args.len > 1 { args[1].as_bool() or { false } } else { false }
 	if use_python_from_path {
-		return ruby_python_l107_d8_python_shebang_rewrite_info(brew_runtime.string_value('/usr/bin/env python3'))
+		return ruby_python_l107_d8_python_shebang_rewrite_info(ruby.string_value('/usr/bin/env python3'))
 	}
 	formula_map := formula.as_map() or { formula.map_data.clone() }
 	dependencies := python_value_values(formula_map['deps'] or { python_nil() })
@@ -176,17 +176,17 @@ pub fn ruby_python_l116_d9_detected_python_shebang(args ...brew_runtime.Value) b
 	prefix := if args.len > 2 { args[2].as_string() } else { python_homebrew_prefix() }
 	name := python_dependencies[0]
 	path := os.join_path(os.join_path(os.join_path(prefix, 'opt'), name), 'bin/${name.replace('@', '')}')
-	return ruby_python_l107_d8_python_shebang_rewrite_info(brew_runtime.string_value(path))
+	return ruby_python_l107_d8_python_shebang_rewrite_info(ruby.string_value(path))
 }
 
 // Ruby method `virtualenv_create(venv_root, python = "python", formula = T.cast(self, Formula),` at line 159.
-pub fn ruby_python_l159_d10_virtualenv_create(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_python_l159_d10_virtualenv_create(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return python_error('ArgumentError', 'venv_root is required')
 	}
 	root := args[0].as_string()
 	python := if args.len > 1 && args[1].as_string() != '' { args[1].as_string() } else { 'python' }
-	formula := if args.len > 2 { args[2] } else { brew_runtime.map_value({}) }
+	formula := if args.len > 2 { args[2] } else { ruby.map_value({}) }
 	system_site_packages := if args.len > 3 { args[3].as_bool() or { true } } else { true }
 	without_pip := if args.len > 4 { args[4].as_bool() or { true } } else { true }
 	if !without_pip {
@@ -194,7 +194,7 @@ pub fn ruby_python_l159_d10_virtualenv_create(args ...brew_runtime.Value) brew_r
 		version := if version_output != '' {
 			python_major_minor_from_output(version_output) or { '' }
 		} else {
-			version_value := ruby_python_l16_d1_self_major_minor_version(brew_runtime.string_value(python))
+			version_value := ruby_python_l16_d1_self_major_minor_version(ruby.string_value(python))
 			if version_value.type_name == 'Version' { version_value.as_string() } else { '' }
 		}
 		if version == '' || python_version_at_least(version, 3, 12) {
@@ -202,7 +202,7 @@ pub fn ruby_python_l159_d10_virtualenv_create(args ...brew_runtime.Value) brew_r
 		}
 	}
 	mut virtualenv := python_virtualenv_value(formula, root, python)
-	virtualenv = ruby_python_l313_d18_create(virtualenv, brew_runtime.bool_value(system_site_packages), brew_runtime.bool_value(without_pip))
+	virtualenv = ruby_python_l313_d18_create(virtualenv, ruby.bool_value(system_site_packages), ruby.bool_value(without_pip))
 	if virtualenv.type_name.ends_with('Error') {
 		return virtualenv
 	}
@@ -236,30 +236,30 @@ pub fn ruby_python_l159_d10_virtualenv_create(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby method `needs_python?(python)` at line 205.
-pub fn ruby_python_l205_d11_needs_python(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_python_l205_d11_needs_python(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	formula := args[0]
 	python := args[1].as_string()
 	formula_map := formula.as_map() or { formula.map_data.clone() }
 	build_with := python_value_strings(formula_map['build_with'] or { python_nil() })
 	if python in build_with {
-		return brew_runtime.bool_value(true)
+		return ruby.bool_value(true)
 	}
 	mut dependables := python_value_values(formula_map['requirements'] or { python_nil() })
 	dependables << python_value_values(formula_map['deps'] or { python_nil() })
 	for dependable in dependables {
 		if python_name_from_full_name(python_value_field(dependable, 'name')) == python && python_value_bool_field(dependable, 'required', true) {
-			return brew_runtime.bool_value(true)
+			return ruby.bool_value(true)
 		}
 	}
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 // Ruby method `virtualenv_install_with_resources(using: nil, system_site_packages: true, without_pip: true,` at line 229.
-pub fn ruby_python_l229_d12_virtualenv_install_with_resources(args ...brew_runtime.Value) brew_runtime.Value {
-	formula := if args.len > 0 { args[0] } else { brew_runtime.map_value({}) }
+pub fn ruby_python_l229_d12_virtualenv_install_with_resources(args ...ruby.Value) ruby.Value {
+	formula := if args.len > 0 { args[0] } else { ruby.map_value({}) }
 	using := if args.len > 1 { args[1].as_string() } else { '' }
 	without := if args.len > 2 { python_value_strings(args[2]) } else { []string{} }
 	start_with := if args.len > 3 { python_value_strings(args[3]) } else { []string{} }
@@ -274,7 +274,7 @@ pub fn ruby_python_l229_d12_virtualenv_install_with_resources(args ...brew_runti
 		for candidate in python_names(python_value_strings(formula_map['formula_names'] or {
 			python_nil()
 		})) {
-			if ruby_python_l205_d11_needs_python(formula, brew_runtime.string_value(candidate)).as_bool() or {
+			if ruby_python_l205_d11_needs_python(formula, ruby.string_value(candidate)).as_bool() or {
 				false} {
 				wanted << candidate
 			}
@@ -293,27 +293,27 @@ pub fn ruby_python_l229_d12_virtualenv_install_with_resources(args ...brew_runti
 	}
 	root := python_value_field(formula, 'libexec')
 	buildpath := python_value_field(formula, 'buildpath')
-	mut virtualenv := ruby_python_l159_d10_virtualenv_create(brew_runtime.string_value(root), brew_runtime.string_value(python.replace('@', '')), formula, brew_runtime.bool_value(system_site_packages), brew_runtime.bool_value(without_pip))
+	mut virtualenv := ruby_python_l159_d10_virtualenv_create(ruby.string_value(root), ruby.string_value(python.replace('@', '')), formula, ruby.bool_value(system_site_packages), ruby.bool_value(without_pip))
 	if virtualenv.type_name.ends_with('Error') {
 		return virtualenv
 	}
-	install_commands := ruby_python_l383_d19_pip_install(virtualenv, brew_runtime.array_value(ordered), brew_runtime.bool_value(true))
-	link_result := ruby_python_l411_d20_pip_install_and_link(virtualenv, brew_runtime.string_value(buildpath), brew_runtime.bool_value(link_manpages), brew_runtime.bool_value(true))
+	install_commands := ruby_python_l383_d19_pip_install(virtualenv, ruby.array_value(ordered), ruby.bool_value(true))
+	link_result := ruby_python_l411_d20_pip_install_and_link(virtualenv, ruby.string_value(buildpath), ruby.bool_value(link_manpages), ruby.bool_value(true))
 	mut values := virtualenv.map_data.clone()
-	values['resources'] = brew_runtime.array_value(ordered)
+	values['resources'] = ruby.array_value(ordered)
 	values['pip_install'] = install_commands
 	values['pip_install_and_link'] = link_result
 	return python_value_with_map('Language::Python::Virtualenv::Virtualenv', root, values)
 }
 
 // Ruby method `python_names` at line 261.
-pub fn ruby_python_l261_d13_python_names(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_python_l261_d13_python_names(args ...ruby.Value) ruby.Value {
 	formula_names := if args.len > 0 { python_value_strings(args[0]) } else { []string{} }
-	return brew_runtime.string_array_value(python_names(formula_names))
+	return ruby.string_array_value(python_names(formula_names))
 }
 
 // Ruby method `slice_resources!(resources_hash, resource_names)` at line 273.
-pub fn ruby_python_l273_d14_slice_resources(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_python_l273_d14_slice_resources(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		return python_error('ArgumentError', 'resources_hash and resource_names are required')
 	}
@@ -323,13 +323,13 @@ pub fn ruby_python_l273_d14_slice_resources(args ...brew_runtime.Value) brew_run
 		return python_error('ArgumentError', err.msg())
 	}
 	return python_value_with_map('PythonResourceSlice', selected.map(it.repr).str(), {
-		'remaining': brew_runtime.map_value(remaining)
-		'selected':  brew_runtime.array_value(selected)
+		'remaining': ruby.map_value(remaining)
+		'selected':  ruby.array_value(selected)
 	})
 }
 
 // Ruby method `initialize(formula, venv_root, python)` at line 293.
-pub fn ruby_python_l293_d15_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_python_l293_d15_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		return python_error('ArgumentError', 'formula, venv_root and python are required')
 	}
@@ -337,23 +337,23 @@ pub fn ruby_python_l293_d15_initialize(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby method `root` at line 300.
-pub fn ruby_python_l300_d16_root(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_python_l300_d16_root(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return python_error('ArgumentError', 'virtualenv is required')
 	}
-	return brew_runtime.string_value(python_value_field(args[0], 'root'))
+	return ruby.string_value(python_value_field(args[0], 'root'))
 }
 
 // Ruby method `site_packages` at line 305.
-pub fn ruby_python_l305_d17_site_packages(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_python_l305_d17_site_packages(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return python_error('ArgumentError', 'virtualenv is required')
 	}
-	return brew_runtime.string_value(python_virtualenv_site_packages(args[0]))
+	return ruby.string_value(python_virtualenv_site_packages(args[0]))
 }
 
 // Ruby method `create(system_site_packages: true, without_pip: true)` at line 313.
-pub fn ruby_python_l313_d18_create(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_python_l313_d18_create(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return python_error('ArgumentError', 'virtualenv is required')
 	}
@@ -364,7 +364,7 @@ pub fn ruby_python_l313_d18_create(args ...brew_runtime.Value) brew_runtime.Valu
 	without_pip := if args.len > 2 { args[2].as_bool() or { true } } else { true }
 	mut values := virtualenv.map_data.clone()
 	if os.exists(os.join_path(root, 'bin/python')) {
-		values['command'] = brew_runtime.string_array_value([])
+		values['command'] = ruby.string_array_value([])
 		return python_value_with_map(virtualenv.type_name, virtualenv.repr, values)
 	}
 	mut command := [python, '-m', 'venv']
@@ -375,7 +375,7 @@ pub fn ruby_python_l313_d18_create(args ...brew_runtime.Value) brew_runtime.Valu
 		command << '--without-pip'
 	}
 	command << root
-	values['command'] = brew_runtime.string_array_value(command)
+	values['command'] = ruby.string_array_value(command)
 	python_robustify_virtualenv(root, python_homebrew_cellar(), python_homebrew_prefix()) or {
 		return python_error('IOError', err.msg())
 	}
@@ -383,7 +383,7 @@ pub fn ruby_python_l313_d18_create(args ...brew_runtime.Value) brew_runtime.Valu
 }
 
 // Ruby method `pip_install(targets, build_isolation: true)` at line 383.
-pub fn ruby_python_l383_d19_pip_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_python_l383_d19_pip_install(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		return python_error('ArgumentError', 'virtualenv and targets are required')
 	}
@@ -395,14 +395,14 @@ pub fn ruby_python_l383_d19_pip_install(args ...brew_runtime.Value) brew_runtime
 	} else {
 		python_std_pip_args(build_isolation)
 	}
-	mut commands := []brew_runtime.Value{}
+	mut commands := []ruby.Value{}
 	for target in targets {
 		if target.type_name == 'Resource' {
 			stage_path := python_value_field(target, 'stage_path')
 			mut install_target := if stage_path != '' {
 				stage_path
 			} else {
-				brew_runtime.current_directory()
+				ruby.current_directory()
 			}
 			url := python_value_field(target, 'url')
 			basename := python_value_field(target, 'basename')
@@ -418,11 +418,11 @@ pub fn ruby_python_l383_d19_pip_install(args ...brew_runtime.Value) brew_runtime
 			commands << python_pip_command_value(virtualenv, [target.as_string()], std_args)
 		}
 	}
-	return brew_runtime.array_value(commands)
+	return ruby.array_value(commands)
 }
 
 // Ruby method `pip_install_and_link(targets, link_manpages: true, build_isolation: true)` at line 411.
-pub fn ruby_python_l411_d20_pip_install_and_link(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_python_l411_d20_pip_install_and_link(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		return python_error('ArgumentError', 'virtualenv and targets are required')
 	}
@@ -444,7 +444,7 @@ pub fn ruby_python_l411_d20_pip_install_and_link(args ...brew_runtime.Value) bre
 	} else {
 		[]string{}
 	}
-	install_commands := ruby_python_l383_d19_pip_install(virtualenv, args[1], brew_runtime.bool_value(build_isolation))
+	install_commands := ruby_python_l383_d19_pip_install(virtualenv, args[1], ruby.bool_value(build_isolation))
 	bin_after := if args.len > 6 {
 		python_value_strings(args[6])
 	} else {
@@ -482,13 +482,13 @@ pub fn ruby_python_l411_d20_pip_install_and_link(args ...brew_runtime.Value) bre
 	}
 	return python_value_with_map('PythonPipInstallAndLink', root, {
 		'commands':   install_commands
-		'linked_bin': brew_runtime.string_array_value(linked_bin)
-		'linked_man': brew_runtime.string_array_value(linked_man)
+		'linked_bin': ruby.string_array_value(linked_bin)
+		'linked_man': ruby.string_array_value(linked_man)
 	})
 }
 
 // Ruby method `do_install(targets, build_isolation: true)` at line 437.
-pub fn ruby_python_l437_d21_do_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_python_l437_d21_do_install(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		return python_error('ArgumentError', 'virtualenv and targets are required')
 	}
@@ -501,17 +501,17 @@ pub fn ruby_python_l437_d21_do_install(args ...brew_runtime.Value) brew_runtime.
 	return python_pip_command_value(args[0], python_value_strings(args[1]), std_args)
 }
 
-fn python_error(type_name string, message string) brew_runtime.Value {
-	return brew_runtime.object_value(type_name, message)
+fn python_error(type_name string, message string) ruby.Value {
+	return ruby.object_value(type_name, message)
 }
 
-fn python_nil() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', '')
+fn python_nil() ruby.Value {
+	return ruby.object_value('NilClass', '')
 }
 
 fn python_value_with_map(type_name string, representation string,
-	values map[string]brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.Value{
+	values map[string]ruby.Value) ruby.Value {
+	return ruby.Value{
 		type_name: type_name
 		repr: representation
 		map_data: values.clone()
@@ -519,12 +519,12 @@ fn python_value_with_map(type_name string, representation string,
 }
 
 fn python_homebrew_prefix() string {
-	configured := brew_runtime.environment_value('HOMEBREW_PREFIX').trim_right('/')
+	configured := ruby.environment_value('HOMEBREW_PREFIX').trim_right('/')
 	return if configured != '' { configured } else { '/opt/homebrew' }
 }
 
 fn python_homebrew_cellar() string {
-	configured := brew_runtime.environment_value('HOMEBREW_CELLAR').trim_right('/')
+	configured := ruby.environment_value('HOMEBREW_CELLAR').trim_right('/')
 	return if configured != '' {
 		configured
 	} else {
@@ -566,13 +566,13 @@ fn python_site_packages(python string, version_output string) string {
 		}
 	}
 	if version == '' {
-		result := brew_runtime.run_command(python, ['--version'])
+		result := ruby.run_command(python, ['--version'])
 		version = python_major_minor_from_output(result.output) or { '' }
 	}
 	return 'lib/python${version}/site-packages'
 }
 
-fn python_value_strings(value brew_runtime.Value) []string {
+fn python_value_strings(value ruby.Value) []string {
 	if value.type_name == 'NilClass' || value.type_name == '' {
 		return []string{}
 	}
@@ -590,18 +590,18 @@ fn python_value_strings(value brew_runtime.Value) []string {
 	return [value.as_string()]
 }
 
-fn python_value_values(value brew_runtime.Value) []brew_runtime.Value {
+fn python_value_values(value ruby.Value) []ruby.Value {
 	if values := value.as_array() {
 		return values
 	}
-	return []brew_runtime.Value{}
+	return []ruby.Value{}
 }
 
-fn python_value_map(value brew_runtime.Value) map[string]brew_runtime.Value {
-	return value.as_map() or { map[string]brew_runtime.Value{} }
+fn python_value_map(value ruby.Value) map[string]ruby.Value {
+	return value.as_map() or { map[string]ruby.Value{} }
 }
 
-fn python_value_field(value brew_runtime.Value, name string) string {
+fn python_value_field(value ruby.Value, name string) string {
 	if nested := value.map_data[name] {
 		return nested.as_string()
 	}
@@ -611,7 +611,7 @@ fn python_value_field(value brew_runtime.Value, name string) string {
 	return ''
 }
 
-fn python_value_bool_field(value brew_runtime.Value, name string, default_value bool) bool {
+fn python_value_bool_field(value ruby.Value, name string, default_value bool) bool {
 	if nested := value.map_data[name] {
 		return nested.as_bool() or { nested.as_string() == 'true' }
 	}
@@ -621,18 +621,18 @@ fn python_value_bool_field(value brew_runtime.Value, name string, default_value 
 	return default_value
 }
 
-fn python_iteration_value(python string, version string, pythonpath string) brew_runtime.Value {
+fn python_iteration_value(python string, version string, pythonpath string) ruby.Value {
 	return python_value_with_map('PythonIteration', python, {
-		'python':     brew_runtime.string_value(python)
+		'python':     ruby.string_value(python)
 		'version':    if version == '' {
 			python_nil()
 		} else {
-			brew_runtime.object_value('Version', version)
+			ruby.object_value('Version', version)
 		}
 		'pythonpath': if pythonpath == '' {
 			python_nil()
 		} else {
-			brew_runtime.string_value(pythonpath)
+			ruby.string_value(pythonpath)
 		}
 	})
 }
@@ -652,10 +652,10 @@ fn python_version_at_least(version string, major int, minor int) bool {
 	return parts[0].int() > major || (parts[0].int() == major && parts[1].int() >= minor)
 }
 
-fn python_virtualenv_value(formula brew_runtime.Value, root string,
-	python string) brew_runtime.Value {
+fn python_virtualenv_value(formula ruby.Value, root string,
+	python string) ruby.Value {
 	return python_value_with_map('Language::Python::Virtualenv::Virtualenv', root, {
-		'formula': brew_runtime.Value{
+		'formula': ruby.Value{
 			type_name: formula.type_name
 			repr: formula.repr
 			bool_data: formula.bool_data
@@ -666,19 +666,19 @@ fn python_virtualenv_value(formula brew_runtime.Value, root string,
 			map_data: formula.map_data.clone()
 			attributes: formula.attributes.clone()
 		}
-		'root':    brew_runtime.string_value(root)
-		'python':  brew_runtime.string_value(python)
+		'root':    ruby.string_value(root)
+		'python':  ruby.string_value(python)
 	})
 }
 
-fn python_virtualenv_site_packages(virtualenv brew_runtime.Value) string {
+fn python_virtualenv_site_packages(virtualenv ruby.Value) string {
 	root := python_value_field(virtualenv, 'root')
 	python := python_value_field(virtualenv, 'python')
 	version_output := python_value_field(virtualenv, 'python_version_output')
 	return os.join_path(root, python_site_packages(python, version_output))
 }
 
-fn python_dependency_pruned(dependency brew_runtime.Value, formula brew_runtime.Value,
+fn python_dependency_pruned(dependency ruby.Value, formula ruby.Value,
 	python string) bool {
 	if python_value_bool_field(dependency, 'build', false) || python_value_bool_field(dependency, 'test', false) {
 		return true
@@ -713,15 +713,15 @@ fn python_names(formula_names []string) []string {
 	return names
 }
 
-fn python_resource_name(resource brew_runtime.Value) string {
+fn python_resource_name(resource ruby.Value) string {
 	name := python_value_field(resource, 'name')
 	return if name != '' { name } else { resource.repr }
 }
 
-fn python_slice_resources(resources map[string]brew_runtime.Value,
-	names []string) !(map[string]brew_runtime.Value, []brew_runtime.Value) {
+fn python_slice_resources(resources map[string]ruby.Value,
+	names []string) !(map[string]ruby.Value, []ruby.Value) {
 	mut remaining := resources.clone()
-	mut selected := []brew_runtime.Value{}
+	mut selected := []ruby.Value{}
 	for name in names {
 		if name !in remaining {
 			return error('Resource "${name}" is not defined in formula or is already used.')
@@ -732,9 +732,9 @@ fn python_slice_resources(resources map[string]brew_runtime.Value,
 	return remaining, selected
 }
 
-fn python_order_resources(resources []brew_runtime.Value, without []string, start_with []string,
-	end_with []string) ![]brew_runtime.Value {
-	mut resources_hash := map[string]brew_runtime.Value{}
+fn python_order_resources(resources []ruby.Value, without []string, start_with []string,
+	end_with []string) ![]ruby.Value {
+	mut resources_hash := map[string]ruby.Value{}
 	mut resource_order := []string{}
 	for resource in resources {
 		name := python_resource_name(resource)
@@ -769,7 +769,7 @@ fn python_robustify_virtualenv(root string, cellar string, prefix string) ! {
 		cfg := os.read_file(cfg_file)!
 		rewritten := python_rewrite_pyvenv_cfg(cfg, cellar, prefix)
 		if rewritten != cfg {
-			brew_runtime.atomic_write_file(cfg_file, rewritten)!
+			ruby.atomic_write_file(cfg_file, rewritten)!
 		}
 	}
 	bin := os.join_path(root, 'bin')
@@ -837,7 +837,7 @@ fn python_rewrite_orig_prefix_files(root string, cellar string, prefix string) !
 		contents := os.read_file(path)!
 		if formula, suffix := python_cellar_formula(contents, cellar) {
 			rewritten := os.join_path(os.join_path(os.join_path(prefix, 'opt'), formula), suffix)
-			brew_runtime.atomic_write_file(path, rewritten)!
+			ruby.atomic_write_file(path, rewritten)!
 		}
 	}
 }
@@ -859,7 +859,7 @@ fn python_rewrite_pyvenv_cfg(contents string, cellar string, prefix string) stri
 	return output.join('\n')
 }
 
-fn python_targets(value brew_runtime.Value) []brew_runtime.Value {
+fn python_targets(value ruby.Value) []ruby.Value {
 	if value.type_name == 'Array' {
 		return python_value_values(value)
 	}
@@ -887,14 +887,14 @@ fn python_std_pip_args(build_isolation bool) []string {
 	return args
 }
 
-fn python_pip_command_value(virtualenv brew_runtime.Value, targets []string,
-	std_args []string) brew_runtime.Value {
+fn python_pip_command_value(virtualenv ruby.Value, targets []string,
+	std_args []string) ruby.Value {
 	python := python_value_field(virtualenv, 'python')
 	root := python_value_field(virtualenv, 'root')
 	mut command := [python, '-m', 'pip', '--python=${os.join_path(root, 'bin/python')}', 'install']
 	command << std_args
 	command << targets
-	return brew_runtime.string_array_value(command)
+	return ruby.string_array_value(command)
 }
 
 fn python_glob_files(root string, recursive bool) []string {

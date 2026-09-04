@@ -1,6 +1,6 @@
 module mac
 
-import brew_runtime
+import ruby
 
 pub struct MacSystemConfig {
 pub:
@@ -100,17 +100,17 @@ pub fn mac_config_sections(config MacSystemConfig) []string {
 	return sections
 }
 
-fn mac_system_config_value(config &MacSystemConfig) brew_runtime.Value {
-	return brew_runtime.structured_value('SystemConfig', '', {
+fn mac_system_config_value(config &MacSystemConfig) ruby.Value {
+	return ruby.structured_value('SystemConfig', '', {
 		'mac_system_config_address': u64(voidptr(config)).str()
 	})
 }
 
-fn mac_system_config_from_value(value brew_runtime.Value) &MacSystemConfig {
+fn mac_system_config_from_value(value ruby.Value) &MacSystemConfig {
 	return unsafe { &MacSystemConfig(voidptr(value.attributes['mac_system_config_address'].u64())) }
 }
 
-pub fn mac_system_config_boundary(config &MacSystemConfig) brew_runtime.Value {
+pub fn mac_system_config_boundary(config &MacSystemConfig) ruby.Value {
 	return mac_system_config_value(config)
 }
 
@@ -118,48 +118,48 @@ pub fn mac_system_config_boundary(config &MacSystemConfig) brew_runtime.Value {
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `initialize` at line 15.
-pub fn ruby_system_config_l15_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_system_config_l15_d1_initialize(args ...ruby.Value) ruby.Value {
 	config := &MacSystemConfig{}
 	return mac_system_config_value(config)
 }
 
 // Ruby method `describe_clang` at line 22.
-pub fn ruby_system_config_l22_d2_describe_clang(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(mac_describe_clang(*mac_system_config_from_value(args[0])))
+pub fn ruby_system_config_l22_d2_describe_clang(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(mac_describe_clang(*mac_system_config_from_value(args[0])))
 }
 
 // Ruby method `xcode` at line 30.
-pub fn ruby_system_config_l30_d3_xcode(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_system_config_l30_d3_xcode(args ...ruby.Value) ruby.Value {
 	value := mac_system_xcode(*mac_system_config_from_value(args[0])) or {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
-	return brew_runtime.string_value(value)
+	return ruby.string_value(value)
 }
 
 // Ruby method `clt` at line 39.
-pub fn ruby_system_config_l39_d4_clt(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_system_config_l39_d4_clt(args ...ruby.Value) ruby.Value {
 	value := mac_system_clt(*mac_system_config_from_value(args[0])) or {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
-	return brew_runtime.string_value(value)
+	return ruby.string_value(value)
 }
 
 // Ruby method `metal_toolchain` at line 44.
-pub fn ruby_system_config_l44_d5_metal_toolchain(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_system_config_l44_d5_metal_toolchain(args ...ruby.Value) ruby.Value {
 	value := mac_metal_toolchain(*mac_system_config_from_value(args[0])) or {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
-	return brew_runtime.string_value(value)
+	return ruby.string_value(value)
 }
 
 // Ruby method `macos_config(out = $stdout)` at line 60.
-pub fn ruby_system_config_l60_d6_macos_config(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(macos_config_lines(*mac_system_config_from_value(args[0])).join('\n') + '\n')
+pub fn ruby_system_config_l60_d6_macos_config(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(macos_config_lines(*mac_system_config_from_value(args[0])).join('\n') + '\n')
 }
 
 // Ruby method `config_sections` at line 72.
-pub fn ruby_system_config_l72_d7_config_sections(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.array_value(mac_config_sections(*mac_system_config_from_value(args[0])).map(brew_runtime.object_value('Symbol', it)))
+pub fn ruby_system_config_l72_d7_config_sections(args ...ruby.Value) ruby.Value {
+	return ruby.array_value(mac_config_sections(*mac_system_config_from_value(args[0])).map(ruby.object_value('Symbol', it)))
 }
 
 // Original Ruby source (line-for-line):

@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 
 const linkage_cache_types = ['keg_files_dylibs']
 
@@ -11,7 +11,7 @@ pub:
 
 pub struct LinkageCacheDatabase {
 pub mut:
-	entries map[string]map[string]brew_runtime.Value
+	entries map[string]map[string]ruby.Value
 	sets    []string
 	deletes []string
 }
@@ -20,68 +20,68 @@ pub mut:
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `initialize(keg_path, database)` at line 15.
-pub fn ruby_linkage_cache_store_l15_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_linkage_cache_store_l15_d1_initialize(args ...ruby.Value) ruby.Value {
 	keg_path := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.structured_value('LinkageCacheStore', keg_path, {
+	return ruby.structured_value('LinkageCacheStore', keg_path, {
 		'keg_path': keg_path
 		'database': if args.len > 1 { args[1].as_string() } else { 'database' }
 	})
 }
 
 // Ruby method `keg_exists?` at line 22.
-pub fn ruby_linkage_cache_store_l22_d2_keg_exists(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_linkage_cache_store_l22_d2_keg_exists(args ...ruby.Value) ruby.Value {
 	keg_path := if args.len > 0 { args[0].as_string() } else { '' }
 	database := if args.len > 1 {
-		args[1].as_map() or { map[string]brew_runtime.Value{} }
+		args[1].as_map() or { map[string]ruby.Value{} }
 	} else {
-		map[string]brew_runtime.Value{}
+		map[string]ruby.Value{}
 	}
-	return brew_runtime.bool_value(keg_path in database)
+	return ruby.bool_value(keg_path in database)
 }
 
 // Ruby method `update!(hash_values)` at line 31.
-pub fn ruby_linkage_cache_store_l31_d3_update(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_linkage_cache_store_l31_d3_update(args ...ruby.Value) ruby.Value {
 	keg_path := if args.len > 0 { args[0].as_string() } else { '' }
 	values := if args.len > 1 {
-		args[1].as_map() or { map[string]brew_runtime.Value{} }
+		args[1].as_map() or { map[string]ruby.Value{} }
 	} else {
-		map[string]brew_runtime.Value{}
+		map[string]ruby.Value{}
 	}
-	validate_linkage_cache_values(values) or { return brew_runtime.object_value('TypeError', err.msg()) }
-	return brew_runtime.map_value({
-		keg_path: brew_runtime.map_value(values)
+	validate_linkage_cache_values(values) or { return ruby.object_value('TypeError', err.msg()) }
+	return ruby.map_value({
+		keg_path: ruby.map_value(values)
 	})
 }
 
 // Ruby method `fetch(type)` at line 46.
-pub fn ruby_linkage_cache_store_l46_d4_fetch(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_linkage_cache_store_l46_d4_fetch(args ...ruby.Value) ruby.Value {
 	type_name := if args.len > 0 { args[0].as_string() } else { '' }
 	if type_name !in linkage_cache_types {
-		return brew_runtime.object_value('TypeError', "Can't fetch types that are not defined for the linkage store\n")
+		return ruby.object_value('TypeError', "Can't fetch types that are not defined for the linkage store\n")
 	}
 	if args.len < 2 || args[1].type_name == 'NilClass' {
-		return brew_runtime.map_value({})
+		return ruby.map_value({})
 	}
-	keg_cache := args[1].as_map() or { return brew_runtime.map_value({}) }
-	return keg_cache[type_name] or { brew_runtime.object_value('NilClass', 'nil') }
+	keg_cache := args[1].as_map() or { return ruby.map_value({}) }
+	return keg_cache[type_name] or { ruby.object_value('NilClass', 'nil') }
 }
 
 // Ruby method `delete!` at line 60.
-pub fn ruby_linkage_cache_store_l60_d5_delete(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_linkage_cache_store_l60_d5_delete(args ...ruby.Value) ruby.Value {
 	keg_path := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.structured_value('CacheStoreDelete', keg_path, {
+	return ruby.structured_value('CacheStoreDelete', keg_path, {
 		'key': keg_path
 	})
 }
 
 // Ruby method `fetch_hash_values(type)` at line 70.
-pub fn ruby_linkage_cache_store_l70_d6_fetch_hash_values(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_linkage_cache_store_l70_d6_fetch_hash_values(args ...ruby.Value) ruby.Value {
 	type_name := if args.len > 0 { args[0].as_string() } else { '' }
 	if args.len < 2 || args[1].type_name == 'NilClass' {
-		return brew_runtime.map_value({})
+		return ruby.map_value({})
 	}
-	cache := args[1].as_map() or { return brew_runtime.map_value({}) }
-	return cache[type_name] or { brew_runtime.object_value('NilClass', 'nil') }
+	cache := args[1].as_map() or { return ruby.map_value({}) }
+	return cache[type_name] or { ruby.object_value('NilClass', 'nil') }
 }
 
 pub fn new_linkage_cache_store(keg_path string) LinkageCacheStore {
@@ -93,19 +93,19 @@ pub fn linkage_keg_exists(store LinkageCacheStore, database LinkageCacheDatabase
 }
 
 pub fn linkage_update(mut database LinkageCacheDatabase, store LinkageCacheStore,
-	values map[string]brew_runtime.Value) ! {
+	values map[string]ruby.Value) ! {
 	validate_linkage_cache_values(values)!
 	database.entries[store.keg_path] = values.clone()
 	database.sets << store.keg_path
 }
 
 pub fn linkage_fetch(database LinkageCacheDatabase, store LinkageCacheStore,
-	type_name string) !brew_runtime.Value {
+	type_name string) !ruby.Value {
 	if type_name !in linkage_cache_types {
 		return error("Can't fetch types that are not defined for the linkage store\n")
 	}
 	if store.keg_path !in database.entries {
-		return brew_runtime.map_value({})
+		return ruby.map_value({})
 	}
 	return linkage_fetch_hash_values(database, store, type_name)
 }
@@ -116,16 +116,16 @@ pub fn linkage_delete(mut database LinkageCacheDatabase, store LinkageCacheStore
 }
 
 pub fn linkage_fetch_hash_values(database LinkageCacheDatabase, store LinkageCacheStore,
-	type_name string) brew_runtime.Value {
+	type_name string) ruby.Value {
 	if store.keg_path !in database.entries {
-		return brew_runtime.map_value({})
+		return ruby.map_value({})
 	}
 	return database.entries[store.keg_path][type_name] or {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	}
 }
 
-fn validate_linkage_cache_values(values map[string]brew_runtime.Value) ! {
+fn validate_linkage_cache_values(values map[string]ruby.Value) ! {
 	for type_name in values.keys() {
 		if type_name !in linkage_cache_types {
 			return error("Can't update types that are not defined for the linkage store\n")

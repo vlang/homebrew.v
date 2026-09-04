@@ -1,14 +1,14 @@
 module github
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `utils/github/artifacts.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `self.download_artifact(url, artifact_id)` at line 13.
-pub fn ruby_artifacts_l13_d1_self_download_artifact(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_artifacts_l13_d1_self_download_artifact(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'URL and artifact ID are required')
+		return ruby.object_value('ArgumentError', 'URL and artifact ID are required')
 	}
 	token := if args.len > 2 { args[2].as_string() } else { '' }
 	mut runtime := ArtifactDownloadRuntime{
@@ -20,7 +20,7 @@ pub fn ruby_artifacts_l13_d1_self_download_artifact(args ...brew_runtime.Value) 
 			''}
 	}
 	result := download_github_artifact(args[0].as_string(), args[1].as_string(), token, mut runtime, artifact_download_fetch, artifact_download_stage) or {
-		return brew_runtime.object_value(if token.trim_space() == '' {
+		return ruby.object_value(if token.trim_space() == '' {
 			'GitHub::API::MissingAuthenticationError'
 		} else {
 			'ArtifactDownloadError'
@@ -87,8 +87,8 @@ pub fn download_github_artifact(url string, artifact_id string, token string,
 	}
 }
 
-fn artifact_download_result_value(result ArtifactDownloadResult) brew_runtime.Value {
-	return brew_runtime.structured_value('GitHubArtifactDownloadResult', result.artifact_id, {
+fn artifact_download_result_value(result ArtifactDownloadResult) ruby.Value {
+	return ruby.structured_value('GitHubArtifactDownloadResult', result.artifact_id, {
 		'url':         result.url
 		'artifact_id': result.artifact_id
 		'fetched':     result.fetched.str()

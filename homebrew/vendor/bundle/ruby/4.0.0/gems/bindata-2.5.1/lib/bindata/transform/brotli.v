@@ -1,6 +1,6 @@
 module transform
 
-import brew_runtime
+import ruby
 import compress.brotli
 import compress.zlib
 import compress.zstd
@@ -131,21 +131,21 @@ fn (transform &CompressionTransform) after_write_transform() ![]u8 {
 	return codec_compress(transform.codec, transform.write_buffer)
 }
 
-fn transform_read_length(receiver brew_runtime.Value) !int {
+fn transform_read_length(receiver ruby.Value) !int {
 	if receiver.type_name == 'Integer' {
 		return int(receiver.as_int()!)
 	}
 	return receiver.attribute('read_length')!.int()
 }
 
-fn initialized_transform_value(type_name string, read_length int) brew_runtime.Value {
-	return brew_runtime.structured_value(type_name, '${type_name}(${read_length})', {
+fn initialized_transform_value(type_name string, read_length int) ruby.Value {
+	return ruby.structured_value(type_name, '${type_name}(${read_length})', {
 		'read_length': read_length.str()
 		'write':       ''
 	})
 }
 
-fn translated_read(codec CompressionCodec, args []brew_runtime.Value) brew_runtime.Value {
+fn translated_read(codec CompressionCodec, args []ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('compression transform read requires a receiver, chained data, and length')
 	}
@@ -153,10 +153,10 @@ fn translated_read(codec CompressionCodec, args []brew_runtime.Value) brew_runti
 	data := transform.read(args[1].as_string().bytes(), int(args[2].as_int() or { panic(err) })) or {
 		panic(err)
 	}
-	return brew_runtime.string_value(data.bytestr())
+	return ruby.string_value(data.bytestr())
 }
 
-fn translated_write(args []brew_runtime.Value) brew_runtime.Value {
+fn translated_write(args []ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('compression transform write requires a receiver and data')
 	}
@@ -165,23 +165,23 @@ fn translated_write(args []brew_runtime.Value) brew_runtime.Value {
 	} else {
 		args[0].attribute('write') or { '' }
 	}
-	return brew_runtime.string_value(existing + args[1].as_string())
+	return ruby.string_value(existing + args[1].as_string())
 }
 
-fn translated_after_read(args []brew_runtime.Value) brew_runtime.Value {
+fn translated_after_read(args []ruby.Value) ruby.Value {
 	if args.len < 2 || args[1].as_string().len != 0 {
 		panic("didn't read all data")
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
-fn translated_after_write(codec CompressionCodec, args []brew_runtime.Value) brew_runtime.Value {
+fn translated_after_write(codec CompressionCodec, args []ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('compression transform finalization requires buffered data')
 	}
 	data := if args.len >= 2 { args[1].as_string() } else { args[0].as_string() }
 	compressed := codec_compress(codec, data.bytes()) or { panic(err) }
-	return brew_runtime.string_value(compressed.bytestr())
+	return ruby.string_value(compressed.bytestr())
 }
 
 pub struct BrotliTransform {
@@ -212,7 +212,7 @@ pub fn (transform &BrotliTransform) after_write_transform() ![]u8 {
 }
 
 // Ruby method `initialize(read_length)` at line 11.
-pub fn ruby_brotli_l11_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brotli_l11_d1_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('BinData::Transform::Brotli#initialize requires read_length')
 	}
@@ -222,22 +222,22 @@ pub fn ruby_brotli_l11_d1_initialize(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby method `read(n)` at line 16.
-pub fn ruby_brotli_l16_d2_read(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brotli_l16_d2_read(args ...ruby.Value) ruby.Value {
 	return translated_read(.brotli, args)
 }
 
 // Ruby method `write(data)` at line 21.
-pub fn ruby_brotli_l21_d3_write(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brotli_l21_d3_write(args ...ruby.Value) ruby.Value {
 	return translated_write(args)
 }
 
 // Ruby method `after_read_transform` at line 26.
-pub fn ruby_brotli_l26_d4_after_read_transform(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brotli_l26_d4_after_read_transform(args ...ruby.Value) ruby.Value {
 	return translated_after_read(args)
 }
 
 // Ruby method `after_write_transform` at line 30.
-pub fn ruby_brotli_l30_d5_after_write_transform(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brotli_l30_d5_after_write_transform(args ...ruby.Value) ruby.Value {
 	return translated_after_write(.brotli, args)
 }
 

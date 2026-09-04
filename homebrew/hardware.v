@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 import os
 
 pub struct HardwareCpu {
@@ -17,7 +17,7 @@ pub:
 
 pub fn current_hardware_cpu() &HardwareCpu {
 	platform := os.uname().machine
-	result := brew_runtime.run_command('getconf', ['_NPROCESSORS_ONLN'])
+	result := ruby.run_command('getconf', ['_NPROCESSORS_ONLN'])
 	cores := if result.exit_code == 0 && result.output.trim_space().int() > 0 {
 		result.output.trim_space().int()
 	} else {
@@ -139,13 +139,13 @@ pub fn hardware_zig_cpu(arch string) string {
 	}
 }
 
-pub fn hardware_cpu_value(cpu &HardwareCpu) brew_runtime.Value {
-	return brew_runtime.structured_value('Hardware::CPU', hardware_cpu_arch(*cpu), {
+pub fn hardware_cpu_value(cpu &HardwareCpu) ruby.Value {
+	return ruby.structured_value('Hardware::CPU', hardware_cpu_arch(*cpu), {
 		'cpu_address': u64(voidptr(cpu)).str()
 	})
 }
 
-fn hardware_cpu_from_args(args []brew_runtime.Value) (&HardwareCpu, int) {
+fn hardware_cpu_from_args(args []ruby.Value) (&HardwareCpu, int) {
 	if args.len > 0 && args[0].type_name == 'Hardware::CPU' {
 		address := args[0].attributes['cpu_address'] or { panic('invalid Hardware::CPU') }
 		return unsafe { &HardwareCpu(voidptr(address.u64())) }, 1
@@ -153,28 +153,28 @@ fn hardware_cpu_from_args(args []brew_runtime.Value) (&HardwareCpu, int) {
 	return current_hardware_cpu(), 0
 }
 
-fn hardware_optional_value(value ?string) brew_runtime.Value {
+fn hardware_optional_value(value ?string) ruby.Value {
 	if item := value {
-		return brew_runtime.string_value(item)
+		return ruby.string_value(item)
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Translated from Homebrew/brew `hardware.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `optimization_flags` at line 29.
-pub fn ruby_hardware_l29_d1_optimization_flags(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_hardware_l29_d1_optimization_flags(args ...ruby.Value) ruby.Value {
 	cpu, _ := hardware_cpu_from_args(args)
-	mut values := map[string]brew_runtime.Value{}
+	mut values := map[string]ruby.Value{}
 	for name, flag in hardware_optimization_flags(*cpu) {
-		values[name] = brew_runtime.string_value(flag)
+		values[name] = ruby.string_value(flag)
 	}
-	return brew_runtime.map_value(values)
+	return ruby.map_value(values)
 }
 
 // Ruby method `arch_32_bit` at line 48.
-pub fn ruby_hardware_l48_d2_arch_32_bit(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_hardware_l48_d2_arch_32_bit(args ...ruby.Value) ruby.Value {
 	cpu, _ := hardware_cpu_from_args(args)
 	mut copy := HardwareCpu{
 		...*cpu
@@ -185,11 +185,11 @@ pub fn ruby_hardware_l48_d2_arch_32_bit(args ...brew_runtime.Value) brew_runtime
 			else { cpu.platform }
 		}
 	}
-	return brew_runtime.string_value(hardware_cpu_arch(copy))
+	return ruby.string_value(hardware_cpu_arch(copy))
 }
 
 // Ruby method `arch_64_bit` at line 61.
-pub fn ruby_hardware_l61_d3_arch_64_bit(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_hardware_l61_d3_arch_64_bit(args ...ruby.Value) ruby.Value {
 	cpu, _ := hardware_cpu_from_args(args)
 	mut copy := HardwareCpu{
 		...*cpu
@@ -202,178 +202,178 @@ pub fn ruby_hardware_l61_d3_arch_64_bit(args ...brew_runtime.Value) brew_runtime
 			else { cpu.platform }
 		}
 	}
-	return brew_runtime.string_value(hardware_cpu_arch(copy))
+	return ruby.string_value(hardware_cpu_arch(copy))
 }
 
 // Ruby method `arch` at line 76.
-pub fn ruby_hardware_l76_d4_arch(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_hardware_l76_d4_arch(args ...ruby.Value) ruby.Value {
 	cpu, _ := hardware_cpu_from_args(args)
-	return brew_runtime.string_value(hardware_cpu_arch(*cpu))
+	return ruby.string_value(hardware_cpu_arch(*cpu))
 }
 
 // Ruby method `type` at line 88.
-pub fn ruby_hardware_l88_d5_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_hardware_l88_d5_type(args ...ruby.Value) ruby.Value {
 	cpu, _ := hardware_cpu_from_args(args)
-	return brew_runtime.string_value(hardware_cpu_type(cpu.platform))
+	return ruby.string_value(hardware_cpu_type(cpu.platform))
 }
 
 // Ruby method `family` at line 98.
-pub fn ruby_hardware_l98_d6_family(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_hardware_l98_d6_family(args ...ruby.Value) ruby.Value {
 	cpu, _ := hardware_cpu_from_args(args)
-	return brew_runtime.string_value(if cpu.family == '' { 'dunno' } else { cpu.family })
+	return ruby.string_value(if cpu.family == '' { 'dunno' } else { cpu.family })
 }
 
 // Ruby method `cores` at line 103.
-pub fn ruby_hardware_l103_d7_cores(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_hardware_l103_d7_cores(args ...ruby.Value) ruby.Value {
 	cpu, _ := hardware_cpu_from_args(args)
-	return brew_runtime.int_value(cpu.cores)
+	return ruby.int_value(cpu.cores)
 }
 
 // Ruby method `bits` at line 114.
-pub fn ruby_hardware_l114_d8_bits(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_hardware_l114_d8_bits(args ...ruby.Value) ruby.Value {
 	cpu, _ := hardware_cpu_from_args(args)
 	bits := hardware_cpu_bits(cpu.platform)
 	return if bits == 0 {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	} else {
-		brew_runtime.int_value(bits)
+		ruby.int_value(bits)
 	}
 }
 
 // Ruby method `sse4?` at line 122.
-pub fn ruby_hardware_l122_d9_sse4(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_hardware_l122_d9_sse4(args ...ruby.Value) ruby.Value {
 	cpu, _ := hardware_cpu_from_args(args)
-	return brew_runtime.bool_value(cpu.platform.contains('x86_64'))
+	return ruby.bool_value(cpu.platform.contains('x86_64'))
 }
 
 // Ruby method `is_32_bit?` at line 127.
-pub fn ruby_hardware_l127_d10_is_32_bit(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_hardware_l127_d10_is_32_bit(args ...ruby.Value) ruby.Value {
 	cpu, _ := hardware_cpu_from_args(args)
-	return brew_runtime.bool_value(hardware_cpu_bits(cpu.platform) == 32)
+	return ruby.bool_value(hardware_cpu_bits(cpu.platform) == 32)
 }
 
 // Ruby method `is_64_bit?` at line 132.
-pub fn ruby_hardware_l132_d11_is_64_bit(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_hardware_l132_d11_is_64_bit(args ...ruby.Value) ruby.Value {
 	cpu, _ := hardware_cpu_from_args(args)
-	return brew_runtime.bool_value(hardware_cpu_bits(cpu.platform) == 64)
+	return ruby.bool_value(hardware_cpu_bits(cpu.platform) == 64)
 }
 
 // Ruby method `intel?` at line 137.
-pub fn ruby_hardware_l137_d12_intel(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_hardware_l137_d12_intel(args ...ruby.Value) ruby.Value {
 	cpu, _ := hardware_cpu_from_args(args)
-	return brew_runtime.bool_value(hardware_cpu_type(cpu.platform) == 'intel')
+	return ruby.bool_value(hardware_cpu_type(cpu.platform) == 'intel')
 }
 
 // Ruby method `ppc?` at line 142.
-pub fn ruby_hardware_l142_d13_ppc(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_hardware_l142_d13_ppc(args ...ruby.Value) ruby.Value {
 	cpu, _ := hardware_cpu_from_args(args)
-	return brew_runtime.bool_value(hardware_cpu_type(cpu.platform) == 'ppc')
+	return ruby.bool_value(hardware_cpu_type(cpu.platform) == 'ppc')
 }
 
 // Ruby method `ppc32?` at line 147.
-pub fn ruby_hardware_l147_d14_ppc32(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_hardware_l147_d14_ppc32(args ...ruby.Value) ruby.Value {
 	cpu, _ := hardware_cpu_from_args(args)
-	return brew_runtime.bool_value(hardware_cpu_type(cpu.platform) == 'ppc' && hardware_cpu_bits(cpu.platform) == 32)
+	return ruby.bool_value(hardware_cpu_type(cpu.platform) == 'ppc' && hardware_cpu_bits(cpu.platform) == 32)
 }
 
 // Ruby method `ppc64le?` at line 152.
-pub fn ruby_hardware_l152_d15_ppc64le(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_hardware_l152_d15_ppc64le(args ...ruby.Value) ruby.Value {
 	cpu, _ := hardware_cpu_from_args(args)
-	return brew_runtime.bool_value(hardware_cpu_type(cpu.platform) == 'ppc' && hardware_cpu_bits(cpu.platform) == 64 && !cpu.big_endian)
+	return ruby.bool_value(hardware_cpu_type(cpu.platform) == 'ppc' && hardware_cpu_bits(cpu.platform) == 64 && !cpu.big_endian)
 }
 
 // Ruby method `ppc64?` at line 157.
-pub fn ruby_hardware_l157_d16_ppc64(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_hardware_l157_d16_ppc64(args ...ruby.Value) ruby.Value {
 	cpu, _ := hardware_cpu_from_args(args)
-	return brew_runtime.bool_value(hardware_cpu_type(cpu.platform) == 'ppc' && hardware_cpu_bits(cpu.platform) == 64 && cpu.big_endian)
+	return ruby.bool_value(hardware_cpu_type(cpu.platform) == 'ppc' && hardware_cpu_bits(cpu.platform) == 64 && cpu.big_endian)
 }
 
 // Ruby method `arm?` at line 165.
-pub fn ruby_hardware_l165_d17_arm(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_hardware_l165_d17_arm(args ...ruby.Value) ruby.Value {
 	cpu, _ := hardware_cpu_from_args(args)
-	return brew_runtime.bool_value(hardware_cpu_type(cpu.platform) == 'arm')
+	return ruby.bool_value(hardware_cpu_type(cpu.platform) == 'arm')
 }
 
 // Ruby method `arm64?` at line 171.
-pub fn ruby_hardware_l171_d18_arm64(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_hardware_l171_d18_arm64(args ...ruby.Value) ruby.Value {
 	cpu, _ := hardware_cpu_from_args(args)
-	return brew_runtime.bool_value(hardware_cpu_type(cpu.platform) == 'arm' && hardware_cpu_bits(cpu.platform) == 64)
+	return ruby.bool_value(hardware_cpu_type(cpu.platform) == 'arm' && hardware_cpu_bits(cpu.platform) == 64)
 }
 
 // Ruby method `little_endian?` at line 176.
-pub fn ruby_hardware_l176_d19_little_endian(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_hardware_l176_d19_little_endian(args ...ruby.Value) ruby.Value {
 	cpu, _ := hardware_cpu_from_args(args)
-	return brew_runtime.bool_value(!cpu.big_endian)
+	return ruby.bool_value(!cpu.big_endian)
 }
 
 // Ruby method `big_endian?` at line 181.
-pub fn ruby_hardware_l181_d20_big_endian(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_hardware_l181_d20_big_endian(args ...ruby.Value) ruby.Value {
 	cpu, _ := hardware_cpu_from_args(args)
-	return brew_runtime.bool_value(cpu.big_endian)
+	return ruby.bool_value(cpu.big_endian)
 }
 
 // Ruby method `virtualized?` at line 186.
-pub fn ruby_hardware_l186_d21_virtualized(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_hardware_l186_d21_virtualized(args ...ruby.Value) ruby.Value {
 	cpu, _ := hardware_cpu_from_args(args)
-	return brew_runtime.bool_value(cpu.virtualized)
+	return ruby.bool_value(cpu.virtualized)
 }
 
 // Ruby method `features` at line 191.
-pub fn ruby_hardware_l191_d22_features(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_hardware_l191_d22_features(args ...ruby.Value) ruby.Value {
 	cpu, _ := hardware_cpu_from_args(args)
-	return brew_runtime.string_array_value(cpu.features)
+	return ruby.string_array_value(cpu.features)
 }
 
 // Ruby method `feature?(name)` at line 196.
-pub fn ruby_hardware_l196_d23_feature(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_hardware_l196_d23_feature(args ...ruby.Value) ruby.Value {
 	cpu, offset := hardware_cpu_from_args(args)
 	if args.len <= offset { panic('feature? requires a name') }
-	return brew_runtime.bool_value(args[offset].as_string() in cpu.features)
+	return ruby.bool_value(args[offset].as_string() in cpu.features)
 }
 
 // Ruby method `arch_flag(arch)` at line 201.
-pub fn ruby_hardware_l201_d24_arch_flag(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_hardware_l201_d24_arch_flag(args ...ruby.Value) ruby.Value {
 	cpu, offset := hardware_cpu_from_args(args)
 	if args.len <= offset { panic('arch_flag requires an architecture') }
-	return brew_runtime.string_value(hardware_arch_flag(*cpu, args[offset].as_string()))
+	return ruby.string_value(hardware_arch_flag(*cpu, args[offset].as_string()))
 }
 
 // Ruby method `in_rosetta2?` at line 208.
-pub fn ruby_hardware_l208_d25_in_rosetta2(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_hardware_l208_d25_in_rosetta2(args ...ruby.Value) ruby.Value {
 	cpu, _ := hardware_cpu_from_args(args)
-	return brew_runtime.bool_value(cpu.in_rosetta2)
+	return ruby.bool_value(cpu.in_rosetta2)
 }
 
 // Ruby method `rosetta_installed?` at line 213.
-pub fn ruby_hardware_l213_d26_rosetta_installed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_hardware_l213_d26_rosetta_installed(args ...ruby.Value) ruby.Value {
 	cpu, _ := hardware_cpu_from_args(args)
-	return brew_runtime.bool_value(cpu.rosetta_installed)
+	return ruby.bool_value(cpu.rosetta_installed)
 }
 
 // Ruby method `cores_as_words` at line 221.
-pub fn ruby_hardware_l221_d27_cores_as_words(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_hardware_l221_d27_cores_as_words(args ...ruby.Value) ruby.Value {
 	cpu, _ := hardware_cpu_from_args(args)
-	return brew_runtime.string_value(hardware_cores_as_words(cpu.cores))
+	return ruby.string_value(hardware_cores_as_words(cpu.cores))
 }
 
 // Ruby method `oldest_cpu(_version = nil)` at line 236.
-pub fn ruby_hardware_l236_d28_oldest_cpu(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_hardware_l236_d28_oldest_cpu(args ...ruby.Value) ruby.Value {
 	cpu, _ := hardware_cpu_from_args(args)
-	return brew_runtime.string_value(hardware_oldest_cpu(*cpu))
+	return ruby.string_value(hardware_oldest_cpu(*cpu))
 }
 
 // Ruby method `rustflags_target_cpu(arch)` at line 263.
-pub fn ruby_hardware_l263_d29_rustflags_target_cpu(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_hardware_l263_d29_rustflags_target_cpu(args ...ruby.Value) ruby.Value {
 	_, offset := hardware_cpu_from_args(args)
 	if args.len <= offset { panic('rustflags_target_cpu requires an architecture') }
 	return hardware_optional_value(hardware_rustflags_target_cpu(args[offset].as_string()))
 }
 
 // Ruby method `zig_cpu(arch)` at line 283.
-pub fn ruby_hardware_l283_d30_zig_cpu(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_hardware_l283_d30_zig_cpu(args ...ruby.Value) ruby.Value {
 	_, offset := hardware_cpu_from_args(args)
 	if args.len <= offset { panic('zig_cpu requires an architecture') }
-	return brew_runtime.string_value(hardware_zig_cpu(args[offset].as_string()))
+	return ruby.string_value(hardware_zig_cpu(args[offset].as_string()))
 }
 
 // Original Ruby source (line-for-line):

@@ -1,6 +1,6 @@
 module concurrent
 
-import brew_runtime
+import ruby
 import sync
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/settable_struct.rb`.
@@ -24,7 +24,7 @@ pub fn define_settable_struct(name string, members []string) !&SettableStructCla
 	}
 }
 
-pub fn (definition &SettableStructClass) new_instance(values ...brew_runtime.Value) !&SettableStruct {
+pub fn (definition &SettableStructClass) new_instance(values ...ruby.Value) !&SettableStruct {
 	return &SettableStruct{
 		core: definition.definition.new_core(values)!
 	}
@@ -42,7 +42,7 @@ pub fn (instance &SettableStruct) members() []string {
 	return instance.core.members()
 }
 
-pub fn (mut instance SettableStruct) values() []brew_runtime.Value {
+pub fn (mut instance SettableStruct) values() []ruby.Value {
 	instance.lock.rlock()
 	defer {
 		instance.lock.runlock()
@@ -50,11 +50,11 @@ pub fn (mut instance SettableStruct) values() []brew_runtime.Value {
 	return instance.core.values_copy()
 }
 
-pub fn (mut instance SettableStruct) to_a() []brew_runtime.Value {
+pub fn (mut instance SettableStruct) to_a() []ruby.Value {
 	return instance.values()
 }
 
-pub fn (mut instance SettableStruct) values_at(indexes ...int) ![]brew_runtime.Value {
+pub fn (mut instance SettableStruct) values_at(indexes ...int) ![]ruby.Value {
 	instance.lock.rlock()
 	defer {
 		instance.lock.runlock()
@@ -74,7 +74,7 @@ pub fn (mut instance SettableStruct) str() string {
 	return instance.inspect()
 }
 
-pub fn (mut instance SettableStruct) to_h() map[string]brew_runtime.Value {
+pub fn (mut instance SettableStruct) to_h() map[string]ruby.Value {
 	instance.lock.rlock()
 	defer {
 		instance.lock.runlock()
@@ -82,7 +82,7 @@ pub fn (mut instance SettableStruct) to_h() map[string]brew_runtime.Value {
 	return instance.core.to_h()
 }
 
-pub fn (mut instance SettableStruct) get_index(index int) !brew_runtime.Value {
+pub fn (mut instance SettableStruct) get_index(index int) !ruby.Value {
 	instance.lock.rlock()
 	defer {
 		instance.lock.runlock()
@@ -90,7 +90,7 @@ pub fn (mut instance SettableStruct) get_index(index int) !brew_runtime.Value {
 	return instance.core.get_index(index)
 }
 
-pub fn (mut instance SettableStruct) get_member(member string) !brew_runtime.Value {
+pub fn (mut instance SettableStruct) get_member(member string) !ruby.Value {
 	instance.lock.rlock()
 	defer {
 		instance.lock.runlock()
@@ -98,7 +98,7 @@ pub fn (mut instance SettableStruct) get_member(member string) !brew_runtime.Val
 	return instance.core.get_member(member)
 }
 
-pub fn (mut instance SettableStruct) set_index(index int, value brew_runtime.Value) !brew_runtime.Value {
+pub fn (mut instance SettableStruct) set_index(index int, value ruby.Value) !ruby.Value {
 	instance.lock.lock()
 	defer {
 		instance.lock.unlock()
@@ -117,7 +117,7 @@ pub fn (mut instance SettableStruct) set_index(index int, value brew_runtime.Val
 	return value
 }
 
-pub fn (mut instance SettableStruct) set_member(member string, value brew_runtime.Value) !brew_runtime.Value {
+pub fn (mut instance SettableStruct) set_member(member string, value ruby.Value) !ruby.Value {
 	instance.lock.lock()
 	defer {
 		instance.lock.unlock()
@@ -163,8 +163,8 @@ pub fn (mut instance SettableStruct) each_pair(action ConcurrentStructEachPair) 
 	}
 }
 
-pub fn (mut instance SettableStruct) select(predicate ConcurrentStructPredicate) []brew_runtime.Value {
-	mut selected := []brew_runtime.Value{}
+pub fn (mut instance SettableStruct) select(predicate ConcurrentStructPredicate) []ruby.Value {
+	mut selected := []ruby.Value{}
 	for value in instance.values() {
 		if predicate(value) {
 			selected << value
@@ -173,7 +173,7 @@ pub fn (mut instance SettableStruct) select(predicate ConcurrentStructPredicate)
 	return selected
 }
 
-pub fn (mut instance SettableStruct) merge(other map[string]brew_runtime.Value) !&SettableStruct {
+pub fn (mut instance SettableStruct) merge(other map[string]ruby.Value) !&SettableStruct {
 	instance.lock.rlock()
 	defer {
 		instance.lock.runlock()
@@ -183,7 +183,7 @@ pub fn (mut instance SettableStruct) merge(other map[string]brew_runtime.Value) 
 	}
 }
 
-pub fn (mut instance SettableStruct) merge_with(other map[string]brew_runtime.Value, resolver ConcurrentStructMergeResolver) !&SettableStruct {
+pub fn (mut instance SettableStruct) merge_with(other map[string]ruby.Value, resolver ConcurrentStructMergeResolver) !&SettableStruct {
 	instance.lock.rlock()
 	defer {
 		instance.lock.runlock()
@@ -217,19 +217,19 @@ pub fn (mut instance SettableStruct) is_frozen() bool {
 	return instance.core.frozen
 }
 
-fn settable_struct_class_boundary(definition &SettableStructClass) brew_runtime.Value {
-	return brew_runtime.structured_value('Class', definition.definition.name, {
+fn settable_struct_class_boundary(definition &SettableStructClass) ruby.Value {
+	return ruby.structured_value('Class', definition.definition.name, {
 		'settable_struct_class_address': u64(voidptr(definition)).str()
 	})
 }
 
-fn settable_struct_boundary(mut instance SettableStruct) brew_runtime.Value {
-	return brew_runtime.structured_value('Concurrent::SettableStruct', instance.inspect(), {
+fn settable_struct_boundary(mut instance SettableStruct) ruby.Value {
+	return ruby.structured_value('Concurrent::SettableStruct', instance.inspect(), {
 		'settable_struct_address': u64(voidptr(instance)).str()
 	})
 }
 
-fn settable_struct_boundary_receiver(args []brew_runtime.Value) &SettableStruct {
+fn settable_struct_boundary_receiver(args []ruby.Value) &SettableStruct {
 	if args.len == 0 {
 		panic('SettableStruct method requires a receiver')
 	}
@@ -237,7 +237,7 @@ fn settable_struct_boundary_receiver(args []brew_runtime.Value) &SettableStruct 
 	return unsafe { &SettableStruct(voidptr(address)) }
 }
 
-fn settable_struct_definition_from_boundary(args []brew_runtime.Value) &SettableStructClass {
+fn settable_struct_definition_from_boundary(args []ruby.Value) &SettableStructClass {
 	mut offset := 0
 	mut name := ''
 	if args.len > 0 && args[0].type_name == 'String' {
@@ -251,35 +251,35 @@ fn settable_struct_definition_from_boundary(args []brew_runtime.Value) &Settable
 }
 
 // Ruby method `values` at line 18.
-pub fn ruby_settable_struct_l18_d1_values(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_settable_struct_l18_d1_values(args ...ruby.Value) ruby.Value {
 	mut instance := settable_struct_boundary_receiver(args)
-	return brew_runtime.array_value(instance.values())
+	return ruby.array_value(instance.values())
 }
 
 // Ruby alias_method `alias_method :to_a, :values` at line 21.
-pub fn ruby_settable_struct_l21_d2_to_a(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_settable_struct_l21_d2_to_a(args ...ruby.Value) ruby.Value {
 	return ruby_settable_struct_l18_d1_values(...args)
 }
 
 // Ruby method `values_at(*indexes)` at line 24.
-pub fn ruby_settable_struct_l24_d3_values_at(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_settable_struct_l24_d3_values_at(args ...ruby.Value) ruby.Value {
 	mut instance := settable_struct_boundary_receiver(args)
-	return brew_runtime.array_value(instance.values_at(...concurrent_struct_boundary_indexes(args[1..])) or { panic(err) })
+	return ruby.array_value(instance.values_at(...concurrent_struct_boundary_indexes(args[1..])) or { panic(err) })
 }
 
 // Ruby method `inspect` at line 29.
-pub fn ruby_settable_struct_l29_d4_inspect(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_settable_struct_l29_d4_inspect(args ...ruby.Value) ruby.Value {
 	mut instance := settable_struct_boundary_receiver(args)
-	return brew_runtime.string_value(instance.inspect())
+	return ruby.string_value(instance.inspect())
 }
 
 // Ruby alias_method `alias_method :to_s, :inspect` at line 32.
-pub fn ruby_settable_struct_l32_d5_to_s(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_settable_struct_l32_d5_to_s(args ...ruby.Value) ruby.Value {
 	return ruby_settable_struct_l29_d4_inspect(...args)
 }
 
 // Ruby method `merge(other, &block)` at line 35.
-pub fn ruby_settable_struct_l35_d6_merge(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_settable_struct_l35_d6_merge(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('SettableStruct#merge requires a hash')
 	}
@@ -289,13 +289,13 @@ pub fn ruby_settable_struct_l35_d6_merge(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `to_h` at line 40.
-pub fn ruby_settable_struct_l40_d7_to_h(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_settable_struct_l40_d7_to_h(args ...ruby.Value) ruby.Value {
 	mut instance := settable_struct_boundary_receiver(args)
-	return brew_runtime.map_value(instance.to_h())
+	return ruby.map_value(instance.to_h())
 }
 
 // Ruby method `[](member)` at line 45.
-pub fn ruby_settable_struct_l45_d8_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_settable_struct_l45_d8_anonymous(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('SettableStruct#[] requires a member')
 	}
@@ -308,36 +308,36 @@ pub fn ruby_settable_struct_l45_d8_anonymous(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby method `==(other)` at line 50.
-pub fn ruby_settable_struct_l50_d9_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_settable_struct_l50_d9_anonymous(args ...ruby.Value) ruby.Value {
 	if args.len < 2 || 'settable_struct_address' !in args[1].attributes {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	mut left := settable_struct_boundary_receiver(args)
 	mut right := settable_struct_boundary_receiver(args[1..])
-	return brew_runtime.bool_value(left.equal(mut right))
+	return ruby.bool_value(left.equal(mut right))
 }
 
 // Ruby method `each(&block)` at line 55.
-pub fn ruby_settable_struct_l55_d10_each(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_settable_struct_l55_d10_each(args ...ruby.Value) ruby.Value {
 	return ruby_settable_struct_l18_d1_values(...args)
 }
 
 // Ruby method `each_pair(&block)` at line 61.
-pub fn ruby_settable_struct_l61_d11_each_pair(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_settable_struct_l61_d11_each_pair(args ...ruby.Value) ruby.Value {
 	return ruby_settable_struct_l40_d7_to_h(...args)
 }
 
 // Ruby method `select(&block)` at line 67.
-pub fn ruby_settable_struct_l67_d12_select(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_settable_struct_l67_d12_select(args ...ruby.Value) ruby.Value {
 	return if args.len > 1 {
-		brew_runtime.array_value(args[1..].clone())
+		ruby.array_value(args[1..].clone())
 	} else {
-		brew_runtime.array_value([])
+		ruby.array_value([])
 	}
 }
 
 // Ruby method `[]=(member, value)` at line 75.
-pub fn ruby_settable_struct_l75_d13_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_settable_struct_l75_d13_anonymous(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('SettableStruct#[]= requires a member and value')
 	}
@@ -350,29 +350,29 @@ pub fn ruby_settable_struct_l75_d13_anonymous(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby method `initialize_copy(original)` at line 97.
-pub fn ruby_settable_struct_l97_d14_initialize_copy(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_settable_struct_l97_d14_initialize_copy(args ...ruby.Value) ruby.Value {
 	mut instance := settable_struct_boundary_receiver(args)
 	mut duplicate := instance.duplicate(false)
 	return settable_struct_boundary(mut duplicate)
 }
 
 // Ruby method `self.new(*args, &block)` at line 105.
-pub fn ruby_settable_struct_l105_d15_self_new(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_settable_struct_l105_d15_self_new(args ...ruby.Value) ruby.Value {
 	return settable_struct_class_boundary(settable_struct_definition_from_boundary(args))
 }
 
 // Ruby method `define_struct(name, members, &block)` at line 116.
-pub fn ruby_settable_struct_l116_d16_define_struct(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_settable_struct_l116_d16_define_struct(args ...ruby.Value) ruby.Value {
 	return settable_struct_class_boundary(settable_struct_definition_from_boundary(args))
 }
 
 // Ruby define_method `clazz.send(:define_method, member) do` at line 121.
-pub fn ruby_settable_struct_l121_d17_member(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_settable_struct_l121_d17_member(args ...ruby.Value) ruby.Value {
 	return ruby_settable_struct_l45_d8_anonymous(...args)
 }
 
 // Ruby define_method `clazz.send(:define_method, "#{member}=") do |value|` at line 124.
-pub fn ruby_settable_struct_l124_d18_member(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_settable_struct_l124_d18_member(args ...ruby.Value) ruby.Value {
 	return ruby_settable_struct_l75_d13_anonymous(...args)
 }
 

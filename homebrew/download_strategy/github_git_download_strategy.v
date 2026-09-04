@@ -1,6 +1,6 @@
 module download_strategy
 
-import brew_runtime
+import ruby
 import net.urllib
 import os
 
@@ -146,9 +146,9 @@ fn github_last_commit(user string, repo string, ref string) ?string {
 	if environment_truthy('HOMEBREW_NO_GITHUB_API') {
 		return none
 	}
-	curl := brew_runtime.find_executable('curl') or { return none }
+	curl := ruby.find_executable('curl') or { return none }
 	endpoint := github_commit_endpoint(user, repo, ref)
-	result := brew_runtime.run_command(curl, ['--silent', '--head', '--location', '--header',
+	result := ruby.run_command(curl, ['--silent', '--head', '--location', '--header',
 		'Accept: application/vnd.github.sha', endpoint])
 	if result.exit_code != 0 {
 		return none
@@ -175,8 +175,8 @@ fn github_multiple_short_commits_exist(user string, repo string, commit string) 
 	if environment_truthy('HOMEBREW_NO_GITHUB_API') {
 		return false
 	}
-	curl := brew_runtime.find_executable('curl') or { return true }
-	result := brew_runtime.run_command(curl, ['--silent', '--head', '--location', '--header',
+	curl := ruby.find_executable('curl') or { return true }
+	result := ruby.run_command(curl, ['--silent', '--head', '--location', '--header',
 		'Accept: application/vnd.github.sha', '--output', os.path_devnull, '--write-out',
 		'%{http_code}', github_commit_endpoint(user, repo, commit)])
 	return result.exit_code != 0 || result.output.trim_space() != '200'

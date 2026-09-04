@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `cmd/tab.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -91,8 +91,8 @@ pub fn run_tab_command(packages []TabPackageState, marking ?bool) !TabCommandRes
 	return result
 }
 
-pub fn tab_package_value(package TabPackageState) brew_runtime.Value {
-	return brew_runtime.structured_value(if package.kind == .formula { 'Formula' } else { 'Cask' }, package.name, {
+pub fn tab_package_value(package TabPackageState) ruby.Value {
+	return ruby.structured_value(if package.kind == .formula { 'Formula' } else { 'Cask' }, package.name, {
 		'kind':                  package.kind.str()
 		'name':                  package.name
 		'any_version_installed': package.any_version_installed.str()
@@ -101,7 +101,7 @@ pub fn tab_package_value(package TabPackageState) brew_runtime.Value {
 	})
 }
 
-fn tab_package_from_value(value brew_runtime.Value) TabPackageState {
+fn tab_package_from_value(value ruby.Value) TabPackageState {
 	return TabPackageState{
 		kind: if (value.attribute('kind') or { value.type_name.to_lower() }) == 'cask' {
 			.cask} else {
@@ -113,23 +113,23 @@ fn tab_package_from_value(value brew_runtime.Value) TabPackageState {
 	}
 }
 
-fn tab_command_result_value(result TabCommandResult) brew_runtime.Value {
-	return brew_runtime.Value{
+fn tab_command_result_value(result TabCommandResult) ruby.Value {
+	return ruby.Value{
 		type_name: 'TabCommandResult'
 		repr: result.messages.join('\n')
 		map_data: {
-			'packages': brew_runtime.array_value(result.packages.map(tab_package_value(it)))
-			'messages': brew_runtime.string_array_value(result.messages)
+			'packages': ruby.array_value(result.packages.map(tab_package_value(it)))
+			'messages': ruby.string_array_value(result.messages)
 		}
 	}
 }
 
 // Ruby method `run` at line 36.
-pub fn ruby_tab_l36_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l36_d1_run(args ...ruby.Value) ruby.Value {
 	package_values := if args.len > 0 {
-		args[0].as_array() or { []brew_runtime.Value{} }
+		args[0].as_array() or { []ruby.Value{} }
 	} else {
-		[]brew_runtime.Value{}
+		[]ruby.Value{}
 	}
 	marking := if args.len > 1 && args[1].type_name == 'Bool' {
 		?bool(args[1].bool_data)
@@ -137,7 +137,7 @@ pub fn ruby_tab_l36_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
 		none
 	}
 	result := run_tab_command(package_values.map(tab_package_from_value(it)), marking) or {
-		return brew_runtime.object_value(if err.msg() == 'No marking option specified.' {
+		return ruby.object_value(if err.msg() == 'No marking option specified.' {
 			'UsageError'
 		} else {
 			'RuntimeError'
@@ -147,14 +147,14 @@ pub fn ruby_tab_l36_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `update_tab(formula_or_cask, installed_on_request:)` at line 61.
-pub fn ruby_tab_l61_d2_update_tab(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l61_d2_update_tab(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'update_tab requires a package and marking')
+		return ruby.object_value('ArgumentError', 'update_tab requires a package and marking')
 	}
 	updated := update_tab_state(tab_package_from_value(args[0]), args[1].as_bool() or { false }) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'TabUpdateResult'
 		repr: updated.message
 		attributes: {

@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 import x.json2
 
 // Translated from Homebrew/brew `cmd/outdated.rb`.
@@ -525,7 +525,7 @@ pub fn run_outdated(options OutdatedCommandOptions) !OutdatedCommandResult {
 	}
 }
 
-fn outdated_bool(value brew_runtime.Value, key string) bool {
+fn outdated_bool(value ruby.Value, key string) bool {
 	if item := value.map_data[key] {
 		return item.bool_data
 	}
@@ -533,14 +533,14 @@ fn outdated_bool(value brew_runtime.Value, key string) bool {
 	return raw in ['true', '1']
 }
 
-fn outdated_string(value brew_runtime.Value, key string) string {
+fn outdated_string(value ruby.Value, key string) string {
 	if item := value.map_data[key] {
 		return item.as_string()
 	}
 	return value.attributes[key] or { '' }
 }
 
-fn outdated_strings(value brew_runtime.Value, key string) []string {
+fn outdated_strings(value ruby.Value, key string) []string {
 	if item := value.map_data[key] {
 		return item.as_string_array() or { []string{} }
 	}
@@ -548,12 +548,12 @@ fn outdated_strings(value brew_runtime.Value, key string) []string {
 	return if raw == '' { [] } else { raw.split('\x1f') }
 }
 
-fn outdated_values(value brew_runtime.Value, key string) []brew_runtime.Value {
+fn outdated_values(value ruby.Value, key string) []ruby.Value {
 	item := value.map_data[key] or { return [] }
 	return item.as_array() or { [] }
 }
 
-fn outdated_keg_from_value(value brew_runtime.Value) OutdatedKeg {
+fn outdated_keg_from_value(value ruby.Value) OutdatedKeg {
 	return OutdatedKeg{
 		full_name: outdated_string(value, 'full_name')
 		version: outdated_string(value, 'version')
@@ -561,7 +561,7 @@ fn outdated_keg_from_value(value brew_runtime.Value) OutdatedKeg {
 	}
 }
 
-fn outdated_formula_from_value(value brew_runtime.Value) OutdatedFormula {
+fn outdated_formula_from_value(value ruby.Value) OutdatedFormula {
 	name := outdated_string(value, 'name')
 	full_name := if outdated_string(value, 'full_name') != '' {
 		outdated_string(value, 'full_name')
@@ -592,7 +592,7 @@ fn outdated_formula_from_value(value brew_runtime.Value) OutdatedFormula {
 	}
 }
 
-fn outdated_cask_from_value(value brew_runtime.Value) OutdatedCask {
+fn outdated_cask_from_value(value ruby.Value) OutdatedCask {
 	return OutdatedCask{
 		token: outdated_string(value, 'token')
 		version: outdated_string(value, 'version')
@@ -616,7 +616,7 @@ fn outdated_cask_from_value(value brew_runtime.Value) OutdatedCask {
 	}
 }
 
-fn outdated_package_from_value(value brew_runtime.Value) OutdatedPackage {
+fn outdated_package_from_value(value ruby.Value) OutdatedPackage {
 	return if value.type_name in ['Cask', 'Cask::Cask', 'OutdatedCask'] {
 		OutdatedPackage(outdated_cask_from_value(value))
 	} else {
@@ -624,7 +624,7 @@ fn outdated_package_from_value(value brew_runtime.Value) OutdatedPackage {
 	}
 }
 
-fn outdated_options_from_value(value brew_runtime.Value) OutdatedCommandOptions {
+fn outdated_options_from_value(value ruby.Value) OutdatedCommandOptions {
 	return OutdatedCommandOptions{
 		quiet: outdated_bool(value, 'quiet')
 		verbose: outdated_bool(value, 'verbose')
@@ -646,16 +646,16 @@ fn outdated_options_from_value(value brew_runtime.Value) OutdatedCommandOptions 
 	}
 }
 
-fn outdated_keg_value(keg OutdatedKeg) brew_runtime.Value {
-	return brew_runtime.structured_value('Keg', keg.version, {
+fn outdated_keg_value(keg OutdatedKeg) ruby.Value {
+	return ruby.structured_value('Keg', keg.version, {
 		'full_name':      keg.full_name
 		'version':        keg.version
 		'version_scheme': keg.version_scheme.str()
 	})
 }
 
-pub fn outdated_formula_value(formula OutdatedFormula) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn outdated_formula_value(formula OutdatedFormula) ruby.Value {
+	return ruby.Value{
 		type_name: 'Formula'
 		repr: formula.full_name
 		attributes: {
@@ -675,14 +675,14 @@ pub fn outdated_formula_value(formula OutdatedFormula) brew_runtime.Value {
 			'pinned_version':           formula.pinned_version
 		}
 		map_data: {
-			'installed_kegs': brew_runtime.array_value(formula.installed_kegs.map(outdated_keg_value(it)))
-			'outdated_kegs':  brew_runtime.array_value(formula.outdated_kegs.map(outdated_keg_value(it)))
+			'installed_kegs': ruby.array_value(formula.installed_kegs.map(outdated_keg_value(it)))
+			'outdated_kegs':  ruby.array_value(formula.outdated_kegs.map(outdated_keg_value(it)))
 		}
 	}
 }
 
-pub fn outdated_cask_value(cask OutdatedCask) brew_runtime.Value {
-	return brew_runtime.structured_value('Cask::Cask', cask.token, {
+pub fn outdated_cask_value(cask OutdatedCask) ruby.Value {
+	return ruby.structured_value('Cask::Cask', cask.token, {
 		'token':                        cask.token
 		'version':                      cask.version
 		'installed_version':            cask.installed_version
@@ -697,8 +697,8 @@ pub fn outdated_cask_value(cask OutdatedCask) brew_runtime.Value {
 	})
 }
 
-pub fn outdated_options_value(options OutdatedCommandOptions) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn outdated_options_value(options OutdatedCommandOptions) ruby.Value {
+	return ruby.Value{
 		type_name: 'OutdatedCommandOptions'
 		attributes: {
 			'quiet':                options.quiet.str()
@@ -718,28 +718,28 @@ pub fn outdated_options_value(options OutdatedCommandOptions) brew_runtime.Value
 			'named':                options.named.join('\x1f')
 		}
 		map_data: {
-			'formulae': brew_runtime.array_value(options.formulae.map(outdated_formula_value(it)))
-			'casks':    brew_runtime.array_value(options.casks.map(outdated_cask_value(it)))
+			'formulae': ruby.array_value(options.formulae.map(outdated_formula_value(it)))
+			'casks':    ruby.array_value(options.casks.map(outdated_cask_value(it)))
 		}
 	}
 }
 
-fn outdated_info_value(info OutdatedInfo) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'name':               brew_runtime.string_value(info.name)
-		'installed_versions': brew_runtime.string_array_value(info.installed_versions)
-		'current_version':    brew_runtime.string_value(info.current_version)
-		'pinned':             brew_runtime.bool_value(info.pinned)
+fn outdated_info_value(info OutdatedInfo) ruby.Value {
+	return ruby.map_value({
+		'name':               ruby.string_value(info.name)
+		'installed_versions': ruby.string_array_value(info.installed_versions)
+		'current_version':    ruby.string_value(info.current_version)
+		'pinned':             ruby.bool_value(info.pinned)
 		'pinned_version':     if info.pinned_version == '' {
-			brew_runtime.object_value('NilClass', 'nil')
+			ruby.object_value('NilClass', 'nil')
 		} else {
-			brew_runtime.string_value(info.pinned_version)
+			ruby.string_value(info.pinned_version)
 		}
 	})
 }
 
-fn outdated_result_value(result OutdatedCommandResult) brew_runtime.Value {
-	return brew_runtime.Value{
+fn outdated_result_value(result OutdatedCommandResult) ruby.Value {
+	return ruby.Value{
 		type_name: if result.error == '' { 'OutdatedCommandResult' } else { 'UsageError' }
 		repr: if result.error == '' { result.stdout } else { result.error }
 		bool_data: result.failed
@@ -750,14 +750,14 @@ fn outdated_result_value(result OutdatedCommandResult) brew_runtime.Value {
 			'json_version': result.json_version.str()
 		}
 		map_data: {
-			'formulae': brew_runtime.array_value(result.formulae.map(outdated_formula_value(it)))
-			'casks':    brew_runtime.array_value(result.casks.map(outdated_cask_value(it)))
+			'formulae': ruby.array_value(result.formulae.map(outdated_formula_value(it)))
+			'casks':    ruby.array_value(result.casks.map(outdated_cask_value(it)))
 		}
 	}
 }
 
 // Ruby method `run` at line 53.
-pub fn ruby_outdated_l53_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_outdated_l53_d1_run(args ...ruby.Value) ruby.Value {
 	options := if args.len > 0 {
 		outdated_options_from_value(args[0])
 	} else {
@@ -772,67 +772,67 @@ pub fn ruby_outdated_l53_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `select_outdated(formulae_or_casks)` at line 96.
-pub fn ruby_outdated_l96_d2_select_outdated(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_outdated_l96_d2_select_outdated(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.array_value([])
+		return ruby.array_value([])
 	}
 	options := outdated_options_from_value(args[0])
 	packages := args[1].as_array() or { [] }.map(outdated_package_from_value(it))
 	selected := select_outdated(packages, options) or {
-		return brew_runtime.object_value('UsageError', err.msg())
+		return ruby.object_value('UsageError', err.msg())
 	}
-	return brew_runtime.array_value(selected.map(match it {
+	return ruby.array_value(selected.map(match it {
 		OutdatedFormula { outdated_formula_value(it) }
 		OutdatedCask { outdated_cask_value(it) }
 	}))
 }
 
 // Ruby method `print_outdated(formulae_or_casks)` at line 121.
-pub fn ruby_outdated_l121_d3_print_outdated(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_outdated_l121_d3_print_outdated(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.string_value('')
+		return ruby.string_value('')
 	}
 	options := outdated_options_from_value(args[0])
 	packages := args[1].as_array() or { [] }.map(outdated_package_from_value(it))
-	return brew_runtime.string_value(print_outdated(packages, options) or {
-		return brew_runtime.object_value('UsageError', err.msg())
+	return ruby.string_value(print_outdated(packages, options) or {
+		return ruby.object_value('UsageError', err.msg())
 	})
 }
 
 // Ruby method `json_info(formulae_or_casks)` at line 182.
-pub fn ruby_outdated_l182_d4_json_info(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_outdated_l182_d4_json_info(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.array_value([])
+		return ruby.array_value([])
 	}
 	options := outdated_options_from_value(args[0])
 	packages := args[1].as_array() or { [] }.map(outdated_package_from_value(it))
 	information := outdated_json_info(packages, options) or {
-		return brew_runtime.object_value('UsageError', err.msg())
+		return ruby.object_value('UsageError', err.msg())
 	}
-	return brew_runtime.array_value(information.map(outdated_info_value(it)))
+	return ruby.array_value(information.map(outdated_info_value(it)))
 }
 
 // Ruby method `verbose?` at line 222.
-pub fn ruby_outdated_l222_d5_verbose(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_outdated_l222_d5_verbose(args ...ruby.Value) ruby.Value {
 	options := if args.len > 0 {
 		outdated_options_from_value(args[0])
 	} else {
 		OutdatedCommandOptions{}
 	}
-	return brew_runtime.bool_value(outdated_verbose(options))
+	return ruby.bool_value(outdated_verbose(options))
 }
 
 // Ruby method `json_version(version)` at line 227.
-pub fn ruby_outdated_l227_d6_json_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_outdated_l227_d6_json_version(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || args.last().type_name == 'NilClass' {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	value := args.last()
 	version := if value.type_name == 'Bool' && value.bool_data { 'true' } else { value.as_string() }
 	parsed := outdated_json_version(version) or {
-		return brew_runtime.object_value('UsageError', err.msg())
+		return ruby.object_value('UsageError', err.msg())
 	}
-	return brew_runtime.object_value('Symbol', match parsed {
+	return ruby.object_value('Symbol', match parsed {
 		.none { 'nil' }
 		.default_version { ':default' }
 		.v1 { ':v1' }
@@ -841,73 +841,73 @@ pub fn ruby_outdated_l227_d6_json_version(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby method `minimum_version = args.minimum_version || args.min_version` at line 238.
-pub fn ruby_outdated_l238_d7_minimum_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_outdated_l238_d7_minimum_version(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	version := outdated_minimum_version(outdated_options_from_value(args[0]))
 	return if version == '' {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	} else {
-		brew_runtime.string_value(version)
+		ruby.string_value(version)
 	}
 }
 
 // Ruby method `outdated_formulae` at line 241.
-pub fn ruby_outdated_l241_d8_outdated_formulae(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_outdated_l241_d8_outdated_formulae(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.array_value([])
+		return ruby.array_value([])
 	}
 	formulae := outdated_formulae(outdated_options_from_value(args[0])) or {
-		return brew_runtime.object_value('UsageError', err.msg())
+		return ruby.object_value('UsageError', err.msg())
 	}
-	return brew_runtime.array_value(formulae.map(outdated_formula_value(it)))
+	return ruby.array_value(formulae.map(outdated_formula_value(it)))
 }
 
 // Ruby method `outdated_casks` at line 249.
-pub fn ruby_outdated_l249_d9_outdated_casks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_outdated_l249_d9_outdated_casks(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.array_value([])
+		return ruby.array_value([])
 	}
 	casks := outdated_casks(outdated_options_from_value(args[0])) or {
-		return brew_runtime.object_value('UsageError', err.msg())
+		return ruby.object_value('UsageError', err.msg())
 	}
-	return brew_runtime.array_value(casks.map(outdated_cask_value(it)))
+	return ruby.array_value(casks.map(outdated_cask_value(it)))
 }
 
 // Ruby method `outdated_formulae_casks` at line 260.
-pub fn ruby_outdated_l260_d10_outdated_formulae_casks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_outdated_l260_d10_outdated_formulae_casks(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.array_value([brew_runtime.array_value([]), brew_runtime.array_value([])])
+		return ruby.array_value([ruby.array_value([]), ruby.array_value([])])
 	}
 	formulae, casks := outdated_formulae_casks(outdated_options_from_value(args[0])) or {
-		return brew_runtime.object_value('UsageError', err.msg())
+		return ruby.object_value('UsageError', err.msg())
 	}
-	return brew_runtime.array_value([
-		brew_runtime.array_value(formulae.map(outdated_formula_value(it))),
-		brew_runtime.array_value(casks.map(outdated_cask_value(it))),
+	return ruby.array_value([
+		ruby.array_value(formulae.map(outdated_formula_value(it))),
+		ruby.array_value(casks.map(outdated_cask_value(it))),
 	])
 }
 
 // Ruby method `formula_outdated_kegs(formula)` at line 272.
-pub fn ruby_outdated_l272_d11_formula_outdated_kegs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_outdated_l272_d11_formula_outdated_kegs(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.array_value([])
+		return ruby.array_value([])
 	}
 	options := outdated_options_from_value(args[0])
 	kegs := outdated_formula_kegs(outdated_formula_from_value(args[1]), outdated_minimum_version(options), options.fetch_head) or {
-		return brew_runtime.object_value('UsageError', err.msg())
+		return ruby.object_value('UsageError', err.msg())
 	}
-	return brew_runtime.array_value(kegs.map(outdated_keg_value(it)))
+	return ruby.array_value(kegs.map(outdated_keg_value(it)))
 }
 
 // Ruby method `upgrade_greedy_cask?(greedy, cask)` at line 277.
-pub fn ruby_outdated_l277_d12_upgrade_greedy_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_outdated_l277_d12_upgrade_greedy_cask(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	options := outdated_options_from_value(args[0])
-	return brew_runtime.bool_value(outdated_upgrade_greedy_cask(args[1].bool_data, outdated_cask_from_value(args[2]), options.upgrade_greedy_casks))
+	return ruby.bool_value(outdated_upgrade_greedy_cask(args[1].bool_data, outdated_cask_from_value(args[2]), options.upgrade_greedy_casks))
 }
 
 // Original Ruby source (line-for-line):

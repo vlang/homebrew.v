@@ -1,6 +1,6 @@
 module cask
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `sorbet/tapioca/compilers/cask/dsl.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -70,38 +70,38 @@ pub fn cask_dsl_compiler_decoration() CaskDslCompilerDecoration {
 	}
 }
 
-fn cask_dsl_compiler_decoration_value(decoration CaskDslCompilerDecoration) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'constant_name': brew_runtime.string_value(decoration.constant_name)
-		'kind':          brew_runtime.string_value(decoration.kind)
-		'methods':       brew_runtime.array_value(decoration.methods.map(brew_runtime.map_value({
-			'name':        brew_runtime.string_value(it.name)
-			'parameters':  brew_runtime.string_array_value(it.parameters)
-			'return_type': brew_runtime.string_value(it.return_type)
+fn cask_dsl_compiler_decoration_value(decoration CaskDslCompilerDecoration) ruby.Value {
+	return ruby.map_value({
+		'constant_name': ruby.string_value(decoration.constant_name)
+		'kind':          ruby.string_value(decoration.kind)
+		'methods':       ruby.array_value(decoration.methods.map(ruby.map_value({
+			'name':        ruby.string_value(it.name)
+			'parameters':  ruby.string_array_value(it.parameters)
+			'return_type': ruby.string_value(it.return_type)
 		})))
 	})
 }
 
 // Ruby method `self.gather_constants = [Cask::DSL]` at line 13.
-pub fn ruby_dsl_l13_d1_self_gather_constants(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l13_d1_self_gather_constants(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.array_value([
-		brew_runtime.object_value('Module', 'Cask::DSL'),
+	return ruby.array_value([
+		ruby.object_value('Module', 'Cask::DSL'),
 	])
 }
 
 // Ruby method `decorate` at line 16.
-pub fn ruby_dsl_l16_d2_decorate(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l16_d2_decorate(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cask_dsl_compiler_decoration_value(cask_dsl_compiler_decoration())
 }
 
 // Ruby method `block_type(dsl_class)` at line 57.
-pub fn ruby_dsl_l57_d3_block_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l57_d3_block_type(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'block_type requires a DSL class')
+		return ruby.object_value('ArgumentError', 'block_type requires a DSL class')
 	}
-	return brew_runtime.string_value(cask_dsl_compiler_block_type(args[0].as_string()))
+	return ruby.string_value(cask_dsl_compiler_block_type(args[0].as_string()))
 }
 
 // Original Ruby source (line-for-line):

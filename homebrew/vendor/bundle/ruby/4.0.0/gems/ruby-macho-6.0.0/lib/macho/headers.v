@@ -1,6 +1,6 @@
 module macho
 
-import brew_runtime
+import ruby
 import encoding.binary
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/ruby-macho-6.0.0/lib/macho/headers.rb`.
@@ -378,80 +378,80 @@ fn header_filetype_symbol(filetype u32) string {
 	}
 }
 
-fn header_structure_value(format string, bytesize int) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'format':   brew_runtime.string_value(format)
-		'bytesize': brew_runtime.int_value(bytesize)
+fn header_structure_value(format string, bytesize int) ruby.Value {
+	return ruby.map_value({
+		'format':   ruby.string_value(format)
+		'bytesize': ruby.int_value(bytesize)
 	})
 }
 
-fn prelinked_reserved_value(reserved string) brew_runtime.Value {
+fn prelinked_reserved_value(reserved string) ruby.Value {
 	bytes := reserved.bytes()
-	mut words := []brew_runtime.Value{}
+	mut words := []ruby.Value{}
 	for offset := 0; offset + 4 <= bytes.len && words.len < 10; offset += 4 {
-		words << brew_runtime.int_value(binary.big_endian_u32(bytes[offset..offset + 4]))
+		words << ruby.int_value(binary.big_endian_u32(bytes[offset..offset + 4]))
 	}
-	return brew_runtime.array_value(words)
+	return ruby.array_value(words)
 }
 
-pub fn (header &MachoHeaderRecord) to_h() brew_runtime.Value {
-	mut values := map[string]brew_runtime.Value{}
+pub fn (header &MachoHeaderRecord) to_h() ruby.Value {
+	mut values := map[string]ruby.Value{}
 	match header.kind {
 		.fat_header {
-			values['magic'] = brew_runtime.int_value(header.magic)
-			values['magic_sym'] = brew_runtime.string_value(header_magic_symbol(header.magic))
-			values['nfat_arch'] = brew_runtime.int_value(header.nfat_arch)
+			values['magic'] = ruby.int_value(header.magic)
+			values['magic_sym'] = ruby.string_value(header_magic_symbol(header.magic))
+			values['nfat_arch'] = ruby.int_value(header.nfat_arch)
 			values['structure'] = header_structure_value('L>L>', 8)
 		}
 		.fat_arch, .fat_arch64 {
-			values['cputype'] = brew_runtime.int_value(header.cputype)
-			values['cputype_sym'] = brew_runtime.string_value(header_cpu_type_symbol(header.cputype))
-			values['cpusubtype'] = brew_runtime.int_value(header.cpusubtype)
-			values['cpusubtype_sym'] = brew_runtime.string_value(header_cpu_subtype_symbol(header.cputype, header.cpusubtype))
-			values['offset'] = brew_runtime.int_value(i64(header.offset))
-			values['size'] = brew_runtime.int_value(i64(header.size))
-			values['align'] = brew_runtime.int_value(header.align)
+			values['cputype'] = ruby.int_value(header.cputype)
+			values['cputype_sym'] = ruby.string_value(header_cpu_type_symbol(header.cputype))
+			values['cpusubtype'] = ruby.int_value(header.cpusubtype)
+			values['cpusubtype_sym'] = ruby.string_value(header_cpu_subtype_symbol(header.cputype, header.cpusubtype))
+			values['offset'] = ruby.int_value(i64(header.offset))
+			values['size'] = ruby.int_value(i64(header.size))
+			values['align'] = ruby.int_value(header.align)
 			if header.kind == .fat_arch64 {
-				values['reserved'] = brew_runtime.int_value(header.reserved)
+				values['reserved'] = ruby.int_value(header.reserved)
 				values['structure'] = header_structure_value('L>L>Q>Q>L>L>', 32)
 			} else {
 				values['structure'] = header_structure_value('L>L>L>L>L>', 20)
 			}
 		}
 		.mach_header, .mach_header64 {
-			values['magic'] = brew_runtime.int_value(header.magic)
-			values['magic_sym'] = brew_runtime.string_value(header_magic_symbol(header.magic))
-			values['cputype'] = brew_runtime.int_value(header.cputype)
-			values['cputype_sym'] = brew_runtime.string_value(header_cpu_type_symbol(header.cputype))
-			values['cpusubtype'] = brew_runtime.int_value(header.cpusubtype)
-			values['cpusubtype_sym'] = brew_runtime.string_value(header_cpu_subtype_symbol(header.cputype, header.cpusubtype))
-			values['filetype'] = brew_runtime.int_value(header.filetype)
-			values['filetype_sym'] = brew_runtime.string_value(header_filetype_symbol(header.filetype))
-			values['ncmds'] = brew_runtime.int_value(header.ncmds)
-			values['sizeofcmds'] = brew_runtime.int_value(header.sizeofcmds)
-			values['flags'] = brew_runtime.int_value(header.flags)
-			values['alignment'] = brew_runtime.int_value(header.alignment())
+			values['magic'] = ruby.int_value(header.magic)
+			values['magic_sym'] = ruby.string_value(header_magic_symbol(header.magic))
+			values['cputype'] = ruby.int_value(header.cputype)
+			values['cputype_sym'] = ruby.string_value(header_cpu_type_symbol(header.cputype))
+			values['cpusubtype'] = ruby.int_value(header.cpusubtype)
+			values['cpusubtype_sym'] = ruby.string_value(header_cpu_subtype_symbol(header.cputype, header.cpusubtype))
+			values['filetype'] = ruby.int_value(header.filetype)
+			values['filetype_sym'] = ruby.string_value(header_filetype_symbol(header.filetype))
+			values['ncmds'] = ruby.int_value(header.ncmds)
+			values['sizeofcmds'] = ruby.int_value(header.sizeofcmds)
+			values['flags'] = ruby.int_value(header.flags)
+			values['alignment'] = ruby.int_value(header.alignment())
 			if header.kind == .mach_header64 {
-				values['reserved'] = brew_runtime.int_value(header.reserved)
+				values['reserved'] = ruby.int_value(header.reserved)
 				values['structure'] = header_structure_value('L=L=L=L=L=L=L=L=', 32)
 			} else {
 				values['structure'] = header_structure_value('L=L=L=L=L=L=L=', 28)
 			}
 		}
 		.prelinked_kernel {
-			values['signature'] = brew_runtime.int_value(header.signature)
-			values['compress_type'] = brew_runtime.int_value(header.compress_type)
-			values['adler32'] = brew_runtime.int_value(header.adler32)
-			values['uncompressed_size'] = brew_runtime.int_value(header.uncompressed_size)
-			values['compressed_size'] = brew_runtime.int_value(header.compressed_size)
-			values['prelink_version'] = brew_runtime.int_value(header.prelink_version)
+			values['signature'] = ruby.int_value(header.signature)
+			values['compress_type'] = ruby.int_value(header.compress_type)
+			values['adler32'] = ruby.int_value(header.adler32)
+			values['uncompressed_size'] = ruby.int_value(header.uncompressed_size)
+			values['compressed_size'] = ruby.int_value(header.compressed_size)
+			values['prelink_version'] = ruby.int_value(header.prelink_version)
 			values['reserved'] = prelinked_reserved_value(header.reserved_bytes)
-			values['platform_name'] = brew_runtime.string_value(header.platform_name)
-			values['root_path'] = brew_runtime.string_value(header.root_path)
+			values['platform_name'] = ruby.string_value(header.platform_name)
+			values['root_path'] = ruby.string_value(header.root_path)
 			values['structure'] = header_structure_value('L>L>L>L>L>L>a40a64a256', 384)
 		}
 	}
-	return brew_runtime.map_value(values)
+	return ruby.map_value(values)
 }
 
 fn header_flag_value(flag string) ?u32 {
@@ -510,13 +510,13 @@ pub fn (header &MachoHeaderRecord) alignment() int {
 	return if header.magic32() { 4 } else { 8 }
 }
 
-fn macho_header_boundary(header &MachoHeaderRecord) brew_runtime.Value {
-	return brew_runtime.structured_value('MachO::Headers::${header.kind}', '#<MachO::Headers::${header.kind}>', {
+fn macho_header_boundary(header &MachoHeaderRecord) ruby.Value {
+	return ruby.structured_value('MachO::Headers::${header.kind}', '#<MachO::Headers::${header.kind}>', {
 		'macho_header_address': u64(voidptr(header)).str()
 	})
 }
 
-fn macho_header_from_args(args []brew_runtime.Value) &MachoHeaderRecord {
+fn macho_header_from_args(args []ruby.Value) &MachoHeaderRecord {
 	if args.len == 0 {
 		panic('MachO header method requires a receiver')
 	}
@@ -527,140 +527,140 @@ fn macho_header_from_args(args []brew_runtime.Value) &MachoHeaderRecord {
 }
 
 // Ruby method `serialize` at line 526.
-pub fn ruby_headers_l526_d1_serialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(macho_header_from_args(args).serialize() or { panic(err) }.bytestr())
+pub fn ruby_headers_l526_d1_serialize(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(macho_header_from_args(args).serialize() or { panic(err) }.bytestr())
 }
 
 // Ruby method `to_h` at line 531.
-pub fn ruby_headers_l531_d2_to_h(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_headers_l531_d2_to_h(args ...ruby.Value) ruby.Value {
 	return macho_header_from_args(args).to_h()
 }
 
 // Ruby method `serialize` at line 562.
-pub fn ruby_headers_l562_d3_serialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(macho_header_from_args(args).serialize() or { panic(err) }.bytestr())
+pub fn ruby_headers_l562_d3_serialize(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(macho_header_from_args(args).serialize() or { panic(err) }.bytestr())
 }
 
 // Ruby method `to_h` at line 567.
-pub fn ruby_headers_l567_d4_to_h(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_headers_l567_d4_to_h(args ...ruby.Value) ruby.Value {
 	return macho_header_from_args(args).to_h()
 }
 
 // Ruby method `serialize` at line 596.
-pub fn ruby_headers_l596_d5_serialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(macho_header_from_args(args).serialize() or { panic(err) }.bytestr())
+pub fn ruby_headers_l596_d5_serialize(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(macho_header_from_args(args).serialize() or { panic(err) }.bytestr())
 }
 
 // Ruby method `to_h` at line 601.
-pub fn ruby_headers_l601_d6_to_h(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_headers_l601_d6_to_h(args ...ruby.Value) ruby.Value {
 	return macho_header_from_args(args).to_h()
 }
 
 // Ruby method `flag?(flag)` at line 635.
-pub fn ruby_headers_l635_d7_flag(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_headers_l635_d7_flag(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('MachHeader#flag? requires a flag')
 	}
-	return brew_runtime.bool_value(macho_header_from_args(args).flag(args[1].as_string().trim_string_left(':')))
+	return ruby.bool_value(macho_header_from_args(args).flag(args[1].as_string().trim_string_left(':')))
 }
 
 // Ruby method `object?` at line 644.
-pub fn ruby_headers_l644_d8_object(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(macho_header_from_args(args).filetype == 1)
+pub fn ruby_headers_l644_d8_object(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(macho_header_from_args(args).filetype == 1)
 }
 
 // Ruby method `executable?` at line 649.
-pub fn ruby_headers_l649_d9_executable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(macho_header_from_args(args).filetype == 2)
+pub fn ruby_headers_l649_d9_executable(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(macho_header_from_args(args).filetype == 2)
 }
 
 // Ruby method `fvmlib?` at line 654.
-pub fn ruby_headers_l654_d10_fvmlib(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(macho_header_from_args(args).filetype == 3)
+pub fn ruby_headers_l654_d10_fvmlib(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(macho_header_from_args(args).filetype == 3)
 }
 
 // Ruby method `core?` at line 659.
-pub fn ruby_headers_l659_d11_core(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(macho_header_from_args(args).filetype == 4)
+pub fn ruby_headers_l659_d11_core(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(macho_header_from_args(args).filetype == 4)
 }
 
 // Ruby method `preload?` at line 664.
-pub fn ruby_headers_l664_d12_preload(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(macho_header_from_args(args).filetype == 5)
+pub fn ruby_headers_l664_d12_preload(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(macho_header_from_args(args).filetype == 5)
 }
 
 // Ruby method `dylib?` at line 669.
-pub fn ruby_headers_l669_d13_dylib(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(macho_header_from_args(args).filetype == 6)
+pub fn ruby_headers_l669_d13_dylib(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(macho_header_from_args(args).filetype == 6)
 }
 
 // Ruby method `dylinker?` at line 674.
-pub fn ruby_headers_l674_d14_dylinker(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(macho_header_from_args(args).filetype == 7)
+pub fn ruby_headers_l674_d14_dylinker(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(macho_header_from_args(args).filetype == 7)
 }
 
 // Ruby method `bundle?` at line 679.
-pub fn ruby_headers_l679_d15_bundle(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(macho_header_from_args(args).filetype == 8)
+pub fn ruby_headers_l679_d15_bundle(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(macho_header_from_args(args).filetype == 8)
 }
 
 // Ruby method `dsym?` at line 684.
-pub fn ruby_headers_l684_d16_dsym(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(macho_header_from_args(args).filetype == 10)
+pub fn ruby_headers_l684_d16_dsym(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(macho_header_from_args(args).filetype == 10)
 }
 
 // Ruby method `kext?` at line 689.
-pub fn ruby_headers_l689_d17_kext(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(macho_header_from_args(args).filetype == 11)
+pub fn ruby_headers_l689_d17_kext(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(macho_header_from_args(args).filetype == 11)
 }
 
 // Ruby method `fileset?` at line 694.
-pub fn ruby_headers_l694_d18_fileset(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(macho_header_from_args(args).filetype == 12)
+pub fn ruby_headers_l694_d18_fileset(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(macho_header_from_args(args).filetype == 12)
 }
 
 // Ruby method `magic32?` at line 699.
-pub fn ruby_headers_l699_d19_magic32(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(macho_header_from_args(args).magic32())
+pub fn ruby_headers_l699_d19_magic32(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(macho_header_from_args(args).magic32())
 }
 
 // Ruby method `magic64?` at line 704.
-pub fn ruby_headers_l704_d20_magic64(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(macho_header_from_args(args).magic64())
+pub fn ruby_headers_l704_d20_magic64(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(macho_header_from_args(args).magic64())
 }
 
 // Ruby method `alignment` at line 709.
-pub fn ruby_headers_l709_d21_alignment(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(macho_header_from_args(args).alignment())
+pub fn ruby_headers_l709_d21_alignment(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(macho_header_from_args(args).alignment())
 }
 
 // Ruby method `to_h` at line 714.
-pub fn ruby_headers_l714_d22_to_h(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_headers_l714_d22_to_h(args ...ruby.Value) ruby.Value {
 	return macho_header_from_args(args).to_h()
 }
 
 // Ruby method `to_h` at line 738.
-pub fn ruby_headers_l738_d23_to_h(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_headers_l738_d23_to_h(args ...ruby.Value) ruby.Value {
 	return macho_header_from_args(args).to_h()
 }
 
 // Ruby method `kaslr?` at line 775.
-pub fn ruby_headers_l775_d24_kaslr(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(macho_header_from_args(args).prelink_version >= 1)
+pub fn ruby_headers_l775_d24_kaslr(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(macho_header_from_args(args).prelink_version >= 1)
 }
 
 // Ruby method `lzss?` at line 780.
-pub fn ruby_headers_l780_d25_lzss(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(macho_header_from_args(args).compress_type == comp_type_lzss)
+pub fn ruby_headers_l780_d25_lzss(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(macho_header_from_args(args).compress_type == comp_type_lzss)
 }
 
 // Ruby method `lzvn?` at line 785.
-pub fn ruby_headers_l785_d26_lzvn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(macho_header_from_args(args).compress_type == comp_type_fastlib)
+pub fn ruby_headers_l785_d26_lzvn(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(macho_header_from_args(args).compress_type == comp_type_fastlib)
 }
 
 // Ruby method `to_h` at line 790.
-pub fn ruby_headers_l790_d27_to_h(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_headers_l790_d27_to_h(args ...ruby.Value) ruby.Value {
 	return macho_header_from_args(args).to_h()
 }
 

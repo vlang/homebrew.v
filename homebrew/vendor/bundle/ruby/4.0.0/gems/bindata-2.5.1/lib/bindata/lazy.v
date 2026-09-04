@@ -1,13 +1,13 @@
 module bindata
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/bindata-2.5.1/lib/bindata/lazy.rb`.
 // The original source is retained below until every stub has a typed V body.
 
-pub type LazyCallableFn = fn (mut LazyEvaluator) brew_runtime.Value
+pub type LazyCallableFn = fn (mut LazyEvaluator) ruby.Value
 
-pub type LazyMethodFn = fn ([]brew_runtime.Value) brew_runtime.Value
+pub type LazyMethodFn = fn ([]ruby.Value) ruby.Value
 
 @[heap]
 pub struct LazyCallable {
@@ -18,31 +18,31 @@ mut:
 @[heap]
 pub struct LazyDataObject {
 mut:
-	parameters       map[string]brew_runtime.Value
-	method_values    map[string]brew_runtime.Value
+	parameters       map[string]ruby.Value
+	method_values    map[string]ruby.Value
 	method_callbacks map[string]LazyMethodFn
 	method_names     []string
-	parent           brew_runtime.Value
+	parent           ruby.Value
 	has_parent       bool
 }
 
 @[heap]
 pub struct LazyEvaluator {
 mut:
-	object        brew_runtime.Value
-	overrides     map[string]brew_runtime.Value
+	object        ruby.Value
+	overrides     map[string]ruby.Value
 	has_overrides bool
 }
 
-fn lazy_nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn lazy_nil_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-fn lazy_symbol_name(value brew_runtime.Value) string {
+fn lazy_symbol_name(value ruby.Value) string {
 	return value.as_string().trim_left(':')
 }
 
-pub fn new_lazy_data_object(parameters map[string]brew_runtime.Value, methods map[string]brew_runtime.Value) &LazyDataObject {
+pub fn new_lazy_data_object(parameters map[string]ruby.Value, methods map[string]ruby.Value) &LazyDataObject {
 	return &LazyDataObject{
 		parameters: parameters.clone()
 		method_values: methods.clone()
@@ -52,7 +52,7 @@ pub fn new_lazy_data_object(parameters map[string]brew_runtime.Value, methods ma
 	}
 }
 
-pub fn (mut object LazyDataObject) set_parent(parent brew_runtime.Value) {
+pub fn (mut object LazyDataObject) set_parent(parent ruby.Value) {
 	object.parent = parent
 	object.has_parent = parent.type_name != 'NilClass'
 }
@@ -65,8 +65,8 @@ pub fn (mut object LazyDataObject) add_method(name string, callback LazyMethodFn
 	}
 }
 
-pub fn lazy_data_boundary_value(object &LazyDataObject) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn lazy_data_boundary_value(object &LazyDataObject) ruby.Value {
+	return ruby.Value{
 		type_name: 'BinData::LazyDataObject'
 		repr: 'BinData::LazyDataObject'
 		int_data: i64(u64(voidptr(object)))
@@ -78,16 +78,16 @@ pub fn lazy_data_boundary_value(object &LazyDataObject) brew_runtime.Value {
 	}
 }
 
-fn lazy_data_from_value(value brew_runtime.Value) ?&LazyDataObject {
+fn lazy_data_from_value(value ruby.Value) ?&LazyDataObject {
 	address := value.attributes['lazy_data_address'] or { return none }
 	return unsafe { &LazyDataObject(voidptr(address.u64())) }
 }
 
-pub fn lazy_callable_value(callback LazyCallableFn) brew_runtime.Value {
+pub fn lazy_callable_value(callback LazyCallableFn) ruby.Value {
 	callable := &LazyCallable{
 		callback: callback
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'Proc'
 		repr: 'proc'
 		int_data: i64(u64(voidptr(callable)))
@@ -97,20 +97,20 @@ pub fn lazy_callable_value(callback LazyCallableFn) brew_runtime.Value {
 	}
 }
 
-fn lazy_callable_from_value(value brew_runtime.Value) ?&LazyCallable {
+fn lazy_callable_from_value(value ruby.Value) ?&LazyCallable {
 	address := value.attributes['lazy_callable_address'] or { return none }
 	return unsafe { &LazyCallable(voidptr(address.u64())) }
 }
 
-pub fn new_lazy_evaluator(object brew_runtime.Value) &LazyEvaluator {
+pub fn new_lazy_evaluator(object ruby.Value) &LazyEvaluator {
 	return &LazyEvaluator{
 		object: object
-		overrides: map[string]brew_runtime.Value{}
+		overrides: map[string]ruby.Value{}
 	}
 }
 
-pub fn lazy_evaluator_boundary_value(evaluator &LazyEvaluator) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn lazy_evaluator_boundary_value(evaluator &LazyEvaluator) ruby.Value {
+	return ruby.Value{
 		type_name: 'BinData::LazyEvaluator'
 		repr: evaluator.object.repr
 		int_data: i64(u64(voidptr(evaluator)))
@@ -123,7 +123,7 @@ pub fn lazy_evaluator_boundary_value(evaluator &LazyEvaluator) brew_runtime.Valu
 	}
 }
 
-fn lazy_evaluator_from_value(value brew_runtime.Value) &LazyEvaluator {
+fn lazy_evaluator_from_value(value ruby.Value) &LazyEvaluator {
 	if address := value.attributes['lazy_evaluator_address'] {
 		return unsafe { &LazyEvaluator(voidptr(address.u64())) }
 	}
@@ -131,7 +131,7 @@ fn lazy_evaluator_from_value(value brew_runtime.Value) &LazyEvaluator {
 	return new_lazy_evaluator(object)
 }
 
-fn lazy_parent_of(value brew_runtime.Value) ?brew_runtime.Value {
+fn lazy_parent_of(value ruby.Value) ?ruby.Value {
 	if object := lazy_data_from_value(value) {
 		if object.has_parent {
 			return object.parent
@@ -147,7 +147,7 @@ fn lazy_parent_of(value brew_runtime.Value) ?brew_runtime.Value {
 	return none
 }
 
-fn lazy_has_parameter(value brew_runtime.Value, name string) bool {
+fn lazy_has_parameter(value ruby.Value, name string) bool {
 	if object := lazy_data_from_value(value) {
 		return name in object.parameters
 	}
@@ -157,7 +157,7 @@ fn lazy_has_parameter(value brew_runtime.Value, name string) bool {
 	return name in value.map_data
 }
 
-fn lazy_parameter(value brew_runtime.Value, name string) brew_runtime.Value {
+fn lazy_parameter(value ruby.Value, name string) ruby.Value {
 	if object := lazy_data_from_value(value) {
 		return object.parameters[name] or { lazy_nil_value() }
 	}
@@ -167,7 +167,7 @@ fn lazy_parameter(value brew_runtime.Value, name string) brew_runtime.Value {
 	return value.map_data[name] or { lazy_nil_value() }
 }
 
-fn lazy_responds_to(value brew_runtime.Value, name string) bool {
+fn lazy_responds_to(value ruby.Value, name string) bool {
 	if object := lazy_data_from_value(value) {
 		return name in object.method_names || name in object.method_values || name in object.method_callbacks
 	}
@@ -182,7 +182,7 @@ fn lazy_responds_to(value brew_runtime.Value, name string) bool {
 	return false
 }
 
-fn lazy_values_identical(left brew_runtime.Value, right brew_runtime.Value) bool {
+fn lazy_values_identical(left ruby.Value, right ruby.Value) bool {
 	for key in ['lazy_data_address', 'base_object_address', 'struct_field_address', 'array_element_address'] {
 		if address := left.attributes[key] {
 			return address == (right.attributes[key] or { '' })
@@ -191,7 +191,7 @@ fn lazy_values_identical(left brew_runtime.Value, right brew_runtime.Value) bool
 	return left.type_name == right.type_name && left.repr == right.repr
 }
 
-fn lazy_call_method(value brew_runtime.Value, name string, args []brew_runtime.Value) brew_runtime.Value {
+fn lazy_call_method(value ruby.Value, name string, args []ruby.Value) ruby.Value {
 	if object := lazy_data_from_value(value) {
 		if callback := object.method_callbacks[name] {
 			return callback(args)
@@ -201,7 +201,7 @@ fn lazy_call_method(value brew_runtime.Value, name string, args []brew_runtime.V
 		}
 	}
 	if _ := value.attributes['struct_object_address'] {
-		field := ruby_struct_l213_d23_find_obj_for_name(value, brew_runtime.object_value('Symbol', ':${name}'))
+		field := ruby_struct_l213_d23_find_obj_for_name(value, ruby.object_value('Symbol', ':${name}'))
 		if field.type_name != 'NilClass' {
 			return struct_field_from_value(field).base.snapshot_value
 		}
@@ -216,7 +216,7 @@ fn lazy_call_method(value brew_runtime.Value, name string, args []brew_runtime.V
 			if children := object.method_values['children'] {
 				for index, child in children.array_data {
 					if args.len > 0 && lazy_values_identical(child, args[0]) {
-						return brew_runtime.int_value(index)
+						return ruby.int_value(index)
 					}
 				}
 			}
@@ -230,7 +230,7 @@ fn (mut evaluator LazyEvaluator) parent_evaluator() ?&LazyEvaluator {
 	return new_lazy_evaluator(parent)
 }
 
-pub fn (mut evaluator LazyEvaluator) index() brew_runtime.Value {
+pub fn (mut evaluator LazyEvaluator) index() ruby.Value {
 	if evaluator.has_overrides {
 		if index := evaluator.overrides['index'] {
 			return index
@@ -248,7 +248,7 @@ pub fn (mut evaluator LazyEvaluator) index() brew_runtime.Value {
 	panic('no index found')
 }
 
-fn (mut evaluator LazyEvaluator) resolve_symbol_in_parent_context(name string, args []brew_runtime.Value) brew_runtime.Value {
+fn (mut evaluator LazyEvaluator) resolve_symbol_in_parent_context(name string, args []ruby.Value) ruby.Value {
 	parent := lazy_parent_of(evaluator.object) or { panic('undefined method `${name}`') }
 	if lazy_has_parameter(parent, name) {
 		return lazy_parameter(parent, name)
@@ -256,10 +256,10 @@ fn (mut evaluator LazyEvaluator) resolve_symbol_in_parent_context(name string, a
 	if lazy_responds_to(parent, name) {
 		return lazy_call_method(parent, name, args)
 	}
-	return brew_runtime.object_value('Symbol', ':${name}')
+	return ruby.object_value('Symbol', ':${name}')
 }
 
-fn (mut evaluator LazyEvaluator) recursively_eval(value brew_runtime.Value, args []brew_runtime.Value) brew_runtime.Value {
+fn (mut evaluator LazyEvaluator) recursively_eval(value ruby.Value, args []ruby.Value) ruby.Value {
 	if value.type_name == 'Symbol' {
 		mut parent := evaluator.parent_evaluator() or { panic('undefined method `${lazy_symbol_name(value)}`') }
 		return parent.call_symbol(lazy_symbol_name(value), args)
@@ -271,7 +271,7 @@ fn (mut evaluator LazyEvaluator) recursively_eval(value brew_runtime.Value, args
 	return value
 }
 
-fn (mut evaluator LazyEvaluator) call_symbol(name string, args []brew_runtime.Value) brew_runtime.Value {
+fn (mut evaluator LazyEvaluator) call_symbol(name string, args []ruby.Value) ruby.Value {
 	if evaluator.has_overrides {
 		if value := evaluator.overrides[name] {
 			return value
@@ -291,11 +291,11 @@ fn (mut evaluator LazyEvaluator) call_symbol(name string, args []brew_runtime.Va
 	return evaluator.recursively_eval(result, args)
 }
 
-pub fn (mut evaluator LazyEvaluator) resolve(name string, args ...brew_runtime.Value) brew_runtime.Value {
+pub fn (mut evaluator LazyEvaluator) resolve(name string, args ...ruby.Value) ruby.Value {
 	return evaluator.call_symbol(name.trim_left(':'), args)
 }
 
-pub fn (mut evaluator LazyEvaluator) lazy_eval(value brew_runtime.Value, overrides ?map[string]brew_runtime.Value) brew_runtime.Value {
+pub fn (mut evaluator LazyEvaluator) lazy_eval(value ruby.Value, overrides ?map[string]ruby.Value) ruby.Value {
 	if values := overrides {
 		evaluator.overrides = normalized_base_parameters(values)
 		evaluator.has_overrides = true
@@ -310,7 +310,7 @@ pub fn (mut evaluator LazyEvaluator) lazy_eval(value brew_runtime.Value, overrid
 }
 
 // Ruby method `initialize(obj)` at line 24.
-pub fn ruby_lazy_l24_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lazy_l24_d1_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('LazyEvaluator#initialize requires an object')
 	}
@@ -318,13 +318,13 @@ pub fn ruby_lazy_l24_d1_initialize(args ...brew_runtime.Value) brew_runtime.Valu
 }
 
 // Ruby method `lazy_eval(val, overrides = nil)` at line 28.
-pub fn ruby_lazy_l28_d2_lazy_eval(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lazy_l28_d2_lazy_eval(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('LazyEvaluator#lazy_eval requires a receiver and value')
 	}
 	mut evaluator := lazy_evaluator_from_value(args[0])
 	overrides := if args.len > 2 && args[2].type_name != 'NilClass' {
-		?map[string]brew_runtime.Value(args[2].as_map() or { panic(err) })
+		?map[string]ruby.Value(args[2].as_map() or { panic(err) })
 	} else {
 		none
 	}
@@ -332,7 +332,7 @@ pub fn ruby_lazy_l28_d2_lazy_eval(args ...brew_runtime.Value) brew_runtime.Value
 }
 
 // Ruby method `parent` at line 40.
-pub fn ruby_lazy_l40_d3_parent(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lazy_l40_d3_parent(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('LazyEvaluator#parent requires a receiver')
 	}
@@ -345,7 +345,7 @@ pub fn ruby_lazy_l40_d3_parent(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `index` at line 50.
-pub fn ruby_lazy_l50_d4_index(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lazy_l50_d4_index(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('LazyEvaluator#index requires a receiver')
 	}
@@ -354,7 +354,7 @@ pub fn ruby_lazy_l50_d4_index(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `method_missing(symbol, *args)` at line 65.
-pub fn ruby_lazy_l65_d5_method_missing(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lazy_l65_d5_method_missing(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('LazyEvaluator#method_missing requires a receiver and symbol')
 	}
@@ -363,7 +363,7 @@ pub fn ruby_lazy_l65_d5_method_missing(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby method `eval_symbol_in_parent_context(symbol, args)` at line 78.
-pub fn ruby_lazy_l78_d6_eval_symbol_in_parent_context(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lazy_l78_d6_eval_symbol_in_parent_context(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('LazyEvaluator#eval_symbol_in_parent_context requires a receiver and symbol')
 	}
@@ -378,7 +378,7 @@ pub fn ruby_lazy_l78_d6_eval_symbol_in_parent_context(args ...brew_runtime.Value
 }
 
 // Ruby method `resolve_symbol_in_parent_context(symbol, args)` at line 83.
-pub fn ruby_lazy_l83_d7_resolve_symbol_in_parent_context(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lazy_l83_d7_resolve_symbol_in_parent_context(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('LazyEvaluator#resolve_symbol_in_parent_context requires a receiver and symbol')
 	}
@@ -392,7 +392,7 @@ pub fn ruby_lazy_l83_d7_resolve_symbol_in_parent_context(args ...brew_runtime.Va
 }
 
 // Ruby method `recursively_eval(val, args)` at line 95.
-pub fn ruby_lazy_l95_d8_recursively_eval(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lazy_l95_d8_recursively_eval(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('LazyEvaluator#recursively_eval requires a receiver and value')
 	}
@@ -406,12 +406,12 @@ pub fn ruby_lazy_l95_d8_recursively_eval(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `callable?(obj)` at line 105.
-pub fn ruby_lazy_l105_d9_callable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lazy_l105_d9_callable(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	value := args[args.len - 1]
-	return brew_runtime.bool_value(value.type_name in ['Proc', 'Method', 'UnboundMethod'] ||
+	return ruby.bool_value(value.type_name in ['Proc', 'Method', 'UnboundMethod'] ||
 		'lazy_callable_address' in value.attributes)
 }
 

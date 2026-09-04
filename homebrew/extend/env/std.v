@@ -1,6 +1,6 @@
 module env
 
-import brew_runtime
+import ruby
 import homebrew
 import regex
 
@@ -8,7 +8,7 @@ import regex
 // The original source is retained below until every stub has a typed V body.
 pub const stdenv_safe_cflags = '-w -pipe'
 
-pub type StdenvAction = fn(mut SharedEnvState) !brew_runtime.Value
+pub type StdenvAction = fn(mut SharedEnvState) !ruby.Value
 
 pub type StdenvPathPredicate = fn(string) bool
 

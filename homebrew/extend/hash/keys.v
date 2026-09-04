@@ -1,6 +1,6 @@
 module hash
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `extend/hash/keys.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -195,7 +195,7 @@ pub fn deep_symbolize_keys(object DeepValue) DeepValue {
 	return deep_transform_keys(object, symbolize_deep_key)
 }
 
-fn deep_key_from_runtime(value brew_runtime.Value) DeepKey {
+fn deep_key_from_runtime(value ruby.Value) DeepKey {
 	return match value.type_name {
 		'Symbol' { symbol_deep_key(value.as_string()) }
 		'Integer' { integer_deep_key(value.int_data) }
@@ -203,7 +203,7 @@ fn deep_key_from_runtime(value brew_runtime.Value) DeepKey {
 	}
 }
 
-fn deep_value_from_runtime(value brew_runtime.Value) DeepValue {
+fn deep_value_from_runtime(value ruby.Value) DeepValue {
 	return match value.type_name {
 		'Hash' {
 			mut entries := []DeepEntry{}
@@ -216,7 +216,7 @@ fn deep_value_from_runtime(value brew_runtime.Value) DeepValue {
 			deep_hash(entries)
 		}
 		'Array' {
-			deep_array((value.as_array() or { []brew_runtime.Value{} }).map(deep_value_from_runtime(it)))
+			deep_array((value.as_array() or { []ruby.Value{} }).map(deep_value_from_runtime(it)))
 		}
 		'Integer' { deep_integer(value.int_data) }
 		'NilClass' { DeepValue{} }
@@ -244,18 +244,18 @@ fn deep_value_repr(value DeepValue) string {
 	}
 }
 
-fn deep_value_to_runtime(value DeepValue) brew_runtime.Value {
+fn deep_value_to_runtime(value DeepValue) ruby.Value {
 	return match value.kind {
-		.null_value { brew_runtime.object_value('NilClass', 'nil') }
-		.string_value { brew_runtime.string_value(value.text) }
-		.integer_value { brew_runtime.int_value(value.integer) }
-		.array_value { brew_runtime.array_value(value.items.map(deep_value_to_runtime(it))) }
+		.null_value { ruby.object_value('NilClass', 'nil') }
+		.string_value { ruby.string_value(value.text) }
+		.integer_value { ruby.int_value(value.integer) }
+		.array_value { ruby.array_value(value.items.map(deep_value_to_runtime(it))) }
 		.hash_value {
-			mut values := map[string]brew_runtime.Value{}
+			mut values := map[string]ruby.Value{}
 			for entry in value.entries {
 				values[deep_key_runtime_name(entry.key)] = deep_value_to_runtime(entry.value)
 			}
-			brew_runtime.Value{
+			ruby.Value{
 				type_name: 'Hash'
 				repr: deep_value_repr(value)
 				map_data: values
@@ -264,7 +264,7 @@ fn deep_value_to_runtime(value DeepValue) brew_runtime.Value {
 	}
 }
 
-fn deep_transform_from_args(args []brew_runtime.Value) fn(DeepKey) DeepKey {
+fn deep_transform_from_args(args []ruby.Value) fn(DeepKey) DeepKey {
 	mode := if args.len > 1 { args[1].as_string() } else { 'identity' }
 	return match mode {
 		'string', 'stringify' { stringify_deep_key }
@@ -277,15 +277,15 @@ fn deep_transform_from_args(args []brew_runtime.Value) fn(DeepKey) DeepKey {
 }
 
 // Ruby method `assert_valid_keys(*valid_keys)` at line 21.
-pub fn ruby_keys_l21_d1_assert_valid_keys(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keys_l21_d1_assert_valid_keys(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || args[0].type_name != 'Hash' {
-		return brew_runtime.object_value('ArgumentError', 'hash is required')
+		return ruby.object_value('ArgumentError', 'hash is required')
 	}
 	object := deep_value_from_runtime(args[0])
 	mut valid := []DeepKey{}
 	for value in args[1..] {
 		if value.type_name == 'Array' {
-			for nested in value.as_array() or { []brew_runtime.Value{} } {
+			for nested in value.as_array() or { []ruby.Value{} } {
 				valid << deep_key_from_runtime(nested)
 			}
 		} else {
@@ -293,23 +293,23 @@ pub fn ruby_keys_l21_d1_assert_valid_keys(args ...brew_runtime.Value) brew_runti
 		}
 	}
 	assert_valid_deep_keys(object.entries, valid) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `deep_transform_keys(&block) = _deep_transform_keys_in_object(self, &block)` at line 43.
-pub fn ruby_keys_l43_d2_deep_transform_keys(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keys_l43_d2_deep_transform_keys(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'hash is required')
+		return ruby.object_value('ArgumentError', 'hash is required')
 	}
 	return deep_value_to_runtime(deep_transform_keys(deep_value_from_runtime(args[0]), deep_transform_from_args(args)))
 }
 
 // Ruby method `deep_transform_keys!(&block) = _deep_transform_keys_in_object!(self, &block)` at line 48.
-pub fn ruby_keys_l48_d3_deep_transform_keys(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keys_l48_d3_deep_transform_keys(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'hash is required')
+		return ruby.object_value('ArgumentError', 'hash is required')
 	}
 	mut object := deep_value_from_runtime(args[0])
 	deep_transform_keys_in_place(mut object, deep_transform_from_args(args))
@@ -317,28 +317,28 @@ pub fn ruby_keys_l48_d3_deep_transform_keys(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby method `deep_stringify_keys = T.unsafe(self).deep_transform_keys(&:to_s)` at line 62.
-pub fn ruby_keys_l62_d4_deep_stringify_keys(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keys_l62_d4_deep_stringify_keys(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'hash is required')
+		return ruby.object_value('ArgumentError', 'hash is required')
 	}
 	return deep_value_to_runtime(deep_stringify_keys(deep_value_from_runtime(args[0])))
 }
 
 // Ruby method `deep_symbolize_keys` at line 76.
-pub fn ruby_keys_l76_d5_deep_symbolize_keys(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keys_l76_d5_deep_symbolize_keys(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'hash is required')
+		return ruby.object_value('ArgumentError', 'hash is required')
 	}
 	return deep_value_to_runtime(deep_symbolize_keys(deep_value_from_runtime(args[0])))
 }
 
 // Ruby method `_deep_transform_keys_in_object(object, &block)` at line 88.
-pub fn ruby_keys_l88_d6_deep_transform_keys_in_object(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keys_l88_d6_deep_transform_keys_in_object(args ...ruby.Value) ruby.Value {
 	return ruby_keys_l43_d2_deep_transform_keys(...args)
 }
 
 // Ruby method `_deep_transform_keys_in_object!(object, &block)` at line 102.
-pub fn ruby_keys_l102_d7_deep_transform_keys_in_object(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keys_l102_d7_deep_transform_keys_in_object(args ...ruby.Value) ruby.Value {
 	return ruby_keys_l48_d3_deep_transform_keys(...args)
 }
 

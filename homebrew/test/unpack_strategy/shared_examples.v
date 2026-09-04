@@ -1,18 +1,18 @@
 module unpack_strategy
 
-import brew_runtime
+import ruby
 import homebrew.unpack_strategy as typed_unpack
 import os
 import time
 
 // Translated from Homebrew/brew `test/unpack_strategy/shared_examples.rb`.
 // The original source is retained below until every stub has a typed V body.
-fn spec_bool(value bool) brew_runtime.Value {
-	return brew_runtime.bool_value(value)
+fn spec_bool(value bool) ruby.Value {
+	return ruby.bool_value(value)
 }
 
-fn spec_nil() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn spec_nil() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 fn spec_temp_dir(label string) string {
@@ -22,14 +22,14 @@ fn spec_temp_dir(label string) string {
 }
 
 fn spec_tool_available(name string) bool {
-	brew_runtime.find_executable(name) or { return false }
+	ruby.find_executable(name) or { return false }
 	return true
 }
 
 fn spec_run_command(name string, arguments []string, work_directory string) ! {
-	program := brew_runtime.find_executable(name)!
+	program := ruby.find_executable(name)!
 	if work_directory == '' {
-		result := brew_runtime.run_command(program, arguments)
+		result := ruby.run_command(program, arguments)
 		if result.exit_code != 0 {
 			return error('${name} failed (${result.exit_code}): ${result.output.trim_space()}')
 		}
@@ -167,7 +167,7 @@ fn spec_detect(path string, kind typed_unpack.StrategyKind) bool {
 	return typed_unpack.detect(path, typed_unpack.DetectOptions{}).kind == kind
 }
 
-fn spec_value_children(value brew_runtime.Value) []string {
+fn spec_value_children(value ruby.Value) []string {
 	if value.string_array_data.len > 0 {
 		return value.string_array_data.clone()
 	}
@@ -194,7 +194,7 @@ fn spec_extract(path string, kind typed_unpack.StrategyKind, expected []string, 
 }
 
 // Ruby it `it "is correctly detected" do` at line 8.
-pub fn ruby_shared_examples_l8_d1_is(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shared_examples_l8_d1_is(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		return spec_bool(false)
 	}
@@ -203,7 +203,7 @@ pub fn ruby_shared_examples_l8_d1_is(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby specify `specify "#extract" do` at line 14.
-pub fn ruby_shared_examples_l14_d2_extract(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shared_examples_l14_d2_extract(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		return spec_bool(false)
 	}

@@ -1,6 +1,6 @@
 module utils
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `utils/backtrace.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -71,9 +71,9 @@ pub fn tap_error_url(has_backtrace bool, backtrace []string) string {
 }
 
 // Ruby method `self.clean(error)` at line 17.
-pub fn ruby_backtrace_l17_d1_self_clean(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_backtrace_l17_d1_self_clean(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'error is required')
+		return ruby.object_value('ArgumentError', 'error is required')
 	}
 	has_backtrace := args[0].type_name !in ['Nil', 'NilClass', '']
 	backtrace := if has_backtrace { args[0].as_string_array() or { []string{} } } else { []string{} }
@@ -81,42 +81,42 @@ pub fn ruby_backtrace_l17_d1_self_clean(args ...brew_runtime.Value) brew_runtime
 	path := if args.len > 2 { args[2].as_string() } else { sorbet_runtime_path('') }
 	result := clean_backtrace(has_backtrace, backtrace, verbose, path)
 	return if result.has_backtrace {
-		brew_runtime.string_array_value(result.backtrace)
+		ruby.string_array_value(result.backtrace)
 	} else {
-		brew_runtime.object_value('NilClass', '')
+		ruby.object_value('NilClass', '')
 	}
 }
 
 // Ruby method `self.sorbet_runtime_path` at line 30.
-pub fn ruby_backtrace_l30_d2_self_sorbet_runtime_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_backtrace_l30_d2_self_sorbet_runtime_path(args ...ruby.Value) ruby.Value {
 	gem_home := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.string_value(sorbet_runtime_path(gem_home))
+	return ruby.string_value(sorbet_runtime_path(gem_home))
 }
 
 // Ruby method `self.print_backtrace_message` at line 35.
-pub fn ruby_backtrace_l35_d3_self_print_backtrace_message(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_backtrace_l35_d3_self_print_backtrace_message(args ...ruby.Value) ruby.Value {
 	already_printed := args.len > 0 && (args[0].as_bool() or { false })
 	github_actions := args.len > 1 && (args[1].as_bool() or { false })
 	no_env_hints := args.len > 2 && (args[2].as_bool() or { false })
 	result := print_backtrace_message(already_printed, github_actions, no_env_hints)
-	return brew_runtime.map_value({
-		'printed': brew_runtime.bool_value(result.printed)
-		'warning': brew_runtime.string_value(result.warning)
-		'stdout': brew_runtime.string_value(result.stdout)
+	return ruby.map_value({
+		'printed': ruby.bool_value(result.printed)
+		'warning': ruby.string_value(result.warning)
+		'stdout': ruby.string_value(result.stdout)
 	})
 }
 
 // Ruby method `self.tap_error_url(error)` at line 46.
-pub fn ruby_backtrace_l46_d4_self_tap_error_url(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_backtrace_l46_d4_self_tap_error_url(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || args[0].type_name in ['Nil', 'NilClass', ''] {
-		return brew_runtime.object_value('NilClass', '')
+		return ruby.object_value('NilClass', '')
 	}
 	backtrace := args[0].as_string_array() or { []string{} }
 	url := tap_error_url(true, backtrace)
 	return if url.len > 0 {
-		brew_runtime.string_value(url)
+		ruby.string_value(url)
 	} else {
-		brew_runtime.object_value('NilClass', '')
+		ruby.object_value('NilClass', '')
 	}
 }
 

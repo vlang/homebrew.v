@@ -1,24 +1,24 @@
 module mixin
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `rubocops/cask/mixin/on_homepage_stanza.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `on_cask(cask_block)` at line 13.
-pub fn ruby_on_homepage_stanza_l13_d1_on_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_on_homepage_stanza_l13_d1_on_cask(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	return stanza_values(cask_stanzas_named(source, 'homepage'))
 }
 
 // Ruby attr_reader `attr_reader :cask_block` at line 24.
-pub fn ruby_on_homepage_stanza_l24_d2_cask_block(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_on_homepage_stanza_l24_d2_cask_block(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	return cask_block_value(source)
 }
 
 // Ruby def_delegators `def_delegators :cask_block, :toplevel_stanzas` at line 26.
-pub fn ruby_on_homepage_stanza_l26_d3_toplevel_stanzas(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_on_homepage_stanza_l26_d3_toplevel_stanzas(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	return stanza_values(cask_toplevel_stanzas(source))
 }

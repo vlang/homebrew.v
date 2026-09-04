@@ -1,6 +1,6 @@
 module cask
 
-import brew_runtime
+import ruby
 import homebrew.rubocops as formula_no_autobump_core
 import homebrew.rubocops.@shared as no_autobump_shared
 
@@ -113,8 +113,8 @@ pub fn correct_cask_no_autobump(source string) string {
 	return corrected
 }
 
-fn cask_no_autobump_problem_value(problem no_autobump_shared.NoAutobumpReasonProblem) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cop::Problem', problem.message, {
+fn cask_no_autobump_problem_value(problem no_autobump_shared.NoAutobumpReasonProblem) ruby.Value {
+	return ruby.structured_value('RuboCop::Cop::Problem', problem.message, {
 		'kind':        problem.kind
 		'reason':      problem.reason
 		'is_symbol':   problem.is_symbol.str()
@@ -125,8 +125,8 @@ fn cask_no_autobump_problem_value(problem no_autobump_shared.NoAutobumpReasonPro
 	})
 }
 
-fn cask_no_autobump_stanza_value(call formula_no_autobump_core.NoAutobumpCall) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cask::AST::Stanza', 'no_autobump!', {
+fn cask_no_autobump_stanza_value(call formula_no_autobump_core.NoAutobumpCall) ruby.Value {
+	return ruby.structured_value('RuboCop::Cask::AST::Stanza', 'no_autobump!', {
 		'name':          'no_autobump!'
 		'begin_pos':     call.begin_pos.str()
 		'end_pos':       call.end_pos.str()
@@ -137,36 +137,36 @@ fn cask_no_autobump_stanza_value(call formula_no_autobump_core.NoAutobumpCall) b
 }
 
 // Ruby method `on_cask(cask_block)` at line 19.
-pub fn ruby_no_autobump_l19_d1_on_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_no_autobump_l19_d1_on_cask(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.array_value(audit_cask_no_autobump(source).map(cask_no_autobump_problem_value(it)))
+	return ruby.array_value(audit_cask_no_autobump(source).map(cask_no_autobump_problem_value(it)))
 }
 
 // Ruby attr_reader `attr_reader :cask_block` at line 40.
-pub fn ruby_no_autobump_l40_d2_cask_block(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_no_autobump_l40_d2_cask_block(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.structured_value('RuboCop::Cask::AST::CaskBlock', source, {
+	return ruby.structured_value('RuboCop::Cask::AST::CaskBlock', source, {
 		'source':                source
 		'toplevel_stanza_count': cask_no_autobump_stanzas(source).len.str()
 	})
 }
 
 // Ruby def_delegators `def_delegators :cask_block, :toplevel_stanzas` at line 42.
-pub fn ruby_no_autobump_l42_d3_toplevel_stanzas(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_no_autobump_l42_d3_toplevel_stanzas(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.array_value(cask_no_autobump_stanzas(source).map(cask_no_autobump_stanza_value(it)))
+	return ruby.array_value(cask_no_autobump_stanzas(source).map(cask_no_autobump_stanza_value(it)))
 }
 
 // Ruby def_node_search `def_node_search :reason, <<~EOS` at line 44.
-pub fn ruby_no_autobump_l44_d4_reason(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_no_autobump_l44_d4_reason(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	call := formula_no_autobump_core.find_no_autobump_call(source) or {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	if !call.has_reason {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
-	return brew_runtime.structured_value(if call.reason_symbol { 'Symbol' } else { 'String' }, call.reason, {
+	return ruby.structured_value(if call.reason_symbol { 'Symbol' } else { 'String' }, call.reason, {
 		'begin_pos': call.reason_begin.str()
 		'end_pos':   call.reason_end.str()
 	})

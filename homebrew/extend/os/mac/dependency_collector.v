@@ -1,6 +1,6 @@
 module mac
 
-import brew_runtime
+import ruby
 import homebrew
 
 pub fn mac_dependency_collector(missing_tools map[string]bool) &homebrew.DependencyCollectorState {
@@ -19,14 +19,14 @@ pub fn mac_cvs_dependency(tags []string) homebrew.Dependency {
 	return homebrew.new_dependency('cvs', values)
 }
 
-fn mac_dependency_value(dependency homebrew.Dependency) brew_runtime.Value {
-	return brew_runtime.structured_value('Dependency', dependency.name, {
+fn mac_dependency_value(dependency homebrew.Dependency) ruby.Value {
+	return ruby.structured_value('Dependency', dependency.name, {
 		'name': dependency.name
 		'tags': dependency.tags.map(it.boundary_string()).join(',')
 	})
 }
 
-fn mac_dependency_tags(args []brew_runtime.Value) []string {
+fn mac_dependency_tags(args []ruby.Value) []string {
 	if args.len == 0 {
 		return []string{}
 	}
@@ -41,33 +41,33 @@ fn mac_dependency_tags(args []brew_runtime.Value) []string {
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `git_dep_if_needed(tags); end` at line 7.
-pub fn ruby_dependency_collector_l7_d1_git_dep_if_needed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+pub fn ruby_dependency_collector_l7_d1_git_dep_if_needed(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `subversion_dep_if_needed(tags)` at line 9.
-pub fn ruby_dependency_collector_l9_d2_subversion_dep_if_needed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_collector_l9_d2_subversion_dep_if_needed(args ...ruby.Value) ruby.Value {
 	return mac_dependency_value(mac_subversion_dependency(mac_dependency_tags(args)))
 }
 
 // Ruby method `cvs_dep_if_needed(tags)` at line 13.
-pub fn ruby_dependency_collector_l13_d3_cvs_dep_if_needed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependency_collector_l13_d3_cvs_dep_if_needed(args ...ruby.Value) ruby.Value {
 	return mac_dependency_value(mac_cvs_dependency(mac_dependency_tags(args)))
 }
 
 // Ruby method `xz_dep_if_needed(tags); end` at line 17.
-pub fn ruby_dependency_collector_l17_d4_xz_dep_if_needed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+pub fn ruby_dependency_collector_l17_d4_xz_dep_if_needed(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `unzip_dep_if_needed(tags); end` at line 19.
-pub fn ruby_dependency_collector_l19_d5_unzip_dep_if_needed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+pub fn ruby_dependency_collector_l19_d5_unzip_dep_if_needed(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `bzip2_dep_if_needed(tags); end` at line 21.
-pub fn ruby_dependency_collector_l21_d6_bzip2_dep_if_needed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+pub fn ruby_dependency_collector_l21_d6_bzip2_dep_if_needed(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Original Ruby source (line-for-line):

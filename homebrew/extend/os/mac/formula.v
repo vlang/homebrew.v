@@ -1,6 +1,6 @@
 module mac
 
-import brew_runtime
+import ruby
 
 pub fn mac_formula_valid_platform(supports_macos bool) bool {
 	return supports_macos
@@ -28,29 +28,29 @@ pub fn mac_formula_std_zig_args(base []string, arm bool) []string {
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `valid_platform?` at line 12.
-pub fn ruby_formula_l12_d1_valid_platform(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l12_d1_valid_platform(args ...ruby.Value) ruby.Value {
 	supports := if args.len > 0 { args[0].as_bool() or { panic(err) } } else { true }
-	return brew_runtime.bool_value(mac_formula_valid_platform(supports))
+	return ruby.bool_value(mac_formula_valid_platform(supports))
 }
 
 // Ruby method `std_cmake_args(install_prefix: prefix, install_libdir: "lib", find_framework: "LAST")` at line 23.
-pub fn ruby_formula_l23_d2_std_cmake_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l23_d2_std_cmake_args(args ...ruby.Value) ruby.Value {
 	base := if args.len > 0 { args[0].as_string_array() or { panic(err) } } else { []string{} }
 	if args.len < 2 { panic('std_cmake_args requires the formula SDK path') }
-	return brew_runtime.string_array_value(mac_formula_std_cmake_args(base, args[1].as_string()))
+	return ruby.string_array_value(mac_formula_std_cmake_args(base, args[1].as_string()))
 }
 
 // Ruby method `std_swift_args` at line 33.
-pub fn ruby_formula_l33_d3_std_swift_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l33_d3_std_swift_args(args ...ruby.Value) ruby.Value {
 	base := if args.len > 0 { args[0].as_string_array() or { panic(err) } } else { []string{} }
-	return brew_runtime.string_array_value(mac_formula_std_swift_args(base))
+	return ruby.string_array_value(mac_formula_std_swift_args(base))
 }
 
 // Ruby method `std_zig_args(prefix: self.prefix, release_mode: :fast, cpu: nil)` at line 44.
-pub fn ruby_formula_l44_d4_std_zig_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l44_d4_std_zig_args(args ...ruby.Value) ruby.Value {
 	base := if args.len > 0 { args[0].as_string_array() or { panic(err) } } else { []string{} }
 	arm := if args.len > 1 { args[1].as_bool() or { panic(err) } } else { false }
-	return brew_runtime.string_array_value(mac_formula_std_zig_args(base, arm))
+	return ruby.string_array_value(mac_formula_std_zig_args(base, arm))
 }
 
 // Original Ruby source (line-for-line):

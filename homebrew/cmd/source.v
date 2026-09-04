@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 import net.http
 import x.json2
 
@@ -338,8 +338,8 @@ pub fn plan_source_command(formulae []SourceFormula, fetcher SourceHttpGetter) S
 	}
 }
 
-pub fn source_formula_value(formula SourceFormula) brew_runtime.Value {
-	return brew_runtime.structured_value('Formula', formula.name, {
+pub fn source_formula_value(formula SourceFormula) ruby.Value {
+	return ruby.structured_value('Formula', formula.name, {
 		'name':       formula.name
 		'head_url':   formula.head_url
 		'stable_url': formula.stable_url
@@ -347,7 +347,7 @@ pub fn source_formula_value(formula SourceFormula) brew_runtime.Value {
 	})
 }
 
-fn source_formula_from_value(value brew_runtime.Value) SourceFormula {
+fn source_formula_from_value(value ruby.Value) SourceFormula {
 	return SourceFormula{
 		name: value.attributes['name'] or { value.as_string() }
 		head_url: value.attributes['head_url'] or { '' }
@@ -356,30 +356,30 @@ fn source_formula_from_value(value brew_runtime.Value) SourceFormula {
 	}
 }
 
-pub fn source_command_plan_value(plan SourceCommandPlan) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn source_command_plan_value(plan SourceCommandPlan) ruby.Value {
+	return ruby.Value{
 		type_name: 'SourceCommandPlan'
 		repr: plan.repo_urls.join(' ')
 		map_data: {
-			'messages':  brew_runtime.string_array_value(plan.messages)
-			'warnings':  brew_runtime.string_array_value(plan.warnings)
-			'repo_urls': brew_runtime.string_array_value(plan.repo_urls)
+			'messages':  ruby.string_array_value(plan.messages)
+			'warnings':  ruby.string_array_value(plan.warnings)
+			'repo_urls': ruby.string_array_value(plan.repo_urls)
 		}
 	}
 }
 
-fn source_nil() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn source_nil() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-fn source_optional_string_value(value ?string) brew_runtime.Value {
+fn source_optional_string_value(value ?string) ruby.Value {
 	if result := value {
-		return brew_runtime.string_value(result)
+		return ruby.string_value(result)
 	}
 	return source_nil()
 }
 
-fn source_boundary_http_result(value brew_runtime.Value) SourceHttpResult {
+fn source_boundary_http_result(value ruby.Value) SourceHttpResult {
 	return SourceHttpResult{
 		body: value.attributes['body'] or { value.as_string() }
 		success: (value.attributes['success'] or { 'true' }) == 'true'
@@ -391,11 +391,11 @@ fn source_no_http_get(_ string) !SourceHttpResult {
 }
 
 // Ruby method `run` at line 25.
-pub fn ruby_source_l25_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_source_l25_d1_run(args ...ruby.Value) ruby.Value {
 	formulae := if args.len == 0 {
-		[]brew_runtime.Value{}
+		[]ruby.Value{}
 	} else if args[0].type_name == 'Array' {
-		args[0].as_array() or { []brew_runtime.Value{} }
+		args[0].as_array() or { []ruby.Value{} }
 	} else {
 		args
 	}
@@ -403,7 +403,7 @@ pub fn ruby_source_l25_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `url_to_repo(url)` at line 49.
-pub fn ruby_source_l49_d2_url_to_repo(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_source_l49_d2_url_to_repo(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return source_nil()
 	}
@@ -411,7 +411,7 @@ pub fn ruby_source_l49_d2_url_to_repo(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby method `github_repo_url(url)` at line 60.
-pub fn ruby_source_l60_d3_github_repo_url(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_source_l60_d3_github_repo_url(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return source_nil()
 	}
@@ -419,7 +419,7 @@ pub fn ruby_source_l60_d3_github_repo_url(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby method `gitlab_repo_url(url)` at line 76.
-pub fn ruby_source_l76_d4_gitlab_repo_url(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_source_l76_d4_gitlab_repo_url(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return source_nil()
 	}
@@ -427,7 +427,7 @@ pub fn ruby_source_l76_d4_gitlab_repo_url(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby method `bitbucket_repo_url(url)` at line 90.
-pub fn ruby_source_l90_d5_bitbucket_repo_url(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_source_l90_d5_bitbucket_repo_url(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return source_nil()
 	}
@@ -435,7 +435,7 @@ pub fn ruby_source_l90_d5_bitbucket_repo_url(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby method `codeberg_repo_url(url)` at line 106.
-pub fn ruby_source_l106_d6_codeberg_repo_url(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_source_l106_d6_codeberg_repo_url(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return source_nil()
 	}
@@ -443,7 +443,7 @@ pub fn ruby_source_l106_d6_codeberg_repo_url(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby method `sourcehut_repo_url(url)` at line 122.
-pub fn ruby_source_l122_d7_sourcehut_repo_url(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_source_l122_d7_sourcehut_repo_url(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return source_nil()
 	}
@@ -451,7 +451,7 @@ pub fn ruby_source_l122_d7_sourcehut_repo_url(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby method `pypi_repo_url(url)` at line 138.
-pub fn ruby_source_l138_d8_pypi_repo_url(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_source_l138_d8_pypi_repo_url(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return source_nil()
 	}
@@ -469,7 +469,7 @@ pub fn ruby_source_l138_d8_pypi_repo_url(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `npm_repo_url(url)` at line 168.
-pub fn ruby_source_l168_d9_npm_repo_url(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_source_l168_d9_npm_repo_url(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return source_nil()
 	}
@@ -487,7 +487,7 @@ pub fn ruby_source_l168_d9_npm_repo_url(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby method `extract_repo_url(formula)` at line 194.
-pub fn ruby_source_l194_d10_extract_repo_url(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_source_l194_d10_extract_repo_url(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return source_nil()
 	}

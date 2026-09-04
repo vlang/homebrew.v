@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `cmd/--env.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -126,8 +126,8 @@ fn env_plain_lines(environment map[string]string) []string {
 	for key in env_selected_keys(environment) {
 		value := environment[key]
 		mut line := '${key}: ${value}'
-		if key in ['CC', 'CXX', 'LD'] && value != '' && brew_runtime.is_link(value) {
-			line += ' => ${brew_runtime.real_path(value)}'
+		if key in ['CC', 'CXX', 'LD'] && value != '' && ruby.is_link(value) {
+			line += ' => ${ruby.real_path(value)}'
 		}
 		lines << line
 	}
@@ -169,7 +169,7 @@ pub fn env_command_output(result EnvCommandResult) string {
 	return if result.lines.len == 0 { '' } else { '${result.lines.join('\n')}\n' }
 }
 
-fn env_map_from_value(value brew_runtime.Value) map[string]string {
+fn env_map_from_value(value ruby.Value) map[string]string {
 	mut environment := map[string]string{}
 	for key, item in value.map_data {
 		environment[key] = item.as_string()
@@ -177,15 +177,15 @@ fn env_map_from_value(value brew_runtime.Value) map[string]string {
 	return environment
 }
 
-fn env_shell_from_value(value brew_runtime.Value) ?EnvShell {
+fn env_shell_from_value(value ruby.Value) ?EnvShell {
 	if value.type_name == 'NilClass' || value.as_string() == '' {
 		return none
 	}
 	return env_shell_from_path(value.as_string())
 }
 
-fn env_command_result_value(result EnvCommandResult) brew_runtime.Value {
-	return brew_runtime.Value{
+fn env_command_result_value(result EnvCommandResult) ruby.Value {
+	return ruby.Value{
 		type_name: 'EnvCommandResult'
 		repr: env_command_output(result)
 		attributes: {
@@ -194,19 +194,19 @@ fn env_command_result_value(result EnvCommandResult) brew_runtime.Value {
 			'setup_build_environment': result.setup_build_environment.str()
 		}
 		map_data: {
-			'lines':        brew_runtime.string_array_value(result.lines)
-			'dependencies': brew_runtime.string_array_value(result.dependencies)
+			'lines':        ruby.string_array_value(result.lines)
+			'dependencies': ruby.string_array_value(result.dependencies)
 		}
 	}
 }
 
 // Ruby method `self.command_name = "--env"` at line 13.
-pub fn ruby_env_l13_d1_self_command_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('--env')
+pub fn ruby_env_l13_d1_self_command_name(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('--env')
 }
 
 // Ruby method `run` at line 32.
-pub fn ruby_env_l32_d2_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_env_l32_d2_run(args ...ruby.Value) ruby.Value {
 	environment := if args.len > 0 { env_map_from_value(args[0]) } else { map[string]string{} }
 	request := EnvCommandRequest{
 		environment: environment

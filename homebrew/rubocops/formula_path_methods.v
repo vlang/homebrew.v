@@ -1,6 +1,6 @@
 module rubocops
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `rubocops/formula_path_methods.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -34,8 +34,8 @@ struct FormulaPathContext {
 	kind string
 }
 
-fn formula_path_nil() brew_runtime.Value {
-	return brew_runtime.Value{
+fn formula_path_nil() ruby.Value {
+	return ruby.Value{
 		type_name: 'NilClass'
 		repr: 'nil'
 	}
@@ -479,8 +479,8 @@ pub fn correct_formula_path_methods(source string) string {
 	return corrected
 }
 
-fn formula_path_problem_value(problem FormulaPathProblem) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cop::Offense', problem.message, {
+fn formula_path_problem_value(problem FormulaPathProblem) ruby.Value {
+	return ruby.structured_value('RuboCop::Cop::Offense', problem.message, {
 		'begin_pos':   problem.begin_pos.str()
 		'end_pos':     problem.end_pos.str()
 		'current':     problem.current
@@ -491,91 +491,91 @@ fn formula_path_problem_value(problem FormulaPathProblem) brew_runtime.Value {
 }
 
 // Ruby def_node_matcher `def_node_matcher :formula_lookup_name_node, <<~PATTERN` at line 40.
-pub fn ruby_formula_path_methods_l40_d1_formula_lookup_name_node(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_path_methods_l40_d1_formula_lookup_name_node(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	candidate := formula_path_candidates(source).filter(it.receiver.ends_with('Formula[${it.formula_name}]'))
 	if candidate.len == 0 {
 		return formula_path_nil()
 	}
-	return brew_runtime.string_value(candidate[0].formula_name)
+	return ruby.string_value(candidate[0].formula_name)
 }
 
 // Ruby def_node_matcher `def_node_matcher :formula_path_name_node, <<~PATTERN` at line 44.
-pub fn ruby_formula_path_methods_l44_d2_formula_path_name_node(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_path_methods_l44_d2_formula_path_name_node(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	candidates := formula_path_candidates(source).filter(it.formula_name != '')
 	if candidates.len == 0 {
 		return formula_path_nil()
 	}
-	return brew_runtime.string_value(candidates[0].formula_name)
+	return ruby.string_value(candidates[0].formula_name)
 }
 
 // Ruby def_node_matcher `def_node_matcher :cask_new_token_node, <<~PATTERN` at line 51.
-pub fn ruby_formula_path_methods_l51_d3_cask_new_token_node(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_path_methods_l51_d3_cask_new_token_node(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	candidates := formula_path_candidates(source).filter(it.cask_token != '')
 	if candidates.len == 0 {
 		return formula_path_nil()
 	}
-	return brew_runtime.string_value(candidates[0].cask_token)
+	return ruby.string_value(candidates[0].cask_token)
 }
 
 // Ruby def_node_matcher `def_node_matcher :formula_class?, <<~PATTERN` at line 55.
-pub fn ruby_formula_path_methods_l55_d4_formula_class(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_path_methods_l55_d4_formula_class(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.bool_value(source.trim_space().starts_with('class ') && source.trim_space().contains('< Formula'))
+	return ruby.bool_value(source.trim_space().starts_with('class ') && source.trim_space().contains('< Formula'))
 }
 
 // Ruby def_node_matcher `def_node_matcher :utils_path?, <<~PATTERN` at line 59.
-pub fn ruby_formula_path_methods_l59_d5_utils_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_path_methods_l59_d5_utils_path(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.bool_value(source.trim_space() in ['Utils::Path', '::Utils::Path'])
+	return ruby.bool_value(source.trim_space() in ['Utils::Path', '::Utils::Path'])
 }
 
 // Ruby def_node_matcher `def_node_matcher :cask_block?, <<~PATTERN` at line 63.
-pub fn ruby_formula_path_methods_l63_d6_cask_block(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_path_methods_l63_d6_cask_block(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	trimmed := source.trim_space()
-	return brew_runtime.bool_value(trimmed.starts_with('cask ') && trimmed.contains(' do'))
+	return ruby.bool_value(trimmed.starts_with('cask ') && trimmed.contains(' do'))
 }
 
 // Ruby def_node_matcher `def_node_matcher :service_block?, <<~PATTERN` at line 67.
-pub fn ruby_formula_path_methods_l67_d7_service_block(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_path_methods_l67_d7_service_block(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.bool_value(source.trim_space().starts_with('service do'))
+	return ruby.bool_value(source.trim_space().starts_with('service do'))
 }
 
 // Ruby method `on_send(node)` at line 72.
-pub fn ruby_formula_path_methods_l72_d8_on_send(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_path_methods_l72_d8_on_send(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.array_value(audit_formula_path_methods(source).map(formula_path_problem_value(it)))
+	return ruby.array_value(audit_formula_path_methods(source).map(formula_path_problem_value(it)))
 }
 
 // Ruby method `preferred_method_call(node)` at line 84.
-pub fn ruby_formula_path_methods_l84_d9_preferred_method_call(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_path_methods_l84_d9_preferred_method_call(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	candidates := formula_path_candidates(source)
 	if candidates.len == 0 {
 		return formula_path_nil()
 	}
 	preferred := preferred_formula_path_call(candidates[0]) or { return formula_path_nil() }
-	return brew_runtime.string_value(preferred)
+	return ruby.string_value(preferred)
 }
 
 // Ruby method `formula_helper_method_call(helper_method, formula_name, node)` at line 123.
-pub fn ruby_formula_path_methods_l123_d10_formula_helper_method_call(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_path_methods_l123_d10_formula_helper_method_call(args ...ruby.Value) ruby.Value {
 	helper := if args.len > 0 { args[0].as_string() } else { '' }
 	formula_name := if args.len > 1 { args[1].as_string() } else { '' }
 	context := if args.len > 2 { args[2].as_string() } else { '' }
 	receiver := if context in ['formula', 'cask'] { '' } else { 'Utils::Path.' }
-	return brew_runtime.string_value('${receiver}${helper}(${formula_name})')
+	return ruby.string_value('${receiver}${helper}(${formula_name})')
 }
 
 // Ruby method `formula_or_cask_dsl?(node)` at line 129.
-pub fn ruby_formula_path_methods_l129_d11_formula_or_cask_dsl(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_path_methods_l129_d11_formula_or_cask_dsl(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	candidates := formula_path_candidates(source)
-	return brew_runtime.bool_value(candidates.len > 0 && (candidates[0].in_formula || candidates[0].in_cask))
+	return ruby.bool_value(candidates.len > 0 && (candidates[0].in_formula || candidates[0].in_cask))
 }
 
 // Original Ruby source (line-for-line):

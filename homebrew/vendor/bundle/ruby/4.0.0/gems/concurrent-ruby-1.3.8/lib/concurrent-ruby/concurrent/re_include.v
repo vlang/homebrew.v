@@ -1,6 +1,6 @@
 module concurrent
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/re_include.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -58,18 +58,18 @@ pub fn (re_include ReInclude) include_modules(modules []string) []ReIncludeOpera
 }
 
 // Ruby method `included(base)` at line 38.
-pub fn ruby_re_include_l38_d1_included(args ...brew_runtime.Value) brew_runtime.Value {
-	return if args.len > 0 { args[0] } else { brew_runtime.object_value('NilClass', 'nil') }
+pub fn ruby_re_include_l38_d1_included(args ...ruby.Value) ruby.Value {
+	return if args.len > 0 { args[0] } else { ruby.object_value('NilClass', 'nil') }
 }
 
 // Ruby method `extended(base)` at line 44.
-pub fn ruby_re_include_l44_d2_extended(args ...brew_runtime.Value) brew_runtime.Value {
-	return if args.len > 0 { args[0] } else { brew_runtime.object_value('NilClass', 'nil') }
+pub fn ruby_re_include_l44_d2_extended(args ...ruby.Value) ruby.Value {
+	return if args.len > 0 { args[0] } else { ruby.object_value('NilClass', 'nil') }
 }
 
 // Ruby method `include(*modules)` at line 50.
-pub fn ruby_re_include_l50_d3_include(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.array_value(args)
+pub fn ruby_re_include_l50_d3_include(args ...ruby.Value) ruby.Value {
+	return ruby.array_value(args)
 }
 
 // Original Ruby source (line-for-line):

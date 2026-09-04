@@ -1,6 +1,6 @@
 module types
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/sig.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -14,19 +14,19 @@ pub enum SigHookKind {
 pub struct SigHookPlan {
 pub:
 	kind   SigHookKind
-	target brew_runtime.Value
+	target ruby.Value
 }
 
 pub struct SigDeclaration {
 pub:
-	owner    brew_runtime.Value
-	location brew_runtime.Value
-	argument brew_runtime.Value
-	block    brew_runtime.Value
+	owner    ruby.Value
+	location ruby.Value
+	argument ruby.Value
+	block    ruby.Value
 	final_   bool
 }
 
-pub fn sig_included_plan(other brew_runtime.Value) SigHookPlan {
+pub fn sig_included_plan(other ruby.Value) SigHookPlan {
 	return SigHookPlan{
 		kind: if other.type_name == 'Module' && other.as_string() == 'Module' {
 			SigHookKind.prepend_method_hooks} else {
@@ -35,12 +35,12 @@ pub fn sig_included_plan(other brew_runtime.Value) SigHookPlan {
 	}
 }
 
-pub fn sig_extended_plan(other brew_runtime.Value) SigHookPlan {
+pub fn sig_extended_plan(other ruby.Value) SigHookPlan {
 	if other.type_name == 'T::Private::Methods::TOP_SELF' || other.attribute('top_self') or {
 		'false'} == 'true' {
 		return SigHookPlan{
 			kind: SigHookKind.extend_object_method_hooks
-			target: brew_runtime.object_value('Class', 'Object')
+			target: ruby.object_value('Class', 'Object')
 		}
 	}
 	is_singleton := other.attribute('singleton_class') or { 'false' } == 'true'
@@ -52,8 +52,8 @@ pub fn sig_extended_plan(other brew_runtime.Value) SigHookPlan {
 	}
 }
 
-pub fn declare_sig(owner brew_runtime.Value, location brew_runtime.Value, argument brew_runtime.Value,
-	block brew_runtime.Value) !SigDeclaration {
+pub fn declare_sig(owner ruby.Value, location ruby.Value, argument ruby.Value,
+	block ruby.Value) !SigDeclaration {
 	if argument.type_name != 'NilClass' && !(argument.type_name == 'Symbol' && argument.as_string() == ':final') {
 		return error('Invalid argument to `sig`: ${argument.as_string()}')
 	}
@@ -66,24 +66,24 @@ pub fn declare_sig(owner brew_runtime.Value, location brew_runtime.Value, argume
 	}
 }
 
-fn sig_nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn sig_nil_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-fn sig_argument(args []brew_runtime.Value) brew_runtime.Value {
+fn sig_argument(args []ruby.Value) ruby.Value {
 	return if args.len > 1 { args[1] } else { sig_nil_value() }
 }
 
-fn sig_block(args []brew_runtime.Value) brew_runtime.Value {
+fn sig_block(args []ruby.Value) ruby.Value {
 	return if args.len > 2 { args[2] } else { sig_nil_value() }
 }
 
-fn sig_location(args []brew_runtime.Value) brew_runtime.Value {
+fn sig_location(args []ruby.Value) ruby.Value {
 	return if args.len > 3 { args[3] } else { sig_nil_value() }
 }
 
 // Ruby method `self.included(other)` at line 10.
-pub fn ruby_sig_l10_d1_self_included(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sig_l10_d1_self_included(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return sig_nil_value()
 	}
@@ -92,7 +92,7 @@ pub fn ruby_sig_l10_d1_self_included(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby method `self.extended(other)` at line 24.
-pub fn ruby_sig_l24_d2_self_extended(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sig_l24_d2_self_extended(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return sig_nil_value()
 	}
@@ -101,17 +101,17 @@ pub fn ruby_sig_l24_d2_self_extended(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby method `self.sig(arg0=nil, &blk); end` at line 81.
-pub fn ruby_sig_l81_d3_self_sig(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sig_l81_d3_self_sig(args ...ruby.Value) ruby.Value {
 	return sig_nil_value()
 }
 
 // Ruby method `self.sig(arg0=nil, &blk); end # rubocop:disable Lint/DuplicateMethods` at line 89.
-pub fn ruby_sig_l89_d4_self_sig(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sig_l89_d4_self_sig(args ...ruby.Value) ruby.Value {
 	return sig_nil_value()
 }
 
 // Ruby method `sig(arg0=nil, &blk)` at line 98.
-pub fn ruby_sig_l98_d5_sig(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sig_l98_d5_sig(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('T::Sig#sig requires a receiver')
 	}

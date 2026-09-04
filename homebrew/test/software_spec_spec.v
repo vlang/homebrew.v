@@ -1,6 +1,6 @@
 module test
 
-import brew_runtime
+import ruby
 import homebrew
 
 // Translated from Homebrew/brew `test/software_spec_spec.rb`.
@@ -20,19 +20,19 @@ fn software_spec_test_resource(name string, url string) homebrew.Resource {
 	return resource
 }
 
-fn software_spec_test_result(value bool) brew_runtime.Value {
-	return brew_runtime.bool_value(value)
+fn software_spec_test_result(value bool) ruby.Value {
+	return ruby.bool_value(value)
 }
 
 // Ruby subject `subject(:spec) { described_class.new }` at line 7.
-pub fn ruby_software_spec_spec_l7_d1_spec(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_spec_l7_d1_spec(args ...ruby.Value) ruby.Value {
 	return homebrew.software_spec_boundary_value(homebrew.new_software_spec([]string{}))
 }
 
 // Ruby let `let(:owner) { instance_double(Cask::Cask, name: "some_name", full_name: "some_name", tap: "homebrew/core") }` at line 9.
-pub fn ruby_software_spec_spec_l9_d2_owner(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_spec_l9_d2_owner(args ...ruby.Value) ruby.Value {
 	owner := software_spec_test_owner()
-	return brew_runtime.structured_value('Cask::Cask', owner.full_name, {
+	return ruby.structured_value('Cask::Cask', owner.full_name, {
 		'name':      owner.name
 		'full_name': owner.full_name
 		'tap':       owner.tap
@@ -40,29 +40,29 @@ pub fn ruby_software_spec_spec_l9_d2_owner(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby alias_matcher `alias_matcher :have_defined_resource, :be_resource_defined` at line 11.
-pub fn ruby_software_spec_spec_l11_d3_have_defined_resource(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_spec_l11_d3_have_defined_resource(args ...ruby.Value) ruby.Value {
 	if args.len >= 2 && args[0].type_name == 'SoftwareSpec' {
 		return software_spec_test_result(homebrew.software_spec_from_boundary(args[0]).resource_defined(args[1].as_string()))
 	}
-	return brew_runtime.structured_value('MatcherAlias', 'have_defined_resource', {
+	return ruby.structured_value('MatcherAlias', 'have_defined_resource', {
 		'alias':  'have_defined_resource'
 		'target': 'be_resource_defined'
 	})
 }
 
 // Ruby alias_matcher `alias_matcher :have_defined_option, :be_option_defined` at line 12.
-pub fn ruby_software_spec_spec_l12_d4_have_defined_option(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_spec_l12_d4_have_defined_option(args ...ruby.Value) ruby.Value {
 	if args.len >= 2 && args[0].type_name == 'SoftwareSpec' {
 		return software_spec_test_result(homebrew.software_spec_from_boundary(args[0]).option_defined(args[1].as_string()))
 	}
-	return brew_runtime.structured_value('MatcherAlias', 'have_defined_option', {
+	return ruby.structured_value('MatcherAlias', 'have_defined_option', {
 		'alias':  'have_defined_option'
 		'target': 'be_option_defined'
 	})
 }
 
 // Ruby it `it "defines a resource" do` at line 15.
-pub fn ruby_software_spec_spec_l15_d5_defines(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_spec_l15_d5_defines(args ...ruby.Value) ruby.Value {
 	mut spec := homebrew.new_software_spec([]string{})
 	mut resource := software_spec_test_resource('foo', 'foo-1.0')
 	spec.define_resource('foo', mut resource) or { return software_spec_test_result(false) }
@@ -70,7 +70,7 @@ pub fn ruby_software_spec_spec_l15_d5_defines(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby it `it "sets itself to be the resource's owner" do` at line 20.
-pub fn ruby_software_spec_spec_l20_d6_sets(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_spec_l20_d6_sets(args ...ruby.Value) ruby.Value {
 	mut spec := homebrew.new_software_spec([]string{})
 	mut resource := software_spec_test_resource('foo', 'foo-1.0')
 	spec.define_resource('foo', mut resource) or { return software_spec_test_result(false) }
@@ -81,7 +81,7 @@ pub fn ruby_software_spec_spec_l20_d6_sets(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby it `it "receives the owner's version if it has no own version" do` at line 28.
-pub fn ruby_software_spec_spec_l28_d7_receives(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_spec_l28_d7_receives(args ...ruby.Value) ruby.Value {
 	mut spec := homebrew.new_software_spec([]string{})
 	spec.set_url('foo-42', map[string]string{}) or { return software_spec_test_result(false) }
 	mut resource := software_spec_test_resource('bar', 'bar')
@@ -94,7 +94,7 @@ pub fn ruby_software_spec_spec_l28_d7_receives(args ...brew_runtime.Value) brew_
 }
 
 // Ruby it `it "raises an error when duplicate resources are defined" do` at line 36.
-pub fn ruby_software_spec_spec_l36_d8_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_spec_l36_d8_raises(args ...ruby.Value) ruby.Value {
 	mut spec := homebrew.new_software_spec([]string{})
 	mut first := software_spec_test_resource('foo', 'foo-1.0')
 	spec.define_resource('foo', mut first) or { return software_spec_test_result(false) }
@@ -106,7 +106,7 @@ pub fn ruby_software_spec_spec_l36_d8_raises(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby it `it "raises an error when accessing missing resources" do` at line 43.
-pub fn ruby_software_spec_spec_l43_d9_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_spec_l43_d9_raises(args ...ruby.Value) ruby.Value {
 	mut spec := homebrew.new_software_spec([]string{})
 	spec.set_owner(software_spec_test_owner())
 	spec.resource('foo') or {
@@ -116,7 +116,7 @@ pub fn ruby_software_spec_spec_l43_d9_raises(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby it `it "sets the owner" do` at line 52.
-pub fn ruby_software_spec_spec_l52_d10_sets(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_spec_l52_d10_sets(args ...ruby.Value) ruby.Value {
 	mut spec := homebrew.new_software_spec([]string{})
 	owner := software_spec_test_owner()
 	spec.set_owner(owner)
@@ -125,21 +125,21 @@ pub fn ruby_software_spec_spec_l52_d10_sets(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby it `it "sets the name" do` at line 57.
-pub fn ruby_software_spec_spec_l57_d11_sets(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_spec_l57_d11_sets(args ...ruby.Value) ruby.Value {
 	mut spec := homebrew.new_software_spec([]string{})
 	spec.set_owner(software_spec_test_owner())
 	return software_spec_test_result((spec.name() or { '' }) == 'some_name')
 }
 
 // Ruby it `it "defines an option" do` at line 64.
-pub fn ruby_software_spec_spec_l64_d12_defines(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_spec_l64_d12_defines(args ...ruby.Value) ruby.Value {
 	mut spec := homebrew.new_software_spec([]string{})
 	spec.add_option('foo', '') or { return software_spec_test_result(false) }
 	return software_spec_test_result(spec.option_defined('foo'))
 }
 
 // Ruby it `it "raises an error when it begins with dashes" do` at line 69.
-pub fn ruby_software_spec_spec_l69_d13_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_spec_l69_d13_raises(args ...ruby.Value) ruby.Value {
 	mut spec := homebrew.new_software_spec([]string{})
 	spec.add_option('--foo', '') or {
 		return software_spec_test_result(err.msg().contains('must not start with dashes'))
@@ -148,7 +148,7 @@ pub fn ruby_software_spec_spec_l69_d13_raises(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby it `it "raises an error when name is empty" do` at line 75.
-pub fn ruby_software_spec_spec_l75_d14_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_spec_l75_d14_raises(args ...ruby.Value) ruby.Value {
 	mut spec := homebrew.new_software_spec([]string{})
 	spec.add_option('', '') or {
 		return software_spec_test_result(err.msg().contains('option name is required'))
@@ -157,21 +157,21 @@ pub fn ruby_software_spec_spec_l75_d14_raises(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby it `it "supports options with descriptions" do` at line 81.
-pub fn ruby_software_spec_spec_l81_d15_supports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_spec_l81_d15_supports(args ...ruby.Value) ruby.Value {
 	mut spec := homebrew.new_software_spec([]string{})
 	spec.add_option('bar', 'description') or { return software_spec_test_result(false) }
 	return software_spec_test_result(spec.options().to_array()[0].description == 'description')
 }
 
 // Ruby it `it "defaults to an empty string when no description is given" do` at line 86.
-pub fn ruby_software_spec_spec_l86_d16_defaults(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_spec_l86_d16_defaults(args ...ruby.Value) ruby.Value {
 	mut spec := homebrew.new_software_spec([]string{})
 	spec.add_option('foo', '') or { return software_spec_test_result(false) }
 	return software_spec_test_result(spec.options().to_array()[0].description == '')
 }
 
 // Ruby it `it "allows specifying deprecated options" do` at line 93.
-pub fn ruby_software_spec_spec_l93_d17_allows(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_spec_l93_d17_allows(args ...ruby.Value) ruby.Value {
 	mut spec := homebrew.new_software_spec([]string{})
 	spec.add_deprecated_options(['foo'], ['bar']) or { return software_spec_test_result(false) }
 	options := spec.deprecated_options()
@@ -179,7 +179,7 @@ pub fn ruby_software_spec_spec_l93_d17_allows(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby it `it "allows specifying deprecated options as a Hash from an Array/String to an Array/String" do` at line 100.
-pub fn ruby_software_spec_spec_l100_d18_allows(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_spec_l100_d18_allows(args ...ruby.Value) ruby.Value {
 	mut spec := homebrew.new_software_spec([]string{})
 	spec.add_deprecated_options(['foo1', 'foo2'], ['bar1']) or {
 		return software_spec_test_result(false)
@@ -192,7 +192,7 @@ pub fn ruby_software_spec_spec_l100_d18_allows(args ...brew_runtime.Value) brew_
 }
 
 // Ruby it `it "raises an error when empty" do` at line 108.
-pub fn ruby_software_spec_spec_l108_d19_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_spec_l108_d19_raises(args ...ruby.Value) ruby.Value {
 	mut spec := homebrew.new_software_spec([]string{})
 	spec.add_deprecated_options([]string{}, []string{}) or {
 		return software_spec_test_result(err.msg().contains('must not be empty'))
@@ -201,14 +201,14 @@ pub fn ruby_software_spec_spec_l108_d19_raises(args ...brew_runtime.Value) brew_
 }
 
 // Ruby it `it "allows specifying dependencies" do` at line 116.
-pub fn ruby_software_spec_spec_l116_d20_allows(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_spec_l116_d20_allows(args ...ruby.Value) ruby.Value {
 	mut spec := homebrew.new_software_spec([]string{})
 	spec.depends_on('foo', []string{})
 	return software_spec_test_result(spec.deps().len == 1 && spec.deps()[0].name == 'foo')
 }
 
 // Ruby it `it "allows specifying requirements with keyword syntax" do` at line 121.
-pub fn ruby_software_spec_spec_l121_d21_allows(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_spec_l121_d21_allows(args ...ruby.Value) ruby.Value {
 	mut spec := homebrew.new_software_spec([]string{})
 	spec.add_requirement(homebrew.SoftwareSpecRequirement{
 		kind: .macos
@@ -222,21 +222,21 @@ pub fn ruby_software_spec_spec_l121_d21_allows(args ...brew_runtime.Value) brew_
 }
 
 // Ruby it `it "allows specifying optional dependencies" do` at line 126.
-pub fn ruby_software_spec_spec_l126_d22_allows(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_spec_l126_d22_allows(args ...ruby.Value) ruby.Value {
 	mut spec := homebrew.new_software_spec([]string{})
 	spec.depends_on('foo', [':optional'])
 	return software_spec_test_result(spec.option_defined('with-foo'))
 }
 
 // Ruby it `it "allows specifying recommended dependencies" do` at line 131.
-pub fn ruby_software_spec_spec_l131_d23_allows(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_spec_l131_d23_allows(args ...ruby.Value) ruby.Value {
 	mut spec := homebrew.new_software_spec([]string{})
 	spec.depends_on('bar', [':recommended'])
 	return software_spec_test_result(spec.option_defined('without-bar'))
 }
 
 // Ruby it `it "allows specifying dependencies" do` at line 145.
-pub fn ruby_software_spec_spec_l145_d24_allows(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_spec_l145_d24_allows(args ...ruby.Value) ruby.Value {
 	mut spec := homebrew.new_software_spec([]string{})
 	spec.uses_from_macos('foo', []string{}, map[string]string{})
 	deps := spec.deps_for_system('linux')
@@ -244,7 +244,7 @@ pub fn ruby_software_spec_spec_l145_d24_allows(args ...brew_runtime.Value) brew_
 }
 
 // Ruby it `it "works with tags" do` at line 155.
-pub fn ruby_software_spec_spec_l155_d25_works(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_spec_l155_d25_works(args ...ruby.Value) ruby.Value {
 	mut spec := homebrew.new_software_spec([]string{})
 	spec.uses_from_macos('foo', [':build'], map[string]string{})
 	deps := spec.deps_for_system('linux')
@@ -252,7 +252,7 @@ pub fn ruby_software_spec_spec_l155_d25_works(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby it `it "handles dependencies when simulating generic macOS" do` at line 166.
-pub fn ruby_software_spec_spec_l166_d26_handles(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_spec_l166_d26_handles(args ...ruby.Value) ruby.Value {
 	mut spec := homebrew.new_software_spec([]string{})
 	spec.uses_from_macos('foo', []string{}, map[string]string{})
 	declared := spec.declared_deps()
@@ -260,7 +260,7 @@ pub fn ruby_software_spec_spec_l166_d26_handles(args ...brew_runtime.Value) brew
 }
 
 // Ruby it `it "handles dependencies with tags when simulating generic macOS" do` at line 178.
-pub fn ruby_software_spec_spec_l178_d27_handles(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_spec_l178_d27_handles(args ...ruby.Value) ruby.Value {
 	mut spec := homebrew.new_software_spec([]string{})
 	spec.uses_from_macos('foo', [':build'], map[string]string{})
 	declared := spec.declared_deps()
@@ -268,7 +268,7 @@ pub fn ruby_software_spec_spec_l178_d27_handles(args ...brew_runtime.Value) brew
 }
 
 // Ruby it `it "ignores OS version specifications" do` at line 190.
-pub fn ruby_software_spec_spec_l190_d28_ignores(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_spec_l190_d28_ignores(args ...ruby.Value) ruby.Value {
 	mut spec := homebrew.new_software_spec([]string{})
 	spec.uses_from_macos('foo', []string{}, {
 		'since': 'sequoia'
@@ -281,7 +281,7 @@ pub fn ruby_software_spec_spec_l190_d28_ignores(args ...brew_runtime.Value) brew
 }
 
 // Ruby it `it "adds a macOS dependency if the OS version meets requirements" do` at line 213.
-pub fn ruby_software_spec_spec_l213_d29_adds(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_spec_l213_d29_adds(args ...ruby.Value) ruby.Value {
 	mut spec := homebrew.new_software_spec([]string{})
 	spec.uses_from_macos('foo', []string{}, {
 		'since': 'sonoma'
@@ -290,7 +290,7 @@ pub fn ruby_software_spec_spec_l213_d29_adds(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby it `it "adds a macOS dependency if the OS version doesn't meet requirements" do` at line 222.
-pub fn ruby_software_spec_spec_l222_d30_adds(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_spec_l222_d30_adds(args ...ruby.Value) ruby.Value {
 	mut spec := homebrew.new_software_spec([]string{})
 	spec.uses_from_macos('foo', []string{}, {
 		'since': 'sequoia'
@@ -300,7 +300,7 @@ pub fn ruby_software_spec_spec_l222_d30_adds(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby it `it "works with tags" do` at line 232.
-pub fn ruby_software_spec_spec_l232_d31_works(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_spec_l232_d31_works(args ...ruby.Value) ruby.Value {
 	mut spec := homebrew.new_software_spec([]string{})
 	spec.uses_from_macos('foo', [':build'], {
 		'since': 'sequoia'
@@ -310,7 +310,7 @@ pub fn ruby_software_spec_spec_l232_d31_works(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby it `it "doesn't add an effective dependency if no OS version is specified" do` at line 246.
-pub fn ruby_software_spec_spec_l246_d32_doesn(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_spec_l246_d32_doesn(args ...ruby.Value) ruby.Value {
 	mut spec := homebrew.new_software_spec([]string{})
 	spec.uses_from_macos('foo', []string{}, map[string]string{})
 	spec.uses_from_macos('bar', [':build'], map[string]string{})
@@ -319,7 +319,7 @@ pub fn ruby_software_spec_spec_l246_d32_doesn(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby it `it "treats invalid OS versions as macOS-provided dependencies" do` at line 265.
-pub fn ruby_software_spec_spec_l265_d33_treats(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_spec_l265_d33_treats(args ...ruby.Value) ruby.Value {
 	mut spec := homebrew.new_software_spec([]string{})
 	spec.uses_from_macos('foo', []string{}, {
 		'since': 'bar'
@@ -328,7 +328,7 @@ pub fn ruby_software_spec_spec_l265_d33_treats(args ...brew_runtime.Value) brew_
 }
 
 // Ruby specify `specify "explicit options override defaupt depends_on option description" do` at line 274.
-pub fn ruby_software_spec_spec_l274_d34_explicit(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_spec_l274_d34_explicit(args ...ruby.Value) ruby.Value {
 	mut spec := homebrew.new_software_spec([]string{})
 	spec.add_option('with-foo', 'blah') or { return software_spec_test_result(false) }
 	spec.depends_on('foo', [':optional'])
@@ -336,7 +336,7 @@ pub fn ruby_software_spec_spec_l274_d34_explicit(args ...brew_runtime.Value) bre
 }
 
 // Ruby it `it "adds a patch" do` at line 281.
-pub fn ruby_software_spec_spec_l281_d35_adds(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_spec_l281_d35_adds(args ...ruby.Value) ruby.Value {
 	mut spec := homebrew.new_software_spec([]string{})
 	spec.add_patch('p1', 'DATA')
 	patches := spec.patches()
@@ -344,7 +344,7 @@ pub fn ruby_software_spec_spec_l281_d35_adds(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby it `it "doesn't add a patch with no url" do` at line 287.
-pub fn ruby_software_spec_spec_l287_d36_doesn(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_spec_l287_d36_doesn(args ...ruby.Value) ruby.Value {
 	mut spec := homebrew.new_software_spec([]string{})
 	spec.add_patch('p1', '')
 	return software_spec_test_result(spec.patches().len == 0)

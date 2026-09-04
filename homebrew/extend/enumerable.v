@@ -1,6 +1,6 @@
 module extend
 
-import brew_runtime
+import ruby
 import homebrew.extend.blank
 
 // Translated from Homebrew/brew `extend/enumerable.rb`.
@@ -10,23 +10,23 @@ pub fn enumerable_excludes[T](values []T, object T) bool {
 	return object !in values
 }
 
-pub fn compact_blank_values(values []brew_runtime.Value) []brew_runtime.Value {
+pub fn compact_blank_values(values []ruby.Value) []ruby.Value {
 	return values.filter(blank.value_is_present(it))
 }
 
 // Ruby method `exclude?(object) = !include?(object)` at line 8.
-pub fn ruby_enumerable_l8_d1_exclude(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_enumerable_l8_d1_exclude(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Enumerable#exclude? requires a receiver and object') }
 	values := args[0].as_array() or { panic(err) }
 	object := args[1]
-	return brew_runtime.bool_value(!values.any(it.type_name == object.type_name
+	return ruby.bool_value(!values.any(it.type_name == object.type_name
 		&& it.repr == object.repr))
 }
 
 // Ruby method `compact_blank = T.unsafe(self).reject(&:blank?)` at line 32.
-pub fn ruby_enumerable_l32_d2_compact_blank(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_enumerable_l32_d2_compact_blank(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Enumerable#compact_blank requires a receiver') }
-	return brew_runtime.array_value(compact_blank_values(args[0].as_array() or { panic(err) }))
+	return ruby.array_value(compact_blank_values(args[0].as_array() or { panic(err) }))
 }
 
 // Original Ruby source (line-for-line):

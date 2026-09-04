@@ -1,6 +1,6 @@
 module bindata
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/bindata-2.5.1/lib/bindata/skip.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -32,11 +32,11 @@ mut:
 
 const skip_search_size = 100_000
 
-fn skip_nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn skip_nil_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-pub fn new_bindata_skip(parameters map[string]brew_runtime.Value) &SkipObject {
+pub fn new_bindata_skip(parameters map[string]ruby.Value) &SkipObject {
 	return &SkipObject{
 		base: new_base_object('BinData::Skip', normalized_base_parameters(parameters))
 	}
@@ -48,8 +48,8 @@ pub fn (mut object SkipObject) set_validator(callback SkipValidatorFn, fast_sear
 	object.fast_search = fast_search
 }
 
-fn skip_object_value(object &SkipObject) brew_runtime.Value {
-	return brew_runtime.Value{
+fn skip_object_value(object &SkipObject) ruby.Value {
+	return ruby.Value{
 		type_name: 'BinData::Skip'
 		repr: ''
 		map_data: object.base.parameters
@@ -59,11 +59,11 @@ fn skip_object_value(object &SkipObject) brew_runtime.Value {
 	}
 }
 
-pub fn skip_boundary_value(object &SkipObject) brew_runtime.Value {
+pub fn skip_boundary_value(object &SkipObject) ruby.Value {
 	return skip_object_value(object)
 }
 
-fn skip_object_from_value(value brew_runtime.Value) &SkipObject {
+fn skip_object_from_value(value ruby.Value) &SkipObject {
 	if address := value.attributes['skip_object_address'] {
 		return unsafe { &SkipObject(voidptr(address.u64())) }
 	}
@@ -176,8 +176,8 @@ pub fn (mut io SkipReadaheadIO) rollback() ! {
 	io.chain.seek_abs(io.mark)!
 }
 
-fn skip_readahead_value(io &SkipReadaheadIO) brew_runtime.Value {
-	return brew_runtime.Value{
+fn skip_readahead_value(io &SkipReadaheadIO) ruby.Value {
+	return ruby.Value{
 		type_name: 'BinData::Skip::ReadaheadIO'
 		repr: 'BinData::Skip::ReadaheadIO'
 		attributes: {
@@ -186,30 +186,30 @@ fn skip_readahead_value(io &SkipReadaheadIO) brew_runtime.Value {
 	}
 }
 
-fn skip_readahead_from_value(value brew_runtime.Value) &SkipReadaheadIO {
+fn skip_readahead_from_value(value ruby.Value) &SkipReadaheadIO {
 	address := value.attributes['skip_readahead_address'] or { panic('expected ReadaheadIO') }
 	return unsafe { &SkipReadaheadIO(voidptr(address.u64())) }
 }
 
-fn fast_search_value(search FastSearch) brew_runtime.Value {
-	return brew_runtime.Value{
+fn fast_search_value(search FastSearch) ruby.Value {
+	return ruby.Value{
 		type_name: 'BinData::Skip::FastSearch'
 		repr: '${search.pattern}@${search.offset}'
 		map_data: {
-			'pattern': brew_runtime.string_value(search.pattern)
-			'offset':  brew_runtime.int_value(search.offset)
+			'pattern': ruby.string_value(search.pattern)
+			'offset':  ruby.int_value(search.offset)
 		}
 	}
 }
 
-fn fast_search_from_value(value brew_runtime.Value) FastSearch {
+fn fast_search_from_value(value ruby.Value) FastSearch {
 	return FastSearch{
 		pattern: value.map_data['pattern'].as_string()
 		offset: int(value.map_data['offset'].int_data)
 	}
 }
 
-fn fast_search_for_value(value brew_runtime.Value) ?FastSearch {
+fn fast_search_for_value(value ruby.Value) ?FastSearch {
 	pattern := value.attributes['asserted_binary_s'] or { return none }
 	return FastSearch{
 		pattern: pattern
@@ -217,7 +217,7 @@ fn fast_search_for_value(value brew_runtime.Value) ?FastSearch {
 	}
 }
 
-fn sanitize_skip_parameters(object_class brew_runtime.Value, values map[string]brew_runtime.Value) !map[string]brew_runtime.Value {
+fn sanitize_skip_parameters(object_class ruby.Value, values map[string]ruby.Value) !map[string]ruby.Value {
 	mut result := normalized_base_parameters(values)
 	for key, value in object_class.map_data {
 		result[key] = value
@@ -243,45 +243,45 @@ fn sanitize_skip_parameters(object_class brew_runtime.Value, values map[string]b
 }
 
 // Ruby method `initialize_shared_instance` at line 56.
-pub fn ruby_skip_l56_d1_initialize_shared_instance(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_skip_l56_d1_initialize_shared_instance(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Skip#initialize_shared_instance requires receiver') }
 	return args[0]
 }
 
 // Ruby method `value_to_binary_string(_)` at line 66.
-pub fn ruby_skip_l66_d2_value_to_binary_string(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(skip_object_from_value(args[0]).binary_string() or { panic(err) })
+pub fn ruby_skip_l66_d2_value_to_binary_string(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(skip_object_from_value(args[0]).binary_string() or { panic(err) })
 }
 
 // Ruby method `read_and_return_value(io)` at line 76.
-pub fn ruby_skip_l76_d3_read_and_return_value(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_skip_l76_d3_read_and_return_value(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Skip#read_and_return_value requires IO') }
 	mut object := skip_object_from_value(args[0])
 	mut reader := io_read_from_value(args[1])
-	return brew_runtime.string_value(object.read(mut reader) or { panic(err) })
+	return ruby.string_value(object.read(mut reader) or { panic(err) })
 }
 
 // Ruby method `sensible_default` at line 87.
-pub fn ruby_skip_l87_d4_sensible_default(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('')
+pub fn ruby_skip_l87_d4_sensible_default(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('')
 }
 
 // Ruby method `skip_length` at line 93.
-pub fn ruby_skip_l93_d5_skip_length(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(skip_object_from_value(args[0]).skip_length())
+pub fn ruby_skip_l93_d5_skip_length(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(skip_object_from_value(args[0]).skip_length())
 }
 
 // Ruby method `skip_length` at line 100.
-pub fn ruby_skip_l100_d6_skip_length(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_skip_l100_d6_skip_length(args ...ruby.Value) ruby.Value {
 	object := skip_object_from_value(args[0])
 	offset := object.base.parameters['to_abs_offset'] or { panic('missing to_abs_offset') }
-	return brew_runtime.int_value(offset.int_data - skip_abs_offset(object))
+	return ruby.int_value(offset.int_data - skip_abs_offset(object))
 }
 
 // Ruby method `skip_length` at line 107.
-pub fn ruby_skip_l107_d7_skip_length(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_skip_l107_d7_skip_length(args ...ruby.Value) ruby.Value {
 	object := skip_object_from_value(args[0])
-	return brew_runtime.int_value(if object.has_cached_length {
+	return ruby.int_value(if object.has_cached_length {
 		object.cached_skip_length
 	} else {
 		0
@@ -289,12 +289,12 @@ pub fn ruby_skip_l107_d7_skip_length(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby method `read_and_return_value(io)` at line 111.
-pub fn ruby_skip_l111_d8_read_and_return_value(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_skip_l111_d8_read_and_return_value(args ...ruby.Value) ruby.Value {
 	return ruby_skip_l76_d3_read_and_return_value(...args)
 }
 
 // Ruby method `seek_to_pos(pos, io)` at line 137.
-pub fn ruby_skip_l137_d9_seek_to_pos(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_skip_l137_d9_seek_to_pos(args ...ruby.Value) ruby.Value {
 	if args.len < 3 { panic('seek_to_pos requires position and IO') }
 	position := int(args[1].int_data)
 	if args[2].type_name == 'BinData::IO::Read' {
@@ -309,7 +309,7 @@ pub fn ruby_skip_l137_d9_seek_to_pos(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby method `fast_search_for(obj)` at line 145.
-pub fn ruby_skip_l145_d10_fast_search_for(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_skip_l145_d10_fast_search_for(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('fast_search_for requires object') }
 	if search := fast_search_for_value(args[1]) {
 		return fast_search_value(search)
@@ -318,7 +318,7 @@ pub fn ruby_skip_l145_d10_fast_search_for(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby method `fast_search_for_obj(obj)` at line 155.
-pub fn ruby_skip_l155_d11_fast_search_for_obj(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_skip_l155_d11_fast_search_for_obj(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('fast_search_for_obj requires object') }
 	if args[1].type_name == 'BinData::Struct' {
 		for _, field in args[1].map_data {
@@ -333,14 +333,14 @@ pub fn ruby_skip_l155_d11_fast_search_for_obj(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby method `next_search_index(io, fs)` at line 170.
-pub fn ruby_skip_l170_d12_next_search_index(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_skip_l170_d12_next_search_index(args ...ruby.Value) ruby.Value {
 	if args.len < 3 { panic('next_search_index requires IO and FastSearch') }
 	mut reader := io_read_from_value(args[1])
-	return brew_runtime.int_value(find_fast_search(mut reader, fast_search_from_value(args[2])) or { panic(err) })
+	return ruby.int_value(find_fast_search(mut reader, fast_search_from_value(args[2])) or { panic(err) })
 }
 
 // Ruby method `before_transform` at line 194.
-pub fn ruby_skip_l194_d13_before_transform(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_skip_l194_d13_before_transform(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('ReadaheadIO#before_transform requires receiver') }
 	if args[0].type_name == 'BinData::IO::Read' {
 		return skip_readahead_value(new_skip_readahead(io_read_from_value(args[0]).io) or { panic(err) })
@@ -352,14 +352,14 @@ pub fn ruby_skip_l194_d13_before_transform(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `rollback` at line 202.
-pub fn ruby_skip_l202_d14_rollback(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_skip_l202_d14_rollback(args ...ruby.Value) ruby.Value {
 	mut io := skip_readahead_from_value(args[0])
 	io.rollback() or { panic(err) }
 	return skip_nil_value()
 }
 
 // Ruby method `sanitize_parameters!(obj_class, params)` at line 210.
-pub fn ruby_skip_l210_d15_sanitize_parameters(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_skip_l210_d15_sanitize_parameters(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('SkipArgProcessor#sanitize_parameters! requires class and params') }
 	object_class := args[args.len - 2]
 	params := args.last()
@@ -371,7 +371,7 @@ pub fn ruby_skip_l210_d15_sanitize_parameters(args ...brew_runtime.Value) brew_r
 		}
 		return sanitized_parameters_boundary_value(parameters)
 	}
-	return brew_runtime.map_value(sanitize_skip_parameters(object_class, params.as_map() or { panic(err) }) or { panic(err) })
+	return ruby.map_value(sanitize_skip_parameters(object_class, params.as_map() or { panic(err) }) or { panic(err) })
 }
 
 // Original Ruby source (line-for-line):

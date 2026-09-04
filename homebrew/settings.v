@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `settings.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -30,7 +30,7 @@ pub fn (mut settings Settings) read(setting string) ?string {
 }
 
 pub fn (mut settings Settings) read_from(setting string, repository string) ?string {
-	if !brew_runtime.path_exists(brew_runtime.join_path(repository, '.git/config')) {
+	if !ruby.path_exists(ruby.join_path(repository, '.git/config')) {
 		return none
 	}
 	value := settings.all(repository)[setting] or { return none }
@@ -49,7 +49,7 @@ pub fn (mut settings Settings) write_bool(setting string, value bool) ! {
 }
 
 pub fn (mut settings Settings) write_to(setting string, value string, repository string) ! {
-	if !brew_runtime.path_exists(brew_runtime.join_path(repository, '.git/config')) {
+	if !ruby.path_exists(ruby.join_path(repository, '.git/config')) {
 		return
 	}
 	if current := settings.read_from(setting, repository) {
@@ -57,7 +57,7 @@ pub fn (mut settings Settings) write_to(setting string, value string, repository
 			return
 		}
 	}
-	result := brew_runtime.run_command('git', ['-C', repository, 'config', '--replace-all',
+	result := ruby.run_command('git', ['-C', repository, 'config', '--replace-all',
 		'homebrew.${setting}', value])
 	if result.exit_code != 0 {
 		return error(result.output.trim_space())
@@ -75,11 +75,11 @@ pub fn (mut settings Settings) delete(setting string) ! {
 }
 
 pub fn (mut settings Settings) delete_from(setting string, repository string) ! {
-	if !brew_runtime.path_exists(brew_runtime.join_path(repository, '.git/config')) {
+	if !ruby.path_exists(ruby.join_path(repository, '.git/config')) {
 		return
 	}
 	if _ := settings.read_from(setting, repository) {
-		result := brew_runtime.run_command('git', ['-C', repository, 'config', '--unset-all',
+		result := ruby.run_command('git', ['-C', repository, 'config', '--unset-all',
 			'homebrew.${setting}'])
 		if result.exit_code != 0 {
 			return error(result.output.trim_space())
@@ -94,7 +94,7 @@ fn (mut settings Settings) all(repository string) map[string]string {
 	if cached := cache.entries[repository] {
 		return cached
 	}
-	result := brew_runtime.run_command('git', ['-C', repository, 'config', '--null', '--get-regexp',
+	result := ruby.run_command('git', ['-C', repository, 'config', '--null', '--get-regexp',
 		'^homebrew\\.'])
 	mut values := map[string]string{}
 	for entry in result.output.split('\0') {
@@ -113,57 +113,57 @@ fn (mut settings Settings) all(repository string) map[string]string {
 	return values
 }
 
-fn settings_boundary_repository(args []brew_runtime.Value, index int) string {
+fn settings_boundary_repository(args []ruby.Value, index int) string {
 	if args.len > index {
 		return args[index].as_string()
 	}
-	return brew_runtime.real_path('.')
+	return ruby.real_path('.')
 }
 
 // Ruby method `self.read(setting, repo: HOMEBREW_REPOSITORY)` at line 19.
-pub fn ruby_settings_l19_d1_self_read(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_settings_l19_d1_self_read(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Settings.read requires a setting')
 	}
 	repository := settings_boundary_repository(args, 1)
 	mut settings := new_settings(repository)
 	if value := settings.read(args[0].as_string()) {
-		return brew_runtime.string_value(value)
+		return ruby.string_value(value)
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `self.write(setting, value, repo: HOMEBREW_REPOSITORY)` at line 30.
-pub fn ruby_settings_l30_d2_self_write(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_settings_l30_d2_self_write(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Settings.write requires a setting and value')
 	}
 	repository := settings_boundary_repository(args, 2)
 	mut settings := new_settings(repository)
 	settings.write(args[0].as_string(), args[1].as_string()) or { panic(err) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `self.delete(setting, repo: HOMEBREW_REPOSITORY)` at line 42.
-pub fn ruby_settings_l42_d3_self_delete(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_settings_l42_d3_self_delete(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Settings.delete requires a setting')
 	}
 	repository := settings_boundary_repository(args, 1)
 	mut settings := new_settings(repository)
 	settings.delete(args[0].as_string()) or { panic(err) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `self.all(repo)` at line 54.
-pub fn ruby_settings_l54_d4_self_all(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_settings_l54_d4_self_all(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Settings.all requires a repository')
 	}
 	repository := args[0].as_string()
 	mut settings := new_settings(repository)
 	values := settings.all(repository)
-	return brew_runtime.structured_value('Hash', values.str(), values)
+	return ruby.structured_value('Hash', values.str(), values)
 }
 
 // Original Ruby source (line-for-line):

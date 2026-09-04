@@ -1,6 +1,6 @@
 module artifact
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `cask/artifact/zap.rb`.
@@ -57,36 +57,36 @@ pub fn zap_phase(artifact ZapArtifact) !ZapResult {
 	}
 }
 
-pub fn zap_artifact_to_value(artifact ZapArtifact) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'rmdir': brew_runtime.string_array_value(artifact.rmdir)
+pub fn zap_artifact_to_value(artifact ZapArtifact) ruby.Value {
+	return ruby.map_value({
+		'rmdir': ruby.string_array_value(artifact.rmdir)
 	})
 }
 
-fn zap_artifact_from_value(value brew_runtime.Value) !ZapArtifact {
+fn zap_artifact_from_value(value ruby.Value) !ZapArtifact {
 	values := value.as_map()!
-	rmdir_value := values['rmdir'] or { brew_runtime.string_array_value([]string{}) }
+	rmdir_value := values['rmdir'] or { ruby.string_array_value([]string{}) }
 	return ZapArtifact{
 		rmdir: rmdir_value.as_string_array()!
 	}
 }
 
-pub fn zap_result_to_value(result ZapResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'removed': brew_runtime.string_array_value(result.removed)
-		'skipped': brew_runtime.string_array_value(result.skipped)
+pub fn zap_result_to_value(result ZapResult) ruby.Value {
+	return ruby.map_value({
+		'removed': ruby.string_array_value(result.removed)
+		'skipped': ruby.string_array_value(result.skipped)
 	})
 }
 
 // Ruby method `zap_phase(**options)` at line 11.
-pub fn ruby_zap_l11_d1_zap_phase(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_zap_l11_d1_zap_phase(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'Zap artifact is required')
+		return ruby.object_value('ArgumentError', 'Zap artifact is required')
 	}
 	artifact := zap_artifact_from_value(args[0]) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
-	result := zap_phase(artifact) or { return brew_runtime.object_value('CaskError', err.msg()) }
+	result := zap_phase(artifact) or { return ruby.object_value('CaskError', err.msg()) }
 	return zap_result_to_value(result)
 }
 

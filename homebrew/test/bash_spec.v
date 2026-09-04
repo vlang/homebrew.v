@@ -1,6 +1,6 @@
 module test
 
-import brew_runtime
+import ruby
 import os
 import time
 
@@ -9,7 +9,7 @@ import time
 
 const bash_spec_revision = '0123456789abcdef0123456789abcdef01234567'
 
-fn bash_spec_repository(args []brew_runtime.Value) string {
+fn bash_spec_repository(args []ruby.Value) string {
 	if args.len > 0 && args[0].as_string() != '' {
 		return args[0].as_string()
 	}
@@ -20,7 +20,7 @@ fn bash_spec_repository(args []brew_runtime.Value) string {
 }
 
 fn bash_spec_environment(overrides map[string]string, unset_names []string) map[string]string {
-	mut environment := brew_runtime.environment()
+	mut environment := ruby.environment()
 	for name in unset_names {
 		environment.delete(name)
 	}
@@ -31,22 +31,22 @@ fn bash_spec_environment(overrides map[string]string, unset_names []string) map[
 }
 
 fn bash_spec_run_script(script string, arguments []string, overrides map[string]string,
-	unset_names []string) !brew_runtime.CapturedCommandResult {
+	unset_names []string) !ruby.CapturedCommandResult {
 	mut command := ['/bin/bash', '-c', script, 'bash']
 	command << arguments
-	return brew_runtime.run_captured_command(command, brew_runtime.CapturedCommandOptions{
+	return ruby.run_captured_command(command, ruby.CapturedCommandOptions{
 		environment: bash_spec_environment(overrides, unset_names)
 	})
 }
 
-pub fn bash_spec_check_syntax(path string) !brew_runtime.CapturedCommandResult {
-	return brew_runtime.run_captured_command(['/bin/bash', '-n', path], brew_runtime.CapturedCommandOptions{
-		environment: brew_runtime.environment()
+pub fn bash_spec_check_syntax(path string) !ruby.CapturedCommandResult {
+	return ruby.run_captured_command(['/bin/bash', '-n', path], ruby.CapturedCommandOptions{
+		environment: ruby.environment()
 	})
 }
 
 pub fn bash_spec_syntax_failure_message(path string,
-	result brew_runtime.CapturedCommandResult) string {
+	result ruby.CapturedCommandResult) string {
 	return 'expected that ${path} is a valid Bash file:\n${result.stderr}'
 }
 
@@ -81,26 +81,26 @@ fn bash_spec_all_files(root string) []string {
 }
 
 // Ruby matcher `matcher :have_valid_bash_syntax do` at line 7.
-pub fn ruby_bash_spec_l7_d1_have_valid_bash_syntax(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bash_spec_l7_d1_have_valid_bash_syntax(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(bash_spec_valid_syntax(args[0].as_string()))
+	return ruby.bool_value(bash_spec_valid_syntax(args[0].as_string()))
 }
 
 // Ruby subject `subject(:brew) { HOMEBREW_LIBRARY_PATH.parent.parent/"bin/brew" }` at line 22.
-pub fn ruby_bash_spec_l22_d2_brew(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Pathname', os.join_path(bash_spec_repository(args), 'bin', 'brew'))
+pub fn ruby_bash_spec_l22_d2_brew(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Pathname', os.join_path(bash_spec_repository(args), 'bin', 'brew'))
 }
 
 // Ruby it `it { is_expected.to have_valid_bash_syntax }` at line 24.
-pub fn ruby_bash_spec_l24_d3_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bash_spec_l24_d3_anonymous(args ...ruby.Value) ruby.Value {
 	brew := if args.len > 0 { args[0] } else { ruby_bash_spec_l22_d2_brew() }
 	return ruby_bash_spec_l7_d1_have_valid_bash_syntax(brew)
 }
 
 // Ruby it `it "uses the macOS locale charmap rather than the locale name", :needs_macos do` at line 28.
-pub fn ruby_bash_spec_l28_d4_uses(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bash_spec_l28_d4_uses(args ...ruby.Value) ruby.Value {
 	os_script := os.join_path(bash_spec_repository(args), 'Library', 'Homebrew', 'utils', 'os.sh')
 	script := [
 		r'source "$1"',
@@ -113,17 +113,17 @@ pub fn ruby_bash_spec_l28_d4_uses(args ...brew_runtime.Value) brew_runtime.Value
 	].join('\n')
 	invalid := bash_spec_run_script(script, [os_script], {
 		'LANG': 'C.utf8'
-	}, ['LC_CTYPE', 'LC_ALL']) or { return brew_runtime.bool_value(false) }
+	}, ['LC_CTYPE', 'LC_ALL']) or { return ruby.bool_value(false) }
 	valid := bash_spec_run_script(script, [os_script], {
 		'LC_CTYPE': 'UTF-8'
-	}, ['LANG', 'LC_ALL']) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(invalid.stdout == 'en_US.UTF-8' && invalid.stderr == ''
+	}, ['LANG', 'LC_ALL']) or { return ruby.bool_value(false) }
+	return ruby.bool_value(invalid.stdout == 'en_US.UTF-8' && invalid.stderr == ''
 		&& invalid.exit_code == 0 && valid.stdout == 'unset' && valid.stderr == ''
 		&& valid.exit_code == 0)
 }
 
 // Ruby it `it "restores filtered Linux locale variables and removes their copies" do` at line 51.
-pub fn ruby_bash_spec_l51_d5_restores(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bash_spec_l51_d5_restores(args ...ruby.Value) ruby.Value {
 	os_script := os.join_path(bash_spec_repository(args), 'Library', 'Homebrew', 'utils', 'os.sh')
 	script := [
 		r'source "$1"',
@@ -144,26 +144,26 @@ pub fn ruby_bash_spec_l51_d5_restores(args ...brew_runtime.Value) brew_runtime.V
 		r'printf "%s\n" "${LANG-unset}" "${LC_CTYPE-unset}" "${LC_ALL-unset}" "${HOMEBREW_LANG-unset}" "${HOMEBREW_LC_CTYPE-unset}" "${HOMEBREW_LC_ALL-unset}"',
 	].join('\n')
 	result := bash_spec_run_script(script, [os_script], map[string]string{}, ['LANG', 'LC_CTYPE',
-		'LC_ALL']) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(result.stdout == 'C\nC\nC.UTF-8\nunset\nunset\nunset\n'
+		'LC_ALL']) or { return ruby.bool_value(false) }
+	return ruby.bool_value(result.stdout == 'C\nC\nC.UTF-8\nunset\nunset\nunset\n'
 		&& result.stderr == '' && result.exit_code == 0)
 }
 
 // Ruby it `it "writes the cache when the current user owns the Git directory" do` at line 81.
-pub fn ruby_bash_spec_l81_d6_writes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bash_spec_l81_d6_writes(args ...ruby.Value) ruby.Value {
 	repository := bash_spec_temp_directory('git-cache-owned') or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	defer {
 		os.rmdir_all(repository) or {}
 	}
 	refs := os.join_path(repository, '.git', 'refs', 'heads')
-	os.mkdir_all(refs) or { return brew_runtime.bool_value(false) }
+	os.mkdir_all(refs) or { return ruby.bool_value(false) }
 	os.write_file(os.join_path(repository, '.git', 'HEAD'), 'ref: refs/heads/main\n') or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	os.write_file(os.join_path(refs, 'main'), '${bash_spec_revision}\n') or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	git_script := os.join_path(bash_spec_repository(args), 'Library', 'Homebrew', 'utils', 'git.sh')
 	script := [
@@ -178,20 +178,20 @@ pub fn ruby_bash_spec_l81_d6_writes(args ...brew_runtime.Value) brew_runtime.Val
 	result := bash_spec_run_script(script, [git_script], {
 		'HOMEBREW_GIT':        'git'
 		'HOMEBREW_REPOSITORY': repository
-	}, []string{}) or { return brew_runtime.bool_value(false) }
+	}, []string{}) or { return ruby.bool_value(false) }
 	cache_file := os.join_path(repository, '.git', 'describe-cache', bash_spec_revision)
-	cache := os.read_file(cache_file) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(result.stdout == '1.2.3' && result.stderr == ''
+	cache := os.read_file(cache_file) or { return ruby.bool_value(false) }
+	return ruby.bool_value(result.stdout == '1.2.3' && result.stderr == ''
 		&& result.exit_code == 0 && cache == '1.2.3\n')
 }
 
 // Ruby it `it "does not mutate the cache when the current user does not own the Git directory" do` at line 107.
-pub fn ruby_bash_spec_l107_d7_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bash_spec_l107_d7_does(args ...ruby.Value) ruby.Value {
 	if os.geteuid() == 0 {
-		return brew_runtime.bool_value(true)
+		return ruby.bool_value(true)
 	}
 	repository := bash_spec_temp_directory('git-cache-unowned') or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	git_directory := os.join_path(repository, '.git')
 	defer {
@@ -200,7 +200,7 @@ pub fn ruby_bash_spec_l107_d7_does(args ...brew_runtime.Value) brew_runtime.Valu
 		}
 		os.rmdir_all(repository) or {}
 	}
-	os.symlink('/', git_directory) or { return brew_runtime.bool_value(false) }
+	os.symlink('/', git_directory) or { return ruby.bool_value(false) }
 	operations := os.join_path(repository, 'operations')
 	git_script := os.join_path(bash_spec_repository(args), 'Library', 'Homebrew', 'utils', 'git.sh')
 	script := [
@@ -222,13 +222,13 @@ pub fn ruby_bash_spec_l107_d7_does(args ...brew_runtime.Value) brew_runtime.Valu
 	result := bash_spec_run_script(script, [git_script, operations], {
 		'HOMEBREW_GIT':        'git'
 		'HOMEBREW_REPOSITORY': repository
-	}, []string{}) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(result.stdout == '1.2.3' && result.stderr == ''
+	}, []string{}) or { return ruby.bool_value(false) }
+	return ruby.bool_value(result.stdout == '1.2.3' && result.stderr == ''
 		&& result.exit_code == 0 && !os.exists(operations))
 }
 
 // Ruby it `it "has valid Bash syntax" do` at line 141.
-pub fn ruby_bash_spec_l141_d8_has(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bash_spec_l141_d8_has(args ...ruby.Value) ruby.Value {
 	library := os.join_path(bash_spec_repository(args), 'Library', 'Homebrew')
 	mut paths := os.walk_ext(library, '.sh', os.WalkParams{})
 	paths.sort()
@@ -239,39 +239,39 @@ pub fn ruby_bash_spec_l141_d8_has(args ...brew_runtime.Value) brew_runtime.Value
 			continue
 		}
 		if !bash_spec_valid_syntax(path) {
-			return brew_runtime.bool_value(false)
+			return ruby.bool_value(false)
 		}
 	}
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
 // Ruby subject `subject { HOMEBREW_LIBRARY_PATH.parent.parent/"completions/bash/brew" }` at line 152.
-pub fn ruby_bash_spec_l152_d9_subject_dynamic(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Pathname', os.join_path(bash_spec_repository(args), 'completions', 'bash', 'brew'))
+pub fn ruby_bash_spec_l152_d9_subject_dynamic(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Pathname', os.join_path(bash_spec_repository(args), 'completions', 'bash', 'brew'))
 }
 
 // Ruby it `it { is_expected.to have_valid_bash_syntax }` at line 154.
-pub fn ruby_bash_spec_l154_d10_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bash_spec_l154_d10_anonymous(args ...ruby.Value) ruby.Value {
 	completion := if args.len > 0 { args[0] } else { ruby_bash_spec_l152_d9_subject_dynamic() }
 	return ruby_bash_spec_l7_d1_have_valid_bash_syntax(completion)
 }
 
 // Ruby it `it "has valid Bash syntax" do` at line 158.
-pub fn ruby_bash_spec_l158_d11_has(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bash_spec_l158_d11_has(args ...ruby.Value) ruby.Value {
 	shims := os.join_path(bash_spec_repository(args), 'Library', 'Homebrew', 'shims')
 	for path in bash_spec_all_files(shims) {
 		if os.is_link(path) || !os.is_executable(path) || os.file_name(path) == 'cc' {
 			continue
 		}
-		contents := os.read_file(path) or { return brew_runtime.bool_value(false) }
+		contents := os.read_file(path) or { return ruby.bool_value(false) }
 		if contents.len < 12 || contents[..12] != '#!/bin/bash\n' {
 			continue
 		}
 		if !bash_spec_valid_syntax(path) {
-			return brew_runtime.bool_value(false)
+			return ruby.bool_value(false)
 		}
 	}
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
 // Original Ruby source (line-for-line):

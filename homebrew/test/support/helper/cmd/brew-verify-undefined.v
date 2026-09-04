@@ -1,13 +1,13 @@
 module cmd
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `test/support/helper/cmd/brew-verify-undefined.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `run; end` at line 80.
-pub fn ruby_brew_verify_undefined_l80_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Nil', '')
+pub fn ruby_brew_verify_undefined_l80_d1_run(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Nil', '')
 }
 
 // Original Ruby source (line-for-line):

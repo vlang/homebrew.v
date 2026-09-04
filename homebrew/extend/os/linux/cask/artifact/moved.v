@@ -1,6 +1,6 @@
 module artifact
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `extend/os/linux/cask/artifact/moved.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -9,9 +9,9 @@ pub fn linux_backup_copy_args(target string, source string) []string {
 }
 
 // Ruby method `backup_copy_args(target, source)` at line 14.
-pub fn ruby_moved_l14_d1_backup_copy_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_moved_l14_d1_backup_copy_args(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('backup_copy_args requires target and source') }
-	return brew_runtime.string_array_value(linux_backup_copy_args(args[0].as_string(), args[1].as_string()))
+	return ruby.string_array_value(linux_backup_copy_args(args[0].as_string(), args[1].as_string()))
 }
 
 // Original Ruby source (line-for-line):

@@ -1,6 +1,6 @@
 module helper
 
-import brew_runtime
+import ruby
 import crypto.sha256
 import os
 
@@ -17,73 +17,73 @@ pub fn fixture_sha256(path string) !string {
 	return sha256.sum256(os.read_bytes(path)!).hex()
 }
 
-fn fixture_name_arg(args []brew_runtime.Value) string {
+fn fixture_name_arg(args []ruby.Value) string {
 	return if args.len > 0 { args[0].as_string() } else { '' }
 }
 
-fn fixture_root_arg(args []brew_runtime.Value) string {
+fn fixture_root_arg(args []ruby.Value) string {
 	return if args.len > 1 { args[1].as_string() } else { fixtures_root }
 }
 
 // Ruby method `dylib_path(name)` at line 7.
-pub fn ruby_fixtures_l7_d1_dylib_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_fixtures_l7_d1_dylib_path(args ...ruby.Value) ruby.Value {
 	path := fixture_path(os.join_path('mach', '${fixture_name_arg(args)}.dylib'), fixture_root_arg(args))
-	return brew_runtime.structured_value('MachOPathname', path, {
+	return ruby.structured_value('MachOPathname', path, {
 		'path': path
 	})
 }
 
 // Ruby method `bundle_path(name)` at line 11.
-pub fn ruby_fixtures_l11_d2_bundle_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_fixtures_l11_d2_bundle_path(args ...ruby.Value) ruby.Value {
 	path := fixture_path(os.join_path('mach', '${fixture_name_arg(args)}.bundle'), fixture_root_arg(args))
-	return brew_runtime.structured_value('MachOPathname', path, {
+	return ruby.structured_value('MachOPathname', path, {
 		'path': path
 	})
 }
 
 // Ruby method `cask_path(name)` at line 15.
-pub fn ruby_fixtures_l15_d3_cask_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Pathname', fixture_path(os.join_path('cask', 'Casks', '${fixture_name_arg(args)}.rb'), fixture_root_arg(args)))
+pub fn ruby_fixtures_l15_d3_cask_path(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Pathname', fixture_path(os.join_path('cask', 'Casks', '${fixture_name_arg(args)}.rb'), fixture_root_arg(args)))
 }
 
 // Ruby method `tarball_fixture(name)` at line 19.
-pub fn ruby_fixtures_l19_d4_tarball_fixture(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Pathname', fixture_path(os.join_path('tarballs', fixture_name_arg(args)), fixture_root_arg(args)))
+pub fn ruby_fixtures_l19_d4_tarball_fixture(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Pathname', fixture_path(os.join_path('tarballs', fixture_name_arg(args)), fixture_root_arg(args)))
 }
 
 // Ruby method `tarball_fixture_sha256(name)` at line 23.
-pub fn ruby_fixtures_l23_d5_tarball_fixture_sha256(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_fixtures_l23_d5_tarball_fixture_sha256(args ...ruby.Value) ruby.Value {
 	path := fixture_path(os.join_path('tarballs', fixture_name_arg(args)), fixture_root_arg(args))
-	return brew_runtime.string_value(fixture_sha256(path) or {
-		return brew_runtime.object_value('FileError', err.msg())
+	return ruby.string_value(fixture_sha256(path) or {
+		return ruby.object_value('FileError', err.msg())
 	})
 }
 
 // Ruby method `patch_fixture(name)` at line 27.
-pub fn ruby_fixtures_l27_d6_patch_fixture(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Pathname', fixture_path(os.join_path('patches', '${fixture_name_arg(args)}.diff'), fixture_root_arg(args)))
+pub fn ruby_fixtures_l27_d6_patch_fixture(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Pathname', fixture_path(os.join_path('patches', '${fixture_name_arg(args)}.diff'), fixture_root_arg(args)))
 }
 
 // Ruby method `patch_fixture_sha256(name)` at line 31.
-pub fn ruby_fixtures_l31_d7_patch_fixture_sha256(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_fixtures_l31_d7_patch_fixture_sha256(args ...ruby.Value) ruby.Value {
 	path := fixture_path(os.join_path('patches', '${fixture_name_arg(args)}.diff'), fixture_root_arg(args))
-	return brew_runtime.string_value(fixture_sha256(path) or {
-		return brew_runtime.object_value('FileError', err.msg())
+	return ruby.string_value(fixture_sha256(path) or {
+		return ruby.object_value('FileError', err.msg())
 	})
 }
 
 // Ruby method `fixture(name)` at line 35.
-pub fn ruby_fixtures_l35_d8_fixture(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Pathname', fixture_path(fixture_name_arg(args), fixture_root_arg(args)))
+pub fn ruby_fixtures_l35_d8_fixture(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Pathname', fixture_path(fixture_name_arg(args), fixture_root_arg(args)))
 }
 
 // Ruby method `sha256_for_fixture_path(path)` at line 45.
-pub fn ruby_fixtures_l45_d9_sha256_for_fixture_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_fixtures_l45_d9_sha256_for_fixture_path(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'fixture path is required')
+		return ruby.object_value('ArgumentError', 'fixture path is required')
 	}
-	return brew_runtime.string_value(fixture_sha256(args[0].as_string()) or {
-		return brew_runtime.object_value('FileError', err.msg())
+	return ruby.string_value(fixture_sha256(args[0].as_string()) or {
+		return ruby.object_value('FileError', err.msg())
 	})
 }
 

@@ -1,6 +1,6 @@
 module vulns
 
-import brew_runtime
+import ruby
 import homebrew.vulns as purl_core
 
 // Translated from Homebrew/brew `test/vulns/purl_spec.rb`.
@@ -175,7 +175,7 @@ pub fn ruby_purl_spec_l149_d26_is() !bool {
 // Ruby it `it "is not equal to a plain string" do` at line 155.
 pub fn ruby_purl_spec_l155_d27_is() !bool {
 	purl := purl_core.purl_value(purl_spec_new('gem', 'rails', none, none)!)
-	return !purl_core.ruby_purl_l48_d7_anonymous(purl, brew_runtime.string_value('pkg:gem/rails')).as_bool()!
+	return !purl_core.ruby_purl_l48_d7_anonymous(purl, ruby.string_value('pkg:gem/rails')).as_bool()!
 }
 
 // Original Ruby source (line-for-line):

@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `bundle.rb`.
@@ -82,9 +82,9 @@ pub fn (mut runtime BundleRuntime) run_system(command string, arguments []string
 	runtime.commands << command_line
 	runtime.command_environments << environment.clone()
 	result := if environment.len > 0 {
-		brew_runtime.run_command_with_environment(command, arguments, environment)
+		ruby.run_command_with_environment(command, arguments, environment)
 	} else {
-		brew_runtime.run_command(command, arguments)
+		ruby.run_command(command, arguments)
 	}
 	if result.exit_code != 0 || verbose {
 		runtime.output << result.output
@@ -107,7 +107,7 @@ pub fn (mut runtime BundleRuntime) is_cask_installed() bool {
 	return runtime.cask_installed
 }
 
-pub fn (mut runtime BundleRuntime) exchange_uid_if_needed_value(block_result brew_runtime.Value) brew_runtime.Value {
+pub fn (mut runtime BundleRuntime) exchange_uid_if_needed_value(block_result ruby.Value) ruby.Value {
 	if runtime.config.euid != runtime.config.uid {
 		// The Ruby process temporarily exchanges IDs around the block. V callers
 		// keep process credentials unchanged and expose the exchange as state so
@@ -209,17 +209,17 @@ pub fn (mut runtime BundleRuntime) mark_as_installed_on_request(entries []Bundle
 	}
 }
 
-fn bundle_runtime_value(runtime &BundleRuntime) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::Bundle', '', {
+fn bundle_runtime_value(runtime &BundleRuntime) ruby.Value {
+	return ruby.structured_value('Homebrew::Bundle', '', {
 		'bundle_runtime_address': u64(voidptr(runtime)).str()
 	})
 }
 
-pub fn bundle_runtime_boundary(runtime &BundleRuntime) brew_runtime.Value {
+pub fn bundle_runtime_boundary(runtime &BundleRuntime) ruby.Value {
 	return bundle_runtime_value(runtime)
 }
 
-fn bundle_runtime_from_args(args []brew_runtime.Value, method string) &BundleRuntime {
+fn bundle_runtime_from_args(args []ruby.Value, method string) &BundleRuntime {
 	if args.len == 0 || args[0].type_name != 'Homebrew::Bundle' {
 		panic('Homebrew::Bundle.${method} requires a translated runtime')
 	}
@@ -229,15 +229,15 @@ fn bundle_runtime_from_args(args []brew_runtime.Value, method string) &BundleRun
 	return unsafe { &BundleRuntime(voidptr(address.u64())) }
 }
 
-fn bundle_string_map_value(values map[string]string) brew_runtime.Value {
-	mut mapped := map[string]brew_runtime.Value{}
+fn bundle_string_map_value(values map[string]string) ruby.Value {
+	mut mapped := map[string]ruby.Value{}
 	for key, value in values {
-		mapped[key] = brew_runtime.string_value(value)
+		mapped[key] = ruby.string_value(value)
 	}
-	return brew_runtime.map_value(mapped)
+	return ruby.map_value(mapped)
 }
 
-fn bundle_string_map_from_value(value brew_runtime.Value) map[string]string {
+fn bundle_string_map_from_value(value ruby.Value) map[string]string {
 	mut mapped := map[string]string{}
 	for key, item in value.as_map() or { return mapped } {
 		mapped[key] = item.as_string()
@@ -245,23 +245,23 @@ fn bundle_string_map_from_value(value brew_runtime.Value) map[string]string {
 	return mapped
 }
 
-pub fn bundle_entry_boundary(entry BundleEntry) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'type': brew_runtime.string_value(entry.entry_type)
-		'name': brew_runtime.string_value(entry.name)
+pub fn bundle_entry_boundary(entry BundleEntry) ruby.Value {
+	return ruby.map_value({
+		'type': ruby.string_value(entry.entry_type)
+		'name': ruby.string_value(entry.name)
 	})
 }
 
-fn bundle_entry_from_value(value brew_runtime.Value) BundleEntry {
+fn bundle_entry_from_value(value ruby.Value) BundleEntry {
 	fields := value.map_data.clone()
 	return BundleEntry{
-		entry_type: (fields['type'] or { brew_runtime.string_value('') }).as_string()
-		name: (fields['name'] or { brew_runtime.string_value('') }).as_string()
+		entry_type: (fields['type'] or { ruby.string_value('') }).as_string()
+		name: (fields['name'] or { ruby.string_value('') }).as_string()
 	}
 }
 
 // Ruby method `upgrade_formulae=(args_upgrade_formula)` at line 10.
-pub fn ruby_bundle_l10_d1_upgrade_formulae(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bundle_l10_d1_upgrade_formulae(args ...ruby.Value) ruby.Value {
 	mut runtime := bundle_runtime_from_args(args, 'upgrade_formulae=')
 	value := if args.len > 1 && args[1].type_name !in ['Nil', 'NilClass'] {
 		?string(args[1].as_string())
@@ -269,71 +269,71 @@ pub fn ruby_bundle_l10_d1_upgrade_formulae(args ...brew_runtime.Value) brew_runt
 		none
 	}
 	runtime.set_upgrade_formulae(value)
-	return brew_runtime.string_array_value(runtime.get_upgrade_formulae())
+	return ruby.string_array_value(runtime.get_upgrade_formulae())
 }
 
 // Ruby method `upgrade_formulae` at line 15.
-pub fn ruby_bundle_l15_d2_upgrade_formulae(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(bundle_runtime_from_args(args, 'upgrade_formulae').get_upgrade_formulae())
+pub fn ruby_bundle_l15_d2_upgrade_formulae(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(bundle_runtime_from_args(args, 'upgrade_formulae').get_upgrade_formulae())
 }
 
 // Ruby method `system(cmd, *args, verbose: false)` at line 20.
-pub fn ruby_bundle_l20_d3_system(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bundle_l20_d3_system(args ...ruby.Value) ruby.Value {
 	mut runtime := bundle_runtime_from_args(args, 'system')
 	if args.len < 2 {
 		panic('Homebrew::Bundle.system requires a command')
 	}
 	arguments := if args.len > 2 { args[2].as_string_array() or { [] } } else { [] }
 	verbose := args.len > 3 && (args[3].as_bool() or { false })
-	return brew_runtime.bool_value(runtime.run_system(args[1].as_string(), arguments, verbose))
+	return ruby.bool_value(runtime.run_system(args[1].as_string(), arguments, verbose))
 }
 
 // Ruby method `brew(*args, verbose: false)` at line 47.
-pub fn ruby_bundle_l47_d4_brew(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bundle_l47_d4_brew(args ...ruby.Value) ruby.Value {
 	mut runtime := bundle_runtime_from_args(args, 'brew')
 	arguments := if args.len > 1 { args[1].as_string_array() or { [] } } else { [] }
 	verbose := args.len > 2 && (args[2].as_bool() or { false })
-	return brew_runtime.bool_value(runtime.run_brew(arguments, verbose))
+	return ruby.bool_value(runtime.run_brew(arguments, verbose))
 }
 
 // Ruby method `cask_installed?` at line 52.
-pub fn ruby_bundle_l52_d5_cask_installed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bundle_l52_d5_cask_installed(args ...ruby.Value) ruby.Value {
 	mut runtime := bundle_runtime_from_args(args, 'cask_installed?')
-	return brew_runtime.bool_value(runtime.is_cask_installed())
+	return ruby.bool_value(runtime.is_cask_installed())
 }
 
 // Ruby method `exchange_uid_if_needed!(&block)` at line 59.
-pub fn ruby_bundle_l59_d6_exchange_uid_if_needed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bundle_l59_d6_exchange_uid_if_needed(args ...ruby.Value) ruby.Value {
 	mut runtime := bundle_runtime_from_args(args, 'exchange_uid_if_needed!')
-	result := if args.len > 1 { args[1] } else { brew_runtime.object_value('NilClass', 'nil') }
+	result := if args.len > 1 { args[1] } else { ruby.object_value('NilClass', 'nil') }
 	return runtime.exchange_uid_if_needed_value(result)
 }
 
 // Ruby method `formula_versions_from_env(formula_name)` at line 85.
-pub fn ruby_bundle_l85_d7_formula_versions_from_env(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bundle_l85_d7_formula_versions_from_env(args ...ruby.Value) ruby.Value {
 	mut runtime := bundle_runtime_from_args(args, 'formula_versions_from_env')
 	if args.len < 2 {
 		panic('formula_versions_from_env requires a formula name')
 	}
 	return if version := runtime.formula_version_from_environment(args[1].as_string()) {
-		brew_runtime.string_value(version)
+		ruby.string_value(version)
 	} else {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	}
 }
 
 // Ruby method `formula_versions_from_env_cache` at line 113.
-pub fn ruby_bundle_l113_d8_formula_versions_from_env_cache(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bundle_l113_d8_formula_versions_from_env_cache(args ...ruby.Value) ruby.Value {
 	runtime := bundle_runtime_from_args(args, 'formula_versions_from_env_cache')
 	return if runtime.formula_versions_loaded {
 		bundle_string_map_value(runtime.formula_versions)
 	} else {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	}
 }
 
 // Ruby method `formula_versions_from_env_cache=(formula_versions)` at line 118.
-pub fn ruby_bundle_l118_d9_formula_versions_from_env_cache(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bundle_l118_d9_formula_versions_from_env_cache(args ...ruby.Value) ruby.Value {
 	mut runtime := bundle_runtime_from_args(args, 'formula_versions_from_env_cache=')
 	versions := if args.len > 1 && args[1].type_name == 'Hash' {
 		?map[string]string(bundle_string_map_from_value(args[1]))
@@ -341,25 +341,25 @@ pub fn ruby_bundle_l118_d9_formula_versions_from_env_cache(args ...brew_runtime.
 		none
 	}
 	runtime.set_formula_versions_cache(versions)
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `prepend_pkgconf_path_if_needed!; end` at line 123.
-pub fn ruby_bundle_l123_d10_prepend_pkgconf_path_if_needed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bundle_l123_d10_prepend_pkgconf_path_if_needed(args ...ruby.Value) ruby.Value {
 	mut runtime := bundle_runtime_from_args(args, 'prepend_pkgconf_path_if_needed!')
 	runtime.prepend_pkgconf_path_if_needed()
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `reset!` at line 126.
-pub fn ruby_bundle_l126_d11_reset(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bundle_l126_d11_reset(args ...ruby.Value) ruby.Value {
 	mut runtime := bundle_runtime_from_args(args, 'reset!')
 	runtime.reset()
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `mark_as_installed_on_request!(entries)` at line 135.
-pub fn ruby_bundle_l135_d12_mark_as_installed_on_request(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bundle_l135_d12_mark_as_installed_on_request(args ...ruby.Value) ruby.Value {
 	mut runtime := bundle_runtime_from_args(args, 'mark_as_installed_on_request!')
 	entries := if args.len > 1 {
 		(args[1].as_array() or { [] }).map(bundle_entry_from_value(it))
@@ -367,7 +367,7 @@ pub fn ruby_bundle_l135_d12_mark_as_installed_on_request(args ...brew_runtime.Va
 		[]BundleEntry{}
 	}
 	runtime.mark_as_installed_on_request(entries)
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Original Ruby source (line-for-line):

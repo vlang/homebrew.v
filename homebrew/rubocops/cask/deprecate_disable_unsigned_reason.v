@@ -1,6 +1,6 @@
 module cask
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `rubocops/cask/deprecate_disable_unsigned_reason.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -184,8 +184,8 @@ pub fn correct_deprecate_disable_unsigned_reason(source string) string {
 	return corrected
 }
 
-fn deprecate_disable_unsigned_reason_value(offense DeprecateDisableUnsignedReasonOffense) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cop::Offense', offense.message, {
+fn deprecate_disable_unsigned_reason_value(offense DeprecateDisableUnsignedReasonOffense) ruby.Value {
+	return ruby.structured_value('RuboCop::Cop::Offense', offense.message, {
 		'stanza':      offense.stanza
 		'begin_pos':   offense.begin_pos.str()
 		'end_pos':     offense.end_pos.str()
@@ -195,11 +195,11 @@ fn deprecate_disable_unsigned_reason_value(offense DeprecateDisableUnsignedReaso
 }
 
 // Ruby method `on_cask_stanza_block(stanza_block)` at line 26.
-pub fn ruby_deprecate_disable_unsigned_reason_l26_d1_on_cask_stanza_block(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_deprecate_disable_unsigned_reason_l26_d1_on_cask_stanza_block(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	offenses := audit_deprecate_disable_unsigned_reason(source)
 	return if offenses.len == 0 {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	} else {
 		deprecate_disable_unsigned_reason_value(offenses[0])
 	}

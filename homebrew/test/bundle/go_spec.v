@@ -1,6 +1,6 @@
 module bundle
 
-import brew_runtime
+import ruby
 import homebrew.bundle.extensions
 import os
 import time
@@ -100,69 +100,69 @@ fn go_spec_case(line int) bool {
 }
 
 // Ruby subject `subject(:dumper) { described_class }` at line 10.
-pub fn ruby_go_spec_l10_d1_dumper(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_go_spec_l10_d1_dumper(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.object_value('Homebrew::Bundle::Go', 'Homebrew::Bundle::Go')
+	return ruby.object_value('Homebrew::Bundle::Go', 'Homebrew::Bundle::Go')
 }
 
 // Ruby specify `specify do` at line 18.
-pub fn ruby_go_spec_l18_d2_do(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_go_spec_l18_d2_do(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(go_spec_case(18))
+	return ruby.bool_value(go_spec_case(18))
 }
 
 // Ruby it `it "returns package list" do` at line 30.
-pub fn ruby_go_spec_l30_d3_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_go_spec_l30_d3_returns(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(go_spec_case(30))
+	return ruby.bool_value(go_spec_case(30))
 }
 
 // Ruby it `it "dumps package list" do` at line 42.
-pub fn ruby_go_spec_l42_d4_dumps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_go_spec_l42_d4_dumps(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(go_spec_case(42))
+	return ruby.bool_value(go_spec_case(42))
 }
 
 // Ruby it `it "tries to install go" do` at line 56.
-pub fn ruby_go_spec_l56_d5_tries(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_go_spec_l56_d5_tries(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(go_spec_case(56))
+	return ruby.bool_value(go_spec_case(56))
 }
 
 // Ruby it `it "preserves upgrade_formulae while bootstrapping Go" do` at line 63.
-pub fn ruby_go_spec_l63_d6_preserves(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_go_spec_l63_d6_preserves(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(go_spec_case(63))
+	return ruby.bool_value(go_spec_case(63))
 }
 
 // Ruby it `it "skips" do` at line 85.
-pub fn ruby_go_spec_l85_d7_skips(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_go_spec_l85_d7_skips(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(go_spec_case(85))
+	return ruby.bool_value(go_spec_case(85))
 }
 
 // Ruby it `it "installs package" do` at line 96.
-pub fn ruby_go_spec_l96_d8_installs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_go_spec_l96_d8_installs(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(go_spec_case(96))
+	return ruby.bool_value(go_spec_case(96))
 }
 
 // Ruby it `it "updates dump output after install in the same process" do` at line 104.
-pub fn ruby_go_spec_l104_d9_updates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_go_spec_l104_d9_updates(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(go_spec_case(104))
+	return ruby.bool_value(go_spec_case(104))
 }
 
 // Ruby it `it "returns packages not in Brewfile entries" do` at line 128.
-pub fn ruby_go_spec_l128_d10_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_go_spec_l128_d10_returns(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(go_spec_case(128))
+	return ruby.bool_value(go_spec_case(128))
 }
 
 // Ruby it `it "returns frozen empty array when go is not installed" do` at line 134.
-pub fn ruby_go_spec_l134_d11_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_go_spec_l134_d11_returns(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(go_spec_case(134))
+	return ruby.bool_value(go_spec_case(134))
 }
 
 // Original Ruby source (line-for-line):

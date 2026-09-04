@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 import homebrew.extend as pathname_extension
 import os
 
@@ -467,7 +467,7 @@ pub fn (build &Build) detect_stdlibs() ![]string {
 
 pub fn (build &Build) fixopt(formula Formula) ! {
 	path := if os.is_dir(formula.linked_keg()) && os.is_link(formula.linked_keg()) {
-		brew_runtime.real_path(formula.linked_keg())
+		ruby.real_path(formula.linked_keg())
 	} else if os.is_dir(formula.prefix()) {
 		formula.prefix()
 	} else {
@@ -492,37 +492,37 @@ pub fn (build &Build) normalize_pod2man_outputs(formula Formula) ! {
 	keg.normalize_pod2man_outputs()!
 }
 
-fn build_boundary_nil() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn build_boundary_nil() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-pub fn build_boundary_value(build &Build) brew_runtime.Value {
-	return brew_runtime.structured_value('Build', build.formula.full_name(), {
+pub fn build_boundary_value(build &Build) ruby.Value {
+	return ruby.structured_value('Build', build.formula.full_name(), {
 		'build_address': u64(voidptr(build)).str()
 	})
 }
 
-fn build_from_boundary(value brew_runtime.Value) &Build {
+fn build_from_boundary(value ruby.Value) &Build {
 	address := value.attribute('build_address') or { panic('invalid Build receiver') }
 	return unsafe { &Build(voidptr(address.u64())) }
 }
 
-fn build_dependency_boundary_value(dependency Dependency) brew_runtime.Value {
-	return brew_runtime.structured_value('Dependency', dependency.inspect(), {
+fn build_dependency_boundary_value(dependency Dependency) ruby.Value {
+	return ruby.structured_value('Dependency', dependency.inspect(), {
 		'name': dependency.name
 		'tags': dependency.tags.map(it.boundary_string()).join('\x1e')
 	})
 }
 
-fn build_requirement_boundary_value(requirement Requirement) brew_runtime.Value {
-	return brew_runtime.structured_value('Requirement', requirement.inspect(), {
+fn build_requirement_boundary_value(requirement Requirement) ruby.Value {
+	return ruby.structured_value('Requirement', requirement.inspect(), {
 		'name': requirement.name
 		'tags': requirement.tags.map(it.inspect()).join('\x1e')
 	})
 }
 
-fn build_args_boundary_value(args BuildArgs) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::Cmd::InstallCmd::Args', '', {
+fn build_args_boundary_value(args BuildArgs) ruby.Value {
+	return ruby.structured_value('Homebrew::Cmd::InstallCmd::Args', '', {
 		'ignore_dependencies': args.ignore_dependencies.str()
 		'env':                 args.env
 		'cc':                  args.cc
@@ -537,7 +537,7 @@ fn build_args_boundary_value(args BuildArgs) brew_runtime.Value {
 	})
 }
 
-fn build_args_from_boundary(value brew_runtime.Value) BuildArgs {
+fn build_args_from_boundary(value ruby.Value) BuildArgs {
 	return BuildArgs{
 		ignore_dependencies: (value.attribute('ignore_dependencies') or { 'false' }) == 'true'
 		env: value.attribute('env') or { '' }
@@ -553,7 +553,7 @@ fn build_args_from_boundary(value brew_runtime.Value) BuildArgs {
 	}
 }
 
-fn build_requested_options_from_boundary(value brew_runtime.Value) Options {
+fn build_requested_options_from_boundary(value ruby.Value) Options {
 	if values := value.as_string_array() {
 		return new_options(...values)
 	}
@@ -561,15 +561,15 @@ fn build_requested_options_from_boundary(value brew_runtime.Value) Options {
 	return if flags == '' { new_options() } else { new_options(...flags.split('\x1e')) }
 }
 
-fn build_options_boundary_value(options BuildOptions) brew_runtime.Value {
-	return brew_runtime.structured_value('BuildOptions', options.used_options().inspect(), {
+fn build_options_boundary_value(options BuildOptions) ruby.Value {
+	return ruby.structured_value('BuildOptions', options.used_options().inspect(), {
 		'args':    options.args.as_flags().join('\x1e')
 		'options': options.options.as_flags().join('\x1e')
 	})
 }
 
-fn build_install_result_boundary_value(result BuildInstallResult) brew_runtime.Value {
-	return brew_runtime.structured_value('BuildInstallResult', result.events.join('\n'), {
+fn build_install_result_boundary_value(result BuildInstallResult) ruby.Value {
+	return ruby.structured_value('BuildInstallResult', result.events.join('\n'), {
 		'dependencies':          result.formula_dependencies.map(it.full_name()).join('\x1e')
 		'keg_only_dependencies': result.keg_only_dependencies.map(it.full_name()).join('\x1e')
 		'run_time_dependencies': result.run_time_dependencies.map(it.full_name()).join('\x1e')
@@ -579,7 +579,7 @@ fn build_install_result_boundary_value(result BuildInstallResult) brew_runtime.V
 }
 
 // Ruby attr_reader `attr_reader :formula` at line 25.
-pub fn ruby_build_l25_d1_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_build_l25_d1_formula(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Build#formula requires a receiver')
 	}
@@ -587,23 +587,23 @@ pub fn ruby_build_l25_d1_formula(args ...brew_runtime.Value) brew_runtime.Value 
 }
 
 // Ruby attr_reader `attr_reader :deps` at line 28.
-pub fn ruby_build_l28_d2_deps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_build_l28_d2_deps(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Build#deps requires a receiver')
 	}
-	return brew_runtime.array_value(build_from_boundary(args[0]).deps.map(build_dependency_boundary_value(it)))
+	return ruby.array_value(build_from_boundary(args[0]).deps.map(build_dependency_boundary_value(it)))
 }
 
 // Ruby attr_reader `attr_reader :reqs` at line 31.
-pub fn ruby_build_l31_d3_reqs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_build_l31_d3_reqs(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Build#reqs requires a receiver')
 	}
-	return brew_runtime.array_value(build_from_boundary(args[0]).reqs.map(build_requirement_boundary_value(it)))
+	return ruby.array_value(build_from_boundary(args[0]).reqs.map(build_requirement_boundary_value(it)))
 }
 
 // Ruby attr_reader `attr_reader :args` at line 34.
-pub fn ruby_build_l34_d4_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_build_l34_d4_args(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Build#args requires a receiver')
 	}
@@ -611,7 +611,7 @@ pub fn ruby_build_l34_d4_args(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `initialize(formula, options, args:)` at line 37.
-pub fn ruby_build_l37_d5_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_build_l37_d5_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Build#initialize requires a formula and options')
 	}
@@ -622,7 +622,7 @@ pub fn ruby_build_l37_d5_initialize(args ...brew_runtime.Value) brew_runtime.Val
 }
 
 // Ruby method `effective_build_options_for(dependent)` at line 51.
-pub fn ruby_build_l51_d6_effective_build_options_for(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_build_l51_d6_effective_build_options_for(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Build#effective_build_options_for requires a dependent formula')
 	}
@@ -630,25 +630,25 @@ pub fn ruby_build_l51_d6_effective_build_options_for(args ...brew_runtime.Value)
 }
 
 // Ruby method `expand_reqs` at line 58.
-pub fn ruby_build_l58_d7_expand_reqs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_build_l58_d7_expand_reqs(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Build#expand_reqs requires a receiver')
 	}
 	requirements := build_from_boundary(args[0]).expand_reqs() or { panic(err) }
-	return brew_runtime.array_value(requirements.map(build_requirement_boundary_value(it)))
+	return ruby.array_value(requirements.map(build_requirement_boundary_value(it)))
 }
 
 // Ruby method `expand_deps` at line 69.
-pub fn ruby_build_l69_d8_expand_deps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_build_l69_d8_expand_deps(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Build#expand_deps requires a receiver')
 	}
 	dependencies := build_from_boundary(args[0]).expand_deps() or { panic(err) }
-	return brew_runtime.array_value(dependencies.map(build_dependency_boundary_value(it)))
+	return ruby.array_value(dependencies.map(build_dependency_boundary_value(it)))
 }
 
 // Ruby method `install` at line 83.
-pub fn ruby_build_l83_d9_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_build_l83_d9_install(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Build#install requires a receiver')
 	}
@@ -660,17 +660,17 @@ pub fn ruby_build_l83_d9_install(args ...brew_runtime.Value) brew_runtime.Value 
 }
 
 // Ruby method `detect_stdlibs` at line 223.
-pub fn ruby_build_l223_d10_detect_stdlibs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_build_l223_d10_detect_stdlibs(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Build#detect_stdlibs requires a receiver')
 	}
-	return brew_runtime.string_array_value(build_from_boundary(args[0]).detect_stdlibs() or {
+	return ruby.string_array_value(build_from_boundary(args[0]).detect_stdlibs() or {
 		panic(err)
 	})
 }
 
 // Ruby method `fixopt(formula)` at line 233.
-pub fn ruby_build_l233_d11_fixopt(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_build_l233_d11_fixopt(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Build#fixopt requires a formula')
 	}
@@ -679,7 +679,7 @@ pub fn ruby_build_l233_d11_fixopt(args ...brew_runtime.Value) brew_runtime.Value
 }
 
 // Ruby method `normalize_pod2man_outputs!(formula)` at line 250.
-pub fn ruby_build_l250_d12_normalize_pod2man_outputs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_build_l250_d12_normalize_pod2man_outputs(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Build#normalize_pod2man_outputs! requires a formula')
 	}

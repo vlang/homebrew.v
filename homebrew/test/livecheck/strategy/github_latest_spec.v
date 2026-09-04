@@ -1,6 +1,6 @@
 module strategy
 
-import brew_runtime
+import ruby
 import homebrew.livecheck.strategy as github_strategy
 
 fn github_latest_spec_url(name string) string {
@@ -48,139 +48,139 @@ fn github_latest_spec_generated_equal(actual github_strategy.GithubReleasesInput
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:github_latest) { described_class }` at line 7.
-pub fn ruby_github_latest_spec_l7_d1_github_latest(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Class', 'Homebrew::Livecheck::Strategy::GithubLatest')
+pub fn ruby_github_latest_spec_l7_d1_github_latest(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Class', 'Homebrew::Livecheck::Strategy::GithubLatest')
 }
 
 // Ruby let `let(:github_urls) do` at line 9.
-pub fn ruby_github_latest_spec_l9_d2_github_urls(args ...brew_runtime.Value) brew_runtime.Value {
-	mut urls := map[string]brew_runtime.Value{}
+pub fn ruby_github_latest_spec_l9_d2_github_urls(args ...ruby.Value) ruby.Value {
+	mut urls := map[string]ruby.Value{}
 	for name in ['release_asset', 'short_tag_archive', 'long_tag_archive', 'repository_upload',
 		'brew_tag_archive'] {
-		urls[name] = brew_runtime.string_value(github_latest_spec_url(name))
+		urls[name] = ruby.string_value(github_latest_spec_url(name))
 	}
-	return brew_runtime.map_value(urls)
+	return ruby.map_value(urls)
 }
 
 // Ruby let `let(:non_github_url) { "https://brew.sh/test" }` at line 18.
-pub fn ruby_github_latest_spec_l18_d3_non_github_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('https://brew.sh/test')
+pub fn ruby_github_latest_spec_l18_d3_non_github_url(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('https://brew.sh/test')
 }
 
 // Ruby let `let(:generated) do` at line 19.
-pub fn ruby_github_latest_spec_l19_d4_generated(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'def':  brew_runtime.map_value({
-			'url':        brew_runtime.string_value('https://api.github.com/repos/abc/def/releases/latest')
-			'username':   brew_runtime.string_value('abc')
-			'repository': brew_runtime.string_value('def')
+pub fn ruby_github_latest_spec_l19_d4_generated(args ...ruby.Value) ruby.Value {
+	return ruby.map_value({
+		'def':  ruby.map_value({
+			'url':        ruby.string_value('https://api.github.com/repos/abc/def/releases/latest')
+			'username':   ruby.string_value('abc')
+			'repository': ruby.string_value('def')
 		})
-		'brew': brew_runtime.map_value({
-			'url':        brew_runtime.string_value('https://api.github.com/repos/Homebrew/brew/releases/latest')
-			'username':   brew_runtime.string_value('Homebrew')
-			'repository': brew_runtime.string_value('brew')
+		'brew': ruby.map_value({
+			'url':        ruby.string_value('https://api.github.com/repos/Homebrew/brew/releases/latest')
+			'username':   ruby.string_value('Homebrew')
+			'repository': ruby.string_value('brew')
 		})
 	})
 }
 
 // Ruby let `let(:content) do` at line 35.
-pub fn ruby_github_latest_spec_l35_d5_content(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(github_latest_spec_content())
+pub fn ruby_github_latest_spec_l35_d5_content(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(github_latest_spec_content())
 }
 
 // Ruby let `let(:matches) { ["1.2.3"] }` at line 45.
-pub fn ruby_github_latest_spec_l45_d6_matches(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(['1.2.3'])
+pub fn ruby_github_latest_spec_l45_d6_matches(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(['1.2.3'])
 }
 
 // Ruby it `it "returns true for a GitHub release artifact URL" do` at line 48.
-pub fn ruby_github_latest_spec_l48_d7_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(github_strategy.github_latest_matches_url(github_latest_spec_url('release_asset')))
+pub fn ruby_github_latest_spec_l48_d7_returns(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(github_strategy.github_latest_matches_url(github_latest_spec_url('release_asset')))
 }
 
 // Ruby it `it "returns true for a GitHub tag archive URL" do` at line 52.
-pub fn ruby_github_latest_spec_l52_d8_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(github_strategy.github_latest_matches_url(github_latest_spec_url('short_tag_archive')) && github_strategy.github_latest_matches_url(github_latest_spec_url('long_tag_archive')))
+pub fn ruby_github_latest_spec_l52_d8_returns(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(github_strategy.github_latest_matches_url(github_latest_spec_url('short_tag_archive')) && github_strategy.github_latest_matches_url(github_latest_spec_url('long_tag_archive')))
 }
 
 // Ruby it `it "returns true for a GitHub repository upload URL" do` at line 57.
-pub fn ruby_github_latest_spec_l57_d9_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(github_strategy.github_latest_matches_url(github_latest_spec_url('repository_upload')))
+pub fn ruby_github_latest_spec_l57_d9_returns(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(github_strategy.github_latest_matches_url(github_latest_spec_url('repository_upload')))
 }
 
 // Ruby it `it "returns false for a non-GitHub URL" do` at line 61.
-pub fn ruby_github_latest_spec_l61_d10_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(!github_strategy.github_latest_matches_url('https://brew.sh/test'))
+pub fn ruby_github_latest_spec_l61_d10_returns(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(!github_strategy.github_latest_matches_url('https://brew.sh/test'))
 }
 
 // Ruby it `it "returns a hash containing a url and regex for a GitHub release artifact URL" do` at line 67.
-pub fn ruby_github_latest_spec_l67_d11_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_github_latest_spec_l67_d11_returns(args ...ruby.Value) ruby.Value {
 	actual := github_strategy.github_latest_generate_input_values(github_latest_spec_url('release_asset'))
-	return brew_runtime.bool_value(github_latest_spec_generated_equal(actual, 'abc', 'def'))
+	return ruby.bool_value(github_latest_spec_generated_equal(actual, 'abc', 'def'))
 }
 
 // Ruby it `it "returns a hash containing a url and regex for a GitHub tag archive URL" do` at line 71.
-pub fn ruby_github_latest_spec_l71_d12_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_github_latest_spec_l71_d12_returns(args ...ruby.Value) ruby.Value {
 	short := github_strategy.github_latest_generate_input_values(github_latest_spec_url('short_tag_archive'))
 	long := github_strategy.github_latest_generate_input_values(github_latest_spec_url('long_tag_archive'))
-	return brew_runtime.bool_value(github_latest_spec_generated_equal(short, 'abc', 'def') && github_latest_spec_generated_equal(long, 'abc', 'def'))
+	return ruby.bool_value(github_latest_spec_generated_equal(short, 'abc', 'def') && github_latest_spec_generated_equal(long, 'abc', 'def'))
 }
 
 // Ruby it `it "returns a hash containing a url and regex for a GitHub repository upload URL" do` at line 76.
-pub fn ruby_github_latest_spec_l76_d13_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_github_latest_spec_l76_d13_returns(args ...ruby.Value) ruby.Value {
 	actual := github_strategy.github_latest_generate_input_values(github_latest_spec_url('repository_upload'))
-	return brew_runtime.bool_value(github_latest_spec_generated_equal(actual, 'abc', 'def'))
+	return ruby.bool_value(github_latest_spec_generated_equal(actual, 'abc', 'def'))
 }
 
 // Ruby it `it "returns an empty hash for a non-GitHub URL" do` at line 80.
-pub fn ruby_github_latest_spec_l80_d14_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(!github_strategy.github_latest_generate_input_values('https://brew.sh/test').present)
+pub fn ruby_github_latest_spec_l80_d14_returns(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(!github_strategy.github_latest_generate_input_values('https://brew.sh/test').present)
 }
 
 // Ruby let `let(:match_data) do` at line 86.
-pub fn ruby_github_latest_spec_l86_d15_match_data(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_github_latest_spec_l86_d15_match_data(args ...ruby.Value) ruby.Value {
 	base := {
-		'matches': brew_runtime.map_value({
-			'1.2.3': brew_runtime.object_value('Version', '1.2.3')
+		'matches': ruby.map_value({
+			'1.2.3': ruby.object_value('Version', '1.2.3')
 		})
-		'regex':   brew_runtime.object_value('Regexp', github_strategy.github_releases_default_pattern)
-		'url':     brew_runtime.string_value('https://api.github.com/repos/Homebrew/brew/releases/latest')
+		'regex':   ruby.object_value('Regexp', github_strategy.github_releases_default_pattern)
+		'url':     ruby.string_value('https://api.github.com/repos/Homebrew/brew/releases/latest')
 	}
 	mut fetched := base.clone()
-	fetched['content'] = brew_runtime.string_value(github_latest_spec_content())
+	fetched['content'] = ruby.string_value(github_latest_spec_content())
 	mut cached := base.clone()
-	cached['cached'] = brew_runtime.bool_value(true)
+	cached['cached'] = ruby.bool_value(true)
 	mut cached_default := base.clone()
-	cached_default['matches'] = brew_runtime.map_value({})
-	cached_default['cached'] = brew_runtime.bool_value(true)
-	return brew_runtime.map_value({
-		'fetched':        brew_runtime.map_value(fetched)
-		'cached':         brew_runtime.map_value(cached)
-		'cached_default': brew_runtime.map_value(cached_default)
+	cached_default['matches'] = ruby.map_value({})
+	cached_default['cached'] = ruby.bool_value(true)
+	return ruby.map_value({
+		'fetched':        ruby.map_value(fetched)
+		'cached':         ruby.map_value(cached)
+		'cached_default': ruby.map_value(cached_default)
 	})
 }
 
 // Ruby let `let(:brew_regex) { /^v?(\d+(?:\.\d+)+)$/i }` at line 100.
-pub fn ruby_github_latest_spec_l100_d16_brew_regex(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Regexp', r'^v?(\d+(?:\.\d+)+)$')
+pub fn ruby_github_latest_spec_l100_d16_brew_regex(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Regexp', r'^v?(\d+(?:\.\d+)+)$')
 }
 
 // Ruby it `it "finds versions in fetched content" do` at line 102.
-pub fn ruby_github_latest_spec_l102_d17_finds(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_github_latest_spec_l102_d17_finds(args ...ruby.Value) ruby.Value {
 	actual := github_strategy.github_latest_find_versions(github_strategy.GithubLatestFindRequest{
 		url: github_latest_spec_url('brew_tag_archive')
-	}, github_latest_spec_fetch) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(actual.matches == {
+	}, github_latest_spec_fetch) or { return ruby.bool_value(false) }
+	return ruby.bool_value(actual.matches == {
 		'1.2.3': '1.2.3'
 	} && actual.url == 'https://api.github.com/repos/Homebrew/brew/releases/latest' && actual.has_content && actual.content == github_latest_spec_content() && !actual.has_cached)
 }
 
 // Ruby it `it "finds versions in provided content" do` at line 109.
-pub fn ruby_github_latest_spec_l109_d18_finds(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_github_latest_spec_l109_d18_finds(args ...ruby.Value) ruby.Value {
 	cached := github_strategy.github_latest_find_versions(github_strategy.GithubLatestFindRequest{
 		url: github_latest_spec_url('brew_tag_archive')
 		content: github_latest_spec_content()
-	}, github_latest_spec_empty_fetch) or { return brew_runtime.bool_value(false) }
+	}, github_latest_spec_empty_fetch) or { return ruby.bool_value(false) }
 	with_block := github_strategy.github_latest_find_versions(github_strategy.GithubLatestFindRequest{
 		url: github_latest_spec_url('brew_tag_archive')
 		regex: github_strategy.GithubReleasesRegex{
@@ -189,8 +189,8 @@ pub fn ruby_github_latest_spec_l109_d18_finds(args ...brew_runtime.Value) brew_r
 		content: github_latest_spec_content()
 		has_block: true
 		block: github_latest_spec_block
-	}, github_latest_spec_empty_fetch) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(cached.matches == {
+	}, github_latest_spec_empty_fetch) or { return ruby.bool_value(false) }
+	return ruby.bool_value(cached.matches == {
 		'1.2.3': '1.2.3'
 	} && cached.has_cached && cached.cached && !cached.has_content && with_block.matches == {
 		'1.2.3': '1.2.3'
@@ -198,18 +198,18 @@ pub fn ruby_github_latest_spec_l109_d18_finds(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby it `it "returns default match_data when url is blank" do` at line 129.
-pub fn ruby_github_latest_spec_l129_d19_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	actual := github_strategy.github_latest_find_versions(github_strategy.GithubLatestFindRequest{}, github_latest_spec_empty_fetch) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(actual.matches.len == 0 && actual.url == '' && actual.regex.pattern == github_strategy.github_releases_default_pattern && !actual.has_cached && !actual.has_content)
+pub fn ruby_github_latest_spec_l129_d19_returns(args ...ruby.Value) ruby.Value {
+	actual := github_strategy.github_latest_find_versions(github_strategy.GithubLatestFindRequest{}, github_latest_spec_empty_fetch) or { return ruby.bool_value(false) }
+	return ruby.bool_value(actual.matches.len == 0 && actual.url == '' && actual.regex.pattern == github_strategy.github_releases_default_pattern && !actual.has_cached && !actual.has_content)
 }
 
 // Ruby it `it "returns default match_data when content is blank" do` at line 134.
-pub fn ruby_github_latest_spec_l134_d20_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_github_latest_spec_l134_d20_returns(args ...ruby.Value) ruby.Value {
 	actual := github_strategy.github_latest_find_versions(github_strategy.GithubLatestFindRequest{
 		url: github_latest_spec_url('brew_tag_archive')
 		content: ''
-	}, github_latest_spec_empty_fetch) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(actual.matches.len == 0 && actual.has_cached && actual.cached && actual.url == 'https://api.github.com/repos/Homebrew/brew/releases/latest' && !actual.has_content)
+	}, github_latest_spec_empty_fetch) or { return ruby.bool_value(false) }
+	return ruby.bool_value(actual.matches.len == 0 && actual.has_cached && actual.cached && actual.url == 'https://api.github.com/repos/Homebrew/brew/releases/latest' && !actual.has_content)
 }
 
 // Original Ruby source (line-for-line):

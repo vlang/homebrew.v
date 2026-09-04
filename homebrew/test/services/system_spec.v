@@ -1,6 +1,6 @@
 module services
 
-import brew_runtime
+import ruby
 import homebrew.services as services_core
 import os
 import time
@@ -20,8 +20,8 @@ fn system_spec_executable(directory string, name string) !string {
 	return path
 }
 
-fn system_spec_bool(value bool) brew_runtime.Value {
-	return brew_runtime.bool_value(value)
+fn system_spec_bool(value bool) ruby.Value {
+	return ruby.bool_value(value)
 }
 
 fn system_spec_launchctl_runner(command []string, _ bool) services_core.LaunchctlRunResult {
@@ -35,16 +35,16 @@ fn system_spec_launchctl_runner(command []string, _ bool) services_core.Launchct
 }
 
 // Ruby let `let(:bindir) { mktmpdir }` at line 10.
-pub fn ruby_system_spec_l10_d1_bindir(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_system_spec_l10_d1_bindir(args ...ruby.Value) ruby.Value {
 	_ = args
 	path := system_spec_temporary_directory('bindir') or {
-		return brew_runtime.object_value('Error', err.msg())
+		return ruby.object_value('Error', err.msg())
 	}
-	return brew_runtime.object_value('Pathname', path)
+	return ruby.object_value('Pathname', path)
 }
 
 // Ruby it `it "returns the launchctl command location when available and nil when unavailable" do` at line 15.
-pub fn ruby_system_spec_l15_d2_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_system_spec_l15_d2_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	directory := system_spec_temporary_directory('launchctl-location') or { return system_spec_bool(false) }
 	defer { os.rmdir_all(directory) or {} }
@@ -61,7 +61,7 @@ pub fn ruby_system_spec_l15_d2_returns(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby it `it "returns true when launchctl is available and false when unavailable" do` at line 37.
-pub fn ruby_system_spec_l37_d3_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_system_spec_l37_d3_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	directory := system_spec_temporary_directory('launchctl-present') or { return system_spec_bool(false) }
 	defer { os.rmdir_all(directory) or {} }
@@ -78,7 +78,7 @@ pub fn ruby_system_spec_l37_d3_returns(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby it `it "returns true when systemctl is available and false when unavailable" do` at line 59.
-pub fn ruby_system_spec_l59_d4_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_system_spec_l59_d4_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	directory := system_spec_temporary_directory('systemctl-present') or { return system_spec_bool(false) }
 	defer { os.rmdir_all(directory) or {} }
@@ -95,7 +95,7 @@ pub fn ruby_system_spec_l59_d4_returns(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby it `it "checks if the command is ran as root" do` at line 81.
-pub fn ruby_system_spec_l81_d5_checks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_system_spec_l81_d5_checks(args ...ruby.Value) ruby.Value {
 	_ = args
 	system := services_core.new_service_system(services_core.ServiceSystemConfig{
 		root_overridden: true
@@ -105,7 +105,7 @@ pub fn ruby_system_spec_l81_d5_checks(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby it `it "returns the current username" do` at line 87.
-pub fn ruby_system_spec_l87_d6_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_system_spec_l87_d6_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	expected := os.getenv('USER')
 	mut system := services_core.new_service_system(services_core.ServiceSystemConfig{
@@ -115,7 +115,7 @@ pub fn ruby_system_spec_l87_d6_returns(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby it `it "returns true when a specified user exists" do` at line 93.
-pub fn ruby_system_spec_l93_d7_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_system_spec_l93_d7_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	username := os.getenv('USER')
 	mut system := services_core.new_service_system(services_core.ServiceSystemConfig{
@@ -125,7 +125,7 @@ pub fn ruby_system_spec_l93_d7_returns(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby it `it "returns false when a specified user does not exist" do` at line 97.
-pub fn ruby_system_spec_l97_d8_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_system_spec_l97_d8_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut system := services_core.new_service_system(services_core.ServiceSystemConfig{
 		user: os.getenv('USER')
@@ -135,7 +135,7 @@ pub fn ruby_system_spec_l97_d8_returns(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby it `it "returns the current domain target" do` at line 103.
-pub fn ruby_system_spec_l103_d9_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_system_spec_l103_d9_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut system := services_core.new_service_system(services_core.ServiceSystemConfig{
 		root_overridden: true
@@ -148,7 +148,7 @@ pub fn ruby_system_spec_l103_d9_returns(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby it `it "returns the root domain target" do` at line 108.
-pub fn ruby_system_spec_l108_d10_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_system_spec_l108_d10_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut system := services_core.new_service_system(services_core.ServiceSystemConfig{
 		root_overridden: true
@@ -158,7 +158,7 @@ pub fn ruby_system_spec_l108_d10_returns(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby it `it "macOS - returns the boot path" do` at line 115.
-pub fn ruby_system_spec_l115_d11_macos(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_system_spec_l115_d11_macos(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut system := services_core.new_service_system(services_core.ServiceSystemConfig{
 		launchctl_overridden: true
@@ -168,7 +168,7 @@ pub fn ruby_system_spec_l115_d11_macos(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby it `it "SystemD - returns the boot path" do` at line 120.
-pub fn ruby_system_spec_l120_d12_systemd(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_system_spec_l120_d12_systemd(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut system := services_core.new_service_system(services_core.ServiceSystemConfig{
 		launchctl_overridden: true
@@ -179,7 +179,7 @@ pub fn ruby_system_spec_l120_d12_systemd(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby it `it "Unknown - raises an error" do` at line 125.
-pub fn ruby_system_spec_l125_d13_unknown(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_system_spec_l125_d13_unknown(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut system := services_core.new_service_system(services_core.ServiceSystemConfig{
 		launchctl_overridden: true
@@ -192,7 +192,7 @@ pub fn ruby_system_spec_l125_d13_unknown(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby it `it "macOS - returns the user path" do` at line 135.
-pub fn ruby_system_spec_l135_d14_macos(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_system_spec_l135_d14_macos(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut system := services_core.new_service_system(services_core.ServiceSystemConfig{
 		home: '/tmp_home'
@@ -204,7 +204,7 @@ pub fn ruby_system_spec_l135_d14_macos(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby it `it "systemD - returns the user path" do` at line 141.
-pub fn ruby_system_spec_l141_d15_systemd(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_system_spec_l141_d15_systemd(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut system := services_core.new_service_system(services_core.ServiceSystemConfig{
 		home: '/tmp_home'
@@ -216,7 +216,7 @@ pub fn ruby_system_spec_l141_d15_systemd(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby it `it "Unknown - raises an error" do` at line 147.
-pub fn ruby_system_spec_l147_d16_unknown(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_system_spec_l147_d16_unknown(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut system := services_core.new_service_system(services_core.ServiceSystemConfig{
 		home: '/tmp_home'
@@ -230,13 +230,13 @@ pub fn ruby_system_spec_l147_d16_unknown(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby let `let(:label) { "homebrew.mxcl.foo" }` at line 158.
-pub fn ruby_system_spec_l158_d17_label(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_system_spec_l158_d17_label(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('homebrew.mxcl.foo')
+	return ruby.string_value('homebrew.mxcl.foo')
 }
 
 // Ruby it `it "returns failure when launchctl is not available" do` at line 160.
-pub fn ruby_system_spec_l160_d18_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_system_spec_l160_d18_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut system := services_core.new_service_system(services_core.ServiceSystemConfig{
 		launchctl_overridden: true
@@ -246,13 +246,13 @@ pub fn ruby_system_spec_l160_d18_returns(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby let `let(:label) { "homebrew.mxcl.foo" }` at line 169.
-pub fn ruby_system_spec_l169_d19_label(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_system_spec_l169_d19_label(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('homebrew.mxcl.foo')
+	return ruby.string_value('homebrew.mxcl.foo')
 }
 
 // Ruby it `it "delegates to launchctl_find_service" do` at line 171.
-pub fn ruby_system_spec_l171_d20_delegates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_system_spec_l171_d20_delegates(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut system := services_core.new_service_system(services_core.ServiceSystemConfig{
 		launchctl_overridden: true
@@ -264,7 +264,7 @@ pub fn ruby_system_spec_l171_d20_delegates(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby it `it "macOS - user - returns the current relevant path" do` at line 179.
-pub fn ruby_system_spec_l179_d21_macos(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_system_spec_l179_d21_macos(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut system := services_core.new_service_system(services_core.ServiceSystemConfig{
 		home: '/tmp_home'
@@ -278,7 +278,7 @@ pub fn ruby_system_spec_l179_d21_macos(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby it `it "macOS - root- returns the current relevant path" do` at line 185.
-pub fn ruby_system_spec_l185_d22_macos(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_system_spec_l185_d22_macos(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut system := services_core.new_service_system(services_core.ServiceSystemConfig{
 		home: '/tmp_home'
@@ -292,7 +292,7 @@ pub fn ruby_system_spec_l185_d22_macos(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby it `it "systemD - user - returns the current relevant path" do` at line 191.
-pub fn ruby_system_spec_l191_d23_systemd(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_system_spec_l191_d23_systemd(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut system := services_core.new_service_system(services_core.ServiceSystemConfig{
 		home: '/tmp_home'
@@ -306,7 +306,7 @@ pub fn ruby_system_spec_l191_d23_systemd(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby it `it "systemD - root- returns the current relevant path" do` at line 197.
-pub fn ruby_system_spec_l197_d24_systemd(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_system_spec_l197_d24_systemd(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut system := services_core.new_service_system(services_core.ServiceSystemConfig{
 		home: '/tmp_home'

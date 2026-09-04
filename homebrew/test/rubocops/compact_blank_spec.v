@@ -1,6 +1,6 @@
 module rubocops
 
-import brew_runtime
+import ruby
 import homebrew.rubocops as compact_blank_core
 
 // Translated from Homebrew/brew `test/rubocops/compact_blank_spec.rb`.
@@ -74,12 +74,12 @@ pub fn ruby_compact_blank_spec_l102_d11_does() bool {
 }
 
 // Ruby method `foo(arg)` at line 104.
-pub fn ruby_compact_blank_spec_l104_d12_foo(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_compact_blank_spec_l104_d12_foo(args ...ruby.Value) ruby.Value {
 	arg_is_blank := args.len == 0 || args[0].type_name == 'NilClass' || (args[0].type_name == 'Bool' && !(args[0].as_bool() or { false })) || (args[0].type_name == 'String' && args[0].as_string().trim_space() == '')
 	if arg_is_blank {
-		return brew_runtime.array_value([]brew_runtime.Value{})
+		return ruby.array_value([]ruby.Value{})
 	}
-	return if args.len > 1 { args[1] } else { brew_runtime.array_value([]brew_runtime.Value{}) }
+	return if args.len > 1 { args[1] } else { ruby.array_value([]ruby.Value{}) }
 }
 
 // Ruby it `it "does not register an offense when using `reject { |e| e.empty? }`" do` at line 110.

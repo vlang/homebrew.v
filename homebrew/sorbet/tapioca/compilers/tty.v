@@ -1,6 +1,6 @@
 module compilers
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `sorbet/tapioca/compilers/tty.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -21,13 +21,13 @@ pub fn tty_compiler_decoration(constant_name string) TapiocaDecoration {
 }
 
 // Ruby method `self.gather_constants = [::Tty]` at line 13.
-pub fn ruby_tty_l13_d1_self_gather_constants(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tty_l13_d1_self_gather_constants(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.array_value([brew_runtime.object_value('Module', 'Tty')])
+	return ruby.array_value([ruby.object_value('Module', 'Tty')])
 }
 
 // Ruby method `decorate` at line 16.
-pub fn ruby_tty_l16_d2_decorate(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tty_l16_d2_decorate(args ...ruby.Value) ruby.Value {
 	constant_name := if args.len > 0 { args[0].as_string() } else { 'Tty' }
 	return tapioca_decoration_value(tty_compiler_decoration(constant_name))
 }

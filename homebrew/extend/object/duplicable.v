@@ -1,18 +1,18 @@
 module object
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `extend/object/duplicable.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `duplicable? = true` at line 30.
-pub fn ruby_duplicable_l30_d1_duplicable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(true)
+pub fn ruby_duplicable_l30_d1_duplicable(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(true)
 }
 
 // is_duplicable reports the default Object#duplicable? result. Callers carrying
 // reflection objects use one of the non-duplicable type names below.
-pub fn is_duplicable(value brew_runtime.Value) bool {
+pub fn is_duplicable(value ruby.Value) bool {
 	return value.type_name !in ['Method', 'UnboundMethod', 'Singleton']
 }
 

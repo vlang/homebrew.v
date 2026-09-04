@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 import homebrew.extend
 
 // Translated from Homebrew/brew `cmd/docs.rb`.
@@ -12,7 +12,7 @@ pub fn docs_browser_plan(browser string, display string, dbus_session_address st
 }
 
 // Ruby method `run` at line 16.
-pub fn ruby_docs_l16_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_docs_l16_d1_run(args ...ruby.Value) ruby.Value {
 	browser := if args.len > 0 { args[0].as_string() } else { '' }
 	display := if args.len > 1 { args[1].as_string() } else { '' }
 	dbus := if args.len > 2 { args[2].as_string() } else { '' }
@@ -20,7 +20,7 @@ pub fn ruby_docs_l16_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
 	dbus_setting := plan.command.environment['DBUS_SESSION_BUS_ADDRESS'] or {
 		extend.EnvironmentValue{ unset: true }
 	}
-	return brew_runtime.structured_value('BrowserPlan', plan.command.program, {
+	return ruby.structured_value('BrowserPlan', plan.command.program, {
 		'available':            plan.available.str()
 		'program':              plan.command.program
 		'arguments':            plan.command.arguments.join('\n')

@@ -1,6 +1,6 @@
 module extend
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `rubocops/extend/mutable_constant_exclude_unfreezable.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -72,8 +72,8 @@ pub fn mutable_constant_assignment(source string) MutableConstantAssignmentResul
 	}
 }
 
-fn mutable_constant_result_value(result MutableConstantAssignmentResult) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cop::Style::MutableConstant::AssignmentResult', result.value, {
+fn mutable_constant_result_value(result MutableConstantAssignmentResult) ruby.Value {
+	return ruby.structured_value('RuboCop::Cop::Style::MutableConstant::AssignmentResult', result.value, {
 		'original':  result.original
 		'value':     result.value
 		'delegated': result.delegated.str()
@@ -82,9 +82,9 @@ fn mutable_constant_result_value(result MutableConstantAssignmentResult) brew_ru
 }
 
 // Ruby method `prepended(base)` at line 13.
-pub fn ruby_mutable_constant_exclude_unfreezable_l13_d1_prepended(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mutable_constant_exclude_unfreezable_l13_d1_prepended(args ...ruby.Value) ruby.Value {
 	base := if args.len > 0 { args[0].as_string() } else { 'RuboCop::AST::NodePattern::Macros' }
-	return brew_runtime.structured_value('RuboCop::AST::NodePattern::Macros', base, {
+	return ruby.structured_value('RuboCop::AST::NodePattern::Macros', base, {
 		'base':          base
 		'matchers':      mutable_constant_exclude_matchers.join(',')
 		't_let':         '(send (const nil? :T) :let \$_constant _type)'
@@ -94,7 +94,7 @@ pub fn ruby_mutable_constant_exclude_unfreezable_l13_d1_prepended(args ...brew_r
 }
 
 // Ruby method `on_assignment(value)` at line 29.
-pub fn ruby_mutable_constant_exclude_unfreezable_l29_d2_on_assignment(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mutable_constant_exclude_unfreezable_l29_d2_on_assignment(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	return mutable_constant_result_value(mutable_constant_assignment(source))
 }

@@ -1,6 +1,6 @@
 module env
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `extend/ENV/sensitive.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -12,7 +12,7 @@ pub mut:
 	values map[string]string
 }
 
-pub type SensitiveEnvironmentAction = fn(mut SensitiveEnvironmentView) !brew_runtime.Value
+pub type SensitiveEnvironmentAction = fn(mut SensitiveEnvironmentView) !ruby.Value
 
 pub fn environment_key_sensitive(key string) bool {
 	lower := key.to_lower()
@@ -44,7 +44,7 @@ pub fn clear_sensitive_environment(mut values map[string]string, except []string
 }
 
 pub fn with_cleared_sensitive_environment(mut values map[string]string, except []string,
-	defer_values bool, action SensitiveEnvironmentAction) !brew_runtime.Value {
+	defer_values bool, action SensitiveEnvironmentAction) !ruby.Value {
 	original := values.clone()
 	defer {
 		values.clear()
@@ -102,7 +102,7 @@ pub fn ruby_sensitive_l37_d3_clear_sensitive_environment(mut values map[string]s
 
 // Ruby method `clear_sensitive_environment_for_eval!(&block)` at line 62.
 pub fn ruby_sensitive_l62_d4_clear_sensitive_environment_for_eval(mut values map[string]string,
-	action SensitiveEnvironmentAction) !brew_runtime.Value {
+	action SensitiveEnvironmentAction) !ruby.Value {
 	return with_cleared_sensitive_environment(mut values, ['HOMEBREW_GITHUB_API_TOKEN'], true, action)!
 }
 

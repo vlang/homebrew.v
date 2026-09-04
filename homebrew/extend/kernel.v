@@ -1,6 +1,6 @@
 module extend
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `extend/kernel.rb`.
@@ -60,7 +60,7 @@ pub:
 	request       ExecutableInstallRequest
 }
 
-pub type KernelAction = fn() !brew_runtime.Value
+pub type KernelAction = fn() !ruby.Value
 
 pub type KernelCommandDelegate = fn(KernelCommandPlan) !bool
 
@@ -100,7 +100,7 @@ fn apply_environment_setting(name string, setting EnvironmentValue) {
 	}
 }
 
-pub fn with_environment(changes map[string]EnvironmentValue, action KernelAction) !brew_runtime.Value {
+pub fn with_environment(changes map[string]EnvironmentValue, action KernelAction) !ruby.Value {
 	mut old_values := map[string]EnvironmentValue{}
 	for name, setting in changes {
 		old_values[name] = current_environment_setting(name)
@@ -114,16 +114,16 @@ pub fn with_environment(changes map[string]EnvironmentValue, action KernelAction
 	return action()
 }
 
-pub fn with_homebrew_path(original_paths string, action KernelAction) !brew_runtime.Value {
+pub fn with_homebrew_path(original_paths string, action KernelAction) !ruby.Value {
 	return with_environment({
 		'PATH': environment_setting(original_paths)
 	}, action)
 }
 
 fn default_command_delegate(plan KernelCommandPlan) !bool {
-	result := with_environment(plan.environment, fn [plan] () !brew_runtime.Value {
-		command := brew_runtime.run_command(plan.program, plan.arguments)
-		return brew_runtime.bool_value(command.exit_code == 0)
+	result := with_environment(plan.environment, fn [plan] () !ruby.Value {
+		command := ruby.run_command(plan.program, plan.arguments)
+		return ruby.bool_value(command.exit_code == 0)
 	})!
 	return result.as_bool()!
 }
@@ -144,23 +144,23 @@ pub fn quiet_system(plan KernelCommandPlan, delegate KernelCommandDelegate) !boo
 }
 
 pub fn executable_on_path(path string) bool {
-	return brew_runtime.is_file(path) && os.is_executable(path)
+	return ruby.is_file(path) && os.is_executable(path)
 }
 
 fn expanded_path_element(element string) ?string {
 	if element == '' {
-		return brew_runtime.current_directory()
+		return ruby.current_directory()
 	}
 	if element == '~' {
-		return brew_runtime.environment_value('HOME')
+		return ruby.environment_value('HOME')
 	}
 	if element.starts_with('~/') {
-		return brew_runtime.join_path(brew_runtime.environment_value('HOME'), element[2..])
+		return ruby.join_path(ruby.environment_value('HOME'), element[2..])
 	}
 	if element.starts_with('~') {
 		return none
 	}
-	return if element.starts_with('/') { element } else { brew_runtime.real_path(element) }
+	return if element.starts_with('/') { element } else { ruby.real_path(element) }
 }
 
 pub fn which(command string, path string) ?string {
@@ -169,7 +169,7 @@ pub fn which(command string, path string) ?string {
 		candidate := if command.starts_with('/') {
 			command
 		} else {
-			brew_runtime.join_path(base, command)
+			ruby.join_path(base, command)
 		}
 		if executable_on_path(candidate) {
 			return candidate
@@ -180,7 +180,7 @@ pub fn which(command string, path string) ?string {
 
 fn configured_editor() string {
 	for name in ['HOMEBREW_EDITOR', 'EDITOR', 'VISUAL'] {
-		value := brew_runtime.environment_value(name)
+		value := ruby.environment_value(name)
 		if value != '' {
 			return value
 		}
@@ -189,8 +189,8 @@ fn configured_editor() string {
 }
 
 fn original_paths() string {
-	configured := brew_runtime.environment_value('HOMEBREW_PATH')
-	return if configured != '' { configured } else { brew_runtime.environment_value('PATH') }
+	configured := ruby.environment_value('HOMEBREW_PATH')
+	return if configured != '' { configured } else { ruby.environment_value('PATH') }
 }
 
 pub fn choose_editor(configured string, path string, silent bool) EditorChoice {
@@ -295,7 +295,7 @@ pub fn execute_editor(filenames []string, delegate KernelCommandDelegate) !Edito
 
 fn default_browser() string {
 	for name in ['HOMEBREW_BROWSER', 'BROWSER'] {
-		value := brew_runtime.environment_value(name)
+		value := ruby.environment_value(name)
 		if value != '' {
 			return value
 		}
@@ -303,7 +303,7 @@ fn default_browser() string {
 	$if macos {
 		return 'open'
 	} $else {
-		if _ := which('xdg-open', brew_runtime.environment_value('PATH')) {
+		if _ := which('xdg-open', ruby.environment_value('PATH')) {
 			return 'xdg-open'
 		}
 	}
@@ -333,7 +333,7 @@ pub fn browser_plan(browser string, arguments []string, display string,
 }
 
 pub fn execute_browser(arguments []string, delegate KernelCommandDelegate) !BrowserPlan {
-	plan := browser_plan(default_browser(), arguments, brew_runtime.environment_value('HOMEBREW_DISPLAY'), brew_runtime.environment_value('HOMEBREW_DBUS_SESSION_BUS_ADDRESS'))
+	plan := browser_plan(default_browser(), arguments, ruby.environment_value('HOMEBREW_DISPLAY'), ruby.environment_value('HOMEBREW_DBUS_SESSION_BUS_ADDRESS'))
 	if !plan.available {
 		return plan
 	}
@@ -348,13 +348,13 @@ pub fn run_interactive_shell(formula_prefix string, formula_name string, shell s
 		os.setenv('HOMEBREW_DEBUG_PREFIX', formula_prefix, true)
 		os.setenv('HOMEBREW_DEBUG_INSTALL', formula_name, true)
 	}
-	home := brew_runtime.environment_value('HOME')
-	temporary := brew_runtime.environment_value('HOMEBREW_TEMP')
-	if shell.ends_with('/zsh') && temporary != '' && home.starts_with(brew_runtime.real_path(temporary)) {
-		brew_runtime.make_dir_all(home)!
-		zshrc := brew_runtime.join_path(home, '.zshrc')
-		if !brew_runtime.path_exists(zshrc) {
-			brew_runtime.write_file(zshrc, '')!
+	home := ruby.environment_value('HOME')
+	temporary := ruby.environment_value('HOMEBREW_TEMP')
+	if shell.ends_with('/zsh') && temporary != '' && home.starts_with(ruby.real_path(temporary)) {
+		ruby.make_dir_all(home)!
+		zshrc := ruby.join_path(home, '.zshrc')
+		if !ruby.path_exists(zshrc) {
+			ruby.write_file(zshrc, '')!
 		}
 	}
 	term := if configured := os.getenv_opt('HOMEBREW_TERM') {
@@ -366,8 +366,8 @@ pub fn run_interactive_shell(formula_prefix string, formula_name string, shell s
 	}
 	result := with_environment({
 		'TERM': if term == '' { unset_environment_setting() } else { environment_setting(term) }
-	}, fn [shell, delegate] () !brew_runtime.Value {
-		return brew_runtime.bool_value(delegate(KernelCommandPlan{
+	}, fn [shell, delegate] () !ruby.Value {
+		return ruby.bool_value(delegate(KernelCommandPlan{
 			program: shell
 		})!)
 	})!
@@ -376,7 +376,7 @@ pub fn run_interactive_shell(formula_prefix string, formula_name string, shell s
 	}
 }
 
-pub fn ignore_interrupts(action KernelAction) !brew_runtime.Value {
+pub fn ignore_interrupts(action KernelAction) !ruby.Value {
 	// V cannot close over state in a signal handler. The typed boundary still
 	// guarantees that the action's success or error is returned unchanged.
 	return action()
@@ -388,7 +388,7 @@ pub fn redirect_plan(target string) RedirectPlan {
 	}
 }
 
-pub fn redirect_stdout(target string, action KernelAction) !brew_runtime.Value {
+pub fn redirect_stdout(target string, action KernelAction) !ruby.Value {
 	mut file := os.open_file(target, 'w')!
 	saved_stdout := os.fd_dup(1)
 	if saved_stdout < 0 {
@@ -420,10 +420,10 @@ pub fn executable_resolution(name string, formula_name string, current_path stri
 	if executable := which(name, original_path) {
 		candidates << executable
 	}
-	candidates << brew_runtime.join_path(prefix, 'opt/${resolved_formula}/bin/${name}')
-	candidates << brew_runtime.join_path(prefix, 'bin/${name}')
+	candidates << ruby.join_path(prefix, 'opt/${resolved_formula}/bin/${name}')
+	candidates << ruby.join_path(prefix, 'bin/${name}')
 	for candidate in candidates {
-		if brew_runtime.path_exists(candidate) {
+		if ruby.path_exists(candidate) {
 			return ExecutableResolution{
 				path: candidate
 			}
@@ -450,7 +450,7 @@ pub fn ensure_executable(name string, formula_name string, current_path string,
 	return installer(resolution.request)
 }
 
-fn command_plan_from_values(args []brew_runtime.Value) KernelCommandPlan {
+fn command_plan_from_values(args []ruby.Value) KernelCommandPlan {
 	if args.len == 0 {
 		return KernelCommandPlan{}
 	}
@@ -471,7 +471,7 @@ fn command_plan_from_values(args []brew_runtime.Value) KernelCommandPlan {
 	}
 }
 
-fn environment_changes_from_value(value brew_runtime.Value) map[string]EnvironmentValue {
+fn environment_changes_from_value(value ruby.Value) map[string]EnvironmentValue {
 	mut changes := map[string]EnvironmentValue{}
 	for name, setting in value.map_data {
 		changes[name] = if setting.type_name in ['Nil', 'NilClass'] {
@@ -483,107 +483,107 @@ fn environment_changes_from_value(value brew_runtime.Value) map[string]Environme
 	return changes
 }
 
-fn nil_kernel_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn nil_kernel_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `superenv?(env)` at line 11.
-pub fn ruby_kernel_l11_d1_superenv(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_kernel_l11_d1_superenv(args ...ruby.Value) ruby.Value {
 	env := if args.len > 0 { args[0].as_string() } else { '' }
 	bin := if args.len > 1 {
 		args[1].as_string()
 	} else {
-		brew_runtime.environment_value('HOMEBREW_SUPERENV_BIN')
+		ruby.environment_value('HOMEBREW_SUPERENV_BIN')
 	}
-	return brew_runtime.bool_value(is_superenv(env, bin))
+	return ruby.bool_value(is_superenv(env, bin))
 }
 
 // Ruby method `interactive_shell(formula = nil)` at line 19.
-pub fn ruby_kernel_l19_d2_interactive_shell(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_kernel_l19_d2_interactive_shell(args ...ruby.Value) ruby.Value {
 	mut prefix := ''
 	mut full_name := ''
 	if args.len > 0 && args[0].type_name !in ['Nil', 'NilClass'] {
 		prefix = args[0].attribute('prefix') or { '' }
 		full_name = args[0].attribute('full_name') or { args[0].as_string() }
 	}
-	shell := brew_runtime.environment_value('SHELL')
+	shell := ruby.environment_value('SHELL')
 	run_interactive_shell(prefix, full_name, if shell != '' { shell } else { '/bin/bash' }, default_command_delegate) or { panic(err) }
 	return nil_kernel_value()
 }
 
 // Ruby method `with_homebrew_path(&block)` at line 42.
-pub fn ruby_kernel_l42_d3_with_homebrew_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_kernel_l42_d3_with_homebrew_path(args ...ruby.Value) ruby.Value {
 	result := if args.len > 0 { args[args.len - 1] } else { nil_kernel_value() }
-	return with_homebrew_path(original_paths(), fn [result] () !brew_runtime.Value {
+	return with_homebrew_path(original_paths(), fn [result] () !ruby.Value {
 		return result
 	}) or { panic(err) }
 }
 
 // Ruby method `safe_system(cmd, argv0 = nil, *args, **options)` at line 55.
-pub fn ruby_kernel_l55_d4_safe_system(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_kernel_l55_d4_safe_system(args ...ruby.Value) ruby.Value {
 	safe_system(command_plan_from_values(args), default_command_delegate) or { panic(err) }
 	return nil_kernel_value()
 }
 
 // Ruby method `quiet_system(cmd, argv0 = nil, *args)` at line 72.
-pub fn ruby_kernel_l72_d5_quiet_system(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(quiet_system(command_plan_from_values(args), default_command_delegate) or { false })
+pub fn ruby_kernel_l72_d5_quiet_system(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(quiet_system(command_plan_from_values(args), default_command_delegate) or { false })
 }
 
 // Ruby method `which(cmd, path = ENV.fetch("PATH"))` at line 84.
-pub fn ruby_kernel_l84_d6_which(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_kernel_l84_d6_which(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return nil_kernel_value()
 	}
-	path := if args.len > 1 { args[1].as_string() } else { brew_runtime.environment_value('PATH') }
+	path := if args.len > 1 { args[1].as_string() } else { ruby.environment_value('PATH') }
 	return if executable := which(args[0].as_string(), path) {
-		brew_runtime.object_value('Pathname', executable)
+		ruby.object_value('Pathname', executable)
 	} else {
 		nil_kernel_value()
 	}
 }
 
 // Ruby method `which_editor(silent: false)` at line 99.
-pub fn ruby_kernel_l99_d7_which_editor(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_kernel_l99_d7_which_editor(args ...ruby.Value) ruby.Value {
 	silent := if args.len > 0 { args[0].as_bool() or { false } } else { false }
-	return brew_runtime.structured_value('String', which_editor(silent).command, {
+	return ruby.structured_value('String', which_editor(silent).command, {
 		'warning': which_editor(silent).warning
 	})
 }
 
 // Ruby method `exec_editor(*filenames)` at line 121.
-pub fn ruby_kernel_l121_d8_exec_editor(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_kernel_l121_d8_exec_editor(args ...ruby.Value) ruby.Value {
 	execute_editor(args.map(it.as_string()), default_command_delegate) or { panic(err) }
 	return nil_kernel_value()
 }
 
 // Ruby method `exec_browser(*args)` at line 127.
-pub fn ruby_kernel_l127_d9_exec_browser(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_kernel_l127_d9_exec_browser(args ...ruby.Value) ruby.Value {
 	execute_browser(args.map(it.as_string()), default_command_delegate) or { panic(err) }
 	return nil_kernel_value()
 }
 
 // Ruby method `ignore_interrupts(&_block)` at line 142.
-pub fn ruby_kernel_l142_d10_ignore_interrupts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_kernel_l142_d10_ignore_interrupts(args ...ruby.Value) ruby.Value {
 	result := if args.len > 0 { args[args.len - 1] } else { nil_kernel_value() }
-	return ignore_interrupts(fn [result] () !brew_runtime.Value {
+	return ignore_interrupts(fn [result] () !ruby.Value {
 		return result
 	}) or { panic(err) }
 }
 
 // Ruby method `redirect_stdout(file, &_block)` at line 167.
-pub fn ruby_kernel_l167_d11_redirect_stdout(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_kernel_l167_d11_redirect_stdout(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('redirect_stdout requires a file')
 	}
 	result := if args.len > 1 { args[args.len - 1] } else { nil_kernel_value() }
-	return redirect_stdout(args[0].as_string(), fn [result] () !brew_runtime.Value {
+	return redirect_stdout(args[0].as_string(), fn [result] () !ruby.Value {
 		return result
 	}) or { panic(err) }
 }
 
 // Ruby method `ensure_executable!(name, formula_name = nil, reason: "", latest: false)` at line 178.
-pub fn ruby_kernel_l178_d12_ensure_executable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_kernel_l178_d12_ensure_executable(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('ensure_executable! requires a name')
 	}
@@ -600,14 +600,14 @@ pub fn ruby_kernel_l178_d12_ensure_executable(args ...brew_runtime.Value) brew_r
 	} else {
 		'/opt/homebrew'
 	}
-	resolution := executable_resolution(name, formula_name, brew_runtime.environment_value('PATH'), original_paths(), prefix, reason, latest)
+	resolution := executable_resolution(name, formula_name, ruby.environment_value('PATH'), original_paths(), prefix, reason, latest)
 	if !resolution.needs_install {
-		return brew_runtime.object_value('Pathname', resolution.path)
+		return ruby.object_value('Pathname', resolution.path)
 	}
 	if args.len > 4 {
-		return brew_runtime.object_value('Pathname', args[4].as_string())
+		return ruby.object_value('Pathname', args[4].as_string())
 	}
-	return brew_runtime.structured_value('ExecutableInstallRequest', formula_name, {
+	return ruby.structured_value('ExecutableInstallRequest', formula_name, {
 		'name':         name
 		'formula_name': formula_name
 		'reason':       reason
@@ -616,12 +616,12 @@ pub fn ruby_kernel_l178_d12_ensure_executable(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby method `with_env(hash, &_block)` at line 218.
-pub fn ruby_kernel_l218_d13_with_env(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_kernel_l218_d13_with_env(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('with_env requires a hash')
 	}
 	result := if args.len > 1 { args[args.len - 1] } else { nil_kernel_value() }
-	return with_environment(environment_changes_from_value(args[0]), fn [result] () !brew_runtime.Value {
+	return with_environment(environment_changes_from_value(args[0]), fn [result] () !ruby.Value {
 		return result
 	}) or { panic(err) }
 }

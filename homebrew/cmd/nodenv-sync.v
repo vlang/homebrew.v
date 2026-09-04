@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `cmd/nodenv-sync.rb`.
@@ -86,57 +86,57 @@ pub fn sync_nodenv_versions(nodenv_root string, installed []InstalledNodeVersion
 	return result
 }
 
-pub fn installed_node_version_value(version InstalledNodeVersion) brew_runtime.Value {
-	return brew_runtime.structured_value('InstalledNodeVersion', version.path, {
+pub fn installed_node_version_value(version InstalledNodeVersion) ruby.Value {
+	return ruby.structured_value('InstalledNodeVersion', version.path, {
 		'path':    version.path
 		'version': version.version
 	})
 }
 
-fn installed_node_version_from_value(value brew_runtime.Value) InstalledNodeVersion {
+fn installed_node_version_from_value(value ruby.Value) InstalledNodeVersion {
 	return InstalledNodeVersion{
 		path: value.attribute('path') or { value.as_string() }
 		version: value.attribute('version') or { '' }
 	}
 }
 
-fn nodenv_sync_result_value(result NodenvSyncResult) brew_runtime.Value {
-	return brew_runtime.Value{
+fn nodenv_sync_result_value(result NodenvSyncResult) ruby.Value {
+	return ruby.Value{
 		type_name: 'NodenvSyncResult'
 		repr: result.created.str()
 		attributes: {
 			'skipped_busy': result.skipped_busy.str()
 		}
 		map_data: {
-			'created': brew_runtime.string_array_value(result.created)
-			'skipped': brew_runtime.string_array_value(result.skipped)
-			'removed': brew_runtime.string_array_value(result.removed)
+			'created': ruby.string_array_value(result.created)
+			'skipped': ruby.string_array_value(result.skipped)
+			'removed': ruby.string_array_value(result.removed)
 		}
 	}
 }
 
 // Ruby method `run` at line 23.
-pub fn ruby_nodenv_sync_l23_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_nodenv_sync_l23_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'nodenv-sync requires the nodenv root')
+		return ruby.object_value('ArgumentError', 'nodenv-sync requires the nodenv root')
 	}
 	installed_values := if args.len > 1 {
-		args[1].as_array() or { []brew_runtime.Value{} }
+		args[1].as_array() or { []ruby.Value{} }
 	} else {
-		[]brew_runtime.Value{}
+		[]ruby.Value{}
 	}
 	strict := args.len > 2 && (args[2].as_bool() or { false })
-	result := sync_nodenv_versions(args[0].as_string(), installed_values.map(installed_node_version_from_value(it)), strict) or { return brew_runtime.object_value('RuntimeError', err.msg()) }
+	result := sync_nodenv_versions(args[0].as_string(), installed_values.map(installed_node_version_from_value(it)), strict) or { return ruby.object_value('RuntimeError', err.msg()) }
 	return nodenv_sync_result_value(result)
 }
 
 // Ruby method `link_nodenv_versions(path, nodenv_versions)` at line 51.
-pub fn ruby_nodenv_sync_l51_d2_link_nodenv_versions(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_nodenv_sync_l51_d2_link_nodenv_versions(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'link_nodenv_versions requires a Node version and versions path')
+		return ruby.object_value('ArgumentError', 'link_nodenv_versions requires a Node version and versions path')
 	}
 	strict := args.len > 2 && (args[2].as_bool() or { false })
-	result := link_nodenv_versions(installed_node_version_from_value(args[0]), args[1].as_string(), strict) or { return brew_runtime.object_value('RuntimeError', err.msg()) }
+	result := link_nodenv_versions(installed_node_version_from_value(args[0]), args[1].as_string(), strict) or { return ruby.object_value('RuntimeError', err.msg()) }
 	return nodenv_sync_result_value(result)
 }
 

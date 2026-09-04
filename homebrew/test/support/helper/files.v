@@ -1,6 +1,6 @@
 module helper
 
-import brew_runtime
+import ruby
 import os
 
 fn collect_test_paths(path string, mut paths []string) {
@@ -32,14 +32,14 @@ pub fn find_test_files(test_tmpdir string, test_directories []string) []string {
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `self.find_files` at line 7.
-pub fn ruby_files_l7_d1_self_find_files(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_files_l7_d1_self_find_files(args ...ruby.Value) ruby.Value {
 	test_tmpdir := if args.len > 0 {
 		args[0].as_string()
 	} else {
-		brew_runtime.environment_value('TEST_TMPDIR')
+		ruby.environment_value('TEST_TMPDIR')
 	}
 	test_directories := if args.len > 1 { args[1].string_array_data } else { []string{} }
-	return brew_runtime.string_array_value(find_test_files(test_tmpdir, test_directories))
+	return ruby.string_array_value(find_test_files(test_tmpdir, test_directories))
 }
 
 // Original Ruby source (line-for-line):

@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 import homebrew.livecheck as livecheck_options
 
 // Translated from Homebrew/brew `livecheck.rb`.
@@ -10,25 +10,25 @@ const livecheck_url_option_keys = ['compressed', 'cookies', 'header', 'homebrew_
 
 pub struct LivecheckDSL {
 pub mut:
-	package_or_resource brew_runtime.Value
+	package_or_resource ruby.Value
 	options             livecheck_options.LivecheckOptions
-	referenced_cask     brew_runtime.Value
-	referenced_formula  brew_runtime.Value
-	regex               brew_runtime.Value
+	referenced_cask     ruby.Value
+	referenced_formula  ruby.Value
+	regex               ruby.Value
 	skip                bool
-	skip_msg            brew_runtime.Value
-	strategy            brew_runtime.Value
-	strategy_block      brew_runtime.Value
-	throttle            brew_runtime.Value
-	throttle_days       brew_runtime.Value
-	url                 brew_runtime.Value
+	skip_msg            ruby.Value
+	strategy            ruby.Value
+	strategy_block      ruby.Value
+	throttle            ruby.Value
+	throttle_days       ruby.Value
+	url                 ruby.Value
 }
 
-fn livecheck_nil() brew_runtime.Value {
-	return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+fn livecheck_nil() ruby.Value {
+	return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 }
 
-pub fn new_livecheck_dsl(package_or_resource brew_runtime.Value) LivecheckDSL {
+pub fn new_livecheck_dsl(package_or_resource ruby.Value) LivecheckDSL {
 	return LivecheckDSL{
 		package_or_resource: package_or_resource
 		options: livecheck_options.new_livecheck_options({})
@@ -44,8 +44,8 @@ pub fn new_livecheck_dsl(package_or_resource brew_runtime.Value) LivecheckDSL {
 	}
 }
 
-pub fn livecheck_dsl_value(livecheck LivecheckDSL) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn livecheck_dsl_value(livecheck LivecheckDSL) ruby.Value {
+	return ruby.Value{
 		type_name: 'Livecheck'
 		repr: 'Livecheck'
 		map_data: {
@@ -54,7 +54,7 @@ pub fn livecheck_dsl_value(livecheck LivecheckDSL) brew_runtime.Value {
 			'cask':                livecheck.referenced_cask
 			'formula':             livecheck.referenced_formula
 			'regex':               livecheck.regex
-			'skip':                brew_runtime.bool_value(livecheck.skip)
+			'skip':                ruby.bool_value(livecheck.skip)
 			'skip_msg':            livecheck.skip_msg
 			'strategy':            livecheck.strategy
 			'strategy_block':      livecheck.strategy_block
@@ -65,7 +65,7 @@ pub fn livecheck_dsl_value(livecheck LivecheckDSL) brew_runtime.Value {
 	}
 }
 
-pub fn livecheck_dsl_from_value(value brew_runtime.Value) !LivecheckDSL {
+pub fn livecheck_dsl_from_value(value ruby.Value) !LivecheckDSL {
 	if value.type_name != 'Livecheck' {
 		return error('expected Livecheck, got ${value.type_name}')
 	}
@@ -75,7 +75,7 @@ pub fn livecheck_dsl_from_value(value brew_runtime.Value) !LivecheckDSL {
 		referenced_cask: value.map_data['cask'] or { livecheck_nil() }
 		referenced_formula: value.map_data['formula'] or { livecheck_nil() }
 		regex: value.map_data['regex'] or { livecheck_nil() }
-		skip: (value.map_data['skip'] or { brew_runtime.bool_value(false) }).as_bool() or { false }
+		skip: (value.map_data['skip'] or { ruby.bool_value(false) }).as_bool() or { false }
 		skip_msg: value.map_data['skip_msg'] or { livecheck_nil() }
 		strategy: value.map_data['strategy'] or { livecheck_nil() }
 		strategy_block: value.map_data['strategy_block'] or { livecheck_nil() }
@@ -85,7 +85,7 @@ pub fn livecheck_dsl_from_value(value brew_runtime.Value) !LivecheckDSL {
 	}
 }
 
-fn livecheck_receiver(args []brew_runtime.Value, method string) ?LivecheckDSL {
+fn livecheck_receiver(args []ruby.Value, method string) ?LivecheckDSL {
 	if args.len == 0 {
 		_ = method
 		return none
@@ -93,53 +93,53 @@ fn livecheck_receiver(args []brew_runtime.Value, method string) ?LivecheckDSL {
 	return livecheck_dsl_from_value(args[0]) or { return none }
 }
 
-fn livecheck_keywords(args []brew_runtime.Value) map[string]brew_runtime.Value {
+fn livecheck_keywords(args []ruby.Value) map[string]ruby.Value {
 	for index := args.len - 1; index >= 1; index-- {
 		if args[index].type_name == 'Hash' {
 			return args[index].map_data.clone()
 		}
 	}
-	return map[string]brew_runtime.Value{}
+	return map[string]ruby.Value{}
 }
 
-fn livecheck_argument_error(method string) brew_runtime.Value {
-	return brew_runtime.object_value('ArgumentError', '${method} requires a Livecheck receiver')
+fn livecheck_argument_error(method string) ruby.Value {
+	return ruby.object_value('ArgumentError', '${method} requires a Livecheck receiver')
 }
 
 // Ruby attr_reader `attr_reader :options` at line 21.
-pub fn ruby_livecheck_l21_d1_options(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_l21_d1_options(args ...ruby.Value) ruby.Value {
 	livecheck := livecheck_receiver(args, 'options') or { return livecheck_argument_error('options') }
 	return livecheck_options.livecheck_options_value(livecheck.options)
 }
 
 // Ruby attr_reader `attr_reader :skip_msg` at line 26.
-pub fn ruby_livecheck_l26_d2_skip_msg(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_l26_d2_skip_msg(args ...ruby.Value) ruby.Value {
 	livecheck := livecheck_receiver(args, 'skip_msg') or { return livecheck_argument_error('skip_msg') }
 	return livecheck.skip_msg
 }
 
 // Ruby attr_reader `attr_reader :strategy_block` at line 30.
-pub fn ruby_livecheck_l30_d3_strategy_block(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_l30_d3_strategy_block(args ...ruby.Value) ruby.Value {
 	livecheck := livecheck_receiver(args, 'strategy_block') or { return livecheck_argument_error('strategy_block') }
 	return livecheck.strategy_block
 }
 
 // Ruby attr_reader `attr_reader :throttle_days` at line 35.
-pub fn ruby_livecheck_l35_d4_throttle_days(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_l35_d4_throttle_days(args ...ruby.Value) ruby.Value {
 	livecheck := livecheck_receiver(args, 'throttle_days') or { return livecheck_argument_error('throttle_days') }
 	return livecheck.throttle_days
 }
 
 // Ruby method `initialize(package_or_resource)` at line 38.
-pub fn ruby_livecheck_l38_d5_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_l38_d5_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'Livecheck#initialize requires a package or resource')
+		return ruby.object_value('ArgumentError', 'Livecheck#initialize requires a package or resource')
 	}
 	return livecheck_dsl_value(new_livecheck_dsl(args[0]))
 }
 
 // Ruby method `cask(cask_name = T.unsafe(nil))` at line 63.
-pub fn ruby_livecheck_l63_d6_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_l63_d6_cask(args ...ruby.Value) ruby.Value {
 	mut livecheck := livecheck_receiver(args, 'cask') or { return livecheck_argument_error('cask') }
 	if args.len == 1 || args[1].type_name == 'NilClass' {
 		return livecheck.referenced_cask
@@ -151,7 +151,7 @@ pub fn ruby_livecheck_l63_d6_cask(args ...brew_runtime.Value) brew_runtime.Value
 }
 
 // Ruby method `formula(formula_name = T.unsafe(nil))` at line 82.
-pub fn ruby_livecheck_l82_d7_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_l82_d7_formula(args ...ruby.Value) ruby.Value {
 	mut livecheck := livecheck_receiver(args, 'formula') or { return livecheck_argument_error('formula') }
 	if args.len == 1 || args[1].type_name == 'NilClass' {
 		return livecheck.referenced_formula
@@ -163,7 +163,7 @@ pub fn ruby_livecheck_l82_d7_formula(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby method `regex(pattern = T.unsafe(nil))` at line 99.
-pub fn ruby_livecheck_l99_d8_regex(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_l99_d8_regex(args ...ruby.Value) ruby.Value {
 	mut livecheck := livecheck_receiver(args, 'regex') or { return livecheck_argument_error('regex') }
 	if args.len == 1 || args[1].type_name == 'NilClass' {
 		return livecheck.regex
@@ -175,7 +175,7 @@ pub fn ruby_livecheck_l99_d8_regex(args ...brew_runtime.Value) brew_runtime.Valu
 }
 
 // Ruby method `skip(skip_msg = T.unsafe(nil))` at line 119.
-pub fn ruby_livecheck_l119_d9_skip(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_l119_d9_skip(args ...ruby.Value) ruby.Value {
 	mut livecheck := livecheck_receiver(args, 'skip') or { return livecheck_argument_error('skip') }
 	if args.len > 1 && args[1].type_name == 'String' {
 		livecheck.skip_msg = args[1]
@@ -185,13 +185,13 @@ pub fn ruby_livecheck_l119_d9_skip(args ...brew_runtime.Value) brew_runtime.Valu
 }
 
 // Ruby method `skip?` at line 127.
-pub fn ruby_livecheck_l127_d10_skip(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_l127_d10_skip(args ...ruby.Value) ruby.Value {
 	livecheck := livecheck_receiver(args, 'skip?') or { return livecheck_argument_error('skip?') }
-	return brew_runtime.bool_value(livecheck.skip)
+	return ruby.bool_value(livecheck.skip)
 }
 
 // Ruby method `strategy(symbol = T.unsafe(nil), &block)` at line 142.
-pub fn ruby_livecheck_l142_d11_strategy(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_l142_d11_strategy(args ...ruby.Value) ruby.Value {
 	mut livecheck := livecheck_receiver(args, 'strategy') or { return livecheck_argument_error('strategy') }
 	if args.len > 2 && args[2].type_name == 'Proc' {
 		livecheck.strategy_block = args[2]
@@ -206,7 +206,7 @@ pub fn ruby_livecheck_l142_d11_strategy(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby method `throttle(rate = T.unsafe(nil), days: nil)` at line 168.
-pub fn ruby_livecheck_l168_d12_throttle(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_l168_d12_throttle(args ...ruby.Value) ruby.Value {
 	mut livecheck := livecheck_receiver(args, 'throttle') or { return livecheck_argument_error('throttle') }
 	keywords := livecheck_keywords(args)
 	if days := keywords['days'] {
@@ -228,24 +228,24 @@ pub fn ruby_livecheck_l168_d12_throttle(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby method `url(` at line 199.
-pub fn ruby_livecheck_l199_d13_url(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_l199_d13_url(args ...ruby.Value) ruby.Value {
 	mut livecheck := livecheck_receiver(args, 'url') or { return livecheck_argument_error('url') }
 	keywords := livecheck_keywords(args)
 	if compressed := keywords['compressed'] {
 		if compressed.type_name == 'Bool' && compressed.bool_data {
-			return brew_runtime.object_value('ArgumentError', '`compressed` option should only be `false` or omitted')
+			return ruby.object_value('ArgumentError', '`compressed` option should only be `false` or omitted')
 		}
 	}
 	if homebrew_curl := keywords['homebrew_curl'] {
 		if homebrew_curl.type_name == 'Bool' && !homebrew_curl.bool_data {
-			return brew_runtime.object_value('ArgumentError', '`homebrew_curl` option should only be `true` or omitted')
+			return ruby.object_value('ArgumentError', '`homebrew_curl` option should only be `true` or omitted')
 		}
 	}
 	if post_form := keywords['post_form'] {
 		if post_form.type_name != 'NilClass' {
 			if post_json := keywords['post_json'] {
 				if post_json.type_name != 'NilClass' {
-					return brew_runtime.object_value('ArgumentError', 'Only use `post_form` or `post_json`, not both')
+					return ruby.object_value('ArgumentError', 'Only use `post_form` or `post_json`, not both')
 				}
 			}
 		}
@@ -266,7 +266,7 @@ pub fn ruby_livecheck_l199_d13_url(args ...brew_runtime.Value) brew_runtime.Valu
 	} else if url.type_name == 'Symbol' {
 		shorthand := url.as_string().trim_left(':')
 		if shorthand !in ['head', 'homepage', 'stable', 'url'] {
-			return brew_runtime.object_value('ArgumentError', '${url.repr} is not a valid URL shorthand')
+			return ruby.object_value('ArgumentError', '${url.repr} is not a valid URL shorthand')
 		}
 		livecheck.url = url
 	}
@@ -274,38 +274,38 @@ pub fn ruby_livecheck_l199_d13_url(args ...brew_runtime.Value) brew_runtime.Valu
 }
 
 // Ruby delegate `delegate url_options: :@options` at line 233.
-pub fn ruby_livecheck_l233_d14_url_options(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_l233_d14_url_options(args ...ruby.Value) ruby.Value {
 	livecheck := livecheck_receiver(args, 'url_options') or { return livecheck_argument_error('url_options') }
-	return brew_runtime.map_value(livecheck.options.url_options())
+	return ruby.map_value(livecheck.options.url_options())
 }
 
 // Ruby delegate `delegate arch: :@package_or_resource` at line 234.
-pub fn ruby_livecheck_l234_d15_arch(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_l234_d15_arch(args ...ruby.Value) ruby.Value {
 	livecheck := livecheck_receiver(args, 'arch') or { return livecheck_argument_error('arch') }
 	return livecheck.package_or_resource.map_data['arch'] or { livecheck_nil() }
 }
 
 // Ruby delegate `delegate os: :@package_or_resource` at line 235.
-pub fn ruby_livecheck_l235_d16_os(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_l235_d16_os(args ...ruby.Value) ruby.Value {
 	livecheck := livecheck_receiver(args, 'os') or { return livecheck_argument_error('os') }
 	return livecheck.package_or_resource.map_data['os'] or { livecheck_nil() }
 }
 
 // Ruby delegate `delegate version: :@package_or_resource` at line 236.
-pub fn ruby_livecheck_l236_d17_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_l236_d17_version(args ...ruby.Value) ruby.Value {
 	livecheck := livecheck_receiver(args, 'version') or { return livecheck_argument_error('version') }
 	return livecheck.package_or_resource.map_data['version'] or { livecheck_nil() }
 }
 
 // Ruby method `to_hash` at line 241.
-pub fn ruby_livecheck_l241_d18_to_hash(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_l241_d18_to_hash(args ...ruby.Value) ruby.Value {
 	livecheck := livecheck_receiver(args, 'to_hash') or { return livecheck_argument_error('to_hash') }
-	return brew_runtime.map_value({
-		'options':       brew_runtime.map_value(livecheck.options.values)
+	return ruby.map_value({
+		'options':       ruby.map_value(livecheck.options.values)
 		'cask':          livecheck.referenced_cask
 		'formula':       livecheck.referenced_formula
 		'regex':         livecheck.regex
-		'skip':          brew_runtime.bool_value(livecheck.skip)
+		'skip':          ruby.bool_value(livecheck.skip)
 		'skip_msg':      livecheck.skip_msg
 		'strategy':      livecheck.strategy
 		'throttle':      livecheck.throttle

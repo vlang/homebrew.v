@@ -1,12 +1,12 @@
 module helper
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `test/support/helper/cask.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `stub_cask_loader(cask, ref = cask.token, call_original: false)` at line 14.
-pub fn ruby_cask_l14_d1_stub_cask_loader(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_l14_d1_stub_cask_loader(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || args[0].type_name != 'Cask' {
 		panic('stub_cask_loader requires a Cask')
 	}
@@ -16,7 +16,7 @@ pub fn ruby_cask_l14_d1_stub_cask_loader(args ...brew_runtime.Value) brew_runtim
 		args[0].attribute('token') or { args[0].as_string() }
 	}
 	call_original := args.len > 2 && (args[2].as_bool() or { false })
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'CaskLoaderStub'
 		repr: ref
 		map_data: {

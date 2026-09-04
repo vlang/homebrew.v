@@ -1,16 +1,16 @@
 module bindata
 
-import brew_runtime
+import ruby
 import math
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/bindata-2.5.1/lib/bindata/struct.rb`.
 // The original source is retained below until every stub has a typed V body.
 pub struct SanitizedStructField {
 pub:
-	field_type brew_runtime.Value
+	field_type ruby.Value
 	name       string
 	has_name   bool
-	parameters map[string]brew_runtime.Value
+	parameters map[string]ruby.Value
 }
 
 @[heap]
@@ -81,7 +81,7 @@ fn struct_defined_method_names() []string {
 		'include_obj?']
 }
 
-fn struct_class_methods(object_class brew_runtime.Value) []string {
+fn struct_class_methods(object_class ruby.Value) []string {
 	mut methods := struct_defined_method_names()
 	if encoded := object_class.attributes['method_names'] {
 		methods << encoded.split(',').filter(it.len > 0)
@@ -89,7 +89,7 @@ fn struct_class_methods(object_class brew_runtime.Value) []string {
 	return methods
 }
 
-fn struct_array(value brew_runtime.Value) []brew_runtime.Value {
+fn struct_array(value ruby.Value) []ruby.Value {
 	if value.type_name == 'NilClass' {
 		return []
 	}
@@ -99,7 +99,7 @@ fn struct_array(value brew_runtime.Value) []brew_runtime.Value {
 	return [value]
 }
 
-fn struct_symbol_name(value brew_runtime.Value) string {
+fn struct_symbol_name(value ruby.Value) string {
 	if value.type_name !in ['String', 'Symbol'] {
 		panic("undefined method `to_sym' for ${value.type_name}")
 	}
@@ -110,13 +110,13 @@ fn struct_chomp_underscore(value string) string {
 	return if value.ends_with('_') { value[..value.len - 1] } else { value }
 }
 
-fn sanitized_struct_field_value(field SanitizedStructField) brew_runtime.Value {
-	return brew_runtime.Value{
+fn sanitized_struct_field_value(field SanitizedStructField) ruby.Value {
+	return ruby.Value{
 		type_name: 'BinData::SanitizedField'
 		repr: if field.has_name { field.name } else { 'nil' }
 		map_data: {
 			'field_type': field.field_type
-			'parameters': brew_runtime.map_value(field.parameters)
+			'parameters': ruby.map_value(field.parameters)
 		}
 		attributes: {
 			'name':     field.name
@@ -125,17 +125,17 @@ fn sanitized_struct_field_value(field SanitizedStructField) brew_runtime.Value {
 	}
 }
 
-fn sanitized_struct_fields_value(fields []SanitizedStructField) brew_runtime.Value {
-	return brew_runtime.Value{
+fn sanitized_struct_fields_value(fields []SanitizedStructField) ruby.Value {
+	return ruby.Value{
 		type_name: 'BinData::SanitizedFields'
 		repr: fields.map(if it.has_name { it.name } else { 'nil' }).str()
 		array_data: fields.map(sanitized_struct_field_value(it))
 	}
 }
 
-fn sanitized_struct_field_from_value(value brew_runtime.Value) SanitizedStructField {
-	type_value := value.map_data['field_type'] or { brew_runtime.object_value('Symbol', ':unknown') }
-	params_value := value.map_data['parameters'] or { brew_runtime.map_value({}) }
+fn sanitized_struct_field_from_value(value ruby.Value) SanitizedStructField {
+	type_value := value.map_data['field_type'] or { ruby.object_value('Symbol', ':unknown') }
+	params_value := value.map_data['parameters'] or { ruby.map_value({}) }
 	return SanitizedStructField{
 		field_type: type_value
 		name: value.attributes['name'] or { '' }
@@ -144,14 +144,14 @@ fn sanitized_struct_field_from_value(value brew_runtime.Value) SanitizedStructFi
 	}
 }
 
-fn sanitized_struct_fields_from_value(value brew_runtime.Value) []SanitizedStructField {
+fn sanitized_struct_fields_from_value(value ruby.Value) []SanitizedStructField {
 	if value.type_name == 'BinData::SanitizedFields' {
 		return value.array_data.map(sanitized_struct_field_from_value(it))
 	}
 	return sanitize_raw_struct_fields(value)
 }
 
-fn sanitize_raw_struct_fields(value brew_runtime.Value) []SanitizedStructField {
+fn sanitize_raw_struct_fields(value ruby.Value) []SanitizedStructField {
 	mut fields := []SanitizedStructField{}
 	for tuple_value in struct_array(value) {
 		tuple := tuple_value.as_array() or { panic(err) }
@@ -164,7 +164,7 @@ fn sanitize_raw_struct_fields(value brew_runtime.Value) []SanitizedStructField {
 		parameters := if tuple.len > 2 && tuple[2].type_name != 'NilClass' {
 			tuple[2].as_map() or { panic(err) }
 		} else {
-			map[string]brew_runtime.Value{}
+			map[string]ruby.Value{}
 		}
 		fields << SanitizedStructField{
 			field_type: tuple[0]
@@ -176,7 +176,7 @@ fn sanitize_raw_struct_fields(value brew_runtime.Value) []SanitizedStructField {
 	return fields
 }
 
-pub fn validate_struct_field_names(object_class brew_runtime.Value, names []string) ! {
+pub fn validate_struct_field_names(object_class ruby.Value, names []string) ! {
 	methods := struct_class_methods(object_class)
 	reserved := struct_reserved_field_names()
 	for name in names {
@@ -198,18 +198,18 @@ pub fn validate_struct_field_names(object_class brew_runtime.Value, names []stri
 	}
 }
 
-fn sanitized_endian(value brew_runtime.Value) !brew_runtime.Value {
+fn sanitized_endian(value ruby.Value) !ruby.Value {
 	if value.type_name.starts_with('BinData::Sanitized') {
 		return value
 	}
 	endian := value.as_string().trim_left(':')
 	if endian == 'big' {
-		return brew_runtime.structured_value('BinData::SanitizedBigEndian', 'big', {
+		return ruby.structured_value('BinData::SanitizedBigEndian', 'big', {
 			'endian': 'big'
 		})
 	}
 	if endian == 'little' {
-		return brew_runtime.structured_value('BinData::SanitizedLittleEndian', 'little', {
+		return ruby.structured_value('BinData::SanitizedLittleEndian', 'little', {
 			'endian': 'little'
 		})
 	}
@@ -219,7 +219,7 @@ fn sanitized_endian(value brew_runtime.Value) !brew_runtime.Value {
 	return error("unknown value for endian '${value.repr}'")
 }
 
-pub fn sanitize_struct_parameters(object_class brew_runtime.Value, parameters map[string]brew_runtime.Value) !map[string]brew_runtime.Value {
+pub fn sanitize_struct_parameters(object_class ruby.Value, parameters map[string]ruby.Value) !map[string]ruby.Value {
 	mut result := parameters.clone()
 	if endian := result['endian'] {
 		result['endian'] = sanitized_endian(endian)!
@@ -232,7 +232,7 @@ pub fn sanitize_struct_parameters(object_class brew_runtime.Value, parameters ma
 				prefixes << value
 			}
 		}
-		result['search_prefix'] = brew_runtime.string_array_value(prefixes)
+		result['search_prefix'] = ruby.string_array_value(prefixes)
 	}
 	if fields_value := result['fields'] {
 		if fields_value.type_name != 'BinData::SanitizedFields' {
@@ -254,7 +254,7 @@ pub fn sanitize_struct_parameters(object_class brew_runtime.Value, parameters ma
 				hidden_names << name
 			}
 		}
-		result['hide'] = brew_runtime.string_array_value(hidden_names)
+		result['hide'] = ruby.string_array_value(hidden_names)
 	}
 	return result
 }
@@ -302,7 +302,7 @@ fn new_struct_field_object(definition SanitizedStructField) &StructFieldObject {
 	}
 }
 
-fn struct_field_value(field &StructFieldObject) brew_runtime.Value {
+fn struct_field_value(field &StructFieldObject) ruby.Value {
 	base_value := base_object_value(field.base)
 	mut attributes := base_value.attributes.clone()
 	attributes['struct_field_address'] = u64(voidptr(field)).str()
@@ -310,18 +310,18 @@ fn struct_field_value(field &StructFieldObject) brew_runtime.Value {
 	attributes['has_name'] = field.definition.has_name.str()
 	attributes['bit_aligned'] = field.bit_aligned.str()
 	attributes['delayed_io'] = field.delayed_io.str()
-	return brew_runtime.Value{
+	return ruby.Value{
 		...base_value
 		attributes: attributes
 	}
 }
 
-fn struct_field_from_value(value brew_runtime.Value) &StructFieldObject {
+fn struct_field_from_value(value ruby.Value) &StructFieldObject {
 	if address := value.attributes['struct_field_address'] {
 		return unsafe { &StructFieldObject(voidptr(address.u64())) }
 	}
 	definition := SanitizedStructField{
-		field_type: brew_runtime.object_value('Symbol', value.type_name)
+		field_type: ruby.object_value('Symbol', value.type_name)
 		name: value.attributes['name'] or { '' }
 		has_name: (value.attributes['has_name'] or { 'false' }).bool()
 		parameters: value.map_data.clone()
@@ -332,7 +332,7 @@ fn struct_field_from_value(value brew_runtime.Value) &StructFieldObject {
 	return field
 }
 
-pub fn new_struct_object(type_name string, parameters map[string]brew_runtime.Value) &StructObject {
+pub fn new_struct_object(type_name string, parameters map[string]ruby.Value) &StructObject {
 	definitions := sanitized_struct_fields_from_value(parameters['fields'] or {
 		sanitized_struct_fields_value([])
 	})
@@ -371,12 +371,12 @@ pub fn new_struct_object(type_name string, parameters map[string]brew_runtime.Va
 	}
 }
 
-fn struct_object_value(object &StructObject) brew_runtime.Value {
+fn struct_object_value(object &StructObject) ruby.Value {
 	base_value := base_object_value(object.base)
 	mut attributes := base_value.attributes.clone()
 	attributes['struct_object_address'] = u64(voidptr(object)).str()
 	attributes['byte_aligned'] = object.byte_aligned.str()
-	return brew_runtime.Value{
+	return ruby.Value{
 		...base_value
 		type_name: object.type_name
 		repr: struct_snapshot(object).repr
@@ -384,11 +384,11 @@ fn struct_object_value(object &StructObject) brew_runtime.Value {
 	}
 }
 
-pub fn struct_boundary_value(object &StructObject) brew_runtime.Value {
+pub fn struct_boundary_value(object &StructObject) ruby.Value {
 	return struct_object_value(object)
 }
 
-pub fn initialize_struct_object(receiver brew_runtime.Value, parameters map[string]brew_runtime.Value, separated BaseSeparatedArguments) brew_runtime.Value {
+pub fn initialize_struct_object(receiver ruby.Value, parameters map[string]ruby.Value, separated BaseSeparatedArguments) ruby.Value {
 	mut object := new_struct_object(receiver.type_name, parameters)
 	if separated.has_parent {
 		object.base.parent = separated.parent
@@ -404,7 +404,7 @@ pub fn initialize_struct_object(receiver brew_runtime.Value, parameters map[stri
 	return struct_object_value(object)
 }
 
-fn struct_object_from_value(value brew_runtime.Value) &StructObject {
+fn struct_object_from_value(value ruby.Value) &StructObject {
 	if address := value.attributes['struct_object_address'] {
 		return unsafe { &StructObject(voidptr(address.u64())) }
 	}
@@ -426,7 +426,7 @@ fn instantiate_struct_field(mut object StructObject, index int) &StructFieldObje
 	return field
 }
 
-fn struct_base_field_name(value brew_runtime.Value) string {
+fn struct_base_field_name(value ruby.Value) string {
 	mut name := value.as_string().trim_left(':')
 	if name.ends_with('=') || name.ends_with('?') {
 		name = name[..name.len - 1]
@@ -443,7 +443,7 @@ fn struct_field_index(object &StructObject, name string) int {
 	return -1
 }
 
-fn struct_field_index_by_value(object &StructObject, value brew_runtime.Value) int {
+fn struct_field_index_by_value(object &StructObject, value ruby.Value) int {
 	if address := value.attributes['struct_field_address'] {
 		for index, field in object.fields {
 			if u64(voidptr(field)) == address.u64() {
@@ -461,12 +461,12 @@ fn struct_field_included(field &StructFieldObject) bool {
 	return true
 }
 
-fn struct_field_snapshot(field &StructFieldObject) brew_runtime.Value {
+fn struct_field_snapshot(field &StructFieldObject) ruby.Value {
 	return field.base.snapshot_value
 }
 
-fn struct_snapshot(object &StructObject) brew_runtime.Value {
-	mut snapshot := map[string]brew_runtime.Value{}
+fn struct_snapshot(object &StructObject) ruby.Value {
+	mut snapshot := map[string]ruby.Value{}
 	for index, name in object.field_names {
 		if !object.named_fields[index] || name in object.hidden {
 			continue
@@ -479,18 +479,18 @@ fn struct_snapshot(object &StructObject) brew_runtime.Value {
 			}
 		}
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'BinData::Struct::Snapshot'
 		repr: snapshot.str()
 		map_data: snapshot
 	}
 }
 
-fn struct_numeric_value(value f64) brew_runtime.Value {
+fn struct_numeric_value(value f64) ruby.Value {
 	if value == math.floor(value) {
-		return brew_runtime.int_value(i64(value))
+		return ruby.int_value(i64(value))
 	}
-	return brew_runtime.float_value(value)
+	return ruby.float_value(value)
 }
 
 fn struct_sum_below(object &StructObject, index int, aligned bool) f64 {
@@ -516,36 +516,36 @@ fn struct_sum_below(object &StructObject, index int, aligned bool) f64 {
 	return sum
 }
 
-pub fn struct_offset_of_value(parent brew_runtime.Value, child brew_runtime.Value) brew_runtime.Value {
+pub fn struct_offset_of_value(parent ruby.Value, child ruby.Value) ruby.Value {
 	if _ := parent.attributes['struct_object_address'] {
 		object := struct_object_from_value(parent)
 		index := struct_field_index_by_value(object, child)
 		if index >= 0 {
 			field := object.fields[index]
 			offset := struct_sum_below(object, index, object.byte_aligned)
-			return brew_runtime.int_value(i64(if field.bit_aligned {
+			return ruby.int_value(i64(if field.bit_aligned {
 				math.floor(offset)
 			} else {
 				math.ceil(offset)
 			}))
 		}
 	}
-	return brew_runtime.int_value((parent.attributes['offset'] or { '0' }).i64())
+	return ruby.int_value((parent.attributes['offset'] or { '0' }).i64())
 }
 
-pub fn struct_debug_name_of_value(parent brew_runtime.Value, child brew_runtime.Value) brew_runtime.Value {
+pub fn struct_debug_name_of_value(parent ruby.Value, child ruby.Value) ruby.Value {
 	if _ := parent.attributes['struct_object_address'] {
 		object := struct_object_from_value(parent)
 		index := struct_field_index_by_value(object, child)
 		if index >= 0 {
 			debug_name := ruby_base_l206_d25_debug_name(parent).as_string()
-			return brew_runtime.string_value('${debug_name}.${object.field_names[index]}')
+			return ruby.string_value('${debug_name}.${object.field_names[index]}')
 		}
 	}
-	return brew_runtime.string_value(parent.attributes['debug_name'] or { parent.repr })
+	return ruby.string_value(parent.attributes['debug_name'] or { parent.repr })
 }
 
-fn struct_assign_map(mut object StructObject, values map[string]brew_runtime.Value) {
+fn struct_assign_map(mut object StructObject, values map[string]ruby.Value) {
 	for index, name in object.field_names {
 		if !object.named_fields[index] {
 			continue
@@ -595,14 +595,14 @@ fn struct_binary(object &StructObject, aligned bool) string {
 	return result
 }
 
-fn struct_io_binary(io brew_runtime.Value) string {
+fn struct_io_binary(io ruby.Value) string {
 	if value := io.map_data['binary'] {
 		return value.as_string()
 	}
 	return io.as_string()
 }
 
-fn struct_do_read_boundary(args []brew_runtime.Value, aligned bool) brew_runtime.Value {
+fn struct_do_read_boundary(args []ruby.Value, aligned bool) ruby.Value {
 	if args.len < 2 {
 		panic('Struct#do_read requires a receiver and IO')
 	}
@@ -629,7 +629,7 @@ fn struct_do_read_boundary(args []brew_runtime.Value, aligned bool) brew_runtime
 		end := if offset + nbytes < binary.len { offset + nbytes } else { binary.len }
 		if offset <= end && offset < binary.len {
 			field.base.binary_value = binary[offset..end]
-			field.base.snapshot_value = brew_runtime.string_value(field.base.binary_value)
+			field.base.snapshot_value = ruby.string_value(field.base.binary_value)
 			field.base.assigned_value = field.base.snapshot_value
 			field.base.has_assignment = true
 			field.base.clear = false
@@ -641,7 +641,7 @@ fn struct_do_read_boundary(args []brew_runtime.Value, aligned bool) brew_runtime
 	return base_nil_value()
 }
 
-fn struct_do_write_boundary(args []brew_runtime.Value, aligned bool) brew_runtime.Value {
+fn struct_do_write_boundary(args []ruby.Value, aligned bool) ruby.Value {
 	if args.len < 2 {
 		panic('Struct#do_write requires a receiver and IO')
 	}
@@ -654,7 +654,7 @@ fn struct_do_write_boundary(args []brew_runtime.Value, aligned bool) brew_runtim
 }
 
 // Ruby method `initialize_shared_instance` at line 82.
-pub fn ruby_struct_l82_d1_initialize_shared_instance(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_struct_l82_d1_initialize_shared_instance(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Struct#initialize_shared_instance requires a receiver')
 	}
@@ -665,7 +665,7 @@ pub fn ruby_struct_l82_d1_initialize_shared_instance(args ...brew_runtime.Value)
 }
 
 // Ruby method `initialize_instance` at line 90.
-pub fn ruby_struct_l90_d2_initialize_instance(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_struct_l90_d2_initialize_instance(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Struct#initialize_instance requires a receiver')
 	}
@@ -677,7 +677,7 @@ pub fn ruby_struct_l90_d2_initialize_instance(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby method `clear # :nodoc:` at line 94.
-pub fn ruby_struct_l94_d3_clear(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_struct_l94_d3_clear(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Struct#clear requires a receiver')
 	}
@@ -687,28 +687,28 @@ pub fn ruby_struct_l94_d3_clear(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `clear? # :nodoc:` at line 98.
-pub fn ruby_struct_l98_d4_clear(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_struct_l98_d4_clear(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Struct#clear? requires a receiver')
 	}
 	mut object := struct_object_from_value(args[0])
 	for field in object.fields {
 		if field.instantiated && !field.base.clear {
-			return brew_runtime.bool_value(false)
+			return ruby.bool_value(false)
 		}
 	}
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
 // Ruby method `assign(val)` at line 102.
-pub fn ruby_struct_l102_d5_assign(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_struct_l102_d5_assign(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Struct#assign requires a receiver and value')
 	}
 	mut object := struct_object_from_value(args[0])
 	struct_clear(mut object)
 	values := if args[1].type_name == 'NilClass' {
-		map[string]brew_runtime.Value{}
+		map[string]ruby.Value{}
 	} else {
 		args[1].map_data.clone()
 	}
@@ -718,7 +718,7 @@ pub fn ruby_struct_l102_d5_assign(args ...brew_runtime.Value) brew_runtime.Value
 }
 
 // Ruby method `snapshot` at line 107.
-pub fn ruby_struct_l107_d6_snapshot(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_struct_l107_d6_snapshot(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Struct#snapshot requires a receiver')
 	}
@@ -726,7 +726,7 @@ pub fn ruby_struct_l107_d6_snapshot(args ...brew_runtime.Value) brew_runtime.Val
 }
 
 // Ruby method `field_names(include_hidden = false)` at line 119.
-pub fn ruby_struct_l119_d7_field_names(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_struct_l119_d7_field_names(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Struct#field_names requires a receiver')
 	}
@@ -738,11 +738,11 @@ pub fn ruby_struct_l119_d7_field_names(args ...brew_runtime.Value) brew_runtime.
 			names << name
 		}
 	}
-	return brew_runtime.string_array_value(names)
+	return ruby.string_array_value(names)
 }
 
 // Ruby method `debug_name_of(child) # :nodoc:` at line 128.
-pub fn ruby_struct_l128_d8_debug_name_of(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_struct_l128_d8_debug_name_of(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Struct#debug_name_of requires a receiver and child')
 	}
@@ -750,7 +750,7 @@ pub fn ruby_struct_l128_d8_debug_name_of(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `offset_of(child) # :nodoc:` at line 133.
-pub fn ruby_struct_l133_d9_offset_of(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_struct_l133_d9_offset_of(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Struct#offset_of requires a receiver and child')
 	}
@@ -758,17 +758,17 @@ pub fn ruby_struct_l133_d9_offset_of(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby method `do_read(io) # :nodoc:` at line 139.
-pub fn ruby_struct_l139_d10_do_read(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_struct_l139_d10_do_read(args ...ruby.Value) ruby.Value {
 	return struct_do_read_boundary(args, false)
 }
 
 // Ruby method `do_write(io) # :nodoc:` at line 144.
-pub fn ruby_struct_l144_d11_do_write(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_struct_l144_d11_do_write(args ...ruby.Value) ruby.Value {
 	return struct_do_write_boundary(args, false)
 }
 
 // Ruby method `do_num_bytes # :nodoc:` at line 149.
-pub fn ruby_struct_l149_d12_do_num_bytes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_struct_l149_d12_do_num_bytes(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Struct#do_num_bytes requires a receiver')
 	}
@@ -777,7 +777,7 @@ pub fn ruby_struct_l149_d12_do_num_bytes(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `[](key)` at line 154.
-pub fn ruby_struct_l154_d13_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_struct_l154_d13_anonymous(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Struct#[] requires a receiver and key')
 	}
@@ -785,7 +785,7 @@ pub fn ruby_struct_l154_d13_anonymous(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby method `[]=(key, value)` at line 158.
-pub fn ruby_struct_l158_d14_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_struct_l158_d14_anonymous(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('Struct#[]= requires a receiver, key and value')
 	}
@@ -802,55 +802,55 @@ pub fn ruby_struct_l158_d14_anonymous(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby method `key?(key)` at line 162.
-pub fn ruby_struct_l162_d15_key(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_struct_l162_d15_key(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Struct#key? requires a receiver and key')
 	}
 	index := struct_field_index(struct_object_from_value(args[0]), struct_base_field_name(args[1]))
-	return if index >= 0 { brew_runtime.int_value(index) } else { base_nil_value() }
+	return if index >= 0 { ruby.int_value(index) } else { base_nil_value() }
 }
 
 // Ruby method `each_pair(include_all = false)` at line 170.
-pub fn ruby_struct_l170_d16_each_pair(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_struct_l170_d16_each_pair(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Struct#each_pair requires a receiver')
 	}
 	mut object := struct_object_from_value(args[0])
 	include_all := args.len > 1 && base_value_truthy(args[1])
-	mut pairs := []brew_runtime.Value{}
+	mut pairs := []ruby.Value{}
 	for index, name in object.field_names {
 		if object.named_fields[index] || include_all {
 			field := instantiate_struct_field(mut object, index)
 			name_value := if object.named_fields[index] {
-				brew_runtime.object_value('Symbol', ':${name}')
+				ruby.object_value('Symbol', ':${name}')
 			} else {
 				base_nil_value()
 			}
-			pairs << brew_runtime.array_value([name_value, struct_field_value(field)])
+			pairs << ruby.array_value([name_value, struct_field_value(field)])
 		}
 	}
-	return brew_runtime.array_value(pairs)
+	return ruby.array_value(pairs)
 }
 
 // Ruby method `define_field_accessors` at line 187.
-pub fn ruby_struct_l187_d17_define_field_accessors(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_struct_l187_d17_define_field_accessors(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Struct#define_field_accessors requires a receiver')
 	}
 	object := struct_object_from_value(args[0])
-	return brew_runtime.string_array_value(object.field_names.filter(it.len > 0))
+	return ruby.string_array_value(object.field_names.filter(it.len > 0))
 }
 
 // Ruby method `define_field_accessors_for(name, index)` at line 194.
-pub fn ruby_struct_l194_d18_define_field_accessors_for(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_struct_l194_d18_define_field_accessors_for(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('Struct#define_field_accessors_for requires a receiver, name and index')
 	}
-	return brew_runtime.object_value('Symbol', ':${struct_base_field_name(args[1])}')
+	return ruby.object_value('Symbol', ':${struct_base_field_name(args[1])}')
 }
 
 // Ruby define_singleton_method `define_singleton_method(name) do` at line 195.
-pub fn ruby_struct_l195_d19_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_struct_l195_d19_name(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('generated field getter requires a receiver and field name')
 	}
@@ -858,7 +858,7 @@ pub fn ruby_struct_l195_d19_name(args ...brew_runtime.Value) brew_runtime.Value 
 }
 
 // Ruby define_singleton_method `define_singleton_method("#{name}=") do |*vals|` at line 199.
-pub fn ruby_struct_l199_d20_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_struct_l199_d20_name(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('generated field setter requires a receiver, field name and value')
 	}
@@ -866,29 +866,29 @@ pub fn ruby_struct_l199_d20_name(args ...brew_runtime.Value) brew_runtime.Value 
 }
 
 // Ruby define_singleton_method `define_singleton_method("#{name}?") do` at line 203.
-pub fn ruby_struct_l203_d21_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_struct_l203_d21_name(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('generated field predicate requires a receiver and field name')
 	}
 	field := ruby_struct_l213_d23_find_obj_for_name(args[0], args[1])
 	return if field.type_name == 'NilClass' {
-		brew_runtime.bool_value(false)
+		ruby.bool_value(false)
 	} else {
 		ruby_struct_l281_d32_include_obj(args[0], field)
 	}
 }
 
 // Ruby method `find_index_of(obj)` at line 209.
-pub fn ruby_struct_l209_d22_find_index_of(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_struct_l209_d22_find_index_of(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Struct#find_index_of requires a receiver and object')
 	}
 	index := struct_field_index_by_value(struct_object_from_value(args[0]), args[1])
-	return if index >= 0 { brew_runtime.int_value(index) } else { base_nil_value() }
+	return if index >= 0 { ruby.int_value(index) } else { base_nil_value() }
 }
 
 // Ruby method `find_obj_for_name(name)` at line 213.
-pub fn ruby_struct_l213_d23_find_obj_for_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_struct_l213_d23_find_obj_for_name(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Struct#find_obj_for_name requires a receiver and name')
 	}
@@ -901,15 +901,15 @@ pub fn ruby_struct_l213_d23_find_obj_for_name(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby method `base_field_name(name)` at line 221.
-pub fn ruby_struct_l221_d24_base_field_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_struct_l221_d24_base_field_name(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Struct#base_field_name requires a receiver and name')
 	}
-	return brew_runtime.object_value('Symbol', ':${struct_base_field_name(args[1])}')
+	return ruby.object_value('Symbol', ':${struct_base_field_name(args[1])}')
 }
 
 // Ruby method `instantiate_all_objs` at line 225.
-pub fn ruby_struct_l225_d25_instantiate_all_objs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_struct_l225_d25_instantiate_all_objs(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Struct#instantiate_all_objs requires a receiver')
 	}
@@ -921,7 +921,7 @@ pub fn ruby_struct_l225_d25_instantiate_all_objs(args ...brew_runtime.Value) bre
 }
 
 // Ruby method `instantiate_obj_at(index)` at line 229.
-pub fn ruby_struct_l229_d26_instantiate_obj_at(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_struct_l229_d26_instantiate_obj_at(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Struct#instantiate_obj_at requires a receiver and index')
 	}
@@ -932,13 +932,13 @@ pub fn ruby_struct_l229_d26_instantiate_obj_at(args ...brew_runtime.Value) brew_
 }
 
 // Ruby method `assign_fields(val)` at line 236.
-pub fn ruby_struct_l236_d27_assign_fields(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_struct_l236_d27_assign_fields(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Struct#assign_fields requires a receiver and value')
 	}
 	mut object := struct_object_from_value(args[0])
 	values := if args[1].type_name == 'NilClass' {
-		map[string]brew_runtime.Value{}
+		map[string]ruby.Value{}
 	} else {
 		args[1].map_data.clone()
 	}
@@ -947,21 +947,21 @@ pub fn ruby_struct_l236_d27_assign_fields(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby method `as_stringified_hash(val)` at line 247.
-pub fn ruby_struct_l247_d28_as_stringified_hash(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_struct_l247_d28_as_stringified_hash(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Struct#as_stringified_hash requires a receiver and value')
 	}
 	if args[1].type_name == 'NilClass' {
-		return brew_runtime.map_value({})
+		return ruby.map_value({})
 	}
 	if _ := args[1].attributes['struct_object_address'] {
 		return ruby_struct_l107_d6_snapshot(args[1])
 	}
-	mut normalized := map[string]brew_runtime.Value{}
+	mut normalized := map[string]ruby.Value{}
 	for key, value in args[1].map_data {
 		normalized[key] = value
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'BinData::Struct::Snapshot'
 		repr: normalized.str()
 		map_data: normalized
@@ -969,7 +969,7 @@ pub fn ruby_struct_l247_d28_as_stringified_hash(args ...brew_runtime.Value) brew
 }
 
 // Ruby method `sum_num_bytes_for_all_fields` at line 259.
-pub fn ruby_struct_l259_d29_sum_num_bytes_for_all_fields(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_struct_l259_d29_sum_num_bytes_for_all_fields(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Struct#sum_num_bytes_for_all_fields requires a receiver')
 	}
@@ -978,7 +978,7 @@ pub fn ruby_struct_l259_d29_sum_num_bytes_for_all_fields(args ...brew_runtime.Va
 }
 
 // Ruby method `sum_num_bytes_below_index(index)` at line 263.
-pub fn ruby_struct_l263_d30_sum_num_bytes_below_index(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_struct_l263_d30_sum_num_bytes_below_index(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Struct#sum_num_bytes_below_index requires a receiver and index')
 	}
@@ -987,24 +987,24 @@ pub fn ruby_struct_l263_d30_sum_num_bytes_below_index(args ...brew_runtime.Value
 }
 
 // Ruby method `include_obj_for_io?(obj)` at line 275.
-pub fn ruby_struct_l275_d31_include_obj_for_io(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_struct_l275_d31_include_obj_for_io(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Struct#include_obj_for_io? requires a receiver and object')
 	}
 	field := struct_field_from_value(args[1])
-	return brew_runtime.bool_value(struct_field_included(field) || field.delayed_io)
+	return ruby.bool_value(struct_field_included(field) || field.delayed_io)
 }
 
 // Ruby method `include_obj?(obj)` at line 281.
-pub fn ruby_struct_l281_d32_include_obj(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_struct_l281_d32_include_obj(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Struct#include_obj? requires a receiver and object')
 	}
-	return brew_runtime.bool_value(struct_field_included(struct_field_from_value(args[1])))
+	return ruby.bool_value(struct_field_included(struct_field_from_value(args[1])))
 }
 
 // Ruby method `[]=(key, value)` at line 287.
-pub fn ruby_struct_l287_d33_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_struct_l287_d33_anonymous(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('Snapshot#[]= requires a receiver, key and value')
 	}
@@ -1012,7 +1012,7 @@ pub fn ruby_struct_l287_d33_anonymous(args ...brew_runtime.Value) brew_runtime.V
 	if args[2].type_name != 'NilClass' {
 		snapshot[struct_base_field_name(args[1])] = args[2]
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'BinData::Struct::Snapshot'
 		repr: snapshot.str()
 		map_data: snapshot
@@ -1020,15 +1020,15 @@ pub fn ruby_struct_l287_d33_anonymous(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby method `respond_to_missing?(symbol, include_all = false)` at line 291.
-pub fn ruby_struct_l291_d34_respond_to_missing(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_struct_l291_d34_respond_to_missing(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Snapshot#respond_to_missing? requires a receiver and symbol')
 	}
-	return brew_runtime.bool_value(struct_base_field_name(args[1]) in args[0].map_data)
+	return ruby.bool_value(struct_base_field_name(args[1]) in args[0].map_data)
 }
 
 // Ruby method `method_missing(symbol, *args)` at line 295.
-pub fn ruby_struct_l295_d35_method_missing(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_struct_l295_d35_method_missing(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Snapshot#method_missing requires a receiver and symbol')
 	}
@@ -1036,17 +1036,17 @@ pub fn ruby_struct_l295_d35_method_missing(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `do_read(io)` at line 302.
-pub fn ruby_struct_l302_d36_do_read(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_struct_l302_d36_do_read(args ...ruby.Value) ruby.Value {
 	return struct_do_read_boundary(args, true)
 }
 
 // Ruby method `do_write(io)` at line 320.
-pub fn ruby_struct_l320_d37_do_write(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_struct_l320_d37_do_write(args ...ruby.Value) ruby.Value {
 	return struct_do_write_boundary(args, true)
 }
 
 // Ruby method `sum_num_bytes_below_index(index)` at line 338.
-pub fn ruby_struct_l338_d38_sum_num_bytes_below_index(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_struct_l338_d38_sum_num_bytes_below_index(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('ByteAlignPlugin#sum_num_bytes_below_index requires a receiver and index')
 	}
@@ -1055,37 +1055,37 @@ pub fn ruby_struct_l338_d38_sum_num_bytes_below_index(args ...brew_runtime.Value
 }
 
 // Ruby method `bytes_to_align(obj, rel_offset)` at line 356.
-pub fn ruby_struct_l356_d39_bytes_to_align(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_struct_l356_d39_bytes_to_align(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('ByteAlignPlugin#bytes_to_align requires a receiver, object and offset')
 	}
 	field := struct_field_from_value(args[1])
-	align := field.definition.parameters['byte_align'] or { return brew_runtime.int_value(0) }
+	align := field.definition.parameters['byte_align'] or { return ruby.int_value(0) }
 	actual := align.as_int() or { panic(err) }
 	offset := args[2].as_int() or { panic(err) }
-	return brew_runtime.int_value(if actual > 0 { (actual - (offset % actual)) % actual } else { 0 })
+	return ruby.int_value(if actual > 0 { (actual - (offset % actual)) % actual } else { 0 })
 }
 
 // Ruby method `align_obj?(obj)` at line 361.
-pub fn ruby_struct_l361_d40_align_obj(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_struct_l361_d40_align_obj(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('ByteAlignPlugin#align_obj? requires a receiver and object')
 	}
-	return brew_runtime.bool_value('byte_align' in struct_field_from_value(args[1]).definition.parameters)
+	return ruby.bool_value('byte_align' in struct_field_from_value(args[1]).definition.parameters)
 }
 
 // Ruby method `sanitize_parameters!(obj_class, params)` at line 368.
-pub fn ruby_struct_l368_d41_sanitize_parameters(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_struct_l368_d41_sanitize_parameters(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('StructArgProcessor#sanitize_parameters! requires a receiver, class and parameters')
 	}
-	return brew_runtime.map_value(sanitize_struct_parameters(args[1], args[2].map_data) or {
+	return ruby.map_value(sanitize_struct_parameters(args[1], args[2].map_data) or {
 		panic(err)
 	})
 }
 
 // Ruby method `sanitize_endian(params)` at line 378.
-pub fn ruby_struct_l378_d42_sanitize_endian(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_struct_l378_d42_sanitize_endian(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('StructArgProcessor#sanitize_endian requires a receiver and parameters')
 	}
@@ -1093,11 +1093,11 @@ pub fn ruby_struct_l378_d42_sanitize_endian(args ...brew_runtime.Value) brew_run
 	if value := parameters['endian'] {
 		parameters['endian'] = sanitized_endian(value) or { panic(err) }
 	}
-	return brew_runtime.map_value(parameters)
+	return ruby.map_value(parameters)
 }
 
 // Ruby method `sanitize_search_prefix(params)` at line 382.
-pub fn ruby_struct_l382_d43_sanitize_search_prefix(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_struct_l382_d43_sanitize_search_prefix(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('StructArgProcessor#sanitize_search_prefix requires a receiver and parameters')
 	}
@@ -1110,13 +1110,13 @@ pub fn ruby_struct_l382_d43_sanitize_search_prefix(args ...brew_runtime.Value) b
 				prefixes << value
 			}
 		}
-		parameters['search_prefix'] = brew_runtime.string_array_value(prefixes)
+		parameters['search_prefix'] = ruby.string_array_value(prefixes)
 	}
-	return brew_runtime.map_value(parameters)
+	return ruby.map_value(parameters)
 }
 
 // Ruby method `sanitize_fields(obj_class, params)` at line 392.
-pub fn ruby_struct_l392_d44_sanitize_fields(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_struct_l392_d44_sanitize_fields(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('StructArgProcessor#sanitize_fields requires a receiver, class and parameters')
 	}
@@ -1128,11 +1128,11 @@ pub fn ruby_struct_l392_d44_sanitize_fields(args ...brew_runtime.Value) brew_run
 		}
 		parameters['fields'] = sanitized_struct_fields_value(fields)
 	}
-	return brew_runtime.map_value(parameters)
+	return ruby.map_value(parameters)
 }
 
 // Ruby method `sanitize_hide(params)` at line 403.
-pub fn ruby_struct_l403_d45_sanitize_hide(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_struct_l403_d45_sanitize_hide(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('StructArgProcessor#sanitize_hide requires a receiver and parameters')
 	}
@@ -1149,35 +1149,35 @@ pub fn ruby_struct_l403_d45_sanitize_hide(args ...brew_runtime.Value) brew_runti
 				selected << name
 			}
 		}
-		parameters['hide'] = brew_runtime.string_array_value(selected)
+		parameters['hide'] = ruby.string_array_value(selected)
 	}
-	return brew_runtime.map_value(parameters)
+	return ruby.map_value(parameters)
 }
 
 // Ruby method `sanitized_field_names(sanitized_fields)` at line 412.
-pub fn ruby_struct_l412_d46_sanitized_field_names(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_struct_l412_d46_sanitized_field_names(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('StructArgProcessor#sanitized_field_names requires a receiver and fields')
 	}
-	return brew_runtime.string_array_value(sanitized_struct_fields_from_value(args[1]).filter(it.has_name).map(it.name))
+	return ruby.string_array_value(sanitized_struct_fields_from_value(args[1]).filter(it.has_name).map(it.name))
 }
 
 // Ruby method `hidden_field_names(hidden)` at line 416.
-pub fn ruby_struct_l416_d47_hidden_field_names(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_struct_l416_d47_hidden_field_names(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('StructArgProcessor#hidden_field_names requires a receiver and hidden fields')
 	}
-	return brew_runtime.string_array_value(struct_array(args[1]).map(struct_symbol_name(it)))
+	return ruby.string_array_value(struct_array(args[1]).map(struct_symbol_name(it)))
 }
 
 // Ruby method `ensure_field_names_are_valid(obj_class, field_names)` at line 420.
-pub fn ruby_struct_l420_d48_ensure_field_names_are_valid(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_struct_l420_d48_ensure_field_names_are_valid(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('StructArgProcessor#ensure_field_names_are_valid requires a receiver, class and names')
 	}
 	names := args[2].as_array() or { panic(err) }.map(struct_symbol_name(it))
 	validate_struct_field_names(args[1], names) or { panic(err) }
-	return brew_runtime.string_array_value(names)
+	return ruby.string_array_value(names)
 }
 
 // Original Ruby source (line-for-line):

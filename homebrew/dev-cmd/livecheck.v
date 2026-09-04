@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 import homebrew.livecheck as livecheck_core
 import os
 
@@ -78,7 +78,7 @@ pub:
 	effective_extract_plist bool
 	loaded_strategy_paths   []string
 	ran_checks              bool
-	checks                  []brew_runtime.Value
+	checks                  []ruby.Value
 	stdout                  []string
 	stderr                  []string
 	show_progress           bool
@@ -91,13 +91,13 @@ pub:
 	sources LivecheckCommandSources
 }
 
-pub fn livecheck_command_input_boundary(input &LivecheckCommandInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::LivecheckCmd::Input', '', {
+pub fn livecheck_command_input_boundary(input &LivecheckCommandInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::LivecheckCmd::Input', '', {
 		'livecheck_command_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn livecheck_command_input_from_value(value brew_runtime.Value) &LivecheckCommandInput {
+fn livecheck_command_input_from_value(value ruby.Value) &LivecheckCommandInput {
 	address := value.attributes['livecheck_command_input_address'] or {
 		panic('invalid Livecheck command input')
 	}
@@ -249,21 +249,21 @@ fn livecheck_command_all_packages(sources LivecheckCommandSources, options Livec
 	return packages
 }
 
-fn livecheck_run_options_value(options LivecheckRunOptions) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'json':                 brew_runtime.bool_value(options.json)
-		'full_name':            brew_runtime.bool_value(options.full_name)
-		'handle_name_conflict': brew_runtime.bool_value(options.handle_name_conflict)
-		'check_resources':      brew_runtime.bool_value(options.check_resources)
-		'newer_only':           brew_runtime.bool_value(options.newer_only)
-		'extract_plist':        brew_runtime.bool_value(options.extract_plist)
-		'quiet':                brew_runtime.bool_value(options.quiet)
-		'debug':                brew_runtime.bool_value(options.debug)
-		'verbose':              brew_runtime.bool_value(options.verbose)
+fn livecheck_run_options_value(options LivecheckRunOptions) ruby.Value {
+	return ruby.map_value({
+		'json':                 ruby.bool_value(options.json)
+		'full_name':            ruby.bool_value(options.full_name)
+		'handle_name_conflict': ruby.bool_value(options.handle_name_conflict)
+		'check_resources':      ruby.bool_value(options.check_resources)
+		'newer_only':           ruby.bool_value(options.newer_only)
+		'extract_plist':        ruby.bool_value(options.extract_plist)
+		'quiet':                ruby.bool_value(options.quiet)
+		'debug':                ruby.bool_value(options.debug)
+		'verbose':              ruby.bool_value(options.verbose)
 	})
 }
 
-fn livecheck_command_info_name(info brew_runtime.Value) string {
+fn livecheck_command_info_name(info ruby.Value) string {
 	for key in ['formula', 'cask', 'resource'] {
 		if value := info.map_data[key] {
 			return value.as_string()
@@ -272,19 +272,19 @@ fn livecheck_command_info_name(info brew_runtime.Value) string {
 	return ''
 }
 
-fn livecheck_command_render(checks []brew_runtime.Value, options LivecheckCommandOptions, mut stdout []string, mut stderr []string) {
+fn livecheck_command_render(checks []ruby.Value, options LivecheckCommandOptions, mut stdout []string, mut stderr []string) {
 	if options.json {
-		stdout << brew_runtime.json_value_to_string(brew_runtime.array_value(checks))
+		stdout << ruby.json_value_to_string(ruby.array_value(checks))
 		return
 	}
 	for info in checks {
-		status := (info.map_data['status'] or { brew_runtime.string_value('') }).as_string()
+		status := (info.map_data['status'] or { ruby.string_value('') }).as_string()
 		if status == 'error' {
 			if options.quiet {
 				continue
 			}
 			name := livecheck_command_info_name(info)
-			messages := (info.map_data['messages'] or { brew_runtime.string_array_value([]string{}) }).as_string_array() or {
+			messages := (info.map_data['messages'] or { ruby.string_array_value([]string{}) }).as_string_array() or {
 				[]string{}
 			}
 			for message in messages {
@@ -292,12 +292,12 @@ fn livecheck_command_render(checks []brew_runtime.Value, options LivecheckComman
 			}
 			continue
 		}
-		stdout << livecheck_core.ruby_livecheck_l492_d10_self_print_latest_version(info, brew_runtime.map_value({
-			'verbose': brew_runtime.bool_value(options.verbose)
+		stdout << livecheck_core.ruby_livecheck_l492_d10_self_print_latest_version(info, ruby.map_value({
+			'verbose': ruby.bool_value(options.verbose)
 		})).as_string()
 		if resources := info.map_data['resources'] {
-			resource_lines := livecheck_core.ruby_livecheck_l515_d11_self_print_resources_info(resources, brew_runtime.map_value({
-				'verbose': brew_runtime.bool_value(options.verbose)
+			resource_lines := livecheck_core.ruby_livecheck_l515_d11_self_print_resources_info(resources, ruby.map_value({
+				'verbose': ruby.bool_value(options.verbose)
 			})).as_string()
 			if resource_lines != '' {
 				stdout << resource_lines
@@ -383,13 +383,13 @@ pub fn run_livecheck_command(options LivecheckCommandOptions, sources LivecheckC
 			stdout << options.livecheck_watchlist
 		}
 	}
-	mut checks := []brew_runtime.Value{}
+	mut checks := []ruby.Value{}
 	mut ran_checks := false
 	if selected.len > 0 {
 		ran_checks = true
 		package_values := selected.map(livecheck_core.livecheck_package_value(it))
-		checks = livecheck_core.ruby_livecheck_l160_d5_self_run_checks(brew_runtime.array_value(package_values), livecheck_run_options_value(run_options)).as_array() or {
-			[]brew_runtime.Value{}
+		checks = livecheck_core.ruby_livecheck_l160_d5_self_run_checks(ruby.array_value(package_values), livecheck_run_options_value(run_options)).as_array() or {
+			[]ruby.Value{}
 		}
 		livecheck_command_render(checks, options, mut stdout, mut stderr)
 		if options.newer_only && checks.len == 0 && !options.debug && !options.json && !options.quiet {
@@ -414,50 +414,50 @@ pub fn run_livecheck_command(options LivecheckCommandOptions, sources LivecheckC
 	}
 }
 
-fn livecheck_command_result_value(result LivecheckCommandResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'bundler_groups':          brew_runtime.string_array_value(result.bundler_groups)
-		'selection':               brew_runtime.string_value(result.selection)
-		'eval_all':                brew_runtime.bool_value(result.eval_all)
-		'selected':                brew_runtime.array_value(result.selected.map(livecheck_core.livecheck_package_value(it)))
-		'skipped_autobump':        brew_runtime.bool_value(result.skipped_autobump)
-		'skip_messages':           brew_runtime.string_array_value(result.skip_messages)
+fn livecheck_command_result_value(result LivecheckCommandResult) ruby.Value {
+	return ruby.map_value({
+		'bundler_groups':          ruby.string_array_value(result.bundler_groups)
+		'selection':               ruby.string_value(result.selection)
+		'eval_all':                ruby.bool_value(result.eval_all)
+		'selected':                ruby.array_value(result.selected.map(livecheck_core.livecheck_package_value(it)))
+		'skipped_autobump':        ruby.bool_value(result.skipped_autobump)
+		'skip_messages':           ruby.string_array_value(result.skip_messages)
 		'run_options':             livecheck_run_options_value(result.run_options)
-		'effective_extract_plist': brew_runtime.bool_value(result.effective_extract_plist)
-		'loaded_strategy_paths':   brew_runtime.string_array_value(result.loaded_strategy_paths)
-		'ran_checks':              brew_runtime.bool_value(result.ran_checks)
-		'checks':                  brew_runtime.array_value(result.checks)
-		'stdout':                  brew_runtime.string_array_value(result.stdout)
-		'stderr':                  brew_runtime.string_array_value(result.stderr)
-		'show_progress':           brew_runtime.bool_value(result.show_progress)
+		'effective_extract_plist': ruby.bool_value(result.effective_extract_plist)
+		'loaded_strategy_paths':   ruby.string_array_value(result.loaded_strategy_paths)
+		'ran_checks':              ruby.bool_value(result.ran_checks)
+		'checks':                  ruby.array_value(result.checks)
+		'stdout':                  ruby.string_array_value(result.stdout)
+		'stderr':                  ruby.string_array_value(result.stderr)
+		'show_progress':           ruby.bool_value(result.show_progress)
 	})
 }
 
 // Ruby method `run` at line 57.
-pub fn ruby_livecheck_l57_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_l57_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'command input is required')
+		return ruby.object_value('ArgumentError', 'command input is required')
 	}
 	input := livecheck_command_input_from_value(args[0])
 	result := run_livecheck_command(input.options, input.sources) or {
-		return brew_runtime.object_value('UsageError', err.msg())
+		return ruby.object_value('UsageError', err.msg())
 	}
 	return livecheck_command_result_value(result)
 }
 
 // Ruby method `watchlist_path` at line 155.
-pub fn ruby_livecheck_l155_d2_watchlist_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_l155_d2_watchlist_path(args ...ruby.Value) ruby.Value {
 	configured := if args.len > 0 { args[0].as_string() } else { '' }
 	working_directory := if args.len > 1 { args[1].as_string() } else { os.getwd() }
 	user_home := if args.len > 2 { args[2].as_string() } else { os.getenv('HOME') }
-	return brew_runtime.string_value(livecheck_watchlist_path(configured, working_directory, user_home))
+	return ruby.string_value(livecheck_watchlist_path(configured, working_directory, user_home))
 }
 
 // Ruby method `skip_autobump?` at line 160.
-pub fn ruby_livecheck_l160_d3_skip_autobump(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_l160_d3_skip_autobump(args ...ruby.Value) ruby.Value {
 	autobump := args.len > 0 && (args[0].as_bool() or { false })
 	livecheck_autobump := args.len > 1 && (args[1].as_bool() or { false })
-	return brew_runtime.bool_value(livecheck_skip_autobump(autobump, livecheck_autobump))
+	return ruby.bool_value(livecheck_skip_autobump(autobump, livecheck_autobump))
 }
 
 // Original Ruby source (line-for-line):

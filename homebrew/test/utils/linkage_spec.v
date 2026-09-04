@@ -1,14 +1,14 @@
 module utils
 
-import brew_runtime
+import ruby
 import homebrew.utils as brew_utils
 
 // Translated from Homebrew/brew `test/utils/linkage_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:suffix) { OS.mac? ? ".dylib" : ".so" }` at line 9.
-pub fn ruby_linkage_spec_l9_d1_suffix(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(if brew_runtime.kernel_info().name == 'Darwin' {
+pub fn ruby_linkage_spec_l9_d1_suffix(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(if ruby.kernel_info().name == 'Darwin' {
 		'.dylib'
 	} else {
 		'.so'
@@ -16,29 +16,29 @@ pub fn ruby_linkage_spec_l9_d1_suffix(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby it `it "returns true if the binary is linked to the library" do` at line 40.
-pub fn ruby_linkage_spec_l40_d2_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_linkage_spec_l40_d2_returns(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(brew_utils.binary_linked_to_library(args[0].as_string(),
+	return ruby.bool_value(brew_utils.binary_linked_to_library(args[0].as_string(),
 		args[1].as_string(), if args.len > 2 { args[2].as_string() } else { '' }))
 }
 
 // Ruby it `it "returns false if the binary is not linked to the library" do` at line 46.
-pub fn ruby_linkage_spec_l46_d3_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_linkage_spec_l46_d3_returns(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(!brew_utils.binary_linked_to_library(args[0].as_string(),
+	return ruby.bool_value(!brew_utils.binary_linked_to_library(args[0].as_string(),
 		args[1].as_string(), if args.len > 2 { args[2].as_string() } else { '' }))
 }
 
 // Ruby it `it "can check if the binary is linked to a non-brew library" do` at line 52.
-pub fn ruby_linkage_spec_l52_d4_can(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_linkage_spec_l52_d4_can(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(brew_utils.binary_linked_to_library(args[0].as_string(),
+	return ruby.bool_value(brew_utils.binary_linked_to_library(args[0].as_string(),
 		args[1].as_string(), ''))
 }
 

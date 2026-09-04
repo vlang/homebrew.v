@@ -1,6 +1,6 @@
 module test
 
-import brew_runtime
+import ruby
 import homebrew
 import homebrew.extend.os.linux
 import homebrew.extend.os.mac
@@ -9,135 +9,135 @@ import homebrew.extend.os.mac
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "returns true on macOS", :needs_macos do` at line 12.
-pub fn ruby_simulate_system_spec_l12_d1_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(mac.simulating_or_running_on_macos(''))
+pub fn ruby_simulate_system_spec_l12_d1_returns(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(mac.simulating_or_running_on_macos(''))
 }
 
 // Ruby it `it "returns false on Linux", :needs_linux do` at line 17.
-pub fn ruby_simulate_system_spec_l17_d2_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(!homebrew.new_system_simulation('linux', 'intel').simulating_or_running_on_macos())
+pub fn ruby_simulate_system_spec_l17_d2_returns(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(!homebrew.new_system_simulation('linux', 'intel').simulating_or_running_on_macos())
 }
 
 // Ruby it `it "returns false on macOS when simulating Linux", :needs_macos do` at line 22.
-pub fn ruby_simulate_system_spec_l22_d3_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(!mac.simulating_or_running_on_macos('linux'))
+pub fn ruby_simulate_system_spec_l22_d3_returns(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(!mac.simulating_or_running_on_macos('linux'))
 }
 
 // Ruby it `it "returns true on Linux when simulating a generic macOS version", :needs_linux do` at line 28.
-pub fn ruby_simulate_system_spec_l28_d4_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_simulate_system_spec_l28_d4_returns(args ...ruby.Value) ruby.Value {
 	mut state := homebrew.new_system_simulation('linux', 'intel')
-	state.set_os('macos') or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(state.simulating_or_running_on_macos())
+	state.set_os('macos') or { return ruby.bool_value(false) }
+	return ruby.bool_value(state.simulating_or_running_on_macos())
 }
 
 // Ruby it `it "returns true on Linux when simulating a specific macOS version", :needs_linux do` at line 34.
-pub fn ruby_simulate_system_spec_l34_d5_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_simulate_system_spec_l34_d5_returns(args ...ruby.Value) ruby.Value {
 	mut state := homebrew.new_system_simulation('linux', 'intel')
-	state.set_os('monterey') or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(state.simulating_or_running_on_macos())
+	state.set_os('monterey') or { return ruby.bool_value(false) }
+	return ruby.bool_value(state.simulating_or_running_on_macos())
 }
 
 // Ruby it `it "returns true on Linux with HOMEBREW_SIMULATE_MACOS_ON_LINUX", :needs_linux do` at line 40.
-pub fn ruby_simulate_system_spec_l40_d6_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_simulate_system_spec_l40_d6_returns(args ...ruby.Value) ruby.Value {
 	effective := linux.effective_os('', true, 'sequoia')
-	return brew_runtime.bool_value(mac.simulating_or_running_on_macos(effective))
+	return ruby.bool_value(mac.simulating_or_running_on_macos(effective))
 }
 
 // Ruby it `it "returns true on Linux", :needs_linux do` at line 48.
-pub fn ruby_simulate_system_spec_l48_d7_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(linux.simulating_or_running_on_linux(''))
+pub fn ruby_simulate_system_spec_l48_d7_returns(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(linux.simulating_or_running_on_linux(''))
 }
 
 // Ruby it `it "returns false on macOS", :needs_macos do` at line 53.
-pub fn ruby_simulate_system_spec_l53_d8_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(!homebrew.new_system_simulation('macos', 'arm').simulating_or_running_on_linux())
+pub fn ruby_simulate_system_spec_l53_d8_returns(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(!homebrew.new_system_simulation('macos', 'arm').simulating_or_running_on_linux())
 }
 
 // Ruby it `it "returns true on macOS when simulating Linux", :needs_macos do` at line 58.
-pub fn ruby_simulate_system_spec_l58_d9_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(linux.simulating_or_running_on_linux('linux'))
+pub fn ruby_simulate_system_spec_l58_d9_returns(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(linux.simulating_or_running_on_linux('linux'))
 }
 
 // Ruby it `it "returns false on Linux when simulating a generic macOS version", :needs_linux do` at line 64.
-pub fn ruby_simulate_system_spec_l64_d10_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(!linux.simulating_or_running_on_linux('macos'))
+pub fn ruby_simulate_system_spec_l64_d10_returns(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(!linux.simulating_or_running_on_linux('macos'))
 }
 
 // Ruby it `it "returns false on Linux when simulating a specific macOS version", :needs_linux do` at line 70.
-pub fn ruby_simulate_system_spec_l70_d11_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(!linux.simulating_or_running_on_linux('monterey'))
+pub fn ruby_simulate_system_spec_l70_d11_returns(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(!linux.simulating_or_running_on_linux('monterey'))
 }
 
 // Ruby it `it "returns false on Linux with HOMEBREW_SIMULATE_MACOS_ON_LINUX", :needs_linux do` at line 76.
-pub fn ruby_simulate_system_spec_l76_d12_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(!linux.simulating_or_running_on_linux(linux.effective_os('',
+pub fn ruby_simulate_system_spec_l76_d12_returns(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(!linux.simulating_or_running_on_linux(linux.effective_os('',
 		true, 'sequoia')))
 }
 
 // Ruby it `it "returns false without any simulation" do` at line 84.
-pub fn ruby_simulate_system_spec_l84_d13_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(!homebrew.new_system_simulation('linux', 'intel').simulating())
+pub fn ruby_simulate_system_spec_l84_d13_returns(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(!homebrew.new_system_simulation('linux', 'intel').simulating())
 }
 
 // Ruby it `it "returns true when simulating an OS" do` at line 89.
-pub fn ruby_simulate_system_spec_l89_d14_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_simulate_system_spec_l89_d14_returns(args ...ruby.Value) ruby.Value {
 	mut state := homebrew.new_system_simulation('linux', 'intel')
-	state.set_os('linux') or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(state.simulating())
+	state.set_os('linux') or { return ruby.bool_value(false) }
+	return ruby.bool_value(state.simulating())
 }
 
 // Ruby it `it "returns true when simulating an architecture" do` at line 95.
-pub fn ruby_simulate_system_spec_l95_d15_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_simulate_system_spec_l95_d15_returns(args ...ruby.Value) ruby.Value {
 	mut state := homebrew.new_system_simulation('linux', 'intel')
-	state.set_arch('arm') or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(state.simulating())
+	state.set_arch('arm') or { return ruby.bool_value(false) }
+	return ruby.bool_value(state.simulating())
 }
 
 // Ruby it `it "returns the current architecture" do` at line 103.
-pub fn ruby_simulate_system_spec_l103_d16_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(homebrew.new_system_simulation('linux', 'intel').current_arch() == 'intel')
+pub fn ruby_simulate_system_spec_l103_d16_returns(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(homebrew.new_system_simulation('linux', 'intel').current_arch() == 'intel')
 }
 
 // Ruby it `it "returns the simulated architecture" do` at line 108.
-pub fn ruby_simulate_system_spec_l108_d17_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_simulate_system_spec_l108_d17_returns(args ...ruby.Value) ruby.Value {
 	mut state := homebrew.new_system_simulation('linux', 'intel')
-	state.set_arch('arm') or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(state.current_arch() == 'arm')
+	state.set_arch('arm') or { return ruby.bool_value(false) }
+	return ruby.bool_value(state.current_arch() == 'arm')
 }
 
 // Ruby it `it "returns the current macOS version on macOS", :needs_macos do` at line 121.
-pub fn ruby_simulate_system_spec_l121_d18_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(mac.current_os('', 'sonoma') == 'sonoma')
+pub fn ruby_simulate_system_spec_l121_d18_returns(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(mac.current_os('', 'sonoma') == 'sonoma')
 }
 
 // Ruby it `it "returns `:linux` on Linux", :needs_linux do` at line 126.
-pub fn ruby_simulate_system_spec_l126_d19_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(linux.current_os('') == 'linux')
+pub fn ruby_simulate_system_spec_l126_d19_returns(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(linux.current_os('') == 'linux')
 }
 
 // Ruby it `it "returns `:linux` when simulating Linux on macOS", :needs_macos do` at line 131.
-pub fn ruby_simulate_system_spec_l131_d20_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(linux.current_os('linux') == 'linux')
+pub fn ruby_simulate_system_spec_l131_d20_returns(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(linux.current_os('linux') == 'linux')
 }
 
 // Ruby it `it "returns `:macos` when simulating a generic macOS version on Linux", :needs_linux do` at line 137.
-pub fn ruby_simulate_system_spec_l137_d21_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(linux.current_os('macos') == 'macos')
+pub fn ruby_simulate_system_spec_l137_d21_returns(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(linux.current_os('macos') == 'macos')
 }
 
 // Ruby it `it "returns `:macos` when simulating a specific macOS version on Linux", :needs_linux do` at line 143.
-pub fn ruby_simulate_system_spec_l143_d22_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(linux.current_os('monterey') == 'monterey')
+pub fn ruby_simulate_system_spec_l143_d22_returns(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(linux.current_os('monterey') == 'monterey')
 }
 
 // Ruby it `it "returns the current macOS version on macOS with HOMEBREW_SIMULATE_MACOS_ON_LINUX", :needs_macos do` at line 149.
-pub fn ruby_simulate_system_spec_l149_d23_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(mac.current_os('', 'sonoma') == 'sonoma')
+pub fn ruby_simulate_system_spec_l149_d23_returns(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(mac.current_os('', 'sonoma') == 'sonoma')
 }
 
 // Ruby it `it "returns the newest supported macOS symbol on Linux with HOMEBREW_SIMULATE_MACOS_ON_LINUX", :needs_linux do` at line 155.
-pub fn ruby_simulate_system_spec_l155_d24_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(linux.current_os(linux.effective_os('', true, 'sequoia')) == 'sequoia')
+pub fn ruby_simulate_system_spec_l155_d24_returns(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(linux.current_os(linux.effective_os('', true, 'sequoia')) == 'sequoia')
 }
 
 // Original Ruby source (line-for-line):

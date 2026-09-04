@@ -1,6 +1,6 @@
 module unpack_strategy
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `unpack_strategy/subversion.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -16,7 +16,7 @@ pub fn ruby_subversion_l17_d2_extract_to_dir(path string, unpack_dir string, bas
 }
 
 pub fn subversion_can_extract(path string) bool {
-	return directory_can_extract(path) && brew_runtime.is_dir(brew_runtime.join_path(path, '.svn'))
+	return directory_can_extract(path) && ruby.is_dir(ruby.join_path(path, '.svn'))
 }
 
 pub fn subversion_extract_to_dir(path string, unpack_dir string, basename string, verbose bool) ! {

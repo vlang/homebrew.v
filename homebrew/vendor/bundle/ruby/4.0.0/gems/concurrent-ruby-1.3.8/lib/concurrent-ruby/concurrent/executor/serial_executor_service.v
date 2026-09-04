@@ -1,13 +1,13 @@
 module executor
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/executor/serial_executor_service.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `serialized?` at line 30.
-pub fn ruby_serial_executor_service_l30_d1_serialized(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(true)
+pub fn ruby_serial_executor_service_l30_d1_serialized(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(true)
 }
 
 // Original Ruby source (line-for-line):

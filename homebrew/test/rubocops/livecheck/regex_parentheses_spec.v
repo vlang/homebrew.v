@@ -1,27 +1,27 @@
 module livecheck
 
-import brew_runtime
+import ruby
 import homebrew.rubocops as livecheck_core
 
 // Translated from Homebrew/brew `test/rubocops/livecheck/regex_parentheses_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
-pub fn ruby_regex_parentheses_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::LivecheckRegexParentheses', 'FormulaAudit/LivecheckRegexParentheses')
+pub fn ruby_regex_parentheses_spec_l7_d1_cop(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('RuboCop::Cop::FormulaAudit::LivecheckRegexParentheses', 'FormulaAudit/LivecheckRegexParentheses')
 }
 
 // Ruby it `it "reports an offense when the `regex` call in the `livecheck` block does not use parentheses" do` at line 9.
-pub fn ruby_regex_parentheses_spec_l9_d2_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_regex_parentheses_spec_l9_d2_reports(args ...ruby.Value) ruby.Value {
 	source := 'livecheck do\n  url :stable\n  regex %r{formula-(\\d+(?:\\.\\d+)+)\\.t}i\nend'
 	problems := livecheck_core.audit_livecheck_regex_parentheses(source)
-	return brew_runtime.bool_value(problems.len == 1 && source[problems[0].begin_pos..problems[0].end_pos] == 'regex %r{formula-(\\d+(?:\\.\\d+)+)\\.t}i' && livecheck_core.correct_livecheck(source, problems).contains('regex(%r{formula-(\\d+(?:\\.\\d+)+)\\.t}i)'))
+	return ruby.bool_value(problems.len == 1 && source[problems[0].begin_pos..problems[0].end_pos] == 'regex %r{formula-(\\d+(?:\\.\\d+)+)\\.t}i' && livecheck_core.correct_livecheck(source, problems).contains('regex(%r{formula-(\\d+(?:\\.\\d+)+)\\.t}i)'))
 }
 
 // Ruby it `it "reports no offenses when the `regex` call in the `livecheck` block uses parentheses" do` at line 34.
-pub fn ruby_regex_parentheses_spec_l34_d3_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_regex_parentheses_spec_l34_d3_reports(args ...ruby.Value) ruby.Value {
 	source := 'livecheck do\n  url :stable\n  regex(%r{formula-(\\d+(?:\\.\\d+)+)\\.t}i)\nend'
-	return brew_runtime.bool_value(livecheck_core.audit_livecheck_regex_parentheses(source).len == 0)
+	return ruby.bool_value(livecheck_core.audit_livecheck_regex_parentheses(source).len == 0)
 }
 
 // Original Ruby source (line-for-line):

@@ -1,51 +1,51 @@
 module types
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/private/types/not_typed.rb`.
 // The original source is retained below until every stub has a typed V body.
 const not_typed_validation_error = 'Validation is being done on a `NotTyped`. Please report this bug at https://github.com/sorbet/sorbet/issues'
 
-pub fn not_typed_build_type() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+pub fn not_typed_build_type() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 pub fn not_typed_name() string {
 	return '<NOT-TYPED>'
 }
 
-pub fn not_typed_valid(_ brew_runtime.Value) !bool {
+pub fn not_typed_valid(_ ruby.Value) !bool {
 	return error(not_typed_validation_error)
 }
 
-pub fn not_typed_subtype_of_single(_ brew_runtime.Value) !bool {
+pub fn not_typed_subtype_of_single(_ ruby.Value) !bool {
 	return error(not_typed_validation_error)
 }
 
 // Ruby method `build_type` at line 9.
-pub fn ruby_not_typed_l9_d1_build_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_not_typed_l9_d1_build_type(args ...ruby.Value) ruby.Value {
 	return not_typed_build_type()
 }
 
 // Ruby method `name` at line 14.
-pub fn ruby_not_typed_l14_d2_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(not_typed_name())
+pub fn ruby_not_typed_l14_d2_name(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(not_typed_name())
 }
 
 // Ruby method `valid?(obj)` at line 19.
-pub fn ruby_not_typed_l19_d3_valid(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_not_typed_l19_d3_valid(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('NotTyped#valid? requires an object')
 	}
-	return brew_runtime.bool_value(not_typed_valid(args[1]) or { panic(err) })
+	return ruby.bool_value(not_typed_valid(args[1]) or { panic(err) })
 }
 
 // Ruby method `subtype_of_single?(other)` at line 24.
-pub fn ruby_not_typed_l24_d4_subtype_of_single(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_not_typed_l24_d4_subtype_of_single(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('NotTyped#subtype_of_single? requires another type')
 	}
-	return brew_runtime.bool_value(not_typed_subtype_of_single(args[1]) or { panic(err) })
+	return ruby.bool_value(not_typed_subtype_of_single(args[1]) or { panic(err) })
 }
 
 // Original Ruby source (line-for-line):

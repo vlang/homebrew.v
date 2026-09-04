@@ -1,6 +1,6 @@
 module linux
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `extend/os/linux/development_tools.rb`.
@@ -109,80 +109,80 @@ pub fn (tools LinuxDevelopmentTools) build_system_info() map[string]string {
 	return result
 }
 
-fn linux_development_tools_value(tools &LinuxDevelopmentTools) brew_runtime.Value {
-	return brew_runtime.structured_value('DevelopmentTools', '', {
+fn linux_development_tools_value(tools &LinuxDevelopmentTools) ruby.Value {
+	return ruby.structured_value('DevelopmentTools', '', {
 		'linux_development_tools_address': u64(voidptr(tools)).str()
 	})
 }
 
-fn linux_development_tools_from_args(args []brew_runtime.Value) (&LinuxDevelopmentTools, int) {
+fn linux_development_tools_from_args(args []ruby.Value) (&LinuxDevelopmentTools, int) {
 	if args.len > 0 && 'linux_development_tools_address' in args[0].attributes {
 		return unsafe { &LinuxDevelopmentTools(voidptr(args[0].attributes['linux_development_tools_address'].u64())) }, 1
 	}
 	return new_linux_development_tools(os.getenv('HOMEBREW_PREFIX')), 0
 }
 
-pub fn linux_development_tools_boundary(tools &LinuxDevelopmentTools) brew_runtime.Value {
+pub fn linux_development_tools_boundary(tools &LinuxDevelopmentTools) ruby.Value {
 	return linux_development_tools_value(tools)
 }
 
 // Ruby method `locate(tool)` at line 13.
-pub fn ruby_development_tools_l13_d1_locate(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_development_tools_l13_d1_locate(args ...ruby.Value) ruby.Value {
 	mut tools, offset := linux_development_tools_from_args(args)
 	if args.len <= offset {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	path := tools.locate(args[offset].as_string()) or {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
-	return brew_runtime.object_value('Pathname', path)
+	return ruby.object_value('Pathname', path)
 }
 
 // Ruby method `default_compiler = :gcc` at line 31.
-pub fn ruby_development_tools_l31_d2_default_compiler(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Symbol', 'gcc')
+pub fn ruby_development_tools_l31_d2_default_compiler(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Symbol', 'gcc')
 }
 
 // Ruby method `installation_instructions` at line 34.
-pub fn ruby_development_tools_l34_d3_installation_instructions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(linux_development_tools_installation_instructions())
+pub fn ruby_development_tools_l34_d3_installation_instructions(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(linux_development_tools_installation_instructions())
 }
 
 // Ruby method `custom_installation_instructions` at line 43.
-pub fn ruby_development_tools_l43_d4_custom_installation_instructions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(linux_development_tools_custom_installation_instructions())
+pub fn ruby_development_tools_l43_d4_custom_installation_instructions(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(linux_development_tools_custom_installation_instructions())
 }
 
 // Ruby method `needs_libc_formula?` at line 51.
-pub fn ruby_development_tools_l51_d5_needs_libc_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_development_tools_l51_d5_needs_libc_formula(args ...ruby.Value) ruby.Value {
 	mut tools, _ := linux_development_tools_from_args(args)
-	return brew_runtime.bool_value(tools.needs_libc_formula())
+	return ruby.bool_value(tools.needs_libc_formula())
 }
 
 // Ruby method `host_gcc_path` at line 63.
-pub fn ruby_development_tools_l63_d6_host_gcc_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_development_tools_l63_d6_host_gcc_path(args ...ruby.Value) ruby.Value {
 	tools, _ := linux_development_tools_from_args(args)
-	return brew_runtime.object_value('Pathname', tools.host_gcc_path())
+	return ruby.object_value('Pathname', tools.host_gcc_path())
 }
 
 // Ruby method `needs_compiler_formula?` at line 72.
-pub fn ruby_development_tools_l72_d7_needs_compiler_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_development_tools_l72_d7_needs_compiler_formula(args ...ruby.Value) ruby.Value {
 	mut tools, _ := linux_development_tools_from_args(args)
-	return brew_runtime.bool_value(tools.needs_compiler_formula())
+	return ruby.bool_value(tools.needs_compiler_formula())
 }
 
 // Ruby method `build_system_info` at line 84.
-pub fn ruby_development_tools_l84_d8_build_system_info(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_development_tools_l84_d8_build_system_info(args ...ruby.Value) ruby.Value {
 	tools, _ := linux_development_tools_from_args(args)
-	mut result := map[string]brew_runtime.Value{}
+	mut result := map[string]ruby.Value{}
 	for key, value in tools.build_system_info() {
 		result[key] = if value == '' {
-			brew_runtime.object_value('NilClass', 'nil')
+			ruby.object_value('NilClass', 'nil')
 		} else {
-			brew_runtime.string_value(value)
+			ruby.string_value(value)
 		}
 	}
-	return brew_runtime.map_value(result)
+	return ruby.map_value(result)
 }
 
 // Original Ruby source (line-for-line):

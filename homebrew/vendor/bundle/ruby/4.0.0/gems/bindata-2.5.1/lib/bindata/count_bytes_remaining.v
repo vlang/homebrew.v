@@ -1,17 +1,17 @@
 module bindata
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/bindata-2.5.1/lib/bindata/count_bytes_remaining.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `value_to_binary_string(val)` at line 22.
-pub fn ruby_count_bytes_remaining_l22_d1_value_to_binary_string(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('')
+pub fn ruby_count_bytes_remaining_l22_d1_value_to_binary_string(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('')
 }
 
 // Ruby method `read_and_return_value(io)` at line 26.
-pub fn ruby_count_bytes_remaining_l26_d2_read_and_return_value(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_count_bytes_remaining_l26_d2_read_and_return_value(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('CountBytesRemaining#read_and_return_value requires an IO value')
 	}
@@ -22,12 +22,12 @@ pub fn ruby_count_bytes_remaining_l26_d2_read_and_return_value(args ...brew_runt
 			panic('IO value has no num_bytes_remaining attribute')
 		}).i64()
 	}
-	return brew_runtime.int_value(remaining)
+	return ruby.int_value(remaining)
 }
 
 // Ruby method `sensible_default` at line 30.
-pub fn ruby_count_bytes_remaining_l30_d3_sensible_default(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(0)
+pub fn ruby_count_bytes_remaining_l30_d3_sensible_default(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(0)
 }
 
 // Original Ruby source (line-for-line):

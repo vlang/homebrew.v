@@ -1,6 +1,6 @@
 module linux
 
-import brew_runtime
+import ruby
 import homebrew
 
 // Translated from Homebrew/brew `os/linux/glibc.rb`.
@@ -33,7 +33,7 @@ pub fn glibc_version_from_ldd_output(output string) homebrew.Version {
 }
 
 pub fn glibc_version_from_program(program string) homebrew.Version {
-	result := brew_runtime.run_command(program, ['--version'])
+	result := ruby.run_command(program, ['--version'])
 	return glibc_version_from_ldd_output(result.output)
 }
 
@@ -42,13 +42,13 @@ pub fn system_glibc_version() homebrew.Version {
 }
 
 pub fn brewed_glibc_version() homebrew.Version {
-	prefix := brew_runtime.environment_value('HOMEBREW_PREFIX')
-	version := glibc_version_from_program(brew_runtime.join_path(prefix, 'opt/glibc/bin/ldd'))
+	prefix := ruby.environment_value('HOMEBREW_PREFIX')
+	version := glibc_version_from_program(ruby.join_path(prefix, 'opt/glibc/bin/ldd'))
 	return if version.is_null() { system_glibc_version() } else { version }
 }
 
 pub fn minimum_glibc_version() !homebrew.Version {
-	value := brew_runtime.environment_value('HOMEBREW_LINUX_MINIMUM_GLIBC_VERSION')
+	value := ruby.environment_value('HOMEBREW_LINUX_MINIMUM_GLIBC_VERSION')
 	if value == '' {
 		return error('HOMEBREW_LINUX_MINIMUM_GLIBC_VERSION is not set')
 	}

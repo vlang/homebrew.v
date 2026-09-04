@@ -1,6 +1,6 @@
 module artifact
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `cask/artifact/qlplugin.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -40,14 +40,14 @@ pub fn uninstall_qlplugin(artifact MovedArtifact,
 }
 
 // Ruby method `self.english_name` at line 11.
-pub fn ruby_qlplugin_l11_d1_self_english_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('Quick Look Plugin')
+pub fn ruby_qlplugin_l11_d1_self_english_name(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('Quick Look Plugin')
 }
 
 // Ruby method `install_phase(adopt: false, auto_updates: false, force: false, verbose: false, predecessor: nil,` at line 28.
-pub fn ruby_qlplugin_l28_d2_install_phase(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_qlplugin_l28_d2_install_phase(args ...ruby.Value) ruby.Value {
 	artifact := moved_adapter_artifact(args) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	options := if args.len > 1 {
 		moved_install_options_from_value(args[1])
@@ -58,9 +58,9 @@ pub fn ruby_qlplugin_l28_d2_install_phase(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby method `uninstall_phase(skip: false, force: false, adopt: false, verbose: false, successor: nil, upgrade: false,` at line 47.
-pub fn ruby_qlplugin_l47_d3_uninstall_phase(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_qlplugin_l47_d3_uninstall_phase(args ...ruby.Value) ruby.Value {
 	artifact := moved_adapter_artifact(args) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	options := if args.len > 1 {
 		moved_uninstall_options_from_value(args[1])
@@ -71,7 +71,7 @@ pub fn ruby_qlplugin_l47_d3_uninstall_phase(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby method `reload_quicklook(command: SystemCommand)` at line 56.
-pub fn ruby_qlplugin_l56_d4_reload_quicklook(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_qlplugin_l56_d4_reload_quicklook(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut result := MovedOperationResult{}
 	reload_quicklook_with_command(default_artifact_command_runner, mut result)

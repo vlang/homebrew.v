@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 import homebrew.download_strategy
 import homebrew.utils
 import os
@@ -550,7 +550,7 @@ pub fn (auditor &ResourceAuditor) url_required() !string {
 fn resource_auditor_curl_runner(program string, arguments []string, environment map[string]string,
 	timeout ?f64) !utils.CurlCommandResult {
 	_ = timeout
-	result := brew_runtime.run_command_with_environment(program, arguments, environment)
+	result := ruby.run_command_with_environment(program, arguments, environment)
 	return utils.CurlCommandResult{
 		stdout: result.output
 		exit_status: result.exit_code
@@ -592,7 +592,7 @@ fn resource_auditor_default_http_mirror_checker(url string,
 		hash_needed: true
 		use_homebrew_curl: use_homebrew_curl
 		specs: {
-			'proto_redir': brew_runtime.string_value('=http')
+			'proto_redir': ruby.string_value('=http')
 		}
 	})!
 	return ResourceAuditorHttpDetails{
@@ -604,17 +604,17 @@ fn resource_auditor_default_http_mirror_checker(url string,
 
 fn resource_auditor_default_git_remote_exists(url string) bool {
 	git := os.find_abs_path_of_executable('git') or { return true }
-	return brew_runtime.run_command(git, ['ls-remote', '--end-of-options', url]).exit_code == 0
+	return ruby.run_command(git, ['ls-remote', '--end-of-options', url]).exit_code == 0
 }
 
 fn resource_auditor_default_svn_remote_exists(url string) bool {
 	svn := os.find_abs_path_of_executable('svn') or { return true }
-	return brew_runtime.run_command(svn, ['ls', url, '--depth', 'empty']).exit_code == 0
+	return ruby.run_command(svn, ['ls', url, '--depth', 'empty']).exit_code == 0
 }
 
 fn resource_auditor_default_branch_detector(url string) ?string {
 	git := os.find_abs_path_of_executable('git') or { return none }
-	result := brew_runtime.run_command(git, ['ls-remote', '--symref', '--end-of-options', url, 'HEAD'])
+	result := ruby.run_command(git, ['ls-remote', '--symref', '--end-of-options', url, 'HEAD'])
 	if result.exit_code != 0 {
 		return none
 	}
@@ -626,34 +626,34 @@ fn resource_auditor_default_branch_detector(url string) ?string {
 	return rest[..end]
 }
 
-fn resource_auditor_resource_value(resource &ResourceAuditorResource) brew_runtime.Value {
-	return brew_runtime.structured_value('Resource', resource.name, {
+fn resource_auditor_resource_value(resource &ResourceAuditorResource) ruby.Value {
+	return ruby.structured_value('Resource', resource.name, {
 		'resource_auditor_resource_address': u64(voidptr(resource)).str()
 	})
 }
 
-pub fn resource_auditor_resource_boundary(resource &ResourceAuditorResource) brew_runtime.Value {
+pub fn resource_auditor_resource_boundary(resource &ResourceAuditorResource) ruby.Value {
 	return resource_auditor_resource_value(resource)
 }
 
-fn resource_auditor_resource_from_value(value brew_runtime.Value) ResourceAuditorResource {
+fn resource_auditor_resource_from_value(value ruby.Value) ResourceAuditorResource {
 	address := value.attributes['resource_auditor_resource_address'] or {
 		panic('ResourceAuditor#initialize requires a translated Resource receiver')
 	}
 	return unsafe { *&ResourceAuditorResource(voidptr(address.u64())) }
 }
 
-fn resource_auditor_value(auditor &ResourceAuditor) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::ResourceAuditor', '#<Homebrew::ResourceAuditor>', {
+fn resource_auditor_value(auditor &ResourceAuditor) ruby.Value {
+	return ruby.structured_value('Homebrew::ResourceAuditor', '#<Homebrew::ResourceAuditor>', {
 		'resource_auditor_address': u64(voidptr(auditor)).str()
 	})
 }
 
-pub fn resource_auditor_boundary(auditor &ResourceAuditor) brew_runtime.Value {
+pub fn resource_auditor_boundary(auditor &ResourceAuditor) ruby.Value {
 	return resource_auditor_value(auditor)
 }
 
-fn resource_auditor_from_args(args []brew_runtime.Value, method string) &ResourceAuditor {
+fn resource_auditor_from_args(args []ruby.Value, method string) &ResourceAuditor {
 	if args.len == 0 || args[0].type_name != 'Homebrew::ResourceAuditor' {
 		panic('ResourceAuditor#${method} requires a translated receiver')
 	}
@@ -663,83 +663,83 @@ fn resource_auditor_from_args(args []brew_runtime.Value, method string) &Resourc
 	return unsafe { &ResourceAuditor(voidptr(address.u64())) }
 }
 
-fn resource_auditor_nil() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn resource_auditor_nil() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Translated from Homebrew/brew `resource_auditor.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby attr_reader `attr_reader :name` at line 13.
-pub fn ruby_resource_auditor_l13_d1_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_resource_auditor_l13_d1_name(args ...ruby.Value) ruby.Value {
 	auditor := resource_auditor_from_args(args, 'name')
 	return if auditor.has_name {
-		brew_runtime.string_value(auditor.name)
+		ruby.string_value(auditor.name)
 	} else {
 		resource_auditor_nil()
 	}
 }
 
 // Ruby attr_reader `attr_reader :version` at line 16.
-pub fn ruby_resource_auditor_l16_d2_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_resource_auditor_l16_d2_version(args ...ruby.Value) ruby.Value {
 	auditor := resource_auditor_from_args(args, 'version')
 	return if auditor.has_version {
-		brew_runtime.object_value('Version', auditor.version.to_s())
+		ruby.object_value('Version', auditor.version.to_s())
 	} else {
 		resource_auditor_nil()
 	}
 }
 
 // Ruby attr_reader `attr_reader :checksum` at line 19.
-pub fn ruby_resource_auditor_l19_d3_checksum(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_resource_auditor_l19_d3_checksum(args ...ruby.Value) ruby.Value {
 	auditor := resource_auditor_from_args(args, 'checksum')
 	return if auditor.has_checksum {
-		brew_runtime.object_value('Checksum', auditor.checksum.hexdigest)
+		ruby.object_value('Checksum', auditor.checksum.hexdigest)
 	} else {
 		resource_auditor_nil()
 	}
 }
 
 // Ruby attr_reader `attr_reader :url` at line 22.
-pub fn ruby_resource_auditor_l22_d4_url(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_resource_auditor_l22_d4_url(args ...ruby.Value) ruby.Value {
 	auditor := resource_auditor_from_args(args, 'url')
 	return if auditor.has_url {
-		brew_runtime.string_value(auditor.url)
+		ruby.string_value(auditor.url)
 	} else {
 		resource_auditor_nil()
 	}
 }
 
 // Ruby attr_reader `attr_reader :mirrors` at line 25.
-pub fn ruby_resource_auditor_l25_d5_mirrors(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(resource_auditor_from_args(args, 'mirrors').mirrors)
+pub fn ruby_resource_auditor_l25_d5_mirrors(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(resource_auditor_from_args(args, 'mirrors').mirrors)
 }
 
 // Ruby attr_reader `attr_reader :using` at line 28.
-pub fn ruby_resource_auditor_l28_d6_using(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_resource_auditor_l28_d6_using(args ...ruby.Value) ruby.Value {
 	auditor := resource_auditor_from_args(args, 'using')
 	return if auditor.has_using {
-		brew_runtime.object_value('Class<AbstractDownloadStrategy>', auditor.using.class_name())
+		ruby.object_value('Class<AbstractDownloadStrategy>', auditor.using.class_name())
 	} else {
 		resource_auditor_nil()
 	}
 }
 
 // Ruby attr_reader `attr_reader :specs` at line 31.
-pub fn ruby_resource_auditor_l31_d7_specs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_resource_auditor_l31_d7_specs(args ...ruby.Value) ruby.Value {
 	auditor := resource_auditor_from_args(args, 'specs')
-	mut values := map[string]brew_runtime.Value{}
+	mut values := map[string]ruby.Value{}
 	for key, value in auditor.specs {
-		values[key] = brew_runtime.string_value(value)
+		values[key] = ruby.string_value(value)
 	}
-	return brew_runtime.map_value(values)
+	return ruby.map_value(values)
 }
 
 // Ruby attr_reader `attr_reader :owner` at line 34.
-pub fn ruby_resource_auditor_l34_d8_owner(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_resource_auditor_l34_d8_owner(args ...ruby.Value) ruby.Value {
 	auditor := resource_auditor_from_args(args, 'owner')
 	return if auditor.has_owner {
-		brew_runtime.structured_value(if auditor.owner.kind == .formula {
+		ruby.structured_value(if auditor.owner.kind == .formula {
 			'Formula'
 		} else {
 			'Cask::Cask'
@@ -752,17 +752,17 @@ pub fn ruby_resource_auditor_l34_d8_owner(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby attr_reader `attr_reader :spec_name` at line 37.
-pub fn ruby_resource_auditor_l37_d9_spec_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Symbol', resource_auditor_from_args(args, 'spec_name').spec_name)
+pub fn ruby_resource_auditor_l37_d9_spec_name(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Symbol', resource_auditor_from_args(args, 'spec_name').spec_name)
 }
 
 // Ruby attr_reader `attr_reader :problems` at line 40.
-pub fn ruby_resource_auditor_l40_d10_problems(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(resource_auditor_from_args(args, 'problems').problems)
+pub fn ruby_resource_auditor_l40_d10_problems(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(resource_auditor_from_args(args, 'problems').problems)
 }
 
 // Ruby method `initialize(resource, spec_name, online: nil, strict: nil, only: nil, except: nil, core_tap: nil,` at line 54.
-pub fn ruby_resource_auditor_l54_d11_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_resource_auditor_l54_d11_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('ResourceAuditor#initialize requires a resource and spec name')
 	}
@@ -794,70 +794,70 @@ pub fn ruby_resource_auditor_l54_d11_initialize(args ...brew_runtime.Value) brew
 }
 
 // Ruby method `audit` at line 75.
-pub fn ruby_resource_auditor_l75_d12_audit(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_resource_auditor_l75_d12_audit(args ...ruby.Value) ruby.Value {
 	mut auditor := resource_auditor_from_args(args, 'audit')
 	auditor.audit() or { panic(err) }
 	return resource_auditor_value(auditor)
 }
 
 // Ruby method `audit_version` at line 91.
-pub fn ruby_resource_auditor_l91_d13_audit_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_resource_auditor_l91_d13_audit_version(args ...ruby.Value) ruby.Value {
 	mut auditor := resource_auditor_from_args(args, 'audit_version')
 	auditor.audit_version() or { panic(err) }
 	return resource_auditor_nil()
 }
 
 // Ruby method `audit_download_strategy` at line 109.
-pub fn ruby_resource_auditor_l109_d14_audit_download_strategy(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_resource_auditor_l109_d14_audit_download_strategy(args ...ruby.Value) ruby.Value {
 	mut auditor := resource_auditor_from_args(args, 'audit_download_strategy')
 	auditor.audit_download_strategy() or { panic(err) }
 	return resource_auditor_nil()
 }
 
 // Ruby method `audit_checksum` at line 140.
-pub fn ruby_resource_auditor_l140_d15_audit_checksum(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_resource_auditor_l140_d15_audit_checksum(args ...ruby.Value) ruby.Value {
 	mut auditor := resource_auditor_from_args(args, 'audit_checksum')
 	auditor.audit_checksum()
 	return resource_auditor_nil()
 }
 
 // Ruby method `self.curl_deps` at line 151.
-pub fn ruby_resource_auditor_l151_d16_self_curl_deps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_resource_auditor_l151_d16_self_curl_deps(args ...ruby.Value) ruby.Value {
 	recursive := if args.len > 0 { args[0].as_string_array() or { panic(err) } } else { []string{} }
 	available := args.len < 2 || args[1].bool_data
-	return brew_runtime.string_array_value(resource_auditor_curl_dependencies(recursive, available))
+	return ruby.string_array_value(resource_auditor_curl_dependencies(recursive, available))
 }
 
 // Ruby method `audit_resource_name_matches_pypi_package_name_in_url` at line 160.
-pub fn ruby_resource_auditor_l160_d17_audit_resource_name_matches_pypi_package_name_in_url(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_resource_auditor_l160_d17_audit_resource_name_matches_pypi_package_name_in_url(args ...ruby.Value) ruby.Value {
 	mut auditor := resource_auditor_from_args(args, 'audit_resource_name_matches_pypi_package_name_in_url')
 	auditor.audit_resource_name_matches_pypi_package_name_in_url() or { panic(err) }
 	return resource_auditor_nil()
 }
 
 // Ruby method `audit_urls` at line 183.
-pub fn ruby_resource_auditor_l183_d18_audit_urls(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_resource_auditor_l183_d18_audit_urls(args ...ruby.Value) ruby.Value {
 	mut auditor := resource_auditor_from_args(args, 'audit_urls')
 	auditor.audit_urls() or { panic(err) }
 	return resource_auditor_nil()
 }
 
 // Ruby method `audit_curl_dep_http_mirror` at line 238.
-pub fn ruby_resource_auditor_l238_d19_audit_curl_dep_http_mirror(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_resource_auditor_l238_d19_audit_curl_dep_http_mirror(args ...ruby.Value) ruby.Value {
 	mut auditor := resource_auditor_from_args(args, 'audit_curl_dep_http_mirror')
 	auditor.audit_curl_dep_http_mirror() or { panic(err) }
 	return resource_auditor_nil()
 }
 
 // Ruby method `audit_head_branch` at line 274.
-pub fn ruby_resource_auditor_l274_d20_audit_head_branch(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_resource_auditor_l274_d20_audit_head_branch(args ...ruby.Value) ruby.Value {
 	mut auditor := resource_auditor_from_args(args, 'audit_head_branch')
 	auditor.audit_head_branch() or { panic(err) }
 	return resource_auditor_nil()
 }
 
 // Ruby method `problem(text)` at line 299.
-pub fn ruby_resource_auditor_l299_d21_problem(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_resource_auditor_l299_d21_problem(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('ResourceAuditor#problem requires text')
 	}
@@ -867,14 +867,14 @@ pub fn ruby_resource_auditor_l299_d21_problem(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby method `curl_dep?` at line 306.
-pub fn ruby_resource_auditor_l306_d22_curl_dep(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(resource_auditor_from_args(args, 'curl_dep?').is_curl_dependency() or { panic(err) })
+pub fn ruby_resource_auditor_l306_d22_curl_dep(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(resource_auditor_from_args(args, 'curl_dep?').is_curl_dependency() or { panic(err) })
 }
 
 // Ruby method `owner!` at line 311.
-pub fn ruby_resource_auditor_l311_d23_owner(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_resource_auditor_l311_d23_owner(args ...ruby.Value) ruby.Value {
 	owner := resource_auditor_from_args(args, 'owner!').owner_required() or { panic(err) }
-	return brew_runtime.structured_value(if owner.kind == .formula {
+	return ruby.structured_value(if owner.kind == .formula {
 		'Formula'
 	} else {
 		'Cask::Cask'
@@ -884,8 +884,8 @@ pub fn ruby_resource_auditor_l311_d23_owner(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby method `url!` at line 316.
-pub fn ruby_resource_auditor_l316_d24_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(resource_auditor_from_args(args, 'url!').url_required() or { panic(err) })
+pub fn ruby_resource_auditor_l316_d24_url(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(resource_auditor_from_args(args, 'url!').url_required() or { panic(err) })
 }
 
 // Original Ruby source (line-for-line):

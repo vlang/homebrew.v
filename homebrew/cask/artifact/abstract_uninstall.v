@@ -1,6 +1,6 @@
 module artifact
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `cask/artifact/abstract_uninstall.rb`.
@@ -12,7 +12,7 @@ pub struct AbstractUninstallArtifact {
 pub:
 	cask_token string
 	stanza     string = 'uninstall'
-	directives map[string]brew_runtime.Value
+	directives map[string]ruby.Value
 pub mut:
 	bundle_ids_to_reopen []string
 }
@@ -87,7 +87,7 @@ fn default_uninstall_globber(pattern string) ![]string {
 	return os.glob(pattern)
 }
 
-fn value_strings(value brew_runtime.Value) []string {
+fn value_strings(value ruby.Value) []string {
 	if value.type_name == 'Array' {
 		return value.as_string_array() or { value.as_array() or { return [] }.map(it.as_string()) }
 	}
@@ -97,12 +97,12 @@ fn value_strings(value brew_runtime.Value) []string {
 	return [value.as_string()]
 }
 
-fn value_bool(values map[string]brew_runtime.Value, key string, fallback bool) bool {
+fn value_bool(values map[string]ruby.Value, key string, fallback bool) bool {
 	value := values[key] or { return fallback }
 	return value.as_bool() or { fallback }
 }
 
-fn signal_pairs(value brew_runtime.Value) [][]string {
+fn signal_pairs(value ruby.Value) [][]string {
 	values := value.as_array() or { return [] }
 	if values.len > 0 && values[0].type_name == 'Array' {
 		return values.map(value_strings(it))
@@ -116,7 +116,7 @@ fn signal_pairs(value brew_runtime.Value) [][]string {
 	return pairs
 }
 
-fn normalize_abstract_uninstall_directives(input map[string]brew_runtime.Value) !map[string]brew_runtime.Value {
+fn normalize_abstract_uninstall_directives(input map[string]ruby.Value) !map[string]ruby.Value {
 	mut directives := input.clone()
 	for key, _ in directives {
 		if key !in abstract_uninstall_ordered_directives && key != 'on_upgrade' {
@@ -124,13 +124,13 @@ fn normalize_abstract_uninstall_directives(input map[string]brew_runtime.Value) 
 		}
 	}
 	if signal := directives['signal'] {
-		directives['signal'] = brew_runtime.array_value(signal_pairs(signal).map(brew_runtime.string_array_value(it)))
+		directives['signal'] = ruby.array_value(signal_pairs(signal).map(ruby.string_array_value(it)))
 	}
 	return directives
 }
 
 pub fn new_abstract_uninstall_artifact(cask_token string, stanza string,
-	directives map[string]brew_runtime.Value) !AbstractUninstallArtifact {
+	directives map[string]ruby.Value) !AbstractUninstallArtifact {
 	normalized := normalize_abstract_uninstall_directives(directives)!
 	return AbstractUninstallArtifact{
 		cask_token: cask_token
@@ -139,23 +139,23 @@ pub fn new_abstract_uninstall_artifact(cask_token string, stanza string,
 	}
 }
 
-pub fn abstract_uninstall_to_value(artifact AbstractUninstallArtifact) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'cask_token':           brew_runtime.string_value(artifact.cask_token)
-		'stanza':               brew_runtime.string_value(artifact.stanza)
-		'directives':           brew_runtime.map_value(artifact.directives)
-		'bundle_ids_to_reopen': brew_runtime.string_array_value(artifact.bundle_ids_to_reopen)
+pub fn abstract_uninstall_to_value(artifact AbstractUninstallArtifact) ruby.Value {
+	return ruby.map_value({
+		'cask_token':           ruby.string_value(artifact.cask_token)
+		'stanza':               ruby.string_value(artifact.stanza)
+		'directives':           ruby.map_value(artifact.directives)
+		'bundle_ids_to_reopen': ruby.string_array_value(artifact.bundle_ids_to_reopen)
 	})
 }
 
-fn abstract_uninstall_from_value(value brew_runtime.Value) !AbstractUninstallArtifact {
+fn abstract_uninstall_from_value(value ruby.Value) !AbstractUninstallArtifact {
 	values := value.as_map()!
-	directives := (values['directives'] or { brew_runtime.map_value({}) }).as_map()!
+	directives := (values['directives'] or { ruby.map_value({}) }).as_map()!
 	mut artifact := new_abstract_uninstall_artifact((values['cask_token'] or {
-		brew_runtime.string_value('test-cask')
-	}).as_string(), (values['stanza'] or { brew_runtime.string_value('uninstall') }).as_string(), directives)!
+		ruby.string_value('test-cask')
+	}).as_string(), (values['stanza'] or { ruby.string_value('uninstall') }).as_string(), directives)!
 	artifact.bundle_ids_to_reopen = (values['bundle_ids_to_reopen'] or {
-		brew_runtime.string_array_value([])
+		ruby.string_array_value([])
 	}).as_string_array() or { [] }
 	return artifact
 }
@@ -165,7 +165,7 @@ pub fn summarize_abstract_uninstall(artifact AbstractUninstallArtifact) string {
 	for key in [...abstract_uninstall_ordered_directives, 'on_upgrade'] {
 		value := artifact.directives[key] or { continue }
 		items := if value.type_name == 'Array' {
-			value.as_array() or { []brew_runtime.Value{} }
+			value.as_array() or { []ruby.Value{} }
 		} else {
 			[value]
 		}
@@ -380,7 +380,7 @@ fn dispatch_launchctl(services []string, options AbstractUninstallOptions,
 	}
 }
 
-fn dispatch_signal(value brew_runtime.Value, options AbstractUninstallOptions,
+fn dispatch_signal(value ruby.Value, options AbstractUninstallOptions,
 	runner UninstallCommandRunner, mut result AbstractUninstallResult) {
 	if (options.upgrade || options.reinstall) && !options.signal_on_upgrade {
 		return
@@ -454,15 +454,15 @@ fn dispatch_kexts(kexts []string, options AbstractUninstallOptions,
 	}
 }
 
-fn script_details(value brew_runtime.Value) (string, []string, bool) {
+fn script_details(value ruby.Value) (string, []string, bool) {
 	values := value.as_map() or { return value.as_string(), []string{}, false }
-	executable := (values['executable'] or { brew_runtime.string_value('') }).as_string()
-	arguments := value_strings(values['args'] or { brew_runtime.string_array_value([]) })
+	executable := (values['executable'] or { ruby.string_value('') }).as_string()
+	arguments := value_strings(values['args'] or { ruby.string_array_value([]) })
 	sudo := value_bool(values, 'sudo', false)
 	return executable, arguments, sudo
 }
 
-fn dispatch_script(value brew_runtime.Value, directive_name string,
+fn dispatch_script(value ruby.Value, directive_name string,
 	options AbstractUninstallOptions, runner UninstallCommandRunner,
 	mut result AbstractUninstallResult) {
 	executable, arguments, sudo := script_details(value)
@@ -650,22 +650,22 @@ pub fn dispatch_abstract_uninstall(mut artifact AbstractUninstallArtifact,
 	return dispatch_abstract_uninstall_with_command(mut artifact, options, default_uninstall_runner)
 }
 
-pub fn abstract_uninstall_result_to_value(result AbstractUninstallResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'success':              brew_runtime.bool_value(result.success)
-		'error':                brew_runtime.string_value(result.error)
-		'output':               brew_runtime.string_array_value(result.output)
-		'warnings':             brew_runtime.string_array_value(result.warnings)
-		'directive_order':      brew_runtime.string_array_value(result.directive_order)
-		'removed':              brew_runtime.string_array_value(result.removed)
-		'trashed':              brew_runtime.string_array_value(result.trashed)
-		'untrashable':          brew_runtime.string_array_value(result.untrashable)
-		'packages':             brew_runtime.string_array_value(result.packages)
-		'bundle_ids_to_reopen': brew_runtime.string_array_value(result.bundle_ids_to_reopen)
+pub fn abstract_uninstall_result_to_value(result AbstractUninstallResult) ruby.Value {
+	return ruby.map_value({
+		'success':              ruby.bool_value(result.success)
+		'error':                ruby.string_value(result.error)
+		'output':               ruby.string_array_value(result.output)
+		'warnings':             ruby.string_array_value(result.warnings)
+		'directive_order':      ruby.string_array_value(result.directive_order)
+		'removed':              ruby.string_array_value(result.removed)
+		'trashed':              ruby.string_array_value(result.trashed)
+		'untrashable':          ruby.string_array_value(result.untrashable)
+		'packages':             ruby.string_array_value(result.packages)
+		'bundle_ids_to_reopen': ruby.string_array_value(result.bundle_ids_to_reopen)
 	})
 }
 
-fn adapter_artifact(args []brew_runtime.Value) AbstractUninstallArtifact {
+fn adapter_artifact(args []ruby.Value) AbstractUninstallArtifact {
 	if args.len > 0 {
 		return abstract_uninstall_from_value(args[0]) or {
 			return AbstractUninstallArtifact{
@@ -680,110 +680,110 @@ fn adapter_artifact(args []brew_runtime.Value) AbstractUninstallArtifact {
 	}
 }
 
-fn adapter_options(args []brew_runtime.Value, index int) AbstractUninstallOptions {
+fn adapter_options(args []ruby.Value, index int) AbstractUninstallOptions {
 	if args.len <= index {
 		return AbstractUninstallOptions{}
 	}
 	values := args[index].as_map() or { return AbstractUninstallOptions{} }
 	return AbstractUninstallOptions{
-		home: (values['home'] or { brew_runtime.string_value('') }).as_string()
+		home: (values['home'] or { ruby.string_value('') }).as_string()
 		gui: value_bool(values, 'gui', true)
 		upgrade: value_bool(values, 'upgrade', false)
 		reinstall: value_bool(values, 'reinstall', false)
 		signal_on_upgrade: value_bool(values, 'signal_on_upgrade', false)
 		force: value_bool(values, 'force', false)
-		launchctl_list: (values['launchctl_list'] or { brew_runtime.string_value('') }).as_string()
-		trash_directory: (values['trash_directory'] or { brew_runtime.string_value('') }).as_string()
-		undeletable: value_strings(values['undeletable'] or { brew_runtime.string_array_value([]) })
+		launchctl_list: (values['launchctl_list'] or { ruby.string_value('') }).as_string()
+		trash_directory: (values['trash_directory'] or { ruby.string_value('') }).as_string()
+		undeletable: value_strings(values['undeletable'] or { ruby.string_array_value([]) })
 	}
 }
 
-fn dispatch_adapter_directive(name string, value brew_runtime.Value,
-	options AbstractUninstallOptions) brew_runtime.Value {
+fn dispatch_adapter_directive(name string, value ruby.Value,
+	options AbstractUninstallOptions) ruby.Value {
 	mut artifact := new_abstract_uninstall_artifact('test-cask', 'uninstall', {
 		name: value
 	}) or {
-		return brew_runtime.object_value('CaskInvalidError', err.msg())
+		return ruby.object_value('CaskInvalidError', err.msg())
 	}
 	return abstract_uninstall_result_to_value(dispatch_abstract_uninstall(mut artifact, options))
 }
 
 // Ruby method `self.from_args(cask, **directives)` at line 40.
-pub fn ruby_abstract_uninstall_l40_d1_self_from_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_uninstall_l40_d1_self_from_args(args ...ruby.Value) ruby.Value {
 	token := if args.len > 0 { args[0].as_string() } else { 'test-cask' }
 	directives := if args.len > 1 {
-		args[1].as_map() or { map[string]brew_runtime.Value{} }
+		args[1].as_map() or { map[string]ruby.Value{} }
 	} else {
-		map[string]brew_runtime.Value{}
+		map[string]ruby.Value{}
 	}
 	artifact := new_abstract_uninstall_artifact(token, 'uninstall', directives) or {
-		return brew_runtime.object_value('CaskInvalidError', err.msg())
+		return ruby.object_value('CaskInvalidError', err.msg())
 	}
 	return abstract_uninstall_to_value(artifact)
 }
 
 // Ruby attr_reader `attr_reader :directives` at line 45.
-pub fn ruby_abstract_uninstall_l45_d2_directives(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.map_value(adapter_artifact(args).directives)
+pub fn ruby_abstract_uninstall_l45_d2_directives(args ...ruby.Value) ruby.Value {
+	return ruby.map_value(adapter_artifact(args).directives)
 }
 
 // Ruby method `initialize(cask, **directives)` at line 48.
-pub fn ruby_abstract_uninstall_l48_d3_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_uninstall_l48_d3_initialize(args ...ruby.Value) ruby.Value {
 	return ruby_abstract_uninstall_l40_d1_self_from_args(...args)
 }
 
 // Ruby method `to_h` at line 66.
-pub fn ruby_abstract_uninstall_l66_d4_to_h(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.map_value(adapter_artifact(args).directives)
+pub fn ruby_abstract_uninstall_l66_d4_to_h(args ...ruby.Value) ruby.Value {
+	return ruby.map_value(adapter_artifact(args).directives)
 }
 
 // Ruby method `summarize` at line 71.
-pub fn ruby_abstract_uninstall_l71_d5_summarize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(summarize_abstract_uninstall(adapter_artifact(args)))
+pub fn ruby_abstract_uninstall_l71_d5_summarize(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(summarize_abstract_uninstall(adapter_artifact(args)))
 }
 
 // Ruby method `bundle_ids_to_reopen` at line 76.
-pub fn ruby_abstract_uninstall_l76_d6_bundle_ids_to_reopen(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(adapter_artifact(args).bundle_ids_to_reopen)
+pub fn ruby_abstract_uninstall_l76_d6_bundle_ids_to_reopen(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(adapter_artifact(args).bundle_ids_to_reopen)
 }
 
 // Ruby method `uninstall_quit(*bundle_ids, command: nil, upgrade: false, **_kwargs)` at line 89.
-pub fn ruby_abstract_uninstall_l89_d7_uninstall_quit(args ...brew_runtime.Value) brew_runtime.Value {
-	value := if args.len > 0 { args[0] } else { brew_runtime.string_array_value([]) }
+pub fn ruby_abstract_uninstall_l89_d7_uninstall_quit(args ...ruby.Value) ruby.Value {
+	value := if args.len > 0 { args[0] } else { ruby.string_array_value([]) }
 	return dispatch_adapter_directive('quit', value, adapter_options(args, 1))
 }
 
 // Ruby method `each_resolved_path(action, paths, &_block)` at line 130.
-pub fn ruby_abstract_uninstall_l130_d8_each_resolved_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_uninstall_l130_d8_each_resolved_path(args ...ruby.Value) ruby.Value {
 	action := if args.len > 0 { args[0].as_string() } else { 'delete' }
 	paths := if args.len > 1 { value_strings(args[1]) } else { []string{} }
 	resolution := resolve_uninstall_paths(action, paths, adapter_options(args, 2)) or {
-		return brew_runtime.object_value('CaskError', err.msg())
+		return ruby.object_value('CaskError', err.msg())
 	}
-	return brew_runtime.map_value({
-		'paths':    brew_runtime.array_value(resolution.resolved.map(brew_runtime.map_value({
-			'original': brew_runtime.string_value(it.original)
-			'paths':    brew_runtime.string_array_value(it.paths)
+	return ruby.map_value({
+		'paths':    ruby.array_value(resolution.resolved.map(ruby.map_value({
+			'original': ruby.string_value(it.original)
+			'paths':    ruby.string_array_value(it.paths)
 		})))
-		'warnings': brew_runtime.string_array_value(resolution.warnings)
+		'warnings': ruby.string_array_value(resolution.warnings)
 	})
 }
 
 // Ruby method `find_launchctl_with_wildcard(search)` at line 164.
-pub fn ruby_abstract_uninstall_l164_d9_find_launchctl_with_wildcard(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_uninstall_l164_d9_find_launchctl_with_wildcard(args ...ruby.Value) ruby.Value {
 	search := if args.len > 0 { args[0].as_string() } else { '*' }
 	listing := if args.len > 1 { args[1].as_string() } else { 'PID Status Label' }
-	return brew_runtime.string_array_value(find_launchctl_with_wildcard(search, listing))
+	return ruby.string_array_value(find_launchctl_with_wildcard(search, listing))
 }
 
 // Ruby method `dispatch_uninstall_directives(**options)` at line 177.
-pub fn ruby_abstract_uninstall_l177_d10_dispatch_uninstall_directives(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_uninstall_l177_d10_dispatch_uninstall_directives(args ...ruby.Value) ruby.Value {
 	mut artifact := adapter_artifact(args)
 	return abstract_uninstall_result_to_value(dispatch_abstract_uninstall(mut artifact, adapter_options(args, 1)))
 }
 
 // Ruby method `dispatch_uninstall_directive(directive_sym, **options)` at line 184.
-pub fn ruby_abstract_uninstall_l184_d11_dispatch_uninstall_directive(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_uninstall_l184_d11_dispatch_uninstall_directive(args ...ruby.Value) ruby.Value {
 	artifact := adapter_artifact(args)
 	directive := if args.len > 1 { args[1].as_string() } else { 'delete' }
 	mut result := AbstractUninstallResult{}
@@ -792,106 +792,106 @@ pub fn ruby_abstract_uninstall_l184_d11_dispatch_uninstall_directive(args ...bre
 }
 
 // Ruby method `stanza` at line 193.
-pub fn ruby_abstract_uninstall_l193_d12_stanza(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(adapter_artifact(args).stanza)
+pub fn ruby_abstract_uninstall_l193_d12_stanza(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(adapter_artifact(args).stanza)
 }
 
 // Ruby method `uninstall_early_script(directives, **options)` at line 201.
-pub fn ruby_abstract_uninstall_l201_d13_uninstall_early_script(args ...brew_runtime.Value) brew_runtime.Value {
-	value := if args.len > 0 { args[0] } else { brew_runtime.map_value({}) }
+pub fn ruby_abstract_uninstall_l201_d13_uninstall_early_script(args ...ruby.Value) ruby.Value {
+	value := if args.len > 0 { args[0] } else { ruby.map_value({}) }
 	return dispatch_adapter_directive('early_script', value, adapter_options(args, 1))
 }
 
 // Ruby method `uninstall_launchctl(*services, command:, **_kwargs)` at line 207.
-pub fn ruby_abstract_uninstall_l207_d14_uninstall_launchctl(args ...brew_runtime.Value) brew_runtime.Value {
-	value := if args.len > 0 { args[0] } else { brew_runtime.string_array_value([]) }
+pub fn ruby_abstract_uninstall_l207_d14_uninstall_launchctl(args ...ruby.Value) ruby.Value {
+	value := if args.len > 0 { args[0] } else { ruby.string_array_value([]) }
 	return dispatch_adapter_directive('launchctl', value, adapter_options(args, 1))
 }
 
 // Ruby method `running_processes(bundle_id)` at line 271.
-pub fn ruby_abstract_uninstall_l271_d15_running_processes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_uninstall_l271_d15_running_processes(args ...ruby.Value) ruby.Value {
 	bundle_id := if args.len > 0 { args[0].as_string() } else { '' }
 	listing := if args.len > 1 { args[1].as_string() } else { '' }
-	return brew_runtime.array_value(running_processes_for_bundle(bundle_id, listing).map(brew_runtime.int_value(it)))
+	return ruby.array_value(running_processes_for_bundle(bundle_id, listing).map(ruby.int_value(it)))
 }
 
 // Ruby method `automation_access_instructions` at line 282.
-pub fn ruby_abstract_uninstall_l282_d16_automation_access_instructions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(automation_access_instructions())
+pub fn ruby_abstract_uninstall_l282_d16_automation_access_instructions(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(automation_access_instructions())
 }
 
 // Ruby method `running?(bundle_id)` at line 291.
-pub fn ruby_abstract_uninstall_l291_d17_running(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_uninstall_l291_d17_running(args ...ruby.Value) ruby.Value {
 	bundle_id := if args.len > 0 { args[0].as_string() } else { '' }
 	listing := if args.len > 1 { args[1].as_string() } else { '' }
-	return brew_runtime.bool_value(running_processes_for_bundle(bundle_id, listing).len > 0)
+	return ruby.bool_value(running_processes_for_bundle(bundle_id, listing).len > 0)
 }
 
 // Ruby method `quit(bundle_id)` at line 314.
-pub fn ruby_abstract_uninstall_l314_d18_quit(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_uninstall_l314_d18_quit(args ...ruby.Value) ruby.Value {
 	bundle_id := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.map_value({
-		'success': brew_runtime.bool_value(bundle_id != '')
-		'command': brew_runtime.string_value('osascript -l JavaScript ${bundle_id}')
+	return ruby.map_value({
+		'success': ruby.bool_value(bundle_id != '')
+		'command': ruby.string_value('osascript -l JavaScript ${bundle_id}')
 	})
 }
 
 // Ruby method `uninstall_signal(*signals, command: nil, **_kwargs)` at line 344.
-pub fn ruby_abstract_uninstall_l344_d19_uninstall_signal(args ...brew_runtime.Value) brew_runtime.Value {
-	value := if args.len > 0 { args[0] } else { brew_runtime.string_array_value([]) }
+pub fn ruby_abstract_uninstall_l344_d19_uninstall_signal(args ...ruby.Value) ruby.Value {
+	value := if args.len > 0 { args[0] } else { ruby.string_array_value([]) }
 	return dispatch_adapter_directive('signal', value, adapter_options(args, 1))
 }
 
 // Ruby method `uninstall_login_item(*login_items, command: nil, successor: nil, **_kwargs)` at line 378.
-pub fn ruby_abstract_uninstall_l378_d20_uninstall_login_item(args ...brew_runtime.Value) brew_runtime.Value {
-	value := if args.len > 0 { args[0] } else { brew_runtime.string_array_value([]) }
+pub fn ruby_abstract_uninstall_l378_d20_uninstall_login_item(args ...ruby.Value) ruby.Value {
+	value := if args.len > 0 { args[0] } else { ruby.string_array_value([]) }
 	return dispatch_adapter_directive('login_item', value, adapter_options(args, 1))
 }
 
 // Ruby method `uninstall_kext(*kexts, command: nil, **_kwargs)` at line 409.
-pub fn ruby_abstract_uninstall_l409_d21_uninstall_kext(args ...brew_runtime.Value) brew_runtime.Value {
-	value := if args.len > 0 { args[0] } else { brew_runtime.string_array_value([]) }
+pub fn ruby_abstract_uninstall_l409_d21_uninstall_kext(args ...ruby.Value) ruby.Value {
+	value := if args.len > 0 { args[0] } else { ruby.string_array_value([]) }
 	return dispatch_adapter_directive('kext', value, adapter_options(args, 1))
 }
 
 // Ruby method `uninstall_script(directives, command:, directive_name: :script, force: false, **_kwargs)` at line 455.
-pub fn ruby_abstract_uninstall_l455_d22_uninstall_script(args ...brew_runtime.Value) brew_runtime.Value {
-	value := if args.len > 0 { args[0] } else { brew_runtime.map_value({}) }
+pub fn ruby_abstract_uninstall_l455_d22_uninstall_script(args ...ruby.Value) ruby.Value {
+	value := if args.len > 0 { args[0] } else { ruby.map_value({}) }
 	return dispatch_adapter_directive('script', value, adapter_options(args, 1))
 }
 
 // Ruby method `uninstall_pkgutil(*pkgs, command:, **_kwargs)` at line 482.
-pub fn ruby_abstract_uninstall_l482_d23_uninstall_pkgutil(args ...brew_runtime.Value) brew_runtime.Value {
-	value := if args.len > 0 { args[0] } else { brew_runtime.string_array_value([]) }
+pub fn ruby_abstract_uninstall_l482_d23_uninstall_pkgutil(args ...ruby.Value) ruby.Value {
+	value := if args.len > 0 { args[0] } else { ruby.string_array_value([]) }
 	return dispatch_adapter_directive('pkgutil', value, adapter_options(args, 1))
 }
 
 // Ruby method `uninstall_delete(*paths, command:, **_kwargs)` at line 493.
-pub fn ruby_abstract_uninstall_l493_d24_uninstall_delete(args ...brew_runtime.Value) brew_runtime.Value {
-	value := if args.len > 0 { args[0] } else { brew_runtime.string_array_value([]) }
+pub fn ruby_abstract_uninstall_l493_d24_uninstall_delete(args ...ruby.Value) ruby.Value {
+	value := if args.len > 0 { args[0] } else { ruby.string_array_value([]) }
 	return dispatch_adapter_directive('delete', value, adapter_options(args, 1))
 }
 
 // Ruby method `uninstall_trash(*paths, **options)` at line 509.
-pub fn ruby_abstract_uninstall_l509_d25_uninstall_trash(args ...brew_runtime.Value) brew_runtime.Value {
-	value := if args.len > 0 { args[0] } else { brew_runtime.string_array_value([]) }
+pub fn ruby_abstract_uninstall_l509_d25_uninstall_trash(args ...ruby.Value) ruby.Value {
+	value := if args.len > 0 { args[0] } else { ruby.string_array_value([]) }
 	return dispatch_adapter_directive('trash', value, adapter_options(args, 1))
 }
 
 // Ruby method `trash_paths(*paths, command: nil, **_kwargs)` at line 522.
-pub fn ruby_abstract_uninstall_l522_d26_trash_paths(args ...brew_runtime.Value) brew_runtime.Value {
-	value := if args.len > 0 { args[0] } else { brew_runtime.string_array_value([]) }
+pub fn ruby_abstract_uninstall_l522_d26_trash_paths(args ...ruby.Value) ruby.Value {
+	value := if args.len > 0 { args[0] } else { ruby.string_array_value([]) }
 	return dispatch_adapter_directive('trash', value, adapter_options(args, 1))
 }
 
 // Ruby method `all_dirs?(*directories)` at line 536.
-pub fn ruby_abstract_uninstall_l536_d27_all_dirs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_uninstall_l536_d27_all_dirs(args ...ruby.Value) ruby.Value {
 	paths := if args.len > 0 { value_strings(args[0]) } else { []string{} }
-	return brew_runtime.bool_value(all_uninstall_paths_are_directories(paths))
+	return ruby.bool_value(all_uninstall_paths_are_directories(paths))
 }
 
 // Ruby method `recursive_rmdir(*directories, command:, **_kwargs)` at line 541.
-pub fn ruby_abstract_uninstall_l541_d28_recursive_rmdir(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_uninstall_l541_d28_recursive_rmdir(args ...ruby.Value) ruby.Value {
 	paths := if args.len > 0 { value_strings(args[0]) } else { []string{} }
 	mut result := AbstractUninstallResult{}
 	success := recursive_uninstall_rmdir(paths, mut result)
@@ -900,15 +900,15 @@ pub fn ruby_abstract_uninstall_l541_d28_recursive_rmdir(args ...brew_runtime.Val
 }
 
 // Ruby method `uninstall_rmdir(*directories, **kwargs)` at line 579.
-pub fn ruby_abstract_uninstall_l579_d29_uninstall_rmdir(args ...brew_runtime.Value) brew_runtime.Value {
-	value := if args.len > 0 { args[0] } else { brew_runtime.string_array_value([]) }
+pub fn ruby_abstract_uninstall_l579_d29_uninstall_rmdir(args ...ruby.Value) ruby.Value {
+	value := if args.len > 0 { args[0] } else { ruby.string_array_value([]) }
 	return dispatch_adapter_directive('rmdir', value, adapter_options(args, 1))
 }
 
 // Ruby method `undeletable?(target)` at line 592.
-pub fn ruby_abstract_uninstall_l592_d30_undeletable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_uninstall_l592_d30_undeletable(args ...ruby.Value) ruby.Value {
 	target := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.bool_value(target != '' && !os.is_writable(os.dir(target)))
+	return ruby.bool_value(target != '' && !os.is_writable(os.dir(target)))
 }
 
 // Original Ruby source (line-for-line):

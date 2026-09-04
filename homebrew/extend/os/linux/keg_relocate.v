@@ -1,6 +1,6 @@
 module linux
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `extend/os/linux/keg_relocate.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -168,13 +168,13 @@ pub fn linux_detect_cxx_stdlibs(context &LinuxKegRelocateContext,
 	return results
 }
 
-pub fn linux_keg_relocate_boundary(context &LinuxKegRelocateContext) brew_runtime.Value {
-	return brew_runtime.structured_value('OS::Linux::Keg', context.path, {
+pub fn linux_keg_relocate_boundary(context &LinuxKegRelocateContext) ruby.Value {
+	return ruby.structured_value('OS::Linux::Keg', context.path, {
 		'linux_keg_relocate_address': u64(voidptr(context)).str()
 	})
 }
 
-fn linux_keg_relocate_from_value(value brew_runtime.Value) &LinuxKegRelocateContext {
+fn linux_keg_relocate_from_value(value ruby.Value) &LinuxKegRelocateContext {
 	address := value.attributes['linux_keg_relocate_address'] or {
 		panic('invalid Linux keg relocation receiver')
 	}
@@ -182,9 +182,9 @@ fn linux_keg_relocate_from_value(value brew_runtime.Value) &LinuxKegRelocateCont
 }
 
 // Ruby method `relocate_dynamic_linkage(relocation, skip_protodesc_cold: false)` at line 14.
-pub fn ruby_keg_relocate_l14_d1_relocate_dynamic_linkage(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_relocate_l14_d1_relocate_dynamic_linkage(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
-		return brew_runtime.object_value('ArgumentError', 'receiver and replacement pair are required')
+		return ruby.object_value('ArgumentError', 'receiver and replacement pair are required')
 	}
 	mut context := linux_keg_relocate_from_value(args[0])
 	linux_relocate_dynamic_linkage(mut context, args[1].as_string(), args[2].as_string(), if args.len > 3 {
@@ -192,13 +192,13 @@ pub fn ruby_keg_relocate_l14_d1_relocate_dynamic_linkage(args ...brew_runtime.Va
 	} else {
 		false
 	})
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `change_rpath!(file, old_prefix, new_prefix, skip_protodesc_cold: false)` at line 31.
-pub fn ruby_keg_relocate_l31_d2_change_rpath(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_relocate_l31_d2_change_rpath(args ...ruby.Value) ruby.Value {
 	if args.len < 4 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	mut context := linux_keg_relocate_from_value(args[0])
 	path := args[1].as_string()
@@ -216,28 +216,28 @@ pub fn ruby_keg_relocate_l31_d2_change_rpath(args ...brew_runtime.Value) brew_ru
 		if changed {
 			context.require_relocation = true
 		}
-		return brew_runtime.bool_value(changed)
+		return ruby.bool_value(changed)
 	}
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 // Ruby method `detect_cxx_stdlibs(options = {})` at line 76.
-pub fn ruby_keg_relocate_l76_d3_detect_cxx_stdlibs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_relocate_l76_d3_detect_cxx_stdlibs(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_array_value([])
+		return ruby.string_array_value([])
 	}
 	context := linux_keg_relocate_from_value(args[0])
 	skip_executables := if args.len > 1 { args[1].as_bool() or { false } } else { false }
-	return brew_runtime.string_array_value(linux_detect_cxx_stdlibs(context, skip_executables))
+	return ruby.string_array_value(linux_detect_cxx_stdlibs(context, skip_executables))
 }
 
 // Ruby method `elf_files` at line 91.
-pub fn ruby_keg_relocate_l91_d4_elf_files(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_relocate_l91_d4_elf_files(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_array_value([])
+		return ruby.string_array_value([])
 	}
 	context := linux_keg_relocate_from_value(args[0])
-	return brew_runtime.string_array_value(linux_elf_files(context).map(it.path))
+	return ruby.string_array_value(linux_elf_files(context).map(it.path))
 }
 
 // Original Ruby source (line-for-line):

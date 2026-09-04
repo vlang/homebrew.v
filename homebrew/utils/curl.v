@@ -1,6 +1,6 @@
 module utils
 
-import brew_runtime
+import ruby
 import crypto.sha256
 import net.urllib
 import os
@@ -134,7 +134,7 @@ pub:
 pub struct CurlFetchRequest {
 pub:
 	url               string
-	specs             map[string]brew_runtime.Value
+	specs             map[string]ruby.Value
 	hash_needed       bool
 	head_only         bool
 	use_homebrew_curl bool
@@ -144,8 +144,8 @@ pub:
 
 pub type CurlContentFetcher = fn(CurlFetchRequest) !CurlHttpDetails
 
-fn curl_nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn curl_nil_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 fn curl_number_string(value f64, decimals int) string {
@@ -818,26 +818,26 @@ pub fn curl_supports_tls13(result CurlCommandResult) bool {
 	return result.success()
 }
 
-pub fn curl_response_value(response CurlResponse) brew_runtime.Value {
-	mut header_values := map[string]brew_runtime.Value{}
+pub fn curl_response_value(response CurlResponse) ruby.Value {
+	mut header_values := map[string]ruby.Value{}
 	for name, values in response.headers {
 		header_values[name] = if values.len == 1 {
-			brew_runtime.string_value(values[0])
+			ruby.string_value(values[0])
 		} else {
-			brew_runtime.string_array_value(values)
+			ruby.string_array_value(values)
 		}
 	}
 	mut values := {
-		'status_code': brew_runtime.string_value(response.status_code)
-		'headers':     brew_runtime.map_value(header_values)
+		'status_code': ruby.string_value(response.status_code)
+		'headers':     ruby.map_value(header_values)
 	}
 	if response.status_text != '' {
-		values['status_text'] = brew_runtime.string_value(response.status_text)
+		values['status_text'] = ruby.string_value(response.status_text)
 	}
-	return brew_runtime.map_value(values)
+	return ruby.map_value(values)
 }
 
-pub fn curl_response_from_value(value brew_runtime.Value) CurlResponse {
+pub fn curl_response_from_value(value ruby.Value) CurlResponse {
 	values := value.map_data.clone()
 	mut headers := map[string][]string{}
 	if header_value := values['headers'] {
@@ -850,40 +850,40 @@ pub fn curl_response_from_value(value brew_runtime.Value) CurlResponse {
 		}
 	}
 	return CurlResponse{
-		status_code: (values['status_code'] or { brew_runtime.string_value('') }).as_string()
-		status_text: (values['status_text'] or { brew_runtime.string_value('') }).as_string()
+		status_code: (values['status_code'] or { ruby.string_value('') }).as_string()
+		status_text: (values['status_text'] or { ruby.string_value('') }).as_string()
 		headers: headers
 	}
 }
 
-pub fn curl_parsed_output_value(parsed CurlParsedOutput) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'responses': brew_runtime.array_value(parsed.responses.map(curl_response_value(it)))
-		'body':      brew_runtime.string_value(parsed.body)
+pub fn curl_parsed_output_value(parsed CurlParsedOutput) ruby.Value {
+	return ruby.map_value({
+		'responses': ruby.array_value(parsed.responses.map(curl_response_value(it)))
+		'body':      ruby.string_value(parsed.body)
 	})
 }
 
-fn curl_result_from_value(value brew_runtime.Value) CurlCommandResult {
+fn curl_result_from_value(value ruby.Value) CurlCommandResult {
 	values := value.map_data.clone()
 	return CurlCommandResult{
-		stdout: (values['stdout'] or { brew_runtime.string_value(value.repr) }).as_string()
-		stderr: (values['stderr'] or { brew_runtime.string_value('') }).as_string()
-		exit_status: int((values['exit_status'] or { brew_runtime.int_value(0) }).int_data)
-		arguments: (values['arguments'] or { brew_runtime.string_array_value([]) }).as_array() or {
+		stdout: (values['stdout'] or { ruby.string_value(value.repr) }).as_string()
+		stderr: (values['stderr'] or { ruby.string_value('') }).as_string()
+		exit_status: int((values['exit_status'] or { ruby.int_value(0) }).int_data)
+		arguments: (values['arguments'] or { ruby.string_array_value([]) }).as_array() or {
 			[]}.map(it.as_string())
 	}
 }
 
-fn curl_result_value(result CurlCommandResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'stdout':      brew_runtime.string_value(result.stdout)
-		'stderr':      brew_runtime.string_value(result.stderr)
-		'exit_status': brew_runtime.int_value(result.exit_status)
-		'arguments':   brew_runtime.string_array_value(result.arguments)
+fn curl_result_value(result CurlCommandResult) ruby.Value {
+	return ruby.map_value({
+		'stdout':      ruby.string_value(result.stdout)
+		'stderr':      ruby.string_value(result.stderr)
+		'exit_status': ruby.int_value(result.exit_status)
+		'arguments':   ruby.string_array_value(result.arguments)
 	})
 }
 
-fn curl_options_from_value(value brew_runtime.Value) CurlArgsOptions {
+fn curl_options_from_value(value ruby.Value) CurlArgsOptions {
 	values := value.map_data.clone()
 	mut cookies := map[string]string{}
 	if cookie_value := values['cookies'] {
@@ -900,7 +900,7 @@ fn curl_options_from_value(value brew_runtime.Value) CurlArgsOptions {
 	} else {
 		[]string{}
 	}
-	user_agent_value := values['user_agent'] or { brew_runtime.object_value('Symbol', 'default') }
+	user_agent_value := values['user_agent'] or { ruby.object_value('Symbol', 'default') }
 	user_agent := if user_agent_value.type_name == 'String' {
 		'string'
 	} else {
@@ -909,38 +909,38 @@ fn curl_options_from_value(value brew_runtime.Value) CurlArgsOptions {
 	custom_user_agent := if user_agent_value.type_name == 'String' {
 		user_agent_value.as_string()
 	} else {
-		(values['custom_user_agent'] or { brew_runtime.string_value('') }).as_string()
+		(values['custom_user_agent'] or { ruby.string_value('') }).as_string()
 	}
 	return CurlArgsOptions{
-		extra_args: (values['args'] or { brew_runtime.string_array_value([]) }).as_array() or {
+		extra_args: (values['args'] or { ruby.string_array_value([]) }).as_array() or {
 			[]}.map(it.as_string())
 		curlrc_present: 'curlrc' in values
-		curlrc: (values['curlrc'] or { brew_runtime.string_value('') }).as_string()
+		curlrc: (values['curlrc'] or { ruby.string_value('') }).as_string()
 		connect_timeout: if item := values['connect_timeout'] {
 			item.as_float() or { 0.0 }} else {
 			none}
 		max_time: if item := values['max_time'] { item.as_float() or { 0.0 } } else { none }
-		retries: int((values['retries'] or { brew_runtime.int_value(3) }).int_data)
+		retries: int((values['retries'] or { ruby.int_value(3) }).int_data)
 		retries_present: if item := values['retries'] { item.type_name != 'NilClass' } else { true }
 		retry_max_time: if item := values['retry_max_time'] {
 			item.as_float() or { 0.0 }} else {
 			none}
-		show_output: (values['show_output'] or { brew_runtime.bool_value(false) }).bool_data
-		show_error: (values['show_error'] or { brew_runtime.bool_value(true) }).bool_data
+		show_output: (values['show_output'] or { ruby.bool_value(false) }).bool_data
+		show_error: (values['show_error'] or { ruby.bool_value(true) }).bool_data
 		cookies: cookies
 		cookies_present: 'cookies' in values
 		headers: headers
-		referer: (values['referer'] or { brew_runtime.string_value('') }).as_string()
+		referer: (values['referer'] or { ruby.string_value('') }).as_string()
 		user_agent: user_agent
 		custom_user_agent: custom_user_agent
-		verbose_context: (values['verbose'] or { brew_runtime.bool_value(false) }).bool_data
-		quiet_context: (values['quiet'] or { brew_runtime.bool_value(false) }).bool_data
-		curl_verbose: (values['curl_verbose'] or { brew_runtime.bool_value(false) }).bool_data
-		stdout_tty: (values['stdout_tty'] or { brew_runtime.bool_value(true) }).bool_data
+		verbose_context: (values['verbose'] or { ruby.bool_value(false) }).bool_data
+		quiet_context: (values['quiet'] or { ruby.bool_value(false) }).bool_data
+		curl_verbose: (values['curl_verbose'] or { ruby.bool_value(false) }).bool_data
+		stdout_tty: (values['stdout_tty'] or { ruby.bool_value(true) }).bool_data
 	}
 }
 
-fn curl_boundary_strings(args []brew_runtime.Value) []string {
+fn curl_boundary_strings(args []ruby.Value) []string {
 	mut values := []string{}
 	for argument in args {
 		if argument.type_name == 'Array' {
@@ -956,65 +956,65 @@ fn curl_boundary_strings(args []brew_runtime.Value) []string {
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `curl_executable(use_homebrew_curl: false)` at line 77.
-pub fn ruby_curl_l77_d1_curl_executable(args ...brew_runtime.Value) brew_runtime.Value {
-	options := if args.len > 0 { args[0].map_data } else { map[string]brew_runtime.Value{} }
-	use_brewed := (options['use_homebrew_curl'] or { brew_runtime.bool_value(false) }).bool_data
-	brewed := (options['brewed_path'] or { brew_runtime.string_value('/homebrew/curl') }).as_string()
-	shim := (options['shim_path'] or { brew_runtime.string_value('shared/curl') }).as_string()
-	return brew_runtime.string_value(curl_executable(use_brewed, brewed, shim))
+pub fn ruby_curl_l77_d1_curl_executable(args ...ruby.Value) ruby.Value {
+	options := if args.len > 0 { args[0].map_data } else { map[string]ruby.Value{} }
+	use_brewed := (options['use_homebrew_curl'] or { ruby.bool_value(false) }).bool_data
+	brewed := (options['brewed_path'] or { ruby.string_value('/homebrew/curl') }).as_string()
+	shim := (options['shim_path'] or { ruby.string_value('shared/curl') }).as_string()
+	return ruby.string_value(curl_executable(use_brewed, brewed, shim))
 }
 
 // Ruby method `curl_path` at line 84.
-pub fn ruby_curl_l84_d2_curl_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_curl_l84_d2_curl_path(args ...ruby.Value) ruby.Value {
 	path := if args.len > 0 { args[0].as_string().trim_space() } else { '' }
 	if path == '' {
 		panic('Failed to get curl path')
 	}
-	return brew_runtime.string_value(path)
+	return ruby.string_value(path)
 }
 
 // Ruby method `clear_path_cache` at line 94.
-pub fn ruby_curl_l94_d3_clear_path_cache(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_curl_l94_d3_clear_path_cache(args ...ruby.Value) ruby.Value {
 	return curl_nil_value()
 }
 
 // Ruby method `curl_args(` at line 113.
-pub fn ruby_curl_l113_d4_curl_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_curl_l113_d4_curl_args(args ...ruby.Value) ruby.Value {
 	options := if args.len > 0 && args.last().type_name == 'Hash' {
 		curl_options_from_value(args.last())
 	} else {
 		CurlArgsOptions{ extra_args: curl_boundary_strings(args) }
 	}
-	return brew_runtime.string_array_value(curl_args(options) or { panic(err) })
+	return ruby.string_array_value(curl_args(options) or { panic(err) })
 }
 
 // Ruby method `insecure_redirect?(url:, resolved_url:)` at line 193.
-pub fn ruby_curl_l193_d5_insecure_redirect(args ...brew_runtime.Value) brew_runtime.Value {
-	options := if args.len > 0 { args[0].map_data } else { map[string]brew_runtime.Value{} }
-	url := (options['url'] or { brew_runtime.string_value('') }).as_string()
-	resolved := (options['resolved_url'] or { brew_runtime.string_value('') }).as_string()
-	policy := (options['no_insecure_redirect'] or { brew_runtime.bool_value(true) }).bool_data
-	return brew_runtime.bool_value(curl_insecure_redirect(url, resolved, policy))
+pub fn ruby_curl_l193_d5_insecure_redirect(args ...ruby.Value) ruby.Value {
+	options := if args.len > 0 { args[0].map_data } else { map[string]ruby.Value{} }
+	url := (options['url'] or { ruby.string_value('') }).as_string()
+	resolved := (options['resolved_url'] or { ruby.string_value('') }).as_string()
+	policy := (options['no_insecure_redirect'] or { ruby.bool_value(true) }).bool_data
+	return ruby.bool_value(curl_insecure_redirect(url, resolved, policy))
 }
 
 // Ruby method `https_redirect_curl_args` at line 199.
-pub fn ruby_curl_l199_d6_https_redirect_curl_args(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(curl_https_redirect_args.clone())
+pub fn ruby_curl_l199_d6_https_redirect_curl_args(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(curl_https_redirect_args.clone())
 }
 
 // Ruby method `no_insecure_redirect_curl_args(args)` at line 204.
-pub fn ruby_curl_l204_d7_no_insecure_redirect_curl_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_curl_l204_d7_no_insecure_redirect_curl_args(args ...ruby.Value) ruby.Value {
 	values := if args.len > 0 {
 		args[0].as_array() or { [] }.map(it.as_string())
 	} else {
 		[]string{}
 	}
 	policy := if args.len > 1 { args[1].bool_data } else { true }
-	return brew_runtime.string_array_value(curl_no_insecure_redirect_args(values, policy))
+	return ruby.string_array_value(curl_no_insecure_redirect_args(values, policy))
 }
 
 // Ruby method `curl_with_workarounds(` at line 239.
-pub fn ruby_curl_l239_d8_curl_with_workarounds(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_curl_l239_d8_curl_with_workarounds(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('curl_with_workarounds requires a command result')
 	}
@@ -1026,7 +1026,7 @@ pub fn ruby_curl_l239_d8_curl_with_workarounds(args ...brew_runtime.Value) brew_
 }
 
 // Ruby method `curl(*args, print_stdout: true, **options)` at line 297.
-pub fn ruby_curl_l297_d9_curl(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_curl_l297_d9_curl(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('curl requires a command result')
 	}
@@ -1038,21 +1038,21 @@ pub fn ruby_curl_l297_d9_curl(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `curl_download(*args, to:, try_partial: false, **options)` at line 311.
-pub fn ruby_curl_l311_d10_curl_download(args ...brew_runtime.Value) brew_runtime.Value {
-	options := if args.len > 0 { args.last().map_data } else { map[string]brew_runtime.Value{} }
-	destination := (options['to'] or { brew_runtime.string_value('') }).as_string()
+pub fn ruby_curl_l311_d10_curl_download(args ...ruby.Value) ruby.Value {
+	options := if args.len > 0 { args.last().map_data } else { map[string]ruby.Value{} }
+	destination := (options['to'] or { ruby.string_value('') }).as_string()
 	if destination == '' {
 		panic('curl_download requires `to`')
 	}
 	os.mkdir_all(os.dir(destination)) or { panic(err) }
 	mut command_args := ['--remote-time', '--output', destination, '--location']
 	command_args << curl_boundary_strings(args[..args.len - 1])
-	return brew_runtime.string_array_value(command_args)
+	return ruby.string_array_value(command_args)
 }
 
 // Ruby method `strip_progress_bar(string)` at line 346.
-pub fn ruby_curl_l346_d11_strip_progress_bar(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(curl_strip_progress_bar(if args.len > 0 {
+pub fn ruby_curl_l346_d11_strip_progress_bar(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(curl_strip_progress_bar(if args.len > 0 {
 		args[0].as_string()
 	} else {
 		''
@@ -1060,7 +1060,7 @@ pub fn ruby_curl_l346_d11_strip_progress_bar(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby method `curl_output(*args, **options)` at line 351.
-pub fn ruby_curl_l351_d12_curl_output(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_curl_l351_d12_curl_output(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return curl_result_value(CurlCommandResult{})
 	}
@@ -1068,7 +1068,7 @@ pub fn ruby_curl_l351_d12_curl_output(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby method `curl_headers(*args, wanted_headers: [], **options)` at line 362.
-pub fn ruby_curl_l362_d13_curl_headers(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_curl_l362_d13_curl_headers(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return curl_parsed_output_value(CurlParsedOutput{})
 	}
@@ -1077,115 +1077,115 @@ pub fn ruby_curl_l362_d13_curl_headers(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby method `url_protected_by_cloudflare?(response)` at line 412.
-pub fn ruby_curl_l412_d14_url_protected_by_cloudflare(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(args.len > 0 && curl_url_protected_by_cloudflare(curl_response_from_value(args[0])))
+pub fn ruby_curl_l412_d14_url_protected_by_cloudflare(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(args.len > 0 && curl_url_protected_by_cloudflare(curl_response_from_value(args[0])))
 }
 
 // Ruby method `url_protected_by_incapsula?(response)` at line 424.
-pub fn ruby_curl_l424_d15_url_protected_by_incapsula(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(args.len > 0 && curl_url_protected_by_incapsula(curl_response_from_value(args[0])))
+pub fn ruby_curl_l424_d15_url_protected_by_incapsula(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(args.len > 0 && curl_url_protected_by_incapsula(curl_response_from_value(args[0])))
 }
 
 // Ruby method `curl_check_http_content(url, url_type, specs: {}, user_agents: [:default], referer: nil,` at line 444.
-pub fn ruby_curl_l444_d16_curl_check_http_content(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_curl_l444_d16_curl_check_http_content(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || !args[0].as_string().starts_with('http') {
 		return curl_nil_value()
 	}
 	url_type := if args.len > 1 { args[1].as_string() } else { 'URL' }
 	if args.len < 3 || args[2].type_name == 'NilClass' {
-		return brew_runtime.string_value('The ${url_type} ${args[0].as_string()} is not reachable')
+		return ruby.string_value('The ${url_type} ${args[0].as_string()} is not reachable')
 	}
 	details := args[2].map_data.clone()
-	status := (details['status_code'] or { brew_runtime.string_value('') }).as_string()
+	status := (details['status_code'] or { ruby.string_value('') }).as_string()
 	if status == '' {
-		return brew_runtime.string_value('The ${url_type} ${args[0].as_string()} is not reachable')
+		return ruby.string_value('The ${url_type} ${args[0].as_string()} is not reachable')
 	}
 	if !curl_http_status_ok(status) {
-		return brew_runtime.string_value('The ${url_type} ${args[0].as_string()} is not reachable (HTTP status code ${status})')
+		return ruby.string_value('The ${url_type} ${args[0].as_string()} is not reachable (HTTP status code ${status})')
 	}
 	return curl_nil_value()
 }
 
 // Ruby method `curl_http_content_headers_and_checksum(` at line 605.
-pub fn ruby_curl_l605_d17_curl_http_content_headers_and_checksum(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_curl_l605_d17_curl_http_content_headers_and_checksum(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('curl_http_content_headers_and_checksum requires a URL')
 	}
-	options := if args.len > 1 { args[1].map_data } else { map[string]brew_runtime.Value{} }
+	options := if args.len > 1 { args[1].map_data } else { map[string]ruby.Value{} }
 	request := CurlFetchRequest{
 		url: args[0].as_string()
-		head_only: (options['head_only'] or { brew_runtime.bool_value(false) }).bool_data
-		hash_needed: (options['hash_needed'] or { brew_runtime.bool_value(false) }).bool_data
+		head_only: (options['head_only'] or { ruby.bool_value(false) }).bool_data
+		hash_needed: (options['hash_needed'] or { ruby.bool_value(false) }).bool_data
 	}
-	return brew_runtime.string_array_value(curl_http_content_args(request, (options['output'] or { brew_runtime.string_value('temporary-file') }).as_string()))
+	return ruby.string_array_value(curl_http_content_args(request, (options['output'] or { ruby.string_value('temporary-file') }).as_string()))
 }
 
 // Ruby method `curl_version` at line 698.
-pub fn ruby_curl_l698_d18_curl_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_curl_l698_d18_curl_version(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('curl_version requires curl -V output')
 	}
-	return brew_runtime.string_value(curl_version_from_output(args[0].as_string()) or { panic(err) })
+	return ruby.string_value(curl_version_from_output(args[0].as_string()) or { panic(err) })
 }
 
 // Ruby method `curl_supports_fail_with_body?` at line 710.
-pub fn ruby_curl_l710_d19_curl_supports_fail_with_body(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_curl_l710_d19_curl_supports_fail_with_body(args ...ruby.Value) ruby.Value {
 	version := if args.len > 0 { args[0].as_string() } else { '0' }
-	return brew_runtime.bool_value(curl_supports_fail_with_body(version))
+	return ruby.bool_value(curl_supports_fail_with_body(version))
 }
 
 // Ruby method `curl_supports_tls13?` at line 718.
-pub fn ruby_curl_l718_d20_curl_supports_tls13(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(args.len > 0 && curl_supports_tls13(curl_result_from_value(args[0])))
+pub fn ruby_curl_l718_d20_curl_supports_tls13(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(args.len > 0 && curl_supports_tls13(curl_result_from_value(args[0])))
 }
 
 // Ruby method `http_status_ok?(status)` at line 726.
-pub fn ruby_curl_l726_d21_http_status_ok(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_curl_l726_d21_http_status_ok(args ...ruby.Value) ruby.Value {
 	status := if args.len == 0 || args[0].type_name == 'NilClass' {
 		none
 	} else {
 		?string(args[0].as_string())
 	}
-	return brew_runtime.bool_value(curl_http_status_ok(status))
+	return ruby.bool_value(curl_http_status_ok(status))
 }
 
 // Ruby method `parse_curl_output(output, max_iterations: 25)` at line 745.
-pub fn ruby_curl_l745_d22_parse_curl_output(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_curl_l745_d22_parse_curl_output(args ...ruby.Value) ruby.Value {
 	output := if args.len > 0 { args[0].as_string() } else { '' }
 	maximum := if args.len > 1 { int(args[1].int_data) } else { 25 }
 	return curl_parsed_output_value(curl_parse_output(output, maximum) or { panic(err) })
 }
 
 // Ruby method `curl_response_last_location(responses, absolutize: false, base_url: nil)` at line 782.
-pub fn ruby_curl_l782_d23_curl_response_last_location(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_curl_l782_d23_curl_response_last_location(args ...ruby.Value) ruby.Value {
 	responses := if args.len > 0 {
 		args[0].as_array() or { [] }.map(curl_response_from_value(it))
 	} else {
 		[]CurlResponse{}
 	}
-	options := if args.len > 1 { args[1].map_data } else { map[string]brew_runtime.Value{} }
-	location := curl_response_last_location(responses, (options['absolutize'] or { brew_runtime.bool_value(false) }).bool_data, (options['base_url'] or { brew_runtime.string_value('') }).as_string()) or {
+	options := if args.len > 1 { args[1].map_data } else { map[string]ruby.Value{} }
+	location := curl_response_last_location(responses, (options['absolutize'] or { ruby.bool_value(false) }).bool_data, (options['base_url'] or { ruby.string_value('') }).as_string()) or {
 		return curl_nil_value()
 	}
-	return brew_runtime.string_value(location)
+	return ruby.string_value(location)
 }
 
 // Ruby method `curl_response_follow_redirections(responses, base_url)` at line 807.
-pub fn ruby_curl_l807_d24_curl_response_follow_redirections(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_curl_l807_d24_curl_response_follow_redirections(args ...ruby.Value) ruby.Value {
 	responses := if args.len > 0 {
 		args[0].as_array() or { [] }.map(curl_response_from_value(it))
 	} else {
 		[]CurlResponse{}
 	}
 	base := if args.len > 1 { args[1].as_string() } else { '' }
-	return brew_runtime.string_value(curl_response_follow_redirections(responses, base))
+	return ruby.string_value(curl_response_follow_redirections(responses, base))
 }
 
 // Ruby method `parse_curl_response(response_text)` at line 830.
-pub fn ruby_curl_l830_d25_parse_curl_response(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_curl_l830_d25_parse_curl_response(args ...ruby.Value) ruby.Value {
 	response := curl_parse_response(if args.len > 0 { args[0].as_string() } else { '' })
 	if response.status_code == '' {
-		return brew_runtime.map_value(map[string]brew_runtime.Value{})
+		return ruby.map_value(map[string]ruby.Value{})
 	}
 	return curl_response_value(response)
 }

@@ -1,6 +1,6 @@
 module lib
 
-import brew_runtime
+import ruby
 import encoding.binary
 import os
 
@@ -37,8 +37,8 @@ pub:
 	arguments  []string
 }
 
-fn top_macho_boundary(file &OpenedMachoFile) brew_runtime.Value {
-	return brew_runtime.structured_value(if file.kind == .fat {
+fn top_macho_boundary(file &OpenedMachoFile) ruby.Value {
+	return ruby.structured_value(if file.kind == .fat {
 		'MachO::FatFile'
 	} else {
 		'MachO::MachOFile'
@@ -130,7 +130,7 @@ pub fn codesign(filename string) ! {
 }
 
 // Ruby method `self.open(filename)` at line 27.
-pub fn ruby_macho_l27_d1_self_open(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_macho_l27_d1_self_open(args ...ruby.Value) ruby.Value {
 	if args.len < 1 {
 		panic('open requires a filename')
 	}
@@ -138,12 +138,12 @@ pub fn ruby_macho_l27_d1_self_open(args ...brew_runtime.Value) brew_runtime.Valu
 }
 
 // Ruby method `self.codesign!(filename)` at line 50.
-pub fn ruby_macho_l50_d2_self_codesign(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_macho_l50_d2_self_codesign(args ...ruby.Value) ruby.Value {
 	if args.len < 1 {
 		panic('codesign! requires a filename')
 	}
 	codesign(args[0].as_string()) or { panic(err) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Original Ruby source (line-for-line):

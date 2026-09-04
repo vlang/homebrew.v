@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 import homebrew.cmd as cmd_core
 
 fn home_spec_formula() cmd_core.HomeItem {
@@ -25,42 +25,42 @@ fn home_spec_cask(path string, inferred bool) cmd_core.HomeItem {
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:testballhome) do` at line 8.
-pub fn ruby_home_spec_l8_d1_testballhome(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_home_spec_l8_d1_testballhome(args ...ruby.Value) ruby.Value {
 	return cmd_core.home_item_value(home_spec_formula())
 }
 
 // Ruby let `let(:testballhome_homepage) do` at line 15.
-pub fn ruby_home_spec_l15_d2_testballhome_homepage(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(home_spec_formula().homepage)
+pub fn ruby_home_spec_l15_d2_testballhome_homepage(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(home_spec_formula().homepage)
 }
 
 // Ruby let `let(:local_caffeine_path) do` at line 19.
-pub fn ruby_home_spec_l19_d3_local_caffeine_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_home_spec_l19_d3_local_caffeine_path(args ...ruby.Value) ruby.Value {
 	root := if args.len > 0 { args[0].as_string() } else { '/tmp/homebrew-test' }
-	return brew_runtime.string_value('${root}/cask/Casks/local-caffeine.rb')
+	return ruby.string_value('${root}/cask/Casks/local-caffeine.rb')
 }
 
 // Ruby let `let(:local_caffeine_homepage) do` at line 23.
-pub fn ruby_home_spec_l23_d4_local_caffeine_homepage(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('https://brew.sh/')
+pub fn ruby_home_spec_l23_d4_local_caffeine_homepage(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('https://brew.sh/')
 }
 
 // Ruby it `it "opens the project page when no formula or cask is specified", :integration_test do` at line 29.
-pub fn ruby_home_spec_l29_d5_opens(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_home_spec_l29_d5_opens(args ...ruby.Value) ruby.Value {
 	plan := cmd_core.plan_home_command('https://brew.sh', [])
-	return brew_runtime.bool_value(plan.homepages == ['https://brew.sh'] && plan.messages.len == 0 && plan.warnings.len == 0)
+	return ruby.bool_value(plan.homepages == ['https://brew.sh'] && plan.messages.len == 0 && plan.warnings.len == 0)
 }
 
 // Ruby it `it "opens the homepage for a given Formula" do` at line 36.
-pub fn ruby_home_spec_l36_d6_opens(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_home_spec_l36_d6_opens(args ...ruby.Value) ruby.Value {
 	plan := cmd_core.plan_home_command('https://brew.sh', [home_spec_formula()])
-	return brew_runtime.bool_value(plan.homepages == ['https://brew.sh/testballhome'] && plan.messages == [
+	return ruby.bool_value(plan.homepages == ['https://brew.sh/testballhome'] && plan.messages == [
 		'Opening homepage for Formula testballhome',
 	])
 }
 
 // Ruby it `it "opens the homepage for a given Cask", :cask, :needs_macos do` at line 46.
-pub fn ruby_home_spec_l46_d7_opens(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_home_spec_l46_d7_opens(args ...ruby.Value) ruby.Value {
 	path := if args.len > 0 { args[0].as_string() } else { '/tmp/local-caffeine.rb' }
 	inferred := cmd_core.plan_home_command('https://brew.sh', [
 		home_spec_cask(path, true),
@@ -68,19 +68,19 @@ pub fn ruby_home_spec_l46_d7_opens(args ...brew_runtime.Value) brew_runtime.Valu
 	explicit := cmd_core.plan_home_command('https://brew.sh', [
 		home_spec_cask(path, false),
 	])
-	return brew_runtime.bool_value(inferred.homepages == ['https://brew.sh/'] && inferred.messages == [
+	return ruby.bool_value(inferred.homepages == ['https://brew.sh/'] && inferred.messages == [
 		'Opening homepage for Cask local-caffeine',
 	] && inferred.warnings == ['Treating ${path} as a cask'] && explicit.warnings.len == 0)
 }
 
 // Ruby it `it "opens the homepages for a given formula and Cask", :cask, :needs_macos do` at line 61.
-pub fn ruby_home_spec_l61_d8_opens(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_home_spec_l61_d8_opens(args ...ruby.Value) ruby.Value {
 	path := if args.len > 0 { args[0].as_string() } else { '/tmp/local-caffeine.rb' }
 	plan := cmd_core.plan_home_command('https://brew.sh', [
 		home_spec_formula(),
 		home_spec_cask(path, true),
 	])
-	return brew_runtime.bool_value(plan.homepages == [
+	return ruby.bool_value(plan.homepages == [
 		'https://brew.sh/testballhome',
 		'https://brew.sh/',
 	] && plan.messages == [

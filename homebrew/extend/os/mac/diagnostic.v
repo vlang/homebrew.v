@@ -1,6 +1,6 @@
 module mac
 
-import brew_runtime
+import ruby
 import homebrew.diagnostic as finding
 import homebrew.os.mac as sdk
 import os
@@ -430,23 +430,23 @@ pub fn mac_check_quarantine(context MacDiagnosticContext) ?finding.Finding {
 	return diagnostic_finding(message, '1', remediation)
 }
 
-fn mac_diagnostic_context_value(context &MacDiagnosticContext) brew_runtime.Value {
-	return brew_runtime.structured_value('OS::Mac::Diagnostic::Checks', '', {
+fn mac_diagnostic_context_value(context &MacDiagnosticContext) ruby.Value {
+	return ruby.structured_value('OS::Mac::Diagnostic::Checks', '', {
 		'mac_diagnostic_address': u64(voidptr(context)).str()
 	})
 }
 
-fn mac_diagnostic_context_from_value(value brew_runtime.Value) &MacDiagnosticContext {
+fn mac_diagnostic_context_from_value(value ruby.Value) &MacDiagnosticContext {
 	return unsafe { &MacDiagnosticContext(voidptr(value.attributes['mac_diagnostic_address'].u64())) }
 }
 
-pub fn mac_diagnostic_boundary(context &MacDiagnosticContext) brew_runtime.Value {
+pub fn mac_diagnostic_boundary(context &MacDiagnosticContext) ruby.Value {
 	return mac_diagnostic_context_value(context)
 }
 
-fn finding_value(result ?finding.Finding) brew_runtime.Value {
-	value := result or { return brew_runtime.object_value('NilClass', 'nil') }
-	return brew_runtime.structured_value('Homebrew::Diagnostic::Finding', value.string(), {
+fn finding_value(result ?finding.Finding) ruby.Value {
+	value := result or { return ruby.object_value('NilClass', 'nil') }
+	return ruby.structured_value('Homebrew::Diagnostic::Finding', value.string(), {
 		'text': value.text
 		'tier': value.tier
 	})
@@ -456,28 +456,28 @@ fn finding_value(result ?finding.Finding) brew_runtime.Value {
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `initialize` at line 11.
-pub fn ruby_diagnostic_l11_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l11_d1_initialize(args ...ruby.Value) ruby.Value {
 	output := if args.len > 0 { args[0].as_string() } else { '' }
 	parsed := new_mac_diagnostic_volumes(output, map[string]string{})
 	volumes := &MacDiagnosticVolumes{
 		mounts: parsed.mounts.clone()
 		outputs: parsed.outputs.clone()
 	}
-	return brew_runtime.structured_value('OS::Mac::Diagnostic::Volumes', '', {
+	return ruby.structured_value('OS::Mac::Diagnostic::Volumes', '', {
 		'volumes_address': u64(voidptr(volumes)).str()
 	})
 }
 
 // Ruby method `index_of(path)` at line 16.
-pub fn ruby_diagnostic_l16_d2_index_of(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l16_d2_index_of(args ...ruby.Value) ruby.Value {
 	volumes := unsafe { &MacDiagnosticVolumes(voidptr(args[0].attributes['volumes_address'].u64())) }
-	return brew_runtime.int_value(volumes.index_of(args[1].as_string()))
+	return ruby.int_value(volumes.index_of(args[1].as_string()))
 }
 
 // Ruby method `get_mounts(path = nil)` at line 30.
-pub fn ruby_diagnostic_l30_d3_get_mounts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l30_d3_get_mounts(args ...ruby.Value) ruby.Value {
 	volumes := unsafe { &MacDiagnosticVolumes(voidptr(args[0].attributes['volumes_address'].u64())) }
-	return brew_runtime.string_array_value(volumes.get_mounts(if args.len > 1 {
+	return ruby.string_array_value(volumes.get_mounts(if args.len > 1 {
 		args[1].as_string()
 	} else {
 		''
@@ -485,146 +485,146 @@ pub fn ruby_diagnostic_l30_d3_get_mounts(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `initialize(verbose: true)` at line 56.
-pub fn ruby_diagnostic_l56_d4_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l56_d4_initialize(args ...ruby.Value) ruby.Value {
 	mut context := new_mac_diagnostic_context()
 	context.verbose = if args.len > 0 { args[0].bool_data } else { true }
 	return mac_diagnostic_context_value(context)
 }
 
 // Ruby method `fatal_preinstall_checks` at line 62.
-pub fn ruby_diagnostic_l62_d5_fatal_preinstall_checks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(mac_fatal_preinstall_checks(mac_diagnostic_context_from_value(args[0]).arm_cpu))
+pub fn ruby_diagnostic_l62_d5_fatal_preinstall_checks(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(mac_fatal_preinstall_checks(mac_diagnostic_context_from_value(args[0]).arm_cpu))
 }
 
 // Ruby method `fatal_build_from_source_checks` at line 75.
-pub fn ruby_diagnostic_l75_d6_fatal_build_from_source_checks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(mac_fatal_build_from_source_checks())
+pub fn ruby_diagnostic_l75_d6_fatal_build_from_source_checks(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(mac_fatal_build_from_source_checks())
 }
 
 // Ruby method `fatal_setup_build_environment_checks` at line 88.
-pub fn ruby_diagnostic_l88_d7_fatal_setup_build_environment_checks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(mac_fatal_setup_build_environment_checks())
+pub fn ruby_diagnostic_l88_d7_fatal_setup_build_environment_checks(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(mac_fatal_setup_build_environment_checks())
 }
 
 // Ruby method `supported_configuration_checks` at line 97.
-pub fn ruby_diagnostic_l97_d8_supported_configuration_checks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(mac_supported_configuration_checks())
+pub fn ruby_diagnostic_l97_d8_supported_configuration_checks(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(mac_supported_configuration_checks())
 }
 
 // Ruby method `build_from_source_checks` at line 104.
-pub fn ruby_diagnostic_l104_d9_build_from_source_checks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(mac_build_from_source_checks())
+pub fn ruby_diagnostic_l104_d9_build_from_source_checks(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(mac_build_from_source_checks())
 }
 
 // Ruby method `check_for_non_prefixed_findutils` at line 113.
-pub fn ruby_diagnostic_l113_d10_check_for_non_prefixed_findutils(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l113_d10_check_for_non_prefixed_findutils(args ...ruby.Value) ruby.Value {
 	return finding_value(mac_check_non_prefixed_findutils(*mac_diagnostic_context_from_value(args[0])))
 }
 
 // Ruby method `check_for_unsupported_macos` at line 131.
-pub fn ruby_diagnostic_l131_d11_check_for_unsupported_macos(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l131_d11_check_for_unsupported_macos(args ...ruby.Value) ruby.Value {
 	return finding_value(mac_check_unsupported(*mac_diagnostic_context_from_value(args[0])))
 }
 
 // Ruby method `check_for_opencore` at line 164.
-pub fn ruby_diagnostic_l164_d12_check_for_opencore(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l164_d12_check_for_opencore(args ...ruby.Value) ruby.Value {
 	return finding_value(mac_check_opencore(*mac_diagnostic_context_from_value(args[0])))
 }
 
 // Ruby method `check_xcode_up_to_date` at line 194.
-pub fn ruby_diagnostic_l194_d13_check_xcode_up_to_date(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l194_d13_check_xcode_up_to_date(args ...ruby.Value) ruby.Value {
 	return finding_value(mac_check_xcode_up_to_date(*mac_diagnostic_context_from_value(args[0])))
 }
 
 // Ruby method `check_clt_up_to_date` at line 229.
-pub fn ruby_diagnostic_l229_d14_check_clt_up_to_date(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l229_d14_check_clt_up_to_date(args ...ruby.Value) ruby.Value {
 	return finding_value(mac_check_clt_up_to_date(*mac_diagnostic_context_from_value(args[0])))
 }
 
 // Ruby method `check_xcode_minimum_version` at line 249.
-pub fn ruby_diagnostic_l249_d15_check_xcode_minimum_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l249_d15_check_xcode_minimum_version(args ...ruby.Value) ruby.Value {
 	return finding_value(mac_check_xcode_minimum(*mac_diagnostic_context_from_value(args[0])))
 }
 
 // Ruby method `check_clt_minimum_version` at line 267.
-pub fn ruby_diagnostic_l267_d16_check_clt_minimum_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l267_d16_check_clt_minimum_version(args ...ruby.Value) ruby.Value {
 	return finding_value(mac_check_clt_minimum(*mac_diagnostic_context_from_value(args[0])))
 }
 
 // Ruby method `check_if_xcode_needs_clt_installed` at line 279.
-pub fn ruby_diagnostic_l279_d17_check_if_xcode_needs_clt_installed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l279_d17_check_if_xcode_needs_clt_installed(args ...ruby.Value) ruby.Value {
 	return finding_value(mac_check_xcode_needs_clt(*mac_diagnostic_context_from_value(args[0])))
 }
 
 // Ruby method `check_xcode_prefix` at line 291.
-pub fn ruby_diagnostic_l291_d18_check_xcode_prefix(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l291_d18_check_xcode_prefix(args ...ruby.Value) ruby.Value {
 	return finding_value(mac_check_xcode_prefix(*mac_diagnostic_context_from_value(args[0])))
 }
 
 // Ruby method `check_xcode_prefix_exists` at line 305.
-pub fn ruby_diagnostic_l305_d19_check_xcode_prefix_exists(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l305_d19_check_xcode_prefix_exists(args ...ruby.Value) ruby.Value {
 	return finding_value(mac_check_xcode_prefix_exists(*mac_diagnostic_context_from_value(args[0])))
 }
 
 // Ruby method `check_xcode_select_path` at line 321.
-pub fn ruby_diagnostic_l321_d20_check_xcode_select_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l321_d20_check_xcode_select_path(args ...ruby.Value) ruby.Value {
 	return finding_value(mac_check_xcode_select(*mac_diagnostic_context_from_value(args[0])))
 }
 
 // Ruby method `check_xcode_license_approved` at line 344.
-pub fn ruby_diagnostic_l344_d21_check_xcode_license_approved(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l344_d21_check_xcode_license_approved(args ...ruby.Value) ruby.Value {
 	return finding_value(mac_check_xcode_license(*mac_diagnostic_context_from_value(args[0])))
 }
 
 // Ruby method `check_filesystem_case_sensitive` at line 365.
-pub fn ruby_diagnostic_l365_d22_check_filesystem_case_sensitive(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l365_d22_check_filesystem_case_sensitive(args ...ruby.Value) ruby.Value {
 	return finding_value(mac_check_case_sensitive(*mac_diagnostic_context_from_value(args[0])))
 }
 
 // Ruby method `check_for_gettext` at line 401.
-pub fn ruby_diagnostic_l401_d23_check_for_gettext(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l401_d23_check_for_gettext(args ...ruby.Value) ruby.Value {
 	return finding_value(mac_check_gettext(*mac_diagnostic_context_from_value(args[0])))
 }
 
 // Ruby method `check_for_iconv` at line 443.
-pub fn ruby_diagnostic_l443_d24_check_for_iconv(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l443_d24_check_for_iconv(args ...ruby.Value) ruby.Value {
 	return finding_value(mac_check_iconv(*mac_diagnostic_context_from_value(args[0])))
 }
 
 // Ruby it `it was either installed by a user or some other third party software.` at line 469.
-pub fn ruby_diagnostic_l469_d25_was(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('it was either installed by a user or some other third party software.')
+pub fn ruby_diagnostic_l469_d25_was(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('it was either installed by a user or some other third party software.')
 }
 
 // Ruby method `check_for_multiple_volumes` at line 480.
-pub fn ruby_diagnostic_l480_d26_check_for_multiple_volumes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l480_d26_check_for_multiple_volumes(args ...ruby.Value) ruby.Value {
 	return finding_value(mac_check_multiple_volumes(*mac_diagnostic_context_from_value(args[0])))
 }
 
 // Ruby method `check_if_supported_sdk_available` at line 518.
-pub fn ruby_diagnostic_l518_d27_check_if_supported_sdk_available(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l518_d27_check_if_supported_sdk_available(args ...ruby.Value) ruby.Value {
 	return finding_value(mac_check_supported_sdk(*mac_diagnostic_context_from_value(args[0])))
 }
 
 // Ruby method `check_broken_sdks` at line 554.
-pub fn ruby_diagnostic_l554_d28_check_broken_sdks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l554_d28_check_broken_sdks(args ...ruby.Value) ruby.Value {
 	return finding_value(mac_check_broken_sdks(*mac_diagnostic_context_from_value(args[0])))
 }
 
 // Ruby method `check_cask_software_versions` at line 592.
-pub fn ruby_diagnostic_l592_d29_check_cask_software_versions(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l592_d29_check_cask_software_versions(args ...ruby.Value) ruby.Value {
 	mut context := mac_diagnostic_context_from_value(args[0])
 	mac_add_cask_software_versions(mut context)
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `check_pkgconf_macos_sdk_mismatch` at line 615.
-pub fn ruby_diagnostic_l615_d30_check_pkgconf_macos_sdk_mismatch(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l615_d30_check_pkgconf_macos_sdk_mismatch(args ...ruby.Value) ruby.Value {
 	return finding_value(mac_check_pkgconf(*mac_diagnostic_context_from_value(args[0])))
 }
 
 // Ruby method `check_cask_quarantine_support` at line 625.
-pub fn ruby_diagnostic_l625_d31_check_cask_quarantine_support(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l625_d31_check_cask_quarantine_support(args ...ruby.Value) ruby.Value {
 	return finding_value(mac_check_quarantine(*mac_diagnostic_context_from_value(args[0])))
 }
 

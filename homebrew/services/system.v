@@ -1,6 +1,6 @@
 module services
 
-import brew_runtime
+import ruby
 import os
 
 #include <pwd.h>
@@ -170,8 +170,8 @@ pub fn (mut system ServiceSystem) user() string {
 			system.user_name = os.getenv('USER')
 		}
 		if system.user_name == '' {
-			result := brew_runtime.run_captured_command(['/usr/bin/whoami'], brew_runtime.CapturedCommandOptions{}) or {
-				brew_runtime.CapturedCommandResult{}
+			result := ruby.run_captured_command(['/usr/bin/whoami'], ruby.CapturedCommandOptions{}) or {
+				ruby.CapturedCommandResult{}
 			}
 			system.user_name = chomp_command_output(result.stdout)
 		}
@@ -304,7 +304,7 @@ pub fn launchctl_run(command []string, sudo bool) LaunchctlRunResult {
 		argv = [sudo_path, '--']
 		argv << command
 	}
-	result := brew_runtime.run_captured_command(argv, brew_runtime.CapturedCommandOptions{}) or {
+	result := ruby.run_captured_command(argv, ruby.CapturedCommandOptions{}) or {
 		return LaunchctlRunResult{}
 	}
 	return LaunchctlRunResult{
@@ -318,17 +318,17 @@ pub fn launchctl_find_service_native(mut system ServiceSystem, label string,
 	return system.launchctl_find_service(label, sudo, launchctl_run)
 }
 
-fn service_system_value(system &ServiceSystem) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::Services::System', 'System', {
+fn service_system_value(system &ServiceSystem) ruby.Value {
+	return ruby.structured_value('Homebrew::Services::System', 'System', {
 		'system_address': u64(voidptr(system)).str()
 	})
 }
 
-pub fn service_system_boundary(system &ServiceSystem) brew_runtime.Value {
+pub fn service_system_boundary(system &ServiceSystem) ruby.Value {
 	return service_system_value(system)
 }
 
-fn service_system_from_args(args []brew_runtime.Value) (&ServiceSystem, int) {
+fn service_system_from_args(args []ruby.Value) (&ServiceSystem, int) {
 	if args.len > 0 && args[0].type_name == 'Homebrew::Services::System' {
 		address := args[0].attributes['system_address'] or { panic('translated System state is missing') }
 		return unsafe { &ServiceSystem(voidptr(address.u64())) }, 1
@@ -336,112 +336,112 @@ fn service_system_from_args(args []brew_runtime.Value) (&ServiceSystem, int) {
 	return new_service_system(ServiceSystemConfig{}), 0
 }
 
-fn launchctl_find_result_value(result LaunchctlFindResult) brew_runtime.Value {
+fn launchctl_find_result_value(result LaunchctlFindResult) ruby.Value {
 	type_name := if result.command_type == .launchctl_print {
 		'launchctl_print'
 	} else {
 		'launchctl_list'
 	}
-	return brew_runtime.array_value([
-		brew_runtime.string_value(result.output),
-		brew_runtime.bool_value(result.success),
-		brew_runtime.object_value('Symbol', type_name),
+	return ruby.array_value([
+		ruby.string_value(result.output),
+		ruby.bool_value(result.success),
+		ruby.object_value('Symbol', type_name),
 	])
 }
 
-fn launchctl_run_result_value(result LaunchctlRunResult) brew_runtime.Value {
-	return brew_runtime.array_value([
-		brew_runtime.string_value(result.output),
-		brew_runtime.bool_value(result.success),
+fn launchctl_run_result_value(result LaunchctlRunResult) ruby.Value {
+	return ruby.array_value([
+		ruby.string_value(result.output),
+		ruby.bool_value(result.success),
 	])
 }
 
 // Ruby method `self.launchctl` at line 19.
-pub fn ruby_system_l19_d1_self_launchctl(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_system_l19_d1_self_launchctl(args ...ruby.Value) ruby.Value {
 	mut system, _ := service_system_from_args(args)
 	return if path := system.launchctl() {
-		brew_runtime.object_value('Pathname', path)
+		ruby.object_value('Pathname', path)
 	} else {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	}
 }
 
 // Ruby attr_writer `attr_writer :launchctl` at line 25.
-pub fn ruby_system_l25_d2_launchctl(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_system_l25_d2_launchctl(args ...ruby.Value) ruby.Value {
 	mut system, offset := service_system_from_args(args)
 	if args.len <= offset || args[offset].type_name == 'NilClass' {
 		system.set_launchctl(none)
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	system.set_launchctl(args[offset].as_string())
-	return brew_runtime.object_value('Pathname', args[offset].as_string())
+	return ruby.object_value('Pathname', args[offset].as_string())
 }
 
 // Ruby method `self.launchctl?` at line 30.
-pub fn ruby_system_l30_d3_self_launchctl(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_system_l30_d3_self_launchctl(args ...ruby.Value) ruby.Value {
 	mut system, _ := service_system_from_args(args)
-	return brew_runtime.bool_value(system.launchctl_available())
+	return ruby.bool_value(system.launchctl_available())
 }
 
 // Ruby method `self.systemctl?` at line 36.
-pub fn ruby_system_l36_d4_self_systemctl(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_system_l36_d4_self_systemctl(args ...ruby.Value) ruby.Value {
 	mut system, _ := service_system_from_args(args)
-	return brew_runtime.bool_value(system.systemctl_available())
+	return ruby.bool_value(system.systemctl_available())
 }
 
 // Ruby method `self.root?` at line 42.
-pub fn ruby_system_l42_d5_self_root(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_system_l42_d5_self_root(args ...ruby.Value) ruby.Value {
 	system, _ := service_system_from_args(args)
-	return brew_runtime.bool_value(system.root())
+	return ruby.bool_value(system.root())
 }
 
 // Ruby method `self.user` at line 48.
-pub fn ruby_system_l48_d6_self_user(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_system_l48_d6_self_user(args ...ruby.Value) ruby.Value {
 	mut system, _ := service_system_from_args(args)
-	return brew_runtime.string_value(system.user())
+	return ruby.string_value(system.user())
 }
 
 // Ruby method `self.user_exists?(username)` at line 53.
-pub fn ruby_system_l53_d7_self_user_exists(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_system_l53_d7_self_user_exists(args ...ruby.Value) ruby.Value {
 	mut system, offset := service_system_from_args(args)
 	if args.len <= offset {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(system.user_exists(args[offset].as_string()))
+	return ruby.bool_value(system.user_exists(args[offset].as_string()))
 }
 
 // Ruby method `self.boot_path` at line 66.
-pub fn ruby_system_l66_d8_self_boot_path(args ...brew_runtime.Value) !brew_runtime.Value {
+pub fn ruby_system_l66_d8_self_boot_path(args ...ruby.Value) !ruby.Value {
 	mut system, _ := service_system_from_args(args)
-	return brew_runtime.object_value('Pathname', system.boot_path()!)
+	return ruby.object_value('Pathname', system.boot_path()!)
 }
 
 // Ruby method `self.user_path` at line 78.
-pub fn ruby_system_l78_d9_self_user_path(args ...brew_runtime.Value) !brew_runtime.Value {
+pub fn ruby_system_l78_d9_self_user_path(args ...ruby.Value) !ruby.Value {
 	mut system, _ := service_system_from_args(args)
-	return brew_runtime.object_value('Pathname', system.user_path()!)
+	return ruby.object_value('Pathname', system.user_path()!)
 }
 
 // Ruby method `self.path` at line 90.
-pub fn ruby_system_l90_d10_self_path(args ...brew_runtime.Value) !brew_runtime.Value {
+pub fn ruby_system_l90_d10_self_path(args ...ruby.Value) !ruby.Value {
 	mut system, _ := service_system_from_args(args)
-	return brew_runtime.object_value('Pathname', system.path()!)
+	return ruby.object_value('Pathname', system.path()!)
 }
 
 // Ruby method `self.domain_target` at line 95.
-pub fn ruby_system_l95_d11_self_domain_target(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_system_l95_d11_self_domain_target(args ...ruby.Value) ruby.Value {
 	mut system, _ := service_system_from_args(args)
-	return brew_runtime.string_value(system.domain_target())
+	return ruby.string_value(system.domain_target())
 }
 
 // Ruby method `self.candidate_domain_targets` at line 123.
-pub fn ruby_system_l123_d12_self_candidate_domain_targets(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_system_l123_d12_self_candidate_domain_targets(args ...ruby.Value) ruby.Value {
 	mut system, _ := service_system_from_args(args)
-	return brew_runtime.string_array_value(system.candidate_domain_targets())
+	return ruby.string_array_value(system.candidate_domain_targets())
 }
 
 // Ruby method `self.launchctl_find_service(label, sudo: false)` at line 134.
-pub fn ruby_system_l134_d13_self_launchctl_find_service(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_system_l134_d13_self_launchctl_find_service(args ...ruby.Value) ruby.Value {
 	mut system, offset := service_system_from_args(args)
 	label := if args.len > offset { args[offset].as_string() } else { '' }
 	sudo := args.len > offset + 1 && (args[offset + 1].as_bool() or { false })
@@ -449,15 +449,15 @@ pub fn ruby_system_l134_d13_self_launchctl_find_service(args ...brew_runtime.Val
 }
 
 // Ruby method `self.launchctl_service_running?(label, sudo: false)` at line 156.
-pub fn ruby_system_l156_d14_self_launchctl_service_running(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_system_l156_d14_self_launchctl_service_running(args ...ruby.Value) ruby.Value {
 	mut system, offset := service_system_from_args(args)
 	label := if args.len > offset { args[offset].as_string() } else { '' }
 	sudo := args.len > offset + 1 && (args[offset + 1].as_bool() or { false })
-	return brew_runtime.bool_value(system.launchctl_service_running(label, sudo, launchctl_run))
+	return ruby.bool_value(system.launchctl_service_running(label, sudo, launchctl_run))
 }
 
 // Ruby method `self.launchctl_run(cmd, sudo:)` at line 163.
-pub fn ruby_system_l163_d15_self_launchctl_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_system_l163_d15_self_launchctl_run(args ...ruby.Value) ruby.Value {
 	_, offset := service_system_from_args(args)
 	command := if args.len > offset {
 		args[offset].as_string_array() or { []string{} }

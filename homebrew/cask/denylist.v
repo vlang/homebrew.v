@@ -1,19 +1,19 @@
 module cask
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `cask/denylist.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `self.reason(name)` at line 8.
-pub fn ruby_denylist_l8_d1_self_reason(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_denylist_l8_d1_self_reason(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('Nil', '')
+		return ruby.object_value('Nil', '')
 	}
 	return if reason := denylist_reason(args[0].as_string()) {
-		brew_runtime.string_value(reason)
+		ruby.string_value(reason)
 	} else {
-		brew_runtime.object_value('Nil', '')
+		ruby.object_value('Nil', '')
 	}
 }
 

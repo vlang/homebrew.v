@@ -1,13 +1,13 @@
 module utils
 
-import brew_runtime
+import ruby
 import homebrew.utils as production_utils
 
 // Translated from Homebrew/brew `test/utils/fork_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "preserves build error details" do` at line 8.
-pub fn ruby_fork_spec_l8_d1_preserves(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_fork_spec_l8_d1_preserves(args ...ruby.Value) ruby.Value {
 	_ = args
 	child_error := &production_utils.ForkChildError{
 		kind: .build_error
@@ -20,13 +20,13 @@ pub fn ruby_fork_spec_l8_d1_preserves(args ...brew_runtime.Value) brew_runtime.V
 		}
 	}
 	error_hash := production_utils.child_error_hash(child_error)
-	return brew_runtime.bool_value(error_hash['cmd'].as_string() == 'make'
+	return ruby.bool_value(error_hash['cmd'].as_string() == 'make'
 		&& error_hash['args'].as_string_array() or { []string{} } == ['install']
 		&& error_hash['env'].map_data['PATH'].as_string() == '/bin')
 }
 
 // Ruby it `it "raises a RuntimeError on an error that isn't ErrorDuringExecution" do` at line 18.
-pub fn ruby_fork_spec_l18_d2_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_fork_spec_l18_d2_raises(args ...ruby.Value) ruby.Value {
 	_ = args
 	request := &production_utils.ForkSafeRequest{
 		directory: '/tmp/fork-spec-runtime'
@@ -41,12 +41,12 @@ pub fn ruby_fork_spec_l18_d2_raises(args ...brew_runtime.Value) brew_runtime.Val
 		exitstatus: 1
 	}
 	outcome := production_utils.safe_fork_outcome(request)
-	return brew_runtime.bool_value(outcome.has_error && outcome.raised.kind == .runtime_error
+	return ruby.bool_value(outcome.has_error && outcome.raised.kind == .runtime_error
 		&& outcome.raised.message.contains('this is an exception in the child'))
 }
 
 // Ruby it `it "raises an ErrorDuringExecution on one in the child" do` at line 26.
-pub fn ruby_fork_spec_l26_d3_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_fork_spec_l26_d3_raises(args ...ruby.Value) ruby.Value {
 	_ = args
 	request := &production_utils.ForkSafeRequest{
 		directory: '/tmp/fork-spec-execution'
@@ -66,7 +66,7 @@ pub fn ruby_fork_spec_l26_d3_raises(args ...brew_runtime.Value) brew_runtime.Val
 		exitstatus: 1
 	}
 	outcome := production_utils.safe_fork_outcome(request)
-	return brew_runtime.bool_value(outcome.has_error
+	return ruby.bool_value(outcome.has_error
 		&& outcome.raised.kind == .error_during_execution
 		&& outcome.raised.command_arguments == ['/usr/bin/false'])
 }

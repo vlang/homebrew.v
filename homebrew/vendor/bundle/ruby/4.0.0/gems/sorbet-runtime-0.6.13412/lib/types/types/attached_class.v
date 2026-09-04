@@ -1,6 +1,6 @@
 module types
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/types/attached_class.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -10,52 +10,52 @@ pub fn new_attached_class_type() AttachedClassType {
 	return AttachedClassType{}
 }
 
-pub fn (_ AttachedClassType) build_type() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+pub fn (_ AttachedClassType) build_type() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 pub fn (_ AttachedClassType) name() string {
 	return 'T.attached_class'
 }
 
-pub fn (_ AttachedClassType) valid(_ brew_runtime.Value) bool {
+pub fn (_ AttachedClassType) valid(_ ruby.Value) bool {
 	return true
 }
 
-pub fn (_ AttachedClassType) subtype_of_single(other brew_runtime.Value) bool {
+pub fn (_ AttachedClassType) subtype_of_single(other ruby.Value) bool {
 	return other.type_name == 'T::Types::AttachedClassType'
 }
 
-fn attached_class_type_value() brew_runtime.Value {
-	return brew_runtime.object_value('T::Types::AttachedClassType', 'T.attached_class')
+fn attached_class_type_value() ruby.Value {
+	return ruby.object_value('T::Types::AttachedClassType', 'T.attached_class')
 }
 
 // Ruby method `initialize(); end` at line 11.
-pub fn ruby_attached_class_l11_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+pub fn ruby_attached_class_l11_d1_initialize(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `build_type` at line 13.
-pub fn ruby_attached_class_l13_d2_build_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_attached_class_l13_d2_build_type(args ...ruby.Value) ruby.Value {
 	return new_attached_class_type().build_type()
 }
 
 // Ruby method `name` at line 18.
-pub fn ruby_attached_class_l18_d3_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(new_attached_class_type().name())
+pub fn ruby_attached_class_l18_d3_name(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(new_attached_class_type().name())
 }
 
 // Ruby method `valid?(obj)` at line 23.
-pub fn ruby_attached_class_l23_d4_valid(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(true)
+pub fn ruby_attached_class_l23_d4_valid(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(true)
 }
 
 // Ruby method `subtype_of_single?(other)` at line 28.
-pub fn ruby_attached_class_l28_d5_subtype_of_single(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_attached_class_l28_d5_subtype_of_single(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('AttachedClassType#subtype_of_single? requires another type')
 	}
-	return brew_runtime.bool_value(new_attached_class_type().subtype_of_single(args[1]))
+	return ruby.bool_value(new_attached_class_type().subtype_of_single(args[1]))
 }
 
 // Original Ruby source (line-for-line):

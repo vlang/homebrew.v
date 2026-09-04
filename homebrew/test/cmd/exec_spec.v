@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 import os
 import time
 
@@ -21,7 +21,7 @@ struct ExecSpecResult {
 	stderr  string
 }
 
-fn exec_spec_root(args []brew_runtime.Value) string {
+fn exec_spec_root(args []ruby.Value) string {
 	if args.len > 0 && args[0].as_string() != '' {
 		return args[0].as_string()
 	}
@@ -240,7 +240,7 @@ fn exec_spec_run(paths ExecSpecPaths, source_arguments []string) ExecSpecResult 
 		}
 	}
 	path_entries << '/usr/bin:/bin'
-	result := brew_runtime.run_command_with_environment(command, arguments, {
+	result := ruby.run_command_with_environment(command, arguments, {
 		'PATH': path_entries.join(':')
 	})
 	return ExecSpecResult{
@@ -251,89 +251,89 @@ fn exec_spec_run(paths ExecSpecPaths, source_arguments []string) ExecSpecResult 
 }
 
 // Ruby let `let(:formula_name) { "test-executable" }` at line 11.
-pub fn ruby_exec_spec_l11_d1_formula_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exec_spec_l11_d1_formula_name(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value(exec_spec_formula_name())
+	return ruby.string_value(exec_spec_formula_name())
 }
 
 // Ruby let `let(:executable_name) { "test-executable-tool" }` at line 12.
-pub fn ruby_exec_spec_l12_d2_executable_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exec_spec_l12_d2_executable_name(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value(exec_spec_executable_name())
+	return ruby.string_value(exec_spec_executable_name())
 }
 
 // Ruby let `let(:shell_cellar) { HOMEBREW_CELLAR }` at line 13.
-pub fn ruby_exec_spec_l13_d3_shell_cellar(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(exec_spec_paths(exec_spec_root(args)).cellar)
+pub fn ruby_exec_spec_l13_d3_shell_cellar(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(exec_spec_paths(exec_spec_root(args)).cellar)
 }
 
 // Ruby let `let(:db) { HOMEBREW_CACHE/"api/internal/executables.txt" }` at line 14.
-pub fn ruby_exec_spec_l14_d4_db(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(exec_spec_db(exec_spec_paths(exec_spec_root(args))))
+pub fn ruby_exec_spec_l14_d4_db(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(exec_spec_db(exec_spec_paths(exec_spec_root(args))))
 }
 
 // Ruby let `let(:active_executable) { shell_cellar/"#{formula_name}/2.10/bin/#{executable_name}" }` at line 15.
-pub fn ruby_exec_spec_l15_d5_active_executable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(exec_spec_active_executable(exec_spec_paths(exec_spec_root(args))))
+pub fn ruby_exec_spec_l15_d5_active_executable(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(exec_spec_active_executable(exec_spec_paths(exec_spec_root(args))))
 }
 
 // Ruby let `let(:env_formula_name) { "test-env" }` at line 16.
-pub fn ruby_exec_spec_l16_d6_env_formula_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exec_spec_l16_d6_env_formula_name(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value(exec_spec_env_formula_name())
+	return ruby.string_value(exec_spec_env_formula_name())
 }
 
 // Ruby let `let(:env_executable_name) { "test-env-tool" }` at line 17.
-pub fn ruby_exec_spec_l17_d7_env_executable_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exec_spec_l17_d7_env_executable_name(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value(exec_spec_env_executable_name())
+	return ruby.string_value(exec_spec_env_executable_name())
 }
 
 // Ruby let `let(:env_executable) { shell_cellar/"#{env_formula_name}/1.0/bin/#{env_executable_name}" }` at line 18.
-pub fn ruby_exec_spec_l18_d8_env_executable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(exec_spec_env_executable(exec_spec_paths(exec_spec_root(args))))
+pub fn ruby_exec_spec_l18_d8_env_executable(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(exec_spec_env_executable(exec_spec_paths(exec_spec_root(args))))
 }
 
 // Ruby let `let(:installable_formula_name) { "test-installable" }` at line 19.
-pub fn ruby_exec_spec_l19_d9_installable_formula_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exec_spec_l19_d9_installable_formula_name(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value(exec_spec_installable_formula_name())
+	return ruby.string_value(exec_spec_installable_formula_name())
 }
 
 // Ruby let `let(:installable_executable_name) { "test-installable-tool" }` at line 20.
-pub fn ruby_exec_spec_l20_d10_installable_executable_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exec_spec_l20_d10_installable_executable_name(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value(exec_spec_installable_executable_name())
+	return ruby.string_value(exec_spec_installable_executable_name())
 }
 
 // Ruby let `let(:brew_wrapper) { HOMEBREW_TEMP/"brew-exec-wrapper/brew" }` at line 21.
-pub fn ruby_exec_spec_l21_d11_brew_wrapper(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(exec_spec_brew_wrapper(exec_spec_paths(exec_spec_root(args))))
+pub fn ruby_exec_spec_l21_d11_brew_wrapper(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(exec_spec_brew_wrapper(exec_spec_paths(exec_spec_root(args))))
 }
 
 // Ruby let `let(:inline_script) { HOMEBREW_TEMP/"brew-exec-wrapper/script.sh" }` at line 22.
-pub fn ruby_exec_spec_l22_d12_inline_script(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(exec_spec_inline_script(exec_spec_paths(exec_spec_root(args))))
+pub fn ruby_exec_spec_l22_d12_inline_script(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(exec_spec_inline_script(exec_spec_paths(exec_spec_root(args))))
 }
 
 // Ruby let `let(:brew_sh_env) do` at line 23.
-pub fn ruby_exec_spec_l23_d13_brew_sh_env(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exec_spec_l23_d13_brew_sh_env(args ...ruby.Value) ruby.Value {
 	paths := exec_spec_paths(exec_spec_root(args))
-	return brew_runtime.map_value({
-		'HOMEBREW_BREW_SH':               brew_runtime.string_value(os.join_path(paths.prefix, 'bin', 'brew'))
-		'HOMEBREW_FORCE_BREW_WRAPPER':    brew_runtime.string_value(exec_spec_brew_wrapper(paths))
-		'HOMEBREW_NO_FORCE_BREW_WRAPPER': brew_runtime.string_value('1')
-		'HOMEBREW_TEMP':                  brew_runtime.string_value(paths.temp)
-		'HOMEBREW_COLOR':                 brew_runtime.object_value('NilClass', 'nil')
-		'GITHUB_ACTIONS':                 brew_runtime.object_value('NilClass', 'nil')
+	return ruby.map_value({
+		'HOMEBREW_BREW_SH':               ruby.string_value(os.join_path(paths.prefix, 'bin', 'brew'))
+		'HOMEBREW_FORCE_BREW_WRAPPER':    ruby.string_value(exec_spec_brew_wrapper(paths))
+		'HOMEBREW_NO_FORCE_BREW_WRAPPER': ruby.string_value('1')
+		'HOMEBREW_TEMP':                  ruby.string_value(paths.temp)
+		'HOMEBREW_COLOR':                 ruby.object_value('NilClass', 'nil')
+		'GITHUB_ACTIONS':                 ruby.object_value('NilClass', 'nil')
 	})
 }
 
 // Ruby it `it "runs commands in formula environments and supports the x alias", :aggregate_failures, :integration_test do` at line 110.
-pub fn ruby_exec_spec_l110_d14_runs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exec_spec_l110_d14_runs(args ...ruby.Value) ruby.Value {
 	root := exec_spec_root(args)
 	paths := exec_spec_paths(root)
-	exec_spec_setup(paths) or { return brew_runtime.bool_value(false) }
+	exec_spec_setup(paths) or { return ruby.bool_value(false) }
 	active := exec_spec_run(paths, ['exec', exec_spec_executable_name(), 'arg'])
 	alias := exec_spec_run(paths, ['x', exec_spec_executable_name()])
 	explicit := exec_spec_run(paths, ['exec',
@@ -342,7 +342,7 @@ pub fn ruby_exec_spec_l110_d14_runs(args ...brew_runtime.Value) brew_runtime.Val
 	empty_formulae := exec_spec_run(paths, ['exec', '--formulae=', exec_spec_executable_name()])
 	empty_sandbox := exec_spec_run(paths, ['exec', '--sandbox=', exec_spec_executable_name()])
 	installable := exec_spec_run(paths, ['exec', exec_spec_installable_executable_name(), 'arg'])
-	return brew_runtime.bool_value(active.success && active.stdout == 'active-version arg\n'
+	return ruby.bool_value(active.success && active.stdout == 'active-version arg\n'
 		&& active.stderr == '' && alias.success && alias.stdout == 'active-version\n'
 		&& alias.stderr == '' && explicit.success
 		&& explicit.stdout == 'active-version arg\nenv-version arg\n' && explicit.stderr == ''

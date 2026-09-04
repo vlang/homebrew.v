@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `dependencies.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -113,30 +113,30 @@ pub fn (dependencies Dependencies) inspect() string {
 	return '#<Dependencies: [${dependencies.items.map(it.inspect()).join(', ')}]>'
 }
 
-fn dependencies_boundary_value(dependencies Dependencies) brew_runtime.Value {
-	return brew_runtime.Value{
+fn dependencies_boundary_value(dependencies Dependencies) ruby.Value {
+	return ruby.Value{
 		type_name: 'Dependencies'
 		repr: dependencies.inspect()
 		array_data: dependencies.items.map(dependency_boundary_value(it))
 	}
 }
 
-fn dependency_array_boundary_value(dependencies []Dependency) brew_runtime.Value {
-	return brew_runtime.Value{
+fn dependency_array_boundary_value(dependencies []Dependency) ruby.Value {
+	return ruby.Value{
 		type_name: 'Array'
 		repr: '[${dependencies.map(it.inspect()).join(', ')}]'
 		array_data: dependencies.map(dependency_boundary_value(it))
 	}
 }
 
-fn dependencies_from_boundary(value brew_runtime.Value) Dependencies {
+fn dependencies_from_boundary(value ruby.Value) Dependencies {
 	if value.type_name == 'Dependencies' || value.type_name == 'Array' {
 		return new_dependencies(...value.array_data.filter(it.type_name == 'Dependency').map(dependency_from_boundary(it)))
 	}
 	panic('expected Dependencies, got ${value.type_name}')
 }
 
-fn dependencies_boundary_receiver(args []brew_runtime.Value, method string) Dependencies {
+fn dependencies_boundary_receiver(args []ruby.Value, method string) Dependencies {
 	if args.len == 0 {
 		panic('Dependencies#${method} requires a receiver')
 	}
@@ -144,7 +144,7 @@ fn dependencies_boundary_receiver(args []brew_runtime.Value, method string) Depe
 }
 
 // Ruby method `initialize(*args)` at line 15.
-pub fn ruby_dependencies_l15_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependencies_l15_d1_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 1 && args[0].type_name == 'Array' {
 		return dependencies_boundary_value(dependencies_from_boundary(args[0]))
 	}
@@ -152,40 +152,40 @@ pub fn ruby_dependencies_l15_d1_initialize(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby alias `alias eql? ==` at line 19.
-pub fn ruby_dependencies_l19_d2_eql(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependencies_l19_d2_eql(args ...ruby.Value) ruby.Value {
 	if args.len < 2 || args[1].type_name !in ['Dependencies', 'Array'] {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(dependencies_from_boundary(args[0]).equal(dependencies_from_boundary(args[1])))
+	return ruby.bool_value(dependencies_from_boundary(args[0]).equal(dependencies_from_boundary(args[1])))
 }
 
 // Ruby method `optional` at line 22.
-pub fn ruby_dependencies_l22_d3_optional(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependencies_l22_d3_optional(args ...ruby.Value) ruby.Value {
 	return dependency_array_boundary_value(dependencies_boundary_receiver(args, 'optional').optional())
 }
 
 // Ruby method `recommended` at line 27.
-pub fn ruby_dependencies_l27_d4_recommended(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependencies_l27_d4_recommended(args ...ruby.Value) ruby.Value {
 	return dependency_array_boundary_value(dependencies_boundary_receiver(args, 'recommended').recommended())
 }
 
 // Ruby method `build` at line 32.
-pub fn ruby_dependencies_l32_d5_build(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependencies_l32_d5_build(args ...ruby.Value) ruby.Value {
 	return dependency_array_boundary_value(dependencies_boundary_receiver(args, 'build').build())
 }
 
 // Ruby method `required` at line 37.
-pub fn ruby_dependencies_l37_d6_required(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependencies_l37_d6_required(args ...ruby.Value) ruby.Value {
 	return dependency_array_boundary_value(dependencies_boundary_receiver(args, 'required').required())
 }
 
 // Ruby method `default` at line 42.
-pub fn ruby_dependencies_l42_d7_default(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependencies_l42_d7_default(args ...ruby.Value) ruby.Value {
 	return dependency_array_boundary_value(dependencies_boundary_receiver(args, 'default').default_dependencies())
 }
 
 // Ruby method `dup_without_system_deps` at line 47.
-pub fn ruby_dependencies_l47_d8_dup_without_system_deps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dependencies_l47_d8_dup_without_system_deps(args ...ruby.Value) ruby.Value {
 	dependencies := dependencies_boundary_receiver(args, 'dup_without_system_deps')
 	if args.len > 1 {
 		return dependencies_boundary_value(dependencies.dup_without_system_deps_for_system(args[1].as_string()))
@@ -194,8 +194,8 @@ pub fn ruby_dependencies_l47_d8_dup_without_system_deps(args ...brew_runtime.Val
 }
 
 // Ruby method `inspect` at line 52.
-pub fn ruby_dependencies_l52_d9_inspect(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(dependencies_boundary_receiver(args, 'inspect').inspect())
+pub fn ruby_dependencies_l52_d9_inspect(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(dependencies_boundary_receiver(args, 'inspect').inspect())
 }
 
 // Original Ruby source (line-for-line):

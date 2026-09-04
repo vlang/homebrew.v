@@ -1,26 +1,26 @@
 module sections
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/elftools-1.3.1/lib/elftools/sections/note_section.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `note_start` at line 16.
-pub fn ruby_note_section_l16_d1_note_start(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_note_section_l16_d1_note_start(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('NoteSection#note_start requires a header')
 	}
-	return brew_runtime.int_value((args[0].attribute('sh_offset') or {
+	return ruby.int_value((args[0].attribute('sh_offset') or {
 		panic('section header has no sh_offset')
 	}).i64())
 }
 
 // Ruby method `note_total_size` at line 22.
-pub fn ruby_note_section_l22_d2_note_total_size(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_note_section_l22_d2_note_total_size(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('NoteSection#note_total_size requires a header')
 	}
-	return brew_runtime.int_value((args[0].attribute('sh_size') or {
+	return ruby.int_value((args[0].attribute('sh_size') or {
 		panic('section header has no sh_size')
 	}).i64())
 }

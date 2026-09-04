@@ -1,6 +1,6 @@
 module vulns
 
-import brew_runtime
+import ruby
 import homebrew.vulns as identify_core
 
 // Translated from Homebrew/brew `test/vulns/identify_spec.rb`.
@@ -413,7 +413,7 @@ pub fn ruby_identify_spec_l149_d28_returns() bool {
 }
 
 // Ruby method `result(url)` at line 157.
-pub fn ruby_identify_spec_l157_d29_result(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_identify_spec_l157_d29_result(args ...ruby.Value) ruby.Value {
 	return identify_core.ruby_identify_l118_d3_self_registry_package(...args)
 }
 

@@ -1,6 +1,6 @@
 module cli
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `cli/args.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -275,30 +275,30 @@ pub fn (mut args Args) cli_args() []string {
 	return rendered
 }
 
-fn args_nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn args_nil_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-pub fn args_boundary(args &Args) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::CLI::Args', args.options_only.str(), {
+pub fn args_boundary(args &Args) ruby.Value {
+	return ruby.structured_value('Homebrew::CLI::Args', args.options_only.str(), {
 		'args_address': u64(voidptr(args)).str()
 	})
 }
 
-fn args_from_boundary(value brew_runtime.Value) &Args {
+fn args_from_boundary(value ruby.Value) &Args {
 	address := value.attributes['args_address'] or { panic('invalid Homebrew::CLI::Args boundary') }
 	return unsafe { &Args(voidptr(address.u64())) }
 }
 
-fn args_receiver(values []brew_runtime.Value) (&Args, int) {
+fn args_receiver(values []ruby.Value) (&Args, int) {
 	if values.len > 0 && 'args_address' in values[0].attributes {
 		return args_from_boundary(values[0]), 1
 	}
 	return new_args(), 0
 }
 
-fn named_args_boundary(named NamedArgs) brew_runtime.Value {
-	return brew_runtime.Value{
+fn named_args_boundary(named NamedArgs) ruby.Value {
+	return ruby.Value{
 		type_name: 'Homebrew::CLI::NamedArgs'
 		repr: named.values.str()
 		string_array_data: named.values.clone()
@@ -311,7 +311,7 @@ fn named_args_boundary(named NamedArgs) brew_runtime.Value {
 	}
 }
 
-fn arg_value_from_boundary(value brew_runtime.Value) ArgValue {
+fn arg_value_from_boundary(value ruby.Value) ArgValue {
 	return match value.type_name {
 		'Bool' {
 			ArgValue{
@@ -334,18 +334,18 @@ fn arg_value_from_boundary(value brew_runtime.Value) ArgValue {
 	}
 }
 
-fn arg_value_boundary(value ArgValue) brew_runtime.Value {
+fn arg_value_boundary(value ArgValue) ruby.Value {
 	return match value.kind {
-		.switch_value { brew_runtime.bool_value(value.enabled) }
-		.flag_value { brew_runtime.string_value(value.text) }
-		.comma_array { brew_runtime.string_array_value(value.items) }
+		.switch_value { ruby.bool_value(value.enabled) }
+		.flag_value { ruby.string_value(value.text) }
+		.comma_array { ruby.string_array_value(value.items) }
 		.unset { args_nil_value() }
 	}
 }
 
-fn processed_options_from_boundary(value brew_runtime.Value) []ProcessedOption {
+fn processed_options_from_boundary(value ruby.Value) []ProcessedOption {
 	mut options := []ProcessedOption{}
-	for item in value.as_array() or { []brew_runtime.Value{} } {
+	for item in value.as_array() or { []ruby.Value{} } {
 		if item.attributes.len > 0 {
 			options << ProcessedOption{
 				short: item.attributes['short'] or { '' }
@@ -355,7 +355,7 @@ fn processed_options_from_boundary(value brew_runtime.Value) []ProcessedOption {
 			}
 			continue
 		}
-		parts := item.as_array() or { []brew_runtime.Value{} }
+		parts := item.as_array() or { []ruby.Value{} }
 		if parts.len > 0 {
 			options << ProcessedOption{
 				short: if parts[0].type_name == 'NilClass' { '' } else { parts[0].as_string() }
@@ -373,30 +373,30 @@ fn processed_options_from_boundary(value brew_runtime.Value) []ProcessedOption {
 }
 
 // Ruby attr_reader `attr_reader :options_only, :flags_only, :remaining` at line 15.
-pub fn ruby_args_l15_d1_options_only(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_args_l15_d1_options_only(args ...ruby.Value) ruby.Value {
 	receiver, _ := args_receiver(args)
-	return brew_runtime.string_array_value(receiver.options_only)
+	return ruby.string_array_value(receiver.options_only)
 }
 
 // Ruby attr_reader `attr_reader :options_only, :flags_only, :remaining` at line 15.
-pub fn ruby_args_l15_d2_flags_only(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_args_l15_d2_flags_only(args ...ruby.Value) ruby.Value {
 	receiver, _ := args_receiver(args)
-	return brew_runtime.string_array_value(receiver.flags_only)
+	return ruby.string_array_value(receiver.flags_only)
 }
 
 // Ruby attr_reader `attr_reader :options_only, :flags_only, :remaining` at line 15.
-pub fn ruby_args_l15_d3_remaining(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_args_l15_d3_remaining(args ...ruby.Value) ruby.Value {
 	receiver, _ := args_receiver(args)
-	return brew_runtime.string_array_value(receiver.remaining)
+	return ruby.string_array_value(receiver.remaining)
 }
 
 // Ruby method `initialize` at line 18.
-pub fn ruby_args_l18_d4_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_args_l18_d4_initialize(args ...ruby.Value) ruby.Value {
 	return args_boundary(new_args())
 }
 
 // Ruby method `freeze_remaining_args!(remaining_args) = @remaining.replace(remaining_args).freeze` at line 35.
-pub fn ruby_args_l35_d5_freeze_remaining_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_args_l35_d5_freeze_remaining_args(args ...ruby.Value) ruby.Value {
 	mut receiver, offset := args_receiver(args)
 	if args.len > offset {
 		receiver.freeze_remaining_args(args[offset].as_string_array() or { [] })
@@ -405,7 +405,7 @@ pub fn ruby_args_l35_d5_freeze_remaining_args(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby method `freeze_named_args!(named_args, cask_options:, without_api:)` at line 38.
-pub fn ruby_args_l38_d6_freeze_named_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_args_l38_d6_freeze_named_args(args ...ruby.Value) ruby.Value {
 	mut receiver, offset := args_receiver(args)
 	named := if args.len > offset { args[offset].as_string_array() or { [] } } else { [] }
 	cask_options := if args.len > offset + 1 { args[offset + 1].bool_data } else { false }
@@ -415,7 +415,7 @@ pub fn ruby_args_l38_d6_freeze_named_args(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby method `set_arg(name, value)` at line 54.
-pub fn ruby_args_l54_d7_set_arg(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_args_l54_d7_set_arg(args ...ruby.Value) ruby.Value {
 	mut receiver, offset := args_receiver(args)
 	if args.len > offset + 1 {
 		receiver.set_arg(args[offset].as_string().trim_left(':'), arg_value_from_boundary(args[offset + 1]))
@@ -424,14 +424,14 @@ pub fn ruby_args_l54_d7_set_arg(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `tap(&_blk)` at line 59.
-pub fn ruby_args_l59_d8_tap(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_args_l59_d8_tap(args ...ruby.Value) ruby.Value {
 	receiver, _ := args_receiver(args)
 	value := receiver.tap_value() or { return args_nil_value() }
 	return arg_value_boundary(value)
 }
 
 // Ruby method `freeze_processed_options!(processed_options)` at line 66.
-pub fn ruby_args_l66_d9_freeze_processed_options(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_args_l66_d9_freeze_processed_options(args ...ruby.Value) ruby.Value {
 	mut receiver, offset := args_receiver(args)
 	if args.len > offset {
 		receiver.freeze_processed_options(processed_options_from_boundary(args[offset]))
@@ -440,44 +440,44 @@ pub fn ruby_args_l66_d9_freeze_processed_options(args ...brew_runtime.Value) bre
 }
 
 // Ruby method `named` at line 78.
-pub fn ruby_args_l78_d10_named(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_args_l78_d10_named(args ...ruby.Value) ruby.Value {
 	receiver, _ := args_receiver(args)
 	return named_args_boundary(receiver.named)
 }
 
 // Ruby method `no_named? = named.empty?` at line 84.
-pub fn ruby_args_l84_d11_no_named(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_args_l84_d11_no_named(args ...ruby.Value) ruby.Value {
 	receiver, _ := args_receiver(args)
-	return brew_runtime.bool_value(receiver.no_named())
+	return ruby.bool_value(receiver.no_named())
 }
 
 // Ruby method `build_from_source_formulae` at line 87.
-pub fn ruby_args_l87_d12_build_from_source_formulae(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_args_l87_d12_build_from_source_formulae(args ...ruby.Value) ruby.Value {
 	receiver, _ := args_receiver(args)
-	return brew_runtime.string_array_value(receiver.build_from_source_formulae() or { [] })
+	return ruby.string_array_value(receiver.build_from_source_formulae() or { [] })
 }
 
 // Ruby method `include_test_formulae` at line 96.
-pub fn ruby_args_l96_d13_include_test_formulae(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_args_l96_d13_include_test_formulae(args ...ruby.Value) ruby.Value {
 	receiver, _ := args_receiver(args)
-	return brew_runtime.string_array_value(receiver.include_test_formulae() or { [] })
+	return ruby.string_array_value(receiver.include_test_formulae() or { [] })
 }
 
 // Ruby method `value(name)` at line 105.
-pub fn ruby_args_l105_d14_value(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_args_l105_d14_value(args ...ruby.Value) ruby.Value {
 	receiver, offset := args_receiver(args)
 	if args.len <= offset {
 		return args_nil_value()
 	}
 	value := receiver.value(args[offset].as_string()) or { return args_nil_value() }
-	return brew_runtime.string_value(value)
+	return ruby.string_value(value)
 }
 
 // Ruby method `context` at line 114.
-pub fn ruby_args_l114_d15_context(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_args_l114_d15_context(args ...ruby.Value) ruby.Value {
 	receiver, _ := args_receiver(args)
 	context := receiver.context()
-	return brew_runtime.structured_value('Homebrew::Context::ContextStruct', '', {
+	return ruby.structured_value('Homebrew::Context::ContextStruct', '', {
 		'debug':   context.debug.str()
 		'quiet':   context.quiet.str()
 		'verbose': context.verbose.str()
@@ -485,34 +485,34 @@ pub fn ruby_args_l114_d15_context(args ...brew_runtime.Value) brew_runtime.Value
 }
 
 // Ruby method `only_formula_or_cask` at line 119.
-pub fn ruby_args_l119_d16_only_formula_or_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_args_l119_d16_only_formula_or_cask(args ...ruby.Value) ruby.Value {
 	receiver, _ := args_receiver(args)
 	value := receiver.only_formula_or_cask() or { return args_nil_value() }
-	return brew_runtime.object_value('Symbol', value)
+	return ruby.object_value('Symbol', value)
 }
 
 // Ruby method `os_arch_combinations` at line 128.
-pub fn ruby_args_l128_d17_os_arch_combinations(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_args_l128_d17_os_arch_combinations(args ...ruby.Value) ruby.Value {
 	receiver, _ := args_receiver(args)
-	return brew_runtime.array_value(receiver.os_arch_combinations().map(brew_runtime.array_value([
-		brew_runtime.object_value('Symbol', it.os),
-		brew_runtime.object_value('Symbol', it.arch),
+	return ruby.array_value(receiver.os_arch_combinations().map(ruby.array_value([
+		ruby.object_value('Symbol', it.os),
+		ruby.object_value('Symbol', it.arch),
 	])))
 }
 
 // Ruby method `option_to_name(option)` at line 170.
-pub fn ruby_args_l170_d18_option_to_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_args_l170_d18_option_to_name(args ...ruby.Value) ruby.Value {
 	_, offset := args_receiver(args)
 	if args.len <= offset {
-		return brew_runtime.string_value('')
+		return ruby.string_value('')
 	}
-	return brew_runtime.string_value(option_to_name(args[offset].as_string()))
+	return ruby.string_value(option_to_name(args[offset].as_string()))
 }
 
 // Ruby method `cli_args` at line 176.
-pub fn ruby_args_l176_d19_cli_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_args_l176_d19_cli_args(args ...ruby.Value) ruby.Value {
 	mut receiver, _ := args_receiver(args)
-	return brew_runtime.string_array_value(receiver.cli_args())
+	return ruby.string_array_value(receiver.cli_args())
 }
 
 // Original Ruby source (line-for-line):

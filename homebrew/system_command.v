@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 import time
 
 // Translated from Homebrew/brew `system_command.rb`.
@@ -121,7 +121,7 @@ pub fn system_command_environment(values map[string]string) map[string]?string {
 }
 
 fn system_command_truthy_environment(name string) bool {
-	return brew_runtime.environment_value(name).to_lower() in ['1', 'true', 'yes', 'on']
+	return ruby.environment_value(name).to_lower() in ['1', 'true', 'yes', 'on']
 }
 
 fn valid_system_command_environment_name(name string) bool {
@@ -161,7 +161,7 @@ fn system_command_sensitive_values(environment map[string]?string) []string {
 
 fn system_command_ambient_sensitive_values() []string {
 	mut values := []string{}
-	for name, value in brew_runtime.environment() {
+	for name, value in ruby.environment() {
 		if system_command_sensitive_environment_name(name) && value != '' && value !in values {
 			values << value
 		}
@@ -290,11 +290,11 @@ pub fn (command SystemCommand) env_args() []string {
 }
 
 pub fn (command SystemCommand) homebrew_sudo_user() ?string {
-	return brew_runtime.environment_value_opt('HOMEBREW_SUDO_USER')
+	return ruby.environment_value_opt('HOMEBREW_SUDO_USER')
 }
 
 pub fn (command SystemCommand) sudo_prefix() ![]string {
-	askpass := if brew_runtime.environment_value('SUDO_ASKPASS') != '' {
+	askpass := if ruby.environment_value('SUDO_ASKPASS') != '' {
 		['-A']
 	} else {
 		[]string{}
@@ -339,7 +339,7 @@ pub fn (command SystemCommand) expanded_args() []string {
 	mut expanded := command.args.clone()
 	for index in command.absolute_path_args {
 		if index >= 0 && index < expanded.len {
-			expanded[index] = brew_runtime.absolute_path(expanded[index])
+			expanded[index] = ruby.absolute_path(expanded[index])
 		}
 	}
 	return expanded
@@ -357,7 +357,7 @@ pub fn (command SystemCommand) input_text() string {
 }
 
 fn (command SystemCommand) execution_environment() map[string]string {
-	mut environment := brew_runtime.environment()
+	mut environment := ruby.environment()
 	for name, maybe_value in command.environment {
 		if value := maybe_value {
 			environment[name] = value
@@ -370,7 +370,7 @@ fn (command SystemCommand) execution_environment() map[string]string {
 
 pub fn (command SystemCommand) exec3() !SystemCommandExecution {
 	argv := command.command_line()!
-	captured := brew_runtime.run_captured_command(argv, brew_runtime.CapturedCommandOptions{
+	captured := ruby.run_captured_command(argv, ruby.CapturedCommandOptions{
 		environment: command.execution_environment()
 		input: command.input_text()
 		chdir: command.chdir

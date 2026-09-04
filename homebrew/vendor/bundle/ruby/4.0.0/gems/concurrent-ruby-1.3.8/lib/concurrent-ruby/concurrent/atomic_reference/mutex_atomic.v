@@ -1,6 +1,6 @@
 module atomic_reference
 
-import brew_runtime
+import ruby
 import math
 import sync
 
@@ -10,30 +10,30 @@ import sync
 pub struct MutexAtomicReference {
 mut:
 	lock  sync.Mutex
-	value brew_runtime.Value
+	value ruby.Value
 }
 
-pub fn new_mutex_atomic_reference(value brew_runtime.Value) &MutexAtomicReference {
+pub fn new_mutex_atomic_reference(value ruby.Value) &MutexAtomicReference {
 	return &MutexAtomicReference{
 		value: value
 	}
 }
 
-pub fn (mut reference MutexAtomicReference) get() brew_runtime.Value {
+pub fn (mut reference MutexAtomicReference) get() ruby.Value {
 	reference.lock.lock()
 	value := reference.value
 	reference.lock.unlock()
 	return value
 }
 
-pub fn (mut reference MutexAtomicReference) set(new_value brew_runtime.Value) brew_runtime.Value {
+pub fn (mut reference MutexAtomicReference) set(new_value ruby.Value) ruby.Value {
 	reference.lock.lock()
 	reference.value = new_value
 	reference.lock.unlock()
 	return new_value
 }
 
-pub fn (mut reference MutexAtomicReference) get_and_set(new_value brew_runtime.Value) brew_runtime.Value {
+pub fn (mut reference MutexAtomicReference) get_and_set(new_value ruby.Value) ruby.Value {
 	reference.lock.lock()
 	old_value := reference.value
 	reference.value = new_value
@@ -41,11 +41,11 @@ pub fn (mut reference MutexAtomicReference) get_and_set(new_value brew_runtime.V
 	return old_value
 }
 
-fn is_numeric_value(value brew_runtime.Value) bool {
+fn is_numeric_value(value ruby.Value) bool {
 	return value.type_name == 'Integer' || value.type_name == 'Float'
 }
 
-fn numeric_values_match(actual brew_runtime.Value, expected brew_runtime.Value) bool {
+fn numeric_values_match(actual ruby.Value, expected ruby.Value) bool {
 	if !is_numeric_value(actual) || !is_numeric_value(expected) {
 		return false
 	}
@@ -57,7 +57,7 @@ fn numeric_values_match(actual brew_runtime.Value, expected brew_runtime.Value) 
 	return actual_number == expected_number
 }
 
-fn boundary_values_identical(actual brew_runtime.Value, expected brew_runtime.Value) bool {
+fn boundary_values_identical(actual ruby.Value, expected ruby.Value) bool {
 	if actual.type_name != expected.type_name {
 		return false
 	}
@@ -65,7 +65,7 @@ fn boundary_values_identical(actual brew_runtime.Value, expected brew_runtime.Va
 	return actual.repr == expected.repr && actual.bool_data == expected.bool_data && actual.int_data == expected.int_data && floats_match
 }
 
-pub fn (mut reference MutexAtomicReference) compare_and_set_reference(expected brew_runtime.Value, new_value brew_runtime.Value) bool {
+pub fn (mut reference MutexAtomicReference) compare_and_set_reference(expected ruby.Value, new_value ruby.Value) bool {
 	reference.lock.lock()
 	if boundary_values_identical(reference.value, expected) {
 		reference.value = new_value
@@ -76,7 +76,7 @@ pub fn (mut reference MutexAtomicReference) compare_and_set_reference(expected b
 	return false
 }
 
-pub fn (mut reference MutexAtomicReference) compare_and_set(expected brew_runtime.Value, new_value brew_runtime.Value) bool {
+pub fn (mut reference MutexAtomicReference) compare_and_set(expected ruby.Value, new_value ruby.Value) bool {
 	if !is_numeric_value(expected) {
 		return reference.compare_and_set_reference(expected, new_value)
 	}
@@ -92,7 +92,7 @@ pub fn (mut reference MutexAtomicReference) compare_and_set(expected brew_runtim
 	return false
 }
 
-pub fn (mut reference MutexAtomicReference) update(updater fn(brew_runtime.Value) brew_runtime.Value) brew_runtime.Value {
+pub fn (mut reference MutexAtomicReference) update(updater fn(ruby.Value) ruby.Value) ruby.Value {
 	for {
 		old_value := reference.get()
 		new_value := updater(old_value)
@@ -100,10 +100,10 @@ pub fn (mut reference MutexAtomicReference) update(updater fn(brew_runtime.Value
 			return new_value
 		}
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
-pub fn (mut reference MutexAtomicReference) try_update(updater fn(brew_runtime.Value) brew_runtime.Value) ?brew_runtime.Value {
+pub fn (mut reference MutexAtomicReference) try_update(updater fn(ruby.Value) ruby.Value) ?ruby.Value {
 	old_value := reference.get()
 	new_value := updater(old_value)
 	if !reference.compare_and_set(old_value, new_value) {
@@ -112,59 +112,59 @@ pub fn (mut reference MutexAtomicReference) try_update(updater fn(brew_runtime.V
 	return new_value
 }
 
-pub fn (mut reference MutexAtomicReference) try_update_or_error(updater fn(brew_runtime.Value) brew_runtime.Value) !brew_runtime.Value {
+pub fn (mut reference MutexAtomicReference) try_update_or_error(updater fn(ruby.Value) ruby.Value) !ruby.Value {
 	return reference.try_update(updater) or { return error('Update failed') }
 }
 
-fn nil_boundary_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn nil_boundary_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `initialize(value = nil)` at line 15.
-pub fn ruby_mutex_atomic_l15_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mutex_atomic_l15_d1_initialize(args ...ruby.Value) ruby.Value {
 	return if args.len > 0 { args[0] } else { nil_boundary_value() }
 }
 
 // Ruby method `get` at line 22.
-pub fn ruby_mutex_atomic_l22_d2_get(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mutex_atomic_l22_d2_get(args ...ruby.Value) ruby.Value {
 	return if args.len > 0 { args[0] } else { nil_boundary_value() }
 }
 
 // Ruby alias_method `alias_method :value, :get` at line 25.
-pub fn ruby_mutex_atomic_l25_d3_value(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mutex_atomic_l25_d3_value(args ...ruby.Value) ruby.Value {
 	return ruby_mutex_atomic_l22_d2_get(...args)
 }
 
 // Ruby method `set(new_value)` at line 28.
-pub fn ruby_mutex_atomic_l28_d4_set(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mutex_atomic_l28_d4_set(args ...ruby.Value) ruby.Value {
 	return if args.len > 0 { args[args.len - 1] } else { nil_boundary_value() }
 }
 
 // Ruby alias_method `alias_method :value=, :set` at line 31.
-pub fn ruby_mutex_atomic_l31_d5_value(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mutex_atomic_l31_d5_value(args ...ruby.Value) ruby.Value {
 	return ruby_mutex_atomic_l28_d4_set(...args)
 }
 
 // Ruby method `get_and_set(new_value)` at line 34.
-pub fn ruby_mutex_atomic_l34_d6_get_and_set(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mutex_atomic_l34_d6_get_and_set(args ...ruby.Value) ruby.Value {
 	return if args.len > 1 { args[0] } else { nil_boundary_value() }
 }
 
 // Ruby alias_method `alias_method :swap, :get_and_set` at line 41.
-pub fn ruby_mutex_atomic_l41_d7_swap(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mutex_atomic_l41_d7_swap(args ...ruby.Value) ruby.Value {
 	return ruby_mutex_atomic_l34_d6_get_and_set(...args)
 }
 
 // Ruby method `_compare_and_set(old_value, new_value)` at line 44.
-pub fn ruby_mutex_atomic_l44_d8_compare_and_set(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mutex_atomic_l44_d8_compare_and_set(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(boundary_values_identical(args[0], args[1]))
+	return ruby.bool_value(boundary_values_identical(args[0], args[1]))
 }
 
 // Ruby method `synchronize` at line 58.
-pub fn ruby_mutex_atomic_l58_d9_synchronize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mutex_atomic_l58_d9_synchronize(args ...ruby.Value) ruby.Value {
 	return if args.len > 0 { args[args.len - 1] } else { nil_boundary_value() }
 }
 

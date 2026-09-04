@@ -1,6 +1,6 @@
 module test
 
-import brew_runtime
+import ruby
 import homebrew
 import os
 
@@ -42,25 +42,25 @@ fn install_steps_spec_context(root string) homebrew.InstallStepsContext {
 	}
 }
 
-fn install_steps_spec_context_value(root string, extra map[string]string) brew_runtime.Value {
+fn install_steps_spec_context_value(root string, extra map[string]string) ruby.Value {
 	context := install_steps_spec_context(root)
-	mut values := map[string]brew_runtime.Value{}
+	mut values := map[string]ruby.Value{}
 	for key, value in context.values {
-		values[key] = brew_runtime.string_value(value)
+		values[key] = ruby.string_value(value)
 	}
 	for key, value in extra {
-		values[key] = brew_runtime.string_value(value)
+		values[key] = ruby.string_value(value)
 	}
-	values['config'] = brew_runtime.map_value({})
-	return brew_runtime.Value{
+	values['config'] = ruby.map_value({})
+	return ruby.Value{
 		type_name: 'InstallSteps::Context'
 		repr: extra['name'] or { extra['token'] or { '' } }
 		map_data: values
 	}
 }
 
-fn install_steps_spec_runner_value(root string, extra map[string]string) brew_runtime.Value {
-	return brew_runtime.Value{
+fn install_steps_spec_runner_value(root string, extra map[string]string) ruby.Value {
+	return ruby.Value{
 		type_name: 'InstallSteps::Runner'
 		repr: 'InstallSteps::Runner'
 		map_data: {
@@ -70,35 +70,35 @@ fn install_steps_spec_runner_value(root string, extra map[string]string) brew_ru
 }
 
 fn install_steps_spec_dsl(default_base string, default_source string,
-	default_target string) brew_runtime.Value {
-	return homebrew.ruby_install_steps_l79_d5_initialize(brew_runtime.map_value({
-		'default_base':        brew_runtime.string_value(default_base)
-		'default_source_base': brew_runtime.string_value(default_source)
-		'default_target_base': brew_runtime.string_value(default_target)
+	default_target string) ruby.Value {
+	return homebrew.ruby_install_steps_l79_d5_initialize(ruby.map_value({
+		'default_base':        ruby.string_value(default_base)
+		'default_source_base': ruby.string_value(default_source)
+		'default_target_base': ruby.string_value(default_target)
 	}))
 }
 
-fn install_steps_spec_steps(dsl brew_runtime.Value) []brew_runtime.Value {
-	return homebrew.ruby_install_steps_l89_d6_steps(dsl).as_array() or { []brew_runtime.Value{} }
+fn install_steps_spec_steps(dsl ruby.Value) []ruby.Value {
+	return homebrew.ruby_install_steps_l89_d6_steps(dsl).as_array() or { []ruby.Value{} }
 }
 
-fn install_steps_spec_step(dsl brew_runtime.Value) map[string]brew_runtime.Value {
+fn install_steps_spec_step(dsl ruby.Value) map[string]ruby.Value {
 	steps := install_steps_spec_steps(dsl)
 	if steps.len == 0 {
-		return map[string]brew_runtime.Value{}
+		return map[string]ruby.Value{}
 	}
 	return steps[steps.len - 1].map_data.clone()
 }
 
-fn install_steps_spec_path(step map[string]brew_runtime.Value, key string) map[string]brew_runtime.Value {
-	return (step[key] or { brew_runtime.map_value({}) }).map_data.clone()
+fn install_steps_spec_path(step map[string]ruby.Value, key string) map[string]ruby.Value {
+	return (step[key] or { ruby.map_value({}) }).map_data.clone()
 }
 
-fn install_steps_spec_type(dsl brew_runtime.Value) string {
-	return (install_steps_spec_step(dsl)['type'] or { brew_runtime.string_value('') }).as_string()
+fn install_steps_spec_type(dsl ruby.Value) string {
+	return (install_steps_spec_step(dsl)['type'] or { ruby.string_value('') }).as_string()
 }
 
-fn install_steps_spec_bool(value brew_runtime.Value) bool {
+fn install_steps_spec_bool(value ruby.Value) bool {
 	return value.as_bool() or { false }
 }
 
@@ -107,19 +107,19 @@ fn install_steps_spec_write(path string, contents string) ! {
 	os.write_file(path, contents)!
 }
 
-fn install_steps_spec_run(root string, dsl brew_runtime.Value) ! {
+fn install_steps_spec_run(root string, dsl ruby.Value) ! {
 	context := install_steps_spec_context(root)
 	mut runner := homebrew.new_install_steps_runner(context, homebrew.NativeInstallStepsCommandExecutor{})
 	homebrew.install_steps_run(mut runner, homebrew.install_steps_from_value(homebrew.ruby_install_steps_l89_d6_steps(dsl)), 'install')!
 }
 
-fn install_steps_spec_run_with_executor(root string, dsl brew_runtime.Value,
+fn install_steps_spec_run_with_executor(root string, dsl ruby.Value,
 	executor homebrew.InstallStepsCommandExecutor) ! {
 	mut runner := homebrew.new_install_steps_runner(install_steps_spec_context(root), executor)
 	homebrew.install_steps_run(mut runner, homebrew.install_steps_from_value(homebrew.ruby_install_steps_l89_d6_steps(dsl)), 'install')!
 }
 
-fn install_steps_spec_error(value brew_runtime.Value, contains string) bool {
+fn install_steps_spec_error(value ruby.Value, contains string) bool {
 	return value.type_name == 'ArgumentError' && value.repr.contains(contains)
 }
 
@@ -142,25 +142,25 @@ fn install_steps_spec_case(line int) bool {
 			os.symlink(dylib, source) or { return false }
 			mut runner := homebrew.new_install_steps_runner(install_steps_spec_context(root), InstallStepsSpecExecutor{})
 			step := homebrew.InstallStep({
-				'type':           brew_runtime.string_value('change_dylib_id')
-				'source':         brew_runtime.map_value({
-					'path': brew_runtime.string_value(source)
+				'type':           ruby.string_value('change_dylib_id')
+				'source':         ruby.map_value({
+					'path': ruby.string_value(source)
 				})
-				'id':             brew_runtime.string_value('@rpath/libfoo.1.dylib')
-				'resolve_source': brew_runtime.bool_value(true)
+				'id':             ruby.string_value('@rpath/libfoo.1.dylib')
+				'resolve_source': ruby.bool_value(true)
 			})
 			homebrew.install_steps_run_install_step(mut runner, step) or { return false }
 			int(os.stat(dylib) or { return false }.get_mode().bitmask()) & 0o777 == 0o444
 		}
 		81 {
 			mut dsl := install_steps_spec_dsl('var', 'staged_path', 'staged_path')
-			dsl = homebrew.ruby_install_steps_l235_d21_mkdir_p(dsl, brew_runtime.string_value('log/example'))
-			dsl = homebrew.ruby_install_steps_l240_d22_touch(dsl, brew_runtime.string_value('state/marker'), brew_runtime.map_value({
-				'base': brew_runtime.string_value('prefix')
+			dsl = homebrew.ruby_install_steps_l235_d21_mkdir_p(dsl, ruby.string_value('log/example'))
+			dsl = homebrew.ruby_install_steps_l240_d22_touch(dsl, ruby.string_value('state/marker'), ruby.map_value({
+				'base': ruby.string_value('prefix')
 			}))
-			dsl = homebrew.ruby_install_steps_l256_d23_move(dsl, brew_runtime.string_value('move-source'), brew_runtime.string_value('move-target'))
-			dsl = homebrew.ruby_install_steps_l377_d30_symlink(dsl, brew_runtime.string_value('move-target'), brew_runtime.string_value('linked-target'), brew_runtime.map_value({
-				'source_base': brew_runtime.string_value('relative')
+			dsl = homebrew.ruby_install_steps_l256_d23_move(dsl, ruby.string_value('move-source'), ruby.string_value('move-target'))
+			dsl = homebrew.ruby_install_steps_l377_d30_symlink(dsl, ruby.string_value('move-target'), ruby.string_value('linked-target'), ruby.map_value({
+				'source_base': ruby.string_value('relative')
 			}))
 			os.mkdir_all(os.join_path(root, 'stage')) or { return false }
 			install_steps_spec_write(os.join_path(root, 'stage/move-source'), 'moved') or { return false }
@@ -169,8 +169,8 @@ fn install_steps_spec_case(line int) bool {
 		}
 		102 {
 			mut dsl := install_steps_spec_dsl('prefix', '', '')
-			dsl = homebrew.ruby_install_steps_l230_d20_mkdir(dsl, brew_runtime.string_value('one'))
-			dsl = homebrew.ruby_install_steps_l235_d21_mkdir_p(dsl, brew_runtime.string_value('two/three'))
+			dsl = homebrew.ruby_install_steps_l230_d20_mkdir(dsl, ruby.string_value('one'))
+			dsl = homebrew.ruby_install_steps_l235_d21_mkdir_p(dsl, ruby.string_value('two/three'))
 			paths := homebrew.install_steps_sandbox_write_paths(install_steps_spec_context(root), homebrew.install_steps_from_value(homebrew.ruby_install_steps_l89_d6_steps(dsl)), 'install') or {
 				return false
 			}
@@ -178,9 +178,9 @@ fn install_steps_spec_case(line int) bool {
 		}
 		113 {
 			mut dsl := install_steps_spec_dsl('', '', 'prefix')
-			dsl = homebrew.ruby_install_steps_l377_d30_symlink(dsl, brew_runtime.string_value('cert.pem'), brew_runtime.string_value('cert.pem'), brew_runtime.map_value({
-				'source_base':    brew_runtime.string_value('formula_pkgetc')
-				'source_formula': brew_runtime.string_value('example/tap/test-source')
+			dsl = homebrew.ruby_install_steps_l377_d30_symlink(dsl, ruby.string_value('cert.pem'), ruby.string_value('cert.pem'), ruby.map_value({
+				'source_base':    ruby.string_value('formula_pkgetc')
+				'source_formula': ruby.string_value('example/tap/test-source')
 			}))
 			step := install_steps_spec_step(dsl)
 			source := install_steps_spec_path(step, 'source')
@@ -188,17 +188,17 @@ fn install_steps_spec_case(line int) bool {
 		}
 		128 {
 			mut dsl := install_steps_spec_dsl('', 'prefix', '')
-			dsl = homebrew.ruby_install_steps_l664_d53_change_dylib_id(dsl, brew_runtime.string_value('lib/libfoo.dylib'), brew_runtime.string_value('{{HOMEBREW_PREFIX}}/opt/foo/lib/libfoo.1.dylib'), brew_runtime.map_value({
-				'resolve_source': brew_runtime.bool_value(true)
+			dsl = homebrew.ruby_install_steps_l664_d53_change_dylib_id(dsl, ruby.string_value('lib/libfoo.dylib'), ruby.string_value('{{HOMEBREW_PREFIX}}/opt/foo/lib/libfoo.1.dylib'), ruby.map_value({
+				'resolve_source': ruby.bool_value(true)
 			}))
 			step := install_steps_spec_step(dsl)
-			install_steps_spec_type(dsl) == 'change_dylib_id' && install_steps_spec_bool(step['resolve_source'] or { brew_runtime.bool_value(false) })
+			install_steps_spec_type(dsl) == 'change_dylib_id' && install_steps_spec_bool(step['resolve_source'] or { ruby.bool_value(false) })
 		}
 		142 {
 			mut dsl := install_steps_spec_dsl('', 'prefix', 'prefix')
-			dsl = homebrew.ruby_install_steps_l377_d30_symlink(dsl, brew_runtime.string_value('share/man/*.1'), brew_runtime.string_value('share/man/man1'), brew_runtime.map_value({
-				'source_glob': brew_runtime.bool_value(true)
-				'overwrite':   brew_runtime.bool_value(true)
+			dsl = homebrew.ruby_install_steps_l377_d30_symlink(dsl, ruby.string_value('share/man/*.1'), ruby.string_value('share/man/man1'), ruby.map_value({
+				'source_glob': ruby.bool_value(true)
+				'overwrite':   ruby.bool_value(true)
 			}))
 			os.mkdir_all(os.join_path(root, 'prefix/share/man/man1')) or { return false }
 			install_steps_spec_write(os.join_path(root, 'prefix/share/man/tool.1'), 'tool') or { return false }
@@ -208,7 +208,7 @@ fn install_steps_spec_case(line int) bool {
 		}
 		158 {
 			mut dsl := install_steps_spec_dsl('var', '', '')
-			dsl = homebrew.ruby_install_steps_l230_d20_mkdir(dsl, brew_runtime.string_value('missing-parent/example'))
+			dsl = homebrew.ruby_install_steps_l230_d20_mkdir(dsl, ruby.string_value('missing-parent/example'))
 			step := install_steps_spec_step(dsl)
 			path := install_steps_spec_path(step, 'path')
 			mut runner := homebrew.new_install_steps_runner(install_steps_spec_context(root), homebrew.NativeInstallStepsCommandExecutor{})
@@ -218,27 +218,27 @@ fn install_steps_spec_case(line int) bool {
 		}
 		173 {
 			mut dsl := install_steps_spec_dsl('var', '', '')
-			dsl = homebrew.ruby_install_steps_l235_d21_mkdir_p(dsl, brew_runtime.string_value('nested/example'))
+			dsl = homebrew.ruby_install_steps_l235_d21_mkdir_p(dsl, ruby.string_value('nested/example'))
 			install_steps_spec_run(root, dsl) or { return false }
 			os.is_dir(os.join_path(root, 'var/nested/example'))
 		}
 		191 {
-			raw := brew_runtime.array_value([
-				brew_runtime.map_value({
-					':type': brew_runtime.object_value('Symbol', ':mkdir_p')
-					':path': brew_runtime.map_value({
-						'base': brew_runtime.object_value('Symbol', ':var')
-						'path': brew_runtime.string_value('nested/example')
+			raw := ruby.array_value([
+				ruby.map_value({
+					':type': ruby.object_value('Symbol', ':mkdir_p')
+					':path': ruby.map_value({
+						'base': ruby.object_value('Symbol', ':var')
+						'path': ruby.string_value('nested/example')
 					})
 				}),
-				brew_runtime.map_value({
-					'type':  brew_runtime.object_value('Symbol', ':set_ownership')
-					'paths': brew_runtime.array_value([brew_runtime.map_value({
-						'base': brew_runtime.object_value('Symbol', ':staged_path')
-						'path': brew_runtime.string_value('Example.app')
+				ruby.map_value({
+					'type':  ruby.object_value('Symbol', ':set_ownership')
+					'paths': ruby.array_value([ruby.map_value({
+						'base': ruby.object_value('Symbol', ':staged_path')
+						'path': ruby.string_value('Example.app')
 					})])
-					'user':  brew_runtime.object_value('Symbol', ':root')
-					'group': brew_runtime.object_value('Symbol', ':wheel')
+					'user':  ruby.object_value('Symbol', ':root')
+					'group': ruby.object_value('Symbol', ':wheel')
 				}),
 			])
 			steps := homebrew.ruby_install_steps_l159_d16_self_normalise_steps(raw).array_data
@@ -246,20 +246,20 @@ fn install_steps_spec_case(line int) bool {
 		}
 		250 {
 			mut dsl := install_steps_spec_dsl('', '', '')
-			dsl = homebrew.ruby_install_steps_l449_d34_symlink_tree(dsl, brew_runtime.string_value('source'), brew_runtime.string_value('target'))
-			dsl = homebrew.ruby_install_steps_l484_d36_symlink_children(dsl, brew_runtime.string_value('source'), brew_runtime.string_value('target'))
-			dsl = homebrew.ruby_install_steps_l519_d38_write_file(dsl, brew_runtime.string_value('config'), brew_runtime.string_value('content'))
+			dsl = homebrew.ruby_install_steps_l449_d34_symlink_tree(dsl, ruby.string_value('source'), ruby.string_value('target'))
+			dsl = homebrew.ruby_install_steps_l484_d36_symlink_children(dsl, ruby.string_value('source'), ruby.string_value('target'))
+			dsl = homebrew.ruby_install_steps_l519_d38_write_file(dsl, ruby.string_value('config'), ruby.string_value('content'))
 			dsl = homebrew.ruby_install_steps_l571_d44_update_gdk_pixbuf_loaders_cache(dsl)
 			dsl = homebrew.ruby_install_steps_l582_d46_update_gtk_icon_cache(dsl)
-			dsl = homebrew.ruby_install_steps_l618_d50_delete_keychain_certificates(dsl, brew_runtime.string_value('Example'), brew_runtime.map_value({
-				'fingerprint_of': brew_runtime.string_value('certificate')
+			dsl = homebrew.ruby_install_steps_l618_d50_delete_keychain_certificates(dsl, ruby.string_value('Example'), ruby.map_value({
+				'fingerprint_of': ruby.string_value('certificate')
 			}))
-			dsl = homebrew.ruby_install_steps_l377_d30_symlink(dsl, brew_runtime.string_value('source'), brew_runtime.string_value('target'), brew_runtime.map_value({
-				'overwrite':           brew_runtime.bool_value(true)
-				'remove_on_uninstall': brew_runtime.bool_value(true)
+			dsl = homebrew.ruby_install_steps_l377_d30_symlink(dsl, ruby.string_value('source'), ruby.string_value('target'), ruby.map_value({
+				'overwrite':           ruby.bool_value(true)
+				'remove_on_uninstall': ruby.bool_value(true)
 			}))
-			dsl = homebrew.ruby_install_steps_l535_d39_init_data_dir(dsl, brew_runtime.string_value('data'), brew_runtime.map_value({
-				'using': brew_runtime.object_value('Symbol', ':postgresql')
+			dsl = homebrew.ruby_install_steps_l535_d39_init_data_dir(dsl, ruby.string_value('data'), ruby.map_value({
+				'using': ruby.object_value('Symbol', ':postgresql')
 			}))
 			types := install_steps_spec_steps(dsl).map(it.map_data['type'].as_string())
 			types == ['link_dir', 'link_children', 'write', 'gdk_pixbuf_query_loaders',
@@ -267,17 +267,17 @@ fn install_steps_spec_case(line int) bool {
 		}
 		272 {
 			mut dsl := install_steps_spec_dsl('', '', '')
-			dsl = homebrew.ruby_install_steps_l230_d20_mkdir(dsl, brew_runtime.string_value('directory'))
-			dsl = homebrew.ruby_install_steps_l266_d24_mv(dsl, brew_runtime.string_value('source'), brew_runtime.string_value('target'))
-			dsl = homebrew.ruby_install_steps_l277_d25_move_children(dsl, brew_runtime.string_value('source'), brew_runtime.string_value('target'))
-			dsl = homebrew.ruby_install_steps_l421_d32_ln_sf(dsl, brew_runtime.string_value('source'), brew_runtime.string_value('target'))
-			dsl = homebrew.ruby_install_steps_l435_d33_link_dir(dsl, brew_runtime.string_value('source'), brew_runtime.string_value('target'))
-			dsl = homebrew.ruby_install_steps_l466_d35_link_children(dsl, brew_runtime.string_value('source'), brew_runtime.string_value('target'))
-			dsl = homebrew.ruby_install_steps_l502_d37_write(dsl, brew_runtime.string_value('config'), brew_runtime.string_value('content'))
+			dsl = homebrew.ruby_install_steps_l230_d20_mkdir(dsl, ruby.string_value('directory'))
+			dsl = homebrew.ruby_install_steps_l266_d24_mv(dsl, ruby.string_value('source'), ruby.string_value('target'))
+			dsl = homebrew.ruby_install_steps_l277_d25_move_children(dsl, ruby.string_value('source'), ruby.string_value('target'))
+			dsl = homebrew.ruby_install_steps_l421_d32_ln_sf(dsl, ruby.string_value('source'), ruby.string_value('target'))
+			dsl = homebrew.ruby_install_steps_l435_d33_link_dir(dsl, ruby.string_value('source'), ruby.string_value('target'))
+			dsl = homebrew.ruby_install_steps_l466_d35_link_children(dsl, ruby.string_value('source'), ruby.string_value('target'))
+			dsl = homebrew.ruby_install_steps_l502_d37_write(dsl, ruby.string_value('config'), ruby.string_value('content'))
 			dsl = homebrew.ruby_install_steps_l555_d41_gio_querymodules(dsl)
 			dsl = homebrew.ruby_install_steps_l566_d43_gdk_pixbuf_query_loaders(dsl)
 			dsl = homebrew.ruby_install_steps_l582_d46_update_gtk_icon_cache(dsl)
-			dsl = homebrew.ruby_install_steps_l604_d49_delete_keychain_certificate(dsl, brew_runtime.string_value('Example'))
+			dsl = homebrew.ruby_install_steps_l604_d49_delete_keychain_certificate(dsl, ruby.string_value('Example'))
 			install_steps_spec_steps(dsl).map(it.map_data['type'].as_string()) == [
 				'mkdir',
 				'move',
@@ -316,28 +316,28 @@ fn install_steps_spec_case(line int) bool {
 		338, 352, 400, 791 {
 			mut dsl := install_steps_spec_dsl('var', '', '')
 			if line == 338 {
-				dsl = homebrew.ruby_install_steps_l519_d38_write_file(dsl, brew_runtime.string_value('config/example.conf'), brew_runtime.string_value('replacement'))
-				dsl = homebrew.ruby_install_steps_l519_d38_write_file(dsl, brew_runtime.string_value('empty'), brew_runtime.string_value(''))
+				dsl = homebrew.ruby_install_steps_l519_d38_write_file(dsl, ruby.string_value('config/example.conf'), ruby.string_value('replacement'))
+				dsl = homebrew.ruby_install_steps_l519_d38_write_file(dsl, ruby.string_value('empty'), ruby.string_value(''))
 				install_steps_spec_write(os.join_path(root, 'var/config/example.conf'), 'old\n') or {
 					return false
 				}
 			} else if line == 352 {
-				dsl = homebrew.ruby_install_steps_l519_d38_write_file(dsl, brew_runtime.string_value('existing'), brew_runtime.string_value('replacement'), brew_runtime.map_value({
-					'overwrite':      brew_runtime.bool_value(false)
-					'append_newline': brew_runtime.bool_value(true)
+				dsl = homebrew.ruby_install_steps_l519_d38_write_file(dsl, ruby.string_value('existing'), ruby.string_value('replacement'), ruby.map_value({
+					'overwrite':      ruby.bool_value(false)
+					'append_newline': ruby.bool_value(true)
 				}))
-				dsl = homebrew.ruby_install_steps_l519_d38_write_file(dsl, brew_runtime.string_value('missing'), brew_runtime.string_value('new'), brew_runtime.map_value({
-					'overwrite':      brew_runtime.bool_value(false)
-					'append_newline': brew_runtime.bool_value(true)
+				dsl = homebrew.ruby_install_steps_l519_d38_write_file(dsl, ruby.string_value('missing'), ruby.string_value('new'), ruby.map_value({
+					'overwrite':      ruby.bool_value(false)
+					'append_newline': ruby.bool_value(true)
 				}))
 				install_steps_spec_write(os.join_path(root, 'var/existing'), 'original\n') or {
 					return false
 				}
 			} else if line == 400 {
-				dsl = homebrew.ruby_install_steps_l502_d37_write(dsl, brew_runtime.string_value('config/new.conf'), brew_runtime.string_value('fresh'))
-				dsl = homebrew.ruby_install_steps_l502_d37_write(dsl, brew_runtime.string_value('config/kept.conf'), brew_runtime.string_value('default'))
-				dsl = homebrew.ruby_install_steps_l502_d37_write(dsl, brew_runtime.string_value('config/replaced.conf'), brew_runtime.string_value('default'), brew_runtime.map_value({
-					'overwrite': brew_runtime.bool_value(true)
+				dsl = homebrew.ruby_install_steps_l502_d37_write(dsl, ruby.string_value('config/new.conf'), ruby.string_value('fresh'))
+				dsl = homebrew.ruby_install_steps_l502_d37_write(dsl, ruby.string_value('config/kept.conf'), ruby.string_value('default'))
+				dsl = homebrew.ruby_install_steps_l502_d37_write(dsl, ruby.string_value('config/replaced.conf'), ruby.string_value('default'), ruby.map_value({
+					'overwrite': ruby.bool_value(true)
 				}))
 				install_steps_spec_write(os.join_path(root, 'var/config/kept.conf'), 'user edit') or {
 					return false
@@ -346,8 +346,8 @@ fn install_steps_spec_case(line int) bool {
 					return false
 				}
 			} else {
-				dsl = homebrew.ruby_install_steps_l502_d37_write(dsl, brew_runtime.string_value('missing-newline'), brew_runtime.string_value('value'))
-				dsl = homebrew.ruby_install_steps_l502_d37_write(dsl, brew_runtime.string_value('has-newline'), brew_runtime.string_value('value\n'))
+				dsl = homebrew.ruby_install_steps_l502_d37_write(dsl, ruby.string_value('missing-newline'), ruby.string_value('value'))
+				dsl = homebrew.ruby_install_steps_l502_d37_write(dsl, ruby.string_value('has-newline'), ruby.string_value('value\n'))
 			}
 			install_steps_spec_run(root, dsl) or { return false }
 			match line {
@@ -367,11 +367,11 @@ fn install_steps_spec_case(line int) bool {
 		}
 		366 {
 			mut dsl := install_steps_spec_dsl('var', '', '')
-			dsl = homebrew.ruby_install_steps_l348_d29_inreplace(dsl, brew_runtime.string_value('remove.txt'), brew_runtime.string_value('remove'), brew_runtime.string_value(''))
-			dsl = homebrew.ruby_install_steps_l689_d54_run(dsl, brew_runtime.string_value('helper'), brew_runtime.map_value({
-				'args': brew_runtime.string_array_value([''])
-				'env':  brew_runtime.map_value({
-					'EMPTY': brew_runtime.string_value('')
+			dsl = homebrew.ruby_install_steps_l348_d29_inreplace(dsl, ruby.string_value('remove.txt'), ruby.string_value('remove'), ruby.string_value(''))
+			dsl = homebrew.ruby_install_steps_l689_d54_run(dsl, ruby.string_value('helper'), ruby.map_value({
+				'args': ruby.string_array_value([''])
+				'env':  ruby.map_value({
+					'EMPTY': ruby.string_value('')
 				})
 			}))
 			steps := install_steps_spec_steps(dsl)
@@ -379,11 +379,11 @@ fn install_steps_spec_case(line int) bool {
 		}
 		384 {
 			mut dsl := install_steps_spec_dsl('staged_path', 'staged_path', 'staged_path')
-			dsl = homebrew.ruby_install_steps_l308_d27_copy(dsl, brew_runtime.string_value('source'), brew_runtime.string_value('target'))
-			dsl = homebrew.ruby_install_steps_l377_d30_symlink(dsl, brew_runtime.string_value('source'), brew_runtime.string_value('target'))
-			dsl = homebrew.ruby_install_steps_l502_d37_write(dsl, brew_runtime.string_value('config'), brew_runtime.string_value('content'))
-			dsl = homebrew.ruby_install_steps_l648_d52_set_ownership(dsl, brew_runtime.string_value('Example.app'))
-			dsl = homebrew.ruby_install_steps_l722_d55_terminate_process(dsl, brew_runtime.string_value('Example'))
+			dsl = homebrew.ruby_install_steps_l308_d27_copy(dsl, ruby.string_value('source'), ruby.string_value('target'))
+			dsl = homebrew.ruby_install_steps_l377_d30_symlink(dsl, ruby.string_value('source'), ruby.string_value('target'))
+			dsl = homebrew.ruby_install_steps_l502_d37_write(dsl, ruby.string_value('config'), ruby.string_value('content'))
+			dsl = homebrew.ruby_install_steps_l648_d52_set_ownership(dsl, ruby.string_value('Example.app'))
+			dsl = homebrew.ruby_install_steps_l722_d55_terminate_process(dsl, ruby.string_value('Example'))
 			install_steps_spec_steps(dsl).all(it.map_data.keys().all(it !in [
 				'attempts',
 				'force',
@@ -395,22 +395,22 @@ fn install_steps_spec_case(line int) bool {
 		}
 		418, 431 {
 			mut inner := install_steps_spec_dsl('var', '', '')
-			inner = homebrew.ruby_install_steps_l235_d21_mkdir_p(inner, brew_runtime.string_value(if line == 418 {
+			inner = homebrew.ruby_install_steps_l235_d21_mkdir_p(inner, ruby.string_value(if line == 418 {
 				'initialised'
 			} else {
 				'matched'
 			}))
-			inner = homebrew.ruby_install_steps_l240_d22_touch(inner, brew_runtime.string_value(if line == 418 {
+			inner = homebrew.ruby_install_steps_l240_d22_touch(inner, ruby.string_value(if line == 418 {
 				'initialised/marker'
 			} else {
 				'matched/marker'
 			}))
 			mut outer := install_steps_spec_dsl('var', '', '')
 			if line == 418 {
-				outer = homebrew.ruby_install_steps_l144_d13_unless_path_exists(outer, brew_runtime.string_value('initialised'), homebrew.ruby_install_steps_l89_d6_steps(inner))
+				outer = homebrew.ruby_install_steps_l144_d13_unless_path_exists(outer, ruby.string_value('initialised'), homebrew.ruby_install_steps_l89_d6_steps(inner))
 			} else {
 				os.mkdir_all(os.join_path(root, 'var/existing')) or { return false }
-				outer = homebrew.ruby_install_steps_l133_d12_if_path_exists(outer, brew_runtime.string_value('existing'), homebrew.ruby_install_steps_l89_d6_steps(inner))
+				outer = homebrew.ruby_install_steps_l133_d12_if_path_exists(outer, ruby.string_value('existing'), homebrew.ruby_install_steps_l89_d6_steps(inner))
 			}
 			install_steps_spec_run(root, outer) or { return false }
 			os.exists(if line == 418 {
@@ -422,22 +422,22 @@ fn install_steps_spec_case(line int) bool {
 		451 {
 			mut macos_dsl := install_steps_spec_dsl('var', '', '')
 			mut inner := install_steps_spec_dsl('var', '', '')
-			inner = homebrew.ruby_install_steps_l240_d22_touch(inner, brew_runtime.string_value('macos'))
+			inner = homebrew.ruby_install_steps_l240_d22_touch(inner, ruby.string_value('macos'))
 			macos_dsl = homebrew.ruby_install_steps_l149_d14_on_macos(macos_dsl, homebrew.ruby_install_steps_l89_d6_steps(inner))
 			mut linux_inner := install_steps_spec_dsl('var', '', '')
-			linux_inner = homebrew.ruby_install_steps_l240_d22_touch(linux_inner, brew_runtime.string_value('linux'))
+			linux_inner = homebrew.ruby_install_steps_l240_d22_touch(linux_inner, ruby.string_value('linux'))
 			macos_dsl = homebrew.ruby_install_steps_l154_d15_on_linux(macos_dsl, homebrew.ruby_install_steps_l89_d6_steps(linux_inner))
 			steps := install_steps_spec_steps(macos_dsl)
 			steps.len == 2 && steps[0].map_data['guards'].array_data[0].map_data['value'].as_string() == 'macos' && steps[1].map_data['guards'].array_data[0].map_data['value'].as_string() == 'linux'
 		}
 		470, 484, 503 {
 			mut dsl := install_steps_spec_dsl('', 'staged_path', 'var')
-			dsl = homebrew.ruby_install_steps_l308_d27_copy(dsl, brew_runtime.string_value('source.txt'), brew_runtime.string_value('copied.txt'), if line == 484 {
-				brew_runtime.map_value({
-					'overwrite': brew_runtime.bool_value(false)
+			dsl = homebrew.ruby_install_steps_l308_d27_copy(dsl, ruby.string_value('source.txt'), ruby.string_value('copied.txt'), if line == 484 {
+				ruby.map_value({
+					'overwrite': ruby.bool_value(false)
 				})
 			} else {
-				brew_runtime.map_value({})
+				ruby.map_value({})
 			})
 			install_steps_spec_write(os.join_path(root, 'stage/source.txt'), 'replacement') or { return false }
 			if line in [484, 503] {
@@ -463,7 +463,7 @@ fn install_steps_spec_case(line int) bool {
 		519, 534 {
 			mut dsl := install_steps_spec_dsl('', 'staged_path', 'var')
 			if line == 519 {
-				dsl = homebrew.ruby_install_steps_l256_d23_move(dsl, brew_runtime.string_value('source.txt'), brew_runtime.string_value('target.txt'))
+				dsl = homebrew.ruby_install_steps_l256_d23_move(dsl, ruby.string_value('source.txt'), ruby.string_value('target.txt'))
 				install_steps_spec_write(os.join_path(root, 'stage/source.txt'), 'replacement') or { return false }
 				install_steps_spec_write(os.join_path(root, 'var/target.txt'), 'existing') or { return false }
 				mut steps := homebrew.install_steps_from_value(homebrew.ruby_install_steps_l89_d6_steps(dsl))
@@ -478,19 +478,19 @@ fn install_steps_spec_case(line int) bool {
 				homebrew.install_steps_run(mut runner, steps, 'install') or { return false }
 				return (os.read_file(os.join_path(root, 'var/target.txt')) or { '' }) == 'replacement'
 			}
-			dsl = homebrew.ruby_install_steps_l256_d23_move(dsl, brew_runtime.string_value('source'), brew_runtime.string_value('target'))
+			dsl = homebrew.ruby_install_steps_l256_d23_move(dsl, ruby.string_value('source'), ruby.string_value('target'))
 			install_steps_spec_write(os.join_path(root, 'stage/source/file'), 'content') or { return false }
 			install_steps_spec_run(root, dsl) or { return false }
 			os.exists(os.join_path(root, 'var/target/file'))
 		}
 		547, 559 {
 			mut dsl := install_steps_spec_dsl('', 'staged_path', 'var')
-			dsl = homebrew.ruby_install_steps_l308_d27_copy(dsl, brew_runtime.string_value(if line == 547 {
+			dsl = homebrew.ruby_install_steps_l308_d27_copy(dsl, ruby.string_value(if line == 547 {
 				'*.txt'
 			} else {
 				'missing.txt'
-			}), brew_runtime.string_value('copied.txt'), brew_runtime.map_value({
-				'source_glob': brew_runtime.bool_value(true)
+			}), ruby.string_value('copied.txt'), ruby.map_value({
+				'source_glob': ruby.bool_value(true)
 			}))
 			os.mkdir_all(os.join_path(root, 'stage')) or { return false }
 			if line == 547 {
@@ -506,8 +506,8 @@ fn install_steps_spec_case(line int) bool {
 			// Brace alternation produces the same path twice; the source requires one
 			// unique match. V's os.glob already returns unique paths for this pattern.
 			mut dsl := install_steps_spec_dsl('', 'staged_path', 'staged_path')
-			dsl = homebrew.ruby_install_steps_l256_d23_move(dsl, brew_runtime.string_value('WezTerm-*/WezTerm.app'), brew_runtime.string_value('.'), brew_runtime.map_value({
-				'source_glob': brew_runtime.bool_value(true)
+			dsl = homebrew.ruby_install_steps_l256_d23_move(dsl, ruby.string_value('WezTerm-*/WezTerm.app'), ruby.string_value('.'), ruby.map_value({
+				'source_glob': ruby.bool_value(true)
 			}))
 			os.mkdir_all(os.join_path(root, 'stage/WezTerm-nightly/WezTerm.app')) or { return false }
 			install_steps_spec_run(root, dsl) or { return false }
@@ -516,20 +516,20 @@ fn install_steps_spec_case(line int) bool {
 		580, 595 {
 			mut dsl := install_steps_spec_dsl('var', '', '')
 			if line == 580 {
-				dsl = homebrew.ruby_install_steps_l328_d28_remove(dsl, brew_runtime.string_array_value([
+				dsl = homebrew.ruby_install_steps_l328_d28_remove(dsl, ruby.string_array_value([
 					'obsolete.txt',
 					'obsolete-*',
-				]), brew_runtime.map_value({
-					'recursive': brew_runtime.bool_value(true)
+				]), ruby.map_value({
+					'recursive': ruby.bool_value(true)
 				}))
 				install_steps_spec_write(os.join_path(root, 'var/obsolete.txt'), 'obsolete') or { return false }
 				install_steps_spec_write(os.join_path(root, 'var/obsolete-dir/child'), 'obsolete') or {
 					return false
 				}
 			} else {
-				dsl = homebrew.ruby_install_steps_l328_d28_remove(dsl, brew_runtime.string_value('links/*'), brew_runtime.map_value({
-					'base':                    brew_runtime.string_value('staged_path')
-					'symlink_target_contains': brew_runtime.string_value('wanted')
+				dsl = homebrew.ruby_install_steps_l328_d28_remove(dsl, ruby.string_value('links/*'), ruby.map_value({
+					'base':                    ruby.string_value('staged_path')
+					'symlink_target_contains': ruby.string_value('wanted')
 				}))
 				os.mkdir_all(os.join_path(root, 'stage/links')) or { return false }
 				os.symlink('/tmp/wanted-target', os.join_path(root, 'stage/links/wanted')) or {
@@ -548,8 +548,8 @@ fn install_steps_spec_case(line int) bool {
 		}
 		615 {
 			mut dsl := install_steps_spec_dsl('var', '', '')
-			dsl = homebrew.ruby_install_steps_l328_d28_remove(dsl, brew_runtime.string_value('protected'), brew_runtime.map_value({
-				'sudo': brew_runtime.bool_value(true)
+			dsl = homebrew.ruby_install_steps_l328_d28_remove(dsl, ruby.string_value('protected'), ruby.map_value({
+				'sudo': ruby.bool_value(true)
 			}))
 			install_steps_spec_bool(homebrew.ruby_install_steps_l944_d74_sudo_required(install_steps_spec_runner_value(root, {}), homebrew.ruby_install_steps_l89_d6_steps(dsl)))
 		}
@@ -559,69 +559,69 @@ fn install_steps_spec_case(line int) bool {
 				return false
 			}
 			mut dsl := install_steps_spec_dsl('var', '', '')
-			dsl = homebrew.ruby_install_steps_l348_d29_inreplace(dsl, brew_runtime.string_value('literal.txt'), brew_runtime.string_value('before'), brew_runtime.string_value('after'))
-			dsl = homebrew.ruby_install_steps_l348_d29_inreplace(dsl, brew_runtime.string_value('pattern.txt'), brew_runtime.structured_value('Regexp', 'before.+after', {
+			dsl = homebrew.ruby_install_steps_l348_d29_inreplace(dsl, ruby.string_value('literal.txt'), ruby.string_value('before'), ruby.string_value('after'))
+			dsl = homebrew.ruby_install_steps_l348_d29_inreplace(dsl, ruby.string_value('pattern.txt'), ruby.structured_value('Regexp', 'before.+after', {
 				'options': '1'
-			}), brew_runtime.string_value('replaced'))
+			}), ruby.string_value('replaced'))
 			install_steps_spec_run(root, dsl) or { return false }
 			(os.read_file(os.join_path(root, 'var/literal.txt')) or { '' }) == 'after' && (os.read_file(os.join_path(root, 'var/pattern.txt')) or { '' }) == 'replaced'
 		}
 		644 {
 			mut inner := install_steps_spec_dsl('', '', '')
-			inner = homebrew.ruby_install_steps_l742_d56_warn(inner, brew_runtime.string_value('{{token}} conflict'))
+			inner = homebrew.ruby_install_steps_l742_d56_warn(inner, ruby.string_value('{{token}} conflict'))
 			mut outer := install_steps_spec_dsl('', '', '')
-			outer = homebrew.ruby_install_steps_l133_d12_if_path_exists(outer, brew_runtime.string_value('{{var}}/{missing,conflict}'), homebrew.ruby_install_steps_l89_d6_steps(inner))
+			outer = homebrew.ruby_install_steps_l133_d12_if_path_exists(outer, ruby.string_value('{{var}}/{missing,conflict}'), homebrew.ruby_install_steps_l89_d6_steps(inner))
 			install_steps_spec_step(outer)['guards'].array_data.len == 1
 		}
 		660, 675, 690, 710, 725 {
 			mut dsl := install_steps_spec_dsl('var', '', '')
-			mut keywords := map[string]brew_runtime.Value{}
+			mut keywords := map[string]ruby.Value{}
 			if line == 660 {
 				keywords = {
-					'base': brew_runtime.string_value('libexec')
-					'args': brew_runtime.string_array_value(['--path={{var}}'])
-					'env':  brew_runtime.map_value({
-						'EXAMPLE': brew_runtime.string_value('{{var}}/value')
+					'base': ruby.string_value('libexec')
+					'args': ruby.string_array_value(['--path={{var}}'])
+					'env':  ruby.map_value({
+						'EXAMPLE': ruby.string_value('{{var}}/value')
 					})
 				}
 			} else if line == 675 {
 				keywords = {
-					'env':            brew_runtime.map_value({
-						'EXAMPLE': brew_runtime.string_value('{{formula_name}}')
+					'env':            ruby.map_value({
+						'EXAMPLE': ruby.string_value('{{formula_name}}')
 					})
-					'writable_paths': brew_runtime.string_array_value([
+					'writable_paths': ruby.string_array_value([
 						'Library/Application Support/Example',
 					])
-					'writable_base':  brew_runtime.string_value('home')
+					'writable_base':  ruby.string_value('home')
 				}
 			} else if line == 690 {
 				keywords = {
-					'base':        brew_runtime.string_value('bin')
-					'stdin_path':  brew_runtime.string_value('input.txt')
-					'stdout_path': brew_runtime.string_value('output.txt')
-					'chdir':       brew_runtime.string_value('work')
+					'base':        ruby.string_value('bin')
+					'stdin_path':  ruby.string_value('input.txt')
+					'stdout_path': ruby.string_value('output.txt')
+					'chdir':       ruby.string_value('work')
 				}
 			} else {
 				keywords = {
-					'base':         brew_runtime.string_value(if line == 710 {
+					'base':         ruby.string_value(if line == 710 {
 						'libexec'
 					} else {
 						'bin'
 					})
-					'must_succeed': brew_runtime.bool_value(false)
+					'must_succeed': ruby.bool_value(false)
 				}
 				if line == 725 {
-					keywords['stdout_path'] = brew_runtime.string_value('output.txt')
+					keywords['stdout_path'] = ruby.string_value('output.txt')
 				}
 			}
-			dsl = homebrew.ruby_install_steps_l689_d54_run(dsl, brew_runtime.string_value(if line in [
+			dsl = homebrew.ruby_install_steps_l689_d54_run(dsl, ruby.string_value(if line in [
 				690,
 				725,
 			] {
 				'filter'
 			} else {
 				'helper'
-			}), brew_runtime.map_value(keywords))
+			}), ruby.map_value(keywords))
 			step := install_steps_spec_step(dsl)
 			match line {
 				660 {
@@ -632,30 +632,30 @@ fn install_steps_spec_case(line int) bool {
 				}
 				690 { ['stdin_path', 'stdout_path', 'chdir'].all(it in step) }
 				else {
-					install_steps_spec_bool(step['allow_failure'] or { brew_runtime.bool_value(false) })
+					install_steps_spec_bool(step['allow_failure'] or { ruby.bool_value(false) })
 				}
 			}
 		}
 		739 {
 			mut dsl := install_steps_spec_dsl('', '', '')
-			dsl = homebrew.ruby_install_steps_l722_d55_terminate_process(dsl, brew_runtime.string_value('/Applications/Example.app'), brew_runtime.map_value({
-				'match':           brew_runtime.object_value('Symbol', ':full')
-				'attempts':        brew_runtime.int_value(3)
-				'notices':         brew_runtime.string_array_value(['Closing {{name}}'])
-				'failure_message': brew_runtime.string_value('Unable to close {{name}}')
+			dsl = homebrew.ruby_install_steps_l722_d55_terminate_process(dsl, ruby.string_value('/Applications/Example.app'), ruby.map_value({
+				'match':           ruby.object_value('Symbol', ':full')
+				'attempts':        ruby.int_value(3)
+				'notices':         ruby.string_array_value(['Closing {{name}}'])
+				'failure_message': ruby.string_value('Unable to close {{name}}')
 			}))
 			step := install_steps_spec_step(dsl)
 			step['match'].as_string() == 'full' && step['attempts'].int_data == 3
 		}
 		762, 770 {
 			mut dsl := install_steps_spec_dsl('', '', '')
-			result := homebrew.ruby_install_steps_l722_d55_terminate_process(dsl, brew_runtime.string_value('Example'), brew_runtime.map_value(if line == 762 {
+			result := homebrew.ruby_install_steps_l722_d55_terminate_process(dsl, ruby.string_value('Example'), ruby.map_value(if line == 762 {
 				{
-					'match': brew_runtime.object_value('Symbol', ':prefix')
+					'match': ruby.object_value('Symbol', ':prefix')
 				}
 			} else {
 				{
-					'attempts': brew_runtime.int_value(0)
+					'attempts': ruby.int_value(0)
 				}
 			}))
 			install_steps_spec_error(result, if line == 762 {
@@ -666,19 +666,19 @@ fn install_steps_spec_case(line int) bool {
 		}
 		778 {
 			mut dsl := install_steps_spec_dsl('', '', '')
-			dsl = homebrew.ruby_install_steps_l722_d55_terminate_process(dsl, brew_runtime.string_value('Example'), brew_runtime.map_value({
-				'must_succeed': brew_runtime.bool_value(true)
+			dsl = homebrew.ruby_install_steps_l722_d55_terminate_process(dsl, ruby.string_value('Example'), ruby.map_value({
+				'must_succeed': ruby.bool_value(true)
 			}))
 			step := install_steps_spec_step(dsl)
 			'match' !in step && install_steps_spec_bool(step['must_succeed'] or {
-				brew_runtime.bool_value(false)
+				ruby.bool_value(false)
 			})
 		}
 		803 {
 			step := homebrew.InstallStep({
-				'type': brew_runtime.string_value('write')
-				'path': brew_runtime.map_value({
-					'path': brew_runtime.string_value('config/new.conf')
+				'type': ruby.string_value('write')
+				'path': ruby.map_value({
+					'path': ruby.string_value('config/new.conf')
 				})
 			})
 			mut runner := homebrew.new_install_steps_runner(install_steps_spec_context(root), homebrew.NativeInstallStepsCommandExecutor{})
@@ -689,8 +689,8 @@ fn install_steps_spec_case(line int) bool {
 		809 {
 			mut dsl := install_steps_spec_dsl('var', '', '')
 			for using in ['postgresql', 'mysql', 'mariadb'] {
-				dsl = homebrew.ruby_install_steps_l535_d39_init_data_dir(dsl, brew_runtime.string_value(using), brew_runtime.map_value({
-					'using': brew_runtime.object_value('Symbol', ':${using}')
+				dsl = homebrew.ruby_install_steps_l535_d39_init_data_dir(dsl, ruby.string_value(using), ruby.map_value({
+					'using': ruby.object_value('Symbol', ':${using}')
 				}))
 			}
 			install_steps_spec_steps(dsl).map(it.map_data['using'].as_string()) == [
@@ -701,12 +701,12 @@ fn install_steps_spec_case(line int) bool {
 		}
 		837 {
 			mut dsl := install_steps_spec_dsl('var', 'prefix', '')
-			dsl = homebrew.ruby_install_steps_l449_d34_symlink_tree(dsl, brew_runtime.string_value('include/postgresql'), brew_runtime.string_value('include/{{formula_name}}'))
-			dsl = homebrew.ruby_install_steps_l484_d36_symlink_children(dsl, brew_runtime.string_value('bin'), brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }, brew_runtime.map_value({
-				'suffix': brew_runtime.string_value('-{{version.major}}')
+			dsl = homebrew.ruby_install_steps_l449_d34_symlink_tree(dsl, ruby.string_value('include/postgresql'), ruby.string_value('include/{{formula_name}}'))
+			dsl = homebrew.ruby_install_steps_l484_d36_symlink_children(dsl, ruby.string_value('bin'), ruby.Value{ type_name: 'NilClass', repr: 'nil' }, ruby.map_value({
+				'suffix': ruby.string_value('-{{version.major}}')
 			}))
-			dsl = homebrew.ruby_install_steps_l535_d39_init_data_dir(dsl, brew_runtime.string_value('{{formula_name}}'), brew_runtime.map_value({
-				'using': brew_runtime.object_value('Symbol', ':postgresql')
+			dsl = homebrew.ruby_install_steps_l535_d39_init_data_dir(dsl, ruby.string_value('{{formula_name}}'), ruby.map_value({
+				'using': ruby.object_value('Symbol', ':postgresql')
 			}))
 			install_steps_spec_steps(dsl).map(it.map_data['type'].as_string()) == [
 				'link_dir',
@@ -716,12 +716,12 @@ fn install_steps_spec_case(line int) bool {
 		}
 		896, 911, 927 {
 			mut dsl := install_steps_spec_dsl('var', '', '')
-			dsl = homebrew.ruby_install_steps_l535_d39_init_data_dir(dsl, brew_runtime.string_value(if line == 927 {
+			dsl = homebrew.ruby_install_steps_l535_d39_init_data_dir(dsl, ruby.string_value(if line == 927 {
 				'unknown'
 			} else {
 				'mysql'
-			}), brew_runtime.map_value({
-				'using': brew_runtime.object_value('Symbol', if line == 927 {
+			}), ruby.map_value({
+				'using': ruby.object_value('Symbol', if line == 927 {
 					':unknown_database'
 				} else {
 					':mysql'
@@ -767,7 +767,7 @@ fn install_steps_spec_case(line int) bool {
 					dsl = homebrew.ruby_install_steps_l747_d57_configure_gcc_runtime(dsl)
 				}
 				1039 {
-					dsl = homebrew.ruby_install_steps_l759_d58_install_gzipped_executable(dsl, brew_runtime.string_value('compressed.gz'), brew_runtime.string_value('bin/executable'))
+					dsl = homebrew.ruby_install_steps_l759_d58_install_gzipped_executable(dsl, ruby.string_value('compressed.gz'), ruby.string_value('bin/executable'))
 				}
 				1074 {
 					dsl = homebrew.ruby_install_steps_l766_d59_configure_glibc_runtime(dsl)
@@ -777,8 +777,8 @@ fn install_steps_spec_case(line int) bool {
 				}
 				else {
 					dsl = homebrew.ruby_install_steps_l781_d62_bootstrap_cpython(dsl)
-					dsl = homebrew.ruby_install_steps_l786_d63_bootstrap_pypy(dsl, brew_runtime.map_value({
-						'abi_version': brew_runtime.string_value('3.10')
+					dsl = homebrew.ruby_install_steps_l786_d63_bootstrap_pypy(dsl, ruby.map_value({
+						'abi_version': ruby.string_value('3.10')
 					}))
 				}
 			}
@@ -796,7 +796,7 @@ fn install_steps_spec_case(line int) bool {
 			// helper; this host-independent branch verifies the Linux gate and version error.
 			mut runner := homebrew.new_install_steps_runner(homebrew.InstallStepsContext{}, InstallStepsSpecExecutor{})
 			step := homebrew.InstallStep({
-				'type': brew_runtime.string_value('configure_gcc_runtime')
+				'type': ruby.string_value('configure_gcc_runtime')
 			})
 			mut failed := false
 			homebrew.install_steps_run_formula_action(mut runner, 'configure_gcc_runtime', step) or {
@@ -806,7 +806,7 @@ fn install_steps_spec_case(line int) bool {
 		}
 		1050 {
 			mut dsl := install_steps_spec_dsl('', 'prefix', 'prefix')
-			dsl = homebrew.ruby_install_steps_l759_d58_install_gzipped_executable(dsl, brew_runtime.string_value('bin/executable.gz'), brew_runtime.string_value('bin/executable'))
+			dsl = homebrew.ruby_install_steps_l759_d58_install_gzipped_executable(dsl, ruby.string_value('bin/executable.gz'), ruby.string_value('bin/executable'))
 			step := install_steps_spec_step(dsl)
 			install_steps_spec_type(dsl) == 'install_gzipped_executable' && install_steps_spec_path(step, 'source')['base'].as_string() == 'prefix'
 		}
@@ -857,53 +857,53 @@ fn install_steps_spec_case(line int) bool {
 		}
 		1424, 1444, 1468 {
 			mut dsl := install_steps_spec_dsl('', '', '')
-			mut keywords := map[string]brew_runtime.Value{}
+			mut keywords := map[string]ruby.Value{}
 			if line != 1424 {
-				keywords['fingerprint_of'] = brew_runtime.string_value(if line == 1468 {
+				keywords['fingerprint_of'] = ruby.string_value(if line == 1468 {
 					os.join_path(root, 'missing.pem')
 				} else {
 					os.join_path(root, 'ca.pem')
 				})
 			}
-			dsl = homebrew.ruby_install_steps_l618_d50_delete_keychain_certificates(dsl, brew_runtime.string_value(if line == 1424 {
+			dsl = homebrew.ruby_install_steps_l618_d50_delete_keychain_certificates(dsl, ruby.string_value(if line == 1424 {
 				'Charles'
 			} else {
 				'NodeMITMProxyCA'
-			}), brew_runtime.map_value(keywords))
+			}), ruby.map_value(keywords))
 			step := install_steps_spec_step(dsl)
 			install_steps_spec_type(dsl) == 'delete_keychain_certificate' && (line == 1424 || 'matching_certificate' in step)
 		}
 		1481, 1513 {
 			mut dsl := install_steps_spec_dsl('staged_path', '', '')
 			if line == 1481 {
-				dsl = homebrew.ruby_install_steps_l632_d51_set_permissions(dsl, brew_runtime.string_array_value([
+				dsl = homebrew.ruby_install_steps_l632_d51_set_permissions(dsl, ruby.string_array_value([
 					'Prepared.app',
 					'Missing.app',
-				]), brew_runtime.string_value('0755'))
-				dsl = homebrew.ruby_install_steps_l648_d52_set_ownership(dsl, brew_runtime.string_value('Owned.app'), brew_runtime.map_value({
-					'user':  brew_runtime.string_value('root')
-					'group': brew_runtime.string_value('wheel')
+				]), ruby.string_value('0755'))
+				dsl = homebrew.ruby_install_steps_l648_d52_set_ownership(dsl, ruby.string_value('Owned.app'), ruby.map_value({
+					'user':  ruby.string_value('root')
+					'group': ruby.string_value('wheel')
 				}))
 				return install_steps_spec_steps(dsl).map(it.map_data['type'].as_string()) == [
 					'set_permissions',
 					'set_ownership',
 				]
 			}
-			dsl = homebrew.ruby_install_steps_l648_d52_set_ownership(dsl, brew_runtime.string_value('Owned.app'))
+			dsl = homebrew.ruby_install_steps_l648_d52_set_ownership(dsl, ruby.string_value('Owned.app'))
 			homebrew.install_steps_sudo_required(homebrew.install_steps_from_value(homebrew.ruby_install_steps_l89_d6_steps(dsl)))
 		}
 		1530 {
 			mut dsl := install_steps_spec_dsl('var', '', '')
-			dsl = homebrew.ruby_install_steps_l235_d21_mkdir_p(dsl, brew_runtime.string_value('~/example'))
+			dsl = homebrew.ruby_install_steps_l235_d21_mkdir_p(dsl, ruby.string_value('~/example'))
 			path := install_steps_spec_path(install_steps_spec_step(dsl), 'path')
 			'base' !in path && path['path'].as_string() == '~/example'
 		}
 		1543, 1556 {
 			mut dsl := install_steps_spec_dsl('', 'staged_path', 'staged_path')
 			if line == 1543 {
-				dsl = homebrew.ruby_install_steps_l277_d25_move_children(dsl, brew_runtime.string_value('.'), brew_runtime.string_value('Nested'))
+				dsl = homebrew.ruby_install_steps_l277_d25_move_children(dsl, ruby.string_value('.'), ruby.string_value('Nested'))
 			} else {
-				dsl = homebrew.ruby_install_steps_l291_d26_move_contents(dsl, brew_runtime.string_value('.'), brew_runtime.string_value('Nested'))
+				dsl = homebrew.ruby_install_steps_l291_d26_move_contents(dsl, ruby.string_value('.'), ruby.string_value('Nested'))
 			}
 			install_steps_spec_write(os.join_path(root, 'stage/source-file'), 'source') or { return false }
 			install_steps_spec_run(root, dsl) or { return false }
@@ -911,26 +911,26 @@ fn install_steps_spec_case(line int) bool {
 		}
 		1568 {
 			mut dsl := install_steps_spec_dsl('', '', 'staged_path')
-			dsl = homebrew.ruby_install_steps_l377_d30_symlink(dsl, brew_runtime.string_value('target'), brew_runtime.string_value('protected/linked-target'), brew_runtime.map_value({
-				'source_base': brew_runtime.string_value('relative')
-				'sudo':        brew_runtime.object_value('Symbol', ':if_needed')
+			dsl = homebrew.ruby_install_steps_l377_d30_symlink(dsl, ruby.string_value('target'), ruby.string_value('protected/linked-target'), ruby.map_value({
+				'source_base': ruby.string_value('relative')
+				'sudo':        ruby.object_value('Symbol', ':if_needed')
 			}))
 			homebrew.install_steps_sudo_required(homebrew.install_steps_from_value(homebrew.ruby_install_steps_l89_d6_steps(dsl)))
 		}
 		1590, 1603, 1615 {
 			mut dsl := install_steps_spec_dsl('', '', 'staged_path')
 			mut keywords := {
-				'source_base': brew_runtime.string_value('relative')
-				'uninstall':   brew_runtime.bool_value(true)
+				'source_base': ruby.string_value('relative')
+				'uninstall':   ruby.bool_value(true)
 			}
 			if line == 1590 {
-				keywords['overwrite'] = brew_runtime.bool_value(true)
-				keywords['remove_on_uninstall'] = brew_runtime.bool_value(true)
+				keywords['overwrite'] = ruby.bool_value(true)
+				keywords['remove_on_uninstall'] = ruby.bool_value(true)
 			}
 			if line == 1615 {
-				keywords['sudo'] = brew_runtime.object_value('Symbol', ':if_needed')
+				keywords['sudo'] = ruby.object_value('Symbol', ':if_needed')
 			}
-			dsl = homebrew.ruby_install_steps_l377_d30_symlink(dsl, brew_runtime.string_value('target'), brew_runtime.string_value('linked-target'), brew_runtime.map_value(keywords))
+			dsl = homebrew.ruby_install_steps_l377_d30_symlink(dsl, ruby.string_value('target'), ruby.string_value('linked-target'), ruby.map_value(keywords))
 			os.mkdir_all(os.join_path(root, 'stage')) or { return false }
 			os.symlink(if line == 1603 { 'different-target' } else { 'target' }, os.join_path(root, 'stage/linked-target')) or { return false }
 			if line == 1615 {
@@ -956,9 +956,9 @@ fn install_steps_spec_case(line int) bool {
 	}
 }
 
-fn install_steps_spec_boundary(line int, kind string, args []brew_runtime.Value) brew_runtime.Value {
+fn install_steps_spec_boundary(line int, kind string, args []ruby.Value) ruby.Value {
 	if kind in ['specify', 'it'] {
-		return brew_runtime.bool_value(install_steps_spec_case(line))
+		return ruby.bool_value(install_steps_spec_case(line))
 	}
 	root := if args.len > 0 && args[0].repr != '' {
 		args[0].repr
@@ -966,17 +966,17 @@ fn install_steps_spec_boundary(line int, kind string, args []brew_runtime.Value)
 		install_steps_spec_root(line)
 	}
 	return match line {
-		11 { brew_runtime.object_value('Pathname', install_steps_spec_root(line)) }
+		11 { ruby.object_value('Pathname', install_steps_spec_root(line)) }
 		12, 1175 { install_steps_spec_context_value(root, {}) }
-		15, 296, 844 { brew_runtime.object_value('Pathname', os.join_path(root, 'prefix')) }
-		16, 845 { brew_runtime.object_value('Pathname', os.join_path(root, 'prefix/bin')) }
-		17 { brew_runtime.object_value('Pathname', os.join_path(root, 'prefix/libexec')) }
-		18, 846 { brew_runtime.object_value('Pathname', os.join_path(root, 'var')) }
-		19 { brew_runtime.object_value('Pathname', os.join_path(root, 'stage')) }
+		15, 296, 844 { ruby.object_value('Pathname', os.join_path(root, 'prefix')) }
+		16, 845 { ruby.object_value('Pathname', os.join_path(root, 'prefix/bin')) }
+		17 { ruby.object_value('Pathname', os.join_path(root, 'prefix/libexec')) }
+		18, 846 { ruby.object_value('Pathname', os.join_path(root, 'var')) }
+		19 { ruby.object_value('Pathname', os.join_path(root, 'stage')) }
 		37 {
 			name := if args.len > 0 { args[0].repr } else { 'example' }
 			version := if args.len > 1 { args[1].repr } else { '1.0' }
-			brew_runtime.structured_value('Formula', name, {
+			ruby.structured_value('Formula', name, {
 				'name':            name
 				'version':         version
 				'desc':            'API formula'
@@ -988,50 +988,50 @@ fn install_steps_spec_boundary(line int, kind string, args []brew_runtime.Value)
 		}
 		59 {
 			path := if args.len > 0 { args[0].repr } else { os.join_path(root, 'executable') }
-			install_steps_spec_write(path, '') or { return brew_runtime.bool_value(false) }
-			os.chmod(path, 0o755) or { return brew_runtime.bool_value(false) }
-			brew_runtime.object_value('Pathname', path)
+			install_steps_spec_write(path, '') or { return ruby.bool_value(false) }
+			os.chmod(path, 0o755) or { return ruby.bool_value(false) }
+			ruby.object_value('Pathname', path)
 		}
 		297, 842 {
-			brew_runtime.string_value(if line == 297 { 'example' } else { 'postgresql@17' })
+			ruby.string_value(if line == 297 { 'example' } else { 'postgresql@17' })
 		}
-		298 { brew_runtime.string_value('example-cask') }
-		299 { brew_runtime.object_value('Version', '1.2.3') }
-		327 { brew_runtime.string_value('example-formula') }
-		328 { brew_runtime.string_value('example-cask') }
-		651 { brew_runtime.string_array_value(['Example']) }
-		652 { brew_runtime.string_value('example') }
-		747 { brew_runtime.string_value('Example') }
-		843 { brew_runtime.object_value('Version', '17.5') }
-		1000 { brew_runtime.string_value('gcc') }
-		1091 { brew_runtime.string_value('glibc') }
-		1092 { brew_runtime.object_value('Pathname', os.join_path(root, 'prefix/lib')) }
+		298 { ruby.string_value('example-cask') }
+		299 { ruby.object_value('Version', '1.2.3') }
+		327 { ruby.string_value('example-formula') }
+		328 { ruby.string_value('example-cask') }
+		651 { ruby.string_array_value(['Example']) }
+		652 { ruby.string_value('example') }
+		747 { ruby.string_value('Example') }
+		843 { ruby.object_value('Version', '17.5') }
+		1000 { ruby.string_value('gcc') }
+		1091 { ruby.string_value('glibc') }
+		1092 { ruby.object_value('Pathname', os.join_path(root, 'prefix/lib')) }
 		1093, 1143, 1182 {
-			brew_runtime.object_value('Pathname', os.join_path(root, if line == 1182 {
+			ruby.object_value('Pathname', os.join_path(root, if line == 1182 {
 				'homebrew/etc'
 			} else {
 				'prefix/etc'
 			}))
 		}
-		1094 { brew_runtime.object_value('Pathname', os.join_path(root, 'prefix/share')) }
-		1150 { brew_runtime.object_value('MacOSVersion', '14') }
+		1094 { ruby.object_value('Pathname', os.join_path(root, 'prefix/share')) }
+		1150 { ruby.object_value('MacOSVersion', '14') }
 		1166 {
 			mut dsl := install_steps_spec_dsl('', '', '')
 			dsl = homebrew.ruby_install_steps_l776_d61_configure_php(dsl)
 			homebrew.ruby_install_steps_l89_d6_steps(dsl)
 		}
-		1171 { brew_runtime.object_value('Pathname', os.join_path(root, 'homebrew')) }
+		1171 { ruby.object_value('Pathname', os.join_path(root, 'homebrew')) }
 		1172 {
-			brew_runtime.object_value('Pathname', os.join_path(root, 'prefix/share/php@8.4/pear'))
+			ruby.object_value('Pathname', os.join_path(root, 'prefix/share/php@8.4/pear'))
 		}
-		1173 { brew_runtime.object_value('Pathname', os.join_path(root, 'homebrew/lib/php/pecl')) }
+		1173 { ruby.object_value('Pathname', os.join_path(root, 'homebrew/lib/php/pecl')) }
 		1174 {
-			brew_runtime.object_value('Pathname', os.join_path(root, 'homebrew/etc/php/8.4/conf.d/ext-opcache.ini'))
+			ruby.object_value('Pathname', os.join_path(root, 'homebrew/etc/php/8.4/conf.d/ext-opcache.ini'))
 		}
-		1178 { brew_runtime.string_value('php@8.4') }
-		1179 { brew_runtime.object_value('Version', '8.4.1') }
-		1180 { brew_runtime.object_value('Pathname', os.join_path(root, 'prefix/share/php@8.4')) }
-		1181 { brew_runtime.object_value('Pathname', os.join_path(root, 'opt/php@8.4')) }
+		1178 { ruby.string_value('php@8.4') }
+		1179 { ruby.object_value('Version', '8.4.1') }
+		1180 { ruby.object_value('Pathname', os.join_path(root, 'prefix/share/php@8.4')) }
+		1181 { ruby.object_value('Pathname', os.join_path(root, 'opt/php@8.4')) }
 		1185 {
 			install_steps_spec_runner_value(root, {
 				'name':    'php@8.4'
@@ -1044,7 +1044,7 @@ fn install_steps_spec_boundary(line int, kind string, args []brew_runtime.Value)
 			homebrew.ruby_install_steps_l89_d6_steps(dsl)
 		}
 		else {
-			brew_runtime.structured_value('InstallStepsSpecFixture', kind, {
+			ruby.structured_value('InstallStepsSpecFixture', kind, {
 				'source_line': line.str()
 			})
 		}
@@ -1070,627 +1070,627 @@ pub fn install_steps_spec_all_failures() []int {
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:root) { Pathname(TEST_TMPDIR)/"install-steps" }` at line 11.
-pub fn ruby_install_steps_spec_l11_d1_root(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l11_d1_root(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(11, 'let', args)
 }
 
 // Ruby let `let(:context) do` at line 12.
-pub fn ruby_install_steps_spec_l12_d2_context(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l12_d2_context(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(12, 'let', args)
 }
 
 // Ruby define_method `define_method(:prefix) { root_path/"prefix" }` at line 15.
-pub fn ruby_install_steps_spec_l15_d3_prefix(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l15_d3_prefix(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(15, 'define_method', args)
 }
 
 // Ruby define_method `define_method(:bin) { root_path/"prefix/bin" }` at line 16.
-pub fn ruby_install_steps_spec_l16_d4_bin(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l16_d4_bin(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(16, 'define_method', args)
 }
 
 // Ruby define_method `define_method(:libexec) { root_path/"prefix/libexec" }` at line 17.
-pub fn ruby_install_steps_spec_l17_d5_libexec(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l17_d5_libexec(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(17, 'define_method', args)
 }
 
 // Ruby define_method `define_method(:var) { root_path/"var" }` at line 18.
-pub fn ruby_install_steps_spec_l18_d6_var(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l18_d6_var(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(18, 'define_method', args)
 }
 
 // Ruby define_method `define_method(:staged_path) { root_path/"stage" }` at line 19.
-pub fn ruby_install_steps_spec_l19_d7_staged_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l19_d7_staged_path(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(19, 'define_method', args)
 }
 
 // Ruby method `api_formula(name, version)` at line 37.
-pub fn ruby_install_steps_spec_l37_d8_api_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l37_d8_api_formula(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(37, 'method', args)
 }
 
 // Ruby method `create_executable(path)` at line 59.
-pub fn ruby_install_steps_spec_l59_d9_create_executable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l59_d9_create_executable(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(59, 'method', args)
 }
 
 // Ruby specify `specify "changes the resolved dylib ID and restores its mode" do` at line 65.
-pub fn ruby_install_steps_spec_l65_d10_changes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l65_d10_changes(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(65, 'specify', args)
 }
 
 // Ruby specify `specify "runs directory, touch, move and symlink steps", :aggregate_failures do` at line 81.
-pub fn ruby_install_steps_spec_l81_d11_runs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l81_d11_runs(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(81, 'specify', args)
 }
 
 // Ruby specify `specify "allows directory creation through parent sandbox paths" do` at line 102.
-pub fn ruby_install_steps_spec_l102_d12_allows(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l102_d12_allows(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(102, 'specify', args)
 }
 
 // Ruby specify `specify "resolves formula configuration paths without loading formula source" do` at line 113.
-pub fn ruby_install_steps_spec_l113_d13_resolves(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l113_d13_resolves(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(113, 'specify', args)
 }
 
 // Ruby specify `specify "changes an explicit Mach-O dylib ID" do` at line 128.
-pub fn ruby_install_steps_spec_l128_d14_changes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l128_d14_changes(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(128, 'specify', args)
 }
 
 // Ruby specify `specify "links every source matched by a glob into a directory", :aggregate_failures do` at line 142.
-pub fn ruby_install_steps_spec_l142_d15_links(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l142_d15_links(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(142, 'specify', args)
 }
 
 // Ruby specify `specify "runs mkdir without creating parent directories" do` at line 158.
-pub fn ruby_install_steps_spec_l158_d16_runs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l158_d16_runs(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(158, 'specify', args)
 }
 
 // Ruby specify `specify "runs mkdir_p recursively" do` at line 173.
-pub fn ruby_install_steps_spec_l173_d17_runs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l173_d17_runs(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(173, 'specify', args)
 }
 
 // Ruby specify `specify "normalises API step keys and values" do` at line 191.
-pub fn ruby_install_steps_spec_l191_d18_normalises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l191_d18_normalises(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(191, 'specify', args)
 }
 
 // Ruby specify `specify "keeps canonical DSL calls compatible with shipped API values", :aggregate_failures do` at line 250.
-pub fn ruby_install_steps_spec_l250_d19_keeps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l250_d19_keeps(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(250, 'specify', args)
 }
 
 // Ruby specify `specify "keeps shipped step names serialisable for compatibility" do` at line 272.
-pub fn ruby_install_steps_spec_l272_d20_keeps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l272_d20_keeps(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(272, 'specify', args)
 }
 
 // Ruby specify `specify "expands a scoped set of content tokens and leaves others verbatim", :aggregate_failures do` at line 293.
-pub fn ruby_install_steps_spec_l293_d21_expands(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l293_d21_expands(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(293, 'specify', args)
 }
 
 // Ruby define_method `define_method(:prefix) { root_path/"prefix" }` at line 296.
-pub fn ruby_install_steps_spec_l296_d22_prefix(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l296_d22_prefix(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(296, 'define_method', args)
 }
 
 // Ruby define_method `define_method(:name) { "example" }` at line 297.
-pub fn ruby_install_steps_spec_l297_d23_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l297_d23_name(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(297, 'define_method', args)
 }
 
 // Ruby define_method `define_method(:token) { "example-cask" }` at line 298.
-pub fn ruby_install_steps_spec_l298_d24_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l298_d24_token(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(298, 'define_method', args)
 }
 
 // Ruby define_method `define_method(:version) { Version.new("1.2.3") }` at line 299.
-pub fn ruby_install_steps_spec_l299_d25_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l299_d25_version(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(299, 'define_method', args)
 }
 
 // Ruby specify `specify "expands formula and cask identity tokens" do` at line 326.
-pub fn ruby_install_steps_spec_l326_d26_expands(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l326_d26_expands(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(326, 'specify', args)
 }
 
 // Ruby define_singleton_method `context.define_singleton_method(:name) { "example-formula" }` at line 327.
-pub fn ruby_install_steps_spec_l327_d27_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l327_d27_name(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(327, 'define_singleton_method', args)
 }
 
 // Ruby define_singleton_method `context.define_singleton_method(:token) { "example-cask" }` at line 328.
-pub fn ruby_install_steps_spec_l328_d28_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l328_d28_token(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(328, 'define_singleton_method', args)
 }
 
 // Ruby specify `specify "writes exact content and replaces existing files" do` at line 338.
-pub fn ruby_install_steps_spec_l338_d29_writes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l338_d29_writes(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(338, 'specify', args)
 }
 
 // Ruby specify `specify "can append a newline without replacing existing files" do` at line 352.
-pub fn ruby_install_steps_spec_l352_d30_can(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l352_d30_can(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(352, 'specify', args)
 }
 
 // Ruby specify `specify "preserves meaningful blank values" do` at line 366.
-pub fn ruby_install_steps_spec_l366_d31_preserves(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l366_d31_preserves(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(366, 'specify', args)
 }
 
 // Ruby specify `specify "omits install step runtime defaults" do` at line 384.
-pub fn ruby_install_steps_spec_l384_d32_omits(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l384_d32_omits(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(384, 'specify', args)
 }
 
 // Ruby specify `specify "writes a default config file and preserves existing ones", :aggregate_failures do` at line 400.
-pub fn ruby_install_steps_spec_l400_d33_writes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l400_d33_writes(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(400, 'specify', args)
 }
 
 // Ruby specify `specify "snapshots conditions shared by a scope" do` at line 418.
-pub fn ruby_install_steps_spec_l418_d34_snapshots(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l418_d34_snapshots(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(418, 'specify', args)
 }
 
 // Ruby specify `specify "keeps guard snapshots separate between concatenated step lists" do` at line 431.
-pub fn ruby_install_steps_spec_l431_d35_keeps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l431_d35_keeps(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(431, 'specify', args)
 }
 
 // Ruby specify `specify "runs only steps matching the simulated platform" do` at line 451.
-pub fn ruby_install_steps_spec_l451_d36_runs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l451_d36_runs(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(451, 'specify', args)
 }
 
 // Ruby specify `specify "copies paths" do` at line 470.
-pub fn ruby_install_steps_spec_l470_d37_copies(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l470_d37_copies(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(470, 'specify', args)
 }
 
 // Ruby specify `specify "replaces copied paths by default and can reject replacement" do` at line 484.
-pub fn ruby_install_steps_spec_l484_d38_replaces(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l484_d38_replaces(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(484, 'specify', args)
 }
 
 // Ruby specify `specify "replaces symlink destinations when copying files" do` at line 503.
-pub fn ruby_install_steps_spec_l503_d39_replaces(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l503_d39_replaces(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(503, 'specify', args)
 }
 
 // Ruby specify `specify "preserves the legacy move replacement behaviour" do` at line 519.
-pub fn ruby_install_steps_spec_l519_d40_preserves(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l519_d40_preserves(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(519, 'specify', args)
 }
 
 // Ruby specify `specify "preserves a default move destination when repeated", :aggregate_failures do` at line 534.
-pub fn ruby_install_steps_spec_l534_d41_preserves(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l534_d41_preserves(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(534, 'specify', args)
 }
 
 // Ruby specify `specify "requires one match for single-source globs" do` at line 547.
-pub fn ruby_install_steps_spec_l547_d42_requires(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l547_d42_requires(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(547, 'specify', args)
 }
 
 // Ruby specify `specify "requires a match for literal glob sources" do` at line 559.
-pub fn ruby_install_steps_spec_l559_d43_requires(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l559_d43_requires(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(559, 'specify', args)
 }
 
 // Ruby specify `specify "deduplicates overlapping move source globs" do` at line 568.
-pub fn ruby_install_steps_spec_l568_d44_deduplicates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l568_d44_deduplicates(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(568, 'specify', args)
 }
 
 // Ruby specify `specify "removes paths and expands globs", :aggregate_failures do` at line 580.
-pub fn ruby_install_steps_spec_l580_d45_removes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l580_d45_removes(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(580, 'specify', args)
 }
 
 // Ruby specify `specify "filters removals and accepts the legacy path base", :aggregate_failures do` at line 595.
-pub fn ruby_install_steps_spec_l595_d46_filters(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l595_d46_filters(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(595, 'specify', args)
 }
 
 // Ruby specify `specify "uses elevated cask removal when requested" do` at line 615.
-pub fn ruby_install_steps_spec_l615_d47_uses(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l615_d47_uses(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(615, 'specify', args)
 }
 
 // Ruby specify `specify "replaces literal and regular expression matches", :aggregate_failures do` at line 628.
-pub fn ruby_install_steps_spec_l628_d48_replaces(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l628_d48_replaces(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(628, 'specify', args)
 }
 
 // Ruby specify `specify "warns inside a matching path scope" do` at line 644.
-pub fn ruby_install_steps_spec_l644_d49_warns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l644_d49_warns(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(644, 'specify', args)
 }
 
 // Ruby define_singleton_method `named_context.define_singleton_method(:name) { ["Example"] }` at line 651.
-pub fn ruby_install_steps_spec_l651_d50_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l651_d50_name(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(651, 'define_singleton_method', args)
 }
 
 // Ruby define_singleton_method `named_context.define_singleton_method(:token) { "example" }` at line 652.
-pub fn ruby_install_steps_spec_l652_d51_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l652_d51_token(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(652, 'define_singleton_method', args)
 }
 
 // Ruby specify `specify "runs serialised commands" do` at line 660.
-pub fn ruby_install_steps_spec_l660_d52_runs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l660_d52_runs(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(660, 'specify', args)
 }
 
 // Ruby specify `specify "serialises command environments as JSON objects" do` at line 675.
-pub fn ruby_install_steps_spec_l675_d53_serialises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l675_d53_serialises(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(675, 'specify', args)
 }
 
 // Ruby specify `specify "runs commands with serialised input and output paths" do` at line 690.
-pub fn ruby_install_steps_spec_l690_d54_runs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l690_d54_runs(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(690, 'specify', args)
 }
 
 // Ruby specify `specify "allows a run step to fail when it must not succeed" do` at line 710.
-pub fn ruby_install_steps_spec_l710_d55_allows(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l710_d55_allows(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(710, 'specify', args)
 }
 
 // Ruby specify `specify "does not write an output path when an ignored run step fails" do` at line 725.
-pub fn ruby_install_steps_spec_l725_d56_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l725_d56_does(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(725, 'specify', args)
 }
 
 // Ruby specify `specify "can ignore process termination failure after retries" do` at line 739.
-pub fn ruby_install_steps_spec_l739_d57_can(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l739_d57_can(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(739, 'specify', args)
 }
 
 // Ruby define_singleton_method `named_context.define_singleton_method(:name) { "Example" }` at line 747.
-pub fn ruby_install_steps_spec_l747_d58_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l747_d58_name(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(747, 'define_singleton_method', args)
 }
 
 // Ruby specify `specify "rejects unknown process match modes" do` at line 762.
-pub fn ruby_install_steps_spec_l762_d59_rejects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l762_d59_rejects(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(762, 'specify', args)
 }
 
 // Ruby specify `specify "rejects non-positive process termination attempts" do` at line 770.
-pub fn ruby_install_steps_spec_l770_d60_rejects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l770_d60_rejects(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(770, 'specify', args)
 }
 
 // Ruby specify `specify "uses killall for exact process names" do` at line 778.
-pub fn ruby_install_steps_spec_l778_d61_uses(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l778_d61_uses(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(778, 'specify', args)
 }
 
 // Ruby specify `specify "appends a trailing newline unless already present", :aggregate_failures do` at line 791.
-pub fn ruby_install_steps_spec_l791_d62_appends(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l791_d62_appends(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(791, 'specify', args)
 }
 
 // Ruby specify `specify "raises when a write step has missing content" do` at line 803.
-pub fn ruby_install_steps_spec_l803_d63_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l803_d63_raises(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(803, 'specify', args)
 }
 
 // Ruby specify `specify "runs service data directory initialisers", :aggregate_failures do` at line 809.
-pub fn ruby_install_steps_spec_l809_d64_runs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l809_d64_runs(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(809, 'specify', args)
 }
 
 // Ruby specify `specify "links remapped directories and children before running initdb", :aggregate_failures do` at line 837.
-pub fn ruby_install_steps_spec_l837_d65_links(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l837_d65_links(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(837, 'specify', args)
 }
 
 // Ruby define_method `define_method(:name) { "postgresql@17" }` at line 842.
-pub fn ruby_install_steps_spec_l842_d66_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l842_d66_name(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(842, 'define_method', args)
 }
 
 // Ruby define_method `define_method(:version) { Version.new("17.5") }` at line 843.
-pub fn ruby_install_steps_spec_l843_d67_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l843_d67_version(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(843, 'define_method', args)
 }
 
 // Ruby define_method `define_method(:prefix) { root_path/"prefix" }` at line 844.
-pub fn ruby_install_steps_spec_l844_d68_prefix(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l844_d68_prefix(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(844, 'define_method', args)
 }
 
 // Ruby define_method `define_method(:bin) { root_path/"prefix/bin" }` at line 845.
-pub fn ruby_install_steps_spec_l845_d69_bin(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l845_d69_bin(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(845, 'define_method', args)
 }
 
 // Ruby define_method `define_method(:var) { root_path/"var" }` at line 846.
-pub fn ruby_install_steps_spec_l846_d70_var(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l846_d70_var(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(846, 'define_method', args)
 }
 
 // Ruby specify `specify "skips data directory initialisers in CI", :aggregate_failures do` at line 896.
-pub fn ruby_install_steps_spec_l896_d71_skips(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l896_d71_skips(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(896, 'specify', args)
 }
 
 // Ruby specify `specify "skips data directory initialisers when their marker exists", :aggregate_failures do` at line 911.
-pub fn ruby_install_steps_spec_l911_d72_skips(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l911_d72_skips(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(911, 'specify', args)
 }
 
 // Ruby specify `specify "raises on unknown data directory initialisers" do` at line 927.
-pub fn ruby_install_steps_spec_l927_d73_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l927_d73_raises(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(927, 'specify', args)
 }
 
 // Ruby specify `specify "runs named desktop and cache rebuild actions" do` at line 939.
-pub fn ruby_install_steps_spec_l939_d74_runs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l939_d74_runs(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(939, 'specify', args)
 }
 
 // Ruby specify `specify "reports missing formula helper executables" do` at line 974.
-pub fn ruby_install_steps_spec_l974_d75_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l974_d75_reports(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(974, 'specify', args)
 }
 
 // Ruby specify `specify "dispatches GCC runtime configuration" do` at line 984.
-pub fn ruby_install_steps_spec_l984_d76_dispatches(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l984_d76_dispatches(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(984, 'specify', args)
 }
 
 // Ruby specify `specify "configures GCC runtime files on Linux", :aggregate_failures do` at line 995.
-pub fn ruby_install_steps_spec_l995_d77_configures(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l995_d77_configures(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(995, 'specify', args)
 }
 
 // Ruby define_singleton_method `gcc_context.define_singleton_method(:name) { "gcc" }` at line 1000.
-pub fn ruby_install_steps_spec_l1000_d78_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l1000_d78_name(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(1000, 'define_singleton_method', args)
 }
 
 // Ruby specify `specify "dispatches gzipped executable installation" do` at line 1039.
-pub fn ruby_install_steps_spec_l1039_d79_dispatches(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l1039_d79_dispatches(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(1039, 'specify', args)
 }
 
 // Ruby specify `specify "installs a gzipped executable with a fixed mode", :aggregate_failures do` at line 1050.
-pub fn ruby_install_steps_spec_l1050_d80_installs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l1050_d80_installs(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(1050, 'specify', args)
 }
 
 // Ruby specify `specify "dispatches glibc runtime configuration" do` at line 1074.
-pub fn ruby_install_steps_spec_l1074_d81_dispatches(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l1074_d81_dispatches(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(1074, 'specify', args)
 }
 
 // Ruby specify `specify "configures glibc locales and timezone links", :aggregate_failures do` at line 1085.
-pub fn ruby_install_steps_spec_l1085_d82_configures(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l1085_d82_configures(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(1085, 'specify', args)
 }
 
 // Ruby define_singleton_method `glibc_context.define_singleton_method(:name) { "glibc" }` at line 1091.
-pub fn ruby_install_steps_spec_l1091_d83_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l1091_d83_name(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(1091, 'define_singleton_method', args)
 }
 
 // Ruby define_singleton_method `glibc_context.define_singleton_method(:lib) { root_path/"prefix/lib" }` at line 1092.
-pub fn ruby_install_steps_spec_l1092_d84_lib(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l1092_d84_lib(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(1092, 'define_singleton_method', args)
 }
 
 // Ruby define_singleton_method `glibc_context.define_singleton_method(:etc) { root_path/"prefix/etc" }` at line 1093.
-pub fn ruby_install_steps_spec_l1093_d85_etc(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l1093_d85_etc(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(1093, 'define_singleton_method', args)
 }
 
 // Ruby define_singleton_method `glibc_context.define_singleton_method(:share) { root_path/"prefix/share" }` at line 1094.
-pub fn ruby_install_steps_spec_l1094_d86_share(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l1094_d86_share(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(1094, 'define_singleton_method', args)
 }
 
 // Ruby specify `specify "dispatches Clang system configuration" do` at line 1124.
-pub fn ruby_install_steps_spec_l1124_d87_dispatches(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l1124_d87_dispatches(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(1124, 'specify', args)
 }
 
 // Ruby specify `specify "repairs incomplete Clang system configuration" do` at line 1135.
-pub fn ruby_install_steps_spec_l1135_d88_repairs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l1135_d88_repairs(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(1135, 'specify', args)
 }
 
 // Ruby define_singleton_method `clang_context.define_singleton_method(:etc) { root_path/"prefix/etc" }` at line 1143.
-pub fn ruby_install_steps_spec_l1143_d89_etc(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l1143_d89_etc(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(1143, 'define_singleton_method', args)
 }
 
 // Ruby define_singleton_method `define_singleton_method(:version) { macos_version }` at line 1150.
-pub fn ruby_install_steps_spec_l1150_d90_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l1150_d90_version(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(1150, 'define_singleton_method', args)
 }
 
 // Ruby let `let(:steps) do` at line 1166.
-pub fn ruby_install_steps_spec_l1166_d91_steps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l1166_d91_steps(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(1166, 'let', args)
 }
 
 // Ruby let `let(:homebrew_prefix) { root/"homebrew" }` at line 1171.
-pub fn ruby_install_steps_spec_l1171_d92_homebrew_prefix(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l1171_d92_homebrew_prefix(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(1171, 'let', args)
 }
 
 // Ruby let `let(:pear_prefix) { root/"prefix/share/php@8.4/pear" }` at line 1172.
-pub fn ruby_install_steps_spec_l1172_d93_pear_prefix(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l1172_d93_pear_prefix(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(1172, 'let', args)
 }
 
 // Ruby let `let(:pecl_path) { homebrew_prefix/"lib/php/pecl" }` at line 1173.
-pub fn ruby_install_steps_spec_l1173_d94_pecl_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l1173_d94_pecl_path(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(1173, 'let', args)
 }
 
 // Ruby let `let(:ext_config_path) { homebrew_prefix/"etc/php/8.4/conf.d/ext-opcache.ini" }` at line 1174.
-pub fn ruby_install_steps_spec_l1174_d95_ext_config_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l1174_d95_ext_config_path(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(1174, 'let', args)
 }
 
 // Ruby let `let(:php_context) do` at line 1175.
-pub fn ruby_install_steps_spec_l1175_d96_php_context(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l1175_d96_php_context(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(1175, 'let', args)
 }
 
 // Ruby define_singleton_method `value.define_singleton_method(:name) { "php@8.4" }` at line 1178.
-pub fn ruby_install_steps_spec_l1178_d97_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l1178_d97_name(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(1178, 'define_singleton_method', args)
 }
 
 // Ruby define_singleton_method `value.define_singleton_method(:version) { Version.new("8.4.1") }` at line 1179.
-pub fn ruby_install_steps_spec_l1179_d98_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l1179_d98_version(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(1179, 'define_singleton_method', args)
 }
 
 // Ruby define_singleton_method `value.define_singleton_method(:pkgshare) { root_path/"prefix/share/php@8.4" }` at line 1180.
-pub fn ruby_install_steps_spec_l1180_d99_pkgshare(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l1180_d99_pkgshare(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(1180, 'define_singleton_method', args)
 }
 
 // Ruby define_singleton_method `value.define_singleton_method(:opt_prefix) { root_path/"opt/php@8.4" }` at line 1181.
-pub fn ruby_install_steps_spec_l1181_d100_opt_prefix(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l1181_d100_opt_prefix(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(1181, 'define_singleton_method', args)
 }
 
 // Ruby define_singleton_method `value.define_singleton_method(:etc) { root_path/"homebrew/etc" }` at line 1182.
-pub fn ruby_install_steps_spec_l1182_d101_etc(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l1182_d101_etc(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(1182, 'define_singleton_method', args)
 }
 
 // Ruby let `let(:runner) { Homebrew::InstallSteps::Runner.new(context: php_context) }` at line 1185.
-pub fn ruby_install_steps_spec_l1185_d102_runner(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l1185_d102_runner(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(1185, 'let', args)
 }
 
 // Ruby specify `specify "updates PEAR, PECL and opcache configuration", :aggregate_failures do` at line 1204.
-pub fn ruby_install_steps_spec_l1204_d103_updates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l1204_d103_updates(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(1204, 'specify', args)
 }
 
 // Ruby specify `specify "only replaces the active opcache extension setting" do` at line 1227.
-pub fn ruby_install_steps_spec_l1227_d104_only(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l1227_d104_only(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(1227, 'specify', args)
 }
 
 // Ruby specify `specify "audits existing opcache extension settings" do` at line 1244.
-pub fn ruby_install_steps_spec_l1244_d105_audits(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l1244_d105_audits(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(1244, 'specify', args)
 }
 
 // Ruby specify `specify "dispatches CPython and PyPy bootstrap" do` at line 1252.
-pub fn ruby_install_steps_spec_l1252_d106_dispatches(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l1252_d106_dispatches(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(1252, 'specify', args)
 }
 
 // Ruby specify `specify "bootstraps CPython 3.9 configuration", :aggregate_failures do` at line 1265.
-pub fn ruby_install_steps_spec_l1265_d107_bootstraps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l1265_d107_bootstraps(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(1265, 'specify', args)
 }
 
 // Ruby specify `specify "bootstraps PyPy 3.10 configuration", :aggregate_failures do` at line 1323.
-pub fn ruby_install_steps_spec_l1323_d108_bootstraps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l1323_d108_bootstraps(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(1323, 'specify', args)
 }
 
 // Ruby specify `specify "makes CPython venv activation script templates writable", :aggregate_failures do` at line 1379.
-pub fn ruby_install_steps_spec_l1379_d109_makes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l1379_d109_makes(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(1379, 'specify', args)
 }
 
 // Ruby let `let(:steps) do` at line 1395.
-pub fn ruby_install_steps_spec_l1395_d110_steps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l1395_d110_steps(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(1395, 'let', args)
 }
 
 // Ruby it `it "with gtk4" do` at line 1401.
-pub fn ruby_install_steps_spec_l1401_d111_with(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l1401_d111_with(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(1401, 'it', args)
 }
 
 // Ruby it `it "with gtk+3" do` at line 1412.
-pub fn ruby_install_steps_spec_l1412_d112_with(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l1412_d112_with(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(1412, 'it', args)
 }
 
 // Ruby specify `specify "deletes matching keychain certificates by SHA-256 hash" do` at line 1424.
-pub fn ruby_install_steps_spec_l1424_d113_deletes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l1424_d113_deletes(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(1424, 'specify', args)
 }
 
 // Ruby specify `specify "only deletes the keychain certificate matching a local certificate" do` at line 1444.
-pub fn ruby_install_steps_spec_l1444_d114_only(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l1444_d114_only(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(1444, 'specify', args)
 }
 
 // Ruby specify `specify "skips keychain certificate deletion when a local certificate is missing" do` at line 1468.
-pub fn ruby_install_steps_spec_l1468_d115_skips(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l1468_d115_skips(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(1468, 'specify', args)
 }
 
 // Ruby specify `specify "sets permissions and ownership for existing cask step paths" do` at line 1481.
-pub fn ruby_install_steps_spec_l1481_d116_sets(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l1481_d116_sets(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(1481, 'specify', args)
 }
 
 // Ruby specify `specify "raises when App Management permissions are missing for ownership steps" do` at line 1513.
-pub fn ruby_install_steps_spec_l1513_d117_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l1513_d117_raises(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(1513, 'specify', args)
 }
 
 // Ruby specify `specify "does not add the default base to home paths" do` at line 1530.
-pub fn ruby_install_steps_spec_l1530_d118_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l1530_d118_does(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(1530, 'specify', args)
 }
 
 // Ruby specify `specify "moves a directory's children without moving the new target directory" do` at line 1543.
-pub fn ruby_install_steps_spec_l1543_d119_moves(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l1543_d119_moves(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(1543, 'specify', args)
 }
 
 // Ruby specify `specify "moves a directory's contents" do` at line 1556.
-pub fn ruby_install_steps_spec_l1556_d120_moves(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l1556_d120_moves(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(1556, 'specify', args)
 }
 
 // Ruby specify `specify "uses sudo only when an if-needed symlink target is not writable" do` at line 1568.
-pub fn ruby_install_steps_spec_l1568_d121_uses(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l1568_d121_uses(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(1568, 'specify', args)
 }
 
 // Ruby specify `specify "removes symlinks marked for uninstall" do` at line 1590.
-pub fn ruby_install_steps_spec_l1590_d122_removes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l1590_d122_removes(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(1590, 'specify', args)
 }
 
 // Ruby specify `specify "preserves symlinks with unexpected targets on uninstall" do` at line 1603.
-pub fn ruby_install_steps_spec_l1603_d123_preserves(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l1603_d123_preserves(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(1603, 'specify', args)
 }
 
 // Ruby specify `specify "uses elevated removal for matching symlinks when needed" do` at line 1615.
-pub fn ruby_install_steps_spec_l1615_d124_uses(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l1615_d124_uses(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(1615, 'specify', args)
 }
 
 // Ruby specify `specify "does not expose the surrounding formula or cask DSL" do` at line 1634.
-pub fn ruby_install_steps_spec_l1634_d125_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l1634_d125_does(args ...ruby.Value) ruby.Value {
 	return install_steps_spec_boundary(1634, 'specify', args)
 }
 

@@ -1,6 +1,6 @@
 module parser
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `manpages/parser/ronn.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -86,35 +86,35 @@ pub fn (mut parser RonnParser) parse_variable() !int {
 	return location
 }
 
-pub fn ronn_parser_value(parser RonnParser) brew_runtime.Value {
-	mut element_values := []brew_runtime.Value{}
+pub fn ronn_parser_value(parser RonnParser) ruby.Value {
+	mut element_values := []ruby.Value{}
 	for element in parser.elements {
-		element_values << brew_runtime.structured_value('Kramdown::Element', element.value, {
+		element_values << ruby.structured_value('Kramdown::Element', element.value, {
 			'kind':     element.kind
 			'value':    element.value
 			'location': element.location.str()
 		})
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'Homebrew::Manpages::Parser::Ronn'
 		repr: parser.source
 		attributes: {
 			'cursor': parser.cursor.str()
 		}
 		map_data: {
-			'block_parsers': brew_runtime.string_array_value(parser.block_parsers)
-			'span_parsers':  brew_runtime.string_array_value(parser.span_parsers)
-			'elements':      brew_runtime.array_value(element_values)
+			'block_parsers': ruby.string_array_value(parser.block_parsers)
+			'span_parsers':  ruby.string_array_value(parser.span_parsers)
+			'elements':      ruby.array_value(element_values)
 		}
 	}
 }
 
-pub fn ronn_parser_from_value(value brew_runtime.Value) !RonnParser {
+pub fn ronn_parser_from_value(value ruby.Value) !RonnParser {
 	if value.type_name != 'Homebrew::Manpages::Parser::Ronn' {
 		return error('expected Ronn parser, got ${value.type_name}')
 	}
 	mut elements := []RonnElement{}
-	for element in (value.map_data['elements'] or { brew_runtime.array_value([]) }).as_array()! {
+	for element in (value.map_data['elements'] or { ruby.array_value([]) }).as_array()! {
 		elements << RonnElement{
 			kind: element.attribute('kind')!
 			value: element.attribute('value') or { '' }
@@ -123,9 +123,9 @@ pub fn ronn_parser_from_value(value brew_runtime.Value) !RonnParser {
 	}
 	return RonnParser{
 		source: value.repr
-		block_parsers: (value.map_data['block_parsers'] or { brew_runtime.string_array_value([]) }).as_string_array()!
+		block_parsers: (value.map_data['block_parsers'] or { ruby.string_array_value([]) }).as_string_array()!
 		span_parsers: (value.map_data['span_parsers'] or {
-			brew_runtime.string_array_value([
+			ruby.string_array_value([
 				'variable',
 			])
 		}).as_string_array()!
@@ -135,9 +135,9 @@ pub fn ronn_parser_from_value(value brew_runtime.Value) !RonnParser {
 }
 
 // Ruby method `initialize(source, options)` at line 12.
-pub fn ruby_ronn_l12_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ronn_l12_d1_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'Ronn#initialize requires source')
+		return ruby.object_value('ArgumentError', 'Ronn#initialize requires source')
 	}
 	mut blocks := ['block_html', 'table']
 	mut spans := ['span_html', 'typographic_syms']
@@ -154,17 +154,17 @@ pub fn ruby_ronn_l12_d1_initialize(args ...brew_runtime.Value) brew_runtime.Valu
 }
 
 // Ruby method `parse_variable` at line 30.
-pub fn ruby_ronn_l30_d2_parse_variable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ronn_l30_d2_parse_variable(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'Ronn#parse_variable requires a receiver')
+		return ruby.object_value('ArgumentError', 'Ronn#parse_variable requires a receiver')
 	}
 	mut parser := ronn_parser_from_value(args[0]) or {
-		return brew_runtime.object_value('TypeError', err.msg())
+		return ruby.object_value('TypeError', err.msg())
 	}
 	line := parser.parse_variable() or {
-		return brew_runtime.object_value('RuntimeError', err.msg())
+		return ruby.object_value('RuntimeError', err.msg())
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'RonnParseResult'
 		repr: line.str()
 		int_data: i64(line)

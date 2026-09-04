@@ -1,6 +1,6 @@
 module utils
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `utils/popen.rb`.
@@ -64,7 +64,7 @@ pub fn popen_mode(mode string) !PopenMode {
 }
 
 fn popen_environment(overrides map[string]string) map[string]string {
-	mut environment := brew_runtime.environment()
+	mut environment := ruby.environment()
 	for name, value in overrides {
 		environment[name] = value
 	}
@@ -123,7 +123,7 @@ pub fn popen(argv []string, mode PopenMode, options PopenOptions) !PopenResult {
 		}
 		return result
 	}
-	captured := brew_runtime.run_captured_command(argv, brew_runtime.CapturedCommandOptions{
+	captured := ruby.run_captured_command(argv, ruby.CapturedCommandOptions{
 		environment: environment
 		input: options.input
 		chdir: options.chdir
@@ -183,8 +183,8 @@ pub fn safe_popen_write(argv []string, input string, options PopenOptions) !stri
 	return result.stdout
 }
 
-pub fn popen_options_value(options PopenOptions, safe bool) brew_runtime.Value {
-	return brew_runtime.structured_value('Utils::PopenOptions', options.input, {
+pub fn popen_options_value(options PopenOptions, safe bool) ruby.Value {
+	return ruby.structured_value('Utils::PopenOptions', options.input, {
 		'input':  options.input
 		'chdir':  options.chdir
 		'stderr': options.stderr.str()
@@ -192,7 +192,7 @@ pub fn popen_options_value(options PopenOptions, safe bool) brew_runtime.Value {
 	})
 }
 
-fn popen_options_from_value(value brew_runtime.Value) PopenOptions {
+fn popen_options_from_value(value ruby.Value) PopenOptions {
 	stderr := match value.attributes['stderr'] or { '' } {
 		'capture' { PopenStderr.capture }
 		'stdout', 'out' { PopenStderr.stdout }
@@ -212,7 +212,7 @@ struct PopenBoundaryRequest {
 	safe    bool
 }
 
-fn popen_boundary_request(args []brew_runtime.Value) PopenBoundaryRequest {
+fn popen_boundary_request(args []ruby.Value) PopenBoundaryRequest {
 	mut argv := []string{}
 	mut environment := map[string]string{}
 	mut options := PopenOptions{}
@@ -222,7 +222,7 @@ fn popen_boundary_request(args []brew_runtime.Value) PopenBoundaryRequest {
 			options = popen_options_from_value(argument)
 			safe = (argument.attributes['safe'] or { 'false' }) == 'true'
 		} else if argument.type_name == 'Hash' {
-			for name, value in argument.as_map() or { map[string]brew_runtime.Value{} } {
+			for name, value in argument.as_map() or { map[string]ruby.Value{} } {
 				environment[name] = value.as_string()
 			}
 		} else if argument.type_name == 'Array' {
@@ -242,64 +242,64 @@ fn popen_boundary_request(args []brew_runtime.Value) PopenBoundaryRequest {
 	}
 }
 
-fn popen_execution_error_value(execution_error IError) brew_runtime.Value {
-	return brew_runtime.structured_value('ErrorDuringExecution', execution_error.msg(), {
+fn popen_execution_error_value(execution_error IError) ruby.Value {
+	return ruby.structured_value('ErrorDuringExecution', execution_error.msg(), {
 		'exit_code': execution_error.code().str()
 	})
 }
 
 // Ruby method `self.popen_read(*args, safe: false, **options, &block)` at line 17.
-pub fn ruby_popen_l17_d1_self_popen_read(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_popen_l17_d1_self_popen_read(args ...ruby.Value) ruby.Value {
 	request := popen_boundary_request(args)
 	if request.safe {
 		output := safe_popen_read(request.argv, request.options) or {
 			return popen_execution_error_value(err)
 		}
-		return brew_runtime.string_value(output)
+		return ruby.string_value(output)
 	}
 	result := popen_read(request.argv, request.options) or {
 		return popen_execution_error_value(err)
 	}
-	return brew_runtime.string_value(result.stdout)
+	return ruby.string_value(result.stdout)
 }
 
 // Ruby method `self.safe_popen_read(*args, **options, &block)` at line 32.
-pub fn ruby_popen_l32_d2_self_safe_popen_read(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_popen_l32_d2_self_safe_popen_read(args ...ruby.Value) ruby.Value {
 	request := popen_boundary_request(args)
 	output := safe_popen_read(request.argv, request.options) or {
 		return popen_execution_error_value(err)
 	}
-	return brew_runtime.string_value(output)
+	return ruby.string_value(output)
 }
 
 // Ruby method `self.popen_write(*args, safe: false, **options, &_block)` at line 44.
-pub fn ruby_popen_l44_d3_self_popen_write(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_popen_l44_d3_self_popen_write(args ...ruby.Value) ruby.Value {
 	request := popen_boundary_request(args)
 	if request.safe {
 		output := safe_popen_write(request.argv, request.options.input, request.options) or {
 			return popen_execution_error_value(err)
 		}
-		return brew_runtime.string_value(output)
+		return ruby.string_value(output)
 	}
 	result := popen_write(request.argv, request.options.input, request.options) or {
 		return popen_execution_error_value(err)
 	}
-	return brew_runtime.string_value(result.stdout)
+	return ruby.string_value(result.stdout)
 }
 
 // Ruby method `self.safe_popen_write(*args, **options, &block)` at line 75.
-pub fn ruby_popen_l75_d4_self_safe_popen_write(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_popen_l75_d4_self_safe_popen_write(args ...ruby.Value) ruby.Value {
 	request := popen_boundary_request(args)
 	output := safe_popen_write(request.argv, request.options.input, request.options) or {
 		return popen_execution_error_value(err)
 	}
-	return brew_runtime.string_value(output)
+	return ruby.string_value(output)
 }
 
 // Ruby method `self.popen(args, mode, options = {}, &_block)` at line 88.
-pub fn ruby_popen_l88_d5_self_popen(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_popen_l88_d5_self_popen(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'expected argv and mode')
+		return ruby.object_value('ArgumentError', 'expected argv and mode')
 	}
 	mut request_arguments := [args[0]]
 	if args.len > 2 {
@@ -307,12 +307,12 @@ pub fn ruby_popen_l88_d5_self_popen(args ...brew_runtime.Value) brew_runtime.Val
 	}
 	request := popen_boundary_request(request_arguments)
 	mode := popen_mode(args[1].as_string()) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	result := popen(request.argv, mode, request.options) or {
 		return popen_execution_error_value(err)
 	}
-	return brew_runtime.string_value(result.stdout)
+	return ruby.string_value(result.stdout)
 }
 
 // Original Ruby source (line-for-line):

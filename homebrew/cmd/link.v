@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 import homebrew.utils
 import os
 
@@ -233,8 +233,8 @@ fn link_command_default_link(keg LinkCommandKeg, _ LinkOperationOptions) !int {
 
 fn link_command_default_conflict(_ LinkCommandKeg, _ bool) ! {}
 
-pub fn link_command_keg_value(keg LinkCommandKeg) brew_runtime.Value {
-	return brew_runtime.structured_value('Keg', link_command_keg_display(keg), {
+pub fn link_command_keg_value(keg LinkCommandKeg) ruby.Value {
+	return ruby.structured_value('Keg', link_command_keg_display(keg), {
 		'name':                keg.name
 		'path':                keg.path
 		'rack':                keg.rack
@@ -251,7 +251,7 @@ pub fn link_command_keg_value(keg LinkCommandKeg) brew_runtime.Value {
 	})
 }
 
-fn link_command_keg_from_value(value brew_runtime.Value) LinkCommandKeg {
+fn link_command_keg_from_value(value ruby.Value) LinkCommandKeg {
 	return LinkCommandKeg{
 		name: value.attributes['name'] or { value.as_string() }
 		path: value.attributes['path'] or { value.as_string() }
@@ -269,22 +269,22 @@ fn link_command_keg_from_value(value brew_runtime.Value) LinkCommandKeg {
 	}
 }
 
-pub fn link_command_options_value(options LinkCommandOptions) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'overwrite':      brew_runtime.bool_value(options.overwrite)
-		'dry_run':        brew_runtime.bool_value(options.dry_run)
-		'verbose':        brew_runtime.bool_value(options.verbose)
-		'force':          brew_runtime.bool_value(options.force)
-		'head':           brew_runtime.bool_value(options.head)
-		'developer':      brew_runtime.bool_value(options.developer)
-		'prefix':         brew_runtime.string_value(options.prefix)
-		'default_prefix': brew_runtime.string_value(options.default_prefix)
-		'shell':          brew_runtime.string_value(options.shell)
-		'profile':        brew_runtime.string_value(options.profile)
+pub fn link_command_options_value(options LinkCommandOptions) ruby.Value {
+	return ruby.map_value({
+		'overwrite':      ruby.bool_value(options.overwrite)
+		'dry_run':        ruby.bool_value(options.dry_run)
+		'verbose':        ruby.bool_value(options.verbose)
+		'force':          ruby.bool_value(options.force)
+		'head':           ruby.bool_value(options.head)
+		'developer':      ruby.bool_value(options.developer)
+		'prefix':         ruby.string_value(options.prefix)
+		'default_prefix': ruby.string_value(options.default_prefix)
+		'shell':          ruby.string_value(options.shell)
+		'profile':        ruby.string_value(options.profile)
 	})
 }
 
-fn link_command_options_from_value(value brew_runtime.Value) LinkCommandOptions {
+fn link_command_options_from_value(value ruby.Value) LinkCommandOptions {
 	values := value.as_map() or { return LinkCommandOptions{} }
 	return LinkCommandOptions{
 		overwrite: if option := values['overwrite'] { option.bool_data } else { false }
@@ -300,14 +300,14 @@ fn link_command_options_from_value(value brew_runtime.Value) LinkCommandOptions 
 	}
 }
 
-pub fn link_command_result_value(result LinkCommandResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'stdout':            brew_runtime.string_value(result.stdout)
-		'stderr':            brew_runtime.string_value(result.stderr)
-		'selected_kegs':     brew_runtime.string_array_value(result.selected_kegs)
-		'linked_kegs':       brew_runtime.string_array_value(result.linked_kegs)
-		'conflicts_handled': brew_runtime.string_array_value(result.conflicts_handled)
-		'operations':        brew_runtime.array_value(result.operations.map(brew_runtime.structured_value('LinkOperation', it.keg_name, {
+pub fn link_command_result_value(result LinkCommandResult) ruby.Value {
+	return ruby.map_value({
+		'stdout':            ruby.string_value(result.stdout)
+		'stderr':            ruby.string_value(result.stderr)
+		'selected_kegs':     ruby.string_array_value(result.selected_kegs)
+		'linked_kegs':       ruby.string_array_value(result.linked_kegs)
+		'conflicts_handled': ruby.string_array_value(result.conflicts_handled)
+		'operations':        ruby.array_value(result.operations.map(ruby.structured_value('LinkOperation', it.keg_name, {
 			'name':      it.keg_name
 			'overwrite': it.options.overwrite.str()
 			'dry_run':   it.options.dry_run.str()
@@ -317,17 +317,17 @@ pub fn link_command_result_value(result LinkCommandResult) brew_runtime.Value {
 }
 
 // Ruby method `run` at line 31.
-pub fn ruby_link_l31_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_link_l31_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'link command input is required')
+		return ruby.object_value('ArgumentError', 'link command input is required')
 	}
 	request := args[0].as_map() or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	keg_values := if value := request['kegs'] {
-		value.as_array() or { []brew_runtime.Value{} }
+		value.as_array() or { []ruby.Value{} }
 	} else {
-		[]brew_runtime.Value{}
+		[]ruby.Value{}
 	}
 	options := if value := request['options'] {
 		link_command_options_from_value(value)
@@ -335,22 +335,22 @@ pub fn ruby_link_l31_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
 		LinkCommandOptions{}
 	}
 	result := run_link_command(keg_values.map(link_command_keg_from_value(it)), options, link_command_default_link, link_command_default_conflict) or {
-		return brew_runtime.object_value('Keg::LinkError', err.msg())
+		return ruby.object_value('Keg::LinkError', err.msg())
 	}
 	return link_command_result_value(result)
 }
 
 // Ruby method `puts_keg_only_path_message(keg)` at line 132.
-pub fn ruby_link_l132_d2_puts_keg_only_path_message(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_link_l132_d2_puts_keg_only_path_message(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'keg is required')
+		return ruby.object_value('ArgumentError', 'keg is required')
 	}
 	options := if args.len > 1 {
 		link_command_options_from_value(args[1])
 	} else {
 		LinkCommandOptions{}
 	}
-	return brew_runtime.string_value(link_command_keg_only_path_message(link_command_keg_from_value(args[0]), options))
+	return ruby.string_value(link_command_keg_only_path_message(link_command_keg_from_value(args[0]), options))
 }
 
 // Original Ruby source (line-for-line):

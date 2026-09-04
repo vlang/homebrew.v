@@ -1,6 +1,6 @@
 module macho
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/ruby-macho-6.0.0/lib/macho/utils.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -91,53 +91,53 @@ pub fn macho_compressed_magic(number u32) bool {
 	return number == compressed_magic
 }
 
-fn packed_macho_strings_value(packed PackedMachoStrings) brew_runtime.Value {
-	mut offsets := map[string]brew_runtime.Value{}
+fn packed_macho_strings_value(packed PackedMachoStrings) ruby.Value {
+	mut offsets := map[string]ruby.Value{}
 	for key, offset in packed.offsets {
-		offsets[key] = brew_runtime.int_value(offset)
+		offsets[key] = ruby.int_value(offset)
 	}
-	return brew_runtime.array_value([
-		brew_runtime.string_value(packed.payload),
-		brew_runtime.map_value(offsets),
+	return ruby.array_value([
+		ruby.string_value(packed.payload),
+		ruby.map_value(offsets),
 	])
 }
 
 // Ruby method `self.round(value, round)` at line 11.
-pub fn ruby_utils_l11_d1_self_round(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_utils_l11_d1_self_round(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('MachO::Utils.round requires a value and round')
 	}
-	return brew_runtime.int_value(macho_round(args[0].as_int() or { panic(err) }, args[1].as_int() or { panic(err) }))
+	return ruby.int_value(macho_round(args[0].as_int() or { panic(err) }, args[1].as_int() or { panic(err) }))
 }
 
 // Ruby method `self.padding_for(size, alignment)` at line 23.
-pub fn ruby_utils_l23_d2_self_padding_for(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_utils_l23_d2_self_padding_for(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('MachO::Utils.padding_for requires a size and alignment')
 	}
-	return brew_runtime.int_value(macho_padding_for(args[0].as_int() or { panic(err) }, args[1].as_int() or { panic(err) }))
+	return ruby.int_value(macho_padding_for(args[0].as_int() or { panic(err) }, args[1].as_int() or { panic(err) }))
 }
 
 // Ruby method `self.nullpad(size)` at line 31.
-pub fn ruby_utils_l31_d3_self_nullpad(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_utils_l31_d3_self_nullpad(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('MachO::Utils.nullpad requires a size')
 	}
-	return brew_runtime.string_value(macho_nullpad(args[0].as_int() or { panic(err) }) or {
+	return ruby.string_value(macho_nullpad(args[0].as_int() or { panic(err) }) or {
 		panic(err)
 	})
 }
 
 // Ruby method `self.specialize_format(format, endianness)` at line 42.
-pub fn ruby_utils_l42_d4_self_specialize_format(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_utils_l42_d4_self_specialize_format(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('MachO::Utils.specialize_format requires a format and endianness')
 	}
-	return brew_runtime.string_value(macho_specialize_format(args[0].as_string(), args[1].as_string()))
+	return ruby.string_value(macho_specialize_format(args[0].as_string(), args[1].as_string()))
 }
 
 // Ruby method `self.pack_strings(fixed_offset, alignment, strings = {})` at line 53.
-pub fn ruby_utils_l53_d5_self_pack_strings(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_utils_l53_d5_self_pack_strings(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('MachO::Utils.pack_strings requires a fixed offset and alignment')
 	}
@@ -154,48 +154,48 @@ pub fn ruby_utils_l53_d5_self_pack_strings(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `self.magic?(num)` at line 72.
-pub fn ruby_utils_l72_d6_self_magic(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(macho_magic(u32(args[0].as_int() or { panic(err) })))
+pub fn ruby_utils_l72_d6_self_magic(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(macho_magic(u32(args[0].as_int() or { panic(err) })))
 }
 
 // Ruby method `self.fat_magic?(num)` at line 79.
-pub fn ruby_utils_l79_d7_self_fat_magic(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(macho_fat_magic(u32(args[0].as_int() or { panic(err) })))
+pub fn ruby_utils_l79_d7_self_fat_magic(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(macho_fat_magic(u32(args[0].as_int() or { panic(err) })))
 }
 
 // Ruby method `self.fat_magic32?(num)` at line 86.
-pub fn ruby_utils_l86_d8_self_fat_magic32(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(macho_fat_magic32(u32(args[0].as_int() or { panic(err) })))
+pub fn ruby_utils_l86_d8_self_fat_magic32(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(macho_fat_magic32(u32(args[0].as_int() or { panic(err) })))
 }
 
 // Ruby method `self.fat_magic64?(num)` at line 93.
-pub fn ruby_utils_l93_d9_self_fat_magic64(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(macho_fat_magic64(u32(args[0].as_int() or { panic(err) })))
+pub fn ruby_utils_l93_d9_self_fat_magic64(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(macho_fat_magic64(u32(args[0].as_int() or { panic(err) })))
 }
 
 // Ruby method `self.magic32?(num)` at line 100.
-pub fn ruby_utils_l100_d10_self_magic32(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(macho_magic32(u32(args[0].as_int() or { panic(err) })))
+pub fn ruby_utils_l100_d10_self_magic32(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(macho_magic32(u32(args[0].as_int() or { panic(err) })))
 }
 
 // Ruby method `self.magic64?(num)` at line 107.
-pub fn ruby_utils_l107_d11_self_magic64(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(macho_magic64(u32(args[0].as_int() or { panic(err) })))
+pub fn ruby_utils_l107_d11_self_magic64(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(macho_magic64(u32(args[0].as_int() or { panic(err) })))
 }
 
 // Ruby method `self.little_magic?(num)` at line 114.
-pub fn ruby_utils_l114_d12_self_little_magic(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(macho_little_magic(u32(args[0].as_int() or { panic(err) })))
+pub fn ruby_utils_l114_d12_self_little_magic(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(macho_little_magic(u32(args[0].as_int() or { panic(err) })))
 }
 
 // Ruby method `self.big_magic?(num)` at line 121.
-pub fn ruby_utils_l121_d13_self_big_magic(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(macho_big_magic(u32(args[0].as_int() or { panic(err) })))
+pub fn ruby_utils_l121_d13_self_big_magic(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(macho_big_magic(u32(args[0].as_int() or { panic(err) })))
 }
 
 // Ruby method `self.compressed_magic?(num)` at line 128.
-pub fn ruby_utils_l128_d14_self_compressed_magic(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(macho_compressed_magic(u32(args[0].as_int() or { panic(err) })))
+pub fn ruby_utils_l128_d14_self_compressed_magic(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(macho_compressed_magic(u32(args[0].as_int() or { panic(err) })))
 }
 
 // Original Ruby source (line-for-line):

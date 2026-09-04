@@ -1,18 +1,18 @@
 module api
 
-import brew_runtime
+import ruby
 import homebrew.api as cask_api
 import os
 import time
 
 // Translated from Homebrew/brew `test/api/cask_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
-fn cask_spec_nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn cask_spec_nil_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-fn cask_spec_error_value(message string) brew_runtime.Value {
-	return brew_runtime.structured_value('RuntimeError', message, {
+fn cask_spec_error_value(message string) ruby.Value {
+	return ruby.structured_value('RuntimeError', message, {
 		'message': message
 	})
 }
@@ -27,20 +27,20 @@ pub fn cask_spec_casks_json() string {
 	return '[{\n  "token": "foo",\n  "url": "https://brew.sh/foo"\n}, {\n  "token": "bar",\n  "url": "https://brew.sh/bar"\n}]\n'
 }
 
-pub fn cask_spec_casks_hash() map[string]map[string]brew_runtime.Value {
+pub fn cask_spec_casks_hash() map[string]map[string]ruby.Value {
 	return {
 		'foo': {
-			'url': brew_runtime.string_value('https://brew.sh/foo')
+			'url': ruby.string_value('https://brew.sh/foo')
 		}
 		'bar': {
-			'url': brew_runtime.string_value('https://brew.sh/bar')
+			'url': ruby.string_value('https://brew.sh/bar')
 		}
 	}
 }
 
 pub fn cask_spec_mock_curl_download(stdout string, mut state cask_api.CaskApiState) ! {
 	state.fetch_results['cask.jws.json'] = cask_api.CaskApiFetchResult{
-		data: brew_runtime.parse_json_value(stdout)!
+		data: ruby.parse_json_value(stdout)!
 		updated: true
 	}
 }
@@ -52,11 +52,11 @@ pub fn cask_spec_cask() cask_api.CaskSource {
 		ruby_source_checksum: '00ae1ae330365f3d6e4387776f67a9c4b096da3d4546bd0827b5dcafa985234e'
 		tap_git_head: 'abcdef1234567890abcdef1234567890abcdef12'
 		tap_full_name: 'Homebrew/homebrew-cask'
-		config: brew_runtime.object_value('NilClass', 'nil')
+		config: ruby.object_value('NilClass', 'nil')
 	}
 }
 
-fn cask_spec_value_equal(left brew_runtime.Value, right brew_runtime.Value) bool {
+fn cask_spec_value_equal(left ruby.Value, right ruby.Value) bool {
 	if left.type_name != right.type_name {
 		return false
 	}
@@ -88,14 +88,14 @@ fn cask_spec_value_equal(left brew_runtime.Value, right brew_runtime.Value) bool
 	return left.repr == right.repr && left.bool_data == right.bool_data && left.int_data == right.int_data
 }
 
-fn cask_spec_maps_equal(left map[string]map[string]brew_runtime.Value,
-	right map[string]map[string]brew_runtime.Value) bool {
+fn cask_spec_maps_equal(left map[string]map[string]ruby.Value,
+	right map[string]map[string]ruby.Value) bool {
 	if left.len != right.len {
 		return false
 	}
 	for key, values in left {
 		other := (right[key] or { return false }).clone()
-		if !cask_spec_value_equal(brew_runtime.map_value(values), brew_runtime.map_value(other)) {
+		if !cask_spec_value_equal(ruby.map_value(values), ruby.map_value(other)) {
 			return false
 		}
 	}
@@ -120,13 +120,13 @@ pub fn cask_spec_source_download_is_correct() bool {
 }
 
 // Ruby let `let(:cache_dir) { mktmpdir }` at line 7.
-pub fn ruby_cask_spec_l7_d1_cache_dir(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l7_d1_cache_dir(args ...ruby.Value) ruby.Value {
 	path := cask_spec_cache_dir() or { return cask_spec_error_value(err.msg()) }
-	return brew_runtime.object_value('Pathname', path)
+	return ruby.object_value('Pathname', path)
 }
 
 // Ruby method `mock_curl_download(stdout:)` at line 13.
-pub fn ruby_cask_spec_l13_d2_mock_curl_download(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l13_d2_mock_curl_download(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		return cask_spec_error_value('mock_curl_download requires Cask API state and stdout')
 	}
@@ -143,32 +143,32 @@ pub fn ruby_cask_spec_l13_d2_mock_curl_download(args ...brew_runtime.Value) brew
 }
 
 // Ruby let `let(:casks_json) do` at line 23.
-pub fn ruby_cask_spec_l23_d3_casks_json(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(cask_spec_casks_json())
+pub fn ruby_cask_spec_l23_d3_casks_json(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(cask_spec_casks_json())
 }
 
 // Ruby let `let(:casks_hash) do` at line 34.
-pub fn ruby_cask_spec_l34_d4_casks_hash(args ...brew_runtime.Value) brew_runtime.Value {
-	mut values := map[string]brew_runtime.Value{}
+pub fn ruby_cask_spec_l34_d4_casks_hash(args ...ruby.Value) ruby.Value {
+	mut values := map[string]ruby.Value{}
 	for token, cask in cask_spec_casks_hash() {
-		values[token] = brew_runtime.map_value(cask)
+		values[token] = ruby.map_value(cask)
 	}
-	return brew_runtime.map_value(values)
+	return ruby.map_value(values)
 }
 
 // Ruby it `it "returns the expected cask JSON list" do` at line 41.
-pub fn ruby_cask_spec_l41_d5_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(cask_spec_returns_expected_list())
+pub fn ruby_cask_spec_l41_d5_returns(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(cask_spec_returns_expected_list())
 }
 
 // Ruby let `let(:cask) do` at line 49.
-pub fn ruby_cask_spec_l49_d6_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l49_d6_cask(args ...ruby.Value) ruby.Value {
 	return cask_api.cask_source_boundary(cask_spec_cask())
 }
 
 // Ruby it `it "specifies the correct URL and sha256" do` at line 75.
-pub fn ruby_cask_spec_l75_d7_specifies(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(cask_spec_source_download_is_correct())
+pub fn ruby_cask_spec_l75_d7_specifies(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(cask_spec_source_download_is_correct())
 }
 
 // Original Ruby source (line-for-line):

@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 import homebrew.api
 
 // Translated from Homebrew/brew `install.rb`.
@@ -761,10 +761,10 @@ pub fn perform_build_from_source_checks(all_fatal bool) []InstallDiagnosticCall 
 pub fn attempt_install_directory_creation(directories []string) []string {
 	mut created := []string{}
 	for directory in directories {
-		if brew_runtime.path_exists(directory) {
+		if ruby.path_exists(directory) {
 			continue
 		}
-		brew_runtime.make_dir_all(directory) or {
+		ruby.make_dir_all(directory) or {
 			// FileUtils.mkdir_p failures are intentionally ignored by the source.
 			continue
 		}

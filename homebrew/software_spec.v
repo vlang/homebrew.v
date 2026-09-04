@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 import homebrew.api
 import homebrew.download_strategy
 
@@ -197,7 +197,7 @@ fn software_spec_implicit_dependency(name string, tags []string) Dependency {
 }
 
 fn software_spec_command_missing(name string) bool {
-	brew_runtime.find_executable(name) or { return true }
+	ruby.find_executable(name) or { return true }
 	return false
 }
 
@@ -740,15 +740,15 @@ pub fn software_spec_from_package_reference(reference api.PackageReference, sele
 const software_spec_boundary_separator = '\x1e'
 const software_spec_dependency_separator = '\x1d'
 
-fn software_spec_string_map_boundary(values map[string]string) brew_runtime.Value {
-	mut entries := map[string]brew_runtime.Value{}
+fn software_spec_string_map_boundary(values map[string]string) ruby.Value {
+	mut entries := map[string]ruby.Value{}
 	for key, value in values {
-		entries[key] = brew_runtime.string_value(value)
+		entries[key] = ruby.string_value(value)
 	}
-	return brew_runtime.map_value(entries)
+	return ruby.map_value(entries)
 }
 
-fn software_spec_string_map_from_boundary(value brew_runtime.Value) map[string]string {
+fn software_spec_string_map_from_boundary(value ruby.Value) map[string]string {
 	mut entries := map[string]string{}
 	for key, item in value.as_map() or { return entries } {
 		entries[key] = item.as_string()
@@ -756,16 +756,16 @@ fn software_spec_string_map_from_boundary(value brew_runtime.Value) map[string]s
 	return entries
 }
 
-fn software_spec_resource_boundary(resource Resource) brew_runtime.Value {
-	mut patch_values := []brew_runtime.Value{}
+fn software_spec_resource_boundary(resource Resource) ruby.Value {
+	mut patch_values := []ruby.Value{}
 	for patch in resource.patches {
-		patch_values << brew_runtime.structured_value('ResourcePatch', patch.source, {
+		patch_values << ruby.structured_value('ResourcePatch', patch.source, {
 			'strip':  patch.strip
 			'source': patch.source
 			'owner':  patch.owner_name
 		})
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'Resource'
 		repr: resource.url() or { '' }
 		attributes: {
@@ -787,8 +787,8 @@ fn software_spec_resource_boundary(resource Resource) brew_runtime.Value {
 		}
 		map_data: {
 			'specs':   software_spec_string_map_boundary(resource.specs())
-			'mirrors': brew_runtime.string_array_value(resource.mirrors)
-			'patches': brew_runtime.array_value(patch_values)
+			'mirrors': ruby.string_array_value(resource.mirrors)
+			'patches': ruby.array_value(patch_values)
 		}
 	}
 }
@@ -803,7 +803,7 @@ fn software_spec_resource_kind(value string) ResourceKind {
 	}
 }
 
-fn software_spec_resource_from_boundary(value brew_runtime.Value) Resource {
+fn software_spec_resource_from_boundary(value ruby.Value) Resource {
 	mut resource := new_resource(value.attribute('name') or { '' })
 	resource.has_name = (value.attribute('has_name') or { (resource.name != '').str() }) == 'true'
 	resource.kind = software_spec_resource_kind(value.attribute('kind') or { 'resource' })
@@ -836,7 +836,7 @@ fn software_spec_resource_from_boundary(value brew_runtime.Value) Resource {
 		}
 	}
 	if patches := value.map_data['patches'] {
-		for patch in patches.as_array() or { []brew_runtime.Value{} } {
+		for patch in patches.as_array() or { []ruby.Value{} } {
 			resource.patches << ResourcePatch{
 				strip: patch.attribute('strip') or { '' }
 				source: patch.attribute('source') or { patch.as_string() }
@@ -854,8 +854,8 @@ fn software_spec_resource_from_boundary(value brew_runtime.Value) Resource {
 	return resource
 }
 
-fn software_spec_dependency_value(dependency Dependency) brew_runtime.Value {
-	return brew_runtime.Value{
+fn software_spec_dependency_value(dependency Dependency) ruby.Value {
+	return ruby.Value{
 		type_name: 'Dependency'
 		repr: dependency.inspect()
 		attributes: {
@@ -869,7 +869,7 @@ fn software_spec_dependency_value(dependency Dependency) brew_runtime.Value {
 	}
 }
 
-fn software_spec_dependency_from_value(value brew_runtime.Value) Dependency {
+fn software_spec_dependency_from_value(value ruby.Value) Dependency {
 	name := value.attribute('name') or { value.as_string() }
 	tags_text := value.attribute('tags') or { '' }
 	tags := if tags_text == '' { []string{} } else { tags_text.split(',') }
@@ -884,15 +884,15 @@ fn software_spec_dependency_from_value(value brew_runtime.Value) Dependency {
 	return new_dependency(name, tags)
 }
 
-fn software_spec_requirement_value(requirement SoftwareSpecRequirement) brew_runtime.Value {
-	return brew_runtime.structured_value('Requirement', requirement.kind.str(), {
+fn software_spec_requirement_value(requirement SoftwareSpecRequirement) ruby.Value {
+	return ruby.structured_value('Requirement', requirement.kind.str(), {
 		'kind':       requirement.kind.str()
 		'tags':       requirement.tags.join(software_spec_dependency_separator)
 		'comparator': requirement.comparator
 	})
 }
 
-fn software_spec_requirement_from_value(value brew_runtime.Value) SoftwareSpecRequirement {
+fn software_spec_requirement_from_value(value ruby.Value) SoftwareSpecRequirement {
 	kind := match (value.attribute('kind') or { value.as_string() }).trim_string_left(':') {
 		'macos' { SoftwareSpecRequirementKind.macos }
 		'maximum_macos' { SoftwareSpecRequirementKind.maximum_macos }
@@ -908,17 +908,17 @@ fn software_spec_requirement_from_value(value brew_runtime.Value) SoftwareSpecRe
 	}
 }
 
-fn software_spec_bottle_boundary(bottle BottleSpecification) brew_runtime.Value {
-	mut checksum_values := []brew_runtime.Value{}
+fn software_spec_bottle_boundary(bottle BottleSpecification) ruby.Value {
+	mut checksum_values := []ruby.Value{}
 	for symbol in bottle.collector.order {
 		entry := bottle.collector.tag_specs[symbol] or { continue }
-		checksum_values << brew_runtime.structured_value('BottleChecksum', entry.checksum.hexdigest, {
+		checksum_values << ruby.structured_value('BottleChecksum', entry.checksum.hexdigest, {
 			'tag':    symbol
 			'digest': entry.checksum.hexdigest
 			'cellar': entry.cellar.str()
 		})
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'BottleSpecification'
 		repr: bottle.checksums().str()
 		attributes: {
@@ -931,13 +931,13 @@ fn software_spec_bottle_boundary(bottle BottleSpecification) brew_runtime.Value 
 			'tags':         bottle.collector.tags().map(it.symbol()).join(software_spec_boundary_separator)
 		}
 		map_data: {
-			'checksums':      brew_runtime.array_value(checksum_values)
+			'checksums':      ruby.array_value(checksum_values)
 			'root_url_specs': software_spec_string_map_boundary(bottle.root_url_specs)
 		}
 	}
 }
 
-fn software_spec_bottle_from_boundary(value brew_runtime.Value) BottleSpecification {
+fn software_spec_bottle_from_boundary(value ruby.Value) BottleSpecification {
 	mut bottle := new_bottle_specification()
 	bottle.tap = value.attribute('tap') or { '' }
 	bottle.has_tap = (value.attribute('has_tap') or { (bottle.tap != '').str() }) == 'true'
@@ -953,7 +953,7 @@ fn software_spec_bottle_from_boundary(value brew_runtime.Value) BottleSpecificat
 		bottle.set_root_url(root_url, root_specs)
 	}
 	if checksums := value.map_data['checksums'] {
-		for entry in checksums.as_array() or { []brew_runtime.Value{} } {
+		for entry in checksums.as_array() or { []ruby.Value{} } {
 			bottle.sha256(entry.attribute('tag') or { '' }, entry.attribute('digest') or {
 				entry.as_string()
 			}, parse_bottle_cellar(entry.attribute('cellar') or { '' })) or { panic(err) }
@@ -973,31 +973,31 @@ fn software_spec_bottle_from_boundary(value brew_runtime.Value) BottleSpecificat
 	return bottle
 }
 
-pub fn software_spec_boundary_value(spec SoftwareSpec) brew_runtime.Value {
-	mut resource_values := map[string]brew_runtime.Value{}
+pub fn software_spec_boundary_value(spec SoftwareSpec) ruby.Value {
+	mut resource_values := map[string]ruby.Value{}
 	for name, resource in spec.resources_value {
 		resource_values[name] = software_spec_resource_boundary(resource)
 	}
-	option_values := spec.options_value.to_array().map(brew_runtime.structured_value('Option', it.flag, {
+	option_values := spec.options_value.to_array().map(ruby.structured_value('Option', it.flag, {
 		'name':        it.name
 		'description': it.description
 	}))
-	deprecated_flag_values := spec.deprecated_flag_values.map(brew_runtime.structured_value('DeprecatedOption', '${it.old}=>${it.current}', {
+	deprecated_flag_values := spec.deprecated_flag_values.map(ruby.structured_value('DeprecatedOption', '${it.old}=>${it.current}', {
 		'old':     it.old
 		'current': it.current
 	}))
-	deprecated_option_values := spec.deprecated_option_values.map(brew_runtime.structured_value('DeprecatedOption', '${it.old}=>${it.current}', {
+	deprecated_option_values := spec.deprecated_option_values.map(ruby.structured_value('DeprecatedOption', '${it.old}=>${it.current}', {
 		'old':     it.old
 		'current': it.current
 	}))
-	compiler_failure_values := spec.compiler_failure_values.map(brew_runtime.structured_value('CompilerFailure', '${it.compiler} ${it.version}', {
+	compiler_failure_values := spec.compiler_failure_values.map(ruby.structured_value('CompilerFailure', '${it.compiler} ${it.version}', {
 		'compiler':          it.compiler
 		'version':           it.version.to_s()
 		'exact_major_match': it.exact_major_match.str()
 	}))
 	version := spec.version() or { null_version() }
 	checksum := spec.checksum() or { Checksum{} }
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'SoftwareSpec'
 		repr: version.to_s()
 		attributes: {
@@ -1022,24 +1022,24 @@ pub fn software_spec_boundary_value(spec SoftwareSpec) brew_runtime.Value {
 		}
 		map_data: {
 			'resource':           software_spec_resource_boundary(spec.resource_value)
-			'resources':          brew_runtime.map_value(resource_values)
-			'dependencies':       brew_runtime.array_value(spec.dependency_values.map(software_spec_dependency_value(it)))
-			'requirements':       brew_runtime.array_value(spec.requirement_values.map(software_spec_requirement_value(it)))
+			'resources':          ruby.map_value(resource_values)
+			'dependencies':       ruby.array_value(spec.dependency_values.map(software_spec_dependency_value(it)))
+			'requirements':       ruby.array_value(spec.requirement_values.map(software_spec_requirement_value(it)))
 			'bottle':             software_spec_bottle_boundary(spec.bottle_specification_value)
-			'patches':            brew_runtime.array_value(spec.patch_values.map(brew_runtime.structured_value('Patch', it.source, {
+			'patches':            ruby.array_value(spec.patch_values.map(ruby.structured_value('Patch', it.source, {
 				'strip':  it.strip
 				'source': it.source
 				'owner':  it.owner_name
 			})))
-			'options':            brew_runtime.array_value(option_values)
-			'deprecated_flags':   brew_runtime.array_value(deprecated_flag_values)
-			'deprecated_options': brew_runtime.array_value(deprecated_option_values)
-			'compiler_failures':  brew_runtime.array_value(compiler_failure_values)
+			'options':            ruby.array_value(option_values)
+			'deprecated_flags':   ruby.array_value(deprecated_flag_values)
+			'deprecated_options': ruby.array_value(deprecated_option_values)
+			'compiler_failures':  ruby.array_value(compiler_failure_values)
 		}
 	}
 }
 
-pub fn software_spec_from_boundary(value brew_runtime.Value) SoftwareSpec {
+pub fn software_spec_from_boundary(value ruby.Value) SoftwareSpec {
 	flags_text := value.attribute('flags') or { '' }
 	mut spec := new_software_spec(if flags_text == '' {
 		[]string{}
@@ -1079,17 +1079,17 @@ pub fn software_spec_from_boundary(value brew_runtime.Value) SoftwareSpec {
 		}
 	}
 	if resources := value.map_data['resources'] {
-		for resource_name, resource in resources.as_map() or { map[string]brew_runtime.Value{} } {
+		for resource_name, resource in resources.as_map() or { map[string]ruby.Value{} } {
 			spec.resources_value[resource_name] = software_spec_resource_from_boundary(resource)
 		}
 	}
 	if dependencies := value.map_data['dependencies'] {
-		for dependency in dependencies.as_array() or { []brew_runtime.Value{} } {
+		for dependency in dependencies.as_array() or { []ruby.Value{} } {
 			spec.dependency_values << software_spec_dependency_from_value(dependency)
 		}
 	}
 	if requirements := value.map_data['requirements'] {
-		for requirement in requirements.as_array() or { []brew_runtime.Value{} } {
+		for requirement in requirements.as_array() or { []ruby.Value{} } {
 			spec.requirement_values << software_spec_requirement_from_value(requirement)
 		}
 	}
@@ -1097,7 +1097,7 @@ pub fn software_spec_from_boundary(value brew_runtime.Value) SoftwareSpec {
 		spec.bottle_specification_value = software_spec_bottle_from_boundary(bottle)
 	}
 	if patches := value.map_data['patches'] {
-		for patch in patches.as_array() or { []brew_runtime.Value{} } {
+		for patch in patches.as_array() or { []ruby.Value{} } {
 			spec.patch_values << ResourcePatch{
 				strip: patch.attribute('strip') or { '' }
 				source: patch.attribute('source') or { patch.as_string() }
@@ -1107,24 +1107,24 @@ pub fn software_spec_from_boundary(value brew_runtime.Value) SoftwareSpec {
 	}
 	if options := value.map_data['options'] {
 		spec.options_value = new_options()
-		for option in options.as_array() or { []brew_runtime.Value{} } {
+		for option in options.as_array() or { []ruby.Value{} } {
 			spec.options_value.add(new_option(option.attribute('name') or { option.as_string() }, option.attribute('description') or { '' }))
 		}
 	}
 	if deprecated_flags := value.map_data['deprecated_flags'] {
-		for option in deprecated_flags.as_array() or { []brew_runtime.Value{} } {
+		for option in deprecated_flags.as_array() or { []ruby.Value{} } {
 			spec.deprecated_flag_values << new_deprecated_option(option.attribute('old') or { '' }, option.attribute('current') or { '' })
 		}
 	}
 	if deprecated_options := value.map_data['deprecated_options'] {
-		for option in deprecated_options.as_array() or { []brew_runtime.Value{} } {
+		for option in deprecated_options.as_array() or { []ruby.Value{} } {
 			spec.deprecated_option_values << new_deprecated_option(option.attribute('old') or {
 				''
 			}, option.attribute('current') or { '' })
 		}
 	}
 	if compiler_failures := value.map_data['compiler_failures'] {
-		for failure in compiler_failures.as_array() or { []brew_runtime.Value{} } {
+		for failure in compiler_failures.as_array() or { []ruby.Value{} } {
 			spec.add_compiler_failure(failure.attribute('compiler') or { '' }, failure.attribute('version') or { '' }, (failure.attribute('exact_major_match') or {
 				'false'
 			}) == 'true') or { panic(err) }
@@ -1152,29 +1152,29 @@ pub fn software_spec_from_boundary(value brew_runtime.Value) SoftwareSpec {
 	return spec
 }
 
-fn software_spec_receiver(args []brew_runtime.Value, method string) SoftwareSpec {
+fn software_spec_receiver(args []ruby.Value, method string) SoftwareSpec {
 	if args.len == 0 || args[0].type_name != 'SoftwareSpec' {
 		panic('SoftwareSpec#${method} requires a receiver')
 	}
 	return software_spec_from_boundary(args[0])
 }
 
-fn software_spec_optional_string(value ?string) brew_runtime.Value {
+fn software_spec_optional_string(value ?string) ruby.Value {
 	if text := value {
-		return brew_runtime.string_value(text)
+		return ruby.string_value(text)
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
-fn software_spec_dependency_boundary(dependencies []Dependency) brew_runtime.Value {
-	return brew_runtime.array_value(dependencies.map(software_spec_dependency_value(it)))
+fn software_spec_dependency_boundary(dependencies []Dependency) ruby.Value {
+	return ruby.array_value(dependencies.map(software_spec_dependency_value(it)))
 }
 
 fn software_spec_dependency_tags(dependency Dependency) string {
 	return dependency.tags.map(it.boundary_string()).join(',')
 }
 
-fn software_spec_tags_from_boundary(value brew_runtime.Value) []string {
+fn software_spec_tags_from_boundary(value ruby.Value) []string {
 	if value.type_name == 'Array' {
 		mut tags := []string{}
 		for item in value.as_array() or { panic(err) } {
@@ -1192,20 +1192,20 @@ fn software_spec_tags_from_boundary(value brew_runtime.Value) []string {
 }
 
 // Ruby attr_reader `attr_reader :name` at line 24.
-pub fn ruby_software_spec_l24_d1_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_l24_d1_name(args ...ruby.Value) ruby.Value {
 	return software_spec_optional_string(software_spec_receiver(args, 'name').name())
 }
 
 // Ruby attr_reader `attr_reader :full_name` at line 27.
-pub fn ruby_software_spec_l27_d2_full_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_l27_d2_full_name(args ...ruby.Value) ruby.Value {
 	return software_spec_optional_string(software_spec_receiver(args, 'full_name').full_name())
 }
 
 // Ruby attr_reader `attr_reader :owner` at line 30.
-pub fn ruby_software_spec_l30_d3_owner(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_l30_d3_owner(args ...ruby.Value) ruby.Value {
 	spec := software_spec_receiver(args, 'owner')
-	owner := spec.owner() or { return brew_runtime.object_value('NilClass', 'nil') }
-	return brew_runtime.structured_value(if owner.kind == .formula { 'Formula' } else { 'Cask' }, owner.full_name, {
+	owner := spec.owner() or { return ruby.object_value('NilClass', 'nil') }
+	return ruby.structured_value(if owner.kind == .formula { 'Formula' } else { 'Cask' }, owner.full_name, {
 		'name':         owner.name
 		'full_name':    owner.full_name
 		'tap':          owner.tap
@@ -1214,27 +1214,27 @@ pub fn ruby_software_spec_l30_d3_owner(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby attr_reader `attr_reader :build` at line 33.
-pub fn ruby_software_spec_l33_d4_build(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_l33_d4_build(args ...ruby.Value) ruby.Value {
 	build := software_spec_receiver(args, 'build').build()
-	return brew_runtime.structured_value('BuildOptions', build.used_options().inspect(), {
+	return ruby.structured_value('BuildOptions', build.used_options().inspect(), {
 		'args':    build.args.as_flags().join(software_spec_boundary_separator)
 		'options': build.options.as_flags().join(software_spec_boundary_separator)
 	})
 }
 
 // Ruby attr_reader `attr_reader :resources` at line 36.
-pub fn ruby_software_spec_l36_d5_resources(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_l36_d5_resources(args ...ruby.Value) ruby.Value {
 	resources := software_spec_receiver(args, 'resources').resources()
-	mut values := map[string]brew_runtime.Value{}
+	mut values := map[string]ruby.Value{}
 	for name, resource in resources {
 		values[name] = software_spec_resource_boundary(resource)
 	}
-	return brew_runtime.map_value(values)
+	return ruby.map_value(values)
 }
 
 // Ruby attr_reader `attr_reader :patches` at line 39.
-pub fn ruby_software_spec_l39_d6_patches(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.array_value(software_spec_receiver(args, 'patches').patches().map(brew_runtime.structured_value('Patch', it.source, {
+pub fn ruby_software_spec_l39_d6_patches(args ...ruby.Value) ruby.Value {
+	return ruby.array_value(software_spec_receiver(args, 'patches').patches().map(ruby.structured_value('Patch', it.source, {
 		'strip':  it.strip
 		'source': it.source
 		'owner':  it.owner_name
@@ -1242,171 +1242,171 @@ pub fn ruby_software_spec_l39_d6_patches(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby attr_reader `attr_reader :options` at line 42.
-pub fn ruby_software_spec_l42_d7_options(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_l42_d7_options(args ...ruby.Value) ruby.Value {
 	return formula_options_boundary(software_spec_receiver(args, 'options').options())
 }
 
 // Ruby attr_reader `attr_reader :deprecated_flags` at line 45.
-pub fn ruby_software_spec_l45_d8_deprecated_flags(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.array_value(software_spec_receiver(args, 'deprecated_flags').deprecated_flags().map(brew_runtime.structured_value('DeprecatedOption', '${it.old}=>${it.current}', {
+pub fn ruby_software_spec_l45_d8_deprecated_flags(args ...ruby.Value) ruby.Value {
+	return ruby.array_value(software_spec_receiver(args, 'deprecated_flags').deprecated_flags().map(ruby.structured_value('DeprecatedOption', '${it.old}=>${it.current}', {
 		'old':     it.old
 		'current': it.current
 	})))
 }
 
 // Ruby attr_reader `attr_reader :deprecated_options` at line 48.
-pub fn ruby_software_spec_l48_d9_deprecated_options(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.array_value(software_spec_receiver(args, 'deprecated_options').deprecated_options().map(brew_runtime.structured_value('DeprecatedOption', '${it.old}=>${it.current}', {
+pub fn ruby_software_spec_l48_d9_deprecated_options(args ...ruby.Value) ruby.Value {
+	return ruby.array_value(software_spec_receiver(args, 'deprecated_options').deprecated_options().map(ruby.structured_value('DeprecatedOption', '${it.old}=>${it.current}', {
 		'old':     it.old
 		'current': it.current
 	})))
 }
 
 // Ruby attr_reader `attr_reader :dependency_collector` at line 51.
-pub fn ruby_software_spec_l51_d10_dependency_collector(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_l51_d10_dependency_collector(args ...ruby.Value) ruby.Value {
 	spec := software_spec_receiver(args, 'dependency_collector')
-	return brew_runtime.structured_value('DependencyCollector', spec.declared_deps().str(), {
+	return ruby.structured_value('DependencyCollector', spec.declared_deps().str(), {
 		'deps':         spec.declared_deps().map(it.name).join(software_spec_boundary_separator)
 		'requirements': spec.requirements().map(it.kind.str()).join(software_spec_boundary_separator)
 	})
 }
 
 // Ruby attr_reader `attr_reader :bottle_specification` at line 54.
-pub fn ruby_software_spec_l54_d11_bottle_specification(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_l54_d11_bottle_specification(args ...ruby.Value) ruby.Value {
 	bottle := software_spec_receiver(args, 'bottle_specification').bottle_specification()
 	return software_spec_bottle_boundary(bottle)
 }
 
 // Ruby attr_reader `attr_reader :compiler_failures` at line 57.
-pub fn ruby_software_spec_l57_d12_compiler_failures(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.array_value(software_spec_receiver(args, 'compiler_failures').compiler_failures().map(brew_runtime.structured_value('CompilerFailure', '${it.compiler} ${it.version}', {
+pub fn ruby_software_spec_l57_d12_compiler_failures(args ...ruby.Value) ruby.Value {
+	return ruby.array_value(software_spec_receiver(args, 'compiler_failures').compiler_failures().map(ruby.structured_value('CompilerFailure', '${it.compiler} ${it.version}', {
 		'type':    it.compiler
 		'version': it.version.to_s()
 	})))
 }
 
 // Ruby attr_reader `attr_reader :depends_on_macos_set_in_block` at line 60.
-pub fn ruby_software_spec_l60_d13_depends_on_macos_set_in_block(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(software_spec_receiver(args, 'depends_on_macos_set_in_block').depends_on_macos_set_in_block)
+pub fn ruby_software_spec_l60_d13_depends_on_macos_set_in_block(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(software_spec_receiver(args, 'depends_on_macos_set_in_block').depends_on_macos_set_in_block)
 }
 
 // Ruby def_delegators `def_delegators :@resource, :stage, :fetch, :verify_download_integrity, :source_modified_time, :cached_download, :clear_cache, :checksum, :mirrors, :specs, :using, :version, :mirror, :downloader, :download_queue_name, :download_queue_type` at line 62.
-pub fn ruby_software_spec_l62_d14_stage(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_l62_d14_stage(args ...ruby.Value) ruby.Value {
 	mut spec := software_spec_receiver(args, 'stage')
 	target := if args.len > 1 { args[1].as_string() } else { '' }
-	return brew_runtime.object_value('Pathname', spec.stage(target, false) or { panic(err) })
+	return ruby.object_value('Pathname', spec.stage(target, false) or { panic(err) })
 }
 
 // Ruby def_delegators `def_delegators :@resource, :stage, :fetch, :verify_download_integrity, :source_modified_time, :cached_download, :clear_cache, :checksum, :mirrors, :specs, :using, :version, :mirror, :downloader, :download_queue_name, :download_queue_type` at line 62.
-pub fn ruby_software_spec_l62_d15_fetch(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_l62_d15_fetch(args ...ruby.Value) ruby.Value {
 	mut spec := software_spec_receiver(args, 'fetch')
-	return brew_runtime.object_value('Pathname', spec.fetch(true, none, false, false) or {
+	return ruby.object_value('Pathname', spec.fetch(true, none, false, false) or {
 		panic(err)
 	})
 }
 
 // Ruby def_delegators `def_delegators :@resource, :stage, :fetch, :verify_download_integrity, :source_modified_time, :cached_download, :clear_cache, :checksum, :mirrors, :specs, :using, :version, :mirror, :downloader, :download_queue_name, :download_queue_type` at line 62.
-pub fn ruby_software_spec_l62_d16_verify_download_integrity(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_l62_d16_verify_download_integrity(args ...ruby.Value) ruby.Value {
 	mut spec := software_spec_receiver(args, 'verify_download_integrity')
 	if args.len < 2 { panic('SoftwareSpec#verify_download_integrity requires a filename') }
 	spec.verify_download_integrity(args[1].as_string()) or { panic(err) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby def_delegators `def_delegators :@resource, :stage, :fetch, :verify_download_integrity, :source_modified_time, :cached_download, :clear_cache, :checksum, :mirrors, :specs, :using, :version, :mirror, :downloader, :download_queue_name, :download_queue_type` at line 62.
-pub fn ruby_software_spec_l62_d17_source_modified_time(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_l62_d17_source_modified_time(args ...ruby.Value) ruby.Value {
 	spec := software_spec_receiver(args, 'source_modified_time')
 	if modified := spec.source_modified_time() {
-		return brew_runtime.int_value(modified)
+		return ruby.int_value(modified)
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby def_delegators `def_delegators :@resource, :stage, :fetch, :verify_download_integrity, :source_modified_time, :cached_download, :clear_cache, :checksum, :mirrors, :specs, :using, :version, :mirror, :downloader, :download_queue_name, :download_queue_type` at line 62.
-pub fn ruby_software_spec_l62_d18_cached_download(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_l62_d18_cached_download(args ...ruby.Value) ruby.Value {
 	mut spec := software_spec_receiver(args, 'cached_download')
-	return brew_runtime.object_value('Pathname', spec.cached_download() or { panic(err) })
+	return ruby.object_value('Pathname', spec.cached_download() or { panic(err) })
 }
 
 // Ruby def_delegators `def_delegators :@resource, :stage, :fetch, :verify_download_integrity, :source_modified_time, :cached_download, :clear_cache, :checksum, :mirrors, :specs, :using, :version, :mirror, :downloader, :download_queue_name, :download_queue_type` at line 62.
-pub fn ruby_software_spec_l62_d19_clear_cache(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_l62_d19_clear_cache(args ...ruby.Value) ruby.Value {
 	mut spec := software_spec_receiver(args, 'clear_cache')
 	spec.clear_cache() or { panic(err) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby def_delegators `def_delegators :@resource, :stage, :fetch, :verify_download_integrity, :source_modified_time, :cached_download, :clear_cache, :checksum, :mirrors, :specs, :using, :version, :mirror, :downloader, :download_queue_name, :download_queue_type` at line 62.
-pub fn ruby_software_spec_l62_d20_checksum(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_l62_d20_checksum(args ...ruby.Value) ruby.Value {
 	checksum := software_spec_receiver(args, 'checksum').checksum() or {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
-	return brew_runtime.object_value('Checksum', checksum.hexdigest)
+	return ruby.object_value('Checksum', checksum.hexdigest)
 }
 
 // Ruby def_delegators `def_delegators :@resource, :stage, :fetch, :verify_download_integrity, :source_modified_time, :cached_download, :clear_cache, :checksum, :mirrors, :specs, :using, :version, :mirror, :downloader, :download_queue_name, :download_queue_type` at line 62.
-pub fn ruby_software_spec_l62_d21_mirrors(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(software_spec_receiver(args, 'mirrors').mirrors())
+pub fn ruby_software_spec_l62_d21_mirrors(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(software_spec_receiver(args, 'mirrors').mirrors())
 }
 
 // Ruby def_delegators `def_delegators :@resource, :stage, :fetch, :verify_download_integrity, :source_modified_time, :cached_download, :clear_cache, :checksum, :mirrors, :specs, :using, :version, :mirror, :downloader, :download_queue_name, :download_queue_type` at line 62.
-pub fn ruby_software_spec_l62_d22_specs(args ...brew_runtime.Value) brew_runtime.Value {
-	mut values := map[string]brew_runtime.Value{}
+pub fn ruby_software_spec_l62_d22_specs(args ...ruby.Value) ruby.Value {
+	mut values := map[string]ruby.Value{}
 	for key, value in software_spec_receiver(args, 'specs').source_specs() {
-		values[key] = brew_runtime.string_value(value)
+		values[key] = ruby.string_value(value)
 	}
-	return brew_runtime.map_value(values)
+	return ruby.map_value(values)
 }
 
 // Ruby def_delegators `def_delegators :@resource, :stage, :fetch, :verify_download_integrity, :source_modified_time, :cached_download, :clear_cache, :checksum, :mirrors, :specs, :using, :version, :mirror, :downloader, :download_queue_name, :download_queue_type` at line 62.
-pub fn ruby_software_spec_l62_d23_using(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_l62_d23_using(args ...ruby.Value) ruby.Value {
 	return software_spec_optional_string(software_spec_receiver(args, 'using').using())
 }
 
 // Ruby def_delegators `def_delegators :@resource, :stage, :fetch, :verify_download_integrity, :source_modified_time, :cached_download, :clear_cache, :checksum, :mirrors, :specs, :using, :version, :mirror, :downloader, :download_queue_name, :download_queue_type` at line 62.
-pub fn ruby_software_spec_l62_d24_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_l62_d24_version(args ...ruby.Value) ruby.Value {
 	version := software_spec_receiver(args, 'version').version() or {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
-	return brew_runtime.object_value('Version', version.to_s())
+	return ruby.object_value('Version', version.to_s())
 }
 
 // Ruby def_delegators `def_delegators :@resource, :stage, :fetch, :verify_download_integrity, :source_modified_time, :cached_download, :clear_cache, :checksum, :mirrors, :specs, :using, :version, :mirror, :downloader, :download_queue_name, :download_queue_type` at line 62.
-pub fn ruby_software_spec_l62_d25_mirror(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_l62_d25_mirror(args ...ruby.Value) ruby.Value {
 	mut spec := software_spec_receiver(args, 'mirror')
 	if args.len < 2 { panic('SoftwareSpec#mirror requires a URL') }
-	return brew_runtime.string_array_value(spec.mirror(args[1].as_string()))
+	return ruby.string_array_value(spec.mirror(args[1].as_string()))
 }
 
 // Ruby def_delegators `def_delegators :@resource, :stage, :fetch, :verify_download_integrity, :source_modified_time, :cached_download, :clear_cache, :checksum, :mirrors, :specs, :using, :version, :mirror, :downloader, :download_queue_name, :download_queue_type` at line 62.
-pub fn ruby_software_spec_l62_d26_downloader(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_l62_d26_downloader(args ...ruby.Value) ruby.Value {
 	mut spec := software_spec_receiver(args, 'downloader')
 	downloader := spec.downloader() or { panic(err) }
-	return brew_runtime.structured_value('DownloadStrategy', downloader.file.base.url, {
+	return ruby.structured_value('DownloadStrategy', downloader.file.base.url, {
 		'url': downloader.file.base.url
 	})
 }
 
 // Ruby def_delegators `def_delegators :@resource, :stage, :fetch, :verify_download_integrity, :source_modified_time, :cached_download, :clear_cache, :checksum, :mirrors, :specs, :using, :version, :mirror, :downloader, :download_queue_name, :download_queue_type` at line 62.
-pub fn ruby_software_spec_l62_d27_download_queue_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(software_spec_receiver(args, 'download_queue_name').download_queue_name() or {
+pub fn ruby_software_spec_l62_d27_download_queue_name(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(software_spec_receiver(args, 'download_queue_name').download_queue_name() or {
 		panic(err)
 	})
 }
 
 // Ruby def_delegators `def_delegators :@resource, :stage, :fetch, :verify_download_integrity, :source_modified_time, :cached_download, :clear_cache, :checksum, :mirrors, :specs, :using, :version, :mirror, :downloader, :download_queue_name, :download_queue_type` at line 62.
-pub fn ruby_software_spec_l62_d28_download_queue_type(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(software_spec_receiver(args, 'download_queue_type').download_queue_type())
+pub fn ruby_software_spec_l62_d28_download_queue_type(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(software_spec_receiver(args, 'download_queue_type').download_queue_type())
 }
 
 // Ruby def_delegators `def_delegators :@resource, :sha256` at line 66.
-pub fn ruby_software_spec_l66_d29_sha256(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_l66_d29_sha256(args ...ruby.Value) ruby.Value {
 	mut spec := software_spec_receiver(args, 'sha256')
 	if args.len < 2 { panic('SoftwareSpec#sha256 requires a digest') }
-	return brew_runtime.object_value('Checksum', spec.sha256(args[1].as_string()).hexdigest)
+	return ruby.object_value('Checksum', spec.sha256(args[1].as_string()).hexdigest)
 }
 
 // Ruby method `initialize(flags: [])` at line 69.
-pub fn ruby_software_spec_l69_d30_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_l69_d30_initialize(args ...ruby.Value) ruby.Value {
 	flags := if args.len > 0 && args[0].type_name == 'Array' {
 		args[0].as_string_array() or { []string{} }
 	} else {
@@ -1416,19 +1416,19 @@ pub fn ruby_software_spec_l69_d30_initialize(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby method `initialize_dup(other)` at line 96.
-pub fn ruby_software_spec_l96_d31_initialize_dup(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_l96_d31_initialize_dup(args ...ruby.Value) ruby.Value {
 	return software_spec_boundary_value(software_spec_receiver(args, 'initialize_dup').duplicate())
 }
 
 // Ruby method `freeze` at line 112.
-pub fn ruby_software_spec_l112_d32_freeze(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_l112_d32_freeze(args ...ruby.Value) ruby.Value {
 	mut spec := software_spec_receiver(args, 'freeze')
 	spec.freeze()
 	return software_spec_boundary_value(spec)
 }
 
 // Ruby method `owner=(owner)` at line 128.
-pub fn ruby_software_spec_l128_d33_owner(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_l128_d33_owner(args ...ruby.Value) ruby.Value {
 	mut spec := software_spec_receiver(args, 'owner=')
 	if args.len < 2 { panic('SoftwareSpec#owner= requires an owner') }
 	owner := args[1]
@@ -1445,7 +1445,7 @@ pub fn ruby_software_spec_l128_d33_owner(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `url(val = nil, specs = {})` at line 145.
-pub fn ruby_software_spec_l145_d34_url(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_l145_d34_url(args ...ruby.Value) ruby.Value {
 	mut spec := software_spec_receiver(args, 'url')
 	if args.len > 1 && args[1].type_name != 'NilClass' {
 		mut source_specs := map[string]string{}
@@ -1455,39 +1455,39 @@ pub fn ruby_software_spec_l145_d34_url(args ...brew_runtime.Value) brew_runtime.
 			}
 		}
 		spec.set_url(args[1].as_string(), source_specs) or { panic(err) }
-		return brew_runtime.structured_value('SoftwareSpecUrlResult', args[1].as_string(), software_spec_boundary_value(spec).attributes)
+		return ruby.structured_value('SoftwareSpecUrlResult', args[1].as_string(), software_spec_boundary_value(spec).attributes)
 	}
 	return software_spec_optional_string(spec.url())
 }
 
 // Ruby method `bottle_defined?` at line 154.
-pub fn ruby_software_spec_l154_d35_bottle_defined(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(software_spec_receiver(args, 'bottle_defined?').bottle_defined())
+pub fn ruby_software_spec_l154_d35_bottle_defined(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(software_spec_receiver(args, 'bottle_defined?').bottle_defined())
 }
 
 // Ruby method `bottle_tag?(tag = nil)` at line 159.
-pub fn ruby_software_spec_l159_d36_bottle_tag(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_l159_d36_bottle_tag(args ...ruby.Value) ruby.Value {
 	spec := software_spec_receiver(args, 'bottle_tag?')
 	tag := if args.len > 1 && args[1].type_name != 'NilClass' {
 		bottle_tag_from_symbol(args[1].as_string()) or { panic(err) }
 	} else {
 		current_bottle_tag()
 	}
-	return brew_runtime.bool_value(spec.bottle_tag(tag))
+	return ruby.bool_value(spec.bottle_tag(tag))
 }
 
 // Ruby method `bottled?(tag = nil)` at line 164.
-pub fn ruby_software_spec_l164_d37_bottled(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_l164_d37_bottled(args ...ruby.Value) ruby.Value {
 	spec := software_spec_receiver(args, 'bottled?')
 	if args.len > 1 && args[1].type_name != 'NilClass' {
 		tag := bottle_tag_from_symbol(args[1].as_string()) or { panic(err) }
-		return brew_runtime.bool_value(spec.bottled(tag))
+		return ruby.bool_value(spec.bottled(tag))
 	}
-	return brew_runtime.bool_value(spec.bottled(none))
+	return ruby.bool_value(spec.bottled(none))
 }
 
 // Ruby method `bottle(&block)` at line 177.
-pub fn ruby_software_spec_l177_d38_bottle(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_l177_d38_bottle(args ...ruby.Value) ruby.Value {
 	mut spec := software_spec_receiver(args, 'bottle')
 	if args.len > 1 && args[1].type_name == 'BottleSpecification' {
 		spec.set_bottle_specification(software_spec_bottle_from_boundary(args[1]))
@@ -1496,13 +1496,13 @@ pub fn ruby_software_spec_l177_d38_bottle(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby method `resource_defined?(name)` at line 182.
-pub fn ruby_software_spec_l182_d39_resource_defined(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_l182_d39_resource_defined(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('SoftwareSpec#resource_defined? requires a name') }
-	return brew_runtime.bool_value(software_spec_receiver(args, 'resource_defined?').resource_defined(args[1].as_string()))
+	return ruby.bool_value(software_spec_receiver(args, 'resource_defined?').resource_defined(args[1].as_string()))
 }
 
 // Ruby method `resource(name = T.unsafe(nil), klass = Resource, &block)` at line 190.
-pub fn ruby_software_spec_l190_d40_resource(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_l190_d40_resource(args ...ruby.Value) ruby.Value {
 	mut spec := software_spec_receiver(args, 'resource')
 	if args.len == 1 || args[1].type_name == 'NilClass' {
 		resource := spec.resource(none) or { panic(err) }
@@ -1528,13 +1528,13 @@ pub fn ruby_software_spec_l190_d40_resource(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby method `option_defined?(name)` at line 209.
-pub fn ruby_software_spec_l209_d41_option_defined(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_l209_d41_option_defined(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('SoftwareSpec#option_defined? requires a name') }
-	return brew_runtime.bool_value(software_spec_receiver(args, 'option_defined?').option_defined(args[1].as_string()))
+	return ruby.bool_value(software_spec_receiver(args, 'option_defined?').option_defined(args[1].as_string()))
 }
 
 // Ruby method `option(name, description = "")` at line 214.
-pub fn ruby_software_spec_l214_d42_option(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_l214_d42_option(args ...ruby.Value) ruby.Value {
 	mut spec := software_spec_receiver(args, 'option')
 	if args.len < 2 { panic('SoftwareSpec#option requires a name') }
 	spec.add_option(args[1].as_string(), if args.len > 2 { args[2].as_string() } else { '' }) or {
@@ -1544,7 +1544,7 @@ pub fn ruby_software_spec_l214_d42_option(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby method `deprecated_option(hash)` at line 223.
-pub fn ruby_software_spec_l223_d43_deprecated_option(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_l223_d43_deprecated_option(args ...ruby.Value) ruby.Value {
 	mut spec := software_spec_receiver(args, 'deprecated_option')
 	if args.len < 2 || args[1].type_name != 'Hash' {
 		panic('SoftwareSpec#deprecated_option requires a hash')
@@ -1563,7 +1563,7 @@ pub fn ruby_software_spec_l223_d43_deprecated_option(args ...brew_runtime.Value)
 }
 
 // Ruby method `depends_on(spec = nil, set_in_block: false, **spec_kwargs)` at line 254.
-pub fn ruby_software_spec_l254_d44_depends_on(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_l254_d44_depends_on(args ...ruby.Value) ruby.Value {
 	mut spec := software_spec_receiver(args, 'depends_on')
 	if args.len < 2 {
 		return software_spec_boundary_value(spec)
@@ -1610,17 +1610,17 @@ pub fn ruby_software_spec_l254_d44_depends_on(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby method `depends_on_macos_set_top_level?` at line 262.
-pub fn ruby_software_spec_l262_d45_depends_on_macos_set_top_level(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(software_spec_receiver(args, 'depends_on_macos_set_top_level?').depends_on_macos_set_top_level())
+pub fn ruby_software_spec_l262_d45_depends_on_macos_set_top_level(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(software_spec_receiver(args, 'depends_on_macos_set_top_level?').depends_on_macos_set_top_level())
 }
 
 // Ruby method `depends_on_linux_set_top_level?` at line 269.
-pub fn ruby_software_spec_l269_d46_depends_on_linux_set_top_level(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(software_spec_receiver(args, 'depends_on_linux_set_top_level?').depends_on_linux_set_top_level())
+pub fn ruby_software_spec_l269_d46_depends_on_linux_set_top_level(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(software_spec_receiver(args, 'depends_on_linux_set_top_level?').depends_on_linux_set_top_level())
 }
 
 // Ruby method `record_os_requirement(dep, set_in_block:)` at line 274.
-pub fn ruby_software_spec_l274_d47_record_os_requirement(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_l274_d47_record_os_requirement(args ...ruby.Value) ruby.Value {
 	mut spec := software_spec_receiver(args, 'record_os_requirement')
 	if args.len < 2 {
 		return software_spec_boundary_value(spec)
@@ -1643,7 +1643,7 @@ pub fn ruby_software_spec_l274_d47_record_os_requirement(args ...brew_runtime.Va
 }
 
 // Ruby method `uses_from_macos(dep, bounds = {})` at line 339.
-pub fn ruby_software_spec_l339_d48_uses_from_macos(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_l339_d48_uses_from_macos(args ...ruby.Value) ruby.Value {
 	mut spec := software_spec_receiver(args, 'uses_from_macos')
 	if args.len < 2 { panic('SoftwareSpec#uses_from_macos requires a dependency') }
 	mut name := args[1].attribute('name') or { args[1].as_string() }
@@ -1678,17 +1678,17 @@ pub fn ruby_software_spec_l339_d48_uses_from_macos(args ...brew_runtime.Value) b
 }
 
 // Ruby method `deps` at line 354.
-pub fn ruby_software_spec_l354_d49_deps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_l354_d49_deps(args ...ruby.Value) ruby.Value {
 	return software_spec_dependency_boundary(software_spec_receiver(args, 'deps').deps())
 }
 
 // Ruby method `declared_deps` at line 359.
-pub fn ruby_software_spec_l359_d50_declared_deps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_l359_d50_declared_deps(args ...ruby.Value) ruby.Value {
 	return software_spec_dependency_boundary(software_spec_receiver(args, 'declared_deps').declared_deps())
 }
 
 // Ruby method `recursive_dependencies` at line 364.
-pub fn ruby_software_spec_l364_d51_recursive_dependencies(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_l364_d51_recursive_dependencies(args ...ruby.Value) ruby.Value {
 	spec := software_spec_receiver(args, 'recursive_dependencies')
 	return software_spec_dependency_boundary(spec.recursive_dependencies(default_formulary_lookup_config()) or {
 		panic(err)
@@ -1696,17 +1696,17 @@ pub fn ruby_software_spec_l364_d51_recursive_dependencies(args ...brew_runtime.V
 }
 
 // Ruby method `requirements` at line 382.
-pub fn ruby_software_spec_l382_d52_requirements(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.array_value(software_spec_receiver(args, 'requirements').requirements().map(software_spec_requirement_value(it)))
+pub fn ruby_software_spec_l382_d52_requirements(args ...ruby.Value) ruby.Value {
+	return ruby.array_value(software_spec_receiver(args, 'requirements').requirements().map(software_spec_requirement_value(it)))
 }
 
 // Ruby method `recursive_requirements` at line 387.
-pub fn ruby_software_spec_l387_d53_recursive_requirements(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.array_value(software_spec_receiver(args, 'recursive_requirements').recursive_requirements().map(software_spec_requirement_value(it)))
+pub fn ruby_software_spec_l387_d53_recursive_requirements(args ...ruby.Value) ruby.Value {
+	return ruby.array_value(software_spec_receiver(args, 'recursive_requirements').recursive_requirements().map(software_spec_requirement_value(it)))
 }
 
 // Ruby method `patch(strip = :p1, src = T.unsafe(nil), &block)` at line 395.
-pub fn ruby_software_spec_l395_d54_patch(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_l395_d54_patch(args ...ruby.Value) ruby.Value {
 	mut spec := software_spec_receiver(args, 'patch')
 	strip := if args.len > 1 { args[1].as_string() } else { 'p1' }
 	source := if args.len > 2 { args[2].as_string() } else { '' }
@@ -1715,7 +1715,7 @@ pub fn ruby_software_spec_l395_d54_patch(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `fails_with(compiler, &block)` at line 404.
-pub fn ruby_software_spec_l404_d55_fails_with(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_l404_d55_fails_with(args ...ruby.Value) ruby.Value {
 	mut spec := software_spec_receiver(args, 'fails_with')
 	if args.len < 2 { panic('SoftwareSpec#fails_with requires a compiler') }
 	if args[1].type_name == 'Hash' {
@@ -1737,7 +1737,7 @@ pub fn ruby_software_spec_l404_d55_fails_with(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby method `add_dep_option(dep)` at line 409.
-pub fn ruby_software_spec_l409_d56_add_dep_option(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_software_spec_l409_d56_add_dep_option(args ...ruby.Value) ruby.Value {
 	mut spec := software_spec_receiver(args, 'add_dep_option')
 	if args.len < 2 { panic('SoftwareSpec#add_dep_option requires a dependency') }
 	name := args[1].attribute('name') or { args[1].as_string() }

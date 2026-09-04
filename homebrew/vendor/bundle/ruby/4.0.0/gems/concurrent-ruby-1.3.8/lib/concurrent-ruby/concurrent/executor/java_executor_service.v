@@ -1,6 +1,6 @@
 module executor
 
-import brew_runtime
+import ruby
 import time
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/executor/java_executor_service.rb`.
@@ -14,14 +14,14 @@ mut:
 
 pub struct JavaExecutorJob {
 pub:
-	args []brew_runtime.Value
+	args []ruby.Value
 	task ExecutorTask @[required]
 }
 
 pub struct JavaDaemonThread {
 pub:
 	daemon   bool
-	runnable brew_runtime.Value
+	runnable ruby.Value
 }
 
 @[heap]
@@ -37,7 +37,7 @@ pub fn new_java_executor_service(options AbstractExecutorOptions) &JavaExecutorS
 	}
 }
 
-pub fn (mut executor JavaExecutorService) post(task ExecutorTask, args []brew_runtime.Value) !bool {
+pub fn (mut executor JavaExecutorService) post(task ExecutorTask, args []ruby.Value) !bool {
 	if !executor.service.running() {
 		return executor.base.fallback(task, args)
 	}
@@ -72,7 +72,7 @@ pub fn (mut executor JavaExecutorService) is_shutdown() bool {
 	return executor.service.is_shutdown()
 }
 
-pub fn new_java_executor_job(args []brew_runtime.Value, task ExecutorTask) JavaExecutorJob {
+pub fn new_java_executor_job(args []ruby.Value, task ExecutorTask) JavaExecutorJob {
 	return JavaExecutorJob{
 		args: args.clone()
 		task: task
@@ -89,20 +89,20 @@ pub fn new_daemon_thread_factory(daemonize bool) &DaemonThreadFactory {
 	}
 }
 
-pub fn (factory &DaemonThreadFactory) new_thread(runnable brew_runtime.Value) JavaDaemonThread {
+pub fn (factory &DaemonThreadFactory) new_thread(runnable ruby.Value) JavaDaemonThread {
 	return JavaDaemonThread{
 		daemon: factory.daemonize
 		runnable: runnable
 	}
 }
 
-fn java_executor_boundary_value(executor &JavaExecutorService) brew_runtime.Value {
-	return brew_runtime.structured_value('Concurrent::JavaExecutorService', '#<Concurrent::JavaExecutorService>', {
+fn java_executor_boundary_value(executor &JavaExecutorService) ruby.Value {
+	return ruby.structured_value('Concurrent::JavaExecutorService', '#<Concurrent::JavaExecutorService>', {
 		'java_executor_address': u64(voidptr(executor)).str()
 	})
 }
 
-fn java_executor_boundary_receiver(args []brew_runtime.Value) &JavaExecutorService {
+fn java_executor_boundary_receiver(args []ruby.Value) &JavaExecutorService {
 	if args.len == 0 {
 		panic('JavaExecutorService method requires a receiver')
 	}
@@ -112,13 +112,13 @@ fn java_executor_boundary_receiver(args []brew_runtime.Value) &JavaExecutorServi
 	return unsafe { &JavaExecutorService(voidptr(address)) }
 }
 
-fn java_executor_job_value(job &JavaExecutorJob) brew_runtime.Value {
-	return brew_runtime.structured_value('Concurrent::JavaExecutorService::Job', '#<JavaExecutorService::Job>', {
+fn java_executor_job_value(job &JavaExecutorJob) ruby.Value {
+	return ruby.structured_value('Concurrent::JavaExecutorService::Job', '#<JavaExecutorService::Job>', {
 		'java_executor_job_address': u64(voidptr(job)).str()
 	})
 }
 
-fn java_executor_job_from_args(args []brew_runtime.Value) &JavaExecutorJob {
+fn java_executor_job_from_args(args []ruby.Value) &JavaExecutorJob {
 	if args.len == 0 {
 		panic('JavaExecutorService::Job method requires a receiver')
 	}
@@ -128,13 +128,13 @@ fn java_executor_job_from_args(args []brew_runtime.Value) &JavaExecutorJob {
 	return unsafe { &JavaExecutorJob(voidptr(address)) }
 }
 
-fn daemon_thread_factory_value(factory &DaemonThreadFactory) brew_runtime.Value {
-	return brew_runtime.structured_value('Concurrent::DaemonThreadFactory', '#<Concurrent::DaemonThreadFactory>', {
+fn daemon_thread_factory_value(factory &DaemonThreadFactory) ruby.Value {
+	return ruby.structured_value('Concurrent::DaemonThreadFactory', '#<Concurrent::DaemonThreadFactory>', {
 		'daemon_thread_factory_address': u64(voidptr(factory)).str()
 	})
 }
 
-fn daemon_thread_factory_from_args(args []brew_runtime.Value) &DaemonThreadFactory {
+fn daemon_thread_factory_from_args(args []ruby.Value) &DaemonThreadFactory {
 	if args.len == 0 {
 		panic('DaemonThreadFactory method requires a receiver')
 	}
@@ -144,61 +144,61 @@ fn daemon_thread_factory_from_args(args []brew_runtime.Value) &DaemonThreadFacto
 	return unsafe { &DaemonThreadFactory(voidptr(address)) }
 }
 
-fn java_executor_nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn java_executor_nil_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `post(*args, &task)` at line 21.
-pub fn ruby_java_executor_service_l21_d1_post(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_java_executor_service_l21_d1_post(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('ArgumentError: no block given')
 	}
 	mut executor := java_executor_boundary_receiver(args)
-	return brew_runtime.bool_value(executor.post(boundary_noop_executor_task, args[1..]) or {
+	return ruby.bool_value(executor.post(boundary_noop_executor_task, args[1..]) or {
 		panic(err)
 	})
 }
 
 // Ruby method `wait_for_termination(timeout = nil)` at line 30.
-pub fn ruby_java_executor_service_l30_d2_wait_for_termination(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_java_executor_service_l30_d2_wait_for_termination(args ...ruby.Value) ruby.Value {
 	mut executor := java_executor_boundary_receiver(args)
-	return brew_runtime.bool_value(executor.wait_for_termination(executor_base_boundary_timeout(args, 1)))
+	return ruby.bool_value(executor.wait_for_termination(executor_base_boundary_timeout(args, 1)))
 }
 
 // Ruby method `shutdown` at line 39.
-pub fn ruby_java_executor_service_l39_d3_shutdown(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_java_executor_service_l39_d3_shutdown(args ...ruby.Value) ruby.Value {
 	mut executor := java_executor_boundary_receiver(args)
 	executor.shutdown()
 	return java_executor_nil_value()
 }
 
 // Ruby method `kill` at line 46.
-pub fn ruby_java_executor_service_l46_d4_kill(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_java_executor_service_l46_d4_kill(args ...ruby.Value) ruby.Value {
 	mut executor := java_executor_boundary_receiver(args)
 	executor.kill()
 	return java_executor_nil_value()
 }
 
 // Ruby method `ns_running?` at line 56.
-pub fn ruby_java_executor_service_l56_d5_ns_running(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_java_executor_service_l56_d5_ns_running(args ...ruby.Value) ruby.Value {
 	mut executor := java_executor_boundary_receiver(args)
-	return brew_runtime.bool_value(executor.running())
+	return ruby.bool_value(executor.running())
 }
 
 // Ruby method `ns_shuttingdown?` at line 60.
-pub fn ruby_java_executor_service_l60_d6_ns_shuttingdown(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_java_executor_service_l60_d6_ns_shuttingdown(args ...ruby.Value) ruby.Value {
 	mut executor := java_executor_boundary_receiver(args)
-	return brew_runtime.bool_value(executor.shutting_down())
+	return ruby.bool_value(executor.shutting_down())
 }
 
 // Ruby method `ns_shutdown?` at line 64.
-pub fn ruby_java_executor_service_l64_d7_ns_shutdown(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_java_executor_service_l64_d7_ns_shutdown(args ...ruby.Value) ruby.Value {
 	mut executor := java_executor_boundary_receiver(args)
-	return brew_runtime.bool_value(executor.is_shutdown())
+	return ruby.bool_value(executor.is_shutdown())
 }
 
 // Ruby method `initialize(args, block)` at line 70.
-pub fn ruby_java_executor_service_l70_d8_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_java_executor_service_l70_d8_initialize(args ...ruby.Value) ruby.Value {
 	values := if args.len > 0 && args[0].type_name == 'Array' {
 		args[0].as_array() or { panic(err) }
 	} else {
@@ -212,25 +212,25 @@ pub fn ruby_java_executor_service_l70_d8_initialize(args ...brew_runtime.Value) 
 }
 
 // Ruby method `run` at line 75.
-pub fn ruby_java_executor_service_l75_d9_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_java_executor_service_l75_d9_run(args ...ruby.Value) ruby.Value {
 	java_executor_job_from_args(args).run() or { panic(err) }
 	return java_executor_nil_value()
 }
 
 // Ruby method `initialize(daemonize = true)` at line 86.
-pub fn ruby_java_executor_service_l86_d10_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_java_executor_service_l86_d10_initialize(args ...ruby.Value) ruby.Value {
 	daemonize := if args.len > 0 { args[0].as_bool() or { true } } else { true }
 	return daemon_thread_factory_value(new_daemon_thread_factory(daemonize))
 }
 
 // Ruby method `newThread(runnable)` at line 91.
-pub fn ruby_java_executor_service_l91_d11_newthread(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_java_executor_service_l91_d11_newthread(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('DaemonThreadFactory#newThread requires a runnable')
 	}
 	factory := daemon_thread_factory_from_args(args)
 	java_thread := factory.new_thread(args[1])
-	return brew_runtime.structured_value('Java::JavaLang::Thread', '#<JavaThread>', {
+	return ruby.structured_value('Java::JavaLang::Thread', '#<JavaThread>', {
 		'daemon':        java_thread.daemon.str()
 		'runnable_type': java_thread.runnable.type_name
 	})

@@ -1,6 +1,6 @@
 module helper
 
-import brew_runtime
+import ruby
 import homebrew.services
 import homebrew.services.system as systemctl
 
@@ -8,10 +8,10 @@ import homebrew.services.system as systemctl
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `reset_services_memoization!` at line 16.
-pub fn ruby_services_l16_d1_reset_services_memoization(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_services_l16_d1_reset_services_memoization(args ...ruby.Value) ruby.Value {
 	if args.len > 0 && args[0].type_name == 'Homebrew::Services::System' {
 		address := args[0].attributes['system_address'] or {
-			return brew_runtime.object_value('ArgumentError', 'invalid Services::System state')
+			return ruby.object_value('ArgumentError', 'invalid Services::System state')
 		}
 		mut state := unsafe { &services.ServiceSystem(voidptr(address.u64())) }
 		state.launchctl_path = ''
@@ -19,12 +19,12 @@ pub fn ruby_services_l16_d1_reset_services_memoization(args ...brew_runtime.Valu
 	}
 	if args.len > 1 && args[1].type_name == 'Homebrew::Services::System::Systemctl' {
 		address := args[1].attributes['systemctl_state_address'] or {
-			return brew_runtime.object_value('ArgumentError', 'invalid Systemctl state')
+			return ruby.object_value('ArgumentError', 'invalid Systemctl state')
 		}
 		mut state := unsafe { &systemctl.SystemctlState(voidptr(address.u64())) }
 		state.set_executable(none)
 	}
-	return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+	return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 }
 
 // Original Ruby source (line-for-line):

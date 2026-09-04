@@ -1,6 +1,6 @@
 module cask
 
-import brew_runtime
+import ruby
 import homebrew.rubocops.cask as stanza_order_core
 import homebrew.rubocops.cask.constants as stanza_constants
 
@@ -12,166 +12,166 @@ fn stanza_order_spec_corrects(source string, expected string) bool {
 }
 
 // Ruby it `it "registers system conditionals after os stanzas" do` at line 7.
-pub fn ruby_stanza_order_spec_l7_d1_registers(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stanza_order_spec_l7_d1_registers(args ...ruby.Value) ruby.Value {
 	groups := stanza_constants.stanza_groups()
-	return brew_runtime.bool_value(groups.len >= 2 && groups[..2] == [
+	return ruby.bool_value(groups.len >= 2 && groups[..2] == [
 		['arch', 'on_arch_conditional', 'os', 'on_system_conditional'],
 		['version', 'sha256'],
 	])
 }
 
 // Ruby it `it "registers every new top-level cask DSL" do` at line 14.
-pub fn ruby_stanza_order_spec_l14_d2_registers(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stanza_order_spec_l14_d2_registers(args ...ruby.Value) ruby.Value {
 	required := ['on_macos', 'on_linux', 'on_system_conditional', 'app_image', 'generated_script',
 		'command_wrapper', 'generate_completions_from_executable', 'preflight_steps',
 		'postflight_steps', 'uninstall_preflight_steps', 'uninstall_postflight_steps']
-	return brew_runtime.bool_value(required.all(it in stanza_constants.stanza_order))
+	return ruby.bool_value(required.all(it in stanza_constants.stanza_order))
 }
 
 // Ruby it `it "orders system conditionals before version and URL stanzas" do` at line 30.
-pub fn ruby_stanza_order_spec_l30_d3_orders(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stanza_order_spec_l30_d3_orders(args ...ruby.Value) ruby.Value {
 	source := 'cask "foo" do\n  version :latest\n  url "https://example.com/foo"\n  artifact = on_system_conditional macos: "foo.dmg", linux: "foo.AppImage"\nend'
 	expected := 'cask "foo" do\n  artifact = on_system_conditional macos: "foo.dmg", linux: "foo.AppImage"\n  version :latest\n  url "https://example.com/foo"\nend'
-	return brew_runtime.bool_value(stanza_order_spec_corrects(source, expected))
+	return ruby.bool_value(stanza_order_spec_corrects(source, expected))
 }
 
 // Ruby it `it "accepts a sole stanza" do` at line 51.
-pub fn ruby_stanza_order_spec_l51_d4_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(stanza_order_core.audit_cask_stanza_order('cask "foo" do\n  version :latest\nend').len == 0)
+pub fn ruby_stanza_order_spec_l51_d4_accepts(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(stanza_order_core.audit_cask_stanza_order('cask "foo" do\n  version :latest\nend').len == 0)
 }
 
 // Ruby it `it "accepts when all stanzas are in order" do` at line 59.
-pub fn ruby_stanza_order_spec_l59_d5_accepts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stanza_order_spec_l59_d5_accepts(args ...ruby.Value) ruby.Value {
 	source := 'cask "foo" do\n  arch arm: "arm", intel: "x86_64"\n  folder = on_arch_conditional arm: "darwin-arm64", intel: "darwin"\n  version :latest\n  sha256 :no_check\n  foo = "bar"\nend'
-	return brew_runtime.bool_value(stanza_order_core.audit_cask_stanza_order(source).len == 0)
+	return ruby.bool_value(stanza_order_core.audit_cask_stanza_order(source).len == 0)
 }
 
 // Ruby it `it "reports an offense when stanzas are out of order" do` at line 71.
-pub fn ruby_stanza_order_spec_l71_d6_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stanza_order_spec_l71_d6_reports(args ...ruby.Value) ruby.Value {
 	source := 'cask "foo" do\n  sha256 :no_check\n  version :latest\nend'
 	expected := 'cask "foo" do\n  version :latest\n  sha256 :no_check\nend'
-	return brew_runtime.bool_value(stanza_order_spec_corrects(source, expected))
+	return ruby.bool_value(stanza_order_spec_corrects(source, expected))
 }
 
 // Ruby it `it "orders `app_image` after `app`" do` at line 89.
-pub fn ruby_stanza_order_spec_l89_d7_orders(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stanza_order_spec_l89_d7_orders(args ...ruby.Value) ruby.Value {
 	source := 'cask "foo" do\n  app_image "Foo.AppImage"\n  app "Foo.app"\nend'
 	expected := 'cask "foo" do\n  app "Foo.app"\n  app_image "Foo.AppImage"\nend'
-	return brew_runtime.bool_value(stanza_order_spec_corrects(source, expected))
+	return ruby.bool_value(stanza_order_spec_corrects(source, expected))
 }
 
 // Ruby it `it "orders `generated_script` before `installer`" do` at line 107.
-pub fn ruby_stanza_order_spec_l107_d8_orders(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stanza_order_spec_l107_d8_orders(args ...ruby.Value) ruby.Value {
 	source := 'cask "foo" do\n  installer script: "installer.sh"\n  generated_script "installer.sh", content: "#!/bin/sh"\nend'
 	expected := 'cask "foo" do\n  generated_script "installer.sh", content: "#!/bin/sh"\n  installer script: "installer.sh"\nend'
-	return brew_runtime.bool_value(stanza_order_spec_corrects(source, expected))
+	return ruby.bool_value(stanza_order_spec_corrects(source, expected))
 }
 
 // Ruby it `it "orders `command_wrapper` after `binary`" do` at line 125.
-pub fn ruby_stanza_order_spec_l125_d9_orders(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stanza_order_spec_l125_d9_orders(args ...ruby.Value) ruby.Value {
 	source := 'cask "foo" do\n  command_wrapper "foo", executable: "Foo/foo"\n  binary "foo"\nend'
 	expected := 'cask "foo" do\n  binary "foo"\n  command_wrapper "foo", executable: "Foo/foo"\nend'
-	return brew_runtime.bool_value(stanza_order_spec_corrects(source, expected))
+	return ruby.bool_value(stanza_order_spec_corrects(source, expected))
 }
 
 // Ruby it `it "orders legacy flight blocks after matching install step blocks" do` at line 143.
-pub fn ruby_stanza_order_spec_l143_d10_orders(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stanza_order_spec_l143_d10_orders(args ...ruby.Value) ruby.Value {
 	source := 'cask "foo" do\n  postflight do\n    next\n  end\n  postflight_steps do\n    touch "foo"\n  end\nend'
 	expected := 'cask "foo" do\n  postflight_steps do\n    touch "foo"\n  end\n  postflight do\n    next\n  end\nend'
-	return brew_runtime.bool_value(stanza_order_spec_corrects(source, expected))
+	return ruby.bool_value(stanza_order_spec_corrects(source, expected))
 }
 
 // Ruby it `it "reports an offense when an `arch` stanza is out of order" do` at line 177.
-pub fn ruby_stanza_order_spec_l177_d11_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stanza_order_spec_l177_d11_reports(args ...ruby.Value) ruby.Value {
 	source := 'cask "foo" do\n  os macos: ">= :big_sur"\n  version :latest\n  sha256 :no_check\n  arch arm: "arm", intel: "x86_64"\nend'
 	expected := 'cask "foo" do\n  arch arm: "arm", intel: "x86_64"\n  os macos: ">= :big_sur"\n  version :latest\n  sha256 :no_check\nend'
-	return brew_runtime.bool_value(stanza_order_spec_corrects(source, expected))
+	return ruby.bool_value(stanza_order_spec_corrects(source, expected))
 }
 
 // Ruby it `it "reports an offense when an `on_arch_conditional` variable assignment is out of order" do` at line 201.
-pub fn ruby_stanza_order_spec_l201_d12_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stanza_order_spec_l201_d12_reports(args ...ruby.Value) ruby.Value {
 	source := 'cask "foo" do\n  arch arm: "arm", intel: "x86"\n  sha256 :no_check\n  version :latest\n  folder = on_arch_conditional arm: "arm", intel: "intel"\nend'
 	expected := 'cask "foo" do\n  arch arm: "arm", intel: "x86"\n  folder = on_arch_conditional arm: "arm", intel: "intel"\n  version :latest\n  sha256 :no_check\nend'
-	return brew_runtime.bool_value(stanza_order_spec_corrects(source, expected))
+	return ruby.bool_value(stanza_order_spec_corrects(source, expected))
 }
 
 // Ruby it `it "reports an offense when an `on_arch_conditional` variable assignment is above an `arch` stanza" do` at line 223.
-pub fn ruby_stanza_order_spec_l223_d13_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stanza_order_spec_l223_d13_reports(args ...ruby.Value) ruby.Value {
 	source := 'cask "foo" do\n  folder = on_arch_conditional arm: "arm", intel: "intel"\n  arch arm: "arm", intel: "x86"\n  version :latest\nend'
 	expected := 'cask "foo" do\n  arch arm: "arm", intel: "x86"\n  folder = on_arch_conditional arm: "arm", intel: "intel"\n  version :latest\nend'
-	return brew_runtime.bool_value(stanza_order_spec_corrects(source, expected))
+	return ruby.bool_value(stanza_order_spec_corrects(source, expected))
 }
 
 // Ruby it `it "reports an offense when multiple stanzas are out of order" do` at line 245.
-pub fn ruby_stanza_order_spec_l245_d14_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stanza_order_spec_l245_d14_reports(args ...ruby.Value) ruby.Value {
 	source := 'cask "foo" do\n  url "https://example.com"\n  uninstall quit: "foo"\n  version :latest\n  app "Foo.app"\n  sha256 :no_check\nend'
 	expected := 'cask "foo" do\n  version :latest\n  sha256 :no_check\n  url "https://example.com"\n  app "Foo.app"\n  uninstall quit: "foo"\nend'
-	return brew_runtime.bool_value(stanza_order_spec_corrects(source, expected))
+	return ruby.bool_value(stanza_order_spec_corrects(source, expected))
 }
 
 // Ruby it `it "does not reorder multiple stanzas of the same type" do` at line 273.
-pub fn ruby_stanza_order_spec_l273_d15_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stanza_order_spec_l273_d15_does(args ...ruby.Value) ruby.Value {
 	source := 'cask "foo" do\n  name "Foo"\n  url "https://example.com"\n  name "FancyFoo"\n  version :latest\n  app "Foo.app"\n  sha256 :no_check\n  name "FunkyFoo"\nend'
 	expected := 'cask "foo" do\n  version :latest\n  sha256 :no_check\n  url "https://example.com"\n  name "Foo"\n  name "FancyFoo"\n  name "FunkyFoo"\n  app "Foo.app"\nend'
-	return brew_runtime.bool_value(stanza_order_spec_corrects(source, expected))
+	return ruby.bool_value(stanza_order_spec_corrects(source, expected))
 }
 
 // Ruby it `it "keeps associated comments when auto-correcting" do` at line 306.
-pub fn ruby_stanza_order_spec_l306_d16_keeps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stanza_order_spec_l306_d16_keeps(args ...ruby.Value) ruby.Value {
 	source := 'cask "foo" do\n  version :latest\n  # separated comment\n\n  # direct comment\n  postflight do\n    puts "launch"\n  end\n  sha256 :no_check # digest\nend'
 	expected := 'cask "foo" do\n  version :latest\n  sha256 :no_check # digest\n  # separated comment\n\n  # direct comment\n  postflight do\n    puts "launch"\n  end\nend'
-	return brew_runtime.bool_value(stanza_order_spec_corrects(source, expected))
+	return ruby.bool_value(stanza_order_spec_corrects(source, expected))
 }
 
 // Ruby it `it "reports an offense when an `on_arch_conditional` variable assignment with a comment is out of order" do` at line 336.
-pub fn ruby_stanza_order_spec_l336_d17_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stanza_order_spec_l336_d17_reports(args ...ruby.Value) ruby.Value {
 	source := 'cask "foo" do\n  version :latest\n  sha256 :no_check\n  postflight do\n    puts "launch"\n  end\n  folder = on_arch_conditional arm: "arm", intel: "intel" # arch\nend'
 	expected := 'cask "foo" do\n  folder = on_arch_conditional arm: "arm", intel: "intel" # arch\n  version :latest\n  sha256 :no_check\n  postflight do\n    puts "launch"\n  end\nend'
-	return brew_runtime.bool_value(stanza_order_spec_corrects(source, expected))
+	return ruby.bool_value(stanza_order_spec_corrects(source, expected))
 }
 
 // Ruby it `it "reports an offense when a `caveats` stanza is out of order" do` at line 371.
-pub fn ruby_stanza_order_spec_l371_d18_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stanza_order_spec_l371_d18_reports(args ...ruby.Value) ruby.Value {
 	caveats := if args.len > 0 { args[0].as_string() } else { 'caveats "Notice"' }
 	source := 'cask "foo" do\n  ${caveats}\n  version :latest\nend'
 	expected := 'cask "foo" do\n  version :latest\n  ${caveats}\nend'
-	return brew_runtime.bool_value(stanza_order_spec_corrects(source, expected))
+	return ruby.bool_value(stanza_order_spec_corrects(source, expected))
 }
 
 // Ruby let `let(:caveats) do` at line 407.
-pub fn ruby_stanza_order_spec_l407_d19_caveats(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value("caveats 'This is a one-line caveat.'")
+pub fn ruby_stanza_order_spec_l407_d19_caveats(args ...ruby.Value) ruby.Value {
+	return ruby.string_value("caveats 'This is a one-line caveat.'")
 }
 
 // Ruby let `let(:caveats) do` at line 418.
-pub fn ruby_stanza_order_spec_l418_d20_caveats(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value("caveats <<~EOS\n  This is a multiline caveat.\n\n  Let's hope it doesn't cause any problems!\nEOS")
+pub fn ruby_stanza_order_spec_l418_d20_caveats(args ...ruby.Value) ruby.Value {
+	return ruby.string_value("caveats <<~EOS\n  This is a multiline caveat.\n\n  Let's hope it doesn't cause any problems!\nEOS")
 }
 
 // Ruby let `let(:caveats) do` at line 433.
-pub fn ruby_stanza_order_spec_l433_d21_caveats(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('caveats do\n  puts \'This is a multiline caveat.\'\n\n  puts "Let\'s hope it doesn\'t cause any problems!"\nend')
+pub fn ruby_stanza_order_spec_l433_d21_caveats(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('caveats do\n  puts \'This is a multiline caveat.\'\n\n  puts "Let\'s hope it doesn\'t cause any problems!"\nend')
 }
 
 // Ruby it `it "reports an offense when the `postflight` stanza is out of order" do` at line 447.
-pub fn ruby_stanza_order_spec_l447_d22_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stanza_order_spec_l447_d22_reports(args ...ruby.Value) ruby.Value {
 	source := 'cask "foo" do\n  name "Foo"\n  url "https://example.com"\n  postflight do\n    puts "launch"\n  end\n  version :latest\n  app "Foo.app"\n  sha256 :no_check\nend'
 	expected := 'cask "foo" do\n  version :latest\n  sha256 :no_check\n  url "https://example.com"\n  name "Foo"\n  app "Foo.app"\n  postflight do\n    puts "launch"\n  end\nend'
-	return brew_runtime.bool_value(stanza_order_spec_corrects(source, expected))
+	return ruby.bool_value(stanza_order_spec_corrects(source, expected))
 }
 
 // Ruby it `it "supports `on_arch` blocks and their contents" do` at line 480.
-pub fn ruby_stanza_order_spec_l480_d23_supports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stanza_order_spec_l480_d23_supports(args ...ruby.Value) ruby.Value {
 	source := 'cask "foo" do\n  on_intel do\n    url "https://example.com/intel"\n    version :latest\n    sha256 :no_check\n  end\n  on_arm do\n    version :latest\n    sha256 :no_check\n    url "https://example.com/arm"\n  end\nend'
 	expected := 'cask "foo" do\n  on_arm do\n    version :latest\n    sha256 :no_check\n    url "https://example.com/arm"\n  end\n  on_intel do\n    version :latest\n    sha256 :no_check\n    url "https://example.com/intel"\n  end\nend'
-	return brew_runtime.bool_value(stanza_order_spec_corrects(source, expected))
+	return ruby.bool_value(stanza_order_spec_corrects(source, expected))
 }
 
 // Ruby it `it "registers an offense when `on_os` stanzas and their contents are out of order" do` at line 521.
-pub fn ruby_stanza_order_spec_l521_d24_registers(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stanza_order_spec_l521_d24_registers(args ...ruby.Value) ruby.Value {
 	source := 'cask "foo" do\n  on_ventura do\n    sha256 "abc"\n    version :latest\n  end\n  on_catalina do\n    sha256 "def"\n    version "0.7"\n  end\nend'
 	expected := 'cask "foo" do\n  on_catalina do\n    version "0.7"\n    sha256 "def"\n  end\n  on_ventura do\n    version :latest\n    sha256 "abc"\n  end\nend'
-	return brew_runtime.bool_value(stanza_order_spec_corrects(source, expected))
+	return ruby.bool_value(stanza_order_spec_corrects(source, expected))
 }
 
 // Original Ruby source (line-for-line):

@@ -1,29 +1,29 @@
 module homebrew
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `simulate_system.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby attr_reader `attr_reader :arch` at line 13.
-pub fn ruby_simulate_system_l13_d1_arch(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_simulate_system_l13_d1_arch(args ...ruby.Value) ruby.Value {
 	state := simulation_from_args(args)
 	return optional_symbol_value(state.simulated_arch)
 }
 
 // Ruby attr_reader `attr_reader :os` at line 16.
-pub fn ruby_simulate_system_l16_d2_os(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_simulate_system_l16_d2_os(args ...ruby.Value) ruby.Value {
 	state := simulation_from_args(args)
 	return optional_symbol_value(state.simulated_os)
 }
 
 // Ruby method `arch_symbols` at line 19.
-pub fn ruby_simulate_system_l19_d3_arch_symbols(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.structured_value('Hash', '{arm64: arm, x86_64: intel}', arch_symbols())
+pub fn ruby_simulate_system_l19_d3_arch_symbols(args ...ruby.Value) ruby.Value {
+	return ruby.structured_value('Hash', '{arm64: arm, x86_64: intel}', arch_symbols())
 }
 
 // Ruby method `with(os: T.unsafe(nil), arch: T.unsafe(nil), &_block)` at line 30.
-pub fn ruby_simulate_system_l30_d4_with(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_simulate_system_l30_d4_with(args ...ruby.Value) ruby.Value {
 	mut state := simulation_from_args(args)
 	if args.len > 1 && args[1].as_string().len > 0 {
 		state.set_os(args[1].as_string()) or { panic(err) }
@@ -38,7 +38,7 @@ pub fn ruby_simulate_system_l30_d4_with(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby method `with_tag(tag, &block)` at line 53.
-pub fn ruby_simulate_system_l53_d5_with_tag(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_simulate_system_l53_d5_with_tag(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Invalid tag')
 	}
@@ -51,58 +51,58 @@ pub fn ruby_simulate_system_l53_d5_with_tag(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby method `os=(new_os)` at line 60.
-pub fn ruby_simulate_system_l60_d6_os(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_simulate_system_l60_d6_os(args ...ruby.Value) ruby.Value {
 	value := if args.len > 0 { args[0].as_string() } else { '' }
 	mut state := SystemSimulation{}
 	state.set_os(value) or { panic(err) }
-	return brew_runtime.object_value('Symbol', value)
+	return ruby.object_value('Symbol', value)
 }
 
 // Ruby method `arch=(new_arch)` at line 68.
-pub fn ruby_simulate_system_l68_d7_arch(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_simulate_system_l68_d7_arch(args ...ruby.Value) ruby.Value {
 	value := if args.len > 0 { args[0].as_string() } else { '' }
 	mut state := SystemSimulation{}
 	state.set_arch(value) or { panic(err) }
-	return brew_runtime.object_value('Symbol', value)
+	return ruby.object_value('Symbol', value)
 }
 
 // Ruby method `clear` at line 75.
-pub fn ruby_simulate_system_l75_d8_clear(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_simulate_system_l75_d8_clear(args ...ruby.Value) ruby.Value {
 	mut state := simulation_from_args(args)
 	state.clear()
 	return simulation_value(state)
 }
 
 // Ruby method `simulating?` at line 80.
-pub fn ruby_simulate_system_l80_d9_simulating(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(simulation_from_args(args).simulating())
+pub fn ruby_simulate_system_l80_d9_simulating(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(simulation_from_args(args).simulating())
 }
 
 // Ruby method `simulating_or_running_on_macos?` at line 85.
-pub fn ruby_simulate_system_l85_d10_simulating_or_running_on_macos(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(simulation_from_args(args).simulating_or_running_on_macos())
+pub fn ruby_simulate_system_l85_d10_simulating_or_running_on_macos(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(simulation_from_args(args).simulating_or_running_on_macos())
 }
 
 // Ruby method `simulating_or_running_on_linux?` at line 90.
-pub fn ruby_simulate_system_l90_d11_simulating_or_running_on_linux(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(simulation_from_args(args).simulating_or_running_on_linux())
+pub fn ruby_simulate_system_l90_d11_simulating_or_running_on_linux(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(simulation_from_args(args).simulating_or_running_on_linux())
 }
 
 // Ruby method `current_arch` at line 95.
-pub fn ruby_simulate_system_l95_d12_current_arch(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Symbol', simulation_from_args(args).current_arch())
+pub fn ruby_simulate_system_l95_d12_current_arch(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Symbol', simulation_from_args(args).current_arch())
 }
 
 // Ruby method `current_os` at line 100.
-pub fn ruby_simulate_system_l100_d13_current_os(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Symbol', simulation_from_args(args).current_os())
+pub fn ruby_simulate_system_l100_d13_current_os(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Symbol', simulation_from_args(args).current_os())
 }
 
 // Ruby method `current_tag` at line 105.
-pub fn ruby_simulate_system_l105_d14_current_tag(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_simulate_system_l105_d14_current_tag(args ...ruby.Value) ruby.Value {
 	state := simulation_from_args(args)
 	tag := state.current_tag()
-	return brew_runtime.structured_value('Utils::Bottles::Tag', '${tag.arch}_${tag.system}', {
+	return ruby.structured_value('Utils::Bottles::Tag', '${tag.arch}_${tag.system}', {
 		'system': tag.system
 		'arch':   tag.arch
 	})
@@ -205,8 +205,8 @@ pub fn with_simulation[T](state SystemSimulation, os_value string, arch_value st
 	return block(scoped)
 }
 
-fn simulation_value(state SystemSimulation) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::SimulateSystem', '', {
+fn simulation_value(state SystemSimulation) ruby.Value {
+	return ruby.structured_value('Homebrew::SimulateSystem', '', {
 		'os':        state.simulated_os
 		'arch':      state.simulated_arch
 		'host_os':   state.host_os
@@ -214,7 +214,7 @@ fn simulation_value(state SystemSimulation) brew_runtime.Value {
 	})
 }
 
-fn simulation_from_args(args []brew_runtime.Value) SystemSimulation {
+fn simulation_from_args(args []ruby.Value) SystemSimulation {
 	if args.len == 0 || args[0].type_name != 'Homebrew::SimulateSystem' {
 		return new_system_simulation('generic', '')
 	}
@@ -226,11 +226,11 @@ fn simulation_from_args(args []brew_runtime.Value) SystemSimulation {
 	}
 }
 
-fn optional_symbol_value(value string) brew_runtime.Value {
+fn optional_symbol_value(value string) ruby.Value {
 	return if value.len > 0 {
-		brew_runtime.object_value('Symbol', value)
+		ruby.object_value('Symbol', value)
 	} else {
-		brew_runtime.object_value('Nil', '')
+		ruby.object_value('Nil', '')
 	}
 }
 

@@ -1,6 +1,6 @@
 module test
 
-import brew_runtime
+import ruby
 import homebrew
 import time
 
@@ -8,149 +8,149 @@ import time
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "runs all blocks concurrently" do` at line 9.
-pub fn ruby_utils_spec_l9_d1_runs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_utils_spec_l9_d1_runs(args ...ruby.Value) ruby.Value {
 	started := time.now()
-	values := [brew_runtime.int_value(1), brew_runtime.int_value(2), brew_runtime.int_value(3)]
+	values := [ruby.int_value(1), ruby.int_value(2), ruby.int_value(3)]
 	results := homebrew.parallel_map_values(values, utils_spec_slow_times_ten) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	elapsed := time.since(started)
-	return brew_runtime.bool_value(results.map(it.int_data) == [i64(10), 20, 30] && elapsed < 140 * time.millisecond)
+	return ruby.bool_value(results.map(it.int_data) == [i64(10), 20, 30] && elapsed < 140 * time.millisecond)
 }
 
 // Ruby it `it "returns results in input order, not completion order" do` at line 28.
-pub fn ruby_utils_spec_l28_d2_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	values := [brew_runtime.int_value(3), brew_runtime.int_value(1), brew_runtime.int_value(2)]
+pub fn ruby_utils_spec_l28_d2_returns(args ...ruby.Value) ruby.Value {
+	values := [ruby.int_value(3), ruby.int_value(1), ruby.int_value(2)]
 	results := homebrew.parallel_map_values(values, utils_spec_ordered_times_ten) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(results.map(it.int_data) == [i64(30), 10, 20])
+	return ruby.bool_value(results.map(it.int_data) == [i64(30), 10, 20])
 }
 
 // Ruby it `it "re-raises an exception from a block" do` at line 35.
-pub fn ruby_utils_spec_l35_d3_re_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	if _ := homebrew.parallel_map_values([brew_runtime.int_value(1)], utils_spec_boom) {
-		return brew_runtime.bool_value(false)
+pub fn ruby_utils_spec_l35_d3_re_raises(args ...ruby.Value) ruby.Value {
+	if _ := homebrew.parallel_map_values([ruby.int_value(1)], utils_spec_boom) {
+		return ruby.bool_value(false)
 	} else {
-		return brew_runtime.bool_value(err.msg() == 'boom')
+		return ruby.bool_value(err.msg() == 'boom')
 	}
 }
 
 // Ruby it `it "removes the rightmost segment from the constant expression in the string" do` at line 41.
-pub fn ruby_utils_spec_l41_d4_removes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(homebrew.deconstantize('Net::HTTP') == 'Net' && homebrew.deconstantize('::Net::HTTP') == '::Net' && homebrew.deconstantize('String') == '' && homebrew.deconstantize('::String') == '')
+pub fn ruby_utils_spec_l41_d4_removes(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(homebrew.deconstantize('Net::HTTP') == 'Net' && homebrew.deconstantize('::Net::HTTP') == '::Net' && homebrew.deconstantize('String') == '' && homebrew.deconstantize('::String') == '')
 }
 
 // Ruby it `it "returns an empty string if the namespace is empty" do` at line 48.
-pub fn ruby_utils_spec_l48_d5_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(homebrew.deconstantize('') == '' && homebrew.deconstantize('::') == '')
+pub fn ruby_utils_spec_l48_d5_returns(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(homebrew.deconstantize('') == '' && homebrew.deconstantize('::') == '')
 }
 
 // Ruby it `it "removes the module part from the expression in the string" do` at line 55.
-pub fn ruby_utils_spec_l55_d6_removes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value((homebrew.demodulize('Foo::Bar') or { '' }) == 'Bar')
+pub fn ruby_utils_spec_l55_d6_removes(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value((homebrew.demodulize('Foo::Bar') or { '' }) == 'Bar')
 }
 
 // Ruby it `it "returns the string if it does not contain a module expression" do` at line 59.
-pub fn ruby_utils_spec_l59_d7_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value((homebrew.demodulize('FooBar') or { '' }) == 'FooBar')
+pub fn ruby_utils_spec_l59_d7_returns(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value((homebrew.demodulize('FooBar') or { '' }) == 'FooBar')
 }
 
 // Ruby it `it "returns an empty string if the namespace is empty" do` at line 63.
-pub fn ruby_utils_spec_l63_d8_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value((homebrew.demodulize('') or { 'not-empty' }) == '' && (homebrew.demodulize('::') or { 'not-empty' }) == '')
+pub fn ruby_utils_spec_l63_d8_returns(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value((homebrew.demodulize('') or { 'not-empty' }) == '' && (homebrew.demodulize('::') or { 'not-empty' }) == '')
 }
 
 // Ruby it `it "raise an ArgumentError when passed nil" do` at line 68.
-pub fn ruby_utils_spec_l68_d9_raise(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_utils_spec_l68_d9_raise(args ...ruby.Value) ruby.Value {
 	if _ := homebrew.demodulize(none) {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	} else {
-		return brew_runtime.bool_value(err.msg() == 'No constant path provided')
+		return ruby.bool_value(err.msg() == 'No constant path provided')
 	}
 }
 
 // Ruby it `it "returns the package name for a full name" do` at line 74.
-pub fn ruby_utils_spec_l74_d10_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(homebrew.name_from_full_name('homebrew/core/wget') == 'wget')
+pub fn ruby_utils_spec_l74_d10_returns(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(homebrew.name_from_full_name('homebrew/core/wget') == 'wget')
 }
 
 // Ruby it `it "returns untapped names unchanged" do` at line 78.
-pub fn ruby_utils_spec_l78_d11_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(homebrew.name_from_full_name('wget') == 'wget')
+pub fn ruby_utils_spec_l78_d11_returns(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(homebrew.name_from_full_name('wget') == 'wget')
 }
 
 // Ruby it `it "does not treat taps as full names" do` at line 82.
-pub fn ruby_utils_spec_l82_d12_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(homebrew.name_from_full_name('homebrew/core') == 'homebrew/core')
+pub fn ruby_utils_spec_l82_d12_does(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(homebrew.name_from_full_name('homebrew/core') == 'homebrew/core')
 }
 
 // Ruby it `it "returns the tap for a full name" do` at line 88.
-pub fn ruby_utils_spec_l88_d13_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value((homebrew.tap_from_full_name('homebrew/core/wget') or {
+pub fn ruby_utils_spec_l88_d13_returns(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value((homebrew.tap_from_full_name('homebrew/core/wget') or {
 		''
 	}) == 'homebrew/core')
 }
 
 // Ruby it `it "returns nil for untapped names" do` at line 92.
-pub fn ruby_utils_spec_l92_d14_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(homebrew.tap_from_full_name('wget') == none)
+pub fn ruby_utils_spec_l92_d14_returns(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(homebrew.tap_from_full_name('wget') == none)
 }
 
 // Ruby it `it "returns nil for tap names" do` at line 96.
-pub fn ruby_utils_spec_l96_d15_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(homebrew.tap_from_full_name('homebrew/core') == none)
+pub fn ruby_utils_spec_l96_d15_returns(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(homebrew.tap_from_full_name('homebrew/core') == none)
 }
 
 // Ruby it `it "is true for a fully-qualified name" do` at line 102.
-pub fn ruby_utils_spec_l102_d16_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(homebrew.is_full_name('homebrew/core/wget'))
+pub fn ruby_utils_spec_l102_d16_is(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(homebrew.is_full_name('homebrew/core/wget'))
 }
 
 // Ruby it `it "is false for an unqualified name" do` at line 106.
-pub fn ruby_utils_spec_l106_d17_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(!homebrew.is_full_name('wget'))
+pub fn ruby_utils_spec_l106_d17_is(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(!homebrew.is_full_name('wget'))
 }
 
 // Ruby it `it "is false for a tap name" do` at line 110.
-pub fn ruby_utils_spec_l110_d18_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(!homebrew.is_full_name('homebrew/core'))
+pub fn ruby_utils_spec_l110_d18_is(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(!homebrew.is_full_name('homebrew/core'))
 }
 
 // Ruby specify `specify ".parse_author!" do` at line 115.
-pub fn ruby_utils_spec_l115_d19_parse_author(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_utils_spec_l115_d19_parse_author(args ...ruby.Value) ruby.Value {
 	author := homebrew.parse_author('John Doe <john.doe@example.com>') or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	if author.name != 'John Doe' || author.email != 'john.doe@example.com' {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	for invalid in ['', 'John Doe', '<john.doe@example.com>'] {
 		if _ := homebrew.parse_author(invalid) {
-			return brew_runtime.bool_value(false)
+			return ruby.bool_value(false)
 		} else {
 			if !err.msg().contains('Unable to parse name and email') {
-				return brew_runtime.bool_value(false)
+				return ruby.bool_value(false)
 			}
 		}
 	}
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
 // Ruby it `it "combines the stem with the default suffix based on the count" do` at line 129.
-pub fn ruby_utils_spec_l129_d20_combines(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(utils_spec_plural_values('s', '', false) == ['foos', 'foo', 'foos'])
+pub fn ruby_utils_spec_l129_d20_combines(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(utils_spec_plural_values('s', '', false) == ['foos', 'foo', 'foos'])
 }
 
 // Ruby it `it "combines the stem with the singular suffix based on the count" do` at line 135.
-pub fn ruby_utils_spec_l135_d21_combines(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(utils_spec_plural_values('s', 'o', false) == ['foos', 'fooo',
+pub fn ruby_utils_spec_l135_d21_combines(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(utils_spec_plural_values('s', 'o', false) == ['foos', 'fooo',
 		'foos'])
 }
 
 // Ruby it `it "combines the stem with the plural suffix based on the count" do` at line 141.
-pub fn ruby_utils_spec_l141_d22_combines(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(utils_spec_plural_values('es', '', false) == [
+pub fn ruby_utils_spec_l141_d22_combines(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(utils_spec_plural_values('es', '', false) == [
 		'fooes',
 		'foo',
 		'fooes',
@@ -158,8 +158,8 @@ pub fn ruby_utils_spec_l141_d22_combines(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby it `it "combines the stem with the singular and plural suffix based on the count" do` at line 147.
-pub fn ruby_utils_spec_l147_d23_combines(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(utils_spec_plural_values('es', 'o', false) == [
+pub fn ruby_utils_spec_l147_d23_combines(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(utils_spec_plural_values('es', 'o', false) == [
 		'fooes',
 		'fooo',
 		'fooes',
@@ -167,92 +167,92 @@ pub fn ruby_utils_spec_l147_d23_combines(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby it `it "includes the count when requested" do` at line 153.
-pub fn ruby_utils_spec_l153_d24_includes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(utils_spec_plural_values('s', '', true) == ['0 foos', '1 foo',
+pub fn ruby_utils_spec_l153_d24_includes(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(utils_spec_plural_values('s', '', true) == ['0 foos', '1 foo',
 		'2 foos'])
 }
 
 // Ruby it `it "sleeps for 2**try seconds" do` at line 161.
-pub fn ruby_utils_spec_l161_d25_sleeps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value((homebrew.exponential_backoff_wait(3, 2) or { 0 }) == 8)
+pub fn ruby_utils_spec_l161_d25_sleeps(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value((homebrew.exponential_backoff_wait(3, 2) or { 0 }) == 8)
 }
 
 // Ruby it `it "sleeps for base**try seconds when a base is given" do` at line 166.
-pub fn ruby_utils_spec_l166_d26_sleeps(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value((homebrew.exponential_backoff_wait(3, 3) or { 0 }) == 27)
+pub fn ruby_utils_spec_l166_d26_sleeps(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value((homebrew.exponential_backoff_wait(3, 3) or { 0 }) == 27)
 }
 
 // Ruby it `it "yields the wait time before sleeping" do` at line 171.
-pub fn ruby_utils_spec_l171_d27_yields(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value((homebrew.exponential_backoff_wait(2, 2) or { 0 }) == 4)
+pub fn ruby_utils_spec_l171_d27_yields(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value((homebrew.exponential_backoff_wait(2, 2) or { 0 }) == 4)
 }
 
 // Ruby let `let(:words) do` at line 179.
-pub fn ruby_utils_spec_l179_d28_words(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.array_value(utils_spec_words().map(brew_runtime.string_array_value(it)))
+pub fn ruby_utils_spec_l179_d28_words(args ...ruby.Value) ruby.Value {
+	return ruby.array_value(utils_spec_words().map(ruby.string_array_value(it)))
 }
 
 // Ruby it `it "converts strings to underscore case" do` at line 206.
-pub fn ruby_utils_spec_l206_d29_converts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_utils_spec_l206_d29_converts(args ...ruby.Value) ruby.Value {
 	for pair in utils_spec_words() {
 		if homebrew.underscore(pair[0]) != pair[1] || homebrew.underscore(pair[1]) != pair[1] {
-			return brew_runtime.bool_value(false)
+			return ruby.bool_value(false)
 		}
 	}
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
 // Ruby specify `specify(:aggregate_failures) do` at line 215.
-pub fn ruby_utils_spec_l215_d30_aggregate_failures(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_utils_spec_l215_d30_aggregate_failures(args ...ruby.Value) ruby.Value {
 	symbol := homebrew.convert_to_string_or_symbol(':example')
 	string_value := homebrew.convert_to_string_or_symbol('example')
-	return brew_runtime.bool_value(symbol.type_name == 'Symbol' && symbol.repr == 'example' && string_value.type_name == 'String' && string_value.repr == 'example')
+	return ruby.bool_value(symbol.type_name == 'Symbol' && symbol.repr == 'example' && string_value.type_name == 'String' && string_value.repr == 'example')
 }
 
 // Ruby it `it "converts all symbols in nested hashes and arrays", :aggregate_failures do` at line 222.
-pub fn ruby_utils_spec_l222_d31_converts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_utils_spec_l222_d31_converts(args ...ruby.Value) ruby.Value {
 	with_symbols := utils_spec_with_symbols()
 	without_symbols := utils_spec_without_symbols()
 	stringified := homebrew.deep_stringify_symbols(with_symbols)
 	restored := homebrew.deep_unstringify_symbols(without_symbols)
-	return brew_runtime.bool_value(utils_spec_value_equal(stringified, without_symbols) && utils_spec_value_equal(restored, with_symbols))
+	return ruby.bool_value(utils_spec_value_equal(stringified, without_symbols) && utils_spec_value_equal(restored, with_symbols))
 }
 
 // Ruby it `it "removes blank values from nested hashes and arrays" do` at line 253.
-pub fn ruby_utils_spec_l253_d32_removes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_utils_spec_l253_d32_removes(args ...ruby.Value) ruby.Value {
 	compacted := homebrew.deep_compact_blank(utils_spec_compact_input(), true, true) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(utils_spec_value_equal(compacted, utils_spec_compact_expected()))
+	return ruby.bool_value(utils_spec_value_equal(compacted, utils_spec_compact_expected()))
 }
 
 // Ruby it `it "preserves false when compact_false is disabled" do` at line 290.
-pub fn ruby_utils_spec_l290_d33_preserves(args ...brew_runtime.Value) brew_runtime.Value {
-	input := brew_runtime.map_value({
-		'a': brew_runtime.bool_value(false)
-		'b': brew_runtime.array_value([brew_runtime.bool_value(false)])
-		'c': brew_runtime.map_value({
-			'd': brew_runtime.bool_value(false)
+pub fn ruby_utils_spec_l290_d33_preserves(args ...ruby.Value) ruby.Value {
+	input := ruby.map_value({
+		'a': ruby.bool_value(false)
+		'b': ruby.array_value([ruby.bool_value(false)])
+		'c': ruby.map_value({
+			'd': ruby.bool_value(false)
 		})
 	})
 	compacted := homebrew.deep_compact_blank(input, true, false) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(utils_spec_value_equal(compacted, input))
+	return ruby.bool_value(utils_spec_value_equal(compacted, input))
 }
 
-fn utils_spec_slow_times_ten(value brew_runtime.Value) !brew_runtime.Value {
+fn utils_spec_slow_times_ten(value ruby.Value) !ruby.Value {
 	time.sleep(50 * time.millisecond)
-	return brew_runtime.int_value(value.as_int()! * 10)
+	return ruby.int_value(value.as_int()! * 10)
 }
 
-fn utils_spec_ordered_times_ten(value brew_runtime.Value) !brew_runtime.Value {
+fn utils_spec_ordered_times_ten(value ruby.Value) !ruby.Value {
 	number := value.as_int()!
 	time.sleep(time.Duration(50 - number * 10) * time.millisecond)
-	return brew_runtime.int_value(number * 10)
+	return ruby.int_value(number * 10)
 }
 
-fn utils_spec_boom(value brew_runtime.Value) !brew_runtime.Value {
+fn utils_spec_boom(value ruby.Value) !ruby.Value {
 	_ = value
 	return error('boom')
 }
@@ -273,85 +273,85 @@ fn utils_spec_words() [][]string {
 		['Restfully', 'restfully'], ['RoRails', 'ro_rails']]
 }
 
-fn utils_spec_with_symbols() brew_runtime.Value {
-	return brew_runtime.map_value({
-		':a': brew_runtime.object_value('Symbol', 'symbol_a')
-		':b': brew_runtime.map_value({
-			':c': brew_runtime.object_value('Symbol', 'symbol_c')
-			':d': brew_runtime.array_value([brew_runtime.string_value('string_d'),
-				brew_runtime.object_value('Symbol', 'symbol_d')])
+fn utils_spec_with_symbols() ruby.Value {
+	return ruby.map_value({
+		':a': ruby.object_value('Symbol', 'symbol_a')
+		':b': ruby.map_value({
+			':c': ruby.object_value('Symbol', 'symbol_c')
+			':d': ruby.array_value([ruby.string_value('string_d'),
+				ruby.object_value('Symbol', 'symbol_d')])
 		})
-		':e': brew_runtime.array_value([
-			brew_runtime.object_value('Symbol', 'symbol_e1'),
-			brew_runtime.map_value({
-				':f': brew_runtime.object_value('Symbol', 'symbol_f')
+		':e': ruby.array_value([
+			ruby.object_value('Symbol', 'symbol_e1'),
+			ruby.map_value({
+				':f': ruby.object_value('Symbol', 'symbol_f')
 			}),
 		])
-		':g': brew_runtime.string_value('string_g')
-		':h': brew_runtime.string_value(':not_a_symbol')
-		':i': brew_runtime.string_value('\\also not a symbol')
+		':g': ruby.string_value('string_g')
+		':h': ruby.string_value(':not_a_symbol')
+		':i': ruby.string_value('\\also not a symbol')
 	})
 }
 
-fn utils_spec_without_symbols() brew_runtime.Value {
-	return brew_runtime.map_value({
-		':a': brew_runtime.string_value(':symbol_a')
-		':b': brew_runtime.map_value({
-			':c': brew_runtime.string_value(':symbol_c')
-			':d': brew_runtime.array_value([brew_runtime.string_value('string_d'),
-				brew_runtime.string_value(':symbol_d')])
+fn utils_spec_without_symbols() ruby.Value {
+	return ruby.map_value({
+		':a': ruby.string_value(':symbol_a')
+		':b': ruby.map_value({
+			':c': ruby.string_value(':symbol_c')
+			':d': ruby.array_value([ruby.string_value('string_d'),
+				ruby.string_value(':symbol_d')])
 		})
-		':e': brew_runtime.array_value([brew_runtime.string_value(':symbol_e1'), brew_runtime.map_value({
-			':f': brew_runtime.string_value(':symbol_f')
+		':e': ruby.array_value([ruby.string_value(':symbol_e1'), ruby.map_value({
+			':f': ruby.string_value(':symbol_f')
 		})])
-		':g': brew_runtime.string_value('string_g')
-		':h': brew_runtime.string_value('\\:not_a_symbol')
-		':i': brew_runtime.string_value('\\\\also not a symbol')
+		':g': ruby.string_value('string_g')
+		':h': ruby.string_value('\\:not_a_symbol')
+		':i': ruby.string_value('\\\\also not a symbol')
 	})
 }
 
-fn utils_spec_compact_input() brew_runtime.Value {
-	nil_value := brew_runtime.object_value('NilClass', 'nil')
-	return brew_runtime.map_value({
-		'a': brew_runtime.string_value('')
-		'b': brew_runtime.array_value([])
-		'c': brew_runtime.map_value({})
-		'd': brew_runtime.map_value({
-			'e': brew_runtime.string_value('value')
+fn utils_spec_compact_input() ruby.Value {
+	nil_value := ruby.object_value('NilClass', 'nil')
+	return ruby.map_value({
+		'a': ruby.string_value('')
+		'b': ruby.array_value([])
+		'c': ruby.map_value({})
+		'd': ruby.map_value({
+			'e': ruby.string_value('value')
 			'f': nil_value
-			'g': brew_runtime.map_value({
-				'h': brew_runtime.string_value('')
-				'i': brew_runtime.bool_value(true)
-				'j': brew_runtime.map_value({
+			'g': ruby.map_value({
+				'h': ruby.string_value('')
+				'i': ruby.bool_value(true)
+				'j': ruby.map_value({
 					'k': nil_value
-					'l': brew_runtime.string_value('')
+					'l': ruby.string_value('')
 				})
 			})
-			'm': brew_runtime.array_value([brew_runtime.string_value(''), nil_value])
+			'm': ruby.array_value([ruby.string_value(''), nil_value])
 		})
-		'n': brew_runtime.array_value([nil_value, brew_runtime.string_value(''),
-			brew_runtime.int_value(2), brew_runtime.array_value([]), brew_runtime.map_value({
+		'n': ruby.array_value([nil_value, ruby.string_value(''),
+			ruby.int_value(2), ruby.array_value([]), ruby.map_value({
 				'o': nil_value
 			})])
-		'p': brew_runtime.bool_value(false)
-		'q': brew_runtime.int_value(0)
-		'r': brew_runtime.float_value(0.0)
+		'p': ruby.bool_value(false)
+		'q': ruby.int_value(0)
+		'r': ruby.float_value(0.0)
 	})
 }
 
-fn utils_spec_compact_expected() brew_runtime.Value {
-	return brew_runtime.map_value({
-		'd': brew_runtime.map_value({
-			'e': brew_runtime.string_value('value')
-			'g': brew_runtime.map_value({
-				'i': brew_runtime.bool_value(true)
+fn utils_spec_compact_expected() ruby.Value {
+	return ruby.map_value({
+		'd': ruby.map_value({
+			'e': ruby.string_value('value')
+			'g': ruby.map_value({
+				'i': ruby.bool_value(true)
 			})
 		})
-		'n': brew_runtime.array_value([brew_runtime.int_value(2)])
+		'n': ruby.array_value([ruby.int_value(2)])
 	})
 }
 
-fn utils_spec_value_equal(left brew_runtime.Value, right brew_runtime.Value) bool {
+fn utils_spec_value_equal(left ruby.Value, right ruby.Value) bool {
 	if left.type_name != right.type_name || left.repr != right.repr || left.bool_data != right.bool_data || left.int_data != right.int_data || left.float_data != right.float_data {
 		return false
 	}

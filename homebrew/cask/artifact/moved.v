@@ -1,6 +1,6 @@
 module artifact
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `cask/artifact/moved.rb`.
@@ -409,47 +409,47 @@ pub fn summarize_installed_moved(artifact MovedArtifact) string {
 	return 'Missing ${artifact.english_name}: ${printable}'
 }
 
-pub fn moved_artifact_to_value(artifact MovedArtifact) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'source':           brew_runtime.string_value(artifact.source)
-		'target':           brew_runtime.string_value(artifact.target)
-		'english_name':     brew_runtime.string_value(artifact.english_name)
-		'printable_target': brew_runtime.string_value(artifact.printable_target)
+pub fn moved_artifact_to_value(artifact MovedArtifact) ruby.Value {
+	return ruby.map_value({
+		'source':           ruby.string_value(artifact.source)
+		'target':           ruby.string_value(artifact.target)
+		'english_name':     ruby.string_value(artifact.english_name)
+		'printable_target': ruby.string_value(artifact.printable_target)
 	})
 }
 
-fn moved_artifact_from_value(value brew_runtime.Value) !MovedArtifact {
+fn moved_artifact_from_value(value ruby.Value) !MovedArtifact {
 	values := value.as_map()!
 	return MovedArtifact{
 		source: (values['source'] or { return error('Moved source is required') }).as_string()
 		target: (values['target'] or { return error('Moved target is required') }).as_string()
-		english_name: (values['english_name'] or { brew_runtime.string_value('Artifact') }).as_string()
-		printable_target: (values['printable_target'] or { brew_runtime.string_value('') }).as_string()
+		english_name: (values['english_name'] or { ruby.string_value('Artifact') }).as_string()
+		printable_target: (values['printable_target'] or { ruby.string_value('') }).as_string()
 	}
 }
 
-pub fn moved_operation_to_value(result MovedOperationResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'success':          brew_runtime.bool_value(result.success)
-		'error':            brew_runtime.string_value(result.error)
-		'output':           brew_runtime.string_array_value(result.output)
-		'warnings':         brew_runtime.string_array_value(result.warnings)
-		'moved':            brew_runtime.bool_value(result.moved)
-		'adopted':          brew_runtime.bool_value(result.adopted)
-		'reused':           brew_runtime.bool_value(result.reused)
-		'restored':         brew_runtime.bool_value(result.restored)
-		'removed':          brew_runtime.string_array_value(result.removed)
-		'altname_metadata': brew_runtime.string_value(result.altname_metadata)
-		'commands':         brew_runtime.array_value(result.commands.map(brew_runtime.map_value({
-			'executable':   brew_runtime.string_value(it.executable)
-			'args':         brew_runtime.string_array_value(it.args)
-			'sudo':         brew_runtime.bool_value(it.sudo)
-			'sudo_as_root': brew_runtime.bool_value(it.sudo_as_root)
+pub fn moved_operation_to_value(result MovedOperationResult) ruby.Value {
+	return ruby.map_value({
+		'success':          ruby.bool_value(result.success)
+		'error':            ruby.string_value(result.error)
+		'output':           ruby.string_array_value(result.output)
+		'warnings':         ruby.string_array_value(result.warnings)
+		'moved':            ruby.bool_value(result.moved)
+		'adopted':          ruby.bool_value(result.adopted)
+		'reused':           ruby.bool_value(result.reused)
+		'restored':         ruby.bool_value(result.restored)
+		'removed':          ruby.string_array_value(result.removed)
+		'altname_metadata': ruby.string_value(result.altname_metadata)
+		'commands':         ruby.array_value(result.commands.map(ruby.map_value({
+			'executable':   ruby.string_value(it.executable)
+			'args':         ruby.string_array_value(it.args)
+			'sudo':         ruby.bool_value(it.sudo)
+			'sudo_as_root': ruby.bool_value(it.sudo_as_root)
 		})))
 	})
 }
 
-fn moved_install_options_from_value(value brew_runtime.Value) MovedInstallOptions {
+fn moved_install_options_from_value(value ruby.Value) MovedInstallOptions {
 	values := value.as_map() or { return MovedInstallOptions{} }
 	return MovedInstallOptions{
 		adopt: value_bool(values, 'adopt', false)
@@ -464,7 +464,7 @@ fn moved_install_options_from_value(value brew_runtime.Value) MovedInstallOption
 	}
 }
 
-fn moved_uninstall_options_from_value(value brew_runtime.Value) MovedUninstallOptions {
+fn moved_uninstall_options_from_value(value ruby.Value) MovedUninstallOptions {
 	values := value.as_map() or { return MovedUninstallOptions{} }
 	return MovedUninstallOptions{
 		skip: value_bool(values, 'skip', false)
@@ -476,7 +476,7 @@ fn moved_uninstall_options_from_value(value brew_runtime.Value) MovedUninstallOp
 	}
 }
 
-fn moved_adapter_artifact(args []brew_runtime.Value) !MovedArtifact {
+fn moved_adapter_artifact(args []ruby.Value) !MovedArtifact {
 	if args.len == 0 {
 		return error('Moved artifact is required')
 	}
@@ -484,15 +484,15 @@ fn moved_adapter_artifact(args []brew_runtime.Value) !MovedArtifact {
 }
 
 // Ruby method `self.english_description` at line 12.
-pub fn ruby_moved_l12_d1_self_english_description(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_moved_l12_d1_self_english_description(args ...ruby.Value) ruby.Value {
 	name := if args.len > 0 { args[0].as_string() } else { 'Artifact' }
-	return brew_runtime.string_value(moved_english_description(name))
+	return ruby.string_value(moved_english_description(name))
 }
 
 // Ruby method `install_phase(adopt: false, auto_updates: false, force: false, verbose: false, predecessor: nil,` at line 28.
-pub fn ruby_moved_l28_d2_install_phase(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_moved_l28_d2_install_phase(args ...ruby.Value) ruby.Value {
 	artifact := moved_adapter_artifact(args) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	options := if args.len > 1 {
 		moved_install_options_from_value(args[1])
@@ -503,9 +503,9 @@ pub fn ruby_moved_l28_d2_install_phase(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby method `uninstall_phase(skip: false, force: false, adopt: false, verbose: false, successor: nil, upgrade: false,` at line 45.
-pub fn ruby_moved_l45_d3_uninstall_phase(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_moved_l45_d3_uninstall_phase(args ...ruby.Value) ruby.Value {
 	artifact := moved_adapter_artifact(args) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	options := if args.len > 1 {
 		moved_uninstall_options_from_value(args[1])
@@ -516,56 +516,56 @@ pub fn ruby_moved_l45_d3_uninstall_phase(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `summarize_installed` at line 51.
-pub fn ruby_moved_l51_d4_summarize_installed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_moved_l51_d4_summarize_installed(args ...ruby.Value) ruby.Value {
 	artifact := moved_adapter_artifact(args) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
-	return brew_runtime.string_value(summarize_installed_moved(artifact))
+	return ruby.string_value(summarize_installed_moved(artifact))
 }
 
 // Ruby method `backup_copy_args(target, source)` at line 60.
-pub fn ruby_moved_l60_d5_backup_copy_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_moved_l60_d5_backup_copy_args(args ...ruby.Value) ruby.Value {
 	target := if args.len > 0 { args[0].as_string() } else { '' }
 	source := if args.len > 1 { args[1].as_string() } else { '' }
-	return brew_runtime.string_array_value(moved_backup_copy_args(target, source))
+	return ruby.string_array_value(moved_backup_copy_args(target, source))
 }
 
 // Ruby method `move(adopt: false, auto_updates: false, force: false, verbose: false, predecessor: nil, successor: nil,` at line 78.
-pub fn ruby_moved_l78_d6_move(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_moved_l78_d6_move(args ...ruby.Value) ruby.Value {
 	return ruby_moved_l28_d2_install_phase(...args)
 }
 
 // Ruby method `post_move(command)` at line 176.
-pub fn ruby_moved_l176_d7_post_move(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_moved_l176_d7_post_move(args ...ruby.Value) ruby.Value {
 	artifact := moved_adapter_artifact(args) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	mut result := MovedOperationResult{}
 	post_move_artifact(artifact, mut result) or {
-		return brew_runtime.object_value('CaskError', err.msg())
+		return ruby.object_value('CaskError', err.msg())
 	}
 	return moved_operation_to_value(result)
 }
 
 // Ruby method `matching_artifact?(cask)` at line 183.
-pub fn ruby_moved_l183_d8_matching_artifact(args ...brew_runtime.Value) brew_runtime.Value {
-	artifact := moved_adapter_artifact(args) or { return brew_runtime.bool_value(false) }
+pub fn ruby_moved_l183_d8_matching_artifact(args ...ruby.Value) ruby.Value {
+	artifact := moved_adapter_artifact(args) or { return ruby.bool_value(false) }
 	if args.len < 2 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	candidate := moved_artifact_from_value(args[1]) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(moved_artifact_matches(candidate, artifact))
+	candidate := moved_artifact_from_value(args[1]) or { return ruby.bool_value(false) }
+	return ruby.bool_value(moved_artifact_matches(candidate, artifact))
 }
 
 // Ruby method `move_back(skip: false, force: false, adopt: false, command: SystemCommand, successor: nil)` at line 200.
-pub fn ruby_moved_l200_d9_move_back(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_moved_l200_d9_move_back(args ...ruby.Value) ruby.Value {
 	return ruby_moved_l45_d3_uninstall_phase(...args)
 }
 
 // Ruby method `delete(target, force: false, successor: nil, command: SystemCommand)` at line 244.
-pub fn ruby_moved_l244_d10_delete(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_moved_l244_d10_delete(args ...ruby.Value) ruby.Value {
 	artifact := moved_adapter_artifact(args) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	target := if args.len > 1 { args[1].as_string() } else { artifact.target }
 	options := if args.len > 2 {
@@ -575,16 +575,16 @@ pub fn ruby_moved_l244_d10_delete(args ...brew_runtime.Value) brew_runtime.Value
 	}
 	mut result := MovedOperationResult{}
 	if moved_target_undeletable(target) {
-		return brew_runtime.object_value('CaskError', 'Cannot remove undeletable ${artifact.english_name}.')
+		return ruby.object_value('CaskError', 'Cannot remove undeletable ${artifact.english_name}.')
 	}
-	moved_delete_target(artifact, target, options.successor_matches, options.target_app_management, mut result) or { return brew_runtime.object_value('CaskError', err.msg()) }
+	moved_delete_target(artifact, target, options.successor_matches, options.target_app_management, mut result) or { return ruby.object_value('CaskError', err.msg()) }
 	return moved_operation_to_value(result)
 }
 
 // Ruby method `undeletable?(target)` at line 264.
-pub fn ruby_moved_l264_d11_undeletable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_moved_l264_d11_undeletable(args ...ruby.Value) ruby.Value {
 	target := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.bool_value(moved_target_undeletable(target))
+	return ruby.bool_value(moved_target_undeletable(target))
 }
 
 // Original Ruby source (line-for-line):

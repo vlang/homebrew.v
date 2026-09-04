@@ -1,6 +1,6 @@
 module test
 
-import brew_runtime
+import ruby
 import crypto.sha256
 
 pub struct ChecksumFormulaFixture {
@@ -13,26 +13,26 @@ pub:
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `formula(*args, **kwargs, &block)` at line 7.
-pub fn ruby_checksum_verification_spec_l7_d1_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_checksum_verification_spec_l7_d1_formula(args ...ruby.Value) ruby.Value {
 	fixture_dir := if args.len > 0 { args[0].as_string() } else { 'test/support/fixtures' }
 	checksum := if args.len > 1 { args[1].as_string() } else { '' }
 	formula := checksum_formula(fixture_dir, checksum)
-	return brew_runtime.structured_value('Formula', formula.url, {
+	return ruby.structured_value('Formula', formula.url, {
 		'url':    formula.url
 		'sha256': formula.sha256
 	})
 }
 
 // Ruby it `it "does not raise an error when the checksum matches" do` at line 16.
-pub fn ruby_checksum_verification_spec_l16_d2_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_checksum_verification_spec_l16_d2_does(args ...ruby.Value) ruby.Value {
 	contents := if args.len > 0 { args[0].as_string() } else { 'testball archive' }
 	expected := if args.len > 1 { args[1].as_string() } else { sha256.hexhash(contents) }
-	verify_formula_checksum(contents, expected) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(true)
+	verify_formula_checksum(contents, expected) or { return ruby.bool_value(false) }
+	return ruby.bool_value(true)
 }
 
 // Ruby it `it "raises an error when the checksum doesn't match" do` at line 29.
-pub fn ruby_checksum_verification_spec_l29_d3_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_checksum_verification_spec_l29_d3_raises(args ...ruby.Value) ruby.Value {
 	contents := if args.len > 0 { args[0].as_string() } else { 'testball archive' }
 	expected := if args.len > 1 {
 		args[1].as_string()
@@ -40,9 +40,9 @@ pub fn ruby_checksum_verification_spec_l29_d3_raises(args ...brew_runtime.Value)
 		'dcbf5f44743b74add648c7e35e414076632fa3b24463d68d1f6afc5be77024f8'
 	}
 	verify_formula_checksum(contents, expected) or {
-		return brew_runtime.bool_value(err.msg().contains('ChecksumMismatchError'))
+		return ruby.bool_value(err.msg().contains('ChecksumMismatchError'))
 	}
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 pub fn checksum_formula(fixture_dir string, checksum string) ChecksumFormulaFixture {

@@ -1,6 +1,6 @@
 module api
 
-import brew_runtime
+import ruby
 import net.http
 import os
 import x.json2
@@ -150,7 +150,7 @@ const formula_default_api_filename = 'formula.jws.json'
 
 pub struct FormulaApiFetchResult {
 pub:
-	data    brew_runtime.Value
+	data    ruby.Value
 	updated bool
 }
 
@@ -185,12 +185,12 @@ pub mut:
 	cache_directory         string
 	source_cache_directory  string
 	fetch_results           map[string]FormulaApiFetchResult
-	formula_json_cache      map[string]map[string]brew_runtime.Value
-	formulae                map[string]map[string]brew_runtime.Value
+	formula_json_cache      map[string]map[string]ruby.Value
+	formulae                map[string]map[string]ruby.Value
 	formulae_loaded         bool
 	aliases                 map[string]string
 	renames                 map[string]string
-	tap_migrations          map[string]brew_runtime.Value
+	tap_migrations          map[string]ruby.Value
 	tap_migrations_loaded   bool
 	fetched_endpoints       []string
 	last_stale_seconds      ?i64
@@ -214,17 +214,17 @@ pub fn new_formula_api_state(cache_directory string, source_cache_directory stri
 	}
 }
 
-fn formula_nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn formula_nil_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-fn formula_error_value(kind string, message string) brew_runtime.Value {
-	return brew_runtime.structured_value(kind, message, {
+fn formula_error_value(kind string, message string) ruby.Value {
+	return ruby.structured_value(kind, message, {
 		'message': message
 	})
 }
 
-fn formula_value_strings(value brew_runtime.Value) []string {
+fn formula_value_strings(value ruby.Value) []string {
 	if value.string_array_data.len > 0 {
 		return value.string_array_data.clone()
 	}
@@ -244,11 +244,11 @@ fn formula_fetch_json_api_file(mut state FormulaApiState, endpoint string, stale
 		return error('No cached or injected API response for ${endpoint}')
 	}
 	return FormulaApiFetchResult{
-		data: brew_runtime.parse_json_value(os.read_file(path)!)!
+		data: ruby.parse_json_value(os.read_file(path)!)!
 	}
 }
 
-pub fn formula_json_from_state(mut state FormulaApiState, name string) !map[string]brew_runtime.Value {
+pub fn formula_json_from_state(mut state FormulaApiState, name string) !map[string]ruby.Value {
 	if cached := state.formula_json_cache[name] {
 		return cached.clone()
 	}
@@ -263,7 +263,7 @@ pub fn formula_fetch_formula_json(mut state FormulaApiState, name string) ! {
 	result := formula_fetch_json_api_file(mut state, endpoint, none, false)!
 	mut json_formula := result.data
 	if !result.updated {
-		json_formula = brew_runtime.parse_json_value(os.read_file(os.join_path(state.cache_directory, endpoint))!)!
+		json_formula = ruby.parse_json_value(os.read_file(os.join_path(state.cache_directory, endpoint))!)!
 	}
 	if json_formula.type_name != 'Hash' {
 		return error('${endpoint} did not contain a formula JSON object')
@@ -414,7 +414,7 @@ pub fn formula_download_and_cache_data(mut state FormulaApiState) !bool {
 	}
 	state.aliases = map[string]string{}
 	state.renames = map[string]string{}
-	state.formulae = map[string]map[string]brew_runtime.Value{}
+	state.formulae = map[string]map[string]ruby.Value{}
 	for json_formula in result.data.array_data {
 		if json_formula.type_name != 'Hash' {
 			return error('${formula_default_api_filename} contained a non-object entry')
@@ -423,7 +423,7 @@ pub fn formula_download_and_cache_data(mut state FormulaApiState) !bool {
 			return error('${formula_default_api_filename} entry is missing name')
 		}).as_string()
 		for alias_name in formula_value_strings(json_formula.map_data['aliases'] or {
-			brew_runtime.string_array_value([])
+			ruby.string_array_value([])
 		}) {
 			state.aliases[alias_name] = name
 		}
@@ -460,7 +460,7 @@ fn formula_write_lines(path string, regenerate bool, lines []string, final_newli
 }
 
 fn formula_write_executables(path string, regenerate bool,
-	formulae map[string]map[string]brew_runtime.Value) ! {
+	formulae map[string]map[string]ruby.Value) ! {
 	mut lines := []string{}
 	for name, formula_data in formulae {
 		executables_value := formula_data['executables'] or { continue }
@@ -513,7 +513,7 @@ pub fn formula_write_names_and_aliases(mut state FormulaApiState, regenerate boo
 	formula_write_executables(executables_path, regenerate, state.formulae)!
 }
 
-pub fn formula_all_formulae(mut state FormulaApiState) !map[string]map[string]brew_runtime.Value {
+pub fn formula_all_formulae(mut state FormulaApiState) !map[string]map[string]ruby.Value {
 	if !state.formulae_loaded {
 		updated := formula_download_and_cache_data(mut state)!
 		formula_write_names_and_aliases(mut state, updated)!
@@ -529,7 +529,7 @@ pub fn formula_all_aliases(mut state FormulaApiState) !map[string]string {
 	return state.aliases.clone()
 }
 
-pub fn formula_tap_migrations(mut state FormulaApiState) !map[string]brew_runtime.Value {
+pub fn formula_tap_migrations(mut state FormulaApiState) !map[string]ruby.Value {
 	if !state.tap_migrations_loaded {
 		result := formula_fetch_tap_migrations(mut state, none, false)!
 		if result.data.type_name != 'Hash' {
@@ -717,14 +717,14 @@ pub fn resolve_formula_reference(name string, config FormulaLookupConfig) !Packa
 	return reference
 }
 
-pub fn formula_api_state_boundary(state &FormulaApiState) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::API::Formula', '', {
+pub fn formula_api_state_boundary(state &FormulaApiState) ruby.Value {
+	return ruby.structured_value('Homebrew::API::Formula', '', {
 		'formula_api_state_address': u64(voidptr(state)).str()
 	})
 }
 
-pub fn formula_source_boundary(formula FormulaSource) brew_runtime.Value {
-	return brew_runtime.structured_value('Formula', formula.name, {
+pub fn formula_source_boundary(formula FormulaSource) ruby.Value {
+	return ruby.structured_value('Formula', formula.name, {
 		'name':                 formula.name
 		'full_name':            formula.full_name
 		'ruby_source_path':     formula.ruby_source_path
@@ -737,7 +737,7 @@ pub fn formula_source_boundary(formula FormulaSource) brew_runtime.Value {
 	})
 }
 
-fn formula_state_from_args(args []brew_runtime.Value, method string) &FormulaApiState {
+fn formula_state_from_args(args []ruby.Value, method string) &FormulaApiState {
 	if args.len == 0 || 'formula_api_state_address' !in args[0].attributes {
 		panic('API::Formula.${method} requires translated Formula API state')
 	}
@@ -746,7 +746,7 @@ fn formula_state_from_args(args []brew_runtime.Value, method string) &FormulaApi
 	}
 }
 
-fn formula_source_from_value(value brew_runtime.Value) FormulaSource {
+fn formula_source_from_value(value ruby.Value) FormulaSource {
 	return FormulaSource{
 		name: value.attributes['name'] or { value.repr }
 		full_name: value.attributes['full_name'] or { value.repr }
@@ -764,8 +764,8 @@ fn formula_source_from_value(value brew_runtime.Value) FormulaSource {
 	}
 }
 
-fn formula_download_value(download SourceDownload) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::API::SourceDownload', download.url, {
+fn formula_download_value(download SourceDownload) ruby.Value {
+	return ruby.structured_value('Homebrew::API::SourceDownload', download.url, {
 		'url':              download.url
 		'sha256':           download.checksum or { '' }
 		'cache':            download.downloader.cache
@@ -773,12 +773,12 @@ fn formula_download_value(download SourceDownload) brew_runtime.Value {
 	})
 }
 
-fn loaded_formula_value(formula LoadedFormulaSource) brew_runtime.Value {
-	mut patches := map[string]brew_runtime.Value{}
+fn loaded_formula_value(formula LoadedFormulaSource) ruby.Value {
+	mut patches := map[string]ruby.Value{}
 	for path, contents in formula.local_patches {
-		patches[path] = brew_runtime.string_value(contents)
+		patches[path] = ruby.string_value(contents)
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'Formula'
 		repr: formula.name
 		map_data: patches
@@ -794,35 +794,35 @@ fn loaded_formula_value(formula LoadedFormulaSource) brew_runtime.Value {
 	}
 }
 
-fn formulae_map_value(values map[string]map[string]brew_runtime.Value) brew_runtime.Value {
-	mut result := map[string]brew_runtime.Value{}
+fn formulae_map_value(values map[string]map[string]ruby.Value) ruby.Value {
+	mut result := map[string]ruby.Value{}
 	for key, value in values {
-		result[key] = brew_runtime.map_value(value)
+		result[key] = ruby.map_value(value)
 	}
-	return brew_runtime.map_value(result)
+	return ruby.map_value(result)
 }
 
-fn formula_string_map_value(values map[string]string) brew_runtime.Value {
-	mut result := map[string]brew_runtime.Value{}
+fn formula_string_map_value(values map[string]string) ruby.Value {
+	mut result := map[string]ruby.Value{}
 	for key, value in values {
-		result[key] = brew_runtime.string_value(value)
+		result[key] = ruby.string_value(value)
 	}
-	return brew_runtime.map_value(result)
+	return ruby.map_value(result)
 }
 
 // Ruby method `self.formula_json(name)` at line 23.
-pub fn ruby_formula_l23_d1_self_formula_json(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l23_d1_self_formula_json(args ...ruby.Value) ruby.Value {
 	mut state := formula_state_from_args(args, 'formula_json')
 	if args.len < 2 {
 		return formula_error_value('ArgumentError', 'name is required')
 	}
-	return brew_runtime.map_value(formula_json_from_state(mut state, args[1].as_string()) or {
+	return ruby.map_value(formula_json_from_state(mut state, args[1].as_string()) or {
 		return formula_error_value('RuntimeError', err.msg())
 	})
 }
 
 // Ruby method `self.fetch_formula_json!(name)` at line 30.
-pub fn ruby_formula_l30_d2_self_fetch_formula_json(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l30_d2_self_fetch_formula_json(args ...ruby.Value) ruby.Value {
 	mut state := formula_state_from_args(args, 'fetch_formula_json!')
 	if args.len < 2 {
 		return formula_error_value('ArgumentError', 'name is required')
@@ -834,7 +834,7 @@ pub fn ruby_formula_l30_d2_self_fetch_formula_json(args ...brew_runtime.Value) b
 }
 
 // Ruby method `self.source_download_path(formula, path, checksum: nil, download_queue: nil, enqueue: false)` at line 49.
-pub fn ruby_formula_l49_d3_self_source_download_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l49_d3_self_source_download_path(args ...ruby.Value) ruby.Value {
 	mut state := formula_state_from_args(args, 'source_download_path')
 	if args.len < 3 {
 		return formula_error_value('ArgumentError', 'formula and path are required')
@@ -852,7 +852,7 @@ pub fn ruby_formula_l49_d3_self_source_download_path(args ...brew_runtime.Value)
 }
 
 // Ruby method `self.source_download(formula, download_queue: nil, enqueue: false)` at line 85.
-pub fn ruby_formula_l85_d4_self_source_download(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l85_d4_self_source_download(args ...ruby.Value) ruby.Value {
 	mut state := formula_state_from_args(args, 'source_download')
 	if args.len < 2 {
 		return formula_error_value('ArgumentError', 'formula is required')
@@ -865,7 +865,7 @@ pub fn ruby_formula_l85_d4_self_source_download(args ...brew_runtime.Value) brew
 }
 
 // Ruby method `self.source_download_formula(formula)` at line 91.
-pub fn ruby_formula_l91_d5_self_source_download_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l91_d5_self_source_download_formula(args ...ruby.Value) ruby.Value {
 	mut state := formula_state_from_args(args, 'source_download_formula')
 	if args.len < 2 {
 		return formula_error_value('ArgumentError', 'formula is required')
@@ -877,13 +877,13 @@ pub fn ruby_formula_l91_d5_self_source_download_formula(args ...brew_runtime.Val
 }
 
 // Ruby method `self.cached_json_file_path` at line 120.
-pub fn ruby_formula_l120_d6_self_cached_json_file_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l120_d6_self_cached_json_file_path(args ...ruby.Value) ruby.Value {
 	state := formula_state_from_args(args, 'cached_json_file_path')
-	return brew_runtime.object_value('Pathname', formula_cached_json_file_path(state))
+	return ruby.object_value('Pathname', formula_cached_json_file_path(state))
 }
 
 // Ruby method `self.fetch_api!(download_queue: nil, stale_seconds: nil, enqueue: false)` at line 128.
-pub fn ruby_formula_l128_d7_self_fetch_api(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l128_d7_self_fetch_api(args ...ruby.Value) ruby.Value {
 	mut state := formula_state_from_args(args, 'fetch_api!')
 	stale_seconds := if args.len > 1 && args[1].type_name == 'Integer' {
 		?i64(args[1].int_data)
@@ -894,11 +894,11 @@ pub fn ruby_formula_l128_d7_self_fetch_api(args ...brew_runtime.Value) brew_runt
 	result := formula_fetch_api(mut state, stale_seconds, enqueue) or {
 		return formula_error_value('RuntimeError', err.msg())
 	}
-	return brew_runtime.array_value([result.data, brew_runtime.bool_value(result.updated)])
+	return ruby.array_value([result.data, ruby.bool_value(result.updated)])
 }
 
 // Ruby method `self.fetch_tap_migrations!(download_queue: nil, stale_seconds: nil, enqueue: false)` at line 136.
-pub fn ruby_formula_l136_d8_self_fetch_tap_migrations(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l136_d8_self_fetch_tap_migrations(args ...ruby.Value) ruby.Value {
 	mut state := formula_state_from_args(args, 'fetch_tap_migrations!')
 	stale_seconds := if args.len > 1 && args[1].type_name == 'Integer' {
 		?i64(args[1].int_data)
@@ -909,19 +909,19 @@ pub fn ruby_formula_l136_d8_self_fetch_tap_migrations(args ...brew_runtime.Value
 	result := formula_fetch_tap_migrations(mut state, stale_seconds, enqueue) or {
 		return formula_error_value('RuntimeError', err.msg())
 	}
-	return brew_runtime.array_value([result.data, brew_runtime.bool_value(result.updated)])
+	return ruby.array_value([result.data, ruby.bool_value(result.updated)])
 }
 
 // Ruby method `self.download_and_cache_data!` at line 141.
-pub fn ruby_formula_l141_d9_self_download_and_cache_data(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l141_d9_self_download_and_cache_data(args ...ruby.Value) ruby.Value {
 	mut state := formula_state_from_args(args, 'download_and_cache_data!')
-	return brew_runtime.bool_value(formula_download_and_cache_data(mut state) or {
+	return ruby.bool_value(formula_download_and_cache_data(mut state) or {
 		return formula_error_value('RuntimeError', err.msg())
 	})
 }
 
 // Ruby method `self.all_formulae` at line 162.
-pub fn ruby_formula_l162_d10_self_all_formulae(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l162_d10_self_all_formulae(args ...ruby.Value) ruby.Value {
 	mut state := formula_state_from_args(args, 'all_formulae')
 	return formulae_map_value(formula_all_formulae(mut state) or {
 		return formula_error_value('RuntimeError', err.msg())
@@ -929,7 +929,7 @@ pub fn ruby_formula_l162_d10_self_all_formulae(args ...brew_runtime.Value) brew_
 }
 
 // Ruby method `self.all_aliases` at line 172.
-pub fn ruby_formula_l172_d11_self_all_aliases(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l172_d11_self_all_aliases(args ...ruby.Value) ruby.Value {
 	mut state := formula_state_from_args(args, 'all_aliases')
 	return formula_string_map_value(formula_all_aliases(mut state) or {
 		return formula_error_value('RuntimeError', err.msg())
@@ -937,15 +937,15 @@ pub fn ruby_formula_l172_d11_self_all_aliases(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby method `self.tap_migrations` at line 182.
-pub fn ruby_formula_l182_d12_self_tap_migrations(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l182_d12_self_tap_migrations(args ...ruby.Value) ruby.Value {
 	mut state := formula_state_from_args(args, 'tap_migrations')
-	return brew_runtime.map_value(formula_tap_migrations(mut state) or {
+	return ruby.map_value(formula_tap_migrations(mut state) or {
 		return formula_error_value('RuntimeError', err.msg())
 	})
 }
 
 // Ruby method `self.write_names_and_aliases(regenerate: false)` at line 192.
-pub fn ruby_formula_l192_d13_self_write_names_and_aliases(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_l192_d13_self_write_names_and_aliases(args ...ruby.Value) ruby.Value {
 	mut state := formula_state_from_args(args, 'write_names_and_aliases')
 	regenerate := args.len > 1 && args[1].bool_data
 	formula_write_names_and_aliases(mut state, regenerate) or {

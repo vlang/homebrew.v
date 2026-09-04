@@ -1,6 +1,6 @@
 module strategy
 
-import brew_runtime
+import ruby
 import homebrew.livecheck
 import homebrew.livecheck.strategy as gnome_core
 import homebrew.utils
@@ -54,8 +54,8 @@ fn gnome_spec_match_data_equal(left gnome_core.PageMatchData,
 }
 
 // Ruby subject `subject(:gnome) { described_class }` at line 7.
-pub fn ruby_gnome_spec_l7_d1_gnome() brew_runtime.Value {
-	return brew_runtime.object_value('Class', 'Homebrew::Livecheck::Strategy::Gnome')
+pub fn ruby_gnome_spec_l7_d1_gnome() ruby.Value {
+	return ruby.object_value('Class', 'Homebrew::Livecheck::Strategy::Gnome')
 }
 
 // Ruby let `let(:gnome_url) { "https://download.gnome.org/sources/abc/1.2/abc-1.2.3.tar.xz" }` at line 9.

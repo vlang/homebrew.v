@@ -1,6 +1,6 @@
 module cask
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `rubocops/cask/empty_arch_argument.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -260,8 +260,8 @@ pub fn correct_empty_arch_arguments(source string) string {
 	return corrected
 }
 
-fn empty_arch_offense_value(offense EmptyArchArgumentOffense) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cop::Offense', offense.message, {
+fn empty_arch_offense_value(offense EmptyArchArgumentOffense) ruby.Value {
+	return ruby.structured_value('RuboCop::Cop::Offense', offense.message, {
 		'key':        offense.key
 		'begin_pos':  offense.begin_pos.str()
 		'end_pos':    offense.end_pos.str()
@@ -271,22 +271,22 @@ fn empty_arch_offense_value(offense EmptyArchArgumentOffense) brew_runtime.Value
 }
 
 // Ruby method `on_send(node)` at line 26.
-pub fn ruby_empty_arch_argument_l26_d1_on_send(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_empty_arch_argument_l26_d1_on_send(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	offenses := audit_empty_arch_arguments(source)
 	return if offenses.len == 0 {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	} else {
 		empty_arch_offense_value(offenses[0])
 	}
 }
 
 // Ruby method `empty_string_value?(pair)` at line 59.
-pub fn ruby_empty_arch_argument_l59_d2_empty_string_value(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_empty_arch_argument_l59_d2_empty_string_value(args ...ruby.Value) ruby.Value {
 	value := if args.len > 0 { args[0].as_string().trim_space() } else { '' }
 	pair := if value.contains(':') || value.contains('=>') { value } else { 'key: ${value}' }
 	parsed := parse_empty_arch_pair(pair, 0, pair.len)
-	return brew_runtime.bool_value(parsed.empty)
+	return ruby.bool_value(parsed.empty)
 }
 
 // Original Ruby source (line-for-line):

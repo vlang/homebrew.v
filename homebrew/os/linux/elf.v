@@ -1,6 +1,6 @@
 module linux
 
-import brew_runtime
+import ruby
 import homebrew.os.linux.elf
 
 // Translated from Homebrew/brew `os/linux/elf.rb`.
@@ -47,7 +47,7 @@ pub:
 pub fn new_elf_path(path string) !ElfPath {
 	return ElfPath{
 		path: path
-		data: brew_runtime.read_bytes(path)!
+		data: ruby.read_bytes(path)!
 	}
 }
 
@@ -419,8 +419,8 @@ pub fn (metadata ElfMetadata) find_full_lib_path_in(basename string, library_pat
 	if rpath := metadata.rpath {
 		for local_path in rpath.split(':') {
 			expanded := elf.expand_elf_dst(local_path, 'ORIGIN', elf_dirname(metadata.path))
-			candidate := brew_runtime.join_path(expanded, basename)
-			if brew_runtime.path_exists(candidate) && elf_path_is_elf(candidate) {
+			candidate := ruby.join_path(expanded, basename)
+			if ruby.path_exists(candidate) && elf_path_is_elf(candidate) {
 				return candidate
 			}
 		}
@@ -437,15 +437,15 @@ pub fn (metadata ElfMetadata) find_full_lib_path_in(basename string, library_pat
 		linker_library_paths = non_system_paths.clone()
 	}
 	for directory in linker_library_paths {
-		candidate := brew_runtime.join_path(directory, basename)
-		if brew_runtime.path_exists(candidate) && elf_path_is_elf(candidate) {
+		candidate := ruby.join_path(directory, basename)
+		if ruby.path_exists(candidate) && elf_path_is_elf(candidate) {
 			return candidate
 		}
 	}
 	if !nodeflib {
 		for directory in system_dirs {
-			candidate := brew_runtime.join_path(directory, basename)
-			if brew_runtime.path_exists(candidate) && elf_path_is_elf(candidate) {
+			candidate := ruby.join_path(directory, basename)
+			if ruby.path_exists(candidate) && elf_path_is_elf(candidate) {
 				return candidate
 			}
 		}
@@ -491,10 +491,10 @@ pub fn (patcher PatchelfPatcher) save(new_interpreter ?string, new_rpath ?string
 		return
 	}
 	arguments << patcher.path
-	program := brew_runtime.find_executable('patchelf') or {
+	program := ruby.find_executable('patchelf') or {
 		return error('patchelf is required to patch ${patcher.path}')
 	}
-	result := brew_runtime.run_command(program, arguments)
+	result := ruby.run_command(program, arguments)
 	if result.exit_code != 0 {
 		return error('patchelf failed for ${patcher.path}: ${result.output.trim_space()}')
 	}

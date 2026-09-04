@@ -1,6 +1,6 @@
 module test_bot
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `test_bot/test_runner.rb`.
@@ -230,7 +230,7 @@ pub fn run_test_runner(args TestRunnerArgs) !TestRunnerResult {
 	}
 }
 
-fn test_runner_args_from_value(value brew_runtime.Value) TestRunnerArgs {
+fn test_runner_args_from_value(value ruby.Value) TestRunnerArgs {
 	attributes := value.attributes.clone()
 	return TestRunnerArgs{
 		named: attributes['named'].split(',').filter(it != '')
@@ -271,7 +271,7 @@ fn test_runner_args_from_value(value brew_runtime.Value) TestRunnerArgs {
 	}
 }
 
-fn test_runner_plan_value(plan TestRunnerBuildPlan) brew_runtime.Value {
+fn test_runner_plan_value(plan TestRunnerBuildPlan) ruby.Value {
 	mut enabled := []string{}
 	for name, selected in {
 		'setup':               plan.setup
@@ -287,13 +287,13 @@ fn test_runner_plan_value(plan TestRunnerBuildPlan) brew_runtime.Value {
 			enabled << name
 		}
 	}
-	return brew_runtime.structured_value('TestRunnerTypes', plan.argument, {
+	return ruby.structured_value('TestRunnerTypes', plan.argument, {
 		'argument': plan.argument
 		'enabled':  enabled.join(',')
 	})
 }
 
-fn test_runner_plan_from_value(value brew_runtime.Value) TestRunnerBuildPlan {
+fn test_runner_plan_from_value(value ruby.Value) TestRunnerBuildPlan {
 	enabled := value.attributes['enabled'].split(',')
 	return TestRunnerBuildPlan{
 		argument: value.attributes['argument']
@@ -309,12 +309,12 @@ fn test_runner_plan_from_value(value brew_runtime.Value) TestRunnerBuildPlan {
 }
 
 // Ruby method `run!(tap, git:, args:)` at line 35.
-pub fn ruby_test_runner_l35_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_runner_l35_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	result := run_test_runner(test_runner_args_from_value(args[0])) or { panic(err) }
-	return brew_runtime.structured_value('TestRunnerResult', result.steps_output, {
+	return ruby.structured_value('TestRunnerResult', result.steps_output, {
 		'success':       result.success.str()
 		'arguments':     result.arguments.join(',')
 		'steps_output':  result.steps_output
@@ -323,20 +323,20 @@ pub fn ruby_test_runner_l35_d1_run(args ...brew_runtime.Value) brew_runtime.Valu
 }
 
 // Ruby method `ensure_blank_file_exists!(file)` at line 122.
-pub fn ruby_test_runner_l122_d2_ensure_blank_file_exists(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_runner_l122_d2_ensure_blank_file_exists(args ...ruby.Value) ruby.Value {
 	if args.len > 0 {
 		test_runner_ensure_blank_file_exists(args[0].as_string()) or { panic(err) }
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `no_only_args?(args)` at line 131.
-pub fn ruby_test_runner_l131_d3_no_only_args(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(args.len > 0 && test_runner_no_only_args(test_runner_args_from_value(args[0])))
+pub fn ruby_test_runner_l131_d3_no_only_args(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(args.len > 0 && test_runner_no_only_args(test_runner_args_from_value(args[0])))
 }
 
 // Ruby method `build_tests(argument, tap:, git:, output_paths:, skip_setup:,` at line 155.
-pub fn ruby_test_runner_l155_d4_build_tests(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_runner_l155_d4_build_tests(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		return test_runner_plan_value(TestRunnerBuildPlan{})
 	}
@@ -345,12 +345,12 @@ pub fn ruby_test_runner_l155_d4_build_tests(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby method `run_tests(tests, args:)` at line 232.
-pub fn ruby_test_runner_l232_d5_run_tests(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_runner_l232_d5_run_tests(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.string_array_value([])
+		return ruby.string_array_value([])
 	}
 	execution := test_runner_run_tests(test_runner_plan_from_value(args[0]), test_runner_args_from_value(args[1]))
-	return brew_runtime.structured_value('TestRunnerExecution', execution.events.join(','), {
+	return ruby.structured_value('TestRunnerExecution', execution.events.join(','), {
 		'events':                     execution.events.join(',')
 		'testing_formulae':           execution.testing_formulae.join(',')
 		'skipped_or_failed_formulae': execution.skipped_or_failed_formulae.join(',')

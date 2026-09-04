@@ -1,6 +1,6 @@
 module artifact
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `cask/artifact/appimage.rb`.
@@ -47,8 +47,8 @@ pub fn link_executable_artifact(source string) !ExecutableArtifactLinkResult {
 	}
 }
 
-fn executable_artifact_link_value(result ExecutableArtifactLinkResult) brew_runtime.Value {
-	return brew_runtime.Value{
+fn executable_artifact_link_value(result ExecutableArtifactLinkResult) ruby.Value {
+	return ruby.Value{
 		type_name: 'ExecutableArtifactLinkResult'
 		repr: result.source
 		attributes: {
@@ -58,26 +58,26 @@ fn executable_artifact_link_value(result ExecutableArtifactLinkResult) brew_runt
 			'sudo_required':      result.sudo_required.str()
 		}
 		map_data: {
-			'command_arguments': brew_runtime.string_array_value(result.command_arguments)
+			'command_arguments': ruby.string_array_value(result.command_arguments)
 		}
 	}
 }
 
 // Ruby method `resolve_target(target, base_dir: nil)` at line 11.
-pub fn ruby_appimage_l11_d1_resolve_target(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_appimage_l11_d1_resolve_target(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'AppImage#resolve_target requires target and appimagedir')
+		return ruby.object_value('ArgumentError', 'AppImage#resolve_target requires target and appimagedir')
 	}
-	return brew_runtime.string_value(resolve_appimage_target(args[1].as_string(), args[0].as_string()))
+	return ruby.string_value(resolve_appimage_target(args[1].as_string(), args[0].as_string()))
 }
 
 // Ruby method `link(force: false, adopt: false, command: SystemCommand, **_options)` at line 23.
-pub fn ruby_appimage_l23_d2_link(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_appimage_l23_d2_link(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'AppImage#link requires a source')
+		return ruby.object_value('ArgumentError', 'AppImage#link requires a source')
 	}
 	result := link_executable_artifact(args[0].as_string()) or {
-		return brew_runtime.object_value('CaskError', err.msg())
+		return ruby.object_value('CaskError', err.msg())
 	}
 	return executable_artifact_link_value(result)
 }

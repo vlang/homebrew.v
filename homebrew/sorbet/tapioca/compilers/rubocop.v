@@ -1,6 +1,6 @@
 module compilers
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `sorbet/tapioca/compilers/rubocop.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -71,41 +71,41 @@ pub fn rubocop_compiler_decoration(constant_module RubocopCompilerModule) Tapioc
 	}
 }
 
-fn rubocop_compiler_input_value(input &RubocopCompilerInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Tapioca::Compilers::RuboCop::Input', '', {
+fn rubocop_compiler_input_value(input &RubocopCompilerInput) ruby.Value {
+	return ruby.structured_value('Tapioca::Compilers::RuboCop::Input', '', {
 		'rubocop_compiler_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn rubocop_compiler_input_from_value(value brew_runtime.Value) &RubocopCompilerInput {
+fn rubocop_compiler_input_from_value(value ruby.Value) &RubocopCompilerInput {
 	address := value.attributes['rubocop_compiler_input_address'] or {
 		panic('invalid RuboCop compiler input')
 	}
 	return unsafe { &RubocopCompilerInput(voidptr(address.u64())) }
 }
 
-pub fn rubocop_compiler_input_boundary(input &RubocopCompilerInput) brew_runtime.Value {
+pub fn rubocop_compiler_input_boundary(input &RubocopCompilerInput) ruby.Value {
 	return rubocop_compiler_input_value(input)
 }
 
 // Ruby method `self.gather_constants` at line 14.
-pub fn ruby_rubocop_l14_d1_self_gather_constants(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_rubocop_l14_d1_self_gather_constants(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.array_value([])
+		return ruby.array_value([])
 	}
-	return brew_runtime.array_value(rubocop_compiler_gather_constants(rubocop_compiler_input_from_value(args[0])).map(brew_runtime.object_value('Module', it.name)))
+	return ruby.array_value(rubocop_compiler_gather_constants(rubocop_compiler_input_from_value(args[0])).map(ruby.object_value('Module', it.name)))
 }
 
 // Ruby method `decorate` at line 29.
-pub fn ruby_rubocop_l29_d2_decorate(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_rubocop_l29_d2_decorate(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'input and constant are required')
+		return ruby.object_value('ArgumentError', 'input and constant are required')
 	}
 	input := rubocop_compiler_input_from_value(args[0])
 	name := args[1].as_string()
 	matches := input.modules.filter(it.name == name)
 	if matches.len == 0 {
-		return brew_runtime.object_value('NameError', 'unknown constant ${name}')
+		return ruby.object_value('NameError', 'unknown constant ${name}')
 	}
 	return tapioca_decoration_value(rubocop_compiler_decoration(matches[0]))
 }

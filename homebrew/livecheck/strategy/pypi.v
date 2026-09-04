@@ -1,6 +1,6 @@
 module strategy
 
-import brew_runtime
+import ruby
 import homebrew.livecheck
 import homebrew.utils
 import regex
@@ -134,62 +134,62 @@ fn pypi_empty_fetcher(_ livecheck.StrategyCurlRequest) !utils.CurlCommandResult 
 	}
 }
 
-fn pypi_match_data_value(result JsonMatchData) brew_runtime.Value {
-	mut matches := map[string]brew_runtime.Value{}
+fn pypi_match_data_value(result JsonMatchData) ruby.Value {
+	mut matches := map[string]ruby.Value{}
 	for version in result.matches.keys() {
-		matches[version] = brew_runtime.object_value('Version', version)
+		matches[version] = ruby.object_value('Version', version)
 	}
 	regex_value := result.regex or { JsonRegex{} }
 	mut values := {
-		'matches': brew_runtime.map_value(matches)
+		'matches': ruby.map_value(matches)
 		'regex':   if regex_value.pattern == '' {
-			brew_runtime.object_value('NilClass', 'nil')
+			ruby.object_value('NilClass', 'nil')
 		} else {
-			brew_runtime.object_value('Regexp', regex_value.pattern)
+			ruby.object_value('Regexp', regex_value.pattern)
 		}
-		'url':     brew_runtime.string_value(result.url)
+		'url':     ruby.string_value(result.url)
 	}
 	if result.has_cached {
-		values['cached'] = brew_runtime.bool_value(result.cached)
+		values['cached'] = ruby.bool_value(result.cached)
 	}
 	if result.has_content {
-		values['content'] = brew_runtime.string_value(result.content)
+		values['content'] = ruby.string_value(result.content)
 	}
-	return brew_runtime.map_value(values)
+	return ruby.map_value(values)
 }
 
 // Ruby method `self.match?(url)` at line 56.
-pub fn ruby_pypi_l56_d1_self_match(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pypi_l56_d1_self_match(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(pypi_matches_url(args[0].as_string()))
+	return ruby.bool_value(pypi_matches_url(args[0].as_string()))
 }
 
 // Ruby method `self.generate_input_values(url)` at line 66.
-pub fn ruby_pypi_l66_d2_self_generate_input_values(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pypi_l66_d2_self_generate_input_values(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.map_value({})
+		return ruby.map_value({})
 	}
 	generated := pypi_generate_input_values(args[0].as_string())
 	if !generated.present {
-		return brew_runtime.map_value({})
+		return ruby.map_value({})
 	}
-	return brew_runtime.map_value({
-		'url': brew_runtime.string_value(generated.url)
+	return ruby.map_value({
+		'url': ruby.string_value(generated.url)
 	})
 }
 
 // Ruby method `self.find_versions(url:, regex: nil, content: nil, options: Options.new, &block)` at line 94.
-pub fn ruby_pypi_l94_d3_self_find_versions(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pypi_l94_d3_self_find_versions(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.map_value({})
+		return ruby.map_value({})
 	}
 	content := if args.len > 1 { ?string(args[1].as_string()) } else { none }
 	result := pypi_find_versions(PypiFindRequest{
 		url: args[0].as_string()
 		content: content
-	}, pypi_empty_fetcher) or { return brew_runtime.object_value('Error', err.msg()) }
+	}, pypi_empty_fetcher) or { return ruby.object_value('Error', err.msg()) }
 	return pypi_match_data_value(result)
 }
 

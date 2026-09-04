@@ -1,6 +1,6 @@
 module aliases
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `aliases/alias.rb`.
@@ -46,11 +46,11 @@ pub fn new_brew_alias(name string, command ?string, config AliasConfig) BrewAlia
 }
 
 pub fn default_alias_config(reserved []string) AliasConfig {
-	mut prefix := brew_runtime.environment_value('HOMEBREW_PREFIX').trim_right('/')
+	mut prefix := ruby.environment_value('HOMEBREW_PREFIX').trim_right('/')
 	if prefix == '' {
 		prefix = '/opt/homebrew'
 	}
-	mut aliases_dir := brew_runtime.environment_value('HOMEBREW_ALIASES').trim_right('/')
+	mut aliases_dir := ruby.environment_value('HOMEBREW_ALIASES').trim_right('/')
 	if aliases_dir == '' {
 		aliases_dir = '${prefix}/Library/Aliases'
 	}

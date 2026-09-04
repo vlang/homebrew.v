@@ -1,6 +1,6 @@
 module bundle
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `bundle/brew.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -24,7 +24,7 @@ pub:
 	link_set               bool
 	link                   bool
 	poured_from_bottle     bool
-	bottle                 brew_runtime.Value
+	bottle                 ruby.Value
 	bottled                bool
 	official_tap           bool
 	linked                 bool
@@ -103,19 +103,19 @@ pub:
 	loaded     bool
 }
 
-fn bundle_brew_nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', '')
+fn bundle_brew_nil_value() ruby.Value {
+	return ruby.object_value('NilClass', '')
 }
 
-fn bundle_brew_strings_value(values []string) brew_runtime.Value {
-	return brew_runtime.array_value(values.map(brew_runtime.string_value(it)))
+fn bundle_brew_strings_value(values []string) ruby.Value {
+	return ruby.array_value(values.map(ruby.string_value(it)))
 }
 
-fn bundle_brew_strings_from_value(value brew_runtime.Value) []string {
+fn bundle_brew_strings_from_value(value ruby.Value) []string {
 	return value.as_array() or { return [] }.map(it.as_string())
 }
 
-fn bundle_brew_bool(value brew_runtime.Value, fallback bool) bool {
+fn bundle_brew_bool(value ruby.Value, fallback bool) bool {
 	return value.as_bool() or { fallback }
 }
 
@@ -146,51 +146,51 @@ fn bundle_brew_unique(values []string) []string {
 	return result
 }
 
-fn bundle_brew_string_map_value(values map[string]string) brew_runtime.Value {
-	mut result := map[string]brew_runtime.Value{}
+fn bundle_brew_string_map_value(values map[string]string) ruby.Value {
+	mut result := map[string]ruby.Value{}
 	for key, value in values {
-		result[key] = brew_runtime.string_value(value)
+		result[key] = ruby.string_value(value)
 	}
-	return brew_runtime.map_value(result)
+	return ruby.map_value(result)
 }
 
-pub fn bundle_brew_formula_value(formula BundleBrewFormula) brew_runtime.Value {
-	mut fields := map[string]brew_runtime.Value{}
-	fields['name'] = brew_runtime.string_value(formula.name)
-	fields['desc'] = brew_runtime.string_value(formula.desc)
+pub fn bundle_brew_formula_value(formula BundleBrewFormula) ruby.Value {
+	mut fields := map[string]ruby.Value{}
+	fields['name'] = ruby.string_value(formula.name)
+	fields['desc'] = ruby.string_value(formula.desc)
 	fields['oldnames'] = bundle_brew_strings_value(formula.oldnames)
-	fields['full_name'] = brew_runtime.string_value(formula.full_name)
+	fields['full_name'] = ruby.string_value(formula.full_name)
 	fields['aliases'] = bundle_brew_strings_value(formula.aliases)
-	fields['any_version_installed?'] = brew_runtime.bool_value(formula.any_version_installed)
+	fields['any_version_installed?'] = ruby.bool_value(formula.any_version_installed)
 	fields['args'] = bundle_brew_strings_value(formula.args)
 	fields['version'] = if formula.version == '' {
 		bundle_brew_nil_value()
 	} else {
-		brew_runtime.string_value(formula.version)
+		ruby.string_value(formula.version)
 	}
-	fields['installed_on_request?'] = brew_runtime.bool_value(formula.installed_on_request)
+	fields['installed_on_request?'] = ruby.bool_value(formula.installed_on_request)
 	fields['dependencies'] = bundle_brew_strings_value(formula.dependencies)
 	fields['recursive_dependencies'] = bundle_brew_strings_value(formula.recursive_dependencies)
 	fields['build_dependencies'] = bundle_brew_strings_value(formula.build_dependencies)
 	fields['conflicts_with'] = bundle_brew_strings_value(formula.conflicts_with)
-	fields['pinned?'] = brew_runtime.bool_value(formula.pinned)
-	fields['outdated?'] = brew_runtime.bool_value(formula.outdated)
+	fields['pinned?'] = ruby.bool_value(formula.pinned)
+	fields['outdated?'] = ruby.bool_value(formula.outdated)
 	fields['link?'] = if formula.link_set {
-		brew_runtime.bool_value(formula.link)
+		ruby.bool_value(formula.link)
 	} else {
 		bundle_brew_nil_value()
 	}
-	fields['poured_from_bottle?'] = brew_runtime.bool_value(formula.poured_from_bottle)
+	fields['poured_from_bottle?'] = ruby.bool_value(formula.poured_from_bottle)
 	fields['bottle'] = if formula.bottle.type_name == '' {
-		brew_runtime.bool_value(false)
+		ruby.bool_value(false)
 	} else {
 		formula.bottle
 	}
-	fields['bottled'] = brew_runtime.bool_value(formula.bottled)
-	fields['official_tap'] = brew_runtime.bool_value(formula.official_tap)
-	fields['linked?'] = brew_runtime.bool_value(formula.linked)
-	fields['keg_only?'] = brew_runtime.bool_value(formula.keg_only)
-	return brew_runtime.Value{
+	fields['bottled'] = ruby.bool_value(formula.bottled)
+	fields['official_tap'] = ruby.bool_value(formula.official_tap)
+	fields['linked?'] = ruby.bool_value(formula.linked)
+	fields['keg_only?'] = ruby.bool_value(formula.keg_only)
+	return ruby.Value{
 		type_name: 'Homebrew::Bundle::Brew::Formula'
 		repr: formula.full_name
 		map_data: fields
@@ -201,16 +201,16 @@ pub fn bundle_brew_formula_value(formula BundleBrewFormula) brew_runtime.Value {
 	}
 }
 
-pub fn bundle_brew_formula_from_value(value brew_runtime.Value) BundleBrewFormula {
+pub fn bundle_brew_formula_from_value(value ruby.Value) BundleBrewFormula {
 	fields := value.map_data.clone()
 	link_value := fields['link?'] or { bundle_brew_nil_value() }
 	return BundleBrewFormula{
-		name: (fields['name'] or { brew_runtime.string_value(value.attributes['name'] or { bundle_brew_name_from_full_name(value.repr) }) }).as_string()
-		desc: (fields['desc'] or { brew_runtime.string_value('') }).as_string()
+		name: (fields['name'] or { ruby.string_value(value.attributes['name'] or { bundle_brew_name_from_full_name(value.repr) }) }).as_string()
+		desc: (fields['desc'] or { ruby.string_value('') }).as_string()
 		oldnames: bundle_brew_strings_from_value(fields['oldnames'] or { bundle_brew_strings_value([]) })
-		full_name: (fields['full_name'] or { brew_runtime.string_value(value.attributes['full_name'] or { value.repr }) }).as_string()
+		full_name: (fields['full_name'] or { ruby.string_value(value.attributes['full_name'] or { value.repr }) }).as_string()
 		aliases: bundle_brew_strings_from_value(fields['aliases'] or { bundle_brew_strings_value([]) })
-		any_version_installed: bundle_brew_bool(fields['any_version_installed?'] or { brew_runtime.bool_value(false) }, false)
+		any_version_installed: bundle_brew_bool(fields['any_version_installed?'] or { ruby.bool_value(false) }, false)
 		args: bundle_brew_strings_from_value(fields['args'] or { bundle_brew_strings_value([]) })
 		version: if (fields['version'] or { bundle_brew_nil_value() }).type_name in [
 			'Nil',
@@ -218,62 +218,62 @@ pub fn bundle_brew_formula_from_value(value brew_runtime.Value) BundleBrewFormul
 		] {
 			''} else {
 			(fields['version'] or { bundle_brew_nil_value() }).as_string()}
-		installed_on_request: bundle_brew_bool(fields['installed_on_request?'] or { brew_runtime.bool_value(true) }, true)
+		installed_on_request: bundle_brew_bool(fields['installed_on_request?'] or { ruby.bool_value(true) }, true)
 		dependencies: bundle_brew_strings_from_value(fields['dependencies'] or { bundle_brew_strings_value([]) })
 		recursive_dependencies: bundle_brew_strings_from_value(fields['recursive_dependencies'] or { bundle_brew_strings_value([]) })
 		build_dependencies: bundle_brew_strings_from_value(fields['build_dependencies'] or { bundle_brew_strings_value([]) })
 		conflicts_with: bundle_brew_strings_from_value(fields['conflicts_with'] or { bundle_brew_strings_value([]) })
-		pinned: bundle_brew_bool(fields['pinned?'] or { brew_runtime.bool_value(false) }, false)
-		outdated: bundle_brew_bool(fields['outdated?'] or { brew_runtime.bool_value(false) }, false)
+		pinned: bundle_brew_bool(fields['pinned?'] or { ruby.bool_value(false) }, false)
+		outdated: bundle_brew_bool(fields['outdated?'] or { ruby.bool_value(false) }, false)
 		link_set: link_value.type_name !in ['Nil', 'NilClass', '']
 		link: bundle_brew_bool(link_value, false)
-		poured_from_bottle: bundle_brew_bool(fields['poured_from_bottle?'] or { brew_runtime.bool_value(false) }, false)
-		bottle: fields['bottle'] or { brew_runtime.bool_value(false) }
-		bottled: bundle_brew_bool(fields['bottled'] or { brew_runtime.bool_value(false) }, false)
-		official_tap: bundle_brew_bool(fields['official_tap'] or { brew_runtime.bool_value(false) }, false)
-		linked: bundle_brew_bool(fields['linked?'] or { brew_runtime.bool_value(false) }, false)
-		keg_only: bundle_brew_bool(fields['keg_only?'] or { brew_runtime.bool_value(false) }, false)
+		poured_from_bottle: bundle_brew_bool(fields['poured_from_bottle?'] or { ruby.bool_value(false) }, false)
+		bottle: fields['bottle'] or { ruby.bool_value(false) }
+		bottled: bundle_brew_bool(fields['bottled'] or { ruby.bool_value(false) }, false)
+		official_tap: bundle_brew_bool(fields['official_tap'] or { ruby.bool_value(false) }, false)
+		linked: bundle_brew_bool(fields['linked?'] or { ruby.bool_value(false) }, false)
+		keg_only: bundle_brew_bool(fields['keg_only?'] or { ruby.bool_value(false) }, false)
 	}
 }
 
-pub fn bundle_brew_options_value(options BundleBrewOptions) brew_runtime.Value {
-	return brew_runtime.map_value({
+pub fn bundle_brew_options_value(options BundleBrewOptions) ruby.Value {
+	return ruby.map_value({
 		'args':            bundle_brew_strings_value(options.args)
 		'conflicts_with':  bundle_brew_strings_value(options.conflicts_with)
 		'restart_service': if options.restart_service == '' {
 			bundle_brew_nil_value()
 		} else {
-			brew_runtime.string_value(options.restart_service)
+			ruby.string_value(options.restart_service)
 		}
 		'start_service':   if options.start_service == '' {
 			bundle_brew_nil_value()
 		} else {
-			brew_runtime.string_value(options.start_service)
+			ruby.string_value(options.start_service)
 		}
 		'link':            if options.link_mode == '' {
 			bundle_brew_nil_value()
 		} else if options.link_mode == 'true' {
-			brew_runtime.bool_value(true)
+			ruby.bool_value(true)
 		} else if options.link_mode == 'false' {
-			brew_runtime.bool_value(false)
+			ruby.bool_value(false)
 		} else {
-			brew_runtime.string_value(options.link_mode)
+			ruby.string_value(options.link_mode)
 		}
 		'postinstall':     if options.postinstall == '' {
 			bundle_brew_nil_value()
 		} else {
-			brew_runtime.string_value(options.postinstall)
+			ruby.string_value(options.postinstall)
 		}
 		'version_file':    if options.version_file == '' {
 			bundle_brew_nil_value()
 		} else {
-			brew_runtime.string_value(options.version_file)
+			ruby.string_value(options.version_file)
 		}
-		'trusted':         brew_runtime.bool_value(options.trusted)
+		'trusted':         ruby.bool_value(options.trusted)
 	})
 }
 
-pub fn bundle_brew_options_from_value(value brew_runtime.Value) BundleBrewOptions {
+pub fn bundle_brew_options_from_value(value ruby.Value) BundleBrewOptions {
 	fields := value.map_data.clone()
 	restart_value := fields['restart_service'] or { bundle_brew_nil_value() }
 	start_value := fields['start_service'] or { restart_value }
@@ -303,33 +303,33 @@ pub fn bundle_brew_options_from_value(value brew_runtime.Value) BundleBrewOption
 		] {
 			''} else {
 			(fields['version_file'] or { bundle_brew_nil_value() }).as_string()}
-		trusted: bundle_brew_bool(fields['trusted'] or { brew_runtime.bool_value(false) }, false)
+		trusted: bundle_brew_bool(fields['trusted'] or { ruby.bool_value(false) }, false)
 	}
 }
 
-pub fn bundle_brew_state_value(state BundleBrewState) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn bundle_brew_state_value(state BundleBrewState) ruby.Value {
+	return ruby.Value{
 		type_name: 'Homebrew::Bundle::Brew::State'
 		array_data: state.formulae.map(bundle_brew_formula_value(it))
 		map_data: {
 			'installed_formulae': bundle_brew_strings_value(state.installed_formulae)
 			'upgrade_formulae':   bundle_brew_strings_value(state.upgrade_formulae)
 			'trusted_formulae':   bundle_brew_strings_value(state.trusted_formulae)
-			'require_tap_trust':  brew_runtime.bool_value(state.require_tap_trust)
+			'require_tap_trust':  ruby.bool_value(state.require_tap_trust)
 			'unavailable':        bundle_brew_strings_value(state.unavailable)
 			'started_services':   bundle_brew_strings_value(state.started_services)
 		}
 	}
 }
 
-pub fn bundle_brew_state_from_value(value brew_runtime.Value) BundleBrewState {
+pub fn bundle_brew_state_from_value(value ruby.Value) BundleBrewState {
 	fields := value.map_data.clone()
 	return BundleBrewState{
 		formulae: value.array_data.map(bundle_brew_formula_from_value(it))
 		installed_formulae: bundle_brew_strings_from_value(fields['installed_formulae'] or { bundle_brew_strings_value([]) })
 		upgrade_formulae: bundle_brew_strings_from_value(fields['upgrade_formulae'] or { bundle_brew_strings_value([]) })
 		trusted_formulae: bundle_brew_strings_from_value(fields['trusted_formulae'] or { bundle_brew_strings_value([]) })
-		require_tap_trust: bundle_brew_bool(fields['require_tap_trust'] or { brew_runtime.bool_value(false) }, false)
+		require_tap_trust: bundle_brew_bool(fields['require_tap_trust'] or { ruby.bool_value(false) }, false)
 		unavailable: bundle_brew_strings_from_value(fields['unavailable'] or { bundle_brew_strings_value([]) })
 		started_services: bundle_brew_strings_from_value(fields['started_services'] or { bundle_brew_strings_value([]) })
 	}
@@ -354,22 +354,22 @@ pub fn bundle_brew_installer(name string, options BundleBrewOptions) BundleBrewI
 	}
 }
 
-pub fn bundle_brew_installer_value(installer BundleBrewInstaller) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn bundle_brew_installer_value(installer BundleBrewInstaller) ruby.Value {
+	return ruby.Value{
 		type_name: 'Homebrew::Bundle::Brew'
 		repr: installer.full_name
 		map_data: {
 			'options':                bundle_brew_options_value(installer.options)
-			'changed':                brew_runtime.bool_value(installer.changed)
-			'installed':              brew_runtime.bool_value(installer.installed)
-			'linked':                 brew_runtime.bool_value(installer.linked)
-			'keg_only':               brew_runtime.bool_value(installer.keg_only)
-			'upgradable':             brew_runtime.bool_value(installer.upgradable)
+			'changed':                ruby.bool_value(installer.changed)
+			'installed':              ruby.bool_value(installer.installed)
+			'linked':                 ruby.bool_value(installer.linked)
+			'keg_only':               ruby.bool_value(installer.keg_only)
+			'upgradable':             ruby.bool_value(installer.upgradable)
 			'formula_conflicts':      bundle_brew_strings_value(installer.formula_conflicts)
-			'service_started':        brew_runtime.bool_value(installer.service_started)
-			'versioned_service_file': brew_runtime.string_value(installer.versioned_service_file)
-			'env_version':            brew_runtime.string_value(installer.env_version)
-			'formula_version':        brew_runtime.string_value(installer.formula_version)
+			'service_started':        ruby.bool_value(installer.service_started)
+			'versioned_service_file': ruby.string_value(installer.versioned_service_file)
+			'env_version':            ruby.string_value(installer.env_version)
+			'formula_version':        ruby.string_value(installer.formula_version)
 		}
 		attributes: {
 			'name':      installer.name
@@ -378,31 +378,31 @@ pub fn bundle_brew_installer_value(installer BundleBrewInstaller) brew_runtime.V
 	}
 }
 
-pub fn bundle_brew_installer_from_value(value brew_runtime.Value) BundleBrewInstaller {
+pub fn bundle_brew_installer_from_value(value ruby.Value) BundleBrewInstaller {
 	fields := value.map_data.clone()
 	return BundleBrewInstaller{
 		full_name: value.attributes['full_name'] or { value.repr }
 		name: value.attributes['name'] or { bundle_brew_name_from_full_name(value.repr) }
-		options: bundle_brew_options_from_value(fields['options'] or { brew_runtime.map_value({}) })
-		changed: bundle_brew_bool(fields['changed'] or { brew_runtime.bool_value(false) }, false)
-		installed: bundle_brew_bool(fields['installed'] or { brew_runtime.bool_value(false) }, false)
-		linked: bundle_brew_bool(fields['linked'] or { brew_runtime.bool_value(false) }, false)
-		keg_only: bundle_brew_bool(fields['keg_only'] or { brew_runtime.bool_value(false) }, false)
-		upgradable: bundle_brew_bool(fields['upgradable'] or { brew_runtime.bool_value(false) }, false)
+		options: bundle_brew_options_from_value(fields['options'] or { ruby.map_value({}) })
+		changed: bundle_brew_bool(fields['changed'] or { ruby.bool_value(false) }, false)
+		installed: bundle_brew_bool(fields['installed'] or { ruby.bool_value(false) }, false)
+		linked: bundle_brew_bool(fields['linked'] or { ruby.bool_value(false) }, false)
+		keg_only: bundle_brew_bool(fields['keg_only'] or { ruby.bool_value(false) }, false)
+		upgradable: bundle_brew_bool(fields['upgradable'] or { ruby.bool_value(false) }, false)
 		formula_conflicts: bundle_brew_strings_from_value(fields['formula_conflicts'] or { bundle_brew_strings_value([]) })
-		service_started: bundle_brew_bool(fields['service_started'] or { brew_runtime.bool_value(false) }, false)
-		versioned_service_file: (fields['versioned_service_file'] or { brew_runtime.string_value('') }).as_string()
-		env_version: (fields['env_version'] or { brew_runtime.string_value('') }).as_string()
-		formula_version: (fields['formula_version'] or { brew_runtime.string_value('') }).as_string()
+		service_started: bundle_brew_bool(fields['service_started'] or { ruby.bool_value(false) }, false)
+		versioned_service_file: (fields['versioned_service_file'] or { ruby.string_value('') }).as_string()
+		env_version: (fields['env_version'] or { ruby.string_value('') }).as_string()
+		formula_version: (fields['formula_version'] or { ruby.string_value('') }).as_string()
 	}
 }
 
-fn bundle_brew_formula_map_value(formulae []BundleBrewFormula, full_name bool) brew_runtime.Value {
-	mut result := map[string]brew_runtime.Value{}
+fn bundle_brew_formula_map_value(formulae []BundleBrewFormula, full_name bool) ruby.Value {
+	mut result := map[string]ruby.Value{}
 	for formula in formulae {
 		result[if full_name { formula.full_name } else { formula.name }] = bundle_brew_formula_value(formula)
 	}
-	return brew_runtime.map_value(result)
+	return ruby.map_value(result)
 }
 
 pub fn bundle_brew_find_formula(state BundleBrewState, name string) ?BundleBrewFormula {
@@ -918,26 +918,26 @@ pub fn bundle_brew_install_instance(mut installer BundleBrewInstaller, state Bun
 	return result
 }
 
-fn bundle_brew_effects_from_value(value brew_runtime.Value) BundleBrewEffects {
+fn bundle_brew_effects_from_value(value ruby.Value) BundleBrewEffects {
 	mut command_results := map[string]bool{}
-	for key, item in (value.map_data['command_results'] or { brew_runtime.map_value({}) }).map_data {
+	for key, item in (value.map_data['command_results'] or { ruby.map_value({}) }).map_data {
 		command_results[key] = bundle_brew_bool(item, true)
 	}
 	mut stop_results := map[string]bool{}
-	for key, item in (value.map_data['service_stop_results'] or { brew_runtime.map_value({}) }).map_data {
+	for key, item in (value.map_data['service_stop_results'] or { ruby.map_value({}) }).map_data {
 		stop_results[key] = bundle_brew_bool(item, true)
 	}
 	return BundleBrewEffects{
 		command_results: command_results
-		postinstall_ok: bundle_brew_bool(value.map_data['postinstall_ok'] or { brew_runtime.bool_value(true) }, true)
-		service_start_ok: bundle_brew_bool(value.map_data['service_start_ok'] or { brew_runtime.bool_value(true) }, true)
-		service_restart_ok: bundle_brew_bool(value.map_data['service_restart_ok'] or { brew_runtime.bool_value(true) }, true)
+		postinstall_ok: bundle_brew_bool(value.map_data['postinstall_ok'] or { ruby.bool_value(true) }, true)
+		service_start_ok: bundle_brew_bool(value.map_data['service_start_ok'] or { ruby.bool_value(true) }, true)
+		service_restart_ok: bundle_brew_bool(value.map_data['service_restart_ok'] or { ruby.bool_value(true) }, true)
 		service_stop_results: stop_results
 	}
 }
 
-pub fn bundle_brew_action_value(result BundleBrewActionResult) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn bundle_brew_action_value(result BundleBrewActionResult) ruby.Value {
+	return ruby.Value{
 		type_name: 'Homebrew::Bundle::Brew::ActionResult'
 		repr: result.success.str()
 		bool_data: result.success
@@ -946,44 +946,44 @@ pub fn bundle_brew_action_value(result BundleBrewActionResult) brew_runtime.Valu
 			'events':  bundle_brew_strings_value(result.events)
 			'output':  bundle_brew_strings_value(result.output)
 			'writes':  bundle_brew_string_map_value(result.writes)
-			'changed': brew_runtime.bool_value(result.changed)
+			'changed': ruby.bool_value(result.changed)
 		}
 	}
 }
 
 // Ruby method `type = :brew` at line 19.
-pub fn ruby_brew_l19_d1_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_l19_d1_type(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('brew')
+	return ruby.string_value('brew')
 }
 
 // Ruby method `check_label = "Formula"` at line 22.
-pub fn ruby_brew_l22_d2_check_label(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_l22_d2_check_label(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('Formula')
+	return ruby.string_value('Formula')
 }
 
 // Ruby method `inherited(subclass)` at line 25.
-pub fn ruby_brew_l25_d3_inherited(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_l25_d3_inherited(args ...ruby.Value) ruby.Value {
 	name := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.Value{ type_name: 'InheritedAction', repr: name, bool_data: name != 'Homebrew::Bundle::Brew::Services' }
+	return ruby.Value{ type_name: 'InheritedAction', repr: name, bool_data: name != 'Homebrew::Bundle::Brew::Services' }
 }
 
 // Ruby method `reset!` at line 32.
-pub fn ruby_brew_l32_d4_reset(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_l32_d4_reset(args ...ruby.Value) ruby.Value {
 	_ = args
 	return bundle_brew_state_value(BundleBrewState{})
 }
 
 // Ruby attr_writer `attr_writer :formulae_by_name` at line 50.
-pub fn ruby_brew_l50_d5_formulae_by_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_l50_d5_formulae_by_name(args ...ruby.Value) ruby.Value {
 	return if args.len > 0 { args.last() } else { bundle_brew_nil_value() }
 }
 
 // Ruby method `preinstall!(name, no_upgrade: false, verbose: false, **options)` at line 53.
-pub fn ruby_brew_l53_d6_preinstall(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_l53_d6_preinstall(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	mut installer := bundle_brew_installer(args[0].as_string(), if args.len > 1 {
 		bundle_brew_options_from_value(args[1])
@@ -996,13 +996,13 @@ pub fn ruby_brew_l53_d6_preinstall(args ...brew_runtime.Value) brew_runtime.Valu
 		BundleBrewState{}
 	}
 	no_upgrade := if args.len > 3 { bundle_brew_bool(args[3], false) } else { false }
-	return brew_runtime.bool_value(bundle_brew_preinstall_instance(mut installer, state, no_upgrade))
+	return ruby.bool_value(bundle_brew_preinstall_instance(mut installer, state, no_upgrade))
 }
 
 // Ruby method `install!(name, preinstall: true, no_upgrade: false, verbose: false, force: false, **options)` at line 61.
-pub fn ruby_brew_l61_d7_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_l61_d7_install(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	mut installer := bundle_brew_installer(args[0].as_string(), if args.len > 1 {
 		bundle_brew_options_from_value(args[1])
@@ -1022,18 +1022,18 @@ pub fn ruby_brew_l61_d7_install(args ...brew_runtime.Value) brew_runtime.Value {
 	}
 	preinstall := if args.len > 4 { bundle_brew_bool(args[4], true) } else { true }
 	force := if args.len > 5 { bundle_brew_bool(args[5], false) } else { false }
-	return brew_runtime.bool_value(bundle_brew_install_instance(mut installer, state, effects, preinstall, false, force, false).success)
+	return ruby.bool_value(bundle_brew_install_instance(mut installer, state, effects, preinstall, false, force, false).success)
 }
 
 // Ruby method `install_verb(name, options = {})` at line 71.
-pub fn ruby_brew_l71_d8_install_verb(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_l71_d8_install_verb(args ...ruby.Value) ruby.Value {
 	name := if args.len > 0 { args[0].as_string() } else { '' }
 	state := if args.len > 2 {
 		bundle_brew_state_from_value(args[2])
 	} else {
 		BundleBrewState{}
 	}
-	return brew_runtime.string_value(if bundle_brew_formula_upgradable(state, name) {
+	return ruby.string_value(if bundle_brew_formula_upgradable(state, name) {
 		'Upgrading'
 	} else {
 		'Installing'
@@ -1041,18 +1041,18 @@ pub fn ruby_brew_l71_d8_install_verb(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby method `formula_installed_and_up_to_date?(formula, no_upgrade: false)` at line 80.
-pub fn ruby_brew_l80_d9_formula_installed_and_up_to_date(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_l80_d9_formula_installed_and_up_to_date(args ...ruby.Value) ruby.Value {
 	state := if args.len > 1 {
 		bundle_brew_state_from_value(args[1])
 	} else {
 		BundleBrewState{}
 	}
 	no_upgrade := if args.len > 2 { bundle_brew_bool(args[2], false) } else { false }
-	return brew_runtime.bool_value(args.len > 0 && bundle_brew_installed_and_up_to_date(state, args[0].as_string(), no_upgrade))
+	return ruby.bool_value(args.len > 0 && bundle_brew_installed_and_up_to_date(state, args[0].as_string(), no_upgrade))
 }
 
 // Ruby method `link_status_to_check(formula, options)` at line 88.
-pub fn ruby_brew_l88_d10_link_status_to_check(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_l88_d10_link_status_to_check(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		return bundle_brew_nil_value()
 	}
@@ -1063,75 +1063,75 @@ pub fn ruby_brew_l88_d10_link_status_to_check(args ...brew_runtime.Value) brew_r
 	}
 	keg_only := if args.len > 3 { bundle_brew_bool(args[3], false) } else { false }
 	status := bundle_brew_link_status_to_check(state, args[0].as_string(), bundle_brew_options_from_value(args[1]), keg_only) or { return bundle_brew_nil_value() }
-	return brew_runtime.bool_value(status)
+	return ruby.bool_value(status)
 }
 
 // Ruby method `expected_link_status?(link, keg_only:)` at line 102.
-pub fn ruby_brew_l102_d11_expected_link_status(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_l102_d11_expected_link_status(args ...ruby.Value) ruby.Value {
 	mode := if args.len > 0 {
 		if args[0].type_name == 'Bool' { args[0].bool_data.str() } else { args[0].as_string() }
 	} else {
 		''
 	}
 	keg_only := if args.len > 1 { bundle_brew_bool(args[1], false) } else { false }
-	return brew_runtime.bool_value(bundle_brew_expected_link_status(mode, keg_only))
+	return ruby.bool_value(bundle_brew_expected_link_status(mode, keg_only))
 }
 
 // Ruby method `formula_dump_link_status(formula)` at line 114.
-pub fn ruby_brew_l114_d12_formula_dump_link_status(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_l114_d12_formula_dump_link_status(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		return bundle_brew_nil_value()
 	}
 	formula := bundle_brew_find_formula(bundle_brew_state_from_value(args[1]), args[0].as_string()) or { return bundle_brew_nil_value() }
 	return if formula.link_set {
-		brew_runtime.bool_value(formula.link)
+		ruby.bool_value(formula.link)
 	} else {
 		bundle_brew_nil_value()
 	}
 }
 
 // Ruby method `no_upgrade_with_args?(no_upgrade, formula_name)` at line 122.
-pub fn ruby_brew_l122_d13_no_upgrade_with_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_l122_d13_no_upgrade_with_args(args ...ruby.Value) ruby.Value {
 	state := if args.len > 2 {
 		bundle_brew_state_from_value(args[2])
 	} else {
 		BundleBrewState{}
 	}
-	return brew_runtime.bool_value(args.len > 1 && bundle_brew_no_upgrade_with_args(state, bundle_brew_bool(args[0], false), args[1].as_string()))
+	return ruby.bool_value(args.len > 1 && bundle_brew_no_upgrade_with_args(state, bundle_brew_bool(args[0], false), args[1].as_string()))
 }
 
 // Ruby method `formula_in_array?(formula, array)` at line 127.
-pub fn ruby_brew_l127_d14_formula_in_array(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_l127_d14_formula_in_array(args ...ruby.Value) ruby.Value {
 	state := if args.len > 2 {
 		bundle_brew_state_from_value(args[2])
 	} else {
 		BundleBrewState{}
 	}
-	return brew_runtime.bool_value(args.len > 1 && bundle_brew_formula_in_array(state, args[0].as_string(), bundle_brew_strings_from_value(args[1])))
+	return ruby.bool_value(args.len > 1 && bundle_brew_formula_in_array(state, args[0].as_string(), bundle_brew_strings_from_value(args[1])))
 }
 
 // Ruby method `formula_installed?(formula)` at line 144.
-pub fn ruby_brew_l144_d15_formula_installed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_l144_d15_formula_installed(args ...ruby.Value) ruby.Value {
 	state := if args.len > 1 {
 		bundle_brew_state_from_value(args[1])
 	} else {
 		BundleBrewState{}
 	}
-	return brew_runtime.bool_value(args.len > 0 && bundle_brew_formula_installed(state, args[0].as_string()))
+	return ruby.bool_value(args.len > 0 && bundle_brew_formula_installed(state, args[0].as_string()))
 }
 
 // Ruby method `formula_upgradable?(formula)` at line 153.
-pub fn ruby_brew_l153_d16_formula_upgradable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_l153_d16_formula_upgradable(args ...ruby.Value) ruby.Value {
 	state := if args.len > 1 {
 		bundle_brew_state_from_value(args[1])
 	} else {
 		BundleBrewState{}
 	}
-	return brew_runtime.bool_value(args.len > 0 && bundle_brew_formula_upgradable(state, args[0].as_string()))
+	return ruby.bool_value(args.len > 0 && bundle_brew_formula_upgradable(state, args[0].as_string()))
 }
 
 // Ruby method `installed_formulae` at line 173.
-pub fn ruby_brew_l173_d17_installed_formulae(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_l173_d17_installed_formulae(args ...ruby.Value) ruby.Value {
 	return bundle_brew_strings_value(if args.len > 0 {
 		bundle_brew_state_from_value(args[0]).installed_formulae
 	} else {
@@ -1140,7 +1140,7 @@ pub fn ruby_brew_l173_d17_installed_formulae(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby method `upgradable_formulae` at line 178.
-pub fn ruby_brew_l178_d18_upgradable_formulae(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_l178_d18_upgradable_formulae(args ...ruby.Value) ruby.Value {
 	return bundle_brew_strings_value(bundle_brew_upgradable_formulae(if args.len > 0 {
 		bundle_brew_state_from_value(args[0])
 	} else {
@@ -1149,7 +1149,7 @@ pub fn ruby_brew_l178_d18_upgradable_formulae(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby method `outdated_formulae` at line 183.
-pub fn ruby_brew_l183_d19_outdated_formulae(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_l183_d19_outdated_formulae(args ...ruby.Value) ruby.Value {
 	return bundle_brew_strings_value(bundle_brew_outdated_formulae(if args.len > 0 {
 		bundle_brew_state_from_value(args[0])
 	} else {
@@ -1158,7 +1158,7 @@ pub fn ruby_brew_l183_d19_outdated_formulae(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby method `pinned_formulae` at line 188.
-pub fn ruby_brew_l188_d20_pinned_formulae(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_l188_d20_pinned_formulae(args ...ruby.Value) ruby.Value {
 	return bundle_brew_strings_value(bundle_brew_pinned_formulae(if args.len > 0 {
 		bundle_brew_state_from_value(args[0])
 	} else {
@@ -1167,7 +1167,7 @@ pub fn ruby_brew_l188_d20_pinned_formulae(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby method `find_formula(name)` at line 193.
-pub fn ruby_brew_l193_d21_find_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_l193_d21_find_formula(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		return bundle_brew_nil_value()
 	}
@@ -1176,7 +1176,7 @@ pub fn ruby_brew_l193_d21_find_formula(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby method `formula_dep_names(name)` at line 199.
-pub fn ruby_brew_l199_d22_formula_dep_names(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_l199_d22_formula_dep_names(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		return bundle_brew_strings_value([])
 	}
@@ -1185,7 +1185,7 @@ pub fn ruby_brew_l199_d22_formula_dep_names(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby method `recursive_dep_names(name)` at line 205.
-pub fn ruby_brew_l205_d23_recursive_dep_names(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_l205_d23_recursive_dep_names(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		return bundle_brew_strings_value([])
 	}
@@ -1194,18 +1194,18 @@ pub fn ruby_brew_l205_d23_recursive_dep_names(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby method `formulae` at line 213.
-pub fn ruby_brew_l213_d24_formulae(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_l213_d24_formulae(args ...ruby.Value) ruby.Value {
 	state := if args.len > 0 {
 		bundle_brew_state_from_value(args[0])
 	} else {
 		BundleBrewState{}
 	}
 	formulae, _ := bundle_brew_sorted_formulae(state)
-	return brew_runtime.array_value(formulae.map(bundle_brew_formula_value(it)))
+	return ruby.array_value(formulae.map(bundle_brew_formula_value(it)))
 }
 
 // Ruby method `formulae_by_full_name(name = nil)` at line 228.
-pub fn ruby_brew_l228_d25_formulae_by_full_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_l228_d25_formulae_by_full_name(args ...ruby.Value) ruby.Value {
 	state := if args.len > 0 && args[0].type_name == 'Homebrew::Bundle::Brew::State' {
 		bundle_brew_state_from_value(args[0])
 	} else if args.len > 1 {
@@ -1216,16 +1216,16 @@ pub fn ruby_brew_l228_d25_formulae_by_full_name(args ...brew_runtime.Value) brew
 	if args.len > 0 && args[0].type_name != 'Homebrew::Bundle::Brew::State' {
 		name := args[0].as_string()
 		if name in state.unavailable {
-			return brew_runtime.map_value({})
+			return ruby.map_value({})
 		}
-		formula := bundle_brew_find_formula(state, name) or { return brew_runtime.map_value({}) }
+		formula := bundle_brew_find_formula(state, name) or { return ruby.map_value({}) }
 		return bundle_brew_formula_value(formula)
 	}
 	return bundle_brew_formula_map_value(state.formulae, true)
 }
 
 // Ruby method `formulae_by_name(name)` at line 252.
-pub fn ruby_brew_l252_d26_formulae_by_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_l252_d26_formulae_by_name(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		return bundle_brew_nil_value()
 	}
@@ -1234,7 +1234,7 @@ pub fn ruby_brew_l252_d26_formulae_by_name(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `dump(describe: false, no_restart: false)` at line 257.
-pub fn ruby_brew_l257_d27_dump(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_l257_d27_dump(args ...ruby.Value) ruby.Value {
 	state := if args.len > 0 {
 		bundle_brew_state_from_value(args[0])
 	} else {
@@ -1242,16 +1242,16 @@ pub fn ruby_brew_l257_d27_dump(args ...brew_runtime.Value) brew_runtime.Value {
 	}
 	describe := if args.len > 1 { bundle_brew_bool(args[1], false) } else { false }
 	no_restart := if args.len > 2 { bundle_brew_bool(args[2], false) } else { false }
-	return brew_runtime.string_value(bundle_brew_dump(state, describe, no_restart))
+	return ruby.string_value(bundle_brew_dump(state, describe, no_restart))
 }
 
 // Ruby method `dump_output(describe: false, no_restart: false)` at line 282.
-pub fn ruby_brew_l282_d28_dump_output(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_l282_d28_dump_output(args ...ruby.Value) ruby.Value {
 	return ruby_brew_l257_d27_dump(...args)
 }
 
 // Ruby method `fetchable_name(name, options = {}, no_upgrade: false)` at line 287.
-pub fn ruby_brew_l287_d29_fetchable_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_l287_d29_fetchable_name(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return bundle_brew_nil_value()
 	}
@@ -1264,12 +1264,12 @@ pub fn ruby_brew_l287_d29_fetchable_name(args ...brew_runtime.Value) brew_runtim
 	return if bundle_brew_installed_and_up_to_date(state, args[0].as_string(), no_upgrade) {
 		bundle_brew_nil_value()
 	} else {
-		brew_runtime.string_value(args[0].as_string())
+		ruby.string_value(args[0].as_string())
 	}
 }
 
 // Ruby method `formula_aliases` at line 296.
-pub fn ruby_brew_l296_d30_formula_aliases(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_l296_d30_formula_aliases(args ...ruby.Value) ruby.Value {
 	state := if args.len > 0 {
 		bundle_brew_state_from_value(args[0])
 	} else {
@@ -1279,7 +1279,7 @@ pub fn ruby_brew_l296_d30_formula_aliases(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby method `formula_oldnames` at line 315.
-pub fn ruby_brew_l315_d31_formula_oldnames(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_l315_d31_formula_oldnames(args ...ruby.Value) ruby.Value {
 	state := if args.len > 0 {
 		bundle_brew_state_from_value(args[0])
 	} else {
@@ -1289,7 +1289,7 @@ pub fn ruby_brew_l315_d31_formula_oldnames(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `add_formula(formula)` at line 336.
-pub fn ruby_brew_l336_d32_add_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_l336_d32_add_formula(args ...ruby.Value) ruby.Value {
 	return if args.len > 0 {
 		bundle_brew_formula_value(bundle_brew_formula_from_value(args.last()))
 	} else {
@@ -1298,33 +1298,33 @@ pub fn ruby_brew_l336_d32_add_formula(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby method `formula_to_hash(formula)` at line 349.
-pub fn ruby_brew_l349_d33_formula_to_hash(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_l349_d33_formula_to_hash(args ...ruby.Value) ruby.Value {
 	return if args.len > 0 {
 		bundle_brew_formula_value(bundle_brew_formula_from_value(args[0]))
 	} else {
-		brew_runtime.map_value({})
+		ruby.map_value({})
 	}
 }
 
 // Ruby method `sort!(formulae)` at line 408.
-pub fn ruby_brew_l408_d34_sort(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_l408_d34_sort(args ...ruby.Value) ruby.Value {
 	state := if args.len > 0 {
 		bundle_brew_state_from_value(args[0])
 	} else {
 		BundleBrewState{}
 	}
 	formulae, cycles := bundle_brew_sorted_formulae(state)
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'SortedFormulae'
 		array_data: formulae.map(bundle_brew_formula_value(it))
 		map_data: {
-			'cycles': brew_runtime.array_value(cycles.map(bundle_brew_strings_value(it)))
+			'cycles': ruby.array_value(cycles.map(bundle_brew_strings_value(it)))
 		}
 	}
 }
 
 // Ruby method `initialize(name = "", options = {})` at line 461.
-pub fn ruby_brew_l461_d35_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_l461_d35_initialize(args ...ruby.Value) ruby.Value {
 	name := if args.len > 0 { args[0].as_string() } else { '' }
 	options := if args.len > 1 {
 		bundle_brew_options_from_value(args[1])
@@ -1335,9 +1335,9 @@ pub fn ruby_brew_l461_d35_initialize(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby method `installed_and_up_to_date?(formula, no_upgrade: false)` at line 477.
-pub fn ruby_brew_l477_d36_installed_and_up_to_date(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_l477_d36_installed_and_up_to_date(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	installer := bundle_brew_installer_from_value(args[0])
 	state := bundle_brew_state_from_value(args[2])
@@ -1348,21 +1348,21 @@ pub fn ruby_brew_l477_d36_installed_and_up_to_date(args ...brew_runtime.Value) b
 	}
 	no_upgrade := if args.len > 3 { bundle_brew_bool(args[3], false) } else { false }
 	if !bundle_brew_installed_and_up_to_date(state, name, no_upgrade) {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	options := if args[1].type_name == 'Homebrew::Bundle::Dsl::Entry' {
-		bundle_brew_options_from_value(brew_runtime.map_value(args[1].map_data))
+		bundle_brew_options_from_value(ruby.map_value(args[1].map_data))
 	} else {
 		BundleBrewOptions{}
 	}
-	status := bundle_brew_link_status_to_check(state, name, options, installer.keg_only) or { return brew_runtime.bool_value(true) }
-	return brew_runtime.bool_value(installer.linked == status)
+	status := bundle_brew_link_status_to_check(state, name, options, installer.keg_only) or { return ruby.bool_value(true) }
+	return ruby.bool_value(installer.linked == status)
 }
 
 // Ruby method `failure_reason(name, no_upgrade:)` at line 489.
-pub fn ruby_brew_l489_d37_failure_reason(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_l489_d37_failure_reason(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
-		return brew_runtime.string_value('Formula needs to be installed or updated.')
+		return ruby.string_value('Formula needs to be installed or updated.')
 	}
 	installer := bundle_brew_installer_from_value(args[0])
 	name := if args[1].type_name == 'Homebrew::Bundle::Dsl::Entry' {
@@ -1378,15 +1378,15 @@ pub fn ruby_brew_l489_d37_failure_reason(args ...brew_runtime.Value) brew_runtim
 		} else {
 			'needs to be installed or updated.'
 		}
-		return brew_runtime.string_value('Formula ${name} ${reason}')
+		return ruby.string_value('Formula ${name} ${reason}')
 	}
 	options := if args[1].type_name == 'Homebrew::Bundle::Dsl::Entry' {
-		bundle_brew_options_from_value(brew_runtime.map_value(args[1].map_data))
+		bundle_brew_options_from_value(ruby.map_value(args[1].map_data))
 	} else {
 		BundleBrewOptions{}
 	}
-	status := bundle_brew_link_status_to_check(state, name, options, installer.keg_only) or { return brew_runtime.string_value('Formula ${name} needs to be installed or updated.') }
-	return brew_runtime.string_value('Formula ${name} needs to be ${if status {
+	status := bundle_brew_link_status_to_check(state, name, options, installer.keg_only) or { return ruby.string_value('Formula ${name} needs to be installed or updated.') }
+	return ruby.string_value('Formula ${name} needs to be ${if status {
 		'linked'
 	} else {
 		'unlinked'
@@ -1394,7 +1394,7 @@ pub fn ruby_brew_l489_d37_failure_reason(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `find_actionable(entries, exit_on_first_error: false, no_upgrade: false, verbose: false)` at line 509.
-pub fn ruby_brew_l509_d38_find_actionable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_l509_d38_find_actionable(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		return bundle_brew_strings_value([])
 	}
@@ -1426,13 +1426,13 @@ pub fn ruby_brew_l509_d38_find_actionable(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby method `preinstall!(no_upgrade: false, verbose: false)` at line 520.
-pub fn ruby_brew_l520_d39_preinstall(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_l520_d39_preinstall(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	mut installer := bundle_brew_installer_from_value(args[0])
 	state := bundle_brew_state_from_value(args[1])
-	return brew_runtime.bool_value(bundle_brew_preinstall_instance(mut installer, state, if args.len > 2 {
+	return ruby.bool_value(bundle_brew_preinstall_instance(mut installer, state, if args.len > 2 {
 		bundle_brew_bool(args[2], false)
 	} else {
 		false
@@ -1440,9 +1440,9 @@ pub fn ruby_brew_l520_d39_preinstall(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby method `install!(preinstall: true, no_upgrade: false, verbose: false, force: false)` at line 531.
-pub fn ruby_brew_l531_d40_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_l531_d40_install(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	mut installer := bundle_brew_installer_from_value(args[0])
 	state := bundle_brew_state_from_value(args[1])
@@ -1451,7 +1451,7 @@ pub fn ruby_brew_l531_d40_install(args ...brew_runtime.Value) brew_runtime.Value
 	} else {
 		BundleBrewEffects{}
 	}
-	return brew_runtime.bool_value(bundle_brew_install_instance(mut installer, state, effects, if args.len > 3 {
+	return ruby.bool_value(bundle_brew_install_instance(mut installer, state, effects, if args.len > 3 {
 		bundle_brew_bool(args[3], true)
 	} else {
 		true
@@ -1463,9 +1463,9 @@ pub fn ruby_brew_l531_d40_install(args ...brew_runtime.Value) brew_runtime.Value
 }
 
 // Ruby method `install_change_state!(no_upgrade:, verbose:, force:)` at line 567.
-pub fn ruby_brew_l567_d41_install_change_state(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_l567_d41_install_change_state(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	mut installer := bundle_brew_installer_from_value(args[0])
 	state := bundle_brew_state_from_value(args[1])
@@ -1474,7 +1474,7 @@ pub fn ruby_brew_l567_d41_install_change_state(args ...brew_runtime.Value) brew_
 	} else {
 		BundleBrewEffects{}
 	}
-	return brew_runtime.bool_value(bundle_brew_install_change(mut installer, state, effects, if args.len > 3 {
+	return ruby.bool_value(bundle_brew_install_change(mut installer, state, effects, if args.len > 3 {
 		bundle_brew_bool(args[3], false)
 	} else {
 		false
@@ -1482,36 +1482,36 @@ pub fn ruby_brew_l567_d41_install_change_state(args ...brew_runtime.Value) brew_
 }
 
 // Ruby method `start_service?` at line 591.
-pub fn ruby_brew_l591_d42_start_service(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(args.len > 0 && bundle_brew_start_service(bundle_brew_installer_from_value(args[0])))
+pub fn ruby_brew_l591_d42_start_service(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(args.len > 0 && bundle_brew_start_service(bundle_brew_installer_from_value(args[0])))
 }
 
 // Ruby method `start_service_needed?` at line 596.
-pub fn ruby_brew_l596_d43_start_service_needed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(args.len > 0 && bundle_brew_start_service_needed(bundle_brew_installer_from_value(args[0])))
+pub fn ruby_brew_l596_d43_start_service_needed(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(args.len > 0 && bundle_brew_start_service_needed(bundle_brew_installer_from_value(args[0])))
 }
 
 // Ruby method `restart_service?` at line 602.
-pub fn ruby_brew_l602_d44_restart_service(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(args.len > 0 && bundle_brew_restart_service(bundle_brew_installer_from_value(args[0])))
+pub fn ruby_brew_l602_d44_restart_service(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(args.len > 0 && bundle_brew_restart_service(bundle_brew_installer_from_value(args[0])))
 }
 
 // Ruby method `restart_service_needed?` at line 607.
-pub fn ruby_brew_l607_d45_restart_service_needed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(args.len > 0 && bundle_brew_restart_service_needed(bundle_brew_installer_from_value(args[0])))
+pub fn ruby_brew_l607_d45_restart_service_needed(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(args.len > 0 && bundle_brew_restart_service_needed(bundle_brew_installer_from_value(args[0])))
 }
 
 // Ruby method `changed?` at line 615.
-pub fn ruby_brew_l615_d46_changed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(args.len > 0 && bundle_brew_installer_from_value(args[0]).changed)
+pub fn ruby_brew_l615_d46_changed(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(args.len > 0 && bundle_brew_installer_from_value(args[0]).changed)
 }
 
 // Ruby method `service_change_state!(verbose:)` at line 620.
-pub fn ruby_brew_l620_d47_service_change_state(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_l620_d47_service_change_state(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(bundle_brew_service_change(bundle_brew_installer_from_value(args[0]), if args.len > 1 {
+	return ruby.bool_value(bundle_brew_service_change(bundle_brew_installer_from_value(args[0]), if args.len > 1 {
 		bundle_brew_effects_from_value(args[1])
 	} else {
 		BundleBrewEffects{}
@@ -1519,11 +1519,11 @@ pub fn ruby_brew_l620_d47_service_change_state(args ...brew_runtime.Value) brew_
 }
 
 // Ruby method `link_change_state!(verbose: false)` at line 637.
-pub fn ruby_brew_l637_d48_link_change_state(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_l637_d48_link_change_state(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(bundle_brew_link_change(bundle_brew_installer_from_value(args[0]), if args.len > 1 {
+	return ruby.bool_value(bundle_brew_link_change(bundle_brew_installer_from_value(args[0]), if args.len > 1 {
 		bundle_brew_effects_from_value(args[1])
 	} else {
 		BundleBrewEffects{}
@@ -1531,11 +1531,11 @@ pub fn ruby_brew_l637_d48_link_change_state(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby method `postinstall_change_state!(verbose:)` at line 659.
-pub fn ruby_brew_l659_d49_postinstall_change_state(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_l659_d49_postinstall_change_state(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(bundle_brew_postinstall_change(bundle_brew_installer_from_value(args[0]), if args.len > 1 {
+	return ruby.bool_value(bundle_brew_postinstall_change(bundle_brew_installer_from_value(args[0]), if args.len > 1 {
 		bundle_brew_effects_from_value(args[1])
 	} else {
 		BundleBrewEffects{}
@@ -1543,66 +1543,66 @@ pub fn ruby_brew_l659_d49_postinstall_change_state(args ...brew_runtime.Value) b
 }
 
 // Ruby method `formula_name(formula)` at line 670.
-pub fn ruby_brew_l670_d50_formula_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_l670_d50_formula_name(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'formula must be a String or Dsl::Entry')
+		return ruby.object_value('ArgumentError', 'formula must be a String or Dsl::Entry')
 	}
 	if args[0].type_name == 'String' {
 		return args[0]
 	}
 	if args[0].type_name == 'Homebrew::Bundle::Dsl::Entry' {
-		return brew_runtime.string_value(args[0].repr)
+		return ruby.string_value(args[0].repr)
 	}
-	return brew_runtime.object_value('TypeError', 'formula must be a String or Dsl::Entry, got ${args[0].type_name}: ${args[0].repr}')
+	return ruby.object_value('TypeError', 'formula must be a String or Dsl::Entry, got ${args[0].type_name}: ${args[0].repr}')
 }
 
 // Ruby method `formula_options(formula)` at line 678.
-pub fn ruby_brew_l678_d51_formula_options(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_l678_d51_formula_options(args ...ruby.Value) ruby.Value {
 	return if args.len > 0 && args[0].type_name == 'Homebrew::Bundle::Dsl::Entry' {
-		brew_runtime.map_value(args[0].map_data)
+		ruby.map_value(args[0].map_data)
 	} else {
-		brew_runtime.map_value({})
+		ruby.map_value({})
 	}
 }
 
 // Ruby method `installed?` at line 685.
-pub fn ruby_brew_l685_d52_installed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_l685_d52_installed(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(bundle_brew_formula_installed(bundle_brew_state_from_value(args[1]), bundle_brew_installer_from_value(args[0]).name))
+	return ruby.bool_value(bundle_brew_formula_installed(bundle_brew_state_from_value(args[1]), bundle_brew_installer_from_value(args[0]).name))
 }
 
 // Ruby method `linked?` at line 690.
-pub fn ruby_brew_l690_d53_linked(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(args.len > 0 && bundle_brew_installer_from_value(args[0]).linked)
+pub fn ruby_brew_l690_d53_linked(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(args.len > 0 && bundle_brew_installer_from_value(args[0]).linked)
 }
 
 // Ruby method `keg_only?` at line 695.
-pub fn ruby_brew_l695_d54_keg_only(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(args.len > 0 && bundle_brew_installer_from_value(args[0]).keg_only)
+pub fn ruby_brew_l695_d54_keg_only(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(args.len > 0 && bundle_brew_installer_from_value(args[0]).keg_only)
 }
 
 // Ruby method `unlinked_and_keg_only?` at line 700.
-pub fn ruby_brew_l700_d55_unlinked_and_keg_only(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_l700_d55_unlinked_and_keg_only(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	installer := bundle_brew_installer_from_value(args[0])
-	return brew_runtime.bool_value(!installer.linked && installer.keg_only)
+	return ruby.bool_value(!installer.linked && installer.keg_only)
 }
 
 // Ruby method `upgradable?` at line 705.
-pub fn ruby_brew_l705_d56_upgradable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_l705_d56_upgradable(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	installer := bundle_brew_installer_from_value(args[0])
-	return brew_runtime.bool_value(bundle_brew_formula_upgradable(bundle_brew_state_from_value(args[1]), installer.full_name))
+	return ruby.bool_value(bundle_brew_formula_upgradable(bundle_brew_state_from_value(args[1]), installer.full_name))
 }
 
 // Ruby method `conflicts_with` at line 710.
-pub fn ruby_brew_l710_d57_conflicts_with(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_l710_d57_conflicts_with(args ...ruby.Value) ruby.Value {
 	return if args.len > 0 {
 		bundle_brew_strings_value(bundle_brew_conflicts(bundle_brew_installer_from_value(args[0])))
 	} else {
@@ -1611,11 +1611,11 @@ pub fn ruby_brew_l710_d57_conflicts_with(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `resolve_conflicts!(verbose:)` at line 729.
-pub fn ruby_brew_l729_d58_resolve_conflicts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_l729_d58_resolve_conflicts(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(bundle_brew_resolve_conflicts(bundle_brew_installer_from_value(args[0]), bundle_brew_state_from_value(args[1]), if args.len > 2 {
+	return ruby.bool_value(bundle_brew_resolve_conflicts(bundle_brew_installer_from_value(args[0]), bundle_brew_state_from_value(args[1]), if args.len > 2 {
 		bundle_brew_effects_from_value(args[2])
 	} else {
 		BundleBrewEffects{}
@@ -1623,12 +1623,12 @@ pub fn ruby_brew_l729_d58_resolve_conflicts(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby method `install_formula!(verbose:, force:)` at line 752.
-pub fn ruby_brew_l752_d59_install_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_l752_d59_install_formula(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	mut installer := bundle_brew_installer_from_value(args[0])
-	return brew_runtime.bool_value(bundle_brew_install_formula(mut installer, if args.len > 1 {
+	return ruby.bool_value(bundle_brew_install_formula(mut installer, if args.len > 1 {
 		bundle_brew_effects_from_value(args[1])
 	} else {
 		BundleBrewEffects{}
@@ -1640,12 +1640,12 @@ pub fn ruby_brew_l752_d59_install_formula(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby method `upgrade_formula!(verbose:, force:)` at line 769.
-pub fn ruby_brew_l769_d60_upgrade_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_l769_d60_upgrade_formula(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	mut installer := bundle_brew_installer_from_value(args[0])
-	return brew_runtime.bool_value(bundle_brew_upgrade_formula(mut installer, if args.len > 1 {
+	return ruby.bool_value(bundle_brew_upgrade_formula(mut installer, if args.len > 1 {
 		bundle_brew_effects_from_value(args[1])
 	} else {
 		BundleBrewEffects{}
@@ -1657,7 +1657,7 @@ pub fn ruby_brew_l769_d60_upgrade_formula(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby method `each_key(&block)` at line 798.
-pub fn ruby_brew_l798_d61_each_key(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_l798_d61_each_key(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return bundle_brew_strings_value([])
 	}
@@ -1667,12 +1667,12 @@ pub fn ruby_brew_l798_d61_each_key(args ...brew_runtime.Value) brew_runtime.Valu
 }
 
 // Ruby alias `alias tsort_each_node each_key` at line 801.
-pub fn ruby_brew_l801_d62_tsort_each_node(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_l801_d62_tsort_each_node(args ...ruby.Value) ruby.Value {
 	return ruby_brew_l798_d61_each_key(...args)
 }
 
 // Ruby method `tsort_each_child(node, &block)` at line 804.
-pub fn ruby_brew_l804_d63_tsort_each_child(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_l804_d63_tsort_each_child(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		return bundle_brew_strings_value([])
 	}

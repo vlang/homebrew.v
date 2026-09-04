@@ -1,6 +1,6 @@
 module test
 
-import brew_runtime
+import ruby
 import homebrew
 import homebrew.api
 import os
@@ -220,109 +220,109 @@ fn cleaner_spec_case(line int) bool {
 	}
 }
 
-fn cleaner_spec_bool(value bool) brew_runtime.Value {
-	return brew_runtime.bool_value(value)
+fn cleaner_spec_bool(value bool) ruby.Value {
+	return ruby.bool_value(value)
 }
 
 // Ruby subject `subject(:cleaner) { described_class.new(f) }` at line 11.
-pub fn ruby_cleaner_spec_l11_d1_cleaner(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cleaner_spec_l11_d1_cleaner(args ...ruby.Value) ruby.Value {
 	_ = args
 	formula := cleaner_spec_formula(cleaner_spec_root(11), []string{})
 	return homebrew.ruby_cleaner_l22_d1_initialize(homebrew.formula_boundary_value(formula))
 }
 
 // Ruby let `let(:f) do` at line 13.
-pub fn ruby_cleaner_spec_l13_d2_f(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cleaner_spec_l13_d2_f(args ...ruby.Value) ruby.Value {
 	_ = args
 	return homebrew.formula_boundary_value(cleaner_spec_formula(cleaner_spec_root(13), []string{}))
 }
 
 // Ruby it `it "cleans files" do` at line 24.
-pub fn ruby_cleaner_spec_l24_d3_cleans(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cleaner_spec_l24_d3_cleans(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cleaner_spec_bool(cleaner_spec_case(24))
 }
 
 // Ruby it `it "prunes the prefix if it is empty" do` at line 49.
-pub fn ruby_cleaner_spec_l49_d4_prunes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cleaner_spec_l49_d4_prunes(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cleaner_spec_bool(cleaner_spec_case(49))
 }
 
 // Ruby it `it "prunes empty directories" do` at line 54.
-pub fn ruby_cleaner_spec_l54_d5_prunes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cleaner_spec_l54_d5_prunes(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cleaner_spec_bool(cleaner_spec_case(54))
 }
 
 // Ruby it `it "removes a symlink when its target was pruned before" do` at line 64.
-pub fn ruby_cleaner_spec_l64_d6_removes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cleaner_spec_l64_d6_removes(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cleaner_spec_bool(cleaner_spec_case(64))
 }
 
 // Ruby it `it "removes symlinks pointing to an empty directory" do` at line 78.
-pub fn ruby_cleaner_spec_l78_d7_removes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cleaner_spec_l78_d7_removes(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cleaner_spec_bool(cleaner_spec_case(78))
 }
 
 // Ruby it `it "removes broken symlinks" do` at line 92.
-pub fn ruby_cleaner_spec_l92_d8_removes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cleaner_spec_l92_d8_removes(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cleaner_spec_bool(cleaner_spec_case(92))
 }
 
 // Ruby it `it "removes '.la' files" do` at line 101.
-pub fn ruby_cleaner_spec_l101_d9_removes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cleaner_spec_l101_d9_removes(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cleaner_spec_bool(cleaner_spec_case(101))
 }
 
 // Ruby it `it "removes 'perllocal' files" do` at line 112.
-pub fn ruby_cleaner_spec_l112_d10_removes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cleaner_spec_l112_d10_removes(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cleaner_spec_bool(cleaner_spec_case(112))
 }
 
 // Ruby it `it "removes '.packlist' files" do` at line 123.
-pub fn ruby_cleaner_spec_l123_d11_removes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cleaner_spec_l123_d11_removes(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cleaner_spec_bool(cleaner_spec_case(123))
 }
 
 // Ruby it `it "removes 'charset.alias' files" do` at line 134.
-pub fn ruby_cleaner_spec_l134_d12_removes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cleaner_spec_l134_d12_removes(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cleaner_spec_bool(cleaner_spec_case(134))
 }
 
 // Ruby it `it "removes 'info/**/dir' files except for 'info/<name>/dir'" do` at line 145.
-pub fn ruby_cleaner_spec_l145_d13_removes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cleaner_spec_l145_d13_removes(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cleaner_spec_bool(cleaner_spec_case(145))
 }
 
 // Ruby it `it "removes '*.dist-info/direct_url.json' files" do` at line 165.
-pub fn ruby_cleaner_spec_l165_d14_removes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cleaner_spec_l165_d14_removes(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cleaner_spec_bool(cleaner_spec_case(165))
 }
 
 // Ruby it `it "removes '*.dist-info/RECORD' files" do` at line 183.
-pub fn ruby_cleaner_spec_l183_d15_removes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cleaner_spec_l183_d15_removes(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cleaner_spec_bool(cleaner_spec_case(183))
 }
 
 // Ruby it `it "modifies '*.dist-info/INSTALLER' files" do` at line 201.
-pub fn ruby_cleaner_spec_l201_d16_modifies(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cleaner_spec_l201_d16_modifies(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cleaner_spec_bool(cleaner_spec_case(201))
 }
 
 // Ruby method `stub_formula_skip_clean(skip_paths)` at line 213.
-pub fn ruby_cleaner_spec_l213_d17_stub_formula_skip_clean(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cleaner_spec_l213_d17_stub_formula_skip_clean(args ...ruby.Value) ruby.Value {
 	mut paths := []string{}
 	if args.len > 0 {
 		if values := args[0].as_string_array() {
@@ -335,49 +335,49 @@ pub fn ruby_cleaner_spec_l213_d17_stub_formula_skip_clean(args ...brew_runtime.V
 }
 
 // Ruby it `it "adds paths that should be skipped" do` at line 222.
-pub fn ruby_cleaner_spec_l222_d18_adds(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cleaner_spec_l222_d18_adds(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cleaner_spec_bool(cleaner_spec_case(222))
 }
 
 // Ruby it `it "also skips empty sub-directories under the added paths" do` at line 231.
-pub fn ruby_cleaner_spec_l231_d19_also(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cleaner_spec_l231_d19_also(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cleaner_spec_bool(cleaner_spec_case(231))
 }
 
 // Ruby it `it "allows skipping broken symlinks" do` at line 242.
-pub fn ruby_cleaner_spec_l242_d20_allows(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cleaner_spec_l242_d20_allows(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cleaner_spec_bool(cleaner_spec_case(242))
 }
 
 // Ruby it `it "allows skipping symlinks pointing to an empty directory" do` at line 253.
-pub fn ruby_cleaner_spec_l253_d21_allows(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cleaner_spec_l253_d21_allows(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cleaner_spec_bool(cleaner_spec_case(253))
 }
 
 // Ruby it `it "allows skipping symlinks whose target was pruned before" do` at line 268.
-pub fn ruby_cleaner_spec_l268_d22_allows(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cleaner_spec_l268_d22_allows(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cleaner_spec_bool(cleaner_spec_case(268))
 }
 
 // Ruby it `it "allows skipping '.la' files" do` at line 283.
-pub fn ruby_cleaner_spec_l283_d23_allows(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cleaner_spec_l283_d23_allows(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cleaner_spec_bool(cleaner_spec_case(283))
 }
 
 // Ruby it `it "allows skipping sub-directories" do` at line 296.
-pub fn ruby_cleaner_spec_l296_d24_allows(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cleaner_spec_l296_d24_allows(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cleaner_spec_bool(cleaner_spec_case(296))
 }
 
 // Ruby it `it "allows skipping paths relative to prefix" do` at line 308.
-pub fn ruby_cleaner_spec_l308_d25_allows(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cleaner_spec_l308_d25_allows(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cleaner_spec_bool(cleaner_spec_case(308))
 }

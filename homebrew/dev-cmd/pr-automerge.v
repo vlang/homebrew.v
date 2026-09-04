@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `dev-cmd/pr-automerge.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -122,38 +122,38 @@ pub:
 	options PrAutomergeOptions
 }
 
-pub fn pr_automerge_input_boundary(input &PrAutomergeInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::PrAutomerge::Input', '', {
+pub fn pr_automerge_input_boundary(input &PrAutomergeInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::PrAutomerge::Input', '', {
 		'pr_automerge_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn pr_automerge_input_from_value(value brew_runtime.Value) &PrAutomergeInput {
+fn pr_automerge_input_from_value(value ruby.Value) &PrAutomergeInput {
 	address := value.attributes['pr_automerge_input_address'] or {
 		panic('invalid PrAutomerge command input')
 	}
 	return unsafe { &PrAutomergeInput(voidptr(address.u64())) }
 }
 
-fn pr_automerge_result_value(result PrAutomergeResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'query':              brew_runtime.string_value(result.query)
-		'debug_messages':     brew_runtime.string_array_value(result.debug_messages)
-		'ohai_messages':      brew_runtime.string_array_value(result.ohai_messages)
-		'pull_request_lines': brew_runtime.string_array_value(result.pull_request_lines)
-		'pr_urls':            brew_runtime.string_array_value(result.pr_urls)
-		'publish_args':       brew_runtime.string_array_value(result.publish_args)
-		'publish_command':    brew_runtime.string_array_value(result.publish_command)
-		'instruction':        brew_runtime.string_value(result.instruction)
-		'published':          brew_runtime.bool_value(result.published)
-		'no_matches':         brew_runtime.bool_value(result.no_matches)
+fn pr_automerge_result_value(result PrAutomergeResult) ruby.Value {
+	return ruby.map_value({
+		'query':              ruby.string_value(result.query)
+		'debug_messages':     ruby.string_array_value(result.debug_messages)
+		'ohai_messages':      ruby.string_array_value(result.ohai_messages)
+		'pull_request_lines': ruby.string_array_value(result.pull_request_lines)
+		'pr_urls':            ruby.string_array_value(result.pr_urls)
+		'publish_args':       ruby.string_array_value(result.publish_args)
+		'publish_command':    ruby.string_array_value(result.publish_command)
+		'instruction':        ruby.string_value(result.instruction)
+		'published':          ruby.bool_value(result.published)
+		'no_matches':         ruby.bool_value(result.no_matches)
 	})
 }
 
 // Ruby method `run` at line 41.
-pub fn ruby_pr_automerge_l41_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pr_automerge_l41_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'command input is required')
+		return ruby.object_value('ArgumentError', 'command input is required')
 	}
 	input := pr_automerge_input_from_value(args[0])
 	return pr_automerge_result_value(run_pr_automerge(input.options))

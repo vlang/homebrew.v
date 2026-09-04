@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `dev-cmd/dispatch-build-bottle.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -197,57 +197,57 @@ pub fn run_dispatch_build_bottle(options DispatchBuildBottleOptions) !DispatchBu
 	}
 }
 
-pub fn dispatch_build_bottle_input_boundary(input &DispatchBuildBottleInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::DispatchBuildBottle::Input', '', {
+pub fn dispatch_build_bottle_input_boundary(input &DispatchBuildBottleInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::DispatchBuildBottle::Input', '', {
 		'dispatch_build_bottle_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn dispatch_build_bottle_input_from_value(value brew_runtime.Value) &DispatchBuildBottleInput {
+fn dispatch_build_bottle_input_from_value(value ruby.Value) &DispatchBuildBottleInput {
 	address := value.attributes['dispatch_build_bottle_input_address'] or {
 		panic('invalid DispatchBuildBottle input')
 	}
 	return unsafe { &DispatchBuildBottleInput(voidptr(address.u64())) }
 }
 
-fn dispatch_build_bottle_inputs_value(inputs DispatchBuildBottleInputs) brew_runtime.Value {
+fn dispatch_build_bottle_inputs_value(inputs DispatchBuildBottleInputs) ruby.Value {
 	mut values := {
-		'runner':  brew_runtime.string_value(inputs.runner)
-		'formula': brew_runtime.string_value(inputs.formula)
-		'upload':  brew_runtime.bool_value(inputs.upload)
+		'runner':  ruby.string_value(inputs.runner)
+		'formula': ruby.string_value(inputs.formula)
+		'upload':  ruby.bool_value(inputs.upload)
 	}
 	if inputs.has_timeout {
-		values['timeout'] = brew_runtime.string_value(inputs.timeout)
+		values['timeout'] = ruby.string_value(inputs.timeout)
 	}
 	if inputs.has_issue {
-		values['issue'] = brew_runtime.string_value(inputs.issue)
+		values['issue'] = ruby.string_value(inputs.issue)
 	}
-	return brew_runtime.map_value(values)
+	return ruby.map_value(values)
 }
 
-fn dispatch_build_bottle_workflow_value(dispatch DispatchBuildBottleWorkflow) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'user':     brew_runtime.string_value(dispatch.user)
-		'repo':     brew_runtime.string_value(dispatch.repo)
-		'workflow': brew_runtime.string_value(dispatch.workflow)
-		'ref':      brew_runtime.string_value(dispatch.ref)
+fn dispatch_build_bottle_workflow_value(dispatch DispatchBuildBottleWorkflow) ruby.Value {
+	return ruby.map_value({
+		'user':     ruby.string_value(dispatch.user)
+		'repo':     ruby.string_value(dispatch.repo)
+		'workflow': ruby.string_value(dispatch.workflow)
+		'ref':      ruby.string_value(dispatch.ref)
 		'inputs':   dispatch_build_bottle_inputs_value(dispatch.inputs)
 	})
 }
 
-fn dispatch_build_bottle_result_value(result DispatchBuildBottleResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'tap':        brew_runtime.string_value(result.tap)
-		'runners':    brew_runtime.string_array_value(result.runners)
-		'messages':   brew_runtime.string_array_value(result.messages)
-		'dispatches': brew_runtime.array_value(result.dispatches.map(dispatch_build_bottle_workflow_value(it)))
+fn dispatch_build_bottle_result_value(result DispatchBuildBottleResult) ruby.Value {
+	return ruby.map_value({
+		'tap':        ruby.string_value(result.tap)
+		'runners':    ruby.string_array_value(result.runners)
+		'messages':   ruby.string_array_value(result.messages)
+		'dispatches': ruby.array_value(result.dispatches.map(dispatch_build_bottle_workflow_value(it)))
 	})
 }
 
 // Ruby method `run` at line 43.
-pub fn ruby_dispatch_build_bottle_l43_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dispatch_build_bottle_l43_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'command input is required')
+		return ruby.object_value('ArgumentError', 'command input is required')
 	}
 	options := dispatch_build_bottle_input_from_value(args[0]).options
 	return dispatch_build_bottle_result_value(run_dispatch_build_bottle(options) or {
@@ -262,7 +262,7 @@ pub fn ruby_dispatch_build_bottle_l43_d1_run(args ...brew_runtime.Value) brew_ru
 		} else {
 			'Error'
 		}
-		return brew_runtime.object_value(error_type, err.msg())
+		return ruby.object_value(error_type, err.msg())
 	})
 }
 

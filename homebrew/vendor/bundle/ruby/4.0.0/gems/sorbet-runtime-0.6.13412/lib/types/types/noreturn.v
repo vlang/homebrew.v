@@ -1,6 +1,6 @@
 module types
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/types/noreturn.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -10,49 +10,49 @@ pub fn new_no_return_type() NoReturnType {
 	return NoReturnType{}
 }
 
-pub fn (_ NoReturnType) build_type() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+pub fn (_ NoReturnType) build_type() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 pub fn (_ NoReturnType) name() string {
 	return 'T.noreturn'
 }
 
-pub fn (_ NoReturnType) valid(_ brew_runtime.Value) bool {
+pub fn (_ NoReturnType) valid(_ ruby.Value) bool {
 	return false
 }
 
-pub fn (_ NoReturnType) subtype_of_single(_ brew_runtime.Value) bool {
+pub fn (_ NoReturnType) subtype_of_single(_ ruby.Value) bool {
 	return true
 }
 
-fn no_return_type_value() brew_runtime.Value {
-	return brew_runtime.object_value('T::Types::NoReturn', 'T.noreturn')
+fn no_return_type_value() ruby.Value {
+	return ruby.object_value('T::Types::NoReturn', 'T.noreturn')
 }
 
 // Ruby method `initialize; end` at line 7.
-pub fn ruby_noreturn_l7_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+pub fn ruby_noreturn_l7_d1_initialize(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `build_type` at line 9.
-pub fn ruby_noreturn_l9_d2_build_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_noreturn_l9_d2_build_type(args ...ruby.Value) ruby.Value {
 	return new_no_return_type().build_type()
 }
 
 // Ruby method `name` at line 14.
-pub fn ruby_noreturn_l14_d3_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(new_no_return_type().name())
+pub fn ruby_noreturn_l14_d3_name(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(new_no_return_type().name())
 }
 
 // Ruby method `valid?(obj)` at line 19.
-pub fn ruby_noreturn_l19_d4_valid(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(false)
+pub fn ruby_noreturn_l19_d4_valid(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(false)
 }
 
 // Ruby method `subtype_of_single?(other)` at line 24.
-pub fn ruby_noreturn_l24_d5_subtype_of_single(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(true)
+pub fn ruby_noreturn_l24_d5_subtype_of_single(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(true)
 }
 
 // Original Ruby source (line-for-line):

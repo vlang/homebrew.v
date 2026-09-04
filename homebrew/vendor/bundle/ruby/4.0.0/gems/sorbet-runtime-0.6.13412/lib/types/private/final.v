@@ -1,6 +1,6 @@
 module private
 
-import brew_runtime
+import ruby
 import sync
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/private/final.rb`.
@@ -80,7 +80,7 @@ fn final_registry() &FinalRegistry {
 	return unsafe { &FinalRegistry(final_registry_global) }
 }
 
-fn final_target_from_value(value brew_runtime.Value) FinalTarget {
+fn final_target_from_value(value ruby.Value) FinalTarget {
 	id := value.attribute('object_id') or { '${value.type_name}:${value.as_string()}' }
 	kind := if value.type_name == 'Class' {
 		FinalTargetKind.class_
@@ -98,7 +98,7 @@ fn final_target_from_value(value brew_runtime.Value) FinalTarget {
 	}
 }
 
-fn final_receiver_name(args []brew_runtime.Value) string {
+fn final_receiver_name(args []ruby.Value) string {
 	if args.len == 0 {
 		panic('final hook requires a receiver')
 	}
@@ -106,50 +106,50 @@ fn final_receiver_name(args []brew_runtime.Value) string {
 }
 
 // Ruby method `inherited(arg)` at line 6.
-pub fn ruby_final_l6_d1_inherited(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_final_l6_d1_inherited(args ...ruby.Value) ruby.Value {
 	final_inherited(final_receiver_name(args)) or { panic(err.msg()) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `included(arg)` at line 13.
-pub fn ruby_final_l13_d2_included(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_final_l13_d2_included(args ...ruby.Value) ruby.Value {
 	final_included(final_receiver_name(args)) or { panic(err.msg()) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `extended(arg)` at line 18.
-pub fn ruby_final_l18_d3_extended(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_final_l18_d3_extended(args ...ruby.Value) ruby.Value {
 	final_extended(final_receiver_name(args)) or { panic(err.msg()) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `self.declare(mod)` at line 24.
-pub fn ruby_final_l24_d4_self_declare(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_final_l24_d4_self_declare(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Final.declare requires a module')
 	}
 	mut registry := final_registry()
 	registry.declare(final_target_from_value(args[0])) or { panic(err.msg()) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `self.final_module?(mod)` at line 43.
-pub fn ruby_final_l43_d5_self_final_module(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_final_l43_d5_self_final_module(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	mut registry := final_registry()
-	return brew_runtime.bool_value(registry.final_module(final_target_from_value(args[0]).id))
+	return ruby.bool_value(registry.final_module(final_target_from_value(args[0]).id))
 }
 
 // Ruby method `self.mark_as_final_module(mod)` at line 47.
-pub fn ruby_final_l47_d6_self_mark_as_final_module(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_final_l47_d6_self_mark_as_final_module(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Final.mark_as_final_module requires a module')
 	}
 	mut registry := final_registry()
 	registry.mark_as_final_module(final_target_from_value(args[0]).id)
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
 // Original Ruby source (line-for-line):

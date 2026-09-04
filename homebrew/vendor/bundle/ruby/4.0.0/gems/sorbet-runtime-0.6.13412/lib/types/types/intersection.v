@@ -1,10 +1,10 @@
 module types
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/types/intersection.rb`.
 // The original source is retained below until every stub has a typed V body.
-fn intersection_coerce(value brew_runtime.Value) !&BaseType {
+fn intersection_coerce(value ruby.Value) !&BaseType {
 	if type_value := base_type_from_value(value) {
 		return type_value
 	}
@@ -24,7 +24,7 @@ fn intersection_contains(types []&BaseType, candidate &BaseType) bool {
 	return false
 }
 
-pub fn new_intersection_type(values []brew_runtime.Value) !&BaseType {
+pub fn new_intersection_type(values []ruby.Value) !&BaseType {
 	mut members := []&BaseType{}
 	for value in values {
 		type_value := intersection_coerce(value)!
@@ -41,7 +41,7 @@ pub fn new_intersection_type(values []brew_runtime.Value) !&BaseType {
 	return new_intersection_base_type(members)
 }
 
-fn intersection_type_from_args(args []brew_runtime.Value) &BaseType {
+fn intersection_type_from_args(args []ruby.Value) &BaseType {
 	if args.len == 0 {
 		panic('Intersection method requires a receiver')
 	}
@@ -52,12 +52,12 @@ fn intersection_type_from_args(args []brew_runtime.Value) &BaseType {
 	return type_value
 }
 
-fn intersection_members_value(type_value &BaseType) brew_runtime.Value {
-	return brew_runtime.array_value(type_value.members.map(base_type_boundary_value(it)))
+fn intersection_members_value(type_value &BaseType) ruby.Value {
+	return ruby.array_value(type_value.members.map(base_type_boundary_value(it)))
 }
 
 // Ruby method `initialize(types)` at line 7.
-pub fn ruby_intersection_l7_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_intersection_l7_d1_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Intersection#initialize requires types')
 	}
@@ -67,43 +67,43 @@ pub fn ruby_intersection_l7_d1_initialize(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby method `types` at line 11.
-pub fn ruby_intersection_l11_d2_types(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_intersection_l11_d2_types(args ...ruby.Value) ruby.Value {
 	return intersection_members_value(intersection_type_from_args(args))
 }
 
 // Ruby method `build_type` at line 23.
-pub fn ruby_intersection_l23_d3_build_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_intersection_l23_d3_build_type(args ...ruby.Value) ruby.Value {
 	intersection_type_from_args(args).build_type() or { panic(err) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `name` at line 29.
-pub fn ruby_intersection_l29_d4_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(intersection_type_from_args(args).name() or { panic(err) })
+pub fn ruby_intersection_l29_d4_name(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(intersection_type_from_args(args).name() or { panic(err) })
 }
 
 // Ruby method `recursively_valid?(obj)` at line 34.
-pub fn ruby_intersection_l34_d5_recursively_valid(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_intersection_l34_d5_recursively_valid(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Intersection#recursively_valid? requires an object')
 	}
-	return brew_runtime.bool_value(intersection_type_from_args(args).recursively_valid(args[1]) or {
+	return ruby.bool_value(intersection_type_from_args(args).recursively_valid(args[1]) or {
 		panic(err)
 	})
 }
 
 // Ruby method `valid?(obj)` at line 45.
-pub fn ruby_intersection_l45_d6_valid(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_intersection_l45_d6_valid(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Intersection#valid? requires an object')
 	}
-	return brew_runtime.bool_value(intersection_type_from_args(args).valid(args[1]) or {
+	return ruby.bool_value(intersection_type_from_args(args).valid(args[1]) or {
 		panic(err)
 	})
 }
 
 // Ruby method `subtype_of_single?(other)` at line 56.
-pub fn ruby_intersection_l56_d7_subtype_of_single(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_intersection_l56_d7_subtype_of_single(args ...ruby.Value) ruby.Value {
 	intersection_type_from_args(args)
 	panic("This should never be reached if you're going through `subtype_of?` (and you should be)")
 }

@@ -1,6 +1,6 @@
 module text
 
-import brew_runtime
+import ruby
 import homebrew.rubocops as line_cops
 
 // Translated from Homebrew/brew `test/rubocops/text/license_arrays_spec.rb`.
@@ -16,34 +16,34 @@ fn license_arrays_spec_analyze(declaration string) line_cops.LinesAnalysis {
 }
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
-pub fn ruby_license_arrays_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::LicenseArrays', 'LicenseArrays')
+pub fn ruby_license_arrays_spec_l7_d1_cop(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('RuboCop::Cop::FormulaAudit::LicenseArrays', 'LicenseArrays')
 }
 
 // Ruby it `it "reports no offenses for license strings" do` at line 10.
-pub fn ruby_license_arrays_spec_l10_d2_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_license_arrays_spec_l10_d2_reports(args ...ruby.Value) ruby.Value {
 	analysis := license_arrays_spec_analyze('license "MIT"')
-	return brew_runtime.bool_value(analysis.offenses.len == 0 && analysis.corrected == license_arrays_spec_formula('license "MIT"'))
+	return ruby.bool_value(analysis.offenses.len == 0 && analysis.corrected == license_arrays_spec_formula('license "MIT"'))
 }
 
 // Ruby it `it "reports no offenses for license symbols" do` at line 20.
-pub fn ruby_license_arrays_spec_l20_d3_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_license_arrays_spec_l20_d3_reports(args ...ruby.Value) ruby.Value {
 	analysis := license_arrays_spec_analyze('license :public_domain')
-	return brew_runtime.bool_value(analysis.offenses.len == 0 && analysis.corrected == license_arrays_spec_formula('license :public_domain'))
+	return ruby.bool_value(analysis.offenses.len == 0 && analysis.corrected == license_arrays_spec_formula('license :public_domain'))
 }
 
 // Ruby it `it "reports no offenses for license hashes" do` at line 30.
-pub fn ruby_license_arrays_spec_l30_d4_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_license_arrays_spec_l30_d4_reports(args ...ruby.Value) ruby.Value {
 	analysis := license_arrays_spec_analyze('license any_of: ["MIT", "0BSD"]')
-	return brew_runtime.bool_value(analysis.offenses.len == 0 && analysis.corrected == license_arrays_spec_formula('license any_of: ["MIT", "0BSD"]'))
+	return ruby.bool_value(analysis.offenses.len == 0 && analysis.corrected == license_arrays_spec_formula('license any_of: ["MIT", "0BSD"]'))
 }
 
 // Ruby it `it "reports and corrects use of a license array" do` at line 40.
-pub fn ruby_license_arrays_spec_l40_d5_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_license_arrays_spec_l40_d5_reports(args ...ruby.Value) ruby.Value {
 	source := license_arrays_spec_formula('license ["MIT", "0BSD"]')
 	corrected := license_arrays_spec_formula('license any_of: ["MIT", "0BSD"]')
 	analysis := license_arrays_spec_analyze('license ["MIT", "0BSD"]')
-	return brew_runtime.bool_value(analysis.offenses.len == 1 && analysis.offenses[0].message == 'Use `license any_of: ["MIT", "0BSD"]` instead of `license ["MIT", "0BSD"]`' && analysis.offenses[0].replacement == 'license any_of: ["MIT", "0BSD"]' && source[analysis.offenses[0].begin_pos..analysis.offenses[0].end_pos] == 'license ["MIT", "0BSD"]' && analysis.corrected == corrected)
+	return ruby.bool_value(analysis.offenses.len == 1 && analysis.offenses[0].message == 'Use `license any_of: ["MIT", "0BSD"]` instead of `license ["MIT", "0BSD"]`' && analysis.offenses[0].replacement == 'license any_of: ["MIT", "0BSD"]' && source[analysis.offenses[0].begin_pos..analysis.offenses[0].end_pos] == 'license ["MIT", "0BSD"]' && analysis.corrected == corrected)
 }
 
 // Original Ruby source (line-for-line):

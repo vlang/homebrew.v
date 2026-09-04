@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 import os
 import time
 
@@ -165,12 +165,12 @@ fn as_console_user_spec_macos_env(fixture AsConsoleUserSpecFixture) map[string]s
 	}
 }
 
-fn as_console_user_spec_result_value(result AsConsoleUserShellResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'stdout':     brew_runtime.string_value(result.stdout)
-		'stderr':     brew_runtime.string_value(result.stderr)
-		'exitstatus': brew_runtime.int_value(i64(result.exit_code))
-		'success':    brew_runtime.bool_value(result.exit_code == 0)
+fn as_console_user_spec_result_value(result AsConsoleUserShellResult) ruby.Value {
+	return ruby.map_value({
+		'stdout':     ruby.string_value(result.stdout)
+		'stderr':     ruby.string_value(result.stderr)
+		'exitstatus': ruby.int_value(i64(result.exit_code))
+		'success':    ruby.bool_value(result.exit_code == 0)
 	})
 }
 
@@ -199,73 +199,73 @@ fn as_console_user_spec_package_case(label string, defaults_user string, stat_fu
 }
 
 fn as_console_user_spec_bool(result AsConsoleUserShellResult, expected_stdout string,
-	expected_stderr string, expected_exit int) brew_runtime.Value {
-	return brew_runtime.bool_value(result.stdout == expected_stdout && result.stderr == expected_stderr
+	expected_stderr string, expected_exit int) ruby.Value {
+	return ruby.bool_value(result.stdout == expected_stdout && result.stderr == expected_stderr
 		&& result.exit_code == expected_exit)
 }
 
 // Ruby let `let(:as_console_user_script) { HOMEBREW_LIBRARY_PATH/"cmd/as-console-user.sh" }` at line 10.
-pub fn ruby_as_console_user_spec_l10_d1_as_console_user_script(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_as_console_user_spec_l10_d1_as_console_user_script(args ...ruby.Value) ruby.Value {
 	root := if args.len > 0 { args[0].as_string() } else { os.getwd() }
-	return brew_runtime.object_value('Pathname', os.join_path(root, 'Library', 'Homebrew', 'cmd', 'as-console-user.sh'))
+	return ruby.object_value('Pathname', os.join_path(root, 'Library', 'Homebrew', 'cmd', 'as-console-user.sh'))
 }
 
 // Ruby let `let(:repository_root) { HOMEBREW_LIBRARY_PATH.parent.parent }` at line 11.
-pub fn ruby_as_console_user_spec_l11_d2_repository_root(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_as_console_user_spec_l11_d2_repository_root(args ...ruby.Value) ruby.Value {
 	root := if args.len > 0 { args[0].as_string() } else { os.getwd() }
-	return brew_runtime.object_value('Pathname', root)
+	return ruby.object_value('Pathname', root)
 }
 
 // Ruby let `let(:test_root) { mktmpdir }` at line 12.
-pub fn ruby_as_console_user_spec_l12_d3_test_root(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_as_console_user_spec_l12_d3_test_root(args ...ruby.Value) ruby.Value {
 	root := if args.len > 0 { args[0].as_string() } else { as_console_user_spec_root('test-root') }
 	os.mkdir_all(root) or {
-		return brew_runtime.object_value('SystemCallError', err.msg())
+		return ruby.object_value('SystemCallError', err.msg())
 	}
-	return brew_runtime.object_value('Pathname', root)
+	return ruby.object_value('Pathname', root)
 }
 
 // Ruby let `let(:macos_user_script) { repository_root/"Library/Homebrew/utils/macos_user.sh" }` at line 13.
-pub fn ruby_as_console_user_spec_l13_d4_macos_user_script(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_as_console_user_spec_l13_d4_macos_user_script(args ...ruby.Value) ruby.Value {
 	root := if args.len > 0 { args[0].as_string() } else { os.getwd() }
-	return brew_runtime.object_value('Pathname', os.join_path(root, 'Library', 'Homebrew', 'utils', 'macos_user.sh'))
+	return ruby.object_value('Pathname', os.join_path(root, 'Library', 'Homebrew', 'utils', 'macos_user.sh'))
 }
 
 // Ruby let `let(:macos_env) do` at line 15.
-pub fn ruby_as_console_user_spec_l15_d5_macos_env(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_as_console_user_spec_l15_d5_macos_env(args ...ruby.Value) ruby.Value {
 	root := if args.len > 0 { args[0].as_string() } else { os.getwd() }
-	return brew_runtime.map_value({
-		'HOMEBREW_BREW_FILE': brew_runtime.string_value('brew')
-		'HOMEBREW_LIBRARY':   brew_runtime.string_value(os.join_path(root, 'Library'))
-		'HOMEBREW_MACOS':     brew_runtime.string_value('1')
+	return ruby.map_value({
+		'HOMEBREW_BREW_FILE': ruby.string_value('brew')
+		'HOMEBREW_LIBRARY':   ruby.string_value(os.join_path(root, 'Library'))
+		'HOMEBREW_MACOS':     ruby.string_value('1')
 	})
 }
 
 // Ruby method `run_as_console_user_shell(script, env = {})` at line 25.
-pub fn ruby_as_console_user_spec_l25_d6_run_as_console_user_shell(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_as_console_user_spec_l25_d6_run_as_console_user_shell(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'script is required')
+		return ruby.object_value('ArgumentError', 'script is required')
 	}
 	mut environment := map[string]string{}
 	if args.len > 1 {
 		values := args[1].as_map() or {
-			return brew_runtime.object_value('ArgumentError', 'environment must be a Hash')
+			return ruby.object_value('ArgumentError', 'environment must be a Hash')
 		}
 		for key, value in values {
 			environment[key] = value.as_string()
 		}
 	}
 	result := as_console_user_spec_run_shell(args[0].as_string(), environment) or {
-		return brew_runtime.object_value('SystemCallError', err.msg())
+		return ruby.object_value('SystemCallError', err.msg())
 	}
 	return as_console_user_spec_result_value(result)
 }
 
 // Ruby it `it "prints help and fails when no command is provided" do` at line 31.
-pub fn ruby_as_console_user_spec_l31_d7_prints(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_as_console_user_spec_l31_d7_prints(args ...ruby.Value) ruby.Value {
 	_ = args
 	fixture := as_console_user_spec_new_fixture('help') or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	defer { os.rmdir_all(fixture.root) or {} }
 	result := as_console_user_spec_run_shell([
@@ -275,27 +275,27 @@ pub fn ruby_as_console_user_spec_l31_d7_prints(args ...brew_runtime.Value) brew_
 	].join('\n') + '\n', {
 		'HOMEBREW_BREW_FILE': 'brew'
 		'HOMEBREW_LIBRARY':   fixture.library
-	}) or { return brew_runtime.bool_value(false) }
+	}) or { return ruby.bool_value(false) }
 	return as_console_user_spec_bool(result, '', 'help as-console-user\n', 1)
 }
 
 // Ruby it `it "rejects a root console user" do` at line 47.
-pub fn ruby_as_console_user_spec_l47_d8_rejects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_as_console_user_spec_l47_d8_rejects(args ...ruby.Value) ruby.Value {
 	_ = args
 	return as_console_user_spec_console_rejection('root')
 }
 
 // Ruby it `it "rejects a loginwindow console user" do` at line 63.
-pub fn ruby_as_console_user_spec_l63_d9_rejects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_as_console_user_spec_l63_d9_rejects(args ...ruby.Value) ruby.Value {
 	_ = args
 	return as_console_user_spec_console_rejection('loginwindow')
 }
 
 // Ruby it `it "rejects non-macOS systems" do` at line 79.
-pub fn ruby_as_console_user_spec_l79_d10_rejects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_as_console_user_spec_l79_d10_rejects(args ...ruby.Value) ruby.Value {
 	_ = args
 	fixture := as_console_user_spec_new_fixture('non-macos') or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	defer { os.rmdir_all(fixture.root) or {} }
 	result := as_console_user_spec_run_shell([
@@ -305,65 +305,65 @@ pub fn ruby_as_console_user_spec_l79_d10_rejects(args ...brew_runtime.Value) bre
 	].join('\n') + '\n', {
 		'HOMEBREW_BREW_FILE': 'brew'
 		'HOMEBREW_LIBRARY':   fixture.library
-	}) or { return brew_runtime.bool_value(false) }
+	}) or { return ruby.bool_value(false) }
 	return as_console_user_spec_bool(result, '', 'Error: `brew as-console-user` is only supported on macOS.\n', 1)
 }
 
 // Ruby it `it "uses the package user plist before the console user" do` at line 95.
-pub fn ruby_as_console_user_spec_l95_d11_uses(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_as_console_user_spec_l95_d11_uses(args ...ruby.Value) ruby.Value {
 	_ = args
-	result := as_console_user_spec_package_case('package-first', 'munki', r'stat() { printf "root 600\n"; }', r'ls() { printf -- "-rw------- 1 root wheel 0 x\n"; }', false) or { return brew_runtime.bool_value(false) }
+	result := as_console_user_spec_package_case('package-first', 'munki', r'stat() { printf "root 600\n"; }', r'ls() { printf -- "-rw------- 1 root wheel 0 x\n"; }', false) or { return ruby.bool_value(false) }
 	return as_console_user_spec_bool(result, 'munki\n', '', 0)
 }
 
 // Ruby it `it "honours a root-owned plist that carries extended attributes" do` at line 115.
-pub fn ruby_as_console_user_spec_l115_d12_honours(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_as_console_user_spec_l115_d12_honours(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := as_console_user_spec_package_case('extended-attributes', 'munki', r'stat() { printf "root 600\n"; }', r'ls() { printf -- "-rw-------@ 1 root wheel 0 x\n"; }', false) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	return as_console_user_spec_bool(result, 'munki\n', '', 0)
 }
 
 // Ruby it `it "ignores a package user plist not owned by root" do` at line 135.
-pub fn ruby_as_console_user_spec_l135_d13_ignores(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_as_console_user_spec_l135_d13_ignores(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := as_console_user_spec_package_case('wrong-owner', 'attacker', r'stat() { case "$*" in *"/dev/console") printf "root\n";; *) printf "attacker 600\n";; esac; }', r'ls() { printf -- "-rw------- 1 attacker staff 0 x\n"; }', false) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	return as_console_user_spec_bool(result, '', '', 1)
 }
 
 // Ruby it `it "ignores a package user plist with loose permissions" do` at line 155.
-pub fn ruby_as_console_user_spec_l155_d14_ignores(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_as_console_user_spec_l155_d14_ignores(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := as_console_user_spec_package_case('loose-mode', 'attacker', r'stat() { case "$*" in *"/dev/console") printf "root\n";; *) printf "root 644\n";; esac; }', r'ls() { printf -- "-rw-rw-rw- 1 root wheel 0 x\n"; }', false) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	return as_console_user_spec_bool(result, '', '', 1)
 }
 
 // Ruby it `it "ignores a package user plist carrying an ACL" do` at line 175.
-pub fn ruby_as_console_user_spec_l175_d15_ignores(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_as_console_user_spec_l175_d15_ignores(args ...ruby.Value) ruby.Value {
 	_ = args
-	result := as_console_user_spec_package_case('acl', 'attacker', r'stat() { case "$*" in *"/dev/console") printf "root\n";; *) printf "root 600\n";; esac; }', r'ls() { printf -- "-rw-------@ 1 root wheel 0 x\n 0: group:everyone deny delete\n"; }', false) or { return brew_runtime.bool_value(false) }
+	result := as_console_user_spec_package_case('acl', 'attacker', r'stat() { case "$*" in *"/dev/console") printf "root\n";; *) printf "root 600\n";; esac; }', r'ls() { printf -- "-rw-------@ 1 root wheel 0 x\n 0: group:everyone deny delete\n"; }', false) or { return ruby.bool_value(false) }
 	return as_console_user_spec_bool(result, '', '', 1)
 }
 
 // Ruby it `it "ignores a package user plist that is a symlink" do` at line 195.
-pub fn ruby_as_console_user_spec_l195_d16_ignores(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_as_console_user_spec_l195_d16_ignores(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := as_console_user_spec_package_case('symlink', 'attacker', r'stat() { case "$*" in *"/dev/console") printf "root\n";; *) printf "root\n";; esac; }', r'ls() { printf -- "-rw------- 1 root wheel 0 x\n"; }', true) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	return as_console_user_spec_bool(result, '', '', 1)
 }
 
 // Ruby it `it "falls back to the console user without a package user plist" do` at line 217.
-pub fn ruby_as_console_user_spec_l217_d17_falls(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_as_console_user_spec_l217_d17_falls(args ...ruby.Value) ruby.Value {
 	_ = args
 	fixture := as_console_user_spec_new_fixture('fallback') or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	defer { os.rmdir_all(fixture.root) or {} }
 	result := as_console_user_spec_run_shell([
@@ -372,15 +372,15 @@ pub fn ruby_as_console_user_spec_l217_d17_falls(args ...brew_runtime.Value) brew
 		r'homebrew-package-user',
 	].join('\n') + '\n', {
 		'HOMEBREW_PKG_USER_PLIST': os.join_path(fixture.root, 'missing.plist')
-	}) or { return brew_runtime.bool_value(false) }
+	}) or { return ruby.bool_value(false) }
 	return as_console_user_spec_bool(result, 'mike\n', '', 0)
 }
 
 // Ruby it `it "rejects package user lookup without a package user or console user" do` at line 229.
-pub fn ruby_as_console_user_spec_l229_d18_rejects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_as_console_user_spec_l229_d18_rejects(args ...ruby.Value) ruby.Value {
 	_ = args
 	fixture := as_console_user_spec_new_fixture('no-user') or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	defer { os.rmdir_all(fixture.root) or {} }
 	result := as_console_user_spec_run_shell([
@@ -389,20 +389,20 @@ pub fn ruby_as_console_user_spec_l229_d18_rejects(args ...brew_runtime.Value) br
 		r'homebrew-package-user',
 	].join('\n') + '\n', {
 		'HOMEBREW_PKG_USER_PLIST': os.join_path(fixture.root, 'missing.plist')
-	}) or { return brew_runtime.bool_value(false) }
+	}) or { return ruby.bool_value(false) }
 	return as_console_user_spec_bool(result, '', '', 1)
 }
 
 // Ruby it `it "dispatches the nested brew command as the console user" do` at line 241.
-pub fn ruby_as_console_user_spec_l241_d19_dispatches(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_as_console_user_spec_l241_d19_dispatches(args ...ruby.Value) ruby.Value {
 	_ = args
 	fixture := as_console_user_spec_new_fixture('dispatch') or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	defer { os.rmdir_all(fixture.root) or {} }
 	args_file := os.join_path(fixture.root, 'sudo-args.txt')
 	console_home := os.join_path(fixture.root, 'console-home')
-	os.mkdir_all(console_home) or { return brew_runtime.bool_value(false) }
+	os.mkdir_all(console_home) or { return ruby.bool_value(false) }
 	script := [
 		'source ' + os.quoted_path(fixture.as_console_user_script),
 		r'odie() { echo "Error: $*" >&2; exit 1; }',
@@ -418,7 +418,7 @@ pub fn ruby_as_console_user_spec_l241_d19_dispatches(args ...brew_runtime.Value)
 	mut environment := as_console_user_spec_macos_env(fixture)
 	environment['HOMEBREW_BREW_FILE'] = '/opt/homebrew/bin/brew'
 	result := as_console_user_spec_run_shell(script, environment) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	expected := [
 		'cwd=${console_home}',
@@ -437,14 +437,14 @@ pub fn ruby_as_console_user_spec_l241_d19_dispatches(args ...brew_runtime.Value)
 		'git',
 		'--minimum-version=2.50.1',
 	].join('\n') + '\n'
-	contents := os.read_file(args_file) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(result.exit_code == 42 && result.stdout == ''
+	contents := os.read_file(args_file) or { return ruby.bool_value(false) }
+	return ruby.bool_value(result.exit_code == 42 && result.stdout == ''
 		&& result.stderr == '' && contents == expected)
 }
 
-fn as_console_user_spec_console_rejection(console_user string) brew_runtime.Value {
+fn as_console_user_spec_console_rejection(console_user string) ruby.Value {
 	fixture := as_console_user_spec_new_fixture('reject-${console_user}') or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	defer { os.rmdir_all(fixture.root) or {} }
 	result := as_console_user_spec_run_shell([
@@ -453,7 +453,7 @@ fn as_console_user_spec_console_rejection(console_user string) brew_runtime.Valu
 		'stat() { printf "${console_user}\\n"; }',
 		r'homebrew-as-console-user install wget',
 	].join('\n') + '\n', as_console_user_spec_macos_env(fixture)) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	return as_console_user_spec_bool(result, '', 'Error: No supported macOS console user is logged in.\n', 1)
 }

@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 import homebrew.utils
 import os
 
@@ -109,11 +109,11 @@ pub mut:
 	error  string
 }
 
-fn list_bool(value brew_runtime.Value, key string) bool {
+fn list_bool(value ruby.Value, key string) bool {
 	return if item := value.map_data[key] { item.as_bool() or { false } } else { false }
 }
 
-fn list_string(value brew_runtime.Value, key string) string {
+fn list_string(value ruby.Value, key string) string {
 	return if item := value.map_data[key] {
 		item.as_string()
 	} else {
@@ -121,7 +121,7 @@ fn list_string(value brew_runtime.Value, key string) string {
 	}
 }
 
-fn list_strings(value brew_runtime.Value, key string) []string {
+fn list_strings(value ruby.Value, key string) []string {
 	if item := value.map_data[key] {
 		return item.as_string_array() or { []string{} }
 	}
@@ -129,7 +129,7 @@ fn list_strings(value brew_runtime.Value, key string) []string {
 	return if raw == '' { [] } else { raw.split('\x1f') }
 }
 
-fn list_formula_from_value(value brew_runtime.Value) ListFormula {
+fn list_formula_from_value(value ruby.Value) ListFormula {
 	name := value.attributes['name'] or { value.repr.all_after_last('/') }
 	return ListFormula{
 		name: name
@@ -146,7 +146,7 @@ fn list_formula_from_value(value brew_runtime.Value) ListFormula {
 	}
 }
 
-fn list_artifact_from_value(value brew_runtime.Value) ListArtifact {
+fn list_artifact_from_value(value ruby.Value) ListArtifact {
 	return ListArtifact{
 		class_name: value.attributes['class_name'] or { value.type_name }
 		english_name: value.attributes['english_name'] or { value.type_name }
@@ -155,9 +155,9 @@ fn list_artifact_from_value(value brew_runtime.Value) ListArtifact {
 	}
 }
 
-fn list_cask_from_value(value brew_runtime.Value) ListCask {
-	artifact_values := (value.map_data['artifacts'] or { brew_runtime.array_value([]) }).as_array() or {
-		[]brew_runtime.Value{}
+fn list_cask_from_value(value ruby.Value) ListCask {
+	artifact_values := (value.map_data['artifacts'] or { ruby.array_value([]) }).as_array() or {
+		[]ruby.Value{}
 	}
 	return ListCask{
 		token: value.attributes['token'] or { value.repr.all_after_last('/') }
@@ -170,12 +170,12 @@ fn list_cask_from_value(value brew_runtime.Value) ListCask {
 	}
 }
 
-fn list_request_from_value(value brew_runtime.Value) ListCommandRequest {
-	formula_values := (value.map_data['formulae'] or { brew_runtime.array_value([]) }).as_array() or {
-		[]brew_runtime.Value{}
+fn list_request_from_value(value ruby.Value) ListCommandRequest {
+	formula_values := (value.map_data['formulae'] or { ruby.array_value([]) }).as_array() or {
+		[]ruby.Value{}
 	}
-	cask_values := (value.map_data['casks'] or { brew_runtime.array_value([]) }).as_array() or {
-		[]brew_runtime.Value{}
+	cask_values := (value.map_data['casks'] or { ruby.array_value([]) }).as_array() or {
+		[]ruby.Value{}
 	}
 	width := if item := value.map_data['console_width'] { int(item.as_int() or { 80 }) } else { 80 }
 	return ListCommandRequest{
@@ -208,8 +208,8 @@ fn list_request_from_value(value brew_runtime.Value) ListCommandRequest {
 	}
 }
 
-fn list_result_value(result ListCommandResult) brew_runtime.Value {
-	return brew_runtime.Value{
+fn list_result_value(result ListCommandResult) ruby.Value {
+	return ruby.Value{
 		type_name: if result.error == '' { 'ListCommandResult' } else { 'UsageError' }
 		repr: if result.error == '' { result.stdout } else { result.error }
 		bool_data: result.failed
@@ -865,16 +865,16 @@ pub fn run_list_command(request ListCommandRequest) ListCommandResult {
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `run` at line 94.
-pub fn ruby_list_l94_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_list_l94_d1_run(args ...ruby.Value) ruby.Value {
 	request := if args.len > 0 { list_request_from_value(args[0]) } else { ListCommandRequest{} }
 	return list_result_value(run_list_command(request))
 }
 
 // Ruby method `warn_about_broken_caskroom_symlinks` at line 272.
-pub fn ruby_list_l272_d2_warn_about_broken_caskroom_symlinks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_list_l272_d2_warn_about_broken_caskroom_symlinks(args ...ruby.Value) ruby.Value {
 	caskroom := if args.len > 0 { args[0].as_string() } else { '' }
 	broken := list_broken_caskroom_symlinks(caskroom)
-	return brew_runtime.string_value(if broken.len > 0 {
+	return ruby.string_value(if broken.len > 0 {
 		'Warning: Broken Caskroom symlinks (`brew cleanup` removes them): ${broken.join(', ')}\n'
 	} else {
 		''
@@ -882,31 +882,31 @@ pub fn ruby_list_l272_d2_warn_about_broken_caskroom_symlinks(args ...brew_runtim
 }
 
 // Ruby method `pinned_formula_entry(name)` at line 281.
-pub fn ruby_list_l281_d3_pinned_formula_entry(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_list_l281_d3_pinned_formula_entry(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	versions := args.len > 2 && (args[2].as_bool() or { false })
 	if entry := list_pinned_formula_entry(args[0].as_string(), args[1].as_string(), versions) {
-		return brew_runtime.string_value(entry)
+		return ruby.string_value(entry)
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `pinned_cask_entry(token)` at line 289.
-pub fn ruby_list_l289_d4_pinned_cask_entry(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_list_l289_d4_pinned_cask_entry(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	versions := args.len > 2 && (args[2].as_bool() or { false })
 	if entry := list_pinned_cask_entry(args[0].as_string(), args[1].as_string(), versions) {
-		return brew_runtime.string_value(entry)
+		return ruby.string_value(entry)
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `filtered_list` at line 297.
-pub fn ruby_list_l297_d5_filtered_list(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_list_l297_d5_filtered_list(args ...ruby.Value) ruby.Value {
 	request := if args.len > 0 {
 		list_request_from_value(args[0])
 	} else {
@@ -920,7 +920,7 @@ pub fn ruby_list_l297_d5_filtered_list(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby method `list_casks` at line 316.
-pub fn ruby_list_l316_d6_list_casks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_list_l316_d6_list_casks(args ...ruby.Value) ruby.Value {
 	request := if args.len > 0 {
 		list_request_from_value(args[0])
 	} else {
@@ -934,40 +934,40 @@ pub fn ruby_list_l316_d6_list_casks(args ...brew_runtime.Value) brew_runtime.Val
 		list_named_casks(request, casks, mut result)
 	}
 	output := list_casks_output(selected, request.named.len > 0, request.one, request.full_name, request.versions, request.console_width, request.stdout_tty) or {
-		return brew_runtime.object_value('CaskNotInstalledError', err.msg())
+		return ruby.object_value('CaskNotInstalledError', err.msg())
 	}
-	return brew_runtime.string_value(output)
+	return ruby.string_value(output)
 }
 
 // Ruby method `initialize(path)` at line 348.
-pub fn ruby_list_l348_d7_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_list_l348_d7_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'path is required')
+		return ruby.object_value('ArgumentError', 'path is required')
 	}
-	return brew_runtime.string_value(pretty_listing(args[0].as_string()))
+	return ruby.string_value(pretty_listing(args[0].as_string()))
 }
 
 // Ruby method `print_dir(root, &block)` at line 378.
-pub fn ruby_list_l378_d8_print_dir(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_list_l378_d8_print_dir(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'root is required')
+		return ruby.object_value('ArgumentError', 'root is required')
 	}
 	extensions := if args.len > 1 {
 		args[1].as_string_array() or { []string{} }
 	} else {
 		[]string{}
 	}
-	return brew_runtime.string_value(list_print_dir(args[0].as_string(), extensions))
+	return ruby.string_value(list_print_dir(args[0].as_string(), extensions))
 }
 
 // Ruby method `print_remaining_files(files, root, other = "")` at line 404.
-pub fn ruby_list_l404_d9_print_remaining_files(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_list_l404_d9_print_remaining_files(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'files and root are required')
+		return ruby.object_value('ArgumentError', 'files and root are required')
 	}
 	files := args[0].as_string_array() or { []string{} }
 	other := if args.len > 2 { args[2].as_string() } else { '' }
-	return brew_runtime.string_value(list_print_remaining_files(files, args[1].as_string(), other))
+	return ruby.string_value(list_print_remaining_files(files, args[1].as_string(), other))
 }
 
 // Original Ruby source (line-for-line):

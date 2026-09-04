@@ -1,6 +1,6 @@
 module env
 
-import brew_runtime
+import ruby
 import homebrew.extend.env as base_env
 import os
 
@@ -103,40 +103,40 @@ pub fn linux_superenv_setup_build_environment(mut state base_env.SuperenvState,
 	}
 }
 
-pub fn linux_superenv_state_boundary(state &base_env.SuperenvState) brew_runtime.Value {
-	return brew_runtime.structured_value('OS::Linux::Superenv', '', {
+pub fn linux_superenv_state_boundary(state &base_env.SuperenvState) ruby.Value {
+	return ruby.structured_value('OS::Linux::Superenv', '', {
 		'linux_superenv_address': u64(voidptr(state)).str()
 	})
 }
 
-fn linux_superenv_state_from_value(value brew_runtime.Value) &base_env.SuperenvState {
+fn linux_superenv_state_from_value(value ruby.Value) &base_env.SuperenvState {
 	address := value.attributes['linux_superenv_address'] or { panic('invalid Linux Superenv') }
 	return unsafe { &base_env.SuperenvState(voidptr(address.u64())) }
 }
 
 // Ruby method `shims_path` at line 15.
-pub fn ruby_super_l15_d1_shims_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_super_l15_d1_shims_path(args ...ruby.Value) ruby.Value {
 	base := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.object_value('Pathname', linux_superenv_shims_path(base))
+	return ruby.object_value('Pathname', linux_superenv_shims_path(base))
 }
 
 // Ruby method `bin` at line 20.
-pub fn ruby_super_l20_d2_bin(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_super_l20_d2_bin(args ...ruby.Value) ruby.Value {
 	base := if args.len > 0 { args[0].as_string() } else { '' }
 	return if path := linux_superenv_bin(base) {
-		brew_runtime.object_value('Pathname', path)
+		ruby.object_value('Pathname', path)
 	} else {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	}
 }
 
 // Ruby method `setup_build_environment(formula: nil, cc: nil, build_bottle: false, bottle_arch: nil,` at line 35.
-pub fn ruby_super_l35_d3_setup_build_environment(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_super_l35_d3_setup_build_environment(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'environment is required')
+		return ruby.object_value('ArgumentError', 'environment is required')
 	}
 	mut state := linux_superenv_state_from_value(args[0])
-	context_value := if args.len > 1 { args[1] } else { brew_runtime.Value{} }
+	context_value := if args.len > 1 { args[1] } else { ruby.Value{} }
 	linux_superenv_setup_build_environment(mut state, base_env.SuperenvBuildOptions{}, LinuxSuperenvContext{
 		formula_lib: if context_value.attributes['formula_lib'] != '' {
 			context_value.attributes['formula_lib']
@@ -146,11 +146,11 @@ pub fn ruby_super_l35_d3_setup_build_environment(args ...brew_runtime.Value) bre
 		arm64: context_value.attributes['arm64'] == 'true'
 		gcc_version: context_value.attributes['gcc_version'].int()
 	}, os.exists)
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `homebrew_extra_paths` at line 60.
-pub fn ruby_super_l60_d4_homebrew_extra_paths(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_super_l60_d4_homebrew_extra_paths(args ...ruby.Value) ruby.Value {
 	base_paths := if args.len > 0 { args[0].as_string_array() or { [] } } else { [] }
 	mut formula_bins := map[string]string{}
 	if args.len > 1 && args[1].type_name == 'Hash' {
@@ -158,18 +158,18 @@ pub fn ruby_super_l60_d4_homebrew_extra_paths(args ...brew_runtime.Value) brew_r
 			formula_bins[name] = value.as_string()
 		}
 	}
-	return brew_runtime.string_array_value(linux_superenv_extra_paths(base_paths, formula_bins, os.is_dir))
+	return ruby.string_array_value(linux_superenv_extra_paths(base_paths, formula_bins, os.is_dir))
 }
 
 // Ruby method `homebrew_extra_isystem_paths` at line 72.
-pub fn ruby_super_l72_d5_homebrew_extra_isystem_paths(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_super_l72_d5_homebrew_extra_isystem_paths(args ...ruby.Value) ruby.Value {
 	mut dependencies := []base_env.SuperenvDependency{}
 	if args.len > 0 {
 		for name in args[0].as_string_array() or { [] } {
 			dependencies << base_env.SuperenvDependency{ name: name }
 		}
 	}
-	return brew_runtime.string_array_value(linux_superenv_extra_isystem_paths(dependencies, if args.len > 1 {
+	return ruby.string_array_value(linux_superenv_extra_isystem_paths(dependencies, if args.len > 1 {
 		args[1].as_string()
 	} else {
 		''
@@ -177,7 +177,7 @@ pub fn ruby_super_l72_d5_homebrew_extra_isystem_paths(args ...brew_runtime.Value
 }
 
 // Ruby method `determine_rpath_paths(formula)` at line 84.
-pub fn ruby_super_l84_d6_determine_rpath_paths(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_super_l84_d6_determine_rpath_paths(args ...ruby.Value) ruby.Value {
 	formula_lib := if args.len > 0 && args[0].type_name != 'NilClass' {
 		?string(args[0].as_string())
 	} else {
@@ -190,16 +190,16 @@ pub fn ruby_super_l84_d6_determine_rpath_paths(args ...brew_runtime.Value) brew_
 			dependencies << base_env.SuperenvDependency{ opt_prefix: os.dir(path) }
 		}
 	}
-	return brew_runtime.string_value(linux_superenv_rpath_paths(formula_lib, prefix, dependencies, os.is_dir).join(':'))
+	return ruby.string_value(linux_superenv_rpath_paths(formula_lib, prefix, dependencies, os.is_dir).join(':'))
 }
 
 // Ruby method `determine_dynamic_linker_path` at line 94.
-pub fn ruby_super_l94_d7_determine_dynamic_linker_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_super_l94_d7_determine_dynamic_linker_path(args ...ruby.Value) ruby.Value {
 	prefix := if args.len > 0 { args[0].as_string() } else { '' }
 	return if path := linux_superenv_dynamic_linker_path(prefix, os.is_readable) {
-		brew_runtime.string_value(path)
+		ruby.string_value(path)
 	} else {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	}
 }
 

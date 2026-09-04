@@ -1,6 +1,6 @@
 module util
 
-import brew_runtime
+import ruby
 import sync
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/thread_safe/util/data_structures.rb`.
@@ -17,7 +17,7 @@ pub:
 	methods    []string
 }
 
-pub type SynchronizedAction = fn() !brew_runtime.Value
+pub type SynchronizedAction = fn() !ruby.Value
 
 @[heap]
 pub struct SynchronizedObject {
@@ -45,7 +45,7 @@ pub fn (object &SynchronizedObject) copy() &SynchronizedObject {
 	return new_synchronized_object(object.plan)
 }
 
-pub fn (mut object SynchronizedObject) synchronized(action SynchronizedAction) !brew_runtime.Value {
+pub fn (mut object SynchronizedObject) synchronized(action SynchronizedAction) !ruby.Value {
 	object.monitor.lock()
 	defer {
 		object.monitor.unlock()
@@ -53,15 +53,15 @@ pub fn (mut object SynchronizedObject) synchronized(action SynchronizedAction) !
 	return action()
 }
 
-fn synchronized_class_plan_value(plan SynchronizedClassPlan) brew_runtime.Value {
-	return brew_runtime.structured_value('Concurrent::ThreadSafe::Util::SynchronizedClassPlan', plan.class_name, {
+fn synchronized_class_plan_value(plan SynchronizedClassPlan) ruby.Value {
+	return ruby.structured_value('Concurrent::ThreadSafe::Util::SynchronizedClassPlan', plan.class_name, {
 		'class_name': plan.class_name
 		'engine':     plan.engine.str()
 		'methods':    plan.methods.join(',')
 	})
 }
 
-fn synchronized_class_plan_from_value(value brew_runtime.Value, default_engine SynchronizationEngine) SynchronizedClassPlan {
+fn synchronized_class_plan_from_value(value ruby.Value, default_engine SynchronizationEngine) SynchronizedClassPlan {
 	class_name := value.attribute('class_name') or { value.as_string() }
 	methods := (value.attribute('methods') or { '' }).split(',').filter(it.len > 0)
 	engine_name := value.attribute('engine') or { default_engine.str() }
@@ -72,8 +72,8 @@ fn synchronized_class_plan_from_value(value brew_runtime.Value, default_engine S
 	})
 }
 
-fn synchronized_object_value(object &SynchronizedObject) brew_runtime.Value {
-	return brew_runtime.structured_value('Concurrent::ThreadSafe::Util::SynchronizedObject', '#<${object.plan.class_name}>', {
+fn synchronized_object_value(object &SynchronizedObject) ruby.Value {
+	return ruby.structured_value('Concurrent::ThreadSafe::Util::SynchronizedObject', '#<${object.plan.class_name}>', {
 		'synchronized_object_address': u64(voidptr(object)).str()
 		'class_name':                  object.plan.class_name
 		'engine':                      object.plan.engine.str()
@@ -81,7 +81,7 @@ fn synchronized_object_value(object &SynchronizedObject) brew_runtime.Value {
 	})
 }
 
-fn synchronized_object_from_value(value brew_runtime.Value) &SynchronizedObject {
+fn synchronized_object_from_value(value ruby.Value) &SynchronizedObject {
 	address := (value.attribute('synchronized_object_address') or {
 		panic('${value.type_name} has no translated synchronized state')
 	}).u64()
@@ -89,19 +89,19 @@ fn synchronized_object_from_value(value brew_runtime.Value) &SynchronizedObject 
 }
 
 // Ruby method `self.synchronized(object, &block)` at line 7.
-pub fn ruby_data_structures_l7_d1_self_synchronized(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_data_structures_l7_d1_self_synchronized(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('TruffleRuby.synchronized requires an object and translated block result')
 	}
 	mut object := synchronized_object_from_value(args[0])
 	mut result := args[1]
-	return object.synchronized(fn [mut result] () !brew_runtime.Value {
+	return object.synchronized(fn [mut result] () !ruby.Value {
 		return result
 	}) or { panic(err) }
 }
 
 // Ruby method `self.make_synchronized_on_cruby(klass)` at line 16.
-pub fn ruby_data_structures_l16_d2_self_make_synchronized_on_cruby(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_data_structures_l16_d2_self_make_synchronized_on_cruby(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('make_synchronized_on_cruby requires a class')
 	}
@@ -109,7 +109,7 @@ pub fn ruby_data_structures_l16_d2_self_make_synchronized_on_cruby(args ...brew_
 }
 
 // Ruby method `initialize(*args, &block)` at line 18.
-pub fn ruby_data_structures_l18_d3_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_data_structures_l18_d3_initialize(args ...ruby.Value) ruby.Value {
 	plan := if args.len > 0 && args[0].type_name == 'Concurrent::ThreadSafe::Util::SynchronizedClassPlan' {
 		synchronized_class_plan_from_value(args[0], .cruby)
 	} else {
@@ -119,7 +119,7 @@ pub fn ruby_data_structures_l18_d3_initialize(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby method `initialize_copy(other)` at line 23.
-pub fn ruby_data_structures_l23_d4_initialize_copy(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_data_structures_l23_d4_initialize_copy(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('initialize_copy requires another synchronized object')
 	}
@@ -127,19 +127,19 @@ pub fn ruby_data_structures_l23_d4_initialize_copy(args ...brew_runtime.Value) b
 }
 
 // Ruby method `#{method}(*args)` at line 32.
-pub fn ruby_data_structures_l32_d5_method(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_data_structures_l32_d5_method(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('synchronized generated method requires receiver and translated super result')
 	}
 	mut object := synchronized_object_from_value(args[0])
 	mut result := args[args.len - 1]
-	return object.synchronized(fn [mut result] () !brew_runtime.Value {
+	return object.synchronized(fn [mut result] () !ruby.Value {
 		return result
 	}) or { panic(err) }
 }
 
 // Ruby method `self.make_synchronized_on_truffleruby(klass)` at line 41.
-pub fn ruby_data_structures_l41_d6_self_make_synchronized_on_truffleruby(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_data_structures_l41_d6_self_make_synchronized_on_truffleruby(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('make_synchronized_on_truffleruby requires a class')
 	}
@@ -151,7 +151,7 @@ pub fn ruby_data_structures_l41_d6_self_make_synchronized_on_truffleruby(args ..
 }
 
 // Ruby method `#{method}(*args, &block)` at line 44.
-pub fn ruby_data_structures_l44_d7_method(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_data_structures_l44_d7_method(args ...ruby.Value) ruby.Value {
 	return ruby_data_structures_l32_d5_method(...args)
 }
 

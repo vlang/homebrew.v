@@ -1,6 +1,6 @@
 module text
 
-import brew_runtime
+import ruby
 import homebrew.rubocops as line_cops
 
 // Translated from Homebrew/brew `test/rubocops/text/licenses_spec.rb`.
@@ -19,49 +19,49 @@ fn licenses_spec_accepts(declaration string) bool {
 }
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
-pub fn ruby_licenses_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::Licenses', 'Licenses')
+pub fn ruby_licenses_spec_l7_d1_cop(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('RuboCop::Cop::FormulaAudit::Licenses', 'Licenses')
 }
 
 // Ruby it `it "reports no offenses for license strings" do` at line 10.
-pub fn ruby_licenses_spec_l10_d2_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(licenses_spec_accepts('license "MIT"'))
+pub fn ruby_licenses_spec_l10_d2_reports(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(licenses_spec_accepts('license "MIT"'))
 }
 
 // Ruby it `it "reports no offenses for license symbols" do` at line 20.
-pub fn ruby_licenses_spec_l20_d3_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(licenses_spec_accepts('license :public_domain'))
+pub fn ruby_licenses_spec_l20_d3_reports(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(licenses_spec_accepts('license :public_domain'))
 }
 
 // Ruby it `it "reports no offenses for license hashes" do` at line 30.
-pub fn ruby_licenses_spec_l30_d4_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(licenses_spec_accepts('license any_of: ["MIT", "0BSD"]'))
+pub fn ruby_licenses_spec_l30_d4_reports(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(licenses_spec_accepts('license any_of: ["MIT", "0BSD"]'))
 }
 
 // Ruby it `it "reports no offenses for license exceptions" do` at line 40.
-pub fn ruby_licenses_spec_l40_d5_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(licenses_spec_accepts('license "MIT" => { with: "LLVM-exception" }'))
+pub fn ruby_licenses_spec_l40_d5_reports(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(licenses_spec_accepts('license "MIT" => { with: "LLVM-exception" }'))
 }
 
 // Ruby it `it "reports no offenses for multiline nested license hashes" do` at line 50.
-pub fn ruby_licenses_spec_l50_d6_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_licenses_spec_l50_d6_reports(args ...ruby.Value) ruby.Value {
 	declaration := 'license any_of: [\n  "MIT",\n  all_of: ["0BSD", "Zlib"],\n]'
-	return brew_runtime.bool_value(licenses_spec_accepts(declaration))
+	return ruby.bool_value(licenses_spec_accepts(declaration))
 }
 
 // Ruby it `it "reports no offenses for multiline nested license hashes with exceptions" do` at line 63.
-pub fn ruby_licenses_spec_l63_d7_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_licenses_spec_l63_d7_reports(args ...ruby.Value) ruby.Value {
 	declaration := 'license any_of: [\n  "MIT",\n  all_of: ["0BSD", "Zlib"],\n  "GPL-2.0-only" => { with: "LLVM-exception" },\n]'
-	return brew_runtime.bool_value(licenses_spec_accepts(declaration))
+	return ruby.bool_value(licenses_spec_accepts(declaration))
 }
 
 // Ruby it `it "reports an offense for nested license hashes on a single line" do` at line 77.
-pub fn ruby_licenses_spec_l77_d8_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_licenses_spec_l77_d8_reports(args ...ruby.Value) ruby.Value {
 	source := licenses_spec_formula('license any_of: ["MIT", all_of: ["0BSD", "Zlib"]]')
 	analysis := line_cops.audit_lines_licenses(line_cops.LinesContext{
 		source: source
 	})
-	return brew_runtime.bool_value(analysis.offenses.len == 1 && analysis.offenses[0].message == 'Split nested license declarations onto multiple lines' && source[analysis.offenses[0].begin_pos..analysis.offenses[0].end_pos] == 'license any_of: ["MIT", all_of: ["0BSD", "Zlib"]]' && analysis.corrected == source)
+	return ruby.bool_value(analysis.offenses.len == 1 && analysis.offenses[0].message == 'Split nested license declarations onto multiple lines' && source[analysis.offenses[0].begin_pos..analysis.offenses[0].end_pos] == 'license any_of: ["MIT", all_of: ["0BSD", "Zlib"]]' && analysis.corrected == source)
 }
 
 // Original Ruby source (line-for-line):

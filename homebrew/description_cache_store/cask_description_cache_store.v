@@ -1,6 +1,6 @@
 module description_cache_store
 
-import brew_runtime
+import ruby
 import homebrew
 
 // Translated from Homebrew/brew `description_cache_store/cask_description_cache_store.rb`.
@@ -14,14 +14,14 @@ pub:
 
 pub type CaskDescriptionLoader = fn(string) !CaskDescription
 
-fn cask_description_value(cask CaskDescription) brew_runtime.Value {
+fn cask_description_value(cask CaskDescription) ruby.Value {
 	description := if value := cask.description {
-		brew_runtime.string_value(value)
+		ruby.string_value(value)
 	} else {
-		brew_runtime.Value{ type_name: 'NilClass' }
+		ruby.Value{ type_name: 'NilClass' }
 	}
-	return brew_runtime.array_value([
-		brew_runtime.string_value(cask.names.join(', ')),
+	return ruby.array_value([
+		ruby.string_value(cask.names.join(', ')),
 		description,
 	])
 }

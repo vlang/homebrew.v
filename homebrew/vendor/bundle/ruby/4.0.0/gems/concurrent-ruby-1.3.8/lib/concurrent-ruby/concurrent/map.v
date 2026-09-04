@@ -1,6 +1,6 @@
 module concurrent
 
-import brew_runtime
+import ruby
 import math
 import sync
 
@@ -15,19 +15,19 @@ pub:
 
 pub struct ConcurrentMapEntry {
 pub:
-	key   brew_runtime.Value
-	value brew_runtime.Value
+	key   ruby.Value
+	value ruby.Value
 }
 
 pub struct ConcurrentMapLookup {
 pub:
 	found bool
-	value brew_runtime.Value
+	value ruby.Value
 }
 
-pub type ConcurrentMapDefault = fn(&ConcurrentMap, brew_runtime.Value) !brew_runtime.Value
+pub type ConcurrentMapDefault = fn(&ConcurrentMap, ruby.Value) !ruby.Value
 
-pub type ConcurrentMapEach = fn(brew_runtime.Value, brew_runtime.Value)
+pub type ConcurrentMapEach = fn(ruby.Value, ruby.Value)
 
 @[heap]
 pub struct ConcurrentMap {
@@ -40,11 +40,11 @@ mut:
 	default_proc ConcurrentMapDefault = no_concurrent_map_default
 }
 
-fn concurrent_map_nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn concurrent_map_nil_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-fn no_concurrent_map_default(_ &ConcurrentMap, _ brew_runtime.Value) !brew_runtime.Value {
+fn no_concurrent_map_default(_ &ConcurrentMap, _ ruby.Value) !ruby.Value {
 	return error('no default proc')
 }
 
@@ -73,7 +73,7 @@ pub fn new_concurrent_map_with_default(options ConcurrentMapOptions, default_pro
 	}
 }
 
-fn concurrent_map_values_equal(left brew_runtime.Value, right brew_runtime.Value) bool {
+fn concurrent_map_values_equal(left ruby.Value, right ruby.Value) bool {
 	if left.type_name in ['Integer', 'Float'] && right.type_name in ['Integer', 'Float'] {
 		left_number := left.as_float() or { return false }
 		right_number := right.as_float() or { return false }
@@ -88,7 +88,7 @@ fn concurrent_map_values_equal(left brew_runtime.Value, right brew_runtime.Value
 	return left.type_name == right.type_name && left.repr == right.repr
 }
 
-fn concurrent_map_values_identical(left brew_runtime.Value, right brew_runtime.Value) bool {
+fn concurrent_map_values_identical(left ruby.Value, right ruby.Value) bool {
 	if left_identity := left.attributes['identity'] {
 		return right.attributes['identity'] == left_identity
 	}
@@ -100,7 +100,7 @@ fn concurrent_map_values_identical(left brew_runtime.Value, right brew_runtime.V
 	return false
 }
 
-fn (cmap &ConcurrentMap) entry_index(key brew_runtime.Value) int {
+fn (cmap &ConcurrentMap) entry_index(key ruby.Value) int {
 	for index, entry in cmap.entries {
 		if concurrent_map_values_equal(entry.key, key) {
 			return index
@@ -109,7 +109,7 @@ fn (cmap &ConcurrentMap) entry_index(key brew_runtime.Value) int {
 	return -1
 }
 
-pub fn (mut cmap ConcurrentMap) lookup(key brew_runtime.Value) ConcurrentMapLookup {
+pub fn (mut cmap ConcurrentMap) lookup(key ruby.Value) ConcurrentMapLookup {
 	cmap.lock.rlock()
 	index := cmap.entry_index(key)
 	if index < 0 {
@@ -126,7 +126,7 @@ pub fn (mut cmap ConcurrentMap) lookup(key brew_runtime.Value) ConcurrentMapLook
 	}
 }
 
-pub fn (mut cmap ConcurrentMap) get(key brew_runtime.Value) !brew_runtime.Value {
+pub fn (mut cmap ConcurrentMap) get(key ruby.Value) !ruby.Value {
 	lookup := cmap.lookup(key)
 	if lookup.found {
 		return lookup.value
@@ -137,7 +137,7 @@ pub fn (mut cmap ConcurrentMap) get(key brew_runtime.Value) !brew_runtime.Value 
 	return concurrent_map_nil_value()
 }
 
-pub fn (mut cmap ConcurrentMap) put(key brew_runtime.Value, value brew_runtime.Value) brew_runtime.Value {
+pub fn (mut cmap ConcurrentMap) put(key ruby.Value, value ruby.Value) ruby.Value {
 	cmap.lock.lock()
 	index := cmap.entry_index(key)
 	if index >= 0 {
@@ -155,7 +155,7 @@ pub fn (mut cmap ConcurrentMap) put(key brew_runtime.Value, value brew_runtime.V
 	return value
 }
 
-pub fn (mut cmap ConcurrentMap) fetch(key brew_runtime.Value, default_value ?brew_runtime.Value) !brew_runtime.Value {
+pub fn (mut cmap ConcurrentMap) fetch(key ruby.Value, default_value ?ruby.Value) !ruby.Value {
 	lookup := cmap.lookup(key)
 	if lookup.found {
 		return lookup.value
@@ -166,7 +166,7 @@ pub fn (mut cmap ConcurrentMap) fetch(key brew_runtime.Value, default_value ?bre
 	return error('key not found')
 }
 
-pub fn (mut cmap ConcurrentMap) fetch_or_store(key brew_runtime.Value, default_value brew_runtime.Value) brew_runtime.Value {
+pub fn (mut cmap ConcurrentMap) fetch_or_store(key ruby.Value, default_value ruby.Value) ruby.Value {
 	lookup := cmap.lookup(key)
 	if lookup.found {
 		return lookup.value
@@ -174,7 +174,7 @@ pub fn (mut cmap ConcurrentMap) fetch_or_store(key brew_runtime.Value, default_v
 	return cmap.put(key, default_value)
 }
 
-pub fn (mut cmap ConcurrentMap) put_if_absent(key brew_runtime.Value, value brew_runtime.Value) ConcurrentMapLookup {
+pub fn (mut cmap ConcurrentMap) put_if_absent(key ruby.Value, value ruby.Value) ConcurrentMapLookup {
 	cmap.lock.lock()
 	index := cmap.entry_index(key)
 	if index >= 0 {
@@ -202,15 +202,15 @@ pub fn (mut cmap ConcurrentMap) snapshot() []ConcurrentMapEntry {
 	return entries
 }
 
-pub fn (mut cmap ConcurrentMap) contains_value(value brew_runtime.Value) bool {
+pub fn (mut cmap ConcurrentMap) contains_value(value ruby.Value) bool {
 	return cmap.snapshot().any(concurrent_map_values_identical(it.value, value))
 }
 
-pub fn (mut cmap ConcurrentMap) keys() []brew_runtime.Value {
+pub fn (mut cmap ConcurrentMap) keys() []ruby.Value {
 	return cmap.snapshot().map(it.key)
 }
 
-pub fn (mut cmap ConcurrentMap) values() []brew_runtime.Value {
+pub fn (mut cmap ConcurrentMap) values() []ruby.Value {
 	return cmap.snapshot().map(it.value)
 }
 
@@ -221,7 +221,7 @@ pub fn (mut cmap ConcurrentMap) each_pair(action ConcurrentMapEach) &ConcurrentM
 	return cmap
 }
 
-pub fn (mut cmap ConcurrentMap) key_for(value brew_runtime.Value) ?brew_runtime.Value {
+pub fn (mut cmap ConcurrentMap) key_for(value ruby.Value) ?ruby.Value {
 	for entry in cmap.snapshot() {
 		if concurrent_map_values_equal(entry.value, value) {
 			return entry.key
@@ -258,7 +258,7 @@ pub fn (mut cmap ConcurrentMap) inspect() string {
 	return '#<Concurrent::Map entries=${cmap.size()} default_proc=${cmap.has_default}>'
 }
 
-fn concurrent_map_options_from_value(value brew_runtime.Value) ConcurrentMapOptions {
+fn concurrent_map_options_from_value(value ruby.Value) ConcurrentMapOptions {
 	if value.type_name != 'Hash' {
 		return ConcurrentMapOptions{}
 	}
@@ -274,13 +274,13 @@ fn concurrent_map_options_from_value(value brew_runtime.Value) ConcurrentMapOpti
 	}
 }
 
-fn concurrent_map_boundary_value(cmap &ConcurrentMap) brew_runtime.Value {
-	return brew_runtime.structured_value('Concurrent::Map', '#<Concurrent::Map>', {
+fn concurrent_map_boundary_value(cmap &ConcurrentMap) ruby.Value {
+	return ruby.structured_value('Concurrent::Map', '#<Concurrent::Map>', {
 		'concurrent_map_address': u64(voidptr(cmap)).str()
 	})
 }
 
-fn concurrent_map_boundary_receiver(args []brew_runtime.Value) &ConcurrentMap {
+fn concurrent_map_boundary_receiver(args []ruby.Value) &ConcurrentMap {
 	if args.len == 0 {
 		panic('Concurrent::Map method requires a receiver')
 	}
@@ -290,27 +290,27 @@ fn concurrent_map_boundary_receiver(args []brew_runtime.Value) &ConcurrentMap {
 	return unsafe { &ConcurrentMap(voidptr(address)) }
 }
 
-fn concurrent_map_entries_value(entries []ConcurrentMapEntry) brew_runtime.Value {
-	mut values := []brew_runtime.Value{cap: entries.len}
+fn concurrent_map_entries_value(entries []ConcurrentMapEntry) ruby.Value {
+	mut values := []ruby.Value{cap: entries.len}
 	for entry in entries {
-		values << brew_runtime.array_value([entry.key, entry.value])
+		values << ruby.array_value([entry.key, entry.value])
 	}
-	return brew_runtime.array_value(values)
+	return ruby.array_value(values)
 }
 
-fn concurrent_map_entries_from_value(value brew_runtime.Value) []ConcurrentMapEntry {
+fn concurrent_map_entries_from_value(value ruby.Value) []ConcurrentMapEntry {
 	if value.type_name == 'Hash' {
 		values := value.as_map() or { panic(err) }
 		mut entries := []ConcurrentMapEntry{cap: values.len}
 		for key, entry_value in values {
 			entries << ConcurrentMapEntry{
-				key: brew_runtime.string_value(key)
+				key: ruby.string_value(key)
 				value: entry_value
 			}
 		}
 		return entries
 	}
-	return (value.as_array() or { panic(err) }).map(fn (pair brew_runtime.Value) ConcurrentMapEntry {
+	return (value.as_array() or { panic(err) }).map(fn (pair ruby.Value) ConcurrentMapEntry {
 		values := pair.as_array() or { panic(err) }
 		if values.len < 2 {
 			panic('map pair requires key and value')
@@ -323,7 +323,7 @@ fn concurrent_map_entries_from_value(value brew_runtime.Value) []ConcurrentMapEn
 }
 
 // Ruby method `initialize(options = nil, &default_proc)` at line 133.
-pub fn ruby_map_l133_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_map_l133_d1_initialize(args ...ruby.Value) ruby.Value {
 	options := if args.len > 0 {
 		concurrent_map_options_from_value(args[0])
 	} else {
@@ -333,7 +333,7 @@ pub fn ruby_map_l133_d1_initialize(args ...brew_runtime.Value) brew_runtime.Valu
 }
 
 // Ruby method `[](key)` at line 147.
-pub fn ruby_map_l147_d2_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_map_l147_d2_anonymous(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Concurrent::Map#[] requires a key')
 	}
@@ -342,12 +342,12 @@ pub fn ruby_map_l147_d2_anonymous(args ...brew_runtime.Value) brew_runtime.Value
 }
 
 // Ruby alias_method `alias_method :get, :[]` at line 162.
-pub fn ruby_map_l162_d3_get(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_map_l162_d3_get(args ...ruby.Value) ruby.Value {
 	return ruby_map_l147_d2_anonymous(...args)
 }
 
 // Ruby alias_method `alias_method :put, :[]=` at line 163.
-pub fn ruby_map_l163_d4_put(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_map_l163_d4_put(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('Concurrent::Map#put requires a key and value')
 	}
@@ -356,17 +356,17 @@ pub fn ruby_map_l163_d4_put(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `fetch(key, default_value = NULL)` at line 183.
-pub fn ruby_map_l183_d5_fetch(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_map_l183_d5_fetch(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Concurrent::Map#fetch requires a key')
 	}
 	mut cmap := concurrent_map_boundary_receiver(args)
-	default_value := if args.len > 2 { ?brew_runtime.Value(args[2]) } else { none }
+	default_value := if args.len > 2 { ?ruby.Value(args[2]) } else { none }
 	return cmap.fetch(args[1], default_value) or { panic('KeyError: ${err}') }
 }
 
 // Ruby method `fetch_or_store(key, default_value = NULL)` at line 205.
-pub fn ruby_map_l205_d6_fetch_or_store(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_map_l205_d6_fetch_or_store(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('KeyError: key not found')
 	}
@@ -375,7 +375,7 @@ pub fn ruby_map_l205_d6_fetch_or_store(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby method `put_if_absent(key, value)` at line 215.
-pub fn ruby_map_l215_d7_put_if_absent(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_map_l215_d7_put_if_absent(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('Concurrent::Map#put_if_absent requires a key and value')
 	}
@@ -385,49 +385,49 @@ pub fn ruby_map_l215_d7_put_if_absent(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby method `value?(value)` at line 227.
-pub fn ruby_map_l227_d8_value(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_map_l227_d8_value(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Concurrent::Map#value? requires a value')
 	}
 	mut cmap := concurrent_map_boundary_receiver(args)
-	return brew_runtime.bool_value(cmap.contains_value(args[1]))
+	return ruby.bool_value(cmap.contains_value(args[1]))
 }
 
 // Ruby method `keys` at line 236.
-pub fn ruby_map_l236_d9_keys(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_map_l236_d9_keys(args ...ruby.Value) ruby.Value {
 	mut cmap := concurrent_map_boundary_receiver(args)
-	return brew_runtime.array_value(cmap.keys())
+	return ruby.array_value(cmap.keys())
 }
 
 // Ruby method `values` at line 244.
-pub fn ruby_map_l244_d10_values(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_map_l244_d10_values(args ...ruby.Value) ruby.Value {
 	mut cmap := concurrent_map_boundary_receiver(args)
-	return brew_runtime.array_value(cmap.values())
+	return ruby.array_value(cmap.values())
 }
 
 // Ruby method `each_key` at line 255.
-pub fn ruby_map_l255_d11_each_key(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_map_l255_d11_each_key(args ...ruby.Value) ruby.Value {
 	return ruby_map_l236_d9_keys(...args)
 }
 
 // Ruby method `each_value` at line 264.
-pub fn ruby_map_l264_d12_each_value(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_map_l264_d12_each_value(args ...ruby.Value) ruby.Value {
 	return ruby_map_l244_d10_values(...args)
 }
 
 // Ruby method `each_pair` at line 274.
-pub fn ruby_map_l274_d13_each_pair(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_map_l274_d13_each_pair(args ...ruby.Value) ruby.Value {
 	mut cmap := concurrent_map_boundary_receiver(args)
 	return concurrent_map_entries_value(cmap.snapshot())
 }
 
 // Ruby alias_method `alias_method :each, :each_pair unless method_defined?(:each)` at line 279.
-pub fn ruby_map_l279_d14_each(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_map_l279_d14_each(args ...ruby.Value) ruby.Value {
 	return ruby_map_l274_d13_each_pair(...args)
 }
 
 // Ruby method `key(value)` at line 284.
-pub fn ruby_map_l284_d15_key(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_map_l284_d15_key(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Concurrent::Map#key requires a value')
 	}
@@ -436,19 +436,19 @@ pub fn ruby_map_l284_d15_key(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `empty?` at line 291.
-pub fn ruby_map_l291_d16_empty(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_map_l291_d16_empty(args ...ruby.Value) ruby.Value {
 	mut cmap := concurrent_map_boundary_receiver(args)
-	return brew_runtime.bool_value(cmap.size() == 0)
+	return ruby.bool_value(cmap.size() == 0)
 }
 
 // Ruby method `size` at line 298.
-pub fn ruby_map_l298_d17_size(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_map_l298_d17_size(args ...ruby.Value) ruby.Value {
 	mut cmap := concurrent_map_boundary_receiver(args)
-	return brew_runtime.int_value(cmap.size())
+	return ruby.int_value(cmap.size())
 }
 
 // Ruby method `marshal_dump` at line 305.
-pub fn ruby_map_l305_d18_marshal_dump(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_map_l305_d18_marshal_dump(args ...ruby.Value) ruby.Value {
 	mut cmap := concurrent_map_boundary_receiver(args)
 	if cmap.has_default {
 		panic("TypeError: can't dump hash with default proc")
@@ -457,7 +457,7 @@ pub fn ruby_map_l305_d18_marshal_dump(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby method `marshal_load(hash)` at line 313.
-pub fn ruby_map_l313_d19_marshal_load(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_map_l313_d19_marshal_load(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Concurrent::Map#marshal_load requires entries')
 	}
@@ -470,18 +470,18 @@ pub fn ruby_map_l313_d19_marshal_load(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby method `inspect` at line 321.
-pub fn ruby_map_l321_d20_inspect(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_map_l321_d20_inspect(args ...ruby.Value) ruby.Value {
 	mut cmap := concurrent_map_boundary_receiver(args)
-	return brew_runtime.string_value(cmap.inspect())
+	return ruby.string_value(cmap.inspect())
 }
 
 // Ruby method `raise_fetch_no_key` at line 327.
-pub fn ruby_map_l327_d21_raise_fetch_no_key(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_map_l327_d21_raise_fetch_no_key(args ...ruby.Value) ruby.Value {
 	panic('KeyError: key not found')
 }
 
 // Ruby method `initialize_copy(other)` at line 331.
-pub fn ruby_map_l331_d22_initialize_copy(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_map_l331_d22_initialize_copy(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Concurrent::Map#initialize_copy requires a source map')
 	}
@@ -490,7 +490,7 @@ pub fn ruby_map_l331_d22_initialize_copy(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `populate_from(hash)` at line 336.
-pub fn ruby_map_l336_d23_populate_from(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_map_l336_d23_populate_from(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Concurrent::Map#populate_from requires entries')
 	}
@@ -500,7 +500,7 @@ pub fn ruby_map_l336_d23_populate_from(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby method `validate_options_hash!(options)` at line 341.
-pub fn ruby_map_l341_d24_validate_options_hash(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_map_l341_d24_validate_options_hash(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || args[args.len - 1].type_name != 'Hash' {
 		panic('Concurrent::Map#validate_options_hash! requires a Hash')
 	}

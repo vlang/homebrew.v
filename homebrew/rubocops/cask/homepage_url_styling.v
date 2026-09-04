@@ -1,6 +1,6 @@
 module cask
 
-import brew_runtime
+import ruby
 import net.urllib
 
 // Translated from Homebrew/brew `rubocops/cask/homepage_url_styling.rb`.
@@ -291,8 +291,8 @@ pub fn correct_homepage_url_styling(source string) string {
 	return corrected
 }
 
-fn homepage_url_styling_value(offense HomepageUrlStylingOffense) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cop::Offense', offense.message, {
+fn homepage_url_styling_value(offense HomepageUrlStylingOffense) ruby.Value {
+	return ruby.structured_value('RuboCop::Cop::Offense', offense.message, {
 		'cask_name':   offense.cask_name
 		'url':         offense.url
 		'begin_pos':   offense.begin_pos.str()
@@ -303,11 +303,11 @@ fn homepage_url_styling_value(offense HomepageUrlStylingOffense) brew_runtime.Va
 }
 
 // Ruby method `on_homepage_stanza(stanza)` at line 21.
-pub fn ruby_homepage_url_styling_l21_d1_on_homepage_stanza(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_homepage_url_styling_l21_d1_on_homepage_stanza(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	offenses := audit_homepage_url_styling(source)
 	return if offenses.len == 0 {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	} else {
 		homepage_url_styling_value(offenses[0])
 	}

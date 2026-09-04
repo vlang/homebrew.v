@@ -1,6 +1,6 @@
 module reinstall
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `reinstall/reinstall.rb`.
@@ -295,36 +295,36 @@ pub fn reinstall_pkgconf_if_needed(dry_run bool) {
 	_ = dry_run
 }
 
-fn reinstall_nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn reinstall_nil_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-fn reinstall_error_value(kind string, message string) brew_runtime.Value {
-	return brew_runtime.structured_value(kind, message, {
+fn reinstall_error_value(kind string, message string) ruby.Value {
+	return ruby.structured_value(kind, message, {
 		'message': message
 	})
 }
 
-pub fn reinstall_formula_boundary(formula &ReinstallFormula) brew_runtime.Value {
-	return brew_runtime.structured_value('Formula', formula.full_name, {
+pub fn reinstall_formula_boundary(formula &ReinstallFormula) ruby.Value {
+	return ruby.structured_value('Formula', formula.full_name, {
 		'reinstall_formula_address': u64(voidptr(formula)).str()
 	})
 }
 
-pub fn reinstall_build_options_boundary(options &BuildInstallContextOptions) brew_runtime.Value {
-	return brew_runtime.structured_value('Hash', options.flags.str(), {
+pub fn reinstall_build_options_boundary(options &BuildInstallContextOptions) ruby.Value {
+	return ruby.structured_value('Hash', options.flags.str(), {
 		'reinstall_build_options_address': u64(voidptr(options)).str()
 	})
 }
 
-pub fn reinstall_keg_boundary(keg &ReinstallKeg) brew_runtime.Value {
-	return brew_runtime.structured_value('Keg', keg.path, {
+pub fn reinstall_keg_boundary(keg &ReinstallKeg) ruby.Value {
+	return ruby.structured_value('Keg', keg.path, {
 		'reinstall_keg_address': u64(voidptr(keg)).str()
 	})
 }
 
-pub fn reinstall_context_boundary(context &InstallationContext) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::Reinstall::InstallationContext', context.formula.full_name, {
+pub fn reinstall_context_boundary(context &InstallationContext) ruby.Value {
+	return ruby.structured_value('Homebrew::Reinstall::InstallationContext', context.formula.full_name, {
 		'reinstall_context_address': u64(voidptr(context)).str()
 		'has_keg':                   context.has_keg.str()
 		'keg':                       context.keg.path
@@ -333,7 +333,7 @@ pub fn reinstall_context_boundary(context &InstallationContext) brew_runtime.Val
 	})
 }
 
-fn reinstall_formula_from_boundary(value brew_runtime.Value) !&ReinstallFormula {
+fn reinstall_formula_from_boundary(value ruby.Value) !&ReinstallFormula {
 	address := value.attributes['reinstall_formula_address'] or {
 		return error('build_install_context requires a Formula')
 	}
@@ -343,7 +343,7 @@ fn reinstall_formula_from_boundary(value brew_runtime.Value) !&ReinstallFormula 
 	return unsafe { &ReinstallFormula(voidptr(address.u64())) }
 }
 
-fn reinstall_build_options_from_boundary(args []brew_runtime.Value) BuildInstallContextOptions {
+fn reinstall_build_options_from_boundary(args []ruby.Value) BuildInstallContextOptions {
 	if args.len < 2 {
 		return BuildInstallContextOptions{}
 	}
@@ -359,7 +359,7 @@ fn reinstall_build_options_from_boundary(args []brew_runtime.Value) BuildInstall
 	}
 }
 
-fn reinstall_context_from_boundary(value brew_runtime.Value) !&InstallationContext {
+fn reinstall_context_from_boundary(value ruby.Value) !&InstallationContext {
 	address := value.attributes['reinstall_context_address'] or {
 		return error('reinstall_formula requires an InstallationContext')
 	}
@@ -369,7 +369,7 @@ fn reinstall_context_from_boundary(value brew_runtime.Value) !&InstallationConte
 	return unsafe { &InstallationContext(voidptr(address.u64())) }
 }
 
-fn reinstall_keg_from_boundary(value brew_runtime.Value) !&ReinstallKeg {
+fn reinstall_keg_from_boundary(value ruby.Value) !&ReinstallKeg {
 	address := value.attributes['reinstall_keg_address'] or {
 		return error('a Keg is required')
 	}
@@ -380,7 +380,7 @@ fn reinstall_keg_from_boundary(value brew_runtime.Value) !&ReinstallKeg {
 }
 
 // Ruby method `build_install_context(` at line 25.
-pub fn ruby_reinstall_l25_d1_build_install_context(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_reinstall_l25_d1_build_install_context(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return reinstall_error_value('ArgumentError', 'build_install_context requires a Formula')
 	}
@@ -393,7 +393,7 @@ pub fn ruby_reinstall_l25_d1_build_install_context(args ...brew_runtime.Value) b
 }
 
 // Ruby method `reinstall_formula(install_context)` at line 79.
-pub fn ruby_reinstall_l79_d2_reinstall_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_reinstall_l79_d2_reinstall_formula(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return reinstall_error_value('ArgumentError', 'reinstall_formula requires an InstallationContext')
 	}
@@ -407,14 +407,14 @@ pub fn ruby_reinstall_l79_d2_reinstall_formula(args ...brew_runtime.Value) brew_
 }
 
 // Ruby method `reinstall_pkgconf_if_needed!(dry_run: false)` at line 115.
-pub fn ruby_reinstall_l115_d3_reinstall_pkgconf_if_needed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_reinstall_l115_d3_reinstall_pkgconf_if_needed(args ...ruby.Value) ruby.Value {
 	dry_run := if args.len > 0 { args[0].as_bool() or { false } } else { false }
 	reinstall_pkgconf_if_needed(dry_run)
 	return reinstall_nil_value()
 }
 
 // Ruby method `backup(keg)` at line 120.
-pub fn ruby_reinstall_l120_d4_backup(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_reinstall_l120_d4_backup(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return reinstall_error_value('ArgumentError', 'backup requires a Keg')
 	}
@@ -426,7 +426,7 @@ pub fn ruby_reinstall_l120_d4_backup(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby method `restore_backup(keg, keg_was_linked, verbose:)` at line 136.
-pub fn ruby_reinstall_l136_d5_restore_backup(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_reinstall_l136_d5_restore_backup(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return reinstall_error_value('ArgumentError', 'restore_backup requires a Keg')
 	}
@@ -442,14 +442,14 @@ pub fn ruby_reinstall_l136_d5_restore_backup(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby method `backup_path(keg)` at line 148.
-pub fn ruby_reinstall_l148_d6_backup_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_reinstall_l148_d6_backup_path(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return reinstall_error_value('ArgumentError', 'backup_path requires a Keg')
 	}
 	keg := reinstall_keg_from_boundary(args[0]) or {
 		return reinstall_error_value('ArgumentError', err.msg())
 	}
-	return brew_runtime.object_value('Pathname', backup_path(*keg))
+	return ruby.object_value('Pathname', backup_path(*keg))
 }
 
 // Original Ruby source (line-for-line):

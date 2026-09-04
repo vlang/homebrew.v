@@ -1,6 +1,6 @@
 module cask
 
-import brew_runtime
+import ruby
 import homebrew.cask as brew_cask
 
 // Translated from Homebrew/brew `test/cask/audit_spec.rb`.
@@ -601,69 +601,69 @@ fn audit_spec_case(line int) bool {
 	}
 }
 
-fn audit_spec_literal(expression string) brew_runtime.Value {
+fn audit_spec_literal(expression string) ruby.Value {
 	if expression.contains('{ nil }') {
-		return brew_runtime.object_value('Nil', '')
+		return ruby.object_value('Nil', '')
 	}
 	if expression.contains('{ true }') {
-		return brew_runtime.bool_value(true)
+		return ruby.bool_value(true)
 	}
 	if expression.contains('{ false }') {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	if expression.contains('{ [] }') {
-		return brew_runtime.string_array_value([]string{})
+		return ruby.string_array_value([]string{})
 	}
 	start := expression.index('{ "') or { -1 }
 	if start >= 0 {
 		tail := expression[start + 3..]
 		end := tail.index('" }') or { -1 }
 		if end >= 0 {
-			return brew_runtime.string_value(tail[..end])
+			return ruby.string_value(tail[..end])
 		}
 	}
-	return brew_runtime.structured_value('RSpec::Let', expression, {
+	return ruby.structured_value('RSpec::Let', expression, {
 		'expression': expression
 	})
 }
 
-fn audit_spec_boundary(line int, kind string, expression string, args []brew_runtime.Value) brew_runtime.Value {
+fn audit_spec_boundary(line int, kind string, expression string, args []ruby.Value) ruby.Value {
 	_ = args
 	if kind in ['it', 'specify'] {
-		return brew_runtime.bool_value(audit_spec_case(line))
+		return ruby.bool_value(audit_spec_case(line))
 	}
 	if kind == 'subject' {
 		if expression.contains('audit.result') {
 			audit := brew_cask.new_cask_audit(audit_spec_base_cask('basic-cask'), brew_cask.AuditOptions{}, brew_cask.AuditCollaborators{})
 			return if value := audit.result_text() {
-				brew_runtime.string_value(value)
+				ruby.string_value(value)
 			} else {
-				brew_runtime.object_value('Nil', '')
+				ruby.object_value('Nil', '')
 			}
 		}
-		return brew_runtime.structured_value('Cask::Audit', 'basic-cask', {
+		return ruby.structured_value('Cask::Audit', 'basic-cask', {
 			'token': 'basic-cask'
 		})
 	}
 	if kind == 'method' {
 		return match line {
-			23 { brew_runtime.bool_value(true) }
-			31 { brew_runtime.bool_value(true) }
-			35 { brew_runtime.string_value('passed') }
+			23 { ruby.bool_value(true) }
+			31 { ruby.bool_value(true) }
+			35 { ruby.string_value('passed') }
 			151 {
-				brew_runtime.structured_value('Cask::Cask', 'temporary cask', {
+				ruby.structured_value('Cask::Cask', 'temporary cask', {
 					'source': expression
 				})
 			}
 			else {
-				brew_runtime.structured_value('Method', expression, {
+				ruby.structured_value('Method', expression, {
 					'expression': expression
 				})
 			}
 		}
 	}
 	if kind == 'matcher' {
-		return brew_runtime.structured_value('RSpec::Matcher', expression, {
+		return ruby.structured_value('RSpec::Matcher', expression, {
 			'expression': expression
 		})
 	}
@@ -671,1847 +671,1847 @@ fn audit_spec_boundary(line int, kind string, expression string, args []brew_run
 }
 
 // Ruby let `let(:cask) { instance_double(Cask::Cask) }` at line 7.
-pub fn ruby_audit_spec_l7_d1_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l7_d1_cask(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(7, 'let', 'let(:cask) { instance_double(Cask::Cask) }', args)
 }
 
 // Ruby let `let(:new_cask) { nil }` at line 8.
-pub fn ruby_audit_spec_l8_d2_new_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l8_d2_new_cask(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(8, 'let', 'let(:new_cask) { nil }', args)
 }
 
 // Ruby let `let(:online) { nil }` at line 9.
-pub fn ruby_audit_spec_l9_d3_online(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l9_d3_online(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(9, 'let', 'let(:online) { nil }', args)
 }
 
 // Ruby let `let(:only) { [] }` at line 10.
-pub fn ruby_audit_spec_l10_d4_only(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l10_d4_only(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(10, 'let', 'let(:only) { [] }', args)
 }
 
 // Ruby let `let(:except) { [] }` at line 11.
-pub fn ruby_audit_spec_l11_d5_except(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l11_d5_except(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(11, 'let', 'let(:except) { [] }', args)
 }
 
 // Ruby let `let(:strict) { nil }` at line 12.
-pub fn ruby_audit_spec_l12_d6_strict(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l12_d6_strict(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(12, 'let', 'let(:strict) { nil }', args)
 }
 
 // Ruby let `let(:signing) { nil }` at line 13.
-pub fn ruby_audit_spec_l13_d7_signing(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l13_d7_signing(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(13, 'let', 'let(:signing) { nil }', args)
 }
 
 // Ruby let `let(:audit) do` at line 14.
-pub fn ruby_audit_spec_l14_d8_audit(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l14_d8_audit(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(14, 'let', 'let(:audit) do', args)
 }
 
 // Ruby method `include_msg?(problems, msg)` at line 23.
-pub fn ruby_audit_spec_l23_d9_include_msg(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l23_d9_include_msg(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(23, 'method', 'include_msg?(problems, msg)', args)
 }
 
 // Ruby method `passed?(audit)` at line 31.
-pub fn ruby_audit_spec_l31_d10_passed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l31_d10_passed(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(31, 'method', 'passed?(audit)', args)
 }
 
 // Ruby method `outcome(audit)` at line 35.
-pub fn ruby_audit_spec_l35_d11_outcome(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l35_d11_outcome(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(35, 'method', 'outcome(audit)', args)
 }
 
 // Ruby matcher `matcher :pass do` at line 43.
-pub fn ruby_audit_spec_l43_d12_pass(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l43_d12_pass(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(43, 'matcher', 'matcher :pass do', args)
 }
 
 // Ruby matcher `matcher :error_with do |message|` at line 53.
-pub fn ruby_audit_spec_l53_d13_error_with(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l53_d13_error_with(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(53, 'matcher', 'matcher :error_with do |message|', args)
 }
 
 // Ruby let `let(:new_cask) { true }` at line 65.
-pub fn ruby_audit_spec_l65_d14_new_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l65_d14_new_cask(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(65, 'let', 'let(:new_cask) { true }', args)
 }
 
 // Ruby specify `specify do` at line 67.
-pub fn ruby_audit_spec_l67_d15_do(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l67_d15_do(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(67, 'specify', 'specify do', args)
 }
 
 // Ruby let `let(:online) { true }` at line 74.
-pub fn ruby_audit_spec_l74_d16_online(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l74_d16_online(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(74, 'let', 'let(:online) { true }', args)
 }
 
 // Ruby it `it "implies `download`" do` at line 76.
-pub fn ruby_audit_spec_l76_d17_implies(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l76_d17_implies(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(76, 'it', 'it "implies `download`" do', args)
 }
 
 // Ruby let `let(:signing) { true }` at line 82.
-pub fn ruby_audit_spec_l82_d18_signing(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l82_d18_signing(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(82, 'let', 'let(:signing) { true }', args)
 }
 
 // Ruby it `it "implies `download`" do` at line 84.
-pub fn ruby_audit_spec_l84_d19_implies(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l84_d19_implies(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(84, 'it', 'it "implies `download`" do', args)
 }
 
 // Ruby subject `subject { audit.result }` at line 91.
-pub fn ruby_audit_spec_l91_d20_subject_dynamic(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l91_d20_subject_dynamic(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(91, 'subject', 'subject { audit.result }', args)
 }
 
 // Ruby it `it { is_expected.to be_nil }` at line 98.
-pub fn ruby_audit_spec_l98_d21_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l98_d21_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(98, 'it', 'it { is_expected.to be_nil }', args)
 }
 
 // Ruby it `it { is_expected.to include("failed") }` at line 106.
-pub fn ruby_audit_spec_l106_d22_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l106_d22_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(106, 'it', 'it { is_expected.to include("failed") }', args)
 }
 
 // Ruby it `it { is_expected.to include("failed") }` at line 115.
-pub fn ruby_audit_spec_l115_d23_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l115_d23_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(115, 'it', 'it { is_expected.to include("failed") }', args)
 }
 
 // Ruby let `let(:strict) { true }` at line 119.
-pub fn ruby_audit_spec_l119_d24_strict(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l119_d24_strict(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(119, 'let', 'let(:strict) { true }', args)
 }
 
 // Ruby it `it { is_expected.to include("failed") }` at line 126.
-pub fn ruby_audit_spec_l126_d25_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l126_d25_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(126, 'it', 'it { is_expected.to include("failed") }', args)
 }
 
 // Ruby it `it { is_expected.to be_nil }` at line 134.
-pub fn ruby_audit_spec_l134_d26_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l134_d26_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(134, 'it', 'it { is_expected.to be_nil }', args)
 }
 
 // Ruby let `let(:strict) { true }` at line 138.
-pub fn ruby_audit_spec_l138_d27_strict(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l138_d27_strict(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(138, 'let', 'let(:strict) { true }', args)
 }
 
 // Ruby it `it { is_expected.to include("failed") }` at line 144.
-pub fn ruby_audit_spec_l144_d28_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l144_d28_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(144, 'it', 'it { is_expected.to include("failed") }', args)
 }
 
 // Ruby subject `subject(:run) { audit.run! }` at line 149.
-pub fn ruby_audit_spec_l149_d29_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l149_d29_run(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(149, 'subject', 'subject(:run) { audit.run! }', args)
 }
 
 // Ruby method `tmp_cask(name, text)` at line 151.
-pub fn ruby_audit_spec_l151_d30_tmp_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l151_d30_tmp_cask(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(151, 'method', 'tmp_cask(name, text)', args)
 }
 
 // Ruby let `let(:dir) { mktmpdir }` at line 160.
-pub fn ruby_audit_spec_l160_d31_dir(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l160_d31_dir(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(160, 'let', 'let(:dir) { mktmpdir }', args)
 }
 
 // Ruby let `let(:cask) { Cask::CaskLoader.load(cask_token) }` at line 161.
-pub fn ruby_audit_spec_l161_d32_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l161_d32_cask(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(161, 'let', 'let(:cask) { Cask::CaskLoader.load(cask_token) }', args)
 }
 
 // Ruby let `let(:only) { ["required_stanzas"] }` at line 164.
-pub fn ruby_audit_spec_l164_d33_only(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l164_d33_only(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(164, 'let', 'let(:only) { ["required_stanzas"] }', args)
 }
 
 // Ruby let `let(:cask_token) { "missing-#{stanza}" }` at line 168.
-pub fn ruby_audit_spec_l168_d34_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l168_d34_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(168, 'let', 'let(:cask_token) { "missing-#{stanza}" }', args)
 }
 
 // Ruby it `it { is_expected.to error_with(/#{stanza} stanza is required/) }` at line 170.
-pub fn ruby_audit_spec_l170_d35_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l170_d35_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(170, 'it', 'it { is_expected.to error_with(/#{stanza} stanza is required/) }', args)
 }
 
 // Ruby let `let(:cask) do` at line 175.
-pub fn ruby_audit_spec_l175_d36_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l175_d36_cask(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(175, 'let', 'let(:cask) do', args)
 }
 
 // Ruby it `it { is_expected.to error_with("at least one installable artifact stanza is required") }` at line 187.
-pub fn ruby_audit_spec_l187_d37_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l187_d37_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(187, 'it', 'it { is_expected.to error_with("at least one installable artifact stanza is required") }', args)
 }
 
 // Ruby let `let(:cask) do` at line 191.
-pub fn ruby_audit_spec_l191_d38_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l191_d38_cask(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(191, 'let', 'let(:cask) do', args)
 }
 
 // Ruby it `it { is_expected.not_to error_with("at least one installable artifact stanza is required") }` at line 207.
-pub fn ruby_audit_spec_l207_d39_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l207_d39_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(207, 'it', 'it { is_expected.not_to error_with("at least one installable artifact stanza is required") }', args)
 }
 
 // Ruby let `let(:online) { true }` at line 212.
-pub fn ruby_audit_spec_l212_d40_online(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l212_d40_online(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(212, 'let', 'let(:online) { true }', args)
 }
 
 // Ruby let `let(:only) { ["homepage_https_availability"] }` at line 213.
-pub fn ruby_audit_spec_l213_d41_only(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l213_d41_only(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(213, 'let', 'let(:only) { ["homepage_https_availability"] }', args)
 }
 
 // Ruby let `let(:browsed) { "2025-07-27" }` at line 214.
-pub fn ruby_audit_spec_l214_d42_browsed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l214_d42_browsed(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(214, 'let', 'let(:browsed) { "2025-07-27" }', args)
 }
 
 // Ruby let `let(:cask) do` at line 215.
-pub fn ruby_audit_spec_l215_d43_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l215_d43_cask(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(215, 'let', 'let(:cask) do', args)
 }
 
 // Ruby it `it "skips homepages browsed by a human less than a year ago" do` at line 224.
-pub fn ruby_audit_spec_l224_d44_skips(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l224_d44_skips(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(224, 'it', 'it "skips homepages browsed by a human less than a year ago" do', args)
 }
 
 // Ruby let `let(:browsed) { "2025-07-26" }` at line 230.
-pub fn ruby_audit_spec_l230_d45_browsed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l230_d45_browsed(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(230, 'let', 'let(:browsed) { "2025-07-26" }', args)
 }
 
 // Ruby it `it "audits the homepage" do` at line 232.
-pub fn ruby_audit_spec_l232_d46_audits(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l232_d46_audits(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(232, 'it', 'it "audits the homepage" do', args)
 }
 
 // Ruby let `let(:browsed) { "2026-07-27" }` at line 239.
-pub fn ruby_audit_spec_l239_d47_browsed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l239_d47_browsed(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(239, 'let', 'let(:browsed) { "2026-07-27" }', args)
 }
 
 // Ruby it `it "audits the homepage" do` at line 241.
-pub fn ruby_audit_spec_l241_d48_audits(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l241_d48_audits(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(241, 'it', 'it "audits the homepage" do', args)
 }
 
 // Ruby let `let(:strict) { true }` at line 249.
-pub fn ruby_audit_spec_l249_d49_strict(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l249_d49_strict(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(249, 'let', 'let(:strict) { true }', args)
 }
 
 // Ruby let `let(:only) { ["token"] }` at line 250.
-pub fn ruby_audit_spec_l250_d50_only(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l250_d50_only(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(250, 'let', 'let(:only) { ["token"] }', args)
 }
 
 // Ruby let `let(:cask) do` at line 251.
-pub fn ruby_audit_spec_l251_d51_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l251_d51_cask(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(251, 'let', 'let(:cask) do', args)
 }
 
 // Ruby let `let(:cask_token) { "Upper-Case" }` at line 265.
-pub fn ruby_audit_spec_l265_d52_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l265_d52_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(265, 'let', 'let(:cask_token) { "Upper-Case" }', args)
 }
 
 // Ruby it `it "fails" do` at line 267.
-pub fn ruby_audit_spec_l267_d53_fails(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l267_d53_fails(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(267, 'it', 'it "fails" do', args)
 }
 
 // Ruby let `let(:cask_token) { "ascii⌘" }` at line 273.
-pub fn ruby_audit_spec_l273_d54_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l273_d54_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(273, 'let', 'let(:cask_token) { "ascii⌘" }', args)
 }
 
 // Ruby it `it "fails" do` at line 275.
-pub fn ruby_audit_spec_l275_d55_fails(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l275_d55_fails(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(275, 'it', 'it "fails" do', args)
 }
 
 // Ruby let `let(:cask_token) { "app@10" }` at line 281.
-pub fn ruby_audit_spec_l281_d56_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l281_d56_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(281, 'let', 'let(:cask_token) { "app@10" }', args)
 }
 
 // Ruby it `it "does not fail" do` at line 283.
-pub fn ruby_audit_spec_l283_d57_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l283_d57_does(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(283, 'it', 'it "does not fail" do', args)
 }
 
 // Ruby let `let(:cask_token) { "app@beta" }` at line 289.
-pub fn ruby_audit_spec_l289_d58_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l289_d58_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(289, 'let', 'let(:cask_token) { "app@beta" }', args)
 }
 
 // Ruby it `it "does not fail" do` at line 291.
-pub fn ruby_audit_spec_l291_d59_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l291_d59_does(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(291, 'it', 'it "does not fail" do', args)
 }
 
 // Ruby let `let(:cask_token) { "app@stuff@beta" }` at line 297.
-pub fn ruby_audit_spec_l297_d60_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l297_d60_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(297, 'let', 'let(:cask_token) { "app@stuff@beta" }', args)
 }
 
 // Ruby it `it "fails" do` at line 299.
-pub fn ruby_audit_spec_l299_d61_fails(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l299_d61_fails(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(299, 'it', 'it "fails" do', args)
 }
 
 // Ruby let `let(:cask_token) { "app-@beta" }` at line 305.
-pub fn ruby_audit_spec_l305_d62_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l305_d62_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(305, 'let', 'let(:cask_token) { "app-@beta" }', args)
 }
 
 // Ruby it `it "fails" do` at line 307.
-pub fn ruby_audit_spec_l307_d63_fails(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l307_d63_fails(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(307, 'it', 'it "fails" do', args)
 }
 
 // Ruby let `let(:cask_token) { "app@-beta" }` at line 313.
-pub fn ruby_audit_spec_l313_d64_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l313_d64_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(313, 'let', 'let(:cask_token) { "app@-beta" }', args)
 }
 
 // Ruby it `it "fails" do` at line 315.
-pub fn ruby_audit_spec_l315_d65_fails(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l315_d65_fails(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(315, 'it', 'it "fails" do', args)
 }
 
 // Ruby let `let(:cask_token) { "app stuff" }` at line 321.
-pub fn ruby_audit_spec_l321_d66_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l321_d66_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(321, 'let', 'let(:cask_token) { "app stuff" }', args)
 }
 
 // Ruby it `it "fails" do` at line 323.
-pub fn ruby_audit_spec_l323_d67_fails(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l323_d67_fails(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(323, 'it', 'it "fails" do', args)
 }
 
 // Ruby let `let(:cask_token) { "app--stuff" }` at line 329.
-pub fn ruby_audit_spec_l329_d68_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l329_d68_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(329, 'let', 'let(:cask_token) { "app--stuff" }', args)
 }
 
 // Ruby it `it "fails" do` at line 331.
-pub fn ruby_audit_spec_l331_d69_fails(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l331_d69_fails(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(331, 'it', 'it "fails" do', args)
 }
 
 // Ruby let `let(:cask_token) { "-app" }` at line 337.
-pub fn ruby_audit_spec_l337_d70_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l337_d70_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(337, 'let', 'let(:cask_token) { "-app" }', args)
 }
 
 // Ruby it `it "fails" do` at line 339.
-pub fn ruby_audit_spec_l339_d71_fails(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l339_d71_fails(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(339, 'it', 'it "fails" do', args)
 }
 
 // Ruby let `let(:cask_token) { "app-" }` at line 345.
-pub fn ruby_audit_spec_l345_d72_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l345_d72_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(345, 'let', 'let(:cask_token) { "app-" }', args)
 }
 
 // Ruby it `it "fails" do` at line 347.
-pub fn ruby_audit_spec_l347_d73_fails(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l347_d73_fails(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(347, 'it', 'it "fails" do', args)
 }
 
 // Ruby let `let(:new_cask) { true }` at line 354.
-pub fn ruby_audit_spec_l354_d74_new_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l354_d74_new_cask(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(354, 'let', 'let(:new_cask) { true }', args)
 }
 
 // Ruby let `let(:only) { ["token_bad_words", "reverse_migration"] }` at line 355.
-pub fn ruby_audit_spec_l355_d75_only(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l355_d75_only(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(355, 'let', 'let(:only) { ["token_bad_words", "reverse_migration"] }', args)
 }
 
 // Ruby let `let(:online) { false }` at line 356.
-pub fn ruby_audit_spec_l356_d76_online(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l356_d76_online(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(356, 'let', 'let(:online) { false }', args)
 }
 
 // Ruby let `let(:cask) do` at line 357.
-pub fn ruby_audit_spec_l357_d77_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l357_d77_cask(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(357, 'let', 'let(:cask) do', args)
 }
 
 // Ruby let `let(:cask_token) { "token.app" }` at line 372.
-pub fn ruby_audit_spec_l372_d78_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l372_d78_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(372, 'let', 'let(:cask_token) { "token.app" }', args)
 }
 
 // Ruby it `it "fails" do` at line 374.
-pub fn ruby_audit_spec_l374_d79_fails(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l374_d79_fails(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(374, 'it', 'it "fails" do', args)
 }
 
 // Ruby let `let(:cask_token) { "token-launcher" }` at line 380.
-pub fn ruby_audit_spec_l380_d80_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l380_d80_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(380, 'let', 'let(:cask_token) { "token-launcher" }', args)
 }
 
 // Ruby it `it "fails" do` at line 382.
-pub fn ruby_audit_spec_l382_d81_fails(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l382_d81_fails(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(382, 'it', 'it "fails" do', args)
 }
 
 // Ruby let `let(:cask_token) { "token-desktop" }` at line 388.
-pub fn ruby_audit_spec_l388_d82_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l388_d82_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(388, 'let', 'let(:cask_token) { "token-desktop" }', args)
 }
 
 // Ruby it `it "fails" do` at line 390.
-pub fn ruby_audit_spec_l390_d83_fails(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l390_d83_fails(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(390, 'it', 'it "fails" do', args)
 }
 
 // Ruby let `let(:cask_token) { "token-osx" }` at line 396.
-pub fn ruby_audit_spec_l396_d84_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l396_d84_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(396, 'let', 'let(:cask_token) { "token-osx" }', args)
 }
 
 // Ruby it `it "fails" do` at line 398.
-pub fn ruby_audit_spec_l398_d85_fails(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l398_d85_fails(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(398, 'it', 'it "fails" do', args)
 }
 
 // Ruby let `let(:cask_token) { "token-x86" }` at line 404.
-pub fn ruby_audit_spec_l404_d86_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l404_d86_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(404, 'let', 'let(:cask_token) { "token-x86" }', args)
 }
 
 // Ruby it `it "fails" do` at line 406.
-pub fn ruby_audit_spec_l406_d87_fails(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l406_d87_fails(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(406, 'it', 'it "fails" do', args)
 }
 
 // Ruby let `let(:cask_token) { "token-java" }` at line 412.
-pub fn ruby_audit_spec_l412_d88_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l412_d88_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(412, 'let', 'let(:cask_token) { "token-java" }', args)
 }
 
 // Ruby it `it "fails" do` at line 414.
-pub fn ruby_audit_spec_l414_d89_fails(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l414_d89_fails(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(414, 'it', 'it "fails" do', args)
 }
 
 // Ruby let `let(:cask_token) { "java" }` at line 420.
-pub fn ruby_audit_spec_l420_d90_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l420_d90_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(420, 'let', 'let(:cask_token) { "java" }', args)
 }
 
 // Ruby it `it "does not fail" do` at line 422.
-pub fn ruby_audit_spec_l422_d91_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l422_d91_does(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(422, 'it', 'it "does not fail" do', args)
 }
 
 // Ruby let `let(:cask_token) { "token-migrated" }` at line 428.
-pub fn ruby_audit_spec_l428_d92_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l428_d92_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(428, 'let', 'let(:cask_token) { "token-migrated" }', args)
 }
 
 // Ruby let `let(:tap) { CoreCaskTap.instance }` at line 429.
-pub fn ruby_audit_spec_l429_d93_tap(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l429_d93_tap(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(429, 'let', 'let(:tap) { CoreCaskTap.instance }', args)
 }
 
 // Ruby let `let(:new_cask) { true }` at line 437.
-pub fn ruby_audit_spec_l437_d94_new_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l437_d94_new_cask(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(437, 'let', 'let(:new_cask) { true }', args)
 }
 
 // Ruby it `it "fails" do` at line 439.
-pub fn ruby_audit_spec_l439_d95_fails(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l439_d95_fails(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(439, 'it', 'it "fails" do', args)
 }
 
 // Ruby let `let(:new_cask) { false }` at line 445.
-pub fn ruby_audit_spec_l445_d96_new_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l445_d96_new_cask(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(445, 'let', 'let(:new_cask) { false }', args)
 }
 
 // Ruby it `it "does not fail" do` at line 447.
-pub fn ruby_audit_spec_l447_d97_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l447_d97_does(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(447, 'it', 'it "does not fail" do', args)
 }
 
 // Ruby let `let(:only) { ["languages"] }` at line 455.
-pub fn ruby_audit_spec_l455_d98_only(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l455_d98_only(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(455, 'let', 'let(:only) { ["languages"] }', args)
 }
 
 // Ruby let `let(:cask) do` at line 456.
-pub fn ruby_audit_spec_l456_d99_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l456_d99_cask(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(456, 'let', 'let(:cask) do', args)
 }
 
 // Ruby it `it "error with invalid locale" do` at line 494.
-pub fn ruby_audit_spec_l494_d100_error(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l494_d100_error(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(494, 'it', 'it "error with invalid locale" do', args)
 }
 
 // Ruby let `let(:only) { ["untrusted_pkg"] }` at line 503.
-pub fn ruby_audit_spec_l503_d101_only(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l503_d101_only(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(503, 'let', 'let(:only) { ["untrusted_pkg"] }', args)
 }
 
 // Ruby let `let(:message) { "allow_untrusted is not permitted in the official homebrew/cask tap" }` at line 504.
-pub fn ruby_audit_spec_l504_d102_message(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l504_d102_message(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(504, 'let', 'let(:message) { "allow_untrusted is not permitted in the official homebrew/cask tap" }', args)
 }
 
 // Ruby let `let(:cask_token) { "basic-cask" }` at line 507.
-pub fn ruby_audit_spec_l507_d103_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l507_d103_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(507, 'let', 'let(:cask_token) { "basic-cask" }', args)
 }
 
 // Ruby it `it { is_expected.not_to error_with(message) }` at line 509.
-pub fn ruby_audit_spec_l509_d104_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l509_d104_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(509, 'it', 'it { is_expected.not_to error_with(message) }', args)
 }
 
 // Ruby let `let(:cask_token) { "with-uninstall-pkgutil" }` at line 513.
-pub fn ruby_audit_spec_l513_d105_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l513_d105_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(513, 'let', 'let(:cask_token) { "with-uninstall-pkgutil" }', args)
 }
 
 // Ruby it `it { is_expected.not_to error_with(message) }` at line 515.
-pub fn ruby_audit_spec_l515_d106_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l515_d106_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(515, 'it', 'it { is_expected.not_to error_with(message) }', args)
 }
 
 // Ruby let `let(:cask_token) { "with-allow-untrusted" }` at line 519.
-pub fn ruby_audit_spec_l519_d107_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l519_d107_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(519, 'let', 'let(:cask_token) { "with-allow-untrusted" }', args)
 }
 
 // Ruby it `it { is_expected.to error_with(message) }` at line 521.
-pub fn ruby_audit_spec_l521_d108_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l521_d108_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(521, 'it', 'it { is_expected.to error_with(message) }', args)
 }
 
 // Ruby let `let(:only) { ["signing"] }` at line 526.
-pub fn ruby_audit_spec_l526_d109_only(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l526_d109_only(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(526, 'let', 'let(:only) { ["signing"] }', args)
 }
 
 // Ruby let `let(:tap) { CoreCaskTap.instance }` at line 527.
-pub fn ruby_audit_spec_l527_d110_tap(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l527_d110_tap(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(527, 'let', 'let(:tap) { CoreCaskTap.instance }', args)
 }
 
 // Ruby let `let(:download_double) { instance_double(Cask::Download) }` at line 528.
-pub fn ruby_audit_spec_l528_d111_download_double(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l528_d111_download_double(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(528, 'let', 'let(:download_double) { instance_double(Cask::Download) }', args)
 }
 
 // Ruby let `let(:cask) do` at line 535.
-pub fn ruby_audit_spec_l535_d112_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l535_d112_cask(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(535, 'let', 'let(:cask) do', args)
 }
 
 // Ruby it `it "does not fail" do` at line 545.
-pub fn ruby_audit_spec_l545_d113_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l545_d113_does(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(545, 'it', 'it "does not fail" do', args)
 }
 
 // Ruby let `let(:cask) do` at line 553.
-pub fn ruby_audit_spec_l553_d114_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l553_d114_cask(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(553, 'let', 'let(:cask) do', args)
 }
 
 // Ruby it `it "does not fail since no extract" do` at line 563.
-pub fn ruby_audit_spec_l563_d115_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l563_d115_does(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(563, 'it', 'it "does not fail since no extract" do', args)
 }
 
 // Ruby let `let(:cask) do` at line 571.
-pub fn ruby_audit_spec_l571_d116_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l571_d116_cask(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(571, 'let', 'let(:cask) do', args)
 }
 
 // Ruby it `it "skips signing audit with warning" do` at line 587.
-pub fn ruby_audit_spec_l587_d117_skips(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l587_d117_skips(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(587, 'it', 'it "skips signing audit with warning" do', args)
 }
 
 // Ruby let `let(:online) { true }` at line 597.
-pub fn ruby_audit_spec_l597_d118_online(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l597_d118_online(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(597, 'let', 'let(:online) { true }', args)
 }
 
 // Ruby let `let(:cask) do` at line 598.
-pub fn ruby_audit_spec_l598_d119_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l598_d119_cask(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(598, 'let', 'let(:cask) do', args)
 }
 
 // Ruby it `it "skips quarantine detection when quarantine support is unavailable" do` at line 607.
-pub fn ruby_audit_spec_l607_d120_skips(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l607_d120_skips(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(607, 'it', 'it "skips quarantine detection when quarantine support is unavailable" do', args)
 }
 
 // Ruby let `let(:only) { ["livecheck_version"] }` at line 623.
-pub fn ruby_audit_spec_l623_d121_only(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l623_d121_only(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(623, 'let', 'let(:only) { ["livecheck_version"] }', args)
 }
 
 // Ruby let `let(:online) { true }` at line 624.
-pub fn ruby_audit_spec_l624_d122_online(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l624_d122_online(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(624, 'let', 'let(:online) { true }', args)
 }
 
 // Ruby let `let(:message) { /Version '[^']*' differs from '[^']*' retrieved by livecheck\./ }` at line 625.
-pub fn ruby_audit_spec_l625_d123_message(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l625_d123_message(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(625, 'let', "let(:message) { /Version '[^']*' differs from '[^']*' retrieved by livecheck\\./ }", args)
 }
 
 // Ruby let `let(:cask_token) { "basic-cask" }` at line 628.
-pub fn ruby_audit_spec_l628_d124_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l628_d124_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(628, 'let', 'let(:cask_token) { "basic-cask" }', args)
 }
 
 // Ruby it `it "returns existing `@livecheck_result` value" do` at line 630.
-pub fn ruby_audit_spec_l630_d125_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l630_d125_returns(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(630, 'it', 'it "returns existing `@livecheck_result` value" do', args)
 }
 
 // Ruby let `let(:cask_token) { "missing-version" }` at line 638.
-pub fn ruby_audit_spec_l638_d126_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l638_d126_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(638, 'let', 'let(:cask_token) { "missing-version" }', args)
 }
 
 // Ruby it `it { is_expected.not_to error_with(message) }` at line 640.
-pub fn ruby_audit_spec_l640_d127_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l640_d127_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(640, 'it', 'it { is_expected.not_to error_with(message) }', args)
 }
 
 // Ruby let `let(:cask_token) { "livecheck-skip" }` at line 644.
-pub fn ruby_audit_spec_l644_d128_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l644_d128_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(644, 'let', 'let(:cask_token) { "livecheck-skip" }', args)
 }
 
 // Ruby it `it { is_expected.not_to error_with(message) }` at line 646.
-pub fn ruby_audit_spec_l646_d129_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l646_d129_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(646, 'it', 'it { is_expected.not_to error_with(message) }', args)
 }
 
 // Ruby let `let(:cask_token) { "livecheck-skip-reference" }` at line 650.
-pub fn ruby_audit_spec_l650_d130_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l650_d130_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(650, 'let', 'let(:cask_token) { "livecheck-skip-reference" }', args)
 }
 
 // Ruby it `it { is_expected.not_to error_with(message) }` at line 652.
-pub fn ruby_audit_spec_l652_d131_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l652_d131_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(652, 'it', 'it { is_expected.not_to error_with(message) }', args)
 }
 
 // Ruby let `let(:cask_token) { "livecheck-deprecated" }` at line 656.
-pub fn ruby_audit_spec_l656_d132_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l656_d132_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(656, 'let', 'let(:cask_token) { "livecheck-deprecated" }', args)
 }
 
 // Ruby it `it { is_expected.not_to error_with(message) }` at line 658.
-pub fn ruby_audit_spec_l658_d133_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l658_d133_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(658, 'it', 'it { is_expected.not_to error_with(message) }', args)
 }
 
 // Ruby let `let(:cask_token) { "livecheck-deprecated-reference" }` at line 662.
-pub fn ruby_audit_spec_l662_d134_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l662_d134_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(662, 'let', 'let(:cask_token) { "livecheck-deprecated-reference" }', args)
 }
 
 // Ruby it `it { is_expected.not_to error_with(message) }` at line 664.
-pub fn ruby_audit_spec_l664_d135_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l664_d135_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(664, 'it', 'it { is_expected.not_to error_with(message) }', args)
 }
 
 // Ruby let `let(:cask_token) { "livecheck-disabled" }` at line 668.
-pub fn ruby_audit_spec_l668_d136_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l668_d136_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(668, 'let', 'let(:cask_token) { "livecheck-disabled" }', args)
 }
 
 // Ruby it `it { is_expected.not_to error_with(message) }` at line 670.
-pub fn ruby_audit_spec_l670_d137_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l670_d137_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(670, 'it', 'it { is_expected.not_to error_with(message) }', args)
 }
 
 // Ruby let `let(:cask_token) { "livecheck-disabled-reference" }` at line 674.
-pub fn ruby_audit_spec_l674_d138_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l674_d138_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(674, 'let', 'let(:cask_token) { "livecheck-disabled-reference" }', args)
 }
 
 // Ruby it `it { is_expected.not_to error_with(message) }` at line 676.
-pub fn ruby_audit_spec_l676_d139_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l676_d139_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(676, 'it', 'it { is_expected.not_to error_with(message) }', args)
 }
 
 // Ruby let `let(:cask_token) { "livecheck-version-latest" }` at line 680.
-pub fn ruby_audit_spec_l680_d140_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l680_d140_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(680, 'let', 'let(:cask_token) { "livecheck-version-latest" }', args)
 }
 
 // Ruby it `it { is_expected.not_to error_with(message) }` at line 682.
-pub fn ruby_audit_spec_l682_d141_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l682_d141_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(682, 'it', 'it { is_expected.not_to error_with(message) }', args)
 }
 
 // Ruby let `let(:cask_token) { "livecheck-version-latest-reference" }` at line 686.
-pub fn ruby_audit_spec_l686_d142_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l686_d142_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(686, 'let', 'let(:cask_token) { "livecheck-version-latest-reference" }', args)
 }
 
 // Ruby it `it { is_expected.not_to error_with(message) }` at line 688.
-pub fn ruby_audit_spec_l688_d143_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l688_d143_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(688, 'it', 'it { is_expected.not_to error_with(message) }', args)
 }
 
 // Ruby let `let(:cask_token) { "livecheck-url-unversioned" }` at line 692.
-pub fn ruby_audit_spec_l692_d144_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l692_d144_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(692, 'let', 'let(:cask_token) { "livecheck-url-unversioned" }', args)
 }
 
 // Ruby it `it { is_expected.not_to error_with(message) }` at line 694.
-pub fn ruby_audit_spec_l694_d145_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l694_d145_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(694, 'it', 'it { is_expected.not_to error_with(message) }', args)
 }
 
 // Ruby let `let(:cask_token) { "livecheck-url-unversioned-reference" }` at line 698.
-pub fn ruby_audit_spec_l698_d146_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l698_d146_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(698, 'let', 'let(:cask_token) { "livecheck-url-unversioned-reference" }', args)
 }
 
 // Ruby it `it { is_expected.not_to error_with(message) }` at line 700.
-pub fn ruby_audit_spec_l700_d147_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l700_d147_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(700, 'it', 'it { is_expected.not_to error_with(message) }', args)
 }
 
 // Ruby let `let(:cask_token) { "basic-cask" }` at line 704.
-pub fn ruby_audit_spec_l704_d148_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l704_d148_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(704, 'let', 'let(:cask_token) { "basic-cask" }', args)
 }
 
 // Ruby it `it do` at line 706.
-pub fn ruby_audit_spec_l706_d149_do(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l706_d149_do(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(706, 'it', 'it do', args)
 }
 
 // Ruby let `let(:cask_token) { "basic-cask" }` at line 713.
-pub fn ruby_audit_spec_l713_d150_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l713_d150_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(713, 'let', 'let(:cask_token) { "basic-cask" }', args)
 }
 
 // Ruby it `it do` at line 715.
-pub fn ruby_audit_spec_l715_d151_do(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l715_d151_do(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(715, 'it', 'it do', args)
 }
 
 // Ruby let `let(:cask_token) { "livecheck-throttle" }` at line 724.
-pub fn ruby_audit_spec_l724_d152_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l724_d152_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(724, 'let', 'let(:cask_token) { "livecheck-throttle" }', args)
 }
 
 // Ruby it `it do` at line 726.
-pub fn ruby_audit_spec_l726_d153_do(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l726_d153_do(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(726, 'it', 'it do', args)
 }
 
 // Ruby let `let(:cask_token) { "livecheck-throttle-days" }` at line 736.
-pub fn ruby_audit_spec_l736_d154_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l736_d154_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(736, 'let', 'let(:cask_token) { "livecheck-throttle-days" }', args)
 }
 
 // Ruby let `let(:cask) do` at line 737.
-pub fn ruby_audit_spec_l737_d155_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l737_d155_cask(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(737, 'let', 'let(:cask) do', args)
 }
 
 // Ruby it `it do` at line 757.
-pub fn ruby_audit_spec_l757_d156_do(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l757_d156_do(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(757, 'it', 'it do', args)
 }
 
 // Ruby let `let(:cask_token) { "livecheck-throttle-reference" }` at line 767.
-pub fn ruby_audit_spec_l767_d157_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l767_d157_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(767, 'let', 'let(:cask_token) { "livecheck-throttle-reference" }', args)
 }
 
 // Ruby it `it do` at line 769.
-pub fn ruby_audit_spec_l769_d158_do(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l769_d158_do(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(769, 'it', 'it do', args)
 }
 
 // Ruby let `let(:cask_token) { "livecheck-throttle-days-reference" }` at line 779.
-pub fn ruby_audit_spec_l779_d159_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l779_d159_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(779, 'let', 'let(:cask_token) { "livecheck-throttle-days-reference" }', args)
 }
 
 // Ruby let `let(:referenced_cask) do` at line 780.
-pub fn ruby_audit_spec_l780_d160_referenced_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l780_d160_referenced_cask(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(780, 'let', 'let(:referenced_cask) do', args)
 }
 
 // Ruby let `let(:cask) do` at line 799.
-pub fn ruby_audit_spec_l799_d161_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l799_d161_cask(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(799, 'let', 'let(:cask) do', args)
 }
 
 // Ruby it `it do` at line 818.
-pub fn ruby_audit_spec_l818_d162_do(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l818_d162_do(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(818, 'it', 'it do', args)
 }
 
 // Ruby let `let(:only) { ["stanza_requires_uninstall"] }` at line 832.
-pub fn ruby_audit_spec_l832_d163_only(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l832_d163_only(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(832, 'let', 'let(:only) { ["stanza_requires_uninstall"] }', args)
 }
 
 // Ruby let `let(:message) { "installer and pkg stanzas require an uninstall stanza" }` at line 833.
-pub fn ruby_audit_spec_l833_d164_message(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l833_d164_message(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(833, 'let', 'let(:message) { "installer and pkg stanzas require an uninstall stanza" }', args)
 }
 
 // Ruby let `let(:cask_token) { "basic-cask" }` at line 836.
-pub fn ruby_audit_spec_l836_d165_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l836_d165_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(836, 'let', 'let(:cask_token) { "basic-cask" }', args)
 }
 
 // Ruby it `it { is_expected.not_to error_with(message) }` at line 838.
-pub fn ruby_audit_spec_l838_d166_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l838_d166_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(838, 'it', 'it { is_expected.not_to error_with(message) }', args)
 }
 
 // Ruby let `let(:cask_token) { "with-uninstall-pkgutil" }` at line 842.
-pub fn ruby_audit_spec_l842_d167_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l842_d167_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(842, 'let', 'let(:cask_token) { "with-uninstall-pkgutil" }', args)
 }
 
 // Ruby it `it { is_expected.not_to error_with(message) }` at line 844.
-pub fn ruby_audit_spec_l844_d168_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l844_d168_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(844, 'it', 'it { is_expected.not_to error_with(message) }', args)
 }
 
 // Ruby let `let(:cask_token) { "installer-with-uninstall" }` at line 848.
-pub fn ruby_audit_spec_l848_d169_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l848_d169_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(848, 'let', 'let(:cask_token) { "installer-with-uninstall" }', args)
 }
 
 // Ruby it `it { is_expected.not_to error_with(message) }` at line 850.
-pub fn ruby_audit_spec_l850_d170_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l850_d170_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(850, 'it', 'it { is_expected.not_to error_with(message) }', args)
 }
 
 // Ruby let `let(:cask_token) { "with-installer-manual" }` at line 854.
-pub fn ruby_audit_spec_l854_d171_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l854_d171_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(854, 'let', 'let(:cask_token) { "with-installer-manual" }', args)
 }
 
 // Ruby it `it { is_expected.to error_with(message) }` at line 856.
-pub fn ruby_audit_spec_l856_d172_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l856_d172_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(856, 'it', 'it { is_expected.to error_with(message) }', args)
 }
 
 // Ruby let `let(:cask_token) { "pkg-without-uninstall" }` at line 860.
-pub fn ruby_audit_spec_l860_d173_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l860_d173_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(860, 'let', 'let(:cask_token) { "pkg-without-uninstall" }', args)
 }
 
 // Ruby it `it { is_expected.to error_with(message) }` at line 862.
-pub fn ruby_audit_spec_l862_d174_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l862_d174_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(862, 'it', 'it { is_expected.to error_with(message) }', args)
 }
 
 // Ruby let `let(:message) { "only a single preflight stanza is allowed" }` at line 867.
-pub fn ruby_audit_spec_l867_d175_message(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l867_d175_message(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(867, 'let', 'let(:message) { "only a single preflight stanza is allowed" }', args)
 }
 
 // Ruby let `let(:cask_token) { "with-zap-rmdir" }` at line 870.
-pub fn ruby_audit_spec_l870_d176_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l870_d176_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(870, 'let', 'let(:cask_token) { "with-zap-rmdir" }', args)
 }
 
 // Ruby it `it { is_expected.not_to error_with(message) }` at line 872.
-pub fn ruby_audit_spec_l872_d177_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l872_d177_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(872, 'it', 'it { is_expected.not_to error_with(message) }', args)
 }
 
 // Ruby let `let(:cask_token) { "with-preflight" }` at line 876.
-pub fn ruby_audit_spec_l876_d178_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l876_d178_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(876, 'let', 'let(:cask_token) { "with-preflight" }', args)
 }
 
 // Ruby it `it { is_expected.not_to error_with(message) }` at line 878.
-pub fn ruby_audit_spec_l878_d179_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l878_d179_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(878, 'it', 'it { is_expected.not_to error_with(message) }', args)
 }
 
 // Ruby let `let(:cask_token) { "with-preflight-multi" }` at line 882.
-pub fn ruby_audit_spec_l882_d180_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l882_d180_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(882, 'let', 'let(:cask_token) { "with-preflight-multi" }', args)
 }
 
 // Ruby it `it { is_expected.to error_with(message) }` at line 884.
-pub fn ruby_audit_spec_l884_d181_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l884_d181_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(884, 'it', 'it { is_expected.to error_with(message) }', args)
 }
 
 // Ruby let `let(:message) { "only a single postflight stanza is allowed" }` at line 889.
-pub fn ruby_audit_spec_l889_d182_message(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l889_d182_message(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(889, 'let', 'let(:message) { "only a single postflight stanza is allowed" }', args)
 }
 
 // Ruby let `let(:cask_token) { "with-zap-rmdir" }` at line 892.
-pub fn ruby_audit_spec_l892_d183_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l892_d183_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(892, 'let', 'let(:cask_token) { "with-zap-rmdir" }', args)
 }
 
 // Ruby it `it { is_expected.not_to error_with(message) }` at line 894.
-pub fn ruby_audit_spec_l894_d184_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l894_d184_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(894, 'it', 'it { is_expected.not_to error_with(message) }', args)
 }
 
 // Ruby let `let(:cask_token) { "with-postflight" }` at line 898.
-pub fn ruby_audit_spec_l898_d185_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l898_d185_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(898, 'let', 'let(:cask_token) { "with-postflight" }', args)
 }
 
 // Ruby it `it { is_expected.not_to error_with(message) }` at line 900.
-pub fn ruby_audit_spec_l900_d186_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l900_d186_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(900, 'it', 'it { is_expected.not_to error_with(message) }', args)
 }
 
 // Ruby let `let(:cask_token) { "with-postflight-multi" }` at line 904.
-pub fn ruby_audit_spec_l904_d187_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l904_d187_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(904, 'let', 'let(:cask_token) { "with-postflight-multi" }', args)
 }
 
 // Ruby it `it { is_expected.to error_with(message) }` at line 906.
-pub fn ruby_audit_spec_l906_d188_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l906_d188_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(906, 'it', 'it { is_expected.to error_with(message) }', args)
 }
 
 // Ruby let `let(:message) { "only a single uninstall_preflight stanza is allowed" }` at line 911.
-pub fn ruby_audit_spec_l911_d189_message(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l911_d189_message(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(911, 'let', 'let(:message) { "only a single uninstall_preflight stanza is allowed" }', args)
 }
 
 // Ruby let `let(:cask_token) { "with-zap-rmdir" }` at line 914.
-pub fn ruby_audit_spec_l914_d190_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l914_d190_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(914, 'let', 'let(:cask_token) { "with-zap-rmdir" }', args)
 }
 
 // Ruby it `it { is_expected.not_to error_with(message) }` at line 916.
-pub fn ruby_audit_spec_l916_d191_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l916_d191_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(916, 'it', 'it { is_expected.not_to error_with(message) }', args)
 }
 
 // Ruby let `let(:cask_token) { "with-uninstall-preflight" }` at line 920.
-pub fn ruby_audit_spec_l920_d192_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l920_d192_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(920, 'let', 'let(:cask_token) { "with-uninstall-preflight" }', args)
 }
 
 // Ruby it `it { is_expected.not_to error_with(message) }` at line 922.
-pub fn ruby_audit_spec_l922_d193_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l922_d193_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(922, 'it', 'it { is_expected.not_to error_with(message) }', args)
 }
 
 // Ruby let `let(:cask_token) { "with-uninstall-preflight-multi" }` at line 926.
-pub fn ruby_audit_spec_l926_d194_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l926_d194_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(926, 'let', 'let(:cask_token) { "with-uninstall-preflight-multi" }', args)
 }
 
 // Ruby it `it { is_expected.to error_with(message) }` at line 928.
-pub fn ruby_audit_spec_l928_d195_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l928_d195_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(928, 'it', 'it { is_expected.to error_with(message) }', args)
 }
 
 // Ruby let `let(:message) { "only a single uninstall_postflight stanza is allowed" }` at line 933.
-pub fn ruby_audit_spec_l933_d196_message(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l933_d196_message(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(933, 'let', 'let(:message) { "only a single uninstall_postflight stanza is allowed" }', args)
 }
 
 // Ruby let `let(:cask_token) { "with-zap-rmdir" }` at line 936.
-pub fn ruby_audit_spec_l936_d197_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l936_d197_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(936, 'let', 'let(:cask_token) { "with-zap-rmdir" }', args)
 }
 
 // Ruby it `it { is_expected.not_to error_with(message) }` at line 938.
-pub fn ruby_audit_spec_l938_d198_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l938_d198_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(938, 'it', 'it { is_expected.not_to error_with(message) }', args)
 }
 
 // Ruby let `let(:cask_token) { "with-uninstall-postflight" }` at line 942.
-pub fn ruby_audit_spec_l942_d199_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l942_d199_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(942, 'let', 'let(:cask_token) { "with-uninstall-postflight" }', args)
 }
 
 // Ruby it `it { is_expected.not_to error_with(message) }` at line 944.
-pub fn ruby_audit_spec_l944_d200_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l944_d200_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(944, 'it', 'it { is_expected.not_to error_with(message) }', args)
 }
 
 // Ruby let `let(:cask_token) { "with-uninstall-postflight-multi" }` at line 948.
-pub fn ruby_audit_spec_l948_d201_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l948_d201_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(948, 'let', 'let(:cask_token) { "with-uninstall-postflight-multi" }', args)
 }
 
 // Ruby it `it { is_expected.to error_with(message) }` at line 950.
-pub fn ruby_audit_spec_l950_d202_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l950_d202_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(950, 'it', 'it { is_expected.to error_with(message) }', args)
 }
 
 // Ruby let `let(:message) { "only a single zap stanza is allowed" }` at line 955.
-pub fn ruby_audit_spec_l955_d203_message(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l955_d203_message(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(955, 'let', 'let(:message) { "only a single zap stanza is allowed" }', args)
 }
 
 // Ruby let `let(:cask_token) { "with-uninstall-rmdir" }` at line 958.
-pub fn ruby_audit_spec_l958_d204_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l958_d204_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(958, 'let', 'let(:cask_token) { "with-uninstall-rmdir" }', args)
 }
 
 // Ruby it `it { is_expected.not_to error_with(message) }` at line 960.
-pub fn ruby_audit_spec_l960_d205_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l960_d205_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(960, 'it', 'it { is_expected.not_to error_with(message) }', args)
 }
 
 // Ruby let `let(:cask_token) { "with-zap-rmdir" }` at line 964.
-pub fn ruby_audit_spec_l964_d206_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l964_d206_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(964, 'let', 'let(:cask_token) { "with-zap-rmdir" }', args)
 }
 
 // Ruby it `it { is_expected.not_to error_with(message) }` at line 966.
-pub fn ruby_audit_spec_l966_d207_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l966_d207_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(966, 'it', 'it { is_expected.not_to error_with(message) }', args)
 }
 
 // Ruby let `let(:cask_token) { "with-zap-multi" }` at line 970.
-pub fn ruby_audit_spec_l970_d208_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l970_d208_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(970, 'let', 'let(:cask_token) { "with-zap-multi" }', args)
 }
 
 // Ruby it `it { is_expected.to error_with(message) }` at line 972.
-pub fn ruby_audit_spec_l972_d209_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l972_d209_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(972, 'it', 'it { is_expected.to error_with(message) }', args)
 }
 
 // Ruby let `let(:message) { "you should use version :latest instead of version 'latest'" }` at line 977.
-pub fn ruby_audit_spec_l977_d210_message(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l977_d210_message(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(977, 'let', 'let(:message) { "you should use version :latest instead of version \'latest\'" }', args)
 }
 
 // Ruby let `let(:only) { ["no_string_version_latest"] }` at line 980.
-pub fn ruby_audit_spec_l980_d211_only(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l980_d211_only(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(980, 'let', 'let(:only) { ["no_string_version_latest"] }', args)
 }
 
 // Ruby let `let(:cask_token) { "version-latest-string" }` at line 981.
-pub fn ruby_audit_spec_l981_d212_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l981_d212_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(981, 'let', 'let(:cask_token) { "version-latest-string" }', args)
 }
 
 // Ruby it `it { is_expected.to error_with(message) }` at line 983.
-pub fn ruby_audit_spec_l983_d213_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l983_d213_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(983, 'it', 'it { is_expected.to error_with(message) }', args)
 }
 
 // Ruby let `let(:only) { ["sha256_no_check_if_latest"] }` at line 987.
-pub fn ruby_audit_spec_l987_d214_only(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l987_d214_only(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(987, 'let', 'let(:only) { ["sha256_no_check_if_latest"] }', args)
 }
 
 // Ruby let `let(:cask_token) { "version-latest-with-checksum" }` at line 988.
-pub fn ruby_audit_spec_l988_d215_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l988_d215_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(988, 'let', 'let(:cask_token) { "version-latest-with-checksum" }', args)
 }
 
 // Ruby it `it { is_expected.not_to error_with(message) }` at line 990.
-pub fn ruby_audit_spec_l990_d216_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l990_d216_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(990, 'it', 'it { is_expected.not_to error_with(message) }', args)
 }
 
 // Ruby let `let(:only) { ["version_special_characters"] }` at line 994.
-pub fn ruby_audit_spec_l994_d217_only(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l994_d217_only(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(994, 'let', 'let(:only) { ["version_special_characters"] }', args)
 }
 
 // Ruby let `let(:cask_token) { "version-colon" }` at line 995.
-pub fn ruby_audit_spec_l995_d218_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l995_d218_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(995, 'let', 'let(:cask_token) { "version-colon" }', args)
 }
 
 // Ruby let `let(:message) { "version should not contain colons or slashes" }` at line 996.
-pub fn ruby_audit_spec_l996_d219_message(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l996_d219_message(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(996, 'let', 'let(:message) { "version should not contain colons or slashes" }', args)
 }
 
 // Ruby it `it { is_expected.to error_with(message) }` at line 998.
-pub fn ruby_audit_spec_l998_d220_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l998_d220_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(998, 'it', 'it { is_expected.to error_with(message) }', args)
 }
 
 // Ruby let `let(:only) { ["sha256_no_check_if_latest"] }` at line 1004.
-pub fn ruby_audit_spec_l1004_d221_only(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1004_d221_only(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1004, 'let', 'let(:only) { ["sha256_no_check_if_latest"] }', args)
 }
 
 // Ruby let `let(:cask_token) { "version-latest-with-checksum" }` at line 1005.
-pub fn ruby_audit_spec_l1005_d222_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1005_d222_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1005, 'let', 'let(:cask_token) { "version-latest-with-checksum" }', args)
 }
 
 // Ruby it `it { is_expected.to error_with("you should use sha256 :no_check when version is :latest") }` at line 1007.
-pub fn ruby_audit_spec_l1007_d223_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1007_d223_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1007, 'it', 'it { is_expected.to error_with("you should use sha256 :no_check when version is :latest") }', args)
 }
 
 // Ruby let `let(:only) { ["sha256_actually_256"] }` at line 1011.
-pub fn ruby_audit_spec_l1011_d224_only(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1011_d224_only(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1011, 'let', 'let(:only) { ["sha256_actually_256"] }', args)
 }
 
 // Ruby let `let(:cask_token) { "invalid-sha256" }` at line 1012.
-pub fn ruby_audit_spec_l1012_d225_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1012_d225_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1012, 'let', 'let(:cask_token) { "invalid-sha256" }', args)
 }
 
 // Ruby it `it { is_expected.to error_with("sha256 string must be of 64 hexadecimal characters") }` at line 1014.
-pub fn ruby_audit_spec_l1014_d226_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1014_d226_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1014, 'it', 'it { is_expected.to error_with("sha256 string must be of 64 hexadecimal characters") }', args)
 }
 
 // Ruby let `let(:only) { ["sha256_actually_256"] }` at line 1018.
-pub fn ruby_audit_spec_l1018_d227_only(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1018_d227_only(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1018, 'let', 'let(:only) { ["sha256_actually_256"] }', args)
 }
 
 // Ruby let `let(:cask_token) { "invalid-sha256-newline" }` at line 1019.
-pub fn ruby_audit_spec_l1019_d228_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1019_d228_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1019, 'let', 'let(:cask_token) { "invalid-sha256-newline" }', args)
 }
 
 // Ruby it `it { is_expected.to error_with("sha256 string must be of 64 hexadecimal characters") }` at line 1021.
-pub fn ruby_audit_spec_l1021_d229_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1021_d229_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1021, 'it', 'it { is_expected.to error_with("sha256 string must be of 64 hexadecimal characters") }', args)
 }
 
 // Ruby let `let(:only) { ["sha256_actually_256"] }` at line 1025.
-pub fn ruby_audit_spec_l1025_d230_only(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1025_d230_only(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1025, 'let', 'let(:only) { ["sha256_actually_256"] }', args)
 }
 
 // Ruby let `let(:cask_token) { "invalid-sha256-hex-fragment" }` at line 1026.
-pub fn ruby_audit_spec_l1026_d231_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1026_d231_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1026, 'let', 'let(:cask_token) { "invalid-sha256-hex-fragment" }', args)
 }
 
 // Ruby it `it { is_expected.to error_with("sha256 string must be of 64 hexadecimal characters") }` at line 1028.
-pub fn ruby_audit_spec_l1028_d232_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1028_d232_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1028, 'it', 'it { is_expected.to error_with("sha256 string must be of 64 hexadecimal characters") }', args)
 }
 
 // Ruby let `let(:only) { ["sha256_invalid"] }` at line 1032.
-pub fn ruby_audit_spec_l1032_d233_only(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1032_d233_only(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1032, 'let', 'let(:only) { ["sha256_invalid"] }', args)
 }
 
 // Ruby let `let(:cask_token) { "sha256-for-empty-string" }` at line 1033.
-pub fn ruby_audit_spec_l1033_d234_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1033_d234_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1033, 'let', 'let(:cask_token) { "sha256-for-empty-string" }', args)
 }
 
 // Ruby it `it { is_expected.to error_with(/cannot use the sha256 for an empty string/) }` at line 1035.
-pub fn ruby_audit_spec_l1035_d235_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1035_d235_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1035, 'it', 'it { is_expected.to error_with(/cannot use the sha256 for an empty string/) }', args)
 }
 
 // Ruby let `let(:only) { ["hosting_with_livecheck"] }` at line 1040.
-pub fn ruby_audit_spec_l1040_d236_only(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1040_d236_only(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1040, 'let', 'let(:only) { ["hosting_with_livecheck"] }', args)
 }
 
 // Ruby let `let(:message) { /please add a livecheck/ }` at line 1041.
-pub fn ruby_audit_spec_l1041_d237_message(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1041_d237_message(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1041, 'let', 'let(:message) { /please add a livecheck/ }', args)
 }
 
 // Ruby let `let(:cask_token) { "basic-cask" }` at line 1044.
-pub fn ruby_audit_spec_l1044_d238_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1044_d238_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1044, 'let', 'let(:cask_token) { "basic-cask" }', args)
 }
 
 // Ruby it `it { is_expected.not_to error_with(message) }` at line 1046.
-pub fn ruby_audit_spec_l1046_d239_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1046_d239_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1046, 'it', 'it { is_expected.not_to error_with(message) }', args)
 }
 
 // Ruby let `let(:cask_token) { "sourceforge-with-livecheck" }` at line 1050.
-pub fn ruby_audit_spec_l1050_d240_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1050_d240_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1050, 'let', 'let(:cask_token) { "sourceforge-with-livecheck" }', args)
 }
 
 // Ruby it `it { is_expected.not_to error_with(message) }` at line 1052.
-pub fn ruby_audit_spec_l1052_d241_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1052_d241_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1052, 'it', 'it { is_expected.not_to error_with(message) }', args)
 }
 
 // Ruby let `let(:cask_token) { "sourceforge-correct-url-format" }` at line 1056.
-pub fn ruby_audit_spec_l1056_d242_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1056_d242_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1056, 'let', 'let(:cask_token) { "sourceforge-correct-url-format" }', args)
 }
 
 // Ruby let `let(:online) { true }` at line 1057.
-pub fn ruby_audit_spec_l1057_d243_online(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1057_d243_online(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1057, 'let', 'let(:online) { true }', args)
 }
 
 // Ruby it `it { is_expected.to error_with(message) }` at line 1059.
-pub fn ruby_audit_spec_l1059_d244_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1059_d244_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1059, 'it', 'it { is_expected.to error_with(message) }', args)
 }
 
 // Ruby let `let(:cask_token) { "devmate-with-livecheck" }` at line 1063.
-pub fn ruby_audit_spec_l1063_d245_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1063_d245_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1063, 'let', 'let(:cask_token) { "devmate-with-livecheck" }', args)
 }
 
 // Ruby it `it { is_expected.not_to error_with(message) }` at line 1065.
-pub fn ruby_audit_spec_l1065_d246_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1065_d246_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1065, 'it', 'it { is_expected.not_to error_with(message) }', args)
 }
 
 // Ruby let `let(:cask_token) { "devmate-without-livecheck" }` at line 1069.
-pub fn ruby_audit_spec_l1069_d247_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1069_d247_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1069, 'let', 'let(:cask_token) { "devmate-without-livecheck" }', args)
 }
 
 // Ruby it `it { is_expected.to error_with(message) }` at line 1071.
-pub fn ruby_audit_spec_l1071_d248_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1071_d248_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1071, 'it', 'it { is_expected.to error_with(message) }', args)
 }
 
 // Ruby let `let(:cask_token) { "hockeyapp-with-livecheck" }` at line 1075.
-pub fn ruby_audit_spec_l1075_d249_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1075_d249_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1075, 'let', 'let(:cask_token) { "hockeyapp-with-livecheck" }', args)
 }
 
 // Ruby it `it { is_expected.not_to error_with(message) }` at line 1077.
-pub fn ruby_audit_spec_l1077_d250_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1077_d250_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1077, 'it', 'it { is_expected.not_to error_with(message) }', args)
 }
 
 // Ruby let `let(:cask_token) { "hockeyapp-without-livecheck" }` at line 1081.
-pub fn ruby_audit_spec_l1081_d251_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1081_d251_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1081, 'let', 'let(:cask_token) { "hockeyapp-without-livecheck" }', args)
 }
 
 // Ruby it `it { is_expected.to error_with(message) }` at line 1083.
-pub fn ruby_audit_spec_l1083_d252_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1083_d252_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1083, 'it', 'it { is_expected.to error_with(message) }', args)
 }
 
 // Ruby let `let(:only) { ["latest_with_livecheck"] }` at line 1088.
-pub fn ruby_audit_spec_l1088_d253_only(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1088_d253_only(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1088, 'let', 'let(:only) { ["latest_with_livecheck"] }', args)
 }
 
 // Ruby let `let(:message) { "Casks with a `livecheck` should not use `version :latest`." }` at line 1089.
-pub fn ruby_audit_spec_l1089_d254_message(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1089_d254_message(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1089, 'let', 'let(:message) { "Casks with a `livecheck` should not use `version :latest`." }', args)
 }
 
 // Ruby let `let(:cask_token) { "version-latest" }` at line 1092.
-pub fn ruby_audit_spec_l1092_d255_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1092_d255_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1092, 'let', 'let(:cask_token) { "version-latest" }', args)
 }
 
 // Ruby it `it { is_expected.not_to error_with(message) }` at line 1094.
-pub fn ruby_audit_spec_l1094_d256_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1094_d256_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1094, 'it', 'it { is_expected.not_to error_with(message) }', args)
 }
 
 // Ruby let `let(:cask_token) { "latest-with-livecheck-skip" }` at line 1098.
-pub fn ruby_audit_spec_l1098_d257_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1098_d257_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1098, 'let', 'let(:cask_token) { "latest-with-livecheck-skip" }', args)
 }
 
 // Ruby it `it { is_expected.to pass }` at line 1100.
-pub fn ruby_audit_spec_l1100_d258_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1100_d258_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1100, 'it', 'it { is_expected.to pass }', args)
 }
 
 // Ruby let `let(:cask_token) { "latest-with-livecheck" }` at line 1104.
-pub fn ruby_audit_spec_l1104_d259_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1104_d259_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1104, 'let', 'let(:cask_token) { "latest-with-livecheck" }', args)
 }
 
 // Ruby it `it { is_expected.to error_with(message) }` at line 1106.
-pub fn ruby_audit_spec_l1106_d260_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1106_d260_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1106, 'it', 'it { is_expected.to error_with(message) }', args)
 }
 
 // Ruby let `let(:only) { ["conflicts_with"] }` at line 1111.
-pub fn ruby_audit_spec_l1111_d261_only(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1111_d261_only(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1111, 'let', 'let(:only) { ["conflicts_with"] }', args)
 }
 
 // Ruby let `let(:tap) { CoreCaskTap.instance }` at line 1112.
-pub fn ruby_audit_spec_l1112_d262_tap(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1112_d262_tap(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1112, 'let', 'let(:tap) { CoreCaskTap.instance }', args)
 }
 
 // Ruby let `let(:cask_token) { "basic-cask" }` at line 1115.
-pub fn ruby_audit_spec_l1115_d263_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1115_d263_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1115, 'let', 'let(:cask_token) { "basic-cask" }', args)
 }
 
 // Ruby it `it { is_expected.to pass }` at line 1117.
-pub fn ruby_audit_spec_l1117_d264_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1117_d264_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1117, 'it', 'it { is_expected.to pass }', args)
 }
 
 // Ruby let `let(:cask) do` at line 1121.
-pub fn ruby_audit_spec_l1121_d265_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1121_d265_cask(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1121, 'let', 'let(:cask) do', args)
 }
 
 // Ruby it `it { is_expected.to pass }` at line 1138.
-pub fn ruby_audit_spec_l1138_d266_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1138_d266_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1138, 'it', 'it { is_expected.to pass }', args)
 }
 
 // Ruby let `let(:cask) do` at line 1142.
-pub fn ruby_audit_spec_l1142_d267_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1142_d267_cask(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1142, 'let', 'let(:cask) do', args)
 }
 
 // Ruby it `it { is_expected.to error_with(/cask conflicts with non-existing cask/) }` at line 1159.
-pub fn ruby_audit_spec_l1159_d268_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1159_d268_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1159, 'it', 'it { is_expected.to error_with(/cask conflicts with non-existing cask/) }', args)
 }
 
 // Ruby let `let(:only) { ["denylist"] }` at line 1164.
-pub fn ruby_audit_spec_l1164_d269_only(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1164_d269_only(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1164, 'let', 'let(:only) { ["denylist"] }', args)
 }
 
 // Ruby let `let(:cask_token) { "adobe-air" }` at line 1167.
-pub fn ruby_audit_spec_l1167_d270_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1167_d270_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1167, 'let', 'let(:cask_token) { "adobe-air" }', args)
 }
 
 // Ruby it `it { is_expected.to pass }` at line 1169.
-pub fn ruby_audit_spec_l1169_d271_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1169_d271_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1169, 'it', 'it { is_expected.to pass }', args)
 }
 
 // Ruby let `let(:cask_token) { "adobe-illustrator" }` at line 1174.
-pub fn ruby_audit_spec_l1174_d272_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1174_d272_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1174, 'let', 'let(:cask_token) { "adobe-illustrator" }', args)
 }
 
 // Ruby it `it { is_expected.to error_with(/#{cask_token} is not allowed: \w+/) }` at line 1176.
-pub fn ruby_audit_spec_l1176_d273_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1176_d273_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1176, 'it', 'it { is_expected.to error_with(/#{cask_token} is not allowed: \\w+/) }', args)
 }
 
 // Ruby let `let(:cask_token) { "pharo" }` at line 1180.
-pub fn ruby_audit_spec_l1180_d274_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1180_d274_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1180, 'let', 'let(:cask_token) { "pharo" }', args)
 }
 
 // Ruby it `it do` at line 1182.
-pub fn ruby_audit_spec_l1182_d275_do(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1182_d275_do(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1182, 'it', 'it do', args)
 }
 
 // Ruby let `let(:only) { ["latest_with_auto_updates"] }` at line 1192.
-pub fn ruby_audit_spec_l1192_d276_only(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1192_d276_only(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1192, 'let', 'let(:only) { ["latest_with_auto_updates"] }', args)
 }
 
 // Ruby let `let(:message) { "Casks with `version :latest` should not use `auto_updates`." }` at line 1193.
-pub fn ruby_audit_spec_l1193_d277_message(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1193_d277_message(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1193, 'let', 'let(:message) { "Casks with `version :latest` should not use `auto_updates`." }', args)
 }
 
 // Ruby let `let(:cask_token) { "version-latest" }` at line 1196.
-pub fn ruby_audit_spec_l1196_d278_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1196_d278_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1196, 'let', 'let(:cask_token) { "version-latest" }', args)
 }
 
 // Ruby it `it { is_expected.to pass }` at line 1198.
-pub fn ruby_audit_spec_l1198_d279_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1198_d279_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1198, 'it', 'it { is_expected.to pass }', args)
 }
 
 // Ruby let `let(:cask_token) { "basic-cask" }` at line 1202.
-pub fn ruby_audit_spec_l1202_d280_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1202_d280_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1202, 'let', 'let(:cask_token) { "basic-cask" }', args)
 }
 
 // Ruby it `it { is_expected.to pass }` at line 1204.
-pub fn ruby_audit_spec_l1204_d281_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1204_d281_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1204, 'it', 'it { is_expected.to pass }', args)
 }
 
 // Ruby let `let(:cask_token) { "auto-updates" }` at line 1208.
-pub fn ruby_audit_spec_l1208_d282_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1208_d282_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1208, 'let', 'let(:cask_token) { "auto-updates" }', args)
 }
 
 // Ruby it `it { is_expected.to pass }` at line 1210.
-pub fn ruby_audit_spec_l1210_d283_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1210_d283_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1210, 'it', 'it { is_expected.to pass }', args)
 }
 
 // Ruby let `let(:cask_token) { "latest-with-auto-updates" }` at line 1214.
-pub fn ruby_audit_spec_l1214_d284_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1214_d284_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1214, 'let', 'let(:cask_token) { "latest-with-auto-updates" }', args)
 }
 
 // Ruby it `it { is_expected.to error_with(message) }` at line 1216.
-pub fn ruby_audit_spec_l1216_d285_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1216_d285_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1216, 'it', 'it { is_expected.to error_with(message) }', args)
 }
 
 // Ruby let `let(:online) { true }` at line 1221.
-pub fn ruby_audit_spec_l1221_d286_online(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1221_d286_online(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1221, 'let', 'let(:online) { true }', args)
 }
 
 // Ruby let `let(:only) { ["rosetta"] }` at line 1222.
-pub fn ruby_audit_spec_l1222_d287_only(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1222_d287_only(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1222, 'let', 'let(:only) { ["rosetta"] }', args)
 }
 
 // Ruby let `let(:cask) do` at line 1223.
-pub fn ruby_audit_spec_l1223_d288_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1223_d288_cask(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1223, 'let', 'let(:cask) do', args)
 }
 
 // Ruby it `it "recognizes a suppressed requires_rosetta caveat" do` at line 1253.
-pub fn ruby_audit_spec_l1253_d289_recognizes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1253_d289_recognizes(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1253, 'it', 'it "recognizes a suppressed requires_rosetta caveat" do', args)
 }
 
 // Ruby let `let(:online) { true }` at line 1259.
-pub fn ruby_audit_spec_l1259_d290_online(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1259_d290_online(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1259, 'let', 'let(:online) { true }', args)
 }
 
 // Ruby let `let(:only) { ["artifact_case"] }` at line 1260.
-pub fn ruby_audit_spec_l1260_d291_only(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1260_d291_only(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1260, 'let', 'let(:only) { ["artifact_case"] }', args)
 }
 
 // Ruby let `let(:tmpdir) { mktmpdir }` at line 1261.
-pub fn ruby_audit_spec_l1261_d292_tmpdir(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1261_d292_tmpdir(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1261, 'let', 'let(:tmpdir) { mktmpdir }', args)
 }
 
 // Ruby let `let(:cask) do` at line 1262.
-pub fn ruby_audit_spec_l1262_d293_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1262_d293_cask(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1262, 'let', 'let(:cask) do', args)
 }
 
 // Ruby it `it { is_expected.to pass }` at line 1281.
-pub fn ruby_audit_spec_l1281_d294_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1281_d294_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1281, 'it', 'it { is_expected.to pass }', args)
 }
 
 // Ruby it `it { is_expected.to error_with(/does not match the case of the extracted/) }` at line 1287.
-pub fn ruby_audit_spec_l1287_d295_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1287_d295_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1287, 'it', 'it { is_expected.to error_with(/does not match the case of the extracted/) }', args)
 }
 
 // Ruby it `it { is_expected.to pass }` at line 1297.
-pub fn ruby_audit_spec_l1297_d296_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1297_d296_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1297, 'it', 'it { is_expected.to pass }', args)
 }
 
 // Ruby it `it { is_expected.to pass }` at line 1301.
-pub fn ruby_audit_spec_l1301_d297_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1301_d297_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1301, 'it', 'it { is_expected.to pass }', args)
 }
 
 // Ruby let `let(:cask) do` at line 1305.
-pub fn ruby_audit_spec_l1305_d298_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1305_d298_cask(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1305, 'let', 'let(:cask) do', args)
 }
 
 // Ruby it `it { is_expected.to error_with(/does not match the case of the extracted/) }` at line 1323.
-pub fn ruby_audit_spec_l1323_d299_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1323_d299_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1323, 'it', 'it { is_expected.to error_with(/does not match the case of the extracted/) }', args)
 }
 
 // Ruby let `let(:cask) do` at line 1327.
-pub fn ruby_audit_spec_l1327_d300_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1327_d300_cask(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1327, 'let', 'let(:cask) do', args)
 }
 
 // Ruby it `it { is_expected.to error_with(/does not match the case of the extracted/) }` at line 1341.
-pub fn ruby_audit_spec_l1341_d301_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1341_d301_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1341, 'it', 'it { is_expected.to error_with(/does not match the case of the extracted/) }', args)
 }
 
 // Ruby let `let(:online) { true }` at line 1346.
-pub fn ruby_audit_spec_l1346_d302_online(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1346_d302_online(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1346, 'let', 'let(:online) { true }', args)
 }
 
 // Ruby let `let(:only) { ["min_os"] }` at line 1347.
-pub fn ruby_audit_spec_l1347_d303_only(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1347_d303_only(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1347, 'let', 'let(:only) { ["min_os"] }', args)
 }
 
 // Ruby let `let(:cask) do` at line 1348.
-pub fn ruby_audit_spec_l1348_d304_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1348_d304_cask(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1348, 'let', 'let(:cask) do', args)
 }
 
 // Ruby it `it { is_expected.to pass }` at line 1378.
-pub fn ruby_audit_spec_l1378_d305_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1378_d305_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1378, 'it', 'it { is_expected.to pass }', args)
 }
 
 // Ruby it `it { is_expected.to error_with(/cask declared no minimum macOS version/) }` at line 1388.
-pub fn ruby_audit_spec_l1388_d306_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1388_d306_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1388, 'it', 'it { is_expected.to error_with(/cask declared no minimum macOS version/) }', args)
 }
 
 // Ruby let `let(:cask) do` at line 1392.
-pub fn ruby_audit_spec_l1392_d307_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1392_d307_cask(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1392, 'let', 'let(:cask) do', args)
 }
 
 // Ruby it `it { is_expected.to error_with(/cask declared no minimum macOS version/) }` at line 1410.
-pub fn ruby_audit_spec_l1410_d308_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1410_d308_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1410, 'it', 'it { is_expected.to error_with(/cask declared no minimum macOS version/) }', args)
 }
 
 // Ruby it `it "normalizes 10.16.0 minimum macOS to Big Sur" do` at line 1413.
-pub fn ruby_audit_spec_l1413_d309_normalizes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1413_d309_normalizes(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1413, 'it', 'it "normalizes 10.16.0 minimum macOS to Big Sur" do', args)
 }
 
 // Ruby let `let(:only) { ["download_url_format"] }` at line 1419.
-pub fn ruby_audit_spec_l1419_d310_only(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1419_d310_only(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1419, 'let', 'let(:only) { ["download_url_format"] }', args)
 }
 
 // Ruby let `let(:message) { /URL format incorrect/ }` at line 1420.
-pub fn ruby_audit_spec_l1420_d311_message(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1420_d311_message(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1420, 'let', 'let(:message) { /URL format incorrect/ }', args)
 }
 
 // Ruby let `let(:cask_token) { "sourceforge-incorrect-url-format" }` at line 1423.
-pub fn ruby_audit_spec_l1423_d312_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1423_d312_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1423, 'let', 'let(:cask_token) { "sourceforge-incorrect-url-format" }', args)
 }
 
 // Ruby it `it { is_expected.to error_with(message) }` at line 1425.
-pub fn ruby_audit_spec_l1425_d313_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1425_d313_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1425, 'it', 'it { is_expected.to error_with(message) }', args)
 }
 
 // Ruby let `let(:cask_token) { "sourceforge-correct-url-format" }` at line 1429.
-pub fn ruby_audit_spec_l1429_d314_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1429_d314_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1429, 'let', 'let(:cask_token) { "sourceforge-correct-url-format" }', args)
 }
 
 // Ruby it `it { is_expected.not_to error_with(message) }` at line 1431.
-pub fn ruby_audit_spec_l1431_d315_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1431_d315_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1431, 'it', 'it { is_expected.not_to error_with(message) }', args)
 }
 
 // Ruby let `let(:cask_token) { "sourceforge-version-latest-correct-url-format" }` at line 1435.
-pub fn ruby_audit_spec_l1435_d316_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1435_d316_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1435, 'let', 'let(:cask_token) { "sourceforge-version-latest-correct-url-format" }', args)
 }
 
 // Ruby it `it { is_expected.not_to error_with(message) }` at line 1437.
-pub fn ruby_audit_spec_l1437_d317_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1437_d317_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1437, 'it', 'it { is_expected.not_to error_with(message) }', args)
 }
 
 // Ruby let `let(:only) { ["download_url_is_osdn"] }` at line 1442.
-pub fn ruby_audit_spec_l1442_d318_only(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1442_d318_only(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1442, 'let', 'let(:only) { ["download_url_is_osdn"] }', args)
 }
 
 // Ruby let `let(:message) { /OSDN download urls are disabled./ }` at line 1443.
-pub fn ruby_audit_spec_l1443_d319_message(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1443_d319_message(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1443, 'let', 'let(:message) { /OSDN download urls are disabled./ }', args)
 }
 
 // Ruby let `let(:cask_token) { "osdn-urls" }` at line 1444.
-pub fn ruby_audit_spec_l1444_d320_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1444_d320_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1444, 'let', 'let(:cask_token) { "osdn-urls" }', args)
 }
 
 // Ruby it `it { is_expected.not_to error_with(message) }` at line 1447.
-pub fn ruby_audit_spec_l1447_d321_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1447_d321_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1447, 'it', 'it { is_expected.not_to error_with(message) }', args)
 }
 
 // Ruby let `let(:strict) { true }` at line 1451.
-pub fn ruby_audit_spec_l1451_d322_strict(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1451_d322_strict(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1451, 'let', 'let(:strict) { true }', args)
 }
 
 // Ruby it `it { is_expected.to error_with(message) }` at line 1453.
-pub fn ruby_audit_spec_l1453_d323_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1453_d323_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1453, 'it', 'it { is_expected.to error_with(message) }', args)
 }
 
 // Ruby let `let(:only) { ["generic_artifacts"] }` at line 1458.
-pub fn ruby_audit_spec_l1458_d324_only(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1458_d324_only(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1458, 'let', 'let(:only) { ["generic_artifacts"] }', args)
 }
 
 // Ruby let `let(:cask_token) { "generic-artifact-relative-target" }` at line 1461.
-pub fn ruby_audit_spec_l1461_d325_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1461_d325_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1461, 'let', 'let(:cask_token) { "generic-artifact-relative-target" }', args)
 }
 
 // Ruby it `it { is_expected.to error_with(/target must be.*absolute/) }` at line 1463.
-pub fn ruby_audit_spec_l1463_d326_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1463_d326_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1463, 'it', 'it { is_expected.to error_with(/target must be.*absolute/) }', args)
 }
 
 // Ruby let `let(:cask_token) { "generic-artifact-user-relative-target" }` at line 1467.
-pub fn ruby_audit_spec_l1467_d327_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1467_d327_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1467, 'let', 'let(:cask_token) { "generic-artifact-user-relative-target" }', args)
 }
 
 // Ruby it `it { is_expected.not_to error_with(/target must be.*absolute/) }` at line 1469.
-pub fn ruby_audit_spec_l1469_d328_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1469_d328_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1469, 'it', 'it { is_expected.not_to error_with(/target must be.*absolute/) }', args)
 }
 
 // Ruby let `let(:cask_token) { "generic-artifact-absolute-target" }` at line 1473.
-pub fn ruby_audit_spec_l1473_d329_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1473_d329_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1473, 'let', 'let(:cask_token) { "generic-artifact-absolute-target" }', args)
 }
 
 // Ruby it `it { is_expected.not_to error_with(/target must be.*absolute/) }` at line 1475.
-pub fn ruby_audit_spec_l1475_d330_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1475_d330_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1475, 'it', 'it { is_expected.not_to error_with(/target must be.*absolute/) }', args)
 }
 
 // Ruby let `let(:cask_token) { "with-binary" }` at line 1480.
-pub fn ruby_audit_spec_l1480_d331_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1480_d331_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1480, 'let', 'let(:cask_token) { "with-binary" }', args)
 }
 
 // Ruby let `let(:formula_names) { %w[with-binary other-formula] }` at line 1483.
-pub fn ruby_audit_spec_l1483_d332_formula_names(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1483_d332_formula_names(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1483, 'let', 'let(:formula_names) { %w[with-binary other-formula] }', args)
 }
 
 // Ruby it `it "warns about conflicts" do` at line 1485.
-pub fn ruby_audit_spec_l1485_d333_warns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1485_d333_warns(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1485, 'it', 'it "warns about conflicts" do', args)
 }
 
 // Ruby let `let(:only) { ["download"] }` at line 1493.
-pub fn ruby_audit_spec_l1493_d334_only(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1493_d334_only(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1493, 'let', 'let(:only) { ["download"] }', args)
 }
 
 // Ruby let `let(:cask_token) { "basic-cask" }` at line 1494.
-pub fn ruby_audit_spec_l1494_d335_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1494_d335_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1494, 'let', 'let(:cask_token) { "basic-cask" }', args)
 }
 
 // Ruby let `let(:cask) { Cask::CaskLoader.load(cask_token) }` at line 1495.
-pub fn ruby_audit_spec_l1495_d336_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1495_d336_cask(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1495, 'let', 'let(:cask) { Cask::CaskLoader.load(cask_token) }', args)
 }
 
 // Ruby let `let(:download_double) { instance_double(Cask::Download) }` at line 1496.
-pub fn ruby_audit_spec_l1496_d337_download_double(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1496_d337_download_double(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1496, 'let', 'let(:download_double) { instance_double(Cask::Download) }', args)
 }
 
 // Ruby let `let(:message) { "Download Failed" }` at line 1497.
-pub fn ruby_audit_spec_l1497_d338_message(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1497_d338_message(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1497, 'let', 'let(:message) { "Download Failed" }', args)
 }
 
 // Ruby it `it "passes" do` at line 1505.
-pub fn ruby_audit_spec_l1505_d339_passes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1505_d339_passes(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1505, 'it', 'it "passes" do', args)
 }
 
 // Ruby it `it "fails" do` at line 1512.
-pub fn ruby_audit_spec_l1512_d340_fails(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1512_d340_fails(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1512, 'it', 'it "fails" do', args)
 }
 
 // Ruby let `let(:cask) { instance_double(Cask::Cask) }` at line 1520.
-pub fn ruby_audit_spec_l1520_d341_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1520_d341_cask(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1520, 'let', 'let(:cask) { instance_double(Cask::Cask) }', args)
 }
 
 // Ruby let `let(:only) { ["description"] }` at line 1521.
-pub fn ruby_audit_spec_l1521_d342_only(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1521_d342_only(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1521, 'let', 'let(:only) { ["description"] }', args)
 }
 
 // Ruby it `it "fails the audit" do` at line 1523.
-pub fn ruby_audit_spec_l1523_d343_fails(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1523_d343_fails(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1523, 'it', 'it "fails the audit" do', args)
 }
 
 // Ruby let `let(:only) { ["description"] }` at line 1530.
-pub fn ruby_audit_spec_l1530_d344_only(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1530_d344_only(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1530, 'let', 'let(:only) { ["description"] }', args)
 }
 
 // Ruby let `let(:cask_token) { "without-description" }` at line 1531.
-pub fn ruby_audit_spec_l1531_d345_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1531_d345_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1531, 'let', 'let(:cask_token) { "without-description" }', args)
 }
 
 // Ruby let `let(:cask) do` at line 1532.
-pub fn ruby_audit_spec_l1532_d346_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1532_d346_cask(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1532, 'let', 'let(:cask) do', args)
 }
 
 // Ruby let `let(:new_cask) { true }` at line 1546.
-pub fn ruby_audit_spec_l1546_d347_new_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1546_d347_new_cask(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1546, 'let', 'let(:new_cask) { true }', args)
 }
 
 // Ruby it `it "fails" do` at line 1548.
-pub fn ruby_audit_spec_l1548_d348_fails(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1548_d348_fails(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1548, 'it', 'it "fails" do', args)
 }
 
 // Ruby let `let(:new_cask) { false }` at line 1554.
-pub fn ruby_audit_spec_l1554_d349_new_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1554_d349_new_cask(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1554, 'let', 'let(:new_cask) { false }', args)
 }
 
 // Ruby it `it "does not warn" do` at line 1556.
-pub fn ruby_audit_spec_l1556_d350_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1556_d350_does(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1556, 'it', 'it "does not warn" do', args)
 }
 
 // Ruby let `let(:cask_token) { "with-description" }` at line 1562.
-pub fn ruby_audit_spec_l1562_d351_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1562_d351_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1562, 'let', 'let(:cask_token) { "with-description" }', args)
 }
 
 // Ruby let `let(:cask) do` at line 1563.
-pub fn ruby_audit_spec_l1563_d352_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1563_d352_cask(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1563, 'let', 'let(:cask) do', args)
 }
 
 // Ruby it `it "passes" do` at line 1577.
-pub fn ruby_audit_spec_l1577_d353_passes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1577_d353_passes(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1577, 'it', 'it "passes" do', args)
 }
 
 // Ruby let `let(:only) { %w[unnecessary_verified] }` at line 1584.
-pub fn ruby_audit_spec_l1584_d354_only(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1584_d354_only(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1584, 'let', 'let(:only) { %w[unnecessary_verified] }', args)
 }
 
 // Ruby let `let(:cask_token) { "with-verified" }` at line 1585.
-pub fn ruby_audit_spec_l1585_d355_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1585_d355_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1585, 'let', 'let(:cask_token) { "with-verified" }', args)
 }
 
 // Ruby let `let(:cask) do` at line 1586.
-pub fn ruby_audit_spec_l1586_d356_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1586_d356_cask(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1586, 'let', 'let(:cask) do', args)
 }
 
 // Ruby let `let(:new_cask) { true }` at line 1601.
-pub fn ruby_audit_spec_l1601_d357_new_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1601_d357_new_cask(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1601, 'let', 'let(:new_cask) { true }', args)
 }
 
 // Ruby it `it { is_expected.to error_with(/the `verified` parameter has been deprecated/) }` at line 1603.
-pub fn ruby_audit_spec_l1603_d358_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1603_d358_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1603, 'it', 'it { is_expected.to error_with(/the `verified` parameter has been deprecated/) }', args)
 }
 
 // Ruby let `let(:new_cask) { false }` at line 1607.
-pub fn ruby_audit_spec_l1607_d359_new_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1607_d359_new_cask(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1607, 'let', 'let(:new_cask) { false }', args)
 }
 
 // Ruby it `it { is_expected.to pass }` at line 1609.
-pub fn ruby_audit_spec_l1609_d360_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1609_d360_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1609, 'it', 'it { is_expected.to pass }', args)
 }
 
 // Ruby let `let(:cask_token) { "without-verified" }` at line 1613.
-pub fn ruby_audit_spec_l1613_d361_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1613_d361_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1613, 'let', 'let(:cask_token) { "without-verified" }', args)
 }
 
 // Ruby let `let(:cask) do` at line 1614.
-pub fn ruby_audit_spec_l1614_d362_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1614_d362_cask(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1614, 'let', 'let(:cask) do', args)
 }
 
 // Ruby it `it { is_expected.to pass }` at line 1628.
-pub fn ruby_audit_spec_l1628_d363_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1628_d363_anonymous(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1628, 'it', 'it { is_expected.to pass }', args)
 }
 
 // Ruby let `let(:only) { ["deprecate_disable"] }` at line 1633.
-pub fn ruby_audit_spec_l1633_d364_only(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1633_d364_only(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1633, 'let', 'let(:only) { ["deprecate_disable"] }', args)
 }
 
 // Ruby let `let(:cask_token) { "deprecated-cask" }` at line 1634.
-pub fn ruby_audit_spec_l1634_d365_cask_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1634_d365_cask_token(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1634, 'let', 'let(:cask_token) { "deprecated-cask" }', args)
 }
 
 // Ruby let `let(:cask) do` at line 1637.
-pub fn ruby_audit_spec_l1637_d366_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1637_d366_cask(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1637, 'let', 'let(:cask) do', args)
 }
 
 // Ruby it `it "fails" do` at line 1652.
-pub fn ruby_audit_spec_l1652_d367_fails(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1652_d367_fails(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1652, 'it', 'it "fails" do', args)
 }
 
 // Ruby let `let(:cask) do` at line 1658.
-pub fn ruby_audit_spec_l1658_d368_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1658_d368_cask(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1658, 'let', 'let(:cask) do', args)
 }
 
 // Ruby it `it "passes" do` at line 1673.
-pub fn ruby_audit_spec_l1673_d369_passes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l1673_d369_passes(args ...ruby.Value) ruby.Value {
 	return audit_spec_boundary(1673, 'it', 'it "passes" do', args)
 }
 

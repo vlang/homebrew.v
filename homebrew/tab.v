@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 import json2
 import os
 import time
@@ -203,7 +203,7 @@ pub fn tab_create_for_formula(formula Formula, runtime_dependencies []Formula, c
 	declared_dependencies := formula.deps().map(it.name)
 	tab.used_option_flags = formula.build.used_options().as_flags()
 	tab.unused_option_flags = formula.build.unused_options().as_flags()
-	tab.tabfile = brew_runtime.join_path(formula.prefix(), tab_filename)
+	tab.tabfile = ruby.join_path(formula.prefix(), tab_filename)
 	tab.built_as_bottle = formula.build.bottle()
 	tab.has_built_as_bottle = true
 	tab.poured_from_bottle = false
@@ -244,18 +244,18 @@ pub fn tab_create_for_formula(formula Formula, runtime_dependencies []Formula, c
 
 pub fn tab_for_formula(formula Formula) Tab {
 	mut paths := []string{}
-	if formula.optlinked() && brew_runtime.is_dir(formula.opt_prefix()) {
-		paths << brew_runtime.real_path(formula.opt_prefix())
+	if formula.optlinked() && ruby.is_dir(formula.opt_prefix()) {
+		paths << ruby.real_path(formula.opt_prefix())
 	}
-	if brew_runtime.is_link(formula.linked_keg()) && brew_runtime.is_dir(formula.linked_keg()) {
-		paths << brew_runtime.real_path(formula.linked_keg())
+	if ruby.is_link(formula.linked_keg()) && ruby.is_dir(formula.linked_keg()) {
+		paths << ruby.real_path(formula.linked_keg())
 	}
 	installed := formula.installed_prefixes()
 	if installed.len == 1 { paths << installed[0] }
 	paths << formula.latest_installed_prefix()
 	for path in paths {
-		receipt := brew_runtime.join_path(path, tab_filename)
-		if brew_runtime.is_file(receipt) {
+		receipt := ruby.join_path(path, tab_filename)
+		if ruby.is_file(receipt) {
 			mut result := tab_from_file(receipt) or { break }
 			result.used_option_flags = remap_tab_deprecated_options(formula.deprecated_options(), result.used_options()).as_flags()
 			return result
@@ -454,7 +454,7 @@ pub fn tab_from_json(content string, path string) !Tab {
 }
 
 pub fn tab_from_file(path string) !Tab {
-	content := brew_runtime.read_file(path)!
+	content := ruby.read_file(path)!
 	if content.trim_space() == '' {
 		mut tab := empty_tab()
 		tab.tabfile = path
@@ -464,8 +464,8 @@ pub fn tab_from_file(path string) !Tab {
 }
 
 pub fn tab_for_keg(path string) !Tab {
-	receipt_path := brew_runtime.join_path(path, tab_filename)
-	mut tab := if brew_runtime.is_file(receipt_path) {
+	receipt_path := ruby.join_path(path, tab_filename)
+	mut tab := if ruby.is_file(receipt_path) {
 		tab_from_file(receipt_path)!
 	} else {
 		empty_tab()
@@ -773,13 +773,13 @@ pub fn remap_tab_deprecated_options(deprecated []DeprecatedOption, options Optio
 	return result
 }
 
-pub fn tab_boundary_value(tab Tab) brew_runtime.Value {
-	return brew_runtime.structured_value('Tab', tab.to_json(), {
+pub fn tab_boundary_value(tab Tab) ruby.Value {
+	return ruby.structured_value('Tab', tab.to_json(), {
 		'json': tab.to_json()
 	})
 }
 
-pub fn tab_from_boundary(value brew_runtime.Value) Tab {
+pub fn tab_from_boundary(value ruby.Value) Tab {
 	if value.type_name != 'Tab' {
 		panic('expected Tab, got ${value.type_name}')
 	}
@@ -787,7 +787,7 @@ pub fn tab_from_boundary(value brew_runtime.Value) Tab {
 	return tab_from_json(content, '') or { panic(err) }
 }
 
-fn tab_boundary_receiver(args []brew_runtime.Value, method string) Tab {
+fn tab_boundary_receiver(args []ruby.Value, method string) Tab {
 	if args.len == 0 {
 		panic('Tab#${method} requires a receiver')
 	}
@@ -795,12 +795,12 @@ fn tab_boundary_receiver(args []brew_runtime.Value, method string) Tab {
 }
 
 // Ruby attr_accessor `attr_accessor :installed_on_request` at line 29.
-pub fn ruby_tab_l29_d1_installed_on_request(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(tab_boundary_receiver(args, 'installed_on_request').installed_on_request)
+pub fn ruby_tab_l29_d1_installed_on_request(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(tab_boundary_receiver(args, 'installed_on_request').installed_on_request)
 }
 
 // Ruby attr_accessor `attr_accessor :installed_on_request` at line 29.
-pub fn ruby_tab_l29_d2_installed_on_request(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l29_d2_installed_on_request(args ...ruby.Value) ruby.Value {
 	mut tab := tab_boundary_receiver(args, 'installed_on_request=')
 	if args.len < 2 { panic('installed_on_request= requires a value') }
 	tab.installed_on_request = args[1].as_bool() or { panic(err) }
@@ -809,17 +809,17 @@ pub fn ruby_tab_l29_d2_installed_on_request(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby attr_accessor `attr_accessor :homebrew_version` at line 32.
-pub fn ruby_tab_l32_d3_homebrew_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l32_d3_homebrew_version(args ...ruby.Value) ruby.Value {
 	tab := tab_boundary_receiver(args, 'homebrew_version')
 	return if tab.has_homebrew_version {
-		brew_runtime.string_value(tab.homebrew_version)
+		ruby.string_value(tab.homebrew_version)
 	} else {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	}
 }
 
 // Ruby attr_accessor `attr_accessor :homebrew_version` at line 32.
-pub fn ruby_tab_l32_d4_homebrew_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l32_d4_homebrew_version(args ...ruby.Value) ruby.Value {
 	mut tab := tab_boundary_receiver(args, 'homebrew_version=')
 	if args.len < 2 { panic('homebrew_version= requires a value') }
 	tab.has_homebrew_version = args[1].type_name != 'NilClass'
@@ -828,17 +828,17 @@ pub fn ruby_tab_l32_d4_homebrew_version(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby attr_accessor `attr_accessor :tabfile` at line 35.
-pub fn ruby_tab_l35_d5_tabfile(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l35_d5_tabfile(args ...ruby.Value) ruby.Value {
 	tab := tab_boundary_receiver(args, 'tabfile')
 	return if tab.tabfile == '' {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	} else {
-		brew_runtime.string_value(tab.tabfile)
+		ruby.string_value(tab.tabfile)
 	}
 }
 
 // Ruby attr_accessor `attr_accessor :tabfile` at line 35.
-pub fn ruby_tab_l35_d6_tabfile(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l35_d6_tabfile(args ...ruby.Value) ruby.Value {
 	mut tab := tab_boundary_receiver(args, 'tabfile=')
 	if args.len < 2 { panic('tabfile= requires a value') }
 	tab.tabfile = if args[1].type_name == 'NilClass' { '' } else { args[1].as_string() }
@@ -846,17 +846,17 @@ pub fn ruby_tab_l35_d6_tabfile(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby attr_accessor `attr_accessor :loaded_from_api` at line 38.
-pub fn ruby_tab_l38_d7_loaded_from_api(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l38_d7_loaded_from_api(args ...ruby.Value) ruby.Value {
 	tab := tab_boundary_receiver(args, 'loaded_from_api')
 	return if tab.has_loaded_from_api {
-		brew_runtime.bool_value(tab.loaded_from_api)
+		ruby.bool_value(tab.loaded_from_api)
 	} else {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	}
 }
 
 // Ruby attr_accessor `attr_accessor :loaded_from_api` at line 38.
-pub fn ruby_tab_l38_d8_loaded_from_api(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l38_d8_loaded_from_api(args ...ruby.Value) ruby.Value {
 	mut tab := tab_boundary_receiver(args, 'loaded_from_api=')
 	if args.len < 2 { panic('loaded_from_api= requires a value') }
 	tab.has_loaded_from_api = args[1].type_name != 'NilClass'
@@ -869,17 +869,17 @@ pub fn ruby_tab_l38_d8_loaded_from_api(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby attr_accessor `attr_accessor :loaded_from_internal_api` at line 41.
-pub fn ruby_tab_l41_d9_loaded_from_internal_api(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l41_d9_loaded_from_internal_api(args ...ruby.Value) ruby.Value {
 	tab := tab_boundary_receiver(args, 'loaded_from_internal_api')
 	return if tab.has_loaded_from_internal_api {
-		brew_runtime.bool_value(tab.loaded_from_internal_api)
+		ruby.bool_value(tab.loaded_from_internal_api)
 	} else {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	}
 }
 
 // Ruby attr_accessor `attr_accessor :loaded_from_internal_api` at line 41.
-pub fn ruby_tab_l41_d10_loaded_from_internal_api(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l41_d10_loaded_from_internal_api(args ...ruby.Value) ruby.Value {
 	mut tab := tab_boundary_receiver(args, 'loaded_from_internal_api=')
 	if args.len < 2 { panic('loaded_from_internal_api= requires a value') }
 	tab.has_loaded_from_internal_api = args[1].type_name != 'NilClass'
@@ -894,17 +894,17 @@ pub fn ruby_tab_l41_d10_loaded_from_internal_api(args ...brew_runtime.Value) bre
 }
 
 // Ruby attr_accessor `attr_accessor :time` at line 44.
-pub fn ruby_tab_l44_d11_time(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l44_d11_time(args ...ruby.Value) ruby.Value {
 	tab := tab_boundary_receiver(args, 'time')
 	return if tab.has_time {
-		brew_runtime.int_value(tab.time)
+		ruby.int_value(tab.time)
 	} else {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	}
 }
 
 // Ruby attr_accessor `attr_accessor :time` at line 44.
-pub fn ruby_tab_l44_d12_time(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l44_d12_time(args ...ruby.Value) ruby.Value {
 	mut tab := tab_boundary_receiver(args, 'time=')
 	if args.len < 2 { panic('time= requires a value') }
 	tab.has_time = args[1].type_name != 'NilClass'
@@ -913,17 +913,17 @@ pub fn ruby_tab_l44_d12_time(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby attr_accessor `attr_accessor :arch` at line 47.
-pub fn ruby_tab_l47_d13_arch(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l47_d13_arch(args ...ruby.Value) ruby.Value {
 	tab := tab_boundary_receiver(args, 'arch')
 	return if tab.has_arch {
-		brew_runtime.string_value(tab.arch)
+		ruby.string_value(tab.arch)
 	} else {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	}
 }
 
 // Ruby attr_accessor `attr_accessor :arch` at line 47.
-pub fn ruby_tab_l47_d14_arch(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l47_d14_arch(args ...ruby.Value) ruby.Value {
 	mut tab := tab_boundary_receiver(args, 'arch=')
 	if args.len < 2 { panic('arch= requires a value') }
 	tab.has_arch = args[1].type_name != 'NilClass'
@@ -932,13 +932,13 @@ pub fn ruby_tab_l47_d14_arch(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby attr_accessor `attr_accessor :source` at line 50.
-pub fn ruby_tab_l50_d15_source(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l50_d15_source(args ...ruby.Value) ruby.Value {
 	tab := tab_boundary_receiver(args, 'source')
-	return brew_runtime.object_value('Hash', json2.encode(json2.Any(tab.source)))
+	return ruby.object_value('Hash', json2.encode(json2.Any(tab.source)))
 }
 
 // Ruby attr_accessor `attr_accessor :source` at line 50.
-pub fn ruby_tab_l50_d16_source(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l50_d16_source(args ...ruby.Value) ruby.Value {
 	mut tab := tab_boundary_receiver(args, 'source=')
 	if args.len < 2 { panic('source= requires a value') }
 	tab.source = json2.decode[json2.Any](args[1].as_string()) or { panic(err) }.as_map()
@@ -946,17 +946,17 @@ pub fn ruby_tab_l50_d16_source(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby attr_accessor `attr_accessor :built_on` at line 53.
-pub fn ruby_tab_l53_d17_built_on(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l53_d17_built_on(args ...ruby.Value) ruby.Value {
 	tab := tab_boundary_receiver(args, 'built_on')
 	return if tab.has_built_on {
-		brew_runtime.object_value('Hash', json2.encode(json2.Any(tab.built_on)))
+		ruby.object_value('Hash', json2.encode(json2.Any(tab.built_on)))
 	} else {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	}
 }
 
 // Ruby attr_accessor `attr_accessor :built_on` at line 53.
-pub fn ruby_tab_l53_d18_built_on(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l53_d18_built_on(args ...ruby.Value) ruby.Value {
 	mut tab := tab_boundary_receiver(args, 'built_on=')
 	if args.len < 2 { panic('built_on= requires a value') }
 	tab.has_built_on = args[1].type_name != 'NilClass'
@@ -969,17 +969,17 @@ pub fn ruby_tab_l53_d18_built_on(args ...brew_runtime.Value) brew_runtime.Value 
 }
 
 // Ruby attr_accessor `attr_accessor :runtime_dependencies` at line 59.
-pub fn ruby_tab_l59_d19_runtime_dependencies(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l59_d19_runtime_dependencies(args ...ruby.Value) ruby.Value {
 	tab := tab_boundary_receiver(args, 'runtime_dependencies')
 	return if dependencies := tab.runtime_dependencies() {
-		brew_runtime.object_value('Array', json2.encode(dependencies.map(runtime_dependency_to_any(it))))
+		ruby.object_value('Array', json2.encode(dependencies.map(runtime_dependency_to_any(it))))
 	} else {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	}
 }
 
 // Ruby attr_accessor `attr_accessor :runtime_dependencies` at line 59.
-pub fn ruby_tab_l59_d20_runtime_dependencies(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l59_d20_runtime_dependencies(args ...ruby.Value) ruby.Value {
 	mut tab := tab_boundary_receiver(args, 'runtime_dependencies=')
 	if args.len < 2 { panic('runtime_dependencies= requires a value') }
 	tab.has_runtime_dependencies = args[1].type_name != 'NilClass'
@@ -991,7 +991,7 @@ pub fn ruby_tab_l59_d20_runtime_dependencies(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby method `initialize(homebrew_version: nil, tabfile: nil, loaded_from_api: nil, loaded_from_internal_api: nil,` at line 76.
-pub fn ruby_tab_l76_d21_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l76_d21_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return tab_boundary_value(new_tab(TabConfig{}))
 	}
@@ -1004,7 +1004,7 @@ pub fn ruby_tab_l76_d21_initialize(args ...brew_runtime.Value) brew_runtime.Valu
 }
 
 // Ruby method `self.create(formula_or_cask)` at line 94.
-pub fn ruby_tab_l94_d22_self_create(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l94_d22_self_create(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('AbstractTab.create requires a Formula or Cask') }
 	if args[0].type_name == 'Formula' {
 		return tab_boundary_value(abstract_tab_create_for_formula(formula_from_boundary(args[0])))
@@ -1020,13 +1020,13 @@ pub fn ruby_tab_l94_d22_self_create(args ...brew_runtime.Value) brew_runtime.Val
 }
 
 // Ruby method `self.from_file(path)` at line 114.
-pub fn ruby_tab_l114_d23_self_from_file(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l114_d23_self_from_file(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('AbstractTab.from_file requires a path') }
 	return tab_boundary_value(tab_from_file(args[0].as_string()) or { panic(err) })
 }
 
 // Ruby method `self.from_file_content(content, path)` at line 125.
-pub fn ruby_tab_l125_d24_self_from_file_content(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l125_d24_self_from_file_content(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('AbstractTab.from_file_content requires content and path') }
 	return tab_boundary_value(tab_from_json(args[0].as_string(), args[1].as_string()) or {
 		panic(err)
@@ -1034,43 +1034,43 @@ pub fn ruby_tab_l125_d24_self_from_file_content(args ...brew_runtime.Value) brew
 }
 
 // Ruby method `self.empty` at line 137.
-pub fn ruby_tab_l137_d25_self_empty(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l137_d25_self_empty(args ...ruby.Value) ruby.Value {
 	return tab_boundary_value(empty_tab())
 }
 
 // Ruby method `self.formula_to_dep_hash(formula, declared_deps)` at line 156.
-pub fn ruby_tab_l156_d26_self_formula_to_dep_hash(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l156_d26_self_formula_to_dep_hash(args ...ruby.Value) ruby.Value {
 	if args.len < 2 || args[0].type_name != 'Formula' {
 		panic('AbstractTab.formula_to_dep_hash requires Formula and declared dependencies')
 	}
 	receipt := formula_to_runtime_dependency_receipt(formula_from_boundary(args[0]), args[1].as_string_array() or {
 		panic(err)
 	})
-	return brew_runtime.object_value('Hash', json2.encode(runtime_dependency_to_any(receipt)))
+	return ruby.object_value('Hash', json2.encode(runtime_dependency_to_any(receipt)))
 }
 
 // Ruby method `parsed_homebrew_version` at line 170.
-pub fn ruby_tab_l170_d27_parsed_homebrew_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Version', tab_boundary_receiver(args, 'parsed_homebrew_version').parsed_homebrew_version().to_s())
+pub fn ruby_tab_l170_d27_parsed_homebrew_version(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Version', tab_boundary_receiver(args, 'parsed_homebrew_version').parsed_homebrew_version().to_s())
 }
 
 // Ruby method `installed_on_request_present? = @installed_on_request_present` at line 178.
-pub fn ruby_tab_l178_d28_installed_on_request_present(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(tab_boundary_receiver(args, 'installed_on_request_present?').installed_on_request_present)
+pub fn ruby_tab_l178_d28_installed_on_request_present(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(tab_boundary_receiver(args, 'installed_on_request_present?').installed_on_request_present)
 }
 
 // Ruby method `tap` at line 181.
-pub fn ruby_tab_l181_d29_tap(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l181_d29_tap(args ...ruby.Value) ruby.Value {
 	tap := tab_boundary_receiver(args, 'tap').tap_name()
 	return if tap == '' {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	} else {
-		brew_runtime.object_value('Tap', tap)
+		ruby.object_value('Tap', tap)
 	}
 }
 
 // Ruby method `tap=(tap)` at line 187.
-pub fn ruby_tab_l187_d30_tap(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l187_d30_tap(args ...ruby.Value) ruby.Value {
 	mut tab := tab_boundary_receiver(args, 'tap=')
 	if args.len < 2 { panic('tap= requires a value') }
 	tab.set_tap(if args[1].type_name == 'NilClass' { '' } else { args[1].as_string() })
@@ -1078,10 +1078,10 @@ pub fn ruby_tab_l187_d30_tap(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `write` at line 193.
-pub fn ruby_tab_l193_d31_write(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l193_d31_write(args ...ruby.Value) ruby.Value {
 	tab := tab_boundary_receiver(args, 'write')
 	tab.write() or { panic(err) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Original Ruby source (line-for-line):

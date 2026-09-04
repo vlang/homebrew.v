@@ -1,6 +1,6 @@
 module extend
 
-import brew_runtime
+import ruby
 import os
 import regex
 import x.json2
@@ -16,8 +16,8 @@ pub:
 	source   string
 }
 
-fn formula_cop_nil() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn formula_cop_nil() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 fn formula_cop_string_at(source string, start int) ?(string, int, int) {
@@ -294,24 +294,24 @@ pub fn formula_cop_on_system_methods() []string {
 }
 
 // Ruby attr_accessor `attr_accessor :file_path` at line 18.
-pub fn ruby_formula_cop_l18_d1_file_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_cop_l18_d1_file_path(args ...ruby.Value) ruby.Value {
 	return if args.len > 0 && args[0].as_string() != '' { args[0] } else { formula_cop_nil() }
 }
 
 // Ruby attr_accessor `attr_accessor :file_path` at line 18.
-pub fn ruby_formula_cop_l18_d2_file_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_cop_l18_d2_file_path(args ...ruby.Value) ruby.Value {
 	return if args.len > 0 { args[0] } else { formula_cop_nil() }
 }
 
 // Ruby method `on_class(node)` at line 31.
-pub fn ruby_formula_cop_l31_d3_on_class(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_cop_l31_d3_on_class(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	file_path := if args.len > 1 { args[1].as_string() } else { '' }
 	if (file_path != '' && file_path.contains('/Library/Homebrew/test/')) || !formula_cop_is_formula_class(source) {
 		return formula_cop_nil()
 	}
 	class_name, parent := formula_cop_class(source) or { return formula_cop_nil() }
-	return brew_runtime.structured_value('RuboCop::Cop::FormulaCop::FormulaNodes', class_name, {
+	return ruby.structured_value('RuboCop::Cop::FormulaCop::FormulaNodes', class_name, {
 		'class_node':        class_name
 		'parent_class_node': parent
 		'body_node':         source
@@ -321,16 +321,16 @@ pub fn ruby_formula_cop_l31_d3_on_class(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby method `audit_formula(formula_nodes); end` at line 44.
-pub fn ruby_formula_cop_l44_d4_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_cop_l44_d4_audit_formula(args ...ruby.Value) ruby.Value {
 	return formula_cop_nil()
 }
 
 // Ruby method `audit_urls(urls, regex, &_block)` at line 56.
-pub fn ruby_formula_cop_l56_d5_audit_urls(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_cop_l56_d5_audit_urls(args ...ruby.Value) ruby.Value {
 	urls := if args.len > 0 { args[0].string_array_data } else { []string{} }
 	pattern := if args.len > 1 { args[1].as_string() } else { '' }
-	mut expression := regex.regex_opt(pattern) or { return brew_runtime.array_value([]brew_runtime.Value{}) }
-	mut matches := []brew_runtime.Value{}
+	mut expression := regex.regex_opt(pattern) or { return ruby.array_value([]ruby.Value{}) }
+	mut matches := []ruby.Value{}
 	for index, url_source in urls {
 		strings := formula_cop_extract_strings(url_source)
 		if strings.len == 0 {
@@ -338,18 +338,18 @@ pub fn ruby_formula_cop_l56_d5_audit_urls(args ...brew_runtime.Value) brew_runti
 		}
 		start, end := expression.find(strings[0])
 		if start >= 0 {
-			matches << brew_runtime.structured_value('MatchData', strings[0][start..end], {
+			matches << ruby.structured_value('MatchData', strings[0][start..end], {
 				'url':   strings[0]
 				'index': index.str()
 				'match': strings[0][start..end]
 			})
 		}
 	}
-	return brew_runtime.array_value(matches)
+	return ruby.array_value(matches)
 }
 
 // Ruby method `depends_on?(dependency_name, *types)` at line 72.
-pub fn ruby_formula_cop_l72_d6_depends_on(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_cop_l72_d6_depends_on(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	name := if args.len > 1 { args[1].as_string().trim_left(':') } else { '' }
 	types := if args.len > 2 {
@@ -357,95 +357,95 @@ pub fn ruby_formula_cop_l72_d6_depends_on(args ...brew_runtime.Value) brew_runti
 	} else {
 		[]string{}
 	}
-	return brew_runtime.bool_value(formula_cop_depends_on(source, name, types))
+	return ruby.bool_value(formula_cop_depends_on(source, name, types))
 }
 
 // Ruby method `depends_on_name_type?(node, name = nil, type = :required)` at line 96.
-pub fn ruby_formula_cop_l96_d7_depends_on_name_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_cop_l96_d7_depends_on_name_type(args ...ruby.Value) ruby.Value {
 	node := if args.len > 0 { args[0].as_string() } else { '' }
 	name := if args.len > 1 { args[1].as_string().trim_left(':') } else { '' }
 	dep_type := if args.len > 2 { args[2].as_string().trim_left(':') } else { 'required' }
-	dependency := parse_formula_cop_dependency(node) or { return brew_runtime.bool_value(false) }
+	dependency := parse_formula_cop_dependency(node) or { return ruby.bool_value(false) }
 	name_match := name == '' || dependency.name == name
 	type_match := dep_type == 'any' || dependency.dep_type == dep_type
-	return brew_runtime.bool_value(name_match && type_match)
+	return ruby.bool_value(name_match && type_match)
 }
 
 // Ruby def_node_search `def_node_search :required_dependency?, <<~EOS` at line 118.
-pub fn ruby_formula_cop_l118_d8_required_dependency(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_cop_l118_d8_required_dependency(args ...ruby.Value) ruby.Value {
 	node := if args.len > 0 { args[0].as_string() } else { '' }
-	dependency := parse_formula_cop_dependency(node) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(dependency.required)
+	dependency := parse_formula_cop_dependency(node) or { return ruby.bool_value(false) }
+	return ruby.bool_value(dependency.required)
 }
 
 // Ruby def_node_search `def_node_search :required_dependency_name?, <<~EOS` at line 122.
-pub fn ruby_formula_cop_l122_d9_required_dependency_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_cop_l122_d9_required_dependency_name(args ...ruby.Value) ruby.Value {
 	node := if args.len > 0 { args[0].as_string() } else { '' }
 	name := if args.len > 1 { args[1].as_string().trim_left(':') } else { '' }
-	dependency := parse_formula_cop_dependency(node) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(dependency.required && dependency.name == name)
+	dependency := parse_formula_cop_dependency(node) or { return ruby.bool_value(false) }
+	return ruby.bool_value(dependency.required && dependency.name == name)
 }
 
 // Ruby def_node_search `def_node_search :dependency_type_hash_match?, <<~EOS` at line 126.
-pub fn ruby_formula_cop_l126_d10_dependency_type_hash_match(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_cop_l126_d10_dependency_type_hash_match(args ...ruby.Value) ruby.Value {
 	node := if args.len > 0 { args[0].as_string() } else { '' }
 	dep_type := if args.len > 1 { args[1].as_string().trim_left(':') } else { '' }
-	dependency := parse_formula_cop_dependency(node) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(!dependency.required && dependency.dep_type == dep_type)
+	dependency := parse_formula_cop_dependency(node) or { return ruby.bool_value(false) }
+	return ruby.bool_value(!dependency.required && dependency.dep_type == dep_type)
 }
 
 // Ruby def_node_search `def_node_search :dependency_name_hash_match?, <<~EOS` at line 130.
-pub fn ruby_formula_cop_l130_d11_dependency_name_hash_match(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_cop_l130_d11_dependency_name_hash_match(args ...ruby.Value) ruby.Value {
 	node := if args.len > 0 { args[0].as_string() } else { '' }
 	name := if args.len > 1 { args[1].as_string().trim_left(':') } else { '' }
-	dependency := parse_formula_cop_dependency(node) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(!dependency.required && dependency.name == name)
+	dependency := parse_formula_cop_dependency(node) or { return ruby.bool_value(false) }
+	return ruby.bool_value(!dependency.required && dependency.name == name)
 }
 
 // Ruby method `caveats_strings` at line 136.
-pub fn ruby_formula_cop_l136_d12_caveats_strings(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_cop_l136_d12_caveats_strings(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.string_array_value(formula_cop_caveats_strings(source))
+	return ruby.string_array_value(formula_cop_caveats_strings(source))
 }
 
 // Ruby method `get_checksum_node(call)` at line 144.
-pub fn ruby_formula_cop_l144_d13_get_checksum_node(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_cop_l144_d13_get_checksum_node(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	checksum := formula_cop_checksum_source(source) or { return formula_cop_nil() }
-	return brew_runtime.structured_value('RuboCop::AST::StrNode', checksum, {
+	return ruby.structured_value('RuboCop::AST::StrNode', checksum, {
 		'source':  checksum
 		'content': checksum.trim(' \'"')
 	})
 }
 
 // Ruby method `audit_comments(&_block)` at line 168.
-pub fn ruby_formula_cop_l168_d14_audit_comments(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_cop_l168_d14_audit_comments(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.string_array_value(formula_cop_comments(source))
+	return ruby.string_array_value(formula_cop_comments(source))
 }
 
 // Ruby method `versioned_formula?` at line 177.
-pub fn ruby_formula_cop_l177_d15_versioned_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_cop_l177_d15_versioned_formula(args ...ruby.Value) ruby.Value {
 	formula_name := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.bool_value(formula_name.contains('@'))
+	return ruby.bool_value(formula_name.contains('@'))
 }
 
 // Ruby method `formula_tap` at line 185.
-pub fn ruby_formula_cop_l185_d16_formula_tap(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_cop_l185_d16_formula_tap(args ...ruby.Value) ruby.Value {
 	file_path := if args.len > 0 { args[0].as_string() } else { '' }
 	tap := formula_cop_tap(file_path) or { return formula_cop_nil() }
-	return brew_runtime.string_value(tap)
+	return ruby.string_value(tap)
 }
 
 // Ruby method `style_exceptions_dir` at line 193.
-pub fn ruby_formula_cop_l193_d17_style_exceptions_dir(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_cop_l193_d17_style_exceptions_dir(args ...ruby.Value) ruby.Value {
 	file_path := if args.len > 0 { args[0].as_string() } else { '' }
 	directory := formula_cop_style_exceptions_dir(file_path) or { return formula_cop_nil() }
-	return brew_runtime.string_value(directory)
+	return ruby.string_value(directory)
 }
 
 // Ruby method `tap_style_exception?(list, formula = nil)` at line 220.
-pub fn ruby_formula_cop_l220_d18_tap_style_exception(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_cop_l220_d18_tap_style_exception(args ...ruby.Value) ruby.Value {
 	list := if args.len > 0 { args[0].as_string().trim_left(':') } else { '' }
 	file_path := if args.len > 1 { args[1].as_string() } else { '' }
 	formula := if args.len > 2 {
@@ -453,24 +453,24 @@ pub fn ruby_formula_cop_l220_d18_tap_style_exception(args ...brew_runtime.Value)
 	} else {
 		os.base(file_path).trim_string_right('.rb')
 	}
-	return brew_runtime.bool_value(formula_cop_style_exception(file_path, list, formula))
+	return ruby.bool_value(formula_cop_style_exception(file_path, list, formula))
 }
 
 // Ruby method `formula_class?(node)` at line 253.
-pub fn ruby_formula_cop_l253_d19_formula_class(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_cop_l253_d19_formula_class(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.bool_value(formula_cop_is_formula_class(source))
+	return ruby.bool_value(formula_cop_is_formula_class(source))
 }
 
 // Ruby method `file_path_allowed?` at line 266.
-pub fn ruby_formula_cop_l266_d20_file_path_allowed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_cop_l266_d20_file_path_allowed(args ...ruby.Value) ruby.Value {
 	file_path := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.bool_value(file_path == '' || !file_path.contains('/Library/Homebrew/test/'))
+	return ruby.bool_value(file_path == '' || !file_path.contains('/Library/Homebrew/test/'))
 }
 
 // Ruby method `on_system_methods` at line 273.
-pub fn ruby_formula_cop_l273_d21_on_system_methods(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(formula_cop_on_system_methods())
+pub fn ruby_formula_cop_l273_d21_on_system_methods(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(formula_cop_on_system_methods())
 }
 
 // Original Ruby source (line-for-line):

@@ -1,6 +1,6 @@
 module private
 
-import brew_runtime
+import ruby
 import os
 import sync
 
@@ -93,26 +93,26 @@ fn global_runtime_levels() &RuntimeLevels {
 }
 
 // Ruby method `self.check_tests?` at line 23.
-pub fn ruby_runtime_levels_l23_d1_self_check_tests(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_runtime_levels_l23_d1_self_check_tests(args ...ruby.Value) ruby.Value {
 	mut levels := global_runtime_levels()
-	return brew_runtime.bool_value(levels.check_tests_enabled())
+	return ruby.bool_value(levels.check_tests_enabled())
 }
 
 // Ruby method `self.enable_checking_in_tests` at line 32.
-pub fn ruby_runtime_levels_l32_d2_self_enable_checking_in_tests(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_runtime_levels_l32_d2_self_enable_checking_in_tests(args ...ruby.Value) ruby.Value {
 	mut levels := global_runtime_levels()
 	levels.enable_checking_in_tests() or { panic(err) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `self.default_checked_level` at line 47.
-pub fn ruby_runtime_levels_l47_d3_self_default_checked_level(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_runtime_levels_l47_d3_self_default_checked_level(args ...ruby.Value) ruby.Value {
 	mut levels := global_runtime_levels()
-	return brew_runtime.object_value('Symbol', ':${levels.default_checked_level()}')
+	return ruby.object_value('Symbol', ':${levels.default_checked_level()}')
 }
 
 // Ruby method `self.default_checked_level=(default_checked_level)` at line 52.
-pub fn ruby_runtime_levels_l52_d4_self_default_checked_level(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_runtime_levels_l52_d4_self_default_checked_level(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('RuntimeLevels.default_checked_level= requires a level')
 	}
@@ -122,7 +122,7 @@ pub fn ruby_runtime_levels_l52_d4_self_default_checked_level(args ...brew_runtim
 }
 
 // Ruby method `self._toggle_checking_tests(checked)` at line 63.
-pub fn ruby_runtime_levels_l63_d5_self_toggle_checking_tests(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_runtime_levels_l63_d5_self_toggle_checking_tests(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('RuntimeLevels._toggle_checking_tests requires a boolean')
 	}
@@ -132,21 +132,21 @@ pub fn ruby_runtime_levels_l63_d5_self_toggle_checking_tests(args ...brew_runtim
 }
 
 // Ruby method `self.set_enable_checking_in_tests_from_environment` at line 67.
-pub fn ruby_runtime_levels_l67_d6_self_set_enable_checking_in_tests_from_environment(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_runtime_levels_l67_d6_self_set_enable_checking_in_tests_from_environment(args ...ruby.Value) ruby.Value {
 	mut levels := global_runtime_levels()
 	if os.getenv('SORBET_RUNTIME_ENABLE_CHECKING_IN_TESTS') != '' {
 		levels.enable_checking_in_tests() or { panic(err) }
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `self.set_default_checked_level_from_environment` at line 74.
-pub fn ruby_runtime_levels_l74_d7_self_set_default_checked_level_from_environment(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_runtime_levels_l74_d7_self_set_default_checked_level_from_environment(args ...ruby.Value) ruby.Value {
 	mut levels := global_runtime_levels()
 	if level := os.getenv_opt('SORBET_RUNTIME_DEFAULT_CHECKED_LEVEL') {
 		levels.set_default_checked_level(level) or { panic(err) }
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Original Ruby source (line-for-line):

@@ -1,6 +1,6 @@
 module elftools
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/elftools-1.3.1/lib/elftools/note.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -98,8 +98,8 @@ fn elf_endian(value string) ElfEndian {
 	return if value.trim_left(':').to_lower() == 'big' { .big } else { .little }
 }
 
-fn elf_note_value(note ElfNote, endian ElfEndian) brew_runtime.Value {
-	return brew_runtime.structured_value('ELFTools::Note::Note', note.name, {
+fn elf_note_value(note ElfNote, endian ElfEndian) ruby.Value {
+	return ruby.structured_value('ELFTools::Note::Note', note.name, {
 		'n_namesz': note.header.n_namesz.str()
 		'n_descsz': note.header.n_descsz.str()
 		'n_type':   note.header.n_type.str()
@@ -111,7 +111,7 @@ fn elf_note_value(note ElfNote, endian ElfEndian) brew_runtime.Value {
 	})
 }
 
-fn elf_note_from_value(value brew_runtime.Value) !ElfNote {
+fn elf_note_from_value(value ruby.Value) !ElfNote {
 	header := ElfNoteHeader{
 		n_namesz: (value.attribute('n_namesz')!).u32()
 		n_descsz: (value.attribute('n_descsz')!).u32()
@@ -121,30 +121,30 @@ fn elf_note_from_value(value brew_runtime.Value) !ElfNote {
 }
 
 // Ruby method `each_notes` at line 44.
-pub fn ruby_note_l44_d1_each_notes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_note_l44_d1_each_notes(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('ELFTools::Note#each_notes requires stream, start, and total size')
 	}
 	endian := if args.len >= 4 { elf_endian(args[3].as_string()) } else { ElfEndian.little }
 	notes := elf_notes(args[0].as_string().bytes(), int(args[1].as_int() or { panic(err) }), int(args[2].as_int() or { panic(err) }), endian) or { panic(err) }
-	return brew_runtime.array_value(notes.map(elf_note_value(it, endian)))
+	return ruby.array_value(notes.map(elf_note_value(it, endian)))
 }
 
 // Ruby method `notes` at line 67.
-pub fn ruby_note_l67_d2_notes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_note_l67_d2_notes(args ...ruby.Value) ruby.Value {
 	return ruby_note_l44_d1_each_notes(...args)
 }
 
 // Ruby method `endian` at line 77.
-pub fn ruby_note_l77_d3_endian(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_note_l77_d3_endian(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('ELFTools::Note#endian requires a receiver')
 	}
-	return brew_runtime.string_value(args[0].attribute('endian') or { 'little' })
+	return ruby.string_value(args[0].attribute('endian') or { 'little' })
 }
 
 // Ruby method `create_note(cur)` at line 81.
-pub fn ruby_note_l81_d4_create_note(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_note_l81_d4_create_note(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('ELFTools::Note#create_note requires stream and offset')
 	}
@@ -154,12 +154,12 @@ pub fn ruby_note_l81_d4_create_note(args ...brew_runtime.Value) brew_runtime.Val
 }
 
 // Ruby attr_reader `attr_reader :header` at line 88.
-pub fn ruby_note_l88_d5_header(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_note_l88_d5_header(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('ELFTools::Note::Note#header requires a receiver')
 	}
 	note := elf_note_from_value(args[0]) or { panic(err) }
-	return brew_runtime.structured_value('ELF_Nhdr', '', {
+	return ruby.structured_value('ELF_Nhdr', '', {
 		'n_namesz': note.header.n_namesz.str()
 		'n_descsz': note.header.n_descsz.str()
 		'n_type':   note.header.n_type.str()
@@ -167,23 +167,23 @@ pub fn ruby_note_l88_d5_header(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby attr_reader `attr_reader :stream` at line 89.
-pub fn ruby_note_l89_d6_stream(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_note_l89_d6_stream(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('ELFTools::Note::Note#stream requires a receiver')
 	}
-	return brew_runtime.string_value(args[0].attribute('stream') or { panic('note has no stream') })
+	return ruby.string_value(args[0].attribute('stream') or { panic('note has no stream') })
 }
 
 // Ruby attr_reader `attr_reader :offset` at line 90.
-pub fn ruby_note_l90_d7_offset(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_note_l90_d7_offset(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('ELFTools::Note::Note#offset requires a receiver')
 	}
-	return brew_runtime.int_value((args[0].attribute('offset') or { panic('note has no offset') }).i64())
+	return ruby.int_value((args[0].attribute('offset') or { panic('note has no offset') }).i64())
 }
 
 // Ruby method `initialize(header, stream, offset)` at line 97.
-pub fn ruby_note_l97_d8_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_note_l97_d8_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('ELFTools::Note::Note#initialize requires header, stream, and offset')
 	}
@@ -197,27 +197,27 @@ pub fn ruby_note_l97_d8_initialize(args ...brew_runtime.Value) brew_runtime.Valu
 }
 
 // Ruby method `name` at line 105.
-pub fn ruby_note_l105_d9_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_note_l105_d9_name(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('ELFTools::Note::Note#name requires a receiver')
 	}
-	return brew_runtime.string_value(args[0].attribute('name') or {
+	return ruby.string_value(args[0].attribute('name') or {
 		(elf_note_from_value(args[0]) or { panic(err) }).name
 	})
 }
 
 // Ruby method `desc` at line 114.
-pub fn ruby_note_l114_d10_desc(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_note_l114_d10_desc(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('ELFTools::Note::Note#desc requires a receiver')
 	}
-	return brew_runtime.string_value(args[0].attribute('desc') or {
+	return ruby.string_value(args[0].attribute('desc') or {
 		(elf_note_from_value(args[0]) or { panic(err) }).desc.bytestr()
 	})
 }
 
 // Ruby alias `alias description desc` at line 122.
-pub fn ruby_note_l122_d11_description(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_note_l122_d11_description(args ...ruby.Value) ruby.Value {
 	return ruby_note_l114_d10_desc(...args)
 }
 

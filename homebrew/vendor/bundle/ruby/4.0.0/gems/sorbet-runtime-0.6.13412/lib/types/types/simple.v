@@ -1,6 +1,6 @@
 module types
 
-import brew_runtime
+import ruby
 import sync
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/types/simple.rb`.
@@ -8,7 +8,7 @@ import sync
 @[heap]
 pub struct SimpleType {
 pub:
-	raw_type    brew_runtime.Value
+	raw_type    ruby.Value
 	type_name   string
 	name_is_nil bool
 	base_type   &BaseType
@@ -28,7 +28,7 @@ pub:
 struct SimpleTypePool {
 	mutex &sync.Mutex = sync.new_mutex()
 mut:
-	entries       map[string]brew_runtime.Value
+	entries       map[string]ruby.Value
 	simple_types  map[string]&SimpleType
 	base_types    map[string]&BaseType
 	nilable_types map[u64]&SimpleNilableType
@@ -40,7 +40,7 @@ fn new_simple_type_pool() &SimpleTypePool {
 
 const simple_type_pool = new_simple_type_pool()
 
-pub fn new_simple_type(raw_type brew_runtime.Value) &SimpleType {
+pub fn new_simple_type(raw_type ruby.Value) &SimpleType {
 	type_name := simple_module_name(raw_type)
 	base_type := new_simple_base_type(type_name, simple_module_ancestors(raw_type))
 	return &SimpleType{
@@ -51,19 +51,19 @@ pub fn new_simple_type(raw_type brew_runtime.Value) &SimpleType {
 	}
 }
 
-pub fn (simple &SimpleType) build_type() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+pub fn (simple &SimpleType) build_type() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 pub fn (simple &SimpleType) name() string {
 	return simple.type_name
 }
 
-pub fn (simple &SimpleType) recursively_valid(obj brew_runtime.Value) bool {
+pub fn (simple &SimpleType) recursively_valid(obj ruby.Value) bool {
 	return simple.valid(obj)
 }
 
-pub fn (simple &SimpleType) valid(obj brew_runtime.Value) bool {
+pub fn (simple &SimpleType) valid(obj ruby.Value) bool {
 	return simple_raw_type_accepts(simple.raw_type, obj)
 }
 
@@ -71,7 +71,7 @@ pub fn (simple &SimpleType) subtype_of_single(other &SimpleType) BaseSubtypeResu
 	return simple_module_subtype(simple.raw_type, other.raw_type)
 }
 
-pub fn (simple &SimpleType) error_message(obj brew_runtime.Value) !string {
+pub fn (simple &SimpleType) error_message(obj ruby.Value) !string {
 	error_message := simple.base_type.error_message(obj)!
 	actual_name := simple_object_class_name(obj)
 	if simple.name() != actual_name {
@@ -83,7 +83,7 @@ pub fn (simple &SimpleType) error_message(obj brew_runtime.Value) !string {
 }
 
 pub fn (simple &SimpleType) to_nilable() !&SimpleNilableType {
-	nil_value := simple_type_for_module(brew_runtime.structured_value('Class', 'NilClass', {
+	nil_value := simple_type_for_module(ruby.structured_value('Class', 'NilClass', {
 		'canonical_constant': 'true'
 	}))
 	nil_type := simple_type_from_value(nil_value)
@@ -111,11 +111,11 @@ pub fn (nilable &SimpleNilableType) name() string {
 	return 'T.nilable(${nilable.non_nil_type.name()})'
 }
 
-pub fn (nilable &SimpleNilableType) recursively_valid(obj brew_runtime.Value) bool {
+pub fn (nilable &SimpleNilableType) recursively_valid(obj ruby.Value) bool {
 	return nilable.valid(obj)
 }
 
-pub fn (nilable &SimpleNilableType) valid(obj brew_runtime.Value) bool {
+pub fn (nilable &SimpleNilableType) valid(obj ruby.Value) bool {
 	return nilable.non_nil_type.valid(obj) || nilable.nil_type.valid(obj)
 }
 
@@ -132,7 +132,7 @@ pub fn simple_pool_cache_frozen_objects() bool {
 	return true
 }
 
-pub fn simple_type_for_module(raw_type brew_runtime.Value) brew_runtime.Value {
+pub fn simple_type_for_module(raw_type ruby.Value) ruby.Value {
 	key := simple_module_cache_key(raw_type)
 	mut pool := unsafe { &SimpleTypePool(simple_type_pool) }
 	pool.mutex.lock()
@@ -143,7 +143,7 @@ pub fn simple_type_for_module(raw_type brew_runtime.Value) brew_runtime.Value {
 		return cached
 	}
 	module_name := simple_module_name(raw_type)
-	mut type_value := brew_runtime.Value{}
+	mut type_value := ruby.Value{}
 	if simple_is_special_module(raw_type, module_name) {
 		type_value = new_simple_special_type_value(module_name, key, mut pool)
 	} else {
@@ -159,7 +159,7 @@ pub fn simple_type_for_module(raw_type brew_runtime.Value) brew_runtime.Value {
 	return type_value
 }
 
-fn simple_module_name(raw_type brew_runtime.Value) string {
+fn simple_module_name(raw_type ruby.Value) string {
 	// module_name models Module.instance_method(:name), bypassing an overridden
 	// #name. An empty intrinsic name falls back to the receiver's own #name.
 	if intrinsic_name := raw_type.attributes['module_name'] {
@@ -177,19 +177,19 @@ fn simple_module_name(raw_type brew_runtime.Value) string {
 	return raw_type.as_string()
 }
 
-fn simple_module_name_is_nil(raw_type brew_runtime.Value) bool {
+fn simple_module_name_is_nil(raw_type ruby.Value) bool {
 	if intrinsic_name := raw_type.attributes['module_name'] {
 		return intrinsic_name == '' && 'name' !in raw_type.attributes
 	}
 	return false
 }
 
-fn simple_module_ancestors(raw_type brew_runtime.Value) []string {
+fn simple_module_ancestors(raw_type ruby.Value) []string {
 	ancestors := raw_type.attributes['ancestors'] or { return [] }
 	return ancestors.split(',').map(it.trim_space()).filter(it != '')
 }
 
-fn simple_module_explicit_object_id(raw_type brew_runtime.Value) ?string {
+fn simple_module_explicit_object_id(raw_type ruby.Value) ?string {
 	for key in ['object_id', 'module_object_id', 'constant_id'] {
 		if identity := raw_type.attributes[key] {
 			return identity
@@ -198,20 +198,20 @@ fn simple_module_explicit_object_id(raw_type brew_runtime.Value) ?string {
 	return none
 }
 
-fn simple_module_object_id(raw_type brew_runtime.Value) string {
+fn simple_module_object_id(raw_type ruby.Value) string {
 	return simple_module_explicit_object_id(raw_type) or {
 		u64(simple_module_cache_key(raw_type).hash()).str()
 	}
 }
 
-fn simple_module_cache_key(raw_type brew_runtime.Value) string {
+fn simple_module_cache_key(raw_type ruby.Value) string {
 	if identity := simple_module_explicit_object_id(raw_type) {
 		return 'object:${identity}'
 	}
 	return '${raw_type.type_name}:${simple_module_name(raw_type)}'
 }
 
-fn simple_object_class_name(obj brew_runtime.Value) string {
+fn simple_object_class_name(obj ruby.Value) string {
 	if class_name := obj.attributes['class_name'] {
 		return class_name
 	}
@@ -223,11 +223,11 @@ fn simple_object_class_name(obj brew_runtime.Value) string {
 	}
 }
 
-fn simple_object_class_id(obj brew_runtime.Value, fallback string) string {
+fn simple_object_class_id(obj ruby.Value, fallback string) string {
 	return simple_object_explicit_class_id(obj) or { fallback }
 }
 
-fn simple_object_explicit_class_id(obj brew_runtime.Value) ?string {
+fn simple_object_explicit_class_id(obj ruby.Value) ?string {
 	for key in ['class_object_id', 'class_id'] {
 		if identity := obj.attributes[key] {
 			return identity
@@ -236,7 +236,7 @@ fn simple_object_explicit_class_id(obj brew_runtime.Value) ?string {
 	return none
 }
 
-fn simple_raw_type_accepts(raw_type brew_runtime.Value, obj brew_runtime.Value) bool {
+fn simple_raw_type_accepts(raw_type ruby.Value, obj ruby.Value) bool {
 	expected_name := simple_module_name(raw_type)
 	if simple_object_class_name(obj) == expected_name {
 		if expected_id := simple_module_explicit_object_id(raw_type) {
@@ -263,7 +263,7 @@ fn simple_raw_type_accepts(raw_type brew_runtime.Value, obj brew_runtime.Value) 
 	return true
 }
 
-fn simple_module_is_same(left brew_runtime.Value, right brew_runtime.Value) bool {
+fn simple_module_is_same(left ruby.Value, right ruby.Value) bool {
 	if left_id := simple_module_explicit_object_id(left) {
 		if right_id := simple_module_explicit_object_id(right) {
 			return left_id == right_id
@@ -272,7 +272,7 @@ fn simple_module_is_same(left brew_runtime.Value, right brew_runtime.Value) bool
 	return simple_module_name(left) == simple_module_name(right)
 }
 
-fn simple_module_inherits(left brew_runtime.Value, right brew_runtime.Value) bool {
+fn simple_module_inherits(left ruby.Value, right ruby.Value) bool {
 	if simple_module_is_same(left, right) {
 		return true
 	}
@@ -293,7 +293,7 @@ fn simple_module_inherits(left brew_runtime.Value, right brew_runtime.Value) boo
 	return true
 }
 
-fn simple_module_subtype(left brew_runtime.Value, right brew_runtime.Value) BaseSubtypeResult {
+fn simple_module_subtype(left ruby.Value, right ruby.Value) BaseSubtypeResult {
 	if simple_module_inherits(left, right) {
 		return .yes
 	}
@@ -303,7 +303,7 @@ fn simple_module_subtype(left brew_runtime.Value, right brew_runtime.Value) Base
 	return .unrelated
 }
 
-fn simple_other_raw_type(other brew_runtime.Value) ?brew_runtime.Value {
+fn simple_other_raw_type(other ruby.Value) ?ruby.Value {
 	if other.type_name == 'T::Types::Simple' {
 		if raw_type := other.map_data['raw_type'] {
 			return raw_type
@@ -315,7 +315,7 @@ fn simple_other_raw_type(other brew_runtime.Value) ?brew_runtime.Value {
 					attributes['object_id'] = object_id
 				}
 			}
-			return brew_runtime.structured_value('Module', raw_name, attributes)
+			return ruby.structured_value('Module', raw_name, attributes)
 		}
 	}
 	if other.type_name in ['T::Types::TypedClass', 'T::Types::TypedModule'] {
@@ -323,18 +323,18 @@ fn simple_other_raw_type(other brew_runtime.Value) ?brew_runtime.Value {
 			return underlying_class
 		}
 		if underlying_name := other.attributes['underlying_class'] {
-			return brew_runtime.object_value('Module', underlying_name)
+			return ruby.object_value('Module', underlying_name)
 		}
 	}
 	return none
 }
 
-fn (simple &SimpleType) subtype_of_boundary(other brew_runtime.Value) BaseSubtypeResult {
+fn (simple &SimpleType) subtype_of_boundary(other ruby.Value) BaseSubtypeResult {
 	raw_type := simple_other_raw_type(other) or { return .no }
 	return simple_module_subtype(simple.raw_type, raw_type)
 }
 
-fn simple_is_special_module(raw_type brew_runtime.Value, module_name string) bool {
+fn simple_is_special_module(raw_type ruby.Value, module_name string) bool {
 	if raw_type.attributes['canonical_constant'] or { 'true' } == 'false' {
 		return false
 	}
@@ -347,7 +347,7 @@ fn simple_is_special_module(raw_type brew_runtime.Value, module_name string) boo
 	return false
 }
 
-fn new_simple_special_type_value(module_name string, key string, mut pool SimpleTypePool) brew_runtime.Value {
+fn new_simple_special_type_value(module_name string, key string, mut pool SimpleTypePool) ruby.Value {
 	type_name, display_name, frozen := match module_name {
 		'Array' { 'T::Types::TypedArray::Untyped', 'T::Array[T.untyped]', 'true' }
 		'Hash' { 'T::Types::TypedHash::Untyped', 'T::Hash[T.untyped, T.untyped]', 'true' }
@@ -359,7 +359,7 @@ fn new_simple_special_type_value(module_name string, key string, mut pool Simple
 	}
 	base_type := new_custom_base_type(type_name, display_name, [module_name], [])
 	pool.base_types[key] = base_type
-	return brew_runtime.structured_value(type_name, display_name, {
+	return ruby.structured_value(type_name, display_name, {
 		'base_type_address': u64(voidptr(base_type)).str()
 		'frozen':            frozen
 		'pool_key':          key
@@ -367,8 +367,8 @@ fn new_simple_special_type_value(module_name string, key string, mut pool Simple
 	})
 }
 
-fn simple_type_value(simple &SimpleType) brew_runtime.Value {
-	return brew_runtime.Value{
+fn simple_type_value(simple &SimpleType) ruby.Value {
+	return ruby.Value{
 		type_name: 'T::Types::Simple'
 		repr: simple.name()
 		map_data: {
@@ -383,20 +383,20 @@ fn simple_type_value(simple &SimpleType) brew_runtime.Value {
 	}
 }
 
-fn simple_type_from_value(value brew_runtime.Value) &SimpleType {
+fn simple_type_from_value(value ruby.Value) &SimpleType {
 	address := value.attributes['simple_type_address'] or { panic('invalid Simple receiver') }
 	return unsafe { &SimpleType(voidptr(address.u64())) }
 }
 
-fn simple_type_from_args(args []brew_runtime.Value) &SimpleType {
+fn simple_type_from_args(args []ruby.Value) &SimpleType {
 	if args.len == 0 {
 		panic('Simple method requires a receiver')
 	}
 	return simple_type_from_value(args[0])
 }
 
-fn simple_nilable_type_value(nilable &SimpleNilableType) brew_runtime.Value {
-	return brew_runtime.Value{
+fn simple_nilable_type_value(nilable &SimpleNilableType) ruby.Value {
+	return ruby.Value{
 		type_name: 'T::Private::Types::SimplePairUnion'
 		repr: nilable.name()
 		map_data: {
@@ -411,7 +411,7 @@ fn simple_nilable_type_value(nilable &SimpleNilableType) brew_runtime.Value {
 	}
 }
 
-fn simple_nilable_type_from_value(value brew_runtime.Value) &SimpleNilableType {
+fn simple_nilable_type_from_value(value ruby.Value) &SimpleNilableType {
 	address := value.attributes['simple_pair_union_address'] or {
 		panic('invalid SimplePairUnion receiver')
 	}
@@ -419,12 +419,12 @@ fn simple_nilable_type_from_value(value brew_runtime.Value) &SimpleNilableType {
 }
 
 // Ruby attr_reader `attr_reader :raw_type` at line 10.
-pub fn ruby_simple_l10_d1_raw_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_simple_l10_d1_raw_type(args ...ruby.Value) ruby.Value {
 	return simple_type_from_args(args).raw_type
 }
 
 // Ruby method `initialize(raw_type)` at line 12.
-pub fn ruby_simple_l12_d2_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_simple_l12_d2_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Simple#initialize requires a raw type')
 	}
@@ -432,37 +432,37 @@ pub fn ruby_simple_l12_d2_initialize(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby method `build_type` at line 16.
-pub fn ruby_simple_l16_d3_build_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_simple_l16_d3_build_type(args ...ruby.Value) ruby.Value {
 	return simple_type_from_args(args).build_type()
 }
 
 // Ruby method `name` at line 21.
-pub fn ruby_simple_l21_d4_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_simple_l21_d4_name(args ...ruby.Value) ruby.Value {
 	simple := simple_type_from_args(args)
 	if simple.name_is_nil {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
-	return brew_runtime.string_value(simple.name())
+	return ruby.string_value(simple.name())
 }
 
 // Ruby method `recursively_valid?(obj)` at line 38.
-pub fn ruby_simple_l38_d5_recursively_valid(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_simple_l38_d5_recursively_valid(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Simple#recursively_valid? requires an object')
 	}
-	return brew_runtime.bool_value(simple_type_from_args(args).recursively_valid(args[1]))
+	return ruby.bool_value(simple_type_from_args(args).recursively_valid(args[1]))
 }
 
 // Ruby method `valid?(obj)` at line 43.
-pub fn ruby_simple_l43_d6_valid(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_simple_l43_d6_valid(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Simple#valid? requires an object')
 	}
-	return brew_runtime.bool_value(simple_type_from_args(args).valid(args[1]))
+	return ruby.bool_value(simple_type_from_args(args).valid(args[1]))
 }
 
 // Ruby method `subtype_of_single?(other)` at line 48.
-pub fn ruby_simple_l48_d7_subtype_of_single(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_simple_l48_d7_subtype_of_single(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Simple#subtype_of_single? requires another type')
 	}
@@ -470,22 +470,22 @@ pub fn ruby_simple_l48_d7_subtype_of_single(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby method `error_message(obj)` at line 63.
-pub fn ruby_simple_l63_d8_error_message(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_simple_l63_d8_error_message(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Simple#error_message requires an object')
 	}
-	return brew_runtime.string_value(simple_type_from_args(args).error_message(args[1]) or {
+	return ruby.string_value(simple_type_from_args(args).error_message(args[1]) or {
 		panic(err)
 	})
 }
 
 // Ruby method `to_nilable` at line 79.
-pub fn ruby_simple_l79_d9_to_nilable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_simple_l79_d9_to_nilable(args ...ruby.Value) ruby.Value {
 	return simple_nilable_type_value(simple_type_from_args(args).to_nilable() or { panic(err) })
 }
 
 // Ruby method `self.type_for_module(mod)` at line 97.
-pub fn ruby_simple_l97_d10_self_type_for_module(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_simple_l97_d10_self_type_for_module(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Simple::Private::Pool.type_for_module requires a module')
 	}

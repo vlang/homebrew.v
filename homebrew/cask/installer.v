@@ -1,6 +1,6 @@
 module cask
 
-import brew_runtime
+import ruby
 import crypto.sha256
 import homebrew
 import homebrew.cask.dsl as dsl_types
@@ -22,7 +22,7 @@ pub mut:
 	verify_download_integrity   bool = true
 	quiet                       bool
 	defer_fetch                 bool
-	default_uninstall_artifacts []brew_runtime.Value
+	default_uninstall_artifacts []ruby.Value
 	metadata_timestamp          string
 	install_badge               string = '🍺'
 	no_emoji                    bool
@@ -65,7 +65,7 @@ pub:
 
 pub struct CaskInstallerArtifactRequest {
 pub:
-	artifact     brew_runtime.Value
+	artifact     ruby.Value
 	verbose      bool
 	adopt        bool
 	auto_updates bool
@@ -138,11 +138,11 @@ pub fn new_cask_installer(cask CaskCore, options CaskInstallerOptions,
 	}
 }
 
-fn installer_nil() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn installer_nil() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-fn installer_artifact_key(value brew_runtime.Value) string {
+fn installer_artifact_key(value ruby.Value) string {
 	return value.attributes['dsl_key'] or {
 		value.type_name.all_after_last('::').replace('Block', '').replace_each([
 			'AppImage',
@@ -155,7 +155,7 @@ fn installer_artifact_key(value brew_runtime.Value) string {
 	}
 }
 
-fn installer_artifact_has(value brew_runtime.Value, phase string) bool {
+fn installer_artifact_has(value ruby.Value, phase string) bool {
 	if raw := value.map_data[phase] {
 		return raw.type_name != 'Bool' || raw.bool_data
 	}
@@ -223,14 +223,14 @@ fn installer_json_escape(value string) string {
 	return value.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n').replace('\r', '\\r').replace('\t', '\\t')
 }
 
-fn installer_value_json(value brew_runtime.Value) string {
+fn installer_value_json(value ruby.Value) string {
 	return match value.type_name {
 		'NilClass' { 'null' }
 		'Bool' { value.bool_data.str() }
 		'Integer' { value.int_data.str() }
 		'Float' { value.float_data.str() }
 		'Array' {
-			'[${(value.as_array() or { []brew_runtime.Value{} }).map(installer_value_json(it)).join(',')}]'
+			'[${(value.as_array() or { []ruby.Value{} }).map(installer_value_json(it)).join(',')}]'
 		}
 		'Hash' {
 			mut keys := value.map_data.keys()
@@ -245,8 +245,8 @@ fn installer_value_json(value brew_runtime.Value) string {
 	}
 }
 
-fn installer_map_json(values map[string]brew_runtime.Value) string {
-	return installer_value_json(brew_runtime.map_value(values))
+fn installer_map_json(values map[string]ruby.Value) string {
+	return installer_value_json(ruby.map_value(values))
 }
 
 pub fn (installer CaskInstaller) caveats() string {
@@ -263,7 +263,7 @@ pub fn (installer CaskInstaller) summary() string {
 	return '${summary}${installer.cask.token} was successfully ${action}!'
 }
 
-pub fn (installer CaskInstaller) artifacts() []brew_runtime.Value {
+pub fn (installer CaskInstaller) artifacts() []ruby.Value {
 	if installer.options.default_uninstall_artifacts.len > 0 {
 		return installer.options.default_uninstall_artifacts.clone()
 	}
@@ -502,7 +502,7 @@ pub fn (mut installer CaskInstaller) save_caskfile() !string {
 		path = os.join_path(directory, '${installer.cask.token}.json')
 		mut metadata := installer.cask.to_installed_json_hash()
 		if installer.cask.artifacts_list(true).len == 0 {
-			metadata['artifacts'] = brew_runtime.array_value([]brew_runtime.Value{})
+			metadata['artifacts'] = ruby.array_value([]ruby.Value{})
 		}
 		os.write_file(path, installer_map_json(metadata))!
 	}
@@ -877,7 +877,7 @@ pub fn (mut installer CaskInstaller) stage() ! {
 pub fn (mut installer CaskInstaller) install_artifacts(predecessor string) ! {
 	install := installer.hooks.install_artifact
 	uninstall := installer.hooks.uninstall_artifact
-	mut installed := []brew_runtime.Value{}
+	mut installed := []ruby.Value{}
 	for artifact in installer.artifacts() {
 		if !installer_artifact_has(artifact, 'install_phase') {
 			continue
@@ -1045,7 +1045,7 @@ pub fn (mut installer CaskInstaller) install() ! {
 }
 
 pub fn (installer CaskInstaller) installed_uninstall_artifacts_missing(installed_caskfile string,
-	installed_json map[string]brew_runtime.Value, tab_uninstall_artifacts []brew_runtime.Value) bool {
+	installed_json map[string]ruby.Value, tab_uninstall_artifacts []ruby.Value) bool {
 	return installed_caskfile.ends_with('.json') && 'artifacts' !in installed_json && tab_uninstall_artifacts.len == 0
 }
 
@@ -1071,58 +1071,58 @@ pub fn (mut installer CaskInstaller) load_installed_caskfile() ! {
 	}
 }
 
-fn installer_options_value(options CaskInstallerOptions) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'force':                       brew_runtime.bool_value(options.force)
-		'adopt':                       brew_runtime.bool_value(options.adopt)
-		'skip_cask_deps':              brew_runtime.bool_value(options.skip_cask_deps)
-		'binaries':                    brew_runtime.bool_value(options.binaries)
-		'verbose':                     brew_runtime.bool_value(options.verbose)
-		'zap':                         brew_runtime.bool_value(options.zap)
-		'require_sha':                 brew_runtime.bool_value(options.require_sha)
-		'upgrade':                     brew_runtime.bool_value(options.upgrade)
-		'reinstall':                   brew_runtime.bool_value(options.reinstall)
-		'installed_on_request':        brew_runtime.bool_value(options.installed_on_request)
-		'verify_download_integrity':   brew_runtime.bool_value(options.verify_download_integrity)
-		'quiet':                       brew_runtime.bool_value(options.quiet)
-		'defer_fetch':                 brew_runtime.bool_value(options.defer_fetch)
-		'default_uninstall_artifacts': brew_runtime.array_value(options.default_uninstall_artifacts)
-		'metadata_timestamp':          brew_runtime.string_value(options.metadata_timestamp)
-		'install_badge':               brew_runtime.string_value(options.install_badge)
-		'no_emoji':                    brew_runtime.bool_value(options.no_emoji)
-		'current_os':                  brew_runtime.string_value(options.current_os)
-		'current_arch':                brew_runtime.string_value(options.current_arch)
-		'current_bits':                brew_runtime.int_value(options.current_bits)
-		'current_macos':               brew_runtime.string_value(options.current_macos)
-		'allowed_taps':                brew_runtime.string_array_value(options.allowed_taps)
-		'forbidden_taps':              brew_runtime.string_array_value(options.forbidden_taps)
-		'forbid_casks':                brew_runtime.bool_value(options.forbid_casks)
-		'forbidden_casks':             brew_runtime.string_array_value(options.forbidden_casks)
-		'forbidden_formulae':          brew_runtime.string_array_value(options.forbidden_formulae)
-		'forbidden_artifacts':         brew_runtime.string_array_value(options.forbidden_artifacts)
-		'forbidden_owner':             brew_runtime.string_value(options.forbidden_owner)
-		'forbidden_owner_contact':     brew_runtime.string_value(options.forbidden_owner_contact)
-		'conflicting_installed':       brew_runtime.string_array_value(options.conflicting_installed)
+fn installer_options_value(options CaskInstallerOptions) ruby.Value {
+	return ruby.map_value({
+		'force':                       ruby.bool_value(options.force)
+		'adopt':                       ruby.bool_value(options.adopt)
+		'skip_cask_deps':              ruby.bool_value(options.skip_cask_deps)
+		'binaries':                    ruby.bool_value(options.binaries)
+		'verbose':                     ruby.bool_value(options.verbose)
+		'zap':                         ruby.bool_value(options.zap)
+		'require_sha':                 ruby.bool_value(options.require_sha)
+		'upgrade':                     ruby.bool_value(options.upgrade)
+		'reinstall':                   ruby.bool_value(options.reinstall)
+		'installed_on_request':        ruby.bool_value(options.installed_on_request)
+		'verify_download_integrity':   ruby.bool_value(options.verify_download_integrity)
+		'quiet':                       ruby.bool_value(options.quiet)
+		'defer_fetch':                 ruby.bool_value(options.defer_fetch)
+		'default_uninstall_artifacts': ruby.array_value(options.default_uninstall_artifacts)
+		'metadata_timestamp':          ruby.string_value(options.metadata_timestamp)
+		'install_badge':               ruby.string_value(options.install_badge)
+		'no_emoji':                    ruby.bool_value(options.no_emoji)
+		'current_os':                  ruby.string_value(options.current_os)
+		'current_arch':                ruby.string_value(options.current_arch)
+		'current_bits':                ruby.int_value(options.current_bits)
+		'current_macos':               ruby.string_value(options.current_macos)
+		'allowed_taps':                ruby.string_array_value(options.allowed_taps)
+		'forbidden_taps':              ruby.string_array_value(options.forbidden_taps)
+		'forbid_casks':                ruby.bool_value(options.forbid_casks)
+		'forbidden_casks':             ruby.string_array_value(options.forbidden_casks)
+		'forbidden_formulae':          ruby.string_array_value(options.forbidden_formulae)
+		'forbidden_artifacts':         ruby.string_array_value(options.forbidden_artifacts)
+		'forbidden_owner':             ruby.string_value(options.forbidden_owner)
+		'forbidden_owner_contact':     ruby.string_value(options.forbidden_owner_contact)
+		'conflicting_installed':       ruby.string_array_value(options.conflicting_installed)
 	})
 }
 
-fn installer_value_bool(values map[string]brew_runtime.Value, key string, fallback bool) bool {
+fn installer_value_bool(values map[string]ruby.Value, key string, fallback bool) bool {
 	raw := values[key] or { return fallback }
 	return if raw.type_name == 'Bool' { raw.bool_data } else { fallback }
 }
 
-fn installer_value_string(values map[string]brew_runtime.Value, key string, fallback string) string {
+fn installer_value_string(values map[string]ruby.Value, key string, fallback string) string {
 	raw := values[key] or { return fallback }
 	return if raw.type_name == 'NilClass' { fallback } else { raw.as_string() }
 }
 
-fn installer_value_strings(values map[string]brew_runtime.Value, key string) []string {
-	return (values[key] or { brew_runtime.string_array_value([]string{}) }).as_string_array() or {
+fn installer_value_strings(values map[string]ruby.Value, key string) []string {
+	return (values[key] or { ruby.string_array_value([]string{}) }).as_string_array() or {
 		[]string{}
 	}
 }
 
-fn installer_options_from_value(value brew_runtime.Value) CaskInstallerOptions {
+fn installer_options_from_value(value ruby.Value) CaskInstallerOptions {
 	values := value.map_data.clone()
 	return CaskInstallerOptions{
 		force: installer_value_bool(values, 'force', false)
@@ -1138,13 +1138,13 @@ fn installer_options_from_value(value brew_runtime.Value) CaskInstallerOptions {
 		verify_download_integrity: installer_value_bool(values, 'verify_download_integrity', true)
 		quiet: installer_value_bool(values, 'quiet', false)
 		defer_fetch: installer_value_bool(values, 'defer_fetch', false)
-		default_uninstall_artifacts: (values['default_uninstall_artifacts'] or { brew_runtime.array_value([]brew_runtime.Value{}) }).as_array() or { []brew_runtime.Value{} }
+		default_uninstall_artifacts: (values['default_uninstall_artifacts'] or { ruby.array_value([]ruby.Value{}) }).as_array() or { []ruby.Value{} }
 		metadata_timestamp: installer_value_string(values, 'metadata_timestamp', '')
 		install_badge: installer_value_string(values, 'install_badge', '🍺')
 		no_emoji: installer_value_bool(values, 'no_emoji', false)
 		current_os: installer_value_string(values, 'current_os', 'macOS')
 		current_arch: installer_value_string(values, 'current_arch', 'arm')
-		current_bits: int((values['current_bits'] or { brew_runtime.int_value(64) }).int_data)
+		current_bits: int((values['current_bits'] or { ruby.int_value(64) }).int_data)
 		current_macos: installer_value_string(values, 'current_macos', '15')
 		allowed_taps: installer_value_strings(values, 'allowed_taps')
 		forbidden_taps: installer_value_strings(values, 'forbidden_taps')
@@ -1158,20 +1158,20 @@ fn installer_options_from_value(value brew_runtime.Value) CaskInstallerOptions {
 	}
 }
 
-fn installer_dependency_value(dependency CaskInstallerDependency) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'name':          brew_runtime.string_value(dependency.name)
-		'full_name':     brew_runtime.string_value(dependency.full_name)
-		'kind':          brew_runtime.string_value(dependency.kind)
-		'tap':           brew_runtime.string_value(dependency.tap)
-		'tap_allowed':   brew_runtime.bool_value(dependency.tap_allowed)
-		'tap_forbidden': brew_runtime.bool_value(dependency.tap_forbidden)
-		'installed':     brew_runtime.bool_value(dependency.installed)
-		'linked':        brew_runtime.bool_value(dependency.linked)
+fn installer_dependency_value(dependency CaskInstallerDependency) ruby.Value {
+	return ruby.map_value({
+		'name':          ruby.string_value(dependency.name)
+		'full_name':     ruby.string_value(dependency.full_name)
+		'kind':          ruby.string_value(dependency.kind)
+		'tap':           ruby.string_value(dependency.tap)
+		'tap_allowed':   ruby.bool_value(dependency.tap_allowed)
+		'tap_forbidden': ruby.bool_value(dependency.tap_forbidden)
+		'installed':     ruby.bool_value(dependency.installed)
+		'linked':        ruby.bool_value(dependency.linked)
 	})
 }
 
-fn installer_dependency_from_value(value brew_runtime.Value) CaskInstallerDependency {
+fn installer_dependency_from_value(value ruby.Value) CaskInstallerDependency {
 	values := value.map_data.clone()
 	return CaskInstallerDependency{
 		name: installer_value_string(values, 'name', '')
@@ -1185,44 +1185,44 @@ fn installer_dependency_from_value(value brew_runtime.Value) CaskInstallerDepend
 	}
 }
 
-pub fn cask_installer_value(installer CaskInstaller) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn cask_installer_value(installer CaskInstaller) ruby.Value {
+	return ruby.Value{
 		type_name: 'Cask::Installer'
 		repr: installer.cask.token
 		map_data: {
 			'cask':                                  cask_core_value(installer.cask)
 			'options':                               installer_options_value(installer.options)
-			'dependencies':                          brew_runtime.array_value(installer.dependencies.map(installer_dependency_value(it)))
-			'ran_prelude_fetch':                     brew_runtime.bool_value(installer.ran_prelude_fetch)
-			'ran_prelude':                           brew_runtime.bool_value(installer.ran_prelude)
-			'installed_uninstall_artifacts_missing': brew_runtime.bool_value(installer.installed_uninstall_artifacts_missing)
-			'metadata_subdir':                       brew_runtime.string_value(installer.metadata_subdir_cache)
-			'source_download_path':                  brew_runtime.string_value(installer.source_download_path)
-			'source_downloaded':                     brew_runtime.bool_value(installer.source_downloaded)
-			'queued_staged_path':                    brew_runtime.string_value(installer.queued_staged_path)
-			'queued_staged_marker':                  brew_runtime.string_value(installer.queued_staged_marker)
-			'queue_entries':                         brew_runtime.array_value(installer.queue_entries.map(brew_runtime.structured_value('Homebrew::DownloadQueue::Entry', it.name, {
+			'dependencies':                          ruby.array_value(installer.dependencies.map(installer_dependency_value(it)))
+			'ran_prelude_fetch':                     ruby.bool_value(installer.ran_prelude_fetch)
+			'ran_prelude':                           ruby.bool_value(installer.ran_prelude)
+			'installed_uninstall_artifacts_missing': ruby.bool_value(installer.installed_uninstall_artifacts_missing)
+			'metadata_subdir':                       ruby.string_value(installer.metadata_subdir_cache)
+			'source_download_path':                  ruby.string_value(installer.source_download_path)
+			'source_downloaded':                     ruby.bool_value(installer.source_downloaded)
+			'queued_staged_path':                    ruby.string_value(installer.queued_staged_path)
+			'queued_staged_marker':                  ruby.string_value(installer.queued_staged_marker)
+			'queue_entries':                         ruby.array_value(installer.queue_entries.map(ruby.structured_value('Homebrew::DownloadQueue::Entry', it.name, {
 				'kind': it.kind
 				'name': it.name
 				'url':  it.url
 			})))
-			'messages':                              brew_runtime.string_array_value(installer.messages)
+			'messages':                              ruby.string_array_value(installer.messages)
 		}
 	}
 }
 
-pub fn cask_installer_from_value(value brew_runtime.Value) !CaskInstaller {
+pub fn cask_installer_from_value(value ruby.Value) !CaskInstaller {
 	if value.type_name != 'Cask::Installer' {
 		return error('expected Cask::Installer, got ${value.type_name}')
 	}
 	values := value.map_data.clone()
 	cask := cask_core_from_value(values['cask'] or { return error('Cask::Installer has no cask') })!
 	mut installer := new_cask_installer(cask, installer_options_from_value(values['options'] or {
-		brew_runtime.map_value({})
+		ruby.map_value({})
 	}), CaskInstallerHooks{})
 	raw_dependencies := (values['dependencies'] or {
-		brew_runtime.array_value([]brew_runtime.Value{})
-	}).as_array() or { []brew_runtime.Value{} }
+		ruby.array_value([]ruby.Value{})
+	}).as_array() or { []ruby.Value{} }
 	installer.dependencies = raw_dependencies.map(installer_dependency_from_value(it))
 	installer.ran_prelude_fetch = installer_value_bool(values, 'ran_prelude_fetch', false)
 	installer.ran_prelude = installer_value_bool(values, 'ran_prelude', false)
@@ -1232,7 +1232,7 @@ pub fn cask_installer_from_value(value brew_runtime.Value) !CaskInstaller {
 	installer.source_downloaded = installer_value_bool(values, 'source_downloaded', false)
 	installer.queued_staged_path = installer_value_string(values, 'queued_staged_path', '')
 	installer.queued_staged_marker = installer_value_string(values, 'queued_staged_marker', '')
-	for raw in (values['queue_entries'] or { brew_runtime.array_value([]brew_runtime.Value{}) }).as_array() or { []brew_runtime.Value{} } {
+	for raw in (values['queue_entries'] or { ruby.array_value([]ruby.Value{}) }).as_array() or { []ruby.Value{} } {
 		installer.queue_entries << CaskInstallerQueueEntry{
 			kind: raw.attributes['kind'] or { '' }
 			name: raw.attributes['name'] or { raw.as_string() }
@@ -1243,30 +1243,30 @@ pub fn cask_installer_from_value(value brew_runtime.Value) !CaskInstaller {
 	return installer
 }
 
-fn installer_receiver(args []brew_runtime.Value, method string) !CaskInstaller {
+fn installer_receiver(args []ruby.Value, method string) !CaskInstaller {
 	if args.len == 0 {
 		return error('${method} requires a Cask::Installer receiver')
 	}
 	return cask_installer_from_value(args[0])
 }
 
-fn installer_error(err IError) brew_runtime.Value {
-	return brew_runtime.object_value('Cask::CaskError', err.msg())
+fn installer_error(err IError) ruby.Value {
+	return ruby.object_value('Cask::CaskError', err.msg())
 }
 
 // Translated from Homebrew/brew `cask/installer.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby attr_reader `attr_reader :cask` at line 26.
-pub fn ruby_installer_l26_d1_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l26_d1_cask(args ...ruby.Value) ruby.Value {
 	installer := installer_receiver(args, 'cask') or { return installer_error(err) }
 	return cask_core_value(installer.cask)
 }
 
 // Ruby method `initialize(cask, command: SystemCommand, force: false, adopt: false,` at line 38.
-pub fn ruby_installer_l38_d2_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l38_d2_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'initialize requires a Cask')
+		return ruby.object_value('ArgumentError', 'initialize requires a Cask')
 	}
 	cask := cask_core_from_value(args[0]) or { return installer_error(err) }
 	options := if args.len > 1 {
@@ -1278,85 +1278,85 @@ pub fn ruby_installer_l38_d2_initialize(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby method `adopt? = @adopt` at line 72.
-pub fn ruby_installer_l72_d3_adopt(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l72_d3_adopt(args ...ruby.Value) ruby.Value {
 	installer := installer_receiver(args, 'adopt?') or { return installer_error(err) }
-	return brew_runtime.bool_value(installer.options.adopt)
+	return ruby.bool_value(installer.options.adopt)
 }
 
 // Ruby method `binaries? = @binaries` at line 75.
-pub fn ruby_installer_l75_d4_binaries(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l75_d4_binaries(args ...ruby.Value) ruby.Value {
 	installer := installer_receiver(args, 'binaries?') or { return installer_error(err) }
-	return brew_runtime.bool_value(installer.options.binaries)
+	return ruby.bool_value(installer.options.binaries)
 }
 
 // Ruby method `force? = @force` at line 78.
-pub fn ruby_installer_l78_d5_force(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l78_d5_force(args ...ruby.Value) ruby.Value {
 	installer := installer_receiver(args, 'force?') or { return installer_error(err) }
-	return brew_runtime.bool_value(installer.options.force)
+	return ruby.bool_value(installer.options.force)
 }
 
 // Ruby method `installed_on_request? = @installed_on_request` at line 81.
-pub fn ruby_installer_l81_d6_installed_on_request(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l81_d6_installed_on_request(args ...ruby.Value) ruby.Value {
 	installer := installer_receiver(args, 'installed_on_request?') or { return installer_error(err) }
-	return brew_runtime.bool_value(installer.options.installed_on_request)
+	return ruby.bool_value(installer.options.installed_on_request)
 }
 
 // Ruby method `quiet? = @quiet` at line 84.
-pub fn ruby_installer_l84_d7_quiet(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l84_d7_quiet(args ...ruby.Value) ruby.Value {
 	installer := installer_receiver(args, 'quiet?') or { return installer_error(err) }
-	return brew_runtime.bool_value(installer.options.quiet)
+	return ruby.bool_value(installer.options.quiet)
 }
 
 // Ruby method `reinstall? = @reinstall` at line 87.
-pub fn ruby_installer_l87_d8_reinstall(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l87_d8_reinstall(args ...ruby.Value) ruby.Value {
 	installer := installer_receiver(args, 'reinstall?') or { return installer_error(err) }
-	return brew_runtime.bool_value(installer.options.reinstall)
+	return ruby.bool_value(installer.options.reinstall)
 }
 
 // Ruby method `require_sha? = @require_sha` at line 90.
-pub fn ruby_installer_l90_d9_require_sha(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l90_d9_require_sha(args ...ruby.Value) ruby.Value {
 	installer := installer_receiver(args, 'require_sha?') or { return installer_error(err) }
-	return brew_runtime.bool_value(installer.options.require_sha)
+	return ruby.bool_value(installer.options.require_sha)
 }
 
 // Ruby method `skip_cask_deps? = @skip_cask_deps` at line 93.
-pub fn ruby_installer_l93_d10_skip_cask_deps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l93_d10_skip_cask_deps(args ...ruby.Value) ruby.Value {
 	installer := installer_receiver(args, 'skip_cask_deps?') or { return installer_error(err) }
-	return brew_runtime.bool_value(installer.options.skip_cask_deps)
+	return ruby.bool_value(installer.options.skip_cask_deps)
 }
 
 // Ruby method `upgrade? = @upgrade` at line 96.
-pub fn ruby_installer_l96_d11_upgrade(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l96_d11_upgrade(args ...ruby.Value) ruby.Value {
 	installer := installer_receiver(args, 'upgrade?') or { return installer_error(err) }
-	return brew_runtime.bool_value(installer.options.upgrade)
+	return ruby.bool_value(installer.options.upgrade)
 }
 
 // Ruby method `verbose? = @verbose` at line 99.
-pub fn ruby_installer_l99_d12_verbose(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l99_d12_verbose(args ...ruby.Value) ruby.Value {
 	installer := installer_receiver(args, 'verbose?') or { return installer_error(err) }
-	return brew_runtime.bool_value(installer.options.verbose)
+	return ruby.bool_value(installer.options.verbose)
 }
 
 // Ruby method `zap? = @zap` at line 102.
-pub fn ruby_installer_l102_d13_zap(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l102_d13_zap(args ...ruby.Value) ruby.Value {
 	installer := installer_receiver(args, 'zap?') or { return installer_error(err) }
-	return brew_runtime.bool_value(installer.options.zap)
+	return ruby.bool_value(installer.options.zap)
 }
 
 // Ruby method `self.caveats(cask)` at line 105.
-pub fn ruby_installer_l105_d14_self_caveats(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l105_d14_self_caveats(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'caveats requires a Cask')
+		return ruby.object_value('ArgumentError', 'caveats requires a Cask')
 	}
 	cask := cask_core_from_value(args[0]) or { return installer_error(err) }
 	text := new_cask_installer(cask, CaskInstallerOptions{}, CaskInstallerHooks{}).caveats()
-	return if text == '' { installer_nil() } else { brew_runtime.string_value(text) }
+	return if text == '' { installer_nil() } else { ruby.string_value(text) }
 }
 
 // Ruby method `fetch(quiet: nil, timeout: nil)` at line 120.
-pub fn ruby_installer_l120_d15_fetch(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l120_d15_fetch(args ...ruby.Value) ruby.Value {
 	mut installer := installer_receiver(args, 'fetch') or { return installer_error(err) }
-	options := if args.len > 1 { args[1].map_data.clone() } else { map[string]brew_runtime.Value{} }
+	options := if args.len > 1 { args[1].map_data.clone() } else { map[string]ruby.Value{} }
 	quiet := if raw := options['quiet'] { ?bool(raw.bool_data) } else { none }
 	timeout := if raw := options['timeout'] { ?f64(raw.as_float() or { 0.0 }) } else { none }
 	installer.fetch(quiet, timeout) or { return installer_error(err) }
@@ -1364,51 +1364,51 @@ pub fn ruby_installer_l120_d15_fetch(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby method `stage` at line 131.
-pub fn ruby_installer_l131_d16_stage(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l131_d16_stage(args ...ruby.Value) ruby.Value {
 	mut installer := installer_receiver(args, 'stage') or { return installer_error(err) }
 	installer.stage() or { return installer_error(err) }
 	return installer_nil()
 }
 
 // Ruby method `install` at line 155.
-pub fn ruby_installer_l155_d17_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l155_d17_install(args ...ruby.Value) ruby.Value {
 	mut installer := installer_receiver(args, 'install') or { return installer_error(err) }
 	installer.install() or { return installer_error(err) }
 	return installer_nil()
 }
 
 // Ruby method `check_deprecate_disable` at line 199.
-pub fn ruby_installer_l199_d18_check_deprecate_disable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l199_d18_check_deprecate_disable(args ...ruby.Value) ruby.Value {
 	installer := installer_receiver(args, 'check_deprecate_disable') or { return installer_error(err) }
 	message := installer.check_deprecate_disable() or { return installer_error(err) }
-	return if message == '' { installer_nil() } else { brew_runtime.string_value(message) }
+	return if message == '' { installer_nil() } else { ruby.string_value(message) }
 }
 
 // Ruby method `check_conflicts` at line 216.
-pub fn ruby_installer_l216_d19_check_conflicts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l216_d19_check_conflicts(args ...ruby.Value) ruby.Value {
 	installer := installer_receiver(args, 'check_conflicts') or { return installer_error(err) }
 	installer.check_conflicts() or { return installer_error(err) }
 	return installer_nil()
 }
 
 // Ruby method `uninstall_existing_cask` at line 240.
-pub fn ruby_installer_l240_d20_uninstall_existing_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l240_d20_uninstall_existing_cask(args ...ruby.Value) ruby.Value {
 	mut installer := installer_receiver(args, 'uninstall_existing_cask') or { return installer_error(err) }
 	installer.uninstall_existing_cask() or { return installer_error(err) }
 	return installer_nil()
 }
 
 // Ruby method `summary` at line 249.
-pub fn ruby_installer_l249_d21_summary(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l249_d21_summary(args ...ruby.Value) ruby.Value {
 	installer := installer_receiver(args, 'summary') or { return installer_error(err) }
-	return brew_runtime.string_value(installer.summary())
+	return ruby.string_value(installer.summary())
 }
 
 // Ruby method `downloader` at line 257.
-pub fn ruby_installer_l257_d22_downloader(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l257_d22_downloader(args ...ruby.Value) ruby.Value {
 	installer := installer_receiver(args, 'downloader') or { return installer_error(err) }
 	request := installer.download_request(false, none)
-	return brew_runtime.structured_value('Cask::Download', installer.cask.token, {
+	return ruby.structured_value('Cask::Download', installer.cask.token, {
 		'token':       installer.cask.token
 		'url':         request.url
 		'require_sha': request.require_sha.str()
@@ -1416,32 +1416,32 @@ pub fn ruby_installer_l257_d22_downloader(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby method `download(quiet: nil, timeout: nil)` at line 272.
-pub fn ruby_installer_l272_d23_download(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l272_d23_download(args ...ruby.Value) ruby.Value {
 	mut installer := installer_receiver(args, 'download') or { return installer_error(err) }
-	options := if args.len > 1 { args[1].map_data.clone() } else { map[string]brew_runtime.Value{} }
+	options := if args.len > 1 { args[1].map_data.clone() } else { map[string]ruby.Value{} }
 	quiet := installer_value_bool(options, 'quiet', false)
 	timeout := if raw := options['timeout'] { ?f64(raw.as_float() or { 0.0 }) } else { none }
-	return brew_runtime.object_value('Pathname', installer.download(quiet, timeout) or {
+	return ruby.object_value('Pathname', installer.download(quiet, timeout) or {
 		return installer_error(err)
 	})
 }
 
 // Ruby method `primary_container` at line 279.
-pub fn ruby_installer_l279_d24_primary_container(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l279_d24_primary_container(args ...ruby.Value) ruby.Value {
 	mut installer := installer_receiver(args, 'primary_container') or { return installer_error(err) }
-	return brew_runtime.object_value('UnpackStrategy', installer.primary_container() or {
+	return ruby.object_value('UnpackStrategy', installer.primary_container() or {
 		return installer_error(err)
 	})
 }
 
 // Ruby method `artifacts` at line 286.
-pub fn ruby_installer_l286_d25_artifacts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l286_d25_artifacts(args ...ruby.Value) ruby.Value {
 	installer := installer_receiver(args, 'artifacts') or { return installer_error(err) }
-	return brew_runtime.array_value(installer.artifacts())
+	return ruby.array_value(installer.artifacts())
 }
 
 // Ruby method `extract_primary_container(to: @cask.staged_path)` at line 291.
-pub fn ruby_installer_l291_d26_extract_primary_container(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l291_d26_extract_primary_container(args ...ruby.Value) ruby.Value {
 	mut installer := installer_receiver(args, 'extract_primary_container') or { return installer_error(err) }
 	destination := if args.len > 1 { args[1].as_string() } else { '' }
 	installer.extract_primary_container(destination) or { return installer_error(err) }
@@ -1449,7 +1449,7 @@ pub fn ruby_installer_l291_d26_extract_primary_container(args ...brew_runtime.Va
 }
 
 // Ruby method `process_rename_operations(target_dir: nil)` at line 296.
-pub fn ruby_installer_l296_d27_process_rename_operations(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l296_d27_process_rename_operations(args ...ruby.Value) ruby.Value {
 	installer := installer_receiver(args, 'process_rename_operations') or { return installer_error(err) }
 	target := if args.len > 1 { args[1].as_string() } else { '' }
 	installer.process_rename_operations(target) or { return installer_error(err) }
@@ -1457,7 +1457,7 @@ pub fn ruby_installer_l296_d27_process_rename_operations(args ...brew_runtime.Va
 }
 
 // Ruby method `install_artifacts(predecessor: nil)` at line 301.
-pub fn ruby_installer_l301_d28_install_artifacts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l301_d28_install_artifacts(args ...ruby.Value) ruby.Value {
 	mut installer := installer_receiver(args, 'install_artifacts') or { return installer_error(err) }
 	predecessor := if args.len > 1 { args[1].as_string() } else { '' }
 	installer.install_artifacts(predecessor) or { return installer_error(err) }
@@ -1465,99 +1465,99 @@ pub fn ruby_installer_l301_d28_install_artifacts(args ...brew_runtime.Value) bre
 }
 
 // Ruby method `check_requirements` at line 359.
-pub fn ruby_installer_l359_d29_check_requirements(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l359_d29_check_requirements(args ...ruby.Value) ruby.Value {
 	installer := installer_receiver(args, 'check_requirements') or { return installer_error(err) }
 	installer.check_requirements() or { return installer_error(err) }
 	return installer_nil()
 }
 
 // Ruby method `check_stanza_os_requirements` at line 367.
-pub fn ruby_installer_l367_d30_check_stanza_os_requirements(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l367_d30_check_stanza_os_requirements(args ...ruby.Value) ruby.Value {
 	installer := installer_receiver(args, 'check_stanza_os_requirements') or { return installer_error(err) }
 	installer.check_stanza_os_requirements() or { return installer_error(err) }
 	return installer_nil()
 }
 
 // Ruby method `check_supported_system` at line 374.
-pub fn ruby_installer_l374_d31_check_supported_system(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l374_d31_check_supported_system(args ...ruby.Value) ruby.Value {
 	installer := installer_receiver(args, 'check_supported_system') or { return installer_error(err) }
 	installer.check_supported_system() or { return installer_error(err) }
 	return installer_nil()
 }
 
 // Ruby method `check_macos_requirements` at line 385.
-pub fn ruby_installer_l385_d32_check_macos_requirements(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l385_d32_check_macos_requirements(args ...ruby.Value) ruby.Value {
 	installer := installer_receiver(args, 'check_macos_requirements') or { return installer_error(err) }
 	installer.check_macos_requirements() or { return installer_error(err) }
 	return installer_nil()
 }
 
 // Ruby method `check_arch_requirements` at line 393.
-pub fn ruby_installer_l393_d33_check_arch_requirements(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l393_d33_check_arch_requirements(args ...ruby.Value) ruby.Value {
 	installer := installer_receiver(args, 'check_arch_requirements') or { return installer_error(err) }
 	installer.check_arch_requirements() or { return installer_error(err) }
 	return installer_nil()
 }
 
 // Ruby method `cask_and_formula_dependencies` at line 410.
-pub fn ruby_installer_l410_d34_cask_and_formula_dependencies(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l410_d34_cask_and_formula_dependencies(args ...ruby.Value) ruby.Value {
 	installer := installer_receiver(args, 'cask_and_formula_dependencies') or { return installer_error(err) }
 	dependencies := installer.cask_and_formula_dependencies() or { return installer_error(err) }
-	return brew_runtime.array_value(dependencies.map(installer_dependency_value(it)))
+	return ruby.array_value(dependencies.map(installer_dependency_value(it)))
 }
 
 // Ruby method `missing_cask_and_formula_dependencies` at line 429.
-pub fn ruby_installer_l429_d35_missing_cask_and_formula_dependencies(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l429_d35_missing_cask_and_formula_dependencies(args ...ruby.Value) ruby.Value {
 	installer := installer_receiver(args, 'missing_cask_and_formula_dependencies') or { return installer_error(err) }
 	dependencies := installer.missing_cask_and_formula_dependencies() or { return installer_error(err) }
-	return brew_runtime.array_value(dependencies.map(installer_dependency_value(it)))
+	return ruby.array_value(dependencies.map(installer_dependency_value(it)))
 }
 
 // Ruby method `satisfy_cask_and_formula_dependencies` at line 441.
-pub fn ruby_installer_l441_d36_satisfy_cask_and_formula_dependencies(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l441_d36_satisfy_cask_and_formula_dependencies(args ...ruby.Value) ruby.Value {
 	mut installer := installer_receiver(args, 'satisfy_cask_and_formula_dependencies') or { return installer_error(err) }
 	installer.satisfy_cask_and_formula_dependencies() or { return installer_error(err) }
 	return installer_nil()
 }
 
 // Ruby method `caveats` at line 500.
-pub fn ruby_installer_l500_d37_caveats(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l500_d37_caveats(args ...ruby.Value) ruby.Value {
 	installer := installer_receiver(args, 'caveats') or { return installer_error(err) }
 	text := installer.caveats()
-	return if text == '' { installer_nil() } else { brew_runtime.string_value(text) }
+	return if text == '' { installer_nil() } else { ruby.string_value(text) }
 }
 
 // Ruby method `metadata_subdir` at line 505.
-pub fn ruby_installer_l505_d38_metadata_subdir(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l505_d38_metadata_subdir(args ...ruby.Value) ruby.Value {
 	mut installer := installer_receiver(args, 'metadata_subdir') or { return installer_error(err) }
-	return brew_runtime.object_value('Pathname', installer.metadata_subdir() or {
+	return ruby.object_value('Pathname', installer.metadata_subdir() or {
 		return installer_error(err)
 	})
 }
 
 // Ruby method `save_caskfile` at line 518.
-pub fn ruby_installer_l518_d39_save_caskfile(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l518_d39_save_caskfile(args ...ruby.Value) ruby.Value {
 	mut installer := installer_receiver(args, 'save_caskfile') or { return installer_error(err) }
 	installer.save_caskfile() or { return installer_error(err) }
 	return installer_nil()
 }
 
 // Ruby method `save_config_file` at line 535.
-pub fn ruby_installer_l535_d40_save_config_file(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l535_d40_save_config_file(args ...ruby.Value) ruby.Value {
 	installer := installer_receiver(args, 'save_config_file') or { return installer_error(err) }
 	installer.save_config_file() or { return installer_error(err) }
 	return installer_nil()
 }
 
 // Ruby method `save_download_sha` at line 540.
-pub fn ruby_installer_l540_d41_save_download_sha(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l540_d41_save_download_sha(args ...ruby.Value) ruby.Value {
 	mut installer := installer_receiver(args, 'save_download_sha') or { return installer_error(err) }
 	installer.save_download_sha() or { return installer_error(err) }
 	return installer_nil()
 }
 
 // Ruby method `uninstall(successor: nil)` at line 547.
-pub fn ruby_installer_l547_d42_uninstall(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l547_d42_uninstall(args ...ruby.Value) ruby.Value {
 	mut installer := installer_receiver(args, 'uninstall') or { return installer_error(err) }
 	successor := if args.len > 1 { args[1].as_string() } else { '' }
 	installer.uninstall(successor) or { return installer_error(err) }
@@ -1565,50 +1565,50 @@ pub fn ruby_installer_l547_d42_uninstall(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `remove_tabfile` at line 567.
-pub fn ruby_installer_l567_d43_remove_tabfile(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l567_d43_remove_tabfile(args ...ruby.Value) ruby.Value {
 	installer := installer_receiver(args, 'remove_tabfile') or { return installer_error(err) }
 	installer.remove_tabfile() or { return installer_error(err) }
 	return installer_nil()
 }
 
 // Ruby method `remove_config_file` at line 574.
-pub fn ruby_installer_l574_d44_remove_config_file(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l574_d44_remove_config_file(args ...ruby.Value) ruby.Value {
 	installer := installer_receiver(args, 'remove_config_file') or { return installer_error(err) }
 	installer.remove_config_file() or { return installer_error(err) }
 	return installer_nil()
 }
 
 // Ruby method `remove_download_sha` at line 580.
-pub fn ruby_installer_l580_d45_remove_download_sha(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l580_d45_remove_download_sha(args ...ruby.Value) ruby.Value {
 	installer := installer_receiver(args, 'remove_download_sha') or { return installer_error(err) }
 	installer.remove_download_sha() or { return installer_error(err) }
 	return installer_nil()
 }
 
 // Ruby method `start_upgrade(successor:, quit: true)` at line 586.
-pub fn ruby_installer_l586_d46_start_upgrade(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l586_d46_start_upgrade(args ...ruby.Value) ruby.Value {
 	mut installer := installer_receiver(args, 'start_upgrade') or { return installer_error(err) }
-	options := if args.len > 1 { args[1].map_data.clone() } else { map[string]brew_runtime.Value{} }
+	options := if args.len > 1 { args[1].map_data.clone() } else { map[string]ruby.Value{} }
 	installer.start_upgrade(installer_value_string(options, 'successor', ''), installer_value_bool(options, 'quit', true)) or { return installer_error(err) }
 	return installer_nil()
 }
 
 // Ruby method `backup` at line 592.
-pub fn ruby_installer_l592_d47_backup(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l592_d47_backup(args ...ruby.Value) ruby.Value {
 	installer := installer_receiver(args, 'backup') or { return installer_error(err) }
 	installer.backup() or { return installer_error(err) }
 	return installer_nil()
 }
 
 // Ruby method `restore_backup` at line 606.
-pub fn ruby_installer_l606_d48_restore_backup(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l606_d48_restore_backup(args ...ruby.Value) ruby.Value {
 	installer := installer_receiver(args, 'restore_backup') or { return installer_error(err) }
 	installer.restore_backup() or { return installer_error(err) }
 	return installer_nil()
 }
 
 // Ruby method `revert_upgrade(predecessor:)` at line 623.
-pub fn ruby_installer_l623_d49_revert_upgrade(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l623_d49_revert_upgrade(args ...ruby.Value) ruby.Value {
 	mut installer := installer_receiver(args, 'revert_upgrade') or { return installer_error(err) }
 	predecessor := if args.len > 1 { args[1].as_string() } else { '' }
 	installer.revert_upgrade(predecessor) or { return installer_error(err) }
@@ -1616,16 +1616,16 @@ pub fn ruby_installer_l623_d49_revert_upgrade(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby method `finalize_upgrade` at line 630.
-pub fn ruby_installer_l630_d50_finalize_upgrade(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l630_d50_finalize_upgrade(args ...ruby.Value) ruby.Value {
 	mut installer := installer_receiver(args, 'finalize_upgrade') or { return installer_error(err) }
 	installer.finalize_upgrade() or { return installer_error(err) }
 	return installer_nil()
 }
 
 // Ruby method `uninstall_artifacts(clear: false, successor: nil, quit: true)` at line 639.
-pub fn ruby_installer_l639_d51_uninstall_artifacts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l639_d51_uninstall_artifacts(args ...ruby.Value) ruby.Value {
 	mut installer := installer_receiver(args, 'uninstall_artifacts') or { return installer_error(err) }
-	options := if args.len > 1 { args[1].map_data.clone() } else { map[string]brew_runtime.Value{} }
+	options := if args.len > 1 { args[1].map_data.clone() } else { map[string]ruby.Value{} }
 	installer.uninstall_artifacts(installer_value_bool(options, 'clear', false), installer_value_string(options, 'successor', ''), installer_value_bool(options, 'quit', true)) or {
 		return installer_error(err)
 	}
@@ -1633,59 +1633,59 @@ pub fn ruby_installer_l639_d51_uninstall_artifacts(args ...brew_runtime.Value) b
 }
 
 // Ruby method `zap` at line 692.
-pub fn ruby_installer_l692_d52_zap(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l692_d52_zap(args ...ruby.Value) ruby.Value {
 	mut installer := installer_receiver(args, 'zap') or { return installer_error(err) }
 	installer.zap() or { return installer_error(err) }
 	return installer_nil()
 }
 
 // Ruby method `backup_path` at line 708.
-pub fn ruby_installer_l708_d53_backup_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l708_d53_backup_path(args ...ruby.Value) ruby.Value {
 	installer := installer_receiver(args, 'backup_path') or { return installer_error(err) }
 	path := installer.backup_path()
-	return if path == '' { installer_nil() } else { brew_runtime.object_value('Pathname', path) }
+	return if path == '' { installer_nil() } else { ruby.object_value('Pathname', path) }
 }
 
 // Ruby method `backup_metadata_path` at line 715.
-pub fn ruby_installer_l715_d54_backup_metadata_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l715_d54_backup_metadata_path(args ...ruby.Value) ruby.Value {
 	installer := installer_receiver(args, 'backup_metadata_path') or { return installer_error(err) }
 	path := installer.backup_metadata_path()
-	return if path == '' { installer_nil() } else { brew_runtime.object_value('Pathname', path) }
+	return if path == '' { installer_nil() } else { ruby.object_value('Pathname', path) }
 }
 
 // Ruby method `gain_permissions_remove(path)` at line 722.
-pub fn ruby_installer_l722_d55_gain_permissions_remove(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l722_d55_gain_permissions_remove(args ...ruby.Value) ruby.Value {
 	installer := installer_receiver(args, 'gain_permissions_remove') or { return installer_error(err) }
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'gain_permissions_remove requires a path')
+		return ruby.object_value('ArgumentError', 'gain_permissions_remove requires a path')
 	}
 	installer.gain_permissions_remove(args[1].as_string()) or { return installer_error(err) }
 	return installer_nil()
 }
 
 // Ruby method `purge_backed_up_versioned_files` at line 727.
-pub fn ruby_installer_l727_d56_purge_backed_up_versioned_files(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l727_d56_purge_backed_up_versioned_files(args ...ruby.Value) ruby.Value {
 	installer := installer_receiver(args, 'purge_backed_up_versioned_files') or { return installer_error(err) }
 	installer.purge_backed_up_versioned_files() or { return installer_error(err) }
 	return installer_nil()
 }
 
 // Ruby method `purge_versioned_files` at line 742.
-pub fn ruby_installer_l742_d57_purge_versioned_files(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l742_d57_purge_versioned_files(args ...ruby.Value) ruby.Value {
 	installer := installer_receiver(args, 'purge_versioned_files') or { return installer_error(err) }
 	installer.purge_versioned_files() or { return installer_error(err) }
 	return installer_nil()
 }
 
 // Ruby method `purge_caskroom_path` at line 765.
-pub fn ruby_installer_l765_d58_purge_caskroom_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l765_d58_purge_caskroom_path(args ...ruby.Value) ruby.Value {
 	installer := installer_receiver(args, 'purge_caskroom_path') or { return installer_error(err) }
 	installer.purge_caskroom_path() or { return installer_error(err) }
 	return installer_nil()
 }
 
 // Ruby method `forbidden_tap_check(cask_only: false)` at line 772.
-pub fn ruby_installer_l772_d59_forbidden_tap_check(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l772_d59_forbidden_tap_check(args ...ruby.Value) ruby.Value {
 	installer := installer_receiver(args, 'forbidden_tap_check') or { return installer_error(err) }
 	cask_only := args.len > 1 && installer_value_bool(args[1].map_data, 'cask_only', false)
 	installer.forbidden_tap_check(cask_only) or { return installer_error(err) }
@@ -1693,7 +1693,7 @@ pub fn ruby_installer_l772_d59_forbidden_tap_check(args ...brew_runtime.Value) b
 }
 
 // Ruby method `forbidden_cask_and_formula_check(cask_only: false)` at line 814.
-pub fn ruby_installer_l814_d60_forbidden_cask_and_formula_check(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l814_d60_forbidden_cask_and_formula_check(args ...ruby.Value) ruby.Value {
 	installer := installer_receiver(args, 'forbidden_cask_and_formula_check') or {
 		return installer_error(err)
 	}
@@ -1703,7 +1703,7 @@ pub fn ruby_installer_l814_d60_forbidden_cask_and_formula_check(args ...brew_run
 }
 
 // Ruby method `forbidden_cask_artifacts_check` at line 872.
-pub fn ruby_installer_l872_d61_forbidden_cask_artifacts_check(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l872_d61_forbidden_cask_artifacts_check(args ...ruby.Value) ruby.Value {
 	installer := installer_receiver(args, 'forbidden_cask_artifacts_check') or {
 		return installer_error(err)
 	}
@@ -1712,29 +1712,29 @@ pub fn ruby_installer_l872_d61_forbidden_cask_artifacts_check(args ...brew_runti
 }
 
 // Ruby method `prelude` at line 899.
-pub fn ruby_installer_l899_d62_prelude(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l899_d62_prelude(args ...ruby.Value) ruby.Value {
 	mut installer := installer_receiver(args, 'prelude') or { return installer_error(err) }
 	installer.prelude() or { return installer_error(err) }
 	return installer_nil()
 }
 
 // Ruby method `source_download_requires_pre_fetch?` at line 912.
-pub fn ruby_installer_l912_d63_source_download_requires_pre_fetch(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l912_d63_source_download_requires_pre_fetch(args ...ruby.Value) ruby.Value {
 	installer := installer_receiver(args, 'source_download_requires_pre_fetch?') or {
 		return installer_error(err)
 	}
-	return brew_runtime.bool_value(installer.source_download_requires_pre_fetch())
+	return ruby.bool_value(installer.source_download_requires_pre_fetch())
 }
 
 // Ruby method `prelude_fetch(download_queue: @download_queue)` at line 917.
-pub fn ruby_installer_l917_d64_prelude_fetch(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l917_d64_prelude_fetch(args ...ruby.Value) ruby.Value {
 	mut installer := installer_receiver(args, 'prelude_fetch') or { return installer_error(err) }
 	installer.prelude_fetch() or { return installer_error(err) }
 	return installer_nil()
 }
 
 // Ruby method `prelude_fetch_download` at line 924.
-pub fn ruby_installer_l924_d65_prelude_fetch_download(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l924_d65_prelude_fetch_download(args ...ruby.Value) ruby.Value {
 	mut installer := installer_receiver(args, 'prelude_fetch_download') or {
 		return installer_error(err)
 	}
@@ -1742,19 +1742,19 @@ pub fn ruby_installer_l924_d65_prelude_fetch_download(args ...brew_runtime.Value
 	return if download == '' {
 		installer_nil()
 	} else {
-		brew_runtime.object_value('Homebrew::API::SourceDownload', download)
+		ruby.object_value('Homebrew::API::SourceDownload', download)
 	}
 }
 
 // Ruby method `enqueue_downloads` at line 941.
-pub fn ruby_installer_l941_d66_enqueue_downloads(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l941_d66_enqueue_downloads(args ...ruby.Value) ruby.Value {
 	mut installer := installer_receiver(args, 'enqueue_downloads') or { return installer_error(err) }
 	installer.enqueue_downloads() or { return installer_error(err) }
 	return installer_nil()
 }
 
 // Ruby method `load_installed_caskfile!` at line 960.
-pub fn ruby_installer_l960_d67_load_installed_caskfile(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l960_d67_load_installed_caskfile(args ...ruby.Value) ruby.Value {
 	mut installer := installer_receiver(args, 'load_installed_caskfile!') or {
 		return installer_error(err)
 	}
@@ -1763,7 +1763,7 @@ pub fn ruby_installer_l960_d67_load_installed_caskfile(args ...brew_runtime.Valu
 }
 
 // Ruby method `remove_broken_caskroom_symlinks` at line 1030.
-pub fn ruby_installer_l1030_d68_remove_broken_caskroom_symlinks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l1030_d68_remove_broken_caskroom_symlinks(args ...ruby.Value) ruby.Value {
 	installer := installer_receiver(args, 'remove_broken_caskroom_symlinks') or {
 		return installer_error(err)
 	}
@@ -1772,7 +1772,7 @@ pub fn ruby_installer_l1030_d68_remove_broken_caskroom_symlinks(args ...brew_run
 }
 
 // Ruby method `installed_uninstall_artifacts_missing?(installed_caskfile)` at line 1042.
-pub fn ruby_installer_l1042_d69_installed_uninstall_artifacts_missing(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l1042_d69_installed_uninstall_artifacts_missing(args ...ruby.Value) ruby.Value {
 	installer := installer_receiver(args, 'installed_uninstall_artifacts_missing?') or {
 		return installer_error(err)
 	}
@@ -1780,18 +1780,18 @@ pub fn ruby_installer_l1042_d69_installed_uninstall_artifacts_missing(args ...br
 	installed_json := if args.len > 2 {
 		args[2].map_data.clone()
 	} else {
-		map[string]brew_runtime.Value{}
+		map[string]ruby.Value{}
 	}
 	tab_artifacts := if args.len > 3 {
-		args[3].as_array() or { []brew_runtime.Value{} }
+		args[3].as_array() or { []ruby.Value{} }
 	} else {
-		[]brew_runtime.Value{}
+		[]ruby.Value{}
 	}
-	return brew_runtime.bool_value(installer.installed_uninstall_artifacts_missing(path, installed_json, tab_artifacts))
+	return ruby.bool_value(installer.installed_uninstall_artifacts_missing(path, installed_json, tab_artifacts))
 }
 
 // Ruby method `check_prelude_requirements` at line 1052.
-pub fn ruby_installer_l1052_d70_check_prelude_requirements(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l1052_d70_check_prelude_requirements(args ...ruby.Value) ruby.Value {
 	mut installer := installer_receiver(args, 'check_prelude_requirements') or {
 		return installer_error(err)
 	}
@@ -1800,15 +1800,15 @@ pub fn ruby_installer_l1052_d70_check_prelude_requirements(args ...brew_runtime.
 }
 
 // Ruby method `source_download` at line 1063.
-pub fn ruby_installer_l1063_d71_source_download(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l1063_d71_source_download(args ...ruby.Value) ruby.Value {
 	mut installer := installer_receiver(args, 'source_download') or { return installer_error(err) }
-	return brew_runtime.object_value('Homebrew::API::SourceDownload', installer.source_download() or {
+	return ruby.object_value('Homebrew::API::SourceDownload', installer.source_download() or {
 		return installer_error(err)
 	})
 }
 
 // Ruby method `load_cask_from_source_api!` at line 1068.
-pub fn ruby_installer_l1068_d72_load_cask_from_source_api(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l1068_d72_load_cask_from_source_api(args ...ruby.Value) ruby.Value {
 	mut installer := installer_receiver(args, 'load_cask_from_source_api!') or {
 		return installer_error(err)
 	}
@@ -1817,9 +1817,9 @@ pub fn ruby_installer_l1068_d72_load_cask_from_source_api(args ...brew_runtime.V
 }
 
 // Ruby method `cask_from_source_api?` at line 1073.
-pub fn ruby_installer_l1073_d73_cask_from_source_api(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_l1073_d73_cask_from_source_api(args ...ruby.Value) ruby.Value {
 	installer := installer_receiver(args, 'cask_from_source_api?') or { return installer_error(err) }
-	return brew_runtime.bool_value(installer.cask_from_source_api())
+	return ruby.bool_value(installer.cask_from_source_api())
 }
 
 // Original Ruby source (line-for-line):

@@ -1,6 +1,6 @@
 module utils
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `utils/user.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -11,7 +11,7 @@ pub:
 }
 
 pub fn current_user() ?User {
-	name := brew_runtime.current_username()
+	name := ruby.current_username()
 	if name == '' {
 		return none
 	}
@@ -34,8 +34,8 @@ pub fn (user User) gui_from_who_output(output string, command_succeeded bool) bo
 }
 
 pub fn (user User) gui() bool {
-	who := brew_runtime.find_executable('who') or { return false }
-	result := brew_runtime.run_command(who, [])
+	who := ruby.find_executable('who') or { return false }
+	result := ruby.run_command(who, [])
 	return user.gui_from_who_output(result.output, result.exit_code == 0)
 }
 
@@ -44,32 +44,32 @@ pub fn (user User) str() string {
 }
 
 // Ruby method `gui?` at line 15.
-pub fn ruby_user_l15_d1_gui(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_user_l15_d1_gui(args ...ruby.Value) ruby.Value {
 	user := if args.len > 0 {
 		User{
 			name: args[0].as_string()
 		}
 	} else {
-		current_user() or { return brew_runtime.bool_value(false) }
+		current_user() or { return ruby.bool_value(false) }
 	}
 	if args.len > 1 {
-		return brew_runtime.bool_value(user.gui_from_who_output(args[1].as_string(), if args.len > 2 { args[2].as_bool() or {
+		return ruby.bool_value(user.gui_from_who_output(args[1].as_string(), if args.len > 2 { args[2].as_bool() or {
 				false} } else { true }))
 	}
-	return brew_runtime.bool_value(user.gui())
+	return ruby.bool_value(user.gui())
 }
 
 // Ruby method `self.current` at line 26.
-pub fn ruby_user_l26_d2_self_current(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_user_l26_d2_self_current(args ...ruby.Value) ruby.Value {
 	if user := current_user() {
-		return brew_runtime.object_value('User', user.name)
+		return ruby.object_value('User', user.name)
 	}
-	return brew_runtime.object_value('NilClass', '')
+	return ruby.object_value('NilClass', '')
 }
 
 // Ruby method `to_s = __getobj__.to_s` at line 37.
-pub fn ruby_user_l37_d3_to_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(if args.len > 0 { args[0].as_string() } else { '' })
+pub fn ruby_user_l37_d3_to_s(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(if args.len > 0 { args[0].as_string() } else { '' })
 }
 
 // Original Ruby source (line-for-line):

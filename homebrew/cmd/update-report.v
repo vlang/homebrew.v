@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 import homebrew.cmd.update_report
 import os
 
@@ -138,7 +138,7 @@ pub fn update_report_install_from_api_message(mut settings map[string]string,
 }
 
 pub fn update_report_shorten_revision(repository string, revision string) !string {
-	result := brew_runtime.run_command('git', ['-C', repository, 'rev-parse', '--short', revision])
+	result := ruby.run_command('git', ['-C', repository, 'rev-parse', '--short', revision])
 	if result.exit_code != 0 {
 		return error(result.output.trim_space())
 	}
@@ -458,20 +458,20 @@ pub fn update_report_link_plan(repository string) []string {
 		'link manpages ${repository} (${command})', 'link docs ${repository} (${command})']
 }
 
-fn update_report_result_value(result UpdateReportResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'stdout':       brew_runtime.string_value(result.stdout)
-		'stderr':       brew_runtime.string_value(result.stderr)
-		'actions':      brew_runtime.string_array_value(result.actions)
-		'warnings':     brew_runtime.string_array_value(result.warnings)
-		'updated':      brew_runtime.bool_value(result.updated)
-		'updated_taps': brew_runtime.string_array_value(result.updated_taps)
-		'new_tag':      brew_runtime.string_value(result.new_tag)
-		'prewarm':      brew_runtime.bool_value(result.prewarm)
+fn update_report_result_value(result UpdateReportResult) ruby.Value {
+	return ruby.map_value({
+		'stdout':       ruby.string_value(result.stdout)
+		'stderr':       ruby.string_value(result.stderr)
+		'actions':      ruby.string_array_value(result.actions)
+		'warnings':     ruby.string_array_value(result.warnings)
+		'updated':      ruby.bool_value(result.updated)
+		'updated_taps': ruby.string_array_value(result.updated_taps)
+		'new_tag':      ruby.string_value(result.new_tag)
+		'prewarm':      ruby.bool_value(result.prewarm)
 	})
 }
 
-fn update_report_context_from_value(value brew_runtime.Value) UpdateReportContext {
+fn update_report_context_from_value(value ruby.Value) UpdateReportContext {
 	mut environment := value.attributes.clone()
 	if 'HOMEBREW_UPDATE_BEFORE' !in environment {
 		environment['HOMEBREW_UPDATE_BEFORE'] = 'unchanged'
@@ -494,11 +494,11 @@ fn update_report_context_from_value(value brew_runtime.Value) UpdateReportContex
 }
 
 // Ruby method `run` at line 34.
-pub fn ruby_update_report_l34_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_report_l34_d1_run(args ...ruby.Value) ruby.Value {
 	value := if args.len > 0 {
 		args[0]
 	} else {
-		brew_runtime.structured_value('UpdateReport', '', {})
+		ruby.structured_value('UpdateReport', '', {})
 	}
 	mut context := update_report_context_from_value(value)
 	result := run_update_report(UpdateReportOptions{
@@ -507,32 +507,32 @@ pub fn ruby_update_report_l34_d1_run(args ...brew_runtime.Value) brew_runtime.Va
 		quiet: (value.attributes['quiet'] or { 'false' }) == 'true'
 		verbose: (value.attributes['verbose'] or { 'false' }) == 'true'
 		stdout_tty: (value.attributes['stdout_tty'] or { 'false' }) == 'true'
-	}, mut context) or { return brew_runtime.object_value('SystemExit', err.msg()) }
+	}, mut context) or { return ruby.object_value('SystemExit', err.msg()) }
 	return update_report_result_value(result)
 }
 
 // Ruby method `migrate_caskroom_caskfiles_to_json` at line 43.
-pub fn ruby_update_report_l43_d2_migrate_caskroom_caskfiles_to_json(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_report_l43_d2_migrate_caskroom_caskfiles_to_json(args ...ruby.Value) ruby.Value {
 	path := if args.len > 0 { args[0].as_string() } else { '' }
 	migrated, warnings := update_report_migrate_caskroom(path, map[string]string{}, map[string]string{})
-	return brew_runtime.map_value({
-		'migrated': brew_runtime.string_array_value(migrated)
-		'warnings': brew_runtime.string_array_value(warnings)
+	return ruby.map_value({
+		'migrated': ruby.string_array_value(migrated)
+		'warnings': ruby.string_array_value(warnings)
 	})
 }
 
 // Ruby method `donation_message` at line 54.
-pub fn ruby_update_report_l54_d3_donation_message(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_report_l54_d3_donation_message(args ...ruby.Value) ruby.Value {
 	mut settings := map[string]string{}
 	if args.len > 0 {
 		settings = args[0].attributes.clone()
 	}
-	return brew_runtime.string_value(update_report_donation_message(mut settings, args.len > 1 && args[1].bool_data))
+	return ruby.string_value(update_report_donation_message(mut settings, args.len > 1 && args[1].bool_data))
 }
 
 // Ruby method `auto_update_header` at line 67.
-pub fn ruby_update_report_l67_d4_auto_update_header(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(if args.len > 0 && args[0].bool_data {
+pub fn ruby_update_report_l67_d4_auto_update_header(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(if args.len > 0 && args[0].bool_data {
 		'==> Auto-updated Homebrew!\n'
 	} else {
 		''
@@ -540,56 +540,56 @@ pub fn ruby_update_report_l67_d4_auto_update_header(args ...brew_runtime.Value) 
 }
 
 // Ruby method `output_update_report` at line 75.
-pub fn ruby_update_report_l75_d5_output_update_report(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_report_l75_d5_output_update_report(args ...ruby.Value) ruby.Value {
 	return ruby_update_report_l34_d1_run(...args)
 }
 
 // Ruby method `no_changes_message` at line 322.
-pub fn ruby_update_report_l322_d6_no_changes_message(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_report_l322_d6_no_changes_message(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value(update_report_no_changes_message())
+	return ruby.string_value(update_report_no_changes_message())
 }
 
 // Ruby method `shorten_revision(revision)` at line 327.
-pub fn ruby_update_report_l327_d7_shorten_revision(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_report_l327_d7_shorten_revision(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_value('')
+		return ruby.string_value('')
 	}
 	repository := if args.len > 1 { args[1].as_string() } else { '.' }
 	short := update_report_shorten_revision(repository, args[0].as_string()) or {
-		return brew_runtime.object_value('ErrorDuringExecution', err.msg())
+		return ruby.object_value('ErrorDuringExecution', err.msg())
 	}
-	return brew_runtime.string_value(short)
+	return ruby.string_value(short)
 }
 
 // Ruby method `tap_or_untap_core_taps_if_necessary` at line 332.
-pub fn ruby_update_report_l332_d8_tap_or_untap_core_taps_if_necessary(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_report_l332_d8_tap_or_untap_core_taps_if_necessary(args ...ruby.Value) ruby.Value {
 	context := if args.len > 0 {
 		update_report_context_from_value(args[0])
 	} else {
 		UpdateReportContext{ update_test: true }
 	}
 	actions, output := update_report_tap_or_untap(context)
-	return brew_runtime.map_value({
-		'actions': brew_runtime.string_array_value(actions)
-		'output':  brew_runtime.string_value(output)
+	return ruby.map_value({
+		'actions': ruby.string_array_value(actions)
+		'output':  ruby.string_value(output)
 	})
 }
 
 // Ruby method `link_completions_manpages_and_docs(repository = HOMEBREW_REPOSITORY)` at line 372.
-pub fn ruby_update_report_l372_d9_link_completions_manpages_and_docs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_report_l372_d9_link_completions_manpages_and_docs(args ...ruby.Value) ruby.Value {
 	repository := if args.len > 0 { args[0].as_string() } else { '.' }
-	return brew_runtime.string_array_value(update_report_link_plan(repository))
+	return ruby.string_array_value(update_report_link_plan(repository))
 }
 
 // Ruby method `migrate_gcc_dependents_if_needed` at line 385.
-pub fn ruby_update_report_l385_d10_migrate_gcc_dependents_if_needed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_report_l385_d10_migrate_gcc_dependents_if_needed(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `analytics_message` at line 390.
-pub fn ruby_update_report_l390_d11_analytics_message(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_report_l390_d11_analytics_message(args ...ruby.Value) ruby.Value {
 	state := if args.len > 0 {
 		UpdateReportAnalyticsState{
 			messages_displayed: (args[0].attributes['messages_displayed'] or { 'false' }) == 'true'
@@ -601,19 +601,19 @@ pub fn ruby_update_report_l390_d11_analytics_message(args ...brew_runtime.Value)
 		UpdateReportAnalyticsState{}
 	}
 	output, changed := update_report_analytics_message(state, args.len > 1 && args[1].bool_data)
-	return brew_runtime.map_value({
-		'output':  brew_runtime.string_value(output)
-		'changed': brew_runtime.bool_value(changed)
+	return ruby.map_value({
+		'output':  ruby.string_value(output)
+		'changed': ruby.bool_value(changed)
 	})
 }
 
 // Ruby method `install_from_api_message` at line 420.
-pub fn ruby_update_report_l420_d12_install_from_api_message(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_report_l420_d12_install_from_api_message(args ...ruby.Value) ruby.Value {
 	mut settings := map[string]string{}
 	if args.len > 0 {
 		settings = args[0].attributes.clone()
 	}
-	return brew_runtime.string_value(update_report_install_from_api_message(mut settings, args.len > 1 && args[1].bool_data, args.len > 2 && args[2].bool_data, args.len > 3 && args[3].bool_data))
+	return ruby.string_value(update_report_install_from_api_message(mut settings, args.len > 1 && args[1].bool_data, args.len > 2 && args[2].bool_data, args.len > 3 && args[3].bool_data))
 }
 
 // Original Ruby source (line-for-line):

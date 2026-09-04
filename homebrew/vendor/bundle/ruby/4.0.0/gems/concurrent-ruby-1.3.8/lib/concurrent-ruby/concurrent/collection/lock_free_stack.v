@@ -1,6 +1,6 @@
 module collection
 
-import brew_runtime
+import ruby
 import sync
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/collection/lock_free_stack.rb`.
@@ -11,12 +11,12 @@ pub:
 	empty     bool
 	following &LockFreeStackNode = unsafe { nil }
 mut:
-	value brew_runtime.Value
+	value ruby.Value
 }
 
 pub type StackHeadUpdate = fn(&LockFreeStackNode) &LockFreeStackNode
 
-pub type StackEach = fn(brew_runtime.Value)
+pub type StackEach = fn(ruby.Value)
 
 @[heap]
 pub struct LockFreeStack {
@@ -26,8 +26,8 @@ mut:
 	empty &LockFreeStackNode
 }
 
-fn lock_free_stack_nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn lock_free_stack_nil_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 fn new_lock_free_stack_empty_node() &LockFreeStackNode {
@@ -37,7 +37,7 @@ fn new_lock_free_stack_empty_node() &LockFreeStackNode {
 	}
 }
 
-pub fn new_lock_free_stack_node(value brew_runtime.Value, next_node &LockFreeStackNode) &LockFreeStackNode {
+pub fn new_lock_free_stack_node(value ruby.Value, next_node &LockFreeStackNode) &LockFreeStackNode {
 	return &LockFreeStackNode{
 		value: value
 		following: next_node
@@ -51,7 +51,7 @@ pub fn (node &LockFreeStackNode) next_node() &LockFreeStackNode {
 	return node.following
 }
 
-pub fn (mut node LockFreeStackNode) set_value(value brew_runtime.Value) brew_runtime.Value {
+pub fn (mut node LockFreeStackNode) set_value(value ruby.Value) ruby.Value {
 	node.value = value
 	return value
 }
@@ -64,13 +64,13 @@ pub fn new_lock_free_stack() &LockFreeStack {
 	}
 }
 
-pub fn lock_free_stack_of1(value brew_runtime.Value) &LockFreeStack {
+pub fn lock_free_stack_of1(value ruby.Value) &LockFreeStack {
 	mut stack := new_lock_free_stack()
 	stack.head = new_lock_free_stack_node(value, stack.empty)
 	return stack
 }
 
-pub fn lock_free_stack_of2(value1 brew_runtime.Value, value2 brew_runtime.Value) &LockFreeStack {
+pub fn lock_free_stack_of2(value1 ruby.Value, value2 ruby.Value) &LockFreeStack {
 	mut stack := new_lock_free_stack()
 	second := new_lock_free_stack_node(value2, stack.empty)
 	stack.head = new_lock_free_stack_node(value1, second)
@@ -137,11 +137,11 @@ pub fn (mut stack LockFreeStack) is_empty() bool {
 	return stack.empty_with_head(stack.head_node())
 }
 
-pub fn (mut stack LockFreeStack) compare_and_push(head &LockFreeStackNode, value brew_runtime.Value) bool {
+pub fn (mut stack LockFreeStack) compare_and_push(head &LockFreeStackNode, value ruby.Value) bool {
 	return stack.compare_and_set_head(head, new_lock_free_stack_node(value, head))
 }
 
-pub fn (mut stack LockFreeStack) push(value brew_runtime.Value) &LockFreeStack {
+pub fn (mut stack LockFreeStack) push(value ruby.Value) &LockFreeStack {
 	for {
 		current := stack.head_node()
 		if stack.compare_and_push(current, value) {
@@ -159,7 +159,7 @@ pub fn (mut stack LockFreeStack) compare_and_pop(head &LockFreeStackNode) bool {
 	return stack.compare_and_set_head(head, head.next_node())
 }
 
-pub fn (mut stack LockFreeStack) pop() brew_runtime.Value {
+pub fn (mut stack LockFreeStack) pop() ruby.Value {
 	for {
 		current := stack.head_node()
 		if stack.compare_and_pop(current) {
@@ -173,8 +173,8 @@ pub fn (mut stack LockFreeStack) compare_and_clear(head &LockFreeStackNode) bool
 	return stack.compare_and_set_head(head, stack.empty)
 }
 
-pub fn (mut stack LockFreeStack) values_from(head &LockFreeStackNode) []brew_runtime.Value {
-	mut values := []brew_runtime.Value{}
+pub fn (mut stack LockFreeStack) values_from(head &LockFreeStackNode) []ruby.Value {
+	mut values := []ruby.Value{}
 	mut node_address := u64(voidptr(head))
 	for {
 		node := unsafe { &LockFreeStackNode(voidptr(node_address)) }
@@ -187,7 +187,7 @@ pub fn (mut stack LockFreeStack) values_from(head &LockFreeStackNode) []brew_run
 	return values
 }
 
-pub fn (mut stack LockFreeStack) values() []brew_runtime.Value {
+pub fn (mut stack LockFreeStack) values() []ruby.Value {
 	return stack.values_from(stack.peek())
 }
 
@@ -236,19 +236,19 @@ pub fn (mut stack LockFreeStack) str() string {
 	return '#<Concurrent::LockFreeStack ${stack.values().map(it.repr)}>'
 }
 
-fn lock_free_stack_node_boundary(node &LockFreeStackNode) brew_runtime.Value {
-	return brew_runtime.structured_value('Concurrent::LockFreeStack::Node', '#<Concurrent::LockFreeStack::Node>', {
+fn lock_free_stack_node_boundary(node &LockFreeStackNode) ruby.Value {
+	return ruby.structured_value('Concurrent::LockFreeStack::Node', '#<Concurrent::LockFreeStack::Node>', {
 		'lock_free_stack_node_address': u64(voidptr(node)).str()
 	})
 }
 
-fn lock_free_stack_boundary(stack &LockFreeStack) brew_runtime.Value {
-	return brew_runtime.structured_value('Concurrent::LockFreeStack', '#<Concurrent::LockFreeStack>', {
+fn lock_free_stack_boundary(stack &LockFreeStack) ruby.Value {
+	return ruby.structured_value('Concurrent::LockFreeStack', '#<Concurrent::LockFreeStack>', {
 		'lock_free_stack_address': u64(voidptr(stack)).str()
 	})
 }
 
-fn lock_free_stack_node_from_value(value brew_runtime.Value) &LockFreeStackNode {
+fn lock_free_stack_node_from_value(value ruby.Value) &LockFreeStackNode {
 	if value.type_name == 'NilClass' {
 		return new_lock_free_stack_empty_node()
 	}
@@ -258,7 +258,7 @@ fn lock_free_stack_node_from_value(value brew_runtime.Value) &LockFreeStackNode 
 	return unsafe { &LockFreeStackNode(voidptr(address)) }
 }
 
-fn lock_free_stack_boundary_receiver(args []brew_runtime.Value) &LockFreeStack {
+fn lock_free_stack_boundary_receiver(args []ruby.Value) &LockFreeStack {
 	if args.len == 0 {
 		panic('LockFreeStack method requires a receiver')
 	}
@@ -269,7 +269,7 @@ fn lock_free_stack_boundary_receiver(args []brew_runtime.Value) &LockFreeStack {
 }
 
 // Ruby attr_reader `attr_reader :next_node` at line 14.
-pub fn ruby_lock_free_stack_l14_d1_next_node(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lock_free_stack_l14_d1_next_node(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('LockFreeStack::Node#next_node requires a receiver')
 	}
@@ -277,7 +277,7 @@ pub fn ruby_lock_free_stack_l14_d1_next_node(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby attr_reader `attr_reader :value` at line 17.
-pub fn ruby_lock_free_stack_l17_d2_value(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lock_free_stack_l17_d2_value(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('LockFreeStack::Node#value requires a receiver')
 	}
@@ -285,7 +285,7 @@ pub fn ruby_lock_free_stack_l17_d2_value(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby attr_writer `attr_writer :value` at line 21.
-pub fn ruby_lock_free_stack_l21_d3_value(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lock_free_stack_l21_d3_value(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('LockFreeStack::Node#value= requires a value')
 	}
@@ -294,7 +294,7 @@ pub fn ruby_lock_free_stack_l21_d3_value(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `initialize(value, next_node)` at line 23.
-pub fn ruby_lock_free_stack_l23_d4_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lock_free_stack_l23_d4_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('LockFreeStack::Node.new requires value and next node')
 	}
@@ -302,12 +302,12 @@ pub fn ruby_lock_free_stack_l23_d4_initialize(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby alias_method `singleton_class.send :alias_method, :[], :new` at line 28.
-pub fn ruby_lock_free_stack_l28_d5_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lock_free_stack_l28_d5_anonymous(args ...ruby.Value) ruby.Value {
 	return ruby_lock_free_stack_l23_d4_initialize(...args)
 }
 
 // Ruby method `EMPTY.next_node` at line 33.
-pub fn ruby_lock_free_stack_l33_d6_empty_next_node(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lock_free_stack_l33_d6_empty_next_node(args ...ruby.Value) ruby.Value {
 	if args.len > 0 {
 		return args[0]
 	}
@@ -315,13 +315,13 @@ pub fn ruby_lock_free_stack_l33_d6_empty_next_node(args ...brew_runtime.Value) b
 }
 
 // Ruby attr_atomic `attr_atomic(:head)` at line 37.
-pub fn ruby_lock_free_stack_l37_d7_head(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lock_free_stack_l37_d7_head(args ...ruby.Value) ruby.Value {
 	mut stack := lock_free_stack_boundary_receiver(args)
 	return lock_free_stack_node_boundary(stack.head_node())
 }
 
 // Ruby attr_atomic `attr_atomic(:head)` at line 37.
-pub fn ruby_lock_free_stack_l37_d8_head(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lock_free_stack_l37_d8_head(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('LockFreeStack#head= requires a node')
 	}
@@ -330,16 +330,16 @@ pub fn ruby_lock_free_stack_l37_d8_head(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby attr_atomic `attr_atomic(:head)` at line 37.
-pub fn ruby_lock_free_stack_l37_d9_compare_and_set_head(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lock_free_stack_l37_d9_compare_and_set_head(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('compare_and_set_head requires expected and prospect nodes')
 	}
 	mut stack := lock_free_stack_boundary_receiver(args)
-	return brew_runtime.bool_value(stack.compare_and_set_head(lock_free_stack_node_from_value(args[1]), lock_free_stack_node_from_value(args[2])))
+	return ruby.bool_value(stack.compare_and_set_head(lock_free_stack_node_from_value(args[1]), lock_free_stack_node_from_value(args[2])))
 }
 
 // Ruby attr_atomic `attr_atomic(:head)` at line 37.
-pub fn ruby_lock_free_stack_l37_d10_swap_head(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lock_free_stack_l37_d10_swap_head(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('swap_head requires a prospect node')
 	}
@@ -348,7 +348,7 @@ pub fn ruby_lock_free_stack_l37_d10_swap_head(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby attr_atomic `attr_atomic(:head)` at line 37.
-pub fn ruby_lock_free_stack_l37_d11_update_head(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lock_free_stack_l37_d11_update_head(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('update_head requires the translated block result node')
 	}
@@ -357,7 +357,7 @@ pub fn ruby_lock_free_stack_l37_d11_update_head(args ...brew_runtime.Value) brew
 }
 
 // Ruby method `self.of1(value)` at line 41.
-pub fn ruby_lock_free_stack_l41_d12_self_of1(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lock_free_stack_l41_d12_self_of1(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('LockFreeStack.of1 requires a value')
 	}
@@ -365,7 +365,7 @@ pub fn ruby_lock_free_stack_l41_d12_self_of1(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby method `self.of2(value1, value2)` at line 46.
-pub fn ruby_lock_free_stack_l46_d13_self_of2(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lock_free_stack_l46_d13_self_of2(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('LockFreeStack.of2 requires two values')
 	}
@@ -373,7 +373,7 @@ pub fn ruby_lock_free_stack_l46_d13_self_of2(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby method `initialize(head = EMPTY)` at line 51.
-pub fn ruby_lock_free_stack_l51_d14_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lock_free_stack_l51_d14_initialize(args ...ruby.Value) ruby.Value {
 	if args.len > 0 && args[0].type_name == 'Concurrent::LockFreeStack::Node' {
 		return lock_free_stack_boundary(new_lock_free_stack_with_head(lock_free_stack_node_from_value(args[0])))
 	}
@@ -381,25 +381,25 @@ pub fn ruby_lock_free_stack_l51_d14_initialize(args ...brew_runtime.Value) brew_
 }
 
 // Ruby method `empty?(head = head())` at line 58.
-pub fn ruby_lock_free_stack_l58_d15_empty(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lock_free_stack_l58_d15_empty(args ...ruby.Value) ruby.Value {
 	mut stack := lock_free_stack_boundary_receiver(args)
 	if args.len > 1 {
-		return brew_runtime.bool_value(stack.empty_with_head(lock_free_stack_node_from_value(args[1])))
+		return ruby.bool_value(stack.empty_with_head(lock_free_stack_node_from_value(args[1])))
 	}
-	return brew_runtime.bool_value(stack.is_empty())
+	return ruby.bool_value(stack.is_empty())
 }
 
 // Ruby method `compare_and_push(head, value)` at line 65.
-pub fn ruby_lock_free_stack_l65_d16_compare_and_push(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lock_free_stack_l65_d16_compare_and_push(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('compare_and_push requires head and value')
 	}
 	mut stack := lock_free_stack_boundary_receiver(args)
-	return brew_runtime.bool_value(stack.compare_and_push(lock_free_stack_node_from_value(args[1]), args[2]))
+	return ruby.bool_value(stack.compare_and_push(lock_free_stack_node_from_value(args[1]), args[2]))
 }
 
 // Ruby method `push(value)` at line 71.
-pub fn ruby_lock_free_stack_l71_d17_push(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lock_free_stack_l71_d17_push(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('LockFreeStack#push requires a value')
 	}
@@ -409,83 +409,83 @@ pub fn ruby_lock_free_stack_l71_d17_push(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `peek` at line 79.
-pub fn ruby_lock_free_stack_l79_d18_peek(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lock_free_stack_l79_d18_peek(args ...ruby.Value) ruby.Value {
 	mut stack := lock_free_stack_boundary_receiver(args)
 	return lock_free_stack_node_boundary(stack.peek())
 }
 
 // Ruby method `compare_and_pop(head)` at line 85.
-pub fn ruby_lock_free_stack_l85_d19_compare_and_pop(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lock_free_stack_l85_d19_compare_and_pop(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('compare_and_pop requires a head node')
 	}
 	mut stack := lock_free_stack_boundary_receiver(args)
-	return brew_runtime.bool_value(stack.compare_and_pop(lock_free_stack_node_from_value(args[1])))
+	return ruby.bool_value(stack.compare_and_pop(lock_free_stack_node_from_value(args[1])))
 }
 
 // Ruby method `pop` at line 90.
-pub fn ruby_lock_free_stack_l90_d20_pop(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lock_free_stack_l90_d20_pop(args ...ruby.Value) ruby.Value {
 	mut stack := lock_free_stack_boundary_receiver(args)
 	return stack.pop()
 }
 
 // Ruby method `compare_and_clear(head)` at line 99.
-pub fn ruby_lock_free_stack_l99_d21_compare_and_clear(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lock_free_stack_l99_d21_compare_and_clear(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('compare_and_clear requires a head node')
 	}
 	mut stack := lock_free_stack_boundary_receiver(args)
-	return brew_runtime.bool_value(stack.compare_and_clear(lock_free_stack_node_from_value(args[1])))
+	return ruby.bool_value(stack.compare_and_clear(lock_free_stack_node_from_value(args[1])))
 }
 
 // Ruby method `each(head = nil)` at line 107.
-pub fn ruby_lock_free_stack_l107_d22_each(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lock_free_stack_l107_d22_each(args ...ruby.Value) ruby.Value {
 	mut stack := lock_free_stack_boundary_receiver(args)
 	if args.len > 1 && args[1].type_name != 'NilClass' {
-		return brew_runtime.array_value(stack.values_from(lock_free_stack_node_from_value(args[1])))
+		return ruby.array_value(stack.values_from(lock_free_stack_node_from_value(args[1])))
 	}
-	return brew_runtime.array_value(stack.values())
+	return ruby.array_value(stack.values())
 }
 
 // Ruby method `clear` at line 118.
-pub fn ruby_lock_free_stack_l118_d23_clear(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lock_free_stack_l118_d23_clear(args ...ruby.Value) ruby.Value {
 	mut stack := lock_free_stack_boundary_receiver(args)
-	return brew_runtime.bool_value(stack.clear())
+	return ruby.bool_value(stack.clear())
 }
 
 // Ruby method `clear_if(head)` at line 128.
-pub fn ruby_lock_free_stack_l128_d24_clear_if(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lock_free_stack_l128_d24_clear_if(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('clear_if requires a head node')
 	}
 	mut stack := lock_free_stack_boundary_receiver(args)
-	return brew_runtime.bool_value(stack.clear_if(lock_free_stack_node_from_value(args[1])))
+	return ruby.bool_value(stack.clear_if(lock_free_stack_node_from_value(args[1])))
 }
 
 // Ruby method `replace_if(head, new_head)` at line 135.
-pub fn ruby_lock_free_stack_l135_d25_replace_if(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lock_free_stack_l135_d25_replace_if(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('replace_if requires current and new head nodes')
 	}
 	mut stack := lock_free_stack_boundary_receiver(args)
-	return brew_runtime.bool_value(stack.replace_if(lock_free_stack_node_from_value(args[1]), lock_free_stack_node_from_value(args[2])))
+	return ruby.bool_value(stack.replace_if(lock_free_stack_node_from_value(args[1]), lock_free_stack_node_from_value(args[2])))
 }
 
 // Ruby method `clear_each(&block)` at line 142.
-pub fn ruby_lock_free_stack_l142_d26_clear_each(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lock_free_stack_l142_d26_clear_each(args ...ruby.Value) ruby.Value {
 	mut stack := lock_free_stack_boundary_receiver(args)
 	stack.clear()
 	return args[0]
 }
 
 // Ruby method `to_s` at line 154.
-pub fn ruby_lock_free_stack_l154_d27_to_s(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lock_free_stack_l154_d27_to_s(args ...ruby.Value) ruby.Value {
 	mut stack := lock_free_stack_boundary_receiver(args)
-	return brew_runtime.string_value(stack.str())
+	return ruby.string_value(stack.str())
 }
 
 // Ruby alias_method `alias_method :inspect, :to_s` at line 158.
-pub fn ruby_lock_free_stack_l158_d28_inspect(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lock_free_stack_l158_d28_inspect(args ...ruby.Value) ruby.Value {
 	return ruby_lock_free_stack_l154_d27_to_s(...args)
 }
 

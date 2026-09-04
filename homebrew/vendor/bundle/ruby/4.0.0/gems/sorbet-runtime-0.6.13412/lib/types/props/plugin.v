@@ -1,6 +1,6 @@
 module props
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/props/plugin.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -44,7 +44,7 @@ pub fn apply_plugin_decorator_methods(plugin PropsPlugin, mut target PluginTarge
 	}
 }
 
-fn props_plugin_from_value(value brew_runtime.Value) PropsPlugin {
+fn props_plugin_from_value(value ruby.Value) PropsPlugin {
 	return PropsPlugin{
 		name: value.attribute('name') or { value.as_string() }
 		has_class_methods: value.attribute('has_class_methods') or { 'false' } == 'true'
@@ -52,12 +52,12 @@ fn props_plugin_from_value(value brew_runtime.Value) PropsPlugin {
 	}
 }
 
-fn plugin_names(value brew_runtime.Value, attribute string) []string {
+fn plugin_names(value ruby.Value, attribute string) []string {
 	raw := value.attribute(attribute) or { '' }
 	return raw.split(',').filter(it.len > 0)
 }
 
-fn plugin_target_from_value(value brew_runtime.Value) PluginTarget {
+fn plugin_target_from_value(value ruby.Value) PluginTarget {
 	return PluginTarget{
 		name: value.attribute('name') or { value.as_string() }
 		plugins: plugin_names(value, 'plugins')
@@ -66,8 +66,8 @@ fn plugin_target_from_value(value brew_runtime.Value) PluginTarget {
 	}
 }
 
-fn plugin_target_value(target PluginTarget) brew_runtime.Value {
-	return brew_runtime.structured_value('T::Props::PluginTarget', target.name, {
+fn plugin_target_value(target PluginTarget) ruby.Value {
+	return ruby.structured_value('T::Props::PluginTarget', target.name, {
 		'name':                 target.name
 		'plugins':              target.plugins.join(',')
 		'class_extensions':     target.class_extensions.join(',')
@@ -76,7 +76,7 @@ fn plugin_target_value(target PluginTarget) brew_runtime.Value {
 }
 
 // Ruby method `included(child)` at line 9.
-pub fn ruby_plugin_l9_d1_included(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_plugin_l9_d1_included(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Plugin#included requires a child')
 	}
@@ -86,7 +86,7 @@ pub fn ruby_plugin_l9_d1_included(args ...brew_runtime.Value) brew_runtime.Value
 }
 
 // Ruby method `self.apply_class_methods(plugin, target)` at line 21.
-pub fn ruby_plugin_l21_d2_self_apply_class_methods(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_plugin_l21_d2_self_apply_class_methods(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Plugin.apply_class_methods requires plugin and target')
 	}
@@ -96,7 +96,7 @@ pub fn ruby_plugin_l21_d2_self_apply_class_methods(args ...brew_runtime.Value) b
 }
 
 // Ruby method `self.apply_decorator_methods(plugin, target)` at line 29.
-pub fn ruby_plugin_l29_d3_self_apply_decorator_methods(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_plugin_l29_d3_self_apply_decorator_methods(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Plugin.apply_decorator_methods requires plugin and target')
 	}

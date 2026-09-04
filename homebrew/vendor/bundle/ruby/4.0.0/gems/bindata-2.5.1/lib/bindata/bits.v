@@ -1,6 +1,6 @@
 module bindata
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/bindata-2.5.1/lib/bindata/bits.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -172,8 +172,8 @@ pub fn bitfield_unsigned_to_integer(value u64, nbits int, signed IntSignedness) 
 	return i64(masked)
 }
 
-fn bitfield_value(spec BitFieldClass) brew_runtime.Value {
-	return brew_runtime.structured_value('BinData::BitFieldClass', spec.name, {
+fn bitfield_value(spec BitFieldClass) ruby.Value {
+	return ruby.structured_value('BinData::BitFieldClass', spec.name, {
 		'name':    spec.name
 		'nbits':   spec.nbits.str()
 		'dynamic': spec.dynamic.str()
@@ -182,7 +182,7 @@ fn bitfield_value(spec BitFieldClass) brew_runtime.Value {
 	})
 }
 
-fn bitfield_from_value(value brew_runtime.Value) BitFieldClass {
+fn bitfield_from_value(value ruby.Value) BitFieldClass {
 	if value.type_name == 'BinData::BitFieldClass' {
 		return define_bitfield_class(value.attribute('name') or { '' }, (value.attribute('nbits') or {
 			'0'
@@ -200,11 +200,11 @@ fn bitfield_from_value(value brew_runtime.Value) BitFieldClass {
 	return bitfield_class_for_name(value.as_string()) or { panic(err) }
 }
 
-fn bitfield_dynamic_arg(value brew_runtime.Value) bool {
+fn bitfield_dynamic_arg(value ruby.Value) bool {
 	return value.type_name != 'Integer' && value.as_string().trim_left(':') == 'nbits'
 }
 
-fn bitfield_effective_nbits(spec BitFieldClass, args []brew_runtime.Value, index int) int {
+fn bitfield_effective_nbits(spec BitFieldClass, args []ruby.Value, index int) int {
 	if !spec.dynamic {
 		return spec.nbits
 	}
@@ -215,7 +215,7 @@ fn bitfield_effective_nbits(spec BitFieldClass, args []brew_runtime.Value, index
 }
 
 // Ruby method `define_class(name, nbits, endian, signed = :unsigned)` at line 12.
-pub fn ruby_bits_l12_d1_define_class(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bits_l12_d1_define_class(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('BitField.define_class requires name, nbits and endian')
 	}
@@ -226,12 +226,12 @@ pub fn ruby_bits_l12_d1_define_class(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby define_method `BitField.define_methods(new_class, nbits, endian.to_sym, signed.to_sym)` at line 16.
-pub fn ruby_bits_l16_d2_s_new_class(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bits_l16_d2_s_new_class(args ...ruby.Value) ruby.Value {
 	return ruby_bits_l26_d3_define_methods(...args)
 }
 
 // Ruby method `define_methods(bit_class, nbits, endian, signed)` at line 26.
-pub fn ruby_bits_l26_d3_define_methods(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bits_l26_d3_define_methods(args ...ruby.Value) ruby.Value {
 	if args.len < 4 {
 		panic('BitField.define_methods requires a class, nbits, endian and signedness')
 	}
@@ -241,27 +241,27 @@ pub fn ruby_bits_l26_d3_define_methods(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby method `assign(val)` at line 30.
-pub fn ruby_bits_l30_d4_assign(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bits_l30_d4_assign(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('bitfield assign requires a receiver and value')
 	}
 	spec := bitfield_from_value(args[0])
 	nbits := bitfield_effective_nbits(spec, args, 2)
 	if nbits == 1 && args[1].type_name == 'Bool' {
-		return brew_runtime.int_value(if args[1].as_bool() or { panic(err) } { 1 } else { 0 })
+		return ruby.int_value(if args[1].as_bool() or { panic(err) } { 1 } else { 0 })
 	}
-	return brew_runtime.int_value(clamp_bitfield_integer(args[1].as_int() or { panic(err) }, nbits, spec.signed) or { panic(err) })
+	return ruby.int_value(clamp_bitfield_integer(args[1].as_int() or { panic(err) }, nbits, spec.signed) or { panic(err) })
 }
 
 // Ruby method `do_write(io)` at line 36.
-pub fn ruby_bits_l36_d5_do_write(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bits_l36_d5_do_write(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('bitfield do_write requires a receiver and value')
 	}
 	spec := bitfield_from_value(args[0])
 	nbits := bitfield_effective_nbits(spec, args, 2)
 	value := bitfield_integer_to_unsigned(args[1].as_int() or { panic(err) }, nbits, spec.signed) or { panic(err) }
-	return brew_runtime.structured_value('BinData::BitWrite', value.str(), {
+	return ruby.structured_value('BinData::BitWrite', value.str(), {
 		'value':  value.str()
 		'nbits':  nbits.str()
 		'endian': spec.endian.str()
@@ -269,72 +269,72 @@ pub fn ruby_bits_l36_d5_do_write(args ...brew_runtime.Value) brew_runtime.Value 
 }
 
 // Ruby method `do_num_bytes` at line 43.
-pub fn ruby_bits_l43_d6_do_num_bytes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bits_l43_d6_do_num_bytes(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('bitfield do_num_bytes requires a receiver')
 	}
 	spec := bitfield_from_value(args[0])
-	return brew_runtime.float_value(bitfield_num_bytes(bitfield_effective_nbits(spec, args, 1)))
+	return ruby.float_value(bitfield_num_bytes(bitfield_effective_nbits(spec, args, 1)))
 }
 
 // Ruby method `bit_aligned?` at line 48.
-pub fn ruby_bits_l48_d7_bit_aligned(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(true)
+pub fn ruby_bits_l48_d7_bit_aligned(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(true)
 }
 
 // Ruby method `read_and_return_value(io)` at line 55.
-pub fn ruby_bits_l55_d8_read_and_return_value(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bits_l55_d8_read_and_return_value(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('bitfield read_and_return_value requires a receiver and unsigned value')
 	}
 	spec := bitfield_from_value(args[0])
 	nbits := bitfield_effective_nbits(spec, args, 2)
 	raw := u64(args[1].as_int() or { panic(err) })
-	return brew_runtime.int_value(bitfield_unsigned_to_integer(raw, nbits, spec.signed) or {
+	return ruby.int_value(bitfield_unsigned_to_integer(raw, nbits, spec.signed) or {
 		panic(err)
 	})
 }
 
 // Ruby method `sensible_default` at line 62.
-pub fn ruby_bits_l62_d9_sensible_default(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(0)
+pub fn ruby_bits_l62_d9_sensible_default(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(0)
 }
 
 // Ruby method `create_params_code(nbits)` at line 68.
-pub fn ruby_bits_l68_d10_create_params_code(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bits_l68_d10_create_params_code(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('create_params_code requires nbits')
 	}
-	return brew_runtime.string_value(bitfield_params_code(bitfield_dynamic_arg(args[0])))
+	return ruby.string_value(bitfield_params_code(bitfield_dynamic_arg(args[0])))
 }
 
 // Ruby method `create_nbits_code(nbits)` at line 76.
-pub fn ruby_bits_l76_d11_create_nbits_code(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bits_l76_d11_create_nbits_code(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('create_nbits_code requires nbits')
 	}
-	return brew_runtime.string_value(bitfield_nbits_code(bitfield_dynamic_arg(args[0])))
+	return ruby.string_value(bitfield_nbits_code(bitfield_dynamic_arg(args[0])))
 }
 
 // Ruby method `create_do_num_bytes_code(nbits)` at line 84.
-pub fn ruby_bits_l84_d12_create_do_num_bytes_code(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bits_l84_d12_create_do_num_bytes_code(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('create_do_num_bytes_code requires nbits')
 	}
 	dynamic := bitfield_dynamic_arg(args[0])
 	if dynamic {
-		return brew_runtime.string_value(bitfield_num_bytes_code(0, true))
+		return ruby.string_value(bitfield_num_bytes_code(0, true))
 	}
-	return brew_runtime.float_value(bitfield_num_bytes(int(args[0].as_int() or { panic(err) })))
+	return ruby.float_value(bitfield_num_bytes(int(args[0].as_int() or { panic(err) })))
 }
 
 // Ruby method `create_clamp_code(nbits, signed)` at line 92.
-pub fn ruby_bits_l92_d13_create_clamp_code(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bits_l92_d13_create_clamp_code(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('create_clamp_code requires nbits and signedness')
 	}
 	dynamic := bitfield_dynamic_arg(args[0])
-	return brew_runtime.string_value(bitfield_clamp_code(if dynamic {
+	return ruby.string_value(bitfield_clamp_code(if dynamic {
 		0
 	} else {
 		int(args[0].as_int() or {
@@ -344,28 +344,28 @@ pub fn ruby_bits_l92_d13_create_clamp_code(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `create_dynamic_clamp_code(signed)` at line 100.
-pub fn ruby_bits_l100_d14_create_dynamic_clamp_code(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bits_l100_d14_create_dynamic_clamp_code(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('create_dynamic_clamp_code requires signedness')
 	}
-	return brew_runtime.string_value(bitfield_dynamic_clamp_code(int_signedness_from_value(args[0])))
+	return ruby.string_value(bitfield_dynamic_clamp_code(int_signedness_from_value(args[0])))
 }
 
 // Ruby method `create_fixed_clamp_code(nbits, signed)` at line 112.
-pub fn ruby_bits_l112_d15_create_fixed_clamp_code(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bits_l112_d15_create_fixed_clamp_code(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('create_fixed_clamp_code requires nbits and signedness')
 	}
-	return brew_runtime.string_value(bitfield_fixed_clamp_code(int(args[0].as_int() or { panic(err) }), int_signedness_from_value(args[1])) or { panic(err) })
+	return ruby.string_value(bitfield_fixed_clamp_code(int(args[0].as_int() or { panic(err) }), int_signedness_from_value(args[1])) or { panic(err) })
 }
 
 // Ruby method `create_int2uint_code(nbits, signed)` at line 135.
-pub fn ruby_bits_l135_d16_create_int2uint_code(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bits_l135_d16_create_int2uint_code(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('create_int2uint_code requires nbits and signedness')
 	}
 	dynamic := bitfield_dynamic_arg(args[0])
-	return brew_runtime.string_value(bitfield_int_to_uint_code(if dynamic {
+	return ruby.string_value(bitfield_int_to_uint_code(if dynamic {
 		0
 	} else {
 		int(args[0].as_int() or {
@@ -375,12 +375,12 @@ pub fn ruby_bits_l135_d16_create_int2uint_code(args ...brew_runtime.Value) brew_
 }
 
 // Ruby method `create_uint2int_code(nbits, signed)` at line 145.
-pub fn ruby_bits_l145_d17_create_uint2int_code(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bits_l145_d17_create_uint2int_code(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('create_uint2int_code requires nbits and signedness')
 	}
 	dynamic := bitfield_dynamic_arg(args[0])
-	return brew_runtime.string_value(bitfield_uint_to_int_code(if dynamic {
+	return ruby.string_value(bitfield_uint_to_int_code(if dynamic {
 		0
 	} else {
 		int(args[0].as_int() or {
@@ -390,7 +390,7 @@ pub fn ruby_bits_l145_d17_create_uint2int_code(args ...brew_runtime.Value) brew_
 }
 
 // Ruby method `const_missing(name)` at line 167.
-pub fn ruby_bits_l167_d18_const_missing(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bits_l167_d18_const_missing(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('const_missing requires a class name')
 	}

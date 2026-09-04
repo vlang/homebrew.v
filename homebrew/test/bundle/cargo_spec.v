@@ -1,10 +1,10 @@
 module bundle
 
-import brew_runtime
+import ruby
 import homebrew.bundle.extensions
 
-fn cargo_spec_bool(value bool) brew_runtime.Value {
-	return brew_runtime.bool_value(value)
+fn cargo_spec_bool(value bool) ruby.Value {
+	return ruby.bool_value(value)
 }
 
 fn cargo_spec_crate(name string, source string) extensions.CargoCrate {
@@ -12,9 +12,9 @@ fn cargo_spec_crate(name string, source string) extensions.CargoCrate {
 }
 
 fn cargo_spec_entry(name string, source string) extensions.ExtensionEntry {
-	mut options := map[string]brew_runtime.Value{}
+	mut options := map[string]ruby.Value{}
 	if source != '' {
-		options['source'] = brew_runtime.string_value(source)
+		options['source'] = ruby.string_value(source)
 	}
 	return extensions.cargo_entry(name, options) or { panic(err) }
 }
@@ -27,18 +27,18 @@ fn cargo_spec_entries() []extensions.ExtensionEntry {
 	]
 }
 
-fn cargo_spec_install(name string, source string) brew_runtime.Value {
+fn cargo_spec_install(name string, source string) ruby.Value {
 	return extensions.ruby_cargo_l219_d21_install(extensions.cargo_state_value(extensions.CargoState{
 		executable: '/tmp/rust/bin/cargo'
 		executable_exists: true
-	}), brew_runtime.string_value(name), brew_runtime.object_value('NilClass', ''), if source == '' {
-		brew_runtime.object_value('NilClass', '')
+	}), ruby.string_value(name), ruby.object_value('NilClass', ''), if source == '' {
+		ruby.object_value('NilClass', '')
 	} else {
-		brew_runtime.string_value(source)
-	}, brew_runtime.bool_value(true), brew_runtime.bool_value(false), brew_runtime.bool_value(true))
+		ruby.string_value(source)
+	}, ruby.bool_value(true), ruby.bool_value(false), ruby.bool_value(true))
 }
 
-fn cargo_spec_result(value brew_runtime.Value) bool {
+fn cargo_spec_result(value ruby.Value) bool {
 	return value.type_name == 'Hash' && 'result' in value.map_data && (value.map_data['result'].as_bool() or { false })
 }
 
@@ -46,30 +46,30 @@ fn cargo_spec_result(value brew_runtime.Value) bool {
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "accepts a source option" do` at line 23.
-pub fn ruby_cargo_spec_l23_d1_accepts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_spec_l23_d1_accepts(args ...ruby.Value) ruby.Value {
 	_ = args
 	entry := cargo_spec_entry('tftio-kb', 'ssh://git@example.com/tftio/kb.git')
 	return cargo_spec_bool(entry.name == 'tftio-kb' && entry.options.len == 1 && entry.options['source'].as_string() == 'ssh://git@example.com/tftio/kb.git')
 }
 
 // Ruby it `it "accepts a source that selects a git reference" do` at line 29.
-pub fn ruby_cargo_spec_l29_d2_accepts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_spec_l29_d2_accepts(args ...ruby.Value) ruby.Value {
 	_ = args
 	entry := cargo_spec_entry('tftio-kb', 'ssh://git@example.com/tftio/kb.git?branch=next')
 	return cargo_spec_bool(entry.options['source'].as_string() == 'ssh://git@example.com/tftio/kb.git?branch=next')
 }
 
 // Ruby it `it "stores no options when no source is given" do` at line 34.
-pub fn ruby_cargo_spec_l34_d3_stores(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_spec_l34_d3_stores(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cargo_spec_bool(cargo_spec_entry('ripgrep', '').options.len == 0)
 }
 
 // Ruby it `it "rejects a non-String source" do` at line 38.
-pub fn ruby_cargo_spec_l38_d4_rejects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_spec_l38_d4_rejects(args ...ruby.Value) ruby.Value {
 	_ = args
 	if _ := extensions.cargo_entry('tftio-kb', {
-		'source': brew_runtime.string_array_value(['ssh://git@example.com/tftio/kb.git'])
+		'source': ruby.string_array_value(['ssh://git@example.com/tftio/kb.git'])
 	}) {
 		return cargo_spec_bool(false)
 	} else {
@@ -78,10 +78,10 @@ pub fn ruby_cargo_spec_l38_d4_rejects(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby it `it "rejects a source that is not a git URL" do` at line 43.
-pub fn ruby_cargo_spec_l43_d5_rejects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_spec_l43_d5_rejects(args ...ruby.Value) ruby.Value {
 	_ = args
 	if _ := extensions.cargo_entry('tftio-kb', {
-		'source': brew_runtime.string_value('tftio-kb')
+		'source': ruby.string_value('tftio-kb')
 	}) {
 		return cargo_spec_bool(false)
 	} else {
@@ -90,10 +90,10 @@ pub fn ruby_cargo_spec_l43_d5_rejects(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby it `it "rejects a local path, which does not resolve on another machine" do` at line 48.
-pub fn ruby_cargo_spec_l48_d6_rejects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_spec_l48_d6_rejects(args ...ruby.Value) ruby.Value {
 	_ = args
 	if _ := extensions.cargo_entry('bat', {
-		'source': brew_runtime.string_value('/Users/test/src/bat')
+		'source': ruby.string_value('/Users/test/src/bat')
 	}) {
 		return cargo_spec_bool(false)
 	} else {
@@ -102,10 +102,10 @@ pub fn ruby_cargo_spec_l48_d6_rejects(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby it `it "rejects a file:// git URL, which does not resolve on another machine either" do` at line 53.
-pub fn ruby_cargo_spec_l53_d7_rejects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_spec_l53_d7_rejects(args ...ruby.Value) ruby.Value {
 	_ = args
 	if _ := extensions.cargo_entry('bat', {
-		'source': brew_runtime.string_value('file:///Users/test/src/bat')
+		'source': ruby.string_value('file:///Users/test/src/bat')
 	}) {
 		return cargo_spec_bool(false)
 	} else {
@@ -114,10 +114,10 @@ pub fn ruby_cargo_spec_l53_d7_rejects(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby it `it "rejects a git query that selects something other than a branch, tag or rev" do` at line 58.
-pub fn ruby_cargo_spec_l58_d8_rejects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_spec_l58_d8_rejects(args ...ruby.Value) ruby.Value {
 	_ = args
 	if _ := extensions.cargo_entry('tftio-kb', {
-		'source': brew_runtime.string_value('ssh://git@example.com/tftio/kb.git?foo=bar')
+		'source': ruby.string_value('ssh://git@example.com/tftio/kb.git?foo=bar')
 	}) {
 		return cargo_spec_bool(false)
 	} else {
@@ -126,10 +126,10 @@ pub fn ruby_cargo_spec_l58_d8_rejects(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby it `it "rejects an scp-style git remote that cargo cannot parse as a URL" do` at line 63.
-pub fn ruby_cargo_spec_l63_d9_rejects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_spec_l63_d9_rejects(args ...ruby.Value) ruby.Value {
 	_ = args
 	if _ := extensions.cargo_entry('bat', {
-		'source': brew_runtime.string_value('git@github.com:sharkdp/bat.git')
+		'source': ruby.string_value('git@github.com:sharkdp/bat.git')
 	}) {
 		return cargo_spec_bool(false)
 	} else {
@@ -138,10 +138,10 @@ pub fn ruby_cargo_spec_l63_d9_rejects(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby it `it "rejects unknown options" do` at line 68.
-pub fn ruby_cargo_spec_l68_d10_rejects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_spec_l68_d10_rejects(args ...ruby.Value) ruby.Value {
 	_ = args
 	if _ := extensions.cargo_entry('ripgrep', {
-		'features': brew_runtime.string_array_value(['pcre2'])
+		'features': ruby.string_array_value(['pcre2'])
 	}) {
 		return cargo_spec_bool(false)
 	} else {
@@ -150,33 +150,33 @@ pub fn ruby_cargo_spec_l68_d10_rejects(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby subject `subject(:checker) { described_class.new }` at line 75.
-pub fn ruby_cargo_spec_l75_d11_checker(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_spec_l75_d11_checker(args ...ruby.Value) ruby.Value {
 	_ = args
 	return extensions.cargo_state_value(extensions.CargoState{})
 }
 
 // Ruby it `it "passes the source through when checking a crate installed from a source" do` at line 78.
-pub fn ruby_cargo_spec_l78_d12_passes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_spec_l78_d12_passes(args ...ruby.Value) ruby.Value {
 	_ = args
 	crate := cargo_spec_crate('tftio-kb', 'ssh://git@example.com/tftio/kb.git')
 	return cargo_spec_bool(extensions.cargo_package_installed([crate], crate.name, crate.source))
 }
 
 // Ruby it `it "passes a nil source through for a registry crate" do` at line 90.
-pub fn ruby_cargo_spec_l90_d13_passes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_spec_l90_d13_passes(args ...ruby.Value) ruby.Value {
 	_ = args
 	crate := cargo_spec_crate('ripgrep', '')
 	return cargo_spec_bool(extensions.cargo_package_installed([crate], 'ripgrep', ''))
 }
 
 // Ruby let `let(:entries) do` at line 100.
-pub fn ruby_cargo_spec_l100_d14_entries(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_spec_l100_d14_entries(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.array_value(cargo_spec_entries().map(extensions.extension_entry_value(it)))
+	return ruby.array_value(cargo_spec_entries().map(extensions.extension_entry_value(it)))
 }
 
 // Ruby it `it "returns missing cargo packages" do` at line 108.
-pub fn ruby_cargo_spec_l108_d15_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_spec_l108_d15_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	installed := [cargo_spec_crate('ripgrep', '')]
 	mut actionable := []string{}
@@ -192,20 +192,20 @@ pub fn ruby_cargo_spec_l108_d15_returns(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby subject `subject(:dumper) { described_class }` at line 120.
-pub fn ruby_cargo_spec_l120_d16_dumper(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_spec_l120_d16_dumper(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.object_value('Homebrew::Bundle::Cargo', 'Homebrew::Bundle::Cargo')
+	return ruby.object_value('Homebrew::Bundle::Cargo', 'Homebrew::Bundle::Cargo')
 }
 
 // Ruby specify `specify do` at line 128.
-pub fn ruby_cargo_spec_l128_d17_do(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_spec_l128_d17_do(args ...ruby.Value) ruby.Value {
 	_ = args
 	crates := extensions.cargo_parse_package_list('')
 	return cargo_spec_bool(crates.len == 0 && crates.map(extensions.cargo_dump_entry(it)).join('\n') == '')
 }
 
 // Ruby it `it "returns package list" do` at line 140.
-pub fn ruby_cargo_spec_l140_d18_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_spec_l140_d18_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	output := 'ripgrep v13.0.0:\n    rg\nbat v0.24.0 (https://github.com/sharkdp/bat#3492d620)\n'
 	return cargo_spec_bool(extensions.cargo_parse_package_list(output) == [
@@ -215,74 +215,74 @@ pub fn ruby_cargo_spec_l140_d18_returns(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby it `it "parses a git source and strips the resolved revision" do` at line 158.
-pub fn ruby_cargo_spec_l158_d19_parses(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_spec_l158_d19_parses(args ...ruby.Value) ruby.Value {
 	_ = args
 	crates := extensions.cargo_parse_package_list('tftio-kb v4.0.0 (ssh://git@example.com/tftio/kb.git#3492d620):\n    kb\n')
 	return cargo_spec_bool(crates == [cargo_spec_crate('tftio-kb', 'ssh://git@example.com/tftio/kb.git')] && extensions.cargo_dump_entry(crates[0]) == 'cargo "tftio-kb", source: "ssh://git@example.com/tftio/kb.git"')
 }
 
 // Ruby it `it "parses an https git source" do` at line 170.
-pub fn ruby_cargo_spec_l170_d20_parses(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_spec_l170_d20_parses(args ...ruby.Value) ruby.Value {
 	_ = args
 	crates := extensions.cargo_parse_package_list('ripgrep v13.0.0 (https://github.com/BurntSushi/ripgrep#9f0e88bc):\n    rg\n')
 	return cargo_spec_bool(crates.len == 1 && crates[0].source == 'https://github.com/BurntSushi/ripgrep')
 }
 
 // Ruby it `it "keeps a tag selector while stripping the resolved revision" do` at line 179.
-pub fn ruby_cargo_spec_l179_d21_keeps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_spec_l179_d21_keeps(args ...ruby.Value) ruby.Value {
 	_ = args
 	crates := extensions.cargo_parse_package_list('tftio-kb v4.0.0 (ssh://git@example.com/tftio/kb.git?tag=v4.0.0#3492d620):\n    kb\n')
 	return cargo_spec_bool(crates.len == 1 && extensions.cargo_dump_entry(crates[0]) == 'cargo "tftio-kb", source: "ssh://git@example.com/tftio/kb.git?tag=v4.0.0"')
 }
 
 // Ruby it `it "dumps a crate installed from a local path without a source" do` at line 188.
-pub fn ruby_cargo_spec_l188_d22_dumps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_spec_l188_d22_dumps(args ...ruby.Value) ruby.Value {
 	_ = args
 	crates := extensions.cargo_parse_package_list('bat v0.24.0 (/Users/test/src/bat):\n    bat\n')
 	return cargo_spec_bool(crates.len == 1 && extensions.cargo_dump_entry(crates[0]) == 'cargo "bat"')
 }
 
 // Ruby it `it "dumps a crate installed from a file:// repository without a source" do` at line 197.
-pub fn ruby_cargo_spec_l197_d23_dumps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_spec_l197_d23_dumps(args ...ruby.Value) ruby.Value {
 	_ = args
 	crates := extensions.cargo_parse_package_list('bat v0.24.0 (file:///Users/test/src/bat#3492d620):\n    bat\n')
 	return cargo_spec_bool(crates.len == 1 && extensions.cargo_dump_entry(crates[0]) == 'cargo "bat"')
 }
 
 // Ruby it `it "ignores an origin it cannot classify as a source" do` at line 206.
-pub fn ruby_cargo_spec_l206_d24_ignores(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_spec_l206_d24_ignores(args ...ruby.Value) ruby.Value {
 	_ = args
 	crates := extensions.cargo_parse_package_list('ripgrep v13.0.0 (registry+sparse):\n    rg\n')
 	return cargo_spec_bool(crates.len == 1 && crates[0].source == '' && extensions.cargo_dump_entry(crates[0]) == 'cargo "ripgrep"')
 }
 
 // Ruby it `it "dumps package list" do` at line 216.
-pub fn ruby_cargo_spec_l216_d25_dumps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_spec_l216_d25_dumps(args ...ruby.Value) ruby.Value {
 	_ = args
 	crates := [cargo_spec_crate('ripgrep', ''), cargo_spec_crate('bat', '')]
 	return cargo_spec_bool(crates.map(extensions.cargo_dump_entry(it)).join('\n') == 'cargo "ripgrep"\ncargo "bat"')
 }
 
 // Ruby it `it "tries to install rust" do` at line 233.
-pub fn ruby_cargo_spec_l233_d26_tries(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_spec_l233_d26_tries(args ...ruby.Value) ruby.Value {
 	_ = args
-	result := extensions.ruby_cargo_l194_d20_preinstall(extensions.cargo_state_value(extensions.CargoState{}), brew_runtime.string_value('ripgrep'))
+	result := extensions.ruby_cargo_l194_d20_preinstall(extensions.cargo_state_value(extensions.CargoState{}), ruby.string_value('ripgrep'))
 	return cargo_spec_bool(result.type_name == 'RuntimeError' && result.attributes['command'] == 'brew install --formula rust')
 }
 
 // Ruby it `it "skips" do` at line 252.
-pub fn ruby_cargo_spec_l252_d27_skips(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_spec_l252_d27_skips(args ...ruby.Value) ruby.Value {
 	_ = args
 	state := extensions.CargoState{
 		executable: 'cargo'
 		installed_packages: [cargo_spec_crate('ripgrep', '')]
 	}
-	result := extensions.ruby_cargo_l194_d20_preinstall(extensions.cargo_state_value(state), brew_runtime.string_value('ripgrep'))
+	result := extensions.ruby_cargo_l194_d20_preinstall(extensions.cargo_state_value(state), ruby.string_value('ripgrep'))
 	return cargo_spec_bool(result.type_name == 'Bool' && !(result.as_bool() or { true }))
 }
 
 // Ruby it `it "does not treat a differently-sourced package as installed" do` at line 257.
-pub fn ruby_cargo_spec_l257_d28_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_spec_l257_d28_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cargo_spec_bool(!extensions.cargo_package_installed([
 		cargo_spec_crate('ripgrep', ''),
@@ -290,26 +290,26 @@ pub fn ruby_cargo_spec_l257_d28_does(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby it `it "treats a matching source as installed" do` at line 270.
-pub fn ruby_cargo_spec_l270_d29_treats(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_spec_l270_d29_treats(args ...ruby.Value) ruby.Value {
 	_ = args
 	source := 'ssh://git@example.com/tftio/kb.git'
 	return cargo_spec_bool(extensions.cargo_package_installed([cargo_spec_crate('tftio-kb', source)], 'tftio-kb', source))
 }
 
 // Ruby it `it "does not treat a different source as installed" do` at line 276.
-pub fn ruby_cargo_spec_l276_d30_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_spec_l276_d30_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cargo_spec_bool(!extensions.cargo_package_installed([cargo_spec_crate('tftio-kb', 'ssh://git@example.com/tftio/kb.git')], 'tftio-kb', 'ssh://git@example.com/tftio/other.git'))
 }
 
 // Ruby it `it "does not treat the registry crate of the same name as installed" do` at line 282.
-pub fn ruby_cargo_spec_l282_d31_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_spec_l282_d31_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cargo_spec_bool(!extensions.cargo_package_installed([cargo_spec_crate('tftio-kb', 'ssh://git@example.com/tftio/kb.git')], 'tftio-kb', ''))
 }
 
 // Ruby it `it "installs package" do` at line 294.
-pub fn ruby_cargo_spec_l294_d32_installs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_spec_l294_d32_installs(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := cargo_spec_install('ripgrep', '')
 	state := extensions.cargo_state_from_value(result.map_data['state'])
@@ -328,7 +328,7 @@ pub fn ruby_cargo_spec_l294_d32_installs(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby it `it "installs a package from a git source by package name" do` at line 308.
-pub fn ruby_cargo_spec_l308_d33_installs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_spec_l308_d33_installs(args ...ruby.Value) ruby.Value {
 	_ = args
 	source := 'ssh://git@example.com/tftio/kb.git'
 	result := cargo_spec_install('tftio-kb', source)
@@ -344,7 +344,7 @@ pub fn ruby_cargo_spec_l308_d33_installs(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby it `it "installs a package from a git branch" do` at line 319.
-pub fn ruby_cargo_spec_l319_d34_installs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_spec_l319_d34_installs(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := cargo_spec_install('tftio-kb', 'ssh://git@example.com/tftio/kb.git?branch=next')
 	state := extensions.cargo_state_from_value(result.map_data['state'])
@@ -361,7 +361,7 @@ pub fn ruby_cargo_spec_l319_d34_installs(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby it `it "installs a package from a pinned git revision" do` at line 331.
-pub fn ruby_cargo_spec_l331_d35_installs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_spec_l331_d35_installs(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := cargo_spec_install('tftio-kb', 'ssh://git@example.com/tftio/kb.git?rev=3492d620')
 	state := extensions.cargo_state_from_value(result.map_data['state'])
@@ -378,7 +378,7 @@ pub fn ruby_cargo_spec_l331_d35_installs(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby it `it "updates dump output after install in the same process" do` at line 343.
-pub fn ruby_cargo_spec_l343_d36_updates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_spec_l343_d36_updates(args ...ruby.Value) ruby.Value {
 	_ = args
 	source := 'ssh://git@example.com/tftio/kb.git'
 	result := cargo_spec_install('tftio-kb', source)
@@ -387,7 +387,7 @@ pub fn ruby_cargo_spec_l343_d36_updates(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby it `it "returns packages not in Brewfile entries" do` at line 370.
-pub fn ruby_cargo_spec_l370_d37_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_spec_l370_d37_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	crates := [cargo_spec_crate('ripgrep', ''), cargo_spec_crate('fd-find', ''),
 		cargo_spec_crate('bat', '')]
@@ -397,7 +397,7 @@ pub fn ruby_cargo_spec_l370_d37_returns(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby it `it "returns frozen empty array when cargo is not installed" do` at line 375.
-pub fn ruby_cargo_spec_l375_d38_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_spec_l375_d38_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	crates := [cargo_spec_crate('ripgrep', ''), cargo_spec_crate('fd-find', ''),
 		cargo_spec_crate('bat', '')]

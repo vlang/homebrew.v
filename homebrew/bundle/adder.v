@@ -1,15 +1,15 @@
 module bundle
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `bundle/adder.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `add(*args, type:, global:, file:, describe: false)` at line 15.
-pub fn ruby_adder_l15_d1_add(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_adder_l15_d1_add(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
-		return brew_runtime.object_value('ArgumentError', 'items, type, and Brewfile are required')
+		return ruby.object_value('ArgumentError', 'items, type, and Brewfile are required')
 	}
 	items := if args[0].type_name == 'Array' {
 		args[0].as_array() or { [] }.map(it.as_string())
@@ -32,7 +32,7 @@ pub fn ruby_adder_l15_d1_add(args ...brew_runtime.Value) brew_runtime.Value {
 		describe: describe
 		descriptions: descriptions
 		taps: taps
-	}) or { return brew_runtime.object_value('IOError', err.msg()) }
+	}) or { return ruby.object_value('IOError', err.msg()) }
 	return bundle_add_result_value(result)
 }
 
@@ -88,7 +88,7 @@ pub fn add_bundle_entries(options BundleAddOptions) !BundleAddResult {
 	if entries.len > 0 {
 		existing += '${entries.join('\n')}\n'
 	}
-	brew_runtime.atomic_write_file(options.file, existing)!
+	ruby.atomic_write_file(options.file, existing)!
 	trusted_type := match options.entry_type {
 		'brew' { 'formula' }
 		'cask' { 'cask' }
@@ -104,7 +104,7 @@ pub fn add_bundle_entries(options BundleAddOptions) !BundleAddResult {
 	}
 }
 
-fn bundle_add_descriptions_from_value(value brew_runtime.Value) map[string]string {
+fn bundle_add_descriptions_from_value(value ruby.Value) map[string]string {
 	values := value.as_map() or { return map[string]string{} }
 	mut descriptions := map[string]string{}
 	for name, description in values {
@@ -113,8 +113,8 @@ fn bundle_add_descriptions_from_value(value brew_runtime.Value) map[string]strin
 	return descriptions
 }
 
-fn bundle_add_result_value(result BundleAddResult) brew_runtime.Value {
-	return brew_runtime.structured_value('Bundle::Adder::Result', result.path, {
+fn bundle_add_result_value(result BundleAddResult) ruby.Value {
+	return ruby.structured_value('Bundle::Adder::Result', result.path, {
 		'path':             result.path
 		'content':          result.content
 		'ensured_taps':     result.ensured_taps.join(',')

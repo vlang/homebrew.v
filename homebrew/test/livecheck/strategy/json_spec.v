@@ -1,6 +1,6 @@
 module strategy
 
-import brew_runtime
+import ruby
 import homebrew.livecheck
 import homebrew.livecheck.strategy as json_core
 import homebrew.utils
@@ -133,8 +133,8 @@ fn json_spec_match_data_equal(left json_core.JsonMatchData,
 }
 
 // Ruby subject `subject(:json) { described_class }` at line 7.
-pub fn ruby_json_spec_l7_d1_json() brew_runtime.Value {
-	return brew_runtime.object_value('Class', 'Homebrew::Livecheck::Strategy::Json')
+pub fn ruby_json_spec_l7_d1_json() ruby.Value {
+	return ruby.object_value('Class', 'Homebrew::Livecheck::Strategy::Json')
 }
 
 // Ruby let `let(:http_url) { "https://brew.sh/blog/" }` at line 9.

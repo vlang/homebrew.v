@@ -1,13 +1,13 @@
 module download_strategy
 
-import brew_runtime
+import ruby
 import net.urllib
 
 // Translated from Homebrew/brew `download_strategy/curl_post_download_strategy.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `_fetch(url:, resolved_url:, timeout:)` at line 15.
-pub fn ruby_curl_post_download_strategy_l15_d1_fetch(mut strategy CurlPostDownloadStrategy, url string, resolved_url string, timeout ?f64) !brew_runtime.CommandResult {
+pub fn ruby_curl_post_download_strategy_l15_d1_fetch(mut strategy CurlPostDownloadStrategy, url string, resolved_url string, timeout ?f64) !ruby.CommandResult {
 	return strategy.fetch_to_temporary(url, resolved_url, timeout)
 }
 
@@ -34,7 +34,7 @@ pub fn new_curl_post_download_strategy(url string, name string, version string, 
 	}
 }
 
-pub fn (mut strategy CurlPostDownloadStrategy) fetch_to_temporary(url string, resolved_url string, timeout ?f64) !brew_runtime.CommandResult {
+pub fn (mut strategy CurlPostDownloadStrategy) fetch_to_temporary(url string, resolved_url string, timeout ?f64) !ruby.CommandResult {
 	strategy.curl.ensure_no_insecure_redirect(url, resolved_url)!
 	mut request := []string{}
 	if strategy.has_data {

@@ -1,6 +1,6 @@
 module collection
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/collection/java_non_concurrent_priority_queue.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -16,7 +16,7 @@ pub fn new_java_non_concurrent_priority_queue(order PriorityQueueOrder) JavaNonC
 	}
 }
 
-pub fn java_priority_queue_from_list(list []brew_runtime.Value, order PriorityQueueOrder) !JavaNonConcurrentPriorityQueue {
+pub fn java_priority_queue_from_list(list []ruby.Value, order PriorityQueueOrder) !JavaNonConcurrentPriorityQueue {
 	mut queue := new_java_non_concurrent_priority_queue(order)
 	for item in list {
 		queue.push(item)!
@@ -28,7 +28,7 @@ pub fn (mut queue JavaNonConcurrentPriorityQueue) clear() bool {
 	return queue.queue.clear()
 }
 
-pub fn (mut queue JavaNonConcurrentPriorityQueue) delete(item brew_runtime.Value) bool {
+pub fn (mut queue JavaNonConcurrentPriorityQueue) delete(item ruby.Value) bool {
 	return queue.queue.delete(item)
 }
 
@@ -36,7 +36,7 @@ pub fn (queue &JavaNonConcurrentPriorityQueue) empty() bool {
 	return queue.queue.empty()
 }
 
-pub fn (queue &JavaNonConcurrentPriorityQueue) include(item brew_runtime.Value) bool {
+pub fn (queue &JavaNonConcurrentPriorityQueue) include(item ruby.Value) bool {
 	return queue.queue.include(item)
 }
 
@@ -44,95 +44,95 @@ pub fn (queue &JavaNonConcurrentPriorityQueue) size() int {
 	return queue.queue.size()
 }
 
-pub fn (queue &JavaNonConcurrentPriorityQueue) peek() brew_runtime.Value {
+pub fn (queue &JavaNonConcurrentPriorityQueue) peek() ruby.Value {
 	return queue.queue.peek()
 }
 
-pub fn (mut queue JavaNonConcurrentPriorityQueue) pop() brew_runtime.Value {
+pub fn (mut queue JavaNonConcurrentPriorityQueue) pop() ruby.Value {
 	return queue.queue.pop()
 }
 
-pub fn (mut queue JavaNonConcurrentPriorityQueue) push(item brew_runtime.Value) !bool {
+pub fn (mut queue JavaNonConcurrentPriorityQueue) push(item ruby.Value) !bool {
 	return queue.queue.push(item)
 }
 
 // Ruby method `initialize(opts = {})` at line 14.
-pub fn ruby_java_non_concurrent_priority_queue_l14_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_java_non_concurrent_priority_queue_l14_d1_initialize(args ...ruby.Value) ruby.Value {
 	return priority_queue_boundary_initialize('Concurrent::Collection::JavaNonConcurrentPriorityQueue', args)
 }
 
 // Ruby method `clear` at line 24.
-pub fn ruby_java_non_concurrent_priority_queue_l24_d2_clear(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_java_non_concurrent_priority_queue_l24_d2_clear(args ...ruby.Value) ruby.Value {
 	return ruby_ruby_non_concurrent_priority_queue_l18_d2_clear(...args)
 }
 
 // Ruby method `delete(item)` at line 30.
-pub fn ruby_java_non_concurrent_priority_queue_l30_d3_delete(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_java_non_concurrent_priority_queue_l30_d3_delete(args ...ruby.Value) ruby.Value {
 	return ruby_ruby_non_concurrent_priority_queue_l25_d3_delete(...args)
 }
 
 // Ruby method `empty?` at line 39.
-pub fn ruby_java_non_concurrent_priority_queue_l39_d4_empty(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_java_non_concurrent_priority_queue_l39_d4_empty(args ...ruby.Value) ruby.Value {
 	return ruby_ruby_non_concurrent_priority_queue_l43_d4_empty(...args)
 }
 
 // Ruby method `include?(item)` at line 44.
-pub fn ruby_java_non_concurrent_priority_queue_l44_d5_include(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_java_non_concurrent_priority_queue_l44_d5_include(args ...ruby.Value) ruby.Value {
 	return ruby_ruby_non_concurrent_priority_queue_l48_d5_include(...args)
 }
 
 // Ruby alias_method `alias_method :has_priority?, :include?` at line 47.
-pub fn ruby_java_non_concurrent_priority_queue_l47_d6_has_priority(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_java_non_concurrent_priority_queue_l47_d6_has_priority(args ...ruby.Value) ruby.Value {
 	return ruby_java_non_concurrent_priority_queue_l44_d5_include(...args)
 }
 
 // Ruby method `length` at line 50.
-pub fn ruby_java_non_concurrent_priority_queue_l50_d7_length(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_java_non_concurrent_priority_queue_l50_d7_length(args ...ruby.Value) ruby.Value {
 	return ruby_ruby_non_concurrent_priority_queue_l54_d7_length(...args)
 }
 
 // Ruby alias_method `alias_method :size, :length` at line 53.
-pub fn ruby_java_non_concurrent_priority_queue_l53_d8_size(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_java_non_concurrent_priority_queue_l53_d8_size(args ...ruby.Value) ruby.Value {
 	return ruby_java_non_concurrent_priority_queue_l50_d7_length(...args)
 }
 
 // Ruby method `peek` at line 56.
-pub fn ruby_java_non_concurrent_priority_queue_l56_d9_peek(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_java_non_concurrent_priority_queue_l56_d9_peek(args ...ruby.Value) ruby.Value {
 	return ruby_ruby_non_concurrent_priority_queue_l60_d9_peek(...args)
 }
 
 // Ruby method `pop` at line 61.
-pub fn ruby_java_non_concurrent_priority_queue_l61_d10_pop(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_java_non_concurrent_priority_queue_l61_d10_pop(args ...ruby.Value) ruby.Value {
 	return ruby_ruby_non_concurrent_priority_queue_l65_d10_pop(...args)
 }
 
 // Ruby alias_method `alias_method :deq, :pop` at line 64.
-pub fn ruby_java_non_concurrent_priority_queue_l64_d11_deq(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_java_non_concurrent_priority_queue_l64_d11_deq(args ...ruby.Value) ruby.Value {
 	return ruby_java_non_concurrent_priority_queue_l61_d10_pop(...args)
 }
 
 // Ruby alias_method `alias_method :shift, :pop` at line 65.
-pub fn ruby_java_non_concurrent_priority_queue_l65_d12_shift(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_java_non_concurrent_priority_queue_l65_d12_shift(args ...ruby.Value) ruby.Value {
 	return ruby_java_non_concurrent_priority_queue_l61_d10_pop(...args)
 }
 
 // Ruby method `push(item)` at line 68.
-pub fn ruby_java_non_concurrent_priority_queue_l68_d13_push(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_java_non_concurrent_priority_queue_l68_d13_push(args ...ruby.Value) ruby.Value {
 	return ruby_ruby_non_concurrent_priority_queue_l78_d13_push(...args)
 }
 
 // Ruby alias_method `alias_method :<<, :push` at line 72.
-pub fn ruby_java_non_concurrent_priority_queue_l72_d14_push(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_java_non_concurrent_priority_queue_l72_d14_push(args ...ruby.Value) ruby.Value {
 	return ruby_java_non_concurrent_priority_queue_l68_d13_push(...args)
 }
 
 // Ruby alias_method `alias_method :enq, :push` at line 73.
-pub fn ruby_java_non_concurrent_priority_queue_l73_d15_enq(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_java_non_concurrent_priority_queue_l73_d15_enq(args ...ruby.Value) ruby.Value {
 	return ruby_java_non_concurrent_priority_queue_l68_d13_push(...args)
 }
 
 // Ruby method `self.from_list(list, opts = {})` at line 76.
-pub fn ruby_java_non_concurrent_priority_queue_l76_d16_self_from_list(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_java_non_concurrent_priority_queue_l76_d16_self_from_list(args ...ruby.Value) ruby.Value {
 	return priority_queue_boundary_from_list('Concurrent::Collection::JavaNonConcurrentPriorityQueue', args)
 }
 

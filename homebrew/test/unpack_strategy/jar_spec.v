@@ -1,13 +1,13 @@
 module unpack_strategy
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `test/unpack_strategy/jar_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:path) { TEST_FIXTURE_DIR/"test.jar" }` at line 7.
-pub fn ruby_jar_spec_l7_d1_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(spec_jar_fixture())
+pub fn ruby_jar_spec_l7_d1_path(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(spec_jar_fixture())
 }
 
 // Original Ruby source (line-for-line):

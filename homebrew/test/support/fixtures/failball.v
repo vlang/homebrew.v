@@ -1,31 +1,31 @@
 module fixtures
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `test/support/fixtures/failball.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `initialize(name = "failball", path = Pathname.new(__FILE__).expand_path, spec = :stable,` at line 7.
-pub fn ruby_failball_l7_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_failball_l7_d1_initialize(args ...ruby.Value) ruby.Value {
 	return fixture_formula_value(fixture_formula_from_args(args, 'Failball', 'failball', false, false))
 }
 
 // Ruby method `self.inherited(other)` at line 20.
-pub fn ruby_failball_l20_d2_self_inherited(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_failball_l20_d2_self_inherited(args ...ruby.Value) ruby.Value {
 	other := if args.len > 0 {
 		args[0]
 	} else {
-		brew_runtime.object_value('Class', 'FailballSubclass')
+		ruby.object_value('Class', 'FailballSubclass')
 	}
 	return fixture_inherited_value(other, fixture_formula_from_args([], 'Failball', 'failball', false, false))
 }
 
 // Ruby method `install` at line 25.
-pub fn ruby_failball_l25_d3_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_failball_l25_d3_install(args ...ruby.Value) ruby.Value {
 	fail_build := if args.len > 0 {
 		args[0].bool_data
 	} else {
-		brew_runtime.environment_value('FAILBALL_BUILD_ERROR') != ''
+		ruby.environment_value('FAILBALL_BUILD_ERROR') != ''
 	}
 	return fixture_install_value(fixture_install_plan('failball', fail_build))
 }

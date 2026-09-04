@@ -1,6 +1,6 @@
 module text
 
-import brew_runtime
+import ruby
 import homebrew.rubocops as line_cops
 
 // Translated from Homebrew/brew `test/rubocops/text/comments_spec.rb`.
@@ -19,38 +19,38 @@ fn comments_spec_messages(source string, tap string, expected []string) bool {
 }
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
-pub fn ruby_comments_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::Comments', 'Comments')
+pub fn ruby_comments_spec_l7_d1_cop(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('RuboCop::Cop::FormulaAudit::Comments', 'Comments')
 }
 
 // Ruby it `it "reports an offense when commented cmake calls exist" do` at line 10.
-pub fn ruby_comments_spec_l10_d2_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_comments_spec_l10_d2_reports(args ...ruby.Value) ruby.Value {
 	source := comments_spec_formula('# system "cmake", ".", *std_cmake_args')
-	return brew_runtime.bool_value(comments_spec_messages(source, '', [
+	return ruby.bool_value(comments_spec_messages(source, '', [
 		'Please remove default template comments',
 	]))
 }
 
 // Ruby it `it "reports an offense when default template comments exist" do` at line 21.
-pub fn ruby_comments_spec_l21_d3_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_comments_spec_l21_d3_reports(args ...ruby.Value) ruby.Value {
 	source := 'class Foo < Formula\n  # PLEASE REMOVE\n  desc "foo"\n  url \'https://brew.sh/foo-1.0.tgz\'\nend'
-	return brew_runtime.bool_value(comments_spec_messages(source, '', [
+	return ruby.bool_value(comments_spec_messages(source, '', [
 		'Please remove default template comments',
 	]))
 }
 
 // Ruby it `it "reports an offense when `depends_on` is commented" do` at line 32.
-pub fn ruby_comments_spec_l32_d4_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_comments_spec_l32_d4_reports(args ...ruby.Value) ruby.Value {
 	source := comments_spec_formula('# depends_on "foo"')
-	return brew_runtime.bool_value(comments_spec_messages(source, '', [
+	return ruby.bool_value(comments_spec_messages(source, '', [
 		'Commented-out dependency "foo"',
 	]))
 }
 
 // Ruby it `it "reports an offense if citation tags are present" do` at line 43.
-pub fn ruby_comments_spec_l43_d5_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_comments_spec_l43_d5_reports(args ...ruby.Value) ruby.Value {
 	source := comments_spec_formula('# cite Howell_2009:\n# doi "10.111/222.x"\n# tag "software"')
-	return brew_runtime.bool_value(comments_spec_messages(source, 'homebrew-core', [
+	return ruby.bool_value(comments_spec_messages(source, 'homebrew-core', [
 		'Formulae in homebrew/core should not use `cite` comments',
 		'Formulae in homebrew/core should not use `doi` comments',
 		'Formulae in homebrew/core should not use `tag` comments',

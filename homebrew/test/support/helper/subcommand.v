@@ -1,6 +1,6 @@
 module helper
 
-import brew_runtime
+import ruby
 import homebrew.cmd
 
 // Translated from Homebrew/brew `test/support/helper/subcommand.rb`.
@@ -12,11 +12,11 @@ pub struct SubcommandArgs {
 pub:
 	named      []string
 	subcommand ?string
-	options    map[string]brew_runtime.Value
+	options    map[string]ruby.Value
 }
 
 pub fn new_subcommand_args(subcommand ?string, named []string,
-	options map[string]brew_runtime.Value) &SubcommandArgs {
+	options map[string]ruby.Value) &SubcommandArgs {
 	return &SubcommandArgs{
 		named: named.clone()
 		subcommand: subcommand
@@ -24,14 +24,14 @@ pub fn new_subcommand_args(subcommand ?string, named []string,
 	}
 }
 
-pub fn (args &SubcommandArgs) invoke(name string, arguments []brew_runtime.Value) !brew_runtime.Value {
+pub fn (args &SubcommandArgs) invoke(name string, arguments []ruby.Value) !ruby.Value {
 	method_name := name.trim_string_left(':')
 	if arguments.len == 0 {
 		if method_name in args.options {
 			return args.options[method_name]
 		}
 		if method_name in subcommand_known_predicates.split('|') {
-			return brew_runtime.bool_value(false)
+			return ruby.bool_value(false)
 		}
 	}
 	return error("undefined method '${method_name}' for Test::Helper::Subcommand::Args")
@@ -43,7 +43,7 @@ pub fn (args &SubcommandArgs) responds_to(name string) bool {
 }
 
 pub fn args_for_subcommand(subcommand ?string, named []string,
-	options map[string]brew_runtime.Value) &SubcommandArgs {
+	options map[string]ruby.Value) &SubcommandArgs {
 	return new_subcommand_args(subcommand, named, options)
 }
 
@@ -63,55 +63,55 @@ pub fn bundle_subcommand_context(subcommand string, global bool, file ?string, n
 	}
 }
 
-fn subcommand_args_value(args &SubcommandArgs) brew_runtime.Value {
-	return brew_runtime.structured_value('Test::Helper::Subcommand::Args', '', {
+fn subcommand_args_value(args &SubcommandArgs) ruby.Value {
+	return ruby.structured_value('Test::Helper::Subcommand::Args', '', {
 		'subcommand_args_address': u64(voidptr(args)).str()
 	})
 }
 
-fn subcommand_args_from_value(value brew_runtime.Value) &SubcommandArgs {
+fn subcommand_args_from_value(value ruby.Value) &SubcommandArgs {
 	address := value.attributes['subcommand_args_address'] or { panic('invalid Subcommand::Args') }
 	return unsafe { &SubcommandArgs(voidptr(address.u64())) }
 }
 
-pub fn subcommand_args_boundary(args &SubcommandArgs) brew_runtime.Value {
+pub fn subcommand_args_boundary(args &SubcommandArgs) ruby.Value {
 	return subcommand_args_value(args)
 }
 
-fn bundle_subcommand_context_value(context cmd.BundleSubcommandContext) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'subcommand':   brew_runtime.string_value(context.subcommand)
-		'global':       brew_runtime.bool_value(context.global)
+fn bundle_subcommand_context_value(context cmd.BundleSubcommandContext) ruby.Value {
+	return ruby.map_value({
+		'subcommand':   ruby.string_value(context.subcommand)
+		'global':       ruby.bool_value(context.global)
 		'file':         if file := context.file {
-			brew_runtime.string_value(file)
+			ruby.string_value(file)
 		} else {
-			brew_runtime.object_value('NilClass', 'nil')
+			ruby.object_value('NilClass', 'nil')
 		}
-		'no_upgrade':   brew_runtime.bool_value(context.no_upgrade)
-		'verbose':      brew_runtime.bool_value(context.verbose)
-		'force':        brew_runtime.bool_value(context.force)
-		'ask':          brew_runtime.bool_value(context.ask)
-		'jobs':         brew_runtime.int_value(context.jobs)
-		'zap':          brew_runtime.bool_value(context.zap)
-		'no_type_args': brew_runtime.bool_value(context.no_type_args)
+		'no_upgrade':   ruby.bool_value(context.no_upgrade)
+		'verbose':      ruby.bool_value(context.verbose)
+		'force':        ruby.bool_value(context.force)
+		'ask':          ruby.bool_value(context.ask)
+		'jobs':         ruby.int_value(context.jobs)
+		'zap':          ruby.bool_value(context.zap)
+		'no_type_args': ruby.bool_value(context.no_type_args)
 	})
 }
 
 // Ruby attr_reader `attr_reader :named` at line 12.
-pub fn ruby_subcommand_l12_d1_named(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(subcommand_args_from_value(args[0]).named)
+pub fn ruby_subcommand_l12_d1_named(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(subcommand_args_from_value(args[0]).named)
 }
 
 // Ruby method `initialize(named:, **options)` at line 81.
-pub fn ruby_subcommand_l81_d2_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_subcommand_l81_d2_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return subcommand_args_value(new_subcommand_args(none, [], {}))
 	}
 	named := args[0].as_string_array() or { [] }
 	options := if args.len > 1 {
-		args[1].as_map() or { map[string]brew_runtime.Value{} }
+		args[1].as_map() or { map[string]ruby.Value{} }
 	} else {
-		map[string]brew_runtime.Value{}
+		map[string]ruby.Value{}
 	}
 	subcommand := if value := options['subcommand'] {
 		if value.type_name == 'NilClass' { ?string(none) } else { value.as_string() }
@@ -122,23 +122,23 @@ pub fn ruby_subcommand_l81_d2_initialize(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `method_missing(name, *args)` at line 86.
-pub fn ruby_subcommand_l86_d3_method_missing(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_subcommand_l86_d3_method_missing(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'method name is required')
+		return ruby.object_value('ArgumentError', 'method name is required')
 	}
 	result := subcommand_args_from_value(args[0]).invoke(args[1].as_string(), args[2..]) or {
-		return brew_runtime.object_value('NoMethodError', err.msg())
+		return ruby.object_value('NoMethodError', err.msg())
 	}
 	return result
 }
 
 // Ruby method `respond_to_missing?(name, include_private = false)` at line 96.
-pub fn ruby_subcommand_l96_d4_respond_to_missing(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(args.len > 1 && subcommand_args_from_value(args[0]).responds_to(args[1].as_string()))
+pub fn ruby_subcommand_l96_d4_respond_to_missing(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(args.len > 1 && subcommand_args_from_value(args[0]).responds_to(args[1].as_string()))
 }
 
 // Ruby method `args_for_subcommand(subcommand = nil, *named, **options)` at line 108.
-pub fn ruby_subcommand_l108_d5_args_for_subcommand(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_subcommand_l108_d5_args_for_subcommand(args ...ruby.Value) ruby.Value {
 	subcommand := if args.len > 0 && args[0].type_name != 'NilClass' {
 		?string(args[0].as_string().trim_string_left(':'))
 	} else {
@@ -146,29 +146,29 @@ pub fn ruby_subcommand_l108_d5_args_for_subcommand(args ...brew_runtime.Value) b
 	}
 	named := if args.len > 1 { args[1].as_string_array() or { [] } } else { [] }
 	options := if args.len > 2 {
-		args[2].as_map() or { map[string]brew_runtime.Value{} }
+		args[2].as_map() or { map[string]ruby.Value{} }
 	} else {
-		map[string]brew_runtime.Value{}
+		map[string]ruby.Value{}
 	}
 	return subcommand_args_value(args_for_subcommand(subcommand, named, options))
 }
 
 // Ruby method `bundle_subcommand_context(subcommand, global: false, file: nil, no_upgrade: false, verbose: false,` at line 127.
-pub fn ruby_subcommand_l127_d6_bundle_subcommand_context(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_subcommand_l127_d6_bundle_subcommand_context(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'subcommand is required')
+		return ruby.object_value('ArgumentError', 'subcommand is required')
 	}
 	options := if args.len > 1 {
-		args[1].as_map() or { map[string]brew_runtime.Value{} }
+		args[1].as_map() or { map[string]ruby.Value{} }
 	} else {
-		map[string]brew_runtime.Value{}
+		map[string]ruby.Value{}
 	}
-	file_value := options['file'] or { brew_runtime.object_value('NilClass', 'nil') }
-	context := bundle_subcommand_context(args[0].as_string().trim_string_left(':'), (options['global'] or { brew_runtime.bool_value(false) }).bool_data, if file_value.type_name == 'NilClass' {
+	file_value := options['file'] or { ruby.object_value('NilClass', 'nil') }
+	context := bundle_subcommand_context(args[0].as_string().trim_string_left(':'), (options['global'] or { ruby.bool_value(false) }).bool_data, if file_value.type_name == 'NilClass' {
 		?string(none)
 	} else {
 		file_value.as_string()
-	}, (options['no_upgrade'] or { brew_runtime.bool_value(false) }).bool_data, (options['verbose'] or { brew_runtime.bool_value(false) }).bool_data, (options['force'] or { brew_runtime.bool_value(false) }).bool_data, (options['ask'] or { brew_runtime.bool_value(false) }).bool_data, int((options['jobs'] or { brew_runtime.int_value(1) }).as_int() or { 1 }), (options['zap'] or { brew_runtime.bool_value(false) }).bool_data, (options['no_type_args'] or { brew_runtime.bool_value(true) }).bool_data)
+	}, (options['no_upgrade'] or { ruby.bool_value(false) }).bool_data, (options['verbose'] or { ruby.bool_value(false) }).bool_data, (options['force'] or { ruby.bool_value(false) }).bool_data, (options['ask'] or { ruby.bool_value(false) }).bool_data, int((options['jobs'] or { ruby.int_value(1) }).as_int() or { 1 }), (options['zap'] or { ruby.bool_value(false) }).bool_data, (options['no_type_args'] or { ruby.bool_value(true) }).bool_data)
 	return bundle_subcommand_context_value(context)
 }
 

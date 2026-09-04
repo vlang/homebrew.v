@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 import homebrew.cmd as production_cmd
 
 // Translated from Homebrew/brew `test/cmd/search_spec.rb`.
@@ -15,19 +15,19 @@ fn search_spec_context() production_cmd.SearchCommandContext {
 }
 
 // Ruby it `it "finds formula in search", :integration_test, :no_api do` at line 10.
-pub fn ruby_search_spec_l10_d1_finds(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_search_spec_l10_d1_finds(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := production_cmd.run_search_command(production_cmd.SearchCommandRequest{
 		options: production_cmd.SearchCommandOptions{
 			named: ['testball']
 		}
 		context: search_spec_context()
-	}) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(!result.failed && result.stdout.contains('testball'))
+	}) or { return ruby.bool_value(false) }
+	return ruby.bool_value(!result.failed && result.stdout.contains('testball'))
 }
 
 // Ruby it `it "shows missing cask descriptions in description searches" do` at line 18.
-pub fn ruby_search_spec_l18_d2_shows(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_search_spec_l18_d2_shows(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := production_cmd.run_search_command(production_cmd.SearchCommandRequest{
 		options: production_cmd.SearchCommandOptions{
@@ -35,14 +35,14 @@ pub fn ruby_search_spec_l18_d2_shows(args ...brew_runtime.Value) brew_runtime.Va
 			named: ['testball']
 		}
 		context: search_spec_context()
-	}) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(result.description_search && result.description_query == 'testball'
+	}) or { return ruby.bool_value(false) }
+	return ruby.bool_value(result.description_search && result.description_query == 'testball'
 		&& !result.description_query_regex && result.description_show_missing
 		&& result.description_calls.contains('descriptions:cask:api:eval_all=false'))
 }
 
 // Ruby let `let(:search_cmd) { described_class.new([""]) }` at line 26.
-pub fn ruby_search_spec_l26_d3_search_cmd(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_search_spec_l26_d3_search_cmd(args ...ruby.Value) ruby.Value {
 	_ = args
 	input := &production_cmd.SearchCommandInput{
 		request: production_cmd.SearchCommandRequest{
@@ -55,33 +55,33 @@ pub fn ruby_search_spec_l26_d3_search_cmd(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby it `it "skips" do` at line 31.
-pub fn ruby_search_spec_l31_d4_skips(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_search_spec_l31_d4_skips(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(production_cmd.search_missing_formula_help('formula', false, false, 'Reason') == '')
+	return ruby.bool_value(production_cmd.search_missing_formula_help('formula', false, false, 'Reason') == '')
 }
 
 // Ruby it `it "skips a regex query" do` at line 40.
-pub fn ruby_search_spec_l40_d5_skips(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_search_spec_l40_d5_skips(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(production_cmd.search_missing_formula_help('/formula/', false, true, 'Reason') == '')
+	return ruby.bool_value(production_cmd.search_missing_formula_help('/formula/', false, true, 'Reason') == '')
 }
 
 // Ruby it `it "skips if there is not a reason" do` at line 45.
-pub fn ruby_search_spec_l45_d6_skips(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_search_spec_l45_d6_skips(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(production_cmd.search_missing_formula_help('formula', false, true, none) == '')
+	return ruby.bool_value(production_cmd.search_missing_formula_help('formula', false, true, none) == '')
 }
 
 // Ruby it `it "prints additional output if `found_matches` is true" do` at line 51.
-pub fn ruby_search_spec_l51_d7_prints(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_search_spec_l51_d7_prints(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(production_cmd.search_missing_formula_help('formula', true, true, 'Reason') == '\nIf you meant "formula" specifically:\nReason\n')
+	return ruby.bool_value(production_cmd.search_missing_formula_help('formula', true, true, 'Reason') == '\nIf you meant "formula" specifically:\nReason\n')
 }
 
 // Ruby it `it "only prints reason if `found_matches` is false" do` at line 57.
-pub fn ruby_search_spec_l57_d8_only(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_search_spec_l57_d8_only(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(production_cmd.search_missing_formula_help('formula', false, true, 'Reason') == 'Reason\n')
+	return ruby.bool_value(production_cmd.search_missing_formula_help('formula', false, true, 'Reason') == 'Reason\n')
 }
 
 // Original Ruby source (line-for-line):

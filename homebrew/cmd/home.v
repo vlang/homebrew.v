@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `cmd/home.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -55,8 +55,8 @@ pub fn plan_home_command(homebrew_www string, items []HomeItem) HomeCommandPlan 
 	}
 }
 
-pub fn home_item_value(item HomeItem) brew_runtime.Value {
-	return brew_runtime.structured_value(if item.kind == .formula { 'Formula' } else { 'Cask' }, item.name, {
+pub fn home_item_value(item HomeItem) ruby.Value {
+	return ruby.structured_value(if item.kind == .formula { 'Formula' } else { 'Cask' }, item.name, {
 		'name':             item.name
 		'homepage':         item.homepage
 		'kind':             item.kind.str()
@@ -65,7 +65,7 @@ pub fn home_item_value(item HomeItem) brew_runtime.Value {
 	})
 }
 
-fn home_item_from_value(value brew_runtime.Value) HomeItem {
+fn home_item_from_value(value ruby.Value) HomeItem {
 	kind := if (value.attribute('kind') or { value.type_name.to_lower() }) == 'cask' {
 		HomeItemKind.cask
 	} else {
@@ -80,35 +80,35 @@ fn home_item_from_value(value brew_runtime.Value) HomeItem {
 	}
 }
 
-pub fn home_command_plan_value(plan HomeCommandPlan) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn home_command_plan_value(plan HomeCommandPlan) ruby.Value {
+	return ruby.Value{
 		type_name: 'HomeCommandPlan'
 		repr: plan.homepages.join(' ')
 		map_data: {
-			'messages':  brew_runtime.string_array_value(plan.messages)
-			'warnings':  brew_runtime.string_array_value(plan.warnings)
-			'homepages': brew_runtime.string_array_value(plan.homepages)
+			'messages':  ruby.string_array_value(plan.messages)
+			'warnings':  ruby.string_array_value(plan.warnings)
+			'homepages': ruby.string_array_value(plan.homepages)
 		}
 	}
 }
 
 // Ruby method `run` at line 26.
-pub fn ruby_home_l26_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_home_l26_d1_run(args ...ruby.Value) ruby.Value {
 	www := if args.len > 0 { args[0].as_string() } else { 'https://brew.sh' }
 	items := if args.len > 1 {
-		args[1].as_array() or { []brew_runtime.Value{} }
+		args[1].as_array() or { []ruby.Value{} }
 	} else {
-		[]brew_runtime.Value{}
+		[]ruby.Value{}
 	}
 	return home_command_plan_value(plan_home_command(www, items.map(home_item_from_value(it))))
 }
 
 // Ruby method `name_of(formula_or_cask)` at line 45.
-pub fn ruby_home_l45_d2_name_of(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_home_l45_d2_name_of(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'name_of requires a Formula or Cask')
+		return ruby.object_value('ArgumentError', 'name_of requires a Formula or Cask')
 	}
-	return brew_runtime.string_value(home_item_name(home_item_from_value(args[0])))
+	return ruby.string_value(home_item_name(home_item_from_value(args[0])))
 }
 
 // Original Ruby source (line-for-line):

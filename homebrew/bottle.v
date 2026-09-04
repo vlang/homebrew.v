@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 import homebrew.api
 import homebrew.download_strategy
 import homebrew.unpack_strategy
@@ -116,15 +116,15 @@ pub fn bottle_github_image_name(name string) string {
 // brew.sh supplies this header before Ruby starts. The native V entry point
 // performs the same source-derived setup because it does not execute brew.sh.
 fn github_packages_authorization() ?string {
-	configured := brew_runtime.environment_value('HOMEBREW_GITHUB_PACKAGES_AUTH')
+	configured := ruby.environment_value('HOMEBREW_GITHUB_PACKAGES_AUTH')
 	if configured != '' {
 		return configured
 	}
-	token := brew_runtime.environment_value('HOMEBREW_DOCKER_REGISTRY_TOKEN')
+	token := ruby.environment_value('HOMEBREW_DOCKER_REGISTRY_TOKEN')
 	if token != '' {
 		return 'Bearer ${token}'
 	}
-	basic := brew_runtime.environment_value('HOMEBREW_DOCKER_REGISTRY_BASIC_AUTH_TOKEN')
+	basic := ruby.environment_value('HOMEBREW_DOCKER_REGISTRY_BASIC_AUTH_TOKEN')
 	if basic != '' {
 		if basic == 'none' {
 			return none
@@ -277,9 +277,9 @@ pub fn (bottle Bottle) skip_relocation(context BottleLocationContext) bool {
 }
 
 fn custom_bottle_domain() ?string {
-	domain := brew_runtime.environment_value('HOMEBREW_BOTTLE_DOMAIN').trim_string_right('/')
+	domain := ruby.environment_value('HOMEBREW_BOTTLE_DOMAIN').trim_string_right('/')
 	default_domain_value :=
-		brew_runtime.environment_value('HOMEBREW_BOTTLE_DEFAULT_DOMAIN').trim_string_right('/')
+		ruby.environment_value('HOMEBREW_BOTTLE_DEFAULT_DOMAIN').trim_string_right('/')
 	if domain != '' && domain != default_domain_value {
 		return domain
 	}
@@ -299,7 +299,7 @@ pub fn (bottle Bottle) github_packages_manifest_plan() ?BottleManifestPlan {
 	mut mirrors := []string{}
 	if custom_domain {
 		default_domain_value :=
-			brew_runtime.environment_value('HOMEBREW_BOTTLE_DEFAULT_DOMAIN').trim_string_right('/')
+			ruby.environment_value('HOMEBREW_BOTTLE_DEFAULT_DOMAIN').trim_string_right('/')
 		default_domain := if default_domain_value != '' {
 			default_domain_value
 		} else {
@@ -460,7 +460,7 @@ fn extract_queued_bottle(download string, temporary_cellar string) ! {
 // symlink marker is created only after the expected name/version directory has
 // been extracted, retaining the source's interruption-safe completion check.
 pub fn (mut bottle Bottle) stage_from_download_queue(download string, pour bool) !string {
-	temporary_cellar_value := brew_runtime.environment_value('HOMEBREW_TEMP_CELLAR')
+	temporary_cellar_value := ruby.environment_value('HOMEBREW_TEMP_CELLAR')
 	temporary_cellar := if temporary_cellar_value != '' {
 		temporary_cellar_value
 	} else {
@@ -477,7 +477,7 @@ pub fn (mut bottle Bottle) stage_from_download_queue_in(download string, pour bo
 	bottle_tmp_keg := bottle.staged_path_in(temporary_cellar)
 	bottle_poured_file := '${bottle_tmp_keg}.poured'
 	os.mkdir_all(temporary_cellar)!
-	if brew_runtime.path_exists(bottle_poured_file) && brew_runtime.is_dir(bottle_tmp_keg) {
+	if ruby.path_exists(bottle_poured_file) && ruby.is_dir(bottle_tmp_keg) {
 		return bottle_tmp_keg
 	}
 	if os.is_link(bottle_poured_file) {
@@ -495,7 +495,7 @@ pub fn (mut bottle Bottle) stage_from_download_queue_in(download string, pour bo
 			bottle.clear_cache()!
 			fresh_download := bottle.resource.fetch(true, none, true, true)!
 			extract_queued_bottle(fresh_download, temporary_cellar)!
-			if !brew_runtime.is_dir(bottle_tmp_keg) {
+			if !ruby.is_dir(bottle_tmp_keg) {
 				return error('Bottle archive did not contain ${bottle.name}/${bottle.pkg_version.to_s()}')
 			}
 			os.symlink(bottle_tmp_keg, bottle_poured_file)!
@@ -503,7 +503,7 @@ pub fn (mut bottle Bottle) stage_from_download_queue_in(download string, pour bo
 		}
 		return error(original_error)
 	}
-	if !brew_runtime.is_dir(bottle_tmp_keg) {
+	if !ruby.is_dir(bottle_tmp_keg) {
 		remove_staged_bottle_path(bottle_tmp_keg)
 		return error('Bottle archive did not contain ${bottle.name}/${bottle.pkg_version.to_s()}')
 	}
@@ -654,7 +654,7 @@ pub fn ruby_bottle_l166_d25_with_corrupt_download_retry[T](mut bottle Bottle, qu
 		original_error := err.msg()
 		ruby_bottle_l179_d26_discard_corrupt_cached_download(mut bottle)!
 		cached_download := bottle.resource.cached_download() or { '' }
-		if cached_download != '' && brew_runtime.path_exists(cached_download) {
+		if cached_download != '' && ruby.path_exists(cached_download) {
 			return error(original_error)
 		}
 		bottle.resource.fetch(true, none, quiet, false)!
@@ -743,7 +743,7 @@ pub fn ruby_bottle_l275_d38_filename(bottle &Bottle) !BottleFilename {
 
 // Ruby method `staged_path_from_download_queue` at line 278.
 pub fn ruby_bottle_l278_d39_staged_path_from_download_queue(bottle &Bottle) string {
-	temporary_cellar := brew_runtime.environment_value('HOMEBREW_TEMP_CELLAR')
+	temporary_cellar := ruby.environment_value('HOMEBREW_TEMP_CELLAR')
 	root := if temporary_cellar != '' { temporary_cellar } else { '/tmp/homebrew/Cellar' }
 	return bottle.staged_path_in(root)
 }
@@ -804,7 +804,7 @@ pub fn ruby_bottle_l385_d47_fallback_on_error(mut bottle Bottle) !bool {
 		return false
 	}
 	default_domain_value :=
-		brew_runtime.environment_value('HOMEBREW_BOTTLE_DEFAULT_DOMAIN').trim_string_right('/')
+		ruby.environment_value('HOMEBREW_BOTTLE_DEFAULT_DOMAIN').trim_string_right('/')
 	default_domain := if default_domain_value != '' {
 		default_domain_value
 	} else {

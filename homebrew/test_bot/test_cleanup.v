@@ -1,6 +1,6 @@
 module test_bot
 
-import brew_runtime
+import ruby
 
 pub struct CleanupAction {
 pub:
@@ -77,43 +77,43 @@ pub:
 	paths_to_purge []string
 }
 
-fn cleanup_action_value(action CleanupAction) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'kind':        brew_runtime.string_value(action.kind)
-		'command':     brew_runtime.string_array_value(action.command)
-		'paths':       brew_runtime.string_array_value(action.paths)
-		'repository':  brew_runtime.string_value(action.repository)
-		'destination': brew_runtime.string_value(action.destination)
-		'seconds':     brew_runtime.int_value(action.seconds)
+fn cleanup_action_value(action CleanupAction) ruby.Value {
+	return ruby.map_value({
+		'kind':        ruby.string_value(action.kind)
+		'command':     ruby.string_array_value(action.command)
+		'paths':       ruby.string_array_value(action.paths)
+		'repository':  ruby.string_value(action.repository)
+		'destination': ruby.string_value(action.destination)
+		'seconds':     ruby.int_value(action.seconds)
 	})
 }
 
-fn cleanup_actions_value(actions []CleanupAction) brew_runtime.Value {
-	return brew_runtime.array_value(actions.map(cleanup_action_value(it)))
+fn cleanup_actions_value(actions []CleanupAction) ruby.Value {
+	return ruby.array_value(actions.map(cleanup_action_value(it)))
 }
 
-fn cleanup_plan_value(plan CleanupPlan) brew_runtime.Value {
-	return brew_runtime.map_value({
+fn cleanup_plan_value(plan CleanupPlan) ruby.Value {
+	return ruby.map_value({
 		'actions':        cleanup_actions_value(plan.actions)
-		'paths_to_purge': brew_runtime.string_array_value(plan.paths_to_purge)
+		'paths_to_purge': ruby.string_array_value(plan.paths_to_purge)
 	})
 }
 
-fn cleanup_value_string(args []brew_runtime.Value, index int, fallback string) string {
+fn cleanup_value_string(args []ruby.Value, index int, fallback string) string {
 	if index >= args.len {
 		return fallback
 	}
 	return args[index].as_string()
 }
 
-fn cleanup_value_bool(args []brew_runtime.Value, index int, fallback bool) bool {
+fn cleanup_value_bool(args []ruby.Value, index int, fallback bool) bool {
 	if index >= args.len || args[index].type_name != 'Bool' {
 		return fallback
 	}
 	return args[index].bool_data
 }
 
-fn cleanup_value_strings(args []brew_runtime.Value, index int) []string {
+fn cleanup_value_strings(args []ruby.Value, index int) []string {
 	if index >= args.len {
 		return []string{}
 	}
@@ -437,7 +437,7 @@ pub fn cleanup_shared_plan(input CleanupSharedInput) CleanupPlan {
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `reset_if_needed(repository)` at line 18.
-pub fn ruby_test_cleanup_l18_d1_reset_if_needed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_cleanup_l18_d1_reset_if_needed(args ...ruby.Value) ruby.Value {
 	repository := cleanup_value_string(args, 0, '')
 	return cleanup_actions_value(reset_if_needed_plan(CleanupRepositoryState{
 		repository: repository
@@ -447,7 +447,7 @@ pub fn ruby_test_cleanup_l18_d1_reset_if_needed(args ...brew_runtime.Value) brew
 }
 
 // Ruby method `delete_or_move(paths, sudo: false)` at line 29.
-pub fn ruby_test_cleanup_l29_d2_delete_or_move(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_cleanup_l29_d2_delete_or_move(args ...ruby.Value) ruby.Value {
 	paths := cleanup_value_strings(args, 0)
 	symlinks := cleanup_value_strings(args, 1)
 	existing := cleanup_value_strings(args, 2)
@@ -469,7 +469,7 @@ pub fn ruby_test_cleanup_l29_d2_delete_or_move(args ...brew_runtime.Value) brew_
 }
 
 // Ruby method `cleanup_shared` at line 58.
-pub fn ruby_test_cleanup_l58_d3_cleanup_shared(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_cleanup_l58_d3_cleanup_shared(args ...ruby.Value) ruby.Value {
 	repository := cleanup_value_string(args, 0, '')
 	homebrew_repository := cleanup_value_string(args, 2, repository)
 	prefix := cleanup_value_string(args, 3, homebrew_repository)
@@ -493,12 +493,12 @@ pub fn ruby_test_cleanup_l58_d3_cleanup_shared(args ...brew_runtime.Value) brew_
 }
 
 // Ruby method `default_origin_ref(repository)` at line 139.
-pub fn ruby_test_cleanup_l139_d4_default_origin_ref(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(cleanup_default_ref(cleanup_value_string(args, 1, '')))
+pub fn ruby_test_cleanup_l139_d4_default_origin_ref(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(cleanup_default_ref(cleanup_value_string(args, 1, '')))
 }
 
 // Ruby method `checkout_branch_if_needed(repository)` at line 148.
-pub fn ruby_test_cleanup_l148_d5_checkout_branch_if_needed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_cleanup_l148_d5_checkout_branch_if_needed(args ...ruby.Value) ruby.Value {
 	return cleanup_actions_value(checkout_branch_if_needed_plan(CleanupRepositoryState{
 		repository: cleanup_value_string(args, 0, '')
 		origin_head: cleanup_value_string(args, 2, '')
@@ -507,7 +507,7 @@ pub fn ruby_test_cleanup_l148_d5_checkout_branch_if_needed(args ...brew_runtime.
 }
 
 // Ruby method `cleanup_git_meta(repository)` at line 160.
-pub fn ruby_test_cleanup_l160_d6_cleanup_git_meta(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_cleanup_l160_d6_cleanup_git_meta(args ...ruby.Value) ruby.Value {
 	return cleanup_actions_value(cleanup_git_meta_plan(CleanupRepositoryState{
 		repository: cleanup_value_string(args, 0, '')
 		pr_locks: cleanup_value_strings(args, 1)
@@ -515,7 +515,7 @@ pub fn ruby_test_cleanup_l160_d6_cleanup_git_meta(args ...brew_runtime.Value) br
 }
 
 // Ruby method `clean_if_needed(repository)` at line 167.
-pub fn ruby_test_cleanup_l167_d7_clean_if_needed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_cleanup_l167_d7_clean_if_needed(args ...ruby.Value) ruby.Value {
 	return cleanup_actions_value(clean_if_needed_plan(CleanupRepositoryState{
 		repository: cleanup_value_string(args, 0, '')
 		clean_dry_run: cleanup_value_string(args, 2, '')
@@ -523,7 +523,7 @@ pub fn ruby_test_cleanup_l167_d7_clean_if_needed(args ...brew_runtime.Value) bre
 }
 
 // Ruby method `prune_if_needed(repository)` at line 184.
-pub fn ruby_test_cleanup_l184_d8_prune_if_needed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_cleanup_l184_d8_prune_if_needed(args ...ruby.Value) ruby.Value {
 	return cleanup_actions_value(prune_if_needed_plan(CleanupRepositoryState{
 		repository: cleanup_value_string(args, 0, '')
 		gc_output: cleanup_value_string(args, 2, '')

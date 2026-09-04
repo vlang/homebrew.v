@@ -1,6 +1,6 @@
 module shared
 
-import brew_runtime
+import ruby
 import homebrew.utils
 import regex
 
@@ -23,7 +23,7 @@ pub:
 	const_name          string
 	source              string
 	string_value        string
-	literal             brew_runtime.Value
+	literal             ruby.Value
 	source_range        HelperSourceRange
 	children            []HelperNode
 	body                []HelperNode
@@ -96,7 +96,7 @@ pub struct HelperExpectedParameter {
 pub:
 	is_regex bool
 	pattern  string
-	value    brew_runtime.Value
+	value    ruby.Value
 }
 
 pub struct HelperFunctionsContext {
@@ -120,8 +120,8 @@ mut:
 	value int
 }
 
-fn helper_nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn helper_nil_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 fn helper_source_identity(source string) int {
@@ -699,7 +699,7 @@ pub fn (mut context HelperFunctionsContext) find_const(node ?HelperNode, const_n
 	return HelperFindResult{}
 }
 
-fn helper_value_key(value brew_runtime.Value) string {
+fn helper_value_key(value ruby.Value) string {
 	if value.type_name == 'Array' {
 		return '[${value.array_data.map(helper_value_key(it)).join(',')}]'
 	}
@@ -711,20 +711,20 @@ fn helper_value_key(value brew_runtime.Value) string {
 	return '${value.type_name}:${value.repr}'
 }
 
-fn helper_node_literal(node HelperNode) brew_runtime.Value {
+fn helper_node_literal(node HelperNode) ruby.Value {
 	if node.literal.type_name != '' {
 		return node.literal
 	}
 	return match node.kind {
-		'str' { brew_runtime.string_value(node.string_value) }
-		'sym' { brew_runtime.object_value('Symbol', ':${node.string_value.trim_left(':')}') }
-		'array' { brew_runtime.array_value(node.arguments.map(helper_node_literal(it))) }
-		'const' { brew_runtime.object_value('Constant', node.const_name) }
-		else { brew_runtime.object_value(node.kind, node.source) }
+		'str' { ruby.string_value(node.string_value) }
+		'sym' { ruby.object_value('Symbol', ':${node.string_value.trim_left(':')}') }
+		'array' { ruby.array_value(node.arguments.map(helper_node_literal(it))) }
+		'const' { ruby.object_value('Constant', node.const_name) }
+		else { ruby.object_value(node.kind, node.source) }
 	}
 }
 
-pub fn helper_node_equals(node ?HelperNode, value brew_runtime.Value) bool {
+pub fn helper_node_equals(node ?HelperNode, value ruby.Value) bool {
 	candidate := node or { return false }
 	return helper_value_key(helper_node_literal(candidate)) == helper_value_key(value)
 }
@@ -913,8 +913,8 @@ pub fn helper_format_component(node HelperNode) ?string {
 	return none
 }
 
-pub fn helper_node_value(node HelperNode) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn helper_node_value(node HelperNode) ruby.Value {
+	return ruby.Value{
 		type_name: match node.kind {
 			'send' { 'RuboCop::AST::SendNode' }
 			'block' { 'RuboCop::AST::BlockNode' }
@@ -926,9 +926,9 @@ pub fn helper_node_value(node HelperNode) brew_runtime.Value {
 		repr: node.source
 		array_data: node.children.map(helper_node_value(it))
 		map_data: {
-			'arguments': brew_runtime.array_value(node.arguments.map(helper_node_value(it)))
-			'body':      brew_runtime.array_value(node.body.map(helper_node_value(it)))
-			'receiver':  brew_runtime.array_value(node.receiver.map(helper_node_value(it)))
+			'arguments': ruby.array_value(node.arguments.map(helper_node_value(it)))
+			'body':      ruby.array_value(node.body.map(helper_node_value(it)))
+			'receiver':  ruby.array_value(node.receiver.map(helper_node_value(it)))
 			'literal':   node.literal
 		}
 		attributes: {
@@ -958,7 +958,7 @@ pub fn helper_node_value(node HelperNode) brew_runtime.Value {
 	}
 }
 
-fn helper_node_from_value(value brew_runtime.Value) HelperNode {
+fn helper_node_from_value(value ruby.Value) HelperNode {
 	if !value.type_name.starts_with('RuboCop::AST::') {
 		kind := match value.type_name {
 			'String' { 'str' }
@@ -981,9 +981,9 @@ fn helper_node_from_value(value brew_runtime.Value) HelperNode {
 		}
 	}
 	children := value.array_data.map(helper_node_from_value(it))
-	arguments_value := value.map_data['arguments'] or { brew_runtime.array_value([]) }
-	body_value := value.map_data['body'] or { brew_runtime.array_value([]) }
-	receiver_value := value.map_data['receiver'] or { brew_runtime.array_value([]) }
+	arguments_value := value.map_data['arguments'] or { ruby.array_value([]) }
+	body_value := value.map_data['body'] or { ruby.array_value([]) }
+	receiver_value := value.map_data['receiver'] or { ruby.array_value([]) }
 	return HelperNode{
 		identity: (value.attributes['identity'] or { '0' }).int()
 		kind: helper_kind(value.attributes['kind'] or {
@@ -993,7 +993,7 @@ fn helper_node_from_value(value brew_runtime.Value) HelperNode {
 		const_name: value.attributes['const_name'] or { '' }
 		source: value.repr
 		string_value: value.attributes['string_value'] or { '' }
-		literal: value.map_data['literal'] or { brew_runtime.Value{} }
+		literal: value.map_data['literal'] or { ruby.Value{} }
 		source_range: HelperSourceRange{
 			begin_pos: (value.attributes['begin_pos'] or { '0' }).int()
 			end_pos: (value.attributes['end_pos'] or { value.repr.len.str() }).int()
@@ -1022,7 +1022,7 @@ fn helper_node_from_value(value brew_runtime.Value) HelperNode {
 	}
 }
 
-fn helper_processed_source_from_values(args []brew_runtime.Value, source_index int,
+fn helper_processed_source_from_values(args []ruby.Value, source_index int,
 	node HelperNode) HelperProcessedSource {
 	if source_index < args.len && args[source_index].type_name.contains('ProcessedSource') {
 		source := args[source_index].attributes['source'] or { args[source_index].repr }
@@ -1033,8 +1033,8 @@ fn helper_processed_source_from_values(args []brew_runtime.Value, source_index i
 	return HelperProcessedSource{helper_source_identity(source), source, node}
 }
 
-fn helper_node_array_value(nodes []HelperNode, identity int) brew_runtime.Value {
-	return brew_runtime.Value{
+fn helper_node_array_value(nodes []HelperNode, identity int) ruby.Value {
+	return ruby.Value{
 		type_name: 'Array'
 		repr: nodes.map(it.source).str()
 		array_data: nodes.map(helper_node_value(it))
@@ -1044,31 +1044,31 @@ fn helper_node_array_value(nodes []HelperNode, identity int) brew_runtime.Value 
 	}
 }
 
-fn helper_optional_node_value(node ?HelperNode) brew_runtime.Value {
+fn helper_optional_node_value(node ?HelperNode) ruby.Value {
 	value := node or { return helper_nil_value() }
 	return helper_node_value(value)
 }
 
-fn helper_optional_string_value(value ?string) brew_runtime.Value {
+fn helper_optional_string_value(value ?string) ruby.Value {
 	text := value or { return helper_nil_value() }
-	return brew_runtime.string_value(text)
+	return ruby.string_value(text)
 }
 
-fn helper_node_argument(args []brew_runtime.Value, index int) HelperNode {
+fn helper_node_argument(args []ruby.Value, index int) HelperNode {
 	if index >= args.len {
 		return HelperNode{}
 	}
 	return helper_node_from_value(args[index])
 }
 
-fn helper_nodes_argument(args []brew_runtime.Value, index int) []HelperNode {
+fn helper_nodes_argument(args []ruby.Value, index int) []HelperNode {
 	if index >= args.len {
 		return []
 	}
 	return args[index].array_data.map(helper_node_from_value(it))
 }
 
-fn helper_expected_arguments(args []brew_runtime.Value, index int) []HelperExpectedParameter {
+fn helper_expected_arguments(args []ruby.Value, index int) []HelperExpectedParameter {
 	if index >= args.len {
 		return []
 	}
@@ -1080,7 +1080,7 @@ fn helper_expected_arguments(args []brew_runtime.Value, index int) []HelperExpec
 }
 
 // Ruby method `self.descendant_send_nodes(processed_source, node)` at line 31.
-pub fn ruby_helper_functions_l31_d1_self_descendant_send_nodes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_helper_functions_l31_d1_self_descendant_send_nodes(args ...ruby.Value) ruby.Value {
 	node := helper_node_argument(args, 1)
 	processed_source := helper_processed_source_from_values(args, 0, node)
 	mut context := new_helper_functions_context()
@@ -1089,20 +1089,20 @@ pub fn ruby_helper_functions_l31_d1_self_descendant_send_nodes(args ...brew_runt
 }
 
 // Ruby method `self.descendant_send_nodes_by_method_name(processed_source, node)` at line 45.
-pub fn ruby_helper_functions_l45_d2_self_descendant_send_nodes_by_method_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_helper_functions_l45_d2_self_descendant_send_nodes_by_method_name(args ...ruby.Value) ruby.Value {
 	node := helper_node_argument(args, 1)
 	processed_source := helper_processed_source_from_values(args, 0, node)
 	mut context := new_helper_functions_context()
 	grouped := context.descendant_send_nodes_by_method_name(processed_source, node)
-	mut values := map[string]brew_runtime.Value{}
+	mut values := map[string]ruby.Value{}
 	for name, nodes in grouped.groups {
 		values[name] = helper_node_array_value(nodes, grouped.identity)
 	}
-	return brew_runtime.map_value(values)
+	return ruby.map_value(values)
 }
 
 // Ruby method `regex_match_group(node, pattern)` at line 54.
-pub fn ruby_helper_functions_l54_d3_regex_match_group(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_helper_functions_l54_d3_regex_match_group(args ...ruby.Value) ruby.Value {
 	mut context := new_helper_functions_context()
 	matched := context.regex_match_group(helper_node_argument(args, 0), if args.len > 1 {
 		args[1].repr
@@ -1111,57 +1111,57 @@ pub fn ruby_helper_functions_l54_d3_regex_match_group(args ...brew_runtime.Value
 	}) or {
 		return helper_nil_value()
 	}
-	return brew_runtime.structured_value('MatchData', matched.value, {
+	return ruby.structured_value('MatchData', matched.value, {
 		'begin_pos': matched.begin_pos.str()
 		'end_pos':   matched.end_pos.str()
 	})
 }
 
 // Ruby method `line_start_column(node)` at line 82.
-pub fn ruby_helper_functions_l82_d4_line_start_column(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(helper_line_start_column(helper_node_argument(args, 0)))
+pub fn ruby_helper_functions_l82_d4_line_start_column(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(helper_line_start_column(helper_node_argument(args, 0)))
 }
 
 // Ruby method `start_column(node)` at line 88.
-pub fn ruby_helper_functions_l88_d5_start_column(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(helper_start_column(helper_node_argument(args, 0)))
+pub fn ruby_helper_functions_l88_d5_start_column(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(helper_start_column(helper_node_argument(args, 0)))
 }
 
 // Ruby method `line_number(node)` at line 94.
-pub fn ruby_helper_functions_l94_d6_line_number(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(helper_line_number(helper_node_argument(args, 0)))
+pub fn ruby_helper_functions_l94_d6_line_number(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(helper_line_number(helper_node_argument(args, 0)))
 }
 
 // Ruby method `source_buffer(node)` at line 100.
-pub fn ruby_helper_functions_l100_d7_source_buffer(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.structured_value('Parser::Source::Buffer', helper_source_buffer(helper_node_argument(args, 0)), {
+pub fn ruby_helper_functions_l100_d7_source_buffer(args ...ruby.Value) ruby.Value {
+	return ruby.structured_value('Parser::Source::Buffer', helper_source_buffer(helper_node_argument(args, 0)), {
 		'source': helper_source_buffer(helper_node_argument(args, 0))
 	})
 }
 
 // Ruby method `string_content(node, strip_dynamic: false)` at line 106.
-pub fn ruby_helper_functions_l106_d8_string_content(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_helper_functions_l106_d8_string_content(args ...ruby.Value) ruby.Value {
 	strip_dynamic := args.len > 1 && args[1].type_name == 'Bool' && args[1].bool_data
-	return brew_runtime.string_value(helper_string_content(helper_node_argument(args, 0), strip_dynamic))
+	return ruby.string_value(helper_string_content(helper_node_argument(args, 0), strip_dynamic))
 }
 
 // Ruby method `problem(msg, &block)` at line 140.
-pub fn ruby_helper_functions_l140_d9_problem(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_helper_functions_l140_d9_problem(args ...ruby.Value) ruby.Value {
 	mut context := new_helper_functions_context()
 	context.problem(if args.len > 0 { args[0].repr } else { '' }, none)
 	return helper_nil_value()
 }
 
 // Ruby method `find_strings(node)` at line 146.
-pub fn ruby_helper_functions_l146_d10_find_strings(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_helper_functions_l146_d10_find_strings(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || args[0].type_name == 'NilClass' {
-		return brew_runtime.array_value([])
+		return ruby.array_value([])
 	}
 	return helper_node_array_value(helper_find_strings(helper_node_argument(args, 0)), 0)
 }
 
 // Ruby method `find_node_method_by_name(node, method_name)` at line 155.
-pub fn ruby_helper_functions_l155_d11_find_node_method_by_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_helper_functions_l155_d11_find_node_method_by_name(args ...ruby.Value) ruby.Value {
 	mut context := new_helper_functions_context()
 	return helper_optional_node_value(context.find_node_method_by_name(helper_node_argument(args, 0), if args.len > 1 {
 		args[1].repr.trim_left(':')
@@ -1171,7 +1171,7 @@ pub fn ruby_helper_functions_l155_d11_find_node_method_by_name(args ...brew_runt
 }
 
 // Ruby method `offending_node(node = nil)` at line 171.
-pub fn ruby_helper_functions_l171_d12_offending_node(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_helper_functions_l171_d12_offending_node(args ...ruby.Value) ruby.Value {
 	mut context := new_helper_functions_context()
 	if args.len == 0 || args[0].type_name == 'NilClass' {
 		return helper_optional_node_value(context.get_offending_node())
@@ -1180,9 +1180,9 @@ pub fn ruby_helper_functions_l171_d12_offending_node(args ...brew_runtime.Value)
 }
 
 // Ruby method `find_method_calls_by_name(node, method_name)` at line 181.
-pub fn ruby_helper_functions_l181_d13_find_method_calls_by_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_helper_functions_l181_d13_find_method_calls_by_name(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || args[0].type_name == 'NilClass' {
-		return brew_runtime.array_value([])
+		return ruby.array_value([])
 	}
 	return helper_node_array_value(helper_find_method_calls_by_name(helper_node_argument(args, 0), if args.len > 1 {
 		args[1].repr.trim_left(':')
@@ -1192,9 +1192,9 @@ pub fn ruby_helper_functions_l181_d13_find_method_calls_by_name(args ...brew_run
 }
 
 // Ruby method `find_every_method_call_by_name(node, method_name = nil)` at line 198.
-pub fn ruby_helper_functions_l198_d14_find_every_method_call_by_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_helper_functions_l198_d14_find_every_method_call_by_name(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || args[0].type_name == 'NilClass' {
-		return brew_runtime.array_value([])
+		return ruby.array_value([])
 	}
 	node := helper_node_argument(args, 0)
 	processed_source := helper_processed_source_from_values(args, 2, node)
@@ -1208,9 +1208,9 @@ pub fn ruby_helper_functions_l198_d14_find_every_method_call_by_name(args ...bre
 }
 
 // Ruby method `find_every_func_call_by_name(node, func_name = nil)` at line 214.
-pub fn ruby_helper_functions_l214_d15_find_every_func_call_by_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_helper_functions_l214_d15_find_every_func_call_by_name(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || args[0].type_name == 'NilClass' {
-		return brew_runtime.array_value([])
+		return ruby.array_value([])
 	}
 	node := helper_node_argument(args, 0)
 	processed_source := helper_processed_source_from_values(args, 2, node)
@@ -1224,7 +1224,7 @@ pub fn ruby_helper_functions_l214_d15_find_every_func_call_by_name(args ...brew_
 }
 
 // Ruby method `find_method_with_args(node, method_name, *args, &_block)` at line 235.
-pub fn ruby_helper_functions_l235_d16_find_method_with_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_helper_functions_l235_d16_find_method_with_args(args ...ruby.Value) ruby.Value {
 	node := helper_node_argument(args, 0)
 	processed_source := helper_processed_source_from_values(args, 3, node)
 	mut context := new_helper_functions_context()
@@ -1237,7 +1237,7 @@ pub fn ruby_helper_functions_l235_d16_find_method_with_args(args ...brew_runtime
 }
 
 // Ruby method `find_instance_method_call(node, instance, method_name, &_block)` at line 268.
-pub fn ruby_helper_functions_l268_d17_find_instance_method_call(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_helper_functions_l268_d17_find_instance_method_call(args ...ruby.Value) ruby.Value {
 	node := helper_node_argument(args, 0)
 	processed_source := helper_processed_source_from_values(args, 3, node)
 	mut context := new_helper_functions_context()
@@ -1252,14 +1252,14 @@ pub fn ruby_helper_functions_l268_d17_find_instance_method_call(args ...brew_run
 		''
 	}, method_name, false)
 	return if result.has_boolean {
-		brew_runtime.bool_value(result.boolean)
+		ruby.bool_value(result.boolean)
 	} else {
 		helper_node_array_value(result.value, 0)
 	}
 }
 
 // Ruby method `find_instance_call(node, name, &_block)` at line 298.
-pub fn ruby_helper_functions_l298_d18_find_instance_call(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_helper_functions_l298_d18_find_instance_call(args ...ruby.Value) ruby.Value {
 	node := helper_node_argument(args, 0)
 	processed_source := helper_processed_source_from_values(args, 2, node)
 	mut context := new_helper_functions_context()
@@ -1269,14 +1269,14 @@ pub fn ruby_helper_functions_l298_d18_find_instance_call(args ...brew_runtime.Va
 		''
 	}, false)
 	return if result.has_boolean {
-		brew_runtime.bool_value(result.boolean)
+		ruby.bool_value(result.boolean)
 	} else {
 		helper_node_array_value(result.value, 0)
 	}
 }
 
 // Ruby method `find_const(node, const_name, &_block)` at line 320.
-pub fn ruby_helper_functions_l320_d19_find_const(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_helper_functions_l320_d19_find_const(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || args[0].type_name == 'NilClass' {
 		return helper_nil_value()
 	}
@@ -1286,19 +1286,19 @@ pub fn ruby_helper_functions_l320_d19_find_const(args ...brew_runtime.Value) bre
 	} else {
 		''
 	}, false)
-	return if result.found { brew_runtime.bool_value(true) } else { helper_nil_value() }
+	return if result.found { ruby.bool_value(true) } else { helper_nil_value() }
 }
 
 // Ruby method `node_equals?(node, var)` at line 335.
-pub fn ruby_helper_functions_l335_d20_node_equals(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_helper_functions_l335_d20_node_equals(args ...ruby.Value) ruby.Value {
 	if args.len < 2 || args[0].type_name == 'NilClass' {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(helper_node_equals(helper_node_argument(args, 0), args[1]))
+	return ruby.bool_value(helper_node_equals(helper_node_argument(args, 0), args[1]))
 }
 
 // Ruby method `find_block(node, block_name)` at line 343.
-pub fn ruby_helper_functions_l343_d21_find_block(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_helper_functions_l343_d21_find_block(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || args[0].type_name == 'NilClass' {
 		return helper_nil_value()
 	}
@@ -1311,9 +1311,9 @@ pub fn ruby_helper_functions_l343_d21_find_block(args ...brew_runtime.Value) bre
 }
 
 // Ruby method `find_blocks(node, block_name)` at line 361.
-pub fn ruby_helper_functions_l361_d22_find_blocks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_helper_functions_l361_d22_find_blocks(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || args[0].type_name == 'NilClass' {
-		return brew_runtime.array_value([])
+		return ruby.array_value([])
 	}
 	return helper_node_array_value(helper_find_blocks(helper_node_argument(args, 0), if args.len > 1 {
 		args[1].repr.trim_left(':')
@@ -1323,9 +1323,9 @@ pub fn ruby_helper_functions_l361_d22_find_blocks(args ...brew_runtime.Value) br
 }
 
 // Ruby method `find_all_blocks(node, block_name, &_block)` at line 376.
-pub fn ruby_helper_functions_l376_d23_find_all_blocks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_helper_functions_l376_d23_find_all_blocks(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || args[0].type_name == 'NilClass' {
-		return brew_runtime.array_value([])
+		return ruby.array_value([])
 	}
 	mut context := new_helper_functions_context()
 	result := context.find_all_blocks(helper_node_argument(args, 0), if args.len > 1 {
@@ -1337,7 +1337,7 @@ pub fn ruby_helper_functions_l376_d23_find_all_blocks(args ...brew_runtime.Value
 }
 
 // Ruby method `find_method_def(node, method_name = nil)` at line 394.
-pub fn ruby_helper_functions_l394_d24_find_method_def(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_helper_functions_l394_d24_find_method_def(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || args[0].type_name == 'NilClass' {
 		return helper_nil_value()
 	}
@@ -1351,9 +1351,9 @@ pub fn ruby_helper_functions_l394_d24_find_method_def(args ...brew_runtime.Value
 }
 
 // Ruby method `block_method_called_in_block?(node, method_name)` at line 413.
-pub fn ruby_helper_functions_l413_d25_block_method_called_in_block(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_helper_functions_l413_d25_block_method_called_in_block(args ...ruby.Value) ruby.Value {
 	mut context := new_helper_functions_context()
-	return brew_runtime.bool_value(context.block_method_called_in_block(helper_node_argument(args, 0), if args.len > 1 {
+	return ruby.bool_value(context.block_method_called_in_block(helper_node_argument(args, 0), if args.len > 1 {
 		args[1].repr.trim_left(':')
 	} else {
 		''
@@ -1361,9 +1361,9 @@ pub fn ruby_helper_functions_l413_d25_block_method_called_in_block(args ...brew_
 }
 
 // Ruby method `method_called?(node, method_name)` at line 427.
-pub fn ruby_helper_functions_l427_d26_method_called(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_helper_functions_l427_d26_method_called(args ...ruby.Value) ruby.Value {
 	mut context := new_helper_functions_context()
-	return brew_runtime.bool_value(context.method_called(helper_node_argument(args, 0), if args.len > 1 {
+	return ruby.bool_value(context.method_called(helper_node_argument(args, 0), if args.len > 1 {
 		args[1].repr.trim_left(':')
 	} else {
 		''
@@ -1371,11 +1371,11 @@ pub fn ruby_helper_functions_l427_d26_method_called(args ...brew_runtime.Value) 
 }
 
 // Ruby method `method_called_ever?(node, method_name)` at line 443.
-pub fn ruby_helper_functions_l443_d27_method_called_ever(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_helper_functions_l443_d27_method_called_ever(args ...ruby.Value) ruby.Value {
 	node := helper_node_argument(args, 0)
 	processed_source := helper_processed_source_from_values(args, 2, node)
 	mut context := new_helper_functions_context()
-	return brew_runtime.bool_value(context.method_called_ever(processed_source, node, if args.len > 1 {
+	return ruby.bool_value(context.method_called_ever(processed_source, node, if args.len > 1 {
 		args[1].repr.trim_left(':')
 	} else {
 		''
@@ -1383,53 +1383,53 @@ pub fn ruby_helper_functions_l443_d27_method_called_ever(args ...brew_runtime.Va
 }
 
 // Ruby method `check_precedence(first_nodes, next_nodes)` at line 456.
-pub fn ruby_helper_functions_l456_d28_check_precedence(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_helper_functions_l456_d28_check_precedence(args ...ruby.Value) ruby.Value {
 	mut context := new_helper_functions_context()
 	pair := context.check_precedence(helper_nodes_argument(args, 0), helper_nodes_argument(args, 1)) or { return helper_nil_value() }
 	return helper_node_array_value(pair, 0)
 }
 
 // Ruby method `component_precedes?(first_node, next_node)` at line 467.
-pub fn ruby_helper_functions_l467_d29_component_precedes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_helper_functions_l467_d29_component_precedes(args ...ruby.Value) ruby.Value {
 	mut context := new_helper_functions_context()
-	return brew_runtime.bool_value(context.component_precedes(helper_node_argument(args, 0), helper_node_argument(args, 1)))
+	return ruby.bool_value(context.component_precedes(helper_node_argument(args, 0), helper_node_argument(args, 1)))
 }
 
 // Ruby method `expression_negated?(node)` at line 476.
-pub fn ruby_helper_functions_l476_d30_expression_negated(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_helper_functions_l476_d30_expression_negated(args ...ruby.Value) ruby.Value {
 	mut context := new_helper_functions_context()
-	return brew_runtime.bool_value(context.expression_negated(helper_node_argument(args, 0)))
+	return ruby.bool_value(context.expression_negated(helper_node_argument(args, 0)))
 }
 
 // Ruby method `parameters(method_node)` at line 485.
-pub fn ruby_helper_functions_l485_d31_parameters(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_helper_functions_l485_d31_parameters(args ...ruby.Value) ruby.Value {
 	return helper_node_array_value(helper_parameters(helper_node_argument(args, 0)), 0)
 }
 
 // Ruby method `parameters_passed?(method_node, params)` at line 497.
-pub fn ruby_helper_functions_l497_d32_parameters_passed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_helper_functions_l497_d32_parameters_passed(args ...ruby.Value) ruby.Value {
 	mut context := new_helper_functions_context()
-	return brew_runtime.bool_value(context.parameters_passed(helper_node_argument(args, 0), helper_expected_arguments(args, 1)))
+	return ruby.bool_value(context.parameters_passed(helper_node_argument(args, 0), helper_expected_arguments(args, 1)))
 }
 
 // Ruby method `end_column(node)` at line 513.
-pub fn ruby_helper_functions_l513_d33_end_column(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(helper_end_column(helper_node_argument(args, 0)))
+pub fn ruby_helper_functions_l513_d33_end_column(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(helper_end_column(helper_node_argument(args, 0)))
 }
 
 // Ruby method `class_name(node)` at line 519.
-pub fn ruby_helper_functions_l519_d34_class_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_helper_functions_l519_d34_class_name(args ...ruby.Value) ruby.Value {
 	mut context := new_helper_functions_context()
 	return helper_optional_string_value(context.class_name(helper_node_argument(args, 0)))
 }
 
 // Ruby method `method_name(node)` at line 526.
-pub fn ruby_helper_functions_l526_d35_method_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_helper_functions_l526_d35_method_name(args ...ruby.Value) ruby.Value {
 	return helper_optional_string_value(helper_method_name(helper_node_argument(args, 0)))
 }
 
 // Ruby method `format_component(component_node)` at line 532.
-pub fn ruby_helper_functions_l532_d36_format_component(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_helper_functions_l532_d36_format_component(args ...ruby.Value) ruby.Value {
 	return helper_optional_string_value(helper_format_component(helper_node_argument(args, 0)))
 }
 

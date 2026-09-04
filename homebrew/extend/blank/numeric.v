@@ -1,18 +1,18 @@
 module blank
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `extend/blank/numeric.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `blank? = false` at line 12.
-pub fn ruby_numeric_l12_d1_blank(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(false)
+pub fn ruby_numeric_l12_d1_blank(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(false)
 }
 
 // Ruby method `present? = true` at line 15.
-pub fn ruby_numeric_l15_d2_present(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(true)
+pub fn ruby_numeric_l15_d2_present(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(true)
 }
 
 // Original Ruby source (line-for-line):

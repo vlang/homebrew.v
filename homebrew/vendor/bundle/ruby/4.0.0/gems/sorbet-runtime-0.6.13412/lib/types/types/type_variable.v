@@ -1,6 +1,6 @@
 module types
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/types/type_variable.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -20,15 +20,15 @@ pub fn new_type_variable(variance string) !&TypeVariable {
 	}
 }
 
-pub fn (_ &TypeVariable) build_type() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+pub fn (_ &TypeVariable) build_type() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-pub fn (_ &TypeVariable) valid(_ brew_runtime.Value) bool {
+pub fn (_ &TypeVariable) valid(_ ruby.Value) bool {
 	return true
 }
 
-pub fn (_ &TypeVariable) subtype_of_single(_ brew_runtime.Value) bool {
+pub fn (_ &TypeVariable) subtype_of_single(_ ruby.Value) bool {
 	return true
 }
 
@@ -36,14 +36,14 @@ pub fn (_ &TypeVariable) name() string {
 	return 'T.untyped'
 }
 
-fn type_variable_value(variable &TypeVariable) brew_runtime.Value {
-	return brew_runtime.structured_value('T::Types::TypeVariable', variable.name(), {
+fn type_variable_value(variable &TypeVariable) ruby.Value {
+	return ruby.structured_value('T::Types::TypeVariable', variable.name(), {
 		'type_variable_address': u64(voidptr(variable)).str()
 		'variance':              variable.variance
 	})
 }
 
-fn type_variable_from_args(args []brew_runtime.Value) &TypeVariable {
+fn type_variable_from_args(args []ruby.Value) &TypeVariable {
 	if args.len == 0 {
 		panic('TypeVariable method requires a receiver')
 	}
@@ -52,12 +52,12 @@ fn type_variable_from_args(args []brew_runtime.Value) &TypeVariable {
 }
 
 // Ruby attr_reader `attr_reader :variance` at line 8.
-pub fn ruby_type_variable_l8_d1_variance(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Symbol', ':${type_variable_from_args(args).variance}')
+pub fn ruby_type_variable_l8_d1_variance(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Symbol', ':${type_variable_from_args(args).variance}')
 }
 
 // Ruby method `initialize(variance)` at line 12.
-pub fn ruby_type_variable_l12_d2_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_type_variable_l12_d2_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('TypeVariable#initialize requires a variance')
 	}
@@ -68,23 +68,23 @@ pub fn ruby_type_variable_l12_d2_initialize(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby method `build_type` at line 22.
-pub fn ruby_type_variable_l22_d3_build_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_type_variable_l22_d3_build_type(args ...ruby.Value) ruby.Value {
 	return type_variable_from_args(args).build_type()
 }
 
 // Ruby method `valid?(obj)` at line 26.
-pub fn ruby_type_variable_l26_d4_valid(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(true)
+pub fn ruby_type_variable_l26_d4_valid(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(true)
 }
 
 // Ruby method `subtype_of_single?(type)` at line 30.
-pub fn ruby_type_variable_l30_d5_subtype_of_single(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(true)
+pub fn ruby_type_variable_l30_d5_subtype_of_single(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(true)
 }
 
 // Ruby method `name` at line 34.
-pub fn ruby_type_variable_l34_d6_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(type_variable_from_args(args).name())
+pub fn ruby_type_variable_l34_d6_name(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(type_variable_from_args(args).name())
 }
 
 // Original Ruby source (line-for-line):

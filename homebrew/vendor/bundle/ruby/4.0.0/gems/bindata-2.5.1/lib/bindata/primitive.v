@@ -1,13 +1,13 @@
 module bindata
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/bindata-2.5.1/lib/bindata/primitive.rb`.
 // The original source is retained below until every stub has a typed V body.
 
-pub type PrimitiveGetFn = fn (mut PrimitiveObject) brew_runtime.Value
+pub type PrimitiveGetFn = fn (mut PrimitiveObject) ruby.Value
 
-pub type PrimitiveSetFn = fn (mut PrimitiveObject, brew_runtime.Value)
+pub type PrimitiveSetFn = fn (mut PrimitiveObject, ruby.Value)
 
 @[heap]
 pub struct PrimitiveObject {
@@ -22,22 +22,22 @@ mut:
 	has_set      bool
 }
 
-fn primitive_nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn primitive_nil_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-fn primitive_symbol(name string) brew_runtime.Value {
-	return brew_runtime.object_value('Symbol', ':${name.trim_left(':')}')
+fn primitive_symbol(name string) ruby.Value {
+	return ruby.object_value('Symbol', ':${name.trim_left(':')}')
 }
 
-fn primitive_struct_class_value() brew_runtime.Value {
+fn primitive_struct_class_value() ruby.Value {
 	mut accepted := new_accepted_parameters()
 	accepted.add_optional(['fields', 'endian', 'search_prefix', 'hide']) or { panic(err) }
 	encoded := accepted_parameters_value(accepted)
 	mut attributes := encoded.attributes.clone()
 	attributes['arg_processor'] = 'struct'
 	attributes['parser_type'] = 'struct'
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'BinData::Class'
 		repr: 'BinData::Struct'
 		int_data: encoded.int_data
@@ -45,7 +45,7 @@ fn primitive_struct_class_value() brew_runtime.Value {
 	}
 }
 
-fn primitive_parameters_map(value brew_runtime.Value) map[string]brew_runtime.Value {
+fn primitive_parameters_map(value ruby.Value) map[string]ruby.Value {
 	if value.type_name == 'BinData::SanitizedParameters' {
 		return sanitized_parameters_from_value(value).values.clone()
 	}
@@ -55,17 +55,17 @@ fn primitive_parameters_map(value brew_runtime.Value) map[string]brew_runtime.Va
 	return value.map_data.clone()
 }
 
-fn primitive_struct_parameters(parameters map[string]brew_runtime.Value) map[string]brew_runtime.Value {
-	value := parameters['struct_params'] or { brew_runtime.map_value({}) }
+fn primitive_struct_parameters(parameters map[string]ruby.Value) map[string]ruby.Value {
+	value := parameters['struct_params'] or { ruby.map_value({}) }
 	return primitive_parameters_map(value)
 }
 
-pub fn new_bindata_primitive(type_name string, parameters map[string]brew_runtime.Value) &PrimitiveObject {
+pub fn new_bindata_primitive(type_name string, parameters map[string]ruby.Value) &PrimitiveObject {
 	mut normalized := normalized_base_parameters(parameters)
 	struct_parameters := sanitize_struct_parameters(primitive_struct_class_value(), primitive_struct_parameters(normalized)) or {
 		panic(err)
 	}
-	normalized['struct_params'] = brew_runtime.map_value(struct_parameters)
+	normalized['struct_params'] = ruby.map_value(struct_parameters)
 	mut base := new_base_object(type_name, normalized)
 	internal := new_struct_object('BinData::Struct', struct_parameters)
 	base.method_names = internal.field_names.filter(it.len > 0)
@@ -83,12 +83,12 @@ pub fn (mut object PrimitiveObject) set_accessors(getter PrimitiveGetFn, setter 
 	object.has_set = true
 }
 
-fn primitive_object_value(object &PrimitiveObject) brew_runtime.Value {
+fn primitive_object_value(object &PrimitiveObject) ruby.Value {
 	base_value := base_object_value(object.base)
 	mut attributes := base_value.attributes.clone()
 	attributes['primitive_object_address'] = u64(voidptr(object)).str()
 	attributes['struct_object_address'] = u64(voidptr(object.internal)).str()
-	return brew_runtime.Value{
+	return ruby.Value{
 		...base_value
 		type_name: object.type_name
 		repr: primitive_effective_value(object).repr
@@ -96,11 +96,11 @@ fn primitive_object_value(object &PrimitiveObject) brew_runtime.Value {
 	}
 }
 
-pub fn primitive_boundary_value(object &PrimitiveObject) brew_runtime.Value {
+pub fn primitive_boundary_value(object &PrimitiveObject) ruby.Value {
 	return primitive_object_value(object)
 }
 
-fn primitive_object_from_value(value brew_runtime.Value) &PrimitiveObject {
+fn primitive_object_from_value(value ruby.Value) &PrimitiveObject {
 	if address := value.attributes['primitive_object_address'] {
 		return unsafe { &PrimitiveObject(voidptr(address.u64())) }
 	}
@@ -113,7 +113,7 @@ fn primitive_object_from_value(value brew_runtime.Value) &PrimitiveObject {
 	}
 }
 
-fn primitive_field_default(field &StructFieldObject) brew_runtime.Value {
+fn primitive_field_default(field &StructFieldObject) ruby.Value {
 	if value := field.definition.parameters['value'] {
 		return value
 	}
@@ -122,15 +122,15 @@ fn primitive_field_default(field &StructFieldObject) brew_runtime.Value {
 	}
 	name := field.definition.field_type.as_string().trim_left(':').to_lower()
 	if name.starts_with('int') || name.starts_with('uint') || name.starts_with('bit') || name.starts_with('sbit') {
-		return brew_runtime.int_value(0)
+		return ruby.int_value(0)
 	}
 	if name in ['string', 'stringz', 'rest'] {
-		return brew_runtime.string_value('')
+		return ruby.string_value('')
 	}
 	return primitive_nil_value()
 }
 
-pub fn (mut object PrimitiveObject) field(name string) brew_runtime.Value {
+pub fn (mut object PrimitiveObject) field(name string) ruby.Value {
 	index := struct_field_index(object.internal, name.trim_left(':').trim_right('='))
 	if index < 0 {
 		return primitive_nil_value()
@@ -142,7 +142,7 @@ pub fn (mut object PrimitiveObject) field(name string) brew_runtime.Value {
 	return field.base.snapshot_value
 }
 
-pub fn (mut object PrimitiveObject) set_field(name string, value brew_runtime.Value) brew_runtime.Value {
+pub fn (mut object PrimitiveObject) set_field(name string, value ruby.Value) ruby.Value {
 	index := struct_field_index(object.internal, name.trim_left(':').trim_right('='))
 	if index < 0 {
 		panic('undefined internal field `${name}`')
@@ -155,21 +155,21 @@ pub fn (mut object PrimitiveObject) set_field(name string, value brew_runtime.Va
 	return value
 }
 
-fn primitive_get(mut object PrimitiveObject) brew_runtime.Value {
+fn primitive_get(mut object PrimitiveObject) ruby.Value {
 	if !object.has_get {
 		panic('NotImplementedError: Primitive#get must be implemented by a typed subclass')
 	}
 	return object.get_callback(mut object)
 }
 
-fn primitive_set(mut object PrimitiveObject, value brew_runtime.Value) {
+fn primitive_set(mut object PrimitiveObject, value ruby.Value) {
 	if !object.has_set {
 		panic('NotImplementedError: Primitive#set must be implemented by a typed subclass')
 	}
 	object.set_callback(mut object, value)
 }
 
-fn primitive_effective_value(object &PrimitiveObject) brew_runtime.Value {
+fn primitive_effective_value(object &PrimitiveObject) ruby.Value {
 	if value := object.base.parameters['value'] {
 		if !object.base.reading {
 			return value
@@ -185,7 +185,7 @@ fn primitive_effective_value(object &PrimitiveObject) brew_runtime.Value {
 	return primitive_get(mut mutable)
 }
 
-fn primitive_integer_spec(value brew_runtime.Value) ?IntegerClass {
+fn primitive_integer_spec(value ruby.Value) ?IntegerClass {
 	mut name := value.as_string().trim_left(':')
 	if name.len == 0 {
 		return none
@@ -226,9 +226,9 @@ fn primitive_read_internal(mut object PrimitiveObject, mut reader IORead) ! {
 		mut field := instantiate_struct_field(mut object.internal, index)
 		nbytes := primitive_field_num_bytes(mut object, index)
 		value := if spec := primitive_integer_spec(field.definition.field_type) {
-			brew_runtime.int_value(integer_from_binary(reader.readbytes(nbytes)!, spec)!)
+			ruby.int_value(integer_from_binary(reader.readbytes(nbytes)!, spec)!)
 		} else {
-			brew_runtime.string_value(reader.readbytes(nbytes)!.bytestr())
+			ruby.string_value(reader.readbytes(nbytes)!.bytestr())
 		}
 		field.base.snapshot_value = value
 		field.base.assigned_value = value
@@ -265,11 +265,11 @@ fn primitive_write_internal(mut object PrimitiveObject, mut writer IOWrite) ! {
 	}
 }
 
-fn primitive_dsl_parameters(object_class brew_runtime.Value) map[string]brew_runtime.Value {
+fn primitive_dsl_parameters(object_class ruby.Value) map[string]ruby.Value {
 	if _ := object_class.attributes['dsl_class_address'] {
 		mut dsl_class := dsl_class_from_value(object_class)
-		mut parser := dsl_parser_for_class(mut dsl_class, none) or { return map[string]brew_runtime.Value{} }
-		return parser.dsl_params() or { map[string]brew_runtime.Value{} }
+		mut parser := dsl_parser_for_class(mut dsl_class, none) or { return map[string]ruby.Value{} }
+		return parser.dsl_params() or { map[string]ruby.Value{} }
 	}
 	if struct_params := object_class.map_data['struct_params'] {
 		return primitive_parameters_map(struct_params)
@@ -277,7 +277,7 @@ fn primitive_dsl_parameters(object_class brew_runtime.Value) map[string]brew_run
 	return object_class.map_data.clone()
 }
 
-fn primitive_sanitized_struct_parameters(object_class brew_runtime.Value) &SanitizedParameters {
+fn primitive_sanitized_struct_parameters(object_class ruby.Value) &SanitizedParameters {
 	values := sanitize_struct_parameters(primitive_struct_class_value(), primitive_dsl_parameters(object_class)) or {
 		panic(err)
 	}
@@ -288,7 +288,7 @@ fn primitive_sanitized_struct_parameters(object_class brew_runtime.Value) &Sanit
 }
 
 // Ruby method `initialize_instance` at line 71.
-pub fn ruby_primitive_l71_d1_initialize_instance(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_primitive_l71_d1_initialize_instance(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Primitive#initialize_instance requires a receiver')
 	}
@@ -301,17 +301,17 @@ pub fn ruby_primitive_l71_d1_initialize_instance(args ...brew_runtime.Value) bre
 }
 
 // Ruby method `respond_to?(symbol, include_private = false) # :nodoc:` at line 76.
-pub fn ruby_primitive_l76_d2_respond_to(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_primitive_l76_d2_respond_to(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Primitive#respond_to? requires a receiver and symbol')
 	}
 	object := primitive_object_from_value(args[0])
 	name := args[1].as_string().trim_left(':').trim_right('=').trim_right('?')
-	return brew_runtime.bool_value(struct_field_index(object.internal, name) >= 0 || name in object.base.method_names)
+	return ruby.bool_value(struct_field_index(object.internal, name) >= 0 || name in object.base.method_names)
 }
 
 // Ruby method `method_missing(symbol, *args, &block) # :nodoc:` at line 80.
-pub fn ruby_primitive_l80_d3_method_missing(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_primitive_l80_d3_method_missing(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Primitive#method_missing requires a receiver and symbol')
 	}
@@ -327,7 +327,7 @@ pub fn ruby_primitive_l80_d3_method_missing(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby method `assign(val)` at line 88.
-pub fn ruby_primitive_l88_d4_assign(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_primitive_l88_d4_assign(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Primitive#assign requires a receiver and value')
 	}
@@ -350,15 +350,15 @@ pub fn ruby_primitive_l88_d4_assign(args ...brew_runtime.Value) brew_runtime.Val
 }
 
 // Ruby method `debug_name_of(child) # :nodoc:` at line 94.
-pub fn ruby_primitive_l94_d5_debug_name_of(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_primitive_l94_d5_debug_name_of(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Primitive#debug_name_of requires a receiver')
 	}
-	return brew_runtime.string_value('${ruby_base_l206_d25_debug_name(args[0]).as_string()}-internal-')
+	return ruby.string_value('${ruby_base_l206_d25_debug_name(args[0]).as_string()}-internal-')
 }
 
 // Ruby method `do_write(io)` at line 98.
-pub fn ruby_primitive_l98_d6_do_write(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_primitive_l98_d6_do_write(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Primitive#do_write requires a receiver and IO')
 	}
@@ -370,7 +370,7 @@ pub fn ruby_primitive_l98_d6_do_write(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby method `do_num_bytes` at line 103.
-pub fn ruby_primitive_l103_d7_do_num_bytes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_primitive_l103_d7_do_num_bytes(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Primitive#do_num_bytes requires a receiver')
 	}
@@ -380,11 +380,11 @@ pub fn ruby_primitive_l103_d7_do_num_bytes(args ...brew_runtime.Value) brew_runt
 	for index in 0 .. object.internal.fields.len {
 		total += primitive_field_num_bytes(mut object, index)
 	}
-	return brew_runtime.int_value(total)
+	return ruby.int_value(total)
 }
 
 // Ruby method `sensible_default` at line 111.
-pub fn ruby_primitive_l111_d8_sensible_default(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_primitive_l111_d8_sensible_default(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Primitive#sensible_default requires a receiver')
 	}
@@ -393,7 +393,7 @@ pub fn ruby_primitive_l111_d8_sensible_default(args ...brew_runtime.Value) brew_
 }
 
 // Ruby method `read_and_return_value(io)` at line 115.
-pub fn ruby_primitive_l115_d9_read_and_return_value(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_primitive_l115_d9_read_and_return_value(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Primitive#read_and_return_value requires a receiver and IO')
 	}
@@ -409,7 +409,7 @@ pub fn ruby_primitive_l115_d9_read_and_return_value(args ...brew_runtime.Value) 
 }
 
 // Ruby method `get` at line 125.
-pub fn ruby_primitive_l125_d10_get(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_primitive_l125_d10_get(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Primitive#get requires a receiver')
 	}
@@ -418,7 +418,7 @@ pub fn ruby_primitive_l125_d10_get(args ...brew_runtime.Value) brew_runtime.Valu
 }
 
 // Ruby method `set(v)` at line 130.
-pub fn ruby_primitive_l130_d11_set(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_primitive_l130_d11_set(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Primitive#set requires a receiver and value')
 	}
@@ -428,11 +428,11 @@ pub fn ruby_primitive_l130_d11_set(args ...brew_runtime.Value) brew_runtime.Valu
 }
 
 // Ruby method `sanitize_parameters!(obj_class, params)` at line 139.
-pub fn ruby_primitive_l139_d12_sanitize_parameters(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_primitive_l139_d12_sanitize_parameters(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('PrimitiveArgProcessor#sanitize_parameters! requires parameters')
 	}
-	object_class := if args.len >= 3 { args[1] } else { brew_runtime.map_value({}) }
+	object_class := if args.len >= 3 { args[1] } else { ruby.map_value({}) }
 	params_value := args[args.len - 1]
 	struct_params := primitive_sanitized_struct_parameters(object_class)
 	if params_value.type_name == 'BinData::SanitizedParameters' {
@@ -442,7 +442,7 @@ pub fn ruby_primitive_l139_d12_sanitize_parameters(args ...brew_runtime.Value) b
 	}
 	mut values := params_value.as_map() or { panic(err) }
 	values['struct_params'] = sanitized_parameters_boundary_value(struct_params)
-	return brew_runtime.map_value(values)
+	return ruby.map_value(values)
 }
 
 // Original Ruby source (line-for-line):

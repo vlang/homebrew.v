@@ -1,6 +1,6 @@
 module extensions
 
-import brew_runtime
+import ruby
 import os
 
 pub struct CargoCrate {
@@ -19,8 +19,8 @@ pub mut:
 	commands           [][]string
 }
 
-fn cargo_error(kind string, message string, attributes map[string]string) brew_runtime.Value {
-	return brew_runtime.structured_value(kind, message, attributes)
+fn cargo_error(kind string, message string, attributes map[string]string) ruby.Value {
+	return ruby.structured_value(kind, message, attributes)
 }
 
 pub fn cargo_definition() ExtensionDefinition {
@@ -78,21 +78,21 @@ pub fn cargo_crate_record(name string, source string) CargoCrate {
 	}
 }
 
-pub fn cargo_crate_value(crate CargoCrate) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'name':   brew_runtime.string_value(crate.name)
+pub fn cargo_crate_value(crate CargoCrate) ruby.Value {
+	return ruby.map_value({
+		'name':   ruby.string_value(crate.name)
 		'source': if crate.source == '' {
-			brew_runtime.object_value('NilClass', '')
+			ruby.object_value('NilClass', '')
 		} else {
-			brew_runtime.string_value(crate.source)
+			ruby.string_value(crate.source)
 		}
 	})
 }
 
-pub fn cargo_crate_from_value(value brew_runtime.Value) CargoCrate {
+pub fn cargo_crate_from_value(value ruby.Value) CargoCrate {
 	values := value.as_map() or { return cargo_crate_record(value.as_string(), '') }
 	if 'options' in values {
-		options := values['options'].as_map() or { map[string]brew_runtime.Value{} }
+		options := values['options'].as_map() or { map[string]ruby.Value{} }
 		return cargo_crate_record(if 'name' in values { values['name'].as_string() } else { '' }, if 'source' in options && options['source'].type_name != 'NilClass' {
 			options['source'].as_string()
 		} else {
@@ -107,32 +107,32 @@ pub fn cargo_crate_from_value(value brew_runtime.Value) CargoCrate {
 	}
 }
 
-pub fn cargo_crates_value(crates []CargoCrate) brew_runtime.Value {
-	return brew_runtime.array_value(crates.map(cargo_crate_value(it)))
+pub fn cargo_crates_value(crates []CargoCrate) ruby.Value {
+	return ruby.array_value(crates.map(cargo_crate_value(it)))
 }
 
-pub fn cargo_crates_from_value(value brew_runtime.Value) []CargoCrate {
+pub fn cargo_crates_from_value(value ruby.Value) []CargoCrate {
 	items := value.as_array() or { return [] }
 	return items.map(cargo_crate_from_value(it))
 }
 
-pub fn cargo_state_value(state CargoState) brew_runtime.Value {
-	return brew_runtime.map_value({
+pub fn cargo_state_value(state CargoState) ruby.Value {
+	return ruby.map_value({
 		'_definition':        extension_definition_value(cargo_definition())
 		'executable':         if state.executable == '' {
-			brew_runtime.object_value('NilClass', '')
+			ruby.object_value('NilClass', '')
 		} else {
-			brew_runtime.object_value('Pathname', state.executable)
+			ruby.object_value('Pathname', state.executable)
 		}
-		'executable_exists':  brew_runtime.bool_value(state.executable_exists)
+		'executable_exists':  ruby.bool_value(state.executable_exists)
 		'packages':           cargo_crates_value(state.packages)
 		'installed_packages': cargo_crates_value(state.installed_packages)
-		'output':             brew_runtime.string_array_value(state.output)
-		'commands':           brew_runtime.array_value(state.commands.map(brew_runtime.string_array_value(it)))
+		'output':             ruby.string_array_value(state.output)
+		'commands':           ruby.array_value(state.commands.map(ruby.string_array_value(it)))
 	})
 }
 
-pub fn cargo_state_from_value(value brew_runtime.Value) CargoState {
+pub fn cargo_state_from_value(value ruby.Value) CargoState {
 	values := value.as_map() or { return CargoState{} }
 	mut commands := [][]string{}
 	if 'commands' in values {
@@ -158,7 +158,7 @@ pub fn cargo_state_from_value(value brew_runtime.Value) CargoState {
 	}
 }
 
-pub fn cargo_entry(name string, options map[string]brew_runtime.Value) !ExtensionEntry {
+pub fn cargo_entry(name string, options map[string]ruby.Value) !ExtensionEntry {
 	mut unknown := []string{}
 	for key in options.keys() {
 		if key != 'source' {
@@ -168,11 +168,11 @@ pub fn cargo_entry(name string, options map[string]brew_runtime.Value) !Extensio
 	if unknown.len > 0 {
 		return error('unknown options([${unknown.join(', ')}]) for cargo')
 	}
-	source_value := options['source'] or { brew_runtime.object_value('NilClass', '') }
+	source_value := options['source'] or { ruby.object_value('NilClass', '') }
 	if source_value.type_name !in ['String', 'NilClass'] {
 		return error('options[:source](${source_value.repr}) should be a String object')
 	}
-	mut normalized := map[string]brew_runtime.Value{}
+	mut normalized := map[string]ruby.Value{}
 	if source_value.type_name == 'String' && source_value.as_string() != '' {
 		source := cargo_normalize_source(source_value.as_string())
 		if source == '' {
@@ -187,7 +187,7 @@ pub fn cargo_entry(name string, options map[string]brew_runtime.Value) !Extensio
 				}
 			}
 		}
-		normalized['source'] = brew_runtime.string_value(source)
+		normalized['source'] = ruby.string_value(source)
 	}
 	return ExtensionEntry{
 		entry_type: 'cargo'
@@ -314,39 +314,39 @@ pub fn cargo_cleanup_items(entries []ExtensionEntry, executable string, crates [
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `type = :cargo` at line 25.
-pub fn ruby_cargo_l25_d1_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_l25_d1_type(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.object_value('Symbol', 'cargo')
+	return ruby.object_value('Symbol', 'cargo')
 }
 
 // Ruby method `check_label = "Cargo Package"` at line 28.
-pub fn ruby_cargo_l28_d2_check_label(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_l28_d2_check_label(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('Cargo Package')
+	return ruby.string_value('Cargo Package')
 }
 
 // Ruby method `banner_name = "Cargo packages"` at line 31.
-pub fn ruby_cargo_l31_d3_banner_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_l31_d3_banner_name(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('Cargo packages')
+	return ruby.string_value('Cargo packages')
 }
 
 // Ruby method `entry(name, options = {})` at line 34.
-pub fn ruby_cargo_l34_d4_entry(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_l34_d4_entry(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return cargo_error('ArgumentError', 'name is required', {})
 	}
 	options := if args.len > 1 {
 		args[1].as_map() or { return cargo_error('ArgumentError', err.msg(), {}) }
 	} else {
-		map[string]brew_runtime.Value{}
+		map[string]ruby.Value{}
 	}
 	entry := cargo_entry(args[0].as_string(), options) or { return cargo_error('RuntimeError', err.msg(), {}) }
 	return extension_entry_value(entry)
 }
 
 // Ruby method `reset!` at line 60.
-pub fn ruby_cargo_l60_d5_reset(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_l60_d5_reset(args ...ruby.Value) ruby.Value {
 	mut state := if args.len > 0 { cargo_state_from_value(args[0]) } else { CargoState{} }
 	state.packages = []
 	state.installed_packages = []
@@ -354,28 +354,28 @@ pub fn ruby_cargo_l60_d5_reset(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `cleanup_heading` at line 66.
-pub fn ruby_cargo_l66_d6_cleanup_heading(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_l66_d6_cleanup_heading(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('Cargo packages')
+	return ruby.string_value('Cargo packages')
 }
 
 // Ruby method `package_manager_name` at line 71.
-pub fn ruby_cargo_l71_d7_package_manager_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_l71_d7_package_manager_name(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('rust')
+	return ruby.string_value('rust')
 }
 
 // Ruby method `package_manager_executable` at line 76.
-pub fn ruby_cargo_l76_d8_package_manager_executable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_l76_d8_package_manager_executable(args ...ruby.Value) ruby.Value {
 	state := if args.len > 0 { cargo_state_from_value(args[0]) } else { CargoState{} }
 	if state.executable == '' {
-		return brew_runtime.object_value('NilClass', '')
+		return ruby.object_value('NilClass', '')
 	}
-	return brew_runtime.object_value('Pathname', state.executable)
+	return ruby.object_value('Pathname', state.executable)
 }
 
 // Ruby method `packages` at line 81.
-pub fn ruby_cargo_l81_d9_packages(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_l81_d9_packages(args ...ruby.Value) ruby.Value {
 	state := if args.len > 0 { cargo_state_from_value(args[0]) } else { CargoState{} }
 	if state.packages.len > 0 {
 		return cargo_crates_value(state.packages)
@@ -388,35 +388,35 @@ pub fn ruby_cargo_l81_d9_packages(args ...brew_runtime.Value) brew_runtime.Value
 }
 
 // Ruby method `dump_name(package)` at line 97.
-pub fn ruby_cargo_l97_d10_dump_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_l97_d10_dump_name(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return cargo_error('ArgumentError', 'package is required', {})
 	}
-	return brew_runtime.string_value(cargo_crate_from_value(args[0]).name)
+	return ruby.string_value(cargo_crate_from_value(args[0]).name)
 }
 
 // Ruby method `dump_source(package)` at line 102.
-pub fn ruby_cargo_l102_d11_dump_source(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_l102_d11_dump_source(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return cargo_error('ArgumentError', 'package is required', {})
 	}
 	source := cargo_crate_from_value(args[0]).source
 	if source == '' {
-		return brew_runtime.object_value('NilClass', '')
+		return ruby.object_value('NilClass', '')
 	}
-	return brew_runtime.string_value(source)
+	return ruby.string_value(source)
 }
 
 // Ruby method `dump_entry(package)` at line 110.
-pub fn ruby_cargo_l110_d12_dump_entry(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_l110_d12_dump_entry(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return cargo_error('ArgumentError', 'package is required', {})
 	}
-	return brew_runtime.string_value(cargo_dump_entry(cargo_crate_from_value(args[0])))
+	return ruby.string_value(cargo_dump_entry(cargo_crate_from_value(args[0])))
 }
 
 // Ruby method `install_package!(name, with: nil, source: nil, verbose: false)` at line 126.
-pub fn ruby_cargo_l126_d13_install_package(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_l126_d13_install_package(args ...ruby.Value) ruby.Value {
 	state := if args.len > 0 { cargo_state_from_value(args[0]) } else { CargoState{} }
 	if state.executable == '' {
 		return cargo_error('RuntimeError', 'cargo is not installed', {})
@@ -426,14 +426,14 @@ pub fn ruby_cargo_l126_d13_install_package(args ...brew_runtime.Value) brew_runt
 	result := if args.len > 5 { args[5].as_bool() or { false } } else { false }
 	mut command := [state.executable]
 	command << cargo_install_args(name, source)
-	return brew_runtime.map_value({
-		'result':  brew_runtime.bool_value(result)
-		'command': brew_runtime.string_array_value(command)
+	return ruby.map_value({
+		'result':  ruby.bool_value(result)
+		'command': ruby.string_array_value(command)
 	})
 }
 
 // Ruby method `installed_packages` at line 137.
-pub fn ruby_cargo_l137_d14_installed_packages(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_l137_d14_installed_packages(args ...ruby.Value) ruby.Value {
 	state := if args.len > 0 { cargo_state_from_value(args[0]) } else { CargoState{} }
 	if state.installed_packages.len > 0 {
 		return cargo_crates_value(state.installed_packages)
@@ -442,55 +442,55 @@ pub fn ruby_cargo_l137_d14_installed_packages(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby method `uninstall_package!(name, executable: Pathname.new(""))` at line 145.
-pub fn ruby_cargo_l145_d15_uninstall_package(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_l145_d15_uninstall_package(args ...ruby.Value) ruby.Value {
 	name := if args.len > 0 { args[0].as_string() } else { '' }
 	executable := if args.len > 1 { args[1].as_string() } else { '' }
-	return brew_runtime.string_array_value([executable, 'uninstall', name])
+	return ruby.string_array_value([executable, 'uninstall', name])
 }
 
 // Ruby method `package_manager_env(executable)` at line 150.
-pub fn ruby_cargo_l150_d16_package_manager_env(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_l150_d16_package_manager_env(args ...ruby.Value) ruby.Value {
 	executable := if args.len > 0 { args[0].as_string() } else { '' }
 	values := if args.len > 1 {
-		args[1].as_map() or { map[string]brew_runtime.Value{} }
+		args[1].as_map() or { map[string]ruby.Value{} }
 	} else {
-		map[string]brew_runtime.Value{}
+		map[string]ruby.Value{}
 	}
 	mut environment := map[string]string{}
 	for key, value in values {
 		environment[key] = value.as_string()
 	}
-	mut result := map[string]brew_runtime.Value{}
+	mut result := map[string]ruby.Value{}
 	for key, value in cargo_env(executable, environment) {
-		result[key] = brew_runtime.string_value(value)
+		result[key] = ruby.string_value(value)
 	}
-	return brew_runtime.map_value(result)
+	return ruby.map_value(result)
 }
 
 // Ruby method `package_record(name, with: nil, source: nil)` at line 161.
-pub fn ruby_cargo_l161_d17_package_record(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_l161_d17_package_record(args ...ruby.Value) ruby.Value {
 	name := if args.len > 0 { args[0].as_string() } else { '' }
 	source := if args.len > 2 && args[2].type_name != 'NilClass' { args[2].as_string() } else { '' }
 	return cargo_crate_value(cargo_crate_record(name, source))
 }
 
 // Ruby method `crate_record(name, source: nil)` at line 168.
-pub fn ruby_cargo_l168_d18_crate_record(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_l168_d18_crate_record(args ...ruby.Value) ruby.Value {
 	name := if args.len > 0 { args[0].as_string() } else { '' }
 	source := if args.len > 1 && args[1].type_name != 'NilClass' { args[1].as_string() } else { '' }
 	return cargo_crate_value(cargo_crate_record(name, source))
 }
 
 // Ruby method `package_installed?(name, with: nil, source: nil)` at line 180.
-pub fn ruby_cargo_l180_d19_package_installed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_l180_d19_package_installed(args ...ruby.Value) ruby.Value {
 	installed := if args.len > 0 { cargo_crates_from_value(args[0]) } else { [] }
 	name := if args.len > 1 { args[1].as_string() } else { '' }
 	source := if args.len > 3 && args[3].type_name != 'NilClass' { args[3].as_string() } else { '' }
-	return brew_runtime.bool_value(cargo_package_installed(installed, name, source))
+	return ruby.bool_value(cargo_package_installed(installed, name, source))
 }
 
 // Ruby method `preinstall!(name, with: nil, source: nil, no_upgrade: false, verbose: false, **_options)` at line 194.
-pub fn ruby_cargo_l194_d20_preinstall(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_l194_d20_preinstall(args ...ruby.Value) ruby.Value {
 	state := if args.len > 0 { cargo_state_from_value(args[0]) } else { CargoState{} }
 	name := if args.len > 1 { args[1].as_string() } else { '' }
 	source := if args.len > 3 && args[3].type_name != 'NilClass' { args[3].as_string() } else { '' }
@@ -502,18 +502,18 @@ pub fn ruby_cargo_l194_d20_preinstall(args ...brew_runtime.Value) brew_runtime.V
 	}
 	if cargo_package_installed(state.installed_packages, name, source) {
 		if verbose {
-			return brew_runtime.map_value({
-				'result': brew_runtime.bool_value(false)
-				'output': brew_runtime.string_value('Skipping install of ${name} cargo package. It is already installed.')
+			return ruby.map_value({
+				'result': ruby.bool_value(false)
+				'output': ruby.string_value('Skipping install of ${name} cargo package. It is already installed.')
 			})
 		}
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
 // Ruby method `install!(name, with: nil, source: nil, preinstall: true, no_upgrade: false, verbose: false, force: false,` at line 219.
-pub fn ruby_cargo_l219_d21_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_l219_d21_install(args ...ruby.Value) ruby.Value {
 	mut state := if args.len > 0 { cargo_state_from_value(args[0]) } else { CargoState{} }
 	name := if args.len > 1 { args[1].as_string() } else { '' }
 	source := if args.len > 3 && args[3].type_name != 'NilClass' { args[3].as_string() } else { '' }
@@ -521,7 +521,7 @@ pub fn ruby_cargo_l219_d21_install(args ...brew_runtime.Value) brew_runtime.Valu
 	verbose := if args.len > 5 { args[5].as_bool() or { false } } else { false }
 	result := if args.len > 6 { args[6].as_bool() or { false } } else { false }
 	if !preinstall {
-		return brew_runtime.bool_value(true)
+		return ruby.bool_value(true)
 	}
 	if state.executable == '' {
 		return cargo_error('RuntimeError', 'cargo is not installed', {})
@@ -533,8 +533,8 @@ pub fn ruby_cargo_l219_d21_install(args ...brew_runtime.Value) brew_runtime.Valu
 	command << cargo_install_args(name, source)
 	state.commands << command
 	if !result {
-		return brew_runtime.map_value({
-			'result': brew_runtime.bool_value(false)
+		return ruby.map_value({
+			'result': ruby.bool_value(false)
 			'state':  cargo_state_value(state)
 		})
 	}
@@ -545,20 +545,20 @@ pub fn ruby_cargo_l219_d21_install(args ...brew_runtime.Value) brew_runtime.Valu
 	if crate !in state.packages {
 		state.packages << crate
 	}
-	return brew_runtime.map_value({
-		'result': brew_runtime.bool_value(true)
+	return ruby.map_value({
+		'result': ruby.bool_value(true)
 		'state':  cargo_state_value(state)
 	})
 }
 
 // Ruby method `source_args(source)` at line 239.
-pub fn ruby_cargo_l239_d22_source_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_l239_d22_source_args(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 && args[0].type_name != 'NilClass' { args[0].as_string() } else { '' }
-	return brew_runtime.string_array_value(cargo_source_args(source))
+	return ruby.string_array_value(cargo_source_args(source))
 }
 
 // Ruby method `parse_package_list(output)` at line 253.
-pub fn ruby_cargo_l253_d23_parse_package_list(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_l253_d23_parse_package_list(args ...ruby.Value) ruby.Value {
 	return cargo_crates_value(cargo_parse_package_list(if args.len > 0 {
 		args[0].as_string()
 	} else {
@@ -567,39 +567,39 @@ pub fn ruby_cargo_l253_d23_parse_package_list(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby method `normalize_source(source)` at line 274.
-pub fn ruby_cargo_l274_d24_normalize_source(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_l274_d24_normalize_source(args ...ruby.Value) ruby.Value {
 	source := cargo_normalize_source(if args.len > 0 && args[0].type_name != 'NilClass' {
 		args[0].as_string()
 	} else {
 		''
 	})
 	if source == '' {
-		return brew_runtime.object_value('NilClass', '')
+		return ruby.object_value('NilClass', '')
 	}
-	return brew_runtime.string_value(source)
+	return ruby.string_value(source)
 }
 
 // Ruby method `cargo_env(cargo)` at line 284.
-pub fn ruby_cargo_l284_d25_cargo_env(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_l284_d25_cargo_env(args ...ruby.Value) ruby.Value {
 	executable := if args.len > 0 { args[0].as_string() } else { '' }
 	values := if args.len > 1 {
-		args[1].as_map() or { map[string]brew_runtime.Value{} }
+		args[1].as_map() or { map[string]ruby.Value{} }
 	} else {
-		map[string]brew_runtime.Value{}
+		map[string]ruby.Value{}
 	}
 	mut environment := map[string]string{}
 	for key, value in values {
 		environment[key] = value.as_string()
 	}
-	mut result := map[string]brew_runtime.Value{}
+	mut result := map[string]ruby.Value{}
 	for key, value in cargo_env(executable, environment) {
-		result[key] = brew_runtime.string_value(value)
+		result[key] = ruby.string_value(value)
 	}
-	return brew_runtime.map_value(result)
+	return ruby.map_value(result)
 }
 
 // Ruby method `format_checkable(entries)` at line 296.
-pub fn ruby_cargo_l296_d26_format_checkable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_l296_d26_format_checkable(args ...ruby.Value) ruby.Value {
 	entry_values := if args.len > 0 { args[0].as_array() or { [] } } else { [] }
 	mut crates := []CargoCrate{}
 	for entry_value in entry_values {
@@ -612,13 +612,13 @@ pub fn ruby_cargo_l296_d26_format_checkable(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby method `installed_and_up_to_date?(package, no_upgrade: false)` at line 303.
-pub fn ruby_cargo_l303_d27_installed_and_up_to_date(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cargo_l303_d27_installed_and_up_to_date(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	installed := cargo_crates_from_value(args[0])
 	crate := cargo_crate_from_value(args[1])
-	return brew_runtime.bool_value(cargo_package_installed(installed, crate.name, crate.source))
+	return ruby.bool_value(cargo_package_installed(installed, crate.name, crate.source))
 }
 
 // Original Ruby source (line-for-line):

@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `cmd/pin.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -70,13 +70,13 @@ pub fn pin_packages(mut packages []PinPackageState) PinCommandResult {
 }
 
 // Ruby method `run` at line 32.
-pub fn ruby_pin_l32_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pin_l32_d1_run(args ...ruby.Value) ruby.Value {
 	mut packages := pin_boundary_packages(args)
 	result := pin_packages(mut packages)
 	return pin_command_result_value(result, packages)
 }
 
-fn pin_boundary_packages(args []brew_runtime.Value) []PinPackageState {
+fn pin_boundary_packages(args []ruby.Value) []PinPackageState {
 	if args.len == 0 {
 		return []PinPackageState{}
 	}
@@ -97,12 +97,12 @@ fn pin_boundary_packages(args []brew_runtime.Value) []PinPackageState {
 	return packages
 }
 
-fn pin_packages_from_value(value brew_runtime.Value, default_kind PinPackageKind) []PinPackageState {
+fn pin_packages_from_value(value ruby.Value, default_kind PinPackageKind) []PinPackageState {
 	values := if value.type_name == 'Array' { value.array_data } else { [value] }
 	return values.map(pin_package_from_value(it, default_kind))
 }
 
-fn pin_package_from_value(value brew_runtime.Value, default_kind PinPackageKind) PinPackageState {
+fn pin_package_from_value(value ruby.Value, default_kind PinPackageKind) PinPackageState {
 	kind_name := pin_value_attribute(value, 'kind', '')
 	kind := if kind_name.to_lower() == 'cask' || value.type_name.to_lower().contains('cask') {
 		PinPackageKind.cask
@@ -130,7 +130,7 @@ fn pin_package_from_value(value brew_runtime.Value, default_kind PinPackageKind)
 	}
 }
 
-fn pin_value_attribute(value brew_runtime.Value, name string, fallback string) string {
+fn pin_value_attribute(value ruby.Value, name string, fallback string) string {
 	if attribute := value.attributes[name] {
 		return attribute
 	}
@@ -140,12 +140,12 @@ fn pin_value_attribute(value brew_runtime.Value, name string, fallback string) s
 	return fallback
 }
 
-fn pin_value_attribute_optional(value brew_runtime.Value, name string) ?string {
+fn pin_value_attribute_optional(value ruby.Value, name string) ?string {
 	attribute := pin_value_attribute(value, name, '')
 	return if attribute == '' { none } else { attribute }
 }
 
-fn pin_value_bool_attribute(value brew_runtime.Value, name string, fallback bool) bool {
+fn pin_value_bool_attribute(value ruby.Value, name string, fallback bool) bool {
 	if attribute := value.attributes[name] {
 		return attribute.to_lower() in ['true', '1', 'yes']
 	}
@@ -155,8 +155,8 @@ fn pin_value_bool_attribute(value brew_runtime.Value, name string, fallback bool
 	return fallback
 }
 
-fn pin_package_value(package PinPackageState) brew_runtime.Value {
-	return brew_runtime.structured_value(if package.kind == .cask { 'Cask' } else { 'Formula' }, package.full_name, {
+fn pin_package_value(package PinPackageState) ruby.Value {
+	return ruby.structured_value(if package.kind == .cask { 'Cask' } else { 'Formula' }, package.full_name, {
 		'kind':           package.kind.str()
 		'full_name':      package.full_name
 		'version':        package.version
@@ -169,16 +169,16 @@ fn pin_package_value(package PinPackageState) brew_runtime.Value {
 	})
 }
 
-fn pin_command_result_value(result PinCommandResult, packages []PinPackageState) brew_runtime.Value {
+fn pin_command_result_value(result PinCommandResult, packages []PinPackageState) ruby.Value {
 	mut messages := result.warnings.clone()
 	messages << result.failures
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'PinCommandResult'
 		repr: messages.join('\n')
 		map_data: {
-			'warnings': brew_runtime.string_array_value(result.warnings)
-			'failures': brew_runtime.string_array_value(result.failures)
-			'packages': brew_runtime.array_value(packages.map(pin_package_value(it)))
+			'warnings': ruby.string_array_value(result.warnings)
+			'failures': ruby.string_array_value(result.failures)
+			'packages': ruby.array_value(packages.map(pin_package_value(it)))
 		}
 		attributes: {
 			'failed': result.failed().str()

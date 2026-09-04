@@ -1,6 +1,6 @@
 module mac
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `extend/os/mac/test_bot.rb`.
@@ -54,20 +54,20 @@ pub fn mac_test_bot_skip_recursive_dependents(super_skips bool, arch string) boo
 pub fn mac_test_bot_cleanup_targets(cellar string, caskroom string) []MacTestBotCleanupTarget {
 	return [
 		MacTestBotCleanupTarget{
-			paths: [brew_runtime.join_path(cellar, '*')]
+			paths: [ruby.join_path(cellar, '*')]
 		},
 		MacTestBotCleanupTarget{
-			paths: [brew_runtime.join_path(caskroom, 'session-manager-plugin')]
+			paths: [ruby.join_path(caskroom, 'session-manager-plugin')]
 		},
 		MacTestBotCleanupTarget{
 			paths: ['Mono.framework', 'PluginManager.framework', 'Python.framework', 'R.framework',
-				'Xamarin.Android.framework', 'Xamarin.Mac.framework', 'Xamarin.iOS.framework'].map(brew_runtime.join_path('/Library/Frameworks', it))
+				'Xamarin.Android.framework', 'Xamarin.Mac.framework', 'Xamarin.iOS.framework'].map(ruby.join_path('/Library/Frameworks', it))
 			sudo: true
 		},
 	]
 }
 
-fn mac_test_bot_system_from_value(value brew_runtime.Value) MacTestBotSystem {
+fn mac_test_bot_system_from_value(value ruby.Value) MacTestBotSystem {
 	return MacTestBotSystem{
 		version: value.attributes['version'] or { value.repr }
 		pretty_version: value.attributes['pretty_version'] or { value.repr }
@@ -75,31 +75,31 @@ fn mac_test_bot_system_from_value(value brew_runtime.Value) MacTestBotSystem {
 	}
 }
 
-fn mac_test_bot_cleanup_value(targets []MacTestBotCleanupTarget) brew_runtime.Value {
-	return brew_runtime.array_value(targets.map(brew_runtime.structured_value('DeleteOrMove', it.paths.str(), {
+fn mac_test_bot_cleanup_value(targets []MacTestBotCleanupTarget) ruby.Value {
+	return ruby.array_value(targets.map(ruby.structured_value('DeleteOrMove', it.paths.str(), {
 		'paths': it.paths.join('\n')
 		'sudo':  it.sudo.str()
 	})))
 }
 
 // Ruby method `runner_os_title` at line 13.
-pub fn ruby_test_bot_l13_d1_runner_os_title(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_bot_l13_d1_runner_os_title(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('runner_os_title requires system context')
 	}
-	return brew_runtime.string_value(mac_test_bot_runner_os_title(mac_test_bot_system_from_value(args[0])))
+	return ruby.string_value(mac_test_bot_runner_os_title(mac_test_bot_system_from_value(args[0])))
 }
 
 // Ruby method `previous_run_artifact_specifier` at line 27.
-pub fn ruby_test_bot_l27_d2_previous_run_artifact_specifier(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_bot_l27_d2_previous_run_artifact_specifier(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('previous_run_artifact_specifier requires system context')
 	}
-	return brew_runtime.string_value(mac_test_bot_previous_run_artifact_specifier(mac_test_bot_system_from_value(args[0])))
+	return ruby.string_value(mac_test_bot_previous_run_artifact_specifier(mac_test_bot_system_from_value(args[0])))
 }
 
 // Ruby method `setup_bottle_sudo_purge!(args:)` at line 38.
-pub fn ruby_test_bot_l38_d3_setup_bottle_sudo_purge(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_bot_l38_d3_setup_bottle_sudo_purge(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('setup_bottle_sudo_purge! requires arguments')
 	}
@@ -109,27 +109,27 @@ pub fn ruby_test_bot_l38_d3_setup_bottle_sudo_purge(args ...brew_runtime.Value) 
 	if set {
 		os.setenv('HOMEBREW_BOTTLE_SUDO_PURGE', '1', true)
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `integration_test_portable_ruby?` at line 45.
-pub fn ruby_test_bot_l45_d4_integration_test_portable_ruby(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_bot_l45_d4_integration_test_portable_ruby(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('integration_test_portable_ruby? requires installed and formula versions')
 	}
-	return brew_runtime.bool_value(mac_test_bot_integration_test_portable_ruby(args[0].repr, args[1].repr))
+	return ruby.bool_value(mac_test_bot_integration_test_portable_ruby(args[0].repr, args[1].repr))
 }
 
 // Ruby method `skip_recursive_dependents?(_formula, args:)` at line 58.
-pub fn ruby_test_bot_l58_d5_skip_recursive_dependents(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_bot_l58_d5_skip_recursive_dependents(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('skip_recursive_dependents? requires super result and architecture')
 	}
-	return brew_runtime.bool_value(mac_test_bot_skip_recursive_dependents(args[0].bool_data, args[1].repr))
+	return ruby.bool_value(mac_test_bot_skip_recursive_dependents(args[0].bool_data, args[1].repr))
 }
 
 // Ruby method `cleanup_github_actions_hosted_runner` at line 69.
-pub fn ruby_test_bot_l69_d6_cleanup_github_actions_hosted_runner(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_bot_l69_d6_cleanup_github_actions_hosted_runner(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('cleanup_github_actions_hosted_runner requires cellar and caskroom')
 	}

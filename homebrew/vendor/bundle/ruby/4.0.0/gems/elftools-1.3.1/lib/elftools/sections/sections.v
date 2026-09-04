@@ -1,6 +1,6 @@
 module sections
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/elftools-1.3.1/lib/elftools/sections/sections.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -39,7 +39,7 @@ pub fn (kind SectionKind) class_name() string {
 }
 
 // Ruby method `create(header, stream, *args, **kwargs)` at line 24.
-pub fn ruby_sections_l24_d1_create(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sections_l24_d1_create(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Section.create requires a header') }
 	section_type := if args[0].type_name == 'Integer' {
 		int(args[0].as_int() or { panic(err) })
@@ -47,7 +47,7 @@ pub fn ruby_sections_l24_d1_create(args ...brew_runtime.Value) brew_runtime.Valu
 		(args[0].attribute('sh_type') or { '0' }).int()
 	}
 	kind := section_kind(section_type)
-	return brew_runtime.structured_value(kind.class_name(), kind.class_name(), {
+	return ruby.structured_value(kind.class_name(), kind.class_name(), {
 		'sh_type': section_type.str()
 	})
 }

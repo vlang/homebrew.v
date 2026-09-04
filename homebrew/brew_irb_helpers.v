@@ -1,14 +1,14 @@
 module homebrew
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `brew_irb_helpers.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `f(*args)` at line 13.
-pub fn ruby_brew_irb_helpers_l13_d1_f(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_irb_helpers_l13_d1_f(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'formula name is required')
+		return ruby.object_value('ArgumentError', 'formula name is required')
 	}
 	mut factory_args := []int{}
 	for argument in args[1..] {
@@ -18,9 +18,9 @@ pub fn ruby_brew_irb_helpers_l13_d1_f(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby method `c(config: nil)` at line 19.
-pub fn ruby_brew_irb_helpers_l19_d2_c(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_irb_helpers_l19_d2_c(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'cask token is required')
+		return ruby.object_value('ArgumentError', 'cask token is required')
 	}
 	config := if args.len > 1 { irb_cask_config_from_value(args[1]) } else { map[string]string{} }
 	return irb_cask_value(irb_cask(args[0].as_string(), config))
@@ -52,20 +52,20 @@ pub fn irb_cask(token string, config map[string]string) IrbCask {
 	}
 }
 
-pub fn irb_formula_value(formula IrbFormula) brew_runtime.Value {
-	return brew_runtime.structured_value('Formula', formula.name, {
+pub fn irb_formula_value(formula IrbFormula) ruby.Value {
+	return ruby.structured_value('Formula', formula.name, {
 		'name':         formula.name
 		'factory_args': formula.factory_args.map(it.str()).join(',')
 	})
 }
 
-pub fn irb_cask_value(cask IrbCask) brew_runtime.Value {
+pub fn irb_cask_value(cask IrbCask) ruby.Value {
 	mut attributes := cask.config.clone()
 	attributes['token'] = cask.token
-	return brew_runtime.structured_value('Cask::Cask', cask.token, attributes)
+	return ruby.structured_value('Cask::Cask', cask.token, attributes)
 }
 
-pub fn irb_cask_config_from_value(value brew_runtime.Value) map[string]string {
+pub fn irb_cask_config_from_value(value ruby.Value) map[string]string {
 	values := value.as_map() or { return map[string]string{} }
 	mut config := map[string]string{}
 	for key, entry in values {

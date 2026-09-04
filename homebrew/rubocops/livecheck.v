@@ -1,6 +1,6 @@
 module rubocops
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `rubocops/livecheck.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -233,8 +233,8 @@ fn livecheck_regex_literal(source string, call LivecheckCall) ?LivecheckRegexLit
 	return none
 }
 
-fn livecheck_problem_value(problem LivecheckProblem) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cop::Problem', problem.message, {
+fn livecheck_problem_value(problem LivecheckProblem) ruby.Value {
+	return ruby.structured_value('RuboCop::Cop::Problem', problem.message, {
 		'kind':        problem.kind
 		'begin_pos':   problem.begin_pos.str()
 		'end_pos':     problem.end_pos.str()
@@ -502,46 +502,46 @@ pub fn correct_livecheck(source string, problems []LivecheckProblem) string {
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 15.
-pub fn ruby_livecheck_l15_d1_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_l15_d1_audit_formula(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.array_value(audit_livecheck_skip(source).map(livecheck_problem_value(it)))
+	return ruby.array_value(audit_livecheck_skip(source).map(livecheck_problem_value(it)))
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 45.
-pub fn ruby_livecheck_l45_d2_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_l45_d2_audit_formula(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.array_value(audit_livecheck_url_provided(source).map(livecheck_problem_value(it)))
+	return ruby.array_value(audit_livecheck_url_provided(source).map(livecheck_problem_value(it)))
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 69.
-pub fn ruby_livecheck_l69_d3_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_l69_d3_audit_formula(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.array_value(audit_livecheck_url_symbol(source).map(livecheck_problem_value(it)))
+	return ruby.array_value(audit_livecheck_url_symbol(source).map(livecheck_problem_value(it)))
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 128.
-pub fn ruby_livecheck_l128_d4_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_l128_d4_audit_formula(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.array_value(audit_livecheck_regex_parentheses(source).map(livecheck_problem_value(it)))
+	return ruby.array_value(audit_livecheck_regex_parentheses(source).map(livecheck_problem_value(it)))
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 156.
-pub fn ruby_livecheck_l156_d5_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_l156_d5_audit_formula(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.array_value(audit_livecheck_regex_extension(source).map(livecheck_problem_value(it)))
+	return ruby.array_value(audit_livecheck_regex_extension(source).map(livecheck_problem_value(it)))
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 184.
-pub fn ruby_livecheck_l184_d6_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_l184_d6_audit_formula(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.array_value(audit_livecheck_regex_if_page_match(source).map(livecheck_problem_value(it)))
+	return ruby.array_value(audit_livecheck_regex_if_page_match(source).map(livecheck_problem_value(it)))
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 213.
-pub fn ruby_livecheck_l213_d7_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_l213_d7_audit_formula(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	allowlisted := args.len > 1 && args[1].bool_data
-	return brew_runtime.array_value(audit_livecheck_regex_case_insensitive(source, allowlisted).map(livecheck_problem_value(it)))
+	return ruby.array_value(audit_livecheck_regex_case_insensitive(source, allowlisted).map(livecheck_problem_value(it)))
 }
 
 // Original Ruby source (line-for-line):

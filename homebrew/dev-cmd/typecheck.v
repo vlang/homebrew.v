@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `dev-cmd/typecheck.rb`.
@@ -131,7 +131,7 @@ pub:
 	keep       bool
 }
 
-fn typecheck_value_string(value brew_runtime.Value, name string) !string {
+fn typecheck_value_string(value ruby.Value, name string) !string {
 	if value.type_name != 'String' && value.type_name != 'Pathname' {
 		return error('${name} must be a String or Pathname')
 	}
@@ -603,102 +603,102 @@ pub:
 	options TypecheckOptions
 }
 
-pub fn typecheck_input_boundary(input &TypecheckInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::Typecheck::Input', '', {
+pub fn typecheck_input_boundary(input &TypecheckInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::Typecheck::Input', '', {
 		'typecheck_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn typecheck_input_from_value(value brew_runtime.Value) &TypecheckInput {
+fn typecheck_input_from_value(value ruby.Value) &TypecheckInput {
 	address := value.attributes['typecheck_input_address'] or { panic('invalid Typecheck input') }
 	return unsafe { &TypecheckInput(voidptr(address.u64())) }
 }
 
-fn typecheck_commands_value(commands []TypecheckCommand) brew_runtime.Value {
-	return brew_runtime.array_value(commands.map(brew_runtime.map_value({
-		'arguments':         brew_runtime.string_array_value(it.arguments)
-		'working_directory': brew_runtime.string_value(it.working_directory)
-		'safe':              brew_runtime.bool_value(it.safe)
+fn typecheck_commands_value(commands []TypecheckCommand) ruby.Value {
+	return ruby.array_value(commands.map(ruby.map_value({
+		'arguments':         ruby.string_array_value(it.arguments)
+		'working_directory': ruby.string_value(it.working_directory)
+		'safe':              ruby.bool_value(it.safe)
 	})))
 }
 
-fn typecheck_plan_value(plan TypecheckRunPlan) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'mode':              brew_runtime.string_value(plan.mode)
-		'bundler_groups':    brew_runtime.string_array_value(plan.bundler_groups)
+fn typecheck_plan_value(plan TypecheckRunPlan) ruby.Value {
+	return ruby.map_value({
+		'mode':              ruby.string_value(plan.mode)
+		'bundler_groups':    ruby.string_array_value(plan.bundler_groups)
 		'commands':          typecheck_commands_value(plan.commands)
-		'headings':          brew_runtime.string_array_value(plan.headings)
-		'trim_rubocop_rbi':  brew_runtime.bool_value(plan.trim_rubocop_rbi)
-		'change_privilege':  brew_runtime.bool_value(plan.environment.change_privilege)
-		'privilege_target':  brew_runtime.int_value(plan.environment.privilege_target)
-		'command_directory': brew_runtime.string_value(plan.environment.command_directory)
-		'failed':            brew_runtime.bool_value(plan.failed)
-		'stderr':            brew_runtime.string_value(plan.stderr)
+		'headings':          ruby.string_array_value(plan.headings)
+		'trim_rubocop_rbi':  ruby.bool_value(plan.trim_rubocop_rbi)
+		'change_privilege':  ruby.bool_value(plan.environment.change_privilege)
+		'privilege_target':  ruby.int_value(plan.environment.privilege_target)
+		'command_directory': ruby.string_value(plan.environment.command_directory)
+		'failed':            ruby.bool_value(plan.failed)
+		'stderr':            ruby.string_value(plan.stderr)
 	})
 }
 
-fn typecheck_trim_result_value(result TypecheckTrimResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'path':            brew_runtime.string_value(result.path)
-		'found':           brew_runtime.bool_value(result.found)
-		'parsed':          brew_runtime.bool_value(result.parsed)
-		'written':         brew_runtime.bool_value(result.written)
-		'trimmed_content': brew_runtime.string_value(result.trimmed_content)
-		'kept_names':      brew_runtime.string_array_value(result.kept_names)
-		'removed_names':   brew_runtime.string_array_value(result.removed_names)
+fn typecheck_trim_result_value(result TypecheckTrimResult) ruby.Value {
+	return ruby.map_value({
+		'path':            ruby.string_value(result.path)
+		'found':           ruby.bool_value(result.found)
+		'parsed':          ruby.bool_value(result.parsed)
+		'written':         ruby.bool_value(result.written)
+		'trimmed_content': ruby.string_value(result.trimmed_content)
+		'kept_names':      ruby.string_array_value(result.kept_names)
+		'removed_names':   ruby.string_array_value(result.removed_names)
 	})
 }
 
 // Ruby method `run` at line 46.
-pub fn ruby_typecheck_l46_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_typecheck_l46_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'command input is required')
+		return ruby.object_value('ArgumentError', 'command input is required')
 	}
 	plan := plan_typecheck(typecheck_input_from_value(args[0]).options) or {
-		return brew_runtime.object_value('UsageError', err.msg())
+		return ruby.object_value('UsageError', err.msg())
 	}
 	return typecheck_plan_value(plan)
 }
 
 // Ruby method `trim_rubocop_rbi(path: HOMEBREW_LIBRARY_PATH/"sorbet/rbi/gems/rubocop@*.rbi")` at line 144.
-pub fn ruby_typecheck_l144_d2_trim_rubocop_rbi(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_typecheck_l144_d2_trim_rubocop_rbi(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'path is required')
+		return ruby.object_value('ArgumentError', 'path is required')
 	}
 	path := typecheck_value_string(args[0], 'path') or {
-		return brew_runtime.object_value('TypeError', err.msg())
+		return ruby.object_value('TypeError', err.msg())
 	}
 	result := trim_typecheck_rubocop_rbi(path) or {
-		return brew_runtime.object_value('SystemCallError', err.msg())
+		return ruby.object_value('SystemCallError', err.msg())
 	}
 	return typecheck_trim_result_value(result)
 }
 
 // Ruby method `extract_full_name(node)` at line 218.
-pub fn ruby_typecheck_l218_d3_extract_full_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_typecheck_l218_d3_extract_full_name(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'node is required')
+		return ruby.object_value('ArgumentError', 'node is required')
 	}
-	return brew_runtime.string_value(extract_typecheck_full_name(args[0].as_string()))
+	return ruby.string_value(extract_typecheck_full_name(args[0].as_string()))
 }
 
 // Ruby method `extract_constant_path_parts(constant_path)` at line 237.
-pub fn ruby_typecheck_l237_d4_extract_constant_path_parts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_typecheck_l237_d4_extract_constant_path_parts(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'constant_path is required')
+		return ruby.object_value('ArgumentError', 'constant_path is required')
 	}
-	return brew_runtime.string_array_value(extract_constant_path_parts(args[0].as_string()))
+	return ruby.string_array_value(extract_constant_path_parts(args[0].as_string()))
 }
 
 // Ruby method `generate_trimmed_rbi(original_content, nodes_to_keep, parsed)` at line 264.
-pub fn ruby_typecheck_l264_d5_generate_trimmed_rbi(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_typecheck_l264_d5_generate_trimmed_rbi(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'original_content is required')
+		return ruby.object_value('ArgumentError', 'original_content is required')
 	}
 	nodes := parse_typecheck_rbi(args[0].as_string()) or {
-		return brew_runtime.object_value('Prism::ParseError', err.msg())
+		return ruby.object_value('Prism::ParseError', err.msg())
 	}
-	return brew_runtime.string_value(generate_typecheck_trimmed_rbi(args[0].as_string(), nodes))
+	return ruby.string_value(generate_typecheck_trimmed_rbi(args[0].as_string(), nodes))
 }
 
 // Original Ruby source (line-for-line):

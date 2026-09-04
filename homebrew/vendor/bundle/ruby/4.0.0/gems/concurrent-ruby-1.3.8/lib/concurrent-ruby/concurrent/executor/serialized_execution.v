@@ -1,6 +1,6 @@
 module executor
 
-import brew_runtime
+import ruby
 import sync
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/executor/serialized_execution.rb`.
@@ -8,7 +8,7 @@ import sync
 pub struct SerializedPost {
 pub:
 	executor ExecutorAdapter
-	args     []brew_runtime.Value
+	args     []ruby.Value
 	task     ExecutorTask @[required]
 }
 
@@ -16,7 +16,7 @@ pub:
 pub struct SerializedJob {
 pub:
 	executor ExecutorAdapter
-	args     []brew_runtime.Value
+	args     []ruby.Value
 	task     ExecutorTask @[required]
 }
 
@@ -36,7 +36,7 @@ pub fn new_serialized_execution() &SerializedExecution {
 	return &SerializedExecution{}
 }
 
-pub fn (mut serialization SerializedExecution) post(executor ExecutorAdapter, task ExecutorTask, args []brew_runtime.Value) bool {
+pub fn (mut serialization SerializedExecution) post(executor ExecutorAdapter, task ExecutorTask, args []ruby.Value) bool {
 	serialization.posts([
 		SerializedPost{
 			executor: executor
@@ -79,7 +79,7 @@ pub fn (mut serialization SerializedExecution) posts(posts []SerializedPost) ?bo
 
 fn (mut serialization SerializedExecution) call_job(job &SerializedJob) {
 	accepted := job.executor.post(serialized_job_executor_task, [
-		brew_runtime.structured_value('Concurrent::SerializedExecution', '#<Concurrent::SerializedExecution>', {
+		ruby.structured_value('Concurrent::SerializedExecution', '#<Concurrent::SerializedExecution>', {
 			'serialized_execution_address': u64(voidptr(&serialization)).str()
 		}),
 		serialized_job_boundary_value(job),
@@ -126,7 +126,7 @@ pub fn (mut serialization SerializedExecution) queued_count() int {
 	return value
 }
 
-fn serialized_job_executor_task(args []brew_runtime.Value) ! {
+fn serialized_job_executor_task(args []ruby.Value) ! {
 	if args.len < 2 {
 		return error('SerializedExecution worker requires serializer and job')
 	}
@@ -135,13 +135,13 @@ fn serialized_job_executor_task(args []brew_runtime.Value) ! {
 	serialization.work(job)!
 }
 
-fn serialized_execution_boundary_value(serialization &SerializedExecution) brew_runtime.Value {
-	return brew_runtime.structured_value('Concurrent::SerializedExecution', '#<Concurrent::SerializedExecution>', {
+fn serialized_execution_boundary_value(serialization &SerializedExecution) ruby.Value {
+	return ruby.structured_value('Concurrent::SerializedExecution', '#<Concurrent::SerializedExecution>', {
 		'serialized_execution_address': u64(voidptr(serialization)).str()
 	})
 }
 
-fn serialized_execution_boundary_receiver(args []brew_runtime.Value) &SerializedExecution {
+fn serialized_execution_boundary_receiver(args []ruby.Value) &SerializedExecution {
 	if args.len == 0 {
 		panic('SerializedExecution method requires a receiver')
 	}
@@ -151,13 +151,13 @@ fn serialized_execution_boundary_receiver(args []brew_runtime.Value) &Serialized
 	return unsafe { &SerializedExecution(voidptr(address)) }
 }
 
-fn serialized_job_boundary_value(job &SerializedJob) brew_runtime.Value {
-	return brew_runtime.structured_value('Concurrent::SerializedExecution::Job', '#<Concurrent::SerializedExecution::Job>', {
+fn serialized_job_boundary_value(job &SerializedJob) ruby.Value {
+	return ruby.structured_value('Concurrent::SerializedExecution::Job', '#<Concurrent::SerializedExecution::Job>', {
 		'serialized_job_address': u64(voidptr(job)).str()
 	})
 }
 
-fn serialized_job_boundary_receiver(value brew_runtime.Value) &SerializedJob {
+fn serialized_job_boundary_receiver(value ruby.Value) &SerializedJob {
 	address := (value.attribute('serialized_job_address') or {
 		panic('${value.type_name} has no translated SerializedExecution::Job state')
 	}).u64()
@@ -172,7 +172,7 @@ fn boundary_executor_adapter() ExecutorAdapter {
 	}
 }
 
-fn boundary_executor_post(context voidptr, task ExecutorTask, args []brew_runtime.Value) bool {
+fn boundary_executor_post(context voidptr, task ExecutorTask, args []ruby.Value) bool {
 	_ = context
 	task(args) or { return false }
 	return true
@@ -184,12 +184,12 @@ fn boundary_executor_running(context voidptr) bool {
 }
 
 // Ruby method `initialize()` at line 11.
-pub fn ruby_serialized_execution_l11_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_serialized_execution_l11_d1_initialize(args ...ruby.Value) ruby.Value {
 	return serialized_execution_boundary_value(new_serialized_execution())
 }
 
 // Ruby method `call` at line 17.
-pub fn ruby_serialized_execution_l17_d2_call(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_serialized_execution_l17_d2_call(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('SerializedExecution::Job#call requires a receiver')
 	}
@@ -199,17 +199,17 @@ pub fn ruby_serialized_execution_l17_d2_call(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby method `post(executor, *args, &task)` at line 34.
-pub fn ruby_serialized_execution_l34_d3_post(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_serialized_execution_l34_d3_post(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('SerializedExecution#post requires a receiver')
 	}
 	mut serialization := serialized_execution_boundary_receiver(args)
-	job_args := if args.len > 1 { args[1..].clone() } else { []brew_runtime.Value{} }
-	return brew_runtime.bool_value(serialization.post(boundary_executor_adapter(), boundary_noop_executor_task, job_args))
+	job_args := if args.len > 1 { args[1..].clone() } else { []ruby.Value{} }
+	return ruby.bool_value(serialization.post(boundary_executor_adapter(), boundary_noop_executor_task, job_args))
 }
 
 // Ruby method `posts(posts)` at line 44.
-pub fn ruby_serialized_execution_l44_d4_posts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_serialized_execution_l44_d4_posts(args ...ruby.Value) ruby.Value {
 	mut serialization := serialized_execution_boundary_receiver(args)
 	if args.len < 2 || args[1].type_name != 'Array' {
 		return nil_executor_value()
@@ -223,11 +223,11 @@ pub fn ruby_serialized_execution_l44_d4_posts(args ...brew_runtime.Value) brew_r
 		args: [it]
 		task: boundary_noop_executor_task
 	})
-	return brew_runtime.bool_value(serialization.posts(posts) or { false })
+	return ruby.bool_value(serialization.posts(posts) or { false })
 }
 
 // Ruby method `ns_initialize` at line 70.
-pub fn ruby_serialized_execution_l70_d5_ns_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_serialized_execution_l70_d5_ns_initialize(args ...ruby.Value) ruby.Value {
 	mut serialization := serialized_execution_boundary_receiver(args)
 	serialization.lock.lock()
 	serialization.being_executed = false
@@ -237,7 +237,7 @@ pub fn ruby_serialized_execution_l70_d5_ns_initialize(args ...brew_runtime.Value
 }
 
 // Ruby method `call_job(job)` at line 75.
-pub fn ruby_serialized_execution_l75_d6_call_job(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_serialized_execution_l75_d6_call_job(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('SerializedExecution#call_job requires a job')
 	}
@@ -247,7 +247,7 @@ pub fn ruby_serialized_execution_l75_d6_call_job(args ...brew_runtime.Value) bre
 }
 
 // Ruby method `work(job)` at line 95.
-pub fn ruby_serialized_execution_l95_d7_work(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_serialized_execution_l95_d7_work(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('SerializedExecution#work requires a job')
 	}

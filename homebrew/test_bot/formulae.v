@@ -1,7 +1,7 @@
 module test_bot
 
 import crypto.sha256
-import brew_runtime
+import ruby
 import json2
 import os
 
@@ -777,19 +777,19 @@ pub fn integration_test_portable_ruby() bool {
 	return true
 }
 
-pub fn formulae_boundary_value(runner &FormulaeRunner) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::TestBot::Formulae', runner.testing_formulae.str(), {
+pub fn formulae_boundary_value(runner &FormulaeRunner) ruby.Value {
+	return ruby.structured_value('Homebrew::TestBot::Formulae', runner.testing_formulae.str(), {
 		'address': u64(voidptr(runner)).str()
 	})
 }
 
-pub fn formulae_boundary_input(input &FormulaeBoundaryInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::TestBot::FormulaeBoundaryInput', input.formula_name, {
+pub fn formulae_boundary_input(input &FormulaeBoundaryInput) ruby.Value {
+	return ruby.structured_value('Homebrew::TestBot::FormulaeBoundaryInput', input.formula_name, {
 		'address': u64(voidptr(input)).str()
 	})
 }
 
-fn formulae_receiver(args []brew_runtime.Value) !&FormulaeRunner {
+fn formulae_receiver(args []ruby.Value) !&FormulaeRunner {
 	if args.len == 0 || args[0].type_name != 'Homebrew::TestBot::Formulae' {
 		return error('Formulae receiver is required')
 	}
@@ -800,7 +800,7 @@ fn formulae_receiver(args []brew_runtime.Value) !&FormulaeRunner {
 	return unsafe { &FormulaeRunner(voidptr(address.u64())) }
 }
 
-fn formulae_input(args []brew_runtime.Value, index int) &FormulaeBoundaryInput {
+fn formulae_input(args []ruby.Value, index int) &FormulaeBoundaryInput {
 	if args.len <= index || args[index].type_name != 'Homebrew::TestBot::FormulaeBoundaryInput' {
 		return &FormulaeBoundaryInput{}
 	}
@@ -811,87 +811,87 @@ fn formulae_input(args []brew_runtime.Value, index int) &FormulaeBoundaryInput {
 	return unsafe { &FormulaeBoundaryInput(voidptr(address.u64())) }
 }
 
-fn formulae_nil() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn formulae_nil() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-fn formulae_tags_boundary(tags map[string]FormulaeTagHash) brew_runtime.Value {
-	mut values := map[string]brew_runtime.Value{}
+fn formulae_tags_boundary(tags map[string]FormulaeTagHash) ruby.Value {
+	mut values := map[string]ruby.Value{}
 	for tag, value in tags {
-		values[tag] = brew_runtime.structured_value('Hash', tag, {
+		values[tag] = ruby.structured_value('Hash', tag, {
 			'cellar': value.cellar
 			'sha256': value.sha256
 		})
 	}
-	return brew_runtime.map_value(values)
+	return ruby.map_value(values)
 }
 
 // Ruby attr_writer `attr_writer :testing_formulae` at line 8.
-pub fn ruby_formulae_l8_d1_testing_formulae(args ...brew_runtime.Value) brew_runtime.Value {
-	mut runner := formulae_receiver(args) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+pub fn ruby_formulae_l8_d1_testing_formulae(args ...ruby.Value) ruby.Value {
+	mut runner := formulae_receiver(args) or { return ruby.object_value('ArgumentError', err.msg()) }
 	values := if args.len > 1 { args[1].as_string_array() or { []string{} } } else { []string{} }
 	runner.set_testing_formulae(values)
-	return brew_runtime.string_array_value(values)
+	return ruby.string_array_value(values)
 }
 
 // Ruby attr_writer `attr_writer :added_formulae` at line 11.
-pub fn ruby_formulae_l11_d2_added_formulae(args ...brew_runtime.Value) brew_runtime.Value {
-	mut runner := formulae_receiver(args) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+pub fn ruby_formulae_l11_d2_added_formulae(args ...ruby.Value) ruby.Value {
+	mut runner := formulae_receiver(args) or { return ruby.object_value('ArgumentError', err.msg()) }
 	values := if args.len > 1 { args[1].as_string_array() or { []string{} } } else { []string{} }
 	runner.set_added_formulae(values)
-	return brew_runtime.string_array_value(values)
+	return ruby.string_array_value(values)
 }
 
 // Ruby attr_writer `attr_writer :deleted_formulae` at line 14.
-pub fn ruby_formulae_l14_d3_deleted_formulae(args ...brew_runtime.Value) brew_runtime.Value {
-	mut runner := formulae_receiver(args) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+pub fn ruby_formulae_l14_d3_deleted_formulae(args ...ruby.Value) ruby.Value {
+	mut runner := formulae_receiver(args) or { return ruby.object_value('ArgumentError', err.msg()) }
 	values := if args.len > 1 { args[1].as_string_array() or { []string{} } } else { []string{} }
 	runner.set_deleted_formulae(values)
-	return brew_runtime.string_array_value(values)
+	return ruby.string_array_value(values)
 }
 
 // Ruby method `initialize(tap:, git:, dry_run:, fail_fast:, verbose:, output_paths:)` at line 26.
-pub fn ruby_formulae_l26_d4_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formulae_l26_d4_initialize(args ...ruby.Value) ruby.Value {
 	input := formulae_input(args, 0)
 	return formulae_boundary_value(new_formulae_runner(input.config))
 }
 
 // Ruby method `run!(args:)` at line 46.
-pub fn ruby_formulae_l46_d5_run(args ...brew_runtime.Value) brew_runtime.Value {
-	mut runner := formulae_receiver(args) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+pub fn ruby_formulae_l46_d5_run(args ...ruby.Value) ruby.Value {
+	mut runner := formulae_receiver(args) or { return ruby.object_value('ArgumentError', err.msg()) }
 	runner.run(formulae_input(args, 1).args)
 	return formulae_nil()
 }
 
 // Ruby method `cleanup_bottle_etc_var(formula)` at line 109.
-pub fn ruby_formulae_l109_d6_cleanup_bottle_etc_var(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formulae_l109_d6_cleanup_bottle_etc_var(args ...ruby.Value) ruby.Value {
 	runner := formulae_receiver(args) or { return formulae_nil() }
 	runner.cleanup_bottle_etc_var(formulae_input(args, 1).formula)
 	return formulae_nil()
 }
 
 // Ruby method `verify_local_bottles` at line 116.
-pub fn ruby_formulae_l116_d7_verify_local_bottles(args ...brew_runtime.Value) brew_runtime.Value {
-	mut runner := formulae_receiver(args) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(runner.verify_local_bottles())
+pub fn ruby_formulae_l116_d7_verify_local_bottles(args ...ruby.Value) ruby.Value {
+	mut runner := formulae_receiver(args) or { return ruby.bool_value(false) }
+	return ruby.bool_value(runner.verify_local_bottles())
 }
 
 // Ruby method `dependency_name_match?(dependency, dependency_name)` at line 166.
-pub fn ruby_formulae_l166_d8_dependency_name_match(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formulae_l166_d8_dependency_name_match(args ...ruby.Value) ruby.Value {
 	input := formulae_input(args, 0)
 	name := if args.len > 1 { args[1].as_string() } else { input.dependency_name }
-	return brew_runtime.bool_value(dependency_name_match(input.dependency, name))
+	return ruby.bool_value(dependency_name_match(input.dependency, name))
 }
 
 // Ruby method `annotate_added_dependencies(formula)` at line 175.
-pub fn ruby_formulae_l175_d9_annotate_added_dependencies(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formulae_l175_d9_annotate_added_dependencies(args ...ruby.Value) ruby.Value {
 	mut runner := formulae_receiver(args) or { return formulae_nil() }
 	runner.annotate_added_dependencies(formulae_input(args, 1).formula)
 	return formulae_nil()
 }
 
 // Ruby method `annotate_missing_all_bottle(formula, bottle_dir: Pathname.pwd)` at line 263.
-pub fn ruby_formulae_l263_d10_annotate_missing_all_bottle(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formulae_l263_d10_annotate_missing_all_bottle(args ...ruby.Value) ruby.Value {
 	mut runner := formulae_receiver(args) or { return formulae_nil() }
 	input := formulae_input(args, 1)
 	runner.annotate_missing_all_bottle(input.formula, input.directory)
@@ -899,34 +899,34 @@ pub fn ruby_formulae_l263_d10_annotate_missing_all_bottle(args ...brew_runtime.V
 }
 
 // Ruby method `testing_portable_ruby?` at line 325.
-pub fn ruby_formulae_l325_d11_testing_portable_ruby(args ...brew_runtime.Value) brew_runtime.Value {
-	runner := formulae_receiver(args) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(runner.testing_portable_ruby())
+pub fn ruby_formulae_l325_d11_testing_portable_ruby(args ...ruby.Value) ruby.Value {
+	runner := formulae_receiver(args) or { return ruby.bool_value(false) }
+	return ruby.bool_value(runner.testing_portable_ruby())
 }
 
 // Ruby method `install_ca_certificates_if_needed` at line 332.
-pub fn ruby_formulae_l332_d12_install_ca_certificates_if_needed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formulae_l332_d12_install_ca_certificates_if_needed(args ...ruby.Value) ruby.Value {
 	mut runner := formulae_receiver(args) or { return formulae_nil() }
 	runner.install_ca_certificates_if_needed(formulae_input(args, 1).args)
 	return formulae_nil()
 }
 
 // Ruby method `setup_formulae_deps_instances(formula, formula_name, args:)` at line 340.
-pub fn ruby_formulae_l340_d13_setup_formulae_deps_instances(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formulae_l340_d13_setup_formulae_deps_instances(args ...ruby.Value) ruby.Value {
 	mut runner := formulae_receiver(args) or { return formulae_nil() }
 	input := formulae_input(args, 1)
 	setup := runner.setup_formulae_deps_instances(input.formula, input.formula_name, input.args)
-	return brew_runtime.map_value({
-		'unlinked':                     brew_runtime.string_array_value(setup.unlinked)
-		'linked':                       brew_runtime.string_array_value(setup.linked)
-		'unchanged_dependencies':       brew_runtime.string_array_value(setup.unchanged_dependencies)
-		'changed_dependencies':         brew_runtime.string_array_value(setup.changed_dependencies)
-		'unchanged_build_dependencies': brew_runtime.string_array_value(setup.unchanged_build_dependencies)
+	return ruby.map_value({
+		'unlinked':                     ruby.string_array_value(setup.unlinked)
+		'linked':                       ruby.string_array_value(setup.linked)
+		'unchanged_dependencies':       ruby.string_array_value(setup.unchanged_dependencies)
+		'changed_dependencies':         ruby.string_array_value(setup.changed_dependencies)
+		'unchanged_build_dependencies': ruby.string_array_value(setup.unchanged_build_dependencies)
 	})
 }
 
 // Ruby method `bottle_reinstall_formula(formula, new_formula, args:)` at line 428.
-pub fn ruby_formulae_l428_d14_bottle_reinstall_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formulae_l428_d14_bottle_reinstall_formula(args ...ruby.Value) ruby.Value {
 	mut runner := formulae_receiver(args) or { return formulae_nil() }
 	input := formulae_input(args, 1)
 	runner.bottle_reinstall_formula(input.formula, input.formula.name in runner.added_formulae, input.args)
@@ -934,39 +934,39 @@ pub fn ruby_formulae_l428_d14_bottle_reinstall_formula(args ...brew_runtime.Valu
 }
 
 // Ruby method `build_bottle?(formula, args:)` at line 499.
-pub fn ruby_formulae_l499_d15_build_bottle(args ...brew_runtime.Value) brew_runtime.Value {
-	runner := formulae_receiver(args) or { return brew_runtime.bool_value(false) }
+pub fn ruby_formulae_l499_d15_build_bottle(args ...ruby.Value) ruby.Value {
+	runner := formulae_receiver(args) or { return ruby.bool_value(false) }
 	input := formulae_input(args, 1)
-	return brew_runtime.bool_value(runner.build_bottle(input.formula, input.args))
+	return ruby.bool_value(runner.build_bottle(input.formula, input.args))
 }
 
 // Ruby method `setup_bottle_sudo_purge!(args:); end` at line 514.
-pub fn ruby_formulae_l514_d16_setup_bottle_sudo_purge(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formulae_l514_d16_setup_bottle_sudo_purge(args ...ruby.Value) ruby.Value {
 	setup_bottle_sudo_purge(formulae_input(args, 0).args)
 	return formulae_nil()
 }
 
 // Ruby method `recursive_runtime_dependency_names(_formula, dependencies)` at line 517.
-pub fn ruby_formulae_l517_d17_recursive_runtime_dependency_names(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formulae_l517_d17_recursive_runtime_dependency_names(args ...ruby.Value) ruby.Value {
 	input := formulae_input(args, 0)
-	return brew_runtime.string_array_value(recursive_runtime_dependency_names(input.formula, input.dependencies))
+	return ruby.string_array_value(recursive_runtime_dependency_names(input.formula, input.dependencies))
 }
 
 // Ruby method `local_bottle_tag_hashes(formula_name, bottle_dir:)` at line 529.
-pub fn ruby_formulae_l529_d18_local_bottle_tag_hashes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formulae_l529_d18_local_bottle_tag_hashes(args ...ruby.Value) ruby.Value {
 	input := formulae_input(args, 0)
 	return formulae_tags_boundary(local_bottle_tag_hashes(input.formula_name, input.directory))
 }
 
 // Ruby method `livecheck(formula)` at line 549.
-pub fn ruby_formulae_l549_d19_livecheck(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formulae_l549_d19_livecheck(args ...ruby.Value) ruby.Value {
 	mut runner := formulae_receiver(args) or { return formulae_nil() }
 	runner.livecheck(formulae_input(args, 1).formula)
 	return formulae_nil()
 }
 
 // Ruby method `formula!(formula_name, args:)` at line 611.
-pub fn ruby_formulae_l611_d20_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formulae_l611_d20_formula(args ...ruby.Value) ruby.Value {
 	mut runner := formulae_receiver(args) or { return formulae_nil() }
 	input := formulae_input(args, 1)
 	runner.formula(input.formula_name, input.args)
@@ -974,7 +974,7 @@ pub fn ruby_formulae_l611_d20_formula(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby method `portable_formula!(formula_name, args:)` at line 841.
-pub fn ruby_formulae_l841_d21_portable_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formulae_l841_d21_portable_formula(args ...ruby.Value) ruby.Value {
 	mut runner := formulae_receiver(args) or { return formulae_nil() }
 	input := formulae_input(args, 1)
 	runner.portable_formula(input.formula_name, input.args)
@@ -982,7 +982,7 @@ pub fn ruby_formulae_l841_d21_portable_formula(args ...brew_runtime.Value) brew_
 }
 
 // Ruby method `deleted_formula!(formula_name)` at line 948.
-pub fn ruby_formulae_l948_d22_deleted_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formulae_l948_d22_deleted_formula(args ...ruby.Value) ruby.Value {
 	mut runner := formulae_receiver(args) or { return formulae_nil() }
 	input := formulae_input(args, 1)
 	runner.deleted_formula(input.formula_name)
@@ -990,8 +990,8 @@ pub fn ruby_formulae_l948_d22_deleted_formula(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby method `integration_test_portable_ruby? = true` at line 961.
-pub fn ruby_formulae_l961_d23_integration_test_portable_ruby(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(integration_test_portable_ruby())
+pub fn ruby_formulae_l961_d23_integration_test_portable_ruby(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(integration_test_portable_ruby())
 }
 
 // Original Ruby source (line-for-line):

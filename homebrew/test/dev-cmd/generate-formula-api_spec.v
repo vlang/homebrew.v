@@ -1,13 +1,13 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `test/dev-cmd/generate-formula-api_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 fn generate_formula_api_spec_options(root string,
-	advisory_statuses map[string]brew_runtime.Value, advisory_load_error string) GenerateFormulaApiOptions {
+	advisory_statuses map[string]ruby.Value, advisory_load_error string) GenerateFormulaApiOptions {
 	return GenerateFormulaApiOptions{
 		output_directory: root
 		formula_names: ['foo']
@@ -16,11 +16,11 @@ fn generate_formula_api_spec_options(root string,
 				name: 'foo'
 				pkg_version: '1.0.0'
 				hash: {
-					'name': brew_runtime.string_value('foo')
+					'name': ruby.string_value('foo')
 				}
 				serialized_by_tag: {
 					'arm64_sonoma': {
-						'name': brew_runtime.string_value('foo')
+						'name': ruby.string_value('foo')
 					}
 				}
 			}
@@ -34,8 +34,8 @@ fn generate_formula_api_spec_options(root string,
 	}
 }
 
-fn generate_formula_api_spec_json(path string) !map[string]brew_runtime.Value {
-	return brew_runtime.parse_json_value(os.read_file(path)!)!.as_map()
+fn generate_formula_api_spec_json(path string) !map[string]ruby.Value {
+	return ruby.parse_json_value(os.read_file(path)!)!.as_map()
 }
 
 pub fn generate_formula_api_spec_writes(root string) !bool {
@@ -49,15 +49,15 @@ pub fn generate_formula_api_spec_writes(root string) !bool {
 
 pub fn generate_formula_api_spec_attaches(root string) !bool {
 	os.mkdir_all(root)!
-	status := brew_runtime.map_value({
-		'open':        brew_runtime.array_value([
-			brew_runtime.map_value({
-				'id':       brew_runtime.string_value('BREW-foo-CVE-2024-1234')
-				'upstream': brew_runtime.string_array_value(['CVE-2024-1234'])
+	status := ruby.map_value({
+		'open':        ruby.array_value([
+			ruby.map_value({
+				'id':       ruby.string_value('BREW-foo-CVE-2024-1234')
+				'upstream': ruby.string_array_value(['CVE-2024-1234'])
 			}),
 		])
-		'patched':     brew_runtime.array_value([])
-		'fixed_count': brew_runtime.int_value(0)
+		'patched':     ruby.array_value([])
+		'fixed_count': ruby.int_value(0)
 	})
 	options := generate_formula_api_spec_options(root, {
 		'foo': status

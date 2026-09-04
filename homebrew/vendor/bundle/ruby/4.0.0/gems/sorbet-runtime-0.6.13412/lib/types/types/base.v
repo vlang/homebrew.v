@@ -1,6 +1,6 @@
 module types
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/types/base.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -186,11 +186,11 @@ pub fn base_method_added(declaring_type string, method_name string) ! {
 	}
 }
 
-pub fn (type_value &BaseType) recursively_valid(obj brew_runtime.Value) !bool {
+pub fn (type_value &BaseType) recursively_valid(obj ruby.Value) !bool {
 	return type_value.valid(obj)
 }
 
-pub fn (type_value &BaseType) valid(obj brew_runtime.Value) !bool {
+pub fn (type_value &BaseType) valid(obj ruby.Value) !bool {
 	return match type_value.kind {
 		.abstract_base { error(base_not_implemented_error) }
 		.anything { new_anything_type().valid(obj) }
@@ -231,7 +231,7 @@ pub fn (type_value &BaseType) valid(obj brew_runtime.Value) !bool {
 	}
 }
 
-fn (type_value &BaseType) accepts_object_type(obj brew_runtime.Value) bool {
+fn (type_value &BaseType) accepts_object_type(obj ruby.Value) bool {
 	if obj.type_name in type_value.valid_type_names {
 		return true
 	}
@@ -416,7 +416,7 @@ pub fn (type_value &BaseType) to_s() !string {
 	return type_value.name()
 }
 
-pub fn (type_value &BaseType) describe_obj(obj brew_runtime.Value) string {
+pub fn (type_value &BaseType) describe_obj(obj ruby.Value) string {
 	class_name := base_object_class_name(obj)
 	if obj.type_name == 'NilClass' || obj.type_name == 'Bool' || obj.type_name in [
 		'TrueClass',
@@ -437,7 +437,7 @@ pub fn (type_value &BaseType) describe_obj(obj brew_runtime.Value) string {
 	return 'type ${class_name}'
 }
 
-fn base_object_class_name(obj brew_runtime.Value) string {
+fn base_object_class_name(obj ruby.Value) string {
 	return match obj.type_name {
 		'Bool' {
 			if obj.bool_data { 'TrueClass' } else { 'FalseClass' }
@@ -446,7 +446,7 @@ fn base_object_class_name(obj brew_runtime.Value) string {
 	}
 }
 
-fn base_has_kernel_inspect(obj brew_runtime.Value) bool {
+fn base_has_kernel_inspect(obj ruby.Value) bool {
 	if inspect_owner := obj.attributes['inspect_owner'] {
 		return inspect_owner == 'Kernel'
 	}
@@ -454,7 +454,7 @@ fn base_has_kernel_inspect(obj brew_runtime.Value) bool {
 		'NilClass', 'Symbol', 'Array', 'Hash']
 }
 
-fn base_value_inspect(obj brew_runtime.Value) string {
+fn base_value_inspect(obj ruby.Value) string {
 	if inspect := obj.attributes['inspect'] {
 		return inspect
 	}
@@ -478,7 +478,7 @@ fn truncate_middle(value string, start_len int, end_len int) string {
 	return runes[..start_len].string() + '...' + runes[runes.len - end_len..].string()
 }
 
-pub fn (type_value &BaseType) error_message_for_obj(obj brew_runtime.Value) !BaseOptionalString {
+pub fn (type_value &BaseType) error_message_for_obj(obj ruby.Value) !BaseOptionalString {
 	if type_value.valid(obj)! {
 		return BaseOptionalString{}
 	}
@@ -488,7 +488,7 @@ pub fn (type_value &BaseType) error_message_for_obj(obj brew_runtime.Value) !Bas
 	}
 }
 
-pub fn (type_value &BaseType) error_message_for_obj_recursive(obj brew_runtime.Value) !BaseOptionalString {
+pub fn (type_value &BaseType) error_message_for_obj_recursive(obj ruby.Value) !BaseOptionalString {
 	if type_value.recursively_valid(obj)! {
 		return BaseOptionalString{}
 	}
@@ -498,11 +498,11 @@ pub fn (type_value &BaseType) error_message_for_obj_recursive(obj brew_runtime.V
 	}
 }
 
-pub fn (type_value &BaseType) error_message(obj brew_runtime.Value) !string {
+pub fn (type_value &BaseType) error_message(obj ruby.Value) !string {
 	return 'Expected type ${type_value.name()!}, got ${type_value.describe_obj(obj)}'
 }
 
-pub fn (type_value &BaseType) validate(obj brew_runtime.Value) ! {
+pub fn (type_value &BaseType) validate(obj ruby.Value) ! {
 	message := type_value.error_message_for_obj(obj)!
 	if message.present {
 		return error(message.value)
@@ -524,15 +524,15 @@ pub fn (type_value &BaseType) eql(other &BaseType) !bool {
 	return type_value.equals(other)
 }
 
-pub fn base_type_boundary_value(type_value &BaseType) brew_runtime.Value {
-	return brew_runtime.structured_value(type_value.type_name, type_value.name() or {
+pub fn base_type_boundary_value(type_value &BaseType) ruby.Value {
+	return ruby.structured_value(type_value.type_name, type_value.name() or {
 		type_value.display_name
 	}, {
 		'base_type_address': u64(voidptr(type_value)).str()
 	})
 }
 
-pub fn base_type_from_value(value brew_runtime.Value) !&BaseType {
+pub fn base_type_from_value(value ruby.Value) !&BaseType {
 	if address := value.attributes['base_type_address'] {
 		return unsafe { &BaseType(voidptr(address.u64())) }
 	}
@@ -552,58 +552,58 @@ pub fn base_type_from_value(value brew_runtime.Value) !&BaseType {
 	}
 }
 
-fn base_type_from_args(args []brew_runtime.Value) &BaseType {
+fn base_type_from_args(args []ruby.Value) &BaseType {
 	if args.len == 0 {
 		panic('Base method requires a receiver')
 	}
 	return base_type_from_value(args[0]) or { panic(err) }
 }
 
-fn base_subtype_boundary_value(result BaseSubtypeResult) brew_runtime.Value {
+fn base_subtype_boundary_value(result BaseSubtypeResult) ruby.Value {
 	return match result {
-		.yes { brew_runtime.bool_value(true) }
-		.no { brew_runtime.bool_value(false) }
-		.unrelated { brew_runtime.object_value('NilClass', 'nil') }
+		.yes { ruby.bool_value(true) }
+		.no { ruby.bool_value(false) }
+		.unrelated { ruby.object_value('NilClass', 'nil') }
 	}
 }
 
-fn base_optional_string_value(value BaseOptionalString) brew_runtime.Value {
+fn base_optional_string_value(value BaseOptionalString) ruby.Value {
 	if value.present {
-		return brew_runtime.string_value(value.value)
+		return ruby.string_value(value.value)
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `self.method_added(method_name)` at line 6.
-pub fn ruby_base_l6_d1_self_method_added(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_base_l6_d1_self_method_added(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Base.method_added requires a method name')
 	}
 	declaring_type := if args.len > 1 { args[0].type_name } else { 'T::Types::Base' }
 	base_method_added(declaring_type, args[args.len - 1].as_string()) or { panic(err) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `recursively_valid?(obj)` at line 20.
-pub fn ruby_base_l20_d2_recursively_valid(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_base_l20_d2_recursively_valid(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Base#recursively_valid? requires an object')
 	}
-	return brew_runtime.bool_value(base_type_from_args(args).recursively_valid(args[1]) or {
+	return ruby.bool_value(base_type_from_args(args).recursively_valid(args[1]) or {
 		panic(err)
 	})
 }
 
 // Ruby define_method `define_method(:valid?) do |_obj|` at line 24.
-pub fn ruby_base_l24_d3_valid(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_base_l24_d3_valid(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Base#valid? requires an object')
 	}
-	return brew_runtime.bool_value(base_type_from_args(args).valid(args[1]) or { panic(err) })
+	return ruby.bool_value(base_type_from_args(args).valid(args[1]) or { panic(err) })
 }
 
 // Ruby method `subtype_of_single?(type)` at line 32.
-pub fn ruby_base_l32_d4_subtype_of_single(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_base_l32_d4_subtype_of_single(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Base#subtype_of_single? requires another type')
 	}
@@ -613,18 +613,18 @@ pub fn ruby_base_l32_d4_subtype_of_single(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby define_method `define_method(:build_type) do` at line 38.
-pub fn ruby_base_l38_d5_build_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_base_l38_d5_build_type(args ...ruby.Value) ruby.Value {
 	base_type_from_args(args).build_type() or { panic(err) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby define_method `define_method(:name) do` at line 43.
-pub fn ruby_base_l43_d6_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(base_type_from_args(args).name() or { panic(err) })
+pub fn ruby_base_l43_d6_name(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(base_type_from_args(args).name() or { panic(err) })
 }
 
 // Ruby method `subtype_of?(t2)` at line 52.
-pub fn ruby_base_l52_d7_subtype_of(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_base_l52_d7_subtype_of(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Base#subtype_of? requires another type')
 	}
@@ -634,20 +634,20 @@ pub fn ruby_base_l52_d7_subtype_of(args ...brew_runtime.Value) brew_runtime.Valu
 }
 
 // Ruby method `to_s` at line 132.
-pub fn ruby_base_l132_d8_to_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(base_type_from_args(args).to_s() or { panic(err) })
+pub fn ruby_base_l132_d8_to_s(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(base_type_from_args(args).to_s() or { panic(err) })
 }
 
 // Ruby method `describe_obj(obj)` at line 136.
-pub fn ruby_base_l136_d9_describe_obj(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_base_l136_d9_describe_obj(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Base#describe_obj requires an object')
 	}
-	return brew_runtime.string_value(base_type_from_args(args).describe_obj(args[1]))
+	return ruby.string_value(base_type_from_args(args).describe_obj(args[1]))
 }
 
 // Ruby method `error_message_for_obj(obj)` at line 158.
-pub fn ruby_base_l158_d10_error_message_for_obj(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_base_l158_d10_error_message_for_obj(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Base#error_message_for_obj requires an object')
 	}
@@ -657,7 +657,7 @@ pub fn ruby_base_l158_d10_error_message_for_obj(args ...brew_runtime.Value) brew
 }
 
 // Ruby method `error_message_for_obj_recursive(obj)` at line 166.
-pub fn ruby_base_l166_d11_error_message_for_obj_recursive(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_base_l166_d11_error_message_for_obj_recursive(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Base#error_message_for_obj_recursive requires an object')
 	}
@@ -667,45 +667,45 @@ pub fn ruby_base_l166_d11_error_message_for_obj_recursive(args ...brew_runtime.V
 }
 
 // Ruby method `error_message(obj)` at line 174.
-pub fn ruby_base_l174_d12_error_message(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_base_l174_d12_error_message(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Base#error_message requires an object')
 	}
-	return brew_runtime.string_value(base_type_from_args(args).error_message(args[1]) or {
+	return ruby.string_value(base_type_from_args(args).error_message(args[1]) or {
 		panic(err)
 	})
 }
 
 // Ruby method `validate!(obj)` at line 178.
-pub fn ruby_base_l178_d13_validate(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_base_l178_d13_validate(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Base#validate! requires an object')
 	}
 	base_type_from_args(args).validate(args[1]) or { panic(err) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `hash` at line 185.
-pub fn ruby_base_l185_d14_hash(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(i64(base_type_from_args(args).hash() or { panic(err) }))
+pub fn ruby_base_l185_d14_hash(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(i64(base_type_from_args(args).hash() or { panic(err) }))
 }
 
 // Ruby method `==(other)` at line 191.
-pub fn ruby_base_l191_d15_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_base_l191_d15_anonymous(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	other := base_type_from_value(args[1]) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(base_type_from_args(args).equals(other) or { panic(err) })
+	other := base_type_from_value(args[1]) or { return ruby.bool_value(false) }
+	return ruby.bool_value(base_type_from_args(args).equals(other) or { panic(err) })
 }
 
 // Ruby alias_method `alias_method :eql?, :==` at line 203.
-pub fn ruby_base_l203_d16_eql(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_base_l203_d16_eql(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	other := base_type_from_value(args[1]) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(base_type_from_args(args).eql(other) or { panic(err) })
+	other := base_type_from_value(args[1]) or { return ruby.bool_value(false) }
+	return ruby.bool_value(base_type_from_args(args).eql(other) or { panic(err) })
 }
 
 // Original Ruby source (line-for-line):

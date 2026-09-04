@@ -1,6 +1,6 @@
 module requirements
 
-import brew_runtime
+import ruby
 import homebrew
 import x.json2
 
@@ -20,13 +20,13 @@ struct MacOSComparisonArgument {
 }
 
 pub fn macos_oldest_allowed_version() homebrew.MacOSVersion {
-	configured := brew_runtime.environment_value('HOMEBREW_MACOS_OLDEST_ALLOWED')
+	configured := ruby.environment_value('HOMEBREW_MACOS_OLDEST_ALLOWED')
 	value := if configured.len > 0 { configured } else { '10.15' }
 	return homebrew.new_macos_version(value) or { panic(err) }
 }
 
 pub fn macos_newest_unsupported_version() homebrew.MacOSVersion {
-	configured := brew_runtime.environment_value('HOMEBREW_MACOS_NEWEST_UNSUPPORTED')
+	configured := ruby.environment_value('HOMEBREW_MACOS_NEWEST_UNSUPPORTED')
 	value := if configured.len > 0 { configured } else { '27' }
 	return homebrew.new_macos_version(value) or { panic(err) }
 }
@@ -319,7 +319,7 @@ pub fn ruby_macos_requirement_l122_d9_allows(requirement MacOSRequirement,
 // Ruby method `message(type: :formula)` at line 137.
 pub fn ruby_macos_requirement_l137_d10_message(requirement MacOSRequirement,
 	dependent_type string) string {
-	return requirement.message(dependent_type, brew_runtime.kernel_info().name == 'Darwin')
+	return requirement.message(dependent_type, ruby.kernel_info().name == 'Darwin')
 }
 
 // Ruby method `==(other)` at line 143.

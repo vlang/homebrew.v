@@ -1,6 +1,6 @@
 module update_report
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `cmd/update_report/reporter_hub.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -220,8 +220,8 @@ pub fn (hub ReporterHub) dump(context ReporterHubDumpContext) string {
 	return output + 'You can upgrade ${pronoun} with brew upgrade\nor list ${pronoun} with brew outdated.\n'
 }
 
-fn reporter_hub_value(hub ReporterHub) brew_runtime.Value {
-	return brew_runtime.Value{
+fn reporter_hub_value(hub ReporterHub) ruby.Value {
+	return ruby.Value{
 		type_name: 'ReporterHub'
 		repr: '${hub.reporters.len} reporter(s)'
 		attributes: {
@@ -229,13 +229,13 @@ fn reporter_hub_value(hub ReporterHub) brew_runtime.Value {
 			'empty':          hub.empty().str()
 		}
 		map_data: {
-			'reporters': brew_runtime.array_value(hub.reporters.map(reporter_to_value(it)))
+			'reporters': ruby.array_value(hub.reporters.map(reporter_to_value(it)))
 			'report':    reporter_report_to_value(hub.report)
 		}
 	}
 }
 
-fn reporter_hub_from_value(value brew_runtime.Value) ReporterHub {
+fn reporter_hub_from_value(value ruby.Value) ReporterHub {
 	mut reporters := []Reporter{}
 	if reporter_values := value.map_data['reporters'] {
 		for reporter_value in reporter_values.array_data {
@@ -250,7 +250,7 @@ fn reporter_hub_from_value(value brew_runtime.Value) ReporterHub {
 	}
 }
 
-fn reporter_hub_context_from_value(value brew_runtime.Value) ReporterHubDumpContext {
+fn reporter_hub_context_from_value(value ruby.Value) ReporterHubDumpContext {
 	return ReporterHubDumpContext{
 		auto_update: (value.attributes['auto_update'] or { 'false' }) == 'true'
 		auto_update_quiet: (value.attributes['auto_update_quiet'] or { 'false' }) == 'true'
@@ -259,59 +259,59 @@ fn reporter_hub_context_from_value(value brew_runtime.Value) ReporterHubDumpCont
 		any_casks_installed: (value.attributes['any_casks_installed'] or { 'false' }) == 'true'
 		running_on_linux: (value.attributes['running_on_linux'] or { 'false' }) == 'true'
 		auto_update_skip_outdated: (value.attributes['auto_update_skip_outdated'] or { 'false' }) == 'true'
-		installed_formulae: (value.map_data['installed_formulae'] or { brew_runtime.string_array_value([]) }).string_array_data
-		installed_casks: (value.map_data['installed_casks'] or { brew_runtime.string_array_value([]) }).string_array_data
-		outdated_formulae: (value.map_data['outdated_formulae'] or { brew_runtime.string_array_value([]) }).string_array_data
-		outdated_casks: (value.map_data['outdated_casks'] or { brew_runtime.string_array_value([]) }).string_array_data
+		installed_formulae: (value.map_data['installed_formulae'] or { ruby.string_array_value([]) }).string_array_data
+		installed_casks: (value.map_data['installed_casks'] or { ruby.string_array_value([]) }).string_array_data
+		outdated_formulae: (value.map_data['outdated_formulae'] or { ruby.string_array_value([]) }).string_array_data
+		outdated_casks: (value.map_data['outdated_casks'] or { ruby.string_array_value([]) }).string_array_data
 		formula_descriptions: value.attributes.clone()
 		cask_descriptions: value.attributes.clone()
 	}
 }
 
 // Ruby attr_reader `attr_reader :reporters` at line 8.
-pub fn ruby_reporter_hub_l8_d1_reporters(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_reporter_hub_l8_d1_reporters(args ...ruby.Value) ruby.Value {
 	hub := if args.len > 0 { reporter_hub_from_value(args[0]) } else { ReporterHub{} }
-	return brew_runtime.array_value(hub.reporters.map(reporter_to_value(it)))
+	return ruby.array_value(hub.reporters.map(reporter_to_value(it)))
 }
 
 // Ruby method `initialize` at line 11.
-pub fn ruby_reporter_hub_l11_d2_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_reporter_hub_l11_d2_initialize(args ...ruby.Value) ruby.Value {
 	return reporter_hub_value(ReporterHub{})
 }
 
 // Ruby method `select_formula_or_cask(key)` at line 17.
-pub fn ruby_reporter_hub_l17_d3_select_formula_or_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_reporter_hub_l17_d3_select_formula_or_cask(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'hub and key are required')
+		return ruby.object_value('ArgumentError', 'hub and key are required')
 	}
 	key := args[1].as_string()
 	hub := reporter_hub_from_value(args[0])
 	if key in ['R', 'RC'] {
 		renames := reporter_hub_select_renames(hub.report, key) or {
-			return brew_runtime.object_value('RuntimeError', err.msg())
+			return ruby.object_value('RuntimeError', err.msg())
 		}
-		return brew_runtime.array_value(renames.map(brew_runtime.structured_value('Rename', '${it.old_name} -> ${it.new_name}', {
+		return ruby.array_value(renames.map(ruby.structured_value('Rename', '${it.old_name} -> ${it.new_name}', {
 			'old_name': it.old_name
 			'new_name': it.new_name
 		})))
 	}
 	selected := reporter_hub_select(hub.report, key) or {
-		return brew_runtime.object_value('RuntimeError', err.msg())
+		return ruby.object_value('RuntimeError', err.msg())
 	}
-	return brew_runtime.string_array_value(selected)
+	return ruby.string_array_value(selected)
 }
 
 // Ruby method `renamed_formulae` at line 24.
-pub fn ruby_reporter_hub_l24_d4_renamed_formulae(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_reporter_hub_l24_d4_renamed_formulae(args ...ruby.Value) ruby.Value {
 	hub := if args.len > 0 { reporter_hub_from_value(args[0]) } else { ReporterHub{} }
-	return brew_runtime.array_value(hub.report.renamed_formulae.map(brew_runtime.structured_value('Rename', '${it.old_name} -> ${it.new_name}', {
+	return ruby.array_value(hub.report.renamed_formulae.map(ruby.structured_value('Rename', '${it.old_name} -> ${it.new_name}', {
 		'old_name': it.old_name
 		'new_name': it.new_name
 	})))
 }
 
 // Ruby method `add(reporter, auto_update: false)` at line 29.
-pub fn ruby_reporter_hub_l29_d5_add(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_reporter_hub_l29_d5_add(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return reporter_hub_value(ReporterHub{})
 	}
@@ -322,101 +322,101 @@ pub fn ruby_reporter_hub_l29_d5_add(args ...brew_runtime.Value) brew_runtime.Val
 }
 
 // Ruby method `empty?` at line 36.
-pub fn ruby_reporter_hub_l36_d6_empty(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(args.len == 0 || reporter_hub_from_value(args[0]).empty())
+pub fn ruby_reporter_hub_l36_d6_empty(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(args.len == 0 || reporter_hub_from_value(args[0]).empty())
 }
 
 // Ruby method `dump(auto_update: false)` at line 41.
-pub fn ruby_reporter_hub_l41_d7_dump(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_reporter_hub_l41_d7_dump(args ...ruby.Value) ruby.Value {
 	hub := if args.len > 0 { reporter_hub_from_value(args[0]) } else { ReporterHub{} }
 	context := if args.len > 1 {
 		reporter_hub_context_from_value(args[1])
 	} else {
 		ReporterHubDumpContext{}
 	}
-	return brew_runtime.string_value(hub.dump(context))
+	return ruby.string_value(hub.dump(context))
 }
 
 // Ruby method `dump_new_formula_report` at line 103.
-pub fn ruby_reporter_hub_l103_d8_dump_new_formula_report(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_reporter_hub_l103_d8_dump_new_formula_report(args ...ruby.Value) ruby.Value {
 	hub := if args.len > 0 { reporter_hub_from_value(args[0]) } else { ReporterHub{} }
 	context := if args.len > 1 {
 		reporter_hub_context_from_value(args[1])
 	} else {
 		ReporterHubDumpContext{}
 	}
-	return brew_runtime.string_value(reporter_hub_dump_new_formula_report(hub.report, context))
+	return ruby.string_value(reporter_hub_dump_new_formula_report(hub.report, context))
 }
 
 // Ruby method `dump_new_cask_report` at line 123.
-pub fn ruby_reporter_hub_l123_d9_dump_new_cask_report(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_reporter_hub_l123_d9_dump_new_cask_report(args ...ruby.Value) ruby.Value {
 	hub := if args.len > 0 { reporter_hub_from_value(args[0]) } else { ReporterHub{} }
 	context := if args.len > 1 {
 		reporter_hub_context_from_value(args[1])
 	} else {
 		ReporterHubDumpContext{}
 	}
-	return brew_runtime.string_value(reporter_hub_dump_new_cask_report(hub.report, context))
+	return ruby.string_value(reporter_hub_dump_new_cask_report(hub.report, context))
 }
 
 // Ruby method `dump_deleted_formula_report` at line 146.
-pub fn ruby_reporter_hub_l146_d10_dump_deleted_formula_report(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_reporter_hub_l146_d10_dump_deleted_formula_report(args ...ruby.Value) ruby.Value {
 	hub := if args.len > 0 { reporter_hub_from_value(args[0]) } else { ReporterHub{} }
 	context := if args.len > 1 {
 		reporter_hub_context_from_value(args[1])
 	} else {
 		ReporterHubDumpContext{}
 	}
-	return brew_runtime.string_value(reporter_hub_dump_deleted_formula_report(hub.report, context))
+	return ruby.string_value(reporter_hub_dump_deleted_formula_report(hub.report, context))
 }
 
 // Ruby method `dump_deleted_cask_report` at line 155.
-pub fn ruby_reporter_hub_l155_d11_dump_deleted_cask_report(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_reporter_hub_l155_d11_dump_deleted_cask_report(args ...ruby.Value) ruby.Value {
 	hub := if args.len > 0 { reporter_hub_from_value(args[0]) } else { ReporterHub{} }
 	context := if args.len > 1 {
 		reporter_hub_context_from_value(args[1])
 	} else {
 		ReporterHubDumpContext{}
 	}
-	return brew_runtime.string_value(reporter_hub_dump_deleted_cask_report(hub.report, context))
+	return ruby.string_value(reporter_hub_dump_deleted_cask_report(hub.report, context))
 }
 
 // Ruby method `output_dump_formula_or_cask_report(title, formulae_or_casks)` at line 167.
-pub fn ruby_reporter_hub_l167_d12_output_dump_formula_or_cask_report(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_reporter_hub_l167_d12_output_dump_formula_or_cask_report(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.string_value('')
+		return ruby.string_value('')
 	}
-	return brew_runtime.string_value(reporter_hub_output_report(args[0].as_string(), args[1].string_array_data))
+	return ruby.string_value(reporter_hub_output_report(args[0].as_string(), args[1].string_array_data))
 }
 
 // Ruby method `installed?(formula)` at line 174.
-pub fn ruby_reporter_hub_l174_d13_installed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(args.len > 1 && reporter_hub_installed(args[0].as_string(), args[1].string_array_data))
+pub fn ruby_reporter_hub_l174_d13_installed(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(args.len > 1 && reporter_hub_installed(args[0].as_string(), args[1].string_array_data))
 }
 
 // Ruby method `cask_installed?(cask)` at line 179.
-pub fn ruby_reporter_hub_l179_d14_cask_installed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(args.len > 1 && reporter_hub_cask_installed(args[0].as_string(), args[1].string_array_data))
+pub fn ruby_reporter_hub_l179_d14_cask_installed(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(args.len > 1 && reporter_hub_cask_installed(args[0].as_string(), args[1].string_array_data))
 }
 
 // Ruby method `description(formula)` at line 184.
-pub fn ruby_reporter_hub_l184_d15_description(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_reporter_hub_l184_d15_description(args ...ruby.Value) ruby.Value {
 	if args.len > 1 {
 		if description := args[1].attributes[args[0].as_string()] {
-			return brew_runtime.string_value(description)
+			return ruby.string_value(description)
 		}
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `cask_description(cask)` at line 200.
-pub fn ruby_reporter_hub_l200_d16_cask_description(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_reporter_hub_l200_d16_cask_description(args ...ruby.Value) ruby.Value {
 	if args.len > 1 {
 		if description := args[1].attributes[args[0].as_string()] {
-			return brew_runtime.string_value(description)
+			return ruby.string_value(description)
 		}
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Original Ruby source (line-for-line):

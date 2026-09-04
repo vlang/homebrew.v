@@ -1,6 +1,6 @@
 module rubocops
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `rubocops/os_depends_on.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -542,8 +542,8 @@ pub fn analyze_os_depends_on(source string) OsDependsOnAnalysis {
 	return analyze_os_depends_on_phases(source, true, true, '')
 }
 
-fn os_depends_on_stanza_value(stanza OsDependsOnStanza) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::AST::SendNode', stanza.source, {
+fn os_depends_on_stanza_value(stanza OsDependsOnStanza) ruby.Value {
+	return ruby.structured_value('RuboCop::AST::SendNode', stanza.source, {
 		'id':        stanza.id.str()
 		'method':    stanza.method
 		'arguments': stanza.arguments
@@ -554,8 +554,8 @@ fn os_depends_on_stanza_value(stanza OsDependsOnStanza) brew_runtime.Value {
 	})
 }
 
-fn os_depends_on_pair_value(pair OsDependsOnPair) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::AST::PairNode', pair.source, {
+fn os_depends_on_pair_value(pair OsDependsOnPair) ruby.Value {
+	return ruby.structured_value('RuboCop::AST::PairNode', pair.source, {
 		'key':           pair.key
 		'key_is_symbol': pair.key_is_symbol.str()
 		'value_kind':    pair.value_kind
@@ -565,21 +565,21 @@ fn os_depends_on_pair_value(pair OsDependsOnPair) brew_runtime.Value {
 	})
 }
 
-fn os_depends_on_analysis_value(analysis OsDependsOnAnalysis) brew_runtime.Value {
-	offenses := analysis.offenses.map(brew_runtime.structured_value('RuboCop::Cop::Offense', it.message, {
+fn os_depends_on_analysis_value(analysis OsDependsOnAnalysis) ruby.Value {
+	offenses := analysis.offenses.map(ruby.structured_value('RuboCop::Cop::Offense', it.message, {
 		'begin_pos':      it.begin_pos.str()
 		'end_pos':        it.end_pos.str()
 		'message':        it.message
 		'has_correction': it.has_correction.str()
 		'replacement':    it.replacement
 	}))
-	return brew_runtime.map_value({
-		'offenses':  brew_runtime.array_value(offenses)
-		'corrected': brew_runtime.string_value(analysis.corrected)
+	return ruby.map_value({
+		'offenses':  ruby.array_value(offenses)
+		'corrected': ruby.string_value(analysis.corrected)
 	})
 }
 
-fn os_depends_on_argument_os(args []brew_runtime.Value, index int) string {
+fn os_depends_on_argument_os(args []ruby.Value, index int) string {
 	if args.len <= index {
 		return 'macos'
 	}
@@ -587,51 +587,51 @@ fn os_depends_on_argument_os(args []brew_runtime.Value, index int) string {
 }
 
 // Ruby method `on_block(node)` at line 41.
-pub fn ruby_os_depends_on_l41_d1_on_block(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_os_depends_on_l41_d1_on_block(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	return os_depends_on_analysis_value(analyze_os_depends_on_phases(source, false, true, ''))
 }
 
 // Ruby method `on_send(node)` at line 51.
-pub fn ruby_os_depends_on_l51_d2_on_send(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_os_depends_on_l51_d2_on_send(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	return os_depends_on_analysis_value(analyze_os_depends_on_phases(source, true, false, ''))
 }
 
 // Ruby method `autocorrect_macos_comparison_strings(node)` at line 60.
-pub fn ruby_os_depends_on_l60_d3_autocorrect_macos_comparison_strings(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_os_depends_on_l60_d3_autocorrect_macos_comparison_strings(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	return os_depends_on_analysis_value(analyze_os_depends_on_phases(source, true, false, ''))
 }
 
 // Ruby method `check_redundant_bare_macos(node)` at line 78.
-pub fn ruby_os_depends_on_l78_d4_check_redundant_bare_macos(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_os_depends_on_l78_d4_check_redundant_bare_macos(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	return os_depends_on_analysis_value(analyze_os_depends_on_phases(source, true, false, ''))
 }
 
 // Ruby method `check_conflicting_os_requirements(node)` at line 91.
-pub fn ruby_os_depends_on_l91_d5_check_conflicting_os_requirements(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_os_depends_on_l91_d5_check_conflicting_os_requirements(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	return os_depends_on_analysis_value(analyze_os_depends_on_phases(source, true, false, ''))
 }
 
 // Ruby method `add_missing_os_dependency(node, os)` at line 107.
-pub fn ruby_os_depends_on_l107_d6_add_missing_os_dependency(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_os_depends_on_l107_d6_add_missing_os_dependency(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	os := os_depends_on_argument_os(args, 1)
 	return os_depends_on_analysis_value(analyze_os_depends_on_phases(source, false, true, os))
 }
 
 // Ruby method `os_only_stanza?(stanza, os)` at line 159.
-pub fn ruby_os_depends_on_l159_d7_os_only_stanza(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_os_depends_on_l159_d7_os_only_stanza(args ...ruby.Value) ruby.Value {
 	stanzas := os_depends_on_parse(if args.len > 0 { args[0].as_string() } else { '' })
 	os := os_depends_on_argument_os(args, 1)
-	return brew_runtime.bool_value(stanzas.len > 0 && os_depends_on_only_stanza(stanzas[0], os))
+	return ruby.bool_value(stanzas.len > 0 && os_depends_on_only_stanza(stanzas[0], os))
 }
 
 // Ruby method `cross_platform_cask?(top_level_stanzas, stanzas, os)` at line 178.
-pub fn ruby_os_depends_on_l178_d8_cross_platform_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_os_depends_on_l178_d8_cross_platform_cask(args ...ruby.Value) ruby.Value {
 	stanzas := os_depends_on_parse(if args.len > 0 { args[0].as_string() } else { '' })
 	os := os_depends_on_argument_os(args, 1)
 	for cask in stanzas.filter(it.method == 'cask') {
@@ -640,108 +640,108 @@ pub fn ruby_os_depends_on_l178_d8_cross_platform_cask(args ...brew_runtime.Value
 		for stanza in top_level {
 			all_stanzas << os_depends_on_platform_stanzas(stanza, stanzas)
 		}
-		return brew_runtime.bool_value(os_depends_on_cross_platform(top_level, all_stanzas, os))
+		return ruby.bool_value(os_depends_on_cross_platform(top_level, all_stanzas, os))
 	}
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 // Ruby method `direct_stanzas(node)` at line 189.
-pub fn ruby_os_depends_on_l189_d9_direct_stanzas(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_os_depends_on_l189_d9_direct_stanzas(args ...ruby.Value) ruby.Value {
 	stanzas := os_depends_on_parse(if args.len > 0 { args[0].as_string() } else { '' })
 	parent := stanzas.filter(it.method == 'cask')
 	parent_id := if parent.len > 0 { parent[0].id } else { -1 }
-	return brew_runtime.array_value(os_depends_on_direct_stanzas(parent_id, stanzas).map(os_depends_on_stanza_value(it)))
+	return ruby.array_value(os_depends_on_direct_stanzas(parent_id, stanzas).map(os_depends_on_stanza_value(it)))
 }
 
 // Ruby method `platform_block_stanzas(stanza)` at line 200.
-pub fn ruby_os_depends_on_l200_d10_platform_block_stanzas(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_os_depends_on_l200_d10_platform_block_stanzas(args ...ruby.Value) ruby.Value {
 	stanzas := os_depends_on_parse(if args.len > 0 { args[0].as_string() } else { '' })
 	for stanza in stanzas {
 		if stanza.method in os_depends_on_platform_blocks {
-			return brew_runtime.array_value(os_depends_on_platform_stanzas(stanza, stanzas).map(os_depends_on_stanza_value(it)))
+			return ruby.array_value(os_depends_on_platform_stanzas(stanza, stanzas).map(os_depends_on_stanza_value(it)))
 		}
 	}
-	return brew_runtime.array_value([]brew_runtime.Value{})
+	return ruby.array_value([]ruby.Value{})
 }
 
 // Ruby method `full_stanza_source_range(stanza)` at line 212.
-pub fn ruby_os_depends_on_l212_d11_full_stanza_source_range(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_os_depends_on_l212_d11_full_stanza_source_range(args ...ruby.Value) ruby.Value {
 	stanzas := os_depends_on_parse(if args.len > 0 { args[0].as_string() } else { '' })
 	if stanzas.len == 0 {
-		return brew_runtime.object_value('Parser::Source::Range', '')
+		return ruby.object_value('Parser::Source::Range', '')
 	}
 	stanza := stanzas[0]
-	return brew_runtime.structured_value('Parser::Source::Range', '${stanza.full_begin}...${stanza.full_end}', {
+	return ruby.structured_value('Parser::Source::Range', '${stanza.full_begin}...${stanza.full_end}', {
 		'begin_pos': stanza.full_begin.str()
 		'end_pos':   stanza.full_end.str()
 	})
 }
 
 // Ruby method `depends_on_pairs(node)` at line 220.
-pub fn ruby_os_depends_on_l220_d12_depends_on_pairs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_os_depends_on_l220_d12_depends_on_pairs(args ...ruby.Value) ruby.Value {
 	stanzas := os_depends_on_parse(if args.len > 0 { args[0].as_string() } else { '' })
 	for stanza in stanzas.filter(it.method == 'depends_on') {
-		return brew_runtime.array_value(stanza.pairs.map(os_depends_on_pair_value(it)))
+		return ruby.array_value(stanza.pairs.map(os_depends_on_pair_value(it)))
 	}
-	return brew_runtime.array_value([]brew_runtime.Value{})
+	return ruby.array_value([]ruby.Value{})
 }
 
 // Ruby method `symbol_key(pair)` at line 229.
-pub fn ruby_os_depends_on_l229_d13_symbol_key(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_os_depends_on_l229_d13_symbol_key(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { 'depends_on ${args[0].as_string()}' } else { '' }
 	stanzas := os_depends_on_parse(source)
 	if stanzas.len == 0 || stanzas[0].pairs.len == 0 {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
-	return brew_runtime.string_value(stanzas[0].pairs[0].key)
+	return ruby.string_value(stanzas[0].pairs[0].key)
 }
 
 // Ruby method `sibling_depends_on_pairs(node)` at line 237.
-pub fn ruby_os_depends_on_l237_d14_sibling_depends_on_pairs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_os_depends_on_l237_d14_sibling_depends_on_pairs(args ...ruby.Value) ruby.Value {
 	stanzas := os_depends_on_parse(if args.len > 0 { args[0].as_string() } else { '' })
 	for stanza in stanzas.filter(it.method == 'depends_on') {
 		mut pairs := []OsDependsOnPair{}
 		for sibling in stanzas.filter(it.parent_id == stanza.parent_id && it.method == 'depends_on') {
 			pairs << sibling.pairs
 		}
-		return brew_runtime.array_value(pairs.map(os_depends_on_pair_value(it)))
+		return ruby.array_value(pairs.map(os_depends_on_pair_value(it)))
 	}
-	return brew_runtime.array_value([]brew_runtime.Value{})
+	return ruby.array_value([]ruby.Value{})
 }
 
 // Ruby method `sibling_depends_on_calls(node)` at line 242.
-pub fn ruby_os_depends_on_l242_d15_sibling_depends_on_calls(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_os_depends_on_l242_d15_sibling_depends_on_calls(args ...ruby.Value) ruby.Value {
 	stanzas := os_depends_on_parse(if args.len > 0 { args[0].as_string() } else { '' })
 	for stanza in stanzas.filter(it.method == 'depends_on') {
 		siblings := stanzas.filter(it.parent_id == stanza.parent_id && it.method == 'depends_on')
-		return brew_runtime.array_value(siblings.map(os_depends_on_stanza_value(it)))
+		return ruby.array_value(siblings.map(os_depends_on_stanza_value(it)))
 	}
-	return brew_runtime.array_value([]brew_runtime.Value{})
+	return ruby.array_value([]ruby.Value{})
 }
 
 // Ruby method `os_depends_on?(node)` at line 249.
-pub fn ruby_os_depends_on_l249_d16_os_depends_on(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_os_depends_on_l249_d16_os_depends_on(args ...ruby.Value) ruby.Value {
 	stanzas := os_depends_on_parse(if args.len > 0 { args[0].as_string() } else { '' })
-	return brew_runtime.bool_value(stanzas.any(os_depends_on_is_dependency(it)))
+	return ruby.bool_value(stanzas.any(os_depends_on_is_dependency(it)))
 }
 
 // Ruby method `bare_os_depends_on?(node, os)` at line 260.
-pub fn ruby_os_depends_on_l260_d17_bare_os_depends_on(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_os_depends_on_l260_d17_bare_os_depends_on(args ...ruby.Value) ruby.Value {
 	stanzas := os_depends_on_parse(if args.len > 0 { args[0].as_string() } else { '' })
 	os := os_depends_on_argument_os(args, 1)
-	return brew_runtime.bool_value(stanzas.any(os_depends_on_bare(it, os)))
+	return ruby.bool_value(stanzas.any(os_depends_on_bare(it, os)))
 }
 
 // Ruby method `top_level_macos_depends_on?(node)` at line 265.
-pub fn ruby_os_depends_on_l265_d18_top_level_macos_depends_on(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_os_depends_on_l265_d18_top_level_macos_depends_on(args ...ruby.Value) ruby.Value {
 	stanzas := os_depends_on_parse(if args.len > 0 { args[0].as_string() } else { '' })
-	return brew_runtime.bool_value(stanzas.any(os_depends_on_has_macos_pair(it)))
+	return ruby.bool_value(stanzas.any(os_depends_on_has_macos_pair(it)))
 }
 
 // Ruby method `top_level_linux_depends_on?(node)` at line 270.
-pub fn ruby_os_depends_on_l270_d19_top_level_linux_depends_on(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_os_depends_on_l270_d19_top_level_linux_depends_on(args ...ruby.Value) ruby.Value {
 	stanzas := os_depends_on_parse(if args.len > 0 { args[0].as_string() } else { '' })
-	return brew_runtime.bool_value(stanzas.any(os_depends_on_has_linux_pair(it)))
+	return ruby.bool_value(stanzas.any(os_depends_on_has_linux_pair(it)))
 }
 
 // Original Ruby source (line-for-line):

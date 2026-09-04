@@ -1,6 +1,6 @@
 module cask
 
-import brew_runtime
+import ruby
 import homebrew
 import homebrew.cask as cask_core
 import homebrew.cask.dsl as dsl_types
@@ -11,24 +11,24 @@ import x.json2
 
 // Translated from Homebrew/brew `test/cask/cask_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
-fn cask_spec_bool(value bool) brew_runtime.Value {
-	return brew_runtime.bool_value(value)
+fn cask_spec_bool(value bool) ruby.Value {
+	return ruby.bool_value(value)
 }
 
-fn cask_spec_nil() brew_runtime.Value {
-	return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+fn cask_spec_nil() ruby.Value {
+	return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 }
 
-fn cask_spec_value_string(values map[string]brew_runtime.Value, key string) string {
+fn cask_spec_value_string(values map[string]ruby.Value, key string) string {
 	value := values[key] or { return '' }
 	return if value.type_name == 'NilClass' { '' } else { value.as_string() }
 }
 
-fn cask_spec_optional_string(value string) brew_runtime.Value {
-	return if value == '' { cask_spec_nil() } else { brew_runtime.string_value(value) }
+fn cask_spec_optional_string(value string) ruby.Value {
+	return if value == '' { cask_spec_nil() } else { ruby.string_value(value) }
 }
 
-fn cask_spec_strings(value brew_runtime.Value) []string {
+fn cask_spec_strings(value ruby.Value) []string {
 	if value.string_array_data.len > 0 {
 		return value.string_array_data.clone()
 	}
@@ -61,7 +61,7 @@ fn cask_spec_core(token string) cask_core.CaskCore {
 	}, cask_spec_noop_block) or { panic(err) }
 }
 
-fn cask_spec_artifact(key string, source string, target string) brew_runtime.Value {
+fn cask_spec_artifact(key string, source string, target string) ruby.Value {
 	mut attributes := {
 		'dsl_key': key
 		'source':  source
@@ -69,10 +69,10 @@ fn cask_spec_artifact(key string, source string, target string) brew_runtime.Val
 	if target != '' {
 		attributes['target'] = target
 	}
-	return brew_runtime.structured_value('Cask::Artifact::${key.split('_').map(it.title()).join('')}', source, attributes)
+	return ruby.structured_value('Cask::Artifact::${key.split('_').map(it.title()).join('')}', source, attributes)
 }
 
-fn cask_spec_artifact_key(value brew_runtime.Value) string {
+fn cask_spec_artifact_key(value ruby.Value) string {
 	for key in ['uninstall_preflight', 'preflight', 'uninstall', 'pkg', 'app', 'app_image', 'binary',
 		'installer', 'stage_only', 'uninstall_postflight', 'postflight', 'zap'] {
 		if key in value.map_data {
@@ -82,12 +82,12 @@ fn cask_spec_artifact_key(value brew_runtime.Value) string {
 	return ''
 }
 
-fn cask_spec_flight(key string) brew_runtime.Value {
-	return brew_runtime.Value{
+fn cask_spec_flight(key string) ruby.Value {
+	return ruby.Value{
 		type_name: 'Cask::Artifact::${key.split('_').map(it.title()).join('')}Block'
 		repr: key
 		map_data: {
-			key: brew_runtime.object_value('Proc', key)
+			key: ruby.object_value('Proc', key)
 		}
 		attributes: {
 			'dsl_key': key
@@ -103,7 +103,7 @@ fn cask_spec_set_download(mut cask cask_core.CaskCore, version string, auto_upda
 	artifact_key string) {
 	cask.dsl.version_value = dsl_types.cask_version_from_string(version) or { panic(err) }
 	cask.dsl.has_version = true
-	cask.dsl.sha256_value = brew_runtime.string_value('5633c3a0f2e572cbf021507dec78c50998b398c343232bdfc7e26221d0a5db4d')
+	cask.dsl.sha256_value = ruby.string_value('5633c3a0f2e572cbf021507dec78c50998b398c343232bdfc7e26221d0a5db4d')
 	cask.dsl.has_sha256 = true
 	cask.dsl.url_value = cask_spec_url('https://brew.sh/MyFancyApp.zip')
 	cask.dsl.has_url = true
@@ -160,7 +160,7 @@ fn cask_spec_write_info_plist(path string, short string, bundle string, contents
 }
 
 fn cask_spec_fixture_dir() string {
-	configured := brew_runtime.environment_value('HOMEBREW_TEST_FIXTURE_DIR')
+	configured := ruby.environment_value('HOMEBREW_TEST_FIXTURE_DIR')
 	if configured != '' {
 		return configured
 	}
@@ -174,7 +174,7 @@ fn cask_spec_fixture_json(name string) string {
 fn cask_spec_basic_download_block(mut dsl cask_core.CaskDSL) ! {
 	dsl.version_value = dsl_types.cask_version_from_string('latest')!
 	dsl.has_version = true
-	dsl.sha256_value = brew_runtime.Value{ type_name: 'Symbol', repr: 'no_check' }
+	dsl.sha256_value = ruby.Value{ type_name: 'Symbol', repr: 'no_check' }
 	dsl.has_sha256 = true
 	dsl.url_value = cask_spec_url('https://brew.sh/foo.zip')
 	dsl.has_url = true
@@ -184,15 +184,15 @@ fn cask_spec_basic_download_block(mut dsl cask_core.CaskDSL) ! {
 }
 
 fn cask_spec_asymmetric_block(mut dsl cask_core.CaskDSL) ! {
-	os_name := dsl.cask.map_data['system_os'] or { brew_runtime.string_value('macos') }.as_string()
-	arch := dsl.cask.map_data['system_arch'] or { brew_runtime.string_value('intel') }.as_string()
+	os_name := dsl.cask.map_data['system_os'] or { ruby.string_value('macos') }.as_string()
+	arch := dsl.cask.map_data['system_arch'] or { ruby.string_value('intel') }.as_string()
 	dsl.on_system_blocks_exist = true
 	dsl.version_value = dsl_types.cask_version_from_string('1.2.3')!
 	dsl.has_version = true
 	dsl.sha256_value = if os_name == 'linux' && arch in ['arm', 'arm64'] {
 		cask_spec_nil()
 	} else {
-		brew_runtime.string_value('8c62a2b791cf5f0da6066a0a4b6e85f62949cd60975da062df44adf887f4370b')
+		ruby.string_value('8c62a2b791cf5f0da6066a0a4b6e85f62949cd60975da062df44adf887f4370b')
 	}
 	dsl.has_sha256 = dsl.sha256_value.type_name != 'NilClass'
 	os_component := if os_name == 'linux' { 'linux' } else { 'darwin' }
@@ -212,27 +212,27 @@ fn cask_spec_asymmetric_block(mut dsl cask_core.CaskDSL) ! {
 }
 
 fn cask_spec_invalid_linux_block(mut dsl cask_core.CaskDSL) ! {
-	os_name := dsl.cask.map_data['system_os'] or { brew_runtime.string_value('macos') }.as_string()
+	os_name := dsl.cask.map_data['system_os'] or { ruby.string_value('macos') }.as_string()
 	dsl.on_system_blocks_exist = true
 	if os_name == 'linux' {
 		return error('version is unavailable for this system')
 	}
 	dsl.version_value = dsl_types.cask_version_from_string('1.2.3')!
 	dsl.has_version = true
-	dsl.sha256_value = brew_runtime.Value{ type_name: 'Symbol', repr: 'no_check' }
+	dsl.sha256_value = ruby.Value{ type_name: 'Symbol', repr: 'no_check' }
 	dsl.has_sha256 = true
 	dsl.url_value = cask_spec_url('https://brew.sh/foo-1.2.zip')
 	dsl.has_url = true
 }
 
 fn cask_spec_language_block(mut dsl cask_core.CaskDSL) ! {
-	config := dsl.cask.map_data['config'] or { brew_runtime.map_value({}) }
-	appdir := config.map_data['appdir'] or { brew_runtime.string_value('/Applications') }.as_string()
+	config := dsl.cask.map_data['config'] or { ruby.map_value({}) }
+	appdir := config.map_data['appdir'] or { ruby.string_value('/Applications') }.as_string()
 	dsl.version_value = dsl_types.cask_version_from_string('1.2.3')!
 	dsl.has_version = true
 	dsl.url_value = cask_spec_url('file://${cask_spec_fixture_dir()}/cask/caffeine.zip')
 	dsl.has_url = true
-	dsl.sha256_value = brew_runtime.string_value('67cdb8a02803ef37fdbf7e0be205863172e41a561ca446cd84f0d7ab35a99d94')
+	dsl.sha256_value = ruby.string_value('67cdb8a02803ef37fdbf7e0be205863172e41a561ca446cd84f0d7ab35a99d94')
 	dsl.has_sha256 = true
 	dsl.artifacts = cask_core.new_artifact_set([
 		cask_spec_artifact('app', 'Caffeine.app', os.join_path(appdir, 'Caffeine.app')),
@@ -246,7 +246,7 @@ fn cask_spec_language_block(mut dsl cask_core.CaskDSL) ! {
 			result: 'zh-CN'
 			mutations: {
 				'url':       cask_core.cask_url_value(cask_spec_url('file://${cask_spec_fixture_dir()}/cask/container.tar.gz'))
-				'sha256':    brew_runtime.string_value('fab685fabf73d5a9382581ce8698fce9408f5feaa49fa10d9bc6c510493300f5')
+				'sha256':    ruby.string_value('fab685fabf73d5a9382581ce8698fce9408f5feaa49fa10d9bc6c510493300f5')
 				'artifacts': cask_core.artifact_set_value(zh_artifacts)
 			}
 		},
@@ -259,8 +259,8 @@ fn cask_spec_language_block(mut dsl cask_core.CaskDSL) ! {
 }
 
 fn cask_spec_sha_arch_block(mut dsl cask_core.CaskDSL) ! {
-	arch := dsl.cask.map_data['system_arch'] or { brew_runtime.string_value('intel') }.as_string()
-	os_name := dsl.cask.map_data['system_os'] or { brew_runtime.string_value('macos') }.as_string()
+	arch := dsl.cask.map_data['system_arch'] or { ruby.string_value('intel') }.as_string()
+	os_name := dsl.cask.map_data['system_os'] or { ruby.string_value('macos') }.as_string()
 	dsl.on_system_blocks_exist = true
 	dsl.version_value = dsl_types.cask_version_from_string('1.2.3')!
 	dsl.has_version = true
@@ -273,9 +273,9 @@ fn cask_spec_sha_arch_block(mut dsl cask_core.CaskDSL) ! {
 	dsl.sha256_value = if os_name == 'linux' {
 		cask_spec_nil()
 	} else if arch in ['arm', 'arm64'] {
-		brew_runtime.string_value('67cdb8a02803ef37fdbf7e0be205863172e41a561ca446cd84f0d7ab35a99d94')
+		ruby.string_value('67cdb8a02803ef37fdbf7e0be205863172e41a561ca446cd84f0d7ab35a99d94')
 	} else {
-		brew_runtime.string_value('8c62a2b791cf5f0da6066a0a4b6e85f62949cd60975da062df44adf887f4370b')
+		ruby.string_value('8c62a2b791cf5f0da6066a0a4b6e85f62949cd60975da062df44adf887f4370b')
 	}
 	dsl.has_sha256 = dsl.sha256_value.type_name != 'NilClass'
 	dsl.artifacts = cask_core.new_artifact_set([
@@ -284,8 +284,8 @@ fn cask_spec_sha_arch_block(mut dsl cask_core.CaskDSL) ! {
 }
 
 fn cask_spec_sha_os_block(mut dsl cask_core.CaskDSL) ! {
-	arch := dsl.cask.map_data['system_arch'] or { brew_runtime.string_value('intel') }.as_string()
-	os_name := dsl.cask.map_data['system_os'] or { brew_runtime.string_value('macos') }.as_string()
+	arch := dsl.cask.map_data['system_arch'] or { ruby.string_value('intel') }.as_string()
+	os_name := dsl.cask.map_data['system_os'] or { ruby.string_value('macos') }.as_string()
 	dsl.on_system_blocks_exist = true
 	dsl.version_value = dsl_types.cask_version_from_string('1.2.3')!
 	dsl.has_version = true
@@ -294,9 +294,9 @@ fn cask_spec_sha_os_block(mut dsl cask_core.CaskDSL) ! {
 	dsl.url_value = cask_spec_url('https://brew.sh/caffeine-${arch_name}-${os_component}.zip')
 	dsl.has_url = true
 	dsl.sha256_value = if arch_name == 'arm' {
-		brew_runtime.string_value('67cdb8a02803ef37fdbf7e0be205863172e41a561ca446cd84f0d7ab35a99d94')
+		ruby.string_value('67cdb8a02803ef37fdbf7e0be205863172e41a561ca446cd84f0d7ab35a99d94')
 	} else {
-		brew_runtime.string_value('8c62a2b791cf5f0da6066a0a4b6e85f62949cd60975da062df44adf887f4370b')
+		ruby.string_value('8c62a2b791cf5f0da6066a0a4b6e85f62949cd60975da062df44adf887f4370b')
 	}
 	dsl.has_sha256 = dsl.sha256_value.type_name != 'NilClass'
 	dsl.artifacts = cask_core.new_artifact_set([cask_spec_artifact(if os_name == 'linux' {
@@ -312,8 +312,8 @@ fn cask_spec_sha_os_block(mut dsl cask_core.CaskDSL) ! {
 }
 
 fn cask_spec_multiple_versions_block(mut dsl cask_core.CaskDSL) ! {
-	os_name := dsl.cask.map_data['system_os'] or { brew_runtime.string_value('macos') }.as_string()
-	arch := dsl.cask.map_data['system_arch'] or { brew_runtime.string_value('intel') }.as_string()
+	os_name := dsl.cask.map_data['system_os'] or { ruby.string_value('macos') }.as_string()
+	arch := dsl.cask.map_data['system_arch'] or { ruby.string_value('intel') }.as_string()
 	dsl.on_system_blocks_exist = true
 	mut version := '1.2.3'
 	mut checksum := '8c62a2b791cf5f0da6066a0a4b6e85f62949cd60975da062df44adf887f4370b'
@@ -332,7 +332,7 @@ fn cask_spec_multiple_versions_block(mut dsl cask_core.CaskDSL) ! {
 	} else {
 		dsl.version_value = dsl_types.cask_version_from_string(version)!
 		dsl.has_version = true
-		dsl.sha256_value = brew_runtime.string_value(checksum)
+		dsl.sha256_value = ruby.string_value(checksum)
 		dsl.has_sha256 = true
 	}
 	arch_component := if arch in ['arm', 'arm64'] { 'darwin-arm64' } else { 'darwin' }
@@ -345,8 +345,8 @@ fn cask_spec_multiple_versions_block(mut dsl cask_core.CaskDSL) ! {
 }
 
 fn cask_spec_linux_checksums_block(mut dsl cask_core.CaskDSL) ! {
-	os_name := dsl.cask.map_data['system_os'] or { brew_runtime.string_value('macos') }.as_string()
-	arch := dsl.cask.map_data['system_arch'] or { brew_runtime.string_value('intel') }.as_string()
+	os_name := dsl.cask.map_data['system_os'] or { ruby.string_value('macos') }.as_string()
+	arch := dsl.cask.map_data['system_arch'] or { ruby.string_value('intel') }.as_string()
 	dsl.on_system_blocks_exist = true
 	dsl.version_value = dsl_types.cask_version_from_string('1.2.3')!
 	dsl.has_version = true
@@ -367,7 +367,7 @@ fn cask_spec_linux_checksums_block(mut dsl cask_core.CaskDSL) ! {
 	} else {
 		'8c62a2b791cf5f0da6066a0a4b6e85f62949cd60975da062df44adf887f4370b'
 	}
-	dsl.sha256_value = brew_runtime.string_value(checksum)
+	dsl.sha256_value = ruby.string_value(checksum)
 	dsl.has_sha256 = true
 	dsl.artifacts = cask_core.new_artifact_set([
 		cask_spec_artifact('binary', 'caffeine', ''),
@@ -376,7 +376,7 @@ fn cask_spec_linux_checksums_block(mut dsl cask_core.CaskDSL) ! {
 
 fn cask_spec_linux_only_checksums_block(mut dsl cask_core.CaskDSL) ! {
 	cask_spec_linux_checksums_block(mut dsl)!
-	os_name := dsl.cask.map_data['system_os'] or { brew_runtime.string_value('macos') }.as_string()
+	os_name := dsl.cask.map_data['system_os'] or { ruby.string_value('macos') }.as_string()
 	if os_name != 'linux' {
 		dsl.has_sha256 = false
 	}
@@ -388,7 +388,7 @@ fn cask_spec_linux_only_checksums_block(mut dsl cask_core.CaskDSL) ! {
 
 fn cask_spec_on_linux_content_block(mut dsl cask_core.CaskDSL) ! {
 	cask_spec_linux_checksums_block(mut dsl)!
-	os_name := dsl.cask.map_data['system_os'] or { brew_runtime.string_value('macos') }.as_string()
+	os_name := dsl.cask.map_data['system_os'] or { ruby.string_value('macos') }.as_string()
 	if os_name == 'linux' {
 		dsl.artifacts = cask_core.new_artifact_set([
 			cask_spec_artifact('app_image', 'Caffeine.AppImage', '/tmp/cask-appimagedir/Caffeine.AppImage'),
@@ -403,7 +403,7 @@ fn cask_spec_on_linux_content_block(mut dsl cask_core.CaskDSL) ! {
 fn cask_spec_scoped_macos_block(mut dsl cask_core.CaskDSL) ! {
 	cask_spec_basic_download_block(mut dsl)!
 	dsl.on_system_blocks_exist = true
-	os_name := dsl.cask.map_data['system_os'] or { brew_runtime.string_value('macos') }.as_string()
+	os_name := dsl.cask.map_data['system_os'] or { ruby.string_value('macos') }.as_string()
 	mut depends := dsl_types.CaskDependsOn{}
 	if os_name != 'linux' {
 		depends.macos = cask_spec_macos_requirement('monterey')
@@ -419,7 +419,7 @@ fn cask_spec_incomplete_download_block(mut dsl cask_core.CaskDSL) ! {
 fn cask_spec_arch_restricted_block(mut dsl cask_core.CaskDSL) ! {
 	cask_spec_basic_download_block(mut dsl)!
 	dsl.on_system_blocks_exist = true
-	os_name := dsl.cask.map_data['system_os'] or { brew_runtime.string_value('macos') }.as_string()
+	os_name := dsl.cask.map_data['system_os'] or { ruby.string_value('macos') }.as_string()
 	if os_name == 'linux' {
 		dsl.depends_on_value.arch = [dsl_types.CaskDependencyArch{ kind: 'x86_64' }]
 	}
@@ -427,59 +427,59 @@ fn cask_spec_arch_restricted_block(mut dsl cask_core.CaskDSL) ! {
 
 fn cask_spec_linux_without_macos_dependency_block(mut dsl cask_core.CaskDSL) ! {
 	cask_spec_sha_os_block(mut dsl)!
-	os_name := dsl.cask.map_data['system_os'] or { brew_runtime.string_value('macos') }.as_string()
+	os_name := dsl.cask.map_data['system_os'] or { ruby.string_value('macos') }.as_string()
 	if os_name == 'linux' {
 		dsl.depends_on_value.macos = none
 		dsl.depends_on_value.macos_required = false
 	}
 }
 
-fn cask_spec_map(value brew_runtime.Value, key string) map[string]brew_runtime.Value {
-	return (value.map_data[key] or { brew_runtime.map_value({}) }).map_data
+fn cask_spec_map(value ruby.Value, key string) map[string]ruby.Value {
+	return (value.map_data[key] or { ruby.map_value({}) }).map_data
 }
 
-fn cask_spec_variation(hash map[string]brew_runtime.Value, tag string) map[string]brew_runtime.Value {
-	variations := (hash['variations'] or { brew_runtime.map_value({}) }).map_data.clone()
-	return (variations[tag] or { brew_runtime.map_value({}) }).map_data.clone()
+fn cask_spec_variation(hash map[string]ruby.Value, tag string) map[string]ruby.Value {
+	variations := (hash['variations'] or { ruby.map_value({}) }).map_data.clone()
+	return (variations[tag] or { ruby.map_value({}) }).map_data.clone()
 }
 
-fn cask_spec_supported_from_hash(hash map[string]brew_runtime.Value) []string {
-	return (hash['supported_platforms'] or { brew_runtime.string_array_value([]) }).as_string_array() or {
+fn cask_spec_supported_from_hash(hash map[string]ruby.Value) []string {
+	return (hash['supported_platforms'] or { ruby.string_array_value([]) }).as_string_array() or {
 		[]string{}
 	}
 }
 
-fn cask_spec_value_from_json(value json2.Any) brew_runtime.Value {
+fn cask_spec_value_from_json(value json2.Any) ruby.Value {
 	if value is string {
-		return brew_runtime.string_value(value)
+		return ruby.string_value(value)
 	}
 	if value is bool {
-		return brew_runtime.bool_value(value)
+		return ruby.bool_value(value)
 	}
 	if value is i64 {
-		return brew_runtime.int_value(value)
+		return ruby.int_value(value)
 	}
 	if value is f64 {
 		return if value == f64(i64(value)) {
-			brew_runtime.int_value(i64(value))
+			ruby.int_value(i64(value))
 		} else {
-			brew_runtime.float_value(value)
+			ruby.float_value(value)
 		}
 	}
 	if value is []json2.Any {
-		return brew_runtime.array_value(value.map(cask_spec_value_from_json(it)))
+		return ruby.array_value(value.map(cask_spec_value_from_json(it)))
 	}
 	if value is map[string]json2.Any {
-		mut mapped := map[string]brew_runtime.Value{}
+		mut mapped := map[string]ruby.Value{}
 		for key, item in value {
 			mapped[key] = cask_spec_value_from_json(item)
 		}
-		return brew_runtime.map_value(mapped)
+		return ruby.map_value(mapped)
 	}
 	return cask_spec_nil()
 }
 
-fn cask_spec_value_equal(left brew_runtime.Value, right brew_runtime.Value) bool {
+fn cask_spec_value_equal(left ruby.Value, right ruby.Value) bool {
 	if left.type_name == 'NilClass' || right.type_name == 'NilClass' {
 		return left.type_name == right.type_name
 	}
@@ -628,9 +628,9 @@ fn cask_spec_platform_tags() []homebrew.BottleTag {
 	]
 }
 
-fn cask_spec_tag_value(system string, arch string) brew_runtime.Value {
+fn cask_spec_tag_value(system string, arch string) ruby.Value {
 	tag := homebrew.new_bottle_tag(system, arch)
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'Utils::Bottles::Tag'
 		repr: tag.symbol()
 		attributes: {
@@ -642,7 +642,7 @@ fn cask_spec_tag_value(system string, arch string) brew_runtime.Value {
 
 fn cask_spec_supported(mut cask cask_core.CaskCore) []string {
 	result := cask.to_hash_with_variations() or { panic(err) }
-	return (result['supported_platforms'] or { brew_runtime.string_array_value([]) }).as_string_array() or {
+	return (result['supported_platforms'] or { ruby.string_array_value([]) }).as_string_array() or {
 		[]string{}
 	}
 }
@@ -666,25 +666,25 @@ fn cask_spec_macos_requirement(minimum string) requirements.MacOSRequirement {
 
 fn cask_spec_many_artifacts() cask_core.CaskCore {
 	mut cask := cask_spec_core('many-artifacts')
-	uninstall := brew_runtime.Value{
+	uninstall := ruby.Value{
 		type_name: 'Cask::Artifact::Uninstall'
 		repr: 'uninstall'
 		map_data: {
-			'rmdir': brew_runtime.string_value('/tmp/empty_directory_path')
-			'trash': brew_runtime.string_array_value(['/tmp/foo', '/tmp/bar'])
+			'rmdir': ruby.string_value('/tmp/empty_directory_path')
+			'trash': ruby.string_array_value(['/tmp/foo', '/tmp/bar'])
 		}
 		attributes: {
 			'dsl_key':         'uninstall'
 			'uninstall_phase': 'true'
 		}
 	}
-	zap := brew_runtime.Value{
+	zap := ruby.Value{
 		type_name: 'Cask::Artifact::Zap'
 		repr: 'zap'
 		map_data: {
-			'rmdir': brew_runtime.string_array_value(['~/Library/Caches/ManyArtifacts',
+			'rmdir': ruby.string_array_value(['~/Library/Caches/ManyArtifacts',
 				'~/Library/Application Support/ManyArtifacts'])
-			'trash': brew_runtime.string_value('~/Library/Logs/ManyArtifacts.log')
+			'trash': ruby.string_value('~/Library/Logs/ManyArtifacts.log')
 		}
 		attributes: {
 			'dsl_key': 'zap'
@@ -706,7 +706,7 @@ fn cask_spec_many_artifacts() cask_core.CaskCore {
 fn cask_spec_flight_cask(key string) cask_core.CaskCore {
 	mut cask := cask_spec_core('flight-block')
 	cask.dsl.artifacts = cask_core.new_artifact_set(if key == '' {
-		[]brew_runtime.Value{}
+		[]ruby.Value{}
 	} else {
 		[cask_spec_flight(key)]
 	})
@@ -714,63 +714,63 @@ fn cask_spec_flight_cask(key string) cask_core.CaskCore {
 }
 
 // Ruby let `let(:cask) { described_class.new("versioned-cask") }` at line 5.
-pub fn ruby_cask_spec_l5_d1_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l5_d1_cask(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cask_core.cask_core_value(cask_spec_core('versioned-cask'))
 }
 
 // Ruby method `write_info_plist(path, short_version: nil, bundle_version: nil, contents: nil)` at line 7.
-pub fn ruby_cask_spec_l7_d2_write_info_plist(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l7_d2_write_info_plist(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'path is required')
+		return ruby.object_value('ArgumentError', 'path is required')
 	}
-	options := if args.len > 1 { args[1].map_data } else { map[string]brew_runtime.Value{} }
+	options := if args.len > 1 { args[1].map_data } else { map[string]ruby.Value{} }
 	cask_spec_write_info_plist(args[0].as_string(), cask_spec_value_string(options, 'short_version'), cask_spec_value_string(options, 'bundle_version'), cask_spec_value_string(options, 'contents')) or {
-		return brew_runtime.object_value('CaskError', err.msg())
+		return ruby.object_value('CaskError', err.msg())
 	}
 	return cask_spec_nil()
 }
 
 // Ruby method `write_auto_updates_cask(path, version:, artifacts:, token: "auto-updates-bundle-check")` at line 41.
-pub fn ruby_cask_spec_l41_d3_write_auto_updates_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	options := if args.len > 1 { args[1].map_data } else { map[string]brew_runtime.Value{} }
+pub fn ruby_cask_spec_l41_d3_write_auto_updates_cask(args ...ruby.Value) ruby.Value {
+	options := if args.len > 1 { args[1].map_data } else { map[string]ruby.Value{} }
 	version := if value := options['version'] { value.as_string() } else { '1.0' }
 	token := if value := options['token'] { value.as_string() } else { 'auto-updates-bundle-check' }
 	mut cask := cask_spec_core(token)
 	cask_spec_set_download(mut cask, version, true, 'app')
 	if args.len > 0 {
 		artifacts := (options['artifacts'] or {
-			brew_runtime.string_array_value([
+			ruby.string_array_value([
 				'app "MyFancyApp.app"',
 			])
 		}).as_string_array() or { []string{} }
 		source := 'cask "${token}" do\n  version "${version}"\n  sha256 "5633c3a0f2e572cbf021507dec78c50998b398c343232bdfc7e26221d0a5db4d"\n  url "file://${cask_spec_fixture_dir()}/cask/MyFancyApp.zip"\n  homepage "https://brew.sh/MyFancyApp"\n  auto_updates true\n  ${artifacts.join('\n  ')}\nend\n'
-		os.write_file(args[0].as_string(), source) or { return brew_runtime.object_value('CaskError', err.msg()) }
+		os.write_file(args[0].as_string(), source) or { return ruby.object_value('CaskError', err.msg()) }
 		cask.sourcefile_path = args[0].as_string()
 	}
 	return cask_core.cask_core_value(cask)
 }
 
 // Ruby it `it "skips untrusted tap casks when trust is enabled" do` at line 60.
-pub fn ruby_cask_spec_l60_d4_skips(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l60_d4_skips(args ...ruby.Value) ruby.Value {
 	_ = args
 	trusted := cask_core.cask_core_value(cask_spec_core('trusted'))
 	untrusted := cask_core.cask_core_value(cask_spec_core('untrusted'))
-	result := cask_core.ruby_cask_l55_d11_self_all(brew_runtime.map_value({
-		'eval_all':             brew_runtime.bool_value(true)
-		'tap_trust_configured': brew_runtime.bool_value(true)
-		'require_tap_trust':    brew_runtime.bool_value(true)
-		'entries':              brew_runtime.array_value([
-			brew_runtime.map_value({
-				'trusted':  brew_runtime.bool_value(true)
-				'readable': brew_runtime.bool_value(true)
-				'valid':    brew_runtime.bool_value(true)
+	result := cask_core.ruby_cask_l55_d11_self_all(ruby.map_value({
+		'eval_all':             ruby.bool_value(true)
+		'tap_trust_configured': ruby.bool_value(true)
+		'require_tap_trust':    ruby.bool_value(true)
+		'entries':              ruby.array_value([
+			ruby.map_value({
+				'trusted':  ruby.bool_value(true)
+				'readable': ruby.bool_value(true)
+				'valid':    ruby.bool_value(true)
 				'cask':     trusted
 			}),
-			brew_runtime.map_value({
-				'trusted':  brew_runtime.bool_value(false)
-				'readable': brew_runtime.bool_value(true)
-				'valid':    brew_runtime.bool_value(true)
+			ruby.map_value({
+				'trusted':  ruby.bool_value(false)
+				'readable': ruby.bool_value(true)
+				'valid':    ruby.bool_value(true)
 				'cask':     untrusted
 			}),
 		])
@@ -780,27 +780,27 @@ pub fn ruby_cask_spec_l60_d4_skips(args ...brew_runtime.Value) brew_runtime.Valu
 }
 
 // Ruby it `it "allows all casks when trust is disabled" do` at line 80.
-pub fn ruby_cask_spec_l80_d5_allows(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l80_d5_allows(args ...ruby.Value) ruby.Value {
 	_ = args
-	result := cask_core.ruby_cask_l55_d11_self_all(brew_runtime.map_value({
-		'tap_trust_configured': brew_runtime.bool_value(true)
-		'require_tap_trust':    brew_runtime.bool_value(false)
-		'entries':              brew_runtime.array_value([])
+	result := cask_core.ruby_cask_l55_d11_self_all(ruby.map_value({
+		'tap_trust_configured': ruby.bool_value(true)
+		'require_tap_trust':    ruby.bool_value(false)
+		'entries':              ruby.array_value([])
 	}))
 	loaded := result.as_array() or { return cask_spec_bool(false) }
 	return cask_spec_bool(result.type_name == 'Array' && loaded.len == 0)
 }
 
 // Ruby it `it "skips invalid casks instead of aborting" do` at line 89.
-pub fn ruby_cask_spec_l89_d6_skips(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l89_d6_skips(args ...ruby.Value) ruby.Value {
 	_ = args
-	result := cask_core.ruby_cask_l55_d11_self_all(brew_runtime.map_value({
-		'tap_trust_configured': brew_runtime.bool_value(true)
-		'entries':              brew_runtime.array_value([
-			brew_runtime.map_value({
-				'trusted':  brew_runtime.bool_value(true)
-				'readable': brew_runtime.bool_value(true)
-				'valid':    brew_runtime.bool_value(false)
+	result := cask_core.ruby_cask_l55_d11_self_all(ruby.map_value({
+		'tap_trust_configured': ruby.bool_value(true)
+		'entries':              ruby.array_value([
+			ruby.map_value({
+				'trusted':  ruby.bool_value(true)
+				'readable': ruby.bool_value(true)
+				'valid':    ruby.bool_value(false)
 				'cask':     cask_core.cask_core_value(cask_spec_core('mismatch'))
 			}),
 		])
@@ -810,7 +810,7 @@ pub fn ruby_cask_spec_l89_d6_skips(args ...brew_runtime.Value) brew_runtime.Valu
 }
 
 // Ruby it `it "matches` at line 116.
-pub fn ruby_cask_spec_l116_d7_matches(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l116_d7_matches(args ...ruby.Value) ruby.Value {
 	mut cask := cask_spec_core('versioned-cask')
 	if args.len > 0 {
 		cask.installed_file_override = args[0].as_string()
@@ -827,7 +827,7 @@ pub fn ruby_cask_spec_l116_d7_matches(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby it `it "uses the last unique version" do` at line 126.
-pub fn ruby_cask_spec_l126_d8_uses(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l126_d8_uses(args ...ruby.Value) ruby.Value {
 	_ = args
 	root := cask_spec_temp('versions')
 	defer { os.rmdir_all(root) or {} }
@@ -839,7 +839,7 @@ pub fn ruby_cask_spec_l126_d8_uses(args ...brew_runtime.Value) brew_runtime.Valu
 }
 
 // Ruby it `it "ignores and replaces a dangling pin" do` at line 148.
-pub fn ruby_cask_spec_l148_d9_ignores(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l148_d9_ignores(args ...ruby.Value) ruby.Value {
 	_ = args
 	root := cask_spec_temp('dangling-pin')
 	defer { os.rmdir_all(root) or {} }
@@ -857,7 +857,7 @@ pub fn ruby_cask_spec_l148_d9_ignores(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby it `it "replaces a regular file pin record" do` at line 163.
-pub fn ruby_cask_spec_l163_d10_replaces(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l163_d10_replaces(args ...ruby.Value) ruby.Value {
 	_ = args
 	root := cask_spec_temp('file-pin')
 	defer { os.rmdir_all(root) or {} }
@@ -872,25 +872,25 @@ pub fn ruby_cask_spec_l163_d10_replaces(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby let `let(:tap_path) { CoreCaskTap.instance.path }` at line 177.
-pub fn ruby_cask_spec_l177_d11_tap_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Pathname', if args.len > 0 {
+pub fn ruby_cask_spec_l177_d11_tap_path(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Pathname', if args.len > 0 {
 		args[0].as_string()
 	} else {
-		os.join_path(brew_runtime.current_directory(), 'test', 'support', 'fixtures', 'homebrew-cask')
+		os.join_path(ruby.current_directory(), 'test', 'support', 'fixtures', 'homebrew-cask')
 	})
 }
 
 // Ruby let `let(:file_dirname) { Pathname.new(__FILE__).dirname }` at line 178.
-pub fn ruby_cask_spec_l178_d12_file_dirname(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Pathname', if args.len > 0 {
+pub fn ruby_cask_spec_l178_d12_file_dirname(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Pathname', if args.len > 0 {
 		os.dir(args[0].as_string())
 	} else {
-		os.join_path(brew_runtime.current_directory(), 'homebrew', 'test', 'cask')
+		os.join_path(ruby.current_directory(), 'homebrew', 'test', 'cask')
 	})
 }
 
 // Ruby let `let(:relative_tap_path) { tap_path.relative_path_from(file_dirname) }` at line 179.
-pub fn ruby_cask_spec_l179_d13_relative_tap_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l179_d13_relative_tap_path(args ...ruby.Value) ruby.Value {
 	tap_path := if args.len > 0 {
 		args[0].as_string()
 	} else {
@@ -901,39 +901,39 @@ pub fn ruby_cask_spec_l179_d13_relative_tap_path(args ...brew_runtime.Value) bre
 	} else {
 		ruby_cask_spec_l178_d12_file_dirname().as_string()
 	}
-	return brew_runtime.object_value('Pathname', cask_spec_relative_path(tap_path, file_dir))
+	return ruby.object_value('Pathname', cask_spec_relative_path(tap_path, file_dir))
 }
 
 // Ruby it `it "returns an instance of the Cask for the given token" do` at line 181.
-pub fn ruby_cask_spec_l181_d14_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l181_d14_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	cask := cask_spec_core('local-caffeine')
 	return cask_spec_bool(cask.token == 'local-caffeine')
 }
 
 // Ruby it `it "returns an instance of the Cask from a specific file location" do` at line 187.
-pub fn ruby_cask_spec_l187_d15_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l187_d15_returns(args ...ruby.Value) ruby.Value {
 	path := if args.len > 0 { args[0].as_string() } else { '/tap/Casks/local-caffeine.rb' }
 	cask := cask_core.new_cask_core(cask_core.CaskCoreConfig{ token: os.file_name(path).all_before_last('.'), sourcefile_path: path }, cask_spec_noop_block) or { return cask_spec_bool(false) }
 	return cask_spec_bool(!cask.loaded_from_api && !cask.loaded_from_internal_api && cask.token == 'local-caffeine')
 }
 
 // Ruby it `it "returns an instance of the Cask from a JSON file" do` at line 195.
-pub fn ruby_cask_spec_l195_d16_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l195_d16_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	cask := cask_core.new_cask_core(cask_core.CaskCoreConfig{ token: 'caffeine', loaded_from_api: true }, cask_spec_noop_block) or { return cask_spec_bool(false) }
 	return cask_spec_bool(cask.loaded_from_api && !cask.loaded_from_internal_api && cask.token == 'caffeine')
 }
 
 // Ruby it `it "returns an instance of the Cask from an internal JSON file" do` at line 203.
-pub fn ruby_cask_spec_l203_d17_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l203_d17_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	cask := cask_core.new_cask_core(cask_core.CaskCoreConfig{ token: 'caffeine', loaded_from_api: true, loaded_from_internal_api: true }, cask_spec_noop_block) or { return cask_spec_bool(false) }
 	return cask_spec_bool(cask.loaded_from_api && cask.loaded_from_internal_api && cask.token == 'caffeine')
 }
 
 // Ruby it `it "returns an instance of the Cask from a URL", :needs_utils_curl do` at line 211.
-pub fn ruby_cask_spec_l211_d18_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l211_d18_returns(args ...ruby.Value) ruby.Value {
 	url := if args.len > 0 { args[0].as_string() } else { 'file:///tap/Casks/local-caffeine.rb' }
 	path := url.trim_string_left('file://')
 	cask := cask_core.new_cask_core(cask_core.CaskCoreConfig{ token: os.file_name(path).all_before_last('.'), sourcefile_path: path }, cask_spec_noop_block) or { return cask_spec_bool(false) }
@@ -941,7 +941,7 @@ pub fn ruby_cask_spec_l211_d18_returns(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby it `it "raises an error when failing to download a Cask from a URL", :needs_utils_curl do` at line 217.
-pub fn ruby_cask_spec_l217_d19_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l217_d19_raises(args ...ruby.Value) ruby.Value {
 	path := if args.len > 0 {
 		args[0].as_string().trim_string_left('file://')
 	} else {
@@ -951,25 +951,25 @@ pub fn ruby_cask_spec_l217_d19_raises(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby it `it "returns an instance of the Cask from a relative file location" do` at line 223.
-pub fn ruby_cask_spec_l223_d20_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l223_d20_returns(args ...ruby.Value) ruby.Value {
 	path := if args.len > 0 { args[0].as_string() } else { '../tap/Casks/local-caffeine.rb' }
 	return cask_spec_bool(os.file_name(path).all_before_last('.') == 'local-caffeine')
 }
 
 // Ruby it `it "uses exact match when loading by token" do` at line 229.
-pub fn ruby_cask_spec_l229_d21_uses(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l229_d21_uses(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cask_spec_bool(cask_spec_core('test-opera').token == 'test-opera' && cask_spec_core('test-opera-mail').token == 'test-opera-mail')
 }
 
 // Ruby it `it "raises an error when attempting to load a Cask that doesn't exist" do` at line 234.
-pub fn ruby_cask_spec_l234_d22_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l234_d22_raises(args ...ruby.Value) ruby.Value {
 	reference := if args.len > 0 { args[0].as_string() } else { 'notacask' }
 	return cask_spec_bool(reference == 'notacask')
 }
 
 // Ruby it `it "proposes a versioned metadata directory name for each instance" do` at line 242.
-pub fn ruby_cask_spec_l242_d23_proposes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l242_d23_proposes(args ...ruby.Value) ruby.Value {
 	mut cask := cask_spec_core('local-caffeine')
 	cask.dsl.version_value = dsl_types.cask_version_from_string('1.2.3') or { return cask_spec_bool(false) }
 	cask.dsl.has_version = true
@@ -978,7 +978,7 @@ pub fn ruby_cask_spec_l242_d23_proposes(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby it `it "ignores the Casks that have auto_updates true (without --greedy)" do` at line 251.
-pub fn ruby_cask_spec_l251_d24_ignores(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l251_d24_ignores(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut cask := cask_spec_core('auto-updates')
 	cask_spec_set_download(mut cask, '1.2.3', true, 'app')
@@ -988,7 +988,7 @@ pub fn ruby_cask_spec_l251_d24_ignores(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby it `it "ignores the Casks that have version :latest (without --greedy)" do` at line 257.
-pub fn ruby_cask_spec_l257_d25_ignores(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l257_d25_ignores(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut cask := cask_spec_core('version-latest-string')
 	cask_spec_set_download(mut cask, 'latest', false, 'app')
@@ -998,7 +998,7 @@ pub fn ruby_cask_spec_l257_d25_ignores(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby subject `subject { cask.outdated_version }` at line 264.
-pub fn ruby_cask_spec_l264_d26_subject_dynamic(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l264_d26_subject_dynamic(args ...ruby.Value) ruby.Value {
 	mut cask := if args.len > 0 {
 		cask_core.cask_core_from_value(args[0]) or { return cask_spec_nil() }
 	} else {
@@ -1008,13 +1008,13 @@ pub fn ruby_cask_spec_l264_d26_subject_dynamic(args ...brew_runtime.Value) brew_
 }
 
 // Ruby let `let(:cask) { described_class.new("basic-cask") }` at line 266.
-pub fn ruby_cask_spec_l266_d27_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l266_d27_cask(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cask_core.cask_core_value(cask_spec_core('basic-cask'))
 }
 
 // Ruby it `it {` at line 271.
-pub fn ruby_cask_spec_l271_d28_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l271_d28_anonymous(args ...ruby.Value) ruby.Value {
 	if args.len >= 3 {
 		mut cask := cask_spec_core('basic-cask')
 		cask_spec_set_download(mut cask, args[1].as_string(), false, '')
@@ -1034,8 +1034,8 @@ pub fn ruby_cask_spec_l271_d28_anonymous(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby let `let(:dir) { Pathname(mktmpdir) }` at line 294.
-pub fn ruby_cask_spec_l294_d29_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Pathname', if args.len > 0 {
+pub fn ruby_cask_spec_l294_d29_dir(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Pathname', if args.len > 0 {
 		args[0].as_string()
 	} else {
 		cask_spec_temp('auto-updates')
@@ -1043,132 +1043,132 @@ pub fn ruby_cask_spec_l294_d29_dir(args ...brew_runtime.Value) brew_runtime.Valu
 }
 
 // Ruby let `let(:cask_file) { dir/"auto-updates-bundle-check.rb" }` at line 295.
-pub fn ruby_cask_spec_l295_d30_cask_file(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l295_d30_cask_file(args ...ruby.Value) ruby.Value {
 	directory := if args.len > 0 {
 		args[0].as_string()
 	} else {
 		cask_spec_temp('auto-updates-file')
 	}
-	return brew_runtime.object_value('Pathname', os.join_path(directory, 'auto-updates-bundle-check.rb'))
+	return ruby.object_value('Pathname', os.join_path(directory, 'auto-updates-bundle-check.rb'))
 }
 
 // Ruby let `let(:artifacts) { ['app "MyFancyApp.app"'] }` at line 296.
-pub fn ruby_cask_spec_l296_d31_artifacts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l296_d31_artifacts(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_array_value(['app "MyFancyApp.app"'])
+	return ruby.string_array_value(['app "MyFancyApp.app"'])
 }
 
 // Ruby it `it "is outdated when the installed short version is lower than the tap version" do` at line 302.
-pub fn ruby_cask_spec_l302_d32_is(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l302_d32_is(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cask_spec_bool(cask_spec_auto_updates('2.61', '2.57', '2.57', '2057', true) == '2.57')
 }
 
 // Ruby it `it "is not outdated when auto-update upgrades are disabled" do` at line 311.
-pub fn ruby_cask_spec_l311_d33_is(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l311_d33_is(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cask_spec_bool(cask_spec_auto_updates('2.61', '2.57', '2.57', '2057', false) == '')
 }
 
 // Ruby it `it "is not outdated when the short version matches and the bundle version is lower than a CSV candidate" do` at line 321.
-pub fn ruby_cask_spec_l321_d34_is(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l321_d34_is(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cask_spec_bool(cask_spec_auto_updates('2.61,3000', '2.57', '2.61', '2057', true) == '')
 }
 
 // Ruby it `it "is not outdated when the short version matches and the bundle version matches any CSV candidate" do` at line 330.
-pub fn ruby_cask_spec_l330_d35_is(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l330_d35_is(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cask_spec_bool(cask_spec_auto_updates('2.61,3000,2057', '2.57', '2.61', '2057', true) == '')
 }
 
 // Ruby it `it "is not outdated when the installed short version is higher than the tap version" do` at line 339.
-pub fn ruby_cask_spec_l339_d36_is(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l339_d36_is(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cask_spec_bool(cask_spec_auto_updates('2.61', '2.57', '2.62', '2057', true) == '')
 }
 
 // Ruby it `it "is not outdated when the installed cask version already matches the tap version" do` at line 348.
-pub fn ruby_cask_spec_l348_d37_is(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l348_d37_is(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cask_spec_bool(cask_spec_auto_updates('2.61', '2.61', '2.57', '2057', true) == '')
 }
 
 // Ruby it `it "is not outdated when the installed short version directly matches the tap version" do` at line 357.
-pub fn ruby_cask_spec_l357_d38_is(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l357_d38_is(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cask_spec_bool(cask_spec_auto_updates('2.61', '2.57', '2.61', '2057', true) == '')
 }
 
 // Ruby it `it "is not outdated when the installed bundle version directly matches the tap version" do` at line 366.
-pub fn ruby_cask_spec_l366_d39_is(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l366_d39_is(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cask_spec_bool(cask_spec_auto_updates('2057', '2.57', '2.61', '2057', true) == '')
 }
 
 // Ruby it `it "is not outdated when the installed short and bundle versions combine to the tap version" do` at line 375.
-pub fn ruby_cask_spec_l375_d40_is(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l375_d40_is(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cask_spec_bool(cask_spec_auto_updates('2.61-2057', '2.57-2056', '2.61', '2057', true) == '')
 }
 
 // Ruby it `it "is not outdated when the combined installed version is higher than the tap version" do` at line 384.
-pub fn ruby_cask_spec_l384_d41_is(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l384_d41_is(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cask_spec_bool(cask_spec_auto_updates('2.61-2057', '2.57-2056', '2.61', '2058', true) == '')
 }
 
 // Ruby it `it "is not outdated when the installed short version matches a CSV build candidate" do` at line 393.
-pub fn ruby_cask_spec_l393_d42_is(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l393_d42_is(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cask_spec_bool(cask_spec_auto_updates('2.61,2057', '2.57', '2057', '3000', true) == '')
 }
 
 // Ruby it `it "is not outdated when the short version matches and the bundle version is higher than all CSV candidates" do` at line 402.
-pub fn ruby_cask_spec_l402_d43_is(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l402_d43_is(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cask_spec_bool(cask_spec_auto_updates('2.61,2056,2055', '2.57', '2.61', '2057', true) == '')
 }
 
 // Ruby it `it "matches a bundle version candidate that is not first in the CSV list" do` at line 411.
-pub fn ruby_cask_spec_l411_d44_matches(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l411_d44_matches(args ...ruby.Value) ruby.Value {
 	_ = args
 	version := dsl_types.cask_version_from_string('2.61,3000,2057') or { return cask_spec_bool(false) }
 	return cask_spec_bool(version.csv()[0].text != '2057' && cask_spec_auto_updates('2.61,3000,2057', '2.57', '2.61', '2057', true) == '')
 }
 
 // Ruby it `it "is not outdated when the app bundle metadata cannot be read" do` at line 421.
-pub fn ruby_cask_spec_l421_d45_is(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l421_d45_is(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cask_spec_bool(cask_spec_auto_updates('2.61', '2.57', '', '', true) == '')
 }
 
 // Ruby it `it "falls back to the bundle version when the short version is missing" do` at line 429.
-pub fn ruby_cask_spec_l429_d46_falls(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l429_d46_falls(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cask_spec_bool(cask_spec_auto_updates('2.61,3000', '2.57', '', '2057', true) == '2.57')
 }
 
 // Ruby it `it "ignores bad bundle versions when the short version is missing" do` at line 438.
-pub fn ruby_cask_spec_l438_d47_ignores(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l438_d47_ignores(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cask_spec_bool(cask_spec_auto_updates('2026.406.0', '2025.816.0', '', '0.0', true) == '')
 }
 
 // Ruby it `it "is not outdated when plist version segment counts differ from the tap version" do` at line 447.
-pub fn ruby_cask_spec_l447_d48_is(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l447_d48_is(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cask_spec_bool(cask_spec_auto_updates('1.0', '0.9', '1', '200', true) == '')
 }
 
 // Ruby let `let(:cask) { described_class.new("basic-cask") }` at line 458.
-pub fn ruby_cask_spec_l458_d49_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l458_d49_cask(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cask_core.cask_core_value(cask_spec_core('basic-cask'))
 }
 
 // Ruby subject `subject { cask.outdated_version(greedy:) }` at line 465.
-pub fn ruby_cask_spec_l465_d50_subject_dynamic(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l465_d50_subject_dynamic(args ...ruby.Value) ruby.Value {
 	mut cask := if args.len > 0 && args[0].type_name == 'Cask::Cask' {
 		cask_core.cask_core_from_value(args[0]) or { return cask_spec_nil() }
 	} else {
@@ -1179,7 +1179,7 @@ pub fn ruby_cask_spec_l465_d50_subject_dynamic(args ...brew_runtime.Value) brew_
 }
 
 // Ruby it `it {` at line 467.
-pub fn ruby_cask_spec_l467_d51_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l467_d51_anonymous(args ...ruby.Value) ruby.Value {
 	if args.len >= 5 {
 		mut cask := cask_spec_core('basic-cask')
 		cask_spec_set_download(mut cask, args[2].as_string(), false, '')
@@ -1198,33 +1198,33 @@ pub fn ruby_cask_spec_l467_d51_anonymous(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby it `it "is the cask token" do` at line 509.
-pub fn ruby_cask_spec_l509_d52_is(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l509_d52_is(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cask_spec_bool(cask_spec_core('local-caffeine').full_token() == 'local-caffeine')
 }
 
 // Ruby it `it "returns the fully-qualified name of the cask" do` at line 516.
-pub fn ruby_cask_spec_l516_d53_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l516_d53_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	cask := cask_core.new_cask_core(cask_core.CaskCoreConfig{ token: 'third-party-cask', tap_name: 'third-party/tap' }, cask_spec_noop_block) or { return cask_spec_bool(false) }
 	return cask_spec_bool(cask.full_token() == 'third-party/tap/third-party-cask')
 }
 
 // Ruby it `it "returns the cask token" do` at line 525.
-pub fn ruby_cask_spec_l525_d54_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l525_d54_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	cask := cask_core.new_cask_core(cask_core.CaskCoreConfig{ token: 'tapless-cask' }, cask_spec_noop_block) or { return cask_spec_bool(false) }
 	return cask_spec_bool(cask.full_token() == 'tapless-cask')
 }
 
 // Ruby subject `subject(:cask) { Cask::CaskLoader.load("many-artifacts") }` at line 544.
-pub fn ruby_cask_spec_l544_d55_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l544_d55_cask(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cask_core.cask_core_value(cask_spec_many_artifacts())
 }
 
 // Ruby it `it "returns all artifacts when no options are given" do` at line 546.
-pub fn ruby_cask_spec_l546_d56_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l546_d56_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	cask := cask_spec_many_artifacts()
 	list := cask.artifacts_list(false)
@@ -1234,7 +1234,7 @@ pub fn ruby_cask_spec_l546_d56_returns(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby it `it "returns only uninstall artifacts when uninstall_only is true" do` at line 567.
-pub fn ruby_cask_spec_l567_d57_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l567_d57_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	list := cask_spec_many_artifacts().artifacts_list(true)
 	keys := list.map(cask_spec_artifact_key(it))
@@ -1243,7 +1243,7 @@ pub fn ruby_cask_spec_l567_d57_returns(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby subject `subject(:cask) { Cask::CaskLoader.load("many-renames") }` at line 587.
-pub fn ruby_cask_spec_l587_d58_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l587_d58_cask(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut cask := cask_spec_core('many-renames')
 	cask.dsl.renames = [dsl_types.new_cask_rename('Foobar.app', 'Foo.app'),
@@ -1252,7 +1252,7 @@ pub fn ruby_cask_spec_l587_d58_cask(args ...brew_runtime.Value) brew_runtime.Val
 }
 
 // Ruby it `it "returns the correct rename list" do` at line 589.
-pub fn ruby_cask_spec_l589_d59_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l589_d59_returns(args ...ruby.Value) ruby.Value {
 	value := ruby_cask_spec_l587_d58_cask(...args)
 	cask := cask_core.cask_core_from_value(value) or { return cask_spec_bool(false) }
 	renames := cask.rename_list()
@@ -1260,7 +1260,7 @@ pub fn ruby_cask_spec_l589_d59_returns(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby matcher `matcher :have_uninstall_flight_blocks do` at line 598.
-pub fn ruby_cask_spec_l598_d60_have_uninstall_flight_blocks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l598_d60_have_uninstall_flight_blocks(args ...ruby.Value) ruby.Value {
 	cask := if args.len > 0 {
 		cask_core.cask_core_from_value(args[0]) or { return cask_spec_bool(false) }
 	} else {
@@ -1270,37 +1270,37 @@ pub fn ruby_cask_spec_l598_d60_have_uninstall_flight_blocks(args ...brew_runtime
 }
 
 // Ruby it `it "returns true when there are uninstall_preflight blocks" do` at line 604.
-pub fn ruby_cask_spec_l604_d61_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l604_d61_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cask_spec_bool(cask_spec_flight_cask('uninstall_preflight').uninstall_flight_blocks())
 }
 
 // Ruby it `it "returns true when there are uninstall_postflight blocks" do` at line 609.
-pub fn ruby_cask_spec_l609_d62_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l609_d62_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cask_spec_bool(cask_spec_flight_cask('uninstall_postflight').uninstall_flight_blocks())
 }
 
 // Ruby it `it "returns false when there are only preflight blocks" do` at line 614.
-pub fn ruby_cask_spec_l614_d63_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l614_d63_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cask_spec_bool(!cask_spec_flight_cask('preflight').uninstall_flight_blocks())
 }
 
 // Ruby it `it "returns false when there are only postflight blocks" do` at line 619.
-pub fn ruby_cask_spec_l619_d64_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l619_d64_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cask_spec_bool(!cask_spec_flight_cask('postflight').uninstall_flight_blocks())
 }
 
 // Ruby it `it "returns false when there are no flight blocks" do` at line 624.
-pub fn ruby_cask_spec_l624_d65_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l624_d65_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	return cask_spec_bool(!cask_spec_flight_cask('').uninstall_flight_blocks())
 }
 
 // Ruby it `it "uses explicit OS dependencies and defaults to Linux support" do` at line 631.
-pub fn ruby_cask_spec_l631_d66_uses(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l631_d66_uses(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut bare_macos := cask_spec_core('with-depends-on-macos-bare')
 	bare_macos.dsl.depends_on_value.macos_required = true
@@ -1314,7 +1314,7 @@ pub fn ruby_cask_spec_l631_d66_uses(args ...brew_runtime.Value) brew_runtime.Val
 }
 
 // Ruby it `it "returns false for casks with bare depends_on :linux" do` at line 644.
-pub fn ruby_cask_spec_l644_d67_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l644_d67_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut cask := cask_spec_core('with-depends-on-linux-bare')
 	cask.dsl.depends_on_value.linux = true
@@ -1322,7 +1322,7 @@ pub fn ruby_cask_spec_l644_d67_returns(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby it `it "includes pinned cask details" do` at line 650.
-pub fn ruby_cask_spec_l650_d68_includes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l650_d68_includes(args ...ruby.Value) ruby.Value {
 	_ = args
 	root := cask_spec_temp('outdated-info')
 	defer { os.rmdir_all(root) or {} }
@@ -1338,13 +1338,13 @@ pub fn ruby_cask_spec_l650_d68_includes(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby let `let(:expected_json) do` at line 664.
-pub fn ruby_cask_spec_l664_d69_expected_json(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l664_d69_expected_json(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value(cask_spec_fixture_json('everything.json').trim_space())
+	return ruby.string_value(cask_spec_fixture_json('everything.json').trim_space())
 }
 
 // Ruby it `it "returns expected hash" do` at line 669.
-pub fn ruby_cask_spec_l669_d70_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l669_d70_returns(args ...ruby.Value) ruby.Value {
 	mut cask := cask_spec_core('everything')
 	cask_spec_set_download(mut cask, '1.2.3', false, 'app')
 	cask.tap_name = 'homebrew/cask'
@@ -1355,7 +1355,7 @@ pub fn ruby_cask_spec_l669_d70_returns(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby it `it "returns expected hash" do` at line 684.
-pub fn ruby_cask_spec_l684_d71_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l684_d71_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut cask := cask_core.new_cask_core(cask_core.CaskCoreConfig{ token: 'everything', loaded_from_api: true }, cask_spec_noop_block) or { return cask_spec_bool(false) }
 	cask_spec_set_download(mut cask, '1.2.3', false, 'app')
@@ -1364,14 +1364,14 @@ pub fn ruby_cask_spec_l684_d71_returns(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby let `let(:cask) { Cask::CaskLoader.load("on-linux-asymmetric") }` at line 697.
-pub fn ruby_cask_spec_l697_d72_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l697_d72_cask(args ...ruby.Value) ruby.Value {
 	_ = args
 	cask := cask_core.new_cask_core(cask_core.CaskCoreConfig{ token: 'on-linux-asymmetric' }, cask_spec_asymmetric_block) or { return cask_spec_nil() }
 	return cask_core.cask_core_value(cask)
 }
 
 // Ruby it `it "yields with the cask refreshed for a supported tag" do` at line 699.
-pub fn ruby_cask_spec_l699_d73_yields(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l699_d73_yields(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut cask := cask_core.new_cask_core(cask_core.CaskCoreConfig{ token: 'on-linux-asymmetric' }, cask_spec_asymmetric_block) or { return cask_spec_bool(false) }
 	cask.system_os = 'sonoma'
@@ -1381,7 +1381,7 @@ pub fn ruby_cask_spec_l699_d73_yields(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby it `it "yields for a Linux architecture whose checksum is missing" do` at line 704.
-pub fn ruby_cask_spec_l704_d74_yields(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l704_d74_yields(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut cask := cask_core.new_cask_core(cask_core.CaskCoreConfig{ token: 'on-linux-asymmetric' }, cask_spec_asymmetric_block) or { return cask_spec_bool(false) }
 	cask.system_os = 'linux'
@@ -1391,7 +1391,7 @@ pub fn ruby_cask_spec_l704_d74_yields(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby it `it "returns nil for a tag the cask cannot be refreshed for" do` at line 709.
-pub fn ruby_cask_spec_l709_d75_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l709_d75_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut cask := cask_core.new_cask_core(cask_core.CaskCoreConfig{ token: 'on-linux-invalid' }, cask_spec_invalid_linux_block) or { return cask_spec_bool(false) }
 	cask.system_os = 'linux'
@@ -1403,30 +1403,30 @@ pub fn ruby_cask_spec_l709_d75_returns(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby let! `let!(:original_macos_version) { MacOS.full_version.to_s }` at line 724.
-pub fn ruby_cask_spec_l724_d76_original_macos_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(if args.len > 0 { args[0].as_string() } else { '12' })
+pub fn ruby_cask_spec_l724_d76_original_macos_version(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(if args.len > 0 { args[0].as_string() } else { '12' })
 }
 
 // Ruby let `let(:expected_versions_variations) do` at line 725.
-pub fn ruby_cask_spec_l725_d77_expected_versions_variations(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l725_d77_expected_versions_variations(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value(cask_spec_expected_versions_json())
+	return ruby.string_value(cask_spec_expected_versions_json())
 }
 
 // Ruby let `let(:expected_sha256_variations) do` at line 774.
-pub fn ruby_cask_spec_l774_d78_expected_sha256_variations(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l774_d78_expected_sha256_variations(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value(cask_spec_expected_sha_json(false))
+	return ruby.string_value(cask_spec_expected_sha_json(false))
 }
 
 // Ruby let `let(:expected_sha256_variations_os) do` at line 819.
-pub fn ruby_cask_spec_l819_d79_expected_sha256_variations_os(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l819_d79_expected_sha256_variations_os(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value(cask_spec_expected_sha_json(true))
+	return ruby.string_value(cask_spec_expected_sha_json(true))
 }
 
 // Ruby it `it "returns language variations with a deterministic default" do` at line 875.
-pub fn ruby_cask_spec_l875_d80_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l875_d80_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	appdir := '/tmp/cask-appdir'
 	config := cask_core.new_cask_config(cask_core.CaskConfigOptions{
@@ -1463,7 +1463,7 @@ pub fn ruby_cask_spec_l875_d80_returns(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby it `it "preserves the cask configuration while generating language variations" do` at line 898.
-pub fn ruby_cask_spec_l898_d81_preserves(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l898_d81_preserves(args ...ruby.Value) ruby.Value {
 	appdir := if args.len > 0 { args[0].as_string() } else { '/tmp/configured-appdir' }
 	config := cask_core.new_cask_config(cask_core.CaskConfigOptions{
 		explicit_values: {
@@ -1494,7 +1494,7 @@ pub fn ruby_cask_spec_l898_d81_preserves(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby it `it "returns the correct variations hash for a cask with multiple versions" do` at line 909.
-pub fn ruby_cask_spec_l909_d82_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l909_d82_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut cask := cask_core.new_cask_core(cask_core.CaskCoreConfig{ token: 'multiple-versions', system_os: 'monterey', system_arch: 'arm' }, cask_spec_multiple_versions_block) or { return cask_spec_bool(false) }
 	hash := cask.to_hash_with_variations() or { return cask_spec_bool(false) }
@@ -1506,7 +1506,7 @@ pub fn ruby_cask_spec_l909_d82_returns(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby it `it "returns the correct variations hash for a cask different sha256s on each arch" do` at line 917.
-pub fn ruby_cask_spec_l917_d83_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l917_d83_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut cask := cask_core.new_cask_core(cask_core.CaskCoreConfig{ token: 'sha256-arch', system_os: 'monterey', system_arch: 'arm' }, cask_spec_sha_arch_block) or { return cask_spec_bool(false) }
 	hash := cask.to_hash_with_variations() or { return cask_spec_bool(false) }
@@ -1517,7 +1517,7 @@ pub fn ruby_cask_spec_l917_d83_returns(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby it `it "returns the correct variations hash for a cask different sha256s on each arch and os" do` at line 925.
-pub fn ruby_cask_spec_l925_d84_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l925_d84_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut cask := cask_core.new_cask_core(cask_core.CaskCoreConfig{ token: 'sha256-os', system_os: 'monterey', system_arch: 'arm' }, cask_spec_sha_os_block) or { return cask_spec_bool(false) }
 	hash := cask.to_hash_with_variations() or { return cask_spec_bool(false) }
@@ -1528,7 +1528,7 @@ pub fn ruby_cask_spec_l925_d84_returns(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby it `it "emits variations without checksums for Linux architectures a cask omits" do` at line 933.
-pub fn ruby_cask_spec_l933_d85_emits(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l933_d85_emits(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut cask := cask_core.new_cask_core(cask_core.CaskCoreConfig{ token: 'on-linux-asymmetric', system_os: 'monterey', system_arch: 'arm' }, cask_spec_asymmetric_block) or { return cask_spec_bool(false) }
 	hash := cask.to_hash_with_variations() or { return cask_spec_bool(false) }
@@ -1541,16 +1541,16 @@ pub fn ruby_cask_spec_l933_d85_emits(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby it `it "emits Linux variations for a cask with Linux checksums but no `os` stanza" do` at line 943.
-pub fn ruby_cask_spec_l943_d86_emits(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l943_d86_emits(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut cask := cask_core.new_cask_core(cask_core.CaskCoreConfig{ token: 'sha256-linux', system_os: 'monterey', system_arch: 'arm' }, cask_spec_linux_checksums_block) or { return cask_spec_bool(false) }
 	hash := cask.to_hash_with_variations() or { return cask_spec_bool(false) }
-	variations := (hash['variations'] or { brew_runtime.map_value({}) }).map_data.clone()
+	variations := (hash['variations'] or { ruby.map_value({}) }).map_data.clone()
 	return cask_spec_bool('x86_64_linux' in variations && 'arm64_linux' in variations)
 }
 
 // Ruby it `it "emits Linux variations with checksums for a Linux-only cask" do` at line 950.
-pub fn ruby_cask_spec_l950_d87_emits(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l950_d87_emits(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut cask := cask_core.new_cask_core(cask_core.CaskCoreConfig{ token: 'sha256-linux-only', system_os: 'monterey', system_arch: 'arm' }, cask_spec_linux_only_checksums_block) or { return cask_spec_bool(false) }
 	hash := cask.to_hash_with_variations() or { return cask_spec_bool(false) }
@@ -1560,7 +1560,7 @@ pub fn ruby_cask_spec_l950_d87_emits(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby it `it "emits Linux variations for a cask with `on_linux` content but no `os` stanza" do` at line 960.
-pub fn ruby_cask_spec_l960_d88_emits(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l960_d88_emits(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut cask := cask_core.new_cask_core(cask_core.CaskCoreConfig{ token: 'on-linux-blocks', system_os: 'monterey', system_arch: 'arm' }, cask_spec_on_linux_content_block) or { return cask_spec_bool(false) }
 	hash := cask.to_hash_with_variations() or { return cask_spec_bool(false) }
@@ -1582,9 +1582,9 @@ pub fn ruby_cask_spec_l960_d88_emits(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby let `let(:platform_tags) do` at line 983.
-pub fn ruby_cask_spec_l983_d89_platform_tags(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l983_d89_platform_tags(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.array_value([
+	return ruby.array_value([
 		cask_spec_tag_value('sonoma', 'intel'),
 		cask_spec_tag_value('sonoma', 'intel'),
 		cask_spec_tag_value('sonoma', 'arm'),
@@ -1597,14 +1597,14 @@ pub fn ruby_cask_spec_l983_d89_platform_tags(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby let `let(:macos_platforms) { [:sonoma, :arm64_sonoma, :monterey, :arm64_monterey, :catalina] }` at line 994.
-pub fn ruby_cask_spec_l994_d90_macos_platforms(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l994_d90_macos_platforms(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_array_value(['sonoma', 'arm64_sonoma', 'monterey', 'arm64_monterey',
+	return ruby.string_array_value(['sonoma', 'arm64_sonoma', 'monterey', 'arm64_monterey',
 		'catalina'])
 }
 
 // Ruby it `it "records platforms allowed by scoped macOS requirements" do` at line 1000.
-pub fn ruby_cask_spec_l1000_d91_records(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l1000_d91_records(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut cask := cask_core.new_cask_core(cask_core.CaskCoreConfig{ token: 'with-depends-on-macos-in-on-macos', valid_tags: cask_spec_platform_tags() }, cask_spec_scoped_macos_block) or { return cask_spec_bool(false) }
 	return cask_spec_bool(cask_spec_supported(mut cask) == ['sonoma', 'arm64_sonoma', 'monterey',
@@ -1612,7 +1612,7 @@ pub fn ruby_cask_spec_l1000_d91_records(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby it `it "excludes platforms without complete download data" do` at line 1008.
-pub fn ruby_cask_spec_l1008_d92_excludes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l1008_d92_excludes(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut cask := cask_core.new_cask_core(cask_core.CaskCoreConfig{ token: 'multiple-versions', valid_tags: cask_spec_platform_tags(), system_os: 'monterey', system_arch: 'arm' }, cask_spec_incomplete_download_block) or { return cask_spec_bool(false) }
 	return cask_spec_bool(cask_spec_supported(mut cask) == ['sonoma', 'arm64_sonoma', 'monterey',
@@ -1620,7 +1620,7 @@ pub fn ruby_cask_spec_l1008_d92_excludes(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby it `it "excludes platforms rejected by architecture requirements" do` at line 1014.
-pub fn ruby_cask_spec_l1014_d93_excludes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l1014_d93_excludes(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut cask := cask_core.new_cask_core(cask_core.CaskCoreConfig{ token: 'architecture-restricted', valid_tags: cask_spec_platform_tags() }, cask_spec_arch_restricted_block) or { return cask_spec_bool(false) }
 	return cask_spec_bool(cask_spec_supported(mut cask) == ['sonoma', 'arm64_sonoma', 'monterey',
@@ -1628,28 +1628,28 @@ pub fn ruby_cask_spec_l1014_d93_excludes(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby it `it "does not infer macOS support from artifact types" do` at line 1031.
-pub fn ruby_cask_spec_l1031_d94_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l1031_d94_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut cask := cask_spec_platform_cask('macos-artifact', 'app')
 	return cask_spec_bool(cask_spec_supported(mut cask) == cask_spec_platform_tags().map(it.symbol()))
 }
 
 // Ruby it `it "does not infer macOS support from manual installers" do` at line 1043.
-pub fn ruby_cask_spec_l1043_d95_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l1043_d95_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut cask := cask_spec_platform_cask('manual-installer', 'installer')
 	return cask_spec_bool(cask_spec_supported(mut cask) == cask_spec_platform_tags().map(it.symbol()))
 }
 
 // Ruby it `it "does not infer Linux support from artifact types" do` at line 1055.
-pub fn ruby_cask_spec_l1055_d96_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l1055_d96_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut cask := cask_spec_platform_cask('linux-artifact', 'app_image')
 	return cask_spec_bool(cask_spec_supported(mut cask) == cask_spec_platform_tags().map(it.symbol()))
 }
 
 // Ruby it `it "excludes Linux for casks with a bare macOS dependency" do` at line 1067.
-pub fn ruby_cask_spec_l1067_d97_excludes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l1067_d97_excludes(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut cask := cask_spec_platform_cask('macos-only', 'app')
 	cask.dsl.depends_on_value.macos_required = true
@@ -1659,7 +1659,7 @@ pub fn ruby_cask_spec_l1067_d97_excludes(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby it `it "excludes macOS for casks with a bare Linux dependency" do` at line 1079.
-pub fn ruby_cask_spec_l1079_d98_excludes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l1079_d98_excludes(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut cask := cask_spec_platform_cask('linux-only', 'app_image')
 	cask.dsl.depends_on_value.linux = true
@@ -1668,28 +1668,28 @@ pub fn ruby_cask_spec_l1079_d98_excludes(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby it `it "includes stage-only casks" do` at line 1091.
-pub fn ruby_cask_spec_l1091_d99_includes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l1091_d99_includes(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut cask := cask_spec_platform_cask('stage-only', 'stage_only')
 	return cask_spec_bool(cask_spec_supported(mut cask) == cask_spec_platform_tags().map(it.symbol()))
 }
 
 // Ruby it `it "records no supported platforms for a cask without an installable artifact" do` at line 1103.
-pub fn ruby_cask_spec_l1103_d100_records(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l1103_d100_records(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut cask := cask_spec_platform_cask('zap-only', 'zap')
 	return cask_spec_bool(cask_spec_supported(mut cask).len == 0)
 }
 
 // Ruby it `it "records every platform when a cask has no platform variations" do` at line 1115.
-pub fn ruby_cask_spec_l1115_d101_records(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l1115_d101_records(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut cask := cask_spec_platform_cask('no-platform-variations', 'binary')
 	return cask_spec_bool(cask_spec_supported(mut cask) == cask_spec_platform_tags().map(it.symbol()))
 }
 
 // Ruby it `it "records top-level platform requirements without variations" do` at line 1126.
-pub fn ruby_cask_spec_l1126_d102_records(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l1126_d102_records(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut cask := cask_spec_platform_cask('top-level-platform-requirements', 'binary')
 	cask.dsl.depends_on_value.macos = cask_spec_macos_requirement('monterey')
@@ -1700,7 +1700,7 @@ pub fn ruby_cask_spec_l1126_d102_records(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby it `it "serializes architecture-varying and universal casks with the same macOS requirement" do` at line 1139.
-pub fn ruby_cask_spec_l1139_d103_serializes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l1139_d103_serializes(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut architecture_varying := cask_spec_platform_cask('architecture-varying', 'app')
 	architecture_varying.dsl.depends_on_value.macos = cask_spec_macos_requirement('big_sur')
@@ -1718,7 +1718,7 @@ pub fn ruby_cask_spec_l1139_d103_serializes(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby it `it "isolates macOS requirement comparisons between casks" do` at line 1174.
-pub fn ruby_cask_spec_l1174_d104_isolates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l1174_d104_isolates(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut monterey := cask_spec_platform_cask('requires-monterey', 'binary')
 	monterey.dsl.depends_on_value.macos = cask_spec_macos_requirement('monterey')
@@ -1731,7 +1731,7 @@ pub fn ruby_cask_spec_l1174_d104_isolates(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby it `it "returns the correct hash placeholders" do` at line 1198.
-pub fn ruby_cask_spec_l1198_d105_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l1198_d105_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut cask := cask_spec_platform_cask('placeholders', 'binary')
 	cask.generating_hash = true
@@ -1751,13 +1751,13 @@ pub fn ruby_cask_spec_l1198_d105_returns(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby let `let(:expected_json) do` at line 1212.
-pub fn ruby_cask_spec_l1212_d106_expected_json(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l1212_d106_expected_json(args ...ruby.Value) ruby.Value {
 	appdir := if args.len > 0 { args[0].as_string() } else { '/tmp/cask-appdir' }
-	return brew_runtime.string_value(cask_spec_fixture_json('everything-with-variations.json').trim_space().replace('\$APPDIR', appdir))
+	return ruby.string_value(cask_spec_fixture_json('everything-with-variations.json').trim_space().replace('\$APPDIR', appdir))
 }
 
 // Ruby it `it "returns expected hash with variations" do` at line 1217.
-pub fn ruby_cask_spec_l1217_d107_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l1217_d107_returns(args ...ruby.Value) ruby.Value {
 	expected_json := ruby_cask_spec_l1212_d106_expected_json(...args).as_string()
 	decoded := json2.decode[json2.Any](expected_json) or { return cask_spec_bool(false) }
 	expected := cask_spec_value_from_json(decoded)
@@ -1769,11 +1769,11 @@ pub fn ruby_cask_spec_l1217_d107_returns(args ...brew_runtime.Value) brew_runtim
 		api_source: source
 	}, cask_spec_noop_block) or { return cask_spec_bool(false) }
 	hash := cask.to_hash_with_variations() or { return cask_spec_bool(false) }
-	return cask_spec_bool(cask.loaded_from_api && !cask.loaded_from_internal_api && cask_spec_value_equal(brew_runtime.map_value(hash), expected))
+	return cask_spec_bool(cask.loaded_from_api && !cask.loaded_from_internal_api && cask_spec_value_equal(ruby.map_value(hash), expected))
 }
 
 // Ruby it `it "does not include macOS dependency in Linux variations" do` at line 1231.
-pub fn ruby_cask_spec_l1231_d108_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_spec_l1231_d108_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut cask := cask_core.new_cask_core(cask_core.CaskCoreConfig{ token: 'sha256-os', system_os: 'monterey', system_arch: 'arm' }, cask_spec_linux_without_macos_dependency_block) or { return cask_spec_bool(false) }
 	hash := cask.to_hash_with_variations() or { return cask_spec_bool(false) }

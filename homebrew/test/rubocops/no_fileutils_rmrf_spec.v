@@ -1,14 +1,14 @@
 module rubocops
 
-import brew_runtime
+import ruby
 import homebrew.rubocops as fileutils_core
 
 // Translated from Homebrew/brew `test/rubocops/no_fileutils_rmrf_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
-pub fn ruby_no_fileutils_rmrf_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('RuboCop::Cop::Homebrew::NoFileutilsRmrf', 'Homebrew/NoFileutilsRmrf')
+pub fn ruby_no_fileutils_rmrf_spec_l7_d1_cop(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('RuboCop::Cop::Homebrew::NoFileutilsRmrf', 'Homebrew/NoFileutilsRmrf')
 }
 
 // Ruby it `it "registers an offense" do` at line 10.
@@ -38,8 +38,8 @@ pub fn ruby_no_fileutils_rmrf_spec_l56_d6_registers() bool {
 }
 
 // Ruby method `buildpath` at line 63.
-pub fn ruby_no_fileutils_rmrf_spec_l63_d7_buildpath(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Pathname', 'path/to/yet/another/directory')
+pub fn ruby_no_fileutils_rmrf_spec_l63_d7_buildpath(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Pathname', 'path/to/yet/another/directory')
 }
 
 // Ruby it `it "autocorrects" do` at line 73.
@@ -50,13 +50,13 @@ pub fn ruby_no_fileutils_rmrf_spec_l73_d8_autocorrects() bool {
 }
 
 // Ruby method `buildpath` at line 78.
-pub fn ruby_no_fileutils_rmrf_spec_l78_d9_buildpath(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Pathname', 'path/to/yet/another/directory')
+pub fn ruby_no_fileutils_rmrf_spec_l78_d9_buildpath(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Pathname', 'path/to/yet/another/directory')
 }
 
 // Ruby method `buildpath` at line 89.
-pub fn ruby_no_fileutils_rmrf_spec_l89_d10_buildpath(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Pathname', 'path/to/yet/another/directory')
+pub fn ruby_no_fileutils_rmrf_spec_l89_d10_buildpath(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Pathname', 'path/to/yet/another/directory')
 }
 
 // Original Ruby source (line-for-line):

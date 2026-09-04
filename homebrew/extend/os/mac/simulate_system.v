@@ -1,33 +1,33 @@
 module mac
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `extend/os/mac/simulate_system.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `simulating_or_running_on_macos?` at line 9.
-pub fn ruby_simulate_system_l9_d1_simulating_or_running_on_macos(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_simulate_system_l9_d1_simulating_or_running_on_macos(args ...ruby.Value) ruby.Value {
 	os_value := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.bool_value(simulating_or_running_on_macos(os_value))
+	return ruby.bool_value(simulating_or_running_on_macos(os_value))
 }
 
 // Ruby method `current_os` at line 16.
-pub fn ruby_simulate_system_l16_d2_current_os(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_simulate_system_l16_d2_current_os(args ...ruby.Value) ruby.Value {
 	simulated := if args.len > 0 { args[0].as_string() } else { '' }
 	actual := if args.len > 1 { args[1].as_string() } else { '' }
-	return brew_runtime.object_value('Symbol', current_os(simulated, actual))
+	return ruby.object_value('Symbol', current_os(simulated, actual))
 }
 
 pub fn simulating_or_running_on_macos(simulated_os string) bool {
 	return simulated_os.len == 0 || simulated_os == 'macos'
-		|| simulated_os in brew_runtime_macos_symbols()
+		|| simulated_os in ruby_macos_symbols()
 }
 
 pub fn current_os(simulated_os string, actual_macos_version string) string {
 	return if simulated_os.len > 0 { simulated_os } else { actual_macos_version }
 }
 
-fn brew_runtime_macos_symbols() []string {
+fn ruby_macos_symbols() []string {
 	return ['golden_gate', 'tahoe', 'sequoia', 'sonoma', 'ventura', 'monterey', 'big_sur', 'catalina']
 }
 

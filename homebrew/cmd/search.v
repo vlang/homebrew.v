@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 import net.urllib
 import regex
 
@@ -83,13 +83,13 @@ pub:
 	request SearchCommandRequest
 }
 
-pub fn search_command_input_boundary(input &SearchCommandInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::Cmd::SearchCmd::Input', '', {
+pub fn search_command_input_boundary(input &SearchCommandInput) ruby.Value {
+	return ruby.structured_value('Homebrew::Cmd::SearchCmd::Input', '', {
 		'search_command_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn search_command_input_from_value(value brew_runtime.Value) !&SearchCommandInput {
+fn search_command_input_from_value(value ruby.Value) !&SearchCommandInput {
 	address := value.attributes['search_command_input_address'] or {
 		return error('invalid Search command input')
 	}
@@ -375,46 +375,46 @@ pub fn run_search_command(request SearchCommandRequest) !SearchCommandResult {
 	return result
 }
 
-pub fn search_command_result_value(result SearchCommandResult) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn search_command_result_value(result SearchCommandResult) ruby.Value {
+	return ruby.Value{
 		type_name: 'SearchCommandResult'
 		repr: result.stdout
 		map_data: {
-			'stdout':                    brew_runtime.string_value(result.stdout)
-			'warnings':                  brew_runtime.string_array_value(result.warnings)
-			'browser_url':               brew_runtime.string_value(result.browser_url)
-			'description_search':        brew_runtime.bool_value(result.description_search)
-			'description_query':         brew_runtime.string_value(result.description_query)
-			'description_query_regex':   brew_runtime.bool_value(result.description_query_regex)
-			'description_show_missing':  brew_runtime.bool_value(result.description_show_missing)
-			'description_calls':         brew_runtime.string_array_value(result.description_calls)
-			'pull_request_search':       brew_runtime.bool_value(result.pull_request_search)
-			'pull_request_query':        brew_runtime.string_value(result.pull_request_query)
-			'pull_request_state_filter': brew_runtime.string_value(result.pull_request_state_filter)
-			'failed':                    brew_runtime.bool_value(result.failed)
-			'error':                     brew_runtime.string_value(result.error)
+			'stdout':                    ruby.string_value(result.stdout)
+			'warnings':                  ruby.string_array_value(result.warnings)
+			'browser_url':               ruby.string_value(result.browser_url)
+			'description_search':        ruby.bool_value(result.description_search)
+			'description_query':         ruby.string_value(result.description_query)
+			'description_query_regex':   ruby.bool_value(result.description_query_regex)
+			'description_show_missing':  ruby.bool_value(result.description_show_missing)
+			'description_calls':         ruby.string_array_value(result.description_calls)
+			'pull_request_search':       ruby.bool_value(result.pull_request_search)
+			'pull_request_query':        ruby.string_value(result.pull_request_query)
+			'pull_request_state_filter': ruby.string_value(result.pull_request_state_filter)
+			'failed':                    ruby.bool_value(result.failed)
+			'error':                     ruby.string_value(result.error)
 		}
 	}
 }
 
 // Ruby method `run` at line 67.
-pub fn ruby_search_l67_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_search_l67_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'Search command input is required')
+		return ruby.object_value('ArgumentError', 'Search command input is required')
 	}
 	input := search_command_input_from_value(args[0]) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	result := run_search_command(input.request) or {
-		return brew_runtime.object_value('UsageError', err.msg())
+		return ruby.object_value('UsageError', err.msg())
 	}
 	return search_command_result_value(result)
 }
 
 // Ruby method `print_missing_formula_help(query, found_matches)` at line 94.
-pub fn ruby_search_l94_d2_print_missing_formula_help(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_search_l94_d2_print_missing_formula_help(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'query and found_matches are required')
+		return ruby.object_value('ArgumentError', 'query and found_matches are required')
 	}
 	reason := if args.len > 2 && args[2].type_name != 'NilClass' {
 		?string(args[2].as_string())
@@ -422,43 +422,43 @@ pub fn ruby_search_l94_d2_print_missing_formula_help(args ...brew_runtime.Value)
 		?string(none)
 	}
 	tty := if args.len > 3 { args[3].as_bool() or { false } } else { true }
-	return brew_runtime.string_value(search_missing_formula_help(args[0].as_string(), args[1].as_bool() or { false }, tty, reason))
+	return ruby.string_value(search_missing_formula_help(args[0].as_string(), args[1].as_bool() or { false }, tty, reason))
 }
 
 // Ruby method `print_regex_help` at line 111.
-pub fn ruby_search_l111_d3_print_regex_help(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_search_l111_d3_print_regex_help(args ...ruby.Value) ruby.Value {
 	named := if args.len > 0 { args[0].as_string_array() or { []string{} } } else { []string{} }
 	tty := if args.len > 1 { args[1].as_bool() or { false } } else { true }
-	warning := search_regex_help(named, tty) or { return brew_runtime.object_value('NilClass', 'nil') }
-	return brew_runtime.string_value(warning)
+	warning := search_regex_help(named, tty) or { return ruby.object_value('NilClass', 'nil') }
+	return ruby.string_value(warning)
 }
 
 // Ruby method `search_package_manager!` at line 128.
-pub fn ruby_search_l128_d4_search_package_manager(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_search_l128_d4_search_package_manager(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	named := if args.len > 1 { args[1].as_string_array() or { []string{} } } else { []string{} }
 	result := search_package_manager(SearchCommandOptions{
 		package_manager: args[0].as_string()
 		named: named
 	})
-	return brew_runtime.structured_value('SearchPackageManagerResult', result.url, {
+	return ruby.structured_value('SearchPackageManagerResult', result.url, {
 		'found': result.found.str()
 		'url':   result.url
 	})
 }
 
 // Ruby method `search_pull_requests(query)` at line 138.
-pub fn ruby_search_l138_d5_search_pull_requests(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_search_l138_d5_search_pull_requests(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'query is required')
+		return ruby.object_value('ArgumentError', 'query is required')
 	}
 	open := if args.len > 1 { args[1].as_bool() or { false } } else { false }
 	closed := if args.len > 2 { args[2].as_bool() or { false } } else { false }
 	output := if args.len > 3 { args[3].as_string() } else { '' }
 	result := search_pull_requests(args[0].as_string(), open, closed, output)
-	return brew_runtime.structured_value('SearchPullRequestResult', result.output, {
+	return ruby.structured_value('SearchPullRequestResult', result.output, {
 		'query':  result.query
 		'only':   result.only
 		'output': result.output
@@ -466,12 +466,12 @@ pub fn ruby_search_l138_d5_search_pull_requests(args ...brew_runtime.Value) brew
 }
 
 // Ruby method `print_results(all_formulae, all_casks, query)` at line 149.
-pub fn ruby_search_l149_d6_print_results(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_search_l149_d6_print_results(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
-		return brew_runtime.object_value('ArgumentError', 'formulae, casks and query are required')
+		return ruby.object_value('ArgumentError', 'formulae, casks and query are required')
 	}
-	formulae := args[0].as_string_array() or { return brew_runtime.object_value('ArgumentError', err.msg()) }
-	casks := args[1].as_string_array() or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+	formulae := args[0].as_string_array() or { return ruby.object_value('ArgumentError', err.msg()) }
+	casks := args[1].as_string_array() or { return ruby.object_value('ArgumentError', err.msg()) }
 	tty := if args.len > 3 { args[3].as_bool() or { false } } else { false }
 	reason := if args.len > 4 && args[4].type_name != 'NilClass' {
 		?string(args[4].as_string())

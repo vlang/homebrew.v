@@ -1,6 +1,6 @@
 module env
 
-import brew_runtime
+import ruby
 
 pub struct MacStdenvConfig {
 pub:
@@ -118,7 +118,7 @@ pub fn mac_stdenv_no_fixup_chains(environment map[string]string,
 	return mac_env_append(environment, 'LDFLAGS', '-Wl,-no_fixup_chains')
 }
 
-fn mac_std_environment(args []brew_runtime.Value) map[string]string {
+fn mac_std_environment(args []ruby.Value) map[string]string {
 	if args.len == 0 || args[0].type_name != 'Hash' {
 		return map[string]string{}
 	}
@@ -129,14 +129,14 @@ fn mac_std_environment(args []brew_runtime.Value) map[string]string {
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `homebrew_extra_pkg_config_paths` at line 13.
-pub fn ruby_std_l13_d1_homebrew_extra_pkg_config_paths(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_std_l13_d1_homebrew_extra_pkg_config_paths(args ...ruby.Value) ruby.Value {
 	library := if args.len > 0 { args[0].as_string() } else { '' }
 	version := if args.len > 1 { args[1].as_string() } else { '' }
-	return brew_runtime.string_array_value(mac_stdenv_extra_pkg_config_paths(library, version))
+	return ruby.string_array_value(mac_stdenv_extra_pkg_config_paths(library, version))
 }
 
 // Ruby method `setup_build_environment(formula: nil, cc: nil, build_bottle: false, bottle_arch: nil,` at line 30.
-pub fn ruby_std_l30_d2_setup_build_environment(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_std_l30_d2_setup_build_environment(args ...ruby.Value) ruby.Value {
 	if args.len < 6 {
 		panic('setup_build_environment requires environment and macOS toolchain configuration')
 	}
@@ -154,32 +154,32 @@ pub fn ruby_std_l30_d2_setup_build_environment(args ...brew_runtime.Value) brew_
 }
 
 // Ruby method `remove_macosxsdk(version = nil)` at line 50.
-pub fn ruby_std_l50_d3_remove_macosxsdk(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_std_l50_d3_remove_macosxsdk(args ...ruby.Value) ruby.Value {
 	if args.len < 3 { panic('remove_macosxsdk requires environment, prefix, and SDK') }
 	return mac_string_map_value(mac_stdenv_remove_macosxsdk(mac_std_environment(args), args[1].as_string(), args[2].as_string()))
 }
 
 // Ruby method `macosxsdk(version = nil, formula: nil, testing_formula: false)` at line 74.
-pub fn ruby_std_l74_d4_macosxsdk(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_std_l74_d4_macosxsdk(args ...ruby.Value) ruby.Value {
 	if args.len < 4 { panic('macosxsdk requires environment, prefix, version, and SDK') }
 	return mac_string_map_value(mac_stdenv_macosxsdk(mac_std_environment(args), args[1].as_string(), args[2].as_string(), args[3].as_string()))
 }
 
 // Ruby method `libxml2` at line 108.
-pub fn ruby_std_l108_d5_libxml2(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_std_l108_d5_libxml2(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('libxml2 requires environment and SDK') }
 	exists := if args.len > 2 { args[2].as_bool() or { false } } else { false }
 	return mac_string_map_value(mac_stdenv_libxml2(mac_std_environment(args), args[1].as_string(), exists))
 }
 
 // Ruby method `no_weak_imports` at line 115.
-pub fn ruby_std_l115_d6_no_weak_imports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_std_l115_d6_no_weak_imports(args ...ruby.Value) ruby.Value {
 	supported := if args.len > 1 { args[1].as_bool() or { false } } else { true }
 	return mac_string_map_value(mac_stdenv_no_weak_imports(mac_std_environment(args), supported))
 }
 
 // Ruby method `no_fixup_chains` at line 122.
-pub fn ruby_std_l122_d7_no_fixup_chains(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_std_l122_d7_no_fixup_chains(args ...ruby.Value) ruby.Value {
 	supported := if args.len > 1 { args[1].as_bool() or { false } } else { true }
 	return mac_string_map_value(mac_stdenv_no_fixup_chains(mac_std_environment(args), supported))
 }

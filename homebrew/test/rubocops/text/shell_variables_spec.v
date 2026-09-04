@@ -1,6 +1,6 @@
 module text
 
-import brew_runtime
+import ruby
 import homebrew.rubocops as line_cops
 
 // Translated from Homebrew/brew `test/rubocops/text/shell_variables_spec.rb`.
@@ -38,72 +38,72 @@ fn shell_variables_spec_reports(offending_call string, corrected_call string) bo
 }
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
-pub fn ruby_shell_variables_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::ShellVariables', 'ShellVariables')
+pub fn ruby_shell_variables_spec_l7_d1_cop(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('RuboCop::Cop::FormulaAudit::ShellVariables', 'ShellVariables')
 }
 
 // Ruby it `it "reports and corrects unexpanded shell variables in `Utils.popen`" do` at line 10.
-pub fn ruby_shell_variables_spec_l10_d2_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(shell_variables_spec_reports('Utils.popen "SHELL=bash foo"',
+pub fn ruby_shell_variables_spec_l10_d2_reports(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(shell_variables_spec_reports('Utils.popen "SHELL=bash foo"',
 		'Utils.popen({ "SHELL" => "bash" }, "foo")'))
 }
 
 // Ruby method `install` at line 13.
-pub fn ruby_shell_variables_spec_l13_d3_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(shell_variables_spec_install('Utils.popen "SHELL=bash foo"'))
+pub fn ruby_shell_variables_spec_l13_d3_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(shell_variables_spec_install('Utils.popen "SHELL=bash foo"'))
 }
 
 // Ruby method `install` at line 22.
-pub fn ruby_shell_variables_spec_l22_d4_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(shell_variables_spec_install('Utils.popen({ "SHELL" => "bash" }, "foo")'))
+pub fn ruby_shell_variables_spec_l22_d4_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(shell_variables_spec_install('Utils.popen({ "SHELL" => "bash" }, "foo")'))
 }
 
 // Ruby it `it "reports and corrects unexpanded shell variables in `Utils.safe_popen_read`" do` at line 29.
-pub fn ruby_shell_variables_spec_l29_d5_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(shell_variables_spec_reports('Utils.safe_popen_read "SHELL=bash foo"',
+pub fn ruby_shell_variables_spec_l29_d5_reports(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(shell_variables_spec_reports('Utils.safe_popen_read "SHELL=bash foo"',
 		'Utils.safe_popen_read({ "SHELL" => "bash" }, "foo")'))
 }
 
 // Ruby method `install` at line 32.
-pub fn ruby_shell_variables_spec_l32_d6_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(shell_variables_spec_install('Utils.safe_popen_read "SHELL=bash foo"'))
+pub fn ruby_shell_variables_spec_l32_d6_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(shell_variables_spec_install('Utils.safe_popen_read "SHELL=bash foo"'))
 }
 
 // Ruby method `install` at line 41.
-pub fn ruby_shell_variables_spec_l41_d7_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(shell_variables_spec_install('Utils.safe_popen_read({ "SHELL" => "bash" }, "foo")'))
+pub fn ruby_shell_variables_spec_l41_d7_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(shell_variables_spec_install('Utils.safe_popen_read({ "SHELL" => "bash" }, "foo")'))
 }
 
 // Ruby it `it "reports and corrects unexpanded shell variables in `Utils.safe_popen_write`" do` at line 48.
-pub fn ruby_shell_variables_spec_l48_d8_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(shell_variables_spec_reports('Utils.safe_popen_write "SHELL=bash foo"',
+pub fn ruby_shell_variables_spec_l48_d8_reports(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(shell_variables_spec_reports('Utils.safe_popen_write "SHELL=bash foo"',
 		'Utils.safe_popen_write({ "SHELL" => "bash" }, "foo")'))
 }
 
 // Ruby method `install` at line 51.
-pub fn ruby_shell_variables_spec_l51_d9_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(shell_variables_spec_install('Utils.safe_popen_write "SHELL=bash foo"'))
+pub fn ruby_shell_variables_spec_l51_d9_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(shell_variables_spec_install('Utils.safe_popen_write "SHELL=bash foo"'))
 }
 
 // Ruby method `install` at line 60.
-pub fn ruby_shell_variables_spec_l60_d10_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(shell_variables_spec_install('Utils.safe_popen_write({ "SHELL" => "bash" }, "foo")'))
+pub fn ruby_shell_variables_spec_l60_d10_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(shell_variables_spec_install('Utils.safe_popen_write({ "SHELL" => "bash" }, "foo")'))
 }
 
 // Ruby it `it "reports and corrects unexpanded shell variables while preserving string interpolation" do` at line 67.
-pub fn ruby_shell_variables_spec_l67_d11_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(shell_variables_spec_reports('Utils.popen "SHELL=bash #{bin}/foo"',
+pub fn ruby_shell_variables_spec_l67_d11_reports(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(shell_variables_spec_reports('Utils.popen "SHELL=bash #{bin}/foo"',
 		'Utils.popen({ "SHELL" => "bash" }, "#{bin}/foo")'))
 }
 
 // Ruby method `install` at line 70.
-pub fn ruby_shell_variables_spec_l70_d12_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(shell_variables_spec_install('Utils.popen "SHELL=bash #{bin}/foo"'))
+pub fn ruby_shell_variables_spec_l70_d12_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(shell_variables_spec_install('Utils.popen "SHELL=bash #{bin}/foo"'))
 }
 
 // Ruby method `install` at line 79.
-pub fn ruby_shell_variables_spec_l79_d13_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(shell_variables_spec_install('Utils.popen({ "SHELL" => "bash" }, "#{bin}/foo")'))
+pub fn ruby_shell_variables_spec_l79_d13_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(shell_variables_spec_install('Utils.popen({ "SHELL" => "bash" }, "#{bin}/foo")'))
 }
 
 // Original Ruby source (line-for-line):

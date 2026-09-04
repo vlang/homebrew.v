@@ -1,6 +1,6 @@
 module bundle
 
-import brew_runtime
+import ruby
 import homebrew.bundle.extensions
 
 // Translated from Homebrew/brew `test/bundle/krew_spec.rb`.
@@ -86,75 +86,75 @@ fn krew_spec_case(line int) bool {
 }
 
 // Ruby subject `subject(:dumper) { described_class }` at line 10.
-pub fn ruby_krew_spec_l10_d1_dumper(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_krew_spec_l10_d1_dumper(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.object_value('Homebrew::Bundle::Krew', 'Homebrew::Bundle::Krew')
+	return ruby.object_value('Homebrew::Bundle::Krew', 'Homebrew::Bundle::Krew')
 }
 
 // Ruby it `it "returns an empty list and dumps an empty string" do` at line 18.
-pub fn ruby_krew_spec_l18_d2_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_krew_spec_l18_d2_returns(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(krew_spec_case(18))
+	return ruby.bool_value(krew_spec_case(18))
 }
 
 // Ruby it `it "returns plugin list" do` at line 31.
-pub fn ruby_krew_spec_l31_d3_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_krew_spec_l31_d3_returns(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(krew_spec_case(31))
+	return ruby.bool_value(krew_spec_case(31))
 }
 
 // Ruby it `it "handles empty output" do` at line 37.
-pub fn ruby_krew_spec_l37_d4_handles(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_krew_spec_l37_d4_handles(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(krew_spec_case(37))
+	return ruby.bool_value(krew_spec_case(37))
 }
 
 // Ruby it `it "dumps plugin list" do` at line 43.
-pub fn ruby_krew_spec_l43_d5_dumps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_krew_spec_l43_d5_dumps(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(krew_spec_case(43))
+	return ruby.bool_value(krew_spec_case(43))
 }
 
 // Ruby it `it "tries to install krew" do` at line 58.
-pub fn ruby_krew_spec_l58_d6_tries(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_krew_spec_l58_d6_tries(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(krew_spec_case(58))
+	return ruby.bool_value(krew_spec_case(58))
 }
 
 // Ruby it `it "preserves upgrade_formulae while bootstrapping krew" do` at line 65.
-pub fn ruby_krew_spec_l65_d7_preserves(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_krew_spec_l65_d7_preserves(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(krew_spec_case(65))
+	return ruby.bool_value(krew_spec_case(65))
 }
 
 // Ruby it `it "skips" do` at line 89.
-pub fn ruby_krew_spec_l89_d8_skips(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_krew_spec_l89_d8_skips(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(krew_spec_case(89))
+	return ruby.bool_value(krew_spec_case(89))
 }
 
 // Ruby it `it "installs plugin" do` at line 105.
-pub fn ruby_krew_spec_l105_d9_installs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_krew_spec_l105_d9_installs(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(krew_spec_case(105))
+	return ruby.bool_value(krew_spec_case(105))
 }
 
 // Ruby it `it "updates dump output after install" do` at line 116.
-pub fn ruby_krew_spec_l116_d10_updates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_krew_spec_l116_d10_updates(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(krew_spec_case(116))
+	return ruby.bool_value(krew_spec_case(116))
 }
 
 // Ruby it `it "returns plugins not in Brewfile entries" do` at line 142.
-pub fn ruby_krew_spec_l142_d11_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_krew_spec_l142_d11_returns(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(krew_spec_case(142))
+	return ruby.bool_value(krew_spec_case(142))
 }
 
 // Ruby it `it "uninstalls plugins" do` at line 147.
-pub fn ruby_krew_spec_l147_d12_uninstalls(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_krew_spec_l147_d12_uninstalls(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(krew_spec_case(147))
+	return ruby.bool_value(krew_spec_case(147))
 }
 
 // Original Ruby source (line-for-line):

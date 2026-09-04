@@ -1,6 +1,6 @@
 module rubocops
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `rubocops/blank.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -516,8 +516,8 @@ pub fn correct_blank(source string) string {
 	return corrected
 }
 
-fn blank_match_value(matched BlankMatch, type_name string) brew_runtime.Value {
-	return brew_runtime.structured_value(type_name, matched.source, {
+fn blank_match_value(matched BlankMatch, type_name string) ruby.Value {
+	return ruby.structured_value(type_name, matched.source, {
 		'variable1':   if matched.variable1.has_source { matched.variable1.source } else { 'nil' }
 		'variable2':   if matched.variable2.has_source { matched.variable2.source } else { 'nil' }
 		'begin_pos':   matched.begin_pos.str()
@@ -528,8 +528,8 @@ fn blank_match_value(matched BlankMatch, type_name string) brew_runtime.Value {
 	})
 }
 
-fn blank_offense_value(offense BlankOffense) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cop::Offense', offense.message, {
+fn blank_offense_value(offense BlankOffense) ruby.Value {
+	return ruby.structured_value('RuboCop::Cop::Offense', offense.message, {
 		'begin_pos':   offense.begin_pos.str()
 		'end_pos':     offense.end_pos.str()
 		'message':     offense.message
@@ -538,26 +538,26 @@ fn blank_offense_value(offense BlankOffense) brew_runtime.Value {
 }
 
 // Ruby def_node_matcher `def_node_matcher :nil_or_empty?, <<~PATTERN` at line 32.
-pub fn ruby_blank_l32_d1_nil_or_empty(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_blank_l32_d1_nil_or_empty(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	matched := match_blank_expression(source) or {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	return blank_match_value(matched, 'RuboCop::AST::NodeMatch')
 }
 
 // Ruby method `on_or(node)` at line 48.
-pub fn ruby_blank_l48_d2_on_or(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_blank_l48_d2_on_or(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	offenses := audit_blank(source)
 	if offenses.len == 0 {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	return blank_offense_value(offenses[0])
 }
 
 // Ruby method `autocorrect(corrector, node)` at line 62.
-pub fn ruby_blank_l62_d3_autocorrect(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_blank_l62_d3_autocorrect(args ...ruby.Value) ruby.Value {
 	source := if args.len > 1 {
 		args[1].as_string()
 	} else if args.len > 0 {
@@ -566,17 +566,17 @@ pub fn ruby_blank_l62_d3_autocorrect(args ...brew_runtime.Value) brew_runtime.Va
 		''
 	}
 	matched := match_blank_expression(source) or {
-		return brew_runtime.string_value(source)
+		return ruby.string_value(source)
 	}
-	return brew_runtime.string_value(source[..matched.begin_pos] + matched.replacement + source[matched.end_pos..])
+	return ruby.string_value(source[..matched.begin_pos] + matched.replacement + source[matched.end_pos..])
 }
 
 // Ruby method `replacement(node)` at line 69.
-pub fn ruby_blank_l69_d4_replacement(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_blank_l69_d4_replacement(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || args[0].type_name == 'NilClass' || args[0].as_string() == '' {
-		return brew_runtime.string_value('blank?')
+		return ruby.string_value('blank?')
 	}
-	return brew_runtime.string_value('${args[0].as_string()}.blank?')
+	return ruby.string_value('${args[0].as_string()}.blank?')
 }
 
 // Original Ruby source (line-for-line):

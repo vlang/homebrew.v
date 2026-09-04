@@ -1,6 +1,6 @@
 module cask_loader
 
-import brew_runtime
+import ruby
 import homebrew.cask
 import os
 import time
@@ -39,47 +39,47 @@ pub fn from_path_loader_json_result(path string) !cask.CaskLoaderCask {
 }
 
 // Ruby let `let(:path) do` at line 7.
-pub fn ruby_from_path_loader_spec_l7_d1_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_from_path_loader_spec_l7_d1_path(args ...ruby.Value) ruby.Value {
 	root := if args.len > 0 { args[0].as_string() } else { from_path_loader_default_root('plain') }
 	path := from_path_loader_temp_file(root, 'true\n') or {
-		return brew_runtime.object_value('Error', err.msg())
+		return ruby.object_value('Error', err.msg())
 	}
-	return brew_runtime.object_value('Pathname', path)
+	return ruby.object_value('Pathname', path)
 }
 
 // Ruby it `it "raises an error" do` at line 15.
-pub fn ruby_from_path_loader_spec_l15_d2_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_from_path_loader_spec_l15_d2_raises(args ...ruby.Value) ruby.Value {
 	path := if args.len > 0 {
 		args[0].as_string()
 	} else {
 		from_path_loader_temp_file(from_path_loader_default_root('plain-error'), 'true\n') or {
-			return brew_runtime.bool_value(false)
+			return ruby.bool_value(false)
 		}
 	}
-	return brew_runtime.bool_value(from_path_loader_error_contains(path, cask.CaskLoaderEvaluation{}, 'does not contain a cask'))
+	return ruby.bool_value(from_path_loader_error_contains(path, cask.CaskLoaderEvaluation{}, 'does not contain a cask'))
 }
 
 // Ruby let `let(:path) do` at line 23.
-pub fn ruby_from_path_loader_spec_l23_d3_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_from_path_loader_spec_l23_d3_path(args ...ruby.Value) ruby.Value {
 	root := if args.len > 0 {
 		args[0].as_string()
 	} else {
 		from_path_loader_default_root('name-error')
 	}
 	path := from_path_loader_temp_file(root, 'this_method_does_not_exist\n') or {
-		return brew_runtime.object_value('Error', err.msg())
+		return ruby.object_value('Error', err.msg())
 	}
-	return brew_runtime.object_value('Pathname', path)
+	return ruby.object_value('Pathname', path)
 }
 
 // Ruby it `it "raises an error" do` at line 31.
-pub fn ruby_from_path_loader_spec_l31_d4_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_from_path_loader_spec_l31_d4_raises(args ...ruby.Value) ruby.Value {
 	path := if args.len > 0 {
 		args[0].as_string()
 	} else {
-		from_path_loader_temp_file(from_path_loader_default_root('name-error-check'), 'this_method_does_not_exist\n') or { return brew_runtime.bool_value(false) }
+		from_path_loader_temp_file(from_path_loader_default_root('name-error-check'), 'this_method_does_not_exist\n') or { return ruby.bool_value(false) }
 	}
-	return brew_runtime.bool_value(from_path_loader_error_contains(path, cask.CaskLoaderEvaluation{
+	return ruby.bool_value(from_path_loader_error_contains(path, cask.CaskLoaderEvaluation{
 		failed: true
 		error_kind: 'NameError'
 		error_message: 'undefined local variable or method `this_method_does_not_exist`'
@@ -91,10 +91,10 @@ pub fn ruby_from_path_loader_spec_l31_d4_raises(args ...brew_runtime.Value) brew
 }
 
 // Ruby it `it "raises an error" do` at line 39.
-pub fn ruby_from_path_loader_spec_l39_d5_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_from_path_loader_spec_l39_d5_raises(args ...ruby.Value) ruby.Value {
 	_ = args
 	path := os.join_path(from_path_loader_fixture_root, 'Casks', 'invalid', 'invalid-depends-on-macos-bad-release.rb')
-	return brew_runtime.bool_value(from_path_loader_error_contains(path, cask.CaskLoaderEvaluation{
+	return ruby.bool_value(from_path_loader_error_contains(path, cask.CaskLoaderEvaluation{
 		failed: true
 		error_kind: 'CaskInvalidError'
 		error_message: "invalid 'depends_on macos' value: unknown or unsupported macOS version:"
@@ -102,38 +102,38 @@ pub fn ruby_from_path_loader_spec_l39_d5_raises(args ...brew_runtime.Value) brew
 }
 
 // Ruby let `let(:sourcefile_path) { TEST_FIXTURE_DIR/"cask/everything.json" }` at line 48.
-pub fn ruby_from_path_loader_spec_l48_d6_sourcefile_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_from_path_loader_spec_l48_d6_sourcefile_path(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.object_value('Pathname', os.join_path(from_path_loader_fixture_root, 'everything.json'))
+	return ruby.object_value('Pathname', os.join_path(from_path_loader_fixture_root, 'everything.json'))
 }
 
 // Ruby it `it "loads a cask with a source file path" do` at line 50.
-pub fn ruby_from_path_loader_spec_l50_d7_loads(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_from_path_loader_spec_l50_d7_loads(args ...ruby.Value) ruby.Value {
 	path := if args.len > 0 {
 		args[0].as_string()
 	} else {
 		os.join_path(from_path_loader_fixture_root, 'everything.json')
 	}
-	loaded := from_path_loader_json_result(path) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(loaded.loaded_from_api && !loaded.loaded_from_internal_api
+	loaded := from_path_loader_json_result(path) or { return ruby.bool_value(false) }
+	return ruby.bool_value(loaded.loaded_from_api && !loaded.loaded_from_internal_api
 		&& loaded.sourcefile_path == path)
 }
 
 // Ruby let `let(:sourcefile_path) { TEST_FIXTURE_DIR/"cask/everything.internal.json" }` at line 59.
-pub fn ruby_from_path_loader_spec_l59_d8_sourcefile_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_from_path_loader_spec_l59_d8_sourcefile_path(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.object_value('Pathname', os.join_path(from_path_loader_fixture_root, 'everything.internal.json'))
+	return ruby.object_value('Pathname', os.join_path(from_path_loader_fixture_root, 'everything.internal.json'))
 }
 
 // Ruby it `it "loads a cask with a source file path" do` at line 61.
-pub fn ruby_from_path_loader_spec_l61_d9_loads(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_from_path_loader_spec_l61_d9_loads(args ...ruby.Value) ruby.Value {
 	path := if args.len > 0 {
 		args[0].as_string()
 	} else {
 		os.join_path(from_path_loader_fixture_root, 'everything.internal.json')
 	}
-	loaded := from_path_loader_json_result(path) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(loaded.loaded_from_api && loaded.loaded_from_internal_api
+	loaded := from_path_loader_json_result(path) or { return ruby.bool_value(false) }
+	return ruby.bool_value(loaded.loaded_from_api && loaded.loaded_from_internal_api
 		&& loaded.sourcefile_path == path)
 }
 

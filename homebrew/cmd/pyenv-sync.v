@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `cmd/pyenv-sync.rb`.
@@ -111,58 +111,58 @@ pub fn sync_pyenv_versions(pyenv_root string, installed []InstalledPythonVersion
 	return result
 }
 
-pub fn installed_python_version_value(version InstalledPythonVersion) brew_runtime.Value {
-	return brew_runtime.structured_value('InstalledPythonVersion', version.path, {
+pub fn installed_python_version_value(version InstalledPythonVersion) ruby.Value {
+	return ruby.structured_value('InstalledPythonVersion', version.path, {
 		'path':    version.path
 		'version': version.version
 	})
 }
 
-fn installed_python_version_from_value(value brew_runtime.Value) InstalledPythonVersion {
+fn installed_python_version_from_value(value ruby.Value) InstalledPythonVersion {
 	return InstalledPythonVersion{
 		path: value.attribute('path') or { value.as_string() }
 		version: value.attribute('version') or { '' }
 	}
 }
 
-fn pyenv_sync_result_value(result PyenvSyncResult) brew_runtime.Value {
-	return brew_runtime.Value{
+fn pyenv_sync_result_value(result PyenvSyncResult) ruby.Value {
+	return ruby.Value{
 		type_name: 'PyenvSyncResult'
 		repr: result.created.str()
 		attributes: {
 			'skipped_busy': result.skipped_busy.str()
 		}
 		map_data: {
-			'created':  brew_runtime.string_array_value(result.created)
-			'skipped':  brew_runtime.string_array_value(result.skipped)
-			'removed':  brew_runtime.string_array_value(result.removed)
-			'warnings': brew_runtime.string_array_value(result.warnings)
+			'created':  ruby.string_array_value(result.created)
+			'skipped':  ruby.string_array_value(result.skipped)
+			'removed':  ruby.string_array_value(result.removed)
+			'warnings': ruby.string_array_value(result.warnings)
 		}
 	}
 }
 
 // Ruby method `run` at line 23.
-pub fn ruby_pyenv_sync_l23_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pyenv_sync_l23_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'pyenv-sync requires the pyenv root')
+		return ruby.object_value('ArgumentError', 'pyenv-sync requires the pyenv root')
 	}
 	installed_values := if args.len > 1 {
-		args[1].as_array() or { []brew_runtime.Value{} }
+		args[1].as_array() or { []ruby.Value{} }
 	} else {
-		[]brew_runtime.Value{}
+		[]ruby.Value{}
 	}
 	strict := args.len > 2 && (args[2].as_bool() or { false })
-	result := sync_pyenv_versions(args[0].as_string(), installed_values.map(installed_python_version_from_value(it)), strict) or { return brew_runtime.object_value('RuntimeError', err.msg()) }
+	result := sync_pyenv_versions(args[0].as_string(), installed_values.map(installed_python_version_from_value(it)), strict) or { return ruby.object_value('RuntimeError', err.msg()) }
 	return pyenv_sync_result_value(result)
 }
 
 // Ruby method `link_pyenv_versions(path, pyenv_versions)` at line 50.
-pub fn ruby_pyenv_sync_l50_d2_link_pyenv_versions(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pyenv_sync_l50_d2_link_pyenv_versions(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'link_pyenv_versions requires a Python version and versions path')
+		return ruby.object_value('ArgumentError', 'link_pyenv_versions requires a Python version and versions path')
 	}
 	strict := args.len > 2 && (args[2].as_bool() or { false })
-	result := link_pyenv_versions(installed_python_version_from_value(args[0]), args[1].as_string(), strict) or { return brew_runtime.object_value('RuntimeError', err.msg()) }
+	result := link_pyenv_versions(installed_python_version_from_value(args[0]), args[1].as_string(), strict) or { return ruby.object_value('RuntimeError', err.msg()) }
 	return pyenv_sync_result_value(result)
 }
 

@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 import os
 import x.json2
 
@@ -8,24 +8,24 @@ import x.json2
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `initialize(filename)` at line 22.
-pub fn ruby_executables_db_l22_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_executables_db_l22_d1_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'database filename is required')
+		return ruby.object_value('ArgumentError', 'database filename is required')
 	}
 	database := load_executables_db(args[0].as_string()) or {
-		return brew_runtime.object_value('IOError', err.msg())
+		return ruby.object_value('IOError', err.msg())
 	}
 	return executables_db_value(database)
 }
 
 // Ruby method `to_hash` at line 37.
-pub fn ruby_executables_db_l37_d2_to_hash(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_executables_db_l37_d2_to_hash(args ...ruby.Value) ruby.Value {
 	database := if args.len > 0 { executables_db_from_value(args[0]) } else { ExecutablesDb{} }
 	return executables_hash_value(database.entries)
 }
 
 // Ruby method `update!(bottle_json_dir: nil, removed_formulae: [])` at line 42.
-pub fn ruby_executables_db_l42_d3_update(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_executables_db_l42_d3_update(args ...ruby.Value) ruby.Value {
 	mut database := if args.len > 0 { executables_db_from_value(args[0]) } else { ExecutablesDb{} }
 	bottle_json_dir := if args.len > 1 && args[1].type_name !in ['Nil', 'NilClass'] {
 		args[1].as_string()
@@ -38,13 +38,13 @@ pub fn ruby_executables_db_l42_d3_update(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `save!` at line 81.
-pub fn ruby_executables_db_l81_d4_save(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_executables_db_l81_d4_save(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'database is required')
+		return ruby.object_value('ArgumentError', 'database is required')
 	}
 	database := executables_db_from_value(args[0])
-	database.save() or { return brew_runtime.object_value('IOError', err.msg()) }
-	return brew_runtime.object_value('NilClass', '')
+	database.save() or { return ruby.object_value('IOError', err.msg()) }
+	return ruby.object_value('NilClass', '')
 }
 
 pub struct ExecutablesDb {
@@ -204,28 +204,28 @@ pub fn (database ExecutablesDb) save() ! {
 	os.write_file(database.filename, contents)!
 }
 
-fn executables_hash_value(entries map[string][]string) brew_runtime.Value {
-	mut values := map[string]brew_runtime.Value{}
+fn executables_hash_value(entries map[string][]string) ruby.Value {
+	mut values := map[string]ruby.Value{}
 	for formula, executables in entries {
-		values[formula] = brew_runtime.string_array_value(executables)
+		values[formula] = ruby.string_array_value(executables)
 	}
-	return brew_runtime.map_value(values)
+	return ruby.map_value(values)
 }
 
-pub fn executables_db_value(database ExecutablesDb) brew_runtime.Value {
+pub fn executables_db_value(database ExecutablesDb) ruby.Value {
 	values := database.entries.clone()
 	mut boundary := {
-		'_filename': brew_runtime.string_value(database.filename)
-		'_warnings': brew_runtime.string_array_value(database.warnings)
-		'_removed':  brew_runtime.string_array_value(database.removed)
+		'_filename': ruby.string_value(database.filename)
+		'_warnings': ruby.string_array_value(database.warnings)
+		'_removed':  ruby.string_array_value(database.removed)
 	}
 	for formula, executables in values {
-		boundary[formula] = brew_runtime.string_array_value(executables)
+		boundary[formula] = ruby.string_array_value(executables)
 	}
-	return brew_runtime.map_value(boundary)
+	return ruby.map_value(boundary)
 }
 
-pub fn executables_db_from_value(value brew_runtime.Value) ExecutablesDb {
+pub fn executables_db_from_value(value ruby.Value) ExecutablesDb {
 	values := value.as_map() or { return ExecutablesDb{} }
 	mut database := ExecutablesDb{
 		filename: if '_filename' in values { values['_filename'].as_string() } else { '' }

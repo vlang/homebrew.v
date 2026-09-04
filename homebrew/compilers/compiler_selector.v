@@ -1,6 +1,6 @@
 module compilers
 
-import brew_runtime
+import ruby
 import homebrew
 
 // Translated from Homebrew/brew `compilers/compiler_selector.rb`.
@@ -26,7 +26,7 @@ pub type PreferredGccVersionLookup = fn() !string
 @[heap]
 pub struct CompilerSelector {
 pub:
-	formula          brew_runtime.Value
+	formula          ruby.Value
 	failures         []&CompilerFailure
 	versions         StaticCompilerVersions
 	compiler_names   []string
@@ -104,7 +104,7 @@ pub fn (versions StaticCompilerVersions) compiler_version(name string) homebrew.
 	return versions.build_versions[name] or { homebrew.null_version() }
 }
 
-pub fn new_compiler_selector(formula brew_runtime.Value, failures []&CompilerFailure,
+pub fn new_compiler_selector(formula ruby.Value, failures []&CompilerFailure,
 	versions StaticCompilerVersions, compiler_names []string, preferred_gcc string,
 	preferred_exists bool) &CompilerSelector {
 	return &CompilerSelector{
@@ -177,7 +177,7 @@ pub fn (selector &CompilerSelector) compiler() !string {
 	return error('CompilerSelectionError: ${selector.formula.as_string()} cannot be built with any available compilers.')
 }
 
-pub fn select_for(formula brew_runtime.Value, failures []&CompilerFailure,
+pub fn select_for(formula ruby.Value, failures []&CompilerFailure,
 	dependencies []CompilerDependency, versions StaticCompilerVersions, requested_compilers []string,
 	has_requested_compilers bool, default_compiler string, testing_formula bool,
 	preferred_gcc string, preferred_exists bool) !string {
@@ -192,18 +192,18 @@ pub fn select_for(formula brew_runtime.Value, failures []&CompilerFailure,
 	return new_compiler_selector(formula, failures, versions, compiler_names, preferred_gcc, preferred_exists).compiler()
 }
 
-fn static_versions_value(versions StaticCompilerVersions) brew_runtime.Value {
-	mut values := map[string]brew_runtime.Value{}
+fn static_versions_value(versions StaticCompilerVersions) ruby.Value {
+	mut values := map[string]ruby.Value{}
 	for name, version in versions.gcc_versions {
 		values[name] = compiler_failure_version_value(version)
 	}
 	for name, version in versions.build_versions {
 		values['${name}_build_version'] = compiler_failure_version_value(version)
 	}
-	return brew_runtime.map_value(values)
+	return ruby.map_value(values)
 }
 
-fn static_versions_from_value(value brew_runtime.Value) StaticCompilerVersions {
+fn static_versions_from_value(value ruby.Value) StaticCompilerVersions {
 	mut gcc_versions := map[string]homebrew.Version{}
 	mut build_versions := map[string]homebrew.Version{}
 	for name, version_value in value.map_data {
@@ -219,12 +219,12 @@ fn static_versions_from_value(value brew_runtime.Value) StaticCompilerVersions {
 	}
 }
 
-fn formula_failures(value brew_runtime.Value) []&CompilerFailure {
+fn formula_failures(value ruby.Value) []&CompilerFailure {
 	raw := value.map_data['compiler_failures'] or { return []&CompilerFailure{} }
 	return raw.array_data.map(compiler_failure_from_value(it))
 }
 
-fn formula_dependencies(value brew_runtime.Value) []CompilerDependency {
+fn formula_dependencies(value ruby.Value) []CompilerDependency {
 	raw := value.map_data['dependencies'] or { return []CompilerDependency{} }
 	mut dependencies := []CompilerDependency{}
 	for dependency in raw.array_data {
@@ -242,36 +242,36 @@ fn host_default_compiler() string {
 	return $if macos { 'clang' } $else { 'gcc' }
 }
 
-fn compiler_selector_value(selector &CompilerSelector) brew_runtime.Value {
-	return brew_runtime.structured_value('CompilerSelector', '#<CompilerSelector>', {
+fn compiler_selector_value(selector &CompilerSelector) ruby.Value {
+	return ruby.structured_value('CompilerSelector', '#<CompilerSelector>', {
 		'compiler_selector_address': u64(voidptr(selector)).str()
 	})
 }
 
-fn compiler_selector_from_value(value brew_runtime.Value) &CompilerSelector {
+fn compiler_selector_from_value(value ruby.Value) &CompilerSelector {
 	address := value.attribute('compiler_selector_address') or {
 		panic('${value.type_name} has no translated CompilerSelector state')
 	}
 	return unsafe { &CompilerSelector(voidptr(address.u64())) }
 }
 
-fn compiler_names_from_value(value brew_runtime.Value) []string {
+fn compiler_names_from_value(value ruby.Value) []string {
 	return value.as_string_array() or { panic(err) }.map(it.trim_string_left(':'))
 }
 
-fn selector_from_boundary(formula brew_runtime.Value, versions_value brew_runtime.Value,
+fn selector_from_boundary(formula ruby.Value, versions_value ruby.Value,
 	compiler_names []string) &CompilerSelector {
 	preferred := formula.attribute('preferred_gcc_version') or { '' }
 	return new_compiler_selector(formula, formula_failures(formula), static_versions_from_value(versions_value), compiler_names, preferred, preferred != '')
 }
 
 // Ruby method `self.select_for(formula, compilers = nil, testing_formula: false)` at line 23.
-pub fn ruby_compiler_selector_l23_self_select_for(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_compiler_selector_l23_self_select_for(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('CompilerSelector.select_for requires a formula')
 	}
 	formula := args[0]
-	versions_value := formula.map_data['versions'] or { brew_runtime.map_value({}) }
+	versions_value := formula.map_data['versions'] or { ruby.map_value({}) }
 	has_requested := args.len > 1 && args[1].type_name == 'Array'
 	requested := if has_requested { compiler_names_from_value(args[1]) } else { []string{} }
 	testing_formula := if args.len > 2 { args[2].as_bool() or { false } } else { false }
@@ -279,20 +279,20 @@ pub fn ruby_compiler_selector_l23_self_select_for(args ...brew_runtime.Value) br
 	preferred := formula.attribute('preferred_gcc_version') or { '' }
 	selected := select_for(formula, formula_failures(formula), formula_dependencies(formula), static_versions_from_value(versions_value), requested, has_requested, default_compiler, testing_formula, preferred, preferred != '') or { panic(err) }
 	return if selected.starts_with('gcc-') {
-		brew_runtime.string_value(selected)
+		ruby.string_value(selected)
 	} else {
-		brew_runtime.object_value('Symbol', selected)
+		ruby.object_value('Symbol', selected)
 	}
 }
 
 // Ruby method `self.compilers` at line 34.
-pub fn ruby_compiler_selector_l34_self_compilers(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_compiler_selector_l34_self_compilers(args ...ruby.Value) ruby.Value {
 	default_compiler := if args.len > 0 { args[0].as_string() } else { host_default_compiler() }
-	return brew_runtime.string_array_value(compiler_priorities(default_compiler) or { panic(err) })
+	return ruby.string_array_value(compiler_priorities(default_compiler) or { panic(err) })
 }
 
 // Ruby attr_reader `formula` at line 39.
-pub fn ruby_compiler_selector_l39_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_compiler_selector_l39_formula(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('CompilerSelector#formula requires a receiver')
 	}
@@ -300,15 +300,15 @@ pub fn ruby_compiler_selector_l39_formula(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby attr_reader `failures` at line 42.
-pub fn ruby_compiler_selector_l42_failures(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_compiler_selector_l42_failures(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('CompilerSelector#failures requires a receiver')
 	}
-	return brew_runtime.array_value(compiler_selector_from_value(args[0]).failures.map(compiler_failure_value(it)))
+	return ruby.array_value(compiler_selector_from_value(args[0]).failures.map(compiler_failure_value(it)))
 }
 
 // Ruby attr_reader `versions` at line 45.
-pub fn ruby_compiler_selector_l45_versions(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_compiler_selector_l45_versions(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('CompilerSelector#versions requires a receiver')
 	}
@@ -316,15 +316,15 @@ pub fn ruby_compiler_selector_l45_versions(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby attr_reader `compilers` at line 48.
-pub fn ruby_compiler_selector_l48_compilers(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_compiler_selector_l48_compilers(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('CompilerSelector#compilers requires a receiver')
 	}
-	return brew_runtime.string_array_value(compiler_selector_from_value(args[0]).compiler_names)
+	return ruby.string_array_value(compiler_selector_from_value(args[0]).compiler_names)
 }
 
 // Ruby method `initialize(formula, versions, compilers)` at line 57.
-pub fn ruby_compiler_selector_l57_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_compiler_selector_l57_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('CompilerSelector#initialize requires formula, versions, and compilers')
 	}
@@ -332,49 +332,49 @@ pub fn ruby_compiler_selector_l57_initialize(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby method `compiler` at line 65.
-pub fn ruby_compiler_selector_l65_compiler(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_compiler_selector_l65_compiler(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('CompilerSelector#compiler requires a receiver')
 	}
 	selected := compiler_selector_from_value(args[0]).compiler() or { panic(err) }
 	return if selected.starts_with('gcc-') {
-		brew_runtime.string_value(selected)
+		ruby.string_value(selected)
 	} else {
-		brew_runtime.object_value('Symbol', selected)
+		ruby.object_value('Symbol', selected)
 	}
 }
 
 // Ruby method `self.preferred_gcc` at line 71.
-pub fn ruby_compiler_selector_l71_self_preferred_gcc(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('gcc')
+pub fn ruby_compiler_selector_l71_self_preferred_gcc(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('gcc')
 }
 
 // Ruby method `gnu_gcc_versions` at line 78.
-pub fn ruby_compiler_selector_l78_gnu_gcc_versions(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_compiler_selector_l78_gnu_gcc_versions(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_array_value(supported_gnu_gcc_versions())
+		return ruby.string_array_value(supported_gnu_gcc_versions())
 	}
-	return brew_runtime.string_array_value(compiler_selector_from_value(args[0]).gnu_gcc_versions())
+	return ruby.string_array_value(compiler_selector_from_value(args[0]).gnu_gcc_versions())
 }
 
 // Ruby method `find_compiler(&_block)` at line 87.
-pub fn ruby_compiler_selector_l87_find_compiler(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_compiler_selector_l87_find_compiler(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('CompilerSelector#find_compiler requires a receiver')
 	}
-	return brew_runtime.array_value(compiler_selector_from_value(args[0]).available_compilers().map(compiler_value(it)))
+	return ruby.array_value(compiler_selector_from_value(args[0]).available_compilers().map(compiler_value(it)))
 }
 
 // Ruby method `fails_with?(compiler)` at line 106.
-pub fn ruby_compiler_selector_l106_fails_with(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_compiler_selector_l106_fails_with(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('CompilerSelector#fails_with? requires a receiver and compiler')
 	}
-	return brew_runtime.bool_value(compiler_selector_from_value(args[0]).fails_with(compiler_from_value(args[1])))
+	return ruby.bool_value(compiler_selector_from_value(args[0]).fails_with(compiler_from_value(args[1])))
 }
 
 // Ruby method `compiler_version(name)` at line 111.
-pub fn ruby_compiler_selector_l111_compiler_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_compiler_selector_l111_compiler_version(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('CompilerSelector#compiler_version requires a receiver and compiler name')
 	}

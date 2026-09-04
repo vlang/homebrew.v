@@ -1,6 +1,6 @@
 module unpack_strategy
 
-import brew_runtime
+import ruby
 import homebrew.unpack_strategy as typed_unpack
 import os
 
@@ -17,7 +17,7 @@ fn directory_spec_fixture() string {
 	return path
 }
 
-fn directory_spec_move(args []brew_runtime.Value) bool {
+fn directory_spec_move(args []ruby.Value) bool {
 	if args.len == 0 {
 		return false
 	}
@@ -44,27 +44,27 @@ fn directory_spec_cleanup(paths ...string) {
 }
 
 // Ruby let `let(:path) do` at line 7.
-pub fn ruby_directory_spec_l7_d1_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(directory_spec_fixture())
+pub fn ruby_directory_spec_l7_d1_path(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(directory_spec_fixture())
 }
 
 // Ruby let `let(:unpack_dir) { mktmpdir }` at line 17.
-pub fn ruby_directory_spec_l17_d2_unpack_dir(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(spec_temp_dir('directory-destination'))
+pub fn ruby_directory_spec_l17_d2_unpack_dir(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(spec_temp_dir('directory-destination'))
 }
 
 // Ruby subject `subject(:strategy) { described_class.new(path, move:) }` at line 20.
-pub fn ruby_directory_spec_l20_d3_strategy(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_directory_spec_l20_d3_strategy(args ...ruby.Value) ruby.Value {
 	path := if args.len > 0 { args[0].as_string() } else { directory_spec_fixture() }
 	move := if args.len > 1 { args[1].as_bool() or { false } } else { false }
-	return brew_runtime.structured_value('UnpackStrategy::Directory', path, {
+	return ruby.structured_value('UnpackStrategy::Directory', path, {
 		'path': path
 		'move': move.str()
 	})
 }
 
 // Ruby it `it "does not follow symlinks" do` at line 22.
-pub fn ruby_directory_spec_l22_d4_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_directory_spec_l22_d4_does(args ...ruby.Value) ruby.Value {
 	source := directory_spec_fixture()
 	destination := spec_temp_dir('directory-symlink')
 	defer { directory_spec_cleanup(source, destination) }
@@ -75,7 +75,7 @@ pub fn ruby_directory_spec_l22_d4_does(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby it `it "does not follow top level symlinks to directories" do` at line 27.
-pub fn ruby_directory_spec_l27_d5_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_directory_spec_l27_d5_does(args ...ruby.Value) ruby.Value {
 	source := directory_spec_fixture()
 	destination := spec_temp_dir('directory-folder-symlink')
 	defer { directory_spec_cleanup(source, destination) }
@@ -86,7 +86,7 @@ pub fn ruby_directory_spec_l27_d5_does(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby it `it "preserves permissions of contained files" do` at line 32.
-pub fn ruby_directory_spec_l32_d6_preserves(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_directory_spec_l32_d6_preserves(args ...ruby.Value) ruby.Value {
 	source := directory_spec_fixture()
 	destination := spec_temp_dir('directory-file-mode')
 	defer { directory_spec_cleanup(source, destination) }
@@ -98,7 +98,7 @@ pub fn ruby_directory_spec_l32_d6_preserves(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby it `it "preserves permissions of contained subdirectories" do` at line 39.
-pub fn ruby_directory_spec_l39_d7_preserves(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_directory_spec_l39_d7_preserves(args ...ruby.Value) ruby.Value {
 	source := directory_spec_fixture()
 	destination := spec_temp_dir('directory-folder-mode')
 	defer { directory_spec_cleanup(source, destination) }
@@ -112,7 +112,7 @@ pub fn ruby_directory_spec_l39_d7_preserves(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby it `it "preserves permissions of the destination directory" do` at line 48.
-pub fn ruby_directory_spec_l48_d8_preserves(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_directory_spec_l48_d8_preserves(args ...ruby.Value) ruby.Value {
 	source := directory_spec_fixture()
 	destination := spec_temp_dir('directory-destination-mode')
 	defer { directory_spec_cleanup(source, destination) }
@@ -125,7 +125,7 @@ pub fn ruby_directory_spec_l48_d8_preserves(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby it `it "preserves mtime of contained files and directories" do` at line 56.
-pub fn ruby_directory_spec_l56_d9_preserves(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_directory_spec_l56_d9_preserves(args ...ruby.Value) ruby.Value {
 	source := directory_spec_fixture()
 	destination := spec_temp_dir('directory-mtime')
 	defer { directory_spec_cleanup(source, destination) }
@@ -148,7 +148,7 @@ pub fn ruby_directory_spec_l56_d9_preserves(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby it `it "preserves unrelated destination files and subdirectories" do` at line 65.
-pub fn ruby_directory_spec_l65_d10_preserves(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_directory_spec_l65_d10_preserves(args ...ruby.Value) ruby.Value {
 	source := directory_spec_fixture()
 	destination := spec_temp_dir('directory-unrelated')
 	defer { directory_spec_cleanup(source, destination) }
@@ -161,7 +161,7 @@ pub fn ruby_directory_spec_l65_d10_preserves(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby it `it "overwrites destination files/symlinks with source files/symlinks" do` at line 74.
-pub fn ruby_directory_spec_l74_d11_overwrites(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_directory_spec_l74_d11_overwrites(args ...ruby.Value) ruby.Value {
 	source := directory_spec_fixture()
 	destination := spec_temp_dir('directory-overwrite')
 	defer { directory_spec_cleanup(source, destination) }
@@ -181,7 +181,7 @@ pub fn ruby_directory_spec_l74_d11_overwrites(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby it `it "fails when overwriting a directory with a file" do` at line 84.
-pub fn ruby_directory_spec_l84_d12_fails(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_directory_spec_l84_d12_fails(args ...ruby.Value) ruby.Value {
 	source := directory_spec_fixture()
 	destination := spec_temp_dir('directory-overwrite-directory')
 	defer { directory_spec_cleanup(source, destination) }
@@ -195,7 +195,7 @@ pub fn ruby_directory_spec_l84_d12_fails(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby it `it "fails when overwriting a nested directory with a file" do` at line 89.
-pub fn ruby_directory_spec_l89_d13_fails(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_directory_spec_l89_d13_fails(args ...ruby.Value) ruby.Value {
 	source := directory_spec_fixture()
 	destination := spec_temp_dir('directory-overwrite-nested-directory')
 	defer { directory_spec_cleanup(source, destination) }
@@ -210,7 +210,7 @@ pub fn ruby_directory_spec_l89_d13_fails(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby it `it "preserves hardlinks" do` at line 103.
-pub fn ruby_directory_spec_l103_d14_preserves(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_directory_spec_l103_d14_preserves(args ...ruby.Value) ruby.Value {
 	source := directory_spec_fixture()
 	destination := spec_temp_dir('directory-hardlinks')
 	defer { directory_spec_cleanup(source, destination) }
@@ -221,7 +221,7 @@ pub fn ruby_directory_spec_l103_d14_preserves(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby it `it "fails when overwriting a file with a directory" do` at line 110.
-pub fn ruby_directory_spec_l110_d15_fails(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_directory_spec_l110_d15_fails(args ...ruby.Value) ruby.Value {
 	source := directory_spec_fixture()
 	destination := spec_temp_dir('directory-overwrite-file')
 	defer { directory_spec_cleanup(source, destination) }

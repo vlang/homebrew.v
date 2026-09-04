@@ -1,6 +1,6 @@
 module cask
 
-import brew_runtime
+import ruby
 import os
 import strconv
 
@@ -76,7 +76,7 @@ pub:
 }
 
 pub fn quarantine_xattr() ?string {
-	return brew_runtime.find_executable('xattr') or { return none }
+	return ruby.find_executable('xattr') or { return none }
 }
 
 pub fn quarantine_xattr_available(context QuarantineContext) bool {
@@ -205,7 +205,7 @@ pub fn quarantine_release(download_path ?string,
 	}
 }
 
-pub fn quarantine_cask(_ brew_runtime.Value, _ ?string, _ bool) ! {
+pub fn quarantine_cask(_ ruby.Value, _ ?string, _ bool) ! {
 	return error('NotImplementedError')
 }
 
@@ -276,9 +276,9 @@ fn quarantine_native_runner(command QuarantineCommand) !QuarantineCommandResult 
 	}
 	argv << command.executable
 	argv << command.args
-	result := brew_runtime.run_captured_command(argv, brew_runtime.CapturedCommandOptions{
+	result := ruby.run_captured_command(argv, ruby.CapturedCommandOptions{
 		input: command.input
-		environment: brew_runtime.environment()
+		environment: ruby.environment()
 	})!
 	return QuarantineCommandResult{
 		stdout: result.stdout
@@ -287,16 +287,16 @@ fn quarantine_native_runner(command QuarantineCommand) !QuarantineCommandResult 
 	}
 }
 
-fn quarantine_context_from_values(args []brew_runtime.Value) QuarantineContext {
+fn quarantine_context_from_values(args []ruby.Value) QuarantineContext {
 	mut xattr := quarantine_xattr() or { '' }
 	mut status := ''
 	mut stderr := ''
 	mut exit_code := 0
 	for value in args {
 		if value.type_name == 'Hash' {
-			xattr = value.map_data['xattr'] or { brew_runtime.string_value(xattr) }.as_string()
-			status = value.map_data['status'] or { brew_runtime.string_value(status) }.as_string()
-			stderr = value.map_data['stderr'] or { brew_runtime.string_value(stderr) }.as_string()
+			xattr = value.map_data['xattr'] or { ruby.string_value(xattr) }.as_string()
+			status = value.map_data['status'] or { ruby.string_value(status) }.as_string()
+			stderr = value.map_data['stderr'] or { ruby.string_value(stderr) }.as_string()
 			if raw := value.map_data['exit_code'] {
 				exit_code = int(raw.int_data)
 			}
@@ -312,22 +312,22 @@ fn quarantine_context_from_values(args []brew_runtime.Value) QuarantineContext {
 	}
 }
 
-fn quarantine_command_value(command QuarantineCommand) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'executable': brew_runtime.string_value(command.executable)
-		'args':       brew_runtime.string_array_value(command.args)
-		'input':      brew_runtime.string_value(command.input)
-		'sudo':       brew_runtime.bool_value(command.sudo)
+fn quarantine_command_value(command QuarantineCommand) ruby.Value {
+	return ruby.map_value({
+		'executable': ruby.string_value(command.executable)
+		'args':       ruby.string_array_value(command.args)
+		'input':      ruby.string_value(command.input)
+		'sudo':       ruby.bool_value(command.sudo)
 	})
 }
 
-fn quarantine_error_value(message string) brew_runtime.Value {
-	return brew_runtime.structured_value('Error', message, {
+fn quarantine_error_value(message string) ruby.Value {
+	return ruby.structured_value('Error', message, {
 		'message': message
 	})
 }
 
-fn quarantine_argument_string(args []brew_runtime.Value, index int) ?string {
+fn quarantine_argument_string(args []ruby.Value, index int) ?string {
 	mut current := 0
 	for value in args {
 		if value.type_name == 'Hash' {
@@ -355,7 +355,7 @@ fn (command CaskAppManagementPermissionCommand) touch_and_remove_with_sudo(path 
 		return error(command.touch_error)
 	}
 	if command.native {
-		touch := brew_runtime.run_captured_command(['/usr/bin/sudo', 'touch', path], brew_runtime.CapturedCommandOptions{ environment: brew_runtime.environment() })!
+		touch := ruby.run_captured_command(['/usr/bin/sudo', 'touch', path], ruby.CapturedCommandOptions{ environment: ruby.environment() })!
 		if touch.exit_code != 0 {
 			return error(touch.stderr)
 		}
@@ -364,21 +364,21 @@ fn (command CaskAppManagementPermissionCommand) touch_and_remove_with_sudo(path 
 		return error(command.rm_error)
 	}
 	if command.native {
-		remove := brew_runtime.run_captured_command(['/usr/bin/sudo', 'rm', path], brew_runtime.CapturedCommandOptions{ environment: brew_runtime.environment() })!
+		remove := ruby.run_captured_command(['/usr/bin/sudo', 'rm', path], ruby.CapturedCommandOptions{ environment: ruby.environment() })!
 		if remove.exit_code != 0 {
 			return error(remove.stderr)
 		}
 	}
 }
 
-fn cask_app_management_error(message string) brew_runtime.Value {
-	return brew_runtime.structured_value('ErrorDuringExecution', message, {
+fn cask_app_management_error(message string) ruby.Value {
+	return ruby.structured_value('ErrorDuringExecution', message, {
 		'message': message
 		'stderr':  message
 	})
 }
 
-fn cask_app_management_command_error(value brew_runtime.Value, key string) string {
+fn cask_app_management_command_error(value ruby.Value, key string) string {
 	if text := value.attributes[key] {
 		return text
 	}
@@ -392,153 +392,153 @@ fn cask_app_management_command_error(value brew_runtime.Value, key string) strin
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `self.xattr` at line 24.
-pub fn ruby_quarantine_l24_d1_self_xattr(args ...brew_runtime.Value) brew_runtime.Value {
-	path := quarantine_xattr() or { return brew_runtime.Value{} }
-	return brew_runtime.string_value(path)
+pub fn ruby_quarantine_l24_d1_self_xattr(args ...ruby.Value) ruby.Value {
+	path := quarantine_xattr() or { return ruby.Value{} }
+	return ruby.string_value(path)
 }
 
 // Ruby method `self.xattr_available?` at line 30.
-pub fn ruby_quarantine_l30_d2_self_xattr_available(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(quarantine_xattr_available(quarantine_context_from_values(args)))
+pub fn ruby_quarantine_l30_d2_self_xattr_available(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(quarantine_xattr_available(quarantine_context_from_values(args)))
 }
 
 // Ruby method `self.check_quarantine_support` at line 38.
-pub fn ruby_quarantine_l38_d3_self_check_quarantine_support(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_quarantine_l38_d3_self_check_quarantine_support(args ...ruby.Value) ruby.Value {
 	support := quarantine_check_support()
-	return brew_runtime.array_value([
-		brew_runtime.string_value(support.kind.str()),
-		brew_runtime.Value{},
+	return ruby.array_value([
+		ruby.string_value(support.kind.str()),
+		ruby.Value{},
 	])
 }
 
 // Ruby method `self.available?` at line 43.
-pub fn ruby_quarantine_l43_d4_self_available(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_quarantine_l43_d4_self_available(args ...ruby.Value) ruby.Value {
 	mut support := quarantine_check_support()
 	if args.len > 0 && args[0].type_name == 'Bool' && args[0].bool_data {
 		support = QuarantineSupport{ kind: .quarantine_available }
 	}
-	return brew_runtime.bool_value(quarantine_available(support))
+	return ruby.bool_value(quarantine_available(support))
 }
 
 // Ruby method `self.detect(file)` at line 50.
-pub fn ruby_quarantine_l50_d5_self_detect(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_quarantine_l50_d5_self_detect(args ...ruby.Value) ruby.Value {
 	file := quarantine_argument_string(args, 0)
 	detected := quarantine_detect(file, quarantine_context_from_values(args)) or {
 		return quarantine_error_value(err.msg())
 	}
 	if !detected.present {
-		return brew_runtime.Value{}
+		return ruby.Value{}
 	}
-	return brew_runtime.bool_value(detected.value)
+	return ruby.bool_value(detected.value)
 }
 
 // Ruby method `self.status(file)` at line 63.
-pub fn ruby_quarantine_l63_d6_self_status(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_quarantine_l63_d6_self_status(args ...ruby.Value) ruby.Value {
 	file := quarantine_argument_string(args, 0) or {
 		return quarantine_error_value('status requires file')
 	}
 	status := quarantine_status(file, quarantine_context_from_values(args)) or {
 		return quarantine_error_value(err.msg())
 	}
-	return brew_runtime.string_value(status)
+	return ruby.string_value(status)
 }
 
 // Ruby method `self.user_approved?(file)` at line 73.
-pub fn ruby_quarantine_l73_d7_self_user_approved(args ...brew_runtime.Value) brew_runtime.Value {
-	file := quarantine_argument_string(args, 0) or { return brew_runtime.bool_value(false) }
+pub fn ruby_quarantine_l73_d7_self_user_approved(args ...ruby.Value) ruby.Value {
+	file := quarantine_argument_string(args, 0) or { return ruby.bool_value(false) }
 	approved := quarantine_user_approved(file, quarantine_context_from_values(args)) or {
 		return quarantine_error_value(err.msg())
 	}
-	return brew_runtime.bool_value(approved)
+	return ruby.bool_value(approved)
 }
 
 // Ruby method `self.inherit_user_approval!(download_path: nil)` at line 83.
-pub fn ruby_quarantine_l83_d8_self_inherit_user_approval(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_quarantine_l83_d8_self_inherit_user_approval(args ...ruby.Value) ruby.Value {
 	path := quarantine_argument_string(args, 0)
 	outcome := quarantine_inherit_user_approval(path, quarantine_context_from_values(args)) or {
 		return quarantine_error_value(err.msg())
 	}
 	if !outcome.present {
-		return brew_runtime.Value{}
+		return ruby.Value{}
 	}
 	return quarantine_command_value(outcome.command)
 }
 
 // Ruby method `self.signing_identity(_file); end` at line 111.
-pub fn ruby_quarantine_l111_d9_self_signing_identity(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_quarantine_l111_d9_self_signing_identity(args ...ruby.Value) ruby.Value {
 	file := quarantine_argument_string(args, 0) or { '' }
-	identity := quarantine_signing_identity(file) or { return brew_runtime.Value{} }
-	return brew_runtime.structured_value('SigningIdentity', identity.requirement, {
+	identity := quarantine_signing_identity(file) or { return ruby.Value{} }
+	return ruby.structured_value('SigningIdentity', identity.requirement, {
 		'requirement': identity.requirement
 	})
 }
 
 // Ruby method `self.signing_identity_match(_file, _identity); end` at line 117.
-pub fn ruby_quarantine_l117_d10_self_signing_identity_match(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_quarantine_l117_d10_self_signing_identity_match(args ...ruby.Value) ruby.Value {
 	file := quarantine_argument_string(args, 0) or { '' }
 	requirement := quarantine_argument_string(args, 1) or { '' }
 	matched := quarantine_signing_identity_match(file, QuarantineSigningIdentity{
 		requirement: requirement
-	}) or { return brew_runtime.Value{} }
-	return brew_runtime.bool_value(matched)
+	}) or { return ruby.Value{} }
+	return ruby.bool_value(matched)
 }
 
 // Ruby method `self.toggle_no_translocation_bit(attribute)` at line 120.
-pub fn ruby_quarantine_l120_d11_self_toggle_no_translocation_bit(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_quarantine_l120_d11_self_toggle_no_translocation_bit(args ...ruby.Value) ruby.Value {
 	attribute := quarantine_argument_string(args, 0) or { '' }
-	return brew_runtime.string_value(quarantine_toggle_no_translocation_bit(attribute))
+	return ruby.string_value(quarantine_toggle_no_translocation_bit(attribute))
 }
 
 // Ruby method `self.release!(download_path: nil)` at line 134.
-pub fn ruby_quarantine_l134_d12_self_release(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_quarantine_l134_d12_self_release(args ...ruby.Value) ruby.Value {
 	path := quarantine_argument_string(args, 0)
 	outcome := quarantine_release(path, quarantine_context_from_values(args)) or {
 		return quarantine_error_value(err.msg())
 	}
 	if !outcome.present {
-		return brew_runtime.Value{}
+		return ruby.Value{}
 	}
 	return quarantine_command_value(outcome.command)
 }
 
 // Ruby method `self.cask!(cask: nil, download_path: nil, action: true)` at line 156.
-pub fn ruby_quarantine_l156_d13_self_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	quarantine_cask(brew_runtime.Value{}, none, true) or {
+pub fn ruby_quarantine_l156_d13_self_cask(args ...ruby.Value) ruby.Value {
+	quarantine_cask(ruby.Value{}, none, true) or {
 		return quarantine_error_value(err.msg())
 	}
-	return brew_runtime.Value{}
+	return ruby.Value{}
 }
 
 // Ruby method `self.propagate(from: nil, to: nil)` at line 161.
-pub fn ruby_quarantine_l161_d14_self_propagate(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_quarantine_l161_d14_self_propagate(args ...ruby.Value) ruby.Value {
 	from := quarantine_argument_string(args, 0)
 	to := quarantine_argument_string(args, 1)
 	outcome := quarantine_propagate(from, to, quarantine_context_from_values(args)) or {
 		return quarantine_error_value(err.msg())
 	}
 	if !outcome.present {
-		return brew_runtime.Value{}
+		return ruby.Value{}
 	}
-	return brew_runtime.map_value({
-		'status': brew_runtime.string_value(outcome.result.status)
-		'paths':  brew_runtime.string_array_value(outcome.result.paths)
+	return ruby.map_value({
+		'status': ruby.string_value(outcome.result.status)
+		'paths':  ruby.string_array_value(outcome.result.paths)
 	})
 }
 
 // Ruby method `self.copy_xattrs(from, to, command:)` at line 203.
-pub fn ruby_quarantine_l203_d15_self_copy_xattrs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_quarantine_l203_d15_self_copy_xattrs(args ...ruby.Value) ruby.Value {
 	from := quarantine_argument_string(args, 0) or { '' }
 	to := quarantine_argument_string(args, 1) or { '' }
 	quarantine_copy_xattrs(from, to, quarantine_native_runner) or {
 		return quarantine_error_value(err.msg())
 	}
-	return brew_runtime.Value{}
+	return ruby.Value{}
 }
 
 // Ruby method `self.app_management_permissions_granted?(app:, command:)` at line 211.
-pub fn ruby_quarantine_l211_d16_self_app_management_permissions_granted(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_quarantine_l211_d16_self_app_management_permissions_granted(args ...ruby.Value) ruby.Value {
 	mut app := ''
-	mut command_value := brew_runtime.Value{}
+	mut command_value := ruby.Value{}
 	for value in args {
 		if value.type_name == 'Hash' {
 			if raw := value.map_data['app'] {
@@ -559,13 +559,13 @@ pub fn ruby_quarantine_l211_d16_self_app_management_permissions_granted(args ...
 		rm_error: cask_app_management_command_error(command_value, 'rm_error')
 		native: command_value.type_name == ''
 	}
-	granted := brew_runtime.app_management_permissions_granted(app, command) or {
+	granted := ruby.app_management_permissions_granted(app, command) or {
 		return cask_app_management_error(err.msg())
 	}
-	if !granted && brew_runtime.environment_value('HOMEBREW_NO_APP_MANAGEMENT_PERMISSIONS_PROMPT') != '' {
+	if !granted && ruby.environment_value('HOMEBREW_NO_APP_MANAGEMENT_PERMISSIONS_PROMPT') != '' {
 		eprintln('Warning: Your terminal does not have App Management permissions, so Homebrew will delete and reinstall the app.\nThis may result in some configurations (like notification settings or location in the Dock/Launchpad) being lost.\nTo fix this, go to System Settings → Privacy & Security → App Management and add or enable your terminal.')
 	}
-	return brew_runtime.bool_value(granted)
+	return ruby.bool_value(granted)
 }
 
 // Original Ruby source (line-for-line):

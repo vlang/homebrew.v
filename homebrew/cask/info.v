@@ -1,6 +1,6 @@
 module cask
 
-import brew_runtime
+import ruby
 import homebrew.extend.pathname as path_usage
 import homebrew.utils as brew_utils
 import os
@@ -80,33 +80,33 @@ pub:
 	tty                            bool
 }
 
-fn cask_info_bool_attr(value brew_runtime.Value, name string, fallback bool) bool {
+fn cask_info_bool_attr(value ruby.Value, name string, fallback bool) bool {
 	raw := value.attributes[name] or { return fallback }
 	return raw == 'true' || raw == '1'
 }
 
-fn cask_info_int_attr(value brew_runtime.Value, name string, fallback i64) i64 {
+fn cask_info_int_attr(value ruby.Value, name string, fallback i64) i64 {
 	return (value.attributes[name] or { return fallback }).i64()
 }
 
-fn cask_info_values(value brew_runtime.Value, name string) []brew_runtime.Value {
+fn cask_info_values(value ruby.Value, name string) []ruby.Value {
 	entry := value.map_data[name] or { return [] }
 	return entry.as_array() or { [] }
 }
 
-fn cask_info_strings(value brew_runtime.Value, name string) []string {
+fn cask_info_strings(value ruby.Value, name string) []string {
 	entry := value.map_data[name] or { return [] }
 	return entry.as_string_array() or { [] }
 }
 
-fn cask_info_dependency_from_value(value brew_runtime.Value) CaskInfoDependency {
+fn cask_info_dependency_from_value(value ruby.Value) CaskInfoDependency {
 	return CaskInfoDependency{
 		name: value.attributes['name'] or { value.repr }
 		installed: cask_info_bool_attr(value, 'installed', false)
 	}
 }
 
-fn cask_info_requirement_from_value(value brew_runtime.Value) CaskInfoRequirement {
+fn cask_info_requirement_from_value(value ruby.Value) CaskInfoRequirement {
 	return CaskInfoRequirement{
 		display: value.attributes['display'] or { value.repr }
 		kind: value.attributes['kind'] or { 'required' }
@@ -116,7 +116,7 @@ fn cask_info_requirement_from_value(value brew_runtime.Value) CaskInfoRequiremen
 	}
 }
 
-fn cask_info_artifact_from_value(value brew_runtime.Value) CaskInfoArtifact {
+fn cask_info_artifact_from_value(value ruby.Value) CaskInfoArtifact {
 	return CaskInfoArtifact{
 		display: value.attributes['display'] or { value.repr }
 		install_phase: cask_info_bool_attr(value, 'install_phase', true)
@@ -124,7 +124,7 @@ fn cask_info_artifact_from_value(value brew_runtime.Value) CaskInfoArtifact {
 	}
 }
 
-fn cask_info_tap_from_value(value brew_runtime.Value) CaskInfoTap {
+fn cask_info_tap_from_value(value ruby.Value) CaskInfoTap {
 	return CaskInfoTap{
 		present: cask_info_bool_attr(value, 'present', value.type_name != '' && value.type_name != 'NilClass')
 		custom_remote: cask_info_bool_attr(value, 'custom_remote', false)
@@ -135,7 +135,7 @@ fn cask_info_tap_from_value(value brew_runtime.Value) CaskInfoTap {
 	}
 }
 
-fn cask_info_tab_from_value(value brew_runtime.Value) CaskInfoTab {
+fn cask_info_tab_from_value(value ruby.Value) CaskInfoTab {
 	return CaskInfoTab{
 		installed_on_request: cask_info_bool_attr(value, 'installed_on_request', false)
 		tabfile: value.attributes['tabfile'] or { '' }
@@ -147,9 +147,9 @@ fn cask_info_tab_from_value(value brew_runtime.Value) CaskInfoTab {
 	}
 }
 
-fn cask_info_from_value(value brew_runtime.Value) CaskInfoModel {
-	tap_value := value.map_data['tap'] or { brew_runtime.Value{} }
-	tab_value := value.map_data['tab'] or { brew_runtime.Value{} }
+fn cask_info_from_value(value ruby.Value) CaskInfoModel {
+	tap_value := value.map_data['tap'] or { ruby.Value{} }
+	tab_value := value.map_data['tab'] or { ruby.Value{} }
 	return CaskInfoModel{
 		token: value.attributes['token'] or { value.repr }
 		names: cask_info_strings(value, 'names')
@@ -179,15 +179,15 @@ fn cask_info_from_value(value brew_runtime.Value) CaskInfoModel {
 	}
 }
 
-fn cask_info_dependency_value(dependency CaskInfoDependency) brew_runtime.Value {
-	return brew_runtime.structured_value('Dependency', dependency.name, {
+fn cask_info_dependency_value(dependency CaskInfoDependency) ruby.Value {
+	return ruby.structured_value('Dependency', dependency.name, {
 		'name':      dependency.name
 		'installed': dependency.installed.str()
 	})
 }
 
-fn cask_info_requirement_value(requirement CaskInfoRequirement) brew_runtime.Value {
-	return brew_runtime.structured_value(if requirement.macos_requirement {
+fn cask_info_requirement_value(requirement CaskInfoRequirement) ruby.Value {
+	return ruby.structured_value(if requirement.macos_requirement {
 		'MacOSRequirement'
 	} else {
 		'Requirement'
@@ -200,16 +200,16 @@ fn cask_info_requirement_value(requirement CaskInfoRequirement) brew_runtime.Val
 	})
 }
 
-fn cask_info_artifact_value(artifact CaskInfoArtifact) brew_runtime.Value {
-	return brew_runtime.structured_value('Artifact', artifact.display, {
+fn cask_info_artifact_value(artifact CaskInfoArtifact) ruby.Value {
+	return ruby.structured_value('Artifact', artifact.display, {
 		'display':       artifact.display
 		'install_phase': artifact.install_phase.str()
 		'ordinary':      artifact.ordinary.str()
 	})
 }
 
-pub fn cask_info_value(cask CaskInfoModel) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn cask_info_value(cask CaskInfoModel) ruby.Value {
+	return ruby.Value{
 		type_name: 'Cask::Cask'
 		repr: cask.token
 		attributes: {
@@ -230,8 +230,8 @@ pub fn cask_info_value(cask CaskInfoModel) brew_runtime.Value {
 			'tty':               cask.tty.str()
 		}
 		map_data: {
-			'names':                          brew_runtime.string_array_value(cask.names)
-			'tap':                            brew_runtime.structured_value('Tap', cask.tap.default_remote, {
+			'names':                          ruby.string_array_value(cask.names)
+			'tap':                            ruby.structured_value('Tap', cask.tap.default_remote, {
 				'present':            cask.tap.present.str()
 				'custom_remote':      cask.tap.custom_remote.str()
 				'remote':             cask.tap.remote
@@ -239,7 +239,7 @@ pub fn cask_info_value(cask CaskInfoModel) brew_runtime.Value {
 				'relative_cask_path': cask.tap.relative_cask_path
 				'core_cask_tap':      cask.tap.core_cask_tap.str()
 			})
-			'tab':                            brew_runtime.structured_value('Cask::Tab', cask.tab.text, {
+			'tab':                            ruby.structured_value('Cask::Tab', cask.tab.text, {
 				'installed_on_request':     cask.tab.installed_on_request.str()
 				'tabfile':                  cask.tab.tabfile
 				'tabfile_exists':           cask.tab.tabfile_exists.str()
@@ -248,13 +248,13 @@ pub fn cask_info_value(cask CaskInfoModel) brew_runtime.Value {
 				'time':                     cask.tab.time.str()
 				'text':                     cask.tab.text
 			})
-			'formula_dependencies':           brew_runtime.array_value(cask.formula_dependencies.map(cask_info_dependency_value(it)))
-			'cask_dependencies':              brew_runtime.array_value(cask.cask_dependencies.map(cask_info_dependency_value(it)))
-			'recursive_formula_dependencies': brew_runtime.array_value(cask.recursive_formula_dependencies.map(cask_info_dependency_value(it)))
-			'recursive_cask_dependencies':    brew_runtime.array_value(cask.recursive_cask_dependencies.map(cask_info_dependency_value(it)))
-			'requirements':                   brew_runtime.array_value(cask.requirements.map(cask_info_requirement_value(it)))
-			'languages':                      brew_runtime.string_array_value(cask.languages)
-			'artifacts':                      brew_runtime.array_value(cask.artifacts.map(cask_info_artifact_value(it)))
+			'formula_dependencies':           ruby.array_value(cask.formula_dependencies.map(cask_info_dependency_value(it)))
+			'cask_dependencies':              ruby.array_value(cask.cask_dependencies.map(cask_info_dependency_value(it)))
+			'recursive_formula_dependencies': ruby.array_value(cask.recursive_formula_dependencies.map(cask_info_dependency_value(it)))
+			'recursive_cask_dependencies':    ruby.array_value(cask.recursive_cask_dependencies.map(cask_info_dependency_value(it)))
+			'requirements':                   ruby.array_value(cask.requirements.map(cask_info_requirement_value(it)))
+			'languages':                      ruby.string_array_value(cask.languages)
+			'artifacts':                      ruby.array_value(cask.artifacts.map(cask_info_artifact_value(it)))
 		}
 	}
 }
@@ -267,8 +267,8 @@ fn cask_info_output_options(cask CaskInfoModel) brew_utils.OutputOptions {
 	}
 }
 
-fn cask_info_nil() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn cask_info_nil() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 pub fn cask_info_title(cask CaskInfoModel, installed bool) string {
@@ -505,111 +505,111 @@ pub fn cask_info_get(cask CaskInfoModel) string {
 }
 
 // Ruby method `self.get_info(cask)` at line 13.
-pub fn ruby_info_l13_d1_self_get_info(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_l13_d1_self_get_info(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('get_info requires a cask')
 	}
-	return brew_runtime.string_value(cask_info_get(cask_info_from_value(args[0])))
+	return ruby.string_value(cask_info_get(cask_info_from_value(args[0])))
 }
 
 // Ruby method `self.info(cask, args:)` at line 43.
-pub fn ruby_info_l43_d2_self_info(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_l43_d2_self_info(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('info requires a cask')
 	}
 	// The typed boundary returns the text that Ruby writes to stdout. The tap
 	// analytics side effect is intentionally represented by the caller-facing
 	// output boundary and is only eligible for core-cask taps, as in Ruby.
-	return brew_runtime.string_value(cask_info_get(cask_info_from_value(args[0])))
+	return ruby.string_value(cask_info_get(cask_info_from_value(args[0])))
 }
 
 // Ruby method `self.title_info(cask, installed:)` at line 53.
-pub fn ruby_info_l53_d3_self_title_info(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_l53_d3_self_title_info(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('title_info requires a cask')
 	}
 	cask := cask_info_from_value(args[0])
 	installed := if args.len > 1 { args[1].bool_data } else { cask.installed }
-	return brew_runtime.string_value(cask_info_title(cask, installed))
+	return ruby.string_value(cask_info_title(cask, installed))
 }
 
 // Ruby method `self.installation_info(cask, installed:)` at line 67.
-pub fn ruby_info_l67_d4_self_installation_info(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_l67_d4_self_installation_info(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('installation_info requires a cask')
 	}
 	cask := cask_info_from_value(args[0])
 	installed := if args.len > 1 { args[1].bool_data } else { cask.installed }
-	return brew_runtime.string_value(cask_info_installation(cask, installed))
+	return ruby.string_value(cask_info_installation(cask, installed))
 }
 
 // Ruby method `self.deps_info(cask, mark_uninstalled: true)` at line 88.
-pub fn ruby_info_l88_d5_self_deps_info(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_l88_d5_self_deps_info(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('deps_info requires a cask')
 	}
 	cask := cask_info_from_value(args[0])
 	mark_uninstalled := if args.len > 1 { args[1].bool_data } else { true }
 	if output := cask_info_dependencies(cask, mark_uninstalled) {
-		return brew_runtime.string_value(output)
+		return ruby.string_value(output)
 	}
 	return cask_info_nil()
 }
 
 // Ruby method `self.decorate_dependency(dep, installed:, mark_uninstalled: true)` at line 137.
-pub fn ruby_info_l137_d6_self_decorate_dependency(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_l137_d6_self_decorate_dependency(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('decorate_dependency requires a dependency and installed state')
 	}
 	installed := args[1].bool_data
 	mark_uninstalled := if args.len > 2 { args[2].bool_data } else { true }
 	tty := if args.len > 3 { args[3].bool_data } else { false }
-	return brew_runtime.string_value(cask_info_decorate_dependency(args[0].as_string(), installed, mark_uninstalled, CaskInfoModel{
+	return ruby.string_value(cask_info_decorate_dependency(args[0].as_string(), installed, mark_uninstalled, CaskInfoModel{
 		tty: tty
 	}))
 }
 
 // Ruby method `self.requirements_info(cask, mark_uninstalled: true)` at line 142.
-pub fn ruby_info_l142_d7_self_requirements_info(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_l142_d7_self_requirements_info(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('requirements_info requires a cask')
 	}
 	cask := cask_info_from_value(args[0])
 	mark_uninstalled := if args.len > 1 { args[1].bool_data } else { true }
 	if output := cask_info_requirements(cask, mark_uninstalled) {
-		return brew_runtime.string_value(output)
+		return ruby.string_value(output)
 	}
 	return cask_info_nil()
 }
 
 // Ruby method `self.language_info(cask)` at line 182.
-pub fn ruby_info_l182_d8_self_language_info(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_l182_d8_self_language_info(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('language_info requires a cask')
 	}
 	if output := cask_info_languages(cask_info_from_value(args[0])) {
-		return brew_runtime.string_value(output)
+		return ruby.string_value(output)
 	}
 	return cask_info_nil()
 }
 
 // Ruby method `self.repo_info(cask)` at line 192.
-pub fn ruby_info_l192_d9_self_repo_info(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_l192_d9_self_repo_info(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('repo_info requires a cask')
 	}
 	if output := cask_info_repository(cask_info_from_value(args[0])) {
-		return brew_runtime.string_value(output)
+		return ruby.string_value(output)
 	}
 	return cask_info_nil()
 }
 
 // Ruby method `self.artifact_info(cask)` at line 205.
-pub fn ruby_info_l205_d10_self_artifact_info(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_info_l205_d10_self_artifact_info(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('artifact_info requires a cask')
 	}
-	return brew_runtime.string_value(cask_info_artifacts(cask_info_from_value(args[0])))
+	return ruby.string_value(cask_info_artifacts(cask_info_from_value(args[0])))
 }
 
 // Original Ruby source (line-for-line):

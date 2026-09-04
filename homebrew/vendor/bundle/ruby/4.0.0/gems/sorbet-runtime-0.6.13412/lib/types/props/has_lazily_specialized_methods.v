@@ -1,6 +1,6 @@
 module props
 
-import brew_runtime
+import ruby
 import sync
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/props/has_lazily_specialized_methods.rb`.
@@ -249,58 +249,58 @@ pub fn (mut methods LazySpecializedMethods) vm_names() []string {
 	return names
 }
 
-fn lazy_methods_value(methods &LazySpecializedMethods) brew_runtime.Value {
-	return brew_runtime.structured_value('T::Props::Decorator', methods.decorated_class, {
+fn lazy_methods_value(methods &LazySpecializedMethods) ruby.Value {
+	return ruby.structured_value('T::Props::Decorator', methods.decorated_class, {
 		'lazy_methods_address': u64(voidptr(methods)).str()
 		'decorated_class':      methods.decorated_class
 	})
 }
 
-fn lazy_methods_from_value(value brew_runtime.Value) &LazySpecializedMethods {
+fn lazy_methods_from_value(value ruby.Value) &LazySpecializedMethods {
 	address := value.attribute('lazy_methods_address') or {
 		panic('invalid lazy-specialized-methods receiver')
 	}
 	return unsafe { &LazySpecializedMethods(voidptr(address.u64())) }
 }
 
-fn lazy_name(value brew_runtime.Value) string {
+fn lazy_name(value ruby.Value) string {
 	return value.as_string().trim_string_left(':')
 }
 
-fn boundary_source_generator(value brew_runtime.Value) string {
+fn boundary_source_generator(value ruby.Value) string {
 	return value.map_data['result'] or { value }.as_string()
 }
 
 fn boundary_vm_generator() ! {}
 
-fn lazy_names_value(names []string, kind string) brew_runtime.Value {
-	mut entries := map[string]brew_runtime.Value{}
+fn lazy_names_value(names []string, kind string) ruby.Value {
+	mut entries := map[string]ruby.Value{}
 	for name in names {
-		entries[name] = brew_runtime.object_value(kind, name)
+		entries[name] = ruby.object_value(kind, name)
 	}
-	return brew_runtime.map_value(entries)
+	return ruby.map_value(entries)
 }
 
 // Ruby method `initialize` at line 21.
-pub fn ruby_has_lazily_specialized_methods_l21_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.structured_value('T::Props::SourceEvaluationDisabled', source_evaluation_disabled_message, {
+pub fn ruby_has_lazily_specialized_methods_l21_d1_initialize(args ...ruby.Value) ruby.Value {
+	return ruby.structured_value('T::Props::SourceEvaluationDisabled', source_evaluation_disabled_message, {
 		'message': source_evaluation_disabled_message
 	})
 }
 
 // Ruby method `self.disable_lazy_evaluation!` at line 34.
-pub fn ruby_has_lazily_specialized_methods_l34_d2_self_disable_lazy_evaluation(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_has_lazily_specialized_methods_l34_d2_self_disable_lazy_evaluation(args ...ruby.Value) ruby.Value {
 	disable_lazy_evaluation()
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
 // Ruby method `self.lazy_evaluation_enabled?` at line 39.
-pub fn ruby_has_lazily_specialized_methods_l39_d3_self_lazy_evaluation_enabled(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(lazy_evaluation_enabled())
+pub fn ruby_has_lazily_specialized_methods_l39_d3_self_lazy_evaluation_enabled(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(lazy_evaluation_enabled())
 }
 
 // Ruby method `lazily_defined_methods` at line 47.
-pub fn ruby_has_lazily_specialized_methods_l47_d4_lazily_defined_methods(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_has_lazily_specialized_methods_l47_d4_lazily_defined_methods(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('lazily_defined_methods requires a decorator receiver')
 	}
@@ -309,7 +309,7 @@ pub fn ruby_has_lazily_specialized_methods_l47_d4_lazily_defined_methods(args ..
 }
 
 // Ruby method `lazily_defined_vm_methods` at line 52.
-pub fn ruby_has_lazily_specialized_methods_l52_d5_lazily_defined_vm_methods(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_has_lazily_specialized_methods_l52_d5_lazily_defined_vm_methods(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('lazily_defined_vm_methods requires a decorator receiver')
 	}
@@ -318,7 +318,7 @@ pub fn ruby_has_lazily_specialized_methods_l52_d5_lazily_defined_vm_methods(args
 }
 
 // Ruby method `eval_lazily_defined_method!(name)` at line 57.
-pub fn ruby_has_lazily_specialized_methods_l57_d6_eval_lazily_defined_method(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_has_lazily_specialized_methods_l57_d6_eval_lazily_defined_method(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('eval_lazily_defined_method! requires a receiver and method name')
 	}
@@ -328,7 +328,7 @@ pub fn ruby_has_lazily_specialized_methods_l57_d6_eval_lazily_defined_method(arg
 }
 
 // Ruby method `eval_lazily_defined_vm_method!(name)` at line 82.
-pub fn ruby_has_lazily_specialized_methods_l82_d7_eval_lazily_defined_vm_method(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_has_lazily_specialized_methods_l82_d7_eval_lazily_defined_vm_method(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('eval_lazily_defined_vm_method! requires a receiver and method name')
 	}
@@ -338,7 +338,7 @@ pub fn ruby_has_lazily_specialized_methods_l82_d7_eval_lazily_defined_vm_method(
 }
 
 // Ruby method `enqueue_lazy_method_definition!(name, &blk)` at line 99.
-pub fn ruby_has_lazily_specialized_methods_l99_d8_enqueue_lazy_method_definition(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_has_lazily_specialized_methods_l99_d8_enqueue_lazy_method_definition(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('enqueue_lazy_method_definition! requires a receiver, method name, and generator')
 	}
@@ -351,7 +351,7 @@ pub fn ruby_has_lazily_specialized_methods_l99_d8_enqueue_lazy_method_definition
 }
 
 // Ruby alias_method `cls.send(:alias_method, name, name)` at line 117.
-pub fn ruby_has_lazily_specialized_methods_l117_d9_alias_method_dynamic(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_has_lazily_specialized_methods_l117_d9_alias_method_dynamic(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('alias_method requires a receiver and method name')
 	}
@@ -359,16 +359,16 @@ pub fn ruby_has_lazily_specialized_methods_l117_d9_alias_method_dynamic(args ...
 }
 
 // Ruby define_method `cls.send(:define_method, name) do |*args|` at line 119.
-pub fn ruby_has_lazily_specialized_methods_l119_d10_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_has_lazily_specialized_methods_l119_d10_name(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('lazy source placeholder requires a receiver and method name')
 	}
 	ruby_has_lazily_specialized_methods_l57_d6_eval_lazily_defined_method(args[0], args[1])
-	return brew_runtime.array_value(args[2..])
+	return ruby.array_value(args[2..])
 }
 
 // Ruby method `enqueue_lazy_vm_method_definition!(name, &blk)` at line 130.
-pub fn ruby_has_lazily_specialized_methods_l130_d11_enqueue_lazy_vm_method_definition(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_has_lazily_specialized_methods_l130_d11_enqueue_lazy_vm_method_definition(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('enqueue_lazy_vm_method_definition! requires a receiver, method name, and generator')
 	}
@@ -380,16 +380,16 @@ pub fn ruby_has_lazily_specialized_methods_l130_d11_enqueue_lazy_vm_method_defin
 }
 
 // Ruby define_method `cls.send(:define_method, name) do |*args|` at line 140.
-pub fn ruby_has_lazily_specialized_methods_l140_d12_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_has_lazily_specialized_methods_l140_d12_name(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('lazy VM placeholder requires a receiver and method name')
 	}
 	ruby_has_lazily_specialized_methods_l82_d7_eval_lazily_defined_vm_method(args[0], args[1])
-	return brew_runtime.array_value(args[2..])
+	return ruby.array_value(args[2..])
 }
 
 // Ruby method `eagerly_define_lazy_methods!` at line 151.
-pub fn ruby_has_lazily_specialized_methods_l151_d13_eagerly_define_lazy_methods(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_has_lazily_specialized_methods_l151_d13_eagerly_define_lazy_methods(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('eagerly_define_lazy_methods! requires a decorator receiver')
 	}
@@ -399,7 +399,7 @@ pub fn ruby_has_lazily_specialized_methods_l151_d13_eagerly_define_lazy_methods(
 }
 
 // Ruby method `eagerly_define_lazy_vm_methods!` at line 165.
-pub fn ruby_has_lazily_specialized_methods_l165_d14_eagerly_define_lazy_vm_methods(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_has_lazily_specialized_methods_l165_d14_eagerly_define_lazy_vm_methods(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('eagerly_define_lazy_vm_methods! requires a decorator receiver')
 	}

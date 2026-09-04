@@ -1,6 +1,6 @@
 module rubocops
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `rubocops/version.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -58,9 +58,9 @@ pub fn audit_formula_version(source string) []VersionAuditOffense {
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 12.
-pub fn ruby_version_l12_d1_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_version_l12_d1_audit_formula(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.array_value(audit_formula_version(source).map(brew_runtime.structured_value('RuboCop::Cop::Offense', it.message, {
+	return ruby.array_value(audit_formula_version(source).map(ruby.structured_value('RuboCop::Cop::Offense', it.message, {
 		'message':   it.message
 		'begin_pos': it.begin_pos.str()
 		'end_pos':   it.end_pos.str()

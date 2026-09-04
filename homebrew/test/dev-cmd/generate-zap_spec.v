@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 import homebrew.dev_cmd as production_dev_cmd
 import os
 import time
@@ -23,25 +23,25 @@ fn generate_zap_spec_plist(identifier_value string) string {
 }
 
 // Ruby subject `subject(:generate_zap) { described_class.new(["test"]) }` at line 8.
-pub fn ruby_generate_zap_spec_l8_d1_generate_zap(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_zap_spec_l8_d1_generate_zap(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.map_value({
-		'name':  brew_runtime.bool_value(false)
-		'named': brew_runtime.string_array_value(['test'])
+	return ruby.map_value({
+		'name':  ruby.bool_value(false)
+		'named': ruby.string_array_value(['test'])
 	})
 }
 
 // Ruby it `it "surfaces Full Disk Access guidance when scanning raises a permission error" do` at line 13.
-pub fn ruby_generate_zap_spec_l13_d2_surfaces(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_zap_spec_l13_d2_surfaces(args ...ruby.Value) ruby.Value {
 	_ = args
 	guidance := 'Full Disk Access is required. Open System Settings -> Privacy & Security -> Full Disk Access.'
-	return brew_runtime.structured_value('SystemExit', guidance, {
+	return ruby.structured_value('SystemExit', guidance, {
 		'stderr': guidance
 	})
 }
 
 // Ruby it `it "resolves app name from a cask with an app artifact" do` at line 31.
-pub fn ruby_generate_zap_spec_l31_d3_resolves(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_zap_spec_l31_d3_resolves(args ...ruby.Value) ruby.Value {
 	_ = args
 	patterns := production_dev_cmd.generate_zap_resolve_patterns_from_cask(production_dev_cmd.GenerateZapCask{
 		token: 'test-cask'
@@ -50,17 +50,17 @@ pub fn ruby_generate_zap_spec_l31_d3_resolves(args ...brew_runtime.Value) brew_r
 			target: 'TestCask.app'
 		}]
 	}) or { [] }
-	return brew_runtime.bool_value(patterns == ['TestCask'])
+	return ruby.bool_value(patterns == ['TestCask'])
 }
 
 // Ruby it `it "resolves bundle identifier from an installed app artifact" do` at line 39.
-pub fn ruby_generate_zap_spec_l39_d4_resolves(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_zap_spec_l39_d4_resolves(args ...ruby.Value) ruby.Value {
 	_ = args
 	root := generate_zap_spec_root('identifier')
 	defer { os.rmdir_all(root) or {} }
 	app := os.join_path(root, 'TestCask.app')
 	if !generate_zap_spec_write(os.join_path(app, 'Contents', 'Info.plist'), generate_zap_spec_plist('<string>com.example.testcask</string>')) {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	patterns := production_dev_cmd.generate_zap_resolve_patterns_from_cask(production_dev_cmd.GenerateZapCask{
 		token: 'test-cask'
@@ -68,305 +68,305 @@ pub fn ruby_generate_zap_spec_l39_d4_resolves(args ...brew_runtime.Value) brew_r
 			kind: 'app'
 			target: app
 		}]
-	}) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(patterns == ['TestCask', 'com.example.testcask'])
+	}) or { return ruby.bool_value(false) }
+	return ruby.bool_value(patterns == ['TestCask', 'com.example.testcask'])
 }
 
 // Ruby it `it "falls back to title-cased token when no app artifact exists" do` at line 60.
-pub fn ruby_generate_zap_spec_l60_d5_falls(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_zap_spec_l60_d5_falls(args ...ruby.Value) ruby.Value {
 	_ = args
 	patterns := production_dev_cmd.generate_zap_resolve_patterns_from_cask(production_dev_cmd.GenerateZapCask{
 		token: 'test-cask'
 	}) or { [] }
-	return brew_runtime.bool_value(patterns == ['Test Cask'])
+	return ruby.bool_value(patterns == ['Test Cask'])
 }
 
 // Ruby it `it "finds matching entries case-insensitively" do` at line 68.
-pub fn ruby_generate_zap_spec_l68_d6_finds(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_zap_spec_l68_d6_finds(args ...ruby.Value) ruby.Value {
 	_ = args
 	root := generate_zap_spec_root('case')
 	defer { os.rmdir_all(root) or {} }
 	directory := os.join_path(root, 'Library', 'Preferences')
 	if !generate_zap_spec_write(os.join_path(directory, 'com.example.Foo.plist'), '')
 		|| !generate_zap_spec_write(os.join_path(directory, 'com.example.app.plist'), '') {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	results := production_dev_cmd.generate_zap_scan_directories(['Library/Preferences'], true, [
 		'foo',
 	], root)
-	return brew_runtime.bool_value(results.len == 1 && results[0].contains('com.example.Foo.plist'))
+	return ruby.bool_value(results.len == 1 && results[0].contains('com.example.Foo.plist'))
 }
 
 // Ruby it `it "returns empty array when directory does not exist" do` at line 84.
-pub fn ruby_generate_zap_spec_l84_d7_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_zap_spec_l84_d7_returns(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(production_dev_cmd.generate_zap_scan_directories([
+	return ruby.bool_value(production_dev_cmd.generate_zap_scan_directories([
 		'nonexistent/path',
 	], true, ['test'], generate_zap_spec_root('missing')).len == 0)
 }
 
 // Ruby it `it "finds entries matching any pattern with one directory scan" do` at line 90.
-pub fn ruby_generate_zap_spec_l90_d8_finds(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_zap_spec_l90_d8_finds(args ...ruby.Value) ruby.Value {
 	_ = args
 	root := generate_zap_spec_root('patterns')
 	defer { os.rmdir_all(root) or {} }
 	directory := os.join_path(root, 'Library', 'Preferences')
 	if !generate_zap_spec_write(os.join_path(directory, 'com.example.foo.plist'), '')
 		|| !generate_zap_spec_write(os.join_path(directory, 'com.example.bar.plist'), '') {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	results := production_dev_cmd.generate_zap_scan_directories(['Library/Preferences'], true, [
 		'foo',
 		'bar',
 	], root)
-	return brew_runtime.bool_value(results.len == 2)
+	return ruby.bool_value(results.len == 2)
 }
 
 // Ruby it `it "finds dotfiles matching the pattern" do` at line 107.
-pub fn ruby_generate_zap_spec_l107_d9_finds(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_zap_spec_l107_d9_finds(args ...ruby.Value) ruby.Value {
 	_ = args
 	root := generate_zap_spec_root('dotfiles')
 	defer { os.rmdir_all(root) or {} }
 	for name in ['.foo', '.bar', 'foo'] {
 		if !generate_zap_spec_write(os.join_path(root, name), '') {
-			return brew_runtime.bool_value(false)
+			return ruby.bool_value(false)
 		}
 	}
 	results := production_dev_cmd.generate_zap_scan_home_root(['foo'], root)
-	return brew_runtime.bool_value(results == ['~/.foo'])
+	return ruby.bool_value(results == ['~/.foo'])
 }
 
 // Ruby it `it "yields each child entry of a readable directory" do` at line 124.
-pub fn ruby_generate_zap_spec_l124_d10_yields(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_zap_spec_l124_d10_yields(args ...ruby.Value) ruby.Value {
 	_ = args
 	root := generate_zap_spec_root('children')
 	defer { os.rmdir_all(root) or {} }
 	if !generate_zap_spec_write(os.join_path(root, 'a'), '')
 		|| !generate_zap_spec_write(os.join_path(root, 'b'), '') {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	mut entries := production_dev_cmd.generate_zap_each_readable_child(root)
 	entries.sort()
-	return brew_runtime.bool_value(entries == ['a', 'b'])
+	return ruby.bool_value(entries == ['a', 'b'])
 }
 
 // Ruby it `it "skips directories that raise a permission error" do` at line 136.
-pub fn ruby_generate_zap_spec_l136_d11_skips(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_zap_spec_l136_d11_skips(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(production_dev_cmd.generate_zap_each_readable_child('/protected/brew-v-unreadable').len == 0)
+	return ruby.bool_value(production_dev_cmd.generate_zap_each_readable_child('/protected/brew-v-unreadable').len == 0)
 }
 
 // Ruby it `it "returns empty array when Info.plist is missing" do` at line 144.
-pub fn ruby_generate_zap_spec_l144_d12_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_zap_spec_l144_d12_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	identifiers := production_dev_cmd.generate_zap_bundle_identifiers(production_dev_cmd.GenerateZapArtifact{
 		kind: 'app'
 		target: 'TestCask.app'
 	}) or { [] }
-	return brew_runtime.bool_value(identifiers.len == 0)
+	return ruby.bool_value(identifiers.len == 0)
 }
 
 // Ruby it `it "returns empty array when Info.plist is unreadable" do` at line 150.
-pub fn ruby_generate_zap_spec_l150_d13_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_zap_spec_l150_d13_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	identifiers := production_dev_cmd.generate_zap_bundle_identifiers(production_dev_cmd.GenerateZapArtifact{
 		kind: 'app'
 		target: '/protected/TestCask.app'
 	}) or { [] }
-	return brew_runtime.bool_value(identifiers.len == 0)
+	return ruby.bool_value(identifiers.len == 0)
 }
 
 // Ruby it `it "returns empty array when CFBundleIdentifier is not a string" do` at line 160.
-pub fn ruby_generate_zap_spec_l160_d14_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_zap_spec_l160_d14_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	root := generate_zap_spec_root('non-string')
 	defer { os.rmdir_all(root) or {} }
 	app := os.join_path(root, 'TestCask.app')
 	if !generate_zap_spec_write(os.join_path(app, 'Contents', 'Info.plist'), generate_zap_spec_plist('<array/>')) {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	identifiers := production_dev_cmd.generate_zap_bundle_identifiers(production_dev_cmd.GenerateZapArtifact{
 		kind: 'app'
 		target: app
-	}) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(identifiers.len == 0)
+	}) or { return ruby.bool_value(false) }
+	return ruby.bool_value(identifiers.len == 0)
 }
 
 // Ruby it `it "collapses entries sharing a common basename prefix" do` at line 180.
-pub fn ruby_generate_zap_spec_l180_d15_collapses(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_zap_spec_l180_d15_collapses(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(production_dev_cmd.generate_zap_collapse_to_wildcards([
+	return ruby.bool_value(production_dev_cmd.generate_zap_collapse_to_wildcards([
 		'~/Library/Application Scripts/com.example.foo',
 		'~/Library/Application Scripts/com.example.foo.plist',
 	]) == ['~/Library/Application Scripts/com.example.foo*'])
 }
 
 // Ruby it `it "collapses multiple groups in the same directory independently" do` at line 190.
-pub fn ruby_generate_zap_spec_l190_d16_collapses(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_zap_spec_l190_d16_collapses(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := production_dev_cmd.generate_zap_collapse_to_wildcards([
 		'~/Library/Preferences/com.example.foo',
 		'~/Library/Preferences/com.example.foo.plist',
 		'~/Library/Preferences/com.example.app.plist',
 	])
-	return brew_runtime.bool_value(result.len == 2
+	return ruby.bool_value(result.len == 2
 		&& '~/Library/Preferences/com.example.foo*' in result
 		&& '~/Library/Preferences/com.example.app.plist' in result)
 }
 
 // Ruby it `it "leaves single entries unchanged" do` at line 203.
-pub fn ruby_generate_zap_spec_l203_d17_leaves(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_zap_spec_l203_d17_leaves(args ...ruby.Value) ruby.Value {
 	_ = args
 	paths := ['~/Library/Caches/com.example.foo']
-	return brew_runtime.bool_value(production_dev_cmd.generate_zap_collapse_to_wildcards(paths) == paths)
+	return ruby.bool_value(production_dev_cmd.generate_zap_collapse_to_wildcards(paths) == paths)
 }
 
 // Ruby it `it "does not collapse entries in different directories" do` at line 210.
-pub fn ruby_generate_zap_spec_l210_d18_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_zap_spec_l210_d18_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	paths := [
 		'~/Library/Caches/com.example.foo',
 		'~/Library/Preferences/com.example.foo.plist',
 	]
-	return brew_runtime.bool_value(production_dev_cmd.generate_zap_collapse_to_wildcards(paths) == paths)
+	return ruby.bool_value(production_dev_cmd.generate_zap_collapse_to_wildcards(paths) == paths)
 }
 
 // Ruby it `it "leaves unrelated entries in the same directory as-is" do` at line 220.
-pub fn ruby_generate_zap_spec_l220_d19_leaves(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_zap_spec_l220_d19_leaves(args ...ruby.Value) ruby.Value {
 	_ = args
 	paths := [
 		'~/Library/Preferences/com.example.app.plist',
 		'~/Library/Preferences/com.example.foo.plist',
 	]
-	return brew_runtime.bool_value(production_dev_cmd.generate_zap_collapse_to_wildcards(paths) == paths)
+	return ruby.bool_value(production_dev_cmd.generate_zap_collapse_to_wildcards(paths) == paths)
 }
 
 // Ruby it `it "replaces home directory with ~" do` at line 232.
-pub fn ruby_generate_zap_spec_l232_d20_replaces(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_zap_spec_l232_d20_replaces(args ...ruby.Value) ruby.Value {
 	_ = args
 	home := os.home_dir()
-	return brew_runtime.bool_value(production_dev_cmd.generate_zap_normalize_path(os.join_path(home, 'Library', 'Preferences', 'com.example.foo.plist'), home) == '~/Library/Preferences/com.example.foo.plist')
+	return ruby.bool_value(production_dev_cmd.generate_zap_normalize_path(os.join_path(home, 'Library', 'Preferences', 'com.example.foo.plist'), home) == '~/Library/Preferences/com.example.foo.plist')
 }
 
 // Ruby it `it "leaves system paths unchanged" do` at line 238.
-pub fn ruby_generate_zap_spec_l238_d21_leaves(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_zap_spec_l238_d21_leaves(args ...ruby.Value) ruby.Value {
 	_ = args
 	path := '/Library/Preferences/com.example.foo.plist'
-	return brew_runtime.bool_value(production_dev_cmd.generate_zap_normalize_path(path, os.home_dir()) == path)
+	return ruby.bool_value(production_dev_cmd.generate_zap_normalize_path(path, os.home_dir()) == path)
 }
 
 // Ruby it `it "formats a single trash path as inline" do` at line 245.
-pub fn ruby_generate_zap_spec_l245_d22_formats(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_zap_spec_l245_d22_formats(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(production_dev_cmd.generate_zap_format_stanza([
+	return ruby.bool_value(production_dev_cmd.generate_zap_format_stanza([
 		'~/Library/Preferences/com.example.foo.plist',
 	], [], []) == 'zap trash: "~/Library/Preferences/com.example.foo.plist"')
 }
 
 // Ruby it `it "formats multiple trash paths as an array" do` at line 252.
-pub fn ruby_generate_zap_spec_l252_d23_formats(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_zap_spec_l252_d23_formats(args ...ruby.Value) ruby.Value {
 	_ = args
 	output := production_dev_cmd.generate_zap_format_stanza([
 		'~/Library/Caches/com.example.foo',
 		'~/Library/Preferences/com.example.foo.plist',
 	], [], [])
-	return brew_runtime.bool_value(output.contains('zap trash: [')
+	return ruby.bool_value(output.contains('zap trash: [')
 		&& output.contains('"~/Library/Caches/com.example.foo"')
 		&& output.contains('"~/Library/Preferences/com.example.foo.plist"'))
 }
 
 // Ruby it `it "includes multiple directive types" do` at line 264.
-pub fn ruby_generate_zap_spec_l264_d24_includes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_zap_spec_l264_d24_includes(args ...ruby.Value) ruby.Value {
 	_ = args
 	output := production_dev_cmd.generate_zap_format_stanza([
 		'~/Library/Preferences/com.example.foo.plist',
 	], ['/Library/Preferences/com.example.foo.plist'], [
 		'~/Library/Application Support/Foo',
 	])
-	return brew_runtime.bool_value(output.contains('trash:') && output.contains('delete:')
+	return ruby.bool_value(output.contains('trash:') && output.contains('delete:')
 		&& output.contains('rmdir:'))
 }
 
 // Ruby it `it "replaces UUIDs with wildcards" do` at line 275.
-pub fn ruby_generate_zap_spec_l275_d25_replaces(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_zap_spec_l275_d25_replaces(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(production_dev_cmd.generate_zap_replace_uuids([
+	return ruby.bool_value(production_dev_cmd.generate_zap_replace_uuids([
 		'~/Library/Application Support/CrashReporter/Foo_1BBE8750-D851-5930-A16F-BE4B820B4537.plist',
 	]) == ['~/Library/Application Support/CrashReporter/Foo_*.plist'])
 }
 
 // Ruby it `it "deduplicates paths that only differed by UUID" do` at line 284.
-pub fn ruby_generate_zap_spec_l284_d26_deduplicates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_zap_spec_l284_d26_deduplicates(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(production_dev_cmd.generate_zap_replace_uuids([
+	return ruby.bool_value(production_dev_cmd.generate_zap_replace_uuids([
 		'~/Library/Caches/com.example.foo/Data_1BBE8750-D851-5930-A16F-BE4B820B4537',
 		'~/Library/Caches/com.example.foo/Data_AABBCCDD-1122-3344-5566-778899AABBCC',
 	]) == ['~/Library/Caches/com.example.foo/Data_*'])
 }
 
 // Ruby it `it "leaves paths without UUIDs unchanged" do` at line 294.
-pub fn ruby_generate_zap_spec_l294_d27_leaves(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_zap_spec_l294_d27_leaves(args ...ruby.Value) ruby.Value {
 	_ = args
 	paths := ['~/Library/Preferences/com.example.foo.plist']
-	return brew_runtime.bool_value(production_dev_cmd.generate_zap_replace_uuids(paths) == paths)
+	return ruby.bool_value(production_dev_cmd.generate_zap_replace_uuids(paths) == paths)
 }
 
 // Ruby it `it "replaces the Shared File List version with a glob" do` at line 303.
-pub fn ruby_generate_zap_spec_l303_d28_replaces(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_zap_spec_l303_d28_replaces(args ...ruby.Value) ruby.Value {
 	_ = args
 	base := '~/Library/Application Support/com.apple.sharedfilelist/com.apple.LSSharedFileList.ApplicationRecentDocuments'
-	return brew_runtime.bool_value(production_dev_cmd.generate_zap_glob_shared_filelists([
+	return ruby.bool_value(production_dev_cmd.generate_zap_glob_shared_filelists([
 		'${base}/org.example.foo.sfl2',
 		'${base}/org.example.foo.sfl3',
 	]) == ['${base}/org.example.foo.sfl*'])
 }
 
 // Ruby it `it "leaves paths without a Shared File List version unchanged" do` at line 316.
-pub fn ruby_generate_zap_spec_l316_d29_leaves(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_zap_spec_l316_d29_leaves(args ...ruby.Value) ruby.Value {
 	_ = args
 	paths := ['~/Library/Preferences/com.example.foo.plist']
-	return brew_runtime.bool_value(production_dev_cmd.generate_zap_glob_shared_filelists(paths) == paths)
+	return ruby.bool_value(production_dev_cmd.generate_zap_glob_shared_filelists(paths) == paths)
 }
 
 // Ruby it `it "suggests Application Support parent directories" do` at line 325.
-pub fn ruby_generate_zap_spec_l325_d30_suggests(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_zap_spec_l325_d30_suggests(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := production_dev_cmd.generate_zap_derive_rmdir_candidates([
 		'~/Library/Application Support/Foo/config.json',
 	], os.home_dir())
-	return brew_runtime.bool_value('~/Library/Application Support/Foo' in result)
+	return ruby.bool_value('~/Library/Application Support/Foo' in result)
 }
 
 // Ruby it `it "does not suggest rmdir for Preferences" do` at line 331.
-pub fn ruby_generate_zap_spec_l331_d31_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_zap_spec_l331_d31_does(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(production_dev_cmd.generate_zap_derive_rmdir_candidates([
+	return ruby.bool_value(production_dev_cmd.generate_zap_derive_rmdir_candidates([
 		'~/Library/Preferences/com.example.foo.plist',
 	], os.home_dir()).len == 0)
 }
 
 // Ruby it `it "does not suggest rmdir for CrashReporter" do` at line 337.
-pub fn ruby_generate_zap_spec_l337_d32_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_zap_spec_l337_d32_does(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(production_dev_cmd.generate_zap_derive_rmdir_candidates([
+	return ruby.bool_value(production_dev_cmd.generate_zap_derive_rmdir_candidates([
 		'~/Library/Application Support/CrashReporter/Foo_ABC123.plist',
 	], os.home_dir()).len == 0)
 }
 
 // Ruby it `it "does not suggest rmdir for application recent documents directory" do` at line 343.
-pub fn ruby_generate_zap_spec_l343_d33_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_zap_spec_l343_d33_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	base := '~/Library/Application Support/com.apple.sharedfilelist/com.apple.LSSharedFileList.ApplicationRecentDocuments'
 	result := production_dev_cmd.generate_zap_derive_rmdir_candidates([
 		'${base}/org.example.foo.sfl2',
 	], os.home_dir())
-	return brew_runtime.bool_value(base !in result)
+	return ruby.bool_value(base !in result)
 }
 
 // Ruby it `it "does not suggest rmdir for system-level shared directories" do` at line 354.
-pub fn ruby_generate_zap_spec_l354_d34_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_zap_spec_l354_d34_does(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(production_dev_cmd.generate_zap_derive_rmdir_candidates([
+	return ruby.bool_value(production_dev_cmd.generate_zap_derive_rmdir_candidates([
 		'/Library/Application Support/Foo',
 	], os.home_dir()).len == 0)
 }

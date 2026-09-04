@@ -1,14 +1,14 @@
 module rubocops
 
-import brew_runtime
+import ruby
 import homebrew.rubocops as desc_core
 
 // Translated from Homebrew/brew `test/rubocops/desc_spec.rb`.
 // The original source is retained below for line-level provenance.
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
-pub fn ruby_desc_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::Desc', 'FormulaAudit/Desc')
+pub fn ruby_desc_spec_l7_d1_cop(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('RuboCop::Cop::FormulaAudit::Desc', 'FormulaAudit/Desc')
 }
 
 // Ruby it `it "reports an offense when there is no `desc`" do` at line 10.

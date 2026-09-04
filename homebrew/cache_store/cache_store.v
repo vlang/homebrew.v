@@ -1,6 +1,6 @@
 module cache_store
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `cache_store/cache_store.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -9,22 +9,22 @@ import brew_runtime
 // concrete database remains a boundary Value because the Ruby class is generic
 // over both its key and value types.
 pub struct CacheStore {
-	database_value brew_runtime.Value
+	database_value ruby.Value
 }
 
-pub fn new_cache_store(database brew_runtime.Value) CacheStore {
+pub fn new_cache_store(database ruby.Value) CacheStore {
 	return CacheStore{
 		database_value: database
 	}
 }
 
 // database exposes the protected Ruby reader to translated subclasses.
-pub fn (store CacheStore) database() brew_runtime.Value {
+pub fn (store CacheStore) database() ruby.Value {
 	return store.database_value
 }
 
-pub fn cache_store_value(store CacheStore) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn cache_store_value(store CacheStore) ruby.Value {
+	return ruby.Value{
 		type_name: 'CacheStore'
 		repr: '#<CacheStore>'
 		map_data: {
@@ -33,7 +33,7 @@ pub fn cache_store_value(store CacheStore) brew_runtime.Value {
 	}
 }
 
-pub fn cache_store_from_value(value brew_runtime.Value) !CacheStore {
+pub fn cache_store_from_value(value ruby.Value) !CacheStore {
 	if value.type_name != 'CacheStore' {
 		return error('expected CacheStore, got ${value.type_name}')
 	}
@@ -44,20 +44,20 @@ pub fn cache_store_from_value(value brew_runtime.Value) !CacheStore {
 }
 
 // Ruby method `initialize(database)` at line 18.
-pub fn ruby_cache_store_l18_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cache_store_l18_d1_initialize(args ...ruby.Value) ruby.Value {
 	if args.len != 1 {
-		return brew_runtime.object_value('ArgumentError', 'CacheStore#initialize requires one database')
+		return ruby.object_value('ArgumentError', 'CacheStore#initialize requires one database')
 	}
 	return cache_store_value(new_cache_store(args[0]))
 }
 
 // Ruby attr_reader `attr_reader :database` at line 25.
-pub fn ruby_cache_store_l25_d2_database(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cache_store_l25_d2_database(args ...ruby.Value) ruby.Value {
 	if args.len != 1 {
-		return brew_runtime.object_value('ArgumentError', 'CacheStore#database requires a receiver')
+		return ruby.object_value('ArgumentError', 'CacheStore#database requires a receiver')
 	}
 	store := cache_store_from_value(args[0]) or {
-		return brew_runtime.object_value('TypeError', err.msg())
+		return ruby.object_value('TypeError', err.msg())
 	}
 	return store.database()
 }

@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 import os
 import time
 
@@ -10,7 +10,7 @@ import time
 const lgtm_new_files_warning = 'New formulae or casks were detected. Run `brew lgtm --online` to include `brew audit --new` checks.'
 const lgtm_untracked_warning = 'Untracked formula or cask files are not checked by `brew lgtm`; stage or commit them first.'
 
-fn lgtm_spec_values_as_args(args []brew_runtime.Value, fallback []string) []string {
+fn lgtm_spec_values_as_args(args []ruby.Value, fallback []string) []string {
 	if args.len == 0 {
 		return fallback.clone()
 	}
@@ -26,14 +26,14 @@ fn lgtm_spec_tap(name string) LgtmTap {
 	}
 }
 
-fn lgtm_spec_tap_value(name string) brew_runtime.Value {
-	return brew_runtime.structured_value('Tap', name, {
+fn lgtm_spec_tap_value(name string) ruby.Value {
+	return ruby.structured_value('Tap', name, {
 		'name': name
 	})
 }
 
-fn lgtm_spec_formula_value(installed bool) brew_runtime.Value {
-	return brew_runtime.structured_value('Formula', '', {
+fn lgtm_spec_formula_value(installed bool) ruby.Value {
+	return ruby.structured_value('Formula', '', {
 		'latest_version_installed': installed.str()
 	})
 }
@@ -103,7 +103,7 @@ fn lgtm_spec_cask_commands(online bool) [][]string {
 	]
 }
 
-fn lgtm_spec_root(args []brew_runtime.Value) string {
+fn lgtm_spec_root(args []ruby.Value) string {
 	return if args.len > 0 { args[0].as_string() } else { os.real_path(@VMODROOT) }
 }
 
@@ -112,166 +112,166 @@ fn lgtm_spec_path(root string, suffix ...string) string {
 }
 
 // Ruby subject `subject(:lgtm) { described_class.new(args) }` at line 14.
-pub fn ruby_lgtm_spec_l14_d1_lgtm(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lgtm_spec_l14_d1_lgtm(args ...ruby.Value) ruby.Value {
 	command_args := lgtm_spec_values_as_args(args, [])
-	return brew_runtime.structured_value('Homebrew::DevCmd::Lgtm', command_args.join(' '), {
+	return ruby.structured_value('Homebrew::DevCmd::Lgtm', command_args.join(' '), {
 		'args':   command_args.join('\n')
 		'online': ('--online' in command_args).str()
 	})
 }
 
 // Ruby let `let(:args) { [] }` at line 16.
-pub fn ruby_lgtm_spec_l16_d2_args(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(lgtm_spec_values_as_args(args, []))
+pub fn ruby_lgtm_spec_l16_d2_args(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(lgtm_spec_values_as_args(args, []))
 }
 
 // Ruby let `let(:tap) { instance_double(Tap, name: "homebrew/core") }` at line 27.
-pub fn ruby_lgtm_spec_l27_d3_tap(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lgtm_spec_l27_d3_tap(args ...ruby.Value) ruby.Value {
 	name := if args.len > 0 { args[0].as_string() } else { 'homebrew/core' }
 	return lgtm_spec_tap_value(name)
 }
 
 // Ruby let `let(:changed_formula) { instance_double(Formula, latest_version_installed?: true) }` at line 28.
-pub fn ruby_lgtm_spec_l28_d4_changed_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lgtm_spec_l28_d4_changed_formula(args ...ruby.Value) ruby.Value {
 	installed := if args.len > 0 { args[0].as_bool() or { true } } else { true }
 	return lgtm_spec_formula_value(installed)
 }
 
 // Ruby let `let(:new_formula) { instance_double(Formula, latest_version_installed?: false) }` at line 29.
-pub fn ruby_lgtm_spec_l29_d5_new_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lgtm_spec_l29_d5_new_formula(args ...ruby.Value) ruby.Value {
 	installed := if args.len > 0 { args[0].as_bool() or { false } } else { false }
 	return lgtm_spec_formula_value(installed)
 }
 
 // Ruby it `it "audits formulae without online checks by default and skips tests for uninstalled formulae" do` at line 45.
-pub fn ruby_lgtm_spec_l45_d6_audits(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lgtm_spec_l45_d6_audits(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := lgtm_spec_formula_result(false)
-	return brew_runtime.bool_value(result.commands == lgtm_spec_formula_commands(false)
+	return ruby.bool_value(result.commands == lgtm_spec_formula_commands(false)
 		&& result.warnings == [lgtm_new_files_warning,
 			'Skipping `brew test homebrew/core/newball`; the latest version is not installed.']
 		&& result.formulae_to_test == ['homebrew/core/testball'])
 }
 
 // Ruby let `let(:args) { ["--online"] }` at line 65.
-pub fn ruby_lgtm_spec_l65_d7_args(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(lgtm_spec_values_as_args(args, ['--online']))
+pub fn ruby_lgtm_spec_l65_d7_args(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(lgtm_spec_values_as_args(args, ['--online']))
 }
 
 // Ruby let `let(:tap) { instance_double(Tap, name: "homebrew/core") }` at line 66.
-pub fn ruby_lgtm_spec_l66_d8_tap(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lgtm_spec_l66_d8_tap(args ...ruby.Value) ruby.Value {
 	return ruby_lgtm_spec_l27_d3_tap(...args)
 }
 
 // Ruby let `let(:changed_formula) { instance_double(Formula, latest_version_installed?: true) }` at line 67.
-pub fn ruby_lgtm_spec_l67_d9_changed_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lgtm_spec_l67_d9_changed_formula(args ...ruby.Value) ruby.Value {
 	return ruby_lgtm_spec_l28_d4_changed_formula(...args)
 }
 
 // Ruby let `let(:new_formula) { instance_double(Formula, latest_version_installed?: false) }` at line 68.
-pub fn ruby_lgtm_spec_l68_d10_new_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lgtm_spec_l68_d10_new_formula(args ...ruby.Value) ruby.Value {
 	return ruby_lgtm_spec_l29_d5_new_formula(...args)
 }
 
 // Ruby it `it "audits changed formulae with --online and new formulae with --new" do` at line 84.
-pub fn ruby_lgtm_spec_l84_d11_audits(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lgtm_spec_l84_d11_audits(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := lgtm_spec_formula_result(true)
-	return brew_runtime.bool_value(result.commands == lgtm_spec_formula_commands(true)
+	return ruby.bool_value(result.commands == lgtm_spec_formula_commands(true)
 		&& lgtm_new_files_warning !in result.warnings && result.warnings == [
 		'Skipping `brew test homebrew/core/newball`; the latest version is not installed.',
 	])
 }
 
 // Ruby let `let(:tap) { instance_double(Tap, name: "homebrew/cask") }` at line 101.
-pub fn ruby_lgtm_spec_l101_d12_tap(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lgtm_spec_l101_d12_tap(args ...ruby.Value) ruby.Value {
 	name := if args.len > 0 { args[0].as_string() } else { 'homebrew/cask' }
 	return lgtm_spec_tap_value(name)
 }
 
 // Ruby it `it "audits casks without online checks by default" do` at line 115.
-pub fn ruby_lgtm_spec_l115_d13_audits(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lgtm_spec_l115_d13_audits(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := lgtm_spec_cask_result(false)
-	return brew_runtime.bool_value(result.commands == lgtm_spec_cask_commands(false)
+	return ruby.bool_value(result.commands == lgtm_spec_cask_commands(false)
 		&& result.warnings == [lgtm_new_files_warning])
 }
 
 // Ruby let `let(:args) { ["--online"] }` at line 131.
-pub fn ruby_lgtm_spec_l131_d14_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lgtm_spec_l131_d14_args(args ...ruby.Value) ruby.Value {
 	return ruby_lgtm_spec_l65_d7_args(...args)
 }
 
 // Ruby let `let(:tap) { instance_double(Tap, name: "homebrew/cask") }` at line 132.
-pub fn ruby_lgtm_spec_l132_d15_tap(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lgtm_spec_l132_d15_tap(args ...ruby.Value) ruby.Value {
 	return ruby_lgtm_spec_l101_d12_tap(...args)
 }
 
 // Ruby it `it "audits changed casks with --online and new casks with --new" do` at line 146.
-pub fn ruby_lgtm_spec_l146_d16_audits(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lgtm_spec_l146_d16_audits(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := lgtm_spec_cask_result(true)
-	return brew_runtime.bool_value(result.commands == lgtm_spec_cask_commands(true)
+	return ruby.bool_value(result.commands == lgtm_spec_cask_commands(true)
 		&& result.warnings.len == 0)
 }
 
 // Ruby let `let(:tap) { instance_double(Tap, name: "homebrew/core") }` at line 159.
-pub fn ruby_lgtm_spec_l159_d17_tap(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lgtm_spec_l159_d17_tap(args ...ruby.Value) ruby.Value {
 	return ruby_lgtm_spec_l27_d3_tap(...args)
 }
 
 // Ruby it `it "warns that untracked formulae and casks are skipped" do` at line 175.
-pub fn ruby_lgtm_spec_l175_d18_warns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lgtm_spec_l175_d18_warns(args ...ruby.Value) ruby.Value {
 	untracked := if args.len > 0 {
 		args[0].as_string_array() or { ['Formula/newball.rb'] }
 	} else {
 		['Formula/newball.rb']
 	}
 	result := lgtm_spec_result('homebrew/core', false, [], [], untracked, map[string]bool{})
-	return brew_runtime.bool_value(result.commands == [
+	return ruby.bool_value(result.commands == [
 		['brew', 'typecheck', 'homebrew/core'],
 		['brew', 'style', '--changed', '--fix'],
 	] && result.warnings == [lgtm_untracked_warning])
 }
 
 // Ruby let `let(:repository_root) { Pathname(T.must(__dir__)).parent.parent.parent.parent }` at line 188.
-pub fn ruby_lgtm_spec_l188_d19_repository_root(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lgtm_spec_l188_d19_repository_root(args ...ruby.Value) ruby.Value {
 	root := if args.len > 0 { args[0].as_string() } else { os.real_path(@VMODROOT) }
-	return brew_runtime.object_value('Pathname', root)
+	return ruby.object_value('Pathname', root)
 }
 
 // Ruby let `let(:test_root) do` at line 189.
-pub fn ruby_lgtm_spec_l189_d20_test_root(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lgtm_spec_l189_d20_test_root(args ...ruby.Value) ruby.Value {
 	repository_root := if args.len > 0 { args[0].as_string() } else { os.real_path(@VMODROOT) }
 	tmp_root := os.join_path(repository_root, 'tmp')
-	os.mkdir_all(tmp_root) or { return brew_runtime.object_value('IOError', err.msg()) }
+	os.mkdir_all(tmp_root) or { return ruby.object_value('IOError', err.msg()) }
 	test_root := os.join_path(tmp_root, 'brew-lgtm-cache-fallback-${os.getpid()}-${time.now().unix_micro()}')
-	os.mkdir_all(test_root) or { return brew_runtime.object_value('IOError', err.msg()) }
-	return brew_runtime.object_value('Pathname', test_root)
+	os.mkdir_all(test_root) or { return ruby.object_value('IOError', err.msg()) }
+	return ruby.object_value('Pathname', test_root)
 }
 
 // Ruby let `let(:isolated_brew) { test_root/"prefix/bin/brew" }` at line 193.
-pub fn ruby_lgtm_spec_l193_d21_isolated_brew(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Pathname', lgtm_spec_path(lgtm_spec_root(args), 'prefix', 'bin', 'brew'))
+pub fn ruby_lgtm_spec_l193_d21_isolated_brew(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Pathname', lgtm_spec_path(lgtm_spec_root(args), 'prefix', 'bin', 'brew'))
 }
 
 // Ruby let `let(:read_only_cache) { test_root/"readonly-cache" }` at line 194.
-pub fn ruby_lgtm_spec_l194_d22_read_only_cache(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Pathname', lgtm_spec_path(lgtm_spec_root(args), 'readonly-cache'))
+pub fn ruby_lgtm_spec_l194_d22_read_only_cache(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Pathname', lgtm_spec_path(lgtm_spec_root(args), 'readonly-cache'))
 }
 
 // Ruby let `let(:fallback_cache) { test_root/"prefix/tmp/cache" }` at line 195.
-pub fn ruby_lgtm_spec_l195_d23_fallback_cache(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Pathname', lgtm_spec_path(lgtm_spec_root(args), 'prefix', 'tmp', 'cache'))
+pub fn ruby_lgtm_spec_l195_d23_fallback_cache(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Pathname', lgtm_spec_path(lgtm_spec_root(args), 'prefix', 'tmp', 'cache'))
 }
 
 // Ruby let `let(:cache_file) { read_only_cache/"api/cask_names.txt" }` at line 196.
-pub fn ruby_lgtm_spec_l196_d24_cache_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Pathname', lgtm_spec_path(lgtm_spec_root(args), 'api', 'cask_names.txt'))
+pub fn ruby_lgtm_spec_l196_d24_cache_file(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Pathname', lgtm_spec_path(lgtm_spec_root(args), 'api', 'cask_names.txt'))
 }
 
 // Ruby it `it "uses a repository-local cache when HOMEBREW_CACHE is not writable" do` at line 213.
-pub fn ruby_lgtm_spec_l213_d25_uses(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lgtm_spec_l213_d25_uses(args ...ruby.Value) ruby.Value {
 	stdout := if args.len > 0 {
 		args[0].as_string()
 	} else {
@@ -282,18 +282,18 @@ pub fn ruby_lgtm_spec_l213_d25_uses(args ...brew_runtime.Value) brew_runtime.Val
 	fallback_cache := if args.len > 3 { args[3].as_string() } else { '' }
 	help_matches := stdout.split_any(' \t\r\n').filter(it.len > 0).join(' ').contains('Run brew typecheck, brew style --changed and the relevant brew tests, brew audit and brew test checks in one go.')
 	if !succeeded || !help_matches {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	if stderr.contains('HOMEBREW_CACHE is not writable') {
 		fallback_file := os.join_path(fallback_cache, 'api', 'cask_names.txt')
 		warning_matches := stderr.contains('; using ') && stderr.contains('/tmp/cache for Homebrew cache files instead.')
-		return brew_runtime.bool_value(warning_matches && os.is_file(fallback_file)
+		return ruby.bool_value(warning_matches && os.is_file(fallback_file)
 			&& (os.read_file(fallback_file) or { '' }) == 'copied-from-cache\n')
 	}
 	if stderr.len > 0 {
-		return brew_runtime.bool_value(stderr.contains('developer command'))
+		return ruby.bool_value(stderr.contains('developer command'))
 	}
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
 // Original Ruby source (line-for-line):

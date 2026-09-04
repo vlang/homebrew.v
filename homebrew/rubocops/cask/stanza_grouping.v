@@ -1,6 +1,6 @@
 module cask
 
-import brew_runtime
+import ruby
 import homebrew.rubocops.cask.constants as stanza_constants
 
 // Translated from Homebrew/brew `rubocops/cask/stanza_grouping.rb`.
@@ -531,7 +531,7 @@ pub fn correct_stanza_grouping(source string) string {
 	return corrected
 }
 
-fn stanza_grouping_source(args []brew_runtime.Value) string {
+fn stanza_grouping_source(args []ruby.Value) string {
 	if args.len == 0 {
 		return ''
 	}
@@ -543,8 +543,8 @@ fn stanza_grouping_source(args []brew_runtime.Value) string {
 	}
 }
 
-fn stanza_grouping_stanza_value(source string, stanza StanzaGroupingStanza) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cask::AST::Stanza', source[stanza.begin_pos..stanza.end_pos], {
+fn stanza_grouping_stanza_value(source string, stanza StanzaGroupingStanza) ruby.Value {
+	return ruby.structured_value('RuboCop::Cask::AST::Stanza', source[stanza.begin_pos..stanza.end_pos], {
 		'name':            stanza.name
 		'begin_pos':       stanza.begin_pos.str()
 		'end_pos':         stanza.end_pos.str()
@@ -555,7 +555,7 @@ fn stanza_grouping_stanza_value(source string, stanza StanzaGroupingStanza) brew
 	})
 }
 
-fn stanza_grouping_stanza_from_value(value brew_runtime.Value) StanzaGroupingStanza {
+fn stanza_grouping_stanza_from_value(value ruby.Value) StanzaGroupingStanza {
 	return StanzaGroupingStanza{
 		name: value.attributes['name'] or { stanza_grouping_stanza_name(value.as_string()) }
 		begin_pos: (value.attributes['begin_pos'] or { '0' }).int()
@@ -566,8 +566,8 @@ fn stanza_grouping_stanza_from_value(value brew_runtime.Value) StanzaGroupingSta
 	}
 }
 
-fn stanza_grouping_offense_value(offense StanzaGroupingOffense) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cop::Offense', offense.message, {
+fn stanza_grouping_offense_value(offense StanzaGroupingOffense) ruby.Value {
+	return ruby.structured_value('RuboCop::Cop::Offense', offense.message, {
 		'kind':              offense.kind
 		'line_index':        offense.line_index.str()
 		'begin_pos':         offense.begin_pos.str()
@@ -579,40 +579,40 @@ fn stanza_grouping_offense_value(offense StanzaGroupingOffense) brew_runtime.Val
 	})
 }
 
-fn stanza_grouping_offense_values(offenses []StanzaGroupingOffense) brew_runtime.Value {
-	return brew_runtime.array_value(offenses.map(stanza_grouping_offense_value(it)))
+fn stanza_grouping_offense_values(offenses []StanzaGroupingOffense) ruby.Value {
+	return ruby.array_value(offenses.map(stanza_grouping_offense_value(it)))
 }
 
 // Ruby method `on_cask(cask_block)` at line 21.
-pub fn ruby_stanza_grouping_l21_d1_on_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stanza_grouping_l21_d1_on_cask(args ...ruby.Value) ruby.Value {
 	return stanza_grouping_offense_values(audit_stanza_grouping(stanza_grouping_source(args)))
 }
 
 // Ruby attr_reader `attr_reader :cask_block` at line 38.
-pub fn ruby_stanza_grouping_l38_d2_cask_block(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stanza_grouping_l38_d2_cask_block(args ...ruby.Value) ruby.Value {
 	source := stanza_grouping_source(args)
-	return brew_runtime.structured_value('RuboCop::Cask::AST::CaskBlock', source, {
+	return ruby.structured_value('RuboCop::Cask::AST::CaskBlock', source, {
 		'source': source
 	})
 }
 
 // Ruby def_delegators `def_delegators :cask_block, :cask_node, :toplevel_stanzas` at line 40.
-pub fn ruby_stanza_grouping_l40_d3_cask_node(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stanza_grouping_l40_d3_cask_node(args ...ruby.Value) ruby.Value {
 	source := stanza_grouping_source(args)
-	return brew_runtime.structured_value('RuboCop::AST::BlockNode', source, {
+	return ruby.structured_value('RuboCop::AST::BlockNode', source, {
 		'name':   'cask'
 		'source': source
 	})
 }
 
 // Ruby def_delegators `def_delegators :cask_block, :cask_node, :toplevel_stanzas` at line 40.
-pub fn ruby_stanza_grouping_l40_d4_toplevel_stanzas(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stanza_grouping_l40_d4_toplevel_stanzas(args ...ruby.Value) ruby.Value {
 	source := stanza_grouping_source(args)
-	return brew_runtime.array_value(stanza_grouping_toplevel_stanzas(source).map(stanza_grouping_stanza_value(source, it)))
+	return ruby.array_value(stanza_grouping_toplevel_stanzas(source).map(stanza_grouping_stanza_value(source, it)))
 }
 
 // Ruby method `add_offenses(stanzas)` at line 43.
-pub fn ruby_stanza_grouping_l43_d5_add_offenses(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stanza_grouping_l43_d5_add_offenses(args ...ruby.Value) ruby.Value {
 	source := stanza_grouping_source(args)
 	stanzas := if args.len > 0 && args[0].type_name == 'Array' {
 		args[0].array_data.map(stanza_grouping_stanza_from_value(it))
@@ -623,86 +623,86 @@ pub fn ruby_stanza_grouping_l43_d5_add_offenses(args ...brew_runtime.Value) brew
 }
 
 // Ruby method `line_ops` at line 56.
-pub fn ruby_stanza_grouping_l56_d6_line_ops(args ...brew_runtime.Value) brew_runtime.Value {
-	mut operations := map[string]brew_runtime.Value{}
+pub fn ruby_stanza_grouping_l56_d6_line_ops(args ...ruby.Value) ruby.Value {
+	mut operations := map[string]ruby.Value{}
 	for offense in audit_stanza_grouping(stanza_grouping_source(args)) {
-		operations[offense.line_index.str()] = brew_runtime.object_value('Symbol', ':${offense.kind}')
+		operations[offense.line_index.str()] = ruby.object_value('Symbol', ':${offense.kind}')
 	}
-	return brew_runtime.map_value(operations)
+	return ruby.map_value(operations)
 }
 
 // Ruby method `missing_line_after?(stanza, next_stanza)` at line 61.
-pub fn ruby_stanza_grouping_l61_d7_missing_line_after(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stanza_grouping_l61_d7_missing_line_after(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	source := args[0].attributes['document_source'] or { stanza_grouping_source(args) }
-	return brew_runtime.bool_value(stanza_grouping_missing_line_after(source, stanza_grouping_stanza_from_value(args[0]), stanza_grouping_stanza_from_value(args[1])))
+	return ruby.bool_value(stanza_grouping_missing_line_after(source, stanza_grouping_stanza_from_value(args[0]), stanza_grouping_stanza_from_value(args[1])))
 }
 
 // Ruby method `extra_line_after?(stanza, next_stanza)` at line 67.
-pub fn ruby_stanza_grouping_l67_d8_extra_line_after(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stanza_grouping_l67_d8_extra_line_after(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	source := args[0].attributes['document_source'] or { stanza_grouping_source(args) }
-	return brew_runtime.bool_value(stanza_grouping_extra_line_after(source, stanza_grouping_stanza_from_value(args[0]), stanza_grouping_stanza_from_value(args[1])))
+	return ruby.bool_value(stanza_grouping_extra_line_after(source, stanza_grouping_stanza_from_value(args[0]), stanza_grouping_stanza_from_value(args[1])))
 }
 
 // Ruby method `empty_line_after?(stanza)` at line 73.
-pub fn ruby_stanza_grouping_l73_d9_empty_line_after(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stanza_grouping_l73_d9_empty_line_after(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	source := args[0].attributes['document_source'] or { stanza_grouping_source(args) }
-	return brew_runtime.bool_value(stanza_grouping_empty_line_after(source, stanza_grouping_stanza_from_value(args[0])))
+	return ruby.bool_value(stanza_grouping_empty_line_after(source, stanza_grouping_stanza_from_value(args[0])))
 }
 
 // Ruby method `source_line_after(stanza)` at line 78.
-pub fn ruby_stanza_grouping_l78_d10_source_line_after(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stanza_grouping_l78_d10_source_line_after(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_value('')
+		return ruby.string_value('')
 	}
 	source := args[0].attributes['document_source'] or { stanza_grouping_source(args) }
-	return brew_runtime.string_value(stanza_grouping_source_line_after(source, stanza_grouping_stanza_from_value(args[0])))
+	return ruby.string_value(stanza_grouping_source_line_after(source, stanza_grouping_stanza_from_value(args[0])))
 }
 
 // Ruby method `index_of_line_after(stanza)` at line 83.
-pub fn ruby_stanza_grouping_l83_d11_index_of_line_after(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stanza_grouping_l83_d11_index_of_line_after(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.int_value(0)
+		return ruby.int_value(0)
 	}
-	return brew_runtime.int_value(stanza_grouping_index_of_line_after(stanza_grouping_stanza_from_value(args[0])))
+	return ruby.int_value(stanza_grouping_index_of_line_after(stanza_grouping_stanza_from_value(args[0])))
 }
 
 // Ruby method `add_offense_missing_line(stanza)` at line 88.
-pub fn ruby_stanza_grouping_l88_d12_add_offense_missing_line(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stanza_grouping_l88_d12_add_offense_missing_line(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	source := args[0].attributes['document_source'] or { stanza_grouping_source(args) }
 	return stanza_grouping_offense_value(stanza_grouping_offense(source, stanza_grouping_stanza_from_value(args[0]), 'insert', stanza_grouping_missing_line_message))
 }
 
 // Ruby method `add_offense_extra_line(stanza)` at line 97.
-pub fn ruby_stanza_grouping_l97_d13_add_offense_extra_line(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stanza_grouping_l97_d13_add_offense_extra_line(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	source := args[0].attributes['document_source'] or { stanza_grouping_source(args) }
 	return stanza_grouping_offense_value(stanza_grouping_offense(source, stanza_grouping_stanza_from_value(args[0]), 'remove', stanza_grouping_extra_line_message))
 }
 
 // Ruby method `add_offense(line_index, message:, &block)` at line 106.
-pub fn ruby_stanza_grouping_l106_d14_add_offense(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stanza_grouping_l106_d14_add_offense(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	source := args[0].as_string()
 	line_index := int(args[1].as_int() or { 0 })
 	lines := stanza_grouping_lines(source)
 	if line_index < 0 || line_index >= lines.len {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	line := lines[line_index]
 	line_length := if line.text.len > 0 { line.text.len } else { 1 }

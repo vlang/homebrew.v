@@ -1,6 +1,6 @@
 module strategy
 
-import brew_runtime
+import ruby
 import homebrew.livecheck
 import homebrew.livecheck.strategy as hackage_core
 import homebrew.utils
@@ -43,8 +43,8 @@ fn hackage_spec_match_data_equal(left hackage_core.PageMatchData,
 }
 
 // Ruby subject `subject(:hackage) { described_class }` at line 7.
-pub fn ruby_hackage_spec_l7_d1_hackage() brew_runtime.Value {
-	return brew_runtime.object_value('Class', 'Homebrew::Livecheck::Strategy::Hackage')
+pub fn ruby_hackage_spec_l7_d1_hackage() ruby.Value {
+	return ruby.object_value('Class', 'Homebrew::Livecheck::Strategy::Hackage')
 }
 
 // Ruby let `let(:hackage_urls) do` at line 9.

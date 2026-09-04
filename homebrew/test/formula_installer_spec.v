@@ -1,6 +1,6 @@
 module test
 
-import brew_runtime
+import ruby
 import homebrew
 import homebrew.api
 import x.json2
@@ -18,11 +18,11 @@ struct FormulaInstallerSpecReferenceConfig {
 }
 
 fn formula_installer_spec_root(name string) string {
-	return brew_runtime.join_path(brew_runtime.temporary_directory(), 'brew-v-formula-installer-${name}-${brew_runtime.process_id()}')
+	return ruby.join_path(ruby.temporary_directory(), 'brew-v-formula-installer-${name}-${ruby.process_id()}')
 }
 
 fn formula_installer_spec_join3(first string, second string, third string) string {
-	return brew_runtime.join_path(brew_runtime.join_path(first, second), third)
+	return ruby.join_path(ruby.join_path(first, second), third)
 }
 
 fn formula_installer_spec_reference(name string,
@@ -54,12 +54,12 @@ fn formula_installer_spec_installer(reference api.PackageReference,
 	return homebrew.new_formula_installer(reference, config)
 }
 
-fn formula_installer_spec_bool(value bool) brew_runtime.Value {
-	return brew_runtime.bool_value(value)
+fn formula_installer_spec_bool(value bool) ruby.Value {
+	return ruby.bool_value(value)
 }
 
-fn formula_installer_spec_reference_value(reference api.PackageReference) brew_runtime.Value {
-	return brew_runtime.structured_value('Formula', reference.full_name, {
+fn formula_installer_spec_reference_value(reference api.PackageReference) ruby.Value {
+	return ruby.structured_value('Formula', reference.full_name, {
 		'name':            reference.name
 		'full_name':       reference.full_name
 		'tap':             reference.tap
@@ -70,8 +70,8 @@ fn formula_installer_spec_reference_value(reference api.PackageReference) brew_r
 	})
 }
 
-fn formula_installer_spec_installer_value(installer homebrew.FormulaInstaller) brew_runtime.Value {
-	return brew_runtime.structured_value('FormulaInstaller', installer.formula.full_name, {
+fn formula_installer_spec_installer_value(installer homebrew.FormulaInstaller) ruby.Value {
+	return ruby.structured_value('FormulaInstaller', installer.formula.full_name, {
 		'formula':              installer.formula.full_name
 		'link_keg':             installer.link_keg.str()
 		'installed_on_request': installer.installed_on_request.str()
@@ -88,8 +88,8 @@ fn formula_installer_spec_dependency(reference api.PackageReference) homebrew.Fo
 }
 
 fn formula_installer_spec_build_success(formula homebrew.Formula) ! {
-	brew_runtime.make_dir_all(formula.prefix())!
-	brew_runtime.write_file(brew_runtime.join_path(formula.prefix(), 'installed'), 'ok\n')!
+	ruby.make_dir_all(formula.prefix())!
+	ruby.write_file(ruby.join_path(formula.prefix(), 'installed'), 'ok\n')!
 }
 
 fn formula_installer_spec_build_failure(_formula homebrew.Formula) ! {
@@ -101,12 +101,12 @@ fn formula_installer_spec_post_install_success(_path string) ! {}
 fn formula_installer_spec_service(root string, timed bool) homebrew.InstallerServiceDefinition {
 	return homebrew.InstallerServiceDefinition{
 		defined: true
-		systemd_service_path: brew_runtime.join_path(root, 'service.service')
+		systemd_service_path: ruby.join_path(root, 'service.service')
 		systemd_service: 'unit'
 		timed: timed
-		systemd_timer_path: brew_runtime.join_path(root, 'service.timer')
+		systemd_timer_path: ruby.join_path(root, 'service.timer')
 		systemd_timer: 'timer'
-		launchd_service_path: brew_runtime.join_path(root, 'service.plist')
+		launchd_service_path: ruby.join_path(root, 'service.plist')
 		launchd_service: 'plist'
 	}
 }
@@ -115,9 +115,9 @@ fn formula_installer_spec_service(root string, timed bool) homebrew.InstallerSer
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby matcher `matcher :be_poured_from_bottle do` at line 17.
-pub fn ruby_formula_installer_spec_l17_d1_be_poured_from_bottle(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l17_d1_be_poured_from_bottle(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.structured_value('RSpec::Matcher', 'be_poured_from_bottle', {
+		return ruby.structured_value('RSpec::Matcher', 'be_poured_from_bottle', {
 			'attribute': 'poured_from_bottle'
 		})
 	}
@@ -125,60 +125,60 @@ pub fn ruby_formula_installer_spec_l17_d1_be_poured_from_bottle(args ...brew_run
 }
 
 // Ruby method `temporary_install(formula, **options)` at line 21.
-pub fn ruby_formula_installer_spec_l21_d2_temporary_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l21_d2_temporary_install(args ...ruby.Value) ruby.Value {
 	root := formula_installer_spec_root('temporary-install')
-	brew_runtime.remove_all(root) or {}
-	defer { brew_runtime.remove_all(root) or {} }
+	ruby.remove_all(root) or {}
+	defer { ruby.remove_all(root) or {} }
 	reference := formula_installer_spec_reference('temporary-install', FormulaInstallerSpecReferenceConfig{})
 	installer := formula_installer_spec_installer(reference, homebrew.FormulaInstallerConfig{
 		prefix: root
-		cellar: brew_runtime.join_path(root, 'Cellar')
+		cellar: ruby.join_path(root, 'Cellar')
 	})
 	mut state := homebrew.FormulaInstallerState{}
 	installer.build(mut state, formula_installer_spec_build_success) or {
 		return formula_installer_spec_bool(false)
 	}
-	installed := brew_runtime.is_file(brew_runtime.join_path(root, 'installed'))
-	brew_runtime.remove_all(root) or { return formula_installer_spec_bool(false) }
-	return formula_installer_spec_bool(installed && !brew_runtime.path_exists(root))
+	installed := ruby.is_file(ruby.join_path(root, 'installed'))
+	ruby.remove_all(root) or { return formula_installer_spec_bool(false) }
+	return formula_installer_spec_bool(installed && !ruby.path_exists(root))
 }
 
 // Ruby specify `specify "basic installation" do` at line 53.
-pub fn ruby_formula_installer_spec_l53_d3_basic(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l53_d3_basic(args ...ruby.Value) ruby.Value {
 	root := formula_installer_spec_root('basic')
-	brew_runtime.remove_all(root) or {}
-	defer { brew_runtime.remove_all(root) or {} }
-	bin := brew_runtime.join_path(root, 'bin')
-	libexec := brew_runtime.join_path(root, 'libexec')
-	brew_runtime.make_dir_all(bin) or { return formula_installer_spec_bool(false) }
-	brew_runtime.make_dir_all(libexec) or { return formula_installer_spec_bool(false) }
+	ruby.remove_all(root) or {}
+	defer { ruby.remove_all(root) or {} }
+	bin := ruby.join_path(root, 'bin')
+	libexec := ruby.join_path(root, 'libexec')
+	ruby.make_dir_all(bin) or { return formula_installer_spec_bool(false) }
+	ruby.make_dir_all(libexec) or { return formula_installer_spec_bool(false) }
 	for name in ['testball', 'testball2', 'testball3'] {
-		brew_runtime.write_file(brew_runtime.join_path(bin, name), name) or {
+		ruby.write_file(ruby.join_path(bin, name), name) or {
 			return formula_installer_spec_bool(false)
 		}
 	}
-	brew_runtime.write_file(brew_runtime.join_path(libexec, 'helper'), 'helper') or {
+	ruby.write_file(ruby.join_path(libexec, 'helper'), 'helper') or {
 		return formula_installer_spec_bool(false)
 	}
-	brew_runtime.make_dir_all(brew_runtime.join_path(root, '.brew')) or {
+	ruby.make_dir_all(ruby.join_path(root, '.brew')) or {
 		return formula_installer_spec_bool(false)
 	}
-	brew_runtime.write_file(formula_installer_spec_join3(root, '.brew', 'testball.rb'), 'class Testball') or {
+	ruby.write_file(formula_installer_spec_join3(root, '.brew', 'testball.rb'), 'class Testball') or {
 		return formula_installer_spec_bool(false)
 	}
-	bin_entries := brew_runtime.list_dir(bin) or { return formula_installer_spec_bool(false) }
-	libexec_entries := brew_runtime.list_dir(libexec) or { return formula_installer_spec_bool(false) }
-	return formula_installer_spec_bool(bin_entries.len == 3 && libexec_entries.len == 1 && !brew_runtime.path_exists(brew_runtime.join_path(root, 'readme')) && !brew_runtime.path_exists(brew_runtime.join_path(root, 'main.c')) && !brew_runtime.path_exists(brew_runtime.join_path(root, 'license')) && brew_runtime.is_file(formula_installer_spec_join3(root, '.brew', 'testball.rb')))
+	bin_entries := ruby.list_dir(bin) or { return formula_installer_spec_bool(false) }
+	libexec_entries := ruby.list_dir(libexec) or { return formula_installer_spec_bool(false) }
+	return formula_installer_spec_bool(bin_entries.len == 3 && libexec_entries.len == 1 && !ruby.path_exists(ruby.join_path(root, 'readme')) && !ruby.path_exists(ruby.join_path(root, 'main.c')) && !ruby.path_exists(ruby.join_path(root, 'license')) && ruby.is_file(formula_installer_spec_join3(root, '.brew', 'testball.rb')))
 }
 
 // Ruby specify `specify "offline installation" do` at line 79.
-pub fn ruby_formula_installer_spec_l79_d4_offline(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l79_d4_offline(args ...ruby.Value) ruby.Value {
 	root := formula_installer_spec_root('offline')
-	brew_runtime.remove_all(root) or {}
-	defer { brew_runtime.remove_all(root) or {} }
+	ruby.remove_all(root) or {}
+	defer { ruby.remove_all(root) or {} }
 	installer := formula_installer_spec_installer(formula_installer_spec_reference('failball-offline-install', FormulaInstallerSpecReferenceConfig{}), homebrew.FormulaInstallerConfig{
 		prefix: root
-		cellar: brew_runtime.join_path(root, 'Cellar')
+		cellar: ruby.join_path(root, 'Cellar')
 	})
 	mut state := homebrew.FormulaInstallerState{}
 	installer.build(mut state, formula_installer_spec_build_failure) or {
@@ -188,7 +188,7 @@ pub fn ruby_formula_installer_spec_l79_d4_offline(args ...brew_runtime.Value) br
 }
 
 // Ruby specify `specify "Formula is not poured from bottle when compiler specified" do` at line 83.
-pub fn ruby_formula_installer_spec_l83_d5_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l83_d5_formula(args ...ruby.Value) ruby.Value {
 	reference := formula_installer_spec_reference('testball-bottle', FormulaInstallerSpecReferenceConfig{
 		bottle_available: true
 		bottle_tags: ['arm64_sequoia']
@@ -200,7 +200,7 @@ pub fn ruby_formula_installer_spec_l83_d5_formula(args ...brew_runtime.Value) br
 }
 
 // Ruby specify `specify "relocated bottle install does not require developer tools on Apple Silicon", :needs_macos do` at line 90.
-pub fn ruby_formula_installer_spec_l90_d6_relocated(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l90_d6_relocated(args ...ruby.Value) ruby.Value {
 	reference := formula_installer_spec_reference('testball-bottle', FormulaInstallerSpecReferenceConfig{
 		bottle_available: true
 		bottle_tags: ['arm64_sequoia']
@@ -220,11 +220,11 @@ pub fn ruby_formula_installer_spec_l90_d6_relocated(args ...brew_runtime.Value) 
 }
 
 // Ruby it `it "runs structured post-install work through the post-install subprocess" do` at line 106.
-pub fn ruby_formula_installer_spec_l106_d7_runs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l106_d7_runs(args ...ruby.Value) ruby.Value {
 	root := formula_installer_spec_root('finish-install-steps')
 	installer := formula_installer_spec_installer(formula_installer_spec_reference('finish-install-steps', FormulaInstallerSpecReferenceConfig{}), homebrew.FormulaInstallerConfig{
 		prefix: root
-		cellar: brew_runtime.join_path(root, 'Cellar')
+		cellar: ruby.join_path(root, 'Cellar')
 	})
 	mut state := homebrew.FormulaInstallerState{}
 	result := installer.post_install(homebrew.PostInstallFormulaPathConfig{
@@ -234,11 +234,11 @@ pub fn ruby_formula_installer_spec_l106_d7_runs(args ...brew_runtime.Value) brew
 }
 
 // Ruby it `it "runs structured post-install steps inside the formula sandbox" do` at line 149.
-pub fn ruby_formula_installer_spec_l149_d8_runs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l149_d8_runs(args ...ruby.Value) ruby.Value {
 	root := formula_installer_spec_root('sandboxed-install-steps')
 	installer := formula_installer_spec_installer(formula_installer_spec_reference('sandboxed-install-steps', FormulaInstallerSpecReferenceConfig{}), homebrew.FormulaInstallerConfig{
 		prefix: root
-		cellar: brew_runtime.join_path(root, 'Cellar')
+		cellar: ruby.join_path(root, 'Cellar')
 		build_from_source_formulae: ['sandboxed-install-steps']
 	})
 	path := installer.post_install_formula_path(homebrew.PostInstallFormulaPathConfig{
@@ -249,8 +249,8 @@ pub fn ruby_formula_installer_spec_l149_d8_runs(args ...brew_runtime.Value) brew
 }
 
 // Ruby it `it "restores bin/brew after a Landlock-sandboxed post-install replaces it" do` at line 173.
-pub fn ruby_formula_installer_spec_l173_d9_restores(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.structured_value('Sandbox::PreservedBrewFile', 'bin/brew', {
+pub fn ruby_formula_installer_spec_l173_d9_restores(args ...ruby.Value) ruby.Value {
+	return ruby.structured_value('Sandbox::PreservedBrewFile', 'bin/brew', {
 		'preserve':               'symlink-target,mode,directory-mode'
 		'restore_after':          'postinstall'
 		'network_access_allowed': 'true'
@@ -258,7 +258,7 @@ pub fn ruby_formula_installer_spec_l173_d9_restores(args ...brew_runtime.Value) 
 }
 
 // Ruby it `it "uses the API formula for structured-only post-installs" do` at line 209.
-pub fn ruby_formula_installer_spec_l209_d10_uses(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l209_d10_uses(args ...ruby.Value) ruby.Value {
 	reference := formula_installer_spec_reference('api-install-steps', FormulaInstallerSpecReferenceConfig{
 		loaded_from_api: true
 	})
@@ -270,7 +270,7 @@ pub fn ruby_formula_installer_spec_l209_d10_uses(args ...brew_runtime.Value) bre
 }
 
 // Ruby it `it "uses the keg formula for API post-installs with Ruby hooks" do` at line 222.
-pub fn ruby_formula_installer_spec_l222_d11_uses(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l222_d11_uses(args ...ruby.Value) ruby.Value {
 	root := formula_installer_spec_root('api-post-install-hook')
 	reference := formula_installer_spec_reference('api-post-install-hook', FormulaInstallerSpecReferenceConfig{
 		loaded_from_api: true
@@ -284,7 +284,7 @@ pub fn ruby_formula_installer_spec_l222_d11_uses(args ...brew_runtime.Value) bre
 }
 
 // Ruby let `let(:f) do` at line 238.
-pub fn ruby_formula_installer_spec_l238_d12_f(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l238_d12_f(args ...ruby.Value) ruby.Value {
 	return formula_installer_spec_reference_value(formula_installer_spec_reference('missing-bottle-tab', FormulaInstallerSpecReferenceConfig{
 		bottle_available: true
 		bottle_tags: ['arm64_sequoia']
@@ -292,7 +292,7 @@ pub fn ruby_formula_installer_spec_l238_d12_f(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby let `let(:installer) { Class.new(described_class).new(f) }` at line 249.
-pub fn ruby_formula_installer_spec_l249_d13_installer(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l249_d13_installer(args ...ruby.Value) ruby.Value {
 	reference := formula_installer_spec_reference('missing-bottle-tab', FormulaInstallerSpecReferenceConfig{
 		bottle_available: true
 		bottle_tags: ['arm64_sequoia']
@@ -301,37 +301,37 @@ pub fn ruby_formula_installer_spec_l249_d13_installer(args ...brew_runtime.Value
 }
 
 // Ruby let `let(:downloader) { instance_double(AbstractDownloadStrategy, basename: "missing-bottle-tab", stage: nil) }` at line 250.
-pub fn ruby_formula_installer_spec_l250_d14_downloader(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.structured_value('AbstractDownloadStrategy', 'missing-bottle-tab', {
+pub fn ruby_formula_installer_spec_l250_d14_downloader(args ...ruby.Value) ruby.Value {
+	return ruby.structured_value('AbstractDownloadStrategy', 'missing-bottle-tab', {
 		'basename': 'missing-bottle-tab'
 		'stage':    'nil'
 	})
 }
 
 // Ruby let `let(:downloadable) { instance_double(Resource, downloader:) }` at line 251.
-pub fn ruby_formula_installer_spec_l251_d15_downloadable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.structured_value('Resource', 'missing-bottle-tab', {
+pub fn ruby_formula_installer_spec_l251_d15_downloadable(args ...ruby.Value) ruby.Value {
+	return ruby.structured_value('Resource', 'missing-bottle-tab', {
 		'downloader': 'missing-bottle-tab'
 	})
 }
 
 // Ruby let `let(:tab) do` at line 252.
-pub fn ruby_formula_installer_spec_l252_d16_tab(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.structured_value('Tab', 'bottle receipt', {
+pub fn ruby_formula_installer_spec_l252_d16_tab(args ...ruby.Value) ruby.Value {
+	return ruby.structured_value('Tab', 'bottle receipt', {
 		'changed_files':   'nil'
 		'source.versions': '{}'
 	})
 }
 
 // Ruby let `let(:keg) { instance_double(Keg) }` at line 255.
-pub fn ruby_formula_installer_spec_l255_d17_keg(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.structured_value('Keg', 'instance_double(Keg)', {
+pub fn ruby_formula_installer_spec_l255_d17_keg(args ...ruby.Value) ruby.Value {
+	return ruby.structured_value('Keg', 'instance_double(Keg)', {
 		'linked': 'false'
 	})
 }
 
 // Ruby it `it "preserves the skip-linkage decision for the default bottle domain" do` at line 266.
-pub fn ruby_formula_installer_spec_l266_d18_preserves(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l266_d18_preserves(args ...ruby.Value) ruby.Value {
 	default_domain := true
 	metadata_present := false
 	skip_linkage := if default_domain { true } else { metadata_present }
@@ -339,7 +339,7 @@ pub fn ruby_formula_installer_spec_l266_d18_preserves(args ...brew_runtime.Value
 }
 
 // Ruby it `it "relocates dynamic linkage without metadata from a bottle mirror" do` at line 272.
-pub fn ruby_formula_installer_spec_l272_d19_relocates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l272_d19_relocates(args ...ruby.Value) ruby.Value {
 	default_skip_linkage := true
 	custom_domain := true
 	changed_files_present := false
@@ -352,7 +352,7 @@ pub fn ruby_formula_installer_spec_l272_d19_relocates(args ...brew_runtime.Value
 }
 
 // Ruby it `it "explains how a bottle mirror can provide metadata once per invocation" do` at line 280.
-pub fn ruby_formula_installer_spec_l280_d20_explains(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l280_d20_explains(args ...ruby.Value) ruby.Value {
 	mut state := homebrew.FormulaInstallerClassState{}
 	first := state.show_missing_bottle_metadata_warning()
 	second := state.show_missing_bottle_metadata_warning()
@@ -361,36 +361,36 @@ pub fn ruby_formula_installer_spec_l280_d20_explains(args ...brew_runtime.Value)
 }
 
 // Ruby let `let(:f) do` at line 292.
-pub fn ruby_formula_installer_spec_l292_d21_f(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l292_d21_f(args ...ruby.Value) ruby.Value {
 	return formula_installer_spec_reference_value(formula_installer_spec_reference('bottle-config', FormulaInstallerSpecReferenceConfig{}))
 }
 
 // Ruby let `let(:config_file) { HOMEBREW_PREFIX/"etc/bottle-config.conf" }` at line 298.
-pub fn ruby_formula_installer_spec_l298_d22_config_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(formula_installer_spec_join3(formula_installer_spec_root('bottle-config'), 'etc', 'bottle-config.conf'))
+pub fn ruby_formula_installer_spec_l298_d22_config_file(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(formula_installer_spec_join3(formula_installer_spec_root('bottle-config'), 'etc', 'bottle-config.conf'))
 }
 
 // Ruby it `it "stores new prefix config where install_etc_var restores it from" do` at line 312.
-pub fn ruby_formula_installer_spec_l312_d23_stores(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l312_d23_stores(args ...ruby.Value) ruby.Value {
 	root := formula_installer_spec_root('bottle-config-store')
-	bottle_prefix := brew_runtime.join_path(root, '.bottle')
-	brew_runtime.remove_all(root) or {}
-	defer { brew_runtime.remove_all(root) or {} }
+	bottle_prefix := ruby.join_path(root, '.bottle')
+	ruby.remove_all(root) or {}
+	defer { ruby.remove_all(root) or {} }
 	preinstall := homebrew.build_bottle_preinstall(root)
-	config_directory := brew_runtime.join_path(root, 'etc')
-	config := brew_runtime.join_path(config_directory, 'bottle-config.conf')
-	brew_runtime.make_dir_all(config_directory) or { return formula_installer_spec_bool(false) }
-	brew_runtime.write_file(config, 'new\n') or { return formula_installer_spec_bool(false) }
+	config_directory := ruby.join_path(root, 'etc')
+	config := ruby.join_path(config_directory, 'bottle-config.conf')
+	ruby.make_dir_all(config_directory) or { return formula_installer_spec_bool(false) }
+	ruby.write_file(config, 'new\n') or { return formula_installer_spec_bool(false) }
 	copied := homebrew.build_bottle_postinstall(root, bottle_prefix, preinstall) or {
 		return formula_installer_spec_bool(false)
 	}
 	destination := formula_installer_spec_join3(bottle_prefix, 'etc', 'bottle-config.conf')
-	contents := brew_runtime.read_file(destination) or { return formula_installer_spec_bool(false) }
+	contents := ruby.read_file(destination) or { return formula_installer_spec_bool(false) }
 	return formula_installer_spec_bool(destination in copied && contents == 'new\n')
 }
 
 // Ruby it `it "does not install an untapped dependency tap" do` at line 325.
-pub fn ruby_formula_installer_spec_l325_d24_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l325_d24_does(args ...ruby.Value) ruby.Value {
 	reference := formula_installer_spec_reference('testball', FormulaInstallerSpecReferenceConfig{
 		dependencies: ['user/repo/foo']
 	})
@@ -402,7 +402,7 @@ pub fn ruby_formula_installer_spec_l325_d24_does(args ...brew_runtime.Value) bre
 }
 
 // Ruby it `it "does not enqueue cached bottle manifests" do` at line 342.
-pub fn ruby_formula_installer_spec_l342_d25_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l342_d25_does(args ...ruby.Value) ruby.Value {
 	downloaded := true
 	integrity_valid := true
 	enqueue := !downloaded || !integrity_valid
@@ -410,7 +410,7 @@ pub fn ruby_formula_installer_spec_l342_d25_does(args ...brew_runtime.Value) bre
 }
 
 // Ruby it `it "enqueues invalid cached bottle manifests" do` at line 368.
-pub fn ruby_formula_installer_spec_l368_d26_enqueues(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l368_d26_enqueues(args ...ruby.Value) ruby.Value {
 	downloaded := true
 	integrity_valid := false
 	manifest_annotations_cleared := downloaded && !integrity_valid
@@ -419,7 +419,7 @@ pub fn ruby_formula_installer_spec_l368_d26_enqueues(args ...brew_runtime.Value)
 }
 
 // Ruby let `let(:formula) { TestballBottle.new }` at line 401.
-pub fn ruby_formula_installer_spec_l401_d27_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l401_d27_formula(args ...ruby.Value) ruby.Value {
 	return formula_installer_spec_reference_value(formula_installer_spec_reference('testball-bottle', FormulaInstallerSpecReferenceConfig{
 		bottle_available: true
 		bottle_tags: ['arm64_sequoia']
@@ -427,7 +427,7 @@ pub fn ruby_formula_installer_spec_l401_d27_formula(args ...brew_runtime.Value) 
 }
 
 // Ruby let `let(:installer) { described_class.new(formula) }` at line 402.
-pub fn ruby_formula_installer_spec_l402_d28_installer(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l402_d28_installer(args ...ruby.Value) ruby.Value {
 	reference := formula_installer_spec_reference('testball-bottle', FormulaInstallerSpecReferenceConfig{
 		bottle_available: true
 		bottle_tags: ['arm64_sequoia']
@@ -436,21 +436,21 @@ pub fn ruby_formula_installer_spec_l402_d28_installer(args ...brew_runtime.Value
 }
 
 // Ruby let `let(:download_queue) { instance_double(Homebrew::DownloadQueue) }` at line 403.
-pub fn ruby_formula_installer_spec_l403_d29_download_queue(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DownloadQueue', 'instance_double', {
+pub fn ruby_formula_installer_spec_l403_d29_download_queue(args ...ruby.Value) ruby.Value {
+	return ruby.structured_value('Homebrew::DownloadQueue', 'instance_double', {
 		'ordered': 'true'
 	})
 }
 
 // Ruby let `let(:bottle) { instance_double(Bottle, cached_download: HOMEBREW_CACHE/"downloads/testball-bottle") }` at line 404.
-pub fn ruby_formula_installer_spec_l404_d30_bottle(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.structured_value('Bottle', 'testball-bottle', {
+pub fn ruby_formula_installer_spec_l404_d30_bottle(args ...ruby.Value) ruby.Value {
+	return ruby.structured_value('Bottle', 'testball-bottle', {
 		'cached_download': 'downloads/testball-bottle'
 	})
 }
 
 // Ruby it `it "starts a bottle download before enqueueing dependencies after the prelude" do` at line 416.
-pub fn ruby_formula_installer_spec_l416_d31_starts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l416_d31_starts(args ...ruby.Value) ruby.Value {
 	prelude_ran := true
 	mut events := []string{}
 	if prelude_ran {
@@ -463,7 +463,7 @@ pub fn ruby_formula_installer_spec_l416_d31_starts(args ...brew_runtime.Value) b
 }
 
 // Ruby it `it "resolves dependencies before enqueueing a bottle without the prelude" do` at line 428.
-pub fn ruby_formula_installer_spec_l428_d32_resolves(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l428_d32_resolves(args ...ruby.Value) ruby.Value {
 	prelude_ran := false
 	mut events := []string{}
 	if !prelude_ran {
@@ -476,7 +476,7 @@ pub fn ruby_formula_installer_spec_l428_d32_resolves(args ...brew_runtime.Value)
 }
 
 // Ruby it `it "does not requeue a bottle already enqueued by the prelude fetch" do` at line 437.
-pub fn ruby_formula_installer_spec_l437_d33_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l437_d33_does(args ...ruby.Value) ruby.Value {
 	mut enqueued := ['bottle:stage=true']
 	prelude_download := enqueued[0]
 	enqueued << 'fetch_dependencies'
@@ -484,7 +484,7 @@ pub fn ruby_formula_installer_spec_l437_d33_does(args ...brew_runtime.Value) bre
 }
 
 // Ruby it `it "links non-keg-only formulae when link_keg is false" do` at line 450.
-pub fn ruby_formula_installer_spec_l450_d34_links(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l450_d34_links(args ...ruby.Value) ruby.Value {
 	installer := formula_installer_spec_installer(formula_installer_spec_reference('homebrew-link-default', FormulaInstallerSpecReferenceConfig{}), homebrew.FormulaInstallerConfig{
 		link_keg: false
 	})
@@ -492,7 +492,7 @@ pub fn ruby_formula_installer_spec_l450_d34_links(args ...brew_runtime.Value) br
 }
 
 // Ruby it `it "links non-keg-only dependencies even when they were not previously linked" do` at line 459.
-pub fn ruby_formula_installer_spec_l459_d35_links(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l459_d35_links(args ...ruby.Value) ruby.Value {
 	child := formula_installer_spec_installer(formula_installer_spec_reference('homebrew-link-default-dependency', FormulaInstallerSpecReferenceConfig{}), homebrew.FormulaInstallerConfig{
 		installed_on_request: false
 	})
@@ -500,7 +500,7 @@ pub fn ruby_formula_installer_spec_l459_d35_links(args ...brew_runtime.Value) br
 }
 
 // Ruby it `it "reports an outdated dependency as upgrading" do` at line 497.
-pub fn ruby_formula_installer_spec_l497_d36_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l497_d36_reports(args ...ruby.Value) ruby.Value {
 	name := 'outdated-dependency'
 	any_version_installed := true
 	outdated := true
@@ -513,17 +513,17 @@ pub fn ruby_formula_installer_spec_l497_d36_reports(args ...brew_runtime.Value) 
 }
 
 // Ruby let `let(:test_formula) do` at line 528.
-pub fn ruby_formula_installer_spec_l528_d37_test_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l528_d37_test_formula(args ...ruby.Value) ruby.Value {
 	return formula_installer_spec_reference_value(formula_installer_spec_reference('testball', FormulaInstallerSpecReferenceConfig{}))
 }
 
 // Ruby let `let(:conflicting_formula) do` at line 536.
-pub fn ruby_formula_installer_spec_l536_d38_conflicting_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l536_d38_conflicting_formula(args ...ruby.Value) ruby.Value {
 	return formula_installer_spec_reference_value(formula_installer_spec_reference('other', FormulaInstallerSpecReferenceConfig{}))
 }
 
 // Ruby it `it "does not raise an error" do` at line 553.
-pub fn ruby_formula_installer_spec_l553_d39_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l553_d39_does(args ...ruby.Value) ruby.Value {
 	installer := formula_installer_spec_installer(formula_installer_spec_reference('testball', FormulaInstallerSpecReferenceConfig{}), homebrew.FormulaInstallerConfig{
 		link_keg: true
 	})
@@ -536,7 +536,7 @@ pub fn ruby_formula_installer_spec_l553_d39_does(args ...brew_runtime.Value) bre
 }
 
 // Ruby it `it "raises an error if linking keg" do` at line 565.
-pub fn ruby_formula_installer_spec_l565_d40_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l565_d40_raises(args ...ruby.Value) ruby.Value {
 	installer := formula_installer_spec_installer(formula_installer_spec_reference('testball', FormulaInstallerSpecReferenceConfig{}), homebrew.FormulaInstallerConfig{
 		link_keg: true
 	})
@@ -549,7 +549,7 @@ pub fn ruby_formula_installer_spec_l565_d40_raises(args ...brew_runtime.Value) b
 }
 
 // Ruby it `it "does not raise an error with force set" do` at line 570.
-pub fn ruby_formula_installer_spec_l570_d41_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l570_d41_does(args ...ruby.Value) ruby.Value {
 	installer := formula_installer_spec_installer(formula_installer_spec_reference('testball', FormulaInstallerSpecReferenceConfig{}), homebrew.FormulaInstallerConfig{
 		link_keg: true
 		force: true
@@ -563,7 +563,7 @@ pub fn ruby_formula_installer_spec_l570_d41_does(args ...brew_runtime.Value) bre
 }
 
 // Ruby it `it "does not raise an error with skip_link set" do` at line 575.
-pub fn ruby_formula_installer_spec_l575_d42_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l575_d42_does(args ...ruby.Value) ruby.Value {
 	installer := formula_installer_spec_installer(formula_installer_spec_reference('testball', FormulaInstallerSpecReferenceConfig{}), homebrew.FormulaInstallerConfig{
 		link_keg: true
 		skip_link: true
@@ -577,7 +577,7 @@ pub fn ruby_formula_installer_spec_l575_d42_does(args ...brew_runtime.Value) bre
 }
 
 // Ruby it `it "does not raise an error if not linking keg" do` at line 580.
-pub fn ruby_formula_installer_spec_l580_d43_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l580_d43_does(args ...ruby.Value) ruby.Value {
 	reference := formula_installer_spec_reference('testball', FormulaInstallerSpecReferenceConfig{
 		keg_only: true
 	})
@@ -594,7 +594,7 @@ pub fn ruby_formula_installer_spec_l580_d43_does(args ...brew_runtime.Value) bre
 }
 
 // Ruby it `it "ignores conflicts that name the formula being installed" do` at line 587.
-pub fn ruby_formula_installer_spec_l587_d44_ignores(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l587_d44_ignores(args ...ruby.Value) ruby.Value {
 	formula := formula_installer_spec_reference('terraform', FormulaInstallerSpecReferenceConfig{
 		tap: 'thirdparty/selfconflict'
 	})
@@ -608,7 +608,7 @@ pub fn ruby_formula_installer_spec_l587_d44_ignores(args ...brew_runtime.Value) 
 }
 
 // Ruby it `it "marks only outdated dependencies as upgradable in the header" do` at line 603.
-pub fn ruby_formula_installer_spec_l603_d45_marks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l603_d45_marks(args ...ruby.Value) ruby.Value {
 	outdated := 'outdated-dependency (upgradable)'
 	uninstalled := 'uninstalled-dependency'
 	header := '${outdated} and ${uninstalled}'
@@ -616,13 +616,13 @@ pub fn ruby_formula_installer_spec_l603_d45_marks(args ...brew_runtime.Value) br
 }
 
 // Ruby it `it "does not render the first dependency name bolder than the rest" do` at line 627.
-pub fn ruby_formula_installer_spec_l627_d46_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l627_d46_does(args ...ruby.Value) ruby.Value {
 	header := '\\e[1mInstalling dependencies for testball:\\e[0m dep-a and dep-b'
 	return formula_installer_spec_bool(header.contains(':\\e[0m dep-a') && !header.contains('\\e[1mdep-a'))
 }
 
 // Ruby it `it "shows the formula header after installing a single dependency" do` at line 650.
-pub fn ruby_formula_installer_spec_l650_d47_shows(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l650_d47_shows(args ...ruby.Value) ruby.Value {
 	mut show_header := false
 	dependencies := ['single-dep']
 	if dependencies.len > 0 {
@@ -632,7 +632,7 @@ pub fn ruby_formula_installer_spec_l650_d47_shows(args ...brew_runtime.Value) br
 }
 
 // Ruby it `it "checks equal dependency satisfaction once per expansion" do` at line 666.
-pub fn ruby_formula_installer_spec_l666_d48_checks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l666_d48_checks(args ...ruby.Value) ruby.Value {
 	shared_ref := formula_installer_spec_reference('shared', FormulaInstallerSpecReferenceConfig{})
 	first := formula_installer_spec_reference('first-parent', FormulaInstallerSpecReferenceConfig{
 		dependencies: [
@@ -663,7 +663,7 @@ pub fn ruby_formula_installer_spec_l666_d48_checks(args ...brew_runtime.Value) b
 }
 
 // Ruby it `it "checks uses_from_macos dependencies with different bounds separately" do` at line 700.
-pub fn ruby_formula_installer_spec_l700_d49_checks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l700_d49_checks(args ...ruby.Value) ruby.Value {
 	shared_ref := formula_installer_spec_reference('shared', FormulaInstallerSpecReferenceConfig{})
 	first := formula_installer_spec_reference('first-parent', FormulaInstallerSpecReferenceConfig{
 		dependencies: [
@@ -694,24 +694,24 @@ pub fn ruby_formula_installer_spec_l700_d49_checks(args ...brew_runtime.Value) b
 }
 
 // Ruby let `let(:base_name) { "homebrew-versioned-formula" }` at line 736.
-pub fn ruby_formula_installer_spec_l736_d50_base_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('homebrew-versioned-formula')
+pub fn ruby_formula_installer_spec_l736_d50_base_name(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('homebrew-versioned-formula')
 }
 
 // Ruby let `let(:formula_name) { "#{base_name}@1.0" }` at line 737.
-pub fn ruby_formula_installer_spec_l737_d51_formula_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('homebrew-versioned-formula@1.0')
+pub fn ruby_formula_installer_spec_l737_d51_formula_name(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('homebrew-versioned-formula@1.0')
 }
 
 // Ruby let `let(:keg_only_formula) do` at line 738.
-pub fn ruby_formula_installer_spec_l738_d52_keg_only_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l738_d52_keg_only_formula(args ...ruby.Value) ruby.Value {
 	return formula_installer_spec_reference_value(formula_installer_spec_reference('homebrew-versioned-formula@1.0', FormulaInstallerSpecReferenceConfig{
 		keg_only: true
 	}))
 }
 
 // Ruby it `it "does not link by default when it is not installed on request" do` at line 751.
-pub fn ruby_formula_installer_spec_l751_d53_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l751_d53_does(args ...ruby.Value) ruby.Value {
 	reference := formula_installer_spec_reference('homebrew-versioned-formula@1.0', FormulaInstallerSpecReferenceConfig{ keg_only: true })
 	installer := formula_installer_spec_installer(reference, homebrew.FormulaInstallerConfig{
 		keg_only_versioned: true
@@ -720,7 +720,7 @@ pub fn ruby_formula_installer_spec_l751_d53_does(args ...brew_runtime.Value) bre
 }
 
 // Ruby it `it "links by default when no sibling variants are installed" do` at line 757.
-pub fn ruby_formula_installer_spec_l757_d54_links(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l757_d54_links(args ...ruby.Value) ruby.Value {
 	reference := formula_installer_spec_reference('homebrew-versioned-formula@1.0', FormulaInstallerSpecReferenceConfig{ keg_only: true })
 	installer := formula_installer_spec_installer(reference, homebrew.FormulaInstallerConfig{
 		installed_on_request: true
@@ -730,7 +730,7 @@ pub fn ruby_formula_installer_spec_l757_d54_links(args ...brew_runtime.Value) br
 }
 
 // Ruby it `it "does not link by default when any version is already installed" do` at line 763.
-pub fn ruby_formula_installer_spec_l763_d55_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l763_d55_does(args ...ruby.Value) ruby.Value {
 	reference := formula_installer_spec_reference('homebrew-versioned-formula@1.0', FormulaInstallerSpecReferenceConfig{ keg_only: true })
 	installer := formula_installer_spec_installer(reference, homebrew.FormulaInstallerConfig{
 		keg_only_versioned: true
@@ -740,7 +740,7 @@ pub fn ruby_formula_installer_spec_l763_d55_does(args ...brew_runtime.Value) bre
 }
 
 // Ruby it `it "links when explicitly requested" do` at line 771.
-pub fn ruby_formula_installer_spec_l771_d56_links(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l771_d56_links(args ...ruby.Value) ruby.Value {
 	reference := formula_installer_spec_reference('homebrew-versioned-formula@1.0', FormulaInstallerSpecReferenceConfig{ keg_only: true })
 	installer := formula_installer_spec_installer(reference, homebrew.FormulaInstallerConfig{
 		link_keg: true
@@ -750,7 +750,7 @@ pub fn ruby_formula_installer_spec_l771_d56_links(args ...brew_runtime.Value) br
 }
 
 // Ruby it `it "does not link by default when another @-versioned formula is installed" do` at line 779.
-pub fn ruby_formula_installer_spec_l779_d57_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l779_d57_does(args ...ruby.Value) ruby.Value {
 	reference := formula_installer_spec_reference('homebrew-versioned-formula@1.0', FormulaInstallerSpecReferenceConfig{ keg_only: true })
 	installer := formula_installer_spec_installer(reference, homebrew.FormulaInstallerConfig{
 		installed_on_request: true
@@ -761,7 +761,7 @@ pub fn ruby_formula_installer_spec_l779_d57_does(args ...brew_runtime.Value) bre
 }
 
 // Ruby it `it "does not link by default when the unversioned sibling is installed" do` at line 793.
-pub fn ruby_formula_installer_spec_l793_d58_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l793_d58_does(args ...ruby.Value) ruby.Value {
 	reference := formula_installer_spec_reference('homebrew-versioned-formula@1.0', FormulaInstallerSpecReferenceConfig{ keg_only: true })
 	installer := formula_installer_spec_installer(reference, homebrew.FormulaInstallerConfig{
 		installed_on_request: true
@@ -772,7 +772,7 @@ pub fn ruby_formula_installer_spec_l793_d58_does(args ...brew_runtime.Value) bre
 }
 
 // Ruby it `it "does not link by default when the unversioned sibling is keg-only" do` at line 806.
-pub fn ruby_formula_installer_spec_l806_d59_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l806_d59_does(args ...ruby.Value) ruby.Value {
 	reference := formula_installer_spec_reference('homebrew-versioned-formula@1.0', FormulaInstallerSpecReferenceConfig{ keg_only: true })
 	installer := formula_installer_spec_installer(reference, homebrew.FormulaInstallerConfig{
 		installed_on_request: true
@@ -783,7 +783,7 @@ pub fn ruby_formula_installer_spec_l806_d59_does(args ...brew_runtime.Value) bre
 }
 
 // Ruby it `it "does not link by default when the -full variant is installed" do` at line 819.
-pub fn ruby_formula_installer_spec_l819_d60_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l819_d60_does(args ...ruby.Value) ruby.Value {
 	reference := formula_installer_spec_reference('homebrew-versioned-formula@1.0', FormulaInstallerSpecReferenceConfig{ keg_only: true })
 	installer := formula_installer_spec_installer(reference, homebrew.FormulaInstallerConfig{
 		installed_on_request: true
@@ -794,7 +794,7 @@ pub fn ruby_formula_installer_spec_l819_d60_does(args ...brew_runtime.Value) bre
 }
 
 // Ruby it `it "does not link by default when the non-full variant is installed" do` at line 833.
-pub fn ruby_formula_installer_spec_l833_d61_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l833_d61_does(args ...ruby.Value) ruby.Value {
 	reference := formula_installer_spec_reference('homebrew-versioned-formula-full', FormulaInstallerSpecReferenceConfig{ keg_only: true })
 	installer := formula_installer_spec_installer(reference, homebrew.FormulaInstallerConfig{
 		installed_on_request: true
@@ -805,30 +805,30 @@ pub fn ruby_formula_installer_spec_l833_d61_does(args ...brew_runtime.Value) bre
 }
 
 // Ruby let `let(:versioned_formula) do` at line 855.
-pub fn ruby_formula_installer_spec_l855_d62_versioned_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l855_d62_versioned_formula(args ...ruby.Value) ruby.Value {
 	return formula_installer_spec_reference_value(formula_installer_spec_reference('homebrew-versioned-formula@1.0', FormulaInstallerSpecReferenceConfig{ keg_only: true }))
 }
 
 // Ruby let `let(:other_version) do` at line 862.
-pub fn ruby_formula_installer_spec_l862_d63_other_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l862_d63_other_version(args ...ruby.Value) ruby.Value {
 	return formula_installer_spec_reference_value(formula_installer_spec_reference('homebrew-versioned-formula', FormulaInstallerSpecReferenceConfig{ keg_only: true }))
 }
 
 // Ruby let `let(:keg) do` at line 869.
-pub fn ruby_formula_installer_spec_l869_d64_keg(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.structured_value('Keg', 'instance_double(Keg)', {
+pub fn ruby_formula_installer_spec_l869_d64_keg(args ...ruby.Value) ruby.Value {
+	return ruby.structured_value('Keg', 'instance_double(Keg)', {
 		'linked': 'false'
 	})
 }
 
 // Ruby it `it "only optlinks when default linking is disabled by an installed sibling" do` at line 881.
-pub fn ruby_formula_installer_spec_l881_d65_only(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l881_d65_only(args ...ruby.Value) ruby.Value {
 	root := formula_installer_spec_root('optlink')
-	brew_runtime.remove_all(root) or {}
-	defer { brew_runtime.remove_all(root) or {} }
-	cellar := brew_runtime.join_path(root, 'Cellar')
+	ruby.remove_all(root) or {}
+	defer { ruby.remove_all(root) or {} }
+	cellar := ruby.join_path(root, 'Cellar')
 	keg_path := formula_installer_spec_join3(cellar, 'homebrew-versioned-formula@1.0', '1.0')
-	brew_runtime.make_dir_all(keg_path) or { return formula_installer_spec_bool(false) }
+	ruby.make_dir_all(keg_path) or { return formula_installer_spec_bool(false) }
 	keg := homebrew.new_keg_with_paths(keg_path, cellar, root) or { return formula_installer_spec_bool(false) }
 	reference := formula_installer_spec_reference('homebrew-versioned-formula@1.0', FormulaInstallerSpecReferenceConfig{ keg_only: true })
 	installer := formula_installer_spec_installer(reference, homebrew.FormulaInstallerConfig{
@@ -844,13 +844,13 @@ pub fn ruby_formula_installer_spec_l881_d65_only(args ...brew_runtime.Value) bre
 }
 
 // Ruby it `it "unlinks siblings before linking when explicitly requested" do` at line 892.
-pub fn ruby_formula_installer_spec_l892_d66_unlinks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l892_d66_unlinks(args ...ruby.Value) ruby.Value {
 	root := formula_installer_spec_root('explicit-link')
-	brew_runtime.remove_all(root) or {}
-	defer { brew_runtime.remove_all(root) or {} }
-	cellar := brew_runtime.join_path(root, 'Cellar')
+	ruby.remove_all(root) or {}
+	defer { ruby.remove_all(root) or {} }
+	cellar := ruby.join_path(root, 'Cellar')
 	keg_path := formula_installer_spec_join3(cellar, 'homebrew-versioned-formula@1.0', '1.0')
-	brew_runtime.make_dir_all(keg_path) or { return formula_installer_spec_bool(false) }
+	ruby.make_dir_all(keg_path) or { return formula_installer_spec_bool(false) }
 	keg := homebrew.new_keg_with_paths(keg_path, cellar, root) or { return formula_installer_spec_bool(false) }
 	reference := formula_installer_spec_reference('homebrew-versioned-formula@1.0', FormulaInstallerSpecReferenceConfig{ keg_only: true })
 	installer := formula_installer_spec_installer(reference, homebrew.FormulaInstallerConfig{
@@ -865,22 +865,22 @@ pub fn ruby_formula_installer_spec_l892_d66_unlinks(args ...brew_runtime.Value) 
 }
 
 // Ruby let `let(:base_name) { "homebrew-versioned-formula" }` at line 905.
-pub fn ruby_formula_installer_spec_l905_d67_base_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('homebrew-versioned-formula')
+pub fn ruby_formula_installer_spec_l905_d67_base_name(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('homebrew-versioned-formula')
 }
 
 // Ruby let `let(:formula_name) { "#{base_name}@1.0" }` at line 906.
-pub fn ruby_formula_installer_spec_l906_d68_formula_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('homebrew-versioned-formula@1.0')
+pub fn ruby_formula_installer_spec_l906_d68_formula_name(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('homebrew-versioned-formula@1.0')
 }
 
 // Ruby let `let(:keg_only_formula) do` at line 907.
-pub fn ruby_formula_installer_spec_l907_d69_keg_only_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l907_d69_keg_only_formula(args ...ruby.Value) ruby.Value {
 	return formula_installer_spec_reference_value(formula_installer_spec_reference('homebrew-versioned-formula@1.0', FormulaInstallerSpecReferenceConfig{ keg_only: true }))
 }
 
 // Ruby it `it "explains why a versioned formula was installed but not linked" do` at line 915.
-pub fn ruby_formula_installer_spec_l915_d70_explains(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l915_d70_explains(args ...ruby.Value) ruby.Value {
 	reference := formula_installer_spec_reference('homebrew-versioned-formula@1.0', FormulaInstallerSpecReferenceConfig{ keg_only: true })
 	installer := formula_installer_spec_installer(reference, homebrew.FormulaInstallerConfig{
 		installed_on_request: true
@@ -893,7 +893,7 @@ pub fn ruby_formula_installer_spec_l915_d70_explains(args ...brew_runtime.Value)
 }
 
 // Ruby it `it "raises on direct cyclic dependency" do` at line 935.
-pub fn ruby_formula_installer_spec_l935_d71_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l935_d71_raises(args ...ruby.Value) ruby.Value {
 	reference := formula_installer_spec_reference('homebrew-test-cyclic', FormulaInstallerSpecReferenceConfig{
 		dependencies: [
 			'homebrew-test-cyclic',
@@ -907,7 +907,7 @@ pub fn ruby_formula_installer_spec_l935_d71_raises(args ...brew_runtime.Value) b
 }
 
 // Ruby it `it "raises on indirect cyclic dependency" do` at line 956.
-pub fn ruby_formula_installer_spec_l956_d72_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l956_d72_raises(args ...ruby.Value) ruby.Value {
 	formula_one := formula_installer_spec_reference('homebrew-test-formula1', FormulaInstallerSpecReferenceConfig{
 		dependencies: [
 			'homebrew-test-formula2',
@@ -929,7 +929,7 @@ pub fn ruby_formula_installer_spec_l956_d72_raises(args ...brew_runtime.Value) b
 }
 
 // Ruby it `it "raises on pinned dependency" do` at line 987.
-pub fn ruby_formula_installer_spec_l987_d73_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l987_d73_raises(args ...ruby.Value) ruby.Value {
 	reference := formula_installer_spec_reference('dependent', FormulaInstallerSpecReferenceConfig{
 		dependencies: [
 			'homebrew-test-dependency',
@@ -947,7 +947,7 @@ pub fn ruby_formula_installer_spec_l987_d73_raises(args ...brew_runtime.Value) b
 }
 
 // Ruby it `it "raises on forbidden license on formula" do` at line 1025.
-pub fn ruby_formula_installer_spec_l1025_d74_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l1025_d74_raises(args ...ruby.Value) ruby.Value {
 	reference := formula_installer_spec_reference('homebrew-forbidden-license', FormulaInstallerSpecReferenceConfig{ license: 'AGPL-3.0' })
 	installer := formula_installer_spec_installer(reference, homebrew.FormulaInstallerConfig{
 		forbidden_licenses: [
@@ -961,7 +961,7 @@ pub fn ruby_formula_installer_spec_l1025_d74_raises(args ...brew_runtime.Value) 
 }
 
 // Ruby it `it "raises on forbidden license on formula with contact instructions" do` at line 1046.
-pub fn ruby_formula_installer_spec_l1046_d75_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l1046_d75_raises(args ...ruby.Value) ruby.Value {
 	reference := formula_installer_spec_reference('homebrew-forbidden-license', FormulaInstallerSpecReferenceConfig{ license: 'AGPL-3.0' })
 	installer := formula_installer_spec_installer(reference, homebrew.FormulaInstallerConfig{
 		forbidden_licenses: ['AGPL-3.0']
@@ -975,7 +975,7 @@ pub fn ruby_formula_installer_spec_l1046_d75_raises(args ...brew_runtime.Value) 
 }
 
 // Ruby it `it "raises on forbidden license on dependency" do` at line 1069.
-pub fn ruby_formula_installer_spec_l1069_d76_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l1069_d76_raises(args ...ruby.Value) ruby.Value {
 	reference := formula_installer_spec_reference('homebrew-forbidden-dependent-license', FormulaInstallerSpecReferenceConfig{})
 	dependency := formula_installer_spec_reference('homebrew-forbidden-dependency-license', FormulaInstallerSpecReferenceConfig{ license: 'GPL-3.0' })
 	installer := formula_installer_spec_installer(reference, homebrew.FormulaInstallerConfig{
@@ -990,7 +990,7 @@ pub fn ruby_formula_installer_spec_l1069_d76_raises(args ...brew_runtime.Value) 
 }
 
 // Ruby it `it "raises on forbidden symbol license on formula" do` at line 1100.
-pub fn ruby_formula_installer_spec_l1100_d77_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l1100_d77_raises(args ...ruby.Value) ruby.Value {
 	reference := formula_installer_spec_reference('homebrew-forbidden-license', FormulaInstallerSpecReferenceConfig{ license: ':public_domain' })
 	installer := formula_installer_spec_installer(reference, homebrew.FormulaInstallerConfig{
 		forbidden_licenses: [
@@ -1004,32 +1004,32 @@ pub fn ruby_formula_installer_spec_l1100_d77_raises(args ...brew_runtime.Value) 
 }
 
 // Ruby let `let(:homebrew_forbidden) { Tap.fetch("homebrew/forbidden") }` at line 1128.
-pub fn ruby_formula_installer_spec_l1128_d78_homebrew_forbidden(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Tap', 'homebrew/forbidden')
+pub fn ruby_formula_installer_spec_l1128_d78_homebrew_forbidden(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Tap', 'homebrew/forbidden')
 }
 
 // Ruby let `let(:allowed_third_party) { Tap.fetch("nothomebrew/allowed") }` at line 1129.
-pub fn ruby_formula_installer_spec_l1129_d79_allowed_third_party(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Tap', 'nothomebrew/allowed')
+pub fn ruby_formula_installer_spec_l1129_d79_allowed_third_party(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Tap', 'nothomebrew/allowed')
 }
 
 // Ruby let `let(:disallowed_third_party) { Tap.fetch("nothomebrew/notallowed") }` at line 1130.
-pub fn ruby_formula_installer_spec_l1130_d80_disallowed_third_party(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Tap', 'nothomebrew/notallowed')
+pub fn ruby_formula_installer_spec_l1130_d80_disallowed_third_party(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Tap', 'nothomebrew/notallowed')
 }
 
 // Ruby let `let(:allowed_taps_set) { [allowed_third_party.name] }` at line 1131.
-pub fn ruby_formula_installer_spec_l1131_d81_allowed_taps_set(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(['nothomebrew/allowed'])
+pub fn ruby_formula_installer_spec_l1131_d81_allowed_taps_set(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(['nothomebrew/allowed'])
 }
 
 // Ruby let `let(:forbidden_taps_set) { [homebrew_forbidden.name] }` at line 1132.
-pub fn ruby_formula_installer_spec_l1132_d82_forbidden_taps_set(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(['homebrew/forbidden'])
+pub fn ruby_formula_installer_spec_l1132_d82_forbidden_taps_set(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(['homebrew/forbidden'])
 }
 
 // Ruby it `it "raises on forbidden tap on formula" do` at line 1134.
-pub fn ruby_formula_installer_spec_l1134_d83_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l1134_d83_raises(args ...ruby.Value) ruby.Value {
 	reference := formula_installer_spec_reference('homebrew-forbidden-tap', FormulaInstallerSpecReferenceConfig{ tap: 'homebrew/forbidden' })
 	installer := formula_installer_spec_installer(reference, homebrew.FormulaInstallerConfig{
 		allowed_taps: ['nothomebrew/allowed']
@@ -1042,7 +1042,7 @@ pub fn ruby_formula_installer_spec_l1134_d83_raises(args ...brew_runtime.Value) 
 }
 
 // Ruby it `it "raises on not allowed third-party tap on formula" do` at line 1156.
-pub fn ruby_formula_installer_spec_l1156_d84_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l1156_d84_raises(args ...ruby.Value) ruby.Value {
 	reference := formula_installer_spec_reference('homebrew-not-allowed-tap', FormulaInstallerSpecReferenceConfig{ tap: 'nothomebrew/notallowed' })
 	installer := formula_installer_spec_installer(reference, homebrew.FormulaInstallerConfig{
 		allowed_taps: [
@@ -1056,7 +1056,7 @@ pub fn ruby_formula_installer_spec_l1156_d84_raises(args ...brew_runtime.Value) 
 }
 
 // Ruby it `it "does not raise on allowed tap on formula" do` at line 1178.
-pub fn ruby_formula_installer_spec_l1178_d85_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l1178_d85_does(args ...ruby.Value) ruby.Value {
 	reference := formula_installer_spec_reference('homebrew-allowed-tap', FormulaInstallerSpecReferenceConfig{ tap: 'nothomebrew/allowed' })
 	installer := formula_installer_spec_installer(reference, homebrew.FormulaInstallerConfig{
 		allowed_taps: [
@@ -1070,7 +1070,7 @@ pub fn ruby_formula_installer_spec_l1178_d85_does(args ...brew_runtime.Value) br
 }
 
 // Ruby it `it "raises on forbidden tap on dependency" do` at line 1198.
-pub fn ruby_formula_installer_spec_l1198_d86_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l1198_d86_raises(args ...ruby.Value) ruby.Value {
 	reference := formula_installer_spec_reference('homebrew-forbidden-dependent-tap', FormulaInstallerSpecReferenceConfig{})
 	dependency := formula_installer_spec_reference('homebrew-forbidden-dependency-tap', FormulaInstallerSpecReferenceConfig{ tap: 'homebrew/forbidden' })
 	installer := formula_installer_spec_installer(reference, homebrew.FormulaInstallerConfig{
@@ -1084,7 +1084,7 @@ pub fn ruby_formula_installer_spec_l1198_d86_raises(args ...brew_runtime.Value) 
 }
 
 // Ruby it `it "raises on forbidden formula" do` at line 1232.
-pub fn ruby_formula_installer_spec_l1232_d87_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l1232_d87_raises(args ...ruby.Value) ruby.Value {
 	reference := formula_installer_spec_reference('homebrew-forbidden-formula', FormulaInstallerSpecReferenceConfig{})
 	installer := formula_installer_spec_installer(reference, homebrew.FormulaInstallerConfig{
 		forbidden_formulae: [
@@ -1098,7 +1098,7 @@ pub fn ruby_formula_installer_spec_l1232_d87_raises(args ...brew_runtime.Value) 
 }
 
 // Ruby it `it "raises on forbidden dependency" do` at line 1250.
-pub fn ruby_formula_installer_spec_l1250_d88_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l1250_d88_raises(args ...ruby.Value) ruby.Value {
 	reference := formula_installer_spec_reference('homebrew-forbidden-dependent-formula', FormulaInstallerSpecReferenceConfig{})
 	dependency := formula_installer_spec_reference('homebrew-forbidden-dependency-formula', FormulaInstallerSpecReferenceConfig{})
 	installer := formula_installer_spec_installer(reference, homebrew.FormulaInstallerConfig{
@@ -1113,7 +1113,7 @@ pub fn ruby_formula_installer_spec_l1250_d88_raises(args ...brew_runtime.Value) 
 }
 
 // Ruby let `let(:deno_formula) do` at line 1281.
-pub fn ruby_formula_installer_spec_l1281_d89_deno_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l1281_d89_deno_formula(args ...ruby.Value) ruby.Value {
 	return formula_installer_spec_reference_value(formula_installer_spec_reference('deno', FormulaInstallerSpecReferenceConfig{
 		stable_version: '2.7.11'
 		bottle_available: true
@@ -1123,8 +1123,8 @@ pub fn ruby_formula_installer_spec_l1281_d89_deno_formula(args ...brew_runtime.V
 }
 
 // Ruby let `let(:formula_struct) do` at line 1287.
-pub fn ruby_formula_installer_spec_l1287_d90_formula_struct(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::API::FormulaStruct', 'deno', {
+pub fn ruby_formula_installer_spec_l1287_d90_formula_struct(args ...ruby.Value) ruby.Value {
+	return ruby.structured_value('Homebrew::API::FormulaStruct', 'deno', {
 		'bottle_present':       'true'
 		'desc':                 'deno'
 		'homepage':             'https://brew.sh'
@@ -1136,7 +1136,7 @@ pub fn ruby_formula_installer_spec_l1287_d90_formula_struct(args ...brew_runtime
 }
 
 // Ruby let `let(:installer) do` at line 1304.
-pub fn ruby_formula_installer_spec_l1304_d91_installer(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l1304_d91_installer(args ...ruby.Value) ruby.Value {
 	reference := formula_installer_spec_reference('deno', FormulaInstallerSpecReferenceConfig{
 		stable_version: '2.7.11'
 		bottle_available: true
@@ -1147,7 +1147,7 @@ pub fn ruby_formula_installer_spec_l1304_d91_installer(args ...brew_runtime.Valu
 }
 
 // Ruby it `it "uses API bottle metadata to enqueue the manifest and bottle" do` at line 1320.
-pub fn ruby_formula_installer_spec_l1320_d92_uses(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l1320_d92_uses(args ...ruby.Value) ruby.Value {
 	reference := formula_installer_spec_reference('deno', FormulaInstallerSpecReferenceConfig{
 		stable_version: '2.7.11'
 		bottle_available: true
@@ -1160,7 +1160,7 @@ pub fn ruby_formula_installer_spec_l1320_d92_uses(args ...brew_runtime.Value) br
 }
 
 // Ruby it `it "enqueues only the bottle manifest when fetching metadata" do` at line 1330.
-pub fn ruby_formula_installer_spec_l1330_d93_enqueues(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l1330_d93_enqueues(args ...ruby.Value) ruby.Value {
 	reference := formula_installer_spec_reference('deno', FormulaInstallerSpecReferenceConfig{
 		stable_version: '2.7.11'
 		bottle_available: true
@@ -1172,7 +1172,7 @@ pub fn ruby_formula_installer_spec_l1330_d93_enqueues(args ...brew_runtime.Value
 }
 
 // Ruby it `it "enqueues the bottle without repeating metadata work after a metadata-only run" do` at line 1336.
-pub fn ruby_formula_installer_spec_l1336_d94_enqueues(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l1336_d94_enqueues(args ...ruby.Value) ruby.Value {
 	mut state := homebrew.FormulaInstallerState{}
 	metadata_enqueues := if !state.ran_prelude_fetch_metadata { 1 } else { 0 }
 	state.ran_prelude_fetch_metadata = true
@@ -1182,7 +1182,7 @@ pub fn ruby_formula_installer_spec_l1336_d94_enqueues(args ...brew_runtime.Value
 }
 
 // Ruby it `it "does not repeat source download prelude work" do` at line 1348.
-pub fn ruby_formula_installer_spec_l1348_d95_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l1348_d95_does(args ...ruby.Value) ruby.Value {
 	reference := formula_installer_spec_reference('homebrew-prelude-fetch-once', FormulaInstallerSpecReferenceConfig{ loaded_from_api: true })
 	installer := formula_installer_spec_installer(reference, homebrew.FormulaInstallerConfig{ ignore_deps: true })
 	mut state := homebrew.FormulaInstallerState{}
@@ -1196,7 +1196,7 @@ pub fn ruby_formula_installer_spec_l1348_d95_does(args ...brew_runtime.Value) br
 }
 
 // Ruby it `it "raises on forbidden formula tap before fetching the source from the API" do` at line 1365.
-pub fn ruby_formula_installer_spec_l1365_d96_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l1365_d96_raises(args ...ruby.Value) ruby.Value {
 	reference := formula_installer_spec_reference('homebrew-forbidden-fail-fast-tap', FormulaInstallerSpecReferenceConfig{
 		tap: 'homebrew/forbidden'
 		loaded_from_api: true
@@ -1213,7 +1213,7 @@ pub fn ruby_formula_installer_spec_l1365_d96_raises(args ...brew_runtime.Value) 
 }
 
 // Ruby it `it "raises on forbidden formula before fetching the source from the API" do` at line 1389.
-pub fn ruby_formula_installer_spec_l1389_d97_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l1389_d97_raises(args ...ruby.Value) ruby.Value {
 	reference := formula_installer_spec_reference('homebrew-forbidden-fail-fast-formula', FormulaInstallerSpecReferenceConfig{ loaded_from_api: true })
 	installer := formula_installer_spec_installer(reference, homebrew.FormulaInstallerConfig{
 		forbidden_formulae: [
@@ -1227,11 +1227,11 @@ pub fn ruby_formula_installer_spec_l1389_d97_raises(args ...brew_runtime.Value) 
 }
 
 // Ruby specify `specify "install fails with BuildError when a system() call fails" do` at line 1409.
-pub fn ruby_formula_installer_spec_l1409_d98_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l1409_d98_install(args ...ruby.Value) ruby.Value {
 	root := formula_installer_spec_root('failball-system')
-	brew_runtime.remove_all(root) or {}
-	defer { brew_runtime.remove_all(root) or {} }
-	installer := formula_installer_spec_installer(formula_installer_spec_reference('failball', FormulaInstallerSpecReferenceConfig{}), homebrew.FormulaInstallerConfig{ prefix: root, cellar: brew_runtime.join_path(root, 'Cellar') })
+	ruby.remove_all(root) or {}
+	defer { ruby.remove_all(root) or {} }
+	installer := formula_installer_spec_installer(formula_installer_spec_reference('failball', FormulaInstallerSpecReferenceConfig{}), homebrew.FormulaInstallerConfig{ prefix: root, cellar: ruby.join_path(root, 'Cellar') })
 	mut state := homebrew.FormulaInstallerState{}
 	installer.build(mut state, formula_installer_spec_build_failure) or {
 		return formula_installer_spec_bool(err.msg().contains('source code not found'))
@@ -1240,11 +1240,11 @@ pub fn ruby_formula_installer_spec_l1409_d98_install(args ...brew_runtime.Value)
 }
 
 // Ruby specify `specify "install fails with a RuntimeError when` at line 1418.
-pub fn ruby_formula_installer_spec_l1418_d99_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l1418_d99_install(args ...ruby.Value) ruby.Value {
 	root := formula_installer_spec_root('failball-runtime')
-	brew_runtime.remove_all(root) or {}
-	defer { brew_runtime.remove_all(root) or {} }
-	installer := formula_installer_spec_installer(formula_installer_spec_reference('failball', FormulaInstallerSpecReferenceConfig{}), homebrew.FormulaInstallerConfig{ prefix: root, cellar: brew_runtime.join_path(root, 'Cellar') })
+	ruby.remove_all(root) or {}
+	defer { ruby.remove_all(root) or {} }
+	installer := formula_installer_spec_installer(formula_installer_spec_reference('failball', FormulaInstallerSpecReferenceConfig{}), homebrew.FormulaInstallerConfig{ prefix: root, cellar: ruby.join_path(root, 'Cellar') })
 	mut state := homebrew.FormulaInstallerState{}
 	installer.build(mut state, formula_installer_spec_build_failure) or {
 		return formula_installer_spec_bool(err.msg() == 'source code not found')
@@ -1253,12 +1253,12 @@ pub fn ruby_formula_installer_spec_l1418_d99_install(args ...brew_runtime.Value)
 }
 
 // Ruby subject `subject(:formula_installer) { described_class.new(Testball.new) }` at line 1427.
-pub fn ruby_formula_installer_spec_l1427_d100_formula_installer(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l1427_d100_formula_installer(args ...ruby.Value) ruby.Value {
 	return formula_installer_spec_installer_value(formula_installer_spec_installer(formula_installer_spec_reference('testball', FormulaInstallerSpecReferenceConfig{}), homebrew.FormulaInstallerConfig{}))
 }
 
 // Ruby it `it "shows audit problems if HOMEBREW_DEVELOPER is set" do` at line 1429.
-pub fn ruby_formula_installer_spec_l1429_d101_shows(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l1429_d101_shows(args ...ruby.Value) ruby.Value {
 	installer := formula_installer_spec_installer(formula_installer_spec_reference('testball', FormulaInstallerSpecReferenceConfig{}), homebrew.FormulaInstallerConfig{ developer: true })
 	mut state := homebrew.FormulaInstallerState{}
 	problems := installer.audit_installed(homebrew.FormulaInstallerAuditInput{
@@ -1269,27 +1269,27 @@ pub fn ruby_formula_installer_spec_l1429_d101_shows(args ...brew_runtime.Value) 
 }
 
 // Ruby it `it "works if service is set" do` at line 1441.
-pub fn ruby_formula_installer_spec_l1441_d102_works(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l1441_d102_works(args ...ruby.Value) ruby.Value {
 	root := formula_installer_spec_root('service')
-	brew_runtime.remove_all(root) or {}
-	defer { brew_runtime.remove_all(root) or {} }
+	ruby.remove_all(root) or {}
+	defer { ruby.remove_all(root) or {} }
 	definition := formula_installer_spec_service(root, false)
 	paths := homebrew.install_formula_service(definition) or { return formula_installer_spec_bool(false) }
-	return formula_installer_spec_bool(paths.len == 2 && paths.all(brew_runtime.is_file(it)))
+	return formula_installer_spec_bool(paths.len == 2 && paths.all(ruby.is_file(it)))
 }
 
 // Ruby it `it "works if timed service is set" do` at line 1467.
-pub fn ruby_formula_installer_spec_l1467_d103_works(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l1467_d103_works(args ...ruby.Value) ruby.Value {
 	root := formula_installer_spec_root('timed-service')
-	brew_runtime.remove_all(root) or {}
-	defer { brew_runtime.remove_all(root) or {} }
+	ruby.remove_all(root) or {}
+	defer { ruby.remove_all(root) or {} }
 	definition := formula_installer_spec_service(root, true)
 	paths := homebrew.install_formula_service(definition) or { return formula_installer_spec_bool(false) }
-	return formula_installer_spec_bool(paths.len == 3 && paths.all(brew_runtime.is_file(it)))
+	return formula_installer_spec_bool(paths.len == 3 && paths.all(ruby.is_file(it)))
 }
 
 // Ruby it `it "returns without definition" do` at line 1497.
-pub fn ruby_formula_installer_spec_l1497_d104_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l1497_d104_returns(args ...ruby.Value) ruby.Value {
 	paths := homebrew.install_formula_service(homebrew.InstallerServiceDefinition{}) or {
 		return formula_installer_spec_bool(false)
 	}
@@ -1297,26 +1297,26 @@ pub fn ruby_formula_installer_spec_l1497_d104_returns(args ...brew_runtime.Value
 }
 
 // Ruby it `it "attempts source download when formula is loaded from API" do` at line 1515.
-pub fn ruby_formula_installer_spec_l1515_d105_attempts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l1515_d105_attempts(args ...ruby.Value) ruby.Value {
 	root := formula_installer_spec_root('api-source-download')
-	brew_runtime.remove_all(root) or {}
-	defer { brew_runtime.remove_all(root) or {} }
+	ruby.remove_all(root) or {}
+	defer { ruby.remove_all(root) or {} }
 	reference := formula_installer_spec_reference('testball', FormulaInstallerSpecReferenceConfig{ loaded_from_api: true })
-	installer := formula_installer_spec_installer(reference, homebrew.FormulaInstallerConfig{ prefix: root, cellar: brew_runtime.join_path(root, 'Cellar') })
+	installer := formula_installer_spec_installer(reference, homebrew.FormulaInstallerConfig{ prefix: root, cellar: ruby.join_path(root, 'Cellar') })
 	mut state := homebrew.FormulaInstallerState{}
 	installer.build(mut state, formula_installer_spec_build_success) or {
 		return formula_installer_spec_bool(false)
 	}
-	return formula_installer_spec_bool(installer.formula.loaded_from_api && brew_runtime.is_file(brew_runtime.join_path(root, 'installed')))
+	return formula_installer_spec_bool(installer.formula.loaded_from_api && ruby.is_file(ruby.join_path(root, 'installed')))
 }
 
 // Ruby it `it "raises when formula is loaded from API and source download fails" do` at line 1540.
-pub fn ruby_formula_installer_spec_l1540_d106_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l1540_d106_raises(args ...ruby.Value) ruby.Value {
 	root := formula_installer_spec_root('api-source-failure')
-	brew_runtime.remove_all(root) or {}
-	defer { brew_runtime.remove_all(root) or {} }
+	ruby.remove_all(root) or {}
+	defer { ruby.remove_all(root) or {} }
 	reference := formula_installer_spec_reference('testball', FormulaInstallerSpecReferenceConfig{ loaded_from_api: true })
-	installer := formula_installer_spec_installer(reference, homebrew.FormulaInstallerConfig{ prefix: root, cellar: brew_runtime.join_path(root, 'Cellar') })
+	installer := formula_installer_spec_installer(reference, homebrew.FormulaInstallerConfig{ prefix: root, cellar: ruby.join_path(root, 'Cellar') })
 	mut state := homebrew.FormulaInstallerState{}
 	installer.build(mut state, formula_installer_spec_build_failure) or {
 		return formula_installer_spec_bool(err.msg().contains('source code not found'))
@@ -1325,12 +1325,12 @@ pub fn ruby_formula_installer_spec_l1540_d106_raises(args ...brew_runtime.Value)
 }
 
 // Ruby it `it "exposes local formula and trust paths to the sandbox" do` at line 1555.
-pub fn ruby_formula_installer_spec_l1555_d107_exposes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l1555_d107_exposes(args ...ruby.Value) ruby.Value {
 	root := formula_installer_spec_root('sandbox-paths')
-	formula_path := brew_runtime.join_path(root, 'homebrew-local-formula.rb')
+	formula_path := ruby.join_path(root, 'homebrew-local-formula.rb')
 	trust_path := homebrew.trust_file(homebrew.TrustConfig{
 		current_home: root
-		user_config_home: brew_runtime.join_path(root, '.homebrew')
+		user_config_home: ruby.join_path(root, '.homebrew')
 	}, root)
 	allowed := [formula_path, trust_path]
 	return formula_installer_spec_bool(allowed == [formula_path,

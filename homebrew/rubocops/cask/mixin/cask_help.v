@@ -1,6 +1,6 @@
 module mixin
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `rubocops/cask/mixin/cask_help.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -114,8 +114,8 @@ pub fn cask_help_tap(file_path string) ?string {
 	return none
 }
 
-fn cask_help_dispatch_value(dispatch CaskHelpDispatch) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cop::Cask::CaskHelpDispatch', if dispatch.accepted {
+fn cask_help_dispatch_value(dispatch CaskHelpDispatch) ruby.Value {
+	return ruby.structured_value('RuboCop::Cop::Cask::CaskHelpDispatch', if dispatch.accepted {
 		'accepted'
 	} else {
 		'ignored'
@@ -132,44 +132,44 @@ fn cask_help_dispatch_value(dispatch CaskHelpDispatch) brew_runtime.Value {
 }
 
 // Ruby method `on_cask(cask_block); end` at line 12.
-pub fn ruby_cask_help_l12_d1_on_cask(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+pub fn ruby_cask_help_l12_d1_on_cask(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `on_cask_stanza_block(cask_stanza_block); end` at line 15.
-pub fn ruby_cask_help_l15_d2_on_cask_stanza_block(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+pub fn ruby_cask_help_l15_d2_on_cask_stanza_block(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `on_block(block_node)` at line 18.
-pub fn ruby_cask_help_l18_d3_on_block(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_help_l18_d3_on_block(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	file_path := if args.len > 1 { args[1].as_string() } else { '' }
 	return cask_help_dispatch_value(dispatch_cask_help_block(source, file_path))
 }
 
 // Ruby alias `alias on_itblock on_block` at line 34.
-pub fn ruby_cask_help_l34_d4_on_itblock(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_help_l34_d4_on_itblock(args ...ruby.Value) ruby.Value {
 	return ruby_cask_help_l18_d3_on_block(...args)
 }
 
 // Ruby method `on_system_methods(cask_stanzas)` at line 43.
-pub fn ruby_cask_help_l43_d5_on_system_methods(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_help_l43_d5_on_system_methods(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	return stanza_values(cask_help_on_system_methods(cask_toplevel_stanzas(source)))
 }
 
 // Ruby method `inner_stanzas(block_node, comments)` at line 55.
-pub fn ruby_cask_help_l55_d6_inner_stanzas(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_help_l55_d6_inner_stanzas(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	return stanza_values(cask_help_inner_stanzas(source))
 }
 
 // Ruby method `cask_tap` at line 62.
-pub fn ruby_cask_help_l62_d7_cask_tap(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_help_l62_d7_cask_tap(args ...ruby.Value) ruby.Value {
 	file_path := if args.len > 0 { args[0].as_string() } else { '' }
-	tap := cask_help_tap(file_path) or { return brew_runtime.object_value('NilClass', 'nil') }
-	return brew_runtime.string_value(tap)
+	tap := cask_help_tap(file_path) or { return ruby.object_value('NilClass', 'nil') }
+	return ruby.string_value(tap)
 }
 
 // Original Ruby source (line-for-line):

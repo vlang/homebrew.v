@@ -1,6 +1,6 @@
 module artifact
 
-import brew_runtime
+import ruby
 import homebrew.cask.artifact as cask_artifact
 import os
 import time
@@ -64,101 +64,101 @@ pub fn generic_artifact_spec_install_phase(cask GenericArtifactSpecCask) cask_ar
 	})
 }
 
-fn generic_artifact_spec_cask_value(cask GenericArtifactSpecCask) brew_runtime.Value {
-	return brew_runtime.Value{
+fn generic_artifact_spec_cask_value(cask GenericArtifactSpecCask) ruby.Value {
+	return ruby.Value{
 		type_name: 'Cask::Cask'
 		repr: cask.token
 		map_data: {
-			'token':       brew_runtime.string_value(cask.token)
-			'staged_path': brew_runtime.string_value(cask.staged_path)
-			'appdir':      brew_runtime.string_value(cask.appdir)
-			'source':      brew_runtime.string_value(cask.source)
-			'target':      brew_runtime.string_value(cask.target)
+			'token':       ruby.string_value(cask.token)
+			'staged_path': ruby.string_value(cask.staged_path)
+			'appdir':      ruby.string_value(cask.appdir)
+			'source':      ruby.string_value(cask.source)
+			'target':      ruby.string_value(cask.target)
 		}
 	}
 }
 
 // Ruby let `let(:cask) { Cask::CaskLoader.load(cask_path("with-generic-artifact")) }` at line 5.
-pub fn ruby_generic_artifact_spec_l5_d1_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generic_artifact_spec_l5_d1_cask(args ...ruby.Value) ruby.Value {
 	root := if args.len > 0 {
 		args[0].as_string()
 	} else {
 		os.join_path(os.temp_dir(), 'brew-v-generic-artifact-spec')
 	}
 	cask := load_generic_artifact_spec_cask('with-generic-artifact', root) or {
-		return brew_runtime.object_value('CaskInvalidError', err.msg())
+		return ruby.object_value('CaskInvalidError', err.msg())
 	}
 	return generic_artifact_spec_cask_value(cask)
 }
 
 // Ruby let `let(:install_phase) do` at line 7.
-pub fn ruby_generic_artifact_spec_l7_d2_install_phase(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Proc', 'install Generic Artifact without sudo or force')
+pub fn ruby_generic_artifact_spec_l7_d2_install_phase(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Proc', 'install Generic Artifact without sudo or force')
 }
 
 // Ruby let `let(:source_path) { cask.staged_path.join("Caffeine.app") }` at line 15.
-pub fn ruby_generic_artifact_spec_l15_d3_source_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generic_artifact_spec_l15_d3_source_path(args ...ruby.Value) ruby.Value {
 	cask := if args.len > 0 { args[0] } else { ruby_generic_artifact_spec_l5_d1_cask() }
-	staged_path := (cask.map_data['staged_path'] or { brew_runtime.string_value('') }).as_string()
-	return brew_runtime.object_value('Pathname', os.join_path(staged_path, 'Caffeine.app'))
+	staged_path := (cask.map_data['staged_path'] or { ruby.string_value('') }).as_string()
+	return ruby.object_value('Pathname', os.join_path(staged_path, 'Caffeine.app'))
 }
 
 // Ruby let `let(:target_path) { Pathname(cask.config.appdir).join("Caffeine.app") }` at line 16.
-pub fn ruby_generic_artifact_spec_l16_d4_target_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generic_artifact_spec_l16_d4_target_path(args ...ruby.Value) ruby.Value {
 	cask := if args.len > 0 { args[0] } else { ruby_generic_artifact_spec_l5_d1_cask() }
-	appdir := (cask.map_data['appdir'] or { brew_runtime.string_value('') }).as_string()
-	return brew_runtime.object_value('Pathname', os.join_path(appdir, 'Caffeine.app'))
+	appdir := (cask.map_data['appdir'] or { ruby.string_value('') }).as_string()
+	return ruby.object_value('Pathname', os.join_path(appdir, 'Caffeine.app'))
 }
 
 // Ruby it `it "fails to load", :no_api do` at line 23.
-pub fn ruby_generic_artifact_spec_l23_d5_fails(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generic_artifact_spec_l23_d5_fails(args ...ruby.Value) ruby.Value {
 	root := generic_artifact_spec_root('missing-target')
 	_ := load_generic_artifact_spec_cask('invalid-generic-artifact-no-target', root) or {
-		return brew_runtime.bool_value(err.msg().contains('Generic Artifact')
+		return ruby.bool_value(err.msg().contains('Generic Artifact')
 			&& err.msg().contains('requires a target'))
 	}
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 // Ruby it `it "does not fail to load" do` at line 31.
-pub fn ruby_generic_artifact_spec_l31_d6_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generic_artifact_spec_l31_d6_does(args ...ruby.Value) ruby.Value {
 	cask := load_generic_artifact_spec_cask('generic-artifact-relative-target', generic_artifact_spec_root('relative')) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(cask.target == 'Caffeine.app')
+	return ruby.bool_value(cask.target == 'Caffeine.app')
 }
 
 // Ruby it `it "does not fail to load" do` at line 39.
-pub fn ruby_generic_artifact_spec_l39_d7_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generic_artifact_spec_l39_d7_does(args ...ruby.Value) ruby.Value {
 	cask := load_generic_artifact_spec_cask('generic-artifact-user-relative-target', generic_artifact_spec_root('user-relative')) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(cask.target == os.join_path(os.home_dir(), 'Desktop', 'Caffeine.app'))
+	return ruby.bool_value(cask.target == os.join_path(os.home_dir(), 'Desktop', 'Caffeine.app'))
 }
 
 // Ruby it `it "moves the artifact to the proper directory" do` at line 46.
-pub fn ruby_generic_artifact_spec_l46_d8_moves(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generic_artifact_spec_l46_d8_moves(args ...ruby.Value) ruby.Value {
 	root := generic_artifact_spec_root('moves')
 	defer { os.rmdir_all(root) or {} }
 	cask := load_generic_artifact_spec_cask('with-generic-artifact', root) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	prepare_generic_artifact_spec_cask(cask) or { return brew_runtime.bool_value(false) }
+	prepare_generic_artifact_spec_cask(cask) or { return ruby.bool_value(false) }
 	result := generic_artifact_spec_install_phase(cask)
-	return brew_runtime.bool_value(result.success && os.is_dir(cask.target) && os.is_link(cask.source))
+	return ruby.bool_value(result.success && os.is_dir(cask.target) && os.is_link(cask.source))
 }
 
 // Ruby it `it "avoids clobbering an existing artifact" do` at line 53.
-pub fn ruby_generic_artifact_spec_l53_d9_avoids(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generic_artifact_spec_l53_d9_avoids(args ...ruby.Value) ruby.Value {
 	root := generic_artifact_spec_root('avoids')
 	defer { os.rmdir_all(root) or {} }
 	cask := load_generic_artifact_spec_cask('with-generic-artifact', root) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	prepare_generic_artifact_spec_cask(cask) or { return brew_runtime.bool_value(false) }
-	os.mkdir_all(cask.target) or { return brew_runtime.bool_value(false) }
+	prepare_generic_artifact_spec_cask(cask) or { return ruby.bool_value(false) }
+	os.mkdir_all(cask.target) or { return ruby.bool_value(false) }
 	result := generic_artifact_spec_install_phase(cask)
-	return brew_runtime.bool_value(!result.success && result.error.contains('already a Generic Artifact')
+	return ruby.bool_value(!result.success && result.error.contains('already a Generic Artifact')
 		&& os.is_dir(cask.source) && os.is_dir(cask.target)
 		&& os.real_path(cask.source) != os.real_path(cask.target))
 }

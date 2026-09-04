@@ -1,13 +1,13 @@
 module requirements
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `extend/os/linux/requirements/xcode_requirement.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `xcode_installed_version!` at line 8.
-pub fn ruby_xcode_requirement_l8_d1_xcode_installed_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(xcode_installed_version())
+pub fn ruby_xcode_requirement_l8_d1_xcode_installed_version(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(xcode_installed_version())
 }
 
 pub fn xcode_installed_version() bool {

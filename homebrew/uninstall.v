@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `uninstall.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -333,22 +333,22 @@ pub fn uninstall_kegs(request UninstallRequest) UninstallResult {
 	return result
 }
 
-fn uninstall_path_value(path UninstallPath) brew_runtime.Value {
-	return brew_runtime.structured_value('Uninstall::Path', path.path, {
+fn uninstall_path_value(path UninstallPath) ruby.Value {
+	return ruby.structured_value('Uninstall::Path', path.path, {
 		'path':      path.path
 		'directory': path.directory.str()
 	})
 }
 
-fn uninstall_path_from_value(value brew_runtime.Value) UninstallPath {
+fn uninstall_path_from_value(value ruby.Value) UninstallPath {
 	return UninstallPath{
 		path: value.attributes['path'] or { value.repr }
 		directory: (value.attributes['directory'] or { 'false' }).bool()
 	}
 }
 
-fn uninstall_formula_value(formula UninstallFormula) brew_runtime.Value {
-	return brew_runtime.Value{
+fn uninstall_formula_value(formula UninstallFormula) ruby.Value {
+	return ruby.Value{
 		type_name: 'Uninstall::Formula'
 		repr: uninstall_formula_full_name(formula)
 		attributes: {
@@ -360,14 +360,14 @@ fn uninstall_formula_value(formula UninstallFormula) brew_runtime.Value {
 			'pkgetc_exists':    formula.pkgetc_exists.str()
 		}
 		map_data: {
-			'pkgetc_paths':   brew_runtime.string_array_value(formula.pkgetc_paths)
-			'maybe_paths':    brew_runtime.array_value(formula.maybe_paths.map(uninstall_path_value(it)))
-			'excluded_names': brew_runtime.string_array_value(formula.excluded_names)
+			'pkgetc_paths':   ruby.string_array_value(formula.pkgetc_paths)
+			'maybe_paths':    ruby.array_value(formula.maybe_paths.map(uninstall_path_value(it)))
+			'excluded_names': ruby.string_array_value(formula.excluded_names)
 		}
 	}
 }
 
-fn uninstall_formula_from_value(value brew_runtime.Value) !UninstallFormula {
+fn uninstall_formula_from_value(value ruby.Value) !UninstallFormula {
 	if value.type_name != 'Uninstall::Formula' {
 		return error('expected Uninstall::Formula')
 	}
@@ -378,14 +378,14 @@ fn uninstall_formula_from_value(value brew_runtime.Value) !UninstallFormula {
 		pinned: (value.attributes['pinned'] or { 'false' }).bool()
 		remove_pin_error: (value.attributes['remove_pin_error'] or { 'false' }).bool()
 		pkgetc_exists: (value.attributes['pkgetc_exists'] or { 'false' }).bool()
-		pkgetc_paths: (value.map_data['pkgetc_paths'] or { brew_runtime.string_array_value([]) }).as_string_array()!
-		maybe_paths: (value.map_data['maybe_paths'] or { brew_runtime.array_value([]) }).as_array()!.map(uninstall_path_from_value(it))
-		excluded_names: (value.map_data['excluded_names'] or { brew_runtime.string_array_value([]) }).as_string_array()!
+		pkgetc_paths: (value.map_data['pkgetc_paths'] or { ruby.string_array_value([]) }).as_string_array()!
+		maybe_paths: (value.map_data['maybe_paths'] or { ruby.array_value([]) }).as_array()!.map(uninstall_path_from_value(it))
+		excluded_names: (value.map_data['excluded_names'] or { ruby.string_array_value([]) }).as_string_array()!
 	}
 }
 
-fn uninstall_keg_value(keg UninstallKeg) brew_runtime.Value {
-	return brew_runtime.structured_value('Uninstall::Keg', uninstall_keg_display(keg), {
+fn uninstall_keg_value(keg UninstallKeg) ruby.Value {
+	return ruby.structured_value('Uninstall::Keg', uninstall_keg_display(keg), {
 		'id':                   keg.id
 		'name':                 keg.name
 		'rack':                 keg.rack
@@ -395,7 +395,7 @@ fn uninstall_keg_value(keg UninstallKeg) brew_runtime.Value {
 	})
 }
 
-fn uninstall_keg_from_value(value brew_runtime.Value) UninstallKeg {
+fn uninstall_keg_from_value(value ruby.Value) UninstallKeg {
 	remaining := value.attributes['remaining_versions'] or { '' }
 	return UninstallKeg{
 		id: value.attributes['id'] or { value.repr }
@@ -407,8 +407,8 @@ fn uninstall_keg_from_value(value brew_runtime.Value) UninstallKeg {
 	}
 }
 
-pub fn uninstall_rack_value(rack UninstallRack) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn uninstall_rack_value(rack UninstallRack) ruby.Value {
+	return ruby.Value{
 		type_name: 'Uninstall::Rack'
 		repr: rack.path
 		attributes: {
@@ -419,12 +419,12 @@ pub fn uninstall_rack_value(rack UninstallRack) brew_runtime.Value {
 		}
 		map_data: {
 			'formula': uninstall_formula_value(rack.formula)
-			'kegs':    brew_runtime.array_value(rack.kegs.map(uninstall_keg_value(it)))
+			'kegs':    ruby.array_value(rack.kegs.map(uninstall_keg_value(it)))
 		}
 	}
 }
 
-fn uninstall_rack_from_value(value brew_runtime.Value) !UninstallRack {
+fn uninstall_rack_from_value(value ruby.Value) !UninstallRack {
 	if value.type_name != 'Uninstall::Rack' {
 		return error('expected Uninstall::Rack')
 	}
@@ -434,19 +434,19 @@ fn uninstall_rack_from_value(value brew_runtime.Value) !UninstallRack {
 		abv: value.attributes['abv'] or { '' }
 		directory: (value.attributes['directory'] or { 'false' }).bool()
 		formula: uninstall_formula_from_value(value.map_data['formula'] or { return error('formula is required') })!
-		kegs: (value.map_data['kegs'] or { brew_runtime.array_value([]) }).as_array()!.map(uninstall_keg_from_value(it))
+		kegs: (value.map_data['kegs'] or { ruby.array_value([]) }).as_array()!.map(uninstall_keg_from_value(it))
 	}
 }
 
-fn uninstall_cellar_rack_value(rack UninstallCellarRack) brew_runtime.Value {
-	return brew_runtime.structured_value('Uninstall::CellarRack', rack.path, {
+fn uninstall_cellar_rack_value(rack UninstallCellarRack) ruby.Value {
+	return ruby.structured_value('Uninstall::CellarRack', rack.path, {
 		'path':            rack.path
 		'symlink':         rack.symlink.str()
 		'resolved_exists': rack.resolved_exists.str()
 	})
 }
 
-fn uninstall_cellar_rack_from_value(value brew_runtime.Value) UninstallCellarRack {
+fn uninstall_cellar_rack_from_value(value ruby.Value) UninstallCellarRack {
 	return UninstallCellarRack{
 		path: value.attributes['path'] or { value.repr }
 		symlink: (value.attributes['symlink'] or { 'false' }).bool()
@@ -454,8 +454,8 @@ fn uninstall_cellar_rack_from_value(value brew_runtime.Value) UninstallCellarRac
 	}
 }
 
-pub fn uninstall_request_value(request UninstallRequest) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn uninstall_request_value(request UninstallRequest) ruby.Value {
+	return ruby.Value{
 		type_name: 'Uninstall::Request'
 		repr: 'uninstall request'
 		attributes: {
@@ -467,34 +467,34 @@ pub fn uninstall_request_value(request UninstallRequest) brew_runtime.Value {
 			'cellar_directory':        request.cellar_directory.str()
 		}
 		map_data: {
-			'racks':        brew_runtime.array_value(request.racks.map(uninstall_rack_value(it)))
-			'named_args':   brew_runtime.string_array_value(request.named_args)
+			'racks':        ruby.array_value(request.racks.map(uninstall_rack_value(it)))
+			'named_args':   ruby.string_array_value(request.named_args)
 			'dependents':   installed_dependents_context_value(request.dependents)
-			'cellar_racks': brew_runtime.array_value(request.cellar_racks.map(uninstall_cellar_rack_value(it)))
+			'cellar_racks': ruby.array_value(request.cellar_racks.map(uninstall_cellar_rack_value(it)))
 		}
 	}
 }
 
-fn uninstall_request_from_value(value brew_runtime.Value) !UninstallRequest {
+fn uninstall_request_from_value(value ruby.Value) !UninstallRequest {
 	if value.type_name != 'Uninstall::Request' {
 		return error('expected Uninstall::Request')
 	}
 	return UninstallRequest{
-		racks: (value.map_data['racks'] or { brew_runtime.array_value([]) }).as_array()!.map(uninstall_rack_from_value(it)!)
+		racks: (value.map_data['racks'] or { ruby.array_value([]) }).as_array()!.map(uninstall_rack_from_value(it)!)
 		force: (value.attributes['force'] or { 'false' }).bool()
 		ignore_dependencies: (value.attributes['ignore_dependencies'] or { 'false' }).bool()
-		named_args: (value.map_data['named_args'] or { brew_runtime.string_array_value([]) }).as_string_array()!
+		named_args: (value.map_data['named_args'] or { ruby.string_array_value([]) }).as_string_array()!
 		dependents: installed_dependents_context_from_value(value.map_data['dependents'] or { installed_dependents_context_value(InstalledDependentsContext{}) })!
 		method_deprecated_error: (value.attributes['method_deprecated_error'] or { 'false' }).bool()
 		initial_failed: (value.attributes['initial_failed'] or { 'false' }).bool()
 		multiple_versions_error: value.attributes['multiple_versions_error'] or { '' }
 		cellar_directory: (value.attributes['cellar_directory'] or { 'false' }).bool()
-		cellar_racks: (value.map_data['cellar_racks'] or { brew_runtime.array_value([]) }).as_array()!.map(uninstall_cellar_rack_from_value(it))
+		cellar_racks: (value.map_data['cellar_racks'] or { ruby.array_value([]) }).as_array()!.map(uninstall_cellar_rack_from_value(it))
 	}
 }
 
-fn uninstall_result_value(result UninstallResult) brew_runtime.Value {
-	return brew_runtime.Value{
+fn uninstall_result_value(result UninstallResult) ruby.Value {
+	return ruby.Value{
 		type_name: 'Uninstall::Result'
 		repr: result.outputs.join('\n')
 		attributes: {
@@ -502,38 +502,38 @@ fn uninstall_result_value(result UninstallResult) brew_runtime.Value {
 			'ignored_deprecation': result.ignored_deprecation.str()
 		}
 		map_data: {
-			'outputs':         brew_runtime.string_array_value(result.outputs)
-			'warnings':        brew_runtime.string_array_value(result.warnings)
-			'errors':          brew_runtime.string_array_value(result.errors)
-			'operations':      brew_runtime.string_array_value(result.operations)
-			'pin_attempts':    brew_runtime.string_array_value(result.pin_attempts)
-			'removed_pins':    brew_runtime.string_array_value(result.removed_pins)
-			'broken_symlinks': brew_runtime.string_array_value(result.broken_symlinks)
+			'outputs':         ruby.string_array_value(result.outputs)
+			'warnings':        ruby.string_array_value(result.warnings)
+			'errors':          ruby.string_array_value(result.errors)
+			'operations':      ruby.string_array_value(result.operations)
+			'pin_attempts':    ruby.string_array_value(result.pin_attempts)
+			'removed_pins':    ruby.string_array_value(result.removed_pins)
+			'broken_symlinks': ruby.string_array_value(result.broken_symlinks)
 		}
 	}
 }
 
 // Ruby method `self.uninstall_kegs(kegs_by_rack, casks: [], force: false, ignore_dependencies: false, named_args: [])` at line 22.
-pub fn ruby_uninstall_l22_d1_self_uninstall_kegs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uninstall_l22_d1_self_uninstall_kegs(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'uninstall request is required')
+		return ruby.object_value('ArgumentError', 'uninstall request is required')
 	}
 	request := uninstall_request_from_value(args[0]) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	return uninstall_result_value(uninstall_kegs(request))
 }
 
 // Ruby method `self.handle_unsatisfied_dependents(kegs_by_rack, casks: [], ignore_dependencies: false, named_args: [])` at line 132.
-pub fn ruby_uninstall_l132_d2_self_handle_unsatisfied_dependents(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uninstall_l132_d2_self_handle_unsatisfied_dependents(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'uninstall request is required')
+		return ruby.object_value('ArgumentError', 'uninstall request is required')
 	}
 	request := uninstall_request_from_value(args[0]) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	result := handle_uninstall_unsatisfied_dependents(request.dependents, request.ignore_dependencies, request.named_args, request.method_deprecated_error)
-	return brew_runtime.structured_value('Uninstall::DependencyResult', result.output, {
+	return ruby.structured_value('Uninstall::DependencyResult', result.output, {
 		'failed':              result.failed.str()
 		'ignored_deprecation': result.ignored_deprecation.str()
 		'output':              result.output
@@ -541,12 +541,12 @@ pub fn ruby_uninstall_l132_d2_self_handle_unsatisfied_dependents(args ...brew_ru
 }
 
 // Ruby method `self.check_for_dependents!(kegs, casks: [], named_args: [])` at line 143.
-pub fn ruby_uninstall_l143_d3_self_check_for_dependents(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uninstall_l143_d3_self_check_for_dependents(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'installed dependents context is required')
+		return ruby.object_value('ArgumentError', 'installed dependents context is required')
 	}
 	context := installed_dependents_context_from_value(args[0]) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	named_args := if args.len > 1 {
 		args[1].as_string_array() or { []string{} }
@@ -554,23 +554,23 @@ pub fn ruby_uninstall_l143_d3_self_check_for_dependents(args ...brew_runtime.Val
 		[]string{}
 	}
 	output := check_for_uninstall_dependents(context, named_args) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.structured_value('DependentsMessage', output, {
+	return ruby.structured_value('DependentsMessage', output, {
 		'output': output
 	})
 }
 
 // Ruby method `self.rm_pin(rack)` at line 151.
-pub fn ruby_uninstall_l151_d4_self_rm_pin(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uninstall_l151_d4_self_rm_pin(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'rack is required')
+		return ruby.object_value('ArgumentError', 'rack is required')
 	}
 	rack := uninstall_rack_from_value(args[0]) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	result := remove_uninstall_pin(rack)
-	return brew_runtime.structured_value('Uninstall::PinResult', rack.path, {
+	return ruby.structured_value('Uninstall::PinResult', rack.path, {
 		'attempted':     result.attempted.str()
 		'removed':       result.removed.str()
 		'ignored_error': result.ignored_error.str()

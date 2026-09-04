@@ -1,6 +1,6 @@
 module tab
 
-import brew_runtime
+import ruby
 import homebrew
 import json2
 
@@ -8,17 +8,17 @@ import json2
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby attr_accessor `attr_accessor :poured_from_bottle` at line 11.
-pub fn ruby_tab_l11_d1_poured_from_bottle(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l11_d1_poured_from_bottle(args ...ruby.Value) ruby.Value {
 	tab := tab_receiver(args, 'poured_from_bottle')
 	return if tab.has_poured_from_bottle {
-		brew_runtime.bool_value(tab.poured_from_bottle)
+		ruby.bool_value(tab.poured_from_bottle)
 	} else {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	}
 }
 
 // Ruby attr_accessor `attr_accessor :poured_from_bottle` at line 11.
-pub fn ruby_tab_l11_d2_poured_from_bottle(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l11_d2_poured_from_bottle(args ...ruby.Value) ruby.Value {
 	mut tab := tab_receiver(args, 'poured_from_bottle=')
 	if args.len < 2 { panic('poured_from_bottle= requires a value') }
 	tab.has_poured_from_bottle = args[1].type_name != 'NilClass'
@@ -31,17 +31,17 @@ pub fn ruby_tab_l11_d2_poured_from_bottle(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby attr_accessor `attr_accessor :built_as_bottle` at line 14.
-pub fn ruby_tab_l14_d3_built_as_bottle(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l14_d3_built_as_bottle(args ...ruby.Value) ruby.Value {
 	tab := tab_receiver(args, 'built_as_bottle')
 	return if tab.has_built_as_bottle {
-		brew_runtime.bool_value(tab.built_as_bottle)
+		ruby.bool_value(tab.built_as_bottle)
 	} else {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	}
 }
 
 // Ruby attr_accessor `attr_accessor :built_as_bottle` at line 14.
-pub fn ruby_tab_l14_d4_built_as_bottle(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l14_d4_built_as_bottle(args ...ruby.Value) ruby.Value {
 	mut tab := tab_receiver(args, 'built_as_bottle=')
 	if args.len < 2 { panic('built_as_bottle= requires a value') }
 	tab.has_built_as_bottle = args[1].type_name != 'NilClass'
@@ -54,17 +54,17 @@ pub fn ruby_tab_l14_d4_built_as_bottle(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby attr_accessor `attr_accessor :stdlib` at line 17.
-pub fn ruby_tab_l17_d5_stdlib(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l17_d5_stdlib(args ...ruby.Value) ruby.Value {
 	tab := tab_receiver(args, 'stdlib')
 	return if tab.stdlib == '' {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	} else {
-		brew_runtime.string_value(tab.stdlib)
+		ruby.string_value(tab.stdlib)
 	}
 }
 
 // Ruby attr_accessor `attr_accessor :stdlib` at line 17.
-pub fn ruby_tab_l17_d6_stdlib(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l17_d6_stdlib(args ...ruby.Value) ruby.Value {
 	mut tab := tab_receiver(args, 'stdlib=')
 	if args.len < 2 { panic('stdlib= requires a value') }
 	tab.stdlib = if args[1].type_name == 'NilClass' { '' } else { args[1].as_string() }
@@ -72,17 +72,17 @@ pub fn ruby_tab_l17_d6_stdlib(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby attr_accessor `attr_accessor :aliases` at line 20.
-pub fn ruby_tab_l20_d7_aliases(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l20_d7_aliases(args ...ruby.Value) ruby.Value {
 	tab := tab_receiver(args, 'aliases')
 	return if tab.has_aliases {
-		brew_runtime.string_array_value(tab.aliases)
+		ruby.string_array_value(tab.aliases)
 	} else {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	}
 }
 
 // Ruby attr_accessor `attr_accessor :aliases` at line 20.
-pub fn ruby_tab_l20_d8_aliases(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l20_d8_aliases(args ...ruby.Value) ruby.Value {
 	mut tab := tab_receiver(args, 'aliases=')
 	if args.len < 2 { panic('aliases= requires a value') }
 	tab.has_aliases = args[1].type_name != 'NilClass'
@@ -95,7 +95,7 @@ pub fn ruby_tab_l20_d8_aliases(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby attr_writer `attr_writer :used_options` at line 23.
-pub fn ruby_tab_l23_d9_used_options(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l23_d9_used_options(args ...ruby.Value) ruby.Value {
 	mut tab := tab_receiver(args, 'used_options=')
 	if args.len < 2 { panic('used_options= requires a value') }
 	tab.used_option_flags = if args[1].type_name == 'NilClass' { []string{} } else { args[1].as_string_array() or {
@@ -104,7 +104,7 @@ pub fn ruby_tab_l23_d9_used_options(args ...brew_runtime.Value) brew_runtime.Val
 }
 
 // Ruby attr_writer `attr_writer :unused_options` at line 26.
-pub fn ruby_tab_l26_d10_unused_options(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l26_d10_unused_options(args ...ruby.Value) ruby.Value {
 	mut tab := tab_receiver(args, 'unused_options=')
 	if args.len < 2 { panic('unused_options= requires a value') }
 	tab.unused_option_flags = if args[1].type_name == 'NilClass' { []string{} } else { args[1].as_string_array() or {
@@ -113,7 +113,7 @@ pub fn ruby_tab_l26_d10_unused_options(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby attr_writer `attr_writer :compiler` at line 29.
-pub fn ruby_tab_l29_d11_compiler(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l29_d11_compiler(args ...ruby.Value) ruby.Value {
 	mut tab := tab_receiver(args, 'compiler=')
 	if args.len < 2 { panic('compiler= requires a value') }
 	tab.compiler_value = if args[1].type_name == 'NilClass' { '' } else { args[1].as_string() }
@@ -121,7 +121,7 @@ pub fn ruby_tab_l29_d11_compiler(args ...brew_runtime.Value) brew_runtime.Value 
 }
 
 // Ruby attr_writer `attr_writer :source_modified_time` at line 32.
-pub fn ruby_tab_l32_d12_source_modified_time(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l32_d12_source_modified_time(args ...ruby.Value) ruby.Value {
 	mut tab := tab_receiver(args, 'source_modified_time=')
 	if args.len < 2 { panic('source_modified_time= requires a value') }
 	tab.has_source_modified_time = args[1].type_name != 'NilClass'
@@ -131,27 +131,27 @@ pub fn ruby_tab_l32_d12_source_modified_time(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby attr_reader `attr_reader :tapped_from` at line 35.
-pub fn ruby_tab_l35_d13_tapped_from(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l35_d13_tapped_from(args ...ruby.Value) ruby.Value {
 	tab := tab_receiver(args, 'tapped_from')
 	return if tab.tapped_from == '' {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	} else {
-		brew_runtime.string_value(tab.tapped_from)
+		ruby.string_value(tab.tapped_from)
 	}
 }
 
 // Ruby attr_accessor `attr_accessor :changed_files` at line 38.
-pub fn ruby_tab_l38_d14_changed_files(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l38_d14_changed_files(args ...ruby.Value) ruby.Value {
 	tab := tab_receiver(args, 'changed_files')
 	return if tab.has_changed_files {
-		brew_runtime.string_array_value(tab.changed_files)
+		ruby.string_array_value(tab.changed_files)
 	} else {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	}
 }
 
 // Ruby attr_accessor `attr_accessor :changed_files` at line 38.
-pub fn ruby_tab_l38_d15_changed_files(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l38_d15_changed_files(args ...ruby.Value) ruby.Value {
 	mut tab := tab_receiver(args, 'changed_files=')
 	if args.len < 2 { panic('changed_files= requires a value') }
 	tab.has_changed_files = args[1].type_name != 'NilClass'
@@ -164,12 +164,12 @@ pub fn ruby_tab_l38_d15_changed_files(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby method `initialize(poured_from_bottle: nil, built_as_bottle: nil, changed_files: nil, stdlib: nil, aliases: nil,` at line 53.
-pub fn ruby_tab_l53_d16_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l53_d16_initialize(args ...ruby.Value) ruby.Value {
 	return homebrew.ruby_tab_l76_d21_initialize(...args)
 }
 
 // Ruby method `self.create(formula_or_cask, compiler = DevelopmentTools.default_compiler, stdlib = nil)` at line 75.
-pub fn ruby_tab_l75_d17_self_create(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l75_d17_self_create(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || args[0].type_name != 'Formula' {
 		panic('Tab.create requires a Formula')
 	}
@@ -187,20 +187,20 @@ pub fn ruby_tab_l75_d17_self_create(args ...brew_runtime.Value) brew_runtime.Val
 }
 
 // Ruby method `self.from_file_content(content, path)` at line 116.
-pub fn ruby_tab_l116_d18_self_from_file_content(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l116_d18_self_from_file_content(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Tab.from_file_content requires content and path') }
 	return homebrew.tab_boundary_value(homebrew.tab_from_json(args[0].as_string(),
 		args[1].as_string()) or { panic(err) })
 }
 
 // Ruby method `self.for_keg(keg)` at line 146.
-pub fn ruby_tab_l146_d19_self_for_keg(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l146_d19_self_for_keg(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Tab.for_keg requires a path') }
 	return homebrew.tab_boundary_value(homebrew.tab_for_keg(args[0].as_string()) or { panic(err) })
 }
 
 // Ruby method `self.for_name(name)` at line 162.
-pub fn ruby_tab_l162_d20_self_for_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l162_d20_self_for_name(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Tab.for_name requires a name') }
 	if receipt := homebrew.installed_tab_for_name(args[0].as_string()) {
 		return homebrew.tab_boundary_value(receipt)
@@ -214,19 +214,19 @@ pub fn ruby_tab_l162_d20_self_for_name(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby method `self.remap_deprecated_options(deprecated_options, options)` at line 172.
-pub fn ruby_tab_l172_d21_self_remap_deprecated_options(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l172_d21_self_remap_deprecated_options(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Tab.remap_deprecated_options requires deprecated options and options') }
 	mut deprecated := []homebrew.DeprecatedOption{}
 	for old, current in args[0].attributes {
 		deprecated << homebrew.new_deprecated_option(old, current)
 	}
 	flags := args[1].as_string_array() or { panic(err) }
-	return brew_runtime.string_array_value(homebrew.remap_tab_deprecated_options(deprecated,
+	return ruby.string_array_value(homebrew.remap_tab_deprecated_options(deprecated,
 		homebrew.new_options(...flags)).as_flags())
 }
 
 // Ruby method `self.for_formula(formula)` at line 186.
-pub fn ruby_tab_l186_d22_self_for_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l186_d22_self_for_formula(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || args[0].type_name != 'Formula' {
 		panic('Tab.for_formula requires a Formula')
 	}
@@ -234,18 +234,18 @@ pub fn ruby_tab_l186_d22_self_for_formula(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby method `self.empty` at line 226.
-pub fn ruby_tab_l226_d23_self_empty(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l226_d23_self_empty(args ...ruby.Value) ruby.Value {
 	return homebrew.tab_boundary_value(homebrew.empty_tab())
 }
 
 // Ruby method `self.empty_source_versions` at line 244.
-pub fn ruby_tab_l244_d24_self_empty_source_versions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Hash',
+pub fn ruby_tab_l244_d24_self_empty_source_versions(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Hash',
 		json2.encode(json2.Any(homebrew.empty_tab_source_versions())))
 }
 
 // Ruby method `self.runtime_deps_hash(formula, deps)` at line 255.
-pub fn ruby_tab_l255_d25_self_runtime_deps_hash(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l255_d25_self_runtime_deps_hash(args ...ruby.Value) ruby.Value {
 	if args.len < 2 || args[0].type_name != 'Formula' {
 		panic('Tab.runtime_deps_hash requires a Formula and dependencies')
 	}
@@ -268,19 +268,19 @@ pub fn ruby_tab_l255_d25_self_runtime_deps_hash(args ...brew_runtime.Value) brew
 	}
 	receipts :=
 		dependency_formulae.map(homebrew.formula_to_runtime_dependency_receipt(it, declared))
-	return brew_runtime.object_value('Array', json2.encode(receipts))
+	return ruby.object_value('Array', json2.encode(receipts))
 }
 
 // Ruby method `any_args_or_options?` at line 262.
-pub fn ruby_tab_l262_d26_any_args_or_options(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(tab_receiver(args, 'any_args_or_options?').any_args_or_options())
+pub fn ruby_tab_l262_d26_any_args_or_options(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(tab_receiver(args, 'any_args_or_options?').any_args_or_options())
 }
 
 // Ruby method `with?(val)` at line 267.
-pub fn ruby_tab_l267_d27_with(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l267_d27_with(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Tab#with? requires a receiver and value') }
 	tab := homebrew.tab_from_boundary(args[0])
-	return brew_runtime.bool_value(if args[1].type_name == 'Dependency' {
+	return ruby.bool_value(if args[1].type_name == 'Dependency' {
 		tab.with_dependency(homebrew.new_dependency(args[1].attribute('name') or {
 			args[1].as_string()
 		}, []string{}))
@@ -290,134 +290,134 @@ pub fn ruby_tab_l267_d27_with(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `without?(val)` at line 276.
-pub fn ruby_tab_l276_d28_without(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l276_d28_without(args ...ruby.Value) ruby.Value {
 	with_value := ruby_tab_l267_d27_with(...args)
-	return brew_runtime.bool_value(!(with_value.as_bool() or { panic(err) }))
+	return ruby.bool_value(!(with_value.as_bool() or { panic(err) }))
 }
 
 // Ruby method `include?(opt)` at line 281.
-pub fn ruby_tab_l281_d29_include(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l281_d29_include(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Tab#include? requires a receiver and option') }
-	return brew_runtime.bool_value(homebrew.tab_from_boundary(args[0]).includes(args[1].as_string()))
+	return ruby.bool_value(homebrew.tab_from_boundary(args[0]).includes(args[1].as_string()))
 }
 
 // Ruby method `head?` at line 286.
-pub fn ruby_tab_l286_d30_head(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(tab_receiver(args, 'head?').head())
+pub fn ruby_tab_l286_d30_head(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(tab_receiver(args, 'head?').head())
 }
 
 // Ruby method `stable?` at line 291.
-pub fn ruby_tab_l291_d31_stable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(tab_receiver(args, 'stable?').stable())
+pub fn ruby_tab_l291_d31_stable(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(tab_receiver(args, 'stable?').stable())
 }
 
 // Ruby method `used_options` at line 299.
-pub fn ruby_tab_l299_d32_used_options(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(tab_receiver(args, 'used_options').used_options().as_flags())
+pub fn ruby_tab_l299_d32_used_options(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(tab_receiver(args, 'used_options').used_options().as_flags())
 }
 
 // Ruby method `unused_options` at line 304.
-pub fn ruby_tab_l304_d33_unused_options(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(tab_receiver(args, 'unused_options').unused_options().as_flags())
+pub fn ruby_tab_l304_d33_unused_options(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(tab_receiver(args, 'unused_options').unused_options().as_flags())
 }
 
 // Ruby method `compiler` at line 309.
-pub fn ruby_tab_l309_d34_compiler(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(tab_receiver(args, 'compiler').compiler())
+pub fn ruby_tab_l309_d34_compiler(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(tab_receiver(args, 'compiler').compiler())
 }
 
 // Ruby method `runtime_dependencies` at line 314.
-pub fn ruby_tab_l314_d35_runtime_dependencies(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l314_d35_runtime_dependencies(args ...ruby.Value) ruby.Value {
 	tab := tab_receiver(args, 'runtime_dependencies')
 	return if dependencies := tab.runtime_dependencies() {
-		brew_runtime.object_value('Array', json2.encode(dependencies))
+		ruby.object_value('Array', json2.encode(dependencies))
 	} else {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	}
 }
 
 // Ruby method `cxxstdlib` at line 321.
-pub fn ruby_tab_l321_d36_cxxstdlib(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l321_d36_cxxstdlib(args ...ruby.Value) ruby.Value {
 	stdlib := tab_receiver(args, 'cxxstdlib').cxxstdlib()
-	return brew_runtime.structured_value('CxxStdlib', stdlib.inspect(), {
+	return ruby.structured_value('CxxStdlib', stdlib.inspect(), {
 		'type':     stdlib.type_symbol()
 		'compiler': stdlib.compiler
 	})
 }
 
 // Ruby method `built_bottle?` at line 328.
-pub fn ruby_tab_l328_d37_built_bottle(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(tab_receiver(args, 'built_bottle?').built_bottle())
+pub fn ruby_tab_l328_d37_built_bottle(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(tab_receiver(args, 'built_bottle?').built_bottle())
 }
 
 // Ruby method `bottle?` at line 333.
-pub fn ruby_tab_l333_d38_bottle(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(tab_receiver(args, 'bottle?').bottle())
+pub fn ruby_tab_l333_d38_bottle(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(tab_receiver(args, 'bottle?').bottle())
 }
 
 // Ruby method `spec` at line 338.
-pub fn ruby_tab_l338_d39_spec(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Symbol', tab_receiver(args, 'spec').spec())
+pub fn ruby_tab_l338_d39_spec(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Symbol', tab_receiver(args, 'spec').spec())
 }
 
 // Ruby method `versions` at line 343.
-pub fn ruby_tab_l343_d40_versions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Hash',
+pub fn ruby_tab_l343_d40_versions(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Hash',
 		json2.encode(json2.Any(tab_receiver(args, 'versions').versions())))
 }
 
 // Ruby method `stable_version` at line 348.
-pub fn ruby_tab_l348_d41_stable_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l348_d41_stable_version(args ...ruby.Value) ruby.Value {
 	return if version := tab_receiver(args, 'stable_version').stable_version() {
-		brew_runtime.object_value('Version', version.to_s())
+		ruby.object_value('Version', version.to_s())
 	} else {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	}
 }
 
 // Ruby method `head_version` at line 353.
-pub fn ruby_tab_l353_d42_head_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l353_d42_head_version(args ...ruby.Value) ruby.Value {
 	return if version := tab_receiver(args, 'head_version').head_version() {
-		brew_runtime.object_value('Version', version.to_s())
+		ruby.object_value('Version', version.to_s())
 	} else {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	}
 }
 
 // Ruby method `version_scheme` at line 358.
-pub fn ruby_tab_l358_d43_version_scheme(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(i64(tab_receiver(args, 'version_scheme').version_scheme()))
+pub fn ruby_tab_l358_d43_version_scheme(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(i64(tab_receiver(args, 'version_scheme').version_scheme()))
 }
 
 // Ruby method `source_modified_time` at line 363.
-pub fn ruby_tab_l363_d44_source_modified_time(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(tab_receiver(args, 'source_modified_time').source_modified_time())
+pub fn ruby_tab_l363_d44_source_modified_time(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(tab_receiver(args, 'source_modified_time').source_modified_time())
 }
 
 // Ruby method `to_json(options = nil)` at line 368.
-pub fn ruby_tab_l368_d45_to_json(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(tab_receiver(args, 'to_json').to_json())
+pub fn ruby_tab_l368_d45_to_json(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(tab_receiver(args, 'to_json').to_json())
 }
 
 // Ruby method `to_bottle_hash` at line 396.
-pub fn ruby_tab_l396_d46_to_bottle_hash(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Hash', json2.encode(json2.Any(tab_receiver(args,
+pub fn ruby_tab_l396_d46_to_bottle_hash(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Hash', json2.encode(json2.Any(tab_receiver(args,
 		'to_bottle_hash').bottle_attributes())))
 }
 
 // Ruby method `write` at line 414.
-pub fn ruby_tab_l414_d47_write(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tab_l414_d47_write(args ...ruby.Value) ruby.Value {
 	tab := tab_receiver(args, 'write')
 	tab.write() or { panic(err) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `to_s` at line 423.
-pub fn ruby_tab_l423_d48_to_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(tab_receiver(args, 'to_s').str())
+pub fn ruby_tab_l423_d48_to_s(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(tab_receiver(args, 'to_s').str())
 }
 
-fn tab_receiver(args []brew_runtime.Value, method string) homebrew.Tab {
+fn tab_receiver(args []ruby.Value, method string) homebrew.Tab {
 	if args.len == 0 { panic('Tab#${method} requires a receiver') }
 	return homebrew.tab_from_boundary(args[0])
 }

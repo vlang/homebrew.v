@@ -1,6 +1,6 @@
 module pathname
 
-import brew_runtime
+import ruby
 import homebrew.utils as hb_utils
 import os
 
@@ -8,38 +8,38 @@ import os
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `disk_usage` at line 12.
-pub fn ruby_disk_usage_extension_l12_d1_disk_usage(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_disk_usage_extension_l12_d1_disk_usage(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('DiskUsageExtension#disk_usage requires a path')
 	}
-	return brew_runtime.int_value(pathname_disk_usage(args[0].as_string()) or { panic(err) })
+	return ruby.int_value(pathname_disk_usage(args[0].as_string()) or { panic(err) })
 }
 
 // Ruby method `file_count` at line 21.
-pub fn ruby_disk_usage_extension_l21_d2_file_count(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_disk_usage_extension_l21_d2_file_count(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('DiskUsageExtension#file_count requires a path')
 	}
-	return brew_runtime.int_value(pathname_file_count(args[0].as_string()) or { panic(err) })
+	return ruby.int_value(pathname_file_count(args[0].as_string()) or { panic(err) })
 }
 
 // Ruby method `abv` at line 30.
-pub fn ruby_disk_usage_extension_l30_d3_abv(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_disk_usage_extension_l30_d3_abv(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('DiskUsageExtension#abv requires a path')
 	}
-	return brew_runtime.string_value(pathname_abv(args[0].as_string()) or { panic(err) })
+	return ruby.string_value(pathname_abv(args[0].as_string()) or { panic(err) })
 }
 
 // Ruby method `compute_disk_usage` at line 41.
-pub fn ruby_disk_usage_extension_l41_d4_compute_disk_usage(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_disk_usage_extension_l41_d4_compute_disk_usage(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('DiskUsageExtension#compute_disk_usage requires a path')
 	}
 	usage := pathname_compute_disk_usage(args[0].as_string()) or { panic(err) }
-	return brew_runtime.array_value([
-		brew_runtime.int_value(usage.file_count),
-		brew_runtime.int_value(usage.disk_usage),
+	return ruby.array_value([
+		ruby.int_value(usage.file_count),
+		ruby.int_value(usage.disk_usage),
 	])
 }
 

@@ -1,6 +1,6 @@
 module types
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/helpers.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -16,18 +16,18 @@ pub enum HelperDeclarationKind {
 pub struct HelperDeclaration {
 pub:
 	kind             HelperDeclarationKind
-	target           brew_runtime.Value
+	target           ruby.Value
 	declaration_file string
-	modules          []brew_runtime.Value
-	super_result     brew_runtime.Value
+	modules          []ruby.Value
+	super_result     ruby.Value
 }
 
-fn helpers_nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn helpers_nil_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-pub fn declare_helper(kind HelperDeclarationKind, target brew_runtime.Value,
-	declaration_file string, modules []brew_runtime.Value) !HelperDeclaration {
+pub fn declare_helper(kind HelperDeclarationKind, target ruby.Value,
+	declaration_file string, modules []ruby.Value) !HelperDeclaration {
 	is_module := target.type_name in ['Class', 'Module']
 	is_abstract := target.attribute('abstract') or { 'false' } == 'true'
 	is_final := target.attribute('final') or { 'false' } == 'true'
@@ -100,7 +100,7 @@ pub fn declare_helper(kind HelperDeclarationKind, target brew_runtime.Value,
 	}
 }
 
-fn helper_boundary(args []brew_runtime.Value, kind HelperDeclarationKind) brew_runtime.Value {
+fn helper_boundary(args []ruby.Value, kind HelperDeclarationKind) ruby.Value {
 	if args.len == 0 {
 		panic('T::Helpers method requires a receiver')
 	}
@@ -112,39 +112,39 @@ fn helper_boundary(args []brew_runtime.Value, kind HelperDeclarationKind) brew_r
 	modules := if kind == .mixes_in_class_methods && args.len > 1 {
 		args[1..].clone()
 	} else {
-		[]brew_runtime.Value{}
+		[]ruby.Value{}
 	}
 	declare_helper(kind, args[0], declaration_file, modules) or { panic(err.msg()) }
 	return helpers_nil_value()
 }
 
 // Ruby method `abstract!` at line 11.
-pub fn ruby_helpers_l11_d1_abstract(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_helpers_l11_d1_abstract(args ...ruby.Value) ruby.Value {
 	return helper_boundary(args, .abstract_)
 }
 
 // Ruby method `interface!` at line 22.
-pub fn ruby_helpers_l22_d2_interface(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_helpers_l22_d2_interface(args ...ruby.Value) ruby.Value {
 	return helper_boundary(args, .interface_)
 }
 
 // Ruby method `final!` at line 26.
-pub fn ruby_helpers_l26_d3_final(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_helpers_l26_d3_final(args ...ruby.Value) ruby.Value {
 	return helper_boundary(args, .final_)
 }
 
 // Ruby method `sealed!` at line 30.
-pub fn ruby_helpers_l30_d4_sealed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_helpers_l30_d4_sealed(args ...ruby.Value) ruby.Value {
 	return helper_boundary(args, .sealed_)
 }
 
 // Ruby method `mixes_in_class_methods(mod, *mods)` at line 43.
-pub fn ruby_helpers_l43_d5_mixes_in_class_methods(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_helpers_l43_d5_mixes_in_class_methods(args ...ruby.Value) ruby.Value {
 	return helper_boundary(args, .mixes_in_class_methods)
 }
 
 // Ruby method `requires_ancestor(&block); end` at line 62.
-pub fn ruby_helpers_l62_d6_requires_ancestor(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_helpers_l62_d6_requires_ancestor(args ...ruby.Value) ruby.Value {
 	if args.len > 0 {
 		// The Ruby runtime intentionally leaves this check as a static-only TODO.
 		_ = declare_helper(.requires_ancestor, args[0], '', []) or { panic(err.msg()) }

@@ -1,6 +1,6 @@
 module logger
 
-import brew_runtime
+import ruby
 import os
 import sync
 import time
@@ -263,7 +263,7 @@ pub fn set_path(path string) string {
 	return path
 }
 
-fn log_device_from_value(value brew_runtime.Value) LogDevice {
+fn log_device_from_value(value ruby.Value) LogDevice {
 	return LogDevice{
 		filename: value.attribute('filename') or { value.as_string() }
 		shift_age: (value.attribute('shift_age') or { '0' }).int()
@@ -278,8 +278,8 @@ fn log_device_from_value(value brew_runtime.Value) LogDevice {
 	}
 }
 
-fn log_device_value(device &LogDevice) brew_runtime.Value {
-	return brew_runtime.structured_value('Logger::LogDevice', device.filename, {
+fn log_device_value(device &LogDevice) ruby.Value {
+	return ruby.structured_value('Logger::LogDevice', device.filename, {
 		'filename':             device.filename
 		'shift_age':            device.shift_age.str()
 		'shift_period':         device.shift_period
@@ -293,7 +293,7 @@ fn log_device_value(device &LogDevice) brew_runtime.Value {
 	})
 }
 
-fn log_device_options(args []brew_runtime.Value, start int) LogDeviceOptions {
+fn log_device_options(args []ruby.Value, start int) LogDeviceOptions {
 	return LogDeviceOptions{
 		shift_age: if args.len > start { int(args[start].as_int() or { 0 }) } else { 0 }
 		shift_size: if args.len > start + 1 {
@@ -307,33 +307,33 @@ fn log_device_options(args []brew_runtime.Value, start int) LogDeviceOptions {
 }
 
 // Ruby attr_reader `attr_reader :dev` at line 10.
-pub fn ruby_log_device_l10_d1_dev(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_log_device_l10_d1_dev(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Logger::LogDevice#dev requires a device') }
-	return brew_runtime.string_value(log_device_from_value(args[0]).dev())
+	return ruby.string_value(log_device_from_value(args[0]).dev())
 }
 
 // Ruby attr_reader `attr_reader :filename` at line 11.
-pub fn ruby_log_device_l11_d2_filename(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_log_device_l11_d2_filename(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Logger::LogDevice#filename requires a device') }
-	return brew_runtime.string_value(log_device_from_value(args[0]).filename)
+	return ruby.string_value(log_device_from_value(args[0]).filename)
 }
 
 // Ruby method `initialize(` at line 14.
-pub fn ruby_log_device_l14_d3_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_log_device_l14_d3_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Logger::LogDevice#initialize requires a log path') }
 	device := new_log_device(args[0].as_string(), log_device_options(args, 1)) or { panic(err) }
 	return log_device_value(&device)
 }
 
 // Ruby method `write(message)` at line 27.
-pub fn ruby_log_device_l27_d4_write(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_log_device_l27_d4_write(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Logger::LogDevice#write requires a device and message') }
 	mut device := log_device_from_value(args[0])
-	return brew_runtime.int_value(device.write(args[1].as_string()))
+	return ruby.int_value(device.write(args[1].as_string()))
 }
 
 // Ruby method `close` at line 38.
-pub fn ruby_log_device_l38_d5_close(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_log_device_l38_d5_close(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Logger::LogDevice#close requires a device') }
 	mut device := log_device_from_value(args[0])
 	device.close()
@@ -341,7 +341,7 @@ pub fn ruby_log_device_l38_d5_close(args ...brew_runtime.Value) brew_runtime.Val
 }
 
 // Ruby method `reopen(log = nil, shift_age: nil, shift_size: nil, shift_period_suffix: nil, binmode: nil)` at line 48.
-pub fn ruby_log_device_l48_d6_reopen(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_log_device_l48_d6_reopen(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Logger::LogDevice#reopen requires a device') }
 	mut device := log_device_from_value(args[0])
 	filename := if args.len > 1 { args[1].as_string() } else { '' }
@@ -350,7 +350,7 @@ pub fn ruby_log_device_l48_d6_reopen(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby method `set_dev(log)` at line 78.
-pub fn ruby_log_device_l78_d7_set_dev(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_log_device_l78_d7_set_dev(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Logger::LogDevice#set_dev requires a device and path') }
 	mut device := log_device_from_value(args[0])
 	device.set_dev(args[1].as_string()) or { panic(err) }
@@ -358,7 +358,7 @@ pub fn ruby_log_device_l78_d7_set_dev(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby method `set_file(shift_age, shift_size, shift_period_suffix)` at line 92.
-pub fn ruby_log_device_l92_d8_set_file(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_log_device_l92_d8_set_file(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Logger::LogDevice#set_file requires a device') }
 	mut device := log_device_from_value(args[0])
 	options := log_device_options(args, 1)
@@ -367,51 +367,51 @@ pub fn ruby_log_device_l92_d8_set_file(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby method `fixup_mode(dev)` at line 104.
-pub fn ruby_log_device_l104_d9_fixup_mode(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_log_device_l104_d9_fixup_mode(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Logger::LogDevice#fixup_mode requires a path') }
-	return brew_runtime.string_value(args[args.len - 1].as_string())
+	return ruby.string_value(args[args.len - 1].as_string())
 }
 
 // Ruby method `fixup_mode(dev)` at line 108.
-pub fn ruby_log_device_l108_d10_fixup_mode(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_log_device_l108_d10_fixup_mode(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Logger::LogDevice#fixup_mode requires a path') }
-	return brew_runtime.string_value(args[args.len - 1].as_string())
+	return ruby.string_value(args[args.len - 1].as_string())
 }
 
 // Ruby method `open_logfile(filename)` at line 119.
-pub fn ruby_log_device_l119_d11_open_logfile(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_log_device_l119_d11_open_logfile(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Logger::LogDevice#open_logfile requires a device and path') }
 	mut device := log_device_from_value(args[0])
-	return brew_runtime.string_value(device.open_logfile(args[1].as_string()) or { panic(err) })
+	return ruby.string_value(device.open_logfile(args[1].as_string()) or { panic(err) })
 }
 
 // Ruby method `create_logfile(filename)` at line 132.
-pub fn ruby_log_device_l132_d12_create_logfile(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_log_device_l132_d12_create_logfile(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Logger::LogDevice#create_logfile requires a device and path') }
 	mut device := log_device_from_value(args[0])
-	return brew_runtime.string_value(device.create_logfile(args[1].as_string()) or { panic(err) })
+	return ruby.string_value(device.create_logfile(args[1].as_string()) or { panic(err) })
 }
 
 // Ruby method `handle_write_errors(mesg)` at line 148.
-pub fn ruby_log_device_l148_d13_handle_write_errors(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_log_device_l148_d13_handle_write_errors(args ...ruby.Value) ruby.Value {
 	// The typed API accepts an action callback; a generic boundary has already
 	// evaluated its value, so it returns that value unchanged.
 	if args.len == 0 { panic('Logger::LogDevice#handle_write_errors requires an operation') }
-	return if args.len > 1 { args[args.len - 1] } else { brew_runtime.bool_value(true) }
+	return if args.len > 1 { args[args.len - 1] } else { ruby.bool_value(true) }
 }
 
 // Ruby method `add_log_header(file)` at line 156.
-pub fn ruby_log_device_l156_d14_add_log_header(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_log_device_l156_d14_add_log_header(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Logger::LogDevice#add_log_header requires a device') }
 	mut device := log_device_from_value(args[0])
 	mut file := os.open_append(device.filename) or { panic(err) }
 	device.add_log_header(mut file) or { panic(err) }
 	file.close()
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
 // Ruby method `check_shift_log` at line 162.
-pub fn ruby_log_device_l162_d15_check_shift_log(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_log_device_l162_d15_check_shift_log(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Logger::LogDevice#check_shift_log requires a device') }
 	mut device := log_device_from_value(args[0])
 	device.check_shift_log() or { panic(err) }
@@ -419,14 +419,14 @@ pub fn ruby_log_device_l162_d15_check_shift_log(args ...brew_runtime.Value) brew
 }
 
 // Ruby method `lock_shift_log` at line 177.
-pub fn ruby_log_device_l177_d16_lock_shift_log(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_log_device_l177_d16_lock_shift_log(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Logger::LogDevice#lock_shift_log requires a device') }
 	device := log_device_from_value(args[0])
-	return brew_runtime.bool_value(os.exists(device.filename))
+	return ruby.bool_value(os.exists(device.filename))
 }
 
 // Ruby method `shift_log_age` at line 207.
-pub fn ruby_log_device_l207_d17_shift_log_age(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_log_device_l207_d17_shift_log_age(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Logger::LogDevice#shift_log_age requires a device') }
 	mut device := log_device_from_value(args[0])
 	device.shift_log_age() or { panic(err) }
@@ -434,7 +434,7 @@ pub fn ruby_log_device_l207_d17_shift_log_age(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby method `shift_log_period(period_end)` at line 216.
-pub fn ruby_log_device_l216_d18_shift_log_period(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_log_device_l216_d18_shift_log_period(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Logger::LogDevice#shift_log_period requires a device and period end') }
 	mut device := log_device_from_value(args[0])
 	period_end := if args[1].type_name == 'Integer' {
@@ -447,22 +447,22 @@ pub fn ruby_log_device_l216_d18_shift_log_period(args ...brew_runtime.Value) bre
 }
 
 // Ruby method `shift_log_file(shifted)` at line 232.
-pub fn ruby_log_device_l232_d19_shift_log_file(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_log_device_l232_d19_shift_log_file(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Logger::LogDevice#shift_log_file requires a device and path') }
 	mut device := log_device_from_value(args[0])
-	return brew_runtime.bool_value(device.shift_log_file(args[1].as_string()) or { panic(err) })
+	return ruby.bool_value(device.shift_log_file(args[1].as_string()) or { panic(err) })
 }
 
 // Ruby attr_reader `attr_reader :path` at line 259.
-pub fn ruby_log_device_l259_d20_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_log_device_l259_d20_path(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('PathAttr#path requires a file') }
-	return brew_runtime.string_value(args[0].attribute('path') or { args[0].as_string() })
+	return ruby.string_value(args[0].attribute('path') or { args[0].as_string() })
 }
 
 // Ruby method `self.set_path(file, path)` at line 261.
-pub fn ruby_log_device_l261_d21_self_set_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_log_device_l261_d21_self_set_path(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('PathAttr.set_path requires a file and path') }
-	return brew_runtime.structured_value(args[0].type_name, args[0].as_string(), {
+	return ruby.structured_value(args[0].type_name, args[0].as_string(), {
 		'path': set_path(args[1].as_string())
 	})
 }

@@ -1,12 +1,12 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `test/dev-cmd/audit_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
-fn audit_spec_tap_path(args []brew_runtime.Value) string {
+fn audit_spec_tap_path(args []ruby.Value) string {
 	if args.len > 0 && args[0].type_name == 'String' {
 		return args[0].as_string()
 	}
@@ -109,41 +109,41 @@ pub fn audit_spec_external_formula_api_access() bool {
 }
 
 // Ruby subject `subject(:audit) { described_class.new(["--tap=homebrew/test"]) }` at line 11.
-pub fn ruby_audit_spec_l11_d1_audit(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l11_d1_audit(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.structured_value('Homebrew::DevCmd::Audit', 'brew audit --tap=homebrew/test', {
+	return ruby.structured_value('Homebrew::DevCmd::Audit', 'brew audit --tap=homebrew/test', {
 		'arguments': '--tap=homebrew/test'
 	})
 }
 
 // Ruby let `let(:tap_path) { mktmpdir }` at line 13.
-pub fn ruby_audit_spec_l13_d2_tap_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(audit_spec_tap_path(args))
+pub fn ruby_audit_spec_l13_d2_tap_path(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(audit_spec_tap_path(args))
 }
 
 // Ruby let `let(:macos_only_cask_file) { tap_path/"Casks/macos-only-example.rb" }` at line 14.
-pub fn ruby_audit_spec_l14_d3_macos_only_cask_file(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l14_d3_macos_only_cask_file(args ...ruby.Value) ruby.Value {
 	root := audit_spec_tap_path(args)
-	return brew_runtime.string_value(audit_spec_macos_only_cask(root).path)
+	return ruby.string_value(audit_spec_macos_only_cask(root).path)
 }
 
 // Ruby let `let(:linux_cask_file) { tap_path/"Casks/linux-example.rb" }` at line 15.
-pub fn ruby_audit_spec_l15_d4_linux_cask_file(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l15_d4_linux_cask_file(args ...ruby.Value) ruby.Value {
 	root := audit_spec_tap_path(args)
-	return brew_runtime.string_value(audit_spec_linux_cask(root).path)
+	return ruby.string_value(audit_spec_linux_cask(root).path)
 }
 
 // Ruby let `let(:linux_only_cask_file) { tap_path/"Casks/linux-only-example.rb" }` at line 16.
-pub fn ruby_audit_spec_l16_d5_linux_only_cask_file(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l16_d5_linux_only_cask_file(args ...ruby.Value) ruby.Value {
 	root := audit_spec_tap_path(args)
-	return brew_runtime.string_value(audit_spec_linux_only_cask(root).path)
+	return ruby.string_value(audit_spec_linux_only_cask(root).path)
 }
 
 // Ruby let `let(:tap) do` at line 17.
-pub fn ruby_audit_spec_l17_d6_tap(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l17_d6_tap(args ...ruby.Value) ruby.Value {
 	root := audit_spec_tap_path(args)
 	tap := audit_spec_tap(root)
-	return brew_runtime.structured_value('Tap', tap.name, {
+	return ruby.structured_value('Tap', tap.name, {
 		'name':               tap.name
 		'path':               tap.path
 		'formula_file_count': tap.formulae.len.str()
@@ -152,21 +152,21 @@ pub fn ruby_audit_spec_l17_d6_tap(args ...brew_runtime.Value) brew_runtime.Value
 }
 
 // Ruby it `it "audits Linux-supporting casks and skips macOS-only ones on Linux" do` at line 71.
-pub fn ruby_audit_spec_l71_d7_audits(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l71_d7_audits(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(audit_spec_linux_supporting_casks())
+	return ruby.bool_value(audit_spec_linux_supporting_casks())
 }
 
 // Ruby it `it "audits Linux-only casks under Linux when running on macOS" do` at line 82.
-pub fn ruby_audit_spec_l82_d8_audits(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l82_d8_audits(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(audit_spec_linux_only_on_macos())
+	return ruby.bool_value(audit_spec_linux_only_on_macos())
 }
 
 // Ruby it `it "enables API access when auditing external formulae after it was automatically disabled" do` at line 88.
-pub fn ruby_audit_spec_l88_d9_enables(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_spec_l88_d9_enables(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(audit_spec_external_formula_api_access())
+	return ruby.bool_value(audit_spec_external_formula_api_access())
 }
 
 // Original Ruby source (line-for-line):

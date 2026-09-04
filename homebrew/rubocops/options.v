@@ -1,6 +1,6 @@
 module rubocops
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `rubocops/options.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -128,8 +128,8 @@ pub fn audit_formula_options(source string, formula_tap string, has_optional_or_
 	return problems
 }
 
-fn formula_option_problem_value(problem FormulaOptionProblem) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cop::Problem', problem.message, {
+fn formula_option_problem_value(problem FormulaOptionProblem) ruby.Value {
+	return ruby.structured_value('RuboCop::Cop::Problem', problem.message, {
 		'method':    problem.method
 		'option':    problem.option
 		'begin_pos': problem.begin_pos.str()
@@ -139,11 +139,11 @@ fn formula_option_problem_value(problem FormulaOptionProblem) brew_runtime.Value
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 15.
-pub fn ruby_options_l15_d1_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_options_l15_d1_audit_formula(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	formula_tap := if args.len > 1 { args[1].as_string() } else { '' }
 	has_check_dependency := if args.len > 2 { args[2].bool_data } else { false }
-	return brew_runtime.array_value(audit_formula_options(source, formula_tap, has_check_dependency).map(formula_option_problem_value(it)))
+	return ruby.array_value(audit_formula_options(source, formula_tap, has_check_dependency).map(formula_option_problem_value(it)))
 }
 
 // Original Ruby source (line-for-line):

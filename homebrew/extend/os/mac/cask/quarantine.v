@@ -1,6 +1,6 @@
 module cask
 
-import brew_runtime
+import ruby
 import homebrew.cask as base_cask
 
 pub struct MacQuarantineCask {
@@ -92,17 +92,17 @@ pub fn mac_quarantine_cask(cask ?MacQuarantineCask, download_path ?string, actio
 }
 
 pub fn mac_quarantine_copy_xattrs(from string, to string, writable bool,
-	ruby string, ruby_args []string, load_path string, library_path string,
+	ruby_executable string, ruby_args []string, load_path string, library_path string,
 	copier MacCopyXattrs, command base_cask.QuarantineCommandRunner) !base_cask.QuarantineCommand {
 	if writable {
 		copier(from, to)!
 		return base_cask.QuarantineCommand{}
 	}
-	script := brew_runtime.join_path(library_path, 'cask/utils/copy_xattrs.rb')
+	script := ruby.join_path(library_path, 'cask/utils/copy_xattrs.rb')
 	mut args := ruby_args.clone()
 	args << ['-I', load_path, script, from, to]
 	plan := base_cask.QuarantineCommand{
-		executable: ruby
+		executable: ruby_executable
 		args: args
 		sudo: true
 	}
@@ -113,22 +113,22 @@ pub fn mac_quarantine_copy_xattrs(from string, to string, writable bool,
 	return plan
 }
 
-fn mac_ffi_from_values(args []brew_runtime.Value) MacQuarantineFfi {
-	mut values := map[string]brew_runtime.Value{}
+fn mac_ffi_from_values(args []ruby.Value) MacQuarantineFfi {
+	mut values := map[string]ruby.Value{}
 	for value in args {
 		if value.type_name == 'Hash' {
 			values = value.map_data.clone()
 		}
 	}
 	return MacQuarantineFfi{
-		detected: values['detected'] or { brew_runtime.bool_value(false) }.bool_data
-		path_string_created: values['path_string_created'] or { brew_runtime.bool_value(true) }.bool_data
-		path_url_created: values['path_url_created'] or { brew_runtime.bool_value(true) }.bool_data
-		agent_name_created: values['agent_name_created'] or { brew_runtime.bool_value(true) }.bool_data
-		data_url_created: values['data_url_created'] or { brew_runtime.bool_value(true) }.bool_data
-		origin_url_created: values['origin_url_created'] or { brew_runtime.bool_value(true) }.bool_data
-		dictionary_created: values['dictionary_created'] or { brew_runtime.bool_value(true) }.bool_data
-		property_written: values['property_written'] or { brew_runtime.bool_value(true) }.bool_data
+		detected: values['detected'] or { ruby.bool_value(false) }.bool_data
+		path_string_created: values['path_string_created'] or { ruby.bool_value(true) }.bool_data
+		path_url_created: values['path_url_created'] or { ruby.bool_value(true) }.bool_data
+		agent_name_created: values['agent_name_created'] or { ruby.bool_value(true) }.bool_data
+		data_url_created: values['data_url_created'] or { ruby.bool_value(true) }.bool_data
+		origin_url_created: values['origin_url_created'] or { ruby.bool_value(true) }.bool_data
+		dictionary_created: values['dictionary_created'] or { ruby.bool_value(true) }.bool_data
+		property_written: values['property_written'] or { ruby.bool_value(true) }.bool_data
 		designated_requirement: if requirement := values['requirement'] {
 			requirement.as_string()} else {
 			none}
@@ -138,7 +138,7 @@ fn mac_ffi_from_values(args []brew_runtime.Value) MacQuarantineFfi {
 	}
 }
 
-fn mac_value_string(args []brew_runtime.Value, key string, position int) ?string {
+fn mac_value_string(args []ruby.Value, key string, position int) ?string {
 	mut current := 0
 	for value in args {
 		if value.type_name == 'Hash' {
@@ -155,8 +155,8 @@ fn mac_value_string(args []brew_runtime.Value, key string, position int) ?string
 	return none
 }
 
-fn mac_quarantine_error(message string) brew_runtime.Value {
-	return brew_runtime.structured_value('CaskQuarantineError', message, {
+fn mac_quarantine_error(message string) ruby.Value {
+	return ruby.structured_value('CaskQuarantineError', message, {
 		'message': message
 	})
 }
@@ -165,40 +165,40 @@ fn mac_quarantine_error(message string) brew_runtime.Value {
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `check_quarantine_support` at line 20.
-pub fn ruby_quarantine_l20_d1_check_quarantine_support(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_quarantine_l20_d1_check_quarantine_support(args ...ruby.Value) ruby.Value {
 	available := if args.len > 0 { args[0].bool_data } else { false }
 	support := mac_quarantine_check_support(available)
-	return brew_runtime.array_value([
-		brew_runtime.string_value(support.kind.str()),
-		brew_runtime.Value{},
+	return ruby.array_value([
+		ruby.string_value(support.kind.str()),
+		ruby.Value{},
 	])
 }
 
 // Ruby method `signing_identity(file)` at line 37.
-pub fn ruby_quarantine_l37_d2_signing_identity(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_quarantine_l37_d2_signing_identity(args ...ruby.Value) ruby.Value {
 	file := mac_value_string(args, 'file', 0) or { '' }
 	ffi := mac_ffi_from_values(args)
 	identity := mac_quarantine_signing_identity(file, ffi.designated_requirement) or {
-		return brew_runtime.Value{}
+		return ruby.Value{}
 	}
-	return brew_runtime.structured_value('SigningIdentity', identity.requirement, {
+	return ruby.structured_value('SigningIdentity', identity.requirement, {
 		'requirement': identity.requirement
 	})
 }
 
 // Ruby method `signing_identity_match(file, identity)` at line 50.
-pub fn ruby_quarantine_l50_d3_signing_identity_match(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_quarantine_l50_d3_signing_identity_match(args ...ruby.Value) ruby.Value {
 	file := mac_value_string(args, 'file', 0) or { '' }
 	requirement := mac_value_string(args, 'requirement', 1) or { '' }
 	ffi := mac_ffi_from_values(args)
 	matched := mac_quarantine_signing_identity_match(file, base_cask.QuarantineSigningIdentity{
 		requirement: requirement
-	}, ffi.requirement_match) or { return brew_runtime.Value{} }
-	return brew_runtime.bool_value(matched)
+	}, ffi.requirement_match) or { return ruby.Value{} }
+	return ruby.bool_value(matched)
 }
 
 // Ruby method `cask!(cask: nil, download_path: nil, action: true)` at line 55.
-pub fn ruby_quarantine_l55_d4_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_quarantine_l55_d4_cask(args ...ruby.Value) ruby.Value {
 	path := mac_value_string(args, 'download_path', 0)
 	url := mac_value_string(args, 'url', 1) or { '' }
 	homepage := mac_value_string(args, 'homepage', 2) or { '' }
@@ -208,19 +208,19 @@ pub fn ruby_quarantine_l55_d4_cask(args ...brew_runtime.Value) brew_runtime.Valu
 		homepage: homepage
 	}, path, true, ffi) or { return mac_quarantine_error(err.msg()) }
 	if !outcome.present {
-		return brew_runtime.Value{}
+		return ruby.Value{}
 	}
 	write := outcome.write
-	return brew_runtime.map_value({
-		'path':       brew_runtime.string_value(write.path)
-		'agent_name': brew_runtime.string_value(write.agent_name)
-		'data_url':   brew_runtime.string_value(write.data_url)
-		'origin_url': brew_runtime.string_value(write.origin_url)
+	return ruby.map_value({
+		'path':       ruby.string_value(write.path)
+		'agent_name': ruby.string_value(write.agent_name)
+		'data_url':   ruby.string_value(write.data_url)
+		'origin_url': ruby.string_value(write.origin_url)
 	})
 }
 
 // Ruby method `copy_xattrs(from, to, command:)` at line 104.
-pub fn ruby_quarantine_l104_d5_copy_xattrs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_quarantine_l104_d5_copy_xattrs(args ...ruby.Value) ruby.Value {
 	from := mac_value_string(args, 'from', 0) or { '' }
 	to := mac_value_string(args, 'to', 1) or { '' }
 	mut writable := true
@@ -234,10 +234,10 @@ pub fn ruby_quarantine_l104_d5_copy_xattrs(args ...brew_runtime.Value) brew_runt
 	plan := mac_quarantine_copy_xattrs(from, to, writable, 'ruby', [], '', '', fn (_ string, _ string) ! {}, fn (_ base_cask.QuarantineCommand) !base_cask.QuarantineCommandResult {
 		return base_cask.QuarantineCommandResult{}
 	}) or { return mac_quarantine_error(err.msg()) }
-	return brew_runtime.map_value({
-		'executable': brew_runtime.string_value(plan.executable)
-		'args':       brew_runtime.string_array_value(plan.args)
-		'sudo':       brew_runtime.bool_value(plan.sudo)
+	return ruby.map_value({
+		'executable': ruby.string_value(plan.executable)
+		'args':       ruby.string_array_value(plan.args)
+		'sudo':       ruby.bool_value(plan.sudo)
 	})
 }
 

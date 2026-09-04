@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 import homebrew.utils as brew_utils
 import regex
 
@@ -259,7 +259,7 @@ pub fn (descriptions Descriptions) print_output(show_missing bool) string {
 	return if lines.len == 0 { '' } else { '${lines.join('\n')}\n' }
 }
 
-fn description_values_from_value(value brew_runtime.Value) map[string]DescriptionValue {
+fn description_values_from_value(value ruby.Value) map[string]DescriptionValue {
 	mut entries := map[string]DescriptionValue{}
 	for full_name, raw in value.map_data {
 		if raw.type_name == 'Array' {
@@ -284,11 +284,11 @@ fn description_values_from_value(value brew_runtime.Value) map[string]Descriptio
 	return entries
 }
 
-fn description_statuses_from_value(value brew_runtime.Value) map[string]DescriptionStatus {
+fn description_statuses_from_value(value ruby.Value) map[string]DescriptionStatus {
 	mut statuses := map[string]DescriptionStatus{}
 	for full_name, raw in value.map_data {
-		deprecated_value := raw.map_data['deprecated'] or { brew_runtime.bool_value(false) }
-		disabled_value := raw.map_data['disabled'] or { brew_runtime.bool_value(false) }
+		deprecated_value := raw.map_data['deprecated'] or { ruby.bool_value(false) }
+		disabled_value := raw.map_data['disabled'] or { ruby.bool_value(false) }
 		statuses[full_name] = DescriptionStatus{
 			deprecated: deprecated_value.as_bool() or { deprecated_value.as_string() == 'true' }
 			disabled: disabled_value.as_bool() or { disabled_value.as_string() == 'true' }
@@ -297,87 +297,87 @@ fn description_statuses_from_value(value brew_runtime.Value) map[string]Descript
 	return statuses
 }
 
-fn description_installed_items_from_value(value brew_runtime.Value) []DescriptionInstalledItem {
+fn description_installed_items_from_value(value ruby.Value) []DescriptionInstalledItem {
 	return value.array_data.map(DescriptionInstalledItem{
 		name: it.attributes['name'] or { it.as_string() }
 		full_name: it.attributes['full_name'] or { it.as_string() }
 	})
 }
 
-fn description_value_to_boundary(value DescriptionValue) brew_runtime.Value {
+fn description_value_to_boundary(value DescriptionValue) ruby.Value {
 	if value.kind == .cask {
-		mut parts := [brew_runtime.string_value(value.names)]
+		mut parts := [ruby.string_value(value.names)]
 		if description := value.description {
-			parts << brew_runtime.string_value(description)
+			parts << ruby.string_value(description)
 		} else {
-			parts << brew_runtime.object_value('NilClass', 'nil')
+			parts << ruby.object_value('NilClass', 'nil')
 		}
-		return brew_runtime.array_value(parts)
+		return ruby.array_value(parts)
 	}
 	if description := value.description {
-		return brew_runtime.string_value(description)
+		return ruby.string_value(description)
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
-fn descriptions_to_value(descriptions Descriptions) brew_runtime.Value {
-	mut entries := map[string]brew_runtime.Value{}
+fn descriptions_to_value(descriptions Descriptions) ruby.Value {
+	mut entries := map[string]ruby.Value{}
 	for full_name, value in descriptions.entries {
 		entries[full_name] = description_value_to_boundary(value)
 	}
-	mut statuses := map[string]brew_runtime.Value{}
+	mut statuses := map[string]ruby.Value{}
 	for full_name, status in descriptions.status_data {
-		statuses[full_name] = brew_runtime.map_value({
-			'deprecated': brew_runtime.bool_value(status.deprecated)
-			'disabled':   brew_runtime.bool_value(status.disabled)
+		statuses[full_name] = ruby.map_value({
+			'deprecated': ruby.bool_value(status.deprecated)
+			'disabled':   ruby.bool_value(status.disabled)
 		})
 	}
-	return brew_runtime.map_value({
-		'descriptions':       brew_runtime.map_value(entries)
-		'status_data':        brew_runtime.map_value(statuses)
-		'installed_formulae': brew_runtime.array_value(descriptions.installed_formulae.map(brew_runtime.structured_value('Formula', it.full_name, {
+	return ruby.map_value({
+		'descriptions':       ruby.map_value(entries)
+		'status_data':        ruby.map_value(statuses)
+		'installed_formulae': ruby.array_value(descriptions.installed_formulae.map(ruby.structured_value('Formula', it.full_name, {
 			'name':      it.name
 			'full_name': it.full_name
 		})))
-		'installed_casks':    brew_runtime.array_value(descriptions.installed_casks.map(brew_runtime.structured_value('Cask::Cask', it.full_name, {
+		'installed_casks':    ruby.array_value(descriptions.installed_casks.map(ruby.structured_value('Cask::Cask', it.full_name, {
 			'name':      it.name
 			'full_name': it.full_name
 		})))
-		'tty':                brew_runtime.bool_value(descriptions.tty)
-		'no_emoji':           brew_runtime.bool_value(descriptions.no_emoji)
+		'tty':                ruby.bool_value(descriptions.tty)
+		'no_emoji':           ruby.bool_value(descriptions.no_emoji)
 	})
 }
 
-fn descriptions_from_value(value brew_runtime.Value) Descriptions {
+fn descriptions_from_value(value ruby.Value) Descriptions {
 	entries_value := value.map_data['descriptions'] or { value }
-	statuses_value := value.map_data['status_data'] or { brew_runtime.map_value({}) }
-	installed_formulae := value.map_data['installed_formulae'] or { brew_runtime.array_value([]) }
-	installed_casks := value.map_data['installed_casks'] or { brew_runtime.array_value([]) }
-	tty_value := value.map_data['tty'] or { brew_runtime.bool_value(false) }
-	no_emoji_value := value.map_data['no_emoji'] or { brew_runtime.bool_value(false) }
+	statuses_value := value.map_data['status_data'] or { ruby.map_value({}) }
+	installed_formulae := value.map_data['installed_formulae'] or { ruby.array_value([]) }
+	installed_casks := value.map_data['installed_casks'] or { ruby.array_value([]) }
+	tty_value := value.map_data['tty'] or { ruby.bool_value(false) }
+	no_emoji_value := value.map_data['no_emoji'] or { ruby.bool_value(false) }
 	return new_descriptions_with_state(description_values_from_value(entries_value), description_statuses_from_value(statuses_value), description_installed_items_from_value(installed_formulae), description_installed_items_from_value(installed_casks), {}, tty_value.as_bool() or {
 		false
 	}, no_emoji_value.as_bool() or { false })
 }
 
-fn description_string_map_value(values map[string]string) brew_runtime.Value {
-	mut result := map[string]brew_runtime.Value{}
+fn description_string_map_value(values map[string]string) ruby.Value {
+	mut result := map[string]ruby.Value{}
 	for key, value in values {
-		result[key] = brew_runtime.string_value(value)
+		result[key] = ruby.string_value(value)
 	}
-	return brew_runtime.map_value(result)
+	return ruby.map_value(result)
 }
 
-fn description_count_map_value(values map[string]int) brew_runtime.Value {
-	mut result := map[string]brew_runtime.Value{}
+fn description_count_map_value(values map[string]int) ruby.Value {
+	mut result := map[string]ruby.Value{}
 	for key, value in values {
-		result[key] = brew_runtime.int_value(value)
+		result[key] = ruby.int_value(value)
 	}
-	return brew_runtime.map_value(result)
+	return ruby.map_value(result)
 }
 
 // Ruby method `self.search(string_or_regex, field, cache_store, status_data: {}, eval_all: Homebrew::EnvConfig.tap_trust_configured?)` at line 33.
-pub fn ruby_descriptions_l33_d1_self_search(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_descriptions_l33_d1_self_search(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('Descriptions.search requires a query, field, and descriptions')
 	}
@@ -397,7 +397,7 @@ pub fn ruby_descriptions_l33_d1_self_search(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby method `initialize(descriptions, status_data: {})` at line 59.
-pub fn ruby_descriptions_l59_d2_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_descriptions_l59_d2_initialize(args ...ruby.Value) ruby.Value {
 	entries := if args.len > 0 {
 		description_values_from_value(args[0])
 	} else {
@@ -412,16 +412,16 @@ pub fn ruby_descriptions_l59_d2_initialize(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `print(show_missing: false)` at line 67.
-pub fn ruby_descriptions_l67_d3_print(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_descriptions_l67_d3_print(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_value('')
+		return ruby.string_value('')
 	}
 	show_missing := args.len > 1 && (args[1].as_bool() or { false })
-	return brew_runtime.string_value(descriptions_from_value(args[0]).print_output(show_missing))
+	return ruby.string_value(descriptions_from_value(args[0]).print_output(show_missing))
 }
 
 // Ruby method `decorate_name(full_name, printed_name, description)` at line 101.
-pub fn ruby_descriptions_l101_d4_decorate_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_descriptions_l101_d4_decorate_name(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('decorate_name requires full name, printed name, and description')
 	}
@@ -431,7 +431,7 @@ pub fn ruby_descriptions_l101_d4_decorate_name(args ...brew_runtime.Value) brew_
 		new_descriptions({}, {})
 	}
 	value := if args[2].type_name == 'Array' {
-		description_values_from_value(brew_runtime.map_value({
+		description_values_from_value(ruby.map_value({
 			args[0].as_string(): args[2]
 		}))[args[0].as_string()]
 	} else {
@@ -441,37 +441,37 @@ pub fn ruby_descriptions_l101_d4_decorate_name(args ...brew_runtime.Value) brew_
 			args[2].as_string()
 		})
 	}
-	return brew_runtime.string_value(descriptions.decorate_name(args[0].as_string(), args[1].as_string(), value))
+	return ruby.string_value(descriptions.decorate_name(args[0].as_string(), args[1].as_string(), value))
 }
 
 // Ruby method `installed_formulae` at line 141.
-pub fn ruby_descriptions_l141_d5_installed_formulae(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_descriptions_l141_d5_installed_formulae(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_array_value([])
+		return ruby.string_array_value([])
 	}
-	return brew_runtime.string_array_value(descriptions_from_value(args[0]).installed_formula_names())
+	return ruby.string_array_value(descriptions_from_value(args[0]).installed_formula_names())
 }
 
 // Ruby method `installed_casks` at line 149.
-pub fn ruby_descriptions_l149_d6_installed_casks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_descriptions_l149_d6_installed_casks(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_array_value([])
+		return ruby.string_array_value([])
 	}
-	return brew_runtime.string_array_value(descriptions_from_value(args[0]).installed_cask_names())
+	return ruby.string_array_value(descriptions_from_value(args[0]).installed_cask_names())
 }
 
 // Ruby method `short_names` at line 157.
-pub fn ruby_descriptions_l157_d7_short_names(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_descriptions_l157_d7_short_names(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.map_value({})
+		return ruby.map_value({})
 	}
 	return description_string_map_value(descriptions_from_value(args[0]).short_names())
 }
 
 // Ruby method `short_name_counts` at line 165.
-pub fn ruby_descriptions_l165_d8_short_name_counts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_descriptions_l165_d8_short_name_counts(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.map_value({})
+		return ruby.map_value({})
 	}
 	return description_count_map_value(descriptions_from_value(args[0]).short_name_counts())
 }

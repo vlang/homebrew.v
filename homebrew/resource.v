@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 import crypto.sha256
 import homebrew.download_strategy
 import homebrew.unpack_strategy
@@ -262,7 +262,7 @@ pub fn (resource &Resource) determine_url_mirrors() ![]string {
 	primary_url := resource.url() or { return error('attempted to use a Resource without a URL') }
 	mut extra_urls := []string{}
 	if primary_url.starts_with('https://github.com/Homebrew/glibc-bootstrap/releases/download') {
-		artifact_domain := brew_runtime.environment_value('HOMEBREW_ARTIFACT_DOMAIN').trim_right('/')
+		artifact_domain := ruby.environment_value('HOMEBREW_ARTIFACT_DOMAIN').trim_right('/')
 		if artifact_domain != '' {
 			artifact_url := primary_url.replace_once('https://github.com', artifact_domain)
 			if environment_enabled('HOMEBREW_ARTIFACT_DOMAIN_NO_FALLBACK') {
@@ -270,7 +270,7 @@ pub fn (resource &Resource) determine_url_mirrors() ![]string {
 			}
 			extra_urls << artifact_url
 		}
-		bottle_domain := brew_runtime.environment_value('HOMEBREW_BOTTLE_DOMAIN').trim_right('/')
+		bottle_domain := ruby.environment_value('HOMEBREW_BOTTLE_DOMAIN').trim_right('/')
 		if bottle_domain != '' {
 			parts := primary_url.split('/')
 			if parts.len >= 2 {
@@ -278,7 +278,7 @@ pub fn (resource &Resource) determine_url_mirrors() ![]string {
 			}
 		}
 	}
-	pip_index := brew_runtime.environment_value('HOMEBREW_PIP_INDEX_URL').trim_right('/')
+	pip_index := ruby.environment_value('HOMEBREW_PIP_INDEX_URL').trim_right('/')
 	if pip_index != '' {
 		pip_base := pip_index.trim_string_right('/simple')
 		for base_url in ['https://files.pythonhosted.org', 'https://pypi.org'] {
@@ -304,7 +304,7 @@ fn unique_strings(values []string) []string {
 }
 
 fn environment_enabled(name string) bool {
-	return brew_runtime.environment_value(name).to_lower() in ['1', 'true', 'yes', 'on']
+	return ruby.environment_value(name).to_lower() in ['1', 'true', 'yes', 'on']
 }
 
 fn strategy_is_curl_derived(strategy download_strategy.DownloadStrategy) bool {
@@ -349,12 +349,12 @@ pub fn (mut resource Resource) cached_download() !string {
 
 pub fn (mut resource Resource) downloaded() bool {
 	path := resource.cached_download() or { return false }
-	return brew_runtime.path_exists(path)
+	return ruby.path_exists(path)
 }
 
 pub fn (mut resource Resource) downloaded_and_valid() bool {
 	path := resource.cached_download() or { return false }
-	if !brew_runtime.is_file(path) || !resource.has_checksum || resource.checksum.is_empty() {
+	if !ruby.is_file(path) || !resource.has_checksum || resource.checksum.is_empty() {
 		return false
 	}
 	resource.verify_download_integrity(path) or { return false }
@@ -363,13 +363,13 @@ pub fn (mut resource Resource) downloaded_and_valid() bool {
 
 pub fn (mut resource Resource) verify_download_integrity(filename string) ! {
 	resource.phase = .verifying
-	if !brew_runtime.is_file(filename) {
+	if !ruby.is_file(filename) {
 		return
 	}
 	if !resource.has_checksum || resource.checksum.is_empty() {
 		return
 	}
-	actual := sha256.sum256(brew_runtime.read_bytes(filename)!).hex()
+	actual := sha256.sum256(ruby.read_bytes(filename)!).hex()
 	if actual != resource.checksum.hexdigest {
 		return error('SHA-256 mismatch for ${filename}: expected ${resource.checksum.hexdigest}, got ${actual}')
 	}
@@ -533,7 +533,7 @@ pub fn (mut manifest BottleManifestResource) manifest_annotations() !map[string]
 		return manifest.manifest_annotations_value.clone()
 	}
 	path := manifest.resource.cached_download()!
-	decoded := json2.decode[json2.Any](brew_runtime.read_file(path)!) or {
+	decoded := json2.decode[json2.Any](ruby.read_file(path)!) or {
 		return error('The downloaded GitHub Packages manifest is not valid JSON: ${path}')
 	}
 	root := decoded.as_map()

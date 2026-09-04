@@ -1,6 +1,6 @@
 module atomic
 
-import brew_runtime
+import ruby
 import time
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/atomic/semaphore.rb`.
@@ -21,7 +21,7 @@ pub fn (mut semaphore Semaphore) acquire(permits i64) ! {
 	semaphore.implementation.acquire(permits)!
 }
 
-pub fn (mut semaphore Semaphore) acquire_with(permits i64, action SemaphoreAction) !brew_runtime.Value {
+pub fn (mut semaphore Semaphore) acquire_with(permits i64, action SemaphoreAction) !ruby.Value {
 	return semaphore.implementation.acquire_with(permits, action)
 }
 

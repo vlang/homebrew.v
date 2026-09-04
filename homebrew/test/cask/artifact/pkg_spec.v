@@ -1,6 +1,6 @@
 module artifact
 
-import brew_runtime
+import ruby
 import homebrew.cask.artifact as pkg_artifact
 import os
 import time
@@ -9,17 +9,17 @@ import time
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:cask) { Cask::CaskLoader.load(cask_path("with-installable")) }` at line 5.
-pub fn ruby_pkg_spec_l5_d1_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pkg_spec_l5_d1_cask(args ...ruby.Value) ruby.Value {
 	staged_path := if args.len > 0 {
 		args[0].as_string()
 	} else {
 		os.join_path(os.temp_dir(), 'brew-v-pkg-spec', 'with-installable')
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'Cask::Cask'
 		repr: 'with-installable'
 		map_data: {
-			'staged_path': brew_runtime.string_value(staged_path)
+			'staged_path': ruby.string_value(staged_path)
 		}
 		attributes: {
 			'token': 'with-installable'
@@ -28,42 +28,42 @@ pub fn ruby_pkg_spec_l5_d1_cask(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby let `let(:fake_system_command) { class_double(SystemCommand) }` at line 6.
-pub fn ruby_pkg_spec_l6_d2_fake_system_command(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Class<SystemCommand>', 'SystemCommand')
+pub fn ruby_pkg_spec_l6_d2_fake_system_command(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Class<SystemCommand>', 'SystemCommand')
 }
 
 // Ruby it `it "runs the system installer on the specified pkgs" do` at line 13.
-pub fn ruby_pkg_spec_l13_d3_runs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pkg_spec_l13_d3_runs(args ...ruby.Value) ruby.Value {
 	root := os.join_path(os.temp_dir(), 'brew-v-pkg-spec-${os.getpid()}-${time.now().unix_micro()}')
 	defer { os.rmdir_all(root) or {} }
 	pkg_path := os.join_path(root, 'MyFancyPkg', 'Fancy.pkg')
-	os.mkdir_all(os.dir(pkg_path)) or { return brew_runtime.bool_value(false) }
-	os.write_file(pkg_path, 'pkg') or { return brew_runtime.bool_value(false) }
-	cask := ruby_pkg_spec_l5_d1_cask(brew_runtime.string_value(root))
-	pkg := pkg_artifact.ruby_pkg_l19_d3_self_from_args(cask, brew_runtime.string_value('MyFancyPkg/Fancy.pkg'))
-	request := pkg_artifact.ruby_pkg_l44_d6_install_phase(pkg, brew_runtime.map_value({
-		'current_user': brew_runtime.string_value('brew')
+	os.mkdir_all(os.dir(pkg_path)) or { return ruby.bool_value(false) }
+	os.write_file(pkg_path, 'pkg') or { return ruby.bool_value(false) }
+	cask := ruby_pkg_spec_l5_d1_cask(ruby.string_value(root))
+	pkg := pkg_artifact.ruby_pkg_l19_d3_self_from_args(cask, ruby.string_value('MyFancyPkg/Fancy.pkg'))
+	request := pkg_artifact.ruby_pkg_l44_d6_install_phase(pkg, ruby.map_value({
+		'current_user': ruby.string_value('brew')
 	}))
-	arguments := (request.map_data['args'] or { return brew_runtime.bool_value(false) }).as_string_array() or {
-		return brew_runtime.bool_value(false)
+	arguments := (request.map_data['args'] or { return ruby.bool_value(false) }).as_string_array() or {
+		return ruby.bool_value(false)
 	}
-	environment := (request.map_data['env'] or { return brew_runtime.bool_value(false) }).as_map() or {
-		return brew_runtime.bool_value(false)
+	environment := (request.map_data['env'] or { return ruby.bool_value(false) }).as_map() or {
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(request.type_name == 'SystemCommand::Request'
-		&& (request.map_data['executable'] or { brew_runtime.string_value('') }).as_string() == '/usr/sbin/installer'
+	return ruby.bool_value(request.type_name == 'SystemCommand::Request'
+		&& (request.map_data['executable'] or { ruby.string_value('') }).as_string() == '/usr/sbin/installer'
 		&& arguments == ['-pkg', pkg_path, '-target', '/']
-		&& (request.map_data['sudo'] or { brew_runtime.bool_value(false) }).as_bool() or { false }
-		&& (request.map_data['sudo_as_root'] or { brew_runtime.bool_value(false) }).as_bool() or {
+		&& (request.map_data['sudo'] or { ruby.bool_value(false) }).as_bool() or { false }
+		&& (request.map_data['sudo_as_root'] or { ruby.bool_value(false) }).as_bool() or {
 			false
 		} && environment['LOGNAME'].as_string() == 'brew' && environment['USER'].as_string() == 'brew'
 		&& environment['USERNAME'].as_string() == 'brew')
 }
 
 // Ruby let `let(:cask) { Cask::CaskLoader.load(cask_path("with-choices")) }` at line 35.
-pub fn ruby_pkg_spec_l35_d4_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pkg_spec_l35_d4_cask(args ...ruby.Value) ruby.Value {
 	mut cask := ruby_pkg_spec_l5_d1_cask(...args)
-	cask = brew_runtime.Value{
+	cask = ruby.Value{
 		...cask
 		repr: 'with-choices'
 		attributes: {
@@ -74,31 +74,31 @@ pub fn ruby_pkg_spec_l35_d4_cask(args ...brew_runtime.Value) brew_runtime.Value 
 }
 
 // Ruby it `it "passes the choice changes xml to the system installer" do` at line 37.
-pub fn ruby_pkg_spec_l37_d5_passes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pkg_spec_l37_d5_passes(args ...ruby.Value) ruby.Value {
 	root := os.join_path(os.temp_dir(), 'brew-v-pkg-choices-${os.getpid()}-${time.now().unix_micro()}')
 	defer { os.rmdir_all(root) or {} }
 	pkg_path := os.join_path(root, 'MyFancyPkg', 'Fancy.pkg')
-	os.mkdir_all(os.dir(pkg_path)) or { return brew_runtime.bool_value(false) }
-	os.write_file(pkg_path, 'pkg') or { return brew_runtime.bool_value(false) }
-	cask := ruby_pkg_spec_l35_d4_cask(brew_runtime.string_value(root))
-	choices := brew_runtime.map_value({
-		'choiceIdentifier': brew_runtime.string_value('choice1')
-		'choiceAttribute':  brew_runtime.string_value('selected')
-		'attributeSetting': brew_runtime.int_value(1)
+	os.mkdir_all(os.dir(pkg_path)) or { return ruby.bool_value(false) }
+	os.write_file(pkg_path, 'pkg') or { return ruby.bool_value(false) }
+	cask := ruby_pkg_spec_l35_d4_cask(ruby.string_value(root))
+	choices := ruby.map_value({
+		'choiceIdentifier': ruby.string_value('choice1')
+		'choiceAttribute':  ruby.string_value('selected')
+		'attributeSetting': ruby.int_value(1)
 	})
-	pkg := pkg_artifact.ruby_pkg_l19_d3_self_from_args(cask, brew_runtime.string_value('MyFancyPkg/Fancy.pkg'), brew_runtime.map_value({
+	pkg := pkg_artifact.ruby_pkg_l19_d3_self_from_args(cask, ruby.string_value('MyFancyPkg/Fancy.pkg'), ruby.map_value({
 		'choices': choices
 	}))
-	payload := pkg_artifact.ruby_pkg_l96_d8_with_choices_file(pkg, brew_runtime.object_value('Pathname', '/tmp/choices.xml'))
-	request := pkg_artifact.ruby_pkg_l51_d7_run_installer(pkg, brew_runtime.map_value({
-		'choices_path': brew_runtime.string_value('/tmp/choices.xml')
-		'current_user': brew_runtime.string_value('brew')
+	payload := pkg_artifact.ruby_pkg_l96_d8_with_choices_file(pkg, ruby.object_value('Pathname', '/tmp/choices.xml'))
+	request := pkg_artifact.ruby_pkg_l51_d7_run_installer(pkg, ruby.map_value({
+		'choices_path': ruby.string_value('/tmp/choices.xml')
+		'current_user': ruby.string_value('brew')
 	}))
-	arguments := (request.map_data['args'] or { return brew_runtime.bool_value(false) }).as_string_array() or {
-		return brew_runtime.bool_value(false)
+	arguments := (request.map_data['args'] or { return ruby.bool_value(false) }).as_string_array() or {
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(payload.type_name == 'Tempfile::Payload'
-		&& (payload.map_data['choices'] or { brew_runtime.map_value({}) }).map_data['choiceIdentifier'].as_string() == 'choice1'
+	return ruby.bool_value(payload.type_name == 'Tempfile::Payload'
+		&& (payload.map_data['choices'] or { ruby.map_value({}) }).map_data['choiceIdentifier'].as_string() == 'choice1'
 		&& arguments == ['-pkg', pkg_path, '-target', '/', '-applyChoiceChangesXML',
 			'/tmp/choices.xml'])
 }

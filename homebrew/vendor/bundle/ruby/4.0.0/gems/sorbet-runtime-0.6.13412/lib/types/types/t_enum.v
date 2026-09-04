@@ -1,27 +1,27 @@
 module types
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/types/t_enum.rb`.
 // The original source is retained below until every stub has a typed V body.
 @[heap]
 pub struct TEnumType {
 pub:
-	value brew_runtime.Value
+	value ruby.Value
 }
 
-pub fn new_t_enum_type(value brew_runtime.Value) &TEnumType {
+pub fn new_t_enum_type(value ruby.Value) &TEnumType {
 	return &TEnumType{
 		value: value
 	}
 }
 
-fn t_enum_values_equal(left brew_runtime.Value, right brew_runtime.Value) bool {
+fn t_enum_values_equal(left ruby.Value, right ruby.Value) bool {
 	return left.type_name == right.type_name && left.repr == right.repr && left.attributes == right.attributes && left.int_data == right.int_data
 }
 
-pub fn (_ &TEnumType) build_type() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+pub fn (_ &TEnumType) build_type() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 pub fn (enum_type &TEnumType) name() string {
@@ -32,11 +32,11 @@ pub fn (enum_type &TEnumType) name() string {
 	return representation
 }
 
-pub fn (enum_type &TEnumType) valid(value brew_runtime.Value) bool {
+pub fn (enum_type &TEnumType) valid(value ruby.Value) bool {
 	return t_enum_values_equal(enum_type.value, value)
 }
 
-pub fn (enum_type &TEnumType) subtype_of_single(other brew_runtime.Value) bool {
+pub fn (enum_type &TEnumType) subtype_of_single(other ruby.Value) bool {
 	if other.type_name == 'T::Types::TEnum' {
 		other_value := other.map_data['value'] or { return false }
 		return enum_type.valid(other_value)
@@ -48,8 +48,8 @@ pub fn (enum_type &TEnumType) subtype_of_single(other brew_runtime.Value) bool {
 	return false
 }
 
-fn t_enum_type_value(enum_type &TEnumType) brew_runtime.Value {
-	return brew_runtime.Value{
+fn t_enum_type_value(enum_type &TEnumType) ruby.Value {
+	return ruby.Value{
 		type_name: 'T::Types::TEnum'
 		repr: enum_type.name()
 		map_data: {
@@ -61,7 +61,7 @@ fn t_enum_type_value(enum_type &TEnumType) brew_runtime.Value {
 	}
 }
 
-fn t_enum_type_from_args(args []brew_runtime.Value) &TEnumType {
+fn t_enum_type_from_args(args []ruby.Value) &TEnumType {
 	if args.len == 0 {
 		panic('TEnum method requires a receiver')
 	}
@@ -70,12 +70,12 @@ fn t_enum_type_from_args(args []brew_runtime.Value) &TEnumType {
 }
 
 // Ruby attr_reader `attr_reader :val` at line 7.
-pub fn ruby_t_enum_l7_d1_val(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_t_enum_l7_d1_val(args ...ruby.Value) ruby.Value {
 	return t_enum_type_from_args(args).value
 }
 
 // Ruby method `initialize(val)` at line 9.
-pub fn ruby_t_enum_l9_d2_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_t_enum_l9_d2_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('TEnum#initialize requires an enum value')
 	}
@@ -83,29 +83,29 @@ pub fn ruby_t_enum_l9_d2_initialize(args ...brew_runtime.Value) brew_runtime.Val
 }
 
 // Ruby method `build_type` at line 13.
-pub fn ruby_t_enum_l13_d3_build_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_t_enum_l13_d3_build_type(args ...ruby.Value) ruby.Value {
 	return t_enum_type_from_args(args).build_type()
 }
 
 // Ruby method `name` at line 18.
-pub fn ruby_t_enum_l18_d4_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(t_enum_type_from_args(args).name())
+pub fn ruby_t_enum_l18_d4_name(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(t_enum_type_from_args(args).name())
 }
 
 // Ruby method `valid?(obj)` at line 28.
-pub fn ruby_t_enum_l28_d5_valid(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_t_enum_l28_d5_valid(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('TEnum#valid? requires an object')
 	}
-	return brew_runtime.bool_value(t_enum_type_from_args(args).valid(args[1]))
+	return ruby.bool_value(t_enum_type_from_args(args).valid(args[1]))
 }
 
 // Ruby method `subtype_of_single?(other)` at line 33.
-pub fn ruby_t_enum_l33_d6_subtype_of_single(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_t_enum_l33_d6_subtype_of_single(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('TEnum#subtype_of_single? requires another type')
 	}
-	return brew_runtime.bool_value(t_enum_type_from_args(args).subtype_of_single(args[1]))
+	return ruby.bool_value(t_enum_type_from_args(args).subtype_of_single(args[1]))
 }
 
 // Original Ruby source (line-for-line):

@@ -1,6 +1,6 @@
 module ast
 
-import brew_runtime
+import ruby
 import homebrew.utils
 
 fn ast_spec_compound_license() string {
@@ -11,41 +11,41 @@ fn ast_spec_compound_license() string {
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:compound_license) do` at line 8.
-pub fn ruby_ast_spec_l8_d1_compound_license(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(ast_spec_compound_license())
+pub fn ruby_ast_spec_l8_d1_compound_license(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(ast_spec_compound_license())
 }
 
 // Ruby it `it "accepts existing stanza text" do` at line 18.
-pub fn ruby_ast_spec_l18_d2_accepts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ast_spec_l18_d2_accepts(args ...ruby.Value) ruby.Value {
 	compound := ast_spec_compound_license()
-	return brew_runtime.bool_value(utils.ast_stanza_text('revision', brew_runtime.string_value('revision 1'), none) == 'revision 1' && utils.ast_stanza_text('license', brew_runtime.string_value('license :public_domain'), none) == 'license :public_domain' && utils.ast_stanza_text('license', brew_runtime.string_value('license "MIT"'), none) == 'license "MIT"' && utils.ast_stanza_text('license', brew_runtime.string_value(compound), none) == compound)
+	return ruby.bool_value(utils.ast_stanza_text('revision', ruby.string_value('revision 1'), none) == 'revision 1' && utils.ast_stanza_text('license', ruby.string_value('license :public_domain'), none) == 'license :public_domain' && utils.ast_stanza_text('license', ruby.string_value('license "MIT"'), none) == 'license "MIT"' && utils.ast_stanza_text('license', ruby.string_value(compound), none) == compound)
 }
 
 // Ruby it `it "accepts a number as the stanza value" do` at line 25.
-pub fn ruby_ast_spec_l25_d3_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(utils.ast_stanza_text('revision', brew_runtime.int_value(1), none) == 'revision 1')
+pub fn ruby_ast_spec_l25_d3_accepts(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(utils.ast_stanza_text('revision', ruby.int_value(1), none) == 'revision 1')
 }
 
 // Ruby it `it "accepts a symbol as the stanza value" do` at line 29.
-pub fn ruby_ast_spec_l29_d4_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(utils.ast_stanza_text('license', brew_runtime.object_value('Symbol', ':public_domain'), none) == 'license :public_domain')
+pub fn ruby_ast_spec_l29_d4_accepts(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(utils.ast_stanza_text('license', ruby.object_value('Symbol', ':public_domain'), none) == 'license :public_domain')
 }
 
 // Ruby it `it "accepts a string as the stanza value" do` at line 33.
-pub fn ruby_ast_spec_l33_d5_accepts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(utils.ast_stanza_text('license', brew_runtime.string_value('MIT'), none) == 'license "MIT"')
+pub fn ruby_ast_spec_l33_d5_accepts(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(utils.ast_stanza_text('license', ruby.string_value('MIT'), none) == 'license "MIT"')
 }
 
 // Ruby it `it "adds indent to stanza text if specified" do` at line 37.
-pub fn ruby_ast_spec_l37_d6_adds(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ast_spec_l37_d6_adds(args ...ruby.Value) ruby.Value {
 	compound := ast_spec_compound_license()
-	return brew_runtime.bool_value(utils.ast_stanza_text('revision', brew_runtime.string_value('revision 1'), 2) == '  revision 1' && utils.ast_stanza_text('license', brew_runtime.string_value('license "MIT"'), 2) == '  license "MIT"' && utils.ast_stanza_text('license', brew_runtime.string_value(compound), 2) == compound)
+	return ruby.bool_value(utils.ast_stanza_text('revision', ruby.string_value('revision 1'), 2) == '  revision 1' && utils.ast_stanza_text('license', ruby.string_value('license "MIT"'), 2) == '  license "MIT"' && utils.ast_stanza_text('license', ruby.string_value(compound), 2) == compound)
 }
 
 // Ruby it `it "does not add indent if already indented" do` at line 43.
-pub fn ruby_ast_spec_l43_d7_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ast_spec_l43_d7_does(args ...ruby.Value) ruby.Value {
 	compound := ast_spec_compound_license()
-	return brew_runtime.bool_value(utils.ast_stanza_text('revision', brew_runtime.string_value('  revision 1'), 2) == '  revision 1' && utils.ast_stanza_text('license', brew_runtime.string_value(compound), 2) == compound)
+	return ruby.bool_value(utils.ast_stanza_text('revision', ruby.string_value('  revision 1'), 2) == '  revision 1' && utils.ast_stanza_text('license', ruby.string_value(compound), 2) == compound)
 }
 
 // Original Ruby source (line-for-line):

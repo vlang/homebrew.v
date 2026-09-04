@@ -1,6 +1,6 @@
 module php
 
-import brew_runtime
+import ruby
 import homebrew.utils
 import os
 import time
@@ -56,17 +56,17 @@ fn php_shebang_temp_path(label string) string {
 	return os.join_path(os.temp_dir(), 'brew-v-php-shebang-${label}-${os.getpid()}-${time.now().unix_micro()}')
 }
 
-fn php_spec_file(args []brew_runtime.Value, broken bool) brew_runtime.Value {
+fn php_spec_file(args []ruby.Value, broken bool) ruby.Value {
 	path := if args.len > 0 { args[0].as_string() } else { php_shebang_temp_path('file') }
 	os.write_file(path, php_shebang_contents(broken)) or {
-		return brew_runtime.object_value('IOError', err.msg())
+		return ruby.object_value('IOError', err.msg())
 	}
-	return brew_runtime.structured_value('Tempfile', path, {
+	return ruby.structured_value('Tempfile', path, {
 		'path': path
 	})
 }
 
-fn php_spec_prefix(args []brew_runtime.Value) string {
+fn php_spec_prefix(args []ruby.Value) string {
 	return if args.len > 0 { args[0].as_string().trim_right('/') } else { '/opt/homebrew' }
 }
 
@@ -89,18 +89,18 @@ fn php_spec_rewrites(prefix string, broken bool) bool {
 }
 
 // Ruby let `let(:file) { Tempfile.new("php-shebang") }` at line 8.
-pub fn ruby_shebang_spec_l8_d1_file(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shebang_spec_l8_d1_file(args ...ruby.Value) ruby.Value {
 	return php_spec_file(args, false)
 }
 
 // Ruby let `let(:broken_file) { Tempfile.new("php-shebang") }` at line 9.
-pub fn ruby_shebang_spec_l9_d2_broken_file(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shebang_spec_l9_d2_broken_file(args ...ruby.Value) ruby.Value {
 	return php_spec_file(args, true)
 }
 
 // Ruby let `let(:f) do` at line 10.
-pub fn ruby_shebang_spec_l10_d3_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.structured_value('PhpShebangFixtures', 'php@8.1', {
+pub fn ruby_shebang_spec_l10_d3_f(args ...ruby.Value) ruby.Value {
+	return ruby.structured_value('PhpShebangFixtures', 'php@8.1', {
 		'php81':             'php@8.1'
 		'versioned_php_dep': 'php@8.1'
 		'no_deps':           ''
@@ -109,30 +109,30 @@ pub fn ruby_shebang_spec_l10_d3_f(args ...brew_runtime.Value) brew_runtime.Value
 }
 
 // Ruby it `it "can be used to replace PHP shebangs" do` at line 62.
-pub fn ruby_shebang_spec_l62_d4_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(php_spec_rewrites(php_spec_prefix(args), false))
+pub fn ruby_shebang_spec_l62_d4_can(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(php_spec_rewrites(php_spec_prefix(args), false))
 }
 
 // Ruby it `it "can fix broken shebang like `#!php`" do` at line 74.
-pub fn ruby_shebang_spec_l74_d5_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(php_spec_rewrites(php_spec_prefix(args), true))
+pub fn ruby_shebang_spec_l74_d5_can(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(php_spec_rewrites(php_spec_prefix(args), true))
 }
 
 // Ruby it `it "errors if formula doesn't depend on PHP" do` at line 87.
-pub fn ruby_shebang_spec_l87_d6_errors(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shebang_spec_l87_d6_errors(args ...ruby.Value) ruby.Value {
 	if _ := detected_php_shebang(php_shebang_fixtures().no_dependencies, php_spec_prefix(args)) {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	} else {
-		return brew_runtime.bool_value(err.msg() == 'Cannot detect PHP shebang: formula does not depend on PHP.')
+		return ruby.bool_value(err.msg() == 'Cannot detect PHP shebang: formula does not depend on PHP.')
 	}
 }
 
 // Ruby it `it "errors if formula depends on more than one php" do` at line 92.
-pub fn ruby_shebang_spec_l92_d7_errors(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shebang_spec_l92_d7_errors(args ...ruby.Value) ruby.Value {
 	if _ := detected_php_shebang(php_shebang_fixtures().multiple_php_deps, php_spec_prefix(args)) {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	} else {
-		return brew_runtime.bool_value(err.msg() == 'Cannot detect PHP shebang: formula has multiple PHP dependencies.')
+		return ruby.bool_value(err.msg() == 'Cannot detect PHP shebang: formula has multiple PHP dependencies.')
 	}
 }
 

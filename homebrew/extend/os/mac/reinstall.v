@@ -1,6 +1,6 @@
 module mac
 
-import brew_runtime
+import ruby
 
 pub struct MacPkgconfFormula {
 pub:
@@ -133,14 +133,14 @@ pub fn mac_pkgconf_reinstall_fixture(mismatch string, warning string,
 	}
 }
 
-pub fn mac_pkgconf_reinstall_result_value(result MacPkgconfReinstallResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'mismatch_found': brew_runtime.bool_value(result.mismatch_found)
-		'dry_run':        brew_runtime.bool_value(result.dry_run)
-		'reinstalled':    brew_runtime.bool_value(result.reinstalled)
-		'warnings':       brew_runtime.string_array_value(result.warnings)
-		'infos':          brew_runtime.string_array_value(result.infos)
-		'failures':       brew_runtime.string_array_value(result.failures)
+pub fn mac_pkgconf_reinstall_result_value(result MacPkgconfReinstallResult) ruby.Value {
+	return ruby.map_value({
+		'mismatch_found': ruby.bool_value(result.mismatch_found)
+		'dry_run':        ruby.bool_value(result.dry_run)
+		'reinstalled':    ruby.bool_value(result.reinstalled)
+		'warnings':       ruby.string_array_value(result.warnings)
+		'infos':          ruby.string_array_value(result.infos)
+		'failures':       ruby.string_array_value(result.failures)
 	})
 }
 
@@ -148,7 +148,7 @@ pub fn mac_pkgconf_reinstall_result_value(result MacPkgconfReinstallResult) brew
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `reinstall_pkgconf_if_needed!(dry_run: false)` at line 17.
-pub fn ruby_reinstall_l17_d1_reinstall_pkgconf_if_needed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_reinstall_l17_d1_reinstall_pkgconf_if_needed(args ...ruby.Value) ruby.Value {
 	mismatch := if args.len > 0 { args[0].as_string() } else { '' }
 	dry_run := if args.len > 1 { args[1].as_bool() or { panic(err) } } else { false }
 	fail := if args.len > 2 { args[2].as_bool() or { panic(err) } } else { false }

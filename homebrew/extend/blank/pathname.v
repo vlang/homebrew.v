@@ -1,20 +1,20 @@
 module blank
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `extend/blank/pathname.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `blank?` at line 18.
-pub fn ruby_pathname_l18_d1_blank(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pathname_l18_d1_blank(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Pathname#blank? requires a receiver') }
-	return brew_runtime.bool_value(value_is_blank(args[0]))
+	return ruby.bool_value(value_is_blank(args[0]))
 }
 
 // Ruby method `present? = !blank? # :nodoc:` at line 23.
-pub fn ruby_pathname_l23_d2_present(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pathname_l23_d2_present(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Pathname#present? requires a receiver') }
-	return brew_runtime.bool_value(value_is_present(args[0]))
+	return ruby.bool_value(value_is_present(args[0]))
 }
 
 // Original Ruby source (line-for-line):

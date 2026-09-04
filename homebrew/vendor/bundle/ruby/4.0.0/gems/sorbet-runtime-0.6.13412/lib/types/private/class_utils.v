@@ -1,6 +1,6 @@
 module private
 
-import brew_runtime
+import ruby
 import sync
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/private/class_utils.rb`.
@@ -12,7 +12,7 @@ pub:
 	name           string
 	visibility     string
 	owner          string
-	implementation brew_runtime.Value
+	implementation ruby.Value
 	ruby2_keywords bool
 }
 
@@ -41,7 +41,7 @@ fn class_method_key(module_id string, name string) string {
 }
 
 pub fn (mut registry ClassUtilsRegistry) define_method(mod ClassModuleInfo, name string,
-	visibility string, implementation brew_runtime.Value, has_rest bool,
+	visibility string, implementation ruby.Value, has_rest bool,
 	has_keywords bool) !ClassMethodDefinition {
 	clean_visibility := visibility.trim_string_left(':')
 	if clean_visibility !in ['public', 'protected', 'private'] {
@@ -75,7 +75,7 @@ pub fn (mut registry ClassUtilsRegistry) visibility_method_name(module_id string
 }
 
 pub fn (mut registry ClassUtilsRegistry) replace_method(original ClassMethodDefinition,
-	mod ClassModuleInfo, name string, replacement brew_runtime.Value, has_rest bool,
+	mod ClassModuleInfo, name string, replacement ruby.Value, has_rest bool,
 	has_keywords bool) !ClassMethodDefinition {
 	clean_name := name.trim_string_left(':')
 	visibility := registry.visibility_method_name(mod.id, mod.name, clean_name)!
@@ -96,7 +96,7 @@ fn global_class_utils_registry() &ClassUtilsRegistry {
 	return unsafe { &ClassUtilsRegistry(class_utils_registry_global) }
 }
 
-fn class_module_info(value brew_runtime.Value) ClassModuleInfo {
+fn class_module_info(value ruby.Value) ClassModuleInfo {
 	return ClassModuleInfo{
 		id: value.attribute('object_id') or { '${value.type_name}:${value.as_string()}' }
 		name: value.as_string()
@@ -104,8 +104,8 @@ fn class_module_info(value brew_runtime.Value) ClassModuleInfo {
 	}
 }
 
-fn class_definition_value(definition ClassMethodDefinition) brew_runtime.Value {
-	return brew_runtime.Value{
+fn class_definition_value(definition ClassMethodDefinition) ruby.Value {
+	return ruby.Value{
 		type_name: 'UnboundMethod'
 		repr: '${definition.module_name}#${definition.name}'
 		map_data: {
@@ -122,7 +122,7 @@ fn class_definition_value(definition ClassMethodDefinition) brew_runtime.Value {
 	}
 }
 
-fn class_definition_from_value(value brew_runtime.Value) ClassMethodDefinition {
+fn class_definition_from_value(value ruby.Value) ClassMethodDefinition {
 	return ClassMethodDefinition{
 		module_id: value.attribute('module_id') or { value.attribute('owner') or { '' } }
 		module_name: value.attribute('module_name') or { '' }
@@ -134,7 +134,7 @@ fn class_definition_from_value(value brew_runtime.Value) ClassMethodDefinition {
 	}
 }
 
-fn define_method_boundary(args []brew_runtime.Value) brew_runtime.Value {
+fn define_method_boundary(args []ruby.Value) ruby.Value {
 	if args.len < 4 {
 		panic('ClassUtils.def_with_visibility requires module, name, visibility, and method')
 	}
@@ -155,7 +155,7 @@ fn define_method_boundary(args []brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `self.visibility_method_name(mod, name)` at line 13.
-pub fn ruby_class_utils_l13_d1_self_visibility_method_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_class_utils_l13_d1_self_visibility_method_name(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('ClassUtils.visibility_method_name requires module and name')
 	}
@@ -168,31 +168,31 @@ pub fn ruby_class_utils_l13_d1_self_visibility_method_name(args ...brew_runtime.
 		for candidate in ['public', 'protected', 'private'] {
 			methods := args[0].attribute('${candidate}_methods') or { '' }.split(',').map(it.trim_space())
 			if name in methods {
-				return brew_runtime.object_value('Symbol', ':${candidate}')
+				return ruby.object_value('Symbol', ':${candidate}')
 			}
 		}
 		panic(err.msg())
 	}
-	return brew_runtime.object_value('Symbol', ':${visibility}')
+	return ruby.object_value('Symbol', ':${visibility}')
 }
 
 // Ruby method `self.def_with_visibility(mod, name, visibility, method=nil, &block)` at line 31.
-pub fn ruby_class_utils_l31_d2_self_def_with_visibility(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_class_utils_l31_d2_self_def_with_visibility(args ...ruby.Value) ruby.Value {
 	return define_method_boundary(args)
 }
 
 // Ruby define_method `define_method(name, method)` at line 41.
-pub fn ruby_class_utils_l41_d3_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_class_utils_l41_d3_name(args ...ruby.Value) ruby.Value {
 	return define_method_boundary(args)
 }
 
 // Ruby define_method `define_method(name, &block)` at line 43.
-pub fn ruby_class_utils_l43_d4_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_class_utils_l43_d4_name(args ...ruby.Value) ruby.Value {
 	return define_method_boundary(args)
 }
 
 // Ruby method `self.replace_method(original_method, mod, name, &blk)` at line 67.
-pub fn ruby_class_utils_l67_d5_self_replace_method(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_class_utils_l67_d5_self_replace_method(args ...ruby.Value) ruby.Value {
 	if args.len < 4 {
 		panic('ClassUtils.replace_method requires original method, module, name, and replacement')
 	}

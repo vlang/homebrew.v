@@ -1,6 +1,6 @@
 module utils
 
-import brew_runtime
+import ruby
 import math
 
 // Translated from Homebrew/brew `utils/formatter.rb`.
@@ -287,111 +287,111 @@ pub fn formatter_redact_secrets(input string, secrets []string) string {
 }
 
 // Ruby method `self.arrow(string, color: nil)` at line 14.
-pub fn ruby_formatter_l14_d1_self_arrow(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formatter_l14_d1_self_arrow(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Formatter.arrow requires a string') }
 	color := if args.len > 1 && args[1].type_name != 'NilClass' {
 		?string(args[1].as_string())
 	} else {
 		none
 	}
-	return brew_runtime.string_value(formatter_arrow(args[0].as_string(), color, current_tty_state()))
+	return ruby.string_value(formatter_arrow(args[0].as_string(), color, current_tty_state()))
 }
 
 // Ruby method `self.headline(string, color: nil)` at line 23.
-pub fn ruby_formatter_l23_d2_self_headline(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formatter_l23_d2_self_headline(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Formatter.headline requires a string') }
 	color := if args.len > 1 && args[1].type_name != 'NilClass' {
 		?string(args[1].as_string())
 	} else {
 		none
 	}
-	return brew_runtime.string_value(formatter_headline(args[0].as_string(), color, current_tty_state()))
+	return ruby.string_value(formatter_headline(args[0].as_string(), color, current_tty_state()))
 }
 
 // Ruby method `self.identifier(string)` at line 28.
-pub fn ruby_formatter_l28_d3_self_identifier(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formatter_l28_d3_self_identifier(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Formatter.identifier requires an object') }
-	return brew_runtime.string_value(formatter_identifier(args[0].as_string(), current_tty_state()))
+	return ruby.string_value(formatter_identifier(args[0].as_string(), current_tty_state()))
 }
 
 // Ruby method `self.bold(string)` at line 34.
-pub fn ruby_formatter_l34_d4_self_bold(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formatter_l34_d4_self_bold(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Formatter.bold requires a string') }
-	return brew_runtime.string_value(formatter_bold(args[0].as_string(), current_tty_state()))
+	return ruby.string_value(formatter_bold(args[0].as_string(), current_tty_state()))
 }
 
 // Ruby method `self.option(string)` at line 39.
-pub fn ruby_formatter_l39_d5_self_option(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formatter_l39_d5_self_option(args ...ruby.Value) ruby.Value {
 	return ruby_formatter_l34_d4_self_bold(...args)
 }
 
 // Ruby method `self.success(string, label: nil)` at line 47.
-pub fn ruby_formatter_l47_d6_self_success(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formatter_l47_d6_self_success(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Formatter.success requires a string') }
 	label := if args.len > 1 && args[1].type_name != 'NilClass' {
 		?string(args[1].as_string())
 	} else {
 		none
 	}
-	return brew_runtime.string_value(formatter_success(args[0].as_string(), label, current_tty_state()))
+	return ruby.string_value(formatter_success(args[0].as_string(), label, current_tty_state()))
 }
 
 // Ruby method `self.warning(string, label: nil)` at line 55.
-pub fn ruby_formatter_l55_d7_self_warning(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formatter_l55_d7_self_warning(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Formatter.warning requires a string') }
 	label := if args.len > 1 && args[1].type_name != 'NilClass' {
 		?string(args[1].as_string())
 	} else {
 		none
 	}
-	return brew_runtime.string_value(formatter_warning(args[0].as_string(), label, current_tty_state()))
+	return ruby.string_value(formatter_warning(args[0].as_string(), label, current_tty_state()))
 }
 
 // Ruby method `self.error(string, label: nil)` at line 63.
-pub fn ruby_formatter_l63_d8_self_error(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formatter_l63_d8_self_error(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Formatter.error requires a string') }
 	label := if args.len > 1 && args[1].type_name != 'NilClass' {
 		?string(args[1].as_string())
 	} else {
 		none
 	}
-	return brew_runtime.string_value(formatter_error(args[0].as_string(), label, current_tty_state()))
+	return ruby.string_value(formatter_error(args[0].as_string(), label, current_tty_state()))
 }
 
 // Ruby method `self.truncate(string, max: 30, omission: "...")` at line 71.
-pub fn ruby_formatter_l71_d9_self_truncate(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formatter_l71_d9_self_truncate(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Formatter.truncate requires a string') }
 	maximum := if args.len > 1 { int(args[1].as_int() or { panic(err) }) } else { 30 }
 	omission := if args.len > 2 { args[2].as_string() } else { '...' }
-	return brew_runtime.string_value(formatter_truncate(args[0].as_string(), maximum, omission))
+	return ruby.string_value(formatter_truncate(args[0].as_string(), maximum, omission))
 }
 
 // Ruby method `self.format_help_text(string, width: 172)` at line 94.
-pub fn ruby_formatter_l94_d10_self_format_help_text(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formatter_l94_d10_self_format_help_text(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Formatter.format_help_text requires a string') }
 	width := if args.len > 1 { int(args[1].as_int() or { panic(err) }) } else { 172 }
-	return brew_runtime.string_value(formatter_format_help_text(args[0].as_string(), width))
+	return ruby.string_value(formatter_format_help_text(args[0].as_string(), width))
 }
 
 // Ruby method `self.url(string)` at line 105.
-pub fn ruby_formatter_l105_d11_self_url(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formatter_l105_d11_self_url(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Formatter.url requires a string') }
-	return brew_runtime.string_value(formatter_url(args[0].as_string(), current_tty_state()))
+	return ruby.string_value(formatter_url(args[0].as_string(), current_tty_state()))
 }
 
 // Ruby method `self.label(label, string, color)` at line 110.
-pub fn ruby_formatter_l110_d12_self_label(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formatter_l110_d12_self_label(args ...ruby.Value) ruby.Value {
 	if args.len < 3 { panic('Formatter.label requires label, string, and color') }
 	label := if args[0].type_name == 'NilClass' {
 		?string(none)
 	} else {
 		?string(args[0].as_string())
 	}
-	return brew_runtime.string_value(formatter_label(label, args[1].as_string(), args[2].as_string(), current_tty_state()))
+	return ruby.string_value(formatter_label(label, args[1].as_string(), args[2].as_string(), current_tty_state()))
 }
 
 // Ruby method `self.prefix(prefix, string, color)` at line 119.
-pub fn ruby_formatter_l119_d13_self_prefix(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formatter_l119_d13_self_prefix(args ...ruby.Value) ruby.Value {
 	if args.len < 3 { panic('Formatter.prefix requires prefix, string, and color') }
 	prefix := if args[0].type_name == 'NilClass' {
 		?string(none)
@@ -403,20 +403,20 @@ pub fn ruby_formatter_l119_d13_self_prefix(args ...brew_runtime.Value) brew_runt
 	} else {
 		?string(args[2].as_string())
 	}
-	return brew_runtime.string_value(formatter_prefix(prefix, args[1].as_string(), color, current_tty_state()))
+	return ruby.string_value(formatter_prefix(prefix, args[1].as_string(), color, current_tty_state()))
 }
 
 // Ruby method `self.columns(objects, gap_size: 2, min_width: 0)` at line 136.
-pub fn ruby_formatter_l136_d14_self_columns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formatter_l136_d14_self_columns(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Formatter.columns requires objects') }
 	objects := args[0].as_string_array() or { panic(err) }
 	gap := if args.len > 1 { int(args[1].as_int() or { panic(err) }) } else { 2 }
 	minimum := if args.len > 2 { int(args[2].as_int() or { panic(err) }) } else { 0 }
-	return brew_runtime.string_value(formatter_columns(objects, tty_width(), brew_runtime.stdout_is_terminal(), gap, minimum))
+	return ruby.string_value(formatter_columns(objects, tty_width(), ruby.stdout_is_terminal(), gap, minimum))
 }
 
 // Ruby method `self.disk_usage_readable_size_unit(size_in_bytes, precision: nil)` at line 185.
-pub fn ruby_formatter_l185_d15_self_disk_usage_readable_size_unit(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formatter_l185_d15_self_disk_usage_readable_size_unit(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Formatter.disk_usage_readable_size_unit requires a size') }
 	precision := if args.len > 1 && args[1].type_name != 'NilClass' {
 		?int(int(args[1].as_int() or {
@@ -426,30 +426,30 @@ pub fn ruby_formatter_l185_d15_self_disk_usage_readable_size_unit(args ...brew_r
 		none
 	}
 	readable := formatter_disk_usage_readable_size_unit(args[0].as_float() or { panic(err) }, precision)
-	return brew_runtime.structured_value('Array', '[${readable.size}, ${readable.unit}]', {
+	return ruby.structured_value('Array', '[${readable.size}, ${readable.unit}]', {
 		'size': readable.size.str()
 		'unit': readable.unit
 	})
 }
 
 // Ruby method `self.disk_usage_readable(size_in_bytes)` at line 198.
-pub fn ruby_formatter_l198_d16_self_disk_usage_readable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formatter_l198_d16_self_disk_usage_readable(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Formatter.disk_usage_readable requires a size') }
-	return brew_runtime.string_value(formatter_disk_usage_readable(args[0].as_float() or {
+	return ruby.string_value(formatter_disk_usage_readable(args[0].as_float() or {
 		panic(err)
 	}))
 }
 
 // Ruby method `self.number_readable(number)` at line 209.
-pub fn ruby_formatter_l209_d17_self_number_readable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formatter_l209_d17_self_number_readable(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Formatter.number_readable requires a number') }
-	return brew_runtime.string_value(formatter_number_readable(args[0].as_int() or { panic(err) }))
+	return ruby.string_value(formatter_number_readable(args[0].as_int() or { panic(err) }))
 }
 
 // Ruby method `self.redact_secrets(input, secrets)` at line 216.
-pub fn ruby_formatter_l216_d18_self_redact_secrets(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formatter_l216_d18_self_redact_secrets(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Formatter.redact_secrets requires input and secrets') }
-	return brew_runtime.string_value(formatter_redact_secrets(args[0].as_string(), args[1].as_string_array() or {
+	return ruby.string_value(formatter_redact_secrets(args[0].as_string(), args[1].as_string_array() or {
 		panic(err)
 	}))
 }

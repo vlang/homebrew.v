@@ -1,12 +1,12 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `test/dev-cmd/sh_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "runs a shell with the Homebrew environment", :integration_test do` at line 10.
-pub fn ruby_sh_spec_l10_d1_runs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sh_spec_l10_d1_runs(args ...ruby.Value) ruby.Value {
 	preferred_shell := if args.len > 0 { args[0].as_string() } else { '/usr/bin/true' }
 	plan := run_sh_command(ShOptions{
 		preferred_shell: preferred_shell
@@ -17,7 +17,7 @@ pub fn ruby_sh_spec_l10_d1_runs(args ...brew_runtime.Value) brew_runtime.Value {
 		homebrew_library_path: '/homebrew/Library/Homebrew'
 	})
 	notice := plan.environment.notice or { '' }
-	return brew_runtime.bool_value(plan.mode == 'interactive' && !plan.safe
+	return ruby.bool_value(plan.mode == 'interactive' && !plan.safe
 		&& notice.contains('Your shell has been configured') && plan.prompt.command != '')
 }
 

@@ -1,6 +1,6 @@
 module api
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `api/cask.rb`.
@@ -10,7 +10,7 @@ const cask_default_api_filename = 'cask.jws.json'
 
 pub struct CaskApiFetchResult {
 pub:
-	data    brew_runtime.Value
+	data    ruby.Value
 	updated bool
 }
 
@@ -21,7 +21,7 @@ pub:
 	ruby_source_checksum string
 	tap_git_head         string
 	tap_full_name        string
-	config               brew_runtime.Value
+	config               ruby.Value
 }
 
 pub struct LoadedCaskSource {
@@ -29,7 +29,7 @@ pub:
 	token    string
 	path     string
 	contents string
-	config   brew_runtime.Value
+	config   ruby.Value
 }
 
 @[heap]
@@ -39,11 +39,11 @@ pub mut:
 	source_cache_directory string
 	api_domain             string = cask_default_api_domain
 	fetch_results          map[string]CaskApiFetchResult
-	cask_json_cache        map[string]map[string]brew_runtime.Value
-	casks                  map[string]map[string]brew_runtime.Value
+	cask_json_cache        map[string]map[string]ruby.Value
+	casks                  map[string]map[string]ruby.Value
 	casks_loaded           bool
 	renames                map[string]string
-	tap_migrations         map[string]brew_runtime.Value
+	tap_migrations         map[string]ruby.Value
 	tap_migrations_loaded  bool
 	fetched_endpoints      []string
 	last_stale_seconds     ?i64
@@ -62,17 +62,17 @@ pub fn new_cask_api_state(cache_directory string, source_cache_directory string)
 	}
 }
 
-fn cask_nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn cask_nil_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-fn cask_error_value(kind string, message string) brew_runtime.Value {
-	return brew_runtime.structured_value(kind, message, {
+fn cask_error_value(kind string, message string) ruby.Value {
+	return ruby.structured_value(kind, message, {
 		'message': message
 	})
 }
 
-fn cask_value_strings(value brew_runtime.Value) []string {
+fn cask_value_strings(value ruby.Value) []string {
 	if value.string_array_data.len > 0 {
 		return value.string_array_data.clone()
 	}
@@ -92,11 +92,11 @@ fn cask_fetch_json_api_file(mut state CaskApiState, endpoint string, stale_secon
 		return error('No cached or injected API response for ${endpoint}')
 	}
 	return CaskApiFetchResult{
-		data: brew_runtime.parse_json_value(os.read_file(path)!)!
+		data: ruby.parse_json_value(os.read_file(path)!)!
 	}
 }
 
-pub fn cask_json(mut state CaskApiState, name string) !map[string]brew_runtime.Value {
+pub fn cask_json(mut state CaskApiState, name string) !map[string]ruby.Value {
 	if cached := state.cask_json_cache[name] {
 		return cached.clone()
 	}
@@ -110,7 +110,7 @@ pub fn fetch_cask_json(mut state CaskApiState, name string) ! {
 	mut json_cask := result.data
 	if !result.updated {
 		path := os.join_path(state.cache_directory, endpoint)
-		json_cask = brew_runtime.parse_json_value(os.read_file(path)!)!
+		json_cask = ruby.parse_json_value(os.read_file(path)!)!
 	}
 	if json_cask.type_name != 'Hash' {
 		return error('${endpoint} did not contain a cask JSON object')
@@ -182,7 +182,7 @@ pub fn cask_download_and_cache_data(mut state CaskApiState) !bool {
 		return error('${cask_default_api_filename} did not contain an array')
 	}
 	state.renames = map[string]string{}
-	state.casks = map[string]map[string]brew_runtime.Value{}
+	state.casks = map[string]map[string]ruby.Value{}
 	for json_cask in result.data.array_data {
 		if json_cask.type_name != 'Hash' {
 			return error('${cask_default_api_filename} contained a non-object entry')
@@ -192,7 +192,7 @@ pub fn cask_download_and_cache_data(mut state CaskApiState) !bool {
 		}
 		token := token_value.as_string()
 		for old_token in cask_value_strings(json_cask.map_data['old_tokens'] or {
-			brew_runtime.string_array_value([])
+			ruby.string_array_value([])
 		}) {
 			state.renames[old_token] = token
 		}
@@ -204,7 +204,7 @@ pub fn cask_download_and_cache_data(mut state CaskApiState) !bool {
 	return result.updated
 }
 
-pub fn cask_all_casks(mut state CaskApiState) !map[string]map[string]brew_runtime.Value {
+pub fn cask_all_casks(mut state CaskApiState) !map[string]map[string]ruby.Value {
 	if !state.casks_loaded {
 		updated := cask_download_and_cache_data(mut state)!
 		cask_write_names(mut state, updated)!
@@ -212,7 +212,7 @@ pub fn cask_all_casks(mut state CaskApiState) !map[string]map[string]brew_runtim
 	return state.casks.clone()
 }
 
-pub fn cask_tap_migrations(mut state CaskApiState) !map[string]brew_runtime.Value {
+pub fn cask_tap_migrations(mut state CaskApiState) !map[string]ruby.Value {
 	if !state.tap_migrations_loaded {
 		result := cask_fetch_tap_migrations(mut state, none, false)!
 		if result.data.type_name != 'Hash' {
@@ -239,14 +239,14 @@ pub fn cask_write_names(mut state CaskApiState, regenerate bool) ! {
 	}
 }
 
-pub fn cask_api_state_boundary(state &CaskApiState) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::API::Cask', '', {
+pub fn cask_api_state_boundary(state &CaskApiState) ruby.Value {
+	return ruby.structured_value('Homebrew::API::Cask', '', {
 		'cask_api_state_address': u64(voidptr(state)).str()
 	})
 }
 
-pub fn cask_source_boundary(cask CaskSource) brew_runtime.Value {
-	return brew_runtime.structured_value('Cask::Cask', cask.token, {
+pub fn cask_source_boundary(cask CaskSource) ruby.Value {
+	return ruby.structured_value('Cask::Cask', cask.token, {
 		'token':                cask.token
 		'ruby_source_path':     cask.ruby_source_path
 		'ruby_source_checksum': cask.ruby_source_checksum
@@ -257,26 +257,26 @@ pub fn cask_source_boundary(cask CaskSource) brew_runtime.Value {
 	})
 }
 
-fn cask_state_from_args(args []brew_runtime.Value, method string) &CaskApiState {
+fn cask_state_from_args(args []ruby.Value, method string) &CaskApiState {
 	if args.len == 0 || 'cask_api_state_address' !in args[0].attributes {
 		panic('API::Cask.${method} requires translated Cask API state')
 	}
 	return unsafe { &CaskApiState(voidptr(args[0].attributes['cask_api_state_address'].u64())) }
 }
 
-fn cask_source_from_value(value brew_runtime.Value) CaskSource {
+fn cask_source_from_value(value ruby.Value) CaskSource {
 	return CaskSource{
 		token: value.attributes['token'] or { value.repr }
 		ruby_source_path: value.attributes['ruby_source_path'] or { '' }
 		ruby_source_checksum: value.attributes['ruby_source_checksum'] or { '' }
 		tap_git_head: value.attributes['tap_git_head'] or { '' }
 		tap_full_name: value.attributes['tap_full_name'] or { '' }
-		config: brew_runtime.object_value(value.attributes['config_type'] or { 'NilClass' }, value.attributes['config_repr'] or { 'nil' })
+		config: ruby.object_value(value.attributes['config_type'] or { 'NilClass' }, value.attributes['config_repr'] or { 'nil' })
 	}
 }
 
-fn cask_source_download_value(download SourceDownload) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::API::SourceDownload', download.url, {
+fn cask_source_download_value(download SourceDownload) ruby.Value {
+	return ruby.structured_value('Homebrew::API::SourceDownload', download.url, {
 		'url':              download.url
 		'sha256':           download.checksum or { '' }
 		'mirror':           if download.mirrors.len > 0 { download.mirrors[0] } else { '' }
@@ -285,8 +285,8 @@ fn cask_source_download_value(download SourceDownload) brew_runtime.Value {
 	})
 }
 
-fn cask_loaded_source_value(loaded LoadedCaskSource) brew_runtime.Value {
-	return brew_runtime.structured_value('Cask::Cask', loaded.token, {
+fn cask_loaded_source_value(loaded LoadedCaskSource) ruby.Value {
+	return ruby.structured_value('Cask::Cask', loaded.token, {
 		'token':    loaded.token
 		'path':     loaded.path
 		'contents': loaded.contents
@@ -294,27 +294,27 @@ fn cask_loaded_source_value(loaded LoadedCaskSource) brew_runtime.Value {
 	})
 }
 
-fn cask_map_value(values map[string]map[string]brew_runtime.Value) brew_runtime.Value {
-	mut result := map[string]brew_runtime.Value{}
+fn cask_map_value(values map[string]map[string]ruby.Value) ruby.Value {
+	mut result := map[string]ruby.Value{}
 	for key, value in values {
-		result[key] = brew_runtime.map_value(value)
+		result[key] = ruby.map_value(value)
 	}
-	return brew_runtime.map_value(result)
+	return ruby.map_value(result)
 }
 
 // Ruby method `self.cask_json(name)` at line 23.
-pub fn ruby_cask_l23_d1_self_cask_json(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_l23_d1_self_cask_json(args ...ruby.Value) ruby.Value {
 	mut state := cask_state_from_args(args, 'cask_json')
 	if args.len < 2 {
 		return cask_error_value('ArgumentError', 'name is required')
 	}
-	return brew_runtime.map_value(cask_json(mut state, args[1].as_string()) or {
+	return ruby.map_value(cask_json(mut state, args[1].as_string()) or {
 		return cask_error_value('RuntimeError', err.msg())
 	})
 }
 
 // Ruby method `self.fetch_cask_json!(name)` at line 30.
-pub fn ruby_cask_l30_d2_self_fetch_cask_json(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_l30_d2_self_fetch_cask_json(args ...ruby.Value) ruby.Value {
 	mut state := cask_state_from_args(args, 'fetch_cask_json!')
 	if args.len < 2 {
 		return cask_error_value('ArgumentError', 'name is required')
@@ -326,7 +326,7 @@ pub fn ruby_cask_l30_d2_self_fetch_cask_json(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby method `self.source_download(cask, download_queue: nil, enqueue: false)` at line 47.
-pub fn ruby_cask_l47_d3_self_source_download(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_l47_d3_self_source_download(args ...ruby.Value) ruby.Value {
 	mut state := cask_state_from_args(args, 'source_download')
 	if args.len < 2 {
 		return cask_error_value('ArgumentError', 'cask is required')
@@ -336,7 +336,7 @@ pub fn ruby_cask_l47_d3_self_source_download(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby method `self.source_download_for(cask)` at line 62.
-pub fn ruby_cask_l62_d4_self_source_download_for(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_l62_d4_self_source_download_for(args ...ruby.Value) ruby.Value {
 	state := cask_state_from_args(args, 'source_download_for')
 	if args.len < 2 {
 		return cask_error_value('ArgumentError', 'cask is required')
@@ -345,7 +345,7 @@ pub fn ruby_cask_l62_d4_self_source_download_for(args ...brew_runtime.Value) bre
 }
 
 // Ruby method `self.source_download_cask(cask)` at line 80.
-pub fn ruby_cask_l80_d5_self_source_download_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_l80_d5_self_source_download_cask(args ...ruby.Value) ruby.Value {
 	mut state := cask_state_from_args(args, 'source_download_cask')
 	if args.len < 2 {
 		return cask_error_value('ArgumentError', 'cask is required')
@@ -357,13 +357,13 @@ pub fn ruby_cask_l80_d5_self_source_download_cask(args ...brew_runtime.Value) br
 }
 
 // Ruby method `self.cached_json_file_path` at line 88.
-pub fn ruby_cask_l88_d6_self_cached_json_file_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_l88_d6_self_cached_json_file_path(args ...ruby.Value) ruby.Value {
 	state := cask_state_from_args(args, 'cached_json_file_path')
-	return brew_runtime.object_value('Pathname', cask_cached_json_file_path(state))
+	return ruby.object_value('Pathname', cask_cached_json_file_path(state))
 }
 
 // Ruby method `self.fetch_api!(download_queue: nil, stale_seconds: nil, enqueue: false)` at line 96.
-pub fn ruby_cask_l96_d7_self_fetch_api(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_l96_d7_self_fetch_api(args ...ruby.Value) ruby.Value {
 	mut state := cask_state_from_args(args, 'fetch_api!')
 	stale_seconds := if args.len > 1 && args[1].type_name == 'Integer' {
 		?i64(args[1].int_data)
@@ -374,11 +374,11 @@ pub fn ruby_cask_l96_d7_self_fetch_api(args ...brew_runtime.Value) brew_runtime.
 	result := cask_fetch_api(mut state, stale_seconds, enqueue) or {
 		return cask_error_value('RuntimeError', err.msg())
 	}
-	return brew_runtime.array_value([result.data, brew_runtime.bool_value(result.updated)])
+	return ruby.array_value([result.data, ruby.bool_value(result.updated)])
 }
 
 // Ruby method `self.fetch_tap_migrations!(download_queue: nil, stale_seconds: nil, enqueue: false)` at line 104.
-pub fn ruby_cask_l104_d8_self_fetch_tap_migrations(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_l104_d8_self_fetch_tap_migrations(args ...ruby.Value) ruby.Value {
 	mut state := cask_state_from_args(args, 'fetch_tap_migrations!')
 	stale_seconds := if args.len > 1 && args[1].type_name == 'Integer' {
 		?i64(args[1].int_data)
@@ -389,19 +389,19 @@ pub fn ruby_cask_l104_d8_self_fetch_tap_migrations(args ...brew_runtime.Value) b
 	result := cask_fetch_tap_migrations(mut state, stale_seconds, enqueue) or {
 		return cask_error_value('RuntimeError', err.msg())
 	}
-	return brew_runtime.array_value([result.data, brew_runtime.bool_value(result.updated)])
+	return ruby.array_value([result.data, ruby.bool_value(result.updated)])
 }
 
 // Ruby method `self.download_and_cache_data!` at line 109.
-pub fn ruby_cask_l109_d9_self_download_and_cache_data(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_l109_d9_self_download_and_cache_data(args ...ruby.Value) ruby.Value {
 	mut state := cask_state_from_args(args, 'download_and_cache_data!')
-	return brew_runtime.bool_value(cask_download_and_cache_data(mut state) or {
+	return ruby.bool_value(cask_download_and_cache_data(mut state) or {
 		return cask_error_value('RuntimeError', err.msg())
 	})
 }
 
 // Ruby method `self.all_casks` at line 128.
-pub fn ruby_cask_l128_d10_self_all_casks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_l128_d10_self_all_casks(args ...ruby.Value) ruby.Value {
 	mut state := cask_state_from_args(args, 'all_casks')
 	return cask_map_value(cask_all_casks(mut state) or {
 		return cask_error_value('RuntimeError', err.msg())
@@ -409,15 +409,15 @@ pub fn ruby_cask_l128_d10_self_all_casks(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `self.tap_migrations` at line 138.
-pub fn ruby_cask_l138_d11_self_tap_migrations(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_l138_d11_self_tap_migrations(args ...ruby.Value) ruby.Value {
 	mut state := cask_state_from_args(args, 'tap_migrations')
-	return brew_runtime.map_value(cask_tap_migrations(mut state) or {
+	return ruby.map_value(cask_tap_migrations(mut state) or {
 		return cask_error_value('RuntimeError', err.msg())
 	})
 }
 
 // Ruby method `self.write_names(regenerate: false)` at line 148.
-pub fn ruby_cask_l148_d12_self_write_names(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_l148_d12_self_write_names(args ...ruby.Value) ruby.Value {
 	mut state := cask_state_from_args(args, 'write_names')
 	regenerate := args.len > 1 && args[1].bool_data
 	cask_write_names(mut state, regenerate) or {

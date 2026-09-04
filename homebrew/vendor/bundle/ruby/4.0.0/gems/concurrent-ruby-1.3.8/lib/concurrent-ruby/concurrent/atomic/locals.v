@@ -1,6 +1,6 @@
 module atomic
 
-import brew_runtime
+import ruby
 import sync
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/atomic/locals.rb`.
@@ -12,13 +12,13 @@ pub enum LocalScopeKind {
 
 pub struct LocalSlot {
 pub:
-	value brew_runtime.Value
+	value ruby.Value
 }
 
 pub struct LocalFetchResult {
 pub:
 	found bool
-	value brew_runtime.Value
+	value ruby.Value
 }
 
 @[heap]
@@ -49,8 +49,8 @@ pub fn new_fiber_locals() &LocalStorage {
 	return new_local_storage(.fiber)
 }
 
-fn local_nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn local_nil_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 fn (storage &LocalStorage) execution_context_id() u64 {
@@ -64,7 +64,7 @@ fn local_slot_key(context_id u64, index int) string {
 	return '${context_id}:${index}'
 }
 
-pub fn (mut storage LocalStorage) synchronize(action fn() !brew_runtime.Value) !brew_runtime.Value {
+pub fn (mut storage LocalStorage) synchronize(action fn() !ruby.Value) !ruby.Value {
 	storage.mutex.lock()
 	defer {
 		storage.mutex.unlock()
@@ -72,7 +72,7 @@ pub fn (mut storage LocalStorage) synchronize(action fn() !brew_runtime.Value) !
 	return action()!
 }
 
-pub fn (mut storage LocalStorage) weak_synchronize(action fn() !brew_runtime.Value) !brew_runtime.Value {
+pub fn (mut storage LocalStorage) weak_synchronize(action fn() !ruby.Value) !ruby.Value {
 	// V maps are not safe for concurrent mutation, including from cleanup code,
 	// so the CRuby no-lock fast path is represented by the same mutex boundary.
 	return storage.synchronize(action)
@@ -127,7 +127,7 @@ pub fn (mut storage LocalStorage) fetch(index int) LocalFetchResult {
 	}
 }
 
-pub fn (mut storage LocalStorage) set(index int, value brew_runtime.Value) brew_runtime.Value {
+pub fn (mut storage LocalStorage) set(index int, value ruby.Value) ruby.Value {
 	context_id := storage.execution_context_id()
 	storage.mutex.lock()
 	storage.contexts[context_id] = true
@@ -138,7 +138,7 @@ pub fn (mut storage LocalStorage) set(index int, value brew_runtime.Value) brew_
 	return value
 }
 
-pub fn (mut storage LocalStorage) current_locals() ?[]brew_runtime.Value {
+pub fn (mut storage LocalStorage) current_locals() ?[]ruby.Value {
 	context_id := storage.execution_context_id()
 	storage.mutex.lock()
 	defer {
@@ -147,7 +147,7 @@ pub fn (mut storage LocalStorage) current_locals() ?[]brew_runtime.Value {
 	if context_id !in storage.contexts {
 		return none
 	}
-	mut locals := []brew_runtime.Value{len: storage.next_index + 1, init: local_nil_value()}
+	mut locals := []ruby.Value{len: storage.next_index + 1, init: local_nil_value()}
 	for index in 1 .. storage.next_index + 1 {
 		key := local_slot_key(context_id, index)
 		if key in storage.values {
@@ -157,11 +157,11 @@ pub fn (mut storage LocalStorage) current_locals() ?[]brew_runtime.Value {
 	return locals
 }
 
-pub fn (mut storage LocalStorage) current_locals_or_create() []brew_runtime.Value {
+pub fn (mut storage LocalStorage) current_locals_or_create() []ruby.Value {
 	context_id := storage.execution_context_id()
 	storage.mutex.lock()
 	storage.contexts[context_id] = true
-	mut locals := []brew_runtime.Value{len: storage.next_index + 1, init: local_nil_value()}
+	mut locals := []ruby.Value{len: storage.next_index + 1, init: local_nil_value()}
 	for index in 1 .. storage.next_index + 1 {
 		key := local_slot_key(context_id, index)
 		if key in storage.values {
@@ -255,15 +255,15 @@ pub fn (mut finalizer LocalFinalizer) call() {
 	}
 }
 
-pub type LocalDefaultBlock = fn() !brew_runtime.Value
+pub type LocalDefaultBlock = fn() !ruby.Value
 
-pub type LocalBindingBlock = fn() !brew_runtime.Value
+pub type LocalBindingBlock = fn() !ruby.Value
 
-fn empty_local_default_block() !brew_runtime.Value {
+fn empty_local_default_block() !ruby.Value {
 	return local_nil_value()
 }
 
-fn local_value_truthy(value brew_runtime.Value) bool {
+fn local_value_truthy(value ruby.Value) bool {
 	if value.type_name == 'NilClass' {
 		return false
 	}
@@ -278,15 +278,15 @@ pub struct LocalVariable {
 mut:
 	storage                &LocalStorage
 	index                  int
-	default_value          brew_runtime.Value
+	default_value          ruby.Value
 	default_block          LocalDefaultBlock @[required]
 	has_default_block      bool
-	boundary_default_value brew_runtime.Value
+	boundary_default_value ruby.Value
 	has_boundary_default   bool
 	freed                  bool
 }
 
-pub fn new_local_variable(mut storage LocalStorage, default_value brew_runtime.Value) &LocalVariable {
+pub fn new_local_variable(mut storage LocalStorage, default_value ruby.Value) &LocalVariable {
 	index := storage.allocate_index()
 	return &LocalVariable{
 		storage: &storage
@@ -296,7 +296,7 @@ pub fn new_local_variable(mut storage LocalStorage, default_value brew_runtime.V
 	}
 }
 
-pub fn new_local_variable_with_default_block(mut storage LocalStorage, default_value brew_runtime.Value, default_block LocalDefaultBlock) !&LocalVariable {
+pub fn new_local_variable_with_default_block(mut storage LocalStorage, default_value ruby.Value, default_block LocalDefaultBlock) !&LocalVariable {
 	if local_value_truthy(default_value) {
 		return error('Cannot use both value and block as default value')
 	}
@@ -310,7 +310,7 @@ pub fn new_local_variable_with_default_block(mut storage LocalStorage, default_v
 	}
 }
 
-fn new_local_variable_with_boundary_default(mut storage LocalStorage, default_value brew_runtime.Value, block_value brew_runtime.Value) !&LocalVariable {
+fn new_local_variable_with_boundary_default(mut storage LocalStorage, default_value ruby.Value, block_value ruby.Value) !&LocalVariable {
 	if local_value_truthy(default_value) {
 		return error('Cannot use both value and block as default value')
 	}
@@ -325,7 +325,7 @@ fn new_local_variable_with_boundary_default(mut storage LocalStorage, default_va
 	}
 }
 
-pub fn (mut variable LocalVariable) default_current() !brew_runtime.Value {
+pub fn (mut variable LocalVariable) default_current() !ruby.Value {
 	if variable.freed {
 		return error('local variable has been freed')
 	}
@@ -339,7 +339,7 @@ pub fn (mut variable LocalVariable) default_current() !brew_runtime.Value {
 	return variable.default_value
 }
 
-pub fn (mut variable LocalVariable) value() !brew_runtime.Value {
+pub fn (mut variable LocalVariable) value() !ruby.Value {
 	if variable.freed {
 		return error('local variable has been freed')
 	}
@@ -350,14 +350,14 @@ pub fn (mut variable LocalVariable) value() !brew_runtime.Value {
 	return variable.default_current()
 }
 
-pub fn (mut variable LocalVariable) set(value brew_runtime.Value) !brew_runtime.Value {
+pub fn (mut variable LocalVariable) set(value ruby.Value) !ruby.Value {
 	if variable.freed {
 		return error('local variable has been freed')
 	}
 	return variable.storage.set(variable.index, value)
 }
 
-pub fn (mut variable LocalVariable) bind(value brew_runtime.Value, action LocalBindingBlock) !brew_runtime.Value {
+pub fn (mut variable LocalVariable) bind(value ruby.Value, action LocalBindingBlock) !ruby.Value {
 	old_value := variable.value()!
 	variable.set(value)!
 	defer {
@@ -382,13 +382,13 @@ pub fn (variable &LocalVariable) slot_index() int {
 	return variable.index
 }
 
-fn local_storage_boundary(storage &LocalStorage, type_name string) brew_runtime.Value {
-	return brew_runtime.structured_value(type_name, '#<Concurrent::${type_name}>', {
+fn local_storage_boundary(storage &LocalStorage, type_name string) ruby.Value {
+	return ruby.structured_value(type_name, '#<Concurrent::${type_name}>', {
 		'local_storage_address': u64(voidptr(storage)).str()
 	})
 }
 
-fn local_storage_boundary_receiver(args []brew_runtime.Value) &LocalStorage {
+fn local_storage_boundary_receiver(args []ruby.Value) &LocalStorage {
 	if args.len == 0 {
 		panic('local storage method requires a receiver')
 	}
@@ -398,14 +398,14 @@ fn local_storage_boundary_receiver(args []brew_runtime.Value) &LocalStorage {
 	return unsafe { &LocalStorage(voidptr(address)) }
 }
 
-fn local_finalizer_boundary(finalizer &LocalFinalizer) brew_runtime.Value {
-	return brew_runtime.structured_value('Proc', '#<Proc>', {
+fn local_finalizer_boundary(finalizer &LocalFinalizer) ruby.Value {
+	return ruby.structured_value('Proc', '#<Proc>', {
 		'local_finalizer_address': u64(voidptr(finalizer)).str()
 	})
 }
 
 // Ruby method `initialize` at line 36.
-pub fn ruby_locals_l36_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_locals_l36_d1_initialize(args ...ruby.Value) ruby.Value {
 	scope := if args.len > 0 && args[0].as_string().to_lower() == 'fiber' {
 		LocalScopeKind.fiber
 	} else {
@@ -415,7 +415,7 @@ pub fn ruby_locals_l36_d1_initialize(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby method `synchronize` at line 43.
-pub fn ruby_locals_l43_d2_synchronize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_locals_l43_d2_synchronize(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		return local_nil_value()
 	}
@@ -426,23 +426,23 @@ pub fn ruby_locals_l43_d2_synchronize(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby method `weak_synchronize` at line 48.
-pub fn ruby_locals_l48_d3_weak_synchronize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_locals_l48_d3_weak_synchronize(args ...ruby.Value) ruby.Value {
 	return ruby_locals_l43_d2_synchronize(...args)
 }
 
 // Ruby alias_method `alias_method :weak_synchronize, :synchronize` at line 52.
-pub fn ruby_locals_l52_d4_weak_synchronize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_locals_l52_d4_weak_synchronize(args ...ruby.Value) ruby.Value {
 	return ruby_locals_l43_d2_synchronize(...args)
 }
 
 // Ruby method `next_index(local)` at line 55.
-pub fn ruby_locals_l55_d5_next_index(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_locals_l55_d5_next_index(args ...ruby.Value) ruby.Value {
 	mut storage := local_storage_boundary_receiver(args)
-	return brew_runtime.int_value(storage.allocate_index())
+	return ruby.int_value(storage.allocate_index())
 }
 
 // Ruby method `free_index(index)` at line 71.
-pub fn ruby_locals_l71_d6_free_index(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_locals_l71_d6_free_index(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('free_index requires an index')
 	}
@@ -452,7 +452,7 @@ pub fn ruby_locals_l71_d6_free_index(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby method `fetch(index)` at line 89.
-pub fn ruby_locals_l89_d7_fetch(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_locals_l89_d7_fetch(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('fetch requires an index')
 	}
@@ -465,7 +465,7 @@ pub fn ruby_locals_l89_d7_fetch(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `set(index, value)` at line 102.
-pub fn ruby_locals_l102_d8_set(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_locals_l102_d8_set(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('set requires an index and value')
 	}
@@ -474,7 +474,7 @@ pub fn ruby_locals_l102_d8_set(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `local_finalizer(index)` at line 112.
-pub fn ruby_locals_l112_d9_local_finalizer(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_locals_l112_d9_local_finalizer(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('local_finalizer requires an index')
 	}
@@ -483,7 +483,7 @@ pub fn ruby_locals_l112_d9_local_finalizer(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `thread_fiber_finalizer(array_object_id)` at line 119.
-pub fn ruby_locals_l119_d10_thread_fiber_finalizer(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_locals_l119_d10_thread_fiber_finalizer(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('thread_fiber_finalizer requires an array object id')
 	}
@@ -492,35 +492,35 @@ pub fn ruby_locals_l119_d10_thread_fiber_finalizer(args ...brew_runtime.Value) b
 }
 
 // Ruby method `locals` at line 128.
-pub fn ruby_locals_l128_d11_locals(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_locals_l128_d11_locals(args ...ruby.Value) ruby.Value {
 	panic('NotImplementedError: AbstractLocals#locals')
 }
 
 // Ruby method `locals!` at line 133.
-pub fn ruby_locals_l133_d12_locals(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_locals_l133_d12_locals(args ...ruby.Value) ruby.Value {
 	panic('NotImplementedError: AbstractLocals#locals!')
 }
 
 // Ruby method `locals` at line 142.
-pub fn ruby_locals_l142_d13_locals(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_locals_l142_d13_locals(args ...ruby.Value) ruby.Value {
 	mut storage := local_storage_boundary_receiver(args)
 	locals := storage.current_locals() or { return local_nil_value() }
-	return brew_runtime.array_value(locals)
+	return ruby.array_value(locals)
 }
 
 // Ruby method `locals!` at line 146.
-pub fn ruby_locals_l146_d14_locals(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_locals_l146_d14_locals(args ...ruby.Value) ruby.Value {
 	mut storage := local_storage_boundary_receiver(args)
-	return brew_runtime.array_value(storage.current_locals_or_create())
+	return ruby.array_value(storage.current_locals_or_create())
 }
 
 // Ruby method `locals` at line 167.
-pub fn ruby_locals_l167_d15_locals(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_locals_l167_d15_locals(args ...ruby.Value) ruby.Value {
 	return ruby_locals_l142_d13_locals(...args)
 }
 
 // Ruby method `locals!` at line 171.
-pub fn ruby_locals_l171_d16_locals(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_locals_l171_d16_locals(args ...ruby.Value) ruby.Value {
 	return ruby_locals_l146_d14_locals(...args)
 }
 

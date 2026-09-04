@@ -1,6 +1,6 @@
 module bundle
 
-import brew_runtime
+import ruby
 import homebrew.bundle as production_bundle
 import homebrew.bundle.subcommand as production_subcommand
 
@@ -24,9 +24,9 @@ fn list_subcommand_spec_entries() []production_bundle.BundleListEntry {
 	]
 }
 
-fn list_subcommand_spec_flag(args []brew_runtime.Value, index int, name string) bool {
+fn list_subcommand_spec_flag(args []ruby.Value, index int, name string) bool {
 	if args.len > 0 {
-		flags := args[0].as_map() or { map[string]brew_runtime.Value{} }
+		flags := args[0].as_map() or { map[string]ruby.Value{} }
 		if name in flags {
 			return flags[name].as_bool() or { flags[name].as_string() == 'true' }
 		}
@@ -37,7 +37,7 @@ fn list_subcommand_spec_flag(args []brew_runtime.Value, index int, name string) 
 	return false
 }
 
-fn list_subcommand_spec_options(args []brew_runtime.Value) production_subcommand.BundleListCommandOptions {
+fn list_subcommand_spec_options(args []ruby.Value) production_subcommand.BundleListCommandOptions {
 	formulae := list_subcommand_spec_flag(args, 0, 'formulae')
 	casks := list_subcommand_spec_flag(args, 1, 'casks')
 	taps := list_subcommand_spec_flag(args, 2, 'taps')
@@ -62,102 +62,102 @@ fn list_subcommand_spec_options(args []brew_runtime.Value) production_subcommand
 	}
 }
 
-fn list_subcommand_spec_run(args []brew_runtime.Value) []string {
+fn list_subcommand_spec_run(args []ruby.Value) []string {
 	return production_subcommand.run_bundle_list(list_subcommand_spec_entries(), list_subcommand_spec_options(args))
 }
 
 // Ruby subject `subject(:list) do` at line 26.
-pub fn ruby_list_subcommand_spec_l26_d1_list(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(list_subcommand_spec_run(args))
+pub fn ruby_list_subcommand_spec_l26_d1_list(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(list_subcommand_spec_run(args))
 }
 
 // Ruby let `let(:context) { bundle_subcommand_context(:list, no_type_args:) }` at line 30.
-pub fn ruby_list_subcommand_spec_l30_d2_context(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_list_subcommand_spec_l30_d2_context(args ...ruby.Value) ruby.Value {
 	options := list_subcommand_spec_options(args)
-	return brew_runtime.map_value({
-		'subcommand':   brew_runtime.string_value('list')
-		'no_type_args': brew_runtime.bool_value(options.no_type_args)
+	return ruby.map_value({
+		'subcommand':   ruby.string_value('list')
+		'no_type_args': ruby.bool_value(options.no_type_args)
 	})
 }
 
 // Ruby let `let(:args_object) do` at line 31.
-pub fn ruby_list_subcommand_spec_l31_d3_args_object(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_list_subcommand_spec_l31_d3_args_object(args ...ruby.Value) ruby.Value {
 	options := list_subcommand_spec_options(args)
-	return brew_runtime.map_value({
-		'formulae?': brew_runtime.bool_value(options.formulae)
-		'casks?':    brew_runtime.bool_value(options.casks)
-		'taps?':     brew_runtime.bool_value(options.taps)
-		'mas?':      brew_runtime.bool_value(options.extension_types['mas'])
-		'vscode?':   brew_runtime.bool_value(options.extension_types['vscode'])
-		'go?':       brew_runtime.bool_value(options.extension_types['go'])
-		'cargo?':    brew_runtime.bool_value(options.extension_types['cargo'])
-		'uv?':       brew_runtime.bool_value(options.extension_types['uv'])
-		'flatpak?':  brew_runtime.bool_value(false)
-		'all?':      brew_runtime.bool_value(false)
+	return ruby.map_value({
+		'formulae?': ruby.bool_value(options.formulae)
+		'casks?':    ruby.bool_value(options.casks)
+		'taps?':     ruby.bool_value(options.taps)
+		'mas?':      ruby.bool_value(options.extension_types['mas'])
+		'vscode?':   ruby.bool_value(options.extension_types['vscode'])
+		'go?':       ruby.bool_value(options.extension_types['go'])
+		'cargo?':    ruby.bool_value(options.extension_types['cargo'])
+		'uv?':       ruby.bool_value(options.extension_types['uv'])
+		'flatpak?':  ruby.bool_value(false)
+		'all?':      ruby.bool_value(false)
 	})
 }
 
 // Ruby let `let(:no_type_args) { [formulae, casks, taps, mas, vscode, go, cargo, uv].none? }` at line 35.
-pub fn ruby_list_subcommand_spec_l35_d4_no_type_args(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(list_subcommand_spec_options(args).no_type_args)
+pub fn ruby_list_subcommand_spec_l35_d4_no_type_args(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(list_subcommand_spec_options(args).no_type_args)
 }
 
 // Ruby let `let(:formulae) { false }` at line 36.
-pub fn ruby_list_subcommand_spec_l36_d5_formulae(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_list_subcommand_spec_l36_d5_formulae(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 // Ruby let `let(:casks)    { false }` at line 37.
-pub fn ruby_list_subcommand_spec_l37_d6_casks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_list_subcommand_spec_l37_d6_casks(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 // Ruby let `let(:taps)     { false }` at line 38.
-pub fn ruby_list_subcommand_spec_l38_d7_taps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_list_subcommand_spec_l38_d7_taps(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 // Ruby let `let(:mas)      { false }` at line 39.
-pub fn ruby_list_subcommand_spec_l39_d8_mas(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_list_subcommand_spec_l39_d8_mas(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 // Ruby let `let(:vscode)   { false }` at line 40.
-pub fn ruby_list_subcommand_spec_l40_d9_vscode(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_list_subcommand_spec_l40_d9_vscode(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 // Ruby let `let(:go)       { false }` at line 41.
-pub fn ruby_list_subcommand_spec_l41_d10_go(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_list_subcommand_spec_l41_d10_go(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 // Ruby let `let(:cargo)    { false }` at line 42.
-pub fn ruby_list_subcommand_spec_l42_d11_cargo(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_list_subcommand_spec_l42_d11_cargo(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 // Ruby let `let(:uv)       { false }` at line 43.
-pub fn ruby_list_subcommand_spec_l43_d12_uv(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_list_subcommand_spec_l43_d12_uv(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 // Ruby it `it "only shows brew deps when no options are passed" do` at line 65.
-pub fn ruby_list_subcommand_spec_l65_d13_only(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_list_subcommand_spec_l65_d13_only(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(list_subcommand_spec_run([]) == ['mysql'])
+	return ruby.bool_value(list_subcommand_spec_run([]) == ['mysql'])
 }
 
 // Ruby it `it "shows only the requested type(s) for all combinations" do` at line 70.
-pub fn ruby_list_subcommand_spec_l70_d14_shows(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_list_subcommand_spec_l70_d14_shows(args ...ruby.Value) ruby.Value {
 	_ = args
 	types := list_subcommand_spec_types()
 	entries := list_subcommand_spec_entries()
@@ -184,10 +184,10 @@ pub fn ruby_list_subcommand_spec_l70_d14_shows(args ...brew_runtime.Value) brew_
 			}
 		})
 		if actual != expected {
-			return brew_runtime.bool_value(false)
+			return ruby.bool_value(false)
 		}
 	}
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
 // Original Ruby source (line-for-line):

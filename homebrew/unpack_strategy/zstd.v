@@ -1,6 +1,6 @@
 module unpack_strategy
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `unpack_strategy/zstd.rb`.
@@ -39,7 +39,7 @@ pub fn zstd_dependencies() []string {
 }
 
 pub fn zstd_extract_to_dir(path string, unpack_dir string, basename string, verbose bool) ! {
-	target := brew_runtime.join_path(unpack_dir, basename)
+	target := ruby.join_path(unpack_dir, basename)
 	os.cp(path, target)!
 	mut args := []string{}
 	if !verbose { args << '-q' }

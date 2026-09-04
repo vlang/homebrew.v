@@ -1,6 +1,6 @@
 module os
 
-import brew_runtime
+import ruby
 import os as system_os
 
 pub struct LinuxRuntime {
@@ -142,24 +142,24 @@ pub fn (mut runtime LinuxRuntime) languages(localectl_output string,
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `self.os_version` at line 24.
-pub fn ruby_linux_l24_d1_self_os_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_linux_l24_d1_self_os_version(args ...ruby.Value) ruby.Value {
 	lsb_available := args.len > 0 && args[0].bool_data
 	lsb_output := if args.len > 1 { args[1].as_string() } else { '' }
 	fallback := if args.len > 2 { args[2].as_string() } else { '' }
-	return brew_runtime.string_value(linux_os_version(lsb_available, lsb_output, fallback) or { panic(err) })
+	return ruby.string_value(linux_os_version(lsb_available, lsb_output, fallback) or { panic(err) })
 }
 
 // Ruby method `self.wsl?` at line 45.
-pub fn ruby_linux_l45_d2_self_wsl(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(args.len > 0 && args[0].bool_data)
+pub fn ruby_linux_l45_d2_self_wsl(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(args.len > 0 && args[0].bool_data)
 }
 
 // Ruby method `self.inside_docker?` at line 50.
-pub fn ruby_linux_l50_d3_self_inside_docker(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_linux_l50_d3_self_inside_docker(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(linux_inside_docker_current())
+		return ruby.bool_value(linux_inside_docker_current())
 	}
-	return brew_runtime.bool_value(linux_inside_docker(args[0].bool_data, args.len > 1 && args[1].bool_data, args.len > 2 && args[2].bool_data, if args.len > 3 {
+	return ruby.bool_value(linux_inside_docker(args[0].bool_data, args.len > 1 && args[1].bool_data, args.len > 2 && args[2].bool_data, if args.len > 3 {
 		args[3].as_string()
 	} else {
 		''
@@ -167,19 +167,19 @@ pub fn ruby_linux_l50_d3_self_inside_docker(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby method `self.wsl_version` at line 59.
-pub fn ruby_linux_l59_d4_self_wsl_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_linux_l59_d4_self_wsl_version(args ...ruby.Value) ruby.Value {
 	version := linux_wsl_version(args.len > 0 && args[0].bool_data, if args.len > 1 {
 		args[1].as_string()
 	} else {
 		''
 	})
-	return brew_runtime.structured_value('Version', if version == '' { 'NULL' } else { version }, {
+	return ruby.structured_value('Version', if version == '' { 'NULL' } else { version }, {
 		'version': version
 	})
 }
 
 // Ruby method `self.languages` at line 75.
-pub fn ruby_linux_l75_d5_self_languages(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_linux_l75_d5_self_languages(args ...ruby.Value) ruby.Value {
 	output := if args.len > 0 { args[0].as_string() } else { '' }
 	environment := if args.len > 1 {
 		mut result := map[string]string{}
@@ -190,20 +190,20 @@ pub fn ruby_linux_l75_d5_self_languages(args ...brew_runtime.Value) brew_runtime
 	} else {
 		map[string]string{}
 	}
-	return brew_runtime.string_array_value(linux_languages(output, environment))
+	return ruby.string_array_value(linux_languages(output, environment))
 }
 
 // Ruby method `self.language` at line 94.
-pub fn ruby_linux_l94_d6_self_language(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_linux_l94_d6_self_language(args ...ruby.Value) ruby.Value {
 	languages := if args.len > 0 {
 		args[0].as_array() or { [] }.map(it.as_string())
 	} else {
 		linux_languages('', map[string]string{})
 	}
 	if languages.len == 0 {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
-	return brew_runtime.string_value(languages[0])
+	return ruby.string_value(languages[0])
 }
 
 // Original Ruby source (line-for-line):

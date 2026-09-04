@@ -1,6 +1,6 @@
 module test
 
-import brew_runtime
+import ruby
 import homebrew.unpack_strategy
 import os
 import time
@@ -16,8 +16,8 @@ fn unpack_strategy_spec_temp_dir(label string) !string {
 }
 
 fn unpack_strategy_spec_command(program string, arguments []string) ! {
-	executable := brew_runtime.find_executable(program)!
-	result := brew_runtime.run_command(executable, arguments)
+	executable := ruby.find_executable(program)!
+	result := ruby.run_command(executable, arguments)
 	if result.exit_code != 0 {
 		return error('${program}: ${result.output}')
 	}
@@ -62,57 +62,57 @@ fn unpack_strategy_spec_basename_archive() !string {
 	return archive
 }
 
-fn unpack_strategy_spec_path_arg(args []brew_runtime.Value, fallback fn() !string) !string {
+fn unpack_strategy_spec_path_arg(args []ruby.Value, fallback fn() !string) !string {
 	if args.len > 0 && args[0].as_string() != '' {
 		return args[0].as_string()
 	}
 	return fallback()!
 }
 
-fn unpack_strategy_spec_bool_arg(args []brew_runtime.Value, fallback bool) bool {
+fn unpack_strategy_spec_bool_arg(args []ruby.Value, fallback bool) bool {
 	if args.len == 0 {
 		return fallback
 	}
 	return args[0].as_bool() or { fallback }
 }
 
-fn unpack_strategy_spec_result(value bool) brew_runtime.Value {
-	return brew_runtime.bool_value(value)
+fn unpack_strategy_spec_result(value bool) ruby.Value {
+	return ruby.bool_value(value)
 }
 
 // Ruby subject `subject(:strategy) { described_class.detect(path) }` at line 6.
-pub fn ruby_unpack_strategy_spec_l6_d1_strategy(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unpack_strategy_spec_l6_d1_strategy(args ...ruby.Value) ruby.Value {
 	path := unpack_strategy_spec_path_arg(args, unpack_strategy_spec_nested_archive) or {
-		return brew_runtime.object_value('UnpackStrategy', '')
+		return ruby.object_value('UnpackStrategy', '')
 	}
 	strategy := unpack_strategy.detect(path, unpack_strategy.DetectOptions{})
-	return brew_runtime.structured_value('UnpackStrategy', strategy.path, {
+	return ruby.structured_value('UnpackStrategy', strategy.path, {
 		'kind': strategy.kind.str()
 		'path': strategy.path
 	})
 }
 
 // Ruby let `let(:unpack_dir) { mktmpdir }` at line 8.
-pub fn ruby_unpack_strategy_spec_l8_d2_unpack_dir(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unpack_strategy_spec_l8_d2_unpack_dir(args ...ruby.Value) ruby.Value {
 	_ = args
 	path := unpack_strategy_spec_temp_dir('unpack-dir') or { '' }
-	return brew_runtime.object_value('Pathname', path)
+	return ruby.object_value('Pathname', path)
 }
 
 // Ruby let `let(:file_name) { "file" }` at line 11.
-pub fn ruby_unpack_strategy_spec_l11_d3_file_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unpack_strategy_spec_l11_d3_file_name(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('file')
+	return ruby.string_value('file')
 }
 
 // Ruby let `let(:path) do` at line 12.
-pub fn ruby_unpack_strategy_spec_l12_d4_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unpack_strategy_spec_l12_d4_path(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.object_value('Pathname', unpack_strategy_spec_nested_archive() or { '' })
+	return ruby.object_value('Pathname', unpack_strategy_spec_nested_archive() or { '' })
 }
 
 // Ruby it `it "can extract nested archives" do` at line 22.
-pub fn ruby_unpack_strategy_spec_l22_d5_can(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unpack_strategy_spec_l22_d5_can(args ...ruby.Value) ruby.Value {
 	_ = args
 	archive := unpack_strategy_spec_nested_archive() or {
 		return unpack_strategy_spec_result(false)
@@ -133,33 +133,33 @@ pub fn ruby_unpack_strategy_spec_l22_d5_can(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby let `let(:directories) { "A/B/C" }` at line 30.
-pub fn ruby_unpack_strategy_spec_l30_d6_directories(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unpack_strategy_spec_l30_d6_directories(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('A/B/C')
+	return ruby.string_value('A/B/C')
 }
 
 // Ruby let `let(:executable) { "#{directories}/executable" }` at line 31.
-pub fn ruby_unpack_strategy_spec_l31_d7_executable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unpack_strategy_spec_l31_d7_executable(args ...ruby.Value) ruby.Value {
 	directories := if args.len > 0 { args[0].as_string() } else { 'A/B/C' }
-	return brew_runtime.string_value('${directories}/executable')
+	return ruby.string_value('${directories}/executable')
 }
 
 // Ruby let `let(:writable) { true }` at line 32.
-pub fn ruby_unpack_strategy_spec_l32_d8_writable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unpack_strategy_spec_l32_d8_writable(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
 // Ruby let `let(:path) do` at line 33.
-pub fn ruby_unpack_strategy_spec_l33_d9_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unpack_strategy_spec_l33_d9_path(args ...ruby.Value) ruby.Value {
 	writable := unpack_strategy_spec_bool_arg(args, true)
-	return brew_runtime.object_value('Pathname', unpack_strategy_spec_tar_archive(writable) or {
+	return ruby.object_value('Pathname', unpack_strategy_spec_tar_archive(writable) or {
 		''
 	})
 }
 
 // Ruby it `it "does not recurse into nested directories" do` at line 51.
-pub fn ruby_unpack_strategy_spec_l51_d10_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unpack_strategy_spec_l51_d10_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	archive := unpack_strategy_spec_tar_archive(true) or {
 		return unpack_strategy_spec_result(false)
@@ -176,13 +176,13 @@ pub fn ruby_unpack_strategy_spec_l51_d10_does(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby let `let(:writable) { false }` at line 57.
-pub fn ruby_unpack_strategy_spec_l57_d11_writable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unpack_strategy_spec_l57_d11_writable(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 // Ruby it `it "makes them writable but not world-writable" do` at line 59.
-pub fn ruby_unpack_strategy_spec_l59_d12_makes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unpack_strategy_spec_l59_d12_makes(args ...ruby.Value) ruby.Value {
 	_ = args
 	archive := unpack_strategy_spec_tar_archive(false) or {
 		return unpack_strategy_spec_result(false)
@@ -200,7 +200,7 @@ pub fn ruby_unpack_strategy_spec_l59_d12_makes(args ...brew_runtime.Value) brew_
 }
 
 // Ruby it `it "does not make other files writable" do` at line 66.
-pub fn ruby_unpack_strategy_spec_l66_d13_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unpack_strategy_spec_l66_d13_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	archive := unpack_strategy_spec_tar_archive(false) or {
 		return unpack_strategy_spec_result(false)
@@ -219,21 +219,21 @@ pub fn ruby_unpack_strategy_spec_l66_d13_does(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby let `let(:basename) { "file.xyz" }` at line 76.
-pub fn ruby_unpack_strategy_spec_l76_d14_basename(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unpack_strategy_spec_l76_d14_basename(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('file.xyz')
+	return ruby.string_value('file.xyz')
 }
 
 // Ruby let `let(:path) do` at line 77.
-pub fn ruby_unpack_strategy_spec_l77_d15_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unpack_strategy_spec_l77_d15_path(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.object_value('Pathname', unpack_strategy_spec_basename_archive() or {
+	return ruby.object_value('Pathname', unpack_strategy_spec_basename_archive() or {
 		''
 	})
 }
 
 // Ruby it `it "does not pass down the basename of the archive" do` at line 86.
-pub fn ruby_unpack_strategy_spec_l86_d16_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unpack_strategy_spec_l86_d16_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	archive := unpack_strategy_spec_basename_archive() or {
 		return unpack_strategy_spec_result(false)

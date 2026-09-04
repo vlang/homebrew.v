@@ -1,6 +1,6 @@
 module cli
 
-import brew_runtime
+import ruby
 import homebrew.api
 import os
 
@@ -161,7 +161,7 @@ pub fn (args NamedArgs) downcased_unique_named() []string {
 	mut seen := map[string]bool{}
 	mut normalised := []string{}
 	for argument in args.values {
-		candidate := if argument.contains('/') || argument.ends_with('.tar.gz') || brew_runtime.path_exists(argument) {
+		candidate := if argument.contains('/') || argument.ends_with('.tar.gz') || ruby.path_exists(argument) {
 			argument
 		} else {
 			argument.to_lower()
@@ -219,9 +219,9 @@ fn (args NamedArgs) formula_reference(name string, method string) !api.PackageRe
 		_, kegs := args.resolve_kegs(name)!
 		return named_keg_reference(kegs[0])
 	}
-	if brew_runtime.is_file(name) {
+	if ruby.is_file(name) {
 		if name.ends_with('.json') {
-			return api.decode_local_formula_metadata(brew_runtime.read_file(name)!, os.abs_path(name))
+			return api.decode_local_formula_metadata(ruby.read_file(name)!, os.abs_path(name))
 		}
 		return error('FormulaUnreadableError: no Formula loader was provided for `${os.abs_path(name)}`')
 	}

@@ -1,6 +1,6 @@
 module pathname
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `extend/pathname/observer_pathname_extension.rb`.
@@ -131,39 +131,39 @@ pub fn (mut pathname ObservedPathname) uninstall_info() {
 	}
 }
 
-fn observer_state_value(state &ObserverPathnameState) brew_runtime.Value {
-	return brew_runtime.structured_value('ObserverPathnameExtension::State', '', {
+fn observer_state_value(state &ObserverPathnameState) ruby.Value {
+	return ruby.structured_value('ObserverPathnameExtension::State', '', {
 		'observer_state_address': u64(voidptr(state)).str()
 	})
 }
 
-fn observer_state_from_value(value brew_runtime.Value) &ObserverPathnameState {
+fn observer_state_from_value(value ruby.Value) &ObserverPathnameState {
 	address := value.attributes['observer_state_address'] or { panic('invalid observer state') }
 	return unsafe { &ObserverPathnameState(voidptr(address.u64())) }
 }
 
-pub fn observer_pathname_state_boundary(state &ObserverPathnameState) brew_runtime.Value {
+pub fn observer_pathname_state_boundary(state &ObserverPathnameState) ruby.Value {
 	return observer_state_value(state)
 }
 
-fn observed_pathname_value(pathname &ObservedPathname) brew_runtime.Value {
-	return brew_runtime.structured_value('Pathname', pathname.path, {
+fn observed_pathname_value(pathname &ObservedPathname) ruby.Value {
+	return ruby.structured_value('Pathname', pathname.path, {
 		'observed_pathname_address': u64(voidptr(pathname)).str()
 	})
 }
 
-fn observed_pathname_from_value(value brew_runtime.Value) &ObservedPathname {
+fn observed_pathname_from_value(value ruby.Value) &ObservedPathname {
 	address := value.attributes['observed_pathname_address'] or { panic('invalid observed pathname') }
 	return unsafe { &ObservedPathname(voidptr(address.u64())) }
 }
 
-pub fn observed_pathname_boundary(pathname &ObservedPathname) brew_runtime.Value {
+pub fn observed_pathname_boundary(pathname &ObservedPathname) ruby.Value {
 	return observed_pathname_value(pathname)
 }
 
 // Ruby method `n` at line 15.
-pub fn ruby_observer_pathname_extension_l15_d1_n(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(if args.len > 0 {
+pub fn ruby_observer_pathname_extension_l15_d1_n(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(if args.len > 0 {
 		observer_state_from_value(args[0]).n
 	} else {
 		0
@@ -171,9 +171,9 @@ pub fn ruby_observer_pathname_extension_l15_d1_n(args ...brew_runtime.Value) bre
 }
 
 // Ruby attr_writer `attr_writer :n` at line 20.
-pub fn ruby_observer_pathname_extension_l20_d2_n(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_observer_pathname_extension_l20_d2_n(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'state and n are required')
+		return ruby.object_value('ArgumentError', 'state and n are required')
 	}
 	mut state := observer_state_from_value(args[0])
 	state.n = int(args[1].int_data)
@@ -181,8 +181,8 @@ pub fn ruby_observer_pathname_extension_l20_d2_n(args ...brew_runtime.Value) bre
 }
 
 // Ruby method `d` at line 23.
-pub fn ruby_observer_pathname_extension_l23_d3_d(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(if args.len > 0 {
+pub fn ruby_observer_pathname_extension_l23_d3_d(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(if args.len > 0 {
 		observer_state_from_value(args[0]).d
 	} else {
 		0
@@ -190,9 +190,9 @@ pub fn ruby_observer_pathname_extension_l23_d3_d(args ...brew_runtime.Value) bre
 }
 
 // Ruby attr_writer `attr_writer :d` at line 28.
-pub fn ruby_observer_pathname_extension_l28_d4_d(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_observer_pathname_extension_l28_d4_d(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'state and d are required')
+		return ruby.object_value('ArgumentError', 'state and d are required')
 	}
 	mut state := observer_state_from_value(args[0])
 	state.d = int(args[1].int_data)
@@ -200,17 +200,17 @@ pub fn ruby_observer_pathname_extension_l28_d4_d(args ...brew_runtime.Value) bre
 }
 
 // Ruby method `reset_counts!` at line 31.
-pub fn ruby_observer_pathname_extension_l31_d5_reset_counts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_observer_pathname_extension_l31_d5_reset_counts(args ...ruby.Value) ruby.Value {
 	if args.len > 0 {
 		mut state := observer_state_from_value(args[0])
 		state.reset_counts()
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `total` at line 38.
-pub fn ruby_observer_pathname_extension_l38_d6_total(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(if args.len > 0 {
+pub fn ruby_observer_pathname_extension_l38_d6_total(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(if args.len > 0 {
 		observer_state_from_value(args[0]).total()
 	} else {
 		0
@@ -218,85 +218,85 @@ pub fn ruby_observer_pathname_extension_l38_d6_total(args ...brew_runtime.Value)
 }
 
 // Ruby method `counts` at line 43.
-pub fn ruby_observer_pathname_extension_l43_d7_counts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_observer_pathname_extension_l43_d7_counts(args ...ruby.Value) ruby.Value {
 	state := if args.len > 0 {
 		observer_state_from_value(args[0])
 	} else {
 		new_observer_pathname_state(false, false)
 	}
-	return brew_runtime.array_value([
-		brew_runtime.int_value(state.n),
-		brew_runtime.int_value(state.d),
+	return ruby.array_value([
+		ruby.int_value(state.n),
+		ruby.int_value(state.d),
 	])
 }
 
 // Ruby method `verbose?` at line 51.
-pub fn ruby_observer_pathname_extension_l51_d8_verbose(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_observer_pathname_extension_l51_d8_verbose(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	mut state := observer_state_from_value(args[0])
-	return brew_runtime.bool_value(state.verbose_enabled())
+	return ruby.bool_value(state.verbose_enabled())
 }
 
 // Ruby method `unlink` at line 68.
-pub fn ruby_observer_pathname_extension_l68_d9_unlink(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_observer_pathname_extension_l68_d9_unlink(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'pathname is required')
+		return ruby.object_value('ArgumentError', 'pathname is required')
 	}
 	mut pathname := observed_pathname_from_value(args[0])
-	pathname.unlink() or { return brew_runtime.object_value('SystemCallError', err.msg()) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	pathname.unlink() or { return ruby.object_value('SystemCallError', err.msg()) }
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `mkpath` at line 75.
-pub fn ruby_observer_pathname_extension_l75_d10_mkpath(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_observer_pathname_extension_l75_d10_mkpath(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'pathname is required')
+		return ruby.object_value('ArgumentError', 'pathname is required')
 	}
 	mut pathname := observed_pathname_from_value(args[0])
-	pathname.mkpath() or { return brew_runtime.object_value('SystemCallError', err.msg()) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	pathname.mkpath() or { return ruby.object_value('SystemCallError', err.msg()) }
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `rmdir` at line 81.
-pub fn ruby_observer_pathname_extension_l81_d11_rmdir(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_observer_pathname_extension_l81_d11_rmdir(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'pathname is required')
+		return ruby.object_value('ArgumentError', 'pathname is required')
 	}
 	mut pathname := observed_pathname_from_value(args[0])
-	pathname.rmdir() or { return brew_runtime.object_value('SystemCallError', err.msg()) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	pathname.rmdir() or { return ruby.object_value('SystemCallError', err.msg()) }
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `make_relative_symlink(src)` at line 88.
-pub fn ruby_observer_pathname_extension_l88_d12_make_relative_symlink(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_observer_pathname_extension_l88_d12_make_relative_symlink(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'pathname and source are required')
+		return ruby.object_value('ArgumentError', 'pathname and source are required')
 	}
 	mut pathname := observed_pathname_from_value(args[0])
 	pathname.make_relative_symlink(args[1].as_string()) or {
-		return brew_runtime.object_value('SystemCallError', err.msg())
+		return ruby.object_value('SystemCallError', err.msg())
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `install_info` at line 95.
-pub fn ruby_observer_pathname_extension_l95_d13_install_info(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_observer_pathname_extension_l95_d13_install_info(args ...ruby.Value) ruby.Value {
 	if args.len > 0 {
 		mut pathname := observed_pathname_from_value(args[0])
 		pathname.install_info()
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `uninstall_info` at line 101.
-pub fn ruby_observer_pathname_extension_l101_d14_uninstall_info(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_observer_pathname_extension_l101_d14_uninstall_info(args ...ruby.Value) ruby.Value {
 	if args.len > 0 {
 		mut pathname := observed_pathname_from_value(args[0])
 		pathname.uninstall_info()
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Original Ruby source (line-for-line):

@@ -1,30 +1,30 @@
 module test
 
-import brew_runtime
+import ruby
 import homebrew
 
 // Translated from Homebrew/brew `test/hardware_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "returns a specific Zig target CPU for known archs" do` at line 8.
-pub fn ruby_hardware_spec_l8_d1_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_hardware_spec_l8_d1_returns(args ...ruby.Value) ruby.Value {
 	cpu := homebrew.HardwareCpu{platform: 'x86_64'}
 	for arch in homebrew.hardware_optimization_flags(cpu).keys() {
 		if arch != 'dunno' && homebrew.hardware_zig_cpu(arch) == 'baseline' {
-			return brew_runtime.bool_value(false)
+			return ruby.bool_value(false)
 		}
 	}
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
 // Ruby it `it "returns baseline Zig target CPU for unknown arch" do` at line 16.
-pub fn ruby_hardware_spec_l16_d2_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(homebrew.hardware_zig_cpu('dunno') == 'baseline')
+pub fn ruby_hardware_spec_l16_d2_returns(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(homebrew.hardware_zig_cpu('dunno') == 'baseline')
 }
 
 // Ruby it `it "converts GCC -march with dashes to Zig-equivalent target CPU" do` at line 20.
-pub fn ruby_hardware_spec_l20_d3_converts(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(homebrew.hardware_zig_cpu('x86-64-v4') == 'x86_64_v4')
+pub fn ruby_hardware_spec_l20_d3_converts(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(homebrew.hardware_zig_cpu('x86-64-v4') == 'x86_64_v4')
 }
 
 // Original Ruby source (line-for-line):

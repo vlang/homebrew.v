@@ -1,13 +1,13 @@
 module cask
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `extend/os/linux/cask/quarantine.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `available? = false` at line 14.
-pub fn ruby_quarantine_l14_d1_available(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(quarantine_available())
+pub fn ruby_quarantine_l14_d1_available(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(quarantine_available())
 }
 
 pub fn quarantine_available() bool {

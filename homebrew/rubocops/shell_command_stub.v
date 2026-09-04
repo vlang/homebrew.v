@@ -1,6 +1,6 @@
 module rubocops
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `rubocops/shell_command_stub.rb`.
@@ -43,13 +43,13 @@ pub fn audit_shell_command_stub(source string, file_path string) ?ShellCommandSt
 }
 
 // Ruby method `on_send(node)` at line 12.
-pub fn ruby_shell_command_stub_l12_d1_on_send(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shell_command_stub_l12_d1_on_send(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	file_path := if args.len > 1 { args[1].as_string() } else { '/tmp/command.rb' }
 	offense := audit_shell_command_stub(source, file_path) or {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
-	return brew_runtime.structured_value('RuboCop::Cop::Offense', offense.message, {
+	return ruby.structured_value('RuboCop::Cop::Offense', offense.message, {
 		'begin_pos': offense.begin_pos.str()
 		'end_pos':   offense.end_pos.str()
 		'message':   offense.message

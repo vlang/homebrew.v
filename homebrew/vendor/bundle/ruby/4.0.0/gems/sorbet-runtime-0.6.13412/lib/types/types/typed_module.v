@@ -1,12 +1,12 @@
 module types
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/types/typed_module.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `initialize(type)` at line 6.
-pub fn ruby_typed_module_l6_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_typed_module_l6_d1_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('TypedModule#initialize requires a type')
 	}
@@ -14,45 +14,45 @@ pub fn ruby_typed_module_l6_d1_initialize(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby method `type` at line 10.
-pub fn ruby_typed_module_l10_d2_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_typed_module_l10_d2_type(args ...ruby.Value) ruby.Value {
 	return typed_meta_from_args(args, 'Module').type_value
 }
 
 // Ruby method `build_type` at line 14.
-pub fn ruby_typed_module_l14_d3_build_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_typed_module_l14_d3_build_type(args ...ruby.Value) ruby.Value {
 	typed_meta_from_args(args, 'Module').build_type() or { panic(err) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `name` at line 20.
-pub fn ruby_typed_module_l20_d4_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(typed_meta_from_args(args, 'Module').name())
+pub fn ruby_typed_module_l20_d4_name(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(typed_meta_from_args(args, 'Module').name())
 }
 
 // Ruby method `underlying_class` at line 24.
-pub fn ruby_typed_module_l24_d5_underlying_class(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_typed_module_l24_d5_underlying_class(args ...ruby.Value) ruby.Value {
 	typed_meta_from_args(args, 'Module')
-	return brew_runtime.object_value('Class', 'Module')
+	return ruby.object_value('Class', 'Module')
 }
 
 // Ruby method `valid?(obj)` at line 29.
-pub fn ruby_typed_module_l29_d6_valid(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_typed_module_l29_d6_valid(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('TypedModule#valid? requires an object')
 	}
-	return brew_runtime.bool_value(typed_meta_from_args(args, 'Module').valid(args[1]))
+	return ruby.bool_value(typed_meta_from_args(args, 'Module').valid(args[1]))
 }
 
 // Ruby method `subtype_of_single?(type)` at line 34.
-pub fn ruby_typed_module_l34_d7_subtype_of_single(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_typed_module_l34_d7_subtype_of_single(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('TypedModule#subtype_of_single? requires another type')
 	}
-	return brew_runtime.bool_value(typed_meta_from_args(args, 'Module').subtype_of_single(args[1]))
+	return ruby.bool_value(typed_meta_from_args(args, 'Module').subtype_of_single(args[1]))
 }
 
 // Ruby method `self.type_for_module(mod)` at line 58.
-pub fn ruby_typed_module_l58_d8_self_type_for_module(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_typed_module_l58_d8_self_type_for_module(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('TypedModule.type_for_module requires a module')
 	}
@@ -60,12 +60,12 @@ pub fn ruby_typed_module_l58_d8_self_type_for_module(args ...brew_runtime.Value)
 }
 
 // Ruby method `initialize` at line 73.
-pub fn ruby_typed_module_l73_d9_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_typed_module_l73_d9_initialize(args ...ruby.Value) ruby.Value {
 	return typed_meta_value(new_typed_meta_type('Module', base_type_boundary_value(base_untyped_type())))
 }
 
 // Ruby method `freeze` at line 77.
-pub fn ruby_typed_module_l77_d10_freeze(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_typed_module_l77_d10_freeze(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('TypedModule::Untyped#freeze requires a receiver')
 	}
@@ -74,12 +74,12 @@ pub fn ruby_typed_module_l77_d10_freeze(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby method `initialize` at line 88.
-pub fn ruby_typed_module_l88_d11_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_typed_module_l88_d11_initialize(args ...ruby.Value) ruby.Value {
 	return typed_meta_value(new_typed_meta_type('Module', base_type_boundary_value(base_anything_type())))
 }
 
 // Ruby method `freeze` at line 92.
-pub fn ruby_typed_module_l92_d12_freeze(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_typed_module_l92_d12_freeze(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('TypedModule::Anything#freeze requires a receiver')
 	}

@@ -1,6 +1,6 @@
 module bundle
 
-import brew_runtime
+import ruby
 import homebrew.bundle.subcommand as production_exec
 
 // Translated from Homebrew/brew `test/cmd/bundle/exec_subcommand_spec.rb`.
@@ -22,13 +22,13 @@ fn exec_subcommand_spec_context(argv []string) production_exec.BundleExecContext
 	}
 }
 
-fn exec_subcommand_spec_error(context production_exec.BundleExecContext) brew_runtime.Value {
+fn exec_subcommand_spec_error(context production_exec.BundleExecContext) ruby.Value {
 	_ := production_exec.build_bundle_exec_plan(context) or {
-		return brew_runtime.structured_value('RuntimeError', err.msg(), {
+		return ruby.structured_value('RuntimeError', err.msg(), {
 			'message': err.msg()
 		})
 	}
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 fn exec_subcommand_spec_services(launchctl bool) []production_exec.BundleExecServiceInfo {
@@ -62,29 +62,29 @@ fn exec_subcommand_spec_services(launchctl bool) []production_exec.BundleExecSer
 }
 
 // Ruby it `it "raises an error" do` at line 12.
-pub fn ruby_exec_subcommand_spec_l12_d1_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exec_subcommand_spec_l12_d1_raises(args ...ruby.Value) ruby.Value {
 	_ = args
 	return exec_subcommand_spec_error(exec_subcommand_spec_context([]))
 }
 
 // Ruby let `let(:brewfile_contents) { "brew 'openssl'" }` at line 18.
-pub fn ruby_exec_subcommand_spec_l18_d2_brewfile_contents(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exec_subcommand_spec_l18_d2_brewfile_contents(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value("brew 'openssl'")
+	return ruby.string_value("brew 'openssl'")
 }
 
 // Ruby it `it "does not raise an error" do` at line 45.
-pub fn ruby_exec_subcommand_spec_l45_d3_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exec_subcommand_spec_l45_d3_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	plan := production_exec.build_bundle_exec_plan(exec_subcommand_spec_context([
 		'bundle',
 		'install',
-	])) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(plan.argv == ['bundle', 'install'] && plan.execute)
+	])) or { return ruby.bool_value(false) }
+	return ruby.bool_value(plan.argv == ['bundle', 'install'] && plan.execute)
 }
 
 // Ruby it `it "does not raise an error when HOMEBREW_BUNDLE_EXEC_ALL_KEG_ONLY_DEPS is set" do` at line 49.
-pub fn ruby_exec_subcommand_spec_l49_d4_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exec_subcommand_spec_l49_d4_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	base := exec_subcommand_spec_context(['bundle', 'install'])
 	context := production_exec.BundleExecContext{
@@ -96,13 +96,13 @@ pub fn ruby_exec_subcommand_spec_l49_d4_does(args ...brew_runtime.Value) brew_ru
 		}]
 	}
 	plan := production_exec.build_bundle_exec_plan(context) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(plan.environment['PKG_CONFIG_PATH'].contains('openssl/lib/pkgconfig'))
+	return ruby.bool_value(plan.environment['PKG_CONFIG_PATH'].contains('openssl/lib/pkgconfig'))
 }
 
 // Ruby it `it "uses the formula version from the environment variable" do` at line 54.
-pub fn ruby_exec_subcommand_spec_l54_d5_uses(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exec_subcommand_spec_l54_d5_uses(args ...ruby.Value) ruby.Value {
 	_ = args
 	base := exec_subcommand_spec_context(['bundle', 'install'])
 	context := production_exec.BundleExecContext{
@@ -118,24 +118,24 @@ pub fn ruby_exec_subcommand_spec_l54_d5_uses(args ...brew_runtime.Value) brew_ru
 		}]
 	}
 	plan := production_exec.build_bundle_exec_plan(context) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(plan.environment['PATH'].contains('/Cellar/openssl/1.1.1/bin')
+	return ruby.bool_value(plan.environment['PATH'].contains('/Cellar/openssl/1.1.1/bin')
 		&& plan.environment['MANPATH'].contains('/Cellar/openssl/1.1.1/man'))
 }
 
 // Ruby it `it "is able to run without bundle arguments" do` at line 64.
-pub fn ruby_exec_subcommand_spec_l64_d6_is(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exec_subcommand_spec_l64_d6_is(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := production_exec.build_bundle_exec_plan(exec_subcommand_spec_context([
 		'bundle',
 		'install',
-	])) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(result.argv == ['bundle', 'install'])
+	])) or { return ruby.bool_value(false) }
+	return ruby.bool_value(result.argv == ['bundle', 'install'])
 }
 
 // Ruby it `it "runs commands in the requested sandbox" do` at line 69.
-pub fn ruby_exec_subcommand_spec_l69_d7_runs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exec_subcommand_spec_l69_d7_runs(args ...ruby.Value) ruby.Value {
 	_ = args
 	base := exec_subcommand_spec_context(['/usr/bin/true'])
 	context := production_exec.BundleExecContext{
@@ -144,19 +144,19 @@ pub fn ruby_exec_subcommand_spec_l69_d7_runs(args ...brew_runtime.Value) brew_ru
 		deny_network: true
 	}
 	plan := production_exec.build_bundle_exec_plan(context) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(plan.sandbox_path or { '' } == '.' && plan.deny_network)
+	return ruby.bool_value(plan.sandbox_path or { '' } == '.' && plan.deny_network)
 }
 
 // Ruby it `it "raises an exception if called without a command" do` at line 76.
-pub fn ruby_exec_subcommand_spec_l76_d8_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exec_subcommand_spec_l76_d8_raises(args ...ruby.Value) ruby.Value {
 	_ = args
 	return exec_subcommand_spec_error(exec_subcommand_spec_context([]))
 }
 
 // Ruby it `it "removes sensitive environment variables when requested" do` at line 90.
-pub fn ruby_exec_subcommand_spec_l90_d9_removes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exec_subcommand_spec_l90_d9_removes(args ...ruby.Value) ruby.Value {
 	_ = args
 	base := exec_subcommand_spec_context(['/usr/bin/true'])
 	context := production_exec.BundleExecContext{
@@ -168,13 +168,13 @@ pub fn ruby_exec_subcommand_spec_l90_d9_removes(args ...brew_runtime.Value) brew
 		}
 	}
 	plan := production_exec.build_bundle_exec_plan(context) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value('SECRET_TOKEN' !in plan.environment)
+	return ruby.bool_value('SECRET_TOKEN' !in plan.environment)
 }
 
 // Ruby it `it "preserves non-sensitive environment variables when removing secrets" do` at line 99.
-pub fn ruby_exec_subcommand_spec_l99_d10_preserves(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exec_subcommand_spec_l99_d10_preserves(args ...ruby.Value) ruby.Value {
 	_ = args
 	base := exec_subcommand_spec_context(['/usr/bin/true'])
 	context := production_exec.BundleExecContext{
@@ -186,13 +186,13 @@ pub fn ruby_exec_subcommand_spec_l99_d10_preserves(args ...brew_runtime.Value) b
 		}
 	}
 	plan := production_exec.build_bundle_exec_plan(context) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(plan.environment['NORMAL_VAR'] == 'value')
+	return ruby.bool_value(plan.environment['NORMAL_VAR'] == 'value')
 }
 
 // Ruby it `it "outputs the environment variables" do` at line 111.
-pub fn ruby_exec_subcommand_spec_l111_d11_outputs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exec_subcommand_spec_l111_d11_outputs(args ...ruby.Value) ruby.Value {
 	_ = args
 	base := exec_subcommand_spec_context(['env'])
 	context := production_exec.BundleExecContext{
@@ -204,14 +204,14 @@ pub fn ruby_exec_subcommand_spec_l111_d11_outputs(args ...brew_runtime.Value) br
 		}]
 	}
 	plan := production_exec.build_bundle_exec_plan(context) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(!plan.execute && plan.env_output.contains('export PATH="')
+	return ruby.bool_value(!plan.execute && plan.env_output.contains('export PATH="')
 		&& plan.env_output.contains(rune(36).str() + '{PATH:-}'))
 }
 
 // Ruby it `it "raises if called with a command that's not on the PATH" do` at line 119.
-pub fn ruby_exec_subcommand_spec_l119_d12_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exec_subcommand_spec_l119_d12_raises(args ...ruby.Value) ruby.Value {
 	_ = args
 	base := exec_subcommand_spec_context(['bundle', 'install'])
 	return exec_subcommand_spec_error(production_exec.BundleExecContext{
@@ -221,46 +221,46 @@ pub fn ruby_exec_subcommand_spec_l119_d12_raises(args ...brew_runtime.Value) bre
 }
 
 // Ruby it `it "prepends the path of the requested command to PATH before running" do` at line 126.
-pub fn ruby_exec_subcommand_spec_l126_d13_prepends(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exec_subcommand_spec_l126_d13_prepends(args ...ruby.Value) ruby.Value {
 	_ = args
 	plan := production_exec.build_bundle_exec_plan(exec_subcommand_spec_context([
 		'bundle',
 		'install',
-	])) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(plan.environment['PATH'].starts_with('/usr/local/bin:'))
+	])) or { return ruby.bool_value(false) }
+	return ruby.bool_value(plan.environment['PATH'].starts_with('/usr/local/bin:'))
 }
 
 // Ruby let `let(:brewfile_contents) { "brew 'zlib'" }` at line 137.
-pub fn ruby_exec_subcommand_spec_l137_d14_brewfile_contents(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exec_subcommand_spec_l137_d14_brewfile_contents(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value("brew 'zlib'")
+	return ruby.string_value("brew 'zlib'")
 }
 
 // Ruby it `it "does not raise" do` at line 147.
-pub fn ruby_exec_subcommand_spec_l147_d15_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exec_subcommand_spec_l147_d15_does(args ...ruby.Value) ruby.Value {
 	command := if args.len > 0 { args[0].as_string() } else { './configure' }
 	plan := production_exec.build_bundle_exec_plan(exec_subcommand_spec_context([
 		command,
 	])) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(plan.argv == [command])
+	return ruby.bool_value(plan.argv == [command])
 }
 
 // Ruby let `let(:rbenv_root) { Pathname.new("/tmp/.rbenv") }` at line 160.
-pub fn ruby_exec_subcommand_spec_l160_d16_rbenv_root(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exec_subcommand_spec_l160_d16_rbenv_root(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.object_value('Pathname', '/tmp/.rbenv')
+	return ruby.object_value('Pathname', '/tmp/.rbenv')
 }
 
 // Ruby let `let(:brewfile_contents) { "brew 'rbenv'" }` at line 161.
-pub fn ruby_exec_subcommand_spec_l161_d17_brewfile_contents(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exec_subcommand_spec_l161_d17_brewfile_contents(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value("brew 'rbenv'")
+	return ruby.string_value("brew 'rbenv'")
 }
 
 // Ruby it `it "prepends the path of the rbenv shims to PATH before running" do` at line 171.
-pub fn ruby_exec_subcommand_spec_l171_d18_prepends(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exec_subcommand_spec_l171_d18_prepends(args ...ruby.Value) ruby.Value {
 	_ = args
 	base := exec_subcommand_spec_context(['/usr/bin/true'])
 	context := production_exec.BundleExecContext{
@@ -275,21 +275,21 @@ pub fn ruby_exec_subcommand_spec_l171_d18_prepends(args ...brew_runtime.Value) b
 		}]
 	}
 	plan := production_exec.build_bundle_exec_plan(context) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(plan.environment['PATH'].starts_with('/tmp/.rbenv/shims:'))
+	return ruby.bool_value(plan.environment['PATH'].starts_with('/tmp/.rbenv/shims:'))
 }
 
 // Ruby let `let(:brewfile_contents) { "brew 'nginx'\nbrew 'redis'" }` at line 183.
-pub fn ruby_exec_subcommand_spec_l183_d19_brewfile_contents(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exec_subcommand_spec_l183_d19_brewfile_contents(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value("brew 'nginx'\nbrew 'redis'")
+	return ruby.string_value("brew 'nginx'\nbrew 'redis'")
 }
 
 // Ruby let `let(:nginx_formula) do` at line 185.
-pub fn ruby_exec_subcommand_spec_l185_d20_nginx_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exec_subcommand_spec_l185_d20_nginx_formula(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.structured_value('Formula', 'nginx', {
+	return ruby.structured_value('Formula', 'nginx', {
 		'name':         'nginx'
 		'prefix':       '/opt/nginx'
 		'plist_name':   'homebrew.mxcl.nginx'
@@ -299,9 +299,9 @@ pub fn ruby_exec_subcommand_spec_l185_d20_nginx_formula(args ...brew_runtime.Val
 }
 
 // Ruby let `let(:redis_formula) do` at line 202.
-pub fn ruby_exec_subcommand_spec_l202_d21_redis_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exec_subcommand_spec_l202_d21_redis_formula(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.structured_value('Formula', 'redis', {
+	return ruby.structured_value('Formula', 'redis', {
 		'name':                     'redis'
 		'prefix':                   '/opt/redis'
 		'plist_name':               'homebrew.mxcl.redis'
@@ -311,25 +311,25 @@ pub fn ruby_exec_subcommand_spec_l202_d21_redis_formula(args ...brew_runtime.Val
 }
 
 // Ruby let `let(:services_info_pre) do` at line 219.
-pub fn ruby_exec_subcommand_spec_l219_d22_services_info_pre(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exec_subcommand_spec_l219_d22_services_info_pre(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.array_value([
-		brew_runtime.structured_value('ServiceInfo', 'nginx', {
+	return ruby.array_value([
+		ruby.structured_value('ServiceInfo', 'nginx', {
 			'name':    'nginx'
 			'running': 'true'
 			'loaded':  'true'
 		}),
-		brew_runtime.structured_value('ServiceInfo', 'httpd', {
+		ruby.structured_value('ServiceInfo', 'httpd', {
 			'name':    'httpd'
 			'running': 'true'
 			'loaded':  'true'
 		}),
-		brew_runtime.structured_value('ServiceInfo', 'redis', {
+		ruby.structured_value('ServiceInfo', 'redis', {
 			'name':    'redis'
 			'running': 'false'
 			'loaded':  'false'
 		}),
-		brew_runtime.structured_value('ServiceInfo', 'redis@6.2', {
+		ruby.structured_value('ServiceInfo', 'redis@6.2', {
 			'name':       'redis@6.2'
 			'running':    'true'
 			'loaded':     'true'
@@ -339,25 +339,25 @@ pub fn ruby_exec_subcommand_spec_l219_d22_services_info_pre(args ...brew_runtime
 }
 
 // Ruby let `let(:services_info_post) do` at line 228.
-pub fn ruby_exec_subcommand_spec_l228_d23_services_info_post(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exec_subcommand_spec_l228_d23_services_info_post(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.array_value([
-		brew_runtime.structured_value('ServiceInfo', 'nginx', {
+	return ruby.array_value([
+		ruby.structured_value('ServiceInfo', 'nginx', {
 			'name':    'nginx'
 			'running': 'true'
 			'loaded':  'true'
 		}),
-		brew_runtime.structured_value('ServiceInfo', 'httpd', {
+		ruby.structured_value('ServiceInfo', 'httpd', {
 			'name':    'httpd'
 			'running': 'false'
 			'loaded':  'false'
 		}),
-		brew_runtime.structured_value('ServiceInfo', 'redis', {
+		ruby.structured_value('ServiceInfo', 'redis', {
 			'name':    'redis'
 			'running': 'true'
 			'loaded':  'true'
 		}),
-		brew_runtime.structured_value('ServiceInfo', 'redis@6.2', {
+		ruby.structured_value('ServiceInfo', 'redis@6.2', {
 			'name':       'redis@6.2'
 			'running':    'false'
 			'loaded':     'false'
@@ -367,7 +367,7 @@ pub fn ruby_exec_subcommand_spec_l228_d23_services_info_post(args ...brew_runtim
 }
 
 // Ruby it `it "handles service lifecycle correctly" do` at line 255.
-pub fn ruby_exec_subcommand_spec_l255_d24_handles(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exec_subcommand_spec_l255_d24_handles(args ...ruby.Value) ruby.Value {
 	launchctl := if args.len > 0 { args[0].bool_data } else { true }
 	base := exec_subcommand_spec_context(['/usr/bin/true'])
 	context := production_exec.BundleExecContext{
@@ -377,9 +377,9 @@ pub fn ruby_exec_subcommand_spec_l255_d24_handles(args ...brew_runtime.Value) br
 	}
 	mut runtime := production_exec.BundleExecRuntime{}
 	_ := production_exec.execute_bundle_exec(context, mut runtime, production_exec.recording_bundle_exec_command, production_exec.recording_bundle_exec_service) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(runtime.service_operations.map('${it.kind}:${it.name}') == [
+	return ruby.bool_value(runtime.service_operations.map('${it.kind}:${it.name}') == [
 		'stop:nginx',
 		'stop:httpd',
 		'run:nginx',
@@ -392,27 +392,27 @@ pub fn ruby_exec_subcommand_spec_l255_d24_handles(args ...brew_runtime.Value) br
 }
 
 // Ruby let `let(:nginx_service_file) { nginx_formula.any_installed_prefix/"#{nginx_formula.plist_name}.plist" }` at line 311.
-pub fn ruby_exec_subcommand_spec_l311_d25_nginx_service_file(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exec_subcommand_spec_l311_d25_nginx_service_file(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.object_value('Pathname', '/opt/nginx/homebrew.mxcl.nginx.plist')
+	return ruby.object_value('Pathname', '/opt/nginx/homebrew.mxcl.nginx.plist')
 }
 
 // Ruby let `let(:redis_service_file) { redis_formula.any_installed_prefix/"#{redis_formula.plist_name}.plist" }` at line 312.
-pub fn ruby_exec_subcommand_spec_l312_d26_redis_service_file(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exec_subcommand_spec_l312_d26_redis_service_file(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.object_value('Pathname', '/opt/redis/homebrew.mxcl.redis.plist')
+	return ruby.object_value('Pathname', '/opt/redis/homebrew.mxcl.redis.plist')
 }
 
 // Ruby let `let(:nginx_service_file) { nginx_formula.any_installed_prefix/"#{nginx_formula.service_name}.service" }` at line 322.
-pub fn ruby_exec_subcommand_spec_l322_d27_nginx_service_file(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exec_subcommand_spec_l322_d27_nginx_service_file(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.object_value('Pathname', '/opt/nginx/nginx.service')
+	return ruby.object_value('Pathname', '/opt/nginx/nginx.service')
 }
 
 // Ruby let `let(:redis_service_file) { redis_formula.any_installed_prefix/"#{redis_formula.service_name}.service" }` at line 323.
-pub fn ruby_exec_subcommand_spec_l323_d28_redis_service_file(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_exec_subcommand_spec_l323_d28_redis_service_file(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.object_value('Pathname', '/opt/redis/redis.service')
+	return ruby.object_value('Pathname', '/opt/redis/redis.service')
 }
 
 // Original Ruby source (line-for-line):

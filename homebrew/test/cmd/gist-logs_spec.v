@@ -1,49 +1,49 @@
 module cmd
 
-import brew_runtime
+import ruby
 import homebrew.cmd as production_cmd
 
 // Translated from Homebrew/brew `test/cmd/gist-logs_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:glue) { "\n[...snip...]\n" }` at line 11.
-pub fn ruby_gist_logs_spec_l11_d1_glue(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(production_cmd.gist_logs_glue)
+pub fn ruby_gist_logs_spec_l11_d1_glue(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(production_cmd.gist_logs_glue)
 }
 
 // Ruby it `it "truncates long text to approximate size" do` at line 13.
-pub fn ruby_gist_logs_spec_l13_d2_truncates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_gist_logs_spec_l13_d2_truncates(args ...ruby.Value) ruby.Value {
 	text := if args.len > 0 { args[0].as_string() } else { 'x'.repeat(40) }
 	max_bytes := if args.len > 1 { int(args[1].as_int() or { 20 }) } else { 20 }
 	result := production_cmd.truncate_text_to_approximate_size(text, max_bytes, 0.5) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	front_and_back := result.starts_with('x') && result.ends_with('x')
-	return brew_runtime.bool_value(result.len == max_bytes
+	return ruby.bool_value(result.len == max_bytes
 		&& result.contains(production_cmd.gist_logs_glue)
 		&& front_and_back)
 }
 
 // Ruby it `it "respects front_weight: 0.0" do` at line 22.
-pub fn ruby_gist_logs_spec_l22_d3_respects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_gist_logs_spec_l22_d3_respects(args ...ruby.Value) ruby.Value {
 	text := if args.len > 0 { args[0].as_string() } else { 'x'.repeat(40) }
 	max_bytes := if args.len > 1 { int(args[1].as_int() or { 20 }) } else { 20 }
 	result := production_cmd.truncate_text_to_approximate_size(text, max_bytes, 0.0) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	expected := production_cmd.gist_logs_glue + 'x'.repeat(max_bytes - production_cmd.gist_logs_glue.len)
-	return brew_runtime.bool_value(result == expected)
+	return ruby.bool_value(result == expected)
 }
 
 // Ruby it `it "respects front_weight: 1.0" do` at line 30.
-pub fn ruby_gist_logs_spec_l30_d4_respects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_gist_logs_spec_l30_d4_respects(args ...ruby.Value) ruby.Value {
 	text := if args.len > 0 { args[0].as_string() } else { 'x'.repeat(40) }
 	max_bytes := if args.len > 1 { int(args[1].as_int() or { 20 }) } else { 20 }
 	result := production_cmd.truncate_text_to_approximate_size(text, max_bytes, 1.0) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	expected := 'x'.repeat(max_bytes - production_cmd.gist_logs_glue.len) + production_cmd.gist_logs_glue
-	return brew_runtime.bool_value(result == expected)
+	return ruby.bool_value(result == expected)
 }
 
 // Original Ruby source (line-for-line):

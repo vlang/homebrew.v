@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 import homebrew as brew
 import json2
 
@@ -198,25 +198,25 @@ pub:
 	error    string
 }
 
-fn bump_nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', '')
+fn bump_nil_value() ruby.Value {
+	return ruby.object_value('NilClass', '')
 }
 
-fn bump_map_string(values map[string]brew_runtime.Value, key string, fallback string) string {
-	return (values[key] or { brew_runtime.string_value(fallback) }).as_string()
+fn bump_map_string(values map[string]ruby.Value, key string, fallback string) string {
+	return (values[key] or { ruby.string_value(fallback) }).as_string()
 }
 
-fn bump_map_bool(values map[string]brew_runtime.Value, key string, fallback bool) bool {
+fn bump_map_bool(values map[string]ruby.Value, key string, fallback bool) bool {
 	value := values[key] or { return fallback }
 	return if value.type_name == 'Bool' { value.bool_data } else { fallback }
 }
 
-fn bump_map_int(values map[string]brew_runtime.Value, key string, fallback int) int {
+fn bump_map_int(values map[string]ruby.Value, key string, fallback int) int {
 	value := values[key] or { return fallback }
 	return if value.type_name == 'Integer' { int(value.int_data) } else { fallback }
 }
 
-fn bump_string_map_from_value(value brew_runtime.Value) map[string]string {
+fn bump_string_map_from_value(value ruby.Value) map[string]string {
 	mut result := map[string]string{}
 	for key, item in value.map_data {
 		result[key] = item.as_string()
@@ -224,7 +224,7 @@ fn bump_string_map_from_value(value brew_runtime.Value) map[string]string {
 	return result
 }
 
-fn bump_bool_map_from_value(value brew_runtime.Value) map[string]bool {
+fn bump_bool_map_from_value(value ruby.Value) map[string]bool {
 	mut result := map[string]bool{}
 	for key, item in value.map_data {
 		result[key] = item.bool_data
@@ -232,42 +232,42 @@ fn bump_bool_map_from_value(value brew_runtime.Value) map[string]bool {
 	return result
 }
 
-fn bump_string_map_value(values map[string]string) brew_runtime.Value {
-	mut result := map[string]brew_runtime.Value{}
+fn bump_string_map_value(values map[string]string) ruby.Value {
+	mut result := map[string]ruby.Value{}
 	for key, value in values {
-		result[key] = brew_runtime.string_value(value)
+		result[key] = ruby.string_value(value)
 	}
-	return brew_runtime.map_value(result)
+	return ruby.map_value(result)
 }
 
-fn bump_bool_map_value(values map[string]bool) brew_runtime.Value {
-	mut result := map[string]brew_runtime.Value{}
+fn bump_bool_map_value(values map[string]bool) ruby.Value {
+	mut result := map[string]ruby.Value{}
 	for key, value in values {
-		result[key] = brew_runtime.bool_value(value)
+		result[key] = ruby.bool_value(value)
 	}
-	return brew_runtime.map_value(result)
+	return ruby.map_value(result)
 }
 
-fn bump_release_value(release BumpRelease) brew_runtime.Value {
-	return brew_runtime.Value{
+fn bump_release_value(release BumpRelease) ruby.Value {
+	return ruby.Value{
 		type_name: 'Release'
 		repr: release.version
 		map_data: {
-			'version':         brew_runtime.string_value(release.version)
-			'released_at':     brew_runtime.int_value(release.released_at)
-			'prerelease':      brew_runtime.bool_value(release.prerelease)
-			'yanked':          brew_runtime.bool_value(release.yanked)
-			'artifact_suffix': brew_runtime.string_value(release.artifact_suffix)
-			'platform':        brew_runtime.string_value(release.platform)
+			'version':         ruby.string_value(release.version)
+			'released_at':     ruby.int_value(release.released_at)
+			'prerelease':      ruby.bool_value(release.prerelease)
+			'yanked':          ruby.bool_value(release.yanked)
+			'artifact_suffix': ruby.string_value(release.artifact_suffix)
+			'platform':        ruby.string_value(release.platform)
 		}
 	}
 }
 
-fn bump_release_from_value(value brew_runtime.Value) BumpRelease {
+fn bump_release_from_value(value ruby.Value) BumpRelease {
 	values := value.map_data.clone()
 	return BumpRelease{
 		version: bump_map_string(values, 'version', value.repr)
-		released_at: (values['released_at'] or { brew_runtime.int_value(0) }).int_data
+		released_at: (values['released_at'] or { ruby.int_value(0) }).int_data
 		prerelease: bump_map_bool(values, 'prerelease', false)
 		yanked: bump_map_bool(values, 'yanked', false)
 		artifact_suffix: bump_map_string(values, 'artifact_suffix', '')
@@ -275,25 +275,25 @@ fn bump_release_from_value(value brew_runtime.Value) BumpRelease {
 	}
 }
 
-fn bump_resource_value(resource BumpResource) brew_runtime.Value {
-	return brew_runtime.Value{
+fn bump_resource_value(resource BumpResource) ruby.Value {
+	return ruby.Value{
 		type_name: 'Resource'
 		repr: resource.name
 		map_data: {
-			'name':                brew_runtime.string_value(resource.name)
-			'current_version':     brew_runtime.string_value(resource.current_version)
-			'livecheck_defined':   brew_runtime.bool_value(resource.livecheck_defined)
-			'livecheck_skip':      brew_runtime.bool_value(resource.livecheck_skip)
-			'tracks_parent':       brew_runtime.bool_value(resource.tracks_parent)
-			'latest_version':      brew_runtime.string_value(resource.latest_version)
-			'livecheck_error':     brew_runtime.bool_value(resource.livecheck_error)
-			'outdated':            brew_runtime.bool_value(resource.outdated)
-			'newer_than_upstream': brew_runtime.bool_value(resource.newer_than_upstream)
+			'name':                ruby.string_value(resource.name)
+			'current_version':     ruby.string_value(resource.current_version)
+			'livecheck_defined':   ruby.bool_value(resource.livecheck_defined)
+			'livecheck_skip':      ruby.bool_value(resource.livecheck_skip)
+			'tracks_parent':       ruby.bool_value(resource.tracks_parent)
+			'latest_version':      ruby.string_value(resource.latest_version)
+			'livecheck_error':     ruby.bool_value(resource.livecheck_error)
+			'outdated':            ruby.bool_value(resource.outdated)
+			'newer_than_upstream': ruby.bool_value(resource.newer_than_upstream)
 		}
 	}
 }
 
-fn bump_resource_from_value(value brew_runtime.Value) BumpResource {
+fn bump_resource_from_value(value ruby.Value) BumpResource {
 	values := value.map_data.clone()
 	return BumpResource{
 		name: bump_map_string(values, 'name', value.repr)
@@ -308,80 +308,80 @@ fn bump_resource_from_value(value brew_runtime.Value) BumpResource {
 	}
 }
 
-pub fn bump_package_value(package BumpPackage) brew_runtime.Value {
-	mut releases := []brew_runtime.Value{}
+pub fn bump_package_value(package BumpPackage) ruby.Value {
+	mut releases := []ruby.Value{}
 	for release in package.releases {
 		releases << bump_release_value(release)
 	}
-	mut resources := []brew_runtime.Value{}
+	mut resources := []ruby.Value{}
 	for resource in package.resources {
 		resources << bump_resource_value(resource)
 	}
-	mut pull_requests := []brew_runtime.Value{}
+	mut pull_requests := []ruby.Value{}
 	for pull_request in package.pull_requests {
-		pull_requests << brew_runtime.map_value({
-			'title':   brew_runtime.string_value(pull_request.title)
-			'url':     brew_runtime.string_value(pull_request.url)
-			'version': brew_runtime.string_value(pull_request.version)
+		pull_requests << ruby.map_value({
+			'title':   ruby.string_value(pull_request.title)
+			'url':     ruby.string_value(pull_request.url)
+			'version': ruby.string_value(pull_request.version)
 		})
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: if package.kind == .formula { 'Formula' } else { 'Cask' }
 		repr: package.name
 		map_data: {
-			'kind':                       brew_runtime.string_value(package.kind.str())
-			'name':                       brew_runtime.string_value(package.name)
-			'full_name':                  brew_runtime.string_value(package.full_name)
-			'tap_name':                   brew_runtime.string_value(package.tap_name)
-			'tap_remote_repository':      brew_runtime.string_value(package.tap_remote_repository)
-			'version':                    brew_runtime.string_value(package.version)
+			'kind':                       ruby.string_value(package.kind.str())
+			'name':                       ruby.string_value(package.name)
+			'full_name':                  ruby.string_value(package.full_name)
+			'tap_name':                   ruby.string_value(package.tap_name)
+			'tap_remote_repository':      ruby.string_value(package.tap_remote_repository)
+			'version':                    ruby.string_value(package.version)
 			'current_versions':           bump_string_map_value(package.current_versions)
 			'latest_versions':            bump_string_map_value(package.latest_versions)
 			'latest_throttled_versions':  bump_string_map_value(package.latest_throttled_versions)
 			'deprecated':                 bump_bool_map_value(package.deprecated)
-			'disabled':                   brew_runtime.bool_value(package.disabled)
-			'head_only':                  brew_runtime.bool_value(package.head_only)
-			'latest_cask':                brew_runtime.bool_value(package.latest_cask)
-			'allow_bump':                 brew_runtime.bool_value(package.allow_bump)
-			'on_system_blocks':           brew_runtime.bool_value(package.on_system_blocks)
-			'supported_archs':            brew_runtime.string_array_value(package.supported_archs)
-			'livecheck_defined':          brew_runtime.bool_value(package.livecheck_defined)
-			'livecheck_skip_status':      brew_runtime.string_value(package.livecheck_skip_status)
-			'livecheck_skip_messages':    brew_runtime.string_array_value(package.livecheck_skip_messages)
-			'livecheck_strategy':         brew_runtime.string_value(package.livecheck_strategy)
-			'livecheck_original_url':     brew_runtime.string_value(package.livecheck_original_url)
-			'livecheck_artifact_suffix':  brew_runtime.string_value(package.livecheck_artifact_suffix)
-			'livecheck_throttled':        brew_runtime.bool_value(package.livecheck_throttled)
-			'releases':                   brew_runtime.array_value(releases)
-			'repology_latest':            brew_runtime.string_value(package.repology_latest)
-			'installed':                  brew_runtime.bool_value(package.installed)
-			'autobumped':                 brew_runtime.bool_value(package.autobumped)
-			'resources':                  brew_runtime.array_value(resources)
-			'pull_requests':              brew_runtime.array_value(pull_requests)
+			'disabled':                   ruby.bool_value(package.disabled)
+			'head_only':                  ruby.bool_value(package.head_only)
+			'latest_cask':                ruby.bool_value(package.latest_cask)
+			'allow_bump':                 ruby.bool_value(package.allow_bump)
+			'on_system_blocks':           ruby.bool_value(package.on_system_blocks)
+			'supported_archs':            ruby.string_array_value(package.supported_archs)
+			'livecheck_defined':          ruby.bool_value(package.livecheck_defined)
+			'livecheck_skip_status':      ruby.string_value(package.livecheck_skip_status)
+			'livecheck_skip_messages':    ruby.string_array_value(package.livecheck_skip_messages)
+			'livecheck_strategy':         ruby.string_value(package.livecheck_strategy)
+			'livecheck_original_url':     ruby.string_value(package.livecheck_original_url)
+			'livecheck_artifact_suffix':  ruby.string_value(package.livecheck_artifact_suffix)
+			'livecheck_throttled':        ruby.bool_value(package.livecheck_throttled)
+			'releases':                   ruby.array_value(releases)
+			'repology_latest':            ruby.string_value(package.repology_latest)
+			'installed':                  ruby.bool_value(package.installed)
+			'autobumped':                 ruby.bool_value(package.autobumped)
+			'resources':                  ruby.array_value(resources)
+			'pull_requests':              ruby.array_value(pull_requests)
 			'synced_versions':            bump_string_map_value(package.synced_versions)
-			'throttle':                   brew_runtime.bool_value(package.throttle)
-			'github_api_errors':          brew_runtime.int_value(package.github_api_errors)
-			'github_authentication_fail': brew_runtime.bool_value(package.github_authentication_fail)
-			'too_many_open_prs':          brew_runtime.bool_value(package.too_many_open_prs)
+			'throttle':                   ruby.bool_value(package.throttle)
+			'github_api_errors':          ruby.int_value(package.github_api_errors)
+			'github_authentication_fail': ruby.bool_value(package.github_authentication_fail)
+			'too_many_open_prs':          ruby.bool_value(package.too_many_open_prs)
 		}
 	}
 }
 
-fn bump_package_from_value(value brew_runtime.Value) !BumpPackage {
+fn bump_package_from_value(value ruby.Value) !BumpPackage {
 	if value.type_name !in ['Formula', 'Cask', 'Hash', 'BumpPackage'] {
 		return error('expected Formula or Cask, got ${value.type_name}')
 	}
 	values := value.map_data.clone()
 	mut releases := []BumpRelease{}
-	for release in (values['releases'] or { brew_runtime.array_value([]) }).as_array() or { [] } {
+	for release in (values['releases'] or { ruby.array_value([]) }).as_array() or { [] } {
 		releases << bump_release_from_value(release)
 	}
 	mut resources := []BumpResource{}
-	for resource in (values['resources'] or { brew_runtime.array_value([]) }).as_array() or { [] } {
+	for resource in (values['resources'] or { ruby.array_value([]) }).as_array() or { [] } {
 		resources << bump_resource_from_value(resource)
 	}
 	mut pull_requests := []BumpPullRequest{}
-	for pull_request in (values['pull_requests'] or { brew_runtime.array_value([]) }).as_array() or { [] } {
+	for pull_request in (values['pull_requests'] or { ruby.array_value([]) }).as_array() or { [] } {
 		pr_values := pull_request.map_data.clone()
 		pull_requests << BumpPullRequest{
 			title: bump_map_string(pr_values, 'title', '')
@@ -401,19 +401,19 @@ fn bump_package_from_value(value brew_runtime.Value) !BumpPackage {
 		tap_name: bump_map_string(values, 'tap_name', '')
 		tap_remote_repository: bump_map_string(values, 'tap_remote_repository', '')
 		version: bump_map_string(values, 'version', '')
-		current_versions: bump_string_map_from_value(values['current_versions'] or { brew_runtime.map_value({}) })
-		latest_versions: bump_string_map_from_value(values['latest_versions'] or { brew_runtime.map_value({}) })
-		latest_throttled_versions: bump_string_map_from_value(values['latest_throttled_versions'] or { brew_runtime.map_value({}) })
-		deprecated: bump_bool_map_from_value(values['deprecated'] or { brew_runtime.map_value({}) })
+		current_versions: bump_string_map_from_value(values['current_versions'] or { ruby.map_value({}) })
+		latest_versions: bump_string_map_from_value(values['latest_versions'] or { ruby.map_value({}) })
+		latest_throttled_versions: bump_string_map_from_value(values['latest_throttled_versions'] or { ruby.map_value({}) })
+		deprecated: bump_bool_map_from_value(values['deprecated'] or { ruby.map_value({}) })
 		disabled: bump_map_bool(values, 'disabled', false)
 		head_only: bump_map_bool(values, 'head_only', false)
 		latest_cask: bump_map_bool(values, 'latest_cask', false)
 		allow_bump: bump_map_bool(values, 'allow_bump', true)
 		on_system_blocks: bump_map_bool(values, 'on_system_blocks', false)
-		supported_archs: (values['supported_archs'] or { brew_runtime.string_array_value([]) }).as_string_array() or { [] }
+		supported_archs: (values['supported_archs'] or { ruby.string_array_value([]) }).as_string_array() or { [] }
 		livecheck_defined: bump_map_bool(values, 'livecheck_defined', false)
 		livecheck_skip_status: bump_map_string(values, 'livecheck_skip_status', '')
-		livecheck_skip_messages: (values['livecheck_skip_messages'] or { brew_runtime.string_array_value([]) }).as_string_array() or { [] }
+		livecheck_skip_messages: (values['livecheck_skip_messages'] or { ruby.string_array_value([]) }).as_string_array() or { [] }
 		livecheck_strategy: bump_map_string(values, 'livecheck_strategy', '')
 		livecheck_original_url: bump_map_string(values, 'livecheck_original_url', '')
 		livecheck_artifact_suffix: bump_map_string(values, 'livecheck_artifact_suffix', '')
@@ -424,7 +424,7 @@ fn bump_package_from_value(value brew_runtime.Value) !BumpPackage {
 		autobumped: bump_map_bool(values, 'autobumped', false)
 		resources: resources
 		pull_requests: pull_requests
-		synced_versions: bump_string_map_from_value(values['synced_versions'] or { brew_runtime.map_value({}) })
+		synced_versions: bump_string_map_from_value(values['synced_versions'] or { ruby.map_value({}) })
 		throttle: bump_map_bool(values, 'throttle', false)
 		github_api_errors: bump_map_int(values, 'github_api_errors', 0)
 		github_authentication_fail: bump_map_bool(values, 'github_authentication_fail', false)
@@ -432,7 +432,7 @@ fn bump_package_from_value(value brew_runtime.Value) !BumpPackage {
 	}
 }
 
-fn bump_options_from_value(value brew_runtime.Value) BumpOptions {
+fn bump_options_from_value(value ruby.Value) BumpOptions {
 	values := value.map_data.clone()
 	return BumpOptions{
 		full_name: bump_map_bool(values, 'full_name', false)
@@ -451,19 +451,19 @@ fn bump_options_from_value(value brew_runtime.Value) BumpOptions {
 		start_with: bump_map_string(values, 'start_with', '')
 		bump_synced: bump_map_bool(values, 'bump_synced', false)
 		ci: bump_map_bool(values, 'ci', false)
-		named: (values['named'] or { brew_runtime.string_array_value([]) }).as_string_array() or { [] }
+		named: (values['named'] or { ruby.string_array_value([]) }).as_string_array() or { [] }
 	}
 }
 
-fn bump_versions_value(versions BumpVersions) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'general': brew_runtime.string_value(versions.general)
-		'arm':     brew_runtime.string_value(versions.arm)
-		'intel':   brew_runtime.string_value(versions.intel)
+fn bump_versions_value(versions BumpVersions) ruby.Value {
+	return ruby.map_value({
+		'general': ruby.string_value(versions.general)
+		'arm':     ruby.string_value(versions.arm)
+		'intel':   ruby.string_value(versions.intel)
 	})
 }
 
-fn bump_versions_from_value(value brew_runtime.Value) BumpVersions {
+fn bump_versions_from_value(value ruby.Value) BumpVersions {
 	values := value.map_data.clone()
 	return BumpVersions{
 		general: bump_map_string(values, 'general', value.attributes['general'] or { '' })
@@ -1338,68 +1338,68 @@ pub fn run_bump(request BumpRunRequest, now i64) BumpRunResult {
 	}
 }
 
-fn bump_version_info_value(info BumpVersionInfo) brew_runtime.Value {
-	mut resources := []brew_runtime.Value{}
+fn bump_version_info_value(info BumpVersionInfo) ruby.Value {
+	mut resources := []ruby.Value{}
 	for resource in info.resource_versions {
-		resources << brew_runtime.map_value({
-			'name':                brew_runtime.string_value(resource.name)
-			'current_version':     brew_runtime.string_value(resource.current_version)
-			'latest_version':      brew_runtime.string_value(resource.latest_version)
-			'has_latest_version':  brew_runtime.bool_value(resource.has_latest_version)
-			'outdated':            brew_runtime.bool_value(resource.outdated)
-			'newer_than_upstream': brew_runtime.bool_value(resource.newer_than_upstream)
+		resources << ruby.map_value({
+			'name':                ruby.string_value(resource.name)
+			'current_version':     ruby.string_value(resource.current_version)
+			'latest_version':      ruby.string_value(resource.latest_version)
+			'has_latest_version':  ruby.bool_value(resource.has_latest_version)
+			'outdated':            ruby.bool_value(resource.outdated)
+			'newer_than_upstream': ruby.bool_value(resource.newer_than_upstream)
 		})
 	}
-	return brew_runtime.map_value({
-		'type':                          brew_runtime.string_value(info.kind.str())
+	return ruby.map_value({
+		'type':                          ruby.string_value(info.kind.str())
 		'deprecated':                    bump_bool_map_value(info.deprecated)
-		'multiple_versions':             brew_runtime.map_value({
-			'current': brew_runtime.bool_value(info.multiple_current)
-			'new':     brew_runtime.bool_value(info.multiple_new)
+		'multiple_versions':             ruby.map_value({
+			'current': ruby.bool_value(info.multiple_current)
+			'new':     ruby.bool_value(info.multiple_new)
 		})
-		'version_name':                  brew_runtime.string_value(info.version_name)
+		'version_name':                  ruby.string_value(info.version_name)
 		'current_version':               bump_versions_value(info.current_version)
 		'new_version':                   bump_versions_value(info.new_version)
-		'resource_versions':             brew_runtime.array_value(resources)
-		'repology_latest':               brew_runtime.string_value(info.repology_latest)
+		'resource_versions':             ruby.array_value(resources)
+		'repology_latest':               ruby.string_value(info.repology_latest)
 		'newer_than_upstream':           bump_bool_map_value(info.newer_than_upstream)
 		'cooldown_skipped_versions':     bump_string_map_value(info.cooldown_skipped_versions)
-		'duplicate_pull_requests':       brew_runtime.string_value(info.duplicate_pull_requests)
-		'maybe_duplicate_pull_requests': brew_runtime.string_value(info.maybe_duplicate_pull_requests)
+		'duplicate_pull_requests':       ruby.string_value(info.duplicate_pull_requests)
+		'maybe_duplicate_pull_requests': ruby.string_value(info.maybe_duplicate_pull_requests)
 	})
 }
 
-fn bump_display_value(result BumpDisplayResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'name':            brew_runtime.string_value(result.name)
-		'lines':           brew_runtime.string_array_value(result.lines)
-		'bump_pr_command': brew_runtime.string_array_value(result.bump_pr_command)
-		'failed':          brew_runtime.bool_value(result.failed)
-		'error':           brew_runtime.string_value(result.error)
+fn bump_display_value(result BumpDisplayResult) ruby.Value {
+	return ruby.map_value({
+		'name':            ruby.string_value(result.name)
+		'lines':           ruby.string_array_value(result.lines)
+		'bump_pr_command': ruby.string_array_value(result.bump_pr_command)
+		'failed':          ruby.bool_value(result.failed)
+		'error':           ruby.string_value(result.error)
 	})
 }
 
 // Ruby method `run` at line 107.
-pub fn ruby_bump_l107_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_l107_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.structured_value('ArgumentError', 'missing bump request', {})
+		return ruby.structured_value('ArgumentError', 'missing bump request', {})
 	}
 	values := args[args.len - 1].map_data.clone()
-	options := bump_options_from_value(values['options'] or { brew_runtime.map_value({}) })
+	options := bump_options_from_value(values['options'] or { ruby.map_value({}) })
 	mut packages := []BumpPackage{}
-	for value in (values['packages'] or { brew_runtime.array_value([]) }).as_array() or { [] } {
+	for value in (values['packages'] or { ruby.array_value([]) }).as_array() or { [] } {
 		packages << bump_package_from_value(value) or {
-			return brew_runtime.structured_value('ArgumentError', err.msg(), {})
+			return ruby.structured_value('ArgumentError', err.msg(), {})
 		}
 	}
 	mut taps := []BumpTap{}
-	for value in (values['taps'] or { brew_runtime.array_value([]) }).as_array() or { [] } {
+	for value in (values['taps'] or { ruby.array_value([]) }).as_array() or { [] } {
 		tap_values := value.map_data.clone()
 		taps << BumpTap{
 			name: bump_map_string(tap_values, 'name', value.repr)
 			official: bump_map_bool(tap_values, 'official', false)
 			autobump_names: (tap_values['autobump_names'] or {
-				brew_runtime.string_array_value([])
+				ruby.string_array_value([])
 			}).as_string_array() or { [] }
 		}
 	}
@@ -1407,112 +1407,112 @@ pub fn ruby_bump_l107_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
 		options: options
 		packages: packages
 		taps: taps
-	}, (values['now'] or { brew_runtime.int_value(0) }).int_data)
-	return brew_runtime.map_value({
-		'selected': brew_runtime.string_array_value(result.selected)
-		'error':    brew_runtime.string_value(result.error)
-		'failed':   brew_runtime.bool_value(result.handled.failed)
+	}, (values['now'] or { ruby.int_value(0) }).int_data)
+	return ruby.map_value({
+		'selected': ruby.string_array_value(result.selected)
+		'error':    ruby.string_value(result.error)
+		'failed':   ruby.bool_value(result.handled.failed)
 	})
 }
 
 // Ruby method `skip_ineligible_formulae!(formula_or_cask)` at line 193.
-pub fn ruby_bump_l193_d2_skip_ineligible_formulae(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_l193_d2_skip_ineligible_formulae(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	package := bump_package_from_value(args[args.len - 1]) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	skip, reason := skip_ineligible_bump(package)
-	return brew_runtime.map_value({
-		'skip':    brew_runtime.bool_value(skip)
-		'message': brew_runtime.string_value(reason)
+	return ruby.map_value({
+		'skip':    ruby.bool_value(skip)
+		'message': ruby.string_value(reason)
 	})
 }
 
 // Ruby method `retrieve_versions_by_arch(formula_or_cask:, repositories:, name:)` at line 225.
-pub fn ruby_bump_l225_d3_retrieve_versions_by_arch(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_l225_d3_retrieve_versions_by_arch(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return bump_nil_value()
 	}
 	values := args[args.len - 1].map_data.clone()
 	package := bump_package_from_value(values['formula_or_cask'] or { bump_nil_value() }) or {
-		return brew_runtime.structured_value('ArgumentError', err.msg(), {})
+		return ruby.structured_value('ArgumentError', err.msg(), {})
 	}
 	repositories := (values['repositories'] or {
-		brew_runtime.string_array_value([])
+		ruby.string_array_value([])
 	}).as_string_array() or { [] }
-	options := bump_options_from_value(values['options'] or { brew_runtime.map_value({}) })
-	return bump_version_info_value(retrieve_bump_versions(package, repositories, bump_map_string(values, 'name', package.name), options, (values['now'] or { brew_runtime.int_value(0) }).int_data))
+	options := bump_options_from_value(values['options'] or { ruby.map_value({}) })
+	return bump_version_info_value(retrieve_bump_versions(package, repositories, bump_map_string(values, 'name', package.name), options, (values['now'] or { ruby.int_value(0) }).int_data))
 }
 
 // Ruby method `retrieve_and_display_info_and_open_pr(formula_or_cask, name, repositories, ambiguous_cask: false)` at line 413.
-pub fn ruby_bump_l413_d4_retrieve_and_display_info_and_open_pr(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_l413_d4_retrieve_and_display_info_and_open_pr(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return bump_nil_value()
 	}
 	values := args[args.len - 1].map_data.clone()
 	package := bump_package_from_value(values['formula_or_cask'] or { bump_nil_value() }) or {
-		return brew_runtime.structured_value('ArgumentError', err.msg(), {})
+		return ruby.structured_value('ArgumentError', err.msg(), {})
 	}
 	return bump_display_value(retrieve_display_and_open_pr(package, bump_map_string(values, 'name', package.name), (values['repositories'] or {
-		brew_runtime.string_array_value([])
-	}).as_string_array() or { [] }, bump_map_bool(values, 'ambiguous_cask', false), bump_options_from_value(values['options'] or { brew_runtime.map_value({}) }), (values['now'] or { brew_runtime.int_value(0) }).int_data))
+		ruby.string_array_value([])
+	}).as_string_array() or { [] }, bump_map_bool(values, 'ambiguous_cask', false), bump_options_from_value(values['options'] or { ruby.map_value({}) }), (values['now'] or { ruby.int_value(0) }).int_data))
 }
 
 // Ruby method `version_args_for_bump(current_version:, new_version:, multiple_versions:, name:)` at line 588.
-pub fn ruby_bump_l588_d5_version_args_for_bump(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_l588_d5_version_args_for_bump(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_array_value([])
+		return ruby.string_array_value([])
 	}
 	values := args[args.len - 1].map_data.clone()
-	current := bump_versions_from_value(values['current_version'] or { brew_runtime.map_value({}) })
-	proposed := bump_versions_from_value(values['new_version'] or { brew_runtime.map_value({}) })
-	multiple := values['multiple_versions'] or { brew_runtime.map_value({}) }
+	current := bump_versions_from_value(values['current_version'] or { ruby.map_value({}) })
+	proposed := bump_versions_from_value(values['new_version'] or { ruby.map_value({}) })
+	multiple := values['multiple_versions'] or { ruby.map_value({}) }
 	comparison := BumpVersionComparison{
 		multiple_current: bump_map_bool(multiple.map_data, 'current', current.count() > 1)
 		multiple_new: bump_map_bool(multiple.map_data, 'new', proposed.count() > 1)
 	}
-	return brew_runtime.string_array_value(version_args_for_bump(current, proposed, comparison, bump_map_string(values, 'name', '')))
+	return ruby.string_array_value(version_args_for_bump(current, proposed, comparison, bump_map_string(values, 'name', '')))
 }
 
 // Ruby method `compare_versions(current_version, new_version, formula_or_cask)` at line 630.
-pub fn ruby_bump_l630_d6_compare_versions(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_l630_d6_compare_versions(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		return bump_nil_value()
 	}
 	current_index := if args.len >= 3 { args.len - 3 } else { 0 }
 	new_index := if args.len >= 3 { args.len - 2 } else { 1 }
 	comparison := compare_bump_versions(bump_versions_from_value(args[current_index]), bump_versions_from_value(args[new_index]))
-	return brew_runtime.map_value({
-		'multiple_versions':   brew_runtime.map_value({
-			'current': brew_runtime.bool_value(comparison.multiple_current)
-			'new':     brew_runtime.bool_value(comparison.multiple_new)
+	return ruby.map_value({
+		'multiple_versions':   ruby.map_value({
+			'current': ruby.bool_value(comparison.multiple_current)
+			'new':     ruby.bool_value(comparison.multiple_new)
 		})
 		'newer_than_upstream': bump_bool_map_value(comparison.newer_than_upstream)
 	})
 }
 
 // Ruby method `message?(value)` at line 698.
-pub fn ruby_bump_l698_d7_message(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_l698_d7_message(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	value := args[args.len - 1]
 	if value.type_name !in ['String', 'Cask::DSL::Version'] {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(bump_message(value.as_string()))
+	return ruby.bool_value(bump_message(value.as_string()))
 }
 
 // Ruby method `version_with_cooldown(version_info, current = nil)` at line 715.
-pub fn ruby_bump_l715_d8_version_with_cooldown(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_l715_d8_version_with_cooldown(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		return bump_nil_value()
 	}
 	values := args[args.len - 2].map_data.clone()
 	mut releases := []BumpRelease{}
-	for release in (values['releases'] or { brew_runtime.array_value([]) }).as_array() or { [] } {
+	for release in (values['releases'] or { ruby.array_value([]) }).as_array() or { [] } {
 		releases << bump_release_from_value(release)
 	}
 	selected := version_with_release_cooldown(BumpCooldownInfo{
@@ -1521,28 +1521,28 @@ pub fn ruby_bump_l715_d8_version_with_cooldown(args ...brew_runtime.Value) brew_
 		original_url: bump_map_string(values, 'original_url', '')
 		artifact_suffix: bump_map_string(values, 'artifact_suffix', '')
 		releases: releases
-		now: (values['now'] or { brew_runtime.int_value(0) }).int_data
+		now: (values['now'] or { ruby.int_value(0) }).int_data
 		cooldown_days: bump_map_int(values, 'cooldown_days', 7)
 	}, args[args.len - 1].as_string())
 	return if selected == '' {
 		bump_nil_value()
 	} else {
-		brew_runtime.object_value('Version', selected)
+		ruby.object_value('Version', selected)
 	}
 }
 
 // Ruby method `skip_repology?(formula_or_cask)` at line 824.
-pub fn ruby_bump_l824_d9_skip_repology(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_l824_d9_skip_repology(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(true)
+		return ruby.bool_value(true)
 	}
-	package := bump_package_from_value(args[0]) or { return brew_runtime.bool_value(true) }
+	package := bump_package_from_value(args[0]) or { return ruby.bool_value(true) }
 	options := if args.len > 1 { bump_options_from_value(args[1]) } else { BumpOptions{} }
-	return brew_runtime.bool_value(skip_bump_repology(package, options))
+	return ruby.bool_value(skip_bump_repology(package, options))
 }
 
 // Ruby method `handle_formulae_and_casks(formulae_and_casks)` at line 832.
-pub fn ruby_bump_l832_d10_handle_formulae_and_casks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_l832_d10_handle_formulae_and_casks(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return bump_nil_value()
 	}
@@ -1553,104 +1553,104 @@ pub fn ruby_bump_l832_d10_handle_formulae_and_casks(args ...brew_runtime.Value) 
 	options := if args.len > 1 { bump_options_from_value(args[1]) } else { BumpOptions{} }
 	now := if args.len > 2 { args[2].int_data } else { i64(0) }
 	result := handle_bump_packages(packages, options, now)
-	mut displays := []brew_runtime.Value{}
+	mut displays := []ruby.Value{}
 	for display in result.displays {
 		displays << bump_display_value(display)
 	}
-	return brew_runtime.map_value({
-		'displays': brew_runtime.array_value(displays)
-		'output':   brew_runtime.string_array_value(result.output)
-		'failed':   brew_runtime.bool_value(result.failed)
-		'error':    brew_runtime.string_value(result.error)
+	return ruby.map_value({
+		'displays': ruby.array_value(displays)
+		'output':   ruby.string_array_value(result.output)
+		'failed':   ruby.bool_value(result.failed)
+		'error':    ruby.string_value(result.error)
 	})
 }
 
 // Ruby method `livecheck_result(formula_or_cask, current)` at line 911.
-pub fn ruby_bump_l911_d11_livecheck_result(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_l911_d11_livecheck_result(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		return bump_nil_value()
 	}
 	package := bump_package_from_value(args[0]) or {
-		return brew_runtime.structured_value('ArgumentError', err.msg(), {})
+		return ruby.structured_value('ArgumentError', err.msg(), {})
 	}
-	metadata := if args.len > 2 { args[2].map_data } else { map[string]brew_runtime.Value{} }
+	metadata := if args.len > 2 { args[2].map_data } else { map[string]ruby.Value{} }
 	arch := bump_map_string(metadata, 'arch', 'general')
-	now := (metadata['now'] or { brew_runtime.int_value(0) }).int_data
+	now := (metadata['now'] or { ruby.int_value(0) }).int_data
 	result := bump_livecheck_result(package, args[1].as_string(), arch, now)
-	return brew_runtime.array_value([
-		brew_runtime.string_value(result.version),
+	return ruby.array_value([
+		ruby.string_value(result.version),
 		if result.cooldown_skipped == '' {
 			bump_nil_value()
 		} else {
-			brew_runtime.object_value('Version', result.cooldown_skipped)
+			ruby.object_value('Version', result.cooldown_skipped)
 		},
 	])
 }
 
 // Ruby method `retrieve_pull_requests(formula_or_cask, name, version: nil)` at line 973.
-pub fn ruby_bump_l973_d12_retrieve_pull_requests(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_l973_d12_retrieve_pull_requests(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return bump_nil_value()
 	}
 	package := bump_package_from_value(args[0]) or {
-		return brew_runtime.structured_value('ArgumentError', err.msg(), {})
+		return ruby.structured_value('ArgumentError', err.msg(), {})
 	}
 	version := if args.len > 2 { args[2].as_string() } else { '' }
 	result := retrieve_bump_pull_requests(package, version)
 	return if result == '' {
 		bump_nil_value()
 	} else {
-		brew_runtime.string_value(result)
+		ruby.string_value(result)
 	}
 }
 
 // Ruby method `collect_resource_versions(formula, formula_latest_version)` at line 994.
-pub fn ruby_bump_l994_d13_collect_resource_versions(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_l994_d13_collect_resource_versions(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.array_value([])
+		return ruby.array_value([])
 	}
 	package := bump_package_from_value(args[0]) or {
-		return brew_runtime.structured_value('ArgumentError', err.msg(), {})
+		return ruby.structured_value('ArgumentError', err.msg(), {})
 	}
-	mut result := []brew_runtime.Value{}
+	mut result := []ruby.Value{}
 	for resource in collect_bump_resource_versions(package, args[1].as_string()) {
-		result << brew_runtime.map_value({
-			'name':                brew_runtime.string_value(resource.name)
-			'current_version':     brew_runtime.string_value(resource.current_version)
+		result << ruby.map_value({
+			'name':                ruby.string_value(resource.name)
+			'current_version':     ruby.string_value(resource.current_version)
 			'latest_version':      if resource.has_latest_version {
-				brew_runtime.string_value(resource.latest_version)
+				ruby.string_value(resource.latest_version)
 			} else {
 				bump_nil_value()
 			}
-			'outdated':            brew_runtime.bool_value(resource.outdated)
-			'newer_than_upstream': brew_runtime.bool_value(resource.newer_than_upstream)
+			'outdated':            ruby.bool_value(resource.outdated)
+			'newer_than_upstream': ruby.bool_value(resource.newer_than_upstream)
 		})
 	}
-	return brew_runtime.array_value(result)
+	return ruby.array_value(result)
 }
 
 // Ruby method `synced_with(formula, new_version)` at line 1056.
-pub fn ruby_bump_l1056_d14_synced_with(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_l1056_d14_synced_with(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.string_array_value([])
+		return ruby.string_array_value([])
 	}
 	package := bump_package_from_value(args[0]) or {
-		return brew_runtime.structured_value('ArgumentError', err.msg(), {})
+		return ruby.structured_value('ArgumentError', err.msg(), {})
 	}
-	return brew_runtime.string_array_value(synced_bump_formulae(package, args[1].as_string()))
+	return ruby.string_array_value(synced_bump_formulae(package, args[1].as_string()))
 }
 
 // Ruby method `autobumped_formulae_or_casks(tap, casks: false)` at line 1074.
-pub fn ruby_bump_l1074_d15_autobumped_formulae_or_casks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_l1074_d15_autobumped_formulae_or_casks(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.array_value([])
+		return ruby.array_value([])
 	}
 	tap_values := args[0].map_data.clone()
 	tap := BumpTap{
 		name: bump_map_string(tap_values, 'name', args[0].repr)
 		official: bump_map_bool(tap_values, 'official', false)
 		autobump_names: (tap_values['autobump_names'] or {
-			brew_runtime.string_array_value([])
+			ruby.string_array_value([])
 		}).as_string_array() or { [] }
 	}
 	mut packages := []BumpPackage{}
@@ -1666,11 +1666,11 @@ pub fn ruby_bump_l1074_d15_autobumped_formulae_or_casks(args ...brew_runtime.Val
 	} else {
 		false
 	}
-	mut result := []brew_runtime.Value{}
+	mut result := []ruby.Value{}
 	for package in autobumped_packages(tap, packages, casks) {
 		result << bump_package_value(package)
 	}
-	return brew_runtime.array_value(result)
+	return ruby.array_value(result)
 }
 
 // Original Ruby source (line-for-line):

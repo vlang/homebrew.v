@@ -1,10 +1,10 @@
 module types
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/private/types/type_alias.rb`.
 // The original source is retained below until every stub has a typed V body.
-pub type TypeAliasCallable = fn() brew_runtime.Value
+pub type TypeAliasCallable = fn() ruby.Value
 
 @[heap]
 pub struct TypeAlias {
@@ -14,8 +14,8 @@ pub:
 	check_tests           bool
 mut:
 	checked_level   ?string
-	aliased_cache   ?brew_runtime.Value
-	effective_cache ?brew_runtime.Value
+	aliased_cache   ?ruby.Value
+	effective_cache ?ruby.Value
 }
 
 pub fn new_type_alias(callable TypeAliasCallable) &TypeAlias {
@@ -31,8 +31,8 @@ pub fn new_type_alias_with_runtime(callable TypeAliasCallable, default_checked_l
 	}
 }
 
-pub fn new_type_alias_from_value(value brew_runtime.Value) &TypeAlias {
-	return new_type_alias(fn [value] () brew_runtime.Value {
+pub fn new_type_alias_from_value(value ruby.Value) &TypeAlias {
+	return new_type_alias(fn [value] () ruby.Value {
 		return value
 	})
 }
@@ -48,11 +48,11 @@ pub fn (mut alias TypeAlias) checked(level string) ! {
 	alias.checked_level = clean_level
 }
 
-pub fn (_ &TypeAlias) build_type() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+pub fn (_ &TypeAlias) build_type() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-pub fn (mut alias TypeAlias) aliased_type() brew_runtime.Value {
+pub fn (mut alias TypeAlias) aliased_type() ruby.Value {
 	if cached := alias.aliased_cache {
 		return cached
 	}
@@ -61,7 +61,7 @@ pub fn (mut alias TypeAlias) aliased_type() brew_runtime.Value {
 	return value
 }
 
-pub fn (mut alias TypeAlias) effective_aliased_type() brew_runtime.Value {
+pub fn (mut alias TypeAlias) effective_aliased_type() ruby.Value {
 	if cached := alias.effective_cache {
 		return cached
 	}
@@ -70,7 +70,7 @@ pub fn (mut alias TypeAlias) effective_aliased_type() brew_runtime.Value {
 	value := if level == 'always' || (level == 'tests' && alias.check_tests) {
 		real_type
 	} else {
-		brew_runtime.object_value('T::Types::Anything', 'T.anything')
+		ruby.object_value('T::Types::Anything', 'T.anything')
 	}
 	alias.effective_cache = value
 	return value
@@ -80,7 +80,7 @@ pub fn (mut alias TypeAlias) name() string {
 	return alias.aliased_type().attribute('name') or { alias.aliased_type().as_string() }
 }
 
-fn alias_value_valid(type_value brew_runtime.Value, object brew_runtime.Value) bool {
+fn alias_value_valid(type_value ruby.Value, object ruby.Value) bool {
 	if type_value.type_name in ['T::Types::Anything', 'T::Types::Untyped'] {
 		return true
 	}
@@ -95,21 +95,21 @@ fn alias_value_valid(type_value brew_runtime.Value, object brew_runtime.Value) b
 	return ancestors.split(',').map(it.trim_space()).any(it == expected)
 }
 
-pub fn (mut alias TypeAlias) recursively_valid(object brew_runtime.Value) bool {
+pub fn (mut alias TypeAlias) recursively_valid(object ruby.Value) bool {
 	return alias_value_valid(alias.effective_aliased_type(), object)
 }
 
-pub fn (mut alias TypeAlias) valid(object brew_runtime.Value) bool {
+pub fn (mut alias TypeAlias) valid(object ruby.Value) bool {
 	return alias_value_valid(alias.effective_aliased_type(), object)
 }
 
-fn type_alias_value(alias &TypeAlias) brew_runtime.Value {
-	return brew_runtime.structured_value('T::Private::Types::TypeAlias', '<type alias>', {
+fn type_alias_value(alias &TypeAlias) ruby.Value {
+	return ruby.structured_value('T::Private::Types::TypeAlias', '<type alias>', {
 		'type_alias_address': u64(voidptr(alias)).str()
 	})
 }
 
-fn type_alias_from_args(args []brew_runtime.Value) &TypeAlias {
+fn type_alias_from_args(args []ruby.Value) &TypeAlias {
 	if args.len == 0 {
 		panic('TypeAlias method requires a receiver')
 	}
@@ -118,7 +118,7 @@ fn type_alias_from_args(args []brew_runtime.Value) &TypeAlias {
 }
 
 // Ruby method `initialize(callable)` at line 8.
-pub fn ruby_type_alias_l8_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_type_alias_l8_d1_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('TypeAlias#initialize requires a callable result')
 	}
@@ -126,7 +126,7 @@ pub fn ruby_type_alias_l8_d1_initialize(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby method `checked(level)` at line 13.
-pub fn ruby_type_alias_l13_d2_checked(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_type_alias_l13_d2_checked(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('TypeAlias#checked requires a level')
 	}
@@ -136,44 +136,44 @@ pub fn ruby_type_alias_l13_d2_checked(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby method `build_type` at line 24.
-pub fn ruby_type_alias_l24_d3_build_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_type_alias_l24_d3_build_type(args ...ruby.Value) ruby.Value {
 	return type_alias_from_args(args).build_type()
 }
 
 // Ruby method `aliased_type` at line 28.
-pub fn ruby_type_alias_l28_d4_aliased_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_type_alias_l28_d4_aliased_type(args ...ruby.Value) ruby.Value {
 	mut alias := type_alias_from_args(args)
 	return alias.aliased_type()
 }
 
 // Ruby method `effective_aliased_type` at line 32.
-pub fn ruby_type_alias_l32_d5_effective_aliased_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_type_alias_l32_d5_effective_aliased_type(args ...ruby.Value) ruby.Value {
 	mut alias := type_alias_from_args(args)
 	return alias.effective_aliased_type()
 }
 
 // Ruby method `name` at line 45.
-pub fn ruby_type_alias_l45_d6_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_type_alias_l45_d6_name(args ...ruby.Value) ruby.Value {
 	mut alias := type_alias_from_args(args)
-	return brew_runtime.string_value(alias.name())
+	return ruby.string_value(alias.name())
 }
 
 // Ruby method `recursively_valid?(obj)` at line 50.
-pub fn ruby_type_alias_l50_d7_recursively_valid(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_type_alias_l50_d7_recursively_valid(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('TypeAlias#recursively_valid? requires an object')
 	}
 	mut alias := type_alias_from_args(args)
-	return brew_runtime.bool_value(alias.recursively_valid(args[1]))
+	return ruby.bool_value(alias.recursively_valid(args[1]))
 }
 
 // Ruby method `valid?(obj)` at line 55.
-pub fn ruby_type_alias_l55_d8_valid(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_type_alias_l55_d8_valid(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('TypeAlias#valid? requires an object')
 	}
 	mut alias := type_alias_from_args(args)
-	return brew_runtime.bool_value(alias.valid(args[1]))
+	return ruby.bool_value(alias.valid(args[1]))
 }
 
 // Original Ruby source (line-for-line):

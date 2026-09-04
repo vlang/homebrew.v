@@ -1,6 +1,6 @@
 module download_strategies
 
-import brew_runtime
+import ruby
 import homebrew.download_strategy
 
 // Translated from Homebrew/brew `test/download_strategies/abstract_file_spec.rb`.
@@ -8,14 +8,14 @@ import homebrew.download_strategy
 
 pub const abstract_file_spec_url = 'https://example.com/foo.tar.gz'
 
-fn abstract_file_spec_parses(raw_url string, expected string) brew_runtime.Value {
-	return brew_runtime.bool_value(download_strategy.parse_basename(raw_url, true) == expected)
+fn abstract_file_spec_parses(raw_url string, expected string) ruby.Value {
+	return ruby.bool_value(download_strategy.parse_basename(raw_url, true) == expected)
 }
 
 // Ruby subject `subject(:strategy) { Class.new(described_class).new(url, "foo", "1.2.3") }` at line 7.
-pub fn ruby_abstract_file_spec_l7_d1_strategy(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_file_spec_l7_d1_strategy(args ...ruby.Value) ruby.Value {
 	url := if args.len > 0 { args[0].as_string() } else { abstract_file_spec_url }
-	return brew_runtime.structured_value('AbstractFileDownloadStrategy', url, {
+	return ruby.structured_value('AbstractFileDownloadStrategy', url, {
 		'url':     url
 		'name':    'foo'
 		'version': '1.2.3'
@@ -23,43 +23,43 @@ pub fn ruby_abstract_file_spec_l7_d1_strategy(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby let `let(:url) { "https://example.com/foo.tar.gz" }` at line 9.
-pub fn ruby_abstract_file_spec_l9_d2_url(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_file_spec_l9_d2_url(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value(abstract_file_spec_url)
+	return ruby.string_value(abstract_file_spec_url)
 }
 
 // Ruby it `it "returns the final path segment for simple URLs" do` at line 12.
-pub fn ruby_abstract_file_spec_l12_d3_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_file_spec_l12_d3_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	return abstract_file_spec_parses(abstract_file_spec_url, 'foo.tar.gz')
 }
 
 // Ruby it `it "prefers a path segment with an extension over later extensionless segments" do` at line 16.
-pub fn ruby_abstract_file_spec_l16_d4_prefers(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_file_spec_l16_d4_prefers(args ...ruby.Value) ruby.Value {
 	_ = args
 	return abstract_file_spec_parses('https://example.com/foo-1.0.tar.gz/download', 'foo-1.0.tar.gz')
 }
 
 // Ruby it `it "extracts the basename from a response-content-disposition query parameter" do` at line 20.
-pub fn ruby_abstract_file_spec_l20_d5_extracts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_file_spec_l20_d5_extracts(args ...ruby.Value) ruby.Value {
 	_ = args
 	return abstract_file_spec_parses('https://example.com/download.php?file=ignored&response-content-disposition=attachment;filename="real.tar.gz"', 'real.tar.gz')
 }
 
 // Ruby it `it "uses the query value when the path has no extension" do` at line 25.
-pub fn ruby_abstract_file_spec_l25_d6_uses(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_file_spec_l25_d6_uses(args ...ruby.Value) ruby.Value {
 	_ = args
 	return abstract_file_spec_parses('https://example.com/download.php?file=foo-1.0.tar.gz', 'foo-1.0.tar.gz')
 }
 
 // Ruby it `it "returns the final segment for file:// URLs even when an ancestor directory contains a dot" do` at line 30.
-pub fn ruby_abstract_file_spec_l30_d7_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_file_spec_l30_d7_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	return abstract_file_spec_parses('file:///Users/me/git-repos/github.com/Homebrew/brew/naked_executable', 'naked_executable')
 }
 
 // Ruby it `it "returns the final segment for file:// URLs with an extension" do` at line 35.
-pub fn ruby_abstract_file_spec_l35_d8_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_file_spec_l35_d8_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	return abstract_file_spec_parses('file:///tmp/foo.tar.gz', 'foo.tar.gz')
 }

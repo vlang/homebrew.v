@@ -1,6 +1,6 @@
 module test_bot
 
-import brew_runtime
+import ruby
 
 pub struct PkillInput {
 pub:
@@ -82,11 +82,11 @@ pub fn cleanup_after_plan(input CleanupAfterInput) CleanupAfterPlan {
 	}
 }
 
-fn cleanup_after_plan_value(plan CleanupAfterPlan) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'skipped':        brew_runtime.bool_value(plan.skipped)
+fn cleanup_after_plan_value(plan CleanupAfterPlan) ruby.Value {
+	return ruby.map_value({
+		'skipped':        ruby.bool_value(plan.skipped)
 		'actions':        cleanup_actions_value(plan.actions)
-		'paths_to_purge': brew_runtime.string_array_value(plan.paths_to_purge)
+		'paths_to_purge': ruby.string_array_value(plan.paths_to_purge)
 	})
 }
 
@@ -94,7 +94,7 @@ fn cleanup_after_plan_value(plan CleanupAfterPlan) brew_runtime.Value {
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `run!(args:)` at line 8.
-pub fn ruby_cleanup_after_l8_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cleanup_after_l8_d1_run(args ...ruby.Value) ruby.Value {
 	github_actions := cleanup_value_bool(args, 0, false)
 	self_hosted := cleanup_value_bool(args, 1, false)
 	cellar := cleanup_value_string(args, 4, '')
@@ -122,7 +122,7 @@ pub fn ruby_cleanup_after_l8_d1_run(args ...brew_runtime.Value) brew_runtime.Val
 }
 
 // Ruby method `pkill_if_needed` at line 32.
-pub fn ruby_cleanup_after_l32_d2_pkill_if_needed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cleanup_after_l32_d2_pkill_if_needed(args ...ruby.Value) ruby.Value {
 	return cleanup_actions_value(pkill_if_needed_plan(PkillInput{
 		homebrew_cellar: cleanup_value_string(args, 0, '')
 		first_pgrep_matches: cleanup_value_bool(args, 1, false)

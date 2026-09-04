@@ -1,6 +1,6 @@
 module utils
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `extend/os/mac/utils/bottles.rb`.
 pub struct MacBottlesMatchContext {
@@ -21,7 +21,7 @@ const mac_bottles_versions = {
 	'catalina':    '10.15'
 }
 
-fn mac_bottles_tag_value(system string, arch string) brew_runtime.Value {
+fn mac_bottles_tag_value(system string, arch string) ruby.Value {
 	standard_arch := if arch == 'intel' {
 		'x86_64'
 	} else if arch in ['arm', 'aarch64'] { 'arm64' } else { arch }
@@ -32,14 +32,14 @@ fn mac_bottles_tag_value(system string, arch string) brew_runtime.Value {
 	} else {
 		'${standard_arch}_${system}'
 	}
-	return brew_runtime.structured_value('Utils::Bottles::Tag', symbol, {
+	return ruby.structured_value('Utils::Bottles::Tag', symbol, {
 		'system': system
 		'arch':   arch
 	})
 }
 
-fn mac_bottles_current_tag_value() brew_runtime.Value {
-	information := brew_runtime.kernel_info()
+fn mac_bottles_current_tag_value() ruby.Value {
+	information := ruby.kernel_info()
 	mut system := information.name.to_lower()
 	if system == 'darwin' {
 		system = match information.release.all_before('.').int() {
@@ -54,7 +54,7 @@ fn mac_bottles_current_tag_value() brew_runtime.Value {
 			else { information.release.all_before('.') }
 		}
 	}
-	configured_system := brew_runtime.environment_value('HOMEBREW_BOTTLE_SYSTEM')
+	configured_system := ruby.environment_value('HOMEBREW_BOTTLE_SYSTEM')
 	if configured_system != '' {
 		system = configured_system.to_lower()
 	}
@@ -64,18 +64,18 @@ fn mac_bottles_current_tag_value() brew_runtime.Value {
 	} $else $if aarch64 {
 		arch = 'arm64'
 	}
-	configured_arch := brew_runtime.environment_value('HOMEBREW_PROCESSOR')
+	configured_arch := ruby.environment_value('HOMEBREW_PROCESSOR')
 	if configured_arch != '' {
 		arch = configured_arch.to_lower()
 	}
 	return mac_bottles_tag_value(system, arch)
 }
 
-fn mac_bottles_system(tag brew_runtime.Value) string {
+fn mac_bottles_system(tag ruby.Value) string {
 	return tag.attributes['system'] or { tag.repr }
 }
 
-fn mac_bottles_arch(tag brew_runtime.Value) string {
+fn mac_bottles_arch(tag ruby.Value) string {
 	arch := tag.attributes['arch'] or { 'x86_64' }
 	return if arch in ['x86_64', 'intel'] {
 		'x86_64'
@@ -86,15 +86,15 @@ fn mac_bottles_arch(tag brew_runtime.Value) string {
 	}
 }
 
-fn mac_bottles_version_parts(tag brew_runtime.Value) ![]int {
+fn mac_bottles_version_parts(tag ruby.Value) ![]int {
 	version := mac_bottles_versions[mac_bottles_system(tag)] or {
 		return error('unknown or unsupported macOS version: ${mac_bottles_system(tag)}')
 	}
 	return version.split('.').map(it.int())
 }
 
-fn mac_bottles_version_not_newer(candidate brew_runtime.Value,
-	requested brew_runtime.Value) !bool {
+fn mac_bottles_version_not_newer(candidate ruby.Value,
+	requested ruby.Value) !bool {
 	candidate_parts := mac_bottles_version_parts(candidate)!
 	requested_parts := mac_bottles_version_parts(requested)!
 	maximum_length := if candidate_parts.len > requested_parts.len {
@@ -115,8 +115,8 @@ fn mac_bottles_version_not_newer(candidate brew_runtime.Value,
 	return true
 }
 
-fn mac_bottles_collector_tags(collector brew_runtime.Value) []brew_runtime.Value {
-	mut tags := []brew_runtime.Value{}
+fn mac_bottles_collector_tags(collector ruby.Value) []ruby.Value {
+	mut tags := []ruby.Value{}
 	for specification in collector.array_data {
 		if tag := specification.map_data['tag'] {
 			tags << tag
@@ -127,8 +127,8 @@ fn mac_bottles_collector_tags(collector brew_runtime.Value) []brew_runtime.Value
 	return tags
 }
 
-fn mac_bottles_exact_tag(collector brew_runtime.Value,
-	tag brew_runtime.Value) ?brew_runtime.Value {
+fn mac_bottles_exact_tag(collector ruby.Value,
+	tag ruby.Value) ?ruby.Value {
 	for candidate in mac_bottles_collector_tags(collector) {
 		if candidate.repr == tag.repr {
 			return candidate
@@ -142,15 +142,15 @@ fn mac_bottles_exact_tag(collector brew_runtime.Value,
 	return none
 }
 
-pub fn mac_bottles_tag(tag ?brew_runtime.Value) brew_runtime.Value {
+pub fn mac_bottles_tag(tag ?ruby.Value) ruby.Value {
 	if supplied := tag {
 		return supplied
 	}
 	return mac_bottles_current_tag_value()
 }
 
-pub fn mac_bottles_find_older_compatible_tag(collector brew_runtime.Value,
-	tag brew_runtime.Value) ?brew_runtime.Value {
+pub fn mac_bottles_find_older_compatible_tag(collector ruby.Value,
+	tag ruby.Value) ?ruby.Value {
 	mac_bottles_version_parts(tag) or { return none }
 	for candidate in mac_bottles_collector_tags(collector) {
 		if mac_bottles_arch(candidate) != mac_bottles_arch(tag) {
@@ -163,8 +163,8 @@ pub fn mac_bottles_find_older_compatible_tag(collector brew_runtime.Value,
 	return none
 }
 
-pub fn mac_bottles_find_matching_tag(collector brew_runtime.Value, tag brew_runtime.Value,
-	no_older_versions bool, context MacBottlesMatchContext) ?brew_runtime.Value {
+pub fn mac_bottles_find_matching_tag(collector ruby.Value, tag ruby.Value,
+	no_older_versions bool, context MacBottlesMatchContext) ?ruby.Value {
 	if exact := mac_bottles_exact_tag(collector, tag) {
 		return exact
 	}
@@ -174,7 +174,7 @@ pub fn mac_bottles_find_matching_tag(collector brew_runtime.Value, tag brew_runt
 	return mac_bottles_find_older_compatible_tag(collector, tag)
 }
 
-fn mac_bottles_context_from_value(value brew_runtime.Value) MacBottlesMatchContext {
+fn mac_bottles_context_from_value(value ruby.Value) MacBottlesMatchContext {
 	return MacBottlesMatchContext{
 		version_prerelease: (value.attributes['version_prerelease'] or { 'false' }) == 'true'
 		developer: (value.attributes['developer'] or { 'false' }) == 'true'
@@ -182,14 +182,14 @@ fn mac_bottles_context_from_value(value brew_runtime.Value) MacBottlesMatchConte
 	}
 }
 
-fn mac_bottles_nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn mac_bottles_nil_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `tag(tag = nil)` at line 9.
-pub fn ruby_bottles_l9_d1_tag(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottles_l9_d1_tag(args ...ruby.Value) ruby.Value {
 	tag := if args.len > 0 && args[0].type_name != 'NilClass' {
-		?brew_runtime.Value(args[0])
+		?ruby.Value(args[0])
 	} else {
 		none
 	}
@@ -197,7 +197,7 @@ pub fn ruby_bottles_l9_d1_tag(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `find_matching_tag(tag, no_older_versions: false)` at line 27.
-pub fn ruby_bottles_l27_d2_find_matching_tag(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottles_l27_d2_find_matching_tag(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Collector#find_matching_tag requires a receiver and tag')
 	}
@@ -213,7 +213,7 @@ pub fn ruby_bottles_l27_d2_find_matching_tag(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby method `find_older_compatible_tag(tag)` at line 43.
-pub fn ruby_bottles_l43_d3_find_older_compatible_tag(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottles_l43_d3_find_older_compatible_tag(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Collector#find_older_compatible_tag requires a receiver and tag')
 	}

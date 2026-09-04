@@ -1,6 +1,6 @@
 module unpack_strategy
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `unpack_strategy/cvs.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -11,7 +11,7 @@ pub fn ruby_cvs_l10_d1_self_can_extract(path string) bool {
 }
 
 pub fn cvs_can_extract(path string) bool {
-	return directory_can_extract(path) && brew_runtime.is_dir(brew_runtime.join_path(path, 'CVS'))
+	return directory_can_extract(path) && ruby.is_dir(ruby.join_path(path, 'CVS'))
 }
 
 // Original Ruby source (line-for-line):

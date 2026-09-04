@@ -1,13 +1,13 @@
 module concurrent
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/errors.rb`.
 // The original source is retained below until every stub has a typed V body.
 pub struct MultipleAssignmentError {
 pub:
 	message         string
-	inspection_data brew_runtime.Value
+	inspection_data ruby.Value
 }
 
 pub fn (err MultipleAssignmentError) msg() string {
@@ -56,7 +56,7 @@ pub fn (err MultipleErrors) code() int {
 	return 1
 }
 
-fn multiple_assignment_from_args(args []brew_runtime.Value) MultipleAssignmentError {
+fn multiple_assignment_from_args(args []ruby.Value) MultipleAssignmentError {
 	message := if args.len > 0 && args[0].type_name != 'NilClass' {
 		args[0].as_string()
 	} else {
@@ -65,7 +65,7 @@ fn multiple_assignment_from_args(args []brew_runtime.Value) MultipleAssignmentEr
 	inspection_data := if args.len > 1 {
 		args[1]
 	} else {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	}
 	return MultipleAssignmentError{
 		message: message
@@ -74,44 +74,44 @@ fn multiple_assignment_from_args(args []brew_runtime.Value) MultipleAssignmentEr
 }
 
 // Ruby attr_reader `attr_reader :inspection_data` at line 34.
-pub fn ruby_errors_l34_d1_inspection_data(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_errors_l34_d1_inspection_data(args ...ruby.Value) ruby.Value {
 	return if args.len > 1 {
 		args[1]
 	} else if args.len > 0 {
 		args[0]
 	} else {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	}
 }
 
 // Ruby method `initialize(message = nil, inspection_data = nil)` at line 36.
-pub fn ruby_errors_l36_d2_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_errors_l36_d2_initialize(args ...ruby.Value) ruby.Value {
 	err := multiple_assignment_from_args(args)
-	return brew_runtime.structured_value('MultipleAssignmentError', err.message, {
+	return ruby.structured_value('MultipleAssignmentError', err.message, {
 		'inspection_data': err.inspection_data.repr
 	})
 }
 
 // Ruby method `inspect` at line 41.
-pub fn ruby_errors_l41_d3_inspect(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(multiple_assignment_from_args(args).inspect())
+pub fn ruby_errors_l41_d3_inspect(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(multiple_assignment_from_args(args).inspect())
 }
 
 // Ruby attr_reader `attr_reader :errors` at line 59.
-pub fn ruby_errors_l59_d4_errors(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_errors_l59_d4_errors(args ...ruby.Value) ruby.Value {
 	return if args.len == 1 && args[0].type_name == 'Array' {
 		args[0]
 	} else {
-		brew_runtime.array_value(args)
+		ruby.array_value(args)
 	}
 }
 
 // Ruby method `initialize(errors, message = "#{errors.size} errors")` at line 61.
-pub fn ruby_errors_l61_d5_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_errors_l61_d5_initialize(args ...ruby.Value) ruby.Value {
 	values := if args.len > 0 && args[0].type_name == 'Array' {
 		args[0].as_array() or { panic(err) }
 	} else {
-		[]brew_runtime.Value{}
+		[]ruby.Value{}
 	}
 	mut details := []ErrorDetail{cap: values.len}
 	for value in values {
@@ -122,7 +122,7 @@ pub fn ruby_errors_l61_d5_initialize(args ...brew_runtime.Value) brew_runtime.Va
 	}
 	message := if args.len > 1 { args[1].as_string() } else { '' }
 	errors := new_multiple_errors(details, message)
-	return brew_runtime.structured_value('MultipleErrors', errors.message, {
+	return ruby.structured_value('MultipleErrors', errors.message, {
 		'errors': values.len.str()
 	})
 }

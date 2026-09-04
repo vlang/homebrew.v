@@ -1,6 +1,6 @@
 module download_strategies
 
-import brew_runtime
+import ruby
 import homebrew.download_strategy
 import os
 
@@ -8,77 +8,77 @@ import os
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:strategy) { described_class.new(url, name, version, **specs) }` at line 8.
-pub fn ruby_subversion_spec_l8_d1_strategy(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_subversion_spec_l8_d1_strategy(args ...ruby.Value) ruby.Value {
 	strategy := subversion_spec_strategy(download_strategy.VCSDownloadMeta{})
-	return brew_runtime.structured_value('SubversionDownloadStrategy', strategy.url, {
+	return ruby.structured_value('SubversionDownloadStrategy', strategy.url, {
 		'url':             strategy.url
 		'cached_location': strategy.cached_location()
 	})
 }
 
 // Ruby let `let(:name) { "foo" }` at line 10.
-pub fn ruby_subversion_spec_l10_d2_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('foo')
+pub fn ruby_subversion_spec_l10_d2_name(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('foo')
 }
 
 // Ruby let `let(:url) { "https://example.com/foo.tar.gz" }` at line 11.
-pub fn ruby_subversion_spec_l11_d3_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('https://example.com/foo.tar.gz')
+pub fn ruby_subversion_spec_l11_d3_url(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('https://example.com/foo.tar.gz')
 }
 
 // Ruby let `let(:version) { "1.2.3" }` at line 12.
-pub fn ruby_subversion_spec_l12_d4_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('1.2.3')
+pub fn ruby_subversion_spec_l12_d4_version(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('1.2.3')
 }
 
 // Ruby let `let(:specs) { {} }` at line 13.
-pub fn ruby_subversion_spec_l13_d5_specs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.map_value(map[string]brew_runtime.Value{})
+pub fn ruby_subversion_spec_l13_d5_specs(args ...ruby.Value) ruby.Value {
+	return ruby.map_value(map[string]ruby.Value{})
 }
 
 // Ruby let `let(:specs) { { trust_cert: true } }` at line 21.
-pub fn ruby_subversion_spec_l21_d6_specs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'trust_cert': brew_runtime.bool_value(true)
+pub fn ruby_subversion_spec_l21_d6_specs(args ...ruby.Value) ruby.Value {
+	return ruby.map_value({
+		'trust_cert': ruby.bool_value(true)
 	})
 }
 
 // Ruby it `it "adds the appropriate svn args" do` at line 27.
-pub fn ruby_subversion_spec_l27_d7_adds(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_subversion_spec_l27_d7_adds(args ...ruby.Value) ruby.Value {
 	strategy := subversion_spec_strategy(download_strategy.VCSDownloadMeta{ trust_cert: true })
 	target := os.join_path(os.temp_dir(), 'brew-v-subversion-spec-cert-target')
 	arguments := strategy.subversion_fetch_arguments(target, strategy.url, '', false)
-	return brew_runtime.bool_value('--trust-server-cert' in arguments && '--non-interactive' in arguments)
+	return ruby.bool_value('--trust-server-cert' in arguments && '--non-interactive' in arguments)
 }
 
 // Ruby let `let(:specs) { { revision: "10" } }` at line 37.
-pub fn ruby_subversion_spec_l37_d8_specs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'revision': brew_runtime.string_value('10')
+pub fn ruby_subversion_spec_l37_d8_specs(args ...ruby.Value) ruby.Value {
+	return ruby.map_value({
+		'revision': ruby.string_value('10')
 	})
 }
 
 // Ruby it `it "adds svn arguments for :revision" do` at line 39.
-pub fn ruby_subversion_spec_l39_d9_adds(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_subversion_spec_l39_d9_adds(args ...ruby.Value) ruby.Value {
 	strategy := subversion_spec_strategy(download_strategy.VCSDownloadMeta{ revision: '10' })
 	target := os.join_path(os.temp_dir(), 'brew-v-subversion-spec-revision-target')
 	arguments := strategy.subversion_fetch_arguments(target, strategy.url, strategy.ref, false)
 	index := arguments.index('-r')
-	return brew_runtime.bool_value(index >= 0 && index + 1 < arguments.len && arguments[index + 1] == '10')
+	return ruby.bool_value(index >= 0 && index + 1 < arguments.len && arguments[index + 1] == '10')
 }
 
 // Ruby let `let(:specs) { { revisions: { trunk: "10", "external" => "11" } } }` at line 49.
-pub fn ruby_subversion_spec_l49_d10_specs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'revisions': brew_runtime.map_value({
-			'trunk':    brew_runtime.string_value('10')
-			'external': brew_runtime.string_value('11')
+pub fn ruby_subversion_spec_l49_d10_specs(args ...ruby.Value) ruby.Value {
+	return ruby.map_value({
+		'revisions': ruby.map_value({
+			'trunk':    ruby.string_value('10')
+			'external': ruby.string_value('11')
 		})
 	})
 }
 
 // Ruby it `it "keeps checkout operands after options" do` at line 51.
-pub fn ruby_subversion_spec_l51_d11_keeps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_subversion_spec_l51_d11_keeps(args ...ruby.Value) ruby.Value {
 	strategy := subversion_spec_strategy(download_strategy.VCSDownloadMeta{
 		revisions: {
 			'trunk':    '10'
@@ -87,7 +87,7 @@ pub fn ruby_subversion_spec_l51_d11_keeps(args ...brew_runtime.Value) brew_runti
 	})
 	target := os.join_path(os.temp_dir(), 'brew-v-subversion-spec-external-target')
 	arguments := strategy.subversion_fetch_arguments(target, '-example', '11', true)
-	return brew_runtime.bool_value(arguments == ['checkout', '--quiet', '-r', '11',
+	return ruby.bool_value(arguments == ['checkout', '--quiet', '-r', '11',
 		'--ignore-externals', '--', '-example', target])
 }
 

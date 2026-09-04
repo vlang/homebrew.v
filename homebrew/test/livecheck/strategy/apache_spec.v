@@ -1,6 +1,6 @@
 module strategy
 
-import brew_runtime
+import ruby
 import homebrew.livecheck
 import homebrew.livecheck.strategy as apache_core
 import homebrew.utils
@@ -61,8 +61,8 @@ fn apache_spec_match_data_equal(left apache_core.PageMatchData,
 }
 
 // Ruby subject `subject(:apache) { described_class }` at line 7.
-pub fn ruby_apache_spec_l7_d1_apache() brew_runtime.Value {
-	return brew_runtime.object_value('Class', 'Homebrew::Livecheck::Strategy::Apache')
+pub fn ruby_apache_spec_l7_d1_apache() ruby.Value {
+	return ruby.object_value('Class', 'Homebrew::Livecheck::Strategy::Apache')
 }
 
 // Ruby let `let(:apache_urls) do` at line 9.

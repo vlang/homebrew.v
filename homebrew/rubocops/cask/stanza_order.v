@@ -1,6 +1,6 @@
 module cask
 
-import brew_runtime
+import ruby
 import homebrew.rubocops.cask.ast as cask_ast
 import homebrew.rubocops.cask.constants as stanza_constants
 
@@ -203,8 +203,8 @@ pub fn correct_cask_stanza_order(source string) string {
 	return stanza_order_correct_scope(source)
 }
 
-fn stanza_order_problem_value(problem StanzaOrderProblem) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cop::Offense', problem.message, {
+fn stanza_order_problem_value(problem StanzaOrderProblem) ruby.Value {
+	return ruby.structured_value('RuboCop::Cop::Offense', problem.message, {
 		'stanza':      problem.stanza
 		'begin_pos':   problem.begin_pos.str()
 		'end_pos':     problem.end_pos.str()
@@ -214,20 +214,20 @@ fn stanza_order_problem_value(problem StanzaOrderProblem) brew_runtime.Value {
 }
 
 // Ruby method `on_cask_stanza_block(stanza_block)` at line 19.
-pub fn ruby_stanza_order_l19_d1_on_cask_stanza_block(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stanza_order_l19_d1_on_cask_stanza_block(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.array_value(audit_cask_stanza_order(source).map(stanza_order_problem_value(it)))
+	return ruby.array_value(audit_cask_stanza_order(source).map(stanza_order_problem_value(it)))
 }
 
 // Ruby method `on_new_investigation` at line 47.
-pub fn ruby_stanza_order_l47_d2_on_new_investigation(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.array_value([]brew_runtime.Value{})
+pub fn ruby_stanza_order_l47_d2_on_new_investigation(args ...ruby.Value) ruby.Value {
+	return ruby.array_value([]ruby.Value{})
 }
 
 // Ruby method `sort_stanzas(stanzas)` at line 56.
-pub fn ruby_stanza_order_l56_d3_sort_stanzas(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stanza_order_l56_d3_sort_stanzas(args ...ruby.Value) ruby.Value {
 	names := if args.len > 0 { args[0].string_array_data } else { []string{} }
-	return brew_runtime.string_array_value(sort_cask_stanza_names(names))
+	return ruby.string_array_value(sort_cask_stanza_names(names))
 }
 
 // Original Ruby source (line-for-line):

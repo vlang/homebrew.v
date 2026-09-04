@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 import crypto.sha256
 import homebrew.unpack_strategy
 import os
@@ -205,16 +205,16 @@ pub fn (patch ExternalPatch) inspect() string {
 	return '#<ExternalPatch: :${patch.strip} "${patch.resource.url}">'
 }
 
-fn external_patch_value(patch ExternalPatch) brew_runtime.Value {
+fn external_patch_value(patch ExternalPatch) ruby.Value {
 	model_value := patch_model_value(patch.model())
 	mut attributes := model_value.attributes.clone()
 	attributes['owner'] = patch.owner
 	attributes['has_owner'] = patch.has_owner.str()
 	attributes['version'] = patch.version
-	return brew_runtime.structured_value('ExternalPatch', patch.inspect(), attributes)
+	return ruby.structured_value('ExternalPatch', patch.inspect(), attributes)
 }
 
-fn external_patch_from_value(value brew_runtime.Value) !ExternalPatch {
+fn external_patch_from_value(value ruby.Value) !ExternalPatch {
 	model := patch_model_from_value(value)!
 	mut patch := external_patch_from_model(model)!
 	if (value.attributes['has_owner'] or { 'false' }) == 'true' {
@@ -224,148 +224,148 @@ fn external_patch_from_value(value brew_runtime.Value) !ExternalPatch {
 }
 
 // Ruby attr_reader `attr_reader :resource` at line 16.
-pub fn ruby_external_patch_l16_d1_resource(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_external_patch_l16_d1_resource(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'receiver is required')
+		return ruby.object_value('ArgumentError', 'receiver is required')
 	}
-	patch := external_patch_from_value(args[0]) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
-	return brew_runtime.map_value({
-		'url':       brew_runtime.string_value(patch.resource.url)
-		'apply':     brew_runtime.string_array_value(patch.resource.patch_files)
-		'directory': brew_runtime.string_value(patch.resource.directory)
-		'sha256':    brew_runtime.string_value(patch.resource.checksum)
+	patch := external_patch_from_value(args[0]) or { return ruby.object_value('ArgumentError', err.msg()) }
+	return ruby.map_value({
+		'url':       ruby.string_value(patch.resource.url)
+		'apply':     ruby.string_array_value(patch.resource.patch_files)
+		'directory': ruby.string_value(patch.resource.directory)
+		'sha256':    ruby.string_value(patch.resource.checksum)
 	})
 }
 
 // Ruby attr_reader `attr_reader :strip` at line 19.
-pub fn ruby_external_patch_l19_d2_strip(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_external_patch_l19_d2_strip(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'receiver is required')
+		return ruby.object_value('ArgumentError', 'receiver is required')
 	}
-	patch := external_patch_from_value(args[0]) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
-	return brew_runtime.object_value('Symbol', patch.strip)
+	patch := external_patch_from_value(args[0]) or { return ruby.object_value('ArgumentError', err.msg()) }
+	return ruby.object_value('Symbol', patch.strip)
 }
 
 // Ruby def_delegators `def_delegators :resource, :url, :fetch, :patch_files, :verify_download_integrity, :cached_download, :downloaded?, :clear_cache` at line 21.
-pub fn ruby_external_patch_l21_d3_url(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_external_patch_l21_d3_url(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_value('')
+		return ruby.string_value('')
 	}
-	patch := external_patch_from_value(args[0]) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
-	return brew_runtime.string_value(patch.url())
+	patch := external_patch_from_value(args[0]) or { return ruby.object_value('ArgumentError', err.msg()) }
+	return ruby.string_value(patch.url())
 }
 
 // Ruby def_delegators `def_delegators :resource, :url, :fetch, :patch_files, :verify_download_integrity, :cached_download, :downloaded?, :clear_cache` at line 21.
-pub fn ruby_external_patch_l21_d4_fetch(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_external_patch_l21_d4_fetch(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'receiver is required')
+		return ruby.object_value('ArgumentError', 'receiver is required')
 	}
-	patch := external_patch_from_value(args[0]) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
-	return brew_runtime.string_value(patch.fetch() or { return brew_runtime.object_value('ErrorDuringExecution', err.msg()) })
+	patch := external_patch_from_value(args[0]) or { return ruby.object_value('ArgumentError', err.msg()) }
+	return ruby.string_value(patch.fetch() or { return ruby.object_value('ErrorDuringExecution', err.msg()) })
 }
 
 // Ruby def_delegators `def_delegators :resource, :url, :fetch, :patch_files, :verify_download_integrity, :cached_download, :downloaded?, :clear_cache` at line 21.
-pub fn ruby_external_patch_l21_d5_patch_files(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_external_patch_l21_d5_patch_files(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_array_value([])
+		return ruby.string_array_value([])
 	}
-	patch := external_patch_from_value(args[0]) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
-	return brew_runtime.string_array_value(patch.patch_files())
+	patch := external_patch_from_value(args[0]) or { return ruby.object_value('ArgumentError', err.msg()) }
+	return ruby.string_array_value(patch.patch_files())
 }
 
 // Ruby def_delegators `def_delegators :resource, :url, :fetch, :patch_files, :verify_download_integrity, :cached_download, :downloaded?, :clear_cache` at line 21.
-pub fn ruby_external_patch_l21_d6_verify_download_integrity(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_external_patch_l21_d6_verify_download_integrity(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'receiver is required')
+		return ruby.object_value('ArgumentError', 'receiver is required')
 	}
-	patch := external_patch_from_value(args[0]) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+	patch := external_patch_from_value(args[0]) or { return ruby.object_value('ArgumentError', err.msg()) }
 	path := if args.len > 1 { args[1].as_string() } else { patch.cached_download() }
-	patch.verify_download_integrity(path) or { return brew_runtime.object_value('ChecksumMismatchError', err.msg()) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	patch.verify_download_integrity(path) or { return ruby.object_value('ChecksumMismatchError', err.msg()) }
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby def_delegators `def_delegators :resource, :url, :fetch, :patch_files, :verify_download_integrity, :cached_download, :downloaded?, :clear_cache` at line 21.
-pub fn ruby_external_patch_l21_d7_cached_download(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_external_patch_l21_d7_cached_download(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_value('')
+		return ruby.string_value('')
 	}
-	patch := external_patch_from_value(args[0]) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
-	return brew_runtime.string_value(patch.cached_download())
+	patch := external_patch_from_value(args[0]) or { return ruby.object_value('ArgumentError', err.msg()) }
+	return ruby.string_value(patch.cached_download())
 }
 
 // Ruby def_delegators `def_delegators :resource, :url, :fetch, :patch_files, :verify_download_integrity, :cached_download, :downloaded?, :clear_cache` at line 21.
-pub fn ruby_external_patch_l21_d8_downloaded(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_external_patch_l21_d8_downloaded(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	patch := external_patch_from_value(args[0]) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
-	return brew_runtime.bool_value(patch.downloaded())
+	patch := external_patch_from_value(args[0]) or { return ruby.object_value('ArgumentError', err.msg()) }
+	return ruby.bool_value(patch.downloaded())
 }
 
 // Ruby def_delegators `def_delegators :resource, :url, :fetch, :patch_files, :verify_download_integrity, :cached_download, :downloaded?, :clear_cache` at line 21.
-pub fn ruby_external_patch_l21_d9_clear_cache(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_external_patch_l21_d9_clear_cache(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'receiver is required')
+		return ruby.object_value('ArgumentError', 'receiver is required')
 	}
-	mut patch := external_patch_from_value(args[0]) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
-	patch.clear_cache() or { return brew_runtime.object_value('ErrorDuringExecution', err.msg()) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	mut patch := external_patch_from_value(args[0]) or { return ruby.object_value('ArgumentError', err.msg()) }
+	patch.clear_cache() or { return ruby.object_value('ErrorDuringExecution', err.msg()) }
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `initialize(strip, &block)` at line 26.
-pub fn ruby_external_patch_l26_d10_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_external_patch_l26_d10_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'strip is required')
+		return ruby.object_value('ArgumentError', 'strip is required')
 	}
-	config := if args.len > 1 { args[1] } else { brew_runtime.map_value({}) }
-	model_value := ruby_patch_l73_d4_self_create(brew_runtime.object_value('Symbol', args[0].as_string()), brew_runtime.object_value('NilClass', ''), config)
-	model := patch_model_from_value(model_value) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
-	patch := external_patch_from_model(model) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+	config := if args.len > 1 { args[1] } else { ruby.map_value({}) }
+	model_value := ruby_patch_l73_d4_self_create(ruby.object_value('Symbol', args[0].as_string()), ruby.object_value('NilClass', ''), config)
+	model := patch_model_from_value(model_value) or { return ruby.object_value('ArgumentError', err.msg()) }
+	patch := external_patch_from_model(model) or { return ruby.object_value('ArgumentError', err.msg()) }
 	return external_patch_value(patch)
 }
 
 // Ruby method `external?` at line 32.
-pub fn ruby_external_patch_l32_d11_external(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(args.len > 0)
+pub fn ruby_external_patch_l32_d11_external(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(args.len > 0)
 }
 
 // Ruby method `resolves` at line 37.
-pub fn ruby_external_patch_l37_d12_resolves(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_external_patch_l37_d12_resolves(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_array_value([])
+		return ruby.string_array_value([])
 	}
-	patch := external_patch_from_value(args[0]) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
-	return brew_runtime.string_array_value(patch.resolved_identifiers())
+	patch := external_patch_from_value(args[0]) or { return ruby.object_value('ArgumentError', err.msg()) }
+	return ruby.string_array_value(patch.resolved_identifiers())
 }
 
 // Ruby method `type` at line 42.
-pub fn ruby_external_patch_l42_d13_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_external_patch_l42_d13_type(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
-	patch := external_patch_from_value(args[0]) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+	patch := external_patch_from_value(args[0]) or { return ruby.object_value('ArgumentError', err.msg()) }
 	if name := patch.type_name() {
-		return brew_runtime.object_value('Symbol', name)
+		return ruby.object_value('Symbol', name)
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `owner=(owner)` at line 47.
-pub fn ruby_external_patch_l47_d14_owner(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_external_patch_l47_d14_owner(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'receiver is required')
+		return ruby.object_value('ArgumentError', 'receiver is required')
 	}
-	patch := external_patch_from_value(args[0]) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+	patch := external_patch_from_value(args[0]) or { return ruby.object_value('ArgumentError', err.msg()) }
 	owner := if args.len > 1 && args[1].type_name != 'NilClass' { args[1].as_string() } else { '' }
 	return external_patch_value(patch.with_owner(if owner == '' { none } else { owner }))
 }
 
 // Ruby method `apply` at line 53.
-pub fn ruby_external_patch_l53_d15_apply(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_external_patch_l53_d15_apply(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'receiver and base directory are required')
+		return ruby.object_value('ArgumentError', 'receiver and base directory are required')
 	}
-	patch := external_patch_from_value(args[0]) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+	patch := external_patch_from_value(args[0]) or { return ruby.object_value('ArgumentError', err.msg()) }
 	applied := patch.apply(args[1].as_string(), if args.len > 2 {
 		args[2].as_string()
 	} else {
@@ -374,18 +374,18 @@ pub fn ruby_external_patch_l53_d15_apply(args ...brew_runtime.Value) brew_runtim
 		name := if err.msg().starts_with('There should be exactly one patch file') {
 			'MissingApplyError'
 		} else if err.msg().starts_with('No such file') { 'Errno::ENOENT' } else { 'BuildError' }
-		return brew_runtime.object_value(name, err.msg())
+		return ruby.object_value(name, err.msg())
 	}
-	return brew_runtime.string_array_value(applied)
+	return ruby.string_array_value(applied)
 }
 
 // Ruby method `inspect` at line 95.
-pub fn ruby_external_patch_l95_d16_inspect(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_external_patch_l95_d16_inspect(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_value('')
+		return ruby.string_value('')
 	}
-	patch := external_patch_from_value(args[0]) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
-	return brew_runtime.string_value(patch.inspect())
+	patch := external_patch_from_value(args[0]) or { return ruby.object_value('ArgumentError', err.msg()) }
+	return ruby.string_value(patch.inspect())
 }
 
 // Original Ruby source (line-for-line):

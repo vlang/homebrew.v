@@ -1,6 +1,6 @@
 module types
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/types/fixed_array.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -10,7 +10,7 @@ pub:
 	types []&BaseType
 }
 
-pub fn new_fixed_array_type(values []brew_runtime.Value) !&FixedArrayType {
+pub fn new_fixed_array_type(values []ruby.Value) !&FixedArrayType {
 	mut types := []&BaseType{cap: values.len}
 	for value in values {
 		types << union_coerce(value)!
@@ -34,15 +34,15 @@ pub fn (fixed &FixedArrayType) name() string {
 	return '[${names.join(', ')}]'
 }
 
-pub fn (fixed &FixedArrayType) recursively_valid(value brew_runtime.Value) !bool {
+pub fn (fixed &FixedArrayType) recursively_valid(value ruby.Value) !bool {
 	return fixed.validate_elements(value, true)
 }
 
-pub fn (fixed &FixedArrayType) valid(value brew_runtime.Value) !bool {
+pub fn (fixed &FixedArrayType) valid(value ruby.Value) !bool {
 	return fixed.validate_elements(value, false)
 }
 
-fn (fixed &FixedArrayType) validate_elements(value brew_runtime.Value, recursive bool) !bool {
+fn (fixed &FixedArrayType) validate_elements(value ruby.Value, recursive bool) !bool {
 	if value.type_name != 'Array' {
 		return false
 	}
@@ -63,7 +63,7 @@ fn (fixed &FixedArrayType) validate_elements(value brew_runtime.Value, recursive
 	return true
 }
 
-pub fn (fixed &FixedArrayType) subtype_of_single(other brew_runtime.Value) !bool {
+pub fn (fixed &FixedArrayType) subtype_of_single(other ruby.Value) !bool {
 	if other.type_name == 'T::Types::FixedArray' {
 		other_fixed := fixed_array_type_from_value(other)
 		if fixed.types.len != other_fixed.types.len {
@@ -89,7 +89,7 @@ pub fn (fixed &FixedArrayType) subtype_of_single(other brew_runtime.Value) !bool
 	return false
 }
 
-pub fn (fixed &FixedArrayType) describe_obj(value brew_runtime.Value) string {
+pub fn (fixed &FixedArrayType) describe_obj(value ruby.Value) string {
 	if value.type_name != 'Array' {
 		return new_custom_base_type('T::Types::FixedArray', fixed.name(), [], []).describe_obj(value)
 	}
@@ -100,8 +100,8 @@ pub fn (fixed &FixedArrayType) describe_obj(value brew_runtime.Value) string {
 	return 'type [${elements.map(it.type_name).join(', ')}]'
 }
 
-fn fixed_array_type_value(fixed &FixedArrayType) brew_runtime.Value {
-	return brew_runtime.Value{
+fn fixed_array_type_value(fixed &FixedArrayType) ruby.Value {
+	return ruby.Value{
 		type_name: 'T::Types::FixedArray'
 		repr: fixed.name()
 		array_data: fixed.types.map(base_type_boundary_value(it))
@@ -111,14 +111,14 @@ fn fixed_array_type_value(fixed &FixedArrayType) brew_runtime.Value {
 	}
 }
 
-fn fixed_array_type_from_value(value brew_runtime.Value) &FixedArrayType {
+fn fixed_array_type_from_value(value ruby.Value) &FixedArrayType {
 	address := value.attribute('fixed_array_type_address') or {
 		panic('invalid FixedArray receiver')
 	}
 	return unsafe { &FixedArrayType(voidptr(address.u64())) }
 }
 
-fn fixed_array_type_from_args(args []brew_runtime.Value) &FixedArrayType {
+fn fixed_array_type_from_args(args []ruby.Value) &FixedArrayType {
 	if args.len == 0 {
 		panic('FixedArray method requires a receiver')
 	}
@@ -126,7 +126,7 @@ fn fixed_array_type_from_args(args []brew_runtime.Value) &FixedArrayType {
 }
 
 // Ruby method `initialize(types)` at line 9.
-pub fn ruby_fixed_array_l9_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_fixed_array_l9_d1_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('FixedArray#initialize requires types')
 	}
@@ -136,57 +136,57 @@ pub fn ruby_fixed_array_l9_d1_initialize(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `types` at line 13.
-pub fn ruby_fixed_array_l13_d2_types(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.array_value(fixed_array_type_from_args(args).types.map(base_type_boundary_value(it)))
+pub fn ruby_fixed_array_l13_d2_types(args ...ruby.Value) ruby.Value {
+	return ruby.array_value(fixed_array_type_from_args(args).types.map(base_type_boundary_value(it)))
 }
 
 // Ruby method `build_type` at line 17.
-pub fn ruby_fixed_array_l17_d3_build_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_fixed_array_l17_d3_build_type(args ...ruby.Value) ruby.Value {
 	fixed_array_type_from_args(args).build_type() or { panic(err) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `name` at line 23.
-pub fn ruby_fixed_array_l23_d4_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(fixed_array_type_from_args(args).name())
+pub fn ruby_fixed_array_l23_d4_name(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(fixed_array_type_from_args(args).name())
 }
 
 // Ruby method `recursively_valid?(obj)` at line 28.
-pub fn ruby_fixed_array_l28_d5_recursively_valid(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_fixed_array_l28_d5_recursively_valid(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('FixedArray#recursively_valid? requires an object')
 	}
-	return brew_runtime.bool_value(fixed_array_type_from_args(args).recursively_valid(args[1]) or {
+	return ruby.bool_value(fixed_array_type_from_args(args).recursively_valid(args[1]) or {
 		panic(err)
 	})
 }
 
 // Ruby method `valid?(obj)` at line 46.
-pub fn ruby_fixed_array_l46_d6_valid(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_fixed_array_l46_d6_valid(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('FixedArray#valid? requires an object')
 	}
-	return brew_runtime.bool_value(fixed_array_type_from_args(args).valid(args[1]) or {
+	return ruby.bool_value(fixed_array_type_from_args(args).valid(args[1]) or {
 		panic(err)
 	})
 }
 
 // Ruby method `subtype_of_single?(other)` at line 64.
-pub fn ruby_fixed_array_l64_d7_subtype_of_single(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_fixed_array_l64_d7_subtype_of_single(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('FixedArray#subtype_of_single? requires another type')
 	}
-	return brew_runtime.bool_value(fixed_array_type_from_args(args).subtype_of_single(args[1]) or {
+	return ruby.bool_value(fixed_array_type_from_args(args).subtype_of_single(args[1]) or {
 		panic(err)
 	})
 }
 
 // Ruby method `describe_obj(obj)` at line 97.
-pub fn ruby_fixed_array_l97_d8_describe_obj(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_fixed_array_l97_d8_describe_obj(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('FixedArray#describe_obj requires an object')
 	}
-	return brew_runtime.string_value(fixed_array_type_from_args(args).describe_obj(args[1]))
+	return ruby.string_value(fixed_array_type_from_args(args).describe_obj(args[1]))
 }
 
 // Original Ruby source (line-for-line):

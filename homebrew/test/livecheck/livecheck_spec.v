@@ -1,17 +1,17 @@
 module livecheck
 
-import brew_runtime
+import ruby
 import homebrew.livecheck as livecheck_core
 import time
 
 // Translated from Homebrew/brew `test/livecheck/livecheck_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
-fn livecheck_spec_bool(value bool) brew_runtime.Value {
-	return brew_runtime.bool_value(value)
+fn livecheck_spec_bool(value bool) ruby.Value {
+	return ruby.bool_value(value)
 }
 
-fn livecheck_spec_symbol(value string) brew_runtime.Value {
-	return brew_runtime.Value{ type_name: 'Symbol', repr: value }
+fn livecheck_spec_symbol(value string) ruby.Value {
+	return ruby.Value{ type_name: 'Symbol', repr: value }
 }
 
 fn livecheck_spec_formula() livecheck_core.LivecheckPackage {
@@ -24,7 +24,7 @@ fn livecheck_spec_formula() livecheck_core.LivecheckPackage {
 		head_url: 'https://github.com/Homebrew/brew.git'
 		homepage: 'https://brew.sh'
 		livecheck_defined: true
-		livecheck_url: brew_runtime.string_value('https://formulae.brew.sh/api/formula/ruby.json')
+		livecheck_url: ruby.string_value('https://formulae.brew.sh/api/formula/ruby.json')
 		livecheck_regex: '"stable":"(\\d+(?:\\.\\d+)+)"'
 		livecheck_parameters: ['url', 'regex']
 		resources: [livecheck_spec_resource()]
@@ -32,11 +32,11 @@ fn livecheck_spec_formula() livecheck_core.LivecheckPackage {
 }
 
 fn livecheck_spec_resource() livecheck_core.LivecheckPackage {
-	return livecheck_core.LivecheckPackage{ kind: 'resource', name: 'foo', full_name: 'foo', version: '1.0', url: 'https://brew.sh/foo-1.0.tar.gz', livecheck_defined: true, livecheck_url: brew_runtime.string_value('https://brew.sh/test/releases') }
+	return livecheck_core.LivecheckPackage{ kind: 'resource', name: 'foo', full_name: 'foo', version: '1.0', url: 'https://brew.sh/foo-1.0.tar.gz', livecheck_defined: true, livecheck_url: ruby.string_value('https://brew.sh/test/releases') }
 }
 
 fn livecheck_spec_cask() livecheck_core.LivecheckPackage {
-	return livecheck_core.LivecheckPackage{ kind: 'cask', name: 'test', full_name: 'test', version: '0.0.1,2', url: 'https://brew.sh/test-0.0.1.dmg', homepage: 'https://brew.sh', livecheck_defined: true, livecheck_url: brew_runtime.string_value('https://formulae.brew.sh/api/formula/ruby.json'), livecheck_regex: '"stable":"(\\d+(?:.\\d+)+)"' }
+	return livecheck_core.LivecheckPackage{ kind: 'cask', name: 'test', full_name: 'test', version: '0.0.1,2', url: 'https://brew.sh/test-0.0.1.dmg', homepage: 'https://brew.sh', livecheck_defined: true, livecheck_url: ruby.string_value('https://formulae.brew.sh/api/formula/ruby.json'), livecheck_regex: '"stable":"(\\d+(?:.\\d+)+)"' }
 }
 
 fn livecheck_spec_stable_url_only() livecheck_core.LivecheckPackage {
@@ -82,85 +82,85 @@ fn livecheck_spec_throttled(kind string, rate int, days int, matches map[string]
 }
 
 // Ruby subject `subject(:livecheck) { described_class }` at line 7.
-pub fn ruby_livecheck_spec_l7_d1_livecheck(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l7_d1_livecheck(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.object_value('Module', 'Homebrew::Livecheck')
+	return ruby.object_value('Module', 'Homebrew::Livecheck')
 }
 
 // Ruby let `let(:cask_url) { "https://brew.sh/test-0.0.1.dmg" }` at line 9.
-pub fn ruby_livecheck_spec_l9_d2_cask_url(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l9_d2_cask_url(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('https://brew.sh/test-0.0.1.dmg')
+	return ruby.string_value('https://brew.sh/test-0.0.1.dmg')
 }
 
 // Ruby let `let(:head_url) { "https://github.com/Homebrew/brew.git" }` at line 10.
-pub fn ruby_livecheck_spec_l10_d3_head_url(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l10_d3_head_url(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('https://github.com/Homebrew/brew.git')
+	return ruby.string_value('https://github.com/Homebrew/brew.git')
 }
 
 // Ruby let `let(:homepage_url) { "https://brew.sh" }` at line 11.
-pub fn ruby_livecheck_spec_l11_d4_homepage_url(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l11_d4_homepage_url(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('https://brew.sh')
+	return ruby.string_value('https://brew.sh')
 }
 
 // Ruby let `let(:livecheck_url) { "https://formulae.brew.sh/api/formula/ruby.json" }` at line 12.
-pub fn ruby_livecheck_spec_l12_d5_livecheck_url(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l12_d5_livecheck_url(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('https://formulae.brew.sh/api/formula/ruby.json')
+	return ruby.string_value('https://formulae.brew.sh/api/formula/ruby.json')
 }
 
 // Ruby let `let(:stable_url) { "https://brew.sh/test-0.0.1.tgz" }` at line 13.
-pub fn ruby_livecheck_spec_l13_d6_stable_url(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l13_d6_stable_url(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('https://brew.sh/test-0.0.1.tgz')
+	return ruby.string_value('https://brew.sh/test-0.0.1.tgz')
 }
 
 // Ruby let `let(:resource_url) { "https://brew.sh/foo-1.0.tar.gz" }` at line 14.
-pub fn ruby_livecheck_spec_l14_d7_resource_url(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l14_d7_resource_url(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('https://brew.sh/foo-1.0.tar.gz')
+	return ruby.string_value('https://brew.sh/foo-1.0.tar.gz')
 }
 
 // Ruby let `let(:f) do` at line 15.
-pub fn ruby_livecheck_spec_l15_d8_f(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l15_d8_f(args ...ruby.Value) ruby.Value {
 	_ = args
 	return livecheck_core.livecheck_package_value(livecheck_spec_formula())
 }
 
 // Ruby let `let(:f_stable_url_only) do` at line 39.
-pub fn ruby_livecheck_spec_l39_d9_f_stable_url_only(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l39_d9_f_stable_url_only(args ...ruby.Value) ruby.Value {
 	_ = args
 	return livecheck_core.livecheck_package_value(livecheck_spec_stable_url_only())
 }
 
 // Ruby let `let(:r) { f.resources.first }` at line 48.
-pub fn ruby_livecheck_spec_l48_d10_r(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l48_d10_r(args ...ruby.Value) ruby.Value {
 	_ = args
 	return livecheck_core.livecheck_package_value(livecheck_spec_resource())
 }
 
 // Ruby let `let(:c) do` at line 49.
-pub fn ruby_livecheck_spec_l49_d11_c(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l49_d11_c(args ...ruby.Value) ruby.Value {
 	_ = args
 	return livecheck_core.livecheck_package_value(livecheck_spec_cask())
 }
 
 // Ruby let `let(:c_no_checkable_urls) do` at line 66.
-pub fn ruby_livecheck_spec_l66_d12_c_no_checkable_urls(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l66_d12_c_no_checkable_urls(args ...ruby.Value) ruby.Value {
 	_ = args
 	return livecheck_core.livecheck_package_value(livecheck_spec_cask_without_urls())
 }
 
 // Ruby it `it "returns demodulized class name" do` at line 79.
-pub fn ruby_livecheck_spec_l79_d13_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l79_d13_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	return livecheck_spec_bool(livecheck_core.livecheck_strategy_name('Homebrew::Livecheck::Strategy::PageMatch') == 'PageMatch' && livecheck_core.livecheck_strategy_name('Homebrew::Livecheck::Strategy::PageMatch') == 'PageMatch')
 }
 
 // Ruby it `it "returns parameter names" do` at line 89.
-pub fn ruby_livecheck_spec_l89_d14_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l89_d14_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	package := livecheck_spec_formula()
 	return livecheck_spec_bool(livecheck_core.livecheck_find_versions_parameters(package) == [
@@ -170,19 +170,19 @@ pub fn ruby_livecheck_spec_l89_d14_returns(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `self.match?(_url) = true` at line 93.
-pub fn ruby_livecheck_spec_l93_d15_self_match(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l93_d15_self_match(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
 // Ruby method `self.find_versions(url:, regex: nil) = {}` at line 94.
-pub fn ruby_livecheck_spec_l94_d16_self_find_versions(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l94_d16_self_find_versions(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.map_value({})
+	return ruby.map_value({})
 }
 
 // Ruby it `it "returns [nil, []]" do` at line 107.
-pub fn ruby_livecheck_spec_l107_d17_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l107_d17_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	formula_result := livecheck_core.livecheck_resolve_reference(livecheck_spec_formula(), {}) or { return livecheck_spec_bool(false) }
 	cask_result := livecheck_core.livecheck_resolve_reference(livecheck_spec_cask(), {}) or { return livecheck_spec_bool(false) }
@@ -190,97 +190,97 @@ pub fn ruby_livecheck_spec_l107_d17_returns(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby it `it "returns the name of a formula" do` at line 115.
-pub fn ruby_livecheck_spec_l115_d18_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l115_d18_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	return livecheck_spec_bool(livecheck_core.livecheck_package_name(livecheck_spec_formula(), false) == 'test')
 }
 
 // Ruby it `it "returns the full name of a formula" do` at line 119.
-pub fn ruby_livecheck_spec_l119_d19_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l119_d19_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	return livecheck_spec_bool(livecheck_core.livecheck_package_name(livecheck_spec_formula(), true) == 'test')
 }
 
 // Ruby it `it "returns the token of a cask" do` at line 123.
-pub fn ruby_livecheck_spec_l123_d20_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l123_d20_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	return livecheck_spec_bool(livecheck_core.livecheck_package_name(livecheck_spec_cask(), false) == 'test')
 }
 
 // Ruby it `it "returns the full name of a cask" do` at line 127.
-pub fn ruby_livecheck_spec_l127_d21_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l127_d21_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	return livecheck_spec_bool(livecheck_core.livecheck_package_name(livecheck_spec_cask(), true) == 'test')
 }
 
 // Ruby it `it "returns a hash containing the livecheck status for a formula" do` at line 133.
-pub fn ruby_livecheck_spec_l133_d22_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l133_d22_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := livecheck_core.livecheck_status_hash(livecheck_spec_formula(), 'error', [
 		'Unable to get versions',
 	])
-	meta_value := result.map_data['meta'] or { brew_runtime.map_value({}) }
+	meta_value := result.map_data['meta'] or { ruby.map_value({}) }
 	meta := meta_value.map_data.clone()
-	messages := (result.map_data['messages'] or { brew_runtime.string_array_value([]) }).as_string_array() or {
+	messages := (result.map_data['messages'] or { ruby.string_array_value([]) }).as_string_array() or {
 		return livecheck_spec_bool(false)
 	}
 	return livecheck_spec_bool(result.map_data.keys().sorted() == ['formula', 'messages', 'meta',
-		'status'] && (result.map_data['formula'] or { brew_runtime.string_value('') }).as_string() == 'test' && (result.map_data['status'] or { brew_runtime.string_value('') }).as_string() == 'error' && messages == [
+		'status'] && (result.map_data['formula'] or { ruby.string_value('') }).as_string() == 'test' && (result.map_data['status'] or { ruby.string_value('') }).as_string() == 'error' && messages == [
 		'Unable to get versions',
-	] && meta.keys() == ['livecheck_defined'] && (meta['livecheck_defined'] or { brew_runtime.bool_value(false) }).bool_data)
+	] && meta.keys() == ['livecheck_defined'] && (meta['livecheck_defined'] or { ruby.bool_value(false) }).bool_data)
 }
 
 // Ruby it `it "returns a hash containing the livecheck status for a resource" do` at line 145.
-pub fn ruby_livecheck_spec_l145_d23_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l145_d23_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := livecheck_core.livecheck_status_hash(livecheck_spec_resource(), 'error', [
 		'Unable to get versions',
 	])
-	meta_value := result.map_data['meta'] or { brew_runtime.map_value({}) }
+	meta_value := result.map_data['meta'] or { ruby.map_value({}) }
 	meta := meta_value.map_data.clone()
-	messages := (result.map_data['messages'] or { brew_runtime.string_array_value([]) }).as_string_array() or {
+	messages := (result.map_data['messages'] or { ruby.string_array_value([]) }).as_string_array() or {
 		return livecheck_spec_bool(false)
 	}
 	return livecheck_spec_bool(result.map_data.keys().sorted() == ['messages', 'meta', 'resource',
-		'status'] && (result.map_data['resource'] or { brew_runtime.string_value('') }).as_string() == 'foo' && (result.map_data['status'] or { brew_runtime.string_value('') }).as_string() == 'error' && messages == [
+		'status'] && (result.map_data['resource'] or { ruby.string_value('') }).as_string() == 'foo' && (result.map_data['status'] or { ruby.string_value('') }).as_string() == 'error' && messages == [
 		'Unable to get versions',
-	] && meta.keys() == ['livecheck_defined'] && (meta['livecheck_defined'] or { brew_runtime.bool_value(false) }).bool_data)
+	] && meta.keys() == ['livecheck_defined'] && (meta['livecheck_defined'] or { ruby.bool_value(false) }).bool_data)
 }
 
 // Ruby let `let(:f_livecheck_url) do` at line 159.
-pub fn ruby_livecheck_spec_l159_d24_f_livecheck_url(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l159_d24_f_livecheck_url(args ...ruby.Value) ruby.Value {
 	_ = args
 	return livecheck_core.livecheck_package_value(livecheck_spec_url_formula())
 }
 
 // Ruby let `let(:r_livecheck_url) { f_livecheck_url.resources.first }` at line 184.
-pub fn ruby_livecheck_spec_l184_d25_r_livecheck_url(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l184_d25_r_livecheck_url(args ...ruby.Value) ruby.Value {
 	_ = args
 	return livecheck_core.livecheck_package_value(livecheck_spec_resource())
 }
 
 // Ruby let `let(:c_livecheck_url) do` at line 186.
-pub fn ruby_livecheck_spec_l186_d26_c_livecheck_url(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l186_d26_c_livecheck_url(args ...ruby.Value) ruby.Value {
 	_ = args
 	return livecheck_core.livecheck_package_value(livecheck_spec_url_cask())
 }
 
 // Ruby it `it "returns a URL string when given a livecheck_url string for a formula" do` at line 199.
-pub fn ruby_livecheck_spec_l199_d27_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l199_d27_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	url := 'https://formulae.brew.sh/api/formula/ruby.json'
-	return livecheck_spec_bool(livecheck_core.livecheck_url_to_string(brew_runtime.string_value(url), livecheck_spec_formula()) or { '' } == url)
+	return livecheck_spec_bool(livecheck_core.livecheck_url_to_string(ruby.string_value(url), livecheck_spec_formula()) or { '' } == url)
 }
 
 // Ruby it `it "returns a URL string when given a livecheck_url string for a resource" do` at line 203.
-pub fn ruby_livecheck_spec_l203_d28_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l203_d28_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	url := 'https://formulae.brew.sh/api/formula/ruby.json'
-	return livecheck_spec_bool(livecheck_core.livecheck_url_to_string(brew_runtime.string_value(url), livecheck_spec_resource()) or { '' } == url)
+	return livecheck_spec_bool(livecheck_core.livecheck_url_to_string(ruby.string_value(url), livecheck_spec_resource()) or { '' } == url)
 }
 
 // Ruby it `it "returns a URL symbol when given a valid livecheck_url symbol" do` at line 207.
-pub fn ruby_livecheck_spec_l207_d29_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l207_d29_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	f := livecheck_spec_url_formula()
 	c := livecheck_spec_url_cask()
@@ -289,7 +289,7 @@ pub fn ruby_livecheck_spec_l207_d29_returns(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby it `it "returns nil when not given a string or valid symbol" do` at line 216.
-pub fn ruby_livecheck_spec_l216_d30_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l216_d30_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	f := livecheck_spec_url_formula()
 	c := livecheck_spec_url_cask()
@@ -335,18 +335,18 @@ pub fn ruby_livecheck_spec_l216_d30_returns(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby let `let(:resource_url) { "https://brew.sh/foo-1.0.tar.gz" }` at line 250.
-pub fn ruby_livecheck_spec_l250_d31_resource_url(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l250_d31_resource_url(args ...ruby.Value) ruby.Value {
 	return ruby_livecheck_spec_l14_d7_resource_url(...args)
 }
 
 // Ruby let `let(:f_duplicate_urls) do` at line 251.
-pub fn ruby_livecheck_spec_l251_d32_f_duplicate_urls(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l251_d32_f_duplicate_urls(args ...ruby.Value) ruby.Value {
 	_ = args
 	return livecheck_core.livecheck_package_value(livecheck_core.LivecheckPackage{ kind: 'formula', name: 'test_duplicate_urls', full_name: 'test_duplicate_urls', stable_url: 'https://brew.sh/test-0.0.1.tgz', head_url: 'https://github.com/Homebrew/brew.git', homepage: 'https://github.com/Homebrew/brew.git' })
 }
 
 // Ruby it `it "returns the list of URLs to check" do` at line 261.
-pub fn ruby_livecheck_spec_l261_d33_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l261_d33_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	f := livecheck_spec_formula()
 	c := livecheck_spec_cask()
@@ -364,13 +364,13 @@ pub fn ruby_livecheck_spec_l261_d33_returns(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby let `let(:example_url) { "https://www.example.com/test-0.0.1.tgz" }` at line 272.
-pub fn ruby_livecheck_spec_l272_d34_example_url(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l272_d34_example_url(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('https://www.example.com/test-0.0.1.tgz')
+	return ruby.string_value('https://www.example.com/test-0.0.1.tgz')
 }
 
 // Ruby let `let(:f_homebrew_curl) do` at line 274.
-pub fn ruby_livecheck_spec_l274_d35_f_homebrew_curl(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l274_d35_f_homebrew_curl(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut package := livecheck_spec_formula()
 	package.head_url = ''
@@ -379,7 +379,7 @@ pub fn ruby_livecheck_spec_l274_d35_f_homebrew_curl(args ...brew_runtime.Value) 
 }
 
 // Ruby let `let(:c_homebrew_curl) do` at line 289.
-pub fn ruby_livecheck_spec_l289_d36_c_homebrew_curl(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l289_d36_c_homebrew_curl(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut package := livecheck_spec_cask()
 	package.url_using = 'homebrew_curl'
@@ -387,7 +387,7 @@ pub fn ruby_livecheck_spec_l289_d36_c_homebrew_curl(args ...brew_runtime.Value) 
 }
 
 // Ruby it `it "returns `true` when the host matches a `using: :homebrew_curl` URL" do` at line 307.
-pub fn ruby_livecheck_spec_l307_d37_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l307_d37_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut f := livecheck_spec_formula()
 	f.stable_using = 'homebrew_curl'
@@ -400,7 +400,7 @@ pub fn ruby_livecheck_spec_l307_d37_returns(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby it `it "automatically uses brewed curl for matching pages" do` at line 316.
-pub fn ruby_livecheck_spec_l316_d38_automatically(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l316_d38_automatically(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut f := livecheck_spec_formula()
 	f.stable_using = 'homebrew_curl'
@@ -408,11 +408,11 @@ pub fn ruby_livecheck_spec_l316_d38_automatically(args ...brew_runtime.Value) br
 		'0.0.2': '0.0.2'
 	}
 	latest := livecheck_core.livecheck_latest_version(f, none)
-	return livecheck_spec_bool(livecheck_core.livecheck_use_homebrew_curl(f, 'https://formulae.brew.sh/api/formula/ruby.json') && (latest.map_data['latest'] or { brew_runtime.string_value('') }).as_string() == '0.0.2')
+	return livecheck_spec_bool(livecheck_core.livecheck_use_homebrew_curl(f, 'https://formulae.brew.sh/api/formula/ruby.json') && (latest.map_data['latest'] or { ruby.string_value('') }).as_string() == '0.0.2')
 }
 
 // Ruby it `it "returns `false` if the host differs from `using: :homebrew_curl` URLs" do` at line 325.
-pub fn ruby_livecheck_spec_l325_d39_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l325_d39_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut f := livecheck_spec_formula()
 	f.stable_using = 'homebrew_curl'
@@ -423,7 +423,7 @@ pub fn ruby_livecheck_spec_l325_d39_returns(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby it `it "returns `false` if a `using: homebrew_curl` URL is not present" do` at line 330.
-pub fn ruby_livecheck_spec_l330_d40_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l330_d40_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	f := livecheck_spec_formula()
 	c := livecheck_spec_cask()
@@ -435,7 +435,7 @@ pub fn ruby_livecheck_spec_l330_d40_returns(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby it `it "returns `false` if the URL string does not contain a valid host" do` at line 341.
-pub fn ruby_livecheck_spec_l341_d41_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l341_d41_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut f := livecheck_spec_formula()
 	f.stable_using = 'homebrew_curl'
@@ -443,49 +443,49 @@ pub fn ruby_livecheck_spec_l341_d41_returns(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby let `let(:f_throttle_rate) do` at line 348.
-pub fn ruby_livecheck_spec_l348_d42_f_throttle_rate(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l348_d42_f_throttle_rate(args ...ruby.Value) ruby.Value {
 	_ = args
 	return livecheck_core.livecheck_package_value(livecheck_spec_throttled('formula', 4, 0, {}, none))
 }
 
 // Ruby let `let(:f_throttle_days) do` at line 363.
-pub fn ruby_livecheck_spec_l363_d43_f_throttle_days(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l363_d43_f_throttle_days(args ...ruby.Value) ruby.Value {
 	_ = args
 	return livecheck_core.livecheck_package_value(livecheck_spec_throttled('formula', 0, 1, {}, none))
 }
 
 // Ruby let `let(:f_throttle_rate_and_days) do` at line 378.
-pub fn ruby_livecheck_spec_l378_d44_f_throttle_rate_and_days(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l378_d44_f_throttle_rate_and_days(args ...ruby.Value) ruby.Value {
 	_ = args
 	return livecheck_core.livecheck_package_value(livecheck_spec_throttled('formula', 4, 1, {}, none))
 }
 
 // Ruby let `let(:c_throttle_rate) do` at line 393.
-pub fn ruby_livecheck_spec_l393_d45_c_throttle_rate(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l393_d45_c_throttle_rate(args ...ruby.Value) ruby.Value {
 	_ = args
 	return livecheck_core.livecheck_package_value(livecheck_spec_throttled('cask', 4, 0, {}, none))
 }
 
 // Ruby let `let(:c_throttle_days) do` at line 412.
-pub fn ruby_livecheck_spec_l412_d46_c_throttle_days(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l412_d46_c_throttle_days(args ...ruby.Value) ruby.Value {
 	_ = args
 	return livecheck_core.livecheck_package_value(livecheck_spec_throttled('cask', 0, 1, {}, none))
 }
 
 // Ruby let `let(:c_throttle_rate_and_days) do` at line 431.
-pub fn ruby_livecheck_spec_l431_d47_c_throttle_rate_and_days(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l431_d47_c_throttle_rate_and_days(args ...ruby.Value) ruby.Value {
 	_ = args
 	return livecheck_core.livecheck_package_value(livecheck_spec_throttled('cask', 4, 1, {}, none))
 }
 
 // Ruby let `let(:base_content) do` at line 450.
-pub fn ruby_livecheck_spec_l450_d48_base_content(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l450_d48_base_content(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('<a href="test-0.0.1.tgz">0.0.1</a>\n<a href="test-0.0.2.tgz">0.0.2</a>\n')
+	return ruby.string_value('<a href="test-0.0.1.tgz">0.0.1</a>\n<a href="test-0.0.2.tgz">0.0.2</a>\n')
 }
 
 // Ruby it `it "sets `latest_throttled` to the highest throttled version" do` at line 457.
-pub fn ruby_livecheck_spec_l457_d49_sets(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l457_d49_sets(args ...ruby.Value) ruby.Value {
 	_ = args
 	matches := {
 		'0.0.3': '0.0.3'
@@ -494,7 +494,7 @@ pub fn ruby_livecheck_spec_l457_d49_sets(args ...brew_runtime.Value) brew_runtim
 	}
 	for kind in ['formula', 'cask'] {
 		result := livecheck_core.livecheck_latest_version(livecheck_spec_throttled(kind, 4, 0, matches, none), false)
-		if (result.map_data['latest'] or { brew_runtime.string_value('') }).as_string() != '0.0.5' || (result.map_data['latest_throttled'] or { brew_runtime.string_value('') }).as_string() != '0.0.4' {
+		if (result.map_data['latest'] or { ruby.string_value('') }).as_string() != '0.0.5' || (result.map_data['latest_throttled'] or { ruby.string_value('') }).as_string() != '0.0.4' {
 			return livecheck_spec_bool(false)
 		}
 	}
@@ -502,7 +502,7 @@ pub fn ruby_livecheck_spec_l457_d49_sets(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby it `it "does not set `latest_throttled` when there are no throttled versions and throttle interval has not elapsed" do` at line 485.
-pub fn ruby_livecheck_spec_l485_d50_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l485_d50_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	matches := {
 		'0.0.1': '0.0.1'
@@ -510,7 +510,7 @@ pub fn ruby_livecheck_spec_l485_d50_does(args ...brew_runtime.Value) brew_runtim
 	}
 	for kind in ['formula', 'cask'] {
 		result := livecheck_core.livecheck_latest_version(livecheck_spec_throttled(kind, 4, 1, matches, none), false)
-		if (result.map_data['latest'] or { brew_runtime.string_value('') }).as_string() != '0.0.2' || (result.map_data['latest_throttled'] or { brew_runtime.string_value('') }).type_name != 'NilClass' {
+		if (result.map_data['latest'] or { ruby.string_value('') }).as_string() != '0.0.2' || (result.map_data['latest_throttled'] or { ruby.string_value('') }).type_name != 'NilClass' {
 			return livecheck_spec_bool(false)
 		}
 	}
@@ -518,7 +518,7 @@ pub fn ruby_livecheck_spec_l485_d50_does(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby it `it "sets `latest_throttled` to `latest` when there are no throttled versions and throttle interval has elapsed" do` at line 501.
-pub fn ruby_livecheck_spec_l501_d51_sets(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l501_d51_sets(args ...ruby.Value) ruby.Value {
 	_ = args
 	matches := {
 		'0.0.1': '0.0.1'
@@ -526,7 +526,7 @@ pub fn ruby_livecheck_spec_l501_d51_sets(args ...brew_runtime.Value) brew_runtim
 	}
 	for kind in ['formula', 'cask'] {
 		result := livecheck_core.livecheck_latest_version(livecheck_spec_throttled(kind, 4, 1, matches, none), true)
-		if (result.map_data['latest'] or { brew_runtime.string_value('') }).as_string() != '0.0.2' || (result.map_data['latest_throttled'] or { brew_runtime.string_value('') }).as_string() != '0.0.2' {
+		if (result.map_data['latest'] or { ruby.string_value('') }).as_string() != '0.0.2' || (result.map_data['latest_throttled'] or { ruby.string_value('') }).as_string() != '0.0.2' {
 			return livecheck_spec_bool(false)
 		}
 	}
@@ -534,41 +534,41 @@ pub fn ruby_livecheck_spec_l501_d51_sets(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby let `let(:version) { Version.new("1.2.3") }` at line 532.
-pub fn ruby_livecheck_spec_l532_d52_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l532_d52_version(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.object_value('Version', '1.2.3')
+	return ruby.object_value('Version', '1.2.3')
 }
 
 // Ruby it `it "returns true if `throttle_rate` and `throttle_days` are nil" do` at line 534.
-pub fn ruby_livecheck_spec_l534_d53_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l534_d53_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	return livecheck_spec_bool(livecheck_core.livecheck_throttle_allows_bump(livecheck_spec_formula(), '1.2.3', none, none, time.now().unix()))
 }
 
 // Ruby it `it "returns true if patch version is divisible by `throttle_rate`" do` at line 538.
-pub fn ruby_livecheck_spec_l538_d54_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l538_d54_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	formula := livecheck_spec_formula()
 	now := time.now().unix()
-	version_value := brew_runtime.object_value('Version', '1.2.3')
+	version_value := ruby.object_value('Version', '1.2.3')
 	return livecheck_spec_bool(livecheck_core.livecheck_throttle_allows_bump(formula, version_value.as_string(), 3, none, now) && livecheck_core.livecheck_throttle_allows_bump(formula, '1.2.3', 3, none, now))
 }
 
 // Ruby it `it "returns false if patch version is not divisible by `throttle_rate` and `throttle_days` is not set" do` at line 543.
-pub fn ruby_livecheck_spec_l543_d55_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l543_d55_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	return livecheck_spec_bool(!livecheck_core.livecheck_throttle_allows_bump(livecheck_spec_formula(), '1.2.3', 5, none, time.now().unix()))
 }
 
 // Ruby it `it "returns false if patch version is not divisible by `throttle_rate` and throttle interval has not elapsed" do` at line 547.
-pub fn ruby_livecheck_spec_l547_d56_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l547_d56_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	package := livecheck_spec_throttled('formula', 0, 0, {}, time.now().unix())
 	return livecheck_spec_bool(!livecheck_core.livecheck_throttle_allows_bump(package, '1.2.3', 5, 1, time.now().unix()))
 }
 
 // Ruby it `it "returns true if patch version is not divisible by `throttle_rate` and throttle interval has elapsed" do` at line 552.
-pub fn ruby_livecheck_spec_l552_d57_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l552_d57_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	now := time.now().unix()
 	package := livecheck_spec_throttled('formula', 0, 0, {}, now - 518400)
@@ -576,7 +576,7 @@ pub fn ruby_livecheck_spec_l552_d57_returns(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby it `it "returns false if only `throttle_days` is provided and throttle interval has not elapsed" do` at line 557.
-pub fn ruby_livecheck_spec_l557_d58_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l557_d58_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	now := time.now().unix()
 	package := livecheck_spec_throttled('formula', 0, 0, {}, now)
@@ -584,7 +584,7 @@ pub fn ruby_livecheck_spec_l557_d58_returns(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby it `it "returns true if only `throttle_days` is provided and throttle interval has elapsed" do` at line 562.
-pub fn ruby_livecheck_spec_l562_d59_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l562_d59_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	now := time.now().unix()
 	package := livecheck_spec_throttled('formula', 0, 0, {}, now - 518400)
@@ -592,14 +592,14 @@ pub fn ruby_livecheck_spec_l562_d59_returns(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby it `it "returns false if days is not positive" do` at line 569.
-pub fn ruby_livecheck_spec_l569_d60_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l569_d60_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	package := livecheck_spec_formula()
 	return livecheck_spec_bool(!livecheck_core.livecheck_throttle_interval_elapsed(package, 0, time.now().unix()) && !livecheck_core.livecheck_throttle_interval_elapsed(package, -1, time.now().unix()))
 }
 
 // Ruby it `it "returns false if last_updated_timestamp can't be determined" do` at line 574.
-pub fn ruby_livecheck_spec_l574_d61_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l574_d61_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut package := livecheck_spec_formula()
 	package.tap_git = true
@@ -607,7 +607,7 @@ pub fn ruby_livecheck_spec_l574_d61_returns(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby it `it "returns false if throttle interval has not elapsed" do` at line 580.
-pub fn ruby_livecheck_spec_l580_d62_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l580_d62_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	now := time.now().unix()
 	package := livecheck_spec_throttled('formula', 0, 0, {}, now)
@@ -615,7 +615,7 @@ pub fn ruby_livecheck_spec_l580_d62_returns(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby it `it "returns true if throttle interval has elapsed" do` at line 586.
-pub fn ruby_livecheck_spec_l586_d63_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l586_d63_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	now := time.now().unix()
 	package := livecheck_spec_throttled('formula', 0, 0, {}, now - 518400)
@@ -623,22 +623,22 @@ pub fn ruby_livecheck_spec_l586_d63_returns(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby let `let(:tap_path) { Pathname("/tmp/homebrew-core") }` at line 594.
-pub fn ruby_livecheck_spec_l594_d64_tap_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l594_d64_tap_path(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.object_value('Pathname', '/tmp/homebrew-core')
+	return ruby.object_value('Pathname', '/tmp/homebrew-core')
 }
 
 // Ruby let `let(:tap) { instance_double(Tap, git?: true, path: tap_path) }` at line 595.
-pub fn ruby_livecheck_spec_l595_d65_tap(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l595_d65_tap(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.structured_value('Tap', 'homebrew/core', {
+	return ruby.structured_value('Tap', 'homebrew/core', {
 		'git':  'true'
 		'path': '/tmp/homebrew-core'
 	})
 }
 
 // Ruby it `it "uses FormulaVersions to find the latest version update commit for formulae" do` at line 604.
-pub fn ruby_livecheck_spec_l604_d66_uses(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l604_d66_uses(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut package := livecheck_spec_formula()
 	package.tap_git = true
@@ -656,7 +656,7 @@ pub fn ruby_livecheck_spec_l604_d66_uses(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby it `it "falls back to latest file commit timestamp for casks" do` at line 639.
-pub fn ruby_livecheck_spec_l639_d67_falls(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_livecheck_spec_l639_d67_falls(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut package := livecheck_spec_cask()
 	package.tap_git = true

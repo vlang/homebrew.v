@@ -1,18 +1,18 @@
 module concurrent
 
-import brew_runtime
+import ruby
 import sync
 import time
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/mvar.rb`.
 // The original source is retained below until every stub has a typed V body.
-pub type MVarTransform = fn(brew_runtime.Value) !brew_runtime.Value
+pub type MVarTransform = fn(ruby.Value) !ruby.Value
 
-pub type MVarBorrow = fn(brew_runtime.Value) !brew_runtime.Value
+pub type MVarBorrow = fn(ruby.Value) !ruby.Value
 
-pub type MVarCopy = fn(brew_runtime.Value) brew_runtime.Value
+pub type MVarCopy = fn(ruby.Value) ruby.Value
 
-pub type MVarSynchronized = fn() !brew_runtime.Value
+pub type MVarSynchronized = fn() !ruby.Value
 
 pub enum MVarResultKind {
 	value
@@ -23,7 +23,7 @@ pub enum MVarResultKind {
 pub struct MVarResult {
 pub:
 	kind  MVarResultKind
-	value brew_runtime.Value
+	value ruby.Value
 }
 
 pub struct MVarOptions {
@@ -40,7 +40,7 @@ struct MVarState {
 	full_condition  &sync.Cond
 	options         MVarOptions
 mut:
-	value     brew_runtime.Value
+	value     ruby.Value
 	has_value bool
 }
 
@@ -50,24 +50,24 @@ mut:
 	state &MVarState
 }
 
-fn mvar_empty_value() brew_runtime.Value {
-	return brew_runtime.object_value('Concurrent::MVar::EMPTY', '#<Object:Concurrent::MVar::EMPTY>')
+fn mvar_empty_value() ruby.Value {
+	return ruby.object_value('Concurrent::MVar::EMPTY', '#<Object:Concurrent::MVar::EMPTY>')
 }
 
-fn mvar_timeout_value() brew_runtime.Value {
-	return brew_runtime.object_value('Concurrent::MVar::TIMEOUT', '#<Object:Concurrent::MVar::TIMEOUT>')
+fn mvar_timeout_value() ruby.Value {
+	return ruby.object_value('Concurrent::MVar::TIMEOUT', '#<Object:Concurrent::MVar::TIMEOUT>')
 }
 
-fn mvar_nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn mvar_nil_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-fn mvar_is_empty_sentinel(value brew_runtime.Value) bool {
+fn mvar_is_empty_sentinel(value ruby.Value) bool {
 	return value.type_name == 'Concurrent::MVar::EMPTY'
 }
 
-fn mvar_duplicate_value(value brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.Value{
+fn mvar_duplicate_value(value ruby.Value) ruby.Value {
+	return ruby.Value{
 		type_name: value.type_name
 		repr: value.repr
 		bool_data: value.bool_data
@@ -80,7 +80,7 @@ fn mvar_duplicate_value(value brew_runtime.Value) brew_runtime.Value {
 	}
 }
 
-fn mvar_apply_deref_options(value brew_runtime.Value, options MVarOptions) brew_runtime.Value {
+fn mvar_apply_deref_options(value ruby.Value, options MVarOptions) ruby.Value {
 	if value.type_name == 'NilClass' || mvar_is_empty_sentinel(value) {
 		return value
 	}
@@ -96,7 +96,7 @@ fn mvar_apply_deref_options(value brew_runtime.Value, options MVarOptions) brew_
 	return result
 }
 
-pub fn new_mvar(initial ?brew_runtime.Value, options MVarOptions) &MVar {
+pub fn new_mvar(initial ?ruby.Value, options MVarOptions) &MVar {
 	mutex := sync.new_mutex()
 	if value := initial {
 		return &MVar{
@@ -179,12 +179,12 @@ pub fn (mut mvar MVar) borrow(timeout ?time.Duration, block MVarBorrow) MVarResu
 }
 
 pub fn (mut mvar MVar) borrow_value(timeout ?time.Duration) MVarResult {
-	return mvar.borrow(timeout, fn (value brew_runtime.Value) !brew_runtime.Value {
+	return mvar.borrow(timeout, fn (value ruby.Value) !ruby.Value {
 		return value
 	})
 }
 
-pub fn (mut mvar MVar) put(value brew_runtime.Value, timeout ?time.Duration) MVarResult {
+pub fn (mut mvar MVar) put(value ruby.Value, timeout ?time.Duration) MVarResult {
 	mvar.state.mutex.lock()
 	defer {
 		mvar.state.mutex.unlock()
@@ -214,8 +214,8 @@ pub fn (mut mvar MVar) modify(timeout ?time.Duration, block MVarTransform) MVarR
 	return MVarResult{ kind: .value, value: mvar_apply_deref_options(old_value, mvar.state.options) }
 }
 
-pub fn (mut mvar MVar) modify_to(timeout ?time.Duration, prospect brew_runtime.Value) MVarResult {
-	return mvar.modify(timeout, fn [prospect] (_ brew_runtime.Value) !brew_runtime.Value {
+pub fn (mut mvar MVar) modify_to(timeout ?time.Duration, prospect ruby.Value) MVarResult {
+	return mvar.modify(timeout, fn [prospect] (_ ruby.Value) !ruby.Value {
 		return prospect
 	})
 }
@@ -235,7 +235,7 @@ pub fn (mut mvar MVar) try_take() MVarResult {
 	return MVarResult{ kind: .value, value: mvar_apply_deref_options(value, mvar.state.options) }
 }
 
-pub fn (mut mvar MVar) try_put(value brew_runtime.Value) bool {
+pub fn (mut mvar MVar) try_put(value ruby.Value) bool {
 	mvar.state.mutex.lock()
 	defer {
 		mvar.state.mutex.unlock()
@@ -249,7 +249,7 @@ pub fn (mut mvar MVar) try_put(value brew_runtime.Value) bool {
 	return true
 }
 
-pub fn (mut mvar MVar) set(value brew_runtime.Value) MVarResult {
+pub fn (mut mvar MVar) set(value ruby.Value) MVarResult {
 	mvar.state.mutex.lock()
 	old_value := mvar.state.value
 	old_kind := if mvar.state.has_value { MVarResultKind.value } else { MVarResultKind.empty }
@@ -279,8 +279,8 @@ pub fn (mut mvar MVar) modify_now(block MVarTransform) MVarResult {
 	return MVarResult{ kind: old_kind, value: mvar_apply_deref_options(old_value, mvar.state.options) }
 }
 
-pub fn (mut mvar MVar) modify_now_to(prospect brew_runtime.Value) MVarResult {
-	return mvar.modify_now(fn [prospect] (_ brew_runtime.Value) !brew_runtime.Value {
+pub fn (mut mvar MVar) modify_now_to(prospect ruby.Value) MVarResult {
+	return mvar.modify_now(fn [prospect] (_ ruby.Value) !ruby.Value {
 		return prospect
 	})
 }
@@ -307,7 +307,7 @@ pub fn (mut mvar MVar) value() MVarResult {
 	return MVarResult{ kind: .value, value: mvar_apply_deref_options(mvar.state.value, mvar.state.options) }
 }
 
-pub fn (mut mvar MVar) synchronize(block MVarSynchronized) !brew_runtime.Value {
+pub fn (mut mvar MVar) synchronize(block MVarSynchronized) !ruby.Value {
 	mvar.state.mutex.lock()
 	defer {
 		mvar.state.mutex.unlock()
@@ -315,7 +315,7 @@ pub fn (mut mvar MVar) synchronize(block MVarSynchronized) !brew_runtime.Value {
 	return block()
 }
 
-fn mvar_options_from_value(value brew_runtime.Value) MVarOptions {
+fn mvar_options_from_value(value ruby.Value) MVarOptions {
 	if value.type_name != 'Hash' {
 		return MVarOptions{}
 	}
@@ -337,7 +337,7 @@ fn mvar_options_from_value(value brew_runtime.Value) MVarOptions {
 	return MVarOptions{ dup_on_deref: dup_on_deref, freeze_on_deref: freeze_on_deref }
 }
 
-fn mvar_boundary_timeout(args []brew_runtime.Value, index int) ?time.Duration {
+fn mvar_boundary_timeout(args []ruby.Value, index int) ?time.Duration {
 	if index >= args.len || args[index].type_name == 'NilClass' {
 		return none
 	}
@@ -345,13 +345,13 @@ fn mvar_boundary_timeout(args []brew_runtime.Value, index int) ?time.Duration {
 	return time.Duration(seconds * f64(time.second))
 }
 
-fn mvar_boundary_value(mvar &MVar) brew_runtime.Value {
-	return brew_runtime.structured_value('Concurrent::MVar', '#<Concurrent::MVar>', {
+fn mvar_boundary_value(mvar &MVar) ruby.Value {
+	return ruby.structured_value('Concurrent::MVar', '#<Concurrent::MVar>', {
 		'mvar_address': u64(voidptr(mvar)).str()
 	})
 }
 
-fn mvar_boundary_receiver(args []brew_runtime.Value) &MVar {
+fn mvar_boundary_receiver(args []ruby.Value) &MVar {
 	if args.len == 0 {
 		panic('MVar method requires a receiver')
 	}
@@ -362,20 +362,20 @@ fn mvar_boundary_receiver(args []brew_runtime.Value) &MVar {
 }
 
 // Ruby method `initialize(value = EMPTY, opts = {})` at line 54.
-pub fn ruby_mvar_l54_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	initial := if args.len > 0 { ?brew_runtime.Value(args[0]) } else { ?brew_runtime.Value(none) }
+pub fn ruby_mvar_l54_d1_initialize(args ...ruby.Value) ruby.Value {
+	initial := if args.len > 0 { ?ruby.Value(args[0]) } else { ?ruby.Value(none) }
 	options := if args.len > 1 { mvar_options_from_value(args[1]) } else { MVarOptions{} }
 	return mvar_boundary_value(new_mvar(initial, options))
 }
 
 // Ruby method `take(timeout = nil)` at line 66.
-pub fn ruby_mvar_l66_d2_take(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mvar_l66_d2_take(args ...ruby.Value) ruby.Value {
 	mut mvar := mvar_boundary_receiver(args)
 	return mvar.take(mvar_boundary_timeout(args, 1)).value
 }
 
 // Ruby method `borrow(timeout = nil)` at line 86.
-pub fn ruby_mvar_l86_d3_borrow(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mvar_l86_d3_borrow(args ...ruby.Value) ruby.Value {
 	mut mvar := mvar_boundary_receiver(args)
 	result := mvar.borrow_value(mvar_boundary_timeout(args, 1))
 	if result.kind == .timeout {
@@ -385,7 +385,7 @@ pub fn ruby_mvar_l86_d3_borrow(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `put(value, timeout = nil)` at line 103.
-pub fn ruby_mvar_l103_d4_put(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mvar_l103_d4_put(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('MVar#put requires a value')
 	}
@@ -394,7 +394,7 @@ pub fn ruby_mvar_l103_d4_put(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `modify(timeout = nil)` at line 123.
-pub fn ruby_mvar_l123_d5_modify(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mvar_l123_d5_modify(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('MVar#modify requires a translated block result')
 	}
@@ -403,22 +403,22 @@ pub fn ruby_mvar_l123_d5_modify(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `try_take!` at line 142.
-pub fn ruby_mvar_l142_d6_try_take(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mvar_l142_d6_try_take(args ...ruby.Value) ruby.Value {
 	mut mvar := mvar_boundary_receiver(args)
 	return mvar.try_take().value
 }
 
 // Ruby method `try_put!(value)` at line 156.
-pub fn ruby_mvar_l156_d7_try_put(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mvar_l156_d7_try_put(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('MVar#try_put! requires a value')
 	}
 	mut mvar := mvar_boundary_receiver(args)
-	return brew_runtime.bool_value(mvar.try_put(args[1]))
+	return ruby.bool_value(mvar.try_put(args[1]))
 }
 
 // Ruby method `set!(value)` at line 169.
-pub fn ruby_mvar_l169_d8_set(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mvar_l169_d8_set(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('MVar#set! requires a value')
 	}
@@ -427,7 +427,7 @@ pub fn ruby_mvar_l169_d8_set(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `modify!` at line 179.
-pub fn ruby_mvar_l179_d9_modify(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mvar_l179_d9_modify(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('MVar#modify! requires a translated block result')
 	}
@@ -436,42 +436,42 @@ pub fn ruby_mvar_l179_d9_modify(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `empty?` at line 195.
-pub fn ruby_mvar_l195_d10_empty(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mvar_l195_d10_empty(args ...ruby.Value) ruby.Value {
 	mut mvar := mvar_boundary_receiver(args)
-	return brew_runtime.bool_value(mvar.empty())
+	return ruby.bool_value(mvar.empty())
 }
 
 // Ruby method `full?` at line 200.
-pub fn ruby_mvar_l200_d11_full(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mvar_l200_d11_full(args ...ruby.Value) ruby.Value {
 	mut mvar := mvar_boundary_receiver(args)
-	return brew_runtime.bool_value(mvar.full())
+	return ruby.bool_value(mvar.full())
 }
 
 // Ruby method `synchronize(&block)` at line 206.
-pub fn ruby_mvar_l206_d12_synchronize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mvar_l206_d12_synchronize(args ...ruby.Value) ruby.Value {
 	// The typed `synchronize` method accepts a V callback. The generic boundary
 	// preserves Ruby's block result as its final translated argument.
 	mut mvar := mvar_boundary_receiver(args)
 	value := if args.len > 1 { args[args.len - 1] } else { mvar_nil_value() }
-	return mvar.synchronize(fn [value] () !brew_runtime.Value {
+	return mvar.synchronize(fn [value] () !ruby.Value {
 		return value
 	}) or { panic(err) }
 }
 
 // Ruby method `unlocked_empty?` at line 212.
-pub fn ruby_mvar_l212_d13_unlocked_empty(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mvar_l212_d13_unlocked_empty(args ...ruby.Value) ruby.Value {
 	mut mvar := mvar_boundary_receiver(args)
-	return brew_runtime.bool_value(mvar.empty())
+	return ruby.bool_value(mvar.empty())
 }
 
 // Ruby method `unlocked_full?` at line 216.
-pub fn ruby_mvar_l216_d14_unlocked_full(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mvar_l216_d14_unlocked_full(args ...ruby.Value) ruby.Value {
 	mut mvar := mvar_boundary_receiver(args)
-	return brew_runtime.bool_value(mvar.full())
+	return ruby.bool_value(mvar.full())
 }
 
 // Ruby method `wait_for_full(timeout)` at line 220.
-pub fn ruby_mvar_l220_d15_wait_for_full(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mvar_l220_d15_wait_for_full(args ...ruby.Value) ruby.Value {
 	mut mvar := mvar_boundary_receiver(args)
 	mvar.state.mutex.lock()
 	mvar.wait_locked(true, mvar_boundary_timeout(args, 1))
@@ -480,7 +480,7 @@ pub fn ruby_mvar_l220_d15_wait_for_full(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby method `wait_for_empty(timeout)` at line 224.
-pub fn ruby_mvar_l224_d16_wait_for_empty(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mvar_l224_d16_wait_for_empty(args ...ruby.Value) ruby.Value {
 	mut mvar := mvar_boundary_receiver(args)
 	mvar.state.mutex.lock()
 	mvar.wait_locked(false, mvar_boundary_timeout(args, 1))
@@ -489,7 +489,7 @@ pub fn ruby_mvar_l224_d16_wait_for_empty(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `wait_while(condition, timeout)` at line 228.
-pub fn ruby_mvar_l228_d17_wait_while(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mvar_l228_d17_wait_while(args ...ruby.Value) ruby.Value {
 	mut mvar := mvar_boundary_receiver(args)
 	for_full := if args.len > 1 { args[1].as_string() != 'empty' } else { true }
 	mvar.state.mutex.lock()

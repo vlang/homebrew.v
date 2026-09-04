@@ -1,16 +1,16 @@
 module mac
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `extend/os/mac/cleanup.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `use_system_ruby?` at line 8.
-pub fn ruby_cleanup_l8_d1_use_system_ruby(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cleanup_l8_d1_use_system_ruby(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(use_system_ruby(args[0].as_bool() or { false }, args[1].as_bool() or {
+	return ruby.bool_value(use_system_ruby(args[0].as_bool() or { false }, args[1].as_bool() or {
 		false
 	}, args[2].as_bool() or { false }))
 }

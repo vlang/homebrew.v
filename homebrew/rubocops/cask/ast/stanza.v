@@ -1,6 +1,6 @@
 module ast
 
-import brew_runtime
+import ruby
 import homebrew.rubocops.cask.constants as stanza_constants
 import homebrew.rubocops.cask.extend as cask_extend
 
@@ -20,8 +20,8 @@ pub:
 	all_comments []CaskAstComment
 }
 
-fn cask_ast_nil() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn cask_ast_nil() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 pub fn parse_cask_ast_comments(source string) []CaskAstComment {
@@ -61,7 +61,7 @@ pub fn parse_cask_ast_comments(source string) []CaskAstComment {
 	return comments
 }
 
-fn cask_ast_node_value(node cask_extend.CaskAstNode) brew_runtime.Value {
+fn cask_ast_node_value(node cask_extend.CaskAstNode) ruby.Value {
 	type_name := match node.kind {
 		'block' { 'RuboCop::AST::BlockNode' }
 		'send' { 'RuboCop::AST::SendNode' }
@@ -69,7 +69,7 @@ fn cask_ast_node_value(node cask_extend.CaskAstNode) brew_runtime.Value {
 		'begin' { 'RuboCop::AST::BeginNode' }
 		else { 'RuboCop::AST::Node' }
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: type_name
 		repr: node.source
 		array_data: node.children.map(cask_ast_node_value(it))
@@ -83,8 +83,8 @@ fn cask_ast_node_value(node cask_extend.CaskAstNode) brew_runtime.Value {
 	}
 }
 
-fn cask_ast_comment_values(comments []CaskAstComment) brew_runtime.Value {
-	return brew_runtime.array_value(comments.map(brew_runtime.structured_value('Parser::Source::Comment', it.source, {
+fn cask_ast_comment_values(comments []CaskAstComment) ruby.Value {
+	return ruby.array_value(comments.map(ruby.structured_value('Parser::Source::Comment', it.source, {
 		'begin_pos': it.begin_pos.str()
 		'end_pos':   it.end_pos.str()
 	})))
@@ -198,18 +198,18 @@ pub fn cask_ast_stanza_range(stanza CaskAstStanza, with_comments bool) (int, int
 	return begin_pos, end_pos
 }
 
-fn cask_ast_range_value(stanza CaskAstStanza, with_comments bool) brew_runtime.Value {
+fn cask_ast_range_value(stanza CaskAstStanza, with_comments bool) ruby.Value {
 	begin_pos, end_pos := cask_ast_stanza_range(stanza, with_comments)
-	return brew_runtime.structured_value('Parser::Source::Range', stanza.full_source[begin_pos..end_pos], {
+	return ruby.structured_value('Parser::Source::Range', stanza.full_source[begin_pos..end_pos], {
 		'begin_pos': begin_pos.str()
 		'end_pos':   end_pos.str()
 		'source':    stanza.full_source[begin_pos..end_pos]
 	})
 }
 
-fn cask_ast_stanza_value(stanza CaskAstStanza) brew_runtime.Value {
+fn cask_ast_stanza_value(stanza CaskAstStanza) ruby.Value {
 	begin_pos, end_pos := cask_ast_stanza_range(stanza, false)
-	return brew_runtime.structured_value('RuboCop::Cask::AST::Stanza', cask_ast_stanza_name(stanza), {
+	return ruby.structured_value('RuboCop::Cask::AST::Stanza', cask_ast_stanza_name(stanza), {
 		'stanza_name': cask_ast_stanza_name(stanza)
 		'begin_pos':   begin_pos.str()
 		'end_pos':     end_pos.str()
@@ -219,169 +219,169 @@ fn cask_ast_stanza_value(stanza CaskAstStanza) brew_runtime.Value {
 }
 
 // Ruby method `initialize(method_node, all_comments)` at line 21.
-pub fn ruby_stanza_l21_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stanza_l21_d1_initialize(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	stanza := cask_ast_stanza_from_source(source) or { return cask_ast_nil() }
 	return cask_ast_stanza_value(stanza)
 }
 
 // Ruby attr_reader `attr_reader :method_node` at line 27.
-pub fn ruby_stanza_l27_d2_method_node(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stanza_l27_d2_method_node(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	stanza := cask_ast_stanza_from_source(source) or { return cask_ast_nil() }
 	return cask_ast_node_value(stanza.node)
 }
 
 // Ruby alias `alias stanza_node method_node` at line 28.
-pub fn ruby_stanza_l28_d3_stanza_node(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stanza_l28_d3_stanza_node(args ...ruby.Value) ruby.Value {
 	return ruby_stanza_l27_d2_method_node(...args)
 }
 
 // Ruby attr_reader `attr_reader :all_comments` at line 31.
-pub fn ruby_stanza_l31_d4_all_comments(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stanza_l31_d4_all_comments(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	return cask_ast_comment_values(parse_cask_ast_comments(source))
 }
 
 // Ruby def_delegator `def_delegator :stanza_node, :parent, :parent_node` at line 33.
-pub fn ruby_stanza_l33_d5_parent_node(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stanza_l33_d5_parent_node(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	stanza := cask_ast_stanza_from_source(source) or { return cask_ast_nil() }
 	if stanza.node.ancestors.len == 0 {
 		return cask_ast_nil()
 	}
 	ancestor := stanza.node.ancestors.last()
-	return brew_runtime.structured_value('RuboCop::AST::Node', ancestor.method_name, {
+	return ruby.structured_value('RuboCop::AST::Node', ancestor.method_name, {
 		'kind':        ancestor.kind
 		'method_name': ancestor.method_name
 	})
 }
 
 // Ruby def_delegator `def_delegator :stanza_node, :arch_variable?` at line 34.
-pub fn ruby_stanza_l34_d6_arch_variable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stanza_l34_d6_arch_variable(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
-	stanza := cask_ast_stanza_from_source(source) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(cask_extend.arch_variable(stanza.node))
+	stanza := cask_ast_stanza_from_source(source) or { return ruby.bool_value(false) }
+	return ruby.bool_value(cask_extend.arch_variable(stanza.node))
 }
 
 // Ruby def_delegator `def_delegator :stanza_node, :system_variable?` at line 35.
-pub fn ruby_stanza_l35_d7_system_variable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stanza_l35_d7_system_variable(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
-	stanza := cask_ast_stanza_from_source(source) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(cask_extend.system_variable(stanza.node))
+	stanza := cask_ast_stanza_from_source(source) or { return ruby.bool_value(false) }
+	return ruby.bool_value(cask_extend.system_variable(stanza.node))
 }
 
 // Ruby def_delegator `def_delegator :stanza_node, :on_system_block?` at line 36.
-pub fn ruby_stanza_l36_d8_on_system_block(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stanza_l36_d8_on_system_block(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
-	stanza := cask_ast_stanza_from_source(source) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(cask_extend.on_system_block(stanza.node))
+	stanza := cask_ast_stanza_from_source(source) or { return ruby.bool_value(false) }
+	return ruby.bool_value(cask_extend.on_system_block(stanza.node))
 }
 
 // Ruby method `source_range` at line 39.
-pub fn ruby_stanza_l39_d9_source_range(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stanza_l39_d9_source_range(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	stanza := cask_ast_stanza_from_source(source) or { return cask_ast_nil() }
 	return cask_ast_range_value(stanza, false)
 }
 
 // Ruby method `source_range_with_comments` at line 44.
-pub fn ruby_stanza_l44_d10_source_range_with_comments(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stanza_l44_d10_source_range_with_comments(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	stanza := cask_ast_stanza_from_source(source) or { return cask_ast_nil() }
 	return cask_ast_range_value(stanza, true)
 }
 
 // Ruby def_delegator `def_delegator :source_range, :source` at line 50.
-pub fn ruby_stanza_l50_d11_source(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stanza_l50_d11_source(args ...ruby.Value) ruby.Value {
 	value := ruby_stanza_l39_d9_source_range(...args)
 	return if value.type_name == 'NilClass' {
 		value
 	} else {
-		brew_runtime.string_value(value.attributes['source'])
+		ruby.string_value(value.attributes['source'])
 	}
 }
 
 // Ruby def_delegator `def_delegator :source_range_with_comments, :source, :source_with_comments` at line 51.
-pub fn ruby_stanza_l51_d12_source_with_comments(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stanza_l51_d12_source_with_comments(args ...ruby.Value) ruby.Value {
 	value := ruby_stanza_l44_d10_source_range_with_comments(...args)
 	return if value.type_name == 'NilClass' {
 		value
 	} else {
-		brew_runtime.string_value(value.attributes['source'])
+		ruby.string_value(value.attributes['source'])
 	}
 }
 
 // Ruby method `stanza_name` at line 55.
-pub fn ruby_stanza_l55_d13_stanza_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stanza_l55_d13_stanza_name(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	stanza := cask_ast_stanza_from_source(source) or { return cask_ast_nil() }
-	return brew_runtime.string_value(cask_ast_stanza_name(stanza))
+	return ruby.string_value(cask_ast_stanza_name(stanza))
 }
 
 // Ruby method `stanza_group` at line 64.
-pub fn ruby_stanza_l64_d14_stanza_group(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stanza_l64_d14_stanza_group(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	stanza := cask_ast_stanza_from_source(source) or { return cask_ast_nil() }
 	group := cask_ast_stanza_group(stanza)
-	return if group.len == 0 { cask_ast_nil() } else { brew_runtime.string_array_value(group) }
+	return if group.len == 0 { cask_ast_nil() } else { ruby.string_array_value(group) }
 }
 
 // Ruby method `stanza_index` at line 69.
-pub fn ruby_stanza_l69_d15_stanza_index(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stanza_l69_d15_stanza_index(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	stanza := cask_ast_stanza_from_source(source) or { return cask_ast_nil() }
 	index := cask_ast_stanza_index(stanza) or { return cask_ast_nil() }
-	return brew_runtime.int_value(index)
+	return ruby.int_value(index)
 }
 
 // Ruby method `same_group?(other)` at line 74.
-pub fn ruby_stanza_l74_d16_same_group(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stanza_l74_d16_same_group(args ...ruby.Value) ruby.Value {
 	first_source := if args.len > 0 { args[0].as_string() } else { '' }
 	second_source := if args.len > 1 { args[1].as_string() } else { '' }
-	first := cask_ast_stanza_from_source(first_source) or { return brew_runtime.bool_value(false) }
-	second := cask_ast_stanza_from_source(second_source) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(cask_ast_stanza_group(first) == cask_ast_stanza_group(second))
+	first := cask_ast_stanza_from_source(first_source) or { return ruby.bool_value(false) }
+	second := cask_ast_stanza_from_source(second_source) or { return ruby.bool_value(false) }
+	return ruby.bool_value(cask_ast_stanza_group(first) == cask_ast_stanza_group(second))
 }
 
 // Ruby method `comments` at line 79.
-pub fn ruby_stanza_l79_d17_comments(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stanza_l79_d17_comments(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
-	stanza := cask_ast_stanza_from_source(source) or { return brew_runtime.array_value([]brew_runtime.Value{}) }
+	stanza := cask_ast_stanza_from_source(source) or { return ruby.array_value([]ruby.Value{}) }
 	return cask_ast_comment_values(cask_ast_stanza_comments(stanza))
 }
 
 // Ruby method `comments_hash` at line 89.
-pub fn ruby_stanza_l89_d18_comments_hash(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stanza_l89_d18_comments_hash(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	comments := parse_cask_ast_comments(source)
-	mut values := map[string]brew_runtime.Value{}
+	mut values := map[string]ruby.Value{}
 	for comment in comments {
-		values['${comment.begin_pos}:${comment.end_pos}'] = brew_runtime.string_value(comment.source)
+		values['${comment.begin_pos}:${comment.end_pos}'] = ruby.string_value(comment.source)
 	}
-	return brew_runtime.map_value(values)
+	return ruby.map_value(values)
 }
 
 // Ruby method `==(other)` at line 97.
-pub fn ruby_stanza_l97_d19_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stanza_l97_d19_anonymous(args ...ruby.Value) ruby.Value {
 	first_source := if args.len > 0 { args[0].as_string() } else { '' }
 	second_source := if args.len > 1 { args[1].as_string() } else { '' }
-	first := cask_ast_stanza_from_source(first_source) or { return brew_runtime.bool_value(false) }
-	second := cask_ast_stanza_from_source(second_source) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(first.node.kind == second.node.kind && first.node.method_name == second.node.method_name && first.node.source == second.node.source)
+	first := cask_ast_stanza_from_source(first_source) or { return ruby.bool_value(false) }
+	second := cask_ast_stanza_from_source(second_source) or { return ruby.bool_value(false) }
+	return ruby.bool_value(first.node.kind == second.node.kind && first.node.method_name == second.node.method_name && first.node.source == second.node.source)
 }
 
 // Ruby alias `alias eql? ==` at line 100.
-pub fn ruby_stanza_l100_d20_eql(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stanza_l100_d20_eql(args ...ruby.Value) ruby.Value {
 	return ruby_stanza_l97_d19_anonymous(...args)
 }
 
 // Ruby method `#{stanza_name.to_s.chomp("!")}?               # def url?` at line 104.
-pub fn ruby_stanza_l104_d21_stanza_name_to_s_chomp(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_stanza_l104_d21_stanza_name_to_s_chomp(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	queried_name := if args.len > 1 { args[1].as_string().trim_right('!') } else { '' }
-	stanza := cask_ast_stanza_from_source(source) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(cask_ast_stanza_name(stanza).trim_right('!') == queried_name)
+	stanza := cask_ast_stanza_from_source(source) or { return ruby.bool_value(false) }
+	return ruby.bool_value(cask_ast_stanza_name(stanza).trim_right('!') == queried_name)
 }
 
 // Original Ruby source (line-for-line):

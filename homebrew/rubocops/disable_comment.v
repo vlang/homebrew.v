@@ -1,6 +1,6 @@
 module rubocops
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `rubocops/disable_comment.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -98,8 +98,8 @@ pub fn audit_disable_comments(source string) []DisableCommentOffense {
 	return offenses
 }
 
-fn disable_comment_offense_value(offense DisableCommentOffense) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cop::Offense', offense.message, {
+fn disable_comment_offense_value(offense DisableCommentOffense) ruby.Value {
+	return ruby.structured_value('RuboCop::Cop::Offense', offense.message, {
 		'text':      offense.comment.text
 		'line':      offense.comment.line.str()
 		'begin_pos': offense.begin_pos.str()
@@ -109,21 +109,21 @@ fn disable_comment_offense_value(offense DisableCommentOffense) brew_runtime.Val
 }
 
 // Ruby method `on_new_investigation` at line 11.
-pub fn ruby_disable_comment_l11_d1_on_new_investigation(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_disable_comment_l11_d1_on_new_investigation(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.array_value(audit_disable_comments(source).map(disable_comment_offense_value(it)))
+	return ruby.array_value(audit_disable_comments(source).map(disable_comment_offense_value(it)))
 }
 
 // Ruby method `disable_comment?(comment)` at line 25.
-pub fn ruby_disable_comment_l25_d2_disable_comment(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_disable_comment_l25_d2_disable_comment(args ...ruby.Value) ruby.Value {
 	text := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.bool_value(disable_comment_text(text))
+	return ruby.bool_value(disable_comment_text(text))
 }
 
 // Ruby method `comment?(line)` at line 30.
-pub fn ruby_disable_comment_l30_d3_comment(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_disable_comment_l30_d3_comment(args ...ruby.Value) ruby.Value {
 	line := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.bool_value(disable_comment_clarifying_line(line))
+	return ruby.bool_value(disable_comment_clarifying_line(line))
 }
 
 // Original Ruby source (line-for-line):

@@ -1,6 +1,6 @@
 module cpu
 
-import brew_runtime
+import ruby
 
 pub struct MacCpuProperties {
 pub:
@@ -17,7 +17,7 @@ pub fn mac_cpu_sysctl_n(properties MacCpuProperties, keys []string) string {
 	}
 	mut arguments := ['-n']
 	arguments << keys
-	result := brew_runtime.run_command('/usr/sbin/sysctl', arguments)
+	result := ruby.run_command('/usr/sbin/sysctl', arguments)
 	return if result.exit_code == 0 { result.output } else { '' }
 }
 
@@ -69,7 +69,7 @@ pub fn mac_cpu_intel_family(value u32) string {
 	}
 }
 
-fn mac_cpu_properties_from_args(args []brew_runtime.Value) (MacCpuProperties, int) {
+fn mac_cpu_properties_from_args(args []ruby.Value) (MacCpuProperties, int) {
 	if args.len > 0 && args[0].type_name == 'Hash' {
 		mut values := map[string]string{}
 		for name, value in args[0].map_data {
@@ -84,99 +84,99 @@ fn mac_cpu_properties_from_args(args []brew_runtime.Value) (MacCpuProperties, in
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `extmodel` at line 8.
-pub fn ruby_hardware_l8_d1_extmodel(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_hardware_l8_d1_extmodel(args ...ruby.Value) ruby.Value {
 	properties, _ := mac_cpu_properties_from_args(args)
-	return brew_runtime.int_value(mac_cpu_sysctl_int(properties, 'machdep.cpu.extmodel'))
+	return ruby.int_value(mac_cpu_sysctl_int(properties, 'machdep.cpu.extmodel'))
 }
 
 // Ruby method `aes?` at line 13.
-pub fn ruby_hardware_l13_d2_aes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_hardware_l13_d2_aes(args ...ruby.Value) ruby.Value {
 	properties, _ := mac_cpu_properties_from_args(args)
-	return brew_runtime.bool_value(mac_cpu_sysctl_bool(properties, 'hw.optional.aes'))
+	return ruby.bool_value(mac_cpu_sysctl_bool(properties, 'hw.optional.aes'))
 }
 
 // Ruby method `altivec?` at line 18.
-pub fn ruby_hardware_l18_d3_altivec(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_hardware_l18_d3_altivec(args ...ruby.Value) ruby.Value {
 	properties, _ := mac_cpu_properties_from_args(args)
-	return brew_runtime.bool_value(mac_cpu_sysctl_bool(properties, 'hw.optional.altivec'))
+	return ruby.bool_value(mac_cpu_sysctl_bool(properties, 'hw.optional.altivec'))
 }
 
 // Ruby method `avx?` at line 23.
-pub fn ruby_hardware_l23_d4_avx(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_hardware_l23_d4_avx(args ...ruby.Value) ruby.Value {
 	properties, _ := mac_cpu_properties_from_args(args)
-	return brew_runtime.bool_value(mac_cpu_sysctl_bool(properties, 'hw.optional.avx1_0'))
+	return ruby.bool_value(mac_cpu_sysctl_bool(properties, 'hw.optional.avx1_0'))
 }
 
 // Ruby method `avx2?` at line 28.
-pub fn ruby_hardware_l28_d5_avx2(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_hardware_l28_d5_avx2(args ...ruby.Value) ruby.Value {
 	properties, _ := mac_cpu_properties_from_args(args)
-	return brew_runtime.bool_value(mac_cpu_sysctl_bool(properties, 'hw.optional.avx2_0'))
+	return ruby.bool_value(mac_cpu_sysctl_bool(properties, 'hw.optional.avx2_0'))
 }
 
 // Ruby method `sse3?` at line 33.
-pub fn ruby_hardware_l33_d6_sse3(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_hardware_l33_d6_sse3(args ...ruby.Value) ruby.Value {
 	properties, _ := mac_cpu_properties_from_args(args)
-	return brew_runtime.bool_value(mac_cpu_sysctl_bool(properties, 'hw.optional.sse3'))
+	return ruby.bool_value(mac_cpu_sysctl_bool(properties, 'hw.optional.sse3'))
 }
 
 // Ruby method `ssse3?` at line 38.
-pub fn ruby_hardware_l38_d7_ssse3(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_hardware_l38_d7_ssse3(args ...ruby.Value) ruby.Value {
 	properties, _ := mac_cpu_properties_from_args(args)
-	return brew_runtime.bool_value(mac_cpu_sysctl_bool(properties, 'hw.optional.supplementalsse3'))
+	return ruby.bool_value(mac_cpu_sysctl_bool(properties, 'hw.optional.supplementalsse3'))
 }
 
 // Ruby method `sse4_2?` at line 43.
-pub fn ruby_hardware_l43_d8_sse4_2(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_hardware_l43_d8_sse4_2(args ...ruby.Value) ruby.Value {
 	properties, _ := mac_cpu_properties_from_args(args)
-	return brew_runtime.bool_value(mac_cpu_sysctl_bool(properties, 'hw.optional.sse4_2'))
+	return ruby.bool_value(mac_cpu_sysctl_bool(properties, 'hw.optional.sse4_2'))
 }
 
 // Ruby method `physical_cpu_arm64?` at line 50.
-pub fn ruby_hardware_l50_d9_physical_cpu_arm64(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_hardware_l50_d9_physical_cpu_arm64(args ...ruby.Value) ruby.Value {
 	properties, _ := mac_cpu_properties_from_args(args)
-	return brew_runtime.bool_value(mac_cpu_sysctl_bool(properties, 'hw.optional.arm64'))
+	return ruby.bool_value(mac_cpu_sysctl_bool(properties, 'hw.optional.arm64'))
 }
 
 // Ruby method `virtualized?` at line 55.
-pub fn ruby_hardware_l55_d10_virtualized(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_hardware_l55_d10_virtualized(args ...ruby.Value) ruby.Value {
 	properties, _ := mac_cpu_properties_from_args(args)
-	return brew_runtime.bool_value(mac_cpu_sysctl_bool(properties, 'kern.hv_vmm_present'))
+	return ruby.bool_value(mac_cpu_sysctl_bool(properties, 'kern.hv_vmm_present'))
 }
 
 // Ruby method `arm_family` at line 60.
-pub fn ruby_hardware_l60_d11_arm_family(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_hardware_l60_d11_arm_family(args ...ruby.Value) ruby.Value {
 	properties, _ := mac_cpu_properties_from_args(args)
-	return brew_runtime.string_value(mac_cpu_arm_family(mac_cpu_sysctl_int(properties, 'hw.cpufamily')))
+	return ruby.string_value(mac_cpu_arm_family(mac_cpu_sysctl_int(properties, 'hw.cpufamily')))
 }
 
 // Ruby method `intel_family(_family = T.unsafe(nil), _cpu_model = T.unsafe(nil))` at line 100.
-pub fn ruby_hardware_l100_d12_intel_family(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_hardware_l100_d12_intel_family(args ...ruby.Value) ruby.Value {
 	properties, _ := mac_cpu_properties_from_args(args)
-	return brew_runtime.string_value(mac_cpu_intel_family(mac_cpu_sysctl_int(properties, 'hw.cpufamily')))
+	return ruby.string_value(mac_cpu_intel_family(mac_cpu_sysctl_int(properties, 'hw.cpufamily')))
 }
 
 // Ruby method `sysctl_bool!(key)` at line 134.
-pub fn ruby_hardware_l134_d13_sysctl_bool(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_hardware_l134_d13_sysctl_bool(args ...ruby.Value) ruby.Value {
 	properties, offset := mac_cpu_properties_from_args(args)
 	if args.len <= offset { panic('sysctl_bool! requires a key') }
-	return brew_runtime.bool_value(mac_cpu_sysctl_bool(properties, args[offset].as_string()))
+	return ruby.bool_value(mac_cpu_sysctl_bool(properties, args[offset].as_string()))
 }
 
 // Ruby method `sysctl_int(key)` at line 139.
-pub fn ruby_hardware_l139_d14_sysctl_int(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_hardware_l139_d14_sysctl_int(args ...ruby.Value) ruby.Value {
 	properties, offset := mac_cpu_properties_from_args(args)
 	if args.len <= offset { panic('sysctl_int requires a key') }
-	return brew_runtime.int_value(mac_cpu_sysctl_int(properties, args[offset].as_string()))
+	return ruby.int_value(mac_cpu_sysctl_int(properties, args[offset].as_string()))
 }
 
 // Ruby method `sysctl_n(*keys)` at line 144.
-pub fn ruby_hardware_l144_d15_sysctl_n(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_hardware_l144_d15_sysctl_n(args ...ruby.Value) ruby.Value {
 	properties, offset := mac_cpu_properties_from_args(args)
 	mut keys := []string{}
 	for value in args[offset..] {
 		keys << value.as_string()
 	}
-	return brew_runtime.string_value(mac_cpu_sysctl_n(properties, keys))
+	return ruby.string_value(mac_cpu_sysctl_n(properties, keys))
 }
 
 // Original Ruby source (line-for-line):

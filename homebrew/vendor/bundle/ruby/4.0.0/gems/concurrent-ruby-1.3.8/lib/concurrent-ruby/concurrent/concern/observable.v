@@ -1,11 +1,11 @@
 module concern
 
-import brew_runtime
+import ruby
 import sync
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/concern/observable.rb`.
 // The original source is retained below until every stub has a typed V body.
-pub type ObserverCallback = fn([]brew_runtime.Value)
+pub type ObserverCallback = fn([]ruby.Value)
 
 struct ObserverEntry {
 	id        string
@@ -70,7 +70,7 @@ pub fn (mut observable Observable) count_observers() int {
 	return count
 }
 
-pub fn (mut observable Observable) notify_observers(args []brew_runtime.Value) &Observable {
+pub fn (mut observable Observable) notify_observers(args []ruby.Value) &Observable {
 	observable.lock.lock()
 	observers := observable.observers.clone()
 	observable.lock.unlock()
@@ -81,7 +81,7 @@ pub fn (mut observable Observable) notify_observers(args []brew_runtime.Value) &
 }
 
 // Ruby method `add_observer(observer = nil, func = :update, &block)` at line 61.
-pub fn ruby_observable_l61_d1_add_observer(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_observable_l61_d1_add_observer(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || args[0].type_name == 'NilClass' {
 		panic('ArgumentError: should pass observer as a first argument or block')
 	}
@@ -89,39 +89,39 @@ pub fn ruby_observable_l61_d1_add_observer(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `with_observer(observer = nil, func = :update, &block)` at line 70.
-pub fn ruby_observable_l70_d2_with_observer(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_observable_l70_d2_with_observer(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || args[0].type_name == 'NilClass' {
 		panic('ArgumentError: should pass observer as a first argument or block')
 	}
-	return brew_runtime.object_value('Observable', '#<Concurrent::Concern::Observable>')
+	return ruby.object_value('Observable', '#<Concurrent::Concern::Observable>')
 }
 
 // Ruby method `delete_observer(observer)` at line 82.
-pub fn ruby_observable_l82_d3_delete_observer(args ...brew_runtime.Value) brew_runtime.Value {
-	return if args.len > 0 { args[0] } else { brew_runtime.object_value('NilClass', 'nil') }
+pub fn ruby_observable_l82_d3_delete_observer(args ...ruby.Value) ruby.Value {
+	return if args.len > 0 { args[0] } else { ruby.object_value('NilClass', 'nil') }
 }
 
 // Ruby method `delete_observers` at line 91.
-pub fn ruby_observable_l91_d4_delete_observers(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Observable', '#<Concurrent::Concern::Observable>')
+pub fn ruby_observable_l91_d4_delete_observers(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Observable', '#<Concurrent::Concern::Observable>')
 }
 
 // Ruby method `count_observers` at line 101.
-pub fn ruby_observable_l101_d5_count_observers(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_observable_l101_d5_count_observers(args ...ruby.Value) ruby.Value {
 	if args.len == 1 && args[0].type_name == 'Array' {
-		return brew_runtime.int_value(args[0].as_array() or { panic(err) }.len)
+		return ruby.int_value(args[0].as_array() or { panic(err) }.len)
 	}
-	return brew_runtime.int_value(0)
+	return ruby.int_value(0)
 }
 
 // Ruby attr_accessor `attr_accessor :observers` at line 107.
-pub fn ruby_observable_l107_d6_observers(args ...brew_runtime.Value) brew_runtime.Value {
-	return if args.len > 0 { args[0] } else { brew_runtime.map_value({}) }
+pub fn ruby_observable_l107_d6_observers(args ...ruby.Value) ruby.Value {
+	return if args.len > 0 { args[0] } else { ruby.map_value({}) }
 }
 
 // Ruby attr_accessor `attr_accessor :observers` at line 107.
-pub fn ruby_observable_l107_d7_observers(args ...brew_runtime.Value) brew_runtime.Value {
-	return if args.len > 0 { args[args.len - 1] } else { brew_runtime.map_value({}) }
+pub fn ruby_observable_l107_d7_observers(args ...ruby.Value) ruby.Value {
+	return if args.len > 0 { args[args.len - 1] } else { ruby.map_value({}) }
 }
 
 // Original Ruby source (line-for-line):

@@ -1,6 +1,6 @@
 module strategy
 
-import brew_runtime
+import ruby
 import homebrew
 import homebrew.cask as cask_core
 import homebrew.livecheck
@@ -163,8 +163,8 @@ fn extract_plist_spec_expected(url ?string, cached bool, has_cached bool, conten
 }
 
 // Ruby subject `subject(:extract_plist) { described_class }` at line 8.
-pub fn ruby_extract_plist_spec_l8_d1_extract_plist() brew_runtime.Value {
-	return brew_runtime.object_value('Class', 'Homebrew::Livecheck::Strategy::ExtractPlist')
+pub fn ruby_extract_plist_spec_l8_d1_extract_plist() ruby.Value {
+	return ruby.object_value('Class', 'Homebrew::Livecheck::Strategy::ExtractPlist')
 }
 
 // Ruby let `let(:http_url) { "https://brew.sh/blog/" }` at line 10.
@@ -299,12 +299,12 @@ pub fn ruby_extract_plist_spec_l112_d17_errors() bool {
 pub fn ruby_extract_plist_spec_l119_d18_returns() bool {
 	url := 'https://example.com/livecheck.zip'
 	options := {
-		'cookies':    brew_runtime.map_value({
-			'key': brew_runtime.string_value('value')
+		'cookies':    ruby.map_value({
+			'key': ruby.string_value('value')
 		})
-		'header':     brew_runtime.string_value('Origin: https://example.com')
-		'referer':    brew_runtime.string_value('https://example.com/referer')
-		'user_agent': brew_runtime.object_value('Symbol', 'browser')
+		'header':     ruby.string_value('Origin: https://example.com')
+		'referer':    ruby.string_value('https://example.com/referer')
+		'user_agent': ruby.object_value('Symbol', 'browser')
 	}
 	returned := extract_plist_core.extract_plist_cask_with_url(extract_plist_spec_cask('https://example.com/artifact.zip'), url, options) or { return false }
 	cookies := (returned.url.options['cookies'] or { return false }).map_data.clone()
@@ -321,10 +321,10 @@ pub fn ruby_extract_plist_spec_l119_d18_returns() bool {
 pub fn ruby_extract_plist_spec_l143_d19_errors() bool {
 	cask := extract_plist_spec_cask('https://example.com/artifact.zip')
 	if _ := extract_plist_core.extract_plist_cask_with_url(cask, 'https://example.com/livecheck.zip', {
-		'post_form':  brew_runtime.map_value({
-			'key': brew_runtime.string_value('value')
+		'post_form':  ruby.map_value({
+			'key': ruby.string_value('value')
 		})
-		'user_agent': brew_runtime.object_value('Symbol', 'browser')
+		'user_agent': ruby.object_value('Symbol', 'browser')
 	}) {
 		return false
 	} else {
@@ -333,9 +333,9 @@ pub fn ruby_extract_plist_spec_l143_d19_errors() bool {
 		}
 	}
 	if _ := extract_plist_core.extract_plist_cask_with_url(cask, 'https://example.com/livecheck.zip', {
-		'homebrew_curl': brew_runtime.bool_value(true)
-		'post_form':     brew_runtime.map_value({
-			'key': brew_runtime.string_value('value')
+		'homebrew_curl': ruby.bool_value(true)
+		'post_form':     ruby.map_value({
+			'key': ruby.string_value('value')
 		})
 	}) {
 		return false
@@ -355,11 +355,11 @@ pub fn ruby_extract_plist_spec_l172_d21_content() string {
 }
 
 // Ruby let `let(:match_data) do` at line 173.
-pub fn ruby_extract_plist_spec_l173_d22_match_data() brew_runtime.Value {
+pub fn ruby_extract_plist_spec_l173_d22_match_data() ruby.Value {
 	base_matches := {
 		'1.2.3': '1.2.3'
 	}
-	return brew_runtime.map_value({
+	return ruby.map_value({
 		'uncached':       extract_plist_core.extract_plist_match_data_to_value(extract_plist_spec_expected(none, false, false, ruby_extract_plist_spec_l172_d21_content(), true, base_matches))
 		'cached':         extract_plist_core.extract_plist_match_data_to_value(extract_plist_spec_expected(none, true, true, '', false, base_matches))
 		'cached_default': extract_plist_core.extract_plist_match_data_to_value(extract_plist_spec_expected(none, true, true, '', false, {}))

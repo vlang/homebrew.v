@@ -1,24 +1,24 @@
 module language
 
-import brew_runtime
+import ruby
 import homebrew.utils
 
 // Translated from Homebrew/brew `language/perl.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `perl_shebang_rewrite_info(perl_path)` at line 27.
-pub fn ruby_perl_l27_d1_perl_shebang_rewrite_info(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_perl_l27_d1_perl_shebang_rewrite_info(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'Perl path is required')
+		return ruby.object_value('ArgumentError', 'Perl path is required')
 	}
 	info := perl_shebang_rewrite_info(args[0].as_string()) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	return utils.rewrite_info_value(info)
 }
 
 // Ruby method `detected_perl_shebang(formula = T.cast(self, Formula))` at line 36.
-pub fn ruby_perl_l36_d2_detected_perl_shebang(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_perl_l36_d2_detected_perl_shebang(args ...ruby.Value) ruby.Value {
 	dependencies := if args.len > 0 {
 		perl_dependencies_from_value(args[0])
 	} else {
@@ -27,7 +27,7 @@ pub fn ruby_perl_l36_d2_detected_perl_shebang(args ...brew_runtime.Value) brew_r
 	prefix := if args.len > 1 { args[1].as_string() } else { '/opt/homebrew' }
 	preferred_version := if args.len > 2 { args[2].as_string() } else { '' }
 	info := detected_perl_shebang(dependencies, prefix, preferred_version) or {
-		return brew_runtime.object_value('ShebangDetectionError', err.msg())
+		return ruby.object_value('ShebangDetectionError', err.msg())
 	}
 	return utils.rewrite_info_value(info)
 }
@@ -62,7 +62,7 @@ pub fn detected_perl_shebang(dependencies []PerlDependency, prefix string,
 	return perl_shebang_rewrite_info(perl_path)
 }
 
-fn perl_dependency_from_value(value brew_runtime.Value) PerlDependency {
+fn perl_dependency_from_value(value ruby.Value) PerlDependency {
 	if value.type_name == 'String' {
 		return PerlDependency{ name: value.as_string() }
 	}
@@ -74,7 +74,7 @@ fn perl_dependency_from_value(value brew_runtime.Value) PerlDependency {
 	}
 }
 
-fn perl_dependencies_from_value(value brew_runtime.Value) []PerlDependency {
+fn perl_dependencies_from_value(value ruby.Value) []PerlDependency {
 	values := if value.type_name == 'Array' {
 		value.as_array() or { [] }
 	} else {

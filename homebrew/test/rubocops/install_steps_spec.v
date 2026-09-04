@@ -1,6 +1,6 @@
 module rubocops
 
-import brew_runtime
+import ruby
 import homebrew.rubocops as install_steps_core
 import homebrew.rubocops.@shared as install_steps_shared
 
@@ -18,35 +18,35 @@ fn install_steps_spec_analysis(body string, path string) install_steps_core.Form
 	return install_steps_core.analyze_formula_install_steps(install_steps_spec_formula(body), path)
 }
 
-fn install_steps_spec_changed(body string, needles []string) brew_runtime.Value {
+fn install_steps_spec_changed(body string, needles []string) ruby.Value {
 	analysis := install_steps_spec_analysis(body, '')
-	return brew_runtime.bool_value(analysis.offenses.len > 0 && analysis.corrected != analysis.source && needles.all(analysis.corrected.contains(it)))
+	return ruby.bool_value(analysis.offenses.len > 0 && analysis.corrected != analysis.source && needles.all(analysis.corrected.contains(it)))
 }
 
-fn install_steps_spec_unchanged(body string) brew_runtime.Value {
+fn install_steps_spec_unchanged(body string) ruby.Value {
 	analysis := install_steps_spec_analysis(body, '')
-	return brew_runtime.bool_value(analysis.offenses.len == 0 && analysis.corrected == analysis.source)
+	return ruby.bool_value(analysis.offenses.len == 0 && analysis.corrected == analysis.source)
 }
 
-fn install_steps_spec_offense(body string, path string, message string) brew_runtime.Value {
+fn install_steps_spec_offense(body string, path string, message string) ruby.Value {
 	analysis := install_steps_spec_analysis(body, path)
-	return brew_runtime.bool_value(analysis.offenses.any(it.message == message))
+	return ruby.bool_value(analysis.offenses.any(it.message == message))
 }
 
-fn install_steps_spec_method(name string, body string) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::AST::DefNode', 'def ${name}\n${body}\nend', {
+fn install_steps_spec_method(name string, body string) ruby.Value {
+	return ruby.structured_value('RuboCop::AST::DefNode', 'def ${name}\n${body}\nend', {
 		'name': name
 		'body': body
 	})
 }
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
-pub fn ruby_install_steps_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l7_d1_cop(args ...ruby.Value) ruby.Value {
 	return install_steps_core.ruby_install_steps_l85_d1_audit_formula(...args)
 }
 
 // Ruby it `it "only permits implemented install step methods" do` at line 9.
-pub fn ruby_install_steps_spec_l9_d2_only(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l9_d2_only(args ...ruby.Value) ruby.Value {
 	_ = args
 	formula_methods := ['mkdir', 'mkdir_p', 'touch', 'move', 'mv', 'move_children', 'move_contents',
 		'copy', 'remove', 'inreplace', 'symlink', 'ln_s', 'ln_sf', 'link_dir', 'link_children',
@@ -62,48 +62,48 @@ pub fn ruby_install_steps_spec_l9_d2_only(args ...brew_runtime.Value) brew_runti
 	mut requested := install_steps_shared.install_steps_allowed_methods()
 	requested << install_steps_shared.install_steps_cask_allowed_methods()
 	requested = requested.filter(it != '')
-	return brew_runtime.bool_value(requested.all(it in formula_methods))
+	return ruby.bool_value(requested.all(it in formula_methods))
 }
 
 // Ruby it `it "rejects `post_install` and `post_install_steps` in third-party taps" do` at line 16.
-pub fn ruby_install_steps_spec_l16_d3_rejects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l16_d3_rejects(args ...ruby.Value) ruby.Value {
 	_ = args
 	return install_steps_spec_offense('post_install_steps do\n  touch "foo/state", base: :var\nend\n\ndef post_install; end', '/Taps/example/homebrew-core/Formula/f/foo.rb', '`post_install` and `post_install_steps` cannot both be used.')
 }
 
 // Ruby method `post_install; end` at line 26.
-pub fn ruby_install_steps_spec_l26_d4_post_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l26_d4_post_install(args ...ruby.Value) ruby.Value {
 	_ = args
 	return install_steps_spec_method('post_install', '')
 }
 
 // Ruby it `it "rejects `post_install` and `post_install_steps` in official Homebrew taps" do` at line 31.
-pub fn ruby_install_steps_spec_l31_d5_rejects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l31_d5_rejects(args ...ruby.Value) ruby.Value {
 	_ = args
 	analysis := install_steps_spec_analysis('post_install_steps do\n  touch "foo/state", base: :var\nend\n\ndef post_install; end', '/Taps/homebrew/homebrew-example/Formula/f/foo.rb')
-	return brew_runtime.bool_value(analysis.offenses.any(it.message.contains('cannot both be used')) && analysis.offenses.any(it.message.contains('official Homebrew taps')))
+	return ruby.bool_value(analysis.offenses.any(it.message.contains('cannot both be used')) && analysis.offenses.any(it.message.contains('official Homebrew taps')))
 }
 
 // Ruby method `post_install; end` at line 41.
-pub fn ruby_install_steps_spec_l41_d6_post_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l41_d6_post_install(args ...ruby.Value) ruby.Value {
 	_ = args
 	return install_steps_spec_method('post_install', '')
 }
 
 // Ruby it `it "rejects coexistence regardless of component order" do` at line 47.
-pub fn ruby_install_steps_spec_l47_d7_rejects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l47_d7_rejects(args ...ruby.Value) ruby.Value {
 	_ = args
 	return install_steps_spec_offense('def post_install; end\n\npost_install_steps do\n  touch "foo/state", base: :var\nend', '', '`post_install` and `post_install_steps` cannot both be used.')
 }
 
 // Ruby method `post_install; end` at line 52.
-pub fn ruby_install_steps_spec_l52_d8_post_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l52_d8_post_install(args ...ruby.Value) ruby.Value {
 	_ = args
 	return install_steps_spec_method('post_install', '')
 }
 
 // Ruby it `it "autocorrects implicit formula var paths" do` at line 62.
-pub fn ruby_install_steps_spec_l62_d9_autocorrects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l62_d9_autocorrects(args ...ruby.Value) ruby.Value {
 	_ = args
 	return install_steps_spec_changed('post_install_steps do\n  mkdir_p "log/foo"\n  write_file "foo/state", "ready"\n  init_data_dir "foo", using: :postgresql_initdb\n  if_path_exists "foo/state" do\n    touch "foo/checked"\n  end\n  run "foo", base: :bin, stdin_path: "foo/input"\nend', [
 		'mkdir_p "log/foo", base: :var',
@@ -116,7 +116,7 @@ pub fn ruby_install_steps_spec_l62_d9_autocorrects(args ...brew_runtime.Value) b
 }
 
 // Ruby it `it "autocorrects an empty options hash" do` at line 102.
-pub fn ruby_install_steps_spec_l102_d10_autocorrects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l102_d10_autocorrects(args ...ruby.Value) ruby.Value {
 	_ = args
 	return install_steps_spec_changed('post_install_steps do\n  touch "foo/state", {}\nend', [
 		'touch "foo/state", base: :var',
@@ -124,34 +124,34 @@ pub fn ruby_install_steps_spec_l102_d10_autocorrects(args ...brew_runtime.Value)
 }
 
 // Ruby it `it "accepts formula paths with explicit bases or absolute tokens" do` at line 125.
-pub fn ruby_install_steps_spec_l125_d11_accepts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l125_d11_accepts(args ...ruby.Value) ruby.Value {
 	_ = args
 	return install_steps_spec_unchanged('post_install_steps do\n  mkdir_p "log/foo", base: :var\n  touch "{{var}}/foo/state"\n  if_path_exists "/etc/foo.conf" do\n    write_file "foo.conf", "ready", base: :etc\n  end\n  run "foo", base: :bin, chdir: "{{libexec}}/foo"\nend')
 }
 
 // Ruby it `it "reports an offense when a steps block contains Ruby code" do` at line 142.
-pub fn ruby_install_steps_spec_l142_d12_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l142_d12_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	analysis := install_steps_spec_analysis('post_install_steps do\n  system "true"\nend', '')
-	return brew_runtime.bool_value(analysis.offenses.any(it.message.starts_with('Steps blocks may only contain')))
+	return ruby.bool_value(analysis.offenses.any(it.message.starts_with('Steps blocks may only contain')))
 }
 
 // Ruby it `it "rejects `brew ruby` in steps blocks" do` at line 155.
-pub fn ruby_install_steps_spec_l155_d13_rejects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l155_d13_rejects(args ...ruby.Value) ruby.Value {
 	_ = args
 	return install_steps_spec_offense('post_install_steps do\n  run "{{HOMEBREW_BREW_FILE}}", args: ["ruby", "--", "{{libexec}}/post-install.rb"]\nend', '', 'Install steps must not use `brew ruby` because it enables developer mode.')
 }
 
 // Ruby it `it "accepts install step DSL calls" do` at line 168.
-pub fn ruby_install_steps_spec_l168_d14_accepts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l168_d14_accepts(args ...ruby.Value) ruby.Value {
 	_ = args
 	body := 'post_install_steps do\n  mkdir_p "foo", base: :var\n  touch "foo/#{formula_name}", base: :var\n  move "source", "target"\n  inreplace "foo.conf", %r{{{HOMEBREW_CELLAR}}/foo/[^/]+}, "{{opt_prefix}}", base: :var\n  symlink "source", "target", source_base: :relative, overwrite: true, remove_on_uninstall: true\n  write_file "foo.conf", "key = value\\n", base: :etc\n  run "foo", args: ["--repair"]\n  if_path_exists "foo", base: :var do\n    warn "foo exists"\n  end\n  init_data_dir formula_name, using: :postgresql, base: :var\n  on_macos do\n    touch "foo/state", base: :var\n  end\nend'
 	analysis := install_steps_spec_analysis(body, '')
-	return brew_runtime.bool_value(analysis.offenses.len == 0 && analysis.corrected == analysis.source)
+	return ruby.bool_value(analysis.offenses.len == 0 && analysis.corrected == analysis.source)
 }
 
 // Ruby it `it "autocorrects legacy install step names" do` at line 225.
-pub fn ruby_install_steps_spec_l225_d15_autocorrects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l225_d15_autocorrects(args ...ruby.Value) ruby.Value {
 	_ = args
 	return install_steps_spec_changed('post_install_steps do\n  mkdir "foo", base: :var\n  mv "source", "target", force: true\n  move_children "source", "target"\n  ln_s "source", "target"\n  ln_sf "source", "target", uninstall: true\n  link_dir "source", "target"\n  link_children "source", "target"\n  write "foo.conf", "content", base: :var\n  gio_querymodules\nend', [
 		'mkdir_p ',
@@ -168,7 +168,7 @@ pub fn ruby_install_steps_spec_l225_d15_autocorrects(args ...brew_runtime.Value)
 }
 
 // Ruby it `it "autocorrects legacy install step keywords" do` at line 284.
-pub fn ruby_install_steps_spec_l284_d16_autocorrects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l284_d16_autocorrects(args ...ruby.Value) ruby.Value {
 	_ = args
 	return install_steps_spec_changed('post_install_steps do\n  move "source", "target", force: true\n  move "source", "target", force: false\n  symlink "source", "target", uninstall: true\n  symlink "source", "target", force: true, overwrite: false\n  symlink "source", "target", uninstall: true, remove_on_uninstall: false\nend', [
 		'overwrite: true',
@@ -177,21 +177,21 @@ pub fn ruby_install_steps_spec_l284_d16_autocorrects(args ...brew_runtime.Value)
 }
 
 // Ruby it `it "reports an offense when a scope contains Ruby code" do` at line 337.
-pub fn ruby_install_steps_spec_l337_d17_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l337_d17_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	analysis := install_steps_spec_analysis('post_install_steps do\n  on_macos do\n    system "true"\n  end\nend', '')
-	return brew_runtime.bool_value(analysis.offenses.any(it.message.starts_with('Steps blocks may only contain')))
+	return ruby.bool_value(analysis.offenses.any(it.message.starts_with('Steps blocks may only contain')))
 }
 
 // Ruby it `it "reports an offense when write_file content is interpolated" do` at line 352.
-pub fn ruby_install_steps_spec_l352_d18_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l352_d18_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	analysis := install_steps_spec_analysis('post_install_steps do\n  write_file "foo", "#{prefix}", base: :var\nend', '')
-	return brew_runtime.bool_value(analysis.offenses.any(it.message.starts_with('Steps blocks may only contain')))
+	return ruby.bool_value(analysis.offenses.any(it.message.starts_with('Steps blocks may only contain')))
 }
 
 // Ruby it `it "autocorrects simple `post_install` file preparation" do` at line 365.
-pub fn ruby_install_steps_spec_l365_d19_autocorrects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l365_d19_autocorrects(args ...ruby.Value) ruby.Value {
 	_ = args
 	return install_steps_spec_changed('def post_install\n  (var/"log/foo").mkpath\n  FileUtils.touch var/"foo/state"\n  FileUtils.mv prefix/"old", prefix/"new"\n  FileUtils.ln_sf prefix/"source", prefix/"target"\nend', [
 		'post_install_steps do',
@@ -204,13 +204,13 @@ pub fn ruby_install_steps_spec_l365_d19_autocorrects(args ...brew_runtime.Value)
 }
 
 // Ruby method `post_install` at line 370.
-pub fn ruby_install_steps_spec_l370_d20_post_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l370_d20_post_install(args ...ruby.Value) ruby.Value {
 	_ = args
 	return install_steps_spec_method('post_install', '(var/"log/foo").mkpath')
 }
 
 // Ruby it `it "autocorrects simple `post_install` config writes" do` at line 394.
-pub fn ruby_install_steps_spec_l394_d21_autocorrects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l394_d21_autocorrects(args ...ruby.Value) ruby.Value {
 	_ = args
 	return install_steps_spec_changed('def post_install\n  (etc/"foo.conf").atomic_write "key = value\\n"\n  (var/"foo/banner").atomic_write <<~TEXT\n    literal banner\n  TEXT\nend', [
 		'post_install_steps do',
@@ -220,13 +220,13 @@ pub fn ruby_install_steps_spec_l394_d21_autocorrects(args ...brew_runtime.Value)
 }
 
 // Ruby method `post_install` at line 399.
-pub fn ruby_install_steps_spec_l399_d22_post_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l399_d22_post_install(args ...ruby.Value) ruby.Value {
 	_ = args
 	return install_steps_spec_method('post_install', '(etc/"foo.conf").atomic_write "key = value\\n"')
 }
 
 // Ruby it `it "autocorrects config writes without trailing newlines" do` at line 423.
-pub fn ruby_install_steps_spec_l423_d23_autocorrects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l423_d23_autocorrects(args ...ruby.Value) ruby.Value {
 	_ = args
 	return install_steps_spec_changed('def post_install\n  (etc/"foo.conf").write "key = value"\nend', [
 		'write_file "foo.conf", "key = value", base: :etc',
@@ -234,13 +234,13 @@ pub fn ruby_install_steps_spec_l423_d23_autocorrects(args ...brew_runtime.Value)
 }
 
 // Ruby method `post_install` at line 428.
-pub fn ruby_install_steps_spec_l428_d24_post_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l428_d24_post_install(args ...ruby.Value) ruby.Value {
 	_ = args
 	return install_steps_spec_method('post_install', '(etc/"foo.conf").write "key = value"')
 }
 
 // Ruby it `it "autocorrects known `post_install` rebuild actions" do` at line 446.
-pub fn ruby_install_steps_spec_l446_d25_autocorrects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l446_d25_autocorrects(args ...ruby.Value) ruby.Value {
 	_ = args
 	return install_steps_spec_changed('def post_install\n  system Formula["glib"].opt_bin/"glib-compile-schemas", HOMEBREW_PREFIX/"share/glib-2.0/schemas"\n  system Formula["desktop-file-utils"].opt_bin/"update-desktop-database", HOMEBREW_PREFIX/"share/applications"\nend', [
 		'compile_gsettings_schemas',
@@ -249,13 +249,13 @@ pub fn ruby_install_steps_spec_l446_d25_autocorrects(args ...brew_runtime.Value)
 }
 
 // Ruby method `post_install` at line 451.
-pub fn ruby_install_steps_spec_l451_d26_post_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l451_d26_post_install(args ...ruby.Value) ruby.Value {
 	_ = args
 	return install_steps_spec_method('post_install', 'system Formula["glib"].opt_bin/"glib-compile-schemas", HOMEBREW_PREFIX/"share/glib-2.0/schemas"')
 }
 
 // Ruby it `it "autocorrects PostgreSQL bootstrap and link sequences into existing steps" do` at line 477.
-pub fn ruby_install_steps_spec_l477_d27_autocorrects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l477_d27_autocorrects(args ...ruby.Value) ruby.Value {
 	_ = args
 	body := 'post_install_steps do\n  touch "postgresql/state", base: :var\nend\n\ndef post_install\n  (var/"log").mkpath\n  postgresql_datadir.mkpath\n  %w[include lib share].each do |dir|\n    dst_dir = HOMEBREW_PREFIX/dir/name\n  end\n  bin.each_child { |f| (HOMEBREW_PREFIX/"bin").install_symlink f => "#{f.basename}-#{version.major}" }\n  return if ENV["HOMEBREW_GITHUB_ACTIONS"]\n  system bin/"initdb", "--locale=en_US.UTF-8", "-E", "UTF-8", postgresql_datadir unless pg_version_exists?\n  opoo "keep this legacy work"\nend\n\ndef postgresql_datadir\n  var/name\nend\n\ndef pg_version_exists?\n  (postgresql_datadir/"PG_VERSION").exist?\nend'
 	return install_steps_spec_changed(body, ['mkdir_p "log", base: :var',
@@ -264,71 +264,71 @@ pub fn ruby_install_steps_spec_l477_d27_autocorrects(args ...brew_runtime.Value)
 }
 
 // Ruby method `post_install` at line 487.
-pub fn ruby_install_steps_spec_l487_d28_post_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l487_d28_post_install(args ...ruby.Value) ruby.Value {
 	_ = args
 	return install_steps_spec_method('post_install', '(var/"log").mkpath\npostgresql_datadir.mkpath\nreturn if ENV["HOMEBREW_GITHUB_ACTIONS"]\nsystem bin/"initdb"')
 }
 
 // Ruby method `postgresql_datadir` at line 516.
-pub fn ruby_install_steps_spec_l516_d29_postgresql_datadir(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l516_d29_postgresql_datadir(args ...ruby.Value) ruby.Value {
 	_ = args
 	return install_steps_spec_method('postgresql_datadir', 'var/name')
 }
 
 // Ruby method `pg_version_exists?` at line 520.
-pub fn ruby_install_steps_spec_l520_d30_pg_version_exists(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l520_d30_pg_version_exists(args ...ruby.Value) ruby.Value {
 	_ = args
 	return install_steps_spec_method('pg_version_exists?', '(postgresql_datadir/"PG_VERSION").exist?')
 }
 
 // Ruby method `post_install` at line 540.
-pub fn ruby_install_steps_spec_l540_d31_post_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l540_d31_post_install(args ...ruby.Value) ruby.Value {
 	_ = args
 	return install_steps_spec_method('post_install', 'opoo "keep this legacy work"')
 }
 
 // Ruby method `postgresql_datadir` at line 544.
-pub fn ruby_install_steps_spec_l544_d32_postgresql_datadir(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l544_d32_postgresql_datadir(args ...ruby.Value) ruby.Value {
 	_ = args
 	return install_steps_spec_method('postgresql_datadir', 'var/name')
 }
 
 // Ruby it `it "autocorrects MySQL bootstrap while retaining its warning" do` at line 551.
-pub fn ruby_install_steps_spec_l551_d33_autocorrects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l551_d33_autocorrects(args ...ruby.Value) ruby.Value {
 	_ = args
 	body := 'def post_install\n  (var/"mysql").mkpath\n  if File.exist? "/etc/my.cnf"\n    opoo "existing configuration"\n  end\n  return if ENV["HOMEBREW_GITHUB_ACTIONS"]\n  unless (datadir/"mysql/general_log.CSM").exist?\n    ENV["TMPDIR"] = nil\n    system bin/"mysqld", "--initialize-insecure"\n  end\nend\n\ndef datadir\n  var/"mysql"\nend'
 	mut source := install_steps_spec_formula(body)
 	source = source.replace('class Foo < Formula', 'class Mysql < Formula')
 	analysis := install_steps_core.analyze_formula_install_steps(source, '')
-	return brew_runtime.bool_value(analysis.corrected.contains('init_data_dir "mysql", using: :mysql, base: :var') && analysis.corrected.contains('opoo "existing configuration"'))
+	return ruby.bool_value(analysis.corrected.contains('init_data_dir "mysql", using: :mysql, base: :var') && analysis.corrected.contains('opoo "existing configuration"'))
 }
 
 // Ruby method `post_install` at line 556.
-pub fn ruby_install_steps_spec_l556_d34_post_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l556_d34_post_install(args ...ruby.Value) ruby.Value {
 	_ = args
 	return install_steps_spec_method('post_install', '(var/"mysql").mkpath\nreturn if ENV["HOMEBREW_GITHUB_ACTIONS"]\nsystem bin/"mysqld", "--initialize-insecure"')
 }
 
 // Ruby method `datadir` at line 573.
-pub fn ruby_install_steps_spec_l573_d35_datadir(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l573_d35_datadir(args ...ruby.Value) ruby.Value {
 	_ = args
 	return install_steps_spec_method('datadir', 'var/"mysql"')
 }
 
 // Ruby method `post_install` at line 587.
-pub fn ruby_install_steps_spec_l587_d36_post_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l587_d36_post_install(args ...ruby.Value) ruby.Value {
 	_ = args
 	return install_steps_spec_method('post_install', 'if File.exist? "/etc/my.cnf"\n  opoo "existing configuration"\nend')
 }
 
 // Ruby method `datadir` at line 593.
-pub fn ruby_install_steps_spec_l593_d37_datadir(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l593_d37_datadir(args ...ruby.Value) ruby.Value {
 	_ = args
 	return install_steps_spec_method('datadir', 'var/"mysql"')
 }
 
 // Ruby it `it "autocorrects MariaDB bootstrap-only hooks" do` at line 600.
-pub fn ruby_install_steps_spec_l600_d38_autocorrects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l600_d38_autocorrects(args ...ruby.Value) ruby.Value {
 	_ = args
 	return install_steps_spec_changed('def post_install\n  (var/"mysql").mkpath\n  return if ENV["HOMEBREW_GITHUB_ACTIONS"]\n  unless File.exist? "#{var}/mysql/mysql/user.frm"\n    ENV["TMPDIR"] = nil\n    system bin/"mysql_install_db", "--verbose"\n  end\nend', [
 		'init_data_dir "mysql", using: :mariadb, base: :var',
@@ -336,13 +336,13 @@ pub fn ruby_install_steps_spec_l600_d38_autocorrects(args ...brew_runtime.Value)
 }
 
 // Ruby method `post_install` at line 605.
-pub fn ruby_install_steps_spec_l605_d39_post_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l605_d39_post_install(args ...ruby.Value) ruby.Value {
 	_ = args
 	return install_steps_spec_method('post_install', '(var/"mysql").mkpath\nreturn if ENV["HOMEBREW_GITHUB_ACTIONS"]\nsystem bin/"mysql_install_db", "--verbose"')
 }
 
 // Ruby it `it "does not autocorrect dynamic or unsupported database and link work" do` at line 630.
-pub fn ruby_install_steps_spec_l630_d40_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l630_d40_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	cases := [
 		'def post_install\n  return if ENV["HOMEBREW_GITHUB_ACTIONS"]\n  system bin/"initdb", "--locale=#{ENV.fetch("LC_ALL")}"\nend',
@@ -350,47 +350,47 @@ pub fn ruby_install_steps_spec_l630_d40_does(args ...brew_runtime.Value) brew_ru
 		'def post_install\n  lib.each_child { |child| dynamic_target.install_symlink child }\nend',
 		'def post_install\n  postgresql_datadir.mkpath\n  system bin/"initdb", "--locale=C"\nend',
 	]
-	return brew_runtime.bool_value(cases.all(install_steps_spec_analysis(it, '').offenses.len == 0))
+	return ruby.bool_value(cases.all(install_steps_spec_analysis(it, '').offenses.len == 0))
 }
 
 // Ruby method `post_install` at line 635.
-pub fn ruby_install_steps_spec_l635_d41_post_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l635_d41_post_install(args ...ruby.Value) ruby.Value {
 	_ = args
 	return install_steps_spec_method('post_install', 'system bin/"initdb", "--locale=#{ENV.fetch("LC_ALL")}"')
 }
 
 // Ruby method `post_install` at line 646.
-pub fn ruby_install_steps_spec_l646_d42_post_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l646_d42_post_install(args ...ruby.Value) ruby.Value {
 	_ = args
 	return install_steps_spec_method('post_install', '(var/"mysql").mkpath\nsystem bin/"mysqld", "--initialize-insecure"')
 }
 
 // Ruby method `datadir` at line 657.
-pub fn ruby_install_steps_spec_l657_d43_datadir(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l657_d43_datadir(args ...ruby.Value) ruby.Value {
 	_ = args
 	return install_steps_spec_method('datadir', 'var/"mysql"')
 }
 
 // Ruby method `post_install` at line 667.
-pub fn ruby_install_steps_spec_l667_d44_post_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l667_d44_post_install(args ...ruby.Value) ruby.Value {
 	_ = args
 	return install_steps_spec_method('post_install', 'lib.each_child { |child| dynamic_target.install_symlink child }')
 }
 
 // Ruby method `post_install` at line 679.
-pub fn ruby_install_steps_spec_l679_d45_post_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l679_d45_post_install(args ...ruby.Value) ruby.Value {
 	_ = args
 	return install_steps_spec_method('post_install', 'postgresql_datadir.mkpath\nsystem bin/"initdb", "--locale=C"')
 }
 
 // Ruby it `it "does not re-report declarative database and link steps" do` at line 686.
-pub fn ruby_install_steps_spec_l686_d46_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l686_d46_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	return install_steps_spec_unchanged('post_install_steps do\n  init_data_dir formula_name, using: :postgresql, base: :var\n  symlink_tree "include/postgresql", "include/{{formula_name}}"\n  symlink_children "bin", suffix: "-{{version.major}}"\nend')
 }
 
 // Ruby it `it "autocorrects direct certificate bundle symlinks while retaining legacy work" do` at line 705.
-pub fn ruby_install_steps_spec_l705_d47_autocorrects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l705_d47_autocorrects(args ...ruby.Value) ruby.Value {
 	_ = args
 	return install_steps_spec_changed('def post_install\n  rm(pkgetc/"cert.pem") if (pkgetc/"cert.pem").exist?\n  pkgetc.install_symlink Formula["ca-certificates"].pkgetc/"cert.pem"\n  opoo "keep this legacy work"\nend', [
 		'post_install_steps do',
@@ -402,65 +402,65 @@ pub fn ruby_install_steps_spec_l705_d47_autocorrects(args ...brew_runtime.Value)
 }
 
 // Ruby method `post_install` at line 710.
-pub fn ruby_install_steps_spec_l710_d48_post_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l710_d48_post_install(args ...ruby.Value) ruby.Value {
 	_ = args
 	return install_steps_spec_method('post_install', 'rm(pkgetc/"cert.pem") if (pkgetc/"cert.pem").exist?\npkgetc.install_symlink Formula["ca-certificates"].pkgetc/"cert.pem"')
 }
 
 // Ruby method `post_install` at line 731.
-pub fn ruby_install_steps_spec_l731_d49_post_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l731_d49_post_install(args ...ruby.Value) ruby.Value {
 	_ = args
 	return install_steps_spec_method('post_install', 'opoo "keep this legacy work"')
 }
 
 // Ruby it `it "does not autocorrect dynamic or unsupported certificate symlinks" do` at line 738.
-pub fn ruby_install_steps_spec_l738_d50_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l738_d50_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	cases := [
 		'def post_install\n  pkgetc.install_symlink Formula["ca-certificates"].pkgetc/"cert.pem"\nend',
 		'def post_install\n  rm(pkgetc/"cert.pem")\n  pkgetc.install_symlink dynamic_certificate\nend',
 	]
-	return brew_runtime.bool_value(cases.all(install_steps_spec_analysis(it, '').offenses.len == 0))
+	return ruby.bool_value(cases.all(install_steps_spec_analysis(it, '').offenses.len == 0))
 }
 
 // Ruby method `post_install` at line 743.
-pub fn ruby_install_steps_spec_l743_d51_post_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l743_d51_post_install(args ...ruby.Value) ruby.Value {
 	_ = args
 	return install_steps_spec_method('post_install', 'pkgetc.install_symlink Formula["ca-certificates"].pkgetc/"cert.pem"')
 }
 
 // Ruby method `post_install` at line 754.
-pub fn ruby_install_steps_spec_l754_d52_post_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l754_d52_post_install(args ...ruby.Value) ruby.Value {
 	_ = args
 	return install_steps_spec_method('post_install', 'rm(pkgetc/"cert.pem")\npkgetc.install_symlink dynamic_certificate')
 }
 
 // Ruby it `it "does not autocorrect non-file preparation in `post_install`" do` at line 762.
-pub fn ruby_install_steps_spec_l762_d53_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l762_d53_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	return install_steps_spec_unchanged('def post_install\n  system "true"\nend')
 }
 
 // Ruby method `post_install` at line 767.
-pub fn ruby_install_steps_spec_l767_d54_post_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l767_d54_post_install(args ...ruby.Value) ruby.Value {
 	_ = args
 	return install_steps_spec_method('post_install', 'system "true"')
 }
 
 // Ruby it `it "does not autocorrect mixed `post_install` bodies" do` at line 774.
-pub fn ruby_install_steps_spec_l774_d55_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l774_d55_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	return install_steps_spec_unchanged('def post_install\n  (var/"log/foo").mkpath\n  system "true"\nend')
 }
 
 // Ruby method `post_install` at line 779.
-pub fn ruby_install_steps_spec_l779_d56_post_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l779_d56_post_install(args ...ruby.Value) ruby.Value {
 	_ = args
 	return install_steps_spec_method('post_install', '(var/"log/foo").mkpath\nsystem "true"')
 }
 
 // Ruby it `it "autocorrects redundant service path directories in `post_install`" do` at line 787.
-pub fn ruby_install_steps_spec_l787_d57_autocorrects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l787_d57_autocorrects(args ...ruby.Value) ruby.Value {
 	_ = args
 	return install_steps_spec_changed('def post_install\n  (var/"run/foo").mkpath\n  (var/"log/foo").mkpath\nend\n\nservice do\n  run opt_bin/"foo"\n  working_dir var/"run/foo"\n  log_path var/"log/foo/out.log"\n  error_log_path var/"log/foo/err.log"\nend', [
 		'service do',
@@ -469,13 +469,13 @@ pub fn ruby_install_steps_spec_l787_d57_autocorrects(args ...brew_runtime.Value)
 }
 
 // Ruby method `post_install` at line 792.
-pub fn ruby_install_steps_spec_l792_d58_post_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l792_d58_post_install(args ...ruby.Value) ruby.Value {
 	_ = args
 	return install_steps_spec_method('post_install', '(var/"run/foo").mkpath\n(var/"log/foo").mkpath')
 }
 
 // Ruby it `it "autocorrects redundant service path directories in `post_install_steps`" do` at line 821.
-pub fn ruby_install_steps_spec_l821_d59_autocorrects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l821_d59_autocorrects(args ...ruby.Value) ruby.Value {
 	_ = args
 	return install_steps_spec_changed('post_install_steps do\n  mkdir_p "run/foo", base: :var\n  mkdir_p "log/foo", base: :var\nend\n\nservice do\n  run opt_bin/"foo"\n  working_dir var/"run/foo"\n  log_path var/"log/foo/out.log"\n  error_log_path var/"log/foo/err.log"\nend', [
 		'service do',
@@ -484,13 +484,13 @@ pub fn ruby_install_steps_spec_l821_d59_autocorrects(args ...brew_runtime.Value)
 }
 
 // Ruby it `it "does not report mixed `post_install_steps` bodies" do` at line 855.
-pub fn ruby_install_steps_spec_l855_d60_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l855_d60_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	return install_steps_spec_unchanged('post_install_steps do\n  mkdir_p "run/foo", base: :var\n  mkdir_p "state/foo", base: :var\nend\n\nservice do\n  run opt_bin/"foo"\n  working_dir var/"run/foo"\nend')
 }
 
 // Ruby it `it "does not use runtime arguments as service path directories" do` at line 873.
-pub fn ruby_install_steps_spec_l873_d61_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_spec_l873_d61_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	return install_steps_spec_unchanged('post_install_steps do\n  mkdir_p "run", base: :var\nend\n\nservice do\n  run [opt_bin/"foo", "-s", var/"run/foo.sock"]\nend')
 }

@@ -1,6 +1,6 @@
 module utils
 
-import brew_runtime
+import ruby
 import os
 import time
 
@@ -87,24 +87,24 @@ pub fn freedesktop_trash(paths []string, xdg_data_home string, home string,
 	return TrashResult{ trashed: trashed, untrashable: untrashable }
 }
 
-pub fn trash_result_value(result TrashResult) brew_runtime.Value {
-	return brew_runtime.array_value([
-		brew_runtime.string_array_value(result.trashed),
-		brew_runtime.string_array_value(result.untrashable),
+pub fn trash_result_value(result TrashResult) ruby.Value {
+	return ruby.array_value([
+		ruby.string_array_value(result.trashed),
+		ruby.string_array_value(result.untrashable),
 	])
 }
 
-fn trash_boundary_paths(args []brew_runtime.Value) []string {
+fn trash_boundary_paths(args []ruby.Value) []string {
 	if args.len == 0 {
 		return []string{}
 	}
 	if args[0].type_name == 'Array' {
-		return args[0].as_array() or { []brew_runtime.Value{} }.map(it.as_string())
+		return args[0].as_array() or { []ruby.Value{} }.map(it.as_string())
 	}
 	return args.filter(it.type_name in ['String', 'Pathname']).map(it.as_string())
 }
 
-fn trash_boundary_date(args []brew_runtime.Value) string {
+fn trash_boundary_date(args []ruby.Value) string {
 	for arg in args {
 		if arg.type_name == 'Hash' && 'deletion_date' in arg.map_data {
 			return arg.map_data['deletion_date'].as_string()
@@ -113,7 +113,7 @@ fn trash_boundary_date(args []brew_runtime.Value) string {
 	return time.now().format_ss()
 }
 
-fn trash_boundary_xdg(args []brew_runtime.Value) string {
+fn trash_boundary_xdg(args []ruby.Value) string {
 	for arg in args {
 		if arg.type_name == 'Hash' && 'xdg_data_home' in arg.map_data {
 			return arg.map_data['xdg_data_home'].as_string()
@@ -126,32 +126,32 @@ fn trash_boundary_xdg(args []brew_runtime.Value) string {
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `self.trash(*paths, command: nil)` at line 18.
-pub fn ruby_trash_l18_d1_self_trash(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_trash_l18_d1_self_trash(args ...ruby.Value) ruby.Value {
 	return trash_result_value(freedesktop_trash(trash_boundary_paths(args), trash_boundary_xdg(args), os.home_dir(), trash_boundary_date(args)))
 }
 
 // Ruby method `self.freedesktop_trash(*paths)` at line 23.
-pub fn ruby_trash_l23_d2_self_freedesktop_trash(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_trash_l23_d2_self_freedesktop_trash(args ...ruby.Value) ruby.Value {
 	return trash_result_value(freedesktop_trash(trash_boundary_paths(args), trash_boundary_xdg(args), os.home_dir(), trash_boundary_date(args)))
 }
 
 // Ruby method `self.home_trash_path` at line 43.
-pub fn ruby_trash_l43_d3_self_home_trash_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_trash_l43_d3_self_home_trash_path(args ...ruby.Value) ruby.Value {
 	xdg := if args.len > 0 { args[0].as_string() } else { os.getenv('XDG_DATA_HOME') }
 	home := if args.len > 1 { args[1].as_string() } else { os.home_dir() }
-	return brew_runtime.string_value(home_trash_path(xdg, home))
+	return ruby.string_value(home_trash_path(xdg, home))
 }
 
 // Ruby method `self.trash_path(path, files_path:, info_path:)` at line 49.
-pub fn ruby_trash_l49_d4_self_trash_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_trash_l49_d4_self_trash_path(args ...ruby.Value) ruby.Value {
 	if args.len < 3 { panic('trash_path requires path, files_path, and info_path') }
 	date := if args.len > 3 { args[3].as_string() } else { time.now().format_ss() }
 	move := freedesktop_trash_path(args[0].as_string(), args[1].as_string(), args[2].as_string(), date) or { panic(err) }
-	return brew_runtime.map_value({
-		'source':    brew_runtime.string_value(move.source)
-		'target':    brew_runtime.string_value(move.target)
-		'info_path': brew_runtime.string_value(move.info_path)
-		'info':      brew_runtime.string_value(move.info)
+	return ruby.map_value({
+		'source':    ruby.string_value(move.source)
+		'target':    ruby.string_value(move.target)
+		'info_path': ruby.string_value(move.info_path)
+		'info':      ruby.string_value(move.info)
 	})
 }
 

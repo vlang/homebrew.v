@@ -1,6 +1,6 @@
 module utils
 
-import brew_runtime
+import ruby
 import homebrew.extend.os.mac.utils as mac_socket_utils
 import net.unix
 import os
@@ -65,7 +65,7 @@ pub:
 	listening bool
 }
 
-pub type UnixSocketAction = fn(mut socket UnixSocket) !brew_runtime.Value
+pub type UnixSocketAction = fn(mut socket UnixSocket) !ruby.Value
 
 pub fn unix_sockaddr(path string) !UnixSocketAddress {
 	if path.bytes().contains(u8(0)) {
@@ -99,7 +99,7 @@ pub fn connect_unix_socket(path string) !&UnixSocket {
 	}
 }
 
-pub fn open_unix_socket(path string, action UnixSocketAction) !brew_runtime.Value {
+pub fn open_unix_socket(path string, action UnixSocketAction) !ruby.Value {
 	mut socket := connect_unix_socket(path)!
 	defer {
 		socket.close() or {}
@@ -202,8 +202,8 @@ pub fn unix_server_state(server &UnixServer) UnixSocketState {
 	}
 }
 
-pub fn unix_socket_state_value(state UnixSocketState) brew_runtime.Value {
-	return brew_runtime.structured_value('Utils::UNIXSocketState', state.path, {
+pub fn unix_socket_state_value(state UnixSocketState) ruby.Value {
+	return ruby.structured_value('Utils::UNIXSocketState', state.path, {
 		'path':      state.path
 		'role':      state.role.str()
 		'open':      state.open.str()
@@ -212,7 +212,7 @@ pub fn unix_socket_state_value(state UnixSocketState) brew_runtime.Value {
 	})
 }
 
-pub fn unix_socket_state_from_value(value brew_runtime.Value) UnixSocketState {
+pub fn unix_socket_state_from_value(value ruby.Value) UnixSocketState {
 	role := match value.attributes['role'] or { '' } {
 		'accepted' { UnixSocketRole.accepted }
 		'server' { UnixSocketRole.server }
@@ -227,20 +227,20 @@ pub fn unix_socket_state_from_value(value brew_runtime.Value) UnixSocketState {
 	}
 }
 
-pub fn unix_sockaddr_value(address UnixSocketAddress) brew_runtime.Value {
-	return brew_runtime.structured_value('Socket::SockaddrUn', address.path, {
+pub fn unix_sockaddr_value(address UnixSocketAddress) ruby.Value {
+	return ruby.structured_value('Socket::SockaddrUn', address.path, {
 		'path':   address.path
 		'packed': address.packed.hex()
 	})
 }
 
 // Ruby method `self.open(path, &_block)` at line 17.
-pub fn ruby_socket_l17_d1_self_open(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_socket_l17_d1_self_open(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'expected unix socket path')
+		return ruby.object_value('ArgumentError', 'expected unix socket path')
 	}
 	mut socket := connect_unix_socket(args[0].as_string()) or {
-		return brew_runtime.object_value('SocketError', err.msg())
+		return ruby.object_value('SocketError', err.msg())
 	}
 	state := unix_socket_state(socket)
 	socket.close() or {}
@@ -248,31 +248,31 @@ pub fn ruby_socket_l17_d1_self_open(args ...brew_runtime.Value) brew_runtime.Val
 }
 
 // Ruby method `self.sockaddr_un(path)` at line 26.
-pub fn ruby_socket_l26_d2_self_sockaddr_un(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_socket_l26_d2_self_sockaddr_un(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'expected unix socket path')
+		return ruby.object_value('ArgumentError', 'expected unix socket path')
 	}
 	address := unix_sockaddr(args[0].as_string()) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	return unix_sockaddr_value(address)
 }
 
 // Ruby attr_reader `attr_reader :path` at line 38.
-pub fn ruby_socket_l38_d3_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_socket_l38_d3_path(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_value('')
+		return ruby.string_value('')
 	}
-	return brew_runtime.string_value(args[0].attributes['path'] or { args[0].as_string() })
+	return ruby.string_value(args[0].attributes['path'] or { args[0].as_string() })
 }
 
 // Ruby method `initialize(path)` at line 41.
-pub fn ruby_socket_l41_d4_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_socket_l41_d4_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'expected unix socket path')
+		return ruby.object_value('ArgumentError', 'expected unix socket path')
 	}
 	mut server := new_unix_server(args[0].as_string(), 128) or {
-		return brew_runtime.object_value('SocketError', err.msg())
+		return ruby.object_value('SocketError', err.msg())
 	}
 	state := unix_server_state(server)
 	server.close() or {}
@@ -280,13 +280,13 @@ pub fn ruby_socket_l41_d4_initialize(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby method `accept_nonblock` at line 49.
-pub fn ruby_socket_l49_d5_accept_nonblock(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_socket_l49_d5_accept_nonblock(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('IO::WaitReadable', 'Resource temporarily unavailable')
+		return ruby.object_value('IO::WaitReadable', 'Resource temporarily unavailable')
 	}
 	state := unix_socket_state_from_value(args[0])
 	if !state.listening {
-		return brew_runtime.object_value('IO::WaitReadable', 'Resource temporarily unavailable while accepting ${state.path}')
+		return ruby.object_value('IO::WaitReadable', 'Resource temporarily unavailable while accepting ${state.path}')
 	}
 	return unix_socket_state_value(UnixSocketState{
 		path: state.path

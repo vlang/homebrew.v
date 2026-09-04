@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `dev-cmd/test.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -187,70 +187,70 @@ pub:
 	options FormulaTestOptions
 }
 
-pub fn formula_test_input_boundary(input &FormulaTestInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::Test::Input', '', {
+pub fn formula_test_input_boundary(input &FormulaTestInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::Test::Input', '', {
 		'formula_test_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn formula_test_input_from_value(value brew_runtime.Value) &FormulaTestInput {
+fn formula_test_input_from_value(value ruby.Value) &FormulaTestInput {
 	address := value.attributes['formula_test_input_address'] or { panic('invalid Test input') }
 	return unsafe { &FormulaTestInput(voidptr(address.u64())) }
 }
 
-fn formula_test_attempt_value(attempt FormulaTestAttempt) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'formula': brew_runtime.string_value(attempt.formula)
-		'heading': brew_runtime.string_value(attempt.heading)
-		'exec_args': brew_runtime.string_array_value(attempt.exec_args)
-		'step': brew_runtime.string_value(attempt.step)
-		'sandbox_log': brew_runtime.string_value(attempt.sandbox_log)
-		'optional_write_paths': brew_runtime.string_array_value(attempt.optional_write_paths)
-		'deny_read_home': brew_runtime.bool_value(attempt.deny_read_home)
-		'deny_network': brew_runtime.bool_value(attempt.deny_network)
-		'attempts': brew_runtime.int_value(attempt.attempts)
-		'cache_cleared': brew_runtime.bool_value(attempt.cache_cleared)
-		'rust_backtrace': brew_runtime.string_value(attempt.rust_backtrace)
-		'environment_restored': brew_runtime.bool_value(attempt.environment_restored)
-		'success': brew_runtime.bool_value(attempt.success)
-		'error': brew_runtime.string_value(attempt.error)
+fn formula_test_attempt_value(attempt FormulaTestAttempt) ruby.Value {
+	return ruby.map_value({
+		'formula': ruby.string_value(attempt.formula)
+		'heading': ruby.string_value(attempt.heading)
+		'exec_args': ruby.string_array_value(attempt.exec_args)
+		'step': ruby.string_value(attempt.step)
+		'sandbox_log': ruby.string_value(attempt.sandbox_log)
+		'optional_write_paths': ruby.string_array_value(attempt.optional_write_paths)
+		'deny_read_home': ruby.bool_value(attempt.deny_read_home)
+		'deny_network': ruby.bool_value(attempt.deny_network)
+		'attempts': ruby.int_value(attempt.attempts)
+		'cache_cleared': ruby.bool_value(attempt.cache_cleared)
+		'rust_backtrace': ruby.string_value(attempt.rust_backtrace)
+		'environment_restored': ruby.bool_value(attempt.environment_restored)
+		'success': ruby.bool_value(attempt.success)
+		'error': ruby.string_value(attempt.error)
 	})
 }
 
-fn formula_test_result_value(result FormulaTestResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'bundler_groups': brew_runtime.string_array_value(result.bundler_groups)
-		'setup_path': brew_runtime.bool_value(result.setup_path)
-		'required_files': brew_runtime.string_array_value(result.required_files)
-		'attempts': brew_runtime.array_value(result.attempts.map(formula_test_attempt_value(it)))
-		'errors': brew_runtime.string_array_value(result.errors)
-		'failed': brew_runtime.bool_value(result.failed)
+fn formula_test_result_value(result FormulaTestResult) ruby.Value {
+	return ruby.map_value({
+		'bundler_groups': ruby.string_array_value(result.bundler_groups)
+		'setup_path': ruby.bool_value(result.setup_path)
+		'required_files': ruby.string_array_value(result.required_files)
+		'attempts': ruby.array_value(result.attempts.map(formula_test_attempt_value(it)))
+		'errors': ruby.string_array_value(result.errors)
+		'failed': ruby.bool_value(result.failed)
 	})
 }
 
 // Ruby method `run` at line 33.
-pub fn ruby_test_l33_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_l33_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'command input is required')
+		return ruby.object_value('ArgumentError', 'command input is required')
 	}
 	return formula_test_result_value(run_formula_tests(formula_test_input_from_value(args[0]).options))
 }
 
 // Ruby method `retry_test?(formula)` at line 118.
-pub fn ruby_test_l118_d2_retry_test(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_l118_d2_retry_test(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'formula is required')
+		return ruby.object_value('ArgumentError', 'formula is required')
 	}
 	formula := args[0].as_string()
 	retry_enabled := args.len > 1 && (args[1].as_bool() or { false })
 	already_failed := args.len > 2 && (args[2].as_bool() or { false })
 	result := retry_formula_test(formula, retry_enabled, already_failed)
-	return brew_runtime.map_value({
-		'retry': brew_runtime.bool_value(result.retry)
-		'heading': brew_runtime.string_value(result.heading)
-		'clear_cache': brew_runtime.bool_value(result.clear_cache)
-		'rust_backtrace': brew_runtime.string_value(result.rust_backtrace)
-		'failed': brew_runtime.bool_value(result.failed)
+	return ruby.map_value({
+		'retry': ruby.bool_value(result.retry)
+		'heading': ruby.string_value(result.heading)
+		'clear_cache': ruby.bool_value(result.clear_cache)
+		'rust_backtrace': ruby.string_value(result.rust_backtrace)
+		'failed': ruby.bool_value(result.failed)
 	})
 }
 

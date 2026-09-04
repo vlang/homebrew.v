@@ -1,6 +1,6 @@
 module elftools
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/elftools-1.3.1/lib/elftools/lazy_array.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -81,8 +81,8 @@ pub fn (array &LazyArray[T]) responds_to_array_method(name string) bool {
 	return name in ['[]', 'size', 'length', 'to_a', 'map', 'last', 'include?', 'inspect']
 }
 
-fn lazy_array_boundary(size int, values []brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.Value{
+fn lazy_array_boundary(size int, values []ruby.Value) ruby.Value {
+	return ruby.Value{
 		type_name: 'ELFTools::LazyArray'
 		repr: values.map(it.repr).str()
 		int_data: i64(size)
@@ -94,7 +94,7 @@ fn lazy_array_boundary(size int, values []brew_runtime.Value) brew_runtime.Value
 }
 
 // Ruby method `initialize(size, &block)` at line 30.
-pub fn ruby_lazy_array_l30_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lazy_array_l30_d1_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('LazyArray#initialize requires a size')
 	}
@@ -102,8 +102,8 @@ pub fn ruby_lazy_array_l30_d1_initialize(args ...brew_runtime.Value) brew_runtim
 	if size < 0 {
 		panic('negative array size')
 	}
-	mut values := []brew_runtime.Value{len: size, init: brew_runtime.object_value('NilClass', 'nil')}
-	// A `brew_runtime.Value` cannot carry a V closure. At this generic boundary,
+	mut values := []ruby.Value{len: size, init: ruby.object_value('NilClass', 'nil')}
+	// A `ruby.Value` cannot carry a V closure. At this generic boundary,
 	// an optional Array argument represents the block's indexed results; native
 	// callers use `new_lazy_array` above and retain true on-demand evaluation.
 	if args.len > 1 && args[1].type_name == 'Array' {
@@ -117,14 +117,14 @@ pub fn ruby_lazy_array_l30_d1_initialize(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `[](i)` at line 42.
-pub fn ruby_lazy_array_l42_d2_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lazy_array_l42_d2_anonymous(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('LazyArray#[] requires a receiver and index')
 	}
 	size := (args[0].attribute('size') or { args[0].array_data.len.str() }).int()
 	index := int(args[1].as_int() or { panic(err) })
 	if index < 0 || index >= size || index >= args[0].array_data.len {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	return args[0].array_data[index]
 }

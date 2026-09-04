@@ -1,6 +1,6 @@
 module unpack_strategy
 
-import brew_runtime
+import ruby
 import homebrew.unpack_strategy as core_unpack
 import os
 
@@ -28,8 +28,8 @@ pub fn macos_zip_extract_to_dir(path string, unpack_dir string, basename string,
 	if merge_xattrs && zip_contains_extended_attributes(path) {
 		members := core_unpack.zip_member_names(path)!
 		core_unpack.validate_archive_member_names(members)!
-		ditto := brew_runtime.find_executable('ditto')!
-		result := brew_runtime.run_command(ditto, ['-x', '-k', path, unpack_dir])
+		ditto := ruby.find_executable('ditto')!
+		result := ruby.run_command(ditto, ['-x', '-k', path, unpack_dir])
 		if result.exit_code != 0 {
 			return error('ditto failed (${result.exit_code}): ${result.output.trim_space()}')
 		}
@@ -37,8 +37,8 @@ pub fn macos_zip_extract_to_dir(path string, unpack_dir string, basename string,
 	}
 	core_unpack.zip_extract_to_dir(path, unpack_dir, basename, verbose) or {
 		if !err.msg().contains('End-of-central-directory signature not found') { return err }
-		ditto := brew_runtime.find_executable('ditto')!
-		result := brew_runtime.run_command(ditto, ['-x', '-k', path, unpack_dir])
+		ditto := ruby.find_executable('ditto')!
+		result := ruby.run_command(ditto, ['-x', '-k', path, unpack_dir])
 		if result.exit_code != 0 {
 			return error('ditto failed (${result.exit_code}): ${result.output.trim_space()}')
 		}

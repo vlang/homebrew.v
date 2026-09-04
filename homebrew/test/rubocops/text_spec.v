@@ -1,6 +1,6 @@
 module rubocops
 
-import brew_runtime
+import ruby
 import homebrew.rubocops as text_cop
 
 // Translated from Homebrew/brew `test/rubocops/text_spec.rb`.
@@ -38,28 +38,28 @@ fn text_spec_install(command string) string {
 }
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
-pub fn ruby_text_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::Text', 'Text')
+pub fn ruby_text_spec_l7_d1_cop(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('RuboCop::Cop::FormulaAudit::Text', 'Text')
 }
 
 // Ruby it `it 'reports an offense if `require "formula"` is present' do` at line 10.
-pub fn ruby_text_spec_l10_d2_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_text_spec_l10_d2_reports(args ...ruby.Value) ruby.Value {
 	formula := text_spec_formula('')
 	source := 'require "formula"\n${formula}'
-	return brew_runtime.bool_value(text_spec_reports_source(source, '', 'foo', [
+	return ruby.bool_value(text_spec_reports_source(source, '', 'foo', [
 		'`require "formula"` is now unnecessary',
 	], formula))
 }
 
 // Ruby it `it "reports an offense if 'revision 0' is present" do` at line 28.
-pub fn ruby_text_spec_l28_d3_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(text_spec_reports('revision 0', '', [
+pub fn ruby_text_spec_l28_d3_reports(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(text_spec_reports('revision 0', '', [
 		'`revision 0` is unnecessary',
 	]))
 }
 
 // Ruby it `it "reports an offense if both openssl and libressl are dependencies" do` at line 39.
-pub fn ruby_text_spec_l39_d4_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_text_spec_l39_d4_reports(args ...ruby.Value) ruby.Value {
 	message := 'Formulae should not depend on both OpenSSL and LibreSSL (even optionally).'
 	optional := text_spec_reports('depends_on "openssl"\ndepends_on "libressl" => :optional', '', [
 		message,
@@ -67,188 +67,188 @@ pub fn ruby_text_spec_l39_d4_reports(args ...brew_runtime.Value) brew_runtime.Va
 	required := text_spec_reports('depends_on "openssl"\ndepends_on "libressl"', '', [
 		message,
 	])
-	return brew_runtime.bool_value(optional && required)
+	return ruby.bool_value(optional && required)
 }
 
 // Ruby it `it "reports an offense if veclibfort is used instead of OpenBLAS (in homebrew/core)" do` at line 63.
-pub fn ruby_text_spec_l63_d5_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(text_spec_reports('depends_on "veclibfort"', 'homebrew-core', [
+pub fn ruby_text_spec_l63_d5_reports(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(text_spec_reports('depends_on "veclibfort"', 'homebrew-core', [
 		'Formulae in homebrew/core should use OpenBLAS as the default serial linear algebra library.',
 	]))
 }
 
 // Ruby it `it "reports an offense if lapack is used instead of OpenBLAS (in homebrew/core)" do` at line 74.
-pub fn ruby_text_spec_l74_d6_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(text_spec_reports('depends_on "lapack"', 'homebrew-core', [
+pub fn ruby_text_spec_l74_d6_reports(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(text_spec_reports('depends_on "lapack"', 'homebrew-core', [
 		'Formulae in homebrew/core should use OpenBLAS as the default serial linear algebra library.',
 	]))
 }
 
 // Ruby it `it "reports an offense if `go get` is executed" do` at line 85.
-pub fn ruby_text_spec_l85_d7_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(text_spec_reports(ruby_text_spec_l91_d8_install().as_string(), '', [
+pub fn ruby_text_spec_l85_d7_reports(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(text_spec_reports(ruby_text_spec_l91_d8_install().as_string(), '', [
 		'Do not use `go get`. Please ask upstream to implement Go vendoring',
 	]))
 }
 
 // Ruby method `install` at line 91.
-pub fn ruby_text_spec_l91_d8_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(text_spec_install('system "go", "get", "bar"'))
+pub fn ruby_text_spec_l91_d8_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(text_spec_install('system "go", "get", "bar"'))
 }
 
 // Ruby it `it "reports an offense if `xcodebuild` is executed" do` at line 99.
-pub fn ruby_text_spec_l99_d9_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(text_spec_reports(ruby_text_spec_l105_d10_install().as_string(), '', [
+pub fn ruby_text_spec_l99_d9_reports(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(text_spec_reports(ruby_text_spec_l105_d10_install().as_string(), '', [
 		"Use `xcodebuild *args` instead of `system 'xcodebuild', *args`",
 	]))
 }
 
 // Ruby method `install` at line 105.
-pub fn ruby_text_spec_l105_d10_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(text_spec_install('system "xcodebuild", "foo", "bar"'))
+pub fn ruby_text_spec_l105_d10_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(text_spec_install('system "xcodebuild", "foo", "bar"'))
 }
 
 // Ruby it `it "reports an offense if `def plist` is used" do` at line 113.
-pub fn ruby_text_spec_l113_d11_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_text_spec_l113_d11_reports(args ...ruby.Value) ruby.Value {
 	body := ruby_text_spec_l119_d12_install().as_string() + '\n\n' + ruby_text_spec_l124_d13_plist().as_string()
-	return brew_runtime.bool_value(text_spec_reports(body, '', [
+	return ruby.bool_value(text_spec_reports(body, '', [
 		"Use `xcodebuild *args` instead of `system 'xcodebuild', *args`",
 		'`def plist` is deprecated. Please use services instead: https://docs.brew.sh/Formula-Cookbook#service-files',
 	]))
 }
 
 // Ruby method `install` at line 119.
-pub fn ruby_text_spec_l119_d12_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(text_spec_install('system "xcodebuild", "foo", "bar"'))
+pub fn ruby_text_spec_l119_d12_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(text_spec_install('system "xcodebuild", "foo", "bar"'))
 }
 
 // Ruby method `plist` at line 124.
-pub fn ruby_text_spec_l124_d13_plist(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('def plist\n  <<~XML\n    <?xml version="1.0" encoding="UTF-8"?>\n    <plist version="1.0"></plist>\n  XML\nend')
+pub fn ruby_text_spec_l124_d13_plist(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('def plist\n  <<~XML\n    <?xml version="1.0" encoding="UTF-8"?>\n    <plist version="1.0"></plist>\n  XML\nend')
 }
 
 // Ruby it `it 'reports an offense if `require "language/go"` is present' do` at line 141.
-pub fn ruby_text_spec_l141_d14_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_text_spec_l141_d14_reports(args ...ruby.Value) ruby.Value {
 	formula := text_spec_formula(ruby_text_spec_l150_d15_install().as_string())
 	source := 'require "language/go"\n\n${formula}'
-	return brew_runtime.bool_value(text_spec_reports_source(source, '', 'foo', [
+	return ruby.bool_value(text_spec_reports_source(source, '', 'foo', [
 		'`require "language/go"` is no longer necessary or correct',
 		'Do not use `go get`. Please ask upstream to implement Go vendoring',
 	], source))
 }
 
 // Ruby method `install` at line 150.
-pub fn ruby_text_spec_l150_d15_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(text_spec_install('system "go", "get", "bar"'))
+pub fn ruby_text_spec_l150_d15_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(text_spec_install('system "go", "get", "bar"'))
 }
 
 // Ruby it `it "reports an offense if `Formula.factory(name)` is present" do` at line 158.
-pub fn ruby_text_spec_l158_d16_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(text_spec_reports(ruby_text_spec_l164_d17_install().as_string(), '', [
+pub fn ruby_text_spec_l158_d16_reports(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(text_spec_reports(ruby_text_spec_l164_d17_install().as_string(), '', [
 		'`Formula.factory(name)` is deprecated in favour of `Formula[name]`',
 	]))
 }
 
 // Ruby method `install` at line 164.
-pub fn ruby_text_spec_l164_d17_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(text_spec_install('Formula.factory(name)'))
+pub fn ruby_text_spec_l164_d17_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(text_spec_install('Formula.factory(name)'))
 }
 
 // Ruby it `it "reports an offense if `dep ensure` is used without `-vendor-only`" do` at line 172.
-pub fn ruby_text_spec_l172_d18_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(text_spec_reports(ruby_text_spec_l178_d19_install().as_string(), '', [
+pub fn ruby_text_spec_l172_d18_reports(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(text_spec_reports(ruby_text_spec_l178_d19_install().as_string(), '', [
 		'Use `"dep", "ensure", "-vendor-only"`',
 	]))
 }
 
 // Ruby method `install` at line 178.
-pub fn ruby_text_spec_l178_d19_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(text_spec_install('system "dep", "ensure"'))
+pub fn ruby_text_spec_l178_d19_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(text_spec_install('system "dep", "ensure"'))
 }
 
 // Ruby it `it "reports an offense if `cargo build` is executed" do` at line 186.
-pub fn ruby_text_spec_l186_d20_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(text_spec_reports(ruby_text_spec_l192_d21_install().as_string(), '', [
+pub fn ruby_text_spec_l186_d20_reports(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(text_spec_reports(ruby_text_spec_l192_d21_install().as_string(), '', [
 		'Use `"cargo", "install", *std_cargo_args`',
 	]))
 }
 
 // Ruby method `install` at line 192.
-pub fn ruby_text_spec_l192_d21_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(text_spec_install('system "cargo", "build"'))
+pub fn ruby_text_spec_l192_d21_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(text_spec_install('system "cargo", "build"'))
 }
 
 // Ruby it `it "doesn't reports an offense if `cargo build` is executed with --lib" do` at line 200.
-pub fn ruby_text_spec_l200_d22_doesn(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(text_spec_reports(ruby_text_spec_l206_d23_install().as_string(), '', []))
+pub fn ruby_text_spec_l200_d22_doesn(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(text_spec_reports(ruby_text_spec_l206_d23_install().as_string(), '', []))
 }
 
 // Ruby method `install` at line 206.
-pub fn ruby_text_spec_l206_d23_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(text_spec_install('system "cargo", "build", "--lib"'))
+pub fn ruby_text_spec_l206_d23_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(text_spec_install('system "cargo", "build", "--lib"'))
 }
 
 // Ruby it `it "reports an offense if `make` calls are not separated" do` at line 213.
-pub fn ruby_text_spec_l213_d24_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(text_spec_reports(ruby_text_spec_l216_d25_install().as_string(), '', [
+pub fn ruby_text_spec_l213_d24_reports(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(text_spec_reports(ruby_text_spec_l216_d25_install().as_string(), '', [
 		'Use separate `make` calls',
 	]))
 }
 
 // Ruby method `install` at line 216.
-pub fn ruby_text_spec_l216_d25_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(text_spec_install('system "make && make install"'))
+pub fn ruby_text_spec_l216_d25_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(text_spec_install('system "make && make install"'))
 }
 
 // Ruby it `it "reports an offense if paths are concatenated in string interpolation" do` at line 224.
-pub fn ruby_text_spec_l224_d26_reports(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(text_spec_reports(ruby_text_spec_l227_d27_install().as_string(), '', [
+pub fn ruby_text_spec_l224_d26_reports(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(text_spec_reports(ruby_text_spec_l227_d27_install().as_string(), '', [
 		'Do not concatenate paths in string interpolation',
 	]))
 }
 
 // Ruby method `install` at line 227.
-pub fn ruby_text_spec_l227_d27_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(text_spec_install('ohai "foo #{bar + "baz"}"'))
+pub fn ruby_text_spec_l227_d27_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(text_spec_install('ohai "foo #{bar + "baz"}"'))
 }
 
 // Ruby it `it 'reports offenses if eg `lib+"thing"` is present' do` at line 235.
-pub fn ruby_text_spec_l235_d28_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_text_spec_l235_d28_reports(args ...ruby.Value) ruby.Value {
 	source := text_spec_formula(ruby_text_spec_l238_d29_install().as_string())
 	analysis := text_cop.audit_formula_text(text_cop.FormulaTextContext{
 		source: source
 		formula_name: 'foo'
 	})
-	return brew_runtime.bool_value(analysis.offenses.map(it.message) == [
+	return ruby.bool_value(analysis.offenses.map(it.message) == [
 		'Use `lib/"foo"` instead of `lib+"foo"`',
 		'Use `bin/"foobar"` instead of `bin+"foobar"`',
 	] && analysis.corrected.contains('(lib/"foo").install') && analysis.corrected.contains('(bin/"foobar").install'))
 }
 
 // Ruby method `install` at line 238.
-pub fn ruby_text_spec_l238_d29_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(text_spec_install('(lib+"foo").install\n  (bin+"foobar").install'))
+pub fn ruby_text_spec_l238_d29_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(text_spec_install('(lib+"foo").install\n  (bin+"foobar").install'))
 }
 
 // Ruby it `it 'reports an offense if `prefix + "bin"` is present' do` at line 248.
-pub fn ruby_text_spec_l248_d30_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_text_spec_l248_d30_reports(args ...ruby.Value) ruby.Value {
 	plain := text_spec_reports(ruby_text_spec_l251_d31_install().as_string(), '', [
 		'Use `bin` instead of `prefix + "bin"`',
 	])
 	nested := text_spec_reports(ruby_text_spec_l260_d32_install().as_string(), '', [
 		'Use `bin` instead of `prefix + "bin"`',
 	])
-	return brew_runtime.bool_value(plain && nested)
+	return ruby.bool_value(plain && nested)
 }
 
 // Ruby method `install` at line 251.
-pub fn ruby_text_spec_l251_d31_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(text_spec_install('ohai prefix + "bin"'))
+pub fn ruby_text_spec_l251_d31_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(text_spec_install('ohai prefix + "bin"'))
 }
 
 // Ruby method `install` at line 260.
-pub fn ruby_text_spec_l260_d32_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(text_spec_install('ohai prefix + "bin/foo"'))
+pub fn ruby_text_spec_l260_d32_install(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(text_spec_install('ohai prefix + "bin/foo"'))
 }
 
 // Original Ruby source (line-for-line):

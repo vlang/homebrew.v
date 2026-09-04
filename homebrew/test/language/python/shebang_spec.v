@@ -1,6 +1,6 @@
 module python
 
-import brew_runtime
+import ruby
 import homebrew.utils
 import os
 import time
@@ -60,17 +60,17 @@ fn python_shebang_temp_path(label string) string {
 	return os.join_path(os.temp_dir(), 'brew-v-python-shebang-${label}-${os.getpid()}-${time.now().unix_micro()}')
 }
 
-fn python_spec_file(args []brew_runtime.Value, broken bool) brew_runtime.Value {
+fn python_spec_file(args []ruby.Value, broken bool) ruby.Value {
 	path := if args.len > 0 { args[0].as_string() } else { python_shebang_temp_path('file') }
 	os.write_file(path, python_shebang_contents(broken)) or {
-		return brew_runtime.object_value('IOError', err.msg())
+		return ruby.object_value('IOError', err.msg())
 	}
-	return brew_runtime.structured_value('Tempfile', path, {
+	return ruby.structured_value('Tempfile', path, {
 		'path': path
 	})
 }
 
-fn python_spec_prefix(args []brew_runtime.Value) string {
+fn python_spec_prefix(args []ruby.Value) string {
 	return if args.len > 0 { args[0].as_string().trim_right('/') } else { '/opt/homebrew' }
 }
 
@@ -95,18 +95,18 @@ fn python_spec_rewrites(prefix string, use_python_from_path bool, broken bool) b
 }
 
 // Ruby let `let(:file) { Tempfile.new("python-shebang") }` at line 8.
-pub fn ruby_shebang_spec_l8_d1_file(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shebang_spec_l8_d1_file(args ...ruby.Value) ruby.Value {
 	return python_spec_file(args, false)
 }
 
 // Ruby let `let(:broken_file) { Tempfile.new("python-shebang") }` at line 9.
-pub fn ruby_shebang_spec_l9_d2_broken_file(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shebang_spec_l9_d2_broken_file(args ...ruby.Value) ruby.Value {
 	return python_spec_file(args, true)
 }
 
 // Ruby let `let(:f) do` at line 10.
-pub fn ruby_shebang_spec_l10_d3_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.structured_value('PythonShebangFixtures', 'python@3.11', {
+pub fn ruby_shebang_spec_l10_d3_f(args ...ruby.Value) ruby.Value {
+	return ruby.structured_value('PythonShebangFixtures', 'python@3.11', {
 		'python311':            'python@3.11'
 		'versioned_python_dep': 'python@3.11'
 		'no_deps':              ''
@@ -115,35 +115,35 @@ pub fn ruby_shebang_spec_l10_d3_f(args ...brew_runtime.Value) brew_runtime.Value
 }
 
 // Ruby it `it "can be used to replace Python shebangs" do` at line 61.
-pub fn ruby_shebang_spec_l61_d4_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(python_spec_rewrites(python_spec_prefix(args), false, false))
+pub fn ruby_shebang_spec_l61_d4_can(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(python_spec_rewrites(python_spec_prefix(args), false, false))
 }
 
 // Ruby it `it "can be pointed to a `python3` in PATH" do` at line 76.
-pub fn ruby_shebang_spec_l76_d5_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(python_spec_rewrites(python_spec_prefix(args), true, false))
+pub fn ruby_shebang_spec_l76_d5_can(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(python_spec_rewrites(python_spec_prefix(args), true, false))
 }
 
 // Ruby it `it "can fix broken shebang line `#!python`" do` at line 90.
-pub fn ruby_shebang_spec_l90_d6_can(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(python_spec_rewrites(python_spec_prefix(args), true, true))
+pub fn ruby_shebang_spec_l90_d6_can(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(python_spec_rewrites(python_spec_prefix(args), true, true))
 }
 
 // Ruby it `it "errors if formula doesn't depend on python" do` at line 104.
-pub fn ruby_shebang_spec_l104_d7_errors(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shebang_spec_l104_d7_errors(args ...ruby.Value) ruby.Value {
 	if _ := detected_python_shebang(python_shebang_fixtures().no_dependencies, python_spec_prefix(args), false) {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	} else {
-		return brew_runtime.bool_value(err.msg() == 'Cannot detect Python shebang: formula does not depend on Python.')
+		return ruby.bool_value(err.msg() == 'Cannot detect Python shebang: formula does not depend on Python.')
 	}
 }
 
 // Ruby it `it "errors if formula depends on more than one python" do` at line 113.
-pub fn ruby_shebang_spec_l113_d8_errors(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shebang_spec_l113_d8_errors(args ...ruby.Value) ruby.Value {
 	if _ := detected_python_shebang(python_shebang_fixtures().multiple_python_deps, python_spec_prefix(args), false) {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	} else {
-		return brew_runtime.bool_value(err.msg() == 'Cannot detect Python shebang: formula has multiple Python dependencies.')
+		return ruby.bool_value(err.msg() == 'Cannot detect Python shebang: formula has multiple Python dependencies.')
 	}
 }
 

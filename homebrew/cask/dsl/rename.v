@@ -1,6 +1,6 @@
 module dsl
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `cask/dsl/rename.rb`.
@@ -40,13 +40,13 @@ pub fn (rename CaskRename) perform(staged_path string) ! {
 	}
 }
 
-pub fn cask_rename_value(rename CaskRename) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn cask_rename_value(rename CaskRename) ruby.Value {
+	return ruby.Value{
 		type_name: 'Cask::DSL::Rename'
 		repr: '{:from=>"${rename.from}", :to=>"${rename.to}"}'
 		map_data: {
-			'from': brew_runtime.string_value(rename.from)
-			'to':   brew_runtime.string_value(rename.to)
+			'from': ruby.string_value(rename.from)
+			'to':   ruby.string_value(rename.to)
 		}
 		attributes: {
 			'from': rename.from
@@ -55,7 +55,7 @@ pub fn cask_rename_value(rename CaskRename) brew_runtime.Value {
 	}
 }
 
-pub fn cask_rename_from_value(value brew_runtime.Value) !CaskRename {
+pub fn cask_rename_from_value(value ruby.Value) !CaskRename {
 	if value.type_name != 'Cask::DSL::Rename' && value.type_name != 'Hash' {
 		return error('expected Cask::DSL::Rename, got ${value.type_name}')
 	}
@@ -69,7 +69,7 @@ pub fn cask_rename_from_value(value brew_runtime.Value) !CaskRename {
 	}
 }
 
-fn cask_rename_receiver(args []brew_runtime.Value) ?CaskRename {
+fn cask_rename_receiver(args []ruby.Value) ?CaskRename {
 	if args.len == 0 {
 		return none
 	}
@@ -77,50 +77,50 @@ fn cask_rename_receiver(args []brew_runtime.Value) ?CaskRename {
 }
 
 // Ruby attr_reader `attr_reader :from, :to` at line 9.
-pub fn ruby_rename_l9_d1_from(args ...brew_runtime.Value) brew_runtime.Value {
-	rename := cask_rename_receiver(args) or { return brew_runtime.Value{ type_name: 'NilClass' } }
-	return brew_runtime.string_value(rename.from)
+pub fn ruby_rename_l9_d1_from(args ...ruby.Value) ruby.Value {
+	rename := cask_rename_receiver(args) or { return ruby.Value{ type_name: 'NilClass' } }
+	return ruby.string_value(rename.from)
 }
 
 // Ruby attr_reader `attr_reader :from, :to` at line 9.
-pub fn ruby_rename_l9_d2_to(args ...brew_runtime.Value) brew_runtime.Value {
-	rename := cask_rename_receiver(args) or { return brew_runtime.Value{ type_name: 'NilClass' } }
-	return brew_runtime.string_value(rename.to)
+pub fn ruby_rename_l9_d2_to(args ...ruby.Value) ruby.Value {
+	rename := cask_rename_receiver(args) or { return ruby.Value{ type_name: 'NilClass' } }
+	return ruby.string_value(rename.to)
 }
 
 // Ruby method `initialize(from, to)` at line 12.
-pub fn ruby_rename_l12_d3_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_rename_l12_d3_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'Rename.new requires from and to')
+		return ruby.object_value('ArgumentError', 'Rename.new requires from and to')
 	}
 	return cask_rename_value(new_cask_rename(args[0].as_string(), args[1].as_string()))
 }
 
 // Ruby method `perform_rename(staged_path)` at line 18.
-pub fn ruby_rename_l18_d4_perform_rename(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_rename_l18_d4_perform_rename(args ...ruby.Value) ruby.Value {
 	rename := cask_rename_receiver(args) or {
-		return brew_runtime.object_value('ArgumentError', 'Rename#perform_rename requires a receiver')
+		return ruby.object_value('ArgumentError', 'Rename#perform_rename requires a receiver')
 	}
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'Rename#perform_rename requires staged_path')
+		return ruby.object_value('ArgumentError', 'Rename#perform_rename requires staged_path')
 	}
-	rename.perform(args[1].as_string()) or { return brew_runtime.object_value('SystemCallError', err.msg()) }
-	return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+	rename.perform(args[1].as_string()) or { return ruby.object_value('SystemCallError', err.msg()) }
+	return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 }
 
 // Ruby method `pairs` at line 44.
-pub fn ruby_rename_l44_d5_pairs(args ...brew_runtime.Value) brew_runtime.Value {
-	rename := cask_rename_receiver(args) or { return brew_runtime.map_value({}) }
-	return brew_runtime.map_value({
-		'from': brew_runtime.string_value(rename.from)
-		'to':   brew_runtime.string_value(rename.to)
+pub fn ruby_rename_l44_d5_pairs(args ...ruby.Value) ruby.Value {
+	rename := cask_rename_receiver(args) or { return ruby.map_value({}) }
+	return ruby.map_value({
+		'from': ruby.string_value(rename.from)
+		'to':   ruby.string_value(rename.to)
 	})
 }
 
 // Ruby method `to_s = pairs.inspect` at line 49.
-pub fn ruby_rename_l49_d6_to_s(args ...brew_runtime.Value) brew_runtime.Value {
-	rename := cask_rename_receiver(args) or { return brew_runtime.string_value('{}') }
-	return brew_runtime.string_value(cask_rename_value(rename).repr)
+pub fn ruby_rename_l49_d6_to_s(args ...ruby.Value) ruby.Value {
+	rename := cask_rename_receiver(args) or { return ruby.string_value('{}') }
+	return ruby.string_value(cask_rename_value(rename).repr)
 }
 
 // Original Ruby source (line-for-line):

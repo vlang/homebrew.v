@@ -1,6 +1,6 @@
 module bindata
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/bindata-2.5.1/lib/bindata/section.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -19,7 +19,7 @@ mut:
 struct SectionScalar {
 mut:
 	kind       string
-	value      brew_runtime.Value
+	value      ruby.Value
 	read_length int
 	clear      bool = true
 }
@@ -30,12 +30,12 @@ pub:
 	type_name string
 mut:
 	base      &BaseObject
-	child     brew_runtime.Value
-	transform brew_runtime.Value
+	child     ruby.Value
+	transform ruby.Value
 }
 
-fn section_nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn section_nil_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 pub fn new_section_transform(read_callback SectionTransformFn, write_callback SectionTransformFn, raw_length int) &SectionTransformAdapter {
@@ -46,8 +46,8 @@ pub fn new_section_transform(read_callback SectionTransformFn, write_callback Se
 	}
 }
 
-pub fn section_transform_boundary_value(transform &SectionTransformAdapter) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn section_transform_boundary_value(transform &SectionTransformAdapter) ruby.Value {
+	return ruby.Value{
 		type_name: 'BinData::IO::Transform'
 		repr: 'BinData::IO::Transform'
 		int_data: i64(u64(voidptr(transform)))
@@ -58,13 +58,13 @@ pub fn section_transform_boundary_value(transform &SectionTransformAdapter) brew
 	}
 }
 
-fn section_transform_from_value(value brew_runtime.Value) ?&SectionTransformAdapter {
+fn section_transform_from_value(value ruby.Value) ?&SectionTransformAdapter {
 	address := value.attributes['section_transform_address'] or { return none }
 	return unsafe { &SectionTransformAdapter(voidptr(address.u64())) }
 }
 
-fn section_scalar_value(scalar &SectionScalar) brew_runtime.Value {
-	return brew_runtime.Value{
+fn section_scalar_value(scalar &SectionScalar) ruby.Value {
+	return ruby.Value{
 		type_name: 'BinData::SectionScalar'
 		repr: scalar.value.repr
 		int_data: i64(u64(voidptr(scalar)))
@@ -76,12 +76,12 @@ fn section_scalar_value(scalar &SectionScalar) brew_runtime.Value {
 	}
 }
 
-fn section_scalar_from_value(value brew_runtime.Value) ?&SectionScalar {
+fn section_scalar_from_value(value ruby.Value) ?&SectionScalar {
 	address := value.attributes['section_scalar_address'] or { return none }
 	return unsafe { &SectionScalar(voidptr(address.u64())) }
 }
 
-fn section_type_parts(value brew_runtime.Value) (brew_runtime.Value, map[string]brew_runtime.Value) {
+fn section_type_parts(value ruby.Value) (ruby.Value, map[string]ruby.Value) {
 	if value.type_name == 'BinData::SanitizedPrototype' {
 		prototype := sanitized_prototype_from_value(value)
 		return prototype.object_type, prototype_object_parameters(prototype)
@@ -91,12 +91,12 @@ fn section_type_parts(value brew_runtime.Value) (brew_runtime.Value, map[string]
 		if parts.len == 0 {
 			panic("parameter 'type' must specify an object type")
 		}
-		return parts[0], if parts.len > 1 { sanitize_map_from_value(parts[1]) } else { map[string]brew_runtime.Value{} }
+		return parts[0], if parts.len > 1 { sanitize_map_from_value(parts[1]) } else { map[string]ruby.Value{} }
 	}
-	return value, map[string]brew_runtime.Value{}
+	return value, map[string]ruby.Value{}
 }
 
-fn section_set_parent(value brew_runtime.Value, parent brew_runtime.Value) {
+fn section_set_parent(value ruby.Value, parent ruby.Value) {
 	if _ := value.attributes['primitive_object_address'] {
 		mut object := primitive_object_from_value(value)
 		object.base.parent = parent
@@ -116,7 +116,7 @@ fn section_set_parent(value brew_runtime.Value, parent brew_runtime.Value) {
 	}
 }
 
-fn section_instantiate_type(value brew_runtime.Value, parent brew_runtime.Value) brew_runtime.Value {
+fn section_instantiate_type(value ruby.Value, parent ruby.Value) ruby.Value {
 	if 'base_object_address' in value.attributes || 'section_scalar_address' in value.attributes {
 		section_set_parent(value, parent)
 		return value
@@ -145,9 +145,9 @@ fn section_instantiate_type(value brew_runtime.Value, parent brew_runtime.Value)
 		0
 	}
 	default_value := if _ := primitive_integer_spec(object_type) {
-		brew_runtime.int_value(0)
+		ruby.int_value(0)
 	} else {
-		brew_runtime.string_value('')
+		ruby.string_value('')
 	}
 	return section_scalar_value(&SectionScalar{
 		kind: name
@@ -156,7 +156,7 @@ fn section_instantiate_type(value brew_runtime.Value, parent brew_runtime.Value)
 	})
 }
 
-pub fn new_bindata_section(parameters map[string]brew_runtime.Value) &SectionObject {
+pub fn new_bindata_section(parameters map[string]ruby.Value) &SectionObject {
 	normalized := normalized_base_parameters(parameters)
 	transform := normalized['transform'] or { panic("parameter 'transform' must be specified") }
 	type_value := normalized['type'] or { panic("parameter 'type' must be specified") }
@@ -173,11 +173,11 @@ pub fn new_bindata_section(parameters map[string]brew_runtime.Value) &SectionObj
 	return object
 }
 
-fn section_object_value(object &SectionObject) brew_runtime.Value {
+fn section_object_value(object &SectionObject) ruby.Value {
 	base_value := base_object_value(object.base)
 	mut attributes := base_value.attributes.clone()
 	attributes['section_object_address'] = u64(voidptr(object)).str()
-	return brew_runtime.Value{
+	return ruby.Value{
 		...base_value
 		type_name: object.type_name
 		repr: section_child_snapshot(object.child).repr
@@ -185,18 +185,18 @@ fn section_object_value(object &SectionObject) brew_runtime.Value {
 	}
 }
 
-pub fn section_boundary_value(object &SectionObject) brew_runtime.Value {
+pub fn section_boundary_value(object &SectionObject) ruby.Value {
 	return section_object_value(object)
 }
 
-fn section_object_from_value(value brew_runtime.Value) &SectionObject {
+fn section_object_from_value(value ruby.Value) &SectionObject {
 	if address := value.attributes['section_object_address'] {
 		return unsafe { &SectionObject(voidptr(address.u64())) }
 	}
 	return new_bindata_section(base_object_from_value(value).parameters)
 }
 
-fn section_child_method_names(child brew_runtime.Value) []string {
+fn section_child_method_names(child ruby.Value) []string {
 	if names := child.attributes['method_names'] {
 		return names.split(',').filter(it.len > 0)
 	}
@@ -206,7 +206,7 @@ fn section_child_method_names(child brew_runtime.Value) []string {
 	return if _ := child.attributes['section_scalar_address'] { ['length', 'size'] } else { []string{} }
 }
 
-fn section_child_clear(child brew_runtime.Value) bool {
+fn section_child_clear(child ruby.Value) bool {
 	if scalar := section_scalar_from_value(child) {
 		return scalar.clear
 	}
@@ -222,7 +222,7 @@ fn section_child_clear(child brew_runtime.Value) bool {
 	return base_object_from_value(child).clear
 }
 
-fn section_child_assign(child brew_runtime.Value, value brew_runtime.Value) brew_runtime.Value {
+fn section_child_assign(child ruby.Value, value ruby.Value) ruby.Value {
 	if address := child.attributes['section_scalar_address'] {
 		mut scalar := unsafe { &SectionScalar(voidptr(address.u64())) }
 		scalar.value = value
@@ -246,7 +246,7 @@ fn section_child_assign(child brew_runtime.Value, value brew_runtime.Value) brew
 	return value
 }
 
-fn section_child_snapshot(child brew_runtime.Value) brew_runtime.Value {
+fn section_child_snapshot(child ruby.Value) ruby.Value {
 	if scalar := section_scalar_from_value(child) {
 		return scalar.value
 	}
@@ -262,7 +262,7 @@ fn section_child_snapshot(child brew_runtime.Value) brew_runtime.Value {
 	return base_object_from_value(child).snapshot_value
 }
 
-fn section_child_num_bytes(child brew_runtime.Value) int {
+fn section_child_num_bytes(child ruby.Value) int {
 	if scalar := section_scalar_from_value(child) {
 		return if scalar.read_length > 0 { scalar.read_length } else { scalar.value.repr.len }
 	}
@@ -273,20 +273,20 @@ fn section_child_num_bytes(child brew_runtime.Value) int {
 	} else if _ := child.attributes['struct_object_address'] {
 		ruby_struct_l149_d12_do_num_bytes(child)
 	} else {
-		brew_runtime.int_value(i64(base_object_from_value(child).do_num_bytes))
+		ruby.int_value(i64(base_object_from_value(child).do_num_bytes))
 	}
 	return int(if value.type_name == 'Float' { value.float_data } else { f64(value.int_data) })
 }
 
-fn section_child_read(child brew_runtime.Value, mut reader IORead) {
+fn section_child_read(child ruby.Value, mut reader IORead) {
 	if address := child.attributes['section_scalar_address'] {
 		mut scalar := unsafe { &SectionScalar(voidptr(address.u64())) }
 		nbytes := if scalar.read_length > 0 { scalar.read_length } else { reader.num_bytes_remaining() or { 0 } }
 		bytes := reader.readbytes(nbytes) or { panic(err) }
 		if spec := primitive_integer_spec(primitive_symbol(scalar.kind)) {
-			scalar.value = brew_runtime.int_value(integer_from_binary(bytes, spec) or { panic(err) })
+			scalar.value = ruby.int_value(integer_from_binary(bytes, spec) or { panic(err) })
 		} else {
-			scalar.value = brew_runtime.string_value(bytes.bytestr())
+			scalar.value = ruby.string_value(bytes.bytestr())
 		}
 		scalar.clear = false
 		return
@@ -304,11 +304,11 @@ fn section_child_read(child brew_runtime.Value, mut reader IORead) {
 	} else if _ := child.attributes['struct_object_address'] {
 		ruby_struct_l139_d10_do_read(child, boundary)
 	} else {
-		ruby_base_l144_d16_read(child, brew_runtime.string_value(reader.read_all_bytes() or { panic(err) }.bytestr()))
+		ruby_base_l144_d16_read(child, ruby.string_value(reader.read_all_bytes() or { panic(err) }.bytestr()))
 	}
 }
 
-fn section_child_write(child brew_runtime.Value, mut writer IOWrite) {
+fn section_child_write(child ruby.Value, mut writer IOWrite) {
 	if scalar := section_scalar_from_value(child) {
 		mut bytes := if spec := primitive_integer_spec(primitive_symbol(scalar.kind)) {
 			integer_to_binary(scalar.value.as_int() or { panic(err) }, spec) or { panic(err) }
@@ -337,7 +337,7 @@ fn section_child_write(child brew_runtime.Value, mut writer IOWrite) {
 	}
 }
 
-fn section_apply_read_transform(transform brew_runtime.Value, data []u8) []u8 {
+fn section_apply_read_transform(transform ruby.Value, data []u8) []u8 {
 	if adapter := section_transform_from_value(transform) {
 		return adapter.read_callback(data)
 	}
@@ -348,14 +348,14 @@ fn section_apply_read_transform(transform brew_runtime.Value, data []u8) []u8 {
 	return data.clone()
 }
 
-fn section_apply_write_transform(transform brew_runtime.Value, data []u8) []u8 {
+fn section_apply_write_transform(transform ruby.Value, data []u8) []u8 {
 	if adapter := section_transform_from_value(transform) {
 		return adapter.write_callback(data)
 	}
 	return section_apply_read_transform(transform, data)
 }
 
-fn section_eval_transform(mut object SectionObject) brew_runtime.Value {
+fn section_eval_transform(mut object SectionObject) ruby.Value {
 	if callable := lazy_callable_from_value(object.transform) {
 		mut evaluator := new_lazy_evaluator(section_object_value(object))
 		return callable.callback(mut evaluator)
@@ -363,7 +363,7 @@ fn section_eval_transform(mut object SectionObject) brew_runtime.Value {
 	return object.transform
 }
 
-fn section_sanitize_type(value brew_runtime.Value, hints map[string]brew_runtime.Value) !brew_runtime.Value {
+fn section_sanitize_type(value ruby.Value, hints map[string]ruby.Value) !ruby.Value {
 	if value.type_name == 'BinData::SanitizedPrototype' {
 		return value
 	}
@@ -387,13 +387,13 @@ fn section_sanitize_type(value brew_runtime.Value, hints map[string]brew_runtime
 	})
 }
 
-fn section_dsl_parameters(object_class brew_runtime.Value) map[string]brew_runtime.Value {
+fn section_dsl_parameters(object_class ruby.Value) map[string]ruby.Value {
 	if _ := object_class.attributes['dsl_class_address'] {
 		mut dsl_class := dsl_class_from_value(object_class)
-		mut parser := dsl_parser_for_class(mut dsl_class, none) or { return map[string]brew_runtime.Value{} }
-		return parser.dsl_params() or { map[string]brew_runtime.Value{} }
+		mut parser := dsl_parser_for_class(mut dsl_class, none) or { return map[string]ruby.Value{} }
+		return parser.dsl_params() or { map[string]ruby.Value{} }
 	}
-	mut result := map[string]brew_runtime.Value{}
+	mut result := map[string]ruby.Value{}
 	for key in ['transform', 'type'] {
 		if value := object_class.map_data[key] {
 			result[key] = value
@@ -403,7 +403,7 @@ fn section_dsl_parameters(object_class brew_runtime.Value) map[string]brew_runti
 }
 
 // Ruby method `initialize_instance` at line 48.
-pub fn ruby_section_l48_d1_initialize_instance(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_section_l48_d1_initialize_instance(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Section#initialize_instance requires a receiver')
 	}
@@ -414,15 +414,15 @@ pub fn ruby_section_l48_d1_initialize_instance(args ...brew_runtime.Value) brew_
 }
 
 // Ruby method `clear?` at line 52.
-pub fn ruby_section_l52_d2_clear(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_section_l52_d2_clear(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Section#clear? requires a receiver')
 	}
-	return brew_runtime.bool_value(section_child_clear(section_object_from_value(args[0]).child))
+	return ruby.bool_value(section_child_clear(section_object_from_value(args[0]).child))
 }
 
 // Ruby method `assign(val)` at line 56.
-pub fn ruby_section_l56_d3_assign(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_section_l56_d3_assign(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Section#assign requires a receiver and value')
 	}
@@ -432,7 +432,7 @@ pub fn ruby_section_l56_d3_assign(args ...brew_runtime.Value) brew_runtime.Value
 }
 
 // Ruby method `snapshot` at line 60.
-pub fn ruby_section_l60_d4_snapshot(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_section_l60_d4_snapshot(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Section#snapshot requires a receiver')
 	}
@@ -440,17 +440,17 @@ pub fn ruby_section_l60_d4_snapshot(args ...brew_runtime.Value) brew_runtime.Val
 }
 
 // Ruby method `respond_to_missing?(symbol, include_all = false) # :nodoc:` at line 64.
-pub fn ruby_section_l64_d5_respond_to_missing(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_section_l64_d5_respond_to_missing(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Section#respond_to_missing? requires a receiver and symbol')
 	}
 	object := section_object_from_value(args[0])
 	name := args[1].as_string().trim_left(':').trim_right('=').trim_right('?')
-	return brew_runtime.bool_value(name in section_child_method_names(object.child))
+	return ruby.bool_value(name in section_child_method_names(object.child))
 }
 
 // Ruby method `method_missing(symbol, *args, &block) # :nodoc:` at line 68.
-pub fn ruby_section_l68_d6_method_missing(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_section_l68_d6_method_missing(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Section#method_missing requires a receiver and symbol')
 	}
@@ -458,7 +458,7 @@ pub fn ruby_section_l68_d6_method_missing(args ...brew_runtime.Value) brew_runti
 	name := args[1].as_string().trim_left(':')
 	if scalar := section_scalar_from_value(object.child) {
 		if name in ['length', 'size'] {
-			return brew_runtime.int_value(scalar.value.repr.len)
+			return ruby.int_value(scalar.value.repr.len)
 		}
 	}
 	if _ := object.child.attributes['primitive_object_address'] {
@@ -476,7 +476,7 @@ pub fn ruby_section_l68_d6_method_missing(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby method `do_read(io) # :nodoc:` at line 72.
-pub fn ruby_section_l72_d7_do_read(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_section_l72_d7_do_read(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Section#do_read requires a receiver and IO')
 	}
@@ -498,7 +498,7 @@ pub fn ruby_section_l72_d7_do_read(args ...brew_runtime.Value) brew_runtime.Valu
 }
 
 // Ruby method `do_write(io) # :nodoc:` at line 78.
-pub fn ruby_section_l78_d8_do_write(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_section_l78_d8_do_write(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Section#do_write requires a receiver and IO')
 	}
@@ -516,7 +516,7 @@ pub fn ruby_section_l78_d8_do_write(args ...brew_runtime.Value) brew_runtime.Val
 }
 
 // Ruby method `do_num_bytes # :nodoc:` at line 84.
-pub fn ruby_section_l84_d9_do_num_bytes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_section_l84_d9_do_num_bytes(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Section#do_num_bytes requires a receiver')
 	}
@@ -524,15 +524,15 @@ pub fn ruby_section_l84_d9_do_num_bytes(args ...brew_runtime.Value) brew_runtime
 	mut writer := new_io_write(stream)
 	ruby_section_l78_d8_do_write(args[0], io_write_boundary_value(writer))
 	writer.flush() or { panic(err) }
-	return brew_runtime.int_value(stream.value().len)
+	return ruby.int_value(stream.value().len)
 }
 
 // Ruby method `sanitize_parameters!(obj_class, params)` at line 92.
-pub fn ruby_section_l92_d10_sanitize_parameters(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_section_l92_d10_sanitize_parameters(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('SectionArgProcessor#sanitize_parameters! requires parameters')
 	}
-	object_class := if args.len >= 3 { args[1] } else { brew_runtime.map_value({}) }
+	object_class := if args.len >= 3 { args[1] } else { ruby.map_value({}) }
 	params_value := args[args.len - 1]
 	if params_value.type_name == 'BinData::SanitizedParameters' {
 		mut parameters := sanitized_parameters_from_value(params_value)
@@ -551,7 +551,7 @@ pub fn ruby_section_l92_d10_sanitize_parameters(args ...brew_runtime.Value) brew
 	if type_value := values['type'] {
 		values['type'] = section_sanitize_type(type_value, {}) or { panic(err) }
 	}
-	return brew_runtime.map_value(values)
+	return ruby.map_value(values)
 }
 
 // Original Ruby source (line-for-line):

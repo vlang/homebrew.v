@@ -2,7 +2,7 @@ module homebrew
 
 import compress.gzip
 import crypto.sha256
-import brew_runtime
+import ruby
 import os
 import x.json2
 
@@ -92,33 +92,33 @@ pub:
 	bottle_count   int
 }
 
-fn github_packages_nil() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn github_packages_nil() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-fn github_packages_error(kind string, message string) brew_runtime.Value {
-	return brew_runtime.structured_value(kind, message, {
+fn github_packages_error(kind string, message string) ruby.Value {
+	return ruby.structured_value(kind, message, {
 		'message': message
 	})
 }
 
-fn github_packages_map(value brew_runtime.Value, context string) !map[string]brew_runtime.Value {
+fn github_packages_map(value ruby.Value, context string) !map[string]ruby.Value {
 	if value.type_name != 'Hash' {
 		return error('${context} must be a Hash')
 	}
 	return value.as_map()
 }
 
-fn github_packages_field(values map[string]brew_runtime.Value, key string) brew_runtime.Value {
+fn github_packages_field(values map[string]ruby.Value, key string) ruby.Value {
 	return values[key] or { github_packages_nil() }
 }
 
-fn github_packages_string(values map[string]brew_runtime.Value, key string) string {
+fn github_packages_string(values map[string]ruby.Value, key string) string {
 	value := github_packages_field(values, key)
 	return if value.type_name == 'NilClass' { '' } else { value.as_string() }
 }
 
-fn github_packages_integer(values map[string]brew_runtime.Value, key string) int {
+fn github_packages_integer(values map[string]ruby.Value, key string) int {
 	value := github_packages_field(values, key)
 	return if value.type_name == 'Integer' {
 		int(value.as_int() or { 0 })
@@ -131,7 +131,7 @@ fn github_packages_json_string(value string) string {
 	return json2.encode(json2.Any(value))
 }
 
-fn github_packages_pretty_json_at(value brew_runtime.Value, depth int) string {
+fn github_packages_pretty_json_at(value ruby.Value, depth int) string {
 	indent := '  '.repeat(depth)
 	next_indent := '  '.repeat(depth + 1)
 	return match value.type_name {
@@ -140,7 +140,7 @@ fn github_packages_pretty_json_at(value brew_runtime.Value, depth int) string {
 		'Integer' { value.int_data.str() }
 		'Float' { value.float_data.str() }
 		'Array' {
-			entries := value.as_array() or { []brew_runtime.Value{} }
+			entries := value.as_array() or { []ruby.Value{} }
 			if entries.len == 0 {
 				'[]'
 			} else {
@@ -163,7 +163,7 @@ fn github_packages_pretty_json_at(value brew_runtime.Value, depth int) string {
 	}
 }
 
-pub fn github_packages_pretty_json(value brew_runtime.Value) string {
+pub fn github_packages_pretty_json(value ruby.Value) string {
 	return github_packages_pretty_json_at(value, 0)
 }
 
@@ -257,7 +257,7 @@ fn github_packages_append_arg(args []string, argument string) []string {
 	return result
 }
 
-pub fn github_packages_preupload_check(bottle_hash brew_runtime.Value, skopeo string, user string,
+pub fn github_packages_preupload_check(bottle_hash ruby.Value, skopeo string, user string,
 	token string, options GitHubPackagesPreuploadOptions) !GitHubPackagesPreuploadResult {
 	formula := github_packages_map(github_packages_field(github_packages_map(bottle_hash, 'bottle JSON')!, 'formula'), "bottle JSON 'formula'")!
 	bottle := github_packages_map(github_packages_field(github_packages_map(bottle_hash, 'bottle JSON')!, 'bottle'), "bottle JSON 'bottle'")!
@@ -347,7 +347,7 @@ pub fn github_packages_download_command(user string, token string, skopeo string
 	}
 }
 
-fn github_packages_validate_descriptor(descriptor brew_runtime.Value) ! {
+fn github_packages_validate_descriptor(descriptor ruby.Value) ! {
 	values := github_packages_map(descriptor, 'OCI descriptor')!
 	for key in ['mediaType', 'digest', 'size'] {
 		if key !in values {
@@ -359,7 +359,7 @@ fn github_packages_validate_descriptor(descriptor brew_runtime.Value) ! {
 	}
 }
 
-pub fn github_packages_validate_schema(schema_uri string, document brew_runtime.Value) ! {
+pub fn github_packages_validate_schema(schema_uri string, document ruby.Value) ! {
 	values := github_packages_map(document, 'OCI JSON')!
 	match schema_uri {
 		github_packages_image_layout_schema_uri {
@@ -408,7 +408,7 @@ pub fn github_packages_validate_schema(schema_uri string, document brew_runtime.
 	}
 }
 
-pub fn github_packages_write_hash(directory string, value brew_runtime.Value, filename string) !GitHubPackagesWriteResult {
+pub fn github_packages_write_hash(directory string, value ruby.Value, filename string) !GitHubPackagesWriteResult {
 	json := github_packages_pretty_json(value)
 	digest := sha256.sum256(json.bytes()).hex()
 	name := if filename == '' { digest } else { filename }
@@ -426,8 +426,8 @@ pub fn github_packages_write_hash(directory string, value brew_runtime.Value, fi
 }
 
 pub fn github_packages_write_image_layout(root string) !GitHubPackagesWriteResult {
-	value := brew_runtime.map_value({
-		'imageLayoutVersion': brew_runtime.string_value('1.0.0')
+	value := ruby.map_value({
+		'imageLayoutVersion': ruby.string_value('1.0.0')
 	})
 	github_packages_validate_schema(github_packages_image_layout_schema_uri, value)!
 	return github_packages_write_hash(root, value, 'oci-layout')
@@ -447,56 +447,56 @@ pub fn github_packages_write_tar_gz(local_file string, blobs string) !string {
 	return digest
 }
 
-pub fn github_packages_write_image_config(platform map[string]brew_runtime.Value, tar_sha256 string,
+pub fn github_packages_write_image_config(platform map[string]ruby.Value, tar_sha256 string,
 	blobs string) !GitHubPackagesWriteResult {
 	mut image_config := platform.clone()
-	image_config['rootfs'] = brew_runtime.map_value({
-		'type':     brew_runtime.string_value('layers')
-		'diff_ids': brew_runtime.string_array_value(['sha256:${tar_sha256}'])
+	image_config['rootfs'] = ruby.map_value({
+		'type':     ruby.string_value('layers')
+		'diff_ids': ruby.string_array_value(['sha256:${tar_sha256}'])
 	})
-	value := brew_runtime.map_value(image_config)
+	value := ruby.map_value(image_config)
 	github_packages_validate_schema(github_packages_image_config_schema_uri, value)!
 	return github_packages_write_hash(blobs, value, '')
 }
 
-pub fn github_packages_write_image_index(manifests []brew_runtime.Value, blobs string,
-	annotations map[string]brew_runtime.Value) !GitHubPackagesWriteResult {
-	value := brew_runtime.map_value({
-		'schemaVersion': brew_runtime.int_value(2)
-		'manifests':     brew_runtime.array_value(manifests)
-		'annotations':   brew_runtime.map_value(annotations)
+pub fn github_packages_write_image_index(manifests []ruby.Value, blobs string,
+	annotations map[string]ruby.Value) !GitHubPackagesWriteResult {
+	value := ruby.map_value({
+		'schemaVersion': ruby.int_value(2)
+		'manifests':     ruby.array_value(manifests)
+		'annotations':   ruby.map_value(annotations)
 	})
 	github_packages_validate_schema(github_packages_image_index_schema_uri, value)!
 	return github_packages_write_hash(blobs, value, '')
 }
 
 pub fn github_packages_write_index_json(index_sha256 string, index_size int, root string,
-	annotations map[string]brew_runtime.Value) !GitHubPackagesWriteResult {
-	descriptor := brew_runtime.map_value({
-		'mediaType':   brew_runtime.string_value('application/vnd.oci.image.index.v1+json')
-		'digest':      brew_runtime.string_value('sha256:${index_sha256}')
-		'size':        brew_runtime.int_value(index_size)
-		'annotations': brew_runtime.map_value(annotations)
+	annotations map[string]ruby.Value) !GitHubPackagesWriteResult {
+	descriptor := ruby.map_value({
+		'mediaType':   ruby.string_value('application/vnd.oci.image.index.v1+json')
+		'digest':      ruby.string_value('sha256:${index_sha256}')
+		'size':        ruby.int_value(index_size)
+		'annotations': ruby.map_value(annotations)
 	})
-	value := brew_runtime.map_value({
-		'schemaVersion': brew_runtime.int_value(2)
-		'manifests':     brew_runtime.array_value([descriptor])
+	value := ruby.map_value({
+		'schemaVersion': ruby.int_value(2)
+		'manifests':     ruby.array_value([descriptor])
 	})
 	github_packages_validate_schema(github_packages_image_index_schema_uri, value)!
 	return github_packages_write_hash(root, value, 'index.json')
 }
 
-fn github_packages_compact_strings(values map[string]string) map[string]brew_runtime.Value {
-	mut result := map[string]brew_runtime.Value{}
+fn github_packages_compact_strings(values map[string]string) map[string]ruby.Value {
+	mut result := map[string]ruby.Value{}
 	for key, value in values {
 		if value != '' {
-			result[key] = brew_runtime.string_value(value)
+			result[key] = ruby.string_value(value)
 		}
 	}
 	return result
 }
 
-fn github_packages_tab_platform(tag string, tab map[string]brew_runtime.Value) !(map[string]brew_runtime.Value, string, string) {
+fn github_packages_tab_platform(tag string, tab map[string]ruby.Value) !(map[string]ruby.Value, string, string) {
 	arch_value := github_packages_string(tab, 'arch')
 	default_arch := if tag.starts_with('arm64_') || tag == 'all' { 'arm64' } else { 'x86_64' }
 	architecture := match if arch_value == '' { default_arch } else { arch_value } {
@@ -510,7 +510,7 @@ fn github_packages_tab_platform(tag string, tab map[string]brew_runtime.Value) !
 	built_on := if built_on_value.type_name == 'Hash' {
 		built_on_value.map_data
 	} else {
-		map[string]brew_runtime.Value{}
+		map[string]ruby.Value{}
 	}
 	os_name := github_packages_string(built_on, 'os')
 	platform_os := match os_name {
@@ -549,16 +549,16 @@ fn github_packages_tab_platform(tag string, tab map[string]brew_runtime.Value) !
 	}), glibc_version, cpu_variant
 }
 
-fn github_packages_tab_annotation(tab map[string]brew_runtime.Value, all_bottle bool) string {
+fn github_packages_tab_annotation(tab map[string]ruby.Value, all_bottle bool) string {
 	mut selected := tab.clone()
 	if all_bottle {
 		selected.delete('arch')
 		selected.delete('built_on')
 	}
-	return brew_runtime.json_value_to_string(brew_runtime.map_value(selected))
+	return ruby.json_value_to_string(ruby.map_value(selected))
 }
 
-fn github_packages_sbom_annotation(supplement brew_runtime.Value, formula_full_name string,
+fn github_packages_sbom_annotation(supplement ruby.Value, formula_full_name string,
 	formula_name string, version string, tar_digest string, root_url string, license string,
 	created string) string {
 	if supplement.type_name != 'Hash' {
@@ -566,12 +566,12 @@ fn github_packages_sbom_annotation(supplement brew_runtime.Value, formula_full_n
 	}
 	mut values := supplement.map_data.clone()
 	mut packages := if package_value := values['packages'] {
-		package_value.as_array() or { []brew_runtime.Value{} }
+		package_value.as_array() or { []ruby.Value{} }
 	} else {
-		[]brew_runtime.Value{}
+		[]ruby.Value{}
 	}
 	mut describes := if describes_value := values['documentDescribes'] {
-		(describes_value.as_array() or { []brew_runtime.Value{} }).map(it.as_string())
+		(describes_value.as_array() or { []ruby.Value{} }).map(it.as_string())
 	} else {
 		[]string{}
 	}
@@ -587,45 +587,45 @@ fn github_packages_sbom_annotation(supplement brew_runtime.Value, formula_full_n
 		'pkg:brew/${namespace}/${purl_name}@${version}'
 	}
 	bottle_id := 'SPDXRef-Bottle-${formula_name}'
-	bottle_package := brew_runtime.map_value({
-		'SPDXID':           brew_runtime.string_value(bottle_id)
-		'name':             brew_runtime.string_value(formula_name)
-		'versionInfo':      brew_runtime.string_value(version)
-		'filesAnalyzed':    brew_runtime.bool_value(false)
-		'licenseDeclared':  brew_runtime.string_value('NOASSERTION')
-		'builtDate':        brew_runtime.string_value(created)
-		'licenseConcluded': brew_runtime.string_value(if license == '' {
+	bottle_package := ruby.map_value({
+		'SPDXID':           ruby.string_value(bottle_id)
+		'name':             ruby.string_value(formula_name)
+		'versionInfo':      ruby.string_value(version)
+		'filesAnalyzed':    ruby.bool_value(false)
+		'licenseDeclared':  ruby.string_value('NOASSERTION')
+		'builtDate':        ruby.string_value(created)
+		'licenseConcluded': ruby.string_value(if license == '' {
 			'NOASSERTION'
 		} else {
 			license
 		})
-		'downloadLocation': brew_runtime.string_value('${root_url.trim_string_right('/')}/${github_packages_image_formula_name(formula_name)}/blobs/sha256:${tar_digest}')
-		'copyrightText':    brew_runtime.string_value('NOASSERTION')
-		'externalRefs':     brew_runtime.array_value([
-			brew_runtime.map_value({
-				'referenceCategory': brew_runtime.string_value('PACKAGE-MANAGER')
-				'referenceLocator':  brew_runtime.string_value(purl)
-				'referenceType':     brew_runtime.string_value('purl')
+		'downloadLocation': ruby.string_value('${root_url.trim_string_right('/')}/${github_packages_image_formula_name(formula_name)}/blobs/sha256:${tar_digest}')
+		'copyrightText':    ruby.string_value('NOASSERTION')
+		'externalRefs':     ruby.array_value([
+			ruby.map_value({
+				'referenceCategory': ruby.string_value('PACKAGE-MANAGER')
+				'referenceLocator':  ruby.string_value(purl)
+				'referenceType':     ruby.string_value('purl')
 			}),
 		])
-		'checksums':        brew_runtime.array_value([
-			brew_runtime.map_value({
-				'algorithm':     brew_runtime.string_value('SHA256')
-				'checksumValue': brew_runtime.string_value(tar_digest)
+		'checksums':        ruby.array_value([
+			ruby.map_value({
+				'algorithm':     ruby.string_value('SHA256')
+				'checksumValue': ruby.string_value(tar_digest)
 			}),
 		])
 	})
 	packages << bottle_package
 	describes << bottle_id
-	values['packages'] = brew_runtime.array_value(packages)
-	values['documentDescribes'] = brew_runtime.string_array_value(describes)
+	values['packages'] = ruby.array_value(packages)
+	values['documentDescribes'] = ruby.string_array_value(describes)
 	if 'relationships' !in values {
-		values['relationships'] = brew_runtime.array_value([])
+		values['relationships'] = ruby.array_value([])
 	}
-	return brew_runtime.json_value_to_string(brew_runtime.map_value(values))
+	return ruby.json_value_to_string(ruby.map_value(values))
 }
 
-pub fn github_packages_upload_bottle(bottle_hash brew_runtime.Value, formula_full_name string,
+pub fn github_packages_upload_bottle(bottle_hash ruby.Value, formula_full_name string,
 	options GitHubPackagesUploadOptions) !GitHubPackagesUploadResult {
 	preflight := github_packages_preupload_check(bottle_hash, options.skopeo, options.user, options.token, GitHubPackagesPreuploadOptions{
 		keep_old: options.keep_old
@@ -678,7 +678,7 @@ pub fn github_packages_upload_bottle(bottle_hash brew_runtime.Value, formula_ful
 		'org.opencontainers.image.version':       preflight.version
 	})
 	tags := github_packages_map(github_packages_field(bottle, 'tags'), "bottle JSON 'tags'")!
-	mut manifests := []brew_runtime.Value{cap: tags.len}
+	mut manifests := []ruby.Value{cap: tags.len}
 	mut processed := map[string]bool{}
 	for bottle_tag, tag_value in tags {
 		tag_hash := github_packages_map(tag_value, "bottle tag '${bottle_tag}'")!
@@ -725,48 +725,48 @@ pub fn github_packages_upload_bottle(bottle_hash brew_runtime.Value, formula_ful
 		for key, value in descriptor_annotations {
 			annotations[key] = value
 		}
-		annotations['org.opencontainers.image.created'] = brew_runtime.string_value(created)
+		annotations['org.opencontainers.image.created'] = ruby.string_value(created)
 		if documentation != '' {
-			annotations['org.opencontainers.image.documentation'] = brew_runtime.string_value(documentation)
+			annotations['org.opencontainers.image.documentation'] = ruby.string_value(documentation)
 		}
-		annotations['org.opencontainers.image.title'] = brew_runtime.string_value('${formula_full_name} ${tag}')
-		image_manifest := brew_runtime.map_value({
-			'schemaVersion': brew_runtime.int_value(2)
-			'config':        brew_runtime.map_value({
-				'mediaType': brew_runtime.string_value('application/vnd.oci.image.config.v1+json')
-				'digest':    brew_runtime.string_value('sha256:${config.sha256}')
-				'size':      brew_runtime.int_value(config.size)
+		annotations['org.opencontainers.image.title'] = ruby.string_value('${formula_full_name} ${tag}')
+		image_manifest := ruby.map_value({
+			'schemaVersion': ruby.int_value(2)
+			'config':        ruby.map_value({
+				'mediaType': ruby.string_value('application/vnd.oci.image.config.v1+json')
+				'digest':    ruby.string_value('sha256:${config.sha256}')
+				'size':      ruby.int_value(config.size)
 			})
-			'layers':        brew_runtime.array_value([
-				brew_runtime.map_value({
-					'mediaType':   brew_runtime.string_value('application/vnd.oci.image.layer.v1.tar+gzip')
-					'digest':      brew_runtime.string_value('sha256:${tar_gz_digest}')
-					'size':        brew_runtime.int_value(file_size)
-					'annotations': brew_runtime.map_value({
-						'org.opencontainers.image.title': brew_runtime.string_value(local_file)
+			'layers':        ruby.array_value([
+				ruby.map_value({
+					'mediaType':   ruby.string_value('application/vnd.oci.image.layer.v1.tar+gzip')
+					'digest':      ruby.string_value('sha256:${tar_gz_digest}')
+					'size':        ruby.int_value(file_size)
+					'annotations': ruby.map_value({
+						'org.opencontainers.image.title': ruby.string_value(local_file)
 					})
 				}),
 			])
-			'annotations':   brew_runtime.map_value(annotations)
+			'annotations':   ruby.map_value(annotations)
 		})
 		github_packages_validate_schema(github_packages_image_manifest_schema_uri, image_manifest)!
 		written_manifest := github_packages_write_hash(blobs, image_manifest, '')!
-		mut descriptor := map[string]brew_runtime.Value{}
-		descriptor['mediaType'] = brew_runtime.string_value('application/vnd.oci.image.manifest.v1+json')
-		descriptor['digest'] = brew_runtime.string_value('sha256:${written_manifest.sha256}')
-		descriptor['size'] = brew_runtime.int_value(written_manifest.size)
-		descriptor['annotations'] = brew_runtime.map_value(descriptor_annotations)
+		mut descriptor := map[string]ruby.Value{}
+		descriptor['mediaType'] = ruby.string_value('application/vnd.oci.image.manifest.v1+json')
+		descriptor['digest'] = ruby.string_value('sha256:${written_manifest.sha256}')
+		descriptor['size'] = ruby.int_value(written_manifest.size)
+		descriptor['annotations'] = ruby.map_value(descriptor_annotations)
 		if !all_bottle {
-			descriptor['platform'] = brew_runtime.map_value(platform)
+			descriptor['platform'] = ruby.map_value(platform)
 		}
-		manifests << brew_runtime.map_value(descriptor)
+		manifests << ruby.map_value(descriptor)
 	}
 	index := github_packages_write_image_index(manifests, blobs, formula_annotations)!
 	if index.size >= 4 * 1024 * 1024 {
 		return error('Image index too large!')
 	}
 	github_packages_write_index_json(index.sha256, index.size, root, {
-		'org.opencontainers.image.ref.name': brew_runtime.string_value(preflight.version_rebuild)
+		'org.opencontainers.image.ref.name': ruby.string_value(preflight.version_rebuild)
 	})!
 	copy_args := ['copy', '--retry-times=3', '--format=oci', '--all', 'oci:${root}',
 		preflight.image_uri]
@@ -827,7 +827,7 @@ pub fn github_packages_schema_sources() map[string]string {
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `upload_bottles(bottles_hash, keep_old:, dry_run:, warn_on_error:)` at line 57.
-pub fn ruby_github_packages_l57_d1_upload_bottles(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_github_packages_l57_d1_upload_bottles(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || args[0].type_name != 'Hash' {
 		return github_packages_error('UsageError', 'bottles_hash must be a Hash')
 	}
@@ -839,15 +839,15 @@ pub fn ruby_github_packages_l57_d1_upload_bottles(args ...brew_runtime.Value) br
 		}
 	}
 	progress := github_packages_upload_progress(formulae, skipped)
-	return brew_runtime.map_value({
-		'events':         brew_runtime.string_array_value(progress.events)
-		'uploaded_count': brew_runtime.int_value(progress.uploaded_count)
-		'bottle_count':   brew_runtime.int_value(progress.bottle_count)
+	return ruby.map_value({
+		'events':         ruby.string_array_value(progress.events)
+		'uploaded_count': ruby.int_value(progress.uploaded_count)
+		'bottle_count':   ruby.int_value(progress.bottle_count)
 	})
 }
 
 // Ruby method `self.version_rebuild(version, rebuild, bottle_tag = nil)` at line 91.
-pub fn ruby_github_packages_l91_d2_self_version_rebuild(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_github_packages_l91_d2_self_version_rebuild(args ...ruby.Value) ruby.Value {
 	version := if args.len > 0 { args[0].as_string() } else { '' }
 	rebuild := if args.len > 1 { int(args[1].as_int() or { 0 }) } else { 0 }
 	tag := if args.len > 2 && args[2].type_name != 'NilClass' {
@@ -855,12 +855,12 @@ pub fn ruby_github_packages_l91_d2_self_version_rebuild(args ...brew_runtime.Val
 	} else {
 		none
 	}
-	return brew_runtime.string_value(github_packages_version_rebuild(version, rebuild, tag))
+	return ruby.string_value(github_packages_version_rebuild(version, rebuild, tag))
 }
 
 // Ruby method `self.repo_without_prefix(repo)` at line 106.
-pub fn ruby_github_packages_l106_d3_self_repo_without_prefix(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(github_packages_repo_without_prefix(if args.len > 0 {
+pub fn ruby_github_packages_l106_d3_self_repo_without_prefix(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(github_packages_repo_without_prefix(if args.len > 0 {
 		args[0].as_string()
 	} else {
 		''
@@ -868,9 +868,9 @@ pub fn ruby_github_packages_l106_d3_self_repo_without_prefix(args ...brew_runtim
 }
 
 // Ruby method `self.root_url(org, repo, prefix = URL_PREFIX)` at line 112.
-pub fn ruby_github_packages_l112_d4_self_root_url(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_github_packages_l112_d4_self_root_url(args ...ruby.Value) ruby.Value {
 	prefix := if args.len > 2 { args[2].as_string() } else { github_packages_url_prefix }
-	return brew_runtime.string_value(github_packages_root_url(if args.len > 0 {
+	return ruby.string_value(github_packages_root_url(if args.len > 0 {
 		args[0].as_string()
 	} else {
 		''
@@ -878,18 +878,18 @@ pub fn ruby_github_packages_l112_d4_self_root_url(args ...brew_runtime.Value) br
 }
 
 // Ruby method `self.root_url_if_match(url)` at line 120.
-pub fn ruby_github_packages_l120_d5_self_root_url_if_match(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_github_packages_l120_d5_self_root_url_if_match(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || args[0].type_name == 'NilClass' || args[0].as_string() == '' {
 		return github_packages_nil()
 	}
-	return brew_runtime.string_value(github_packages_root_url_match(args[0].as_string()) or {
+	return ruby.string_value(github_packages_root_url_match(args[0].as_string()) or {
 		return github_packages_nil()
 	})
 }
 
 // Ruby method `self.image_formula_name(formula_name)` at line 130.
-pub fn ruby_github_packages_l130_d6_self_image_formula_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(github_packages_image_formula_name(if args.len > 0 {
+pub fn ruby_github_packages_l130_d6_self_image_formula_name(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(github_packages_image_formula_name(if args.len > 0 {
 		args[0].as_string()
 	} else {
 		''
@@ -897,7 +897,7 @@ pub fn ruby_github_packages_l130_d6_self_image_formula_name(args ...brew_runtime
 }
 
 // Ruby method `self.image_version_rebuild(version_rebuild)` at line 139.
-pub fn ruby_github_packages_l139_d7_self_image_version_rebuild(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_github_packages_l139_d7_self_image_version_rebuild(args ...ruby.Value) ruby.Value {
 	result := github_packages_image_version_rebuild(if args.len > 0 {
 		args[0].as_string()
 	} else {
@@ -905,11 +905,11 @@ pub fn ruby_github_packages_l139_d7_self_image_version_rebuild(args ...brew_runt
 	}) or {
 		return github_packages_error('ArgumentError', err.msg())
 	}
-	return brew_runtime.string_value(result)
+	return ruby.string_value(result)
 }
 
 // Ruby method `upload_bottle(user, token, skopeo, formula_full_name, bottle_hash, keep_old:, dry_run:, warn_on_error:)` at line 153.
-pub fn ruby_github_packages_l153_d8_upload_bottle(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_github_packages_l153_d8_upload_bottle(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || args[0].type_name != 'Hash' {
 		return github_packages_error('ArgumentError', 'upload_bottle requires a bottle Hash')
 	}
@@ -925,28 +925,28 @@ pub fn ruby_github_packages_l153_d8_upload_bottle(args ...brew_runtime.Value) br
 		root_parent: if args.len > 2 { args[2].as_string() } else { '.' }
 		dry_run: if args.len > 5 { args[5].as_bool() or { true } } else { true }
 	}) or { return github_packages_error('RuntimeError', err.msg()) }
-	return brew_runtime.map_value({
-		'root':              brew_runtime.string_value(result.root)
-		'image_uri':         brew_runtime.string_value(result.image_uri)
-		'version_rebuild':   brew_runtime.string_value(result.version_rebuild)
-		'manifest_count':    brew_runtime.int_value(result.manifest_count)
-		'index_json_sha256': brew_runtime.string_value(result.index_json_sha256)
-		'index_json_size':   brew_runtime.int_value(result.index_json_size)
-		'command':           brew_runtime.string_value(result.command.display)
+	return ruby.map_value({
+		'root':              ruby.string_value(result.root)
+		'image_uri':         ruby.string_value(result.image_uri)
+		'version_rebuild':   ruby.string_value(result.version_rebuild)
+		'manifest_count':    ruby.int_value(result.manifest_count)
+		'index_json_sha256': ruby.string_value(result.index_json_sha256)
+		'index_json_size':   ruby.int_value(result.index_json_size)
+		'command':           ruby.string_value(result.command.display)
 	})
 }
 
 // Ruby method `load_schemas!` at line 393.
-pub fn ruby_github_packages_l393_d9_load_schemas(args ...brew_runtime.Value) brew_runtime.Value {
-	mut result := map[string]brew_runtime.Value{}
+pub fn ruby_github_packages_l393_d9_load_schemas(args ...ruby.Value) ruby.Value {
+	mut result := map[string]ruby.Value{}
 	for uri, source in github_packages_schema_sources() {
-		result[uri] = brew_runtime.string_value(source)
+		result[uri] = ruby.string_value(source)
 	}
-	return brew_runtime.map_value(result)
+	return ruby.map_value(result)
 }
 
 // Ruby method `schema_uri(basename, uris)` at line 421.
-pub fn ruby_github_packages_l421_d10_schema_uri(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_github_packages_l421_d10_schema_uri(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		return github_packages_error('ArgumentError', 'schema_uri requires a basename and URI list')
 	}
@@ -957,15 +957,15 @@ pub fn ruby_github_packages_l421_d10_schema_uri(args ...brew_runtime.Value) brew
 		[args[1].as_string()]
 	}
 	source := 'https://raw.githubusercontent.com/opencontainers/image-spec/${github_packages_schema_revision}/schema/${basename}.json'
-	mut result := map[string]brew_runtime.Value{}
+	mut result := map[string]ruby.Value{}
 	for uri in uris {
-		result[uri] = if args.len > 2 { args[2] } else { brew_runtime.string_value(source) }
+		result[uri] = if args.len > 2 { args[2] } else { ruby.string_value(source) }
 	}
-	return brew_runtime.map_value(result)
+	return ruby.map_value(result)
 }
 
 // Ruby method `schema_resolver(uri)` at line 436.
-pub fn ruby_github_packages_l436_d11_schema_resolver(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_github_packages_l436_d11_schema_resolver(args ...ruby.Value) ruby.Value {
 	if args.len < 2 || args[0].type_name != 'Hash' {
 		return github_packages_nil()
 	}
@@ -974,7 +974,7 @@ pub fn ruby_github_packages_l436_d11_schema_resolver(args ...brew_runtime.Value)
 }
 
 // Ruby method `validate_schema!(schema_uri, json)` at line 441.
-pub fn ruby_github_packages_l441_d12_validate_schema(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_github_packages_l441_d12_validate_schema(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		return github_packages_error('ArgumentError', 'validate_schema! requires schema URI and JSON')
 	}
@@ -985,7 +985,7 @@ pub fn ruby_github_packages_l441_d12_validate_schema(args ...brew_runtime.Value)
 }
 
 // Ruby method `download(user, token, skopeo, image_uri, root, dry_run:)` at line 456.
-pub fn ruby_github_packages_l456_d13_download(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_github_packages_l456_d13_download(args ...ruby.Value) ruby.Value {
 	if args.len < 5 {
 		return github_packages_error('ArgumentError', 'download requires user, token, skopeo, image URI and root')
 	}
@@ -994,15 +994,15 @@ pub fn ruby_github_packages_l456_d13_download(args ...brew_runtime.Value) brew_r
 	} else {
 		false
 	})
-	return brew_runtime.map_value({
-		'program': brew_runtime.string_value(command.program)
-		'args':    brew_runtime.string_array_value(command.args)
-		'display': brew_runtime.string_value(command.display)
+	return ruby.map_value({
+		'program': ruby.string_value(command.program)
+		'args':    ruby.string_array_value(command.args)
+		'display': ruby.string_value(command.display)
 	})
 }
 
 // Ruby method `preupload_check(user, token, skopeo, _formula_full_name, bottle_hash, keep_old:, dry_run:, warn_on_error:)` at line 475.
-pub fn ruby_github_packages_l475_d14_preupload_check(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_github_packages_l475_d14_preupload_check(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || args[0].type_name != 'Hash' {
 		return github_packages_error('ArgumentError', 'preupload_check requires a bottle Hash')
 	}
@@ -1026,73 +1026,73 @@ pub fn ruby_github_packages_l475_d14_preupload_check(args ...brew_runtime.Value)
 	if result.skipped {
 		return github_packages_nil()
 	}
-	return brew_runtime.array_value([
-		brew_runtime.string_value(result.formula_name),
-		brew_runtime.string_value(result.org),
-		brew_runtime.string_value(result.repo),
-		brew_runtime.string_value(result.version),
-		brew_runtime.int_value(result.rebuild),
-		brew_runtime.string_value(result.version_rebuild),
-		brew_runtime.string_value(result.image_name),
-		brew_runtime.string_value(result.image_uri),
-		brew_runtime.bool_value(result.keep_old),
+	return ruby.array_value([
+		ruby.string_value(result.formula_name),
+		ruby.string_value(result.org),
+		ruby.string_value(result.repo),
+		ruby.string_value(result.version),
+		ruby.int_value(result.rebuild),
+		ruby.string_value(result.version_rebuild),
+		ruby.string_value(result.image_name),
+		ruby.string_value(result.image_uri),
+		ruby.bool_value(result.keep_old),
 	])
 }
 
 // Ruby method `write_image_layout(root)` at line 525.
-pub fn ruby_github_packages_l525_d15_write_image_layout(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_github_packages_l525_d15_write_image_layout(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return github_packages_error('ArgumentError', 'write_image_layout requires a root')
 	}
 	result := github_packages_write_image_layout(args[0].as_string()) or {
 		return github_packages_error('RuntimeError', err.msg())
 	}
-	return brew_runtime.array_value([brew_runtime.string_value(result.sha256),
-		brew_runtime.int_value(result.size)])
+	return ruby.array_value([ruby.string_value(result.sha256),
+		ruby.int_value(result.size)])
 }
 
 // Ruby method `write_tar_gz(local_file, blobs)` at line 532.
-pub fn ruby_github_packages_l532_d16_write_tar_gz(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_github_packages_l532_d16_write_tar_gz(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		return github_packages_error('ArgumentError', 'write_tar_gz requires a file and blobs directory')
 	}
-	return brew_runtime.string_value(github_packages_write_tar_gz(args[0].as_string(), args[1].as_string()) or { return github_packages_error('RuntimeError', err.msg()) })
+	return ruby.string_value(github_packages_write_tar_gz(args[0].as_string(), args[1].as_string()) or { return github_packages_error('RuntimeError', err.msg()) })
 }
 
 // Ruby method `write_image_config(platform_hash, tar_sha256, blobs)` at line 540.
-pub fn ruby_github_packages_l540_d17_write_image_config(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_github_packages_l540_d17_write_image_config(args ...ruby.Value) ruby.Value {
 	if args.len < 3 || args[0].type_name != 'Hash' {
 		return github_packages_error('ArgumentError', 'write_image_config requires platform, digest and blobs')
 	}
 	result := github_packages_write_image_config(args[0].map_data, args[1].as_string(), args[2].as_string()) or { return github_packages_error('RuntimeError', err.msg()) }
-	return brew_runtime.array_value([brew_runtime.string_value(result.sha256),
-		brew_runtime.int_value(result.size)])
+	return ruby.array_value([ruby.string_value(result.sha256),
+		ruby.int_value(result.size)])
 }
 
 // Ruby method `write_image_index(manifests, blobs, annotations)` at line 552.
-pub fn ruby_github_packages_l552_d18_write_image_index(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_github_packages_l552_d18_write_image_index(args ...ruby.Value) ruby.Value {
 	if args.len < 3 || args[0].type_name != 'Array' || args[2].type_name != 'Hash' {
 		return github_packages_error('ArgumentError', 'write_image_index requires manifests, blobs and annotations')
 	}
 	result := github_packages_write_image_index(args[0].as_array() or { [] }, args[1].as_string(), args[2].map_data) or { return github_packages_error('RuntimeError', err.msg()) }
-	return brew_runtime.array_value([brew_runtime.string_value(result.sha256),
-		brew_runtime.int_value(result.size)])
+	return ruby.array_value([ruby.string_value(result.sha256),
+		ruby.int_value(result.size)])
 }
 
 // Ruby method `write_index_json(index_json_sha256, index_json_size, root, annotations)` at line 563.
-pub fn ruby_github_packages_l563_d19_write_index_json(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_github_packages_l563_d19_write_index_json(args ...ruby.Value) ruby.Value {
 	if args.len < 4 || args[3].type_name != 'Hash' {
 		return github_packages_error('ArgumentError', 'write_index_json requires digest, size, root and annotations')
 	}
 	result := github_packages_write_index_json(args[0].as_string(), int(args[1].as_int() or { 0 }), args[2].as_string(), args[3].map_data) or {
 		return github_packages_error('RuntimeError', err.msg())
 	}
-	return brew_runtime.array_value([brew_runtime.string_value(result.sha256),
-		brew_runtime.int_value(result.size)])
+	return ruby.array_value([ruby.string_value(result.sha256),
+		ruby.int_value(result.size)])
 }
 
 // Ruby method `write_hash(directory, hash, filename = nil)` at line 578.
-pub fn ruby_github_packages_l578_d20_write_hash(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_github_packages_l578_d20_write_hash(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		return github_packages_error('ArgumentError', 'write_hash requires directory and Hash')
 	}
@@ -1101,8 +1101,8 @@ pub fn ruby_github_packages_l578_d20_write_hash(args ...brew_runtime.Value) brew
 	} else {
 		''
 	}) or { return github_packages_error('RuntimeError', err.msg()) }
-	return brew_runtime.array_value([brew_runtime.string_value(result.sha256),
-		brew_runtime.int_value(result.size)])
+	return ruby.array_value([ruby.string_value(result.sha256),
+		ruby.int_value(result.size)])
 }
 
 // Original Ruby source (line-for-line):

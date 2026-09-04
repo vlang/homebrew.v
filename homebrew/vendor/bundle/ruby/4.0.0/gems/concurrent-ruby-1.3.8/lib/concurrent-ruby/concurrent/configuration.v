@@ -1,6 +1,6 @@
 module concurrent
 
-import brew_runtime
+import ruby
 import runtime
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/configuration.rb`.
@@ -25,7 +25,7 @@ pub:
 	name            string
 }
 
-fn immediate_scheduled_post(_ voidptr, task ScheduledExecution, args []brew_runtime.Value) bool {
+fn immediate_scheduled_post(_ voidptr, task ScheduledExecution, args []ruby.Value) bool {
 	task(args)
 	return true
 }
@@ -139,7 +139,7 @@ pub fn global_timer_set() &ScheduledTaskScheduler {
 	return unsafe { delayed_global_timer_set() }
 }
 
-pub fn configured_executor(identifier brew_runtime.Value) !ConfiguredExecutor {
+pub fn configured_executor(identifier ruby.Value) !ConfiguredExecutor {
 	name := identifier.as_string().trim_left(':').to_lower()
 	return match name {
 		'fast' { global_fast_executor() }
@@ -159,8 +159,8 @@ pub fn configured_executor(identifier brew_runtime.Value) !ConfiguredExecutor {
 	}
 }
 
-fn configured_executor_value(executor ConfiguredExecutor) brew_runtime.Value {
-	return brew_runtime.structured_value('Concurrent::ExecutorService', executor.name, {
+fn configured_executor_value(executor ConfiguredExecutor) ruby.Value {
+	return ruby.structured_value('Concurrent::ExecutorService', executor.name, {
 		'kind':            executor.kind.str()
 		'auto_terminate':  executor.auto_terminate.str()
 		'min_threads':     executor.min_threads.str()
@@ -171,7 +171,7 @@ fn configured_executor_value(executor ConfiguredExecutor) brew_runtime.Value {
 	})
 }
 
-fn configuration_auto_terminate(args []brew_runtime.Value) bool {
+fn configuration_auto_terminate(args []ruby.Value) bool {
 	if args.len == 0 || args[0].type_name != 'Hash' {
 		return true
 	}
@@ -184,36 +184,36 @@ fn configuration_auto_terminate(args []brew_runtime.Value) bool {
 }
 
 // Ruby method `self.disable_at_exit_handlers!` at line 48.
-pub fn ruby_configuration_l48_d1_self_disable_at_exit_handlers(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_configuration_l48_d1_self_disable_at_exit_handlers(args ...ruby.Value) ruby.Value {
 	eprintln('Method #disable_at_exit_handlers! has no effect since it is no longer needed, see https://github.com/ruby-concurrency/concurrent-ruby/pull/841.')
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `self.global_fast_executor` at line 55.
-pub fn ruby_configuration_l55_d2_self_global_fast_executor(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_configuration_l55_d2_self_global_fast_executor(args ...ruby.Value) ruby.Value {
 	return configured_executor_value(global_fast_executor())
 }
 
 // Ruby method `self.global_io_executor` at line 62.
-pub fn ruby_configuration_l62_d3_self_global_io_executor(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_configuration_l62_d3_self_global_io_executor(args ...ruby.Value) ruby.Value {
 	return configured_executor_value(global_io_executor())
 }
 
 // Ruby method `self.global_immediate_executor` at line 66.
-pub fn ruby_configuration_l66_d4_self_global_immediate_executor(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_configuration_l66_d4_self_global_immediate_executor(args ...ruby.Value) ruby.Value {
 	return configured_executor_value(global_immediate_executor())
 }
 
 // Ruby method `self.global_timer_set` at line 73.
-pub fn ruby_configuration_l73_d5_self_global_timer_set(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_configuration_l73_d5_self_global_timer_set(args ...ruby.Value) ruby.Value {
 	timer_set := global_timer_set()
-	return brew_runtime.structured_value('Concurrent::TimerSet', '#<Concurrent::TimerSet>', {
+	return ruby.structured_value('Concurrent::TimerSet', '#<Concurrent::TimerSet>', {
 		'scheduled_task_scheduler_address': u64(voidptr(timer_set)).str()
 	})
 }
 
 // Ruby method `self.executor(executor_identifier)` at line 83.
-pub fn ruby_configuration_l83_d6_self_executor(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_configuration_l83_d6_self_executor(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Concurrent.executor requires an identifier')
 	}
@@ -221,12 +221,12 @@ pub fn ruby_configuration_l83_d6_self_executor(args ...brew_runtime.Value) brew_
 }
 
 // Ruby method `self.new_fast_executor(opts = {})` at line 87.
-pub fn ruby_configuration_l87_d7_self_new_fast_executor(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_configuration_l87_d7_self_new_fast_executor(args ...ruby.Value) ruby.Value {
 	return configured_executor_value(new_fast_executor(configuration_auto_terminate(args)))
 }
 
 // Ruby method `self.new_io_executor(opts = {})` at line 98.
-pub fn ruby_configuration_l98_d8_self_new_io_executor(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_configuration_l98_d8_self_new_io_executor(args ...ruby.Value) ruby.Value {
 	return configured_executor_value(new_io_executor(configuration_auto_terminate(args)))
 }
 

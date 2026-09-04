@@ -1,10 +1,10 @@
 module atomic_reference
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/atomic_reference/numeric_cas_wrapper.rb`.
 // The original source is retained below until every stub has a typed V body.
-fn numeric_compare_and_set_from_args(args []brew_runtime.Value) bool {
+fn numeric_compare_and_set_from_args(args []ruby.Value) bool {
 	if args.len < 3 {
 		return false
 	}
@@ -17,12 +17,12 @@ fn numeric_compare_and_set_from_args(args []brew_runtime.Value) bool {
 }
 
 // Ruby method `compare_and_set(old_value, new_value)` at line 10.
-pub fn ruby_numeric_cas_wrapper_l10_d1_compare_and_set(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(numeric_compare_and_set_from_args(args))
+pub fn ruby_numeric_cas_wrapper_l10_d1_compare_and_set(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(numeric_compare_and_set_from_args(args))
 }
 
 // Ruby alias_method `alias_method :compare_and_swap, :compare_and_set` at line 33.
-pub fn ruby_numeric_cas_wrapper_l33_d2_compare_and_swap(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_numeric_cas_wrapper_l33_d2_compare_and_swap(args ...ruby.Value) ruby.Value {
 	return ruby_numeric_cas_wrapper_l10_d1_compare_and_set(...args)
 }
 

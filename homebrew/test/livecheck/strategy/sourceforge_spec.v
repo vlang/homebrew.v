@@ -1,6 +1,6 @@
 module strategy
 
-import brew_runtime
+import ruby
 import homebrew.livecheck
 import homebrew.livecheck.strategy as sourceforge_core
 import homebrew.utils
@@ -49,8 +49,8 @@ fn sourceforge_spec_match_data_equal(left sourceforge_core.PageMatchData,
 }
 
 // Ruby subject `subject(:sourceforge) { described_class }` at line 7.
-pub fn ruby_sourceforge_spec_l7_d1_sourceforge() brew_runtime.Value {
-	return brew_runtime.object_value('Class', 'Homebrew::Livecheck::Strategy::Sourceforge')
+pub fn ruby_sourceforge_spec_l7_d1_sourceforge() ruby.Value {
+	return ruby.object_value('Class', 'Homebrew::Livecheck::Strategy::Sourceforge')
 }
 
 // Ruby let `let(:sourceforge_urls) do` at line 9.

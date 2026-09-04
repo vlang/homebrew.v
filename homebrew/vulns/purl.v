@@ -1,6 +1,6 @@
 module vulns
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vulns/purl.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -341,12 +341,12 @@ pub fn (purl PackageUrl) hash() i64 {
 	return i64(hash)
 }
 
-pub fn purl_value(purl PackageUrl) brew_runtime.Value {
-	mut qualifier_values := map[string]brew_runtime.Value{}
+pub fn purl_value(purl PackageUrl) ruby.Value {
+	mut qualifier_values := map[string]ruby.Value{}
 	for key, value in purl.qualifiers() {
-		qualifier_values[key] = brew_runtime.string_value(value)
+		qualifier_values[key] = ruby.string_value(value)
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'Purl'
 		repr: purl.str()
 		map_data: qualifier_values
@@ -360,7 +360,7 @@ pub fn purl_value(purl PackageUrl) brew_runtime.Value {
 	}
 }
 
-pub fn purl_from_value(value brew_runtime.Value) !PackageUrl {
+pub fn purl_from_value(value ruby.Value) !PackageUrl {
 	if value.type_name != 'Purl' {
 		return error('expected Purl, got ${value.type_name}')
 	}
@@ -371,7 +371,7 @@ struct PurlOptionalString {
 	value ?string
 }
 
-fn purl_optional_string(value brew_runtime.Value) !PurlOptionalString {
+fn purl_optional_string(value ruby.Value) !PurlOptionalString {
 	if value.type_name == 'NilClass' {
 		return PurlOptionalString{}
 	}
@@ -383,7 +383,7 @@ fn purl_optional_string(value brew_runtime.Value) !PurlOptionalString {
 	}
 }
 
-fn purl_config_from_args(args []brew_runtime.Value) !PackageUrlConfig {
+fn purl_config_from_args(args []ruby.Value) !PackageUrlConfig {
 	if args.len == 1 && args[0].type_name == 'Hash' {
 		values := args[0].map_data.clone()
 		package_type := values['type'] or { values['package_type'] or { return error('type is required') } }
@@ -401,12 +401,12 @@ fn purl_config_from_args(args []brew_runtime.Value) !PackageUrlConfig {
 			package_type: package_type.as_string()
 			name: name.as_string()
 			namespace: purl_optional_string(values['namespace'] or {
-				brew_runtime.object_value('NilClass', 'nil')})!.value
+				ruby.object_value('NilClass', 'nil')})!.value
 			version: purl_optional_string(values['version'] or {
-				brew_runtime.object_value('NilClass', 'nil')})!.value
+				ruby.object_value('NilClass', 'nil')})!.value
 			qualifiers: qualifiers
 			subpath: purl_optional_string(values['subpath'] or {
-				brew_runtime.object_value('NilClass', 'nil')})!.value
+				ruby.object_value('NilClass', 'nil')})!.value
 		}
 	}
 	if args.len < 2 {
@@ -420,7 +420,7 @@ fn purl_config_from_args(args []brew_runtime.Value) !PackageUrlConfig {
 	}
 }
 
-fn purl_boundary_receiver(args []brew_runtime.Value) !PackageUrl {
+fn purl_boundary_receiver(args []ruby.Value) !PackageUrl {
 	if args.len == 0 {
 		return error('missing Purl receiver')
 	}
@@ -428,73 +428,73 @@ fn purl_boundary_receiver(args []brew_runtime.Value) !PackageUrl {
 }
 
 // Ruby attr_reader `attr_reader :type, :name` at line 14.
-pub fn ruby_purl_l14_d1_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_purl_l14_d1_type(args ...ruby.Value) ruby.Value {
 	purl := purl_boundary_receiver(args) or { panic(err) }
-	return brew_runtime.string_value(purl.package_type())
+	return ruby.string_value(purl.package_type())
 }
 
 // Ruby attr_reader `attr_reader :type, :name` at line 14.
-pub fn ruby_purl_l14_d2_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_purl_l14_d2_name(args ...ruby.Value) ruby.Value {
 	purl := purl_boundary_receiver(args) or { panic(err) }
-	return brew_runtime.string_value(purl.name())
+	return ruby.string_value(purl.name())
 }
 
 // Ruby attr_reader `attr_reader :namespace, :version` at line 17.
-pub fn ruby_purl_l17_d3_namespace(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_purl_l17_d3_namespace(args ...ruby.Value) ruby.Value {
 	purl := purl_boundary_receiver(args) or { panic(err) }
 	return if namespace := purl.namespace() {
-		brew_runtime.string_value(namespace)
+		ruby.string_value(namespace)
 	} else {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	}
 }
 
 // Ruby attr_reader `attr_reader :namespace, :version` at line 17.
-pub fn ruby_purl_l17_d4_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_purl_l17_d4_version(args ...ruby.Value) ruby.Value {
 	purl := purl_boundary_receiver(args) or { panic(err) }
 	return if version := purl.version() {
-		brew_runtime.string_value(version)
+		ruby.string_value(version)
 	} else {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	}
 }
 
 // Ruby method `initialize(type:, name:, namespace: nil, version: nil)` at line 22.
-pub fn ruby_purl_l22_d5_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_purl_l22_d5_initialize(args ...ruby.Value) ruby.Value {
 	config := purl_config_from_args(args) or { panic(err) }
 	return purl_value(new_package_url(config) or { panic(err) })
 }
 
 // Ruby method `to_s` at line 36.
-pub fn ruby_purl_l36_d6_to_s(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_purl_l36_d6_to_s(args ...ruby.Value) ruby.Value {
 	purl := purl_boundary_receiver(args) or { panic(err) }
-	return brew_runtime.string_value(purl.str())
+	return ruby.string_value(purl.str())
 }
 
 // Ruby method `==(other)` at line 48.
-pub fn ruby_purl_l48_d7_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_purl_l48_d7_anonymous(args ...ruby.Value) ruby.Value {
 	if args.len < 2 || args[1].type_name != 'Purl' {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	left := purl_from_value(args[0]) or { return brew_runtime.bool_value(false) }
-	right := purl_from_value(args[1]) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(left.equals(right))
+	left := purl_from_value(args[0]) or { return ruby.bool_value(false) }
+	right := purl_from_value(args[1]) or { return ruby.bool_value(false) }
+	return ruby.bool_value(left.equals(right))
 }
 
 // Ruby alias `alias eql? ==` at line 56.
-pub fn ruby_purl_l56_d8_eql(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_purl_l56_d8_eql(args ...ruby.Value) ruby.Value {
 	return ruby_purl_l48_d7_anonymous(...args)
 }
 
 // Ruby method `hash` at line 59.
-pub fn ruby_purl_l59_d9_hash(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_purl_l59_d9_hash(args ...ruby.Value) ruby.Value {
 	purl := purl_boundary_receiver(args) or { panic(err) }
-	return brew_runtime.int_value(purl.hash())
+	return ruby.int_value(purl.hash())
 }
 
 // Ruby method `self.encode(component)` at line 67.
-pub fn ruby_purl_l67_d10_self_encode(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(encode_purl_component(if args.len > 0 {
+pub fn ruby_purl_l67_d10_self_encode(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(encode_purl_component(if args.len > 0 {
 		args[0].as_string()
 	} else {
 		''
@@ -502,19 +502,19 @@ pub fn ruby_purl_l67_d10_self_encode(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby method `self.normalize(type, namespace, name)` at line 76.
-pub fn ruby_purl_l76_d11_self_normalize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_purl_l76_d11_self_normalize(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	namespace := purl_optional_string(args[1]) or { panic(err) }
 	normalized_namespace, normalized_name := normalize_purl_components(args[0].as_string().to_lower(), namespace.value, args[2].as_string())
-	return brew_runtime.array_value([
+	return ruby.array_value([
 		if value := normalized_namespace {
-			brew_runtime.string_value(value)
+			ruby.string_value(value)
 		} else {
-			brew_runtime.object_value('NilClass', 'nil')
+			ruby.object_value('NilClass', 'nil')
 		},
-		brew_runtime.string_value(normalized_name),
+		ruby.string_value(normalized_name),
 	])
 }
 

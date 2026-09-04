@@ -1,6 +1,6 @@
 module debrew
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `debrew/irb.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -12,9 +12,9 @@ pub mut:
 
 pub type IrbSetup = fn() !
 
-pub type IrbRunner = fn(brew_runtime.Value) !
+pub type IrbRunner = fn(ruby.Value) !
 
-pub fn irb_start_within(binding brew_runtime.Value, mut state IrbSessionState, setup IrbSetup,
+pub fn irb_start_within(binding ruby.Value, mut state IrbSessionState, setup IrbSetup,
 	run IrbRunner) ! {
 	old_stdout_sync := state.stdout_sync
 	state.stdout_sync = true
@@ -30,10 +30,10 @@ pub fn irb_start_within(binding brew_runtime.Value, mut state IrbSessionState, s
 
 fn irb_noop_setup() ! {}
 
-fn irb_noop_run(_ brew_runtime.Value) ! {}
+fn irb_noop_run(_ ruby.Value) ! {}
 
 // Ruby method `self.start_within(binding)` at line 8.
-pub fn ruby_irb_l8_d1_self_start_within(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_irb_l8_d1_self_start_within(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('IRB.start_within requires a binding')
 	}
@@ -42,7 +42,7 @@ pub fn ruby_irb_l8_d1_self_start_within(args ...brew_runtime.Value) brew_runtime
 		stdout_sync: if args.len > 2 { args[2].as_bool() or { false } } else { false }
 	}
 	irb_start_within(args[0], mut state, irb_noop_setup, irb_noop_run) or { panic(err) }
-	return brew_runtime.structured_value('IrbSessionState', 'IRB', {
+	return ruby.structured_value('IrbSessionState', 'IRB', {
 		'setup_done':  state.setup_done.str()
 		'stdout_sync': state.stdout_sync.str()
 	})

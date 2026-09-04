@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `build_environment.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -84,21 +84,21 @@ pub fn dump_build_environment(environment map[string]string) []string {
 	for key in keys {
 		value := environment[key]
 		mut line := '${key}: ${value}'
-		if key in ['CC', 'CXX', 'LD'] && value != '' && brew_runtime.is_link(value) {
-			line += ' => ${brew_runtime.real_path(value)}'
+		if key in ['CC', 'CXX', 'LD'] && value != '' && ruby.is_link(value) {
+			line += ' => ${ruby.real_path(value)}'
 		}
 		lines << line
 	}
 	return lines
 }
 
-fn build_environment_boundary_value(environment BuildEnvironment) brew_runtime.Value {
-	return brew_runtime.structured_value('BuildEnvironment', environment.settings.join(','), {
+fn build_environment_boundary_value(environment BuildEnvironment) ruby.Value {
+	return ruby.structured_value('BuildEnvironment', environment.settings.join(','), {
 		'settings': environment.settings.join('\x1f')
 	})
 }
 
-fn build_environment_from_boundary(value brew_runtime.Value) BuildEnvironment {
+fn build_environment_from_boundary(value ruby.Value) BuildEnvironment {
 	if value.type_name != 'BuildEnvironment' {
 		panic('expected BuildEnvironment, got ${value.type_name}')
 	}
@@ -110,7 +110,7 @@ fn build_environment_from_boundary(value brew_runtime.Value) BuildEnvironment {
 	}
 }
 
-fn values_as_settings(values []brew_runtime.Value) []string {
+fn values_as_settings(values []ruby.Value) []string {
 	mut settings := []string{}
 	for value in values {
 		if value.type_name == 'Array' {
@@ -123,12 +123,12 @@ fn values_as_settings(values []brew_runtime.Value) []string {
 }
 
 // Ruby method `initialize(*settings)` at line 7.
-pub fn ruby_build_environment_l7_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_build_environment_l7_d1_initialize(args ...ruby.Value) ruby.Value {
 	return build_environment_boundary_value(new_build_environment(...values_as_settings(args)))
 }
 
 // Ruby method `merge(*args)` at line 12.
-pub fn ruby_build_environment_l12_d2_merge(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_build_environment_l12_d2_merge(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('BuildEnvironment#merge requires a receiver')
 	}
@@ -138,7 +138,7 @@ pub fn ruby_build_environment_l12_d2_merge(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `<<(option)` at line 18.
-pub fn ruby_build_environment_l18_d3_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_build_environment_l18_d3_anonymous(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('BuildEnvironment#<< requires a receiver and option')
 	}
@@ -148,27 +148,27 @@ pub fn ruby_build_environment_l18_d3_anonymous(args ...brew_runtime.Value) brew_
 }
 
 // Ruby method `std?` at line 24.
-pub fn ruby_build_environment_l24_d4_std(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_build_environment_l24_d4_std(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('BuildEnvironment#std? requires a receiver')
 	}
-	return brew_runtime.bool_value(build_environment_from_boundary(args[0]).std())
+	return ruby.bool_value(build_environment_from_boundary(args[0]).std())
 }
 
 // Ruby method `inherited(child)` at line 33.
-pub fn ruby_build_environment_l33_d5_inherited(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_build_environment_l33_d5_inherited(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('BuildEnvironment::DSL#inherited requires a child')
 	}
 	owner := new_build_environment_owner(args[0].as_string())
-	return brew_runtime.structured_value('BuildEnvironmentOwner', owner.name, {
+	return ruby.structured_value('BuildEnvironmentOwner', owner.name, {
 		'name':     owner.name
 		'settings': ''
 	})
 }
 
 // Ruby method `env(*settings)` at line 41.
-pub fn ruby_build_environment_l41_d6_env(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_build_environment_l41_d6_env(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || args[0].type_name != 'BuildEnvironmentOwner' {
 		panic('${if args.len > 0 { args[0].as_string() } else { 'object' }} has not been initialized with a BuildEnvironment')
 	}
@@ -182,20 +182,20 @@ pub fn ruby_build_environment_l41_d6_env(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `self.keys(env)` at line 66.
-pub fn ruby_build_environment_l66_d7_self_keys(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_build_environment_l66_d7_self_keys(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || args[0].type_name != 'Hash' {
 		panic('BuildEnvironment.keys requires an environment Hash')
 	}
-	return brew_runtime.string_array_value(environment_keys(args[0].attributes))
+	return ruby.string_array_value(environment_keys(args[0].attributes))
 }
 
 // Ruby method `self.dump(env, out = $stdout)` at line 71.
-pub fn ruby_build_environment_l71_d8_self_dump(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_build_environment_l71_d8_self_dump(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || args[0].type_name != 'Hash' {
 		panic('BuildEnvironment.dump requires an environment Hash')
 	}
 	output := dump_build_environment(args[0].attributes).join('\n') + '\n'
-	return brew_runtime.object_value('IOWrite', output)
+	return ruby.object_value('IOWrite', output)
 }
 
 // Original Ruby source (line-for-line):

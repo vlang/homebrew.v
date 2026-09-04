@@ -1,20 +1,20 @@
 module utils
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `utils/clang.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `self.write_system_config_files(config_dir:, macos_version:, kernel_version:, arch:)` at line 14.
-pub fn ruby_clang_l14_d1_self_write_system_config_files(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_clang_l14_d1_self_write_system_config_files(args ...ruby.Value) ruby.Value {
 	if args.len < 4 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	write_clang_system_config_files(args[0].as_string(), args[1].as_string(), args[2].as_string(),
 		args[3].as_string(), args[1].as_string(), '/Library/Developer/CommandLineTools/SDKs') or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
 // write_clang_system_config_files translates the source's Set iteration and
@@ -22,7 +22,7 @@ pub fn ruby_clang_l14_d1_self_write_system_config_files(args ...brew_runtime.Val
 // systems do not depend on the host operating system.
 pub fn write_clang_system_config_files(config_dir string, macos_version string,
 	kernel_version string, arch string, current_macos_version string, clt_pkg_path string) ! {
-	brew_runtime.make_dir_all(config_dir)!
+	ruby.make_dir_all(config_dir)!
 	mut arches := ['arm64', 'x86_64', 'aarch64']
 	if arch !in arches {
 		arches << arch
@@ -38,9 +38,9 @@ pub fn write_clang_system_config_files(config_dir string, macos_version string,
 		'macosx': macos_version
 	} {
 		for target_arch in arches {
-			path := brew_runtime.join_path(config_dir,
+			path := ruby.join_path(config_dir,
 				'${target_arch}-apple-${system}${version}.cfg')
-			brew_runtime.atomic_write_file(path, '-isysroot ${sysroot}\n')!
+			ruby.atomic_write_file(path, '-isysroot ${sysroot}\n')!
 		}
 	}
 }

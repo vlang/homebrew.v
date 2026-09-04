@@ -1,6 +1,6 @@
 module test
 
-import brew_runtime
+import ruby
 import homebrew
 
 fn error_execution_status() homebrew.ExecutionStatus {
@@ -11,12 +11,12 @@ fn error_execution_status() homebrew.ExecutionStatus {
 }
 
 fn error_execution_value(command []string, output []homebrew.ExecutionOutputLine,
-	terminal bool) brew_runtime.Value {
+	terminal bool) ruby.Value {
 	exception := homebrew.execution_exception_with_terminal(command, error_execution_status(), output, [], terminal, false, false) or { panic(err) }
 	return homebrew.brew_exception_value(exception)
 }
 
-fn error_execution_message(value brew_runtime.Value) string {
+fn error_execution_message(value ruby.Value) string {
 	return homebrew.brew_exception_from_value(value).message
 }
 
@@ -24,77 +24,77 @@ fn error_execution_message(value brew_runtime.Value) string {
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:error) { described_class.new(command, status:, output:) }` at line 5.
-pub fn ruby_error_during_execution_spec_l5_d1_error(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_error_during_execution_spec_l5_d1_error(args ...ruby.Value) ruby.Value {
 	return error_execution_value(['false'], [], false)
 }
 
 // Ruby let `let(:command) { ["false"] }` at line 7.
-pub fn ruby_error_during_execution_spec_l7_d2_command(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(['false'])
+pub fn ruby_error_during_execution_spec_l7_d2_command(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(['false'])
 }
 
 // Ruby let `let(:status) { instance_double(Process::Status, exitstatus:, termsig: nil) }` at line 8.
-pub fn ruby_error_during_execution_spec_l8_d3_status(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.structured_value('Process::Status', 'exit 1', {
+pub fn ruby_error_during_execution_spec_l8_d3_status(args ...ruby.Value) ruby.Value {
+	return ruby.structured_value('Process::Status', 'exit 1', {
 		'exitstatus': '1'
 		'termsig':    ''
 	})
 }
 
 // Ruby let `let(:exitstatus) { 1 }` at line 9.
-pub fn ruby_error_during_execution_spec_l9_d4_exitstatus(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(1)
+pub fn ruby_error_during_execution_spec_l9_d4_exitstatus(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(1)
 }
 
 // Ruby let `let(:output) { nil }` at line 10.
-pub fn ruby_error_during_execution_spec_l10_d5_output(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+pub fn ruby_error_during_execution_spec_l10_d5_output(args ...ruby.Value) ruby.Value {
+	return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 }
 
 // Ruby it `it "fails when only given a command" do` at line 13.
-pub fn ruby_error_during_execution_spec_l13_d6_fails(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_error_during_execution_spec_l13_d6_fails(args ...ruby.Value) ruby.Value {
 	homebrew.execution_exception_from_optional(?[]string(['false']), none, [], []) or {
-		return brew_runtime.bool_value(err.msg().contains('requires status'))
+		return ruby.bool_value(err.msg().contains('requires status'))
 	}
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 // Ruby it `it "fails when only given a status" do` at line 20.
-pub fn ruby_error_during_execution_spec_l20_d7_fails(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_error_during_execution_spec_l20_d7_fails(args ...ruby.Value) ruby.Value {
 	homebrew.execution_exception_from_optional(none, ?homebrew.ExecutionStatus(error_execution_status()), [], []) or {
-		return brew_runtime.bool_value(err.msg().contains('requires command'))
+		return ruby.bool_value(err.msg().contains('requires command'))
 	}
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 // Ruby it `it "does not raise an error when given both a command and a status" do` at line 25.
-pub fn ruby_error_during_execution_spec_l25_d8_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_error_during_execution_spec_l25_d8_does(args ...ruby.Value) ruby.Value {
 	homebrew.execution_exception_from_optional(?[]string(['false']), ?homebrew.ExecutionStatus(error_execution_status()), [], []) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
 // Ruby it `it(:to_s) { expect(error.to_s).to eq "Failure while executing; `false` exited with 1." }` at line 34.
-pub fn ruby_error_during_execution_spec_l34_d9_to_s(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_error_during_execution_spec_l34_d9_to_s(args ...ruby.Value) ruby.Value {
 	value := if args.len > 0 { args[0] } else { ruby_error_during_execution_spec_l5_d1_error() }
-	return brew_runtime.bool_value(error_execution_message(value) == 'Failure while executing; `false` exited with 1.')
+	return ruby.bool_value(error_execution_message(value) == 'Failure while executing; `false` exited with 1.')
 }
 
 // Ruby let `let(:output) do` at line 38.
-pub fn ruby_error_during_execution_spec_l38_d10_output(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.array_value([
-		brew_runtime.structured_value('OutputLine', 'This still worked.\n', {
+pub fn ruby_error_during_execution_spec_l38_d10_output(args ...ruby.Value) ruby.Value {
+	return ruby.array_value([
+		ruby.structured_value('OutputLine', 'This still worked.\n', {
 			'type': 'stdout'
 		}),
-		brew_runtime.structured_value('OutputLine', 'Here something went wrong.\n', {
+		ruby.structured_value('OutputLine', 'Here something went wrong.\n', {
 			'type': 'stderr'
 		}),
 	])
 }
 
 // Ruby it `it(:to_s) do` at line 49.
-pub fn ruby_error_during_execution_spec_l49_d11_to_s(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_error_during_execution_spec_l49_d11_to_s(args ...ruby.Value) ruby.Value {
 	value := error_execution_value(['false'], [
 		homebrew.ExecutionOutputLine{
 			kind: 'stdout'
@@ -106,18 +106,18 @@ pub fn ruby_error_during_execution_spec_l49_d11_to_s(args ...brew_runtime.Value)
 		},
 	], true)
 	expected := "Failure while executing; `false` exited with 1. Here's the output:\nThis still worked.\n\x1b[31mHere something went wrong.\n\x1b[0m\n"
-	return brew_runtime.bool_value(error_execution_message(value) == expected)
+	return ruby.bool_value(error_execution_message(value) == expected)
 }
 
 // Ruby let `let(:command) { ["env", "PATH=/bin", "cat", "with spaces"] }` at line 59.
-pub fn ruby_error_during_execution_spec_l59_d12_command(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(['env', 'PATH=/bin', 'cat', 'with spaces'])
+pub fn ruby_error_during_execution_spec_l59_d12_command(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(['env', 'PATH=/bin', 'cat', 'with spaces'])
 }
 
 // Ruby it `it(:to_s) do` at line 61.
-pub fn ruby_error_during_execution_spec_l61_d13_to_s(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_error_during_execution_spec_l61_d13_to_s(args ...ruby.Value) ruby.Value {
 	value := error_execution_value(['env', 'PATH=/bin', 'cat', 'with spaces'], [], false)
-	return brew_runtime.bool_value(error_execution_message(value) == 'Failure while executing; `env PATH=/bin cat with\\ spaces` exited with 1.')
+	return ruby.bool_value(error_execution_message(value) == 'Failure while executing; `env PATH=/bin cat with\\ spaces` exited with 1.')
 }
 
 // Original Ruby source (line-for-line):

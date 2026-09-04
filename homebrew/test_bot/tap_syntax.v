@@ -1,6 +1,6 @@
 module test_bot
 
-import brew_runtime
+import ruby
 
 pub struct TapSyntaxInput {
 pub:
@@ -30,7 +30,7 @@ pub:
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `run!(args:)` at line 8.
-pub fn ruby_tap_syntax_l8_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tap_syntax_l8_d1_run(args ...ruby.Value) ruby.Value {
 	input := TapSyntaxInput{
 		tap_name: if args.len > 0 { args[0].as_string() } else { '' }
 		tap_path: if args.len > 1 { args[1].as_string() } else { '' }
@@ -42,10 +42,10 @@ pub fn ruby_tap_syntax_l8_d1_run(args ...brew_runtime.Value) brew_runtime.Value 
 		has_cask_files: args.len > 7 && args[7].bool_data
 	}
 	run := tap_syntax_run(input)
-	return brew_runtime.map_value({
-		'header':      brew_runtime.string_value(run.header)
-		'commands':    brew_runtime.array_value(run.steps.map(brew_runtime.string_array_value(it.command)))
-		'removed_env': brew_runtime.array_value(run.steps.map(brew_runtime.string_array_value(it.removed_env)))
+	return ruby.map_value({
+		'header':      ruby.string_value(run.header)
+		'commands':    ruby.array_value(run.steps.map(ruby.string_array_value(it.command)))
+		'removed_env': ruby.array_value(run.steps.map(ruby.string_array_value(it.removed_env)))
 	})
 }
 

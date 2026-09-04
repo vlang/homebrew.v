@@ -1,6 +1,6 @@
 module strategy
 
-import brew_runtime
+import ruby
 import homebrew.livecheck
 import homebrew.livecheck.strategy as bitbucket_core
 import homebrew.utils
@@ -43,8 +43,8 @@ fn bitbucket_spec_match_data_equal(left bitbucket_core.PageMatchData,
 }
 
 // Ruby subject `subject(:bitbucket) { described_class }` at line 7.
-pub fn ruby_bitbucket_spec_l7_d1_bitbucket() brew_runtime.Value {
-	return brew_runtime.object_value('Class', 'Homebrew::Livecheck::Strategy::Bitbucket')
+pub fn ruby_bitbucket_spec_l7_d1_bitbucket() ruby.Value {
+	return ruby.object_value('Class', 'Homebrew::Livecheck::Strategy::Bitbucket')
 }
 
 // Ruby let `let(:bitbucket_urls) do` at line 9.

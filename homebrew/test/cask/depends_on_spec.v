@@ -1,6 +1,6 @@
 module cask
 
-import brew_runtime
+import ruby
 import homebrew
 import homebrew.cask.dsl as depends_on_dsl
 
@@ -8,27 +8,27 @@ import homebrew.cask.dsl as depends_on_dsl
 // The original source is retained below until every stub has a typed V body.
 const depends_on_spec_default_macos = '26'
 
-fn depends_on_spec_bool(value bool) brew_runtime.Value {
-	return brew_runtime.bool_value(value)
+fn depends_on_spec_bool(value bool) ruby.Value {
+	return ruby.bool_value(value)
 }
 
-fn depends_on_spec_symbol(value string) brew_runtime.Value {
-	return brew_runtime.Value{
+fn depends_on_spec_symbol(value string) ruby.Value {
+	return ruby.Value{
 		type_name: 'Symbol'
 		repr: value
 	}
 }
 
-fn depends_on_spec_pairs(token string) map[string]brew_runtime.Value {
+fn depends_on_spec_pairs(token string) map[string]ruby.Value {
 	return match token {
 		'with-depends-on-cask' {
 			{
-				'cask': brew_runtime.string_value('local-transmission-zip')
+				'cask': ruby.string_value('local-transmission-zip')
 			}
 		}
 		'with-depends-on-cask-cyclic' {
 			{
-				'cask': brew_runtime.string_array_value([
+				'cask': ruby.string_array_value([
 					'local-caffeine',
 					'with-depends-on-cask-cyclic-helper',
 				])
@@ -36,12 +36,12 @@ fn depends_on_spec_pairs(token string) map[string]brew_runtime.Value {
 		}
 		'with-depends-on-cask-cyclic-helper' {
 			{
-				'cask': brew_runtime.string_value('with-depends-on-cask-cyclic')
+				'cask': ruby.string_value('with-depends-on-cask-cyclic')
 			}
 		}
 		'with-depends-on-macos-array' {
 			{
-				'macos': brew_runtime.array_value([
+				'macos': ruby.array_value([
 					depends_on_spec_symbol('catalina'),
 					depends_on_spec_symbol(depends_on_spec_default_macos),
 				])
@@ -64,13 +64,13 @@ fn depends_on_spec_pairs(token string) map[string]brew_runtime.Value {
 		}
 		'with-depends-on-arch' {
 			{
-				'arch': brew_runtime.array_value([
+				'arch': ruby.array_value([
 					depends_on_spec_symbol('intel'),
 					depends_on_spec_symbol('arm64'),
 				])
 			}
 		}
-		else { map[string]brew_runtime.Value{} }
+		else { map[string]ruby.Value{} }
 	}
 }
 
@@ -80,20 +80,20 @@ fn depends_on_spec_typed(token string) !depends_on_dsl.CaskDependsOn {
 	return depends_on
 }
 
-fn depends_on_spec_cask(token string) brew_runtime.Value {
+fn depends_on_spec_cask(token string) ruby.Value {
 	depends_on := depends_on_spec_typed(token) or {
-		return brew_runtime.object_value('CaskError', err.msg())
+		return ruby.object_value('CaskError', err.msg())
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'Cask::Cask'
 		repr: token
 		map_data: {
-			'token':            brew_runtime.string_value(token)
+			'token':            ruby.string_value(token)
 			'depends_on':       depends_on_dsl.cask_depends_on_value(depends_on)
-			'current_macos':    brew_runtime.string_value(depends_on_spec_default_macos)
-			'running_on_macos': brew_runtime.bool_value(true)
-			'current_arch':     brew_runtime.string_value('arm')
-			'current_bits':     brew_runtime.int_value(64)
+			'current_macos':    ruby.string_value(depends_on_spec_default_macos)
+			'running_on_macos': ruby.bool_value(true)
+			'current_arch':     ruby.string_value('arm')
+			'current_bits':     ruby.int_value(64)
 		}
 		attributes: {
 			'token': token
@@ -101,18 +101,18 @@ fn depends_on_spec_cask(token string) brew_runtime.Value {
 	}
 }
 
-fn depends_on_spec_fixture(token string) brew_runtime.Value {
+fn depends_on_spec_fixture(token string) ruby.Value {
 	return depends_on_spec_cask(token)
 }
 
-fn depends_on_spec_token(cask brew_runtime.Value) !string {
+fn depends_on_spec_token(cask ruby.Value) !string {
 	if cask.type_name != 'Cask::Cask' {
 		return error('expected Cask::Cask, got ${cask.type_name}')
 	}
 	return (cask.map_data['token'] or { return error('cask has no token') }).as_string()
 }
 
-fn depends_on_spec_dependencies(cask brew_runtime.Value) ![]string {
+fn depends_on_spec_dependencies(cask ruby.Value) ![]string {
 	raw := cask.map_data['depends_on'] or { return error('cask has no depends_on stanza') }
 	return depends_on_dsl.cask_depends_on_from_value(raw)!.casks.clone()
 }
@@ -135,14 +135,14 @@ fn depends_on_spec_dependency_reaches(target string, token string, mut seen []st
 	return false
 }
 
-fn depends_on_spec_requirement_error(cask brew_runtime.Value) ! {
+fn depends_on_spec_requirement_error(cask ruby.Value) ! {
 	token := depends_on_spec_token(cask)!
 	depends_on := depends_on_spec_typed(token)!
 	current_macos := homebrew.new_macos_version((cask.map_data['current_macos'] or {
-		brew_runtime.string_value(depends_on_spec_default_macos)
+		ruby.string_value(depends_on_spec_default_macos)
 	}).as_string())!
 	running_on_macos := (cask.map_data['running_on_macos'] or {
-		brew_runtime.bool_value(true)
+		ruby.bool_value(true)
 	}).as_bool()!
 	if requirement := depends_on.macos {
 		if !requirement.satisfied_on(current_macos, running_on_macos) {
@@ -156,10 +156,10 @@ fn depends_on_spec_requirement_error(cask brew_runtime.Value) ! {
 	}
 	if depends_on.arch.len > 0 {
 		current_arch := (cask.map_data['current_arch'] or {
-			brew_runtime.string_value('arm')
+			ruby.string_value('arm')
 		}).as_string()
 		current_bits := int((cask.map_data['current_bits'] or {
-			brew_runtime.int_value(64)
+			ruby.int_value(64)
 		}).as_int()!)
 		if !depends_on.arch.any(it.kind == current_arch && it.bits == current_bits) {
 			return error('This cask depends on an unsupported hardware architecture.')
@@ -180,26 +180,26 @@ fn depends_on_spec_collect_installs(token string, mut visited []string, mut inst
 	installed << token
 }
 
-fn depends_on_spec_install(cask brew_runtime.Value) brew_runtime.Value {
+fn depends_on_spec_install(cask ruby.Value) ruby.Value {
 	token := depends_on_spec_token(cask) or {
-		return brew_runtime.Value{
+		return ruby.Value{
 			type_name: 'Cask::InstallResult'
 			repr: err.msg()
 			map_data: {
-				'installed':     brew_runtime.string_array_value([])
-				'error_type':    brew_runtime.string_value('CaskError')
-				'error_message': brew_runtime.string_value(err.msg())
+				'installed':     ruby.string_array_value([])
+				'error_type':    ruby.string_value('CaskError')
+				'error_message': ruby.string_value(err.msg())
 			}
 		}
 	}
 	direct_dependencies := depends_on_spec_dependencies(cask) or {
-		return brew_runtime.Value{
+		return ruby.Value{
 			type_name: 'Cask::InstallResult'
 			repr: err.msg()
 			map_data: {
-				'installed':     brew_runtime.string_array_value([])
-				'error_type':    brew_runtime.string_value('CaskError')
-				'error_message': brew_runtime.string_value(err.msg())
+				'installed':     ruby.string_array_value([])
+				'error_type':    ruby.string_value('CaskError')
+				'error_message': ruby.string_value(err.msg())
 			}
 		}
 	}
@@ -212,24 +212,24 @@ fn depends_on_spec_install(cask brew_runtime.Value) brew_runtime.Value {
 	}
 	if cyclic_dependencies.len > 0 {
 		message := "Cask '${token}' includes cyclic dependencies on other Casks: ${cyclic_dependencies.join(', ')}"
-		return brew_runtime.Value{
+		return ruby.Value{
 			type_name: 'Cask::InstallResult'
 			repr: message
 			map_data: {
-				'installed':     brew_runtime.string_array_value([])
-				'error_type':    brew_runtime.string_value('Cask::CaskCyclicDependencyError')
-				'error_message': brew_runtime.string_value(message)
+				'installed':     ruby.string_array_value([])
+				'error_type':    ruby.string_value('Cask::CaskCyclicDependencyError')
+				'error_message': ruby.string_value(message)
 			}
 		}
 	}
 	depends_on_spec_requirement_error(cask) or {
-		return brew_runtime.Value{
+		return ruby.Value{
 			type_name: 'Cask::InstallResult'
 			repr: err.msg()
 			map_data: {
-				'installed':     brew_runtime.string_array_value([])
-				'error_type':    brew_runtime.string_value('Cask::CaskError')
-				'error_message': brew_runtime.string_value(err.msg())
+				'installed':     ruby.string_array_value([])
+				'error_type':    ruby.string_value('Cask::CaskError')
+				'error_message': ruby.string_value(err.msg())
 			}
 		}
 	}
@@ -237,13 +237,13 @@ fn depends_on_spec_install(cask brew_runtime.Value) brew_runtime.Value {
 	mut installed := []string{}
 	for dependency in direct_dependencies {
 		depends_on_spec_collect_installs(dependency, mut visited, mut installed) or {
-			return brew_runtime.Value{
+			return ruby.Value{
 				type_name: 'Cask::InstallResult'
 				repr: err.msg()
 				map_data: {
-					'installed':     brew_runtime.string_array_value(installed)
-					'error_type':    brew_runtime.string_value('Cask::CaskError')
-					'error_message': brew_runtime.string_value(err.msg())
+					'installed':     ruby.string_array_value(installed)
+					'error_type':    ruby.string_value('Cask::CaskError')
+					'error_message': ruby.string_value(err.msg())
 				}
 			}
 		}
@@ -251,47 +251,47 @@ fn depends_on_spec_install(cask brew_runtime.Value) brew_runtime.Value {
 	if token !in installed {
 		installed << token
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'Cask::InstallResult'
 		repr: installed.str()
 		map_data: {
-			'installed':     brew_runtime.string_array_value(installed)
-			'error_type':    brew_runtime.string_value('')
-			'error_message': brew_runtime.string_value('')
+			'installed':     ruby.string_array_value(installed)
+			'error_type':    ruby.string_value('')
+			'error_message': ruby.string_value('')
 		}
 	}
 }
 
-fn depends_on_spec_result_passed(result brew_runtime.Value) bool {
-	return result.type_name == 'Cask::InstallResult' && (result.map_data['error_type'] or { brew_runtime.string_value('missing') }).as_string() == ''
+fn depends_on_spec_result_passed(result ruby.Value) bool {
+	return result.type_name == 'Cask::InstallResult' && (result.map_data['error_type'] or { ruby.string_value('missing') }).as_string() == ''
 }
 
 // Ruby subject `subject(:install) do` at line 9.
-pub fn ruby_depends_on_spec_l9_d1_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_depends_on_spec_l9_d1_install(args ...ruby.Value) ruby.Value {
 	cask := if args.len > 0 { args[0] } else { depends_on_spec_fixture('with-depends-on-cask') }
 	return depends_on_spec_install(cask)
 }
 
 // Ruby let `let(:cask) { Cask::CaskLoader.load(cask_path("with-depends-on-cask")) }` at line 13.
-pub fn ruby_depends_on_spec_l13_d2_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_depends_on_spec_l13_d2_cask(args ...ruby.Value) ruby.Value {
 	_ = args
 	return depends_on_spec_fixture('with-depends-on-cask')
 }
 
 // Ruby let `let(:dependency) { Cask::CaskLoader.load(cask.depends_on.cask.first) }` at line 16.
-pub fn ruby_depends_on_spec_l16_d3_dependency(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_depends_on_spec_l16_d3_dependency(args ...ruby.Value) ruby.Value {
 	cask := if args.len > 0 { args[0] } else { depends_on_spec_fixture('with-depends-on-cask') }
 	dependencies := depends_on_spec_dependencies(cask) or {
-		return brew_runtime.object_value('CaskError', err.msg())
+		return ruby.object_value('CaskError', err.msg())
 	}
 	if dependencies.len == 0 {
-		return brew_runtime.object_value('CaskError', 'cask has no cask dependency')
+		return ruby.object_value('CaskError', 'cask has no cask dependency')
 	}
 	return depends_on_spec_fixture(dependencies[0])
 }
 
 // Ruby it `it "installs the dependency of a Cask and the Cask itself" do` at line 18.
-pub fn ruby_depends_on_spec_l18_d4_installs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_depends_on_spec_l18_d4_installs(args ...ruby.Value) ruby.Value {
 	cask := if args.len > 0 { args[0] } else { ruby_depends_on_spec_l13_d2_cask() }
 	dependency := ruby_depends_on_spec_l16_d3_dependency(cask)
 	result := ruby_depends_on_spec_l9_d1_install(cask)
@@ -302,13 +302,13 @@ pub fn ruby_depends_on_spec_l18_d4_installs(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby let `let(:cask) { Cask::CaskLoader.load(cask_path("with-depends-on-cask-cyclic")) }` at line 25.
-pub fn ruby_depends_on_spec_l25_d5_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_depends_on_spec_l25_d5_cask(args ...ruby.Value) ruby.Value {
 	_ = args
 	return depends_on_spec_fixture('with-depends-on-cask-cyclic')
 }
 
 // Ruby it `it {` at line 27.
-pub fn ruby_depends_on_spec_l27_d6_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_depends_on_spec_l27_d6_anonymous(args ...ruby.Value) ruby.Value {
 	cask := if args.len > 0 { args[0] } else { ruby_depends_on_spec_l25_d5_cask() }
 	result := ruby_depends_on_spec_l9_d1_install(cask)
 	error_type := (result.map_data['error_type'] or { return depends_on_spec_bool(false) }).as_string()
@@ -317,49 +317,49 @@ pub fn ruby_depends_on_spec_l27_d6_anonymous(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby let `let(:cask) { Cask::CaskLoader.load(cask_path("with-depends-on-macos-array")) }` at line 39.
-pub fn ruby_depends_on_spec_l39_d7_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_depends_on_spec_l39_d7_cask(args ...ruby.Value) ruby.Value {
 	_ = args
 	return depends_on_spec_fixture('with-depends-on-macos-array')
 }
 
 // Ruby it `it "does not raise an error" do` at line 41.
-pub fn ruby_depends_on_spec_l41_d8_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_depends_on_spec_l41_d8_does(args ...ruby.Value) ruby.Value {
 	cask := if args.len > 0 { args[0] } else { ruby_depends_on_spec_l39_d7_cask() }
 	return depends_on_spec_bool(depends_on_spec_result_passed(ruby_depends_on_spec_l9_d1_install(cask)))
 }
 
 // Ruby let `let(:cask) { Cask::CaskLoader.load(cask_path("with-depends-on-macos-comparison")) }` at line 47.
-pub fn ruby_depends_on_spec_l47_d9_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_depends_on_spec_l47_d9_cask(args ...ruby.Value) ruby.Value {
 	_ = args
 	return depends_on_spec_fixture('with-depends-on-macos-comparison')
 }
 
 // Ruby it `it "does not raise an error" do` at line 49.
-pub fn ruby_depends_on_spec_l49_d10_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_depends_on_spec_l49_d10_does(args ...ruby.Value) ruby.Value {
 	cask := if args.len > 0 { args[0] } else { ruby_depends_on_spec_l47_d9_cask() }
 	return depends_on_spec_bool(depends_on_spec_result_passed(ruby_depends_on_spec_l9_d1_install(cask)))
 }
 
 // Ruby let `let(:cask) { Cask::CaskLoader.load(cask_path("with-depends-on-macos-symbol")) }` at line 55.
-pub fn ruby_depends_on_spec_l55_d11_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_depends_on_spec_l55_d11_cask(args ...ruby.Value) ruby.Value {
 	_ = args
 	return depends_on_spec_fixture('with-depends-on-macos-symbol')
 }
 
 // Ruby it `it "does not raise an error" do` at line 57.
-pub fn ruby_depends_on_spec_l57_d12_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_depends_on_spec_l57_d12_does(args ...ruby.Value) ruby.Value {
 	cask := if args.len > 0 { args[0] } else { ruby_depends_on_spec_l55_d11_cask() }
 	return depends_on_spec_bool(depends_on_spec_result_passed(ruby_depends_on_spec_l9_d1_install(cask)))
 }
 
 // Ruby let `let(:cask) { Cask::CaskLoader.load(cask_path("with-depends-on-macos-failure")) }` at line 63.
-pub fn ruby_depends_on_spec_l63_d13_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_depends_on_spec_l63_d13_cask(args ...ruby.Value) ruby.Value {
 	_ = args
 	return depends_on_spec_fixture('with-depends-on-macos-failure')
 }
 
 // Ruby it `it "raises an error" do` at line 65.
-pub fn ruby_depends_on_spec_l65_d14_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_depends_on_spec_l65_d14_raises(args ...ruby.Value) ruby.Value {
 	cask := if args.len > 0 { args[0] } else { ruby_depends_on_spec_l63_d13_cask() }
 	result := ruby_depends_on_spec_l9_d1_install(cask)
 	error_type := (result.map_data['error_type'] or { return depends_on_spec_bool(false) }).as_string()
@@ -368,13 +368,13 @@ pub fn ruby_depends_on_spec_l65_d14_raises(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby let `let(:cask) { Cask::CaskLoader.load(cask_path("with-depends-on-arch")) }` at line 74.
-pub fn ruby_depends_on_spec_l74_d15_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_depends_on_spec_l74_d15_cask(args ...ruby.Value) ruby.Value {
 	_ = args
 	return depends_on_spec_fixture('with-depends-on-arch')
 }
 
 // Ruby it `it "does not raise an error" do` at line 76.
-pub fn ruby_depends_on_spec_l76_d16_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_depends_on_spec_l76_d16_does(args ...ruby.Value) ruby.Value {
 	cask := if args.len > 0 { args[0] } else { ruby_depends_on_spec_l74_d15_cask() }
 	return depends_on_spec_bool(depends_on_spec_result_passed(ruby_depends_on_spec_l9_d1_install(cask)))
 }

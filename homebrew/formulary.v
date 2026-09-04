@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 import crypto.md5
 import crypto.sha256
 import homebrew.api
@@ -247,7 +247,7 @@ fn formulary_append_unique(mut values []string, value string) {
 	if value != '' && value !in values { values << value }
 }
 
-fn formulary_dependency_tags(value brew_runtime.Value) []string {
+fn formulary_dependency_tags(value ruby.Value) []string {
 	if value.type_name == 'Array' {
 		items := value.as_array() or { return []string{} }
 		return items.map(it.as_string().trim_string_left(':'))
@@ -255,7 +255,7 @@ fn formulary_dependency_tags(value brew_runtime.Value) []string {
 	return [value.as_string().trim_string_left(':')]
 }
 
-fn formulary_dependency_groups(values []brew_runtime.Value,
+fn formulary_dependency_groups(values []ruby.Value,
 	uses_from_macos []api.ApiStructArgPair) FormularyDependencyGroups {
 	mut groups := FormularyDependencyGroups{}
 	for value in values {
@@ -286,8 +286,8 @@ fn formulary_dependency_groups(values []brew_runtime.Value,
 	return groups
 }
 
-fn formulary_value_string(values map[string]brew_runtime.Value, key string) string {
-	return (values[key] or { brew_runtime.string_value('') }).as_string().trim_string_left(':')
+fn formulary_value_string(values map[string]ruby.Value, key string) string {
+	return (values[key] or { ruby.string_value('') }).as_string().trim_string_left(':')
 }
 
 fn formulary_action_active(present bool, date string) bool {
@@ -307,7 +307,7 @@ fn formulary_arg_pair_strings(values []api.ApiStructArgPair) []string {
 	return result
 }
 
-fn formulary_patch_resolutions(values []brew_runtime.Value) []string {
+fn formulary_patch_resolutions(values []ruby.Value) []string {
 	mut resolutions := []string{}
 	for value in values {
 		patch := value.as_map() or { continue }
@@ -377,16 +377,16 @@ pub:
 }
 
 pub fn default_formulary_lookup_config() FormularyLookupConfig {
-	prefix := brew_runtime.environment_value('HOMEBREW_PREFIX')
-	cellar := brew_runtime.environment_value('HOMEBREW_CELLAR')
-	api_cache := brew_runtime.environment_value('HOMEBREW_API_CACHE')
-	without_api := brew_runtime.environment_value('HOMEBREW_NO_INSTALL_FROM_API') != ''
-	api_domain := brew_runtime.environment_value('HOMEBREW_API_DOMAIN')
+	prefix := ruby.environment_value('HOMEBREW_PREFIX')
+	cellar := ruby.environment_value('HOMEBREW_CELLAR')
+	api_cache := ruby.environment_value('HOMEBREW_API_CACHE')
+	without_api := ruby.environment_value('HOMEBREW_NO_INSTALL_FROM_API') != ''
+	api_domain := ruby.environment_value('HOMEBREW_API_DOMAIN')
 	return FormularyLookupConfig{
-		formula_directory: brew_runtime.environment_value('HOMEBREW_CORE_FORMULA_DIR')
+		formula_directory: ruby.environment_value('HOMEBREW_CORE_FORMULA_DIR')
 		prefix: prefix
 		cellar: if cellar == '' && prefix != '' {
-			brew_runtime.join_path(prefix, 'Cellar')} else {
+			ruby.join_path(prefix, 'Cellar')} else {
 			cellar}
 		api: api.FormulaLookupConfig{
 			api_base_url: if api_domain == '' {
@@ -602,12 +602,12 @@ pub fn formulary_from_keg_default(keg Keg) !Formula {
 pub fn formulary_from_rack(rack string, spec string, alias_path string, force_bottle bool,
 	flags []string, config FormularyLookupConfig) !Formula {
 	prefix := if config.prefix == '' {
-		brew_runtime.environment_value('HOMEBREW_PREFIX')
+		ruby.environment_value('HOMEBREW_PREFIX')
 	} else {
 		config.prefix
 	}
 	cellar := if config.cellar == '' {
-		if prefix == '' { os.dir(rack) } else { brew_runtime.join_path(prefix, 'Cellar') }
+		if prefix == '' { os.dir(rack) } else { ruby.join_path(prefix, 'Cellar') }
 	} else {
 		config.cellar
 	}
@@ -620,25 +620,25 @@ pub fn formulary_from_rack(rack string, spec string, alias_path string, force_bo
 pub fn formulary_to_rack(ref string, config FormularyLookupConfig) !string {
 	cellar := if config.cellar == '' {
 		prefix := if config.prefix == '' {
-			brew_runtime.environment_value('HOMEBREW_PREFIX')
+			ruby.environment_value('HOMEBREW_PREFIX')
 		} else {
 			config.prefix
 		}
-		brew_runtime.join_path(prefix, 'Cellar')
+		ruby.join_path(prefix, 'Cellar')
 	} else {
 		config.cellar
 	}
-	direct := brew_runtime.join_path(cellar, os.base(ref).trim_string_right('.rb').trim_string_right('.json'))
-	if brew_runtime.is_dir(direct) {
-		return brew_runtime.real_path(direct)
+	direct := ruby.join_path(cellar, os.base(ref).trim_string_right('.rb').trim_string_right('.json'))
+	if ruby.is_dir(direct) {
+		return ruby.real_path(direct)
 	}
 	canonical := formulary_factory_reference(ref, config)!.name
-	return brew_runtime.real_path(brew_runtime.join_path(cellar, canonical))
+	return ruby.real_path(ruby.join_path(cellar, canonical))
 }
 
 pub fn formulary_resolve(ref string, spec string, force_bottle bool, flags []string,
 	config FormularyLookupConfig) !Formula {
-	mut formula := if ref.contains('/') || brew_runtime.path_exists(ref) {
+	mut formula := if ref.contains('/') || ruby.path_exists(ref) {
 		mut explicit := formulary_factory(ref, spec, '', force_bottle, flags, config)!
 		if explicit.any_version_installed() {
 			tab := tab_for_formula(explicit)
@@ -1306,7 +1306,7 @@ pub fn ruby_formulary_l997_d67_self_factory(ref string,
 }
 
 // Ruby method `self.from_rack(rack, spec = nil, alias_path: nil, force_bottle: false, flags: [], keg: Keg.from_rack(rack))` at line 1035.
-pub fn ruby_formulary_l1035_d68_self_from_rack(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formulary_l1035_d68_self_from_rack(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Formulary.from_rack requires a rack') }
 	spec := if args.len > 1 && args[1].type_name != 'NilClass' { args[1].as_string() } else { '' }
 	formula := formulary_from_rack(args[0].as_string(), spec, '', false, []string{}, default_formulary_lookup_config()) or { panic(err) }
@@ -1314,14 +1314,14 @@ pub fn ruby_formulary_l1035_d68_self_from_rack(args ...brew_runtime.Value) brew_
 }
 
 // Ruby method `self.keg_only?(rack)` at line 1051.
-pub fn ruby_formulary_l1051_d69_self_keg_only(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formulary_l1051_d69_self_keg_only(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Formulary.keg_only? requires a rack') }
-	formula := formulary_from_rack(args[0].as_string(), '', '', false, []string{}, default_formulary_lookup_config()) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(formula.keg_only())
+	formula := formulary_from_rack(args[0].as_string(), '', '', false, []string{}, default_formulary_lookup_config()) or { return ruby.bool_value(false) }
+	return ruby.bool_value(formula.keg_only())
 }
 
 // Ruby method `self.from_keg(` at line 1068.
-pub fn ruby_formulary_l1068_d70_self_from_keg(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formulary_l1068_d70_self_from_keg(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Formulary.from_keg requires a Keg') }
 	keg := keg_from_boundary(args[0])
 	spec := if args.len > 1 && args[1].type_name != 'NilClass' { args[1].as_string() } else { '' }
@@ -1339,12 +1339,12 @@ pub fn ruby_formulary_l1119_d71_self_from_contents(name string, path string, con
 }
 
 // Ruby method `self.to_rack(ref)` at line 1135.
-pub fn ruby_formulary_l1135_d72_self_to_rack(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formulary_l1135_d72_self_to_rack(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Formulary.to_rack requires a reference') }
 	path := formulary_to_rack(args[0].as_string(), default_formulary_lookup_config()) or {
 		panic(err)
 	}
-	return brew_runtime.object_value('Pathname', path)
+	return ruby.object_value('Pathname', path)
 }
 
 // Ruby method `self.canonical_name(ref)` at line 1156.

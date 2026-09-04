@@ -1,21 +1,21 @@
 module types
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/types/enum.rb`.
 // The original source is retained below until every stub has a typed V body.
 @[heap]
 pub struct EnumType {
 pub:
-	values  brew_runtime.Value
-	members []brew_runtime.Value
+	values  ruby.Value
+	members []ruby.Value
 }
 
-pub fn new_enum_type(values brew_runtime.Value) !&EnumType {
-	mut members := []brew_runtime.Value{}
+pub fn new_enum_type(values ruby.Value) !&EnumType {
+	mut members := []ruby.Value{}
 	if values.type_name == 'Hash' {
 		for key, _ in values.map_data {
-			members << brew_runtime.string_value(key)
+			members << ruby.string_value(key)
 		}
 	} else {
 		for value in values.as_array()! {
@@ -30,19 +30,19 @@ pub fn new_enum_type(values brew_runtime.Value) !&EnumType {
 	}
 }
 
-fn enum_values_equal(left brew_runtime.Value, right brew_runtime.Value) bool {
+fn enum_values_equal(left ruby.Value, right ruby.Value) bool {
 	return left.type_name == right.type_name && left.repr == right.repr && left.bool_data == right.bool_data && left.int_data == right.int_data && left.float_data == right.float_data && left.string_array_data == right.string_array_data && left.array_data == right.array_data && left.map_data == right.map_data && left.attributes == right.attributes
 }
 
-fn enum_members_contain(values []brew_runtime.Value, candidate brew_runtime.Value) bool {
+fn enum_members_contain(values []ruby.Value, candidate ruby.Value) bool {
 	return values.any(enum_values_equal(it, candidate))
 }
 
-pub fn (_ &EnumType) build_type() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+pub fn (_ &EnumType) build_type() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-pub fn (enum_type &EnumType) valid(value brew_runtime.Value) bool {
+pub fn (enum_type &EnumType) valid(value ruby.Value) bool {
 	return enum_members_contain(enum_type.members, value)
 }
 
@@ -50,7 +50,7 @@ pub fn (enum_type &EnumType) subtype_of(other &EnumType) bool {
 	return enum_type.members.all(enum_members_contain(other.members, it))
 }
 
-fn enum_inspect(value brew_runtime.Value) string {
+fn enum_inspect(value ruby.Value) string {
 	if value.type_name == 'String' {
 		return '"${value.repr.replace('\\', '\\\\').replace('"', '\\"')}"'
 	}
@@ -63,12 +63,12 @@ pub fn (enum_type &EnumType) name() string {
 	return 'T.deprecated_enum([${names.join(', ')}])'
 }
 
-pub fn (_ &EnumType) describe_obj(value brew_runtime.Value) string {
+pub fn (_ &EnumType) describe_obj(value ruby.Value) string {
 	return enum_inspect(value)
 }
 
-fn enum_type_value(enum_type &EnumType) brew_runtime.Value {
-	return brew_runtime.Value{
+fn enum_type_value(enum_type &EnumType) ruby.Value {
+	return ruby.Value{
 		type_name: 'T::Types::Enum'
 		repr: enum_type.name()
 		map_data: {
@@ -80,7 +80,7 @@ fn enum_type_value(enum_type &EnumType) brew_runtime.Value {
 	}
 }
 
-fn enum_type_from_args(args []brew_runtime.Value) &EnumType {
+fn enum_type_from_args(args []ruby.Value) &EnumType {
 	if args.len == 0 {
 		panic('Enum method requires a receiver')
 	}
@@ -89,12 +89,12 @@ fn enum_type_from_args(args []brew_runtime.Value) &EnumType {
 }
 
 // Ruby attr_reader `attr_reader :values` at line 9.
-pub fn ruby_enum_l9_d1_values(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_enum_l9_d1_values(args ...ruby.Value) ruby.Value {
 	return enum_type_from_args(args).values
 }
 
 // Ruby method `initialize(values)` at line 11.
-pub fn ruby_enum_l11_d2_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_enum_l11_d2_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Enum#initialize requires values')
 	}
@@ -102,38 +102,38 @@ pub fn ruby_enum_l11_d2_initialize(args ...brew_runtime.Value) brew_runtime.Valu
 }
 
 // Ruby method `build_type` at line 21.
-pub fn ruby_enum_l21_d3_build_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_enum_l21_d3_build_type(args ...ruby.Value) ruby.Value {
 	return enum_type_from_args(args).build_type()
 }
 
 // Ruby method `valid?(obj)` at line 26.
-pub fn ruby_enum_l26_d4_valid(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_enum_l26_d4_valid(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Enum#valid? requires an object')
 	}
-	return brew_runtime.bool_value(enum_type_from_args(args).valid(args[1]))
+	return ruby.bool_value(enum_type_from_args(args).valid(args[1]))
 }
 
 // Ruby method `subtype_of_single?(other)` at line 31.
-pub fn ruby_enum_l31_d5_subtype_of_single(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_enum_l31_d5_subtype_of_single(args ...ruby.Value) ruby.Value {
 	if args.len < 2 || args[1].type_name != 'T::Types::Enum' {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	other := enum_type_from_args(args[1..])
-	return brew_runtime.bool_value(enum_type_from_args(args).subtype_of(other))
+	return ruby.bool_value(enum_type_from_args(args).subtype_of(other))
 }
 
 // Ruby method `name` at line 41.
-pub fn ruby_enum_l41_d6_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(enum_type_from_args(args).name())
+pub fn ruby_enum_l41_d6_name(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(enum_type_from_args(args).name())
 }
 
 // Ruby method `describe_obj(obj)` at line 46.
-pub fn ruby_enum_l46_d7_describe_obj(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_enum_l46_d7_describe_obj(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Enum#describe_obj requires an object')
 	}
-	return brew_runtime.string_value(enum_type_from_args(args).describe_obj(args[1]))
+	return ruby.string_value(enum_type_from_args(args).describe_obj(args[1]))
 }
 
 // Original Ruby source (line-for-line):

@@ -1,6 +1,6 @@
 module startup
 
-import brew_runtime
+import ruby
 import crypto.sha256
 import os
 
@@ -193,49 +193,49 @@ pub fn bootsnap_prewarm(environment BootsnapEnvironment,
 	}
 }
 
-fn bootsnap_value_string(values map[string]brew_runtime.Value, key string,
+fn bootsnap_value_string(values map[string]ruby.Value, key string,
 	fallback string) string {
 	return if key in values { values[key].as_string() } else { fallback }
 }
 
-fn bootsnap_value_bool(values map[string]brew_runtime.Value, key string, fallback bool) bool {
+fn bootsnap_value_bool(values map[string]ruby.Value, key string, fallback bool) bool {
 	return if key in values { values[key].as_bool() or { fallback } } else { fallback }
 }
 
-fn bootsnap_value_strings(values map[string]brew_runtime.Value, key string) []string {
+fn bootsnap_value_strings(values map[string]ruby.Value, key string) []string {
 	return if key in values { values[key].as_string_array() or { []string{} } } else { []string{} }
 }
 
-fn bootsnap_value_int(values map[string]brew_runtime.Value, key string, fallback int) int {
+fn bootsnap_value_int(values map[string]ruby.Value, key string, fallback int) int {
 	return if key in values { int(values[key].as_int() or { i64(fallback) }) } else { fallback }
 }
 
-pub fn bootsnap_boundary_value(input BootsnapBoundaryInput) brew_runtime.Value {
+pub fn bootsnap_boundary_value(input BootsnapBoundaryInput) ruby.Value {
 	environment := input.environment
-	return brew_runtime.map_value({
-		'ruby_version':       brew_runtime.string_value(environment.ruby_version)
-		'ruby_platform':      brew_runtime.string_value(environment.ruby_platform)
-		'gem_directories':    brew_runtime.string_array_value(environment.gem_directories)
-		'cache':              brew_runtime.string_value(environment.cache)
-		'cache_set':          brew_runtime.bool_value(environment.cache_set)
-		'default_cache':      brew_runtime.string_value(environment.default_cache)
-		'default_cache_set':  brew_runtime.bool_value(environment.default_cache_set)
-		'library_path':       brew_runtime.string_value(environment.library_path)
-		'gem_path':           brew_runtime.string_value(environment.gem_path)
-		'no_bootsnap_set':    brew_runtime.bool_value(environment.no_bootsnap_set)
-		'tests_set':          brew_runtime.bool_value(environment.tests_set)
-		'tests_coverage_set': brew_runtime.bool_value(environment.tests_coverage_set)
-		'ruby_exec_args':     brew_runtime.string_array_value(environment.ruby_exec_args)
-		'load_path':          brew_runtime.string_array_value(environment.load_path)
-		'gem_available':      brew_runtime.bool_value(input.gem_available)
-		'compile_cache':      brew_runtime.bool_value(input.compile_cache)
-		'pid':                brew_runtime.int_value(input.pid)
-		'spawn_error':        brew_runtime.string_value(input.spawn_error)
-		'detach_error':       brew_runtime.string_value(input.detach_error)
+	return ruby.map_value({
+		'ruby_version':       ruby.string_value(environment.ruby_version)
+		'ruby_platform':      ruby.string_value(environment.ruby_platform)
+		'gem_directories':    ruby.string_array_value(environment.gem_directories)
+		'cache':              ruby.string_value(environment.cache)
+		'cache_set':          ruby.bool_value(environment.cache_set)
+		'default_cache':      ruby.string_value(environment.default_cache)
+		'default_cache_set':  ruby.bool_value(environment.default_cache_set)
+		'library_path':       ruby.string_value(environment.library_path)
+		'gem_path':           ruby.string_value(environment.gem_path)
+		'no_bootsnap_set':    ruby.bool_value(environment.no_bootsnap_set)
+		'tests_set':          ruby.bool_value(environment.tests_set)
+		'tests_coverage_set': ruby.bool_value(environment.tests_coverage_set)
+		'ruby_exec_args':     ruby.string_array_value(environment.ruby_exec_args)
+		'load_path':          ruby.string_array_value(environment.load_path)
+		'gem_available':      ruby.bool_value(input.gem_available)
+		'compile_cache':      ruby.bool_value(input.compile_cache)
+		'pid':                ruby.int_value(input.pid)
+		'spawn_error':        ruby.string_value(input.spawn_error)
+		'detach_error':       ruby.string_value(input.detach_error)
 	})
 }
 
-fn bootsnap_boundary_from_value(value brew_runtime.Value) !BootsnapBoundaryInput {
+fn bootsnap_boundary_from_value(value ruby.Value) !BootsnapBoundaryInput {
 	values := value.as_map()!
 	return BootsnapBoundaryInput{
 		environment: BootsnapEnvironment{
@@ -262,121 +262,121 @@ fn bootsnap_boundary_from_value(value brew_runtime.Value) !BootsnapBoundaryInput
 	}
 }
 
-fn bootsnap_load_value(loaded bool, state BootsnapState) brew_runtime.Value {
+fn bootsnap_load_value(loaded bool, state BootsnapState) ruby.Value {
 	last_setup := if state.setup_calls.len > 0 { state.setup_calls.last() } else { BootsnapSetup{} }
-	return brew_runtime.map_value({
-		'loaded':             brew_runtime.bool_value(loaded)
-		'setup_calls':        brew_runtime.int_value(state.setup_calls.len)
-		'unload_calls':       brew_runtime.int_value(state.unload_calls)
-		'cached_key':         brew_runtime.string_value(state.cached_key)
-		'cache_dir':          brew_runtime.string_value(last_setup.cache_dir)
-		'compile_cache_iseq': brew_runtime.bool_value(last_setup.compile_cache_iseq)
-		'compile_cache_yaml': brew_runtime.bool_value(last_setup.compile_cache_yaml)
+	return ruby.map_value({
+		'loaded':             ruby.bool_value(loaded)
+		'setup_calls':        ruby.int_value(state.setup_calls.len)
+		'unload_calls':       ruby.int_value(state.unload_calls)
+		'cached_key':         ruby.string_value(state.cached_key)
+		'cache_dir':          ruby.string_value(last_setup.cache_dir)
+		'compile_cache_iseq': ruby.bool_value(last_setup.compile_cache_iseq)
+		'compile_cache_yaml': ruby.bool_value(last_setup.compile_cache_yaml)
 	})
 }
 
 fn bootsnap_prewarm_value(result BootsnapPrewarmResult,
-	process BootsnapProcess) brew_runtime.Value {
+	process BootsnapProcess) ruby.Value {
 	arguments := if process.spawn_requests.len > 0 {
 		process.spawn_requests[0].arguments
 	} else {
 		[]string{}
 	}
-	return brew_runtime.map_value({
-		'spawn_attempted':  brew_runtime.bool_value(result.spawn_attempted)
-		'detach_attempted': brew_runtime.bool_value(result.detach_attempted)
-		'pid':              brew_runtime.int_value(result.pid)
-		'suppressed_error': brew_runtime.string_value(result.suppressed_error)
-		'arguments':        brew_runtime.string_array_value(arguments)
+	return ruby.map_value({
+		'spawn_attempted':  ruby.bool_value(result.spawn_attempted)
+		'detach_attempted': ruby.bool_value(result.detach_attempted)
+		'pid':              ruby.int_value(result.pid)
+		'suppressed_error': ruby.string_value(result.suppressed_error)
+		'arguments':        ruby.string_array_value(arguments)
 	})
 }
 
 // Ruby method `self.key` at line 6.
-pub fn ruby_bootsnap_l6_d1_self_key(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bootsnap_l6_d1_self_key(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'Bootsnap input is required')
+		return ruby.object_value('ArgumentError', 'Bootsnap input is required')
 	}
 	input := bootsnap_boundary_from_value(args[0]) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	mut state := BootsnapState{}
-	return brew_runtime.string_value(bootsnap_key(mut state, input.environment))
+	return ruby.string_value(bootsnap_key(mut state, input.environment))
 }
 
 // Ruby method `self.cache_dir` at line 19.
-pub fn ruby_bootsnap_l19_d2_self_cache_dir(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bootsnap_l19_d2_self_cache_dir(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'Bootsnap input is required')
+		return ruby.object_value('ArgumentError', 'Bootsnap input is required')
 	}
 	input := bootsnap_boundary_from_value(args[0]) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	mut state := BootsnapState{}
 	directory := bootsnap_cache_dir(mut state, input.environment) or {
-		return brew_runtime.object_value('RuntimeError', err.msg())
+		return ruby.object_value('RuntimeError', err.msg())
 	}
-	return brew_runtime.string_value(directory)
+	return ruby.string_value(directory)
 }
 
 // Ruby method `self.ignore_directories` at line 26.
-pub fn ruby_bootsnap_l26_d3_self_ignore_directories(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bootsnap_l26_d3_self_ignore_directories(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'Bootsnap input is required')
+		return ruby.object_value('ArgumentError', 'Bootsnap input is required')
 	}
 	input := bootsnap_boundary_from_value(args[0]) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
-	return brew_runtime.string_array_value(bootsnap_ignore_directories(input.environment.library_path))
+	return ruby.string_array_value(bootsnap_ignore_directories(input.environment.library_path))
 }
 
 // Ruby method `self.enabled?` at line 36.
-pub fn ruby_bootsnap_l36_d4_self_enabled(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bootsnap_l36_d4_self_enabled(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	input := bootsnap_boundary_from_value(args[0]) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(bootsnap_enabled(input.environment))
+	input := bootsnap_boundary_from_value(args[0]) or { return ruby.bool_value(false) }
+	return ruby.bool_value(bootsnap_enabled(input.environment))
 }
 
 // Ruby method `self.load!(compile_cache: true)` at line 40.
-pub fn ruby_bootsnap_l40_d5_self_load(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bootsnap_l40_d5_self_load(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'Bootsnap input is required')
+		return ruby.object_value('ArgumentError', 'Bootsnap input is required')
 	}
 	input := bootsnap_boundary_from_value(args[0]) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	mut state := BootsnapState{}
 	loaded := bootsnap_load(mut state, input.environment, input.gem_available, input.compile_cache) or {
-		return brew_runtime.object_value('RuntimeError', err.msg())
+		return ruby.object_value('RuntimeError', err.msg())
 	}
 	return bootsnap_load_value(loaded, state)
 }
 
 // Ruby method `self.reset!` at line 63.
-pub fn ruby_bootsnap_l63_d6_self_reset(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bootsnap_l63_d6_self_reset(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'Bootsnap input is required')
+		return ruby.object_value('ArgumentError', 'Bootsnap input is required')
 	}
 	input := bootsnap_boundary_from_value(args[0]) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	mut state := BootsnapState{
 		cached_key: 'stale'
 	}
 	loaded := bootsnap_reset(mut state, input.environment, input.gem_available) or {
-		return brew_runtime.object_value('RuntimeError', err.msg())
+		return ruby.object_value('RuntimeError', err.msg())
 	}
 	return bootsnap_load_value(loaded, state)
 }
 
 // Ruby method `self.prewarm!` at line 76.
-pub fn ruby_bootsnap_l76_d7_self_prewarm(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bootsnap_l76_d7_self_prewarm(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'Bootsnap input is required')
+		return ruby.object_value('ArgumentError', 'Bootsnap input is required')
 	}
 	input := bootsnap_boundary_from_value(args[0]) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	mut process := BootsnapProcess{
 		pid: input.pid

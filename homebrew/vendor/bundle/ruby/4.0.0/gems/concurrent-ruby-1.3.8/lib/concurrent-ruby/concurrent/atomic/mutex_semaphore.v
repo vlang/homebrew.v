@@ -1,6 +1,6 @@
 module atomic
 
-import brew_runtime
+import ruby
 import sync
 import time
 
@@ -9,12 +9,12 @@ import time
 const semaphore_native_min = i64(-4_611_686_018_427_387_904)
 const semaphore_native_max = i64(4_611_686_018_427_387_903)
 
-pub type SemaphoreAction = fn() !brew_runtime.Value
+pub type SemaphoreAction = fn() !ruby.Value
 
 pub struct SemaphoreActionResult {
 pub:
 	acquired bool
-	value    brew_runtime.Value
+	value    ruby.Value
 }
 
 @[heap]
@@ -104,7 +104,7 @@ pub fn (mut semaphore MutexSemaphore) acquire(permits i64) ! {
 	semaphore.state.mutex.unlock()
 }
 
-pub fn (mut semaphore MutexSemaphore) acquire_with(permits i64, action SemaphoreAction) !brew_runtime.Value {
+pub fn (mut semaphore MutexSemaphore) acquire_with(permits i64, action SemaphoreAction) !ruby.Value {
 	semaphore.acquire(permits)!
 	defer {
 		semaphore.release(permits) or {}
@@ -201,18 +201,18 @@ pub fn (mut semaphore MutexSemaphore) try_acquire_timed(permits i64, timeout ?ti
 	return semaphore.try_acquire_timed_locked(permits, timeout)
 }
 
-fn semaphore_nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn semaphore_nil_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-fn semaphore_boundary_new(count i64, type_name string) brew_runtime.Value {
+fn semaphore_boundary_new(count i64, type_name string) ruby.Value {
 	semaphore := new_mutex_semaphore(count) or { panic(err) }
-	return brew_runtime.structured_value(type_name, '#<${type_name}>', {
+	return ruby.structured_value(type_name, '#<${type_name}>', {
 		'semaphore_address': u64(voidptr(semaphore)).str()
 	})
 }
 
-fn semaphore_boundary_receiver(args []brew_runtime.Value) &MutexSemaphore {
+fn semaphore_boundary_receiver(args []ruby.Value) &MutexSemaphore {
 	if args.len == 0 {
 		panic('semaphore method requires a receiver')
 	}
@@ -222,14 +222,14 @@ fn semaphore_boundary_receiver(args []brew_runtime.Value) &MutexSemaphore {
 	return unsafe { &MutexSemaphore(voidptr(address)) }
 }
 
-fn semaphore_boundary_permits(args []brew_runtime.Value, index int) i64 {
+fn semaphore_boundary_permits(args []ruby.Value, index int) i64 {
 	if index >= args.len {
 		return 1
 	}
 	return validate_semaphore_permits(args[index].as_int() or { panic(err) }) or { panic(err) }
 }
 
-fn semaphore_boundary_timeout(value brew_runtime.Value) ?time.Duration {
+fn semaphore_boundary_timeout(value ruby.Value) ?time.Duration {
 	if value.type_name == 'NilClass' {
 		return none
 	}
@@ -238,7 +238,7 @@ fn semaphore_boundary_timeout(value brew_runtime.Value) ?time.Duration {
 }
 
 // Ruby method `initialize(count)` at line 12.
-pub fn ruby_mutex_semaphore_l12_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mutex_semaphore_l12_d1_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('MutexSemaphore#initialize requires count')
 	}
@@ -247,7 +247,7 @@ pub fn ruby_mutex_semaphore_l12_d1_initialize(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby method `acquire(permits = 1)` at line 20.
-pub fn ruby_mutex_semaphore_l20_d2_acquire(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mutex_semaphore_l20_d2_acquire(args ...ruby.Value) ruby.Value {
 	mut semaphore := semaphore_boundary_receiver(args)
 	permits := semaphore_boundary_permits(args, 1)
 	semaphore.acquire(permits) or { panic(err) }
@@ -261,25 +261,25 @@ pub fn ruby_mutex_semaphore_l20_d2_acquire(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `available_permits` at line 38.
-pub fn ruby_mutex_semaphore_l38_d3_available_permits(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mutex_semaphore_l38_d3_available_permits(args ...ruby.Value) ruby.Value {
 	mut semaphore := semaphore_boundary_receiver(args)
-	return brew_runtime.int_value(semaphore.available_permits())
+	return ruby.int_value(semaphore.available_permits())
 }
 
 // Ruby method `drain_permits` at line 47.
-pub fn ruby_mutex_semaphore_l47_d4_drain_permits(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mutex_semaphore_l47_d4_drain_permits(args ...ruby.Value) ruby.Value {
 	mut semaphore := semaphore_boundary_receiver(args)
-	return brew_runtime.int_value(semaphore.drain_permits())
+	return ruby.int_value(semaphore.drain_permits())
 }
 
 // Ruby method `try_acquire(permits = 1, timeout = nil)` at line 54.
-pub fn ruby_mutex_semaphore_l54_d5_try_acquire(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mutex_semaphore_l54_d5_try_acquire(args ...ruby.Value) ruby.Value {
 	mut semaphore := semaphore_boundary_receiver(args)
 	permits := semaphore_boundary_permits(args, 1)
 	timeout := if args.len > 2 { semaphore_boundary_timeout(args[2]) } else { none }
 	acquired := semaphore.try_acquire(permits, timeout) or { panic(err) }
 	if args.len <= 3 {
-		return brew_runtime.bool_value(acquired)
+		return ruby.bool_value(acquired)
 	}
 	if !acquired {
 		return semaphore_nil_value()
@@ -291,14 +291,14 @@ pub fn ruby_mutex_semaphore_l54_d5_try_acquire(args ...brew_runtime.Value) brew_
 }
 
 // Ruby method `release(permits = 1)` at line 77.
-pub fn ruby_mutex_semaphore_l77_d6_release(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mutex_semaphore_l77_d6_release(args ...ruby.Value) ruby.Value {
 	mut semaphore := semaphore_boundary_receiver(args)
 	semaphore.release(semaphore_boundary_permits(args, 1)) or { panic(err) }
 	return semaphore_nil_value()
 }
 
 // Ruby method `reduce_permits(reduction)` at line 99.
-pub fn ruby_mutex_semaphore_l99_d7_reduce_permits(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mutex_semaphore_l99_d7_reduce_permits(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('reduce_permits requires a receiver and reduction')
 	}
@@ -308,33 +308,33 @@ pub fn ruby_mutex_semaphore_l99_d7_reduce_permits(args ...brew_runtime.Value) br
 }
 
 // Ruby method `ns_initialize(count)` at line 110.
-pub fn ruby_mutex_semaphore_l110_d8_ns_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mutex_semaphore_l110_d8_ns_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('ns_initialize requires a receiver and count')
 	}
 	mut semaphore := semaphore_boundary_receiver(args)
 	count := validate_semaphore_integer(args[1].as_int() or { panic(err) }) or { panic(err) }
 	semaphore.ns_initialize(count)
-	return brew_runtime.int_value(count)
+	return ruby.int_value(count)
 }
 
 // Ruby method `try_acquire_now(permits)` at line 117.
-pub fn ruby_mutex_semaphore_l117_d9_try_acquire_now(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mutex_semaphore_l117_d9_try_acquire_now(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('try_acquire_now requires a receiver and permits')
 	}
 	mut semaphore := semaphore_boundary_receiver(args)
-	return brew_runtime.bool_value(semaphore.try_acquire_now(semaphore_boundary_permits(args, 1)) or { panic(err) })
+	return ruby.bool_value(semaphore.try_acquire_now(semaphore_boundary_permits(args, 1)) or { panic(err) })
 }
 
 // Ruby method `try_acquire_timed(permits, timeout)` at line 127.
-pub fn ruby_mutex_semaphore_l127_d10_try_acquire_timed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mutex_semaphore_l127_d10_try_acquire_timed(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('try_acquire_timed requires a receiver, permits, and timeout')
 	}
 	mut semaphore := semaphore_boundary_receiver(args)
 	timeout := semaphore_boundary_timeout(args[2])
-	return brew_runtime.bool_value(semaphore.try_acquire_timed(semaphore_boundary_permits(args, 1), timeout) or { panic(err) })
+	return ruby.bool_value(semaphore.try_acquire_timed(semaphore_boundary_permits(args, 1), timeout) or { panic(err) })
 }
 
 // Original Ruby source (line-for-line):

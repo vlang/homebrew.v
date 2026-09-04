@@ -1,6 +1,6 @@
 module bundle
 
-import brew_runtime
+import ruby
 import homebrew.bundle as bundle_trust
 
 // Translated from Homebrew/brew `test/bundle/trust_spec.rb`.
@@ -55,14 +55,14 @@ fn trust_spec_target(target_type bundle_trust.TrustTargetType,
 	}
 }
 
-fn trust_spec_argument(args []brew_runtime.Value, index int, fallback string) string {
+fn trust_spec_argument(args []ruby.Value, index int, fallback string) string {
 	if index >= args.len || args[index].type_name == 'NilClass' {
 		return fallback
 	}
 	return args[index].as_string()
 }
 
-fn trust_spec_boundary_options(args []brew_runtime.Value) (bool, map[string][]string) {
+fn trust_spec_boundary_options(args []ruby.Value) (bool, map[string][]string) {
 	if args.len < 3 {
 		return false, map[string][]string{}
 	}
@@ -74,7 +74,7 @@ fn trust_spec_boundary_options(args []brew_runtime.Value) (bool, map[string][]st
 		return false, map[string][]string{}
 	}
 	mut items := map[string][]string{}
-	for key, item in value.as_map() or { map[string]brew_runtime.Value{} } {
+	for key, item in value.as_map() or { map[string]ruby.Value{} } {
 		items[key] = if item.type_name == 'Array' {
 			(item.as_array() or { [] }).map(it.as_string())
 		} else {
@@ -85,17 +85,17 @@ fn trust_spec_boundary_options(args []brew_runtime.Value) (bool, map[string][]st
 }
 
 // Ruby method `brew_entry(full_name)` at line 12.
-pub fn ruby_trust_spec_l12_d1_brew_entry(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_trust_spec_l12_d1_brew_entry(args ...ruby.Value) ruby.Value {
 	return bundle_trust.brewfile_entry_value(trust_spec_brew_entry(trust_spec_argument(args, 0, 'defaultremote/foo/bar')))
 }
 
 // Ruby method `cask_entry(full_name)` at line 16.
-pub fn ruby_trust_spec_l16_d2_cask_entry(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_trust_spec_l16_d2_cask_entry(args ...ruby.Value) ruby.Value {
 	return bundle_trust.brewfile_entry_value(trust_spec_cask_entry(trust_spec_argument(args, 0, 'defaultremote/foo/baz')))
 }
 
 // Ruby method `tap_entry(name, clone_target = nil, **options)` at line 20.
-pub fn ruby_trust_spec_l20_d3_tap_entry(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_trust_spec_l20_d3_tap_entry(args ...ruby.Value) ruby.Value {
 	name := trust_spec_argument(args, 0, 'thirdparty/custom')
 	clone_target := trust_spec_argument(args, 1, '')
 	trusted, trusted_items := trust_spec_boundary_options(args)
@@ -103,99 +103,99 @@ pub fn ruby_trust_spec_l20_d3_tap_entry(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby method `install_tap(name, remote)` at line 25.
-pub fn ruby_trust_spec_l25_d4_install_tap(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_trust_spec_l25_d4_install_tap(args ...ruby.Value) ruby.Value {
 	name := trust_spec_argument(args, 0, 'thirdparty/custom')
 	remote := trust_spec_argument(args, 1, trust_spec_custom_remote)
-	return brew_runtime.structured_value('InstalledTap', name, {
+	return ruby.structured_value('InstalledTap', name, {
 		'name':   bundle_trust.sanitize_bundle_tap_name(name)
 		'remote': remote
 	})
 }
 
 // Ruby it `it "keeps a default-remote tap formula as its tap-qualified name" do` at line 33.
-pub fn ruby_trust_spec_l33_d5_keeps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_trust_spec_l33_d5_keeps(args ...ruby.Value) ruby.Value {
 	targets := trust_spec_targets([trust_spec_brew_entry('defaultremote/foo/bar')], {}) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(targets == [
+	return ruby.bool_value(targets == [
 		trust_spec_target(.formula, 'defaultremote/foo/bar'),
 	])
 }
 
 // Ruby it `it "ignores an unqualified brew name that maps to no tap" do` at line 38.
-pub fn ruby_trust_spec_l38_d6_ignores(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_trust_spec_l38_d6_ignores(args ...ruby.Value) ruby.Value {
 	targets := trust_spec_targets([trust_spec_brew_entry('wget')], {}) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(targets.len == 0)
+	return ruby.bool_value(targets.len == 0)
 }
 
 // Ruby it `it "normalises a brew entry to the remote declared by its tap, before the tap is cloned" do` at line 42.
-pub fn ruby_trust_spec_l42_d7_normalises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_trust_spec_l42_d7_normalises(args ...ruby.Value) ruby.Value {
 	targets := trust_spec_targets([
 		trust_spec_tap_entry('thirdparty/custom', trust_spec_custom_remote, false, {}),
 		trust_spec_brew_entry('thirdparty/custom/bar'),
-	], {}) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(targets == [
+	], {}) or { return ruby.bool_value(false) }
+	return ruby.bool_value(targets == [
 		trust_spec_target(.formula, '${trust_spec_custom_remote}/bar'),
 	])
 }
 
 // Ruby it `it "normalises a cask entry to the remote declared by its tap" do` at line 51.
-pub fn ruby_trust_spec_l51_d8_normalises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_trust_spec_l51_d8_normalises(args ...ruby.Value) ruby.Value {
 	targets := trust_spec_targets([
 		trust_spec_tap_entry('thirdparty/custom', trust_spec_custom_remote, false, {}),
 		trust_spec_cask_entry('thirdparty/custom/baz'),
-	], {}) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(targets == [
+	], {}) or { return ruby.bool_value(false) }
+	return ruby.bool_value(targets == [
 		trust_spec_target(.cask, '${trust_spec_custom_remote}/baz'),
 	])
 }
 
 // Ruby it `it "normalises a cask entry written with the homebrew- tap prefix to its declared remote" do` at line 60.
-pub fn ruby_trust_spec_l60_d9_normalises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_trust_spec_l60_d9_normalises(args ...ruby.Value) ruby.Value {
 	targets := trust_spec_targets([
 		trust_spec_tap_entry('thirdparty/homebrew-custom', trust_spec_custom_remote, false, {}),
 		trust_spec_cask_entry('thirdparty/homebrew-custom/baz'),
-	], {}) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(targets == [
+	], {}) or { return ruby.bool_value(false) }
+	return ruby.bool_value(targets == [
 		trust_spec_target(.cask, '${trust_spec_custom_remote}/baz'),
 	])
 }
 
 // Ruby it `it "resolves a brew entry independently of the Brewfile order of its tap entry" do` at line 70.
-pub fn ruby_trust_spec_l70_d10_resolves(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_trust_spec_l70_d10_resolves(args ...ruby.Value) ruby.Value {
 	brew := trust_spec_brew_entry('thirdparty/custom/bar')
 	tap := trust_spec_tap_entry('thirdparty/custom', trust_spec_custom_remote, false, {})
-	first := trust_spec_targets([brew, tap], {}) or { return brew_runtime.bool_value(false) }
-	second := trust_spec_targets([tap, brew], {}) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(first == second)
+	first := trust_spec_targets([brew, tap], {}) or { return ruby.bool_value(false) }
+	second := trust_spec_targets([tap, brew], {}) or { return ruby.bool_value(false) }
+	return ruby.bool_value(first == second)
 }
 
 // Ruby it `it "collapses a tap trusted-hash item and a brew entry for the same custom-remote item" do` at line 77.
-pub fn ruby_trust_spec_l77_d11_collapses(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_trust_spec_l77_d11_collapses(args ...ruby.Value) ruby.Value {
 	targets := trust_spec_targets([
 		trust_spec_tap_entry('thirdparty/custom', trust_spec_custom_remote, false, {
 			'formula': ['bar']
 		}),
 		trust_spec_brew_entry('thirdparty/custom/bar'),
-	], {}) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(targets == [
+	], {}) or { return ruby.bool_value(false) }
+	return ruby.bool_value(targets == [
 		trust_spec_target(.formula, '${trust_spec_custom_remote}/bar'),
 	])
 }
 
 // Ruby it `it "keeps whole-tap trust keyed to a declared custom remote, not the aliased default it resembles" do` at line 86.
-pub fn ruby_trust_spec_l86_d12_keeps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_trust_spec_l86_d12_keeps(args ...ruby.Value) ruby.Value {
 	remote := 'https://github.com/other/homebrew-project'
 	targets := trust_spec_targets([
 		trust_spec_tap_entry('thirdparty/custom', remote, true, {}),
-	], {}) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(targets == [trust_spec_target(.tap, remote)])
+	], {}) or { return ruby.bool_value(false) }
+	return ruby.bool_value(targets == [trust_spec_target(.tap, remote)])
 }
 
 // Ruby it `it "treats default-remote clone targets in any URL form as the plain tap name" do` at line 94.
-pub fn ruby_trust_spec_l94_d13_treats(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_trust_spec_l94_d13_treats(args ...ruby.Value) ruby.Value {
 	for remote in ['https://github.com/defaultremote/homebrew-foo',
 		'git@github.com:defaultremote/homebrew-foo.git',
 		'https://github.com/defaultremote/homebrew-foo.git',
@@ -203,58 +203,58 @@ pub fn ruby_trust_spec_l94_d13_treats(args ...brew_runtime.Value) brew_runtime.V
 		targets := trust_spec_targets([
 			trust_spec_tap_entry('defaultremote/foo', remote, false, {}),
 			trust_spec_brew_entry('defaultremote/foo/bar'),
-		], {}) or { return brew_runtime.bool_value(false) }
+		], {}) or { return ruby.bool_value(false) }
 		if targets != [trust_spec_target(.formula, 'defaultremote/foo/bar')] {
-			return brew_runtime.bool_value(false)
+			return ruby.bool_value(false)
 		}
 	}
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
 // Ruby it `it "produces the same entry whether or not the declared custom-remote tap is installed" do` at line 110.
-pub fn ruby_trust_spec_l110_d14_produces(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_trust_spec_l110_d14_produces(args ...ruby.Value) ruby.Value {
 	entries := [
 		trust_spec_tap_entry('thirdparty/custom', trust_spec_custom_remote, false, {}),
 		trust_spec_brew_entry('thirdparty/custom/bar'),
 	]
-	untapped := trust_spec_targets(entries, {}) or { return brew_runtime.bool_value(false) }
+	untapped := trust_spec_targets(entries, {}) or { return ruby.bool_value(false) }
 	installed := trust_spec_targets(entries, {
 		'thirdparty/custom': trust_spec_custom_remote
-	}) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(untapped == [
+	}) or { return ruby.bool_value(false) }
+	return ruby.bool_value(untapped == [
 		trust_spec_target(.formula, '${trust_spec_custom_remote}/bar'),
 	] && installed == untapped)
 }
 
 // Ruby it `it "keys a custom-remote brew entry identically whether its remote is declared or installed" do` at line 128.
-pub fn ruby_trust_spec_l128_d15_keys(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_trust_spec_l128_d15_keys(args ...ruby.Value) ruby.Value {
 	remote := 'https://gitlab.com/other/repo.git'
 	declared := trust_spec_targets([
 		trust_spec_tap_entry('thirdparty/custom', remote, false, {}),
 		trust_spec_brew_entry('thirdparty/custom/bar'),
-	], {}) or { return brew_runtime.bool_value(false) }
+	], {}) or { return ruby.bool_value(false) }
 	installed := trust_spec_targets([trust_spec_brew_entry('thirdparty/custom/bar')], {
 		'thirdparty/custom': remote
-	}) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(declared == [
+	}) or { return ruby.bool_value(false) }
+	return ruby.bool_value(declared == [
 		trust_spec_target(.formula, '${remote}/bar'),
 	] && installed == declared)
 }
 
 // Ruby it `it "uses the installed remote for an installed custom tap with no declared clone target" do` at line 144.
-pub fn ruby_trust_spec_l144_d16_uses(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_trust_spec_l144_d16_uses(args ...ruby.Value) ruby.Value {
 	installed := {
 		'thirdparty/custom': trust_spec_custom_remote
 	}
 	tap_target := trust_spec_targets([
 		trust_spec_tap_entry('thirdparty/custom', '', true, {}),
-	], installed) or { return brew_runtime.bool_value(false) }
+	], installed) or { return ruby.bool_value(false) }
 	item_target := trust_spec_targets([
 		trust_spec_tap_entry('thirdparty/custom', '', false, {
 			'formula': ['bar']
 		}),
-	], installed) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(tap_target == [
+	], installed) or { return ruby.bool_value(false) }
+	return ruby.bool_value(tap_target == [
 		trust_spec_target(.tap, trust_spec_custom_remote),
 	] && item_target == [
 		trust_spec_target(.formula, '${trust_spec_custom_remote}/bar'),
@@ -262,14 +262,14 @@ pub fn ruby_trust_spec_l144_d16_uses(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby it `it "raises on unsupported trusted keys" do` at line 155.
-pub fn ruby_trust_spec_l155_d17_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_trust_spec_l155_d17_raises(args ...ruby.Value) ruby.Value {
 	entry := trust_spec_tap_entry('thirdparty/custom', '', false, {
 		'bogus': ['bar']
 	})
 	if _ := trust_spec_targets([entry], {}) {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	} else {
-		return brew_runtime.bool_value(err.code() == 64 && err.msg().contains('Unsupported trusted keys: bogus'))
+		return ruby.bool_value(err.code() == 64 && err.msg().contains('Unsupported trusted keys: bogus'))
 	}
 }
 

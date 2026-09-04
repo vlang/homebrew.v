@@ -1,6 +1,6 @@
 module ffi
 
-import brew_runtime
+import ruby
 import os
 
 pub struct NativePointer {
@@ -109,25 +109,25 @@ pub fn (mut library NativeLibrary) load_constant(name string, dereference bool) 
 	return pointer
 }
 
-fn native_library_value(library &NativeLibrary) brew_runtime.Value {
-	return brew_runtime.structured_value('NativeLibrary', library.path, {
+fn native_library_value(library &NativeLibrary) ruby.Value {
+	return ruby.structured_value('NativeLibrary', library.path, {
 		'native_library_address': u64(voidptr(library)).str()
 	})
 }
 
-fn native_library_from_value(value brew_runtime.Value) &NativeLibrary {
+fn native_library_from_value(value ruby.Value) &NativeLibrary {
 	return unsafe { &NativeLibrary(voidptr(value.attributes['native_library_address'].u64())) }
 }
 
-fn native_pointer_value(pointer NativePointer) brew_runtime.Value {
-	return brew_runtime.structured_value('Fiddle::Pointer', pointer.value, {
+fn native_pointer_value(pointer NativePointer) ruby.Value {
+	return ruby.structured_value('Fiddle::Pointer', pointer.value, {
 		'address':     pointer.address.str()
 		'value':       pointer.value
 		'free_symbol': pointer.free_symbol
 	})
 }
 
-pub fn native_library_boundary(library &NativeLibrary) brew_runtime.Value {
+pub fn native_library_boundary(library &NativeLibrary) ruby.Value {
 	return native_library_value(library)
 }
 
@@ -135,32 +135,32 @@ pub fn native_library_boundary(library &NativeLibrary) brew_runtime.Value {
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `use_library(path)` at line 15.
-pub fn ruby_native_library_l15_d1_use_library(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_native_library_l15_d1_use_library(args ...ruby.Value) ruby.Value {
 	mut library := native_library_from_value(args[0])
 	library.use_library(args[1].as_string())
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `handle` at line 20.
-pub fn ruby_native_library_l20_d2_handle(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_native_library_l20_d2_handle(args ...ruby.Value) ruby.Value {
 	mut library := native_library_from_value(args[0])
 	handle := library.open_handle() or { panic(err) }
-	return brew_runtime.object_value('Fiddle::Handle', handle.str())
+	return ruby.object_value('Fiddle::Handle', handle.str())
 }
 
 // Ruby method `function(name, argument_types, return_type)` at line 25.
-pub fn ruby_native_library_l25_d3_function(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_native_library_l25_d3_function(args ...ruby.Value) ruby.Value {
 	mut library := native_library_from_value(args[0])
 	argument_types := args[2].as_array() or { [] }.map(int(it.int_data))
 	function := library.load_function(args[1].as_string(), argument_types, int(args[3].int_data)) or { panic(err) }
-	return brew_runtime.structured_value('Fiddle::Function', function.name, {
+	return ruby.structured_value('Fiddle::Function', function.name, {
 		'name':    function.name
 		'address': function.address.str()
 	})
 }
 
 // Ruby method `constant(name, dereference: false)` at line 32.
-pub fn ruby_native_library_l32_d4_constant(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_native_library_l32_d4_constant(args ...ruby.Value) ruby.Value {
 	mut library := native_library_from_value(args[0])
 	pointer := library.load_constant(args[1].as_string(), if args.len > 2 {
 		args[2].bool_data

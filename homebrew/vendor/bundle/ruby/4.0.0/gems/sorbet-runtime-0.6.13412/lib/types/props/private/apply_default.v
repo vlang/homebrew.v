@@ -1,6 +1,6 @@
 module private
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/props/private/apply_default.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -21,23 +21,23 @@ pub:
 	class_name     string
 	accessor_key   string
 	bound_setter   SetterDescriptor
-	setter_value   brew_runtime.Value
-	stored_default brew_runtime.Value
-	factory_value  brew_runtime.Value
+	setter_value   ruby.Value
+	stored_default ruby.Value
+	factory_value  ruby.Value
 }
 
-pub type ApplyDefaultFactoryCallback = fn() !brew_runtime.Value
+pub type ApplyDefaultFactoryCallback = fn() !ruby.Value
 
-fn private_deep_clone(value brew_runtime.Value) brew_runtime.Value {
-	mut items := []brew_runtime.Value{cap: value.array_data.len}
+fn private_deep_clone(value ruby.Value) ruby.Value {
+	mut items := []ruby.Value{cap: value.array_data.len}
 	for item in value.array_data {
 		items << private_deep_clone(item)
 	}
-	mut entries := map[string]brew_runtime.Value{}
+	mut entries := map[string]ruby.Value{}
 	for key, item in value.map_data {
 		entries[key] = private_deep_clone(item)
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		...value
 		string_array_data: value.string_array_data.clone()
 		array_data: items
@@ -46,7 +46,7 @@ fn private_deep_clone(value brew_runtime.Value) brew_runtime.Value {
 	}
 }
 
-fn apply_default_kind(value brew_runtime.Value) ApplyDefaultKind {
+fn apply_default_kind(value ruby.Value) ApplyDefaultKind {
 	if value.type_name in ['Bool', 'NilClass', 'Symbol', 'Integer', 'Float', 'T::Enum'] {
 		return .primitive
 	}
@@ -63,7 +63,7 @@ fn apply_default_kind(value brew_runtime.Value) ApplyDefaultKind {
 }
 
 fn permissive_default_setter(class_name string, accessor_key string) SetterDescriptor {
-	untyped := brew_runtime.object_value('T::Types::Untyped', 'T.untyped')
+	untyped := ruby.object_value('T::Types::Untyped', 'T.untyped')
 	return SetterDescriptor{
 		class_name: class_name
 		prop: accessor_key.trim_left('@')
@@ -74,7 +74,7 @@ fn permissive_default_setter(class_name string, accessor_key string) SetterDescr
 	}
 }
 
-fn apply_default_setter_from_value(value brew_runtime.Value, class_name string,
+fn apply_default_setter_from_value(value ruby.Value, class_name string,
 	accessor_key string) SetterDescriptor {
 	if 'setter_descriptor_address' in value.attributes {
 		return *setter_descriptor_from_value(value)
@@ -82,7 +82,7 @@ fn apply_default_setter_from_value(value brew_runtime.Value, class_name string,
 	return permissive_default_setter(class_name, accessor_key)
 }
 
-pub fn build_apply_default(class_name string, rules map[string]brew_runtime.Value) !ApplyDefaultDescriptor {
+pub fn build_apply_default(class_name string, rules map[string]ruby.Value) !ApplyDefaultDescriptor {
 	accessor_key := (private_rule(rules, 'accessor_key') or {
 		return error('key not found: accessor_key')
 	}).as_string()
@@ -119,18 +119,18 @@ pub fn build_apply_default(class_name string, rules map[string]brew_runtime.Valu
 	}
 }
 
-fn evaluated_factory_value(descriptor ApplyDefaultDescriptor) brew_runtime.Value {
+fn evaluated_factory_value(descriptor ApplyDefaultDescriptor) ruby.Value {
 	return descriptor.factory_value.map_data['result'] or { descriptor.factory_value }
 }
 
-pub fn apply_default_value(descriptor ApplyDefaultDescriptor) !brew_runtime.Value {
+pub fn apply_default_value(descriptor ApplyDefaultDescriptor) !ruby.Value {
 	return match descriptor.kind {
 		.none { private_nil_value() }
 		.abstract_default { error('ApplyDefault#default is abstract') }
 		.primitive { descriptor.stored_default }
 		.complex { private_deep_clone(descriptor.stored_default) }
-		.empty_array { brew_runtime.array_value([]brew_runtime.Value{}) }
-		.empty_hash { brew_runtime.map_value(map[string]brew_runtime.Value{}) }
+		.empty_array { ruby.array_value([]ruby.Value{}) }
+		.empty_hash { ruby.map_value(map[string]ruby.Value{}) }
 		.factory { evaluated_factory_value(descriptor) }
 	}
 }
@@ -170,14 +170,14 @@ fn apply_default_type_name(kind ApplyDefaultKind) string {
 	}
 }
 
-fn apply_default_descriptor_value(descriptor ApplyDefaultDescriptor) brew_runtime.Value {
+fn apply_default_descriptor_value(descriptor ApplyDefaultDescriptor) ruby.Value {
 	if descriptor.kind == .none {
 		return private_nil_value()
 	}
 	heap_descriptor := &ApplyDefaultDescriptor{
 		...descriptor
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: apply_default_type_name(descriptor.kind)
 		repr: descriptor.accessor_key
 		map_data: {
@@ -194,25 +194,25 @@ fn apply_default_descriptor_value(descriptor ApplyDefaultDescriptor) brew_runtim
 	}
 }
 
-fn apply_default_descriptor_from_value(value brew_runtime.Value) &ApplyDefaultDescriptor {
+fn apply_default_descriptor_from_value(value ruby.Value) &ApplyDefaultDescriptor {
 	address := value.attribute('apply_default_address') or { panic('invalid ApplyDefault receiver') }
 	return unsafe { &ApplyDefaultDescriptor(voidptr(address.u64())) }
 }
 
-fn default_instance_from_value(value brew_runtime.Value) SetterInstance {
+fn default_instance_from_value(value ruby.Value) SetterInstance {
 	return SetterInstance{
 		values: value.map_data.clone()
 	}
 }
 
-fn default_instance_value(original brew_runtime.Value, instance SetterInstance) brew_runtime.Value {
-	return brew_runtime.Value{
+fn default_instance_value(original ruby.Value, instance SetterInstance) ruby.Value {
+	return ruby.Value{
 		...original
 		map_data: instance.values.clone()
 	}
 }
 
-fn base_default_descriptor(accessor brew_runtime.Value, setter brew_runtime.Value) ApplyDefaultDescriptor {
+fn base_default_descriptor(accessor ruby.Value, setter ruby.Value) ApplyDefaultDescriptor {
 	accessor_key := accessor.as_string()
 	return ApplyDefaultDescriptor{
 		kind: .abstract_default
@@ -223,7 +223,7 @@ fn base_default_descriptor(accessor brew_runtime.Value, setter brew_runtime.Valu
 }
 
 // Ruby attr_reader `attr_reader :bound_setter_proc` at line 13.
-pub fn ruby_apply_default_l13_d1_bound_setter_proc(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_apply_default_l13_d1_bound_setter_proc(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('ApplyDefault#bound_setter_proc requires a receiver')
 	}
@@ -231,7 +231,7 @@ pub fn ruby_apply_default_l13_d1_bound_setter_proc(args ...brew_runtime.Value) b
 }
 
 // Ruby method `initialize(accessor_key, bound_setter_proc)` at line 17.
-pub fn ruby_apply_default_l17_d2_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_apply_default_l17_d2_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('ApplyDefault#initialize requires accessor key and bound setter')
 	}
@@ -239,7 +239,7 @@ pub fn ruby_apply_default_l17_d2_initialize(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby method `default; end` at line 24.
-pub fn ruby_apply_default_l24_d3_default(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_apply_default_l24_d3_default(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('ApplyDefault#default requires a receiver')
 	}
@@ -247,7 +247,7 @@ pub fn ruby_apply_default_l24_d3_default(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `set_default(instance); end` at line 28.
-pub fn ruby_apply_default_l28_d4_set_default(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_apply_default_l28_d4_set_default(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('ApplyDefault#set_default requires an instance')
 	}
@@ -257,7 +257,7 @@ pub fn ruby_apply_default_l28_d4_set_default(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby method `self.for(cls, rules)` at line 34.
-pub fn ruby_apply_default_l34_d5_self_for(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_apply_default_l34_d5_self_for(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('ApplyDefault.for requires class and rules')
 	}
@@ -267,7 +267,7 @@ pub fn ruby_apply_default_l34_d5_self_for(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby method `initialize(default, accessor_key, bound_setter_proc)` at line 71.
-pub fn ruby_apply_default_l71_d6_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_apply_default_l71_d6_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('ApplyFixedDefault#initialize requires default, accessor key, and bound setter')
 	}
@@ -281,7 +281,7 @@ pub fn ruby_apply_default_l71_d6_initialize(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby method `set_default(instance)` at line 84.
-pub fn ruby_apply_default_l84_d7_set_default(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_apply_default_l84_d7_set_default(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('ApplyFixedDefault#set_default requires an instance')
 	}
@@ -291,7 +291,7 @@ pub fn ruby_apply_default_l84_d7_set_default(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby attr_reader `attr_reader :default` at line 92.
-pub fn ruby_apply_default_l92_d8_default(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_apply_default_l92_d8_default(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('ApplyPrimitiveDefault#default requires a receiver')
 	}
@@ -299,7 +299,7 @@ pub fn ruby_apply_default_l92_d8_default(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `default` at line 98.
-pub fn ruby_apply_default_l98_d9_default(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_apply_default_l98_d9_default(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('ApplyComplexDefault#default requires a receiver')
 	}
@@ -307,39 +307,39 @@ pub fn ruby_apply_default_l98_d9_default(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `set_default(instance)` at line 109.
-pub fn ruby_apply_default_l109_d10_set_default(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_apply_default_l109_d10_set_default(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('ApplyEmptyArrayDefault#set_default requires an instance')
 	}
 	mut instance := default_instance_from_value(args[1])
 	descriptor := *apply_default_descriptor_from_value(args[0])
-	instance.values[descriptor.accessor_key] = brew_runtime.array_value([]brew_runtime.Value{})
+	instance.values[descriptor.accessor_key] = ruby.array_value([]ruby.Value{})
 	return default_instance_value(args[1], instance)
 }
 
 // Ruby method `default` at line 115.
-pub fn ruby_apply_default_l115_d11_default(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.array_value([]brew_runtime.Value{})
+pub fn ruby_apply_default_l115_d11_default(args ...ruby.Value) ruby.Value {
+	return ruby.array_value([]ruby.Value{})
 }
 
 // Ruby method `set_default(instance)` at line 126.
-pub fn ruby_apply_default_l126_d12_set_default(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_apply_default_l126_d12_set_default(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('ApplyEmptyHashDefault#set_default requires an instance')
 	}
 	mut instance := default_instance_from_value(args[1])
 	descriptor := *apply_default_descriptor_from_value(args[0])
-	instance.values[descriptor.accessor_key] = brew_runtime.map_value(map[string]brew_runtime.Value{})
+	instance.values[descriptor.accessor_key] = ruby.map_value(map[string]ruby.Value{})
 	return default_instance_value(args[1], instance)
 }
 
 // Ruby method `default` at line 132.
-pub fn ruby_apply_default_l132_d13_default(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.map_value(map[string]brew_runtime.Value{})
+pub fn ruby_apply_default_l132_d13_default(args ...ruby.Value) ruby.Value {
+	return ruby.map_value(map[string]ruby.Value{})
 }
 
 // Ruby method `initialize(cls, factory, accessor_key, bound_setter_proc)` at line 149.
-pub fn ruby_apply_default_l149_d14_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_apply_default_l149_d14_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 4 {
 		panic('ApplyDefaultFactory#initialize requires class, factory, accessor key, and bound setter')
 	}
@@ -355,7 +355,7 @@ pub fn ruby_apply_default_l149_d14_initialize(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby method `set_default(instance)` at line 157.
-pub fn ruby_apply_default_l157_d15_set_default(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_apply_default_l157_d15_set_default(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('ApplyDefaultFactory#set_default requires an instance')
 	}
@@ -365,7 +365,7 @@ pub fn ruby_apply_default_l157_d15_set_default(args ...brew_runtime.Value) brew_
 }
 
 // Ruby method `default` at line 165.
-pub fn ruby_apply_default_l165_d16_default(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_apply_default_l165_d16_default(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('ApplyDefaultFactory#default requires a receiver')
 	}

@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 import homebrew.cmd as production_cmd
 import os
 
@@ -150,13 +150,13 @@ fn vulns_spec_run(options production_cmd.VulnsCommandOptions,
 }
 
 // Ruby let `let(:installed) { instance_double(Formula, full_name: "curl", recursive_dependencies: []) }` at line 12.
-pub fn ruby_vulns_spec_l12_d1_installed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vulns_spec_l12_d1_installed(args ...ruby.Value) ruby.Value {
 	_ = args
 	return production_cmd.vulns_formula_value(vulns_spec_formula('curl'))
 }
 
 // Ruby it `it "scans installed formulae when no arguments are given, never Formula.all" do` at line 14.
-pub fn ruby_vulns_spec_l14_d2_scans(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vulns_spec_l14_d2_scans(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut command := production_cmd.VulnsCommand{
 		installed_racks: [production_cmd.VulnsInstalledRack{
@@ -165,26 +165,26 @@ pub fn ruby_vulns_spec_l14_d2_scans(args ...brew_runtime.Value) brew_runtime.Val
 		}]
 	}
 	formulae := production_cmd.vulns_formulae(mut command)
-	return brew_runtime.bool_value(formulae.map(it.full_name) == ['curl'])
+	return ruby.bool_value(formulae.map(it.full_name) == ['curl'])
 }
 
 // Ruby it `it "scans named formulae" do` at line 22.
-pub fn ruby_vulns_spec_l22_d3_scans(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vulns_spec_l22_d3_scans(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut command := production_cmd.VulnsCommand{
 		named: [vulns_spec_formula('act')]
 	}
 	formulae := production_cmd.vulns_formulae(mut command)
-	return brew_runtime.bool_value(formulae.map(it.full_name) == ['act'])
+	return ruby.bool_value(formulae.map(it.full_name) == ['act'])
 }
 
 // Ruby it `it "scans the union of --brewfile entries and named arguments" do` at line 28.
-pub fn ruby_vulns_spec_l28_d4_scans(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vulns_spec_l28_d4_scans(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut command := production_cmd.VulnsCommand{
 		options: production_cmd.VulnsCommandOptions{
 			brewfile: true
-			brewfile_value: brew_runtime.bool_value(true)
+			brewfile_value: ruby.bool_value(true)
 		}
 		named: [vulns_spec_formula('act')]
 		brewfile_entries: [production_cmd.VulnsBrewfileEntry{
@@ -193,31 +193,31 @@ pub fn ruby_vulns_spec_l28_d4_scans(args ...brew_runtime.Value) brew_runtime.Val
 		}]
 	}
 	formulae := production_cmd.vulns_formulae(mut command)
-	return brew_runtime.bool_value(formulae.map(it.full_name) == ['wget', 'act'])
+	return ruby.bool_value(formulae.map(it.full_name) == ['wget', 'act'])
 }
 
 // Ruby it `it "reads the default Brewfile when --brewfile is passed without a path" do` at line 42.
-pub fn ruby_vulns_spec_l42_d5_reads(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vulns_spec_l42_d5_reads(args ...ruby.Value) ruby.Value {
 	_ = args
-	default_path := production_cmd.vulns_brewfile_path(brew_runtime.bool_value(true))
-	explicit_path := production_cmd.vulns_brewfile_path(brew_runtime.string_value('Brewfile.dev'))
+	default_path := production_cmd.vulns_brewfile_path(ruby.bool_value(true))
+	explicit_path := production_cmd.vulns_brewfile_path(ruby.string_value('Brewfile.dev'))
 	explicit_path_value := explicit_path or { '' }
 	mut command := production_cmd.VulnsCommand{
 		options: production_cmd.VulnsCommandOptions{
 			brewfile: true
-			brewfile_value: brew_runtime.bool_value(true)
+			brewfile_value: ruby.bool_value(true)
 		}
 		brewfile_entries: [production_cmd.VulnsBrewfileEntry{
 			entry_type: 'brew'
 			formula: vulns_spec_formula('act')
 		}]
 	}
-	return brew_runtime.bool_value(default_path == none && explicit_path_value == 'Brewfile.dev'
+	return ruby.bool_value(default_path == none && explicit_path_value == 'Brewfile.dev'
 		&& production_cmd.vulns_formulae(mut command).map(it.full_name) == ['act'])
 }
 
 // Ruby it `it "validates --severity before enumerating formulae" do` at line 56.
-pub fn ruby_vulns_spec_l56_d6_validates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vulns_spec_l56_d6_validates(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut command := production_cmd.VulnsCommand{
 		options: production_cmd.VulnsCommandOptions{
@@ -231,14 +231,14 @@ pub fn ruby_vulns_spec_l56_d6_validates(args ...brew_runtime.Value) brew_runtime
 		scanner: vulns_spec_unexpected_scanner
 	}
 	production_cmd.run_vulns_command(mut command) or {
-		return brew_runtime.bool_value(err.msg().contains('`--severity` must be one of')
+		return ruby.bool_value(err.msg().contains('`--severity` must be one of')
 			&& command.untrusted_skipped.len == 0)
 	}
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 // Ruby method `stub_scan(findings)` at line 63.
-pub fn ruby_vulns_spec_l63_d7_stub_scan(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vulns_spec_l63_d7_stub_scan(args ...ruby.Value) ruby.Value {
 	ids := if args.len > 0 { args[0].as_string_array() or { []string{} } } else { []string{} }
 	results := production_cmd.VulnsScannerResults{
 		findings: ids.map(production_cmd.VulnsFinding{
@@ -249,59 +249,59 @@ pub fn ruby_vulns_spec_l63_d7_stub_scan(args ...brew_runtime.Value) brew_runtime
 		})
 		checked: 1
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'Homebrew::Vulns::Scanner::Results'
 		attributes: {
 			'checked': results.checked.str()
 			'skipped': results.skipped.str()
 		}
 		map_data: {
-			'findings': brew_runtime.string_array_value(results.findings.map(it.open[0].id))
+			'findings': ruby.string_array_value(results.findings.map(it.open[0].id))
 		}
 	}
 }
 
 // Ruby let `let(:act) do` at line 68.
-pub fn ruby_vulns_spec_l68_d8_act(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vulns_spec_l68_d8_act(args ...ruby.Value) ruby.Value {
 	_ = args
 	return production_cmd.vulns_formula_value(vulns_spec_formula('act'))
 }
 
 // Ruby it `it "rejects an unknown --severity value" do` at line 79.
-pub fn ruby_vulns_spec_l79_d9_rejects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vulns_spec_l79_d9_rejects(args ...ruby.Value) ruby.Value {
 	_ = args
 	vulns_spec_run(production_cmd.VulnsCommandOptions{
 		severity: 'urgent'
 	}, vulns_spec_unexpected_scanner) or {
-		return brew_runtime.bool_value(err.msg().contains('`--severity` must be one of'))
+		return ruby.bool_value(err.msg().contains('`--severity` must be one of'))
 	}
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 // Ruby it `it "rejects a non-numeric --max-summary value" do` at line 84.
-pub fn ruby_vulns_spec_l84_d10_rejects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vulns_spec_l84_d10_rejects(args ...ruby.Value) ruby.Value {
 	_ = args
 	vulns_spec_run(production_cmd.VulnsCommandOptions{
 		max_summary: 'lots'
 	}, vulns_spec_unexpected_scanner) or {
-		return brew_runtime.bool_value(err.msg().contains('`--max-summary` must be a non-negative integer'))
+		return ruby.bool_value(err.msg().contains('`--max-summary` must be a non-negative integer'))
 	}
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 // Ruby it `it "rejects a negative --max-summary value" do` at line 89.
-pub fn ruby_vulns_spec_l89_d11_rejects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vulns_spec_l89_d11_rejects(args ...ruby.Value) ruby.Value {
 	_ = args
 	vulns_spec_run(production_cmd.VulnsCommandOptions{
 		max_summary: '-5'
 	}, vulns_spec_unexpected_scanner) or {
-		return brew_runtime.bool_value(err.msg().contains('`--max-summary` must be a non-negative integer'))
+		return ruby.bool_value(err.msg().contains('`--max-summary` must be a non-negative integer'))
 	}
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 // Ruby it `it "validates options before constructing the scanner" do` at line 94.
-pub fn ruby_vulns_spec_l94_d12_validates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vulns_spec_l94_d12_validates(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut max_summary_rejected := false
 	vulns_spec_run(production_cmd.VulnsCommandOptions{
@@ -316,149 +316,149 @@ pub fn ruby_vulns_spec_l94_d12_validates(args ...brew_runtime.Value) brew_runtim
 	}, vulns_spec_unexpected_scanner) or {
 		severity_rejected = err.msg().contains('`--severity`')
 	}
-	return brew_runtime.bool_value(max_summary_rejected && severity_rejected)
+	return ruby.bool_value(max_summary_rejected && severity_rejected)
 }
 
 // Ruby it `it "prints text output and does not set Homebrew.failed when nothing is found" do` at line 100.
-pub fn ruby_vulns_spec_l100_d13_prints(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vulns_spec_l100_d13_prints(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := vulns_spec_run(production_cmd.VulnsCommandOptions{}, vulns_spec_empty_scanner) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(result.stdout.contains('No vulnerabilities found')
+	return ruby.bool_value(result.stdout.contains('No vulnerabilities found')
 		&& !result.failed)
 }
 
 // Ruby it `it "sets Homebrew.failed when open vulnerabilities are found" do` at line 106.
-pub fn ruby_vulns_spec_l106_d14_sets(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vulns_spec_l106_d14_sets(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := vulns_spec_run(production_cmd.VulnsCommandOptions{}, vulns_spec_open_scanner) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(result.stdout.contains('CVE-2024-1234') && result.failed)
+	return ruby.bool_value(result.stdout.contains('CVE-2024-1234') && result.failed)
 }
 
 // Ruby it `it "does not set Homebrew.failed when only patched vulnerabilities exist" do` at line 115.
-pub fn ruby_vulns_spec_l115_d15_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vulns_spec_l115_d15_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := vulns_spec_run(production_cmd.VulnsCommandOptions{}, vulns_spec_patched_scanner) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(result.stdout.contains('No open vulnerabilities found')
+	return ruby.bool_value(result.stdout.contains('No open vulnerabilities found')
 		&& !result.failed)
 }
 
 // Ruby it `it "emits JSON with --json" do` at line 124.
-pub fn ruby_vulns_spec_l124_d16_emits(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vulns_spec_l124_d16_emits(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := vulns_spec_run(production_cmd.VulnsCommandOptions{
 		json: true
-	}, vulns_spec_empty_scanner) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(result.stdout == '[]\n')
+	}, vulns_spec_empty_scanner) or { return ruby.bool_value(false) }
+	return ruby.bool_value(result.stdout == '[]\n')
 }
 
 // Ruby it `it "warns to stderr and fails when installed versions could not be checked, even with --json" do` at line 129.
-pub fn ruby_vulns_spec_l129_d17_warns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vulns_spec_l129_d17_warns(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := vulns_spec_run(production_cmd.VulnsCommandOptions{
 		json: true
-	}, vulns_spec_outdated_scanner) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(result.stdout == '[]\n' && result.stderr.contains('openssl@3')
+	}, vulns_spec_outdated_scanner) or { return ruby.bool_value(false) }
+	return ruby.bool_value(result.stdout == '[]\n' && result.stderr.contains('openssl@3')
 		&& result.stderr.contains('could not be determined') && result.stderr.contains('brew upgrade')
 		&& result.failed)
 }
 
 // Ruby it `it "passes --severity to the scanner" do` at line 141.
-pub fn ruby_vulns_spec_l141_d18_passes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vulns_spec_l141_d18_passes(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := vulns_spec_run(production_cmd.VulnsCommandOptions{
 		severity: 'high'
 		json: true
-	}, vulns_spec_severity_scanner) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(result.scanner_options.min_severity == .high)
+	}, vulns_spec_severity_scanner) or { return ruby.bool_value(false) }
+	return ruby.bool_value(result.scanner_options.min_severity == .high)
 }
 
 // Ruby it `it "passes --no-ignore-patches to the scanner" do` at line 151.
-pub fn ruby_vulns_spec_l151_d19_passes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vulns_spec_l151_d19_passes(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := vulns_spec_run(production_cmd.VulnsCommandOptions{
 		no_ignore_patches: true
 		json: true
-	}, vulns_spec_patches_scanner) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(!result.scanner_options.ignore_patches)
+	}, vulns_spec_patches_scanner) or { return ruby.bool_value(false) }
+	return ruby.bool_value(!result.scanner_options.ignore_patches)
 }
 
 // Ruby it `it "passes --fix-available to the scanner" do` at line 161.
-pub fn ruby_vulns_spec_l161_d20_passes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vulns_spec_l161_d20_passes(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := vulns_spec_run(production_cmd.VulnsCommandOptions{
 		fix_available: true
 		json: true
-	}, vulns_spec_only_fixed_scanner) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(result.scanner_options.only_fixed)
+	}, vulns_spec_only_fixed_scanner) or { return ruby.bool_value(false) }
+	return ruby.bool_value(result.scanner_options.only_fixed)
 }
 
 // Ruby it `it "passes --no-fix-available to the scanner" do` at line 171.
-pub fn ruby_vulns_spec_l171_d21_passes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vulns_spec_l171_d21_passes(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := vulns_spec_run(production_cmd.VulnsCommandOptions{
 		no_fix_available: true
 		json: true
-	}, vulns_spec_except_fixed_scanner) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(result.scanner_options.except_fixed)
+	}, vulns_spec_except_fixed_scanner) or { return ruby.bool_value(false) }
+	return ruby.bool_value(result.scanner_options.except_fixed)
 }
 
 // Ruby it `it "rejects passing both --fix-available and --no-fix-available" do` at line 181.
-pub fn ruby_vulns_spec_l181_d22_rejects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vulns_spec_l181_d22_rejects(args ...ruby.Value) ruby.Value {
 	_ = args
 	vulns_spec_run(production_cmd.VulnsCommandOptions{
 		fix_available: true
 		no_fix_available: true
 	}, vulns_spec_unexpected_scanner) or {
-		return brew_runtime.bool_value(err.msg().contains('mutually exclusive'))
+		return ruby.bool_value(err.msg().contains('mutually exclusive'))
 	}
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 // Ruby let `let(:trusted_rack) { HOMEBREW_CELLAR/"act" }` at line 190.
-pub fn ruby_vulns_spec_l190_d23_trusted_rack(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vulns_spec_l190_d23_trusted_rack(args ...ruby.Value) ruby.Value {
 	cellar := if args.len > 0 && args[0].as_string() != '' {
 		args[0].as_string()
 	} else {
 		'/homebrew/Cellar'
 	}
-	return brew_runtime.string_value(os.join_path(cellar, 'act'))
+	return ruby.string_value(os.join_path(cellar, 'act'))
 }
 
 // Ruby let `let(:untrusted_rack) { HOMEBREW_CELLAR/"foo" }` at line 191.
-pub fn ruby_vulns_spec_l191_d24_untrusted_rack(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vulns_spec_l191_d24_untrusted_rack(args ...ruby.Value) ruby.Value {
 	cellar := if args.len > 0 && args[0].as_string() != '' {
 		args[0].as_string()
 	} else {
 		'/homebrew/Cellar'
 	}
-	return brew_runtime.string_value(os.join_path(cellar, 'foo'))
+	return ruby.string_value(os.join_path(cellar, 'foo'))
 }
 
 // Ruby it `it "does not pass the untrusted formula to the scanner" do` at line 204.
-pub fn ruby_vulns_spec_l204_d25_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vulns_spec_l204_d25_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut command := vulns_spec_untrusted_command(vulns_spec_trusted_only_scanner)
 	result := production_cmd.run_vulns_command(mut command) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(result.formulae.map(it.full_name) == ['act']
+	return ruby.bool_value(result.formulae.map(it.full_name) == ['act']
 		&& result.results.checked == 1)
 }
 
 // Ruby it `it "reports the skipped keg and fails" do` at line 209.
-pub fn ruby_vulns_spec_l209_d26_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vulns_spec_l209_d26_reports(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut command := vulns_spec_untrusted_command(vulns_spec_empty_scanner)
 	result := production_cmd.run_vulns_command(mut command) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(result.stderr.contains('untrusted tap')
+	return ruby.bool_value(result.stderr.contains('untrusted tap')
 		&& result.stderr.contains('not scanned') && result.stderr.contains('someone/tap/foo')
 		&& result.stderr.contains('brew trust') && result.failed)
 }

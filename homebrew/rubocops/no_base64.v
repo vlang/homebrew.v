@@ -1,6 +1,6 @@
 module rubocops
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `rubocops/no_base64.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -607,8 +607,8 @@ pub fn correct_no_base64(source string) string {
 	return corrected
 }
 
-fn no_base64_offense_value(offense NoBase64Offense) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cop::Offense', offense.message, {
+fn no_base64_offense_value(offense NoBase64Offense) ruby.Value {
+	return ruby.structured_value('RuboCop::Cop::Offense', offense.message, {
 		'kind':        offense.kind.str()
 		'begin_pos':   offense.begin_pos.str()
 		'end_pos':     offense.end_pos.str()
@@ -620,42 +620,42 @@ fn no_base64_offense_value(offense NoBase64Offense) brew_runtime.Value {
 }
 
 // Ruby method `on_send(node)` at line 30.
-pub fn ruby_no_base64_l30_d1_on_send(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_no_base64_l30_d1_on_send(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[args.len - 1].as_string() } else { '' }
 	for offense in audit_no_base64(source) {
 		if offense.kind in [.require_call, .base64_call] {
 			return no_base64_offense_value(offense)
 		}
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby alias `alias on_csend on_send` at line 44.
-pub fn ruby_no_base64_l44_d2_on_csend(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_no_base64_l44_d2_on_csend(args ...ruby.Value) ruby.Value {
 	return ruby_no_base64_l30_d1_on_send(...args)
 }
 
 // Ruby method `on_const(node)` at line 47.
-pub fn ruby_no_base64_l47_d3_on_const(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_no_base64_l47_d3_on_const(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[args.len - 1].as_string() } else { '' }
 	for offense in audit_no_base64(source) {
 		if offense.kind == .base64_const {
 			return no_base64_offense_value(offense)
 		}
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `require_base64?(node)` at line 61.
-pub fn ruby_no_base64_l61_d4_require_base64(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_no_base64_l61_d4_require_base64(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[args.len - 1].as_string() } else { '' }
-	return brew_runtime.bool_value(audit_no_base64(source).any(it.kind == .require_call))
+	return ruby.bool_value(audit_no_base64(source).any(it.kind == .require_call))
 }
 
 // Ruby method `top_level_const?(node, name)` at line 72.
-pub fn ruby_no_base64_l72_d5_top_level_const(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_no_base64_l72_d5_top_level_const(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || args[0].type_name == 'NilClass' {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	source := args[0].as_string().trim_space()
 	mut name := if args.len > 1 { args[1].as_string().trim_space() } else { 'Base64' }
@@ -663,29 +663,29 @@ pub fn ruby_no_base64_l72_d5_top_level_const(args ...brew_runtime.Value) brew_ru
 		name = name[1..]
 	}
 	if source == name {
-		return brew_runtime.bool_value(true)
+		return ruby.bool_value(true)
 	}
 	if source == '::${name}' {
-		return brew_runtime.bool_value(true)
+		return ruby.bool_value(true)
 	}
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 // Ruby method `autocorrect_base64_call(corrector, node)` at line 81.
-pub fn ruby_no_base64_l81_d6_autocorrect_base64_call(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_no_base64_l81_d6_autocorrect_base64_call(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[args.len - 1].as_string() } else { '' }
 	for offense in audit_no_base64(source) {
 		if offense.kind == .base64_call && offense.correctable {
-			return brew_runtime.string_value(offense.replacement)
+			return ruby.string_value(offense.replacement)
 		}
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `chainable?(node)` at line 99.
-pub fn ruby_no_base64_l99_d7_chainable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_no_base64_l99_d7_chainable(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.bool_value(no_base64_chainable(source))
+	return ruby.bool_value(no_base64_chainable(source))
 }
 
 // Original Ruby source (line-for-line):

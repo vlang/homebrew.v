@@ -1,14 +1,14 @@
 module bottle
 
-import brew_runtime
+import ruby
 import homebrew.rubocops as bottle_core
 
 // Translated from Homebrew/brew `test/rubocops/bottle/bottle_tag_indentation_spec.rb`.
 // The original source is retained below for line-by-line provenance.
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
-pub fn ruby_bottle_tag_indentation_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::BottleTagIndentation', 'FormulaAudit/BottleTagIndentation')
+pub fn ruby_bottle_tag_indentation_spec_l7_d1_cop(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('RuboCop::Cop::FormulaAudit::BottleTagIndentation', 'FormulaAudit/BottleTagIndentation')
 }
 
 // Ruby it `it "reports no offenses for `bottle :unneeded`" do` at line 9.

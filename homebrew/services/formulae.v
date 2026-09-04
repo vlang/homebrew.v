@@ -1,6 +1,6 @@
 module services
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `services/formulae.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -50,8 +50,8 @@ pub fn services_list(formulae []ServiceFormula) []ServiceFormulaStatus {
 	})
 }
 
-pub fn service_formula_value(formula ServiceFormula) brew_runtime.Value {
-	return brew_runtime.structured_value('FormulaWrapper', formula.name, {
+pub fn service_formula_value(formula ServiceFormula) ruby.Value {
+	return ruby.structured_value('FormulaWrapper', formula.name, {
 		'name':        formula.name
 		'has_service': formula.has_service.str()
 		'loaded':      formula.loaded.str()
@@ -62,7 +62,7 @@ pub fn service_formula_value(formula ServiceFormula) brew_runtime.Value {
 	})
 }
 
-fn service_formula_from_value(value brew_runtime.Value) ServiceFormula {
+fn service_formula_from_value(value ruby.Value) ServiceFormula {
 	return ServiceFormula{
 		name: value.attribute('name') or { value.as_string() }
 		has_service: (value.attribute('has_service') or { 'true' }) == 'true'
@@ -74,21 +74,21 @@ fn service_formula_from_value(value brew_runtime.Value) ServiceFormula {
 	}
 }
 
-pub fn service_formula_status_value(status ServiceFormulaStatus) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'file':   brew_runtime.string_value(status.file)
-		'name':   brew_runtime.string_value(status.name)
-		'status': brew_runtime.string_value(status.status)
-		'user':   brew_runtime.string_value(status.user)
+pub fn service_formula_status_value(status ServiceFormulaStatus) ruby.Value {
+	return ruby.map_value({
+		'file':   ruby.string_value(status.file)
+		'name':   ruby.string_value(status.name)
+		'status': ruby.string_value(status.status)
+		'user':   ruby.string_value(status.user)
 	})
 }
 
 // Ruby method `self.available_services(loaded: nil, skip_root: false)` at line 12.
-pub fn ruby_formulae_l12_d1_self_available_services(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formulae_l12_d1_self_available_services(args ...ruby.Value) ruby.Value {
 	formulae := if args.len > 0 {
-		args[0].as_array() or { []brew_runtime.Value{} }
+		args[0].as_array() or { []ruby.Value{} }
 	} else {
-		[]brew_runtime.Value{}
+		[]ruby.Value{}
 	}
 	loaded := if args.len > 1 && args[1].type_name == 'Bool' {
 		?bool(args[1].bool_data)
@@ -97,18 +97,18 @@ pub fn ruby_formulae_l12_d1_self_available_services(args ...brew_runtime.Value) 
 	}
 	skip_root := args.len > 2 && (args[2].as_bool() or { false })
 	available := available_services(formulae.map(service_formula_from_value(it)), loaded, skip_root)
-	return brew_runtime.array_value(available.map(service_formula_value(it)))
+	return ruby.array_value(available.map(service_formula_value(it)))
 }
 
 // Ruby method `self.services_list` at line 28.
-pub fn ruby_formulae_l28_d2_self_services_list(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formulae_l28_d2_self_services_list(args ...ruby.Value) ruby.Value {
 	formulae := if args.len > 0 {
-		args[0].as_array() or { []brew_runtime.Value{} }
+		args[0].as_array() or { []ruby.Value{} }
 	} else {
-		[]brew_runtime.Value{}
+		[]ruby.Value{}
 	}
 	statuses := services_list(formulae.map(service_formula_from_value(it)))
-	return brew_runtime.array_value(statuses.map(service_formula_status_value(it)))
+	return ruby.array_value(statuses.map(service_formula_status_value(it)))
 }
 
 // Original Ruby source (line-for-line):

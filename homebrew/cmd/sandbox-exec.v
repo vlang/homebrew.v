@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `cmd/sandbox-exec.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -32,22 +32,22 @@ pub fn sandbox_exec_plan(request SandboxExecRequest) !SandboxExecPlan {
 	}
 }
 
-pub fn sandbox_exec_plan_to_value(plan SandboxExecPlan) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'writable_path': brew_runtime.string_value(plan.writable_path)
-		'command':       brew_runtime.string_array_value(plan.command)
-		'deny_network':  brew_runtime.bool_value(plan.deny_network)
+pub fn sandbox_exec_plan_to_value(plan SandboxExecPlan) ruby.Value {
+	return ruby.map_value({
+		'writable_path': ruby.string_value(plan.writable_path)
+		'command':       ruby.string_array_value(plan.command)
+		'deny_network':  ruby.bool_value(plan.deny_network)
 	})
 }
 
 // Ruby method `run` at line 27.
-pub fn ruby_sandbox_exec_l27_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sandbox_exec_l27_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('UsageError', '`sandbox-exec` requires a writable path.')
+		return ruby.object_value('UsageError', '`sandbox-exec` requires a writable path.')
 	}
-	values := args[0].as_map() or { return brew_runtime.object_value('UsageError', err.msg()) }
+	values := args[0].as_map() or { return ruby.object_value('UsageError', err.msg()) }
 	request := SandboxExecRequest{
-		writable_path: values['writable_path'] or { brew_runtime.string_value('') }.as_string()
+		writable_path: values['writable_path'] or { ruby.string_value('') }.as_string()
 		command: if value := values['command'] {
 			value.as_string_array() or { []string{} }} else {
 			[]string{}}
@@ -56,7 +56,7 @@ pub fn ruby_sandbox_exec_l27_d1_run(args ...brew_runtime.Value) brew_runtime.Val
 			false}
 	}
 	plan := sandbox_exec_plan(request) or {
-		return brew_runtime.object_value('UsageError', err.msg())
+		return ruby.object_value('UsageError', err.msg())
 	}
 	return sandbox_exec_plan_to_value(plan)
 }

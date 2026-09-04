@@ -1,35 +1,35 @@
 module artifact
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `cask/artifact/pkg.rb`.
 // The original source is retained below until every stub has a typed V body.
 pub struct PkgArtifact {
 pub:
-	cask           brew_runtime.Value
+	cask           ruby.Value
 	path           string
-	stanza_options map[string]brew_runtime.Value
+	stanza_options map[string]ruby.Value
 }
 
-pub fn new_pkg_artifact(cask brew_runtime.Value, path string, options map[string]brew_runtime.Value) !PkgArtifact {
+pub fn new_pkg_artifact(cask ruby.Value, path string, options map[string]ruby.Value) !PkgArtifact {
 	for key, _ in options {
 		if key !in ['allow_untrusted', 'choices'] {
 			return error("unknown keyword: '${key}'")
 		}
 	}
-	staged := (cask.map_data['staged_path'] or { brew_runtime.string_value('') }).as_string()
+	staged := (cask.map_data['staged_path'] or { ruby.string_value('') }).as_string()
 	return PkgArtifact{ cask: cask, path: os.join_path(staged, path), stanza_options: options.clone() }
 }
 
-pub fn pkg_artifact_value(pkg PkgArtifact) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn pkg_artifact_value(pkg PkgArtifact) ruby.Value {
+	return ruby.Value{
 		type_name: 'Cask::Artifact::Pkg'
 		repr: pkg.path
 		map_data: {
 			'cask':           pkg.cask
-			'path':           brew_runtime.object_value('Pathname', pkg.path)
-			'stanza_options': brew_runtime.map_value(pkg.stanza_options)
+			'path':           ruby.object_value('Pathname', pkg.path)
+			'stanza_options': ruby.map_value(pkg.stanza_options)
 		}
 		attributes: {
 			'dsl_key': 'pkg'
@@ -37,25 +37,25 @@ pub fn pkg_artifact_value(pkg PkgArtifact) brew_runtime.Value {
 	}
 }
 
-pub fn pkg_artifact_from_value(value brew_runtime.Value) !PkgArtifact {
+pub fn pkg_artifact_from_value(value ruby.Value) !PkgArtifact {
 	if value.type_name != 'Cask::Artifact::Pkg' {
 		return error('expected Cask::Artifact::Pkg, got ${value.type_name}')
 	}
 	return PkgArtifact{
-		cask: value.map_data['cask'] or { brew_runtime.object_value('Cask', '') }
-		path: (value.map_data['path'] or { brew_runtime.string_value(value.repr) }).as_string()
-		stanza_options: (value.map_data['stanza_options'] or { brew_runtime.map_value({}) }).map_data.clone()
+		cask: value.map_data['cask'] or { ruby.object_value('Cask', '') }
+		path: (value.map_data['path'] or { ruby.string_value(value.repr) }).as_string()
+		stanza_options: (value.map_data['stanza_options'] or { ruby.map_value({}) }).map_data.clone()
 	}
 }
 
 pub fn (pkg PkgArtifact) summarize() string {
-	staged := (pkg.cask.map_data['staged_path'] or { brew_runtime.string_value('') }).as_string().trim_right('/')
+	staged := (pkg.cask.map_data['staged_path'] or { ruby.string_value('') }).as_string().trim_right('/')
 	return pkg.path.trim_string_left(staged).trim_left('/')
 }
 
-pub fn (pkg PkgArtifact) installer_request(verbose bool, choices_path string, current_user string) !brew_runtime.Value {
+pub fn (pkg PkgArtifact) installer_request(verbose bool, choices_path string, current_user string) !ruby.Value {
 	if !os.exists(pkg.path) {
-		staged := (pkg.cask.map_data['staged_path'] or { brew_runtime.string_value('') }).as_string()
+		staged := (pkg.cask.map_data['staged_path'] or { ruby.string_value('') }).as_string()
 		mut alternatives := os.glob(os.join_path(staged, '**', '*.pkg')) or { []string{} }
 		alternatives.sort()
 		mut message := "Could not find PKG source file '${pkg.summarize()}'"
@@ -66,118 +66,118 @@ pub fn (pkg PkgArtifact) installer_request(verbose bool, choices_path string, cu
 	}
 	mut arguments := ['-pkg', pkg.path, '-target', '/']
 	if verbose { arguments << '-verboseR' }
-	if (pkg.stanza_options['allow_untrusted'] or { brew_runtime.bool_value(false) }).as_bool() or { false } {
+	if (pkg.stanza_options['allow_untrusted'] or { ruby.bool_value(false) }).as_bool() or { false } {
 		arguments << '-allowUntrusted'
 	}
 	if choices_path != '' { arguments << ['-applyChoiceChangesXML', choices_path] }
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'SystemCommand::Request'
 		repr: '/usr/sbin/installer ${arguments.join(' ')}'
 		map_data: {
-			'executable':   brew_runtime.string_value('/usr/sbin/installer')
-			'args':         brew_runtime.string_array_value(arguments)
-			'sudo':         brew_runtime.bool_value(true)
-			'sudo_as_root': brew_runtime.bool_value(true)
-			'print_stdout': brew_runtime.bool_value(true)
-			'env':          brew_runtime.map_value({
-				'LOGNAME':  brew_runtime.string_value(current_user)
-				'USER':     brew_runtime.string_value(current_user)
-				'USERNAME': brew_runtime.string_value(current_user)
+			'executable':   ruby.string_value('/usr/sbin/installer')
+			'args':         ruby.string_array_value(arguments)
+			'sudo':         ruby.bool_value(true)
+			'sudo_as_root': ruby.bool_value(true)
+			'print_stdout': ruby.bool_value(true)
+			'env':          ruby.map_value({
+				'LOGNAME':  ruby.string_value(current_user)
+				'USER':     ruby.string_value(current_user)
+				'USERNAME': ruby.string_value(current_user)
 			})
 		}
 	}
 }
 
 // Ruby attr_reader `attr_reader :path` at line 13.
-pub fn ruby_pkg_l13_d1_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pkg_l13_d1_path(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'path requires a receiver')
+		return ruby.object_value('ArgumentError', 'path requires a receiver')
 	}
-	pkg := pkg_artifact_from_value(args[0]) or { return brew_runtime.object_value('TypeError', err.msg()) }
-	return brew_runtime.object_value('Pathname', pkg.path)
+	pkg := pkg_artifact_from_value(args[0]) or { return ruby.object_value('TypeError', err.msg()) }
+	return ruby.object_value('Pathname', pkg.path)
 }
 
 // Ruby attr_reader `attr_reader :stanza_options` at line 16.
-pub fn ruby_pkg_l16_d2_stanza_options(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pkg_l16_d2_stanza_options(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'stanza_options requires a receiver')
+		return ruby.object_value('ArgumentError', 'stanza_options requires a receiver')
 	}
-	pkg := pkg_artifact_from_value(args[0]) or { return brew_runtime.object_value('TypeError', err.msg()) }
-	return brew_runtime.map_value(pkg.stanza_options)
+	pkg := pkg_artifact_from_value(args[0]) or { return ruby.object_value('TypeError', err.msg()) }
+	return ruby.map_value(pkg.stanza_options)
 }
 
 // Ruby method `self.from_args(cask, path, **stanza_options)` at line 19.
-pub fn ruby_pkg_l19_d3_self_from_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pkg_l19_d3_self_from_args(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'pkg requires cask and path')
+		return ruby.object_value('ArgumentError', 'pkg requires cask and path')
 	}
 	options := if args.len > 2 && args[2].type_name == 'Hash' {
 		args[2].map_data
 	} else {
-		map[string]brew_runtime.Value{}
+		map[string]ruby.Value{}
 	}
-	pkg := new_pkg_artifact(args[0], args[1].as_string(), options) or { return brew_runtime.object_value('CaskInvalidError', err.msg()) }
+	pkg := new_pkg_artifact(args[0], args[1].as_string(), options) or { return ruby.object_value('CaskInvalidError', err.msg()) }
 	return pkg_artifact_value(pkg)
 }
 
 // Ruby method `initialize(cask, path, **stanza_options)` at line 26.
-pub fn ruby_pkg_l26_d4_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pkg_l26_d4_initialize(args ...ruby.Value) ruby.Value {
 	return ruby_pkg_l19_d3_self_from_args(...args)
 }
 
 // Ruby method `summarize` at line 33.
-pub fn ruby_pkg_l33_d5_summarize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pkg_l33_d5_summarize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'summarize requires a receiver')
+		return ruby.object_value('ArgumentError', 'summarize requires a receiver')
 	}
-	pkg := pkg_artifact_from_value(args[0]) or { return brew_runtime.object_value('TypeError', err.msg()) }
-	return brew_runtime.string_value(pkg.summarize())
+	pkg := pkg_artifact_from_value(args[0]) or { return ruby.object_value('TypeError', err.msg()) }
+	return ruby.string_value(pkg.summarize())
 }
 
 // Ruby method `install_phase(command: SystemCommand, verbose: false, **_options)` at line 44.
-pub fn ruby_pkg_l44_d6_install_phase(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pkg_l44_d6_install_phase(args ...ruby.Value) ruby.Value {
 	return ruby_pkg_l51_d7_run_installer(...args)
 }
 
 // Ruby method `run_installer(command: SystemCommand, verbose: false)` at line 51.
-pub fn ruby_pkg_l51_d7_run_installer(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pkg_l51_d7_run_installer(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'run_installer requires a receiver')
+		return ruby.object_value('ArgumentError', 'run_installer requires a receiver')
 	}
-	pkg := pkg_artifact_from_value(args[0]) or { return brew_runtime.object_value('TypeError', err.msg()) }
+	pkg := pkg_artifact_from_value(args[0]) or { return ruby.object_value('TypeError', err.msg()) }
 	options := if args.len > 1 && args[1].type_name == 'Hash' {
 		args[1].map_data
 	} else {
-		map[string]brew_runtime.Value{}
+		map[string]ruby.Value{}
 	}
-	verbose := (options['verbose'] or { brew_runtime.bool_value(false) }).as_bool() or { false }
-	choices_path := (options['choices_path'] or { brew_runtime.string_value('') }).as_string()
-	current_user := (options['current_user'] or { brew_runtime.string_value('') }).as_string()
-	return pkg.installer_request(verbose, choices_path, current_user) or { brew_runtime.object_value('CaskError', err.msg()) }
+	verbose := (options['verbose'] or { ruby.bool_value(false) }).as_bool() or { false }
+	choices_path := (options['choices_path'] or { ruby.string_value('') }).as_string()
+	current_user := (options['current_user'] or { ruby.string_value('') }).as_string()
+	return pkg.installer_request(verbose, choices_path, current_user) or { ruby.object_value('CaskError', err.msg()) }
 }
 
 // Ruby method `with_choices_file(&_blk)` at line 96.
-pub fn ruby_pkg_l96_d8_with_choices_file(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pkg_l96_d8_with_choices_file(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'with_choices_file requires a receiver')
+		return ruby.object_value('ArgumentError', 'with_choices_file requires a receiver')
 	}
-	pkg := pkg_artifact_from_value(args[0]) or { return brew_runtime.object_value('TypeError', err.msg()) }
-	choices := pkg.stanza_options['choices'] or { brew_runtime.map_value({}) }
+	pkg := pkg_artifact_from_value(args[0]) or { return ruby.object_value('TypeError', err.msg()) }
+	choices := pkg.stanza_options['choices'] or { ruby.map_value({}) }
 	if choices.map_data.len == 0 {
 		return if args.len > 1 {
 			args[1]
 		} else {
-			brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+			ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 		}
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'Tempfile::Payload'
 		repr: 'choices.xml'
 		map_data: {
 			'choices':      choices
 			'block_result': if args.len > 1 {
 				args[1]} else {
-				brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }}
+				ruby.Value{ type_name: 'NilClass', repr: 'nil' }}
 		}
 	}
 }

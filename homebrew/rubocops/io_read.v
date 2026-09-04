@@ -1,6 +1,6 @@
 module rubocops
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `rubocops/io_read.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -335,8 +335,8 @@ pub fn audit_io_reads(source string) []IoReadOffense {
 	return offenses
 }
 
-fn io_read_offense_value(offense IoReadOffense) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cop::Offense', offense.message, {
+fn io_read_offense_value(offense IoReadOffense) ruby.Value {
+	return ruby.structured_value('RuboCop::Cop::Offense', offense.message, {
 		'method':    offense.method
 		'begin_pos': offense.begin_pos.str()
 		'end_pos':   offense.end_pos.str()
@@ -345,20 +345,20 @@ fn io_read_offense_value(offense IoReadOffense) brew_runtime.Value {
 }
 
 // Ruby method `on_send(node)` at line 14.
-pub fn ruby_io_read_l14_d1_on_send(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_io_read_l14_d1_on_send(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	offenses := audit_io_reads(source)
 	return if offenses.len == 0 {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	} else {
 		io_read_offense_value(offenses[0])
 	}
 }
 
 // Ruby method `safe?(node)` at line 24.
-pub fn ruby_io_read_l24_d2_safe(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_io_read_l24_d2_safe(args ...ruby.Value) ruby.Value {
 	expression := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.bool_value(io_read_argument_safe(parse_io_read_argument(expression)))
+	return ruby.bool_value(io_read_argument_safe(parse_io_read_argument(expression)))
 }
 
 // Original Ruby source (line-for-line):

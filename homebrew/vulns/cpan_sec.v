@@ -1,6 +1,6 @@
 module vulns
 
-import brew_runtime
+import ruby
 import homebrew
 import x.json2
 
@@ -461,30 +461,30 @@ fn cpan_sec_advisory_json(advisory CpanSecAdvisory) map[string]json2.Any {
 	return result
 }
 
-pub fn cpan_sec_advisory_value(advisory CpanSecAdvisory) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn cpan_sec_advisory_value(advisory CpanSecAdvisory) ruby.Value {
+	return ruby.Value{
 		type_name: 'CPANSec::Advisory'
 		repr: json2.encode(cpan_sec_advisory_json(advisory))
 		map_data: {
-			'id':                brew_runtime.string_value(advisory.id)
-			'cves':              brew_runtime.string_array_value(advisory.cves)
-			'affected_versions': brew_runtime.string_array_value(advisory.affected_versions)
-			'fixed_versions':    brew_runtime.string_array_value(advisory.fixed_versions)
+			'id':                ruby.string_value(advisory.id)
+			'cves':              ruby.string_array_value(advisory.cves)
+			'affected_versions': ruby.string_array_value(advisory.affected_versions)
+			'fixed_versions':    ruby.string_array_value(advisory.fixed_versions)
 			'severity':          if value := advisory.severity {
-				brew_runtime.string_value(value)} else {
-				brew_runtime.object_value('NilClass', 'nil')}
+				ruby.string_value(value)} else {
+				ruby.object_value('NilClass', 'nil')}
 			'description':       if value := advisory.description {
-				brew_runtime.string_value(value)} else {
-				brew_runtime.object_value('NilClass', 'nil')}
-			'references':        brew_runtime.string_array_value(advisory.references)
+				ruby.string_value(value)} else {
+				ruby.object_value('NilClass', 'nil')}
+			'references':        ruby.string_array_value(advisory.references)
 			'reported':          if value := advisory.reported {
-				brew_runtime.string_value(value)} else {
-				brew_runtime.object_value('NilClass', 'nil')}
+				ruby.string_value(value)} else {
+				ruby.object_value('NilClass', 'nil')}
 		}
 	}
 }
 
-pub fn cpan_sec_advisory_from_value(value brew_runtime.Value) !CpanSecAdvisory {
+pub fn cpan_sec_advisory_from_value(value ruby.Value) !CpanSecAdvisory {
 	if value.type_name != 'CPANSec::Advisory' {
 		return error('expected CPANSec::Advisory, got ${value.type_name}')
 	}
@@ -508,8 +508,8 @@ fn cpan_sec_database_json(database CpanSecDatabase) map[string]json2.Any {
 	}
 }
 
-pub fn cpan_sec_database_value(database CpanSecDatabase) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn cpan_sec_database_value(database CpanSecDatabase) ruby.Value {
+	return ruby.Value{
 		type_name: 'CPANSec'
 		repr: json2.encode(cpan_sec_database_json(database))
 		attributes: {
@@ -518,15 +518,15 @@ pub fn cpan_sec_database_value(database CpanSecDatabase) brew_runtime.Value {
 	}
 }
 
-pub fn cpan_sec_database_from_value(value brew_runtime.Value) !CpanSecDatabase {
+pub fn cpan_sec_database_from_value(value ruby.Value) !CpanSecDatabase {
 	if value.type_name != 'CPANSec' {
 		return error('expected CPANSec, got ${value.type_name}')
 	}
 	return parse_cpan_sec_database(value.repr)
 }
 
-pub fn cpan_sec_range_status_value(status CpanSecRangeStatus) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn cpan_sec_range_status_value(status CpanSecRangeStatus) ruby.Value {
+	return ruby.Value{
 		type_name: 'Vulnerability::RangeStatus'
 		repr: status.state.str()
 		attributes: {
@@ -536,7 +536,7 @@ pub fn cpan_sec_range_status_value(status CpanSecRangeStatus) brew_runtime.Value
 	}
 }
 
-fn cpan_sec_json_from_boundary(value brew_runtime.Value) json2.Any {
+fn cpan_sec_json_from_boundary(value ruby.Value) json2.Any {
 	return match value.type_name {
 		'NilClass' { json2.Any(json2.null) }
 		'String' { json2.Any(value.as_string()) }
@@ -562,17 +562,17 @@ fn cpan_sec_json_from_boundary(value brew_runtime.Value) json2.Any {
 }
 
 // Ruby method `self.data_url = DATA_URL` at line 21.
-pub fn ruby_cpan_sec_l21_d1_self_data_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(cpan_sec_data_url)
+pub fn ruby_cpan_sec_l21_d1_self_data_url(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(cpan_sec_data_url)
 }
 
 // Ruby method `self.cache_filename = "cpansa.json"` at line 24.
-pub fn ruby_cpan_sec_l24_d2_self_cache_filename(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(cpan_sec_cache_filename)
+pub fn ruby_cpan_sec_l24_d2_self_cache_filename(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(cpan_sec_cache_filename)
 }
 
 // Ruby method `initialize(data)` at line 33.
-pub fn ruby_cpan_sec_l33_d3_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cpan_sec_l33_d3_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('CPANSec initialize requires data')
 	}
@@ -581,52 +581,52 @@ pub fn ruby_cpan_sec_l33_d3_initialize(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby attr_reader `attr_reader :meta` at line 43.
-pub fn ruby_cpan_sec_l43_d4_meta(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cpan_sec_l43_d4_meta(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('missing CPANSec receiver')
 	}
 	database := cpan_sec_database_from_value(args[0]) or { panic(err) }
-	mut values := map[string]brew_runtime.Value{}
+	mut values := map[string]ruby.Value{}
 	for key, value in database.meta() {
 		values[key] = match value {
-			string { brew_runtime.string_value(value) }
-			int { brew_runtime.int_value(value) }
-			i64 { brew_runtime.int_value(value) }
+			string { ruby.string_value(value) }
+			int { ruby.int_value(value) }
+			i64 { ruby.int_value(value) }
 			f64 {
 				integer := i64(value)
 				if value == f64(integer) {
-					brew_runtime.int_value(integer)
+					ruby.int_value(integer)
 				} else {
-					brew_runtime.float_value(value)
+					ruby.float_value(value)
 				}
 			}
-			bool { brew_runtime.bool_value(value) }
-			else { brew_runtime.object_value('NilClass', 'nil') }
+			bool { ruby.bool_value(value) }
+			else { ruby.object_value('NilClass', 'nil') }
 		}
 	}
-	return brew_runtime.map_value(values)
+	return ruby.map_value(values)
 }
 
 // Ruby method `distributions` at line 46.
-pub fn ruby_cpan_sec_l46_d5_distributions(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cpan_sec_l46_d5_distributions(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('missing CPANSec receiver')
 	}
 	database := cpan_sec_database_from_value(args[0]) or { panic(err) }
-	return brew_runtime.string_array_value(database.distributions())
+	return ruby.string_array_value(database.distributions())
 }
 
 // Ruby method `advisories_for(distribution)` at line 51.
-pub fn ruby_cpan_sec_l51_d6_advisories_for(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cpan_sec_l51_d6_advisories_for(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.array_value([]brew_runtime.Value{})
+		return ruby.array_value([]ruby.Value{})
 	}
 	database := cpan_sec_database_from_value(args[0]) or { panic(err) }
-	return brew_runtime.array_value(database.advisories_for(args[1].as_string()).map(cpan_sec_advisory_value(it)))
+	return ruby.array_value(database.advisories_for(args[1].as_string()).map(cpan_sec_advisory_value(it)))
 }
 
 // Ruby method `self.range_status(advisory, version)` at line 65.
-pub fn ruby_cpan_sec_l65_d7_self_range_status(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cpan_sec_l65_d7_self_range_status(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('CPANSec.range_status requires advisory and version')
 	}
@@ -637,32 +637,32 @@ pub fn ruby_cpan_sec_l65_d7_self_range_status(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby method `self.satisfies?(target, conjunction)` at line 88.
-pub fn ruby_cpan_sec_l88_d8_self_satisfies(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cpan_sec_l88_d8_self_satisfies(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(cpan_sec_satisfies(args[0].as_string(), args[1].as_string()))
+	return ruby.bool_value(cpan_sec_satisfies(args[0].as_string(), args[1].as_string()))
 }
 
 // Ruby method `self.lower_bounds(conjunction)` at line 105.
-pub fn ruby_cpan_sec_l105_d9_self_lower_bounds(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cpan_sec_l105_d9_self_lower_bounds(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_array_value([]string{})
+		return ruby.string_array_value([]string{})
 	}
-	return brew_runtime.string_array_value(cpan_sec_lower_bounds(args[0].as_string()))
+	return ruby.string_array_value(cpan_sec_lower_bounds(args[0].as_string()))
 }
 
 // Ruby method `build_advisory(raw)` at line 113.
-pub fn ruby_cpan_sec_l113_d10_build_advisory(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cpan_sec_l113_d10_build_advisory(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || args[0].type_name != 'Hash' {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	raw_value := cpan_sec_json_from_boundary(args[0])
 	if raw_value !is map[string]json2.Any {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	advisory := build_cpan_sec_advisory(raw_value.as_map()) or {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	return cpan_sec_advisory_value(advisory)
 }

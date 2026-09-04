@@ -1,30 +1,30 @@
 module test
 
-import brew_runtime
+import ruby
 import homebrew
 import os
 import x.json2
 
 const sbom_test_sha256 = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
 
-fn sbom_spec_truth(value bool) brew_runtime.Value {
-	return brew_runtime.bool_value(value)
+fn sbom_spec_truth(value bool) ruby.Value {
+	return ruby.bool_value(value)
 }
 
-fn sbom_spec_bottle(url string, sha256 string) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'files': brew_runtime.map_value({
-			'all': brew_runtime.map_value({
-				'url':    brew_runtime.string_value(url)
-				'sha256': brew_runtime.string_value(sha256)
+fn sbom_spec_bottle(url string, sha256 string) ruby.Value {
+	return ruby.map_value({
+		'files': ruby.map_value({
+			'all': ruby.map_value({
+				'url':    ruby.string_value(url)
+				'sha256': ruby.string_value(sha256)
 			})
 		})
 	})
 }
 
 fn sbom_spec_formula(name string, version string, url string, checksum string,
-	patches []brew_runtime.Value, bottle brew_runtime.Value) brew_runtime.Value {
-	stable := brew_runtime.Value{
+	patches []ruby.Value, bottle ruby.Value) ruby.Value {
+	stable := ruby.Value{
 		type_name: 'SoftwareSpec'
 		attributes: {
 			'version':  version
@@ -32,10 +32,10 @@ fn sbom_spec_formula(name string, version string, url string, checksum string,
 			'checksum': checksum
 		}
 		map_data: {
-			'patches': brew_runtime.array_value(patches)
+			'patches': ruby.array_value(patches)
 		}
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'Formula'
 		repr: name
 		attributes: {
@@ -61,9 +61,9 @@ fn sbom_spec_formula(name string, version string, url string, checksum string,
 	}
 }
 
-fn sbom_spec_dependency(name string, sha256 string) brew_runtime.Value {
+fn sbom_spec_dependency(name string, sha256 string) ruby.Value {
 	formula := sbom_spec_formula(name, '1.1', '${name}-1.1', '', [], sbom_spec_bottle('https://brew.sh/bottles/${name}-1.1.all.bottle.tar.gz', sha256))
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'RuntimeDependency'
 		attributes: {
 			'full_name':   name
@@ -75,8 +75,8 @@ fn sbom_spec_dependency(name string, sha256 string) brew_runtime.Value {
 	}
 }
 
-fn sbom_spec_tab(dependencies []brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.Value{
+fn sbom_spec_tab(dependencies []ruby.Value) ruby.Value {
+	return ruby.Value{
 		type_name: 'Tab'
 		attributes: {
 			'source_modified_time': '1720189863'
@@ -84,16 +84,16 @@ fn sbom_spec_tab(dependencies []brew_runtime.Value) brew_runtime.Value {
 			'stdlib':               'libcxx'
 		}
 		map_data: {
-			'runtime_dependencies': brew_runtime.array_value(dependencies)
-			'built_on':             brew_runtime.map_value({
-				'xcode': brew_runtime.string_value('16.0')
+			'runtime_dependencies': ruby.array_value(dependencies)
+			'built_on':             ruby.map_value({
+				'xcode': ruby.string_value('16.0')
 			})
 		}
 	}
 }
 
-fn sbom_spec_maximal_formula() brew_runtime.Value {
-	patch := brew_runtime.structured_value('ExternalPatch', 'patch_macos', {
+fn sbom_spec_maximal_formula() ruby.Value {
+	patch := ruby.structured_value('ExternalPatch', 'patch_macos', {
 		'kind':     'external'
 		'url':      'patch_macos'
 		'checksum': sbom_test_sha256
@@ -103,32 +103,32 @@ fn sbom_spec_maximal_formula() brew_runtime.Value {
 	], sbom_spec_bottle('https://brew.sh/bottles/formula_name-0.1.all.bottle.tar.gz', '9befdad158e59763fb0622083974a6252878019702d8c961e1bec3a5f5305339'))
 }
 
-fn sbom_spec_maximal() brew_runtime.Value {
+fn sbom_spec_maximal() ruby.Value {
 	return homebrew.ruby_sbom_l33_d1_self_create(sbom_spec_maximal_formula(), sbom_spec_tab([
 		sbom_spec_dependency('beanstalkd', 'ac4c0330b70dae06eaa8065bfbea78dda277699d1ae8002478017a1bd9cf1908'),
 		sbom_spec_dependency('zlib', '6a4642964fe5c4d1cc8cd3507541736d5b984e34a303a814ef550d4f2f8242f9'),
 	]))
 }
 
-fn sbom_spec_packages(spdx brew_runtime.Value) []brew_runtime.Value {
-	return (spdx.map_data['packages'] or { brew_runtime.array_value([]) }).as_array() or { [] }
+fn sbom_spec_packages(spdx ruby.Value) []ruby.Value {
+	return (spdx.map_data['packages'] or { ruby.array_value([]) }).as_array() or { [] }
 }
 
-fn sbom_spec_package(spdx brew_runtime.Value, id string) ?brew_runtime.Value {
+fn sbom_spec_package(spdx ruby.Value, id string) ?ruby.Value {
 	for package in sbom_spec_packages(spdx) {
-		if (package.map_data['SPDXID'] or { brew_runtime.string_value('') }).as_string() == id {
+		if (package.map_data['SPDXID'] or { ruby.string_value('') }).as_string() == id {
 			return package
 		}
 	}
 	return none
 }
 
-fn sbom_spec_string_array(value brew_runtime.Value, key string) []string {
+fn sbom_spec_string_array(value ruby.Value, key string) []string {
 	nested := value.map_data[key] or { return [] }
 	return nested.as_string_array() or { (nested.as_array() or { [] }).map(it.as_string()) }
 }
 
-fn sbom_spec_value_to_any(value brew_runtime.Value) json2.Any {
+fn sbom_spec_value_to_any(value ruby.Value) json2.Any {
 	return match value.type_name {
 		'Hash' {
 			mut mapped := map[string]json2.Any{}
@@ -150,35 +150,35 @@ fn sbom_spec_value_to_any(value brew_runtime.Value) json2.Any {
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:sbom) { described_class.create(f, tab) }` at line 8.
-pub fn ruby_sbom_spec_l8_d1_sbom(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sbom_spec_l8_d1_sbom(args ...ruby.Value) ruby.Value {
 	formula := if args.len > 0 { args[0] } else { ruby_sbom_spec_l12_d2_f() }
 	tab := if args.len > 1 { args[1] } else { ruby_sbom_spec_l18_d3_tab() }
 	return homebrew.ruby_sbom_l33_d1_self_create(formula, tab)
 }
 
 // Ruby let `let(:f) do` at line 12.
-pub fn ruby_sbom_spec_l12_d2_f(args ...brew_runtime.Value) brew_runtime.Value {
-	return sbom_spec_formula('formula_name', '1.0', 'foo-1.0', '', [], brew_runtime.map_value({}))
+pub fn ruby_sbom_spec_l12_d2_f(args ...ruby.Value) ruby.Value {
+	return sbom_spec_formula('formula_name', '1.0', 'foo-1.0', '', [], ruby.map_value({}))
 }
 
 // Ruby let `let(:tab) { Tab.new }` at line 18.
-pub fn ruby_sbom_spec_l18_d3_tab(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sbom_spec_l18_d3_tab(args ...ruby.Value) ruby.Value {
 	return sbom_spec_tab([])
 }
 
 // Ruby it `it "returns true if valid" do` at line 20.
-pub fn ruby_sbom_spec_l20_d4_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sbom_spec_l20_d4_returns(args ...ruby.Value) ruby.Value {
 	errors := homebrew.ruby_sbom_l204_d10_schema_validation_errors(ruby_sbom_spec_l8_d1_sbom()).as_string_array() or { [] }
 	return sbom_spec_truth(errors.len == 0)
 }
 
 // Ruby let `let(:f) do` at line 25.
-pub fn ruby_sbom_spec_l25_d5_f(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sbom_spec_l25_d5_f(args ...ruby.Value) ruby.Value {
 	return sbom_spec_maximal_formula()
 }
 
 // Ruby let `let(:tab) do` at line 51.
-pub fn ruby_sbom_spec_l51_d6_tab(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sbom_spec_l51_d6_tab(args ...ruby.Value) ruby.Value {
 	return sbom_spec_tab([
 		sbom_spec_dependency('beanstalkd', 'ac4c0330b70dae06eaa8065bfbea78dda277699d1ae8002478017a1bd9cf1908'),
 		sbom_spec_dependency('zlib', '6a4642964fe5c4d1cc8cd3507541736d5b984e34a303a814ef550d4f2f8242f9'),
@@ -186,126 +186,126 @@ pub fn ruby_sbom_spec_l51_d6_tab(args ...brew_runtime.Value) brew_runtime.Value 
 }
 
 // Ruby it `it "returns true if valid" do` at line 89.
-pub fn ruby_sbom_spec_l89_d7_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sbom_spec_l89_d7_returns(args ...ruby.Value) ruby.Value {
 	errors := homebrew.ruby_sbom_l204_d10_schema_validation_errors(sbom_spec_maximal()).as_string_array() or { [] }
 	return sbom_spec_truth(errors.len == 0)
 }
 
 // Ruby it `it "only emits relationships with defined SPDX IDs" do` at line 93.
-pub fn ruby_sbom_spec_l93_d8_only(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sbom_spec_l93_d8_only(args ...ruby.Value) ruby.Value {
 	spdx := homebrew.ruby_sbom_l246_d13_to_spdx_sbom(sbom_spec_maximal())
 	mut ids := ['SPDXRef-DOCUMENT']
 	ids << sbom_spec_packages(spdx).map((it.map_data['SPDXID'] or {
-		brew_runtime.string_value('')
+		ruby.string_value('')
 	}).as_string())
-	files := (spdx.map_data['files'] or { brew_runtime.array_value([]) }).as_array() or { [] }
-	ids << files.map((it.map_data['SPDXID'] or { brew_runtime.string_value('') }).as_string())
-	relations := (spdx.map_data['relationships'] or { brew_runtime.array_value([]) }).as_array() or { [] }
+	files := (spdx.map_data['files'] or { ruby.array_value([]) }).as_array() or { [] }
+	ids << files.map((it.map_data['SPDXID'] or { ruby.string_value('') }).as_string())
+	relations := (spdx.map_data['relationships'] or { ruby.array_value([]) }).as_array() or { [] }
 	return sbom_spec_truth(relations.all((it.map_data['spdxElementId'] or {
-		brew_runtime.string_value('')
+		ruby.string_value('')
 	}).as_string() in ids && (it.map_data['relatedSpdxElement'] or {
-		brew_runtime.string_value('')
+		ruby.string_value('')
 	}).as_string() in ids))
 }
 
 // Ruby it `it "emits external patches as packages" do` at line 103.
-pub fn ruby_sbom_spec_l103_d9_emits(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sbom_spec_l103_d9_emits(args ...ruby.Value) ruby.Value {
 	spdx := homebrew.ruby_sbom_l246_d13_to_spdx_sbom(sbom_spec_maximal())
 	patch := sbom_spec_package(spdx, 'SPDXRef-Patch-formula_name-0') or { return sbom_spec_truth(false) }
-	checksums := (patch.map_data['checksums'] or { brew_runtime.array_value([]) }).as_array() or { [] }
+	checksums := (patch.map_data['checksums'] or { ruby.array_value([]) }).as_array() or { [] }
 	return sbom_spec_truth((patch.map_data['downloadLocation'] or {
-		brew_runtime.string_value('')
-	}).as_string() == 'patch_macos' && checksums.len == 1 && (checksums[0].map_data['checksumValue'] or { brew_runtime.string_value('') }).as_string() == sbom_test_sha256)
+		ruby.string_value('')
+	}).as_string() == 'patch_macos' && checksums.len == 1 && (checksums[0].map_data['checksumValue'] or { ruby.string_value('') }).as_string() == sbom_test_sha256)
 }
 
 // Ruby it `it "emits reproducible creation info" do` at line 115.
-pub fn ruby_sbom_spec_l115_d10_emits(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sbom_spec_l115_d10_emits(args ...ruby.Value) ruby.Value {
 	spdx := homebrew.ruby_sbom_l246_d13_to_spdx_sbom(sbom_spec_maximal())
 	creation := spdx.map_data['creationInfo'] or { return sbom_spec_truth(false) }
-	return sbom_spec_truth((creation.map_data['created'] or { brew_runtime.string_value('') }).as_string() == '2024-07-05T14:31:03Z' && sbom_spec_string_array(creation, 'creators') == [
+	return sbom_spec_truth((creation.map_data['created'] or { ruby.string_value('') }).as_string() == '2024-07-05T14:31:03Z' && sbom_spec_string_array(creation, 'creators') == [
 		'Tool: https://github.com/Homebrew/brew',
 	])
 }
 
 // Ruby it `it "emits bottle metadata when bottle filenames are available" do` at line 122.
-pub fn ruby_sbom_spec_l122_d11_emits(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sbom_spec_l122_d11_emits(args ...ruby.Value) ruby.Value {
 	spdx := homebrew.ruby_sbom_l246_d13_to_spdx_sbom(sbom_spec_maximal())
 	bottle := sbom_spec_package(spdx, 'SPDXRef-Bottle-formula_name') or { return sbom_spec_truth(false) }
-	checksums := (bottle.map_data['checksums'] or { brew_runtime.array_value([]) }).as_array() or { [] }
+	checksums := (bottle.map_data['checksums'] or { ruby.array_value([]) }).as_array() or { [] }
 	return sbom_spec_truth((bottle.map_data['downloadLocation'] or {
-		brew_runtime.string_value('')
+		ruby.string_value('')
 	}).as_string() == 'https://brew.sh/bottles/formula_name-0.1.all.bottle.tar.gz' && checksums.len == 1 && (checksums[0].map_data['checksumValue'] or {
-		brew_runtime.string_value('')
+		ruby.string_value('')
 	}).as_string() == '9befdad158e59763fb0622083974a6252878019702d8c961e1bec3a5f5305339')
 }
 
 // Ruby it `it "emits pkg:brew purl in externalRefs for source archive package" do` at line 135.
-pub fn ruby_sbom_spec_l135_d12_emits(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sbom_spec_l135_d12_emits(args ...ruby.Value) ruby.Value {
 	spdx := homebrew.ruby_sbom_l246_d13_to_spdx_sbom(sbom_spec_maximal())
 	archive := sbom_spec_package(spdx, 'SPDXRef-Archive-formula_name-src') or {
 		return sbom_spec_truth(false)
 	}
-	refs := (archive.map_data['externalRefs'] or { brew_runtime.array_value([]) }).as_array() or { [] }
+	refs := (archive.map_data['externalRefs'] or { ruby.array_value([]) }).as_array() or { [] }
 	return sbom_spec_truth(refs.len == 1 && (refs[0].map_data['referenceLocator'] or {
-		brew_runtime.string_value('')
+		ruby.string_value('')
 	}).as_string() == 'pkg:brew/homebrew/core/formula_name@0.1')
 }
 
 // Ruby let `let(:f) do` at line 150.
-pub fn ruby_sbom_spec_l150_d13_f(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sbom_spec_l150_d13_f(args ...ruby.Value) ruby.Value {
 	return sbom_spec_formula('formula_name', '2.25.1', 'https://files.pythonhosted.org/packages/d6/5d/requests-2.25.1.tar.gz', sbom_test_sha256, [], sbom_spec_bottle('https://brew.sh/bottles/formula_name-2.25.1.all.bottle.tar.gz', '9befdad158e59763fb0622083974a6252878019702d8c961e1bec3a5f5305339'))
 }
 
 // Ruby it `it "emits both pkg:brew and upstream purl in externalRefs for source archive package" do` at line 165.
-pub fn ruby_sbom_spec_l165_d14_emits(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sbom_spec_l165_d14_emits(args ...ruby.Value) ruby.Value {
 	sbom := homebrew.ruby_sbom_l33_d1_self_create(ruby_sbom_spec_l150_d13_f(), sbom_spec_tab([]))
 	spdx := homebrew.ruby_sbom_l246_d13_to_spdx_sbom(sbom)
 	archive := sbom_spec_package(spdx, 'SPDXRef-Archive-formula_name-src') or {
 		return sbom_spec_truth(false)
 	}
-	refs := (archive.map_data['externalRefs'] or { brew_runtime.array_value([]) }).as_array() or { [] }
+	refs := (archive.map_data['externalRefs'] or { ruby.array_value([]) }).as_array() or { [] }
 	locators := refs.map((it.map_data['referenceLocator'] or {
-		brew_runtime.string_value('')
+		ruby.string_value('')
 	}).as_string())
 	return sbom_spec_truth(locators == ['pkg:brew/homebrew/core/formula_name@2.25.1',
 		'pkg:pypi/requests@2.25.1'])
 }
 
 // Ruby it `it "omits host-specific packages when bottling" do` at line 183.
-pub fn ruby_sbom_spec_l183_d15_omits(args ...brew_runtime.Value) brew_runtime.Value {
-	spdx := homebrew.ruby_sbom_l246_d13_to_spdx_sbom(sbom_spec_maximal(), brew_runtime.bool_value(true))
+pub fn ruby_sbom_spec_l183_d15_omits(args ...ruby.Value) ruby.Value {
+	spdx := homebrew.ruby_sbom_l246_d13_to_spdx_sbom(sbom_spec_maximal(), ruby.bool_value(true))
 	ids := sbom_spec_packages(spdx).map((it.map_data['SPDXID'] or {
-		brew_runtime.string_value('')
+		ruby.string_value('')
 	}).as_string())
 	expected := ['SPDXRef-Archive-formula_name-src', 'SPDXRef-Patch-formula_name-0']
-	relations := (spdx.map_data['relationships'] or { brew_runtime.array_value([]) }).as_array() or { [] }
+	relations := (spdx.map_data['relationships'] or { ruby.array_value([]) }).as_array() or { [] }
 	return sbom_spec_truth(ids.len == expected.len && ids.all(it in expected) && relations.all((it.map_data['spdxElementId'] or {
-		brew_runtime.string_value('')
+		ruby.string_value('')
 	}).as_string() in ids || (it.map_data['spdxElementId'] or {
-		brew_runtime.string_value('')
+		ruby.string_value('')
 	}).as_string() == 'SPDXRef-File-formula_name'))
 }
 
 // Ruby it `it "emits host-specific packages in a pour supplement" do` at line 200.
-pub fn ruby_sbom_spec_l200_d16_emits(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sbom_spec_l200_d16_emits(args ...ruby.Value) ruby.Value {
 	supplement := homebrew.ruby_sbom_l271_d14_to_spdx_supplement(sbom_spec_maximal())
 	ids := sbom_spec_packages(supplement).map((it.map_data['SPDXID'] or {
-		brew_runtime.string_value('')
+		ruby.string_value('')
 	}).as_string())
 	return sbom_spec_truth(['SPDXRef-Compiler', 'SPDXRef-Stdlib',
 		'SPDXRef-Package-SPDXRef-beanstalkd-1.1', 'SPDXRef-Package-SPDXRef-zlib-1.1'].all(it in ids) && 'SPDXRef-Archive-formula_name-src' !in ids && 'SPDXRef-Patch-formula_name-0' !in ids)
 }
 
 // Ruby it `it "builds a GitHub Packages manifest annotation supplement" do` at line 215.
-pub fn ruby_sbom_spec_l215_d17_builds(args ...brew_runtime.Value) brew_runtime.Value {
-	supplement := brew_runtime.map_value({
-		'documentDescribes': brew_runtime.string_array_value(['SPDXRef-Compiler'])
-		'packages':          brew_runtime.array_value([brew_runtime.map_value({
-			'SPDXID': brew_runtime.string_value('SPDXRef-Compiler')
+pub fn ruby_sbom_spec_l215_d17_builds(args ...ruby.Value) ruby.Value {
+	supplement := ruby.map_value({
+		'documentDescribes': ruby.string_array_value(['SPDXRef-Compiler'])
+		'packages':          ruby.array_value([ruby.map_value({
+			'SPDXID': ruby.string_value('SPDXRef-Compiler')
 		})])
-		'relationships':     brew_runtime.array_value([])
+		'relationships':     ruby.array_value([])
 	})
-	annotation := homebrew.ruby_sbom_l104_d5_self_github_packages_sbom_supplement_annotation(supplement, brew_runtime.string_value('formula_name'), brew_runtime.string_value('formula_name'), brew_runtime.string_value('0.1'), brew_runtime.string_value(sbom_test_sha256), brew_runtime.string_value('https://ghcr.io/v2/homebrew/core'), brew_runtime.string_value('MIT'), brew_runtime.string_value('2026-05-10T00:00:00Z'))
+	annotation := homebrew.ruby_sbom_l104_d5_self_github_packages_sbom_supplement_annotation(supplement, ruby.string_value('formula_name'), ruby.string_value('formula_name'), ruby.string_value('0.1'), ruby.string_value(sbom_test_sha256), ruby.string_value('https://ghcr.io/v2/homebrew/core'), ruby.string_value('MIT'), ruby.string_value('2026-05-10T00:00:00Z'))
 	decoded := json2.decode[json2.Any](annotation.as_string()) or { return sbom_spec_truth(false) }
 	root := decoded.as_map()
 	packages_any := root['packages'] or { return sbom_spec_truth(false) }
@@ -321,7 +321,7 @@ pub fn ruby_sbom_spec_l215_d17_builds(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby it `it "updates only pour-time creation metadata" do` at line 243.
-pub fn ruby_sbom_spec_l243_d18_updates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sbom_spec_l243_d18_updates(args ...ruby.Value) ruby.Value {
 	root := os.join_path(os.temp_dir(), 'brew-v-sbom-update-metadata')
 	os.rmdir_all(root) or {}
 	defer { os.rmdir_all(root) or {} }
@@ -329,7 +329,7 @@ pub fn ruby_sbom_spec_l243_d18_updates(args ...brew_runtime.Value) brew_runtime.
 	path := os.join_path(root, 'sbom.spdx.json')
 	spdx := homebrew.ruby_sbom_l246_d13_to_spdx_sbom(sbom_spec_maximal())
 	os.write_file(path, json2.encode(sbom_spec_value_to_any(spdx))) or { return sbom_spec_truth(false) }
-	homebrew.ruby_sbom_l181_d8_self_update_pour_metadata(brew_runtime.object_value('Pathname', path), brew_runtime.string_value('1.2.3'), brew_runtime.int_value(1_720_189_863))
+	homebrew.ruby_sbom_l181_d8_self_update_pour_metadata(ruby.object_value('Pathname', path), ruby.string_value('1.2.3'), ruby.int_value(1_720_189_863))
 	decoded := json2.decode[json2.Any](os.read_file(path) or { return sbom_spec_truth(false) }) or {
 		return sbom_spec_truth(false)
 	}
@@ -339,7 +339,7 @@ pub fn ruby_sbom_spec_l243_d18_updates(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby it `it "merges pour supplements without validating full SBOMs" do` at line 258.
-pub fn ruby_sbom_spec_l258_d19_merges(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sbom_spec_l258_d19_merges(args ...ruby.Value) ruby.Value {
 	root := os.join_path(os.temp_dir(), 'brew-v-sbom-merge-metadata')
 	os.rmdir_all(root) or {}
 	defer { os.rmdir_all(root) or {} }
@@ -348,16 +348,16 @@ pub fn ruby_sbom_spec_l258_d19_merges(args ...brew_runtime.Value) brew_runtime.V
 	os.write_file(path, '{"creationInfo":{},"documentDescribes":[],"packages":[],"relationships":[]}') or {
 		return sbom_spec_truth(false)
 	}
-	supplement := brew_runtime.map_value({
-		'documentDescribes': brew_runtime.string_array_value(['SPDXRef-Compiler'])
-		'packages':          brew_runtime.array_value([brew_runtime.map_value({
-			'SPDXID': brew_runtime.string_value('SPDXRef-Compiler')
+	supplement := ruby.map_value({
+		'documentDescribes': ruby.string_array_value(['SPDXRef-Compiler'])
+		'packages':          ruby.array_value([ruby.map_value({
+			'SPDXID': ruby.string_value('SPDXRef-Compiler')
 		})])
-		'relationships':     brew_runtime.array_value([brew_runtime.map_value({
-			'spdxElementId': brew_runtime.string_value('SPDXRef-Compiler')
+		'relationships':     ruby.array_value([ruby.map_value({
+			'spdxElementId': ruby.string_value('SPDXRef-Compiler')
 		})])
 	})
-	homebrew.ruby_sbom_l181_d8_self_update_pour_metadata(brew_runtime.object_value('Pathname', path), brew_runtime.string_value('1.2.3'), brew_runtime.int_value(1_720_189_863), supplement)
+	homebrew.ruby_sbom_l181_d8_self_update_pour_metadata(ruby.object_value('Pathname', path), ruby.string_value('1.2.3'), ruby.int_value(1_720_189_863), supplement)
 	decoded := json2.decode[json2.Any](os.read_file(path) or { return sbom_spec_truth(false) }) or {
 		return sbom_spec_truth(false)
 	}
@@ -366,19 +366,19 @@ pub fn ruby_sbom_spec_l258_d19_merges(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby it `it "skips malformed pour metadata SBOMs" do` at line 281.
-pub fn ruby_sbom_spec_l281_d20_skips(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sbom_spec_l281_d20_skips(args ...ruby.Value) ruby.Value {
 	root := os.join_path(os.temp_dir(), 'brew-v-sbom-malformed')
 	os.rmdir_all(root) or {}
 	defer { os.rmdir_all(root) or {} }
 	os.mkdir_all(root) or { return sbom_spec_truth(false) }
 	path := os.join_path(root, 'sbom.spdx.json')
 	os.write_file(path, '{') or { return sbom_spec_truth(false) }
-	homebrew.ruby_sbom_l181_d8_self_update_pour_metadata(brew_runtime.object_value('Pathname', path), brew_runtime.string_value('1.2.3'), brew_runtime.int_value(1_720_189_863))
+	homebrew.ruby_sbom_l181_d8_self_update_pour_metadata(ruby.object_value('Pathname', path), ruby.string_value('1.2.3'), ruby.int_value(1_720_189_863))
 	return sbom_spec_truth((os.read_file(path) or { '' }) == '{')
 }
 
 // Ruby it `it "skips pour metadata SBOMs without creation info objects" do` at line 291.
-pub fn ruby_sbom_spec_l291_d21_skips(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sbom_spec_l291_d21_skips(args ...ruby.Value) ruby.Value {
 	root := os.join_path(os.temp_dir(), 'brew-v-sbom-no-creation-object')
 	os.rmdir_all(root) or {}
 	defer { os.rmdir_all(root) or {} }
@@ -386,29 +386,29 @@ pub fn ruby_sbom_spec_l291_d21_skips(args ...brew_runtime.Value) brew_runtime.Va
 	path := os.join_path(root, 'sbom.spdx.json')
 	original := '{"creationInfo":[]}'
 	os.write_file(path, original) or { return sbom_spec_truth(false) }
-	homebrew.ruby_sbom_l181_d8_self_update_pour_metadata(brew_runtime.object_value('Pathname', path), brew_runtime.string_value('1.2.3'), brew_runtime.int_value(1_720_189_863))
+	homebrew.ruby_sbom_l181_d8_self_update_pour_metadata(ruby.object_value('Pathname', path), ruby.string_value('1.2.3'), ruby.int_value(1_720_189_863))
 	return sbom_spec_truth((os.read_file(path) or { '' }) == original)
 }
 
 // Ruby it `it "returns false" do` at line 308.
-pub fn ruby_sbom_spec_l308_d22_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	errors := homebrew.ruby_sbom_l204_d10_schema_validation_errors(ruby_sbom_spec_l8_d1_sbom(), brew_runtime.map_value({})).as_string_array() or { [] }
+pub fn ruby_sbom_spec_l308_d22_returns(args ...ruby.Value) ruby.Value {
+	errors := homebrew.ruby_sbom_l204_d10_schema_validation_errors(ruby_sbom_spec_l8_d1_sbom(), ruby.map_value({})).as_string_array() or { [] }
 	return sbom_spec_truth(errors.len > 0)
 }
 
 // Ruby it `it "percent-encodes @ in versioned formula names" do` at line 315.
-pub fn ruby_sbom_spec_l315_d23_percent_encodes(args ...brew_runtime.Value) brew_runtime.Value {
-	return sbom_spec_truth(homebrew.ruby_sbom_l163_d7_self_brew_purl(brew_runtime.string_value('homebrew/core/python@3.12'), brew_runtime.string_value('3.12.8')).as_string() == 'pkg:brew/homebrew/core/python%403.12@3.12.8')
+pub fn ruby_sbom_spec_l315_d23_percent_encodes(args ...ruby.Value) ruby.Value {
+	return sbom_spec_truth(homebrew.ruby_sbom_l163_d7_self_brew_purl(ruby.string_value('homebrew/core/python@3.12'), ruby.string_value('3.12.8')).as_string() == 'pkg:brew/homebrew/core/python%403.12@3.12.8')
 }
 
 // Ruby it `it "omits the namespace for a bare formula name" do` at line 320.
-pub fn ruby_sbom_spec_l320_d24_omits(args ...brew_runtime.Value) brew_runtime.Value {
-	return sbom_spec_truth(homebrew.ruby_sbom_l163_d7_self_brew_purl(brew_runtime.string_value('zlib'), brew_runtime.string_value('1.3.1')).as_string() == 'pkg:brew/zlib@1.3.1')
+pub fn ruby_sbom_spec_l320_d24_omits(args ...ruby.Value) ruby.Value {
+	return sbom_spec_truth(homebrew.ruby_sbom_l163_d7_self_brew_purl(ruby.string_value('zlib'), ruby.string_value('1.3.1')).as_string() == 'pkg:brew/zlib@1.3.1')
 }
 
 // Ruby it `it "omits the version segment when version is nil" do` at line 324.
-pub fn ruby_sbom_spec_l324_d25_omits(args ...brew_runtime.Value) brew_runtime.Value {
-	return sbom_spec_truth(homebrew.ruby_sbom_l163_d7_self_brew_purl(brew_runtime.string_value('homebrew/core/foo'), brew_runtime.object_value('NilClass', 'nil')).as_string() == 'pkg:brew/homebrew/core/foo')
+pub fn ruby_sbom_spec_l324_d25_omits(args ...ruby.Value) ruby.Value {
+	return sbom_spec_truth(homebrew.ruby_sbom_l163_d7_self_brew_purl(ruby.string_value('homebrew/core/foo'), ruby.object_value('NilClass', 'nil')).as_string() == 'pkg:brew/homebrew/core/foo')
 }
 
 // Original Ruby source (line-for-line):

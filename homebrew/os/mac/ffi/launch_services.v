@@ -1,32 +1,32 @@
 module ffi
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `os/mac/ffi/launch_services.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `self.quarantine_agent_name_key = constant("kLSQuarantineAgentNameKey", dereference: true)` at line 21.
-pub fn ruby_launch_services_l21_d1_self_quarantine_agent_name_key(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_launch_services_l21_d1_self_quarantine_agent_name_key(args ...ruby.Value) ruby.Value {
 	return native_pointer_value(core_foundation_constant('kLSQuarantineAgentNameKey', true))
 }
 
 // Ruby method `self.quarantine_type_key = constant("kLSQuarantineTypeKey", dereference: true)` at line 26.
-pub fn ruby_launch_services_l26_d2_self_quarantine_type_key(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_launch_services_l26_d2_self_quarantine_type_key(args ...ruby.Value) ruby.Value {
 	return native_pointer_value(core_foundation_constant('kLSQuarantineTypeKey', true))
 }
 
 // Ruby method `self.quarantine_type_web_download = constant("kLSQuarantineTypeWebDownload", dereference: true)` at line 31.
-pub fn ruby_launch_services_l31_d3_self_quarantine_type_web_download(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_launch_services_l31_d3_self_quarantine_type_web_download(args ...ruby.Value) ruby.Value {
 	return native_pointer_value(core_foundation_constant('kLSQuarantineTypeWebDownload', true))
 }
 
 // Ruby method `self.quarantine_data_url_key = constant("kLSQuarantineDataURLKey", dereference: true)` at line 36.
-pub fn ruby_launch_services_l36_d4_self_quarantine_data_url_key(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_launch_services_l36_d4_self_quarantine_data_url_key(args ...ruby.Value) ruby.Value {
 	return native_pointer_value(core_foundation_constant('kLSQuarantineDataURLKey', true))
 }
 
 // Ruby method `self.quarantine_origin_url_key = constant("kLSQuarantineOriginURLKey", dereference: true)` at line 41.
-pub fn ruby_launch_services_l41_d5_self_quarantine_origin_url_key(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_launch_services_l41_d5_self_quarantine_origin_url_key(args ...ruby.Value) ruby.Value {
 	return native_pointer_value(core_foundation_constant('kLSQuarantineOriginURLKey', true))
 }
 

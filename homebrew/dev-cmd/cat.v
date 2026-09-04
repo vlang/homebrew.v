@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `dev-cmd/cat.rb`.
@@ -86,39 +86,39 @@ pub fn run_cat(options CatOptions) !CatResult {
 	}
 }
 
-pub fn cat_input_boundary(input &CatInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::Cat::Input', '', {
+pub fn cat_input_boundary(input &CatInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::Cat::Input', '', {
 		'cat_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn cat_input_from_value(value brew_runtime.Value) &CatInput {
+fn cat_input_from_value(value ruby.Value) &CatInput {
 	address := value.attributes['cat_input_address'] or { panic('invalid Cat input') }
 	return unsafe { &CatInput(voidptr(address.u64())) }
 }
 
-fn cat_result_value(result CatResult) brew_runtime.Value {
-	mut environment := map[string]brew_runtime.Value{}
+fn cat_result_value(result CatResult) ruby.Value {
+	mut environment := map[string]ruby.Value{}
 	for name, value in result.environment {
-		environment[name] = brew_runtime.string_value(value)
+		environment[name] = ruby.string_value(value)
 	}
-	return brew_runtime.map_value({
-		'command':     brew_runtime.string_array_value(result.command)
-		'working_dir': brew_runtime.string_value(result.working_dir)
-		'environment': brew_runtime.map_value(environment)
-		'stdout':      brew_runtime.string_value(result.stdout)
-		'stderr':      brew_runtime.string_value(result.stderr)
-		'success':     brew_runtime.bool_value(result.success)
+	return ruby.map_value({
+		'command':     ruby.string_array_value(result.command)
+		'working_dir': ruby.string_value(result.working_dir)
+		'environment': ruby.map_value(environment)
+		'stdout':      ruby.string_value(result.stdout)
+		'stderr':      ruby.string_value(result.stderr)
+		'success':     ruby.bool_value(result.success)
 	})
 }
 
 // Ruby method `run` at line 27.
-pub fn ruby_cat_l27_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cat_l27_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'command input is required')
+		return ruby.object_value('ArgumentError', 'command input is required')
 	}
 	return cat_result_value(run_cat(cat_input_from_value(args[0]).options) or {
-		return brew_runtime.object_value('Error', err.msg())
+		return ruby.object_value('Error', err.msg())
 	})
 }
 

@@ -1,6 +1,6 @@
 module utils
 
-import brew_runtime
+import ruby
 import x.json2
 
 // Translated from Homebrew/brew `utils/pypi.rb`.
@@ -432,8 +432,8 @@ pub fn plan_python_resources(package_name string, version string, extra_packages
 	}
 }
 
-fn pypi_package_value(package &PypiPackage) brew_runtime.Value {
-	return brew_runtime.structured_value('PyPI::Package', package.package_string, {
+fn pypi_package_value(package &PypiPackage) ruby.Value {
+	return ruby.structured_value('PyPI::Package', package.package_string, {
 		'pypi_package_address': u64(voidptr(package)).str()
 		'package_string':       package.package_string
 		'is_url':               package.is_url.str()
@@ -441,20 +441,20 @@ fn pypi_package_value(package &PypiPackage) brew_runtime.Value {
 	})
 }
 
-fn pypi_package_from_value(value brew_runtime.Value) &PypiPackage {
+fn pypi_package_from_value(value ruby.Value) &PypiPackage {
 	address := value.attribute('pypi_package_address') or { panic('invalid PyPI::Package receiver') }
 	return unsafe { &PypiPackage(voidptr(address.u64())) }
 }
 
-fn pypi_nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn pypi_nil_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-fn pypi_info_value(lookup PypiInfoLookup) brew_runtime.Value {
+fn pypi_info_value(lookup PypiInfoLookup) ruby.Value {
 	if !lookup.found {
 		return pypi_nil_value()
 	}
-	return brew_runtime.string_array_value([lookup.info.name, lookup.info.download_url,
+	return ruby.string_array_value([lookup.info.name, lookup.info.download_url,
 		lookup.info.checksum, lookup.info.version, lookup.info.package_error])
 }
 
@@ -463,41 +463,41 @@ fn pypi_boundary_fetch(_ string) !string {
 }
 
 // Ruby method `initialize(package_string, is_url: false, python_name: "python")` at line 24.
-pub fn ruby_pypi_l24_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pypi_l24_d1_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('PyPI::Package#initialize requires a package string')
 	}
 	package_string := args[0].as_string()
-	options := if args.len > 1 { args[1].map_data } else { map[string]brew_runtime.Value{} }
-	is_url := options['is_url'] or { brew_runtime.bool_value(false) }
-	python_name := options['python_name'] or { brew_runtime.string_value('python') }
+	options := if args.len > 1 { args[1].map_data } else { map[string]ruby.Value{} }
+	is_url := options['is_url'] or { ruby.bool_value(false) }
+	python_name := options['python_name'] or { ruby.string_value('python') }
 	return pypi_package_value(new_pypi_package(package_string, is_url.bool_data, python_name.as_string()))
 }
 
 // Ruby method `name` at line 33.
-pub fn ruby_pypi_l33_d2_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pypi_l33_d2_name(args ...ruby.Value) ruby.Value {
 	mut package := pypi_package_from_value(args[0])
-	return brew_runtime.string_value(package.name() or { panic(err) })
+	return ruby.string_value(package.name() or { panic(err) })
 }
 
 // Ruby method `extras` at line 39.
-pub fn ruby_pypi_l39_d3_extras(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pypi_l39_d3_extras(args ...ruby.Value) ruby.Value {
 	mut package := pypi_package_from_value(args[0])
-	return brew_runtime.string_array_value(package.extras() or { panic(err) })
+	return ruby.string_array_value(package.extras() or { panic(err) })
 }
 
 // Ruby method `version` at line 45.
-pub fn ruby_pypi_l45_d4_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pypi_l45_d4_version(args ...ruby.Value) ruby.Value {
 	mut package := pypi_package_from_value(args[0])
 	version := package.version() or { panic(err) }
 	if version.len > 0 {
-		return brew_runtime.string_value(version)
+		return ruby.string_value(version)
 	}
 	return pypi_nil_value()
 }
 
 // Ruby method `version=(new_version)` at line 51.
-pub fn ruby_pypi_l51_d5_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pypi_l51_d5_version(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('PyPI::Package#version= requires a version')
 	}
@@ -507,20 +507,20 @@ pub fn ruby_pypi_l51_d5_version(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `valid_pypi_package?` at line 58.
-pub fn ruby_pypi_l58_d6_valid_pypi_package(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(pypi_package_from_value(args[0]).valid())
+pub fn ruby_pypi_l58_d6_valid_pypi_package(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(pypi_package_from_value(args[0]).valid())
 }
 
 // Ruby method `pypi_info(new_version: nil, ignore_errors: false)` at line 69.
-pub fn ruby_pypi_l69_d7_pypi_info(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pypi_l69_d7_pypi_info(args ...ruby.Value) ruby.Value {
 	mut package := pypi_package_from_value(args[0])
-	options := if args.len > 1 { args[1].map_data } else { map[string]brew_runtime.Value{} }
+	options := if args.len > 1 { args[1].map_data } else { map[string]ruby.Value{} }
 	new_version := if value := options['new_version'] {
 		if value.type_name == 'NilClass' { none } else { ?string(value.as_string()) }
 	} else {
 		none
 	}
-	ignore_errors := options['ignore_errors'] or { brew_runtime.bool_value(false) }.bool_data
+	ignore_errors := options['ignore_errors'] or { ruby.bool_value(false) }.bool_data
 	if args.len > 2 {
 		payload := args[2].as_string()
 		return pypi_info_value(package.pypi_info(new_version, ignore_errors, fn [payload] (_ string) !string {
@@ -533,57 +533,57 @@ pub fn ruby_pypi_l69_d7_pypi_info(args ...brew_runtime.Value) brew_runtime.Value
 }
 
 // Ruby method `to_s` at line 114.
-pub fn ruby_pypi_l114_d8_to_s(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pypi_l114_d8_to_s(args ...ruby.Value) ruby.Value {
 	mut package := pypi_package_from_value(args[0])
-	return brew_runtime.string_value(package.string() or { panic(err) })
+	return ruby.string_value(package.string() or { panic(err) })
 }
 
 // Ruby method `same_package?(other)` at line 128.
-pub fn ruby_pypi_l128_d9_same_package(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pypi_l128_d9_same_package(args ...ruby.Value) ruby.Value {
 	mut left := pypi_package_from_value(args[0])
 	mut right := pypi_package_from_value(args[1])
-	return brew_runtime.bool_value(left.same_package(mut right) or { panic(err) })
+	return ruby.bool_value(left.same_package(mut right) or { panic(err) })
 }
 
 // Ruby method `==(other)` at line 135.
-pub fn ruby_pypi_l135_d10_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pypi_l135_d10_anonymous(args ...ruby.Value) ruby.Value {
 	if args.len < 2 || args[1].type_name != 'PyPI::Package' {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	return ruby_pypi_l128_d9_same_package(args[0], args[1])
 }
 
 // Ruby alias `alias eql? ==` at line 143.
-pub fn ruby_pypi_l143_d11_eql(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pypi_l143_d11_eql(args ...ruby.Value) ruby.Value {
 	return ruby_pypi_l135_d10_anonymous(...args)
 }
 
 // Ruby method `hash` at line 146.
-pub fn ruby_pypi_l146_d12_hash(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pypi_l146_d12_hash(args ...ruby.Value) ruby.Value {
 	mut package := pypi_package_from_value(args[0])
-	return brew_runtime.int_value(package.hash_value() or { panic(err) })
+	return ruby.int_value(package.hash_value() or { panic(err) })
 }
 
 // Ruby method `<=>(other)` at line 151.
-pub fn ruby_pypi_l151_d13_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pypi_l151_d13_anonymous(args ...ruby.Value) ruby.Value {
 	mut left := pypi_package_from_value(args[0])
 	mut right := pypi_package_from_value(args[1])
 	left_name := left.name() or { panic(err) }
 	right_name := right.name() or { panic(err) }
-	return brew_runtime.int_value(if left_name < right_name {
+	return ruby.int_value(if left_name < right_name {
 		-1
 	} else if left_name > right_name { 1 } else { 0 })
 }
 
 // Ruby method `basic_metadata` at line 159.
-pub fn ruby_pypi_l159_d14_basic_metadata(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pypi_l159_d14_basic_metadata(args ...ruby.Value) ruby.Value {
 	mut package := pypi_package_from_value(args[0])
 	package.resolve_basic_metadata() or { panic(err) }
-	return brew_runtime.array_value([
-		brew_runtime.string_value(package.name_cache),
-		brew_runtime.string_array_value(package.extras_cache),
+	return ruby.array_value([
+		ruby.string_value(package.name_cache),
+		ruby.string_array_value(package.extras_cache),
 		if package.version_cache.len > 0 {
-			brew_runtime.string_value(package.version_cache)
+			ruby.string_value(package.version_cache)
 		} else {
 			pypi_nil_value()
 		},
@@ -591,7 +591,7 @@ pub fn ruby_pypi_l159_d14_basic_metadata(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `self.update_pypi_url(url, version)` at line 216.
-pub fn ruby_pypi_l216_d15_self_update_pypi_url(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pypi_l216_d15_self_update_pypi_url(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		return pypi_nil_value()
 	}
@@ -604,32 +604,32 @@ pub fn ruby_pypi_l216_d15_self_update_pypi_url(args ...brew_runtime.Value) brew_
 		return payload
 	}) or { return pypi_nil_value() }
 	return if lookup.found {
-		brew_runtime.string_value(lookup.info.download_url)
+		ruby.string_value(lookup.info.download_url)
 	} else {
 		pypi_nil_value()
 	}
 }
 
 // Ruby method `self.update_python_resources!(formula, version: nil, package_name: nil, extra_packages: nil,` at line 245.
-pub fn ruby_pypi_l245_d16_self_update_python_resources(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pypi_l245_d16_self_update_python_resources(args ...ruby.Value) ruby.Value {
 	options := if args.len > 0 {
 		args[args.len - 1].map_data
 	} else {
-		map[string]brew_runtime.Value{}
+		map[string]ruby.Value{}
 	}
-	package_name := options['package_name'] or { brew_runtime.string_value('') }
-	version := options['version'] or { brew_runtime.string_value('') }
-	extra := options['extra_packages'] or { brew_runtime.string_array_value([]string{}) }
-	excluded := options['exclude_packages'] or { brew_runtime.string_array_value([]string{}) }
-	python := options['python_name'] or { brew_runtime.string_value('python') }
+	package_name := options['package_name'] or { ruby.string_value('') }
+	version := options['version'] or { ruby.string_value('') }
+	extra := options['extra_packages'] or { ruby.string_array_value([]string{}) }
+	excluded := options['exclude_packages'] or { ruby.string_array_value([]string{}) }
+	python := options['python_name'] or { ruby.string_value('python') }
 	plan := plan_python_resources(package_name.as_string(), version.as_string(), extra.string_array_data, excluded.string_array_data, python.as_string()) or { panic(err) }
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'PyPI::UpdatePlan'
 		repr: plan.pip_plan.command.join(' ')
 		string_array_data: plan.pip_plan.requirements.clone()
 		map_data: {
-			'excluded_packages': brew_runtime.string_array_value(plan.excluded_packages)
-			'extra_packages':    brew_runtime.string_array_value(plan.extra_packages)
+			'excluded_packages': ruby.string_array_value(plan.excluded_packages)
+			'extra_packages':    ruby.string_array_value(plan.extra_packages)
 		}
 		attributes: {
 			'main_package': plan.main_package
@@ -639,38 +639,38 @@ pub fn ruby_pypi_l245_d16_self_update_python_resources(args ...brew_runtime.Valu
 }
 
 // Ruby method `self.resource_blocks_from_formula(contents)` at line 466.
-pub fn ruby_pypi_l466_d17_self_resource_blocks_from_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pypi_l466_d17_self_resource_blocks_from_formula(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.map_value(map[string]brew_runtime.Value{})
+		return ruby.map_value(map[string]ruby.Value{})
 	}
 	blocks := pypi_resource_blocks_from_formula(args[args.len - 1].as_string())
-	mut values := map[string]brew_runtime.Value{}
+	mut values := map[string]ruby.Value{}
 	for name, block in blocks {
-		values[name] = brew_runtime.string_value(block)
+		values[name] = ruby.string_value(block)
 	}
-	return brew_runtime.map_value(values)
+	return ruby.map_value(values)
 }
 
 // Ruby method `self.normalize_python_package(name)` at line 486.
-pub fn ruby_pypi_l486_d18_self_normalize_python_package(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(normalize_python_package(args[args.len - 1].as_string()))
+pub fn ruby_pypi_l486_d18_self_normalize_python_package(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(normalize_python_package(args[args.len - 1].as_string()))
 }
 
 // Ruby method `self.pip_report(packages, python_name: "python", print_stderr: false, ignore_cooldown_package: nil)` at line 498.
-pub fn ruby_pypi_l498_d19_self_pip_report(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pypi_l498_d19_self_pip_report(args ...ruby.Value) ruby.Value {
 	packages_value := if args.len > 0 {
 		args[0]
 	} else {
-		brew_runtime.array_value([]brew_runtime.Value{})
+		ruby.array_value([]ruby.Value{})
 	}
 	mut packages := packages_value.array_data.map(pypi_package_from_value(it))
-	options := if args.len > 1 { args[1].map_data } else { map[string]brew_runtime.Value{} }
-	python := options['python_name'] or { brew_runtime.string_value('python') }
-	print_stderr := options['print_stderr'] or { brew_runtime.bool_value(false) }
+	options := if args.len > 1 { args[1].map_data } else { map[string]ruby.Value{} }
+	python := options['python_name'] or { ruby.string_value('python') }
+	print_stderr := options['print_stderr'] or { ruby.bool_value(false) }
 	plan := build_pip_report_plan(mut packages, python.as_string(), print_stderr.bool_data, none) or {
 		panic(err)
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'PyPI::PipReportPlan'
 		repr: plan.command.join(' ')
 		string_array_data: plan.requirements.clone()
@@ -678,12 +678,12 @@ pub fn ruby_pypi_l498_d19_self_pip_report(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby method `self.pip_report_to_packages(report)` at line 542.
-pub fn ruby_pypi_l542_d20_self_pip_report_to_packages(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pypi_l542_d20_self_pip_report_to_packages(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.array_value([]brew_runtime.Value{})
+		return ruby.array_value([]ruby.Value{})
 	}
 	packages := pip_report_to_packages(args[args.len - 1].as_string()) or { panic(err) }
-	return brew_runtime.array_value(packages.map(pypi_package_value(it)))
+	return ruby.array_value(packages.map(pypi_package_value(it)))
 }
 
 // Original Ruby source (line-for-line):

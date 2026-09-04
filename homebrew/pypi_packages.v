@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `pypi_packages.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -52,25 +52,25 @@ pub fn (packages PypiPackages) dependencies() []string {
 
 // pypi_packages_value is the generic boundary adapter used by translated Ruby
 // callers which do not yet pass PypiPackages directly.
-pub fn pypi_packages_value(packages PypiPackages) brew_runtime.Value {
+pub fn pypi_packages_value(packages PypiPackages) ruby.Value {
 	package_name := if name := packages.package_name() {
-		brew_runtime.string_value(name)
+		ruby.string_value(name)
 	} else {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'PypiPackages'
 		repr: 'PypiPackages'
 		map_data: {
 			'package_name':     package_name
-			'extra_packages':   brew_runtime.string_array_value(packages.extra_packages())
-			'exclude_packages': brew_runtime.string_array_value(packages.exclude_packages())
-			'dependencies':     brew_runtime.string_array_value(packages.dependencies())
+			'extra_packages':   ruby.string_array_value(packages.extra_packages())
+			'exclude_packages': ruby.string_array_value(packages.exclude_packages())
+			'dependencies':     ruby.string_array_value(packages.dependencies())
 		}
 	}
 }
 
-fn pypi_packages_array_from_value(value brew_runtime.Value, field string) ![]string {
+fn pypi_packages_array_from_value(value ruby.Value, field string) ![]string {
 	if value.type_name == 'NilClass' {
 		return []string{}
 	}
@@ -90,7 +90,7 @@ fn pypi_packages_array_from_value(value brew_runtime.Value, field string) ![]str
 	return result
 }
 
-pub fn pypi_packages_from_value(value brew_runtime.Value) !PypiPackages {
+pub fn pypi_packages_from_value(value ruby.Value) !PypiPackages {
 	if value.type_name != 'PypiPackages' && value.type_name != 'Hash' {
 		return error('expected PypiPackages or Hash, got ${value.type_name}')
 	}
@@ -103,13 +103,13 @@ pub fn pypi_packages_from_value(value brew_runtime.Value) !PypiPackages {
 		}
 	}
 	extra_packages := pypi_packages_array_from_value(value.map_data['extra_packages'] or {
-		brew_runtime.string_array_value([]string{})
+		ruby.string_array_value([]string{})
 	}, 'extra_packages')!
 	exclude_packages := pypi_packages_array_from_value(value.map_data['exclude_packages'] or {
-		brew_runtime.string_array_value([]string{})
+		ruby.string_array_value([]string{})
 	}, 'exclude_packages')!
 	dependencies := pypi_packages_array_from_value(value.map_data['dependencies'] or {
-		brew_runtime.string_array_value([]string{})
+		ruby.string_array_value([]string{})
 	}, 'dependencies')!
 	return new_pypi_packages(PypiPackagesConfig{
 		package_name: package_name
@@ -119,14 +119,14 @@ pub fn pypi_packages_from_value(value brew_runtime.Value) !PypiPackages {
 	})
 }
 
-fn pypi_packages_from_boundary_args(args []brew_runtime.Value) !PypiPackages {
+fn pypi_packages_from_boundary_args(args []ruby.Value) !PypiPackages {
 	if args.len == 0 {
 		return error('missing PypiPackages receiver')
 	}
 	return pypi_packages_from_value(args[0])
 }
 
-fn pypi_packages_config_from_args(args []brew_runtime.Value) !PypiPackagesConfig {
+fn pypi_packages_config_from_args(args []ruby.Value) !PypiPackagesConfig {
 	if args.len == 0 {
 		return PypiPackagesConfig{}
 	}
@@ -166,35 +166,35 @@ fn (packages PypiPackages) to_config() PypiPackagesConfig {
 }
 
 // Ruby attr_reader `attr_reader :package_name` at line 8.
-pub fn ruby_pypi_packages_l8_d1_package_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pypi_packages_l8_d1_package_name(args ...ruby.Value) ruby.Value {
 	packages := pypi_packages_from_boundary_args(args) or { panic(err) }
 	return if name := packages.package_name() {
-		brew_runtime.string_value(name)
+		ruby.string_value(name)
 	} else {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	}
 }
 
 // Ruby attr_reader `attr_reader :extra_packages` at line 11.
-pub fn ruby_pypi_packages_l11_d2_extra_packages(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pypi_packages_l11_d2_extra_packages(args ...ruby.Value) ruby.Value {
 	packages := pypi_packages_from_boundary_args(args) or { panic(err) }
-	return brew_runtime.string_array_value(packages.extra_packages())
+	return ruby.string_array_value(packages.extra_packages())
 }
 
 // Ruby attr_reader `attr_reader :exclude_packages` at line 14.
-pub fn ruby_pypi_packages_l14_d3_exclude_packages(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pypi_packages_l14_d3_exclude_packages(args ...ruby.Value) ruby.Value {
 	packages := pypi_packages_from_boundary_args(args) or { panic(err) }
-	return brew_runtime.string_array_value(packages.exclude_packages())
+	return ruby.string_array_value(packages.exclude_packages())
 }
 
 // Ruby attr_reader `attr_reader :dependencies` at line 17.
-pub fn ruby_pypi_packages_l17_d4_dependencies(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pypi_packages_l17_d4_dependencies(args ...ruby.Value) ruby.Value {
 	packages := pypi_packages_from_boundary_args(args) or { panic(err) }
-	return brew_runtime.string_array_value(packages.dependencies())
+	return ruby.string_array_value(packages.dependencies())
 }
 
 // Ruby method `initialize(` at line 27.
-pub fn ruby_pypi_packages_l27_d5_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pypi_packages_l27_d5_initialize(args ...ruby.Value) ruby.Value {
 	config := pypi_packages_config_from_args(args) or { panic(err) }
 	return pypi_packages_value(new_pypi_packages(config))
 }

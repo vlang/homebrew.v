@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 import homebrew.dev_cmd as production_dev_cmd
 import os
 import time
@@ -203,69 +203,69 @@ fn pr_pull_spec_squash_series(root string, relative string, original string, com
 }
 
 // Ruby let `let(:pr_pull) { described_class.new(["foo"]) }` at line 10.
-pub fn ruby_pr_pull_spec_l10_d1_pr_pull(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pr_pull_spec_l10_d1_pr_pull(args ...ruby.Value) ruby.Value {
 	_ = args
 	parsed := production_dev_cmd.parse_pr_pull_args(['foo']) or {
-		return brew_runtime.object_value('Error', err.msg())
+		return ruby.object_value('Error', err.msg())
 	}
-	return brew_runtime.structured_value('Homebrew::DevCmd::PrPull', 'foo', {
+	return ruby.structured_value('Homebrew::DevCmd::PrPull', 'foo', {
 		'named': parsed.named.join(',')
 	})
 }
 
 // Ruby let `let(:formula_rebuild) do` at line 11.
-pub fn ruby_pr_pull_spec_l11_d2_formula_rebuild(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pr_pull_spec_l11_d2_formula_rebuild(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value(pr_pull_spec_formula_rebuild())
+	return ruby.string_value(pr_pull_spec_formula_rebuild())
 }
 
 // Ruby let `let(:formula_revision) do` at line 19.
-pub fn ruby_pr_pull_spec_l19_d3_formula_revision(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pr_pull_spec_l19_d3_formula_revision(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value(pr_pull_spec_formula_revision())
+	return ruby.string_value(pr_pull_spec_formula_revision())
 }
 
 // Ruby let `let(:formula_version) do` at line 27.
-pub fn ruby_pr_pull_spec_l27_d4_formula_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pr_pull_spec_l27_d4_formula_version(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value(pr_pull_spec_formula_version())
+	return ruby.string_value(pr_pull_spec_formula_version())
 }
 
 // Ruby let `let(:formula) do` at line 34.
-pub fn ruby_pr_pull_spec_l34_d5_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pr_pull_spec_l34_d5_formula(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value(pr_pull_spec_formula())
+	return ruby.string_value(pr_pull_spec_formula())
 }
 
 // Ruby let `let(:cask_rebuild) do` at line 41.
-pub fn ruby_pr_pull_spec_l41_d6_cask_rebuild(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pr_pull_spec_l41_d6_cask_rebuild(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value(pr_pull_spec_cask_rebuild())
+	return ruby.string_value(pr_pull_spec_cask_rebuild())
 }
 
 // Ruby let `let(:cask_checksum) do` at line 51.
-pub fn ruby_pr_pull_spec_l51_d7_cask_checksum(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pr_pull_spec_l51_d7_cask_checksum(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value(pr_pull_spec_cask_checksum())
+	return ruby.string_value(pr_pull_spec_cask_checksum())
 }
 
 // Ruby let `let(:cask_version) do` at line 61.
-pub fn ruby_pr_pull_spec_l61_d8_cask_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pr_pull_spec_l61_d8_cask_version(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value(pr_pull_spec_cask_version())
+	return ruby.string_value(pr_pull_spec_cask_version())
 }
 
 // Ruby let `let(:cask) do` at line 70.
-pub fn ruby_pr_pull_spec_l70_d9_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pr_pull_spec_l70_d9_cask(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value(pr_pull_spec_cask())
+	return ruby.string_value(pr_pull_spec_cask())
 }
 
 // Ruby let `let(:tap) { Tap.fetch("Homebrew", "foo") }` at line 79.
-pub fn ruby_pr_pull_spec_l79_d10_tap(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pr_pull_spec_l79_d10_tap(args ...ruby.Value) ruby.Value {
 	root := if args.len > 0 { args[0].as_string() } else { '/tmp/homebrew/homebrew-foo' }
 	tap := pr_pull_spec_tap(root)
-	return brew_runtime.structured_value('Tap', tap.name, {
+	return ruby.structured_value('Tap', tap.name, {
 		'user':       tap.user
 		'repository': tap.full_repository
 		'path':       tap.path
@@ -273,61 +273,61 @@ pub fn ruby_pr_pull_spec_l79_d10_tap(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby let `let(:formula_file) { tap.path/"Formula/foo.rb" }` at line 80.
-pub fn ruby_pr_pull_spec_l80_d11_formula_file(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pr_pull_spec_l80_d11_formula_file(args ...ruby.Value) ruby.Value {
 	root := if args.len > 0 { args[0].as_string() } else { '/tmp/homebrew/homebrew-foo' }
-	return brew_runtime.string_value(os.join_path(root, 'Formula', 'foo.rb'))
+	return ruby.string_value(os.join_path(root, 'Formula', 'foo.rb'))
 }
 
 // Ruby let `let(:cask_file) { tap.cask_dir/"food.rb" }` at line 81.
-pub fn ruby_pr_pull_spec_l81_d12_cask_file(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pr_pull_spec_l81_d12_cask_file(args ...ruby.Value) ruby.Value {
 	root := if args.len > 0 { args[0].as_string() } else { '/tmp/homebrew/homebrew-foo' }
-	return brew_runtime.string_value(os.join_path(root, 'Casks', 'food.rb'))
+	return ruby.string_value(os.join_path(root, 'Casks', 'food.rb'))
 }
 
 // Ruby let `let(:path) { Pathname(HOMEBREW_TAP_DIRECTORY/"homebrew/homebrew-foo") }` at line 82.
-pub fn ruby_pr_pull_spec_l82_d13_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pr_pull_spec_l82_d13_path(args ...ruby.Value) ruby.Value {
 	root := if args.len > 0 { args[0].as_string() } else { '/tmp/homebrew/homebrew-foo' }
-	return brew_runtime.string_value(root)
+	return ruby.string_value(root)
 }
 
 // Ruby it `it "outputs the pull request head SHA" do` at line 89.
-pub fn ruby_pr_pull_spec_l89_d14_outputs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pr_pull_spec_l89_d14_outputs(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := production_dev_cmd.check_pr_pull_head_sha(production_dev_cmd.PrPullHeadInput{
 		user: 'Homebrew'
 		repo: 'foo'
 		pull_request: '1'
 		commits: ['actual']
-	}) or { return brew_runtime.object_value('Error', err.msg()) }
-	return brew_runtime.string_value(result.message)
+	}) or { return ruby.object_value('Error', err.msg()) }
+	return ruby.string_value(result.message)
 }
 
 // Ruby it `it "squashes a formula or cask correctly" do` at line 99.
-pub fn ruby_pr_pull_spec_l99_d15_squashes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pr_pull_spec_l99_d15_squashes(args ...ruby.Value) ruby.Value {
 	_ = args
 	root := pr_pull_spec_root('squash')
 	defer { os.rmdir_all(root) or {} }
-	pr_pull_spec_init_repository(root) or { return brew_runtime.bool_value(false) }
+	pr_pull_spec_init_repository(root) or { return ruby.bool_value(false) }
 
 	formula_file := os.join_path('Formula', 'foo.rb')
 	pr_pull_spec_write(root, formula_file, pr_pull_spec_formula()) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	formula_original := pr_pull_spec_commit(root, formula_file, 'foo 1.0 (new formula)', '') or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	pr_pull_spec_write(root, formula_file, pr_pull_spec_formula_revision()) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	formula_revision_commit := pr_pull_spec_commit(root, formula_file, 'revision', '') or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	secondary_author := 'Someone Else <me@example.com>'
 	pr_pull_spec_write(root, formula_file, pr_pull_spec_formula_version()) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	formula_version_commit := pr_pull_spec_commit(root, formula_file, 'version', secondary_author) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	formula_ok := pr_pull_spec_squash_series(root, formula_file, formula_original, [
 		formula_revision_commit,
@@ -336,30 +336,30 @@ pub fn ruby_pr_pull_spec_l99_d15_squashes(args ...brew_runtime.Value) brew_runti
 		formula_revision_commit: 'revision'
 		formula_version_commit:  'version'
 	}, ['Brew Test <brew@example.com>', secondary_author], 'foo 2.0', secondary_author) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	if !formula_ok {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 
 	cask_file := os.join_path('Casks', 'food.rb')
 	pr_pull_spec_write(root, cask_file, pr_pull_spec_cask()) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	cask_original := pr_pull_spec_commit(root, cask_file, 'food 1.0 (new cask)', '') or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	pr_pull_spec_write(root, cask_file, pr_pull_spec_cask_rebuild()) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	cask_rebuild_commit := pr_pull_spec_commit(root, cask_file, 'rebuild', '') or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	pr_pull_spec_write(root, cask_file, pr_pull_spec_cask_version()) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	cask_version_commit := pr_pull_spec_commit(root, cask_file, 'version', secondary_author) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	cask_ok := pr_pull_spec_squash_series(root, cask_file, cask_original, [
 		cask_rebuild_commit,
@@ -368,29 +368,29 @@ pub fn ruby_pr_pull_spec_l99_d15_squashes(args ...brew_runtime.Value) brew_runti
 		cask_rebuild_commit: 'rebuild'
 		cask_version_commit: 'version'
 	}, ['Brew Test <brew@example.com>', secondary_author], 'food 2.0', secondary_author) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(cask_ok)
+	return ruby.bool_value(cask_ok)
 }
 
 // Ruby let! `let!(:original_hash) do` at line 135.
-pub fn ruby_pr_pull_spec_l135_d16_original_hash(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pr_pull_spec_l135_d16_original_hash(args ...ruby.Value) ruby.Value {
 	_ = args
 	root := pr_pull_spec_root('original')
 	defer { os.rmdir_all(root) or {} }
-	pr_pull_spec_init_repository(root) or { return brew_runtime.object_value('Error', err.msg()) }
+	pr_pull_spec_init_repository(root) or { return ruby.object_value('Error', err.msg()) }
 	relative := os.join_path('Formula', 'foo.rb')
 	pr_pull_spec_write(root, relative, pr_pull_spec_formula()) or {
-		return brew_runtime.object_value('Error', err.msg())
+		return ruby.object_value('Error', err.msg())
 	}
 	hash := pr_pull_spec_commit(root, relative, 'foo 1.0 (new formula)', '') or {
-		return brew_runtime.object_value('Error', err.msg())
+		return ruby.object_value('Error', err.msg())
 	}
-	return brew_runtime.string_value(hash)
+	return ruby.string_value(hash)
 }
 
 // Ruby it `it "aborts the cherry-pick when cherry_picked is true" do` at line 156.
-pub fn ruby_pr_pull_spec_l156_d17_aborts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pr_pull_spec_l156_d17_aborts(args ...ruby.Value) ruby.Value {
 	_ = args
 	tap := pr_pull_spec_tap('/tmp/homebrew/homebrew-foo')
 	result := production_dev_cmd.autosquash_pr_pull(production_dev_cmd.PrPullAutosquashInput{
@@ -405,11 +405,11 @@ pub fn ruby_pr_pull_spec_l156_d17_aborts(args ...brew_runtime.Value) brew_runtim
 	})
 	abort := result.effects.any(it.kind == 'system' && it.argv.len >= 2
 		&& it.argv[it.argv.len - 2..] == ['cherry-pick', '--abort'])
-	return brew_runtime.bool_value(result.error != '' && abort)
+	return ruby.bool_value(result.error != '' && abort)
 }
 
 // Ruby it `it "does not abort the cherry-pick when cherry_picked is false" do` at line 166.
-pub fn ruby_pr_pull_spec_l166_d18_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pr_pull_spec_l166_d18_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	tap := pr_pull_spec_tap('/tmp/homebrew/homebrew-foo')
 	result := production_dev_cmd.autosquash_pr_pull(production_dev_cmd.PrPullAutosquashInput{
@@ -424,24 +424,24 @@ pub fn ruby_pr_pull_spec_l166_d18_does(args ...brew_runtime.Value) brew_runtime.
 	})
 	abort := result.effects.any(it.argv.len >= 2
 		&& it.argv[it.argv.len - 2..] == ['cherry-pick', '--abort'])
-	return brew_runtime.bool_value(result.error != '' && !abort)
+	return ruby.bool_value(result.error != '' && !abort)
 }
 
 // Ruby it `it "signs off a formula or cask" do` at line 179.
-pub fn ruby_pr_pull_spec_l179_d19_signs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pr_pull_spec_l179_d19_signs(args ...ruby.Value) ruby.Value {
 	_ = args
 	root := pr_pull_spec_root('signoff')
 	defer { os.rmdir_all(root) or {} }
-	pr_pull_spec_init_repository(root) or { return brew_runtime.bool_value(false) }
+	pr_pull_spec_init_repository(root) or { return ruby.bool_value(false) }
 	formula_file := os.join_path('Formula', 'foo.rb')
 	pr_pull_spec_write(root, formula_file, pr_pull_spec_formula()) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	pr_pull_spec_commit(root, formula_file, 'foo 1.0 (new formula)', '') or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	formula_message := pr_pull_spec_git(root, ['log', '-1', '--format=%B']) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	formula_result := production_dev_cmd.signoff_pr_pull(production_dev_cmd.PrPullSignoffInput{
 		tap: production_dev_cmd.PrPullTap{
@@ -450,24 +450,24 @@ pub fn ruby_pr_pull_spec_l179_d19_signs(args ...brew_runtime.Value) brew_runtime
 		}
 	})
 	pr_pull_spec_execute_effects(formula_result.effects) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	formula_signed := pr_pull_spec_git(root, ['log', '-1', '--format=%B']) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	if !formula_signed.contains('Signed-off-by: Brew Test <brew@example.com>') {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 
 	cask_file := os.join_path('Casks', 'food.rb')
 	pr_pull_spec_write(root, cask_file, pr_pull_spec_cask()) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	pr_pull_spec_commit(root, cask_file, 'food 1.0 (new cask)', '') or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	cask_message := pr_pull_spec_git(root, ['log', '-1', '--format=%B']) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	cask_result := production_dev_cmd.signoff_pr_pull(production_dev_cmd.PrPullSignoffInput{
 		tap: production_dev_cmd.PrPullTap{
@@ -476,16 +476,16 @@ pub fn ruby_pr_pull_spec_l179_d19_signs(args ...brew_runtime.Value) brew_runtime
 		}
 	})
 	pr_pull_spec_execute_effects(cask_result.effects) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	cask_signed := pr_pull_spec_git(root, ['log', '-1', '--format=%B']) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(cask_signed.contains('Signed-off-by: Brew Test <brew@example.com>'))
+	return ruby.bool_value(cask_signed.contains('Signed-off-by: Brew Test <brew@example.com>'))
 }
 
 // Ruby it `it "returns a formula" do` at line 202.
-pub fn ruby_pr_pull_spec_l202_d20_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pr_pull_spec_l202_d20_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	root := '/tmp/homebrew/homebrew-foo'
 	package := production_dev_cmd.get_pr_pull_package(production_dev_cmd.PrPullPackageInput{
@@ -494,14 +494,14 @@ pub fn ruby_pr_pull_spec_l202_d20_returns(args ...brew_runtime.Value) brew_runti
 		path: os.join_path(root, 'Formula', 'foo.rb')
 		content: pr_pull_spec_formula()
 		overrides: pr_pull_spec_overrides()
-	}) or { return brew_runtime.Value{ type_name: 'NilClass' } }
-	return brew_runtime.structured_value('Formula', package.name, {
+	}) or { return ruby.Value{ type_name: 'NilClass' } }
+	return ruby.structured_value('Formula', package.name, {
 		'version': package.version
 	})
 }
 
 // Ruby it `it "returns nil for an unknown formula" do` at line 206.
-pub fn ruby_pr_pull_spec_l206_d21_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pr_pull_spec_l206_d21_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	root := '/tmp/homebrew/homebrew-foo'
 	_ := production_dev_cmd.get_pr_pull_package(production_dev_cmd.PrPullPackageInput{
@@ -510,12 +510,12 @@ pub fn ruby_pr_pull_spec_l206_d21_returns(args ...brew_runtime.Value) brew_runti
 		path: os.join_path(root, 'Formula', 'foo.rb')
 		content: ''
 		overrides: pr_pull_spec_overrides()
-	}) or { return brew_runtime.Value{ type_name: 'NilClass' } }
-	return brew_runtime.object_value('Formula', 'unexpected package')
+	}) or { return ruby.Value{ type_name: 'NilClass' } }
+	return ruby.object_value('Formula', 'unexpected package')
 }
 
 // Ruby it `it "returns a cask" do` at line 210.
-pub fn ruby_pr_pull_spec_l210_d22_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pr_pull_spec_l210_d22_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	root := '/tmp/homebrew/homebrew-foo'
 	package := production_dev_cmd.get_pr_pull_package(production_dev_cmd.PrPullPackageInput{
@@ -524,14 +524,14 @@ pub fn ruby_pr_pull_spec_l210_d22_returns(args ...brew_runtime.Value) brew_runti
 		path: os.join_path(root, 'Casks', 'food.rb')
 		content: pr_pull_spec_cask()
 		overrides: pr_pull_spec_overrides()
-	}) or { return brew_runtime.Value{ type_name: 'NilClass' } }
-	return brew_runtime.structured_value('Cask::Cask', package.name, {
+	}) or { return ruby.Value{ type_name: 'NilClass' } }
+	return ruby.structured_value('Cask::Cask', package.name, {
 		'version': package.version
 	})
 }
 
 // Ruby it `it "returns nil for an unknown cask" do` at line 214.
-pub fn ruby_pr_pull_spec_l214_d23_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pr_pull_spec_l214_d23_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	root := '/tmp/homebrew/homebrew-foo'
 	_ := production_dev_cmd.get_pr_pull_package(production_dev_cmd.PrPullPackageInput{
@@ -540,62 +540,62 @@ pub fn ruby_pr_pull_spec_l214_d23_returns(args ...brew_runtime.Value) brew_runti
 		path: os.join_path(root, 'Casks', 'food.rb')
 		content: ''
 		overrides: pr_pull_spec_overrides()
-	}) or { return brew_runtime.Value{ type_name: 'NilClass' } }
-	return brew_runtime.object_value('Cask::Cask', 'unexpected package')
+	}) or { return ruby.Value{ type_name: 'NilClass' } }
+	return ruby.object_value('Cask::Cask', 'unexpected package')
 }
 
 // Ruby it `it "correctly bumps a new formula" do` at line 220.
-pub fn ruby_pr_pull_spec_l220_d24_correctly(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pr_pull_spec_l220_d24_correctly(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value(pr_pull_spec_bump_subject('', pr_pull_spec_formula(), '/tmp/homebrew/homebrew-foo/Formula/foo.rb', '', false))
+	return ruby.string_value(pr_pull_spec_bump_subject('', pr_pull_spec_formula(), '/tmp/homebrew/homebrew-foo/Formula/foo.rb', '', false))
 }
 
 // Ruby it `it "correctly bumps a new cask" do` at line 224.
-pub fn ruby_pr_pull_spec_l224_d25_correctly(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pr_pull_spec_l224_d25_correctly(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value(pr_pull_spec_bump_subject('', pr_pull_spec_cask(), '/tmp/homebrew/homebrew-foo/Casks/food.rb', '', false))
+	return ruby.string_value(pr_pull_spec_bump_subject('', pr_pull_spec_cask(), '/tmp/homebrew/homebrew-foo/Casks/food.rb', '', false))
 }
 
 // Ruby it `it "correctly bumps a formula version" do` at line 228.
-pub fn ruby_pr_pull_spec_l228_d26_correctly(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pr_pull_spec_l228_d26_correctly(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value(pr_pull_spec_bump_subject(pr_pull_spec_formula(), pr_pull_spec_formula_version(), '/tmp/homebrew/homebrew-foo/Formula/foo.rb', '', false))
+	return ruby.string_value(pr_pull_spec_bump_subject(pr_pull_spec_formula(), pr_pull_spec_formula_version(), '/tmp/homebrew/homebrew-foo/Formula/foo.rb', '', false))
 }
 
 // Ruby it `it "correctly bumps a cask version" do` at line 232.
-pub fn ruby_pr_pull_spec_l232_d27_correctly(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pr_pull_spec_l232_d27_correctly(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value(pr_pull_spec_bump_subject(pr_pull_spec_cask(), pr_pull_spec_cask_version(), '/tmp/homebrew/homebrew-foo/Casks/food.rb', '', false))
+	return ruby.string_value(pr_pull_spec_bump_subject(pr_pull_spec_cask(), pr_pull_spec_cask_version(), '/tmp/homebrew/homebrew-foo/Casks/food.rb', '', false))
 }
 
 // Ruby it `it "correctly bumps a cask checksum" do` at line 236.
-pub fn ruby_pr_pull_spec_l236_d28_correctly(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pr_pull_spec_l236_d28_correctly(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value(pr_pull_spec_bump_subject(pr_pull_spec_cask(), pr_pull_spec_cask_checksum(), '/tmp/homebrew/homebrew-foo/Casks/food.rb', '', false))
+	return ruby.string_value(pr_pull_spec_bump_subject(pr_pull_spec_cask(), pr_pull_spec_cask_checksum(), '/tmp/homebrew/homebrew-foo/Casks/food.rb', '', false))
 }
 
 // Ruby it `it "correctly bumps a formula revision with reason" do` at line 240.
-pub fn ruby_pr_pull_spec_l240_d29_correctly(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pr_pull_spec_l240_d29_correctly(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value(pr_pull_spec_bump_subject(pr_pull_spec_formula(), pr_pull_spec_formula_revision(), '/tmp/homebrew/homebrew-foo/Formula/foo.rb', 'for fun', true))
+	return ruby.string_value(pr_pull_spec_bump_subject(pr_pull_spec_formula(), pr_pull_spec_formula_revision(), '/tmp/homebrew/homebrew-foo/Formula/foo.rb', 'for fun', true))
 }
 
 // Ruby it `it "correctly bumps a formula rebuild" do` at line 246.
-pub fn ruby_pr_pull_spec_l246_d30_correctly(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pr_pull_spec_l246_d30_correctly(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value(pr_pull_spec_bump_subject(pr_pull_spec_formula(), pr_pull_spec_formula_rebuild(), '/tmp/homebrew/homebrew-foo/Formula/foo.rb', '', false))
+	return ruby.string_value(pr_pull_spec_bump_subject(pr_pull_spec_formula(), pr_pull_spec_formula_rebuild(), '/tmp/homebrew/homebrew-foo/Formula/foo.rb', '', false))
 }
 
 // Ruby it `it "correctly bumps a formula deletion" do` at line 250.
-pub fn ruby_pr_pull_spec_l250_d31_correctly(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pr_pull_spec_l250_d31_correctly(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value(pr_pull_spec_bump_subject(pr_pull_spec_formula(), '', '/tmp/homebrew/homebrew-foo/Formula/foo.rb', '', false))
+	return ruby.string_value(pr_pull_spec_bump_subject(pr_pull_spec_formula(), '', '/tmp/homebrew/homebrew-foo/Formula/foo.rb', '', false))
 }
 
 // Ruby it `it "correctly bumps a cask deletion" do` at line 254.
-pub fn ruby_pr_pull_spec_l254_d32_correctly(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pr_pull_spec_l254_d32_correctly(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value(pr_pull_spec_bump_subject(pr_pull_spec_cask(), '', '/tmp/homebrew/homebrew-foo/Casks/food.rb', '', false))
+	return ruby.string_value(pr_pull_spec_bump_subject(pr_pull_spec_cask(), '', '/tmp/homebrew/homebrew-foo/Casks/food.rb', '', false))
 }
 
 // Original Ruby source (line-for-line):

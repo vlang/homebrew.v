@@ -1,6 +1,6 @@
 module rubocops
 
-import brew_runtime
+import ruby
 import homebrew.rubocops.@shared as api_annotations
 
 // Translated from Homebrew/brew `rubocops/public_api_cookbook.rb`.
@@ -392,9 +392,9 @@ pub fn audit_public_api_cookbook(context PublicApiCookbookContext) PublicApiCook
 	}
 }
 
-fn public_api_analysis_value(analysis PublicApiCookbookAnalysis) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'offenses': brew_runtime.array_value(analysis.offenses.map(brew_runtime.structured_value('RuboCop::Cop::Offense', it.message, {
+fn public_api_analysis_value(analysis PublicApiCookbookAnalysis) ruby.Value {
+	return ruby.map_value({
+		'offenses': ruby.array_value(analysis.offenses.map(ruby.structured_value('RuboCop::Cop::Offense', it.message, {
 			'begin_pos': it.begin_pos.str()
 			'end_pos':   it.end_pos.str()
 			'line':      it.line.str()
@@ -404,9 +404,9 @@ fn public_api_analysis_value(analysis PublicApiCookbookAnalysis) brew_runtime.Va
 }
 
 // Ruby method `on_new_investigation` at line 27.
-pub fn ruby_public_api_cookbook_l27_d1_on_new_investigation(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_public_api_cookbook_l27_d1_on_new_investigation(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'source and relative path are required')
+		return ruby.object_value('ArgumentError', 'source and relative path are required')
 	}
 	return public_api_analysis_value(audit_public_api_cookbook(PublicApiCookbookContext{
 		source: args[0].as_string()
@@ -416,18 +416,18 @@ pub fn ruby_public_api_cookbook_l27_d1_on_new_investigation(args ...brew_runtime
 }
 
 // Ruby attr_reader `match = target_line.match(/\A(?:def\s+(?:self\.)?|attr_reader\s+:|attr_accessor\s+:)(\w+[!?]?)/) ||` at line 81.
-pub fn ruby_public_api_cookbook_l81_d2_attr_reader_dynamic(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_public_api_cookbook_l81_d2_attr_reader_dynamic(args ...ruby.Value) ruby.Value {
 	if args.len > 0 {
 		if method := api_annotations.api_annotation_method_name(args[0].as_string()) {
-			return brew_runtime.string_value(method)
+			return ruby.string_value(method)
 		}
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `build_api_public_targets` at line 102.
-pub fn ruby_public_api_cookbook_l102_d3_build_api_public_targets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(if args.len > 0 {
+pub fn ruby_public_api_cookbook_l102_d3_build_api_public_targets(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(if args.len > 0 {
 		public_api_targets(args[0].as_string()).map(it.str())
 	} else {
 		[]string{}
@@ -435,7 +435,7 @@ pub fn ruby_public_api_cookbook_l102_d3_build_api_public_targets(args ...brew_ru
 }
 
 // Ruby method `check_cookbook_methods(cookbook_methods, cookbook_name, relative_path, api_public_targets)` at line 145.
-pub fn ruby_public_api_cookbook_l145_d4_check_cookbook_methods(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_public_api_cookbook_l145_d4_check_cookbook_methods(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		return public_api_analysis_value(PublicApiCookbookAnalysis{})
 	}
@@ -453,8 +453,8 @@ pub fn ruby_public_api_cookbook_l145_d4_check_cookbook_methods(args ...brew_runt
 }
 
 // Ruby attr_reader `next unless [:attr_reader, :attr_accessor].include?(node.method_name)` at line 156.
-pub fn ruby_public_api_cookbook_l156_d5_attr_accessor(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(if args.len > 0 {
+pub fn ruby_public_api_cookbook_l156_d5_attr_accessor(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(if args.len > 0 {
 		public_api_attribute_names(args[0].as_string())
 	} else {
 		[]string{}
@@ -462,7 +462,7 @@ pub fn ruby_public_api_cookbook_l156_d5_attr_accessor(args ...brew_runtime.Value
 }
 
 // Ruby method `check_service_cookbook_list` at line 182.
-pub fn ruby_public_api_cookbook_l182_d6_check_service_cookbook_list(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_public_api_cookbook_l182_d6_check_service_cookbook_list(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return public_api_analysis_value(PublicApiCookbookAnalysis{})
 	}
@@ -473,7 +473,7 @@ pub fn ruby_public_api_cookbook_l182_d6_check_service_cookbook_list(args ...brew
 }
 
 // Ruby method `check_service_methods(relative_path, api_public_targets)` at line 206.
-pub fn ruby_public_api_cookbook_l206_d7_check_service_methods(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_public_api_cookbook_l206_d7_check_service_methods(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		return public_api_analysis_value(PublicApiCookbookAnalysis{})
 	}
@@ -484,8 +484,8 @@ pub fn ruby_public_api_cookbook_l206_d7_check_service_methods(args ...brew_runti
 }
 
 // Ruby method `parse_service_block_table` at line 225.
-pub fn ruby_public_api_cookbook_l225_d8_parse_service_block_table(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(if args.len > 0 {
+pub fn ruby_public_api_cookbook_l225_d8_parse_service_block_table(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(if args.len > 0 {
 		parse_service_block_table(args[0].as_string())
 	} else {
 		[]string{}

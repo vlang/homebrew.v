@@ -1,12 +1,12 @@
 module bindata
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/bindata-2.5.1/lib/bindata/buffer.rb`.
 // The original source is retained below until every stub has a typed V body.
-pub type BufferReadFn = fn(mut BufferIO) !brew_runtime.Value
+pub type BufferReadFn = fn(mut BufferIO) !ruby.Value
 
-pub type BufferWriteFn = fn(mut BufferIO, brew_runtime.Value) !
+pub type BufferWriteFn = fn(mut BufferIO, ruby.Value) !
 
 @[heap]
 pub struct BufferObject {
@@ -14,7 +14,7 @@ pub:
 	type_name string
 mut:
 	base        &BaseObject
-	child       brew_runtime.Value
+	child       ruby.Value
 	read_child  BufferReadFn = unsafe { nil }
 	write_child BufferWriteFn = unsafe { nil }
 	has_reader  bool
@@ -30,13 +30,13 @@ mut:
 	buf_end         int
 }
 
-fn buffer_nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn buffer_nil_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-pub fn new_bindata_buffer(length int, child brew_runtime.Value) &BufferObject {
+pub fn new_bindata_buffer(length int, child ruby.Value) &BufferObject {
 	parameters := {
-		'length': brew_runtime.int_value(length)
+		'length': ruby.int_value(length)
 		'type':   child
 	}
 	return &BufferObject{
@@ -53,8 +53,8 @@ pub fn (mut object BufferObject) set_io_callbacks(reader BufferReadFn, writer Bu
 	object.has_writer = true
 }
 
-fn buffer_object_value(object &BufferObject) brew_runtime.Value {
-	return brew_runtime.Value{
+fn buffer_object_value(object &BufferObject) ruby.Value {
+	return ruby.Value{
 		type_name: object.type_name
 		repr: object.child.repr
 		map_data: object.base.parameters
@@ -64,11 +64,11 @@ fn buffer_object_value(object &BufferObject) brew_runtime.Value {
 	}
 }
 
-pub fn buffer_boundary_value(object &BufferObject) brew_runtime.Value {
+pub fn buffer_boundary_value(object &BufferObject) ruby.Value {
 	return buffer_object_value(object)
 }
 
-fn buffer_object_from_value(value brew_runtime.Value) &BufferObject {
+fn buffer_object_from_value(value ruby.Value) &BufferObject {
 	if address := value.attributes['buffer_object_address'] {
 		return unsafe { &BufferObject(voidptr(address.u64())) }
 	}
@@ -157,8 +157,8 @@ pub fn (mut buffer BufferIO) after_write_transform() ! {
 	buffer.write('\0'.repeat(buffer.bytes_remaining))!
 }
 
-fn buffer_io_value(buffer &BufferIO) brew_runtime.Value {
-	return brew_runtime.Value{
+fn buffer_io_value(buffer &BufferIO) ruby.Value {
+	return ruby.Value{
 		type_name: 'BinData::Buffer::BufferIO'
 		repr: 'BinData::Buffer::BufferIO'
 		attributes: {
@@ -167,7 +167,7 @@ fn buffer_io_value(buffer &BufferIO) brew_runtime.Value {
 	}
 }
 
-fn buffer_io_from_value(value brew_runtime.Value) &BufferIO {
+fn buffer_io_from_value(value ruby.Value) &BufferIO {
 	address := value.attributes['buffer_io_address'] or { panic('expected BufferIO') }
 	return unsafe { &BufferIO(voidptr(address.u64())) }
 }
@@ -177,7 +177,7 @@ fn buffer_length(object &BufferObject) int {
 	return int(value.as_int() or { panic('buffer length must evaluate to an integer') })
 }
 
-fn sanitize_buffer_parameters(object_class brew_runtime.Value, values map[string]brew_runtime.Value) !map[string]brew_runtime.Value {
+fn sanitize_buffer_parameters(object_class ruby.Value, values map[string]ruby.Value) !map[string]ruby.Value {
 	mut result := normalized_base_parameters(values)
 	for key, value in object_class.map_data {
 		result[key] = value
@@ -188,7 +188,7 @@ fn sanitize_buffer_parameters(object_class brew_runtime.Value, values map[string
 	}
 	type_value := result['type'] or { return error("parameter 'type' must be specified") }
 	if type_value.type_name != 'BinData::SanitizedPrototype' {
-		if prototype := new_sanitized_prototype(type_value, map[string]brew_runtime.Value{}, map[string]brew_runtime.Value{}) {
+		if prototype := new_sanitized_prototype(type_value, map[string]ruby.Value{}, map[string]ruby.Value{}) {
 			result['type'] = sanitized_prototype_boundary_value(prototype)
 		}
 	}
@@ -196,7 +196,7 @@ fn sanitize_buffer_parameters(object_class brew_runtime.Value, values map[string
 }
 
 // Ruby method `initialize_instance` at line 62.
-pub fn ruby_buffer_l62_d1_initialize_instance(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_buffer_l62_d1_initialize_instance(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Buffer#initialize_instance requires receiver') }
 	mut object := buffer_object_from_value(args[0])
 	object.child = object.base.parameters['type'] or { buffer_nil_value() }
@@ -204,25 +204,25 @@ pub fn ruby_buffer_l62_d1_initialize_instance(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby method `raw_num_bytes` at line 67.
-pub fn ruby_buffer_l67_d2_raw_num_bytes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_buffer_l67_d2_raw_num_bytes(args ...ruby.Value) ruby.Value {
 	object := buffer_object_from_value(args[0])
 	if value := object.child.attributes['do_num_bytes'] {
-		return brew_runtime.int_value(value.i64())
+		return ruby.int_value(value.i64())
 	}
 	if object.child.type_name == 'String' {
-		return brew_runtime.int_value(object.child.repr.len)
+		return ruby.int_value(object.child.repr.len)
 	}
-	return brew_runtime.int_value(0)
+	return ruby.int_value(0)
 }
 
 // Ruby method `clear?` at line 71.
-pub fn ruby_buffer_l71_d3_clear(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_buffer_l71_d3_clear(args ...ruby.Value) ruby.Value {
 	object := buffer_object_from_value(args[0])
-	return brew_runtime.bool_value((object.child.attributes['clear'] or { 'false' }).bool())
+	return ruby.bool_value((object.child.attributes['clear'] or { 'false' }).bool())
 }
 
 // Ruby method `assign(val)` at line 75.
-pub fn ruby_buffer_l75_d4_assign(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_buffer_l75_d4_assign(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Buffer#assign requires value') }
 	mut object := buffer_object_from_value(args[0])
 	object.child = args[1]
@@ -231,20 +231,20 @@ pub fn ruby_buffer_l75_d4_assign(args ...brew_runtime.Value) brew_runtime.Value 
 }
 
 // Ruby method `snapshot` at line 79.
-pub fn ruby_buffer_l79_d5_snapshot(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_buffer_l79_d5_snapshot(args ...ruby.Value) ruby.Value {
 	return buffer_object_from_value(args[0]).child
 }
 
 // Ruby method `respond_to_missing?(symbol, include_all = false) # :nodoc:` at line 83.
-pub fn ruby_buffer_l83_d6_respond_to_missing(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_buffer_l83_d6_respond_to_missing(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Buffer#respond_to_missing? requires symbol') }
 	object := buffer_object_from_value(args[0])
 	name := args[1].as_string().trim_left(':')
-	return brew_runtime.bool_value(name in (object.child.attributes['method_names'] or { '' }).split(','))
+	return ruby.bool_value(name in (object.child.attributes['method_names'] or { '' }).split(','))
 }
 
 // Ruby method `method_missing(symbol, *args, &block) # :nodoc:` at line 87.
-pub fn ruby_buffer_l87_d7_method_missing(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_buffer_l87_d7_method_missing(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Buffer#method_missing requires symbol') }
 	name := args[1].as_string().trim_left(':')
 	if name in ['snapshot', 'value', 'to_s'] {
@@ -254,21 +254,21 @@ pub fn ruby_buffer_l87_d7_method_missing(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `do_read(io) # :nodoc:` at line 91.
-pub fn ruby_buffer_l91_d8_do_read(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_buffer_l91_d8_do_read(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Buffer#do_read requires IO') }
 	mut object := buffer_object_from_value(args[0])
 	mut buffer := new_buffer_reader_io(io_read_from_value(args[1]), buffer_length(object))
 	if object.has_reader {
 		object.child = object.read_child(mut buffer) or { panic(err) }
 	} else {
-		object.child = brew_runtime.string_value(buffer.read(none) or { panic(err) })
+		object.child = ruby.string_value(buffer.read(none) or { panic(err) })
 	}
 	buffer.after_read_transform() or { panic(err) }
 	return object.child
 }
 
 // Ruby method `do_write(io) # :nodoc:` at line 98.
-pub fn ruby_buffer_l98_d9_do_write(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_buffer_l98_d9_do_write(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Buffer#do_write requires IO') }
 	mut object := buffer_object_from_value(args[0])
 	mut buffer := new_buffer_writer_io(io_write_from_value(args[1]), buffer_length(object))
@@ -282,12 +282,12 @@ pub fn ruby_buffer_l98_d9_do_write(args ...brew_runtime.Value) brew_runtime.Valu
 }
 
 // Ruby method `do_num_bytes # :nodoc:` at line 105.
-pub fn ruby_buffer_l105_d10_do_num_bytes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(buffer_length(buffer_object_from_value(args[0])))
+pub fn ruby_buffer_l105_d10_do_num_bytes(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(buffer_length(buffer_object_from_value(args[0])))
 }
 
 // Ruby method `initialize(length)` at line 112.
-pub fn ruby_buffer_l112_d11_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_buffer_l112_d11_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('BufferIO#initialize requires length') }
 	length := int(args.last().as_int() or { panic(err) })
 	if args[0].type_name == 'BinData::IO::Read' {
@@ -300,20 +300,20 @@ pub fn ruby_buffer_l112_d11_initialize(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby method `before_transform` at line 117.
-pub fn ruby_buffer_l117_d12_before_transform(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_buffer_l117_d12_before_transform(args ...ruby.Value) ruby.Value {
 	mut buffer := buffer_io_from_value(args[0])
 	buffer.before_transform()
 	return buffer_nil_value()
 }
 
 // Ruby method `num_bytes_remaining` at line 122.
-pub fn ruby_buffer_l122_d13_num_bytes_remaining(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_buffer_l122_d13_num_bytes_remaining(args ...ruby.Value) ruby.Value {
 	mut buffer := buffer_io_from_value(args[0])
-	return brew_runtime.int_value(buffer.num_bytes_remaining())
+	return ruby.int_value(buffer.num_bytes_remaining())
 }
 
 // Ruby method `skip(n)` at line 128.
-pub fn ruby_buffer_l128_d14_skip(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_buffer_l128_d14_skip(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('BufferIO#skip requires count') }
 	mut buffer := buffer_io_from_value(args[0])
 	buffer.skip(int(args[1].int_data)) or { panic(err) }
@@ -321,7 +321,7 @@ pub fn ruby_buffer_l128_d14_skip(args ...brew_runtime.Value) brew_runtime.Value 
 }
 
 // Ruby method `seek_abs(n)` at line 135.
-pub fn ruby_buffer_l135_d15_seek_abs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_buffer_l135_d15_seek_abs(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('BufferIO#seek_abs requires position') }
 	mut buffer := buffer_io_from_value(args[0])
 	buffer.seek_abs(int(args[1].int_data)) or { panic(err) }
@@ -329,50 +329,50 @@ pub fn ruby_buffer_l135_d15_seek_abs(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby method `read(n)` at line 144.
-pub fn ruby_buffer_l144_d16_read(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_buffer_l144_d16_read(args ...ruby.Value) ruby.Value {
 	mut buffer := buffer_io_from_value(args[0])
 	count := if args.len > 1 && args[1].type_name != 'NilClass' {
 		?int(int(args[1].int_data))
 	} else {
 		?int(none)
 	}
-	return brew_runtime.string_value(buffer.read(count) or { panic(err) })
+	return ruby.string_value(buffer.read(count) or { panic(err) })
 }
 
 // Ruby method `write(data)` at line 151.
-pub fn ruby_buffer_l151_d17_write(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_buffer_l151_d17_write(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('BufferIO#write requires data') }
 	mut buffer := buffer_io_from_value(args[0])
-	return brew_runtime.int_value(buffer.write(args[1].as_string()) or { panic(err) })
+	return ruby.int_value(buffer.write(args[1].as_string()) or { panic(err) })
 }
 
 // Ruby method `after_read_transform` at line 161.
-pub fn ruby_buffer_l161_d18_after_read_transform(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_buffer_l161_d18_after_read_transform(args ...ruby.Value) ruby.Value {
 	mut buffer := buffer_io_from_value(args[0])
 	buffer.after_read_transform() or { panic(err) }
 	return buffer_nil_value()
 }
 
 // Ruby method `after_write_transform` at line 165.
-pub fn ruby_buffer_l165_d19_after_write_transform(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_buffer_l165_d19_after_write_transform(args ...ruby.Value) ruby.Value {
 	mut buffer := buffer_io_from_value(args[0])
 	buffer.after_write_transform() or { panic(err) }
 	return buffer_nil_value()
 }
 
 // Ruby method `buffer_limited_n(n)` at line 169.
-pub fn ruby_buffer_l169_d20_buffer_limited_n(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_buffer_l169_d20_buffer_limited_n(args ...ruby.Value) ruby.Value {
 	mut buffer := buffer_io_from_value(args[0])
 	count := if args.len > 1 && args[1].type_name != 'NilClass' {
 		?int(int(args[1].int_data))
 	} else {
 		?int(none)
 	}
-	return brew_runtime.int_value(buffer.limited_count(count))
+	return ruby.int_value(buffer.limited_count(count))
 }
 
 // Ruby method `sanitize_parameters!(obj_class, params)` at line 189.
-pub fn ruby_buffer_l189_d21_sanitize_parameters(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_buffer_l189_d21_sanitize_parameters(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('BufferArgProcessor#sanitize_parameters! requires class and params') }
 	object_class := args[args.len - 2]
 	params := args.last()
@@ -381,7 +381,7 @@ pub fn ruby_buffer_l189_d21_sanitize_parameters(args ...brew_runtime.Value) brew
 		parameters.values = sanitize_buffer_parameters(object_class, parameters.values) or { panic(err) }
 		return sanitized_parameters_boundary_value(parameters)
 	}
-	return brew_runtime.map_value(sanitize_buffer_parameters(object_class, params.as_map() or { panic(err) }) or { panic(err) })
+	return ruby.map_value(sanitize_buffer_parameters(object_class, params.as_map() or { panic(err) }) or { panic(err) })
 }
 
 // Original Ruby source (line-for-line):

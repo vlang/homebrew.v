@@ -1,6 +1,6 @@
 module rubocops
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `rubocops/unreferenced_let.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -477,21 +477,21 @@ pub fn analyze_unreferenced_lets(source string) UnreferencedLetAnalysis {
 	}
 }
 
-fn unreferenced_let_nil() brew_runtime.Value {
-	return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+fn unreferenced_let_nil() ruby.Value {
+	return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 }
 
-pub fn unreferenced_let_definition_value(definition UnreferencedLetDefinition) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn unreferenced_let_definition_value(definition UnreferencedLetDefinition) ruby.Value {
+	return ruby.Value{
 		type_name: 'RuboCop::AST::BlockNode'
 		repr: definition.name
 		map_data: {
-			'method':          brew_runtime.string_value(definition.method)
-			'name':            brew_runtime.string_value(definition.name)
-			'has_symbol_name': brew_runtime.bool_value(definition.has_symbol_name)
-			'has_block':       brew_runtime.bool_value(definition.has_block)
-			'has_receiver':    brew_runtime.bool_value(definition.has_receiver)
-			'within_shared':   brew_runtime.bool_value(definition.within_shared)
+			'method':          ruby.string_value(definition.method)
+			'name':            ruby.string_value(definition.name)
+			'has_symbol_name': ruby.bool_value(definition.has_symbol_name)
+			'has_block':       ruby.bool_value(definition.has_block)
+			'has_receiver':    ruby.bool_value(definition.has_receiver)
+			'within_shared':   ruby.bool_value(definition.within_shared)
 		}
 		attributes: {
 			'start_line':         definition.start_line.str()
@@ -503,8 +503,8 @@ pub fn unreferenced_let_definition_value(definition UnreferencedLetDefinition) b
 	}
 }
 
-fn unreferenced_let_range_value(value UnreferencedLetRange) brew_runtime.Value {
-	return brew_runtime.Value{
+fn unreferenced_let_range_value(value UnreferencedLetRange) ruby.Value {
+	return ruby.Value{
 		type_name: 'Parser::Source::Range'
 		repr: '${value.begin_pos}...${value.end_pos}'
 		attributes: {
@@ -516,13 +516,13 @@ fn unreferenced_let_range_value(value UnreferencedLetRange) brew_runtime.Value {
 	}
 }
 
-fn unreferenced_let_offense_value(offense UnreferencedLetOffense) brew_runtime.Value {
-	return brew_runtime.Value{
+fn unreferenced_let_offense_value(offense UnreferencedLetOffense) ruby.Value {
+	return ruby.Value{
 		type_name: 'RuboCop::Cop::Offense'
 		repr: offense.message
 		map_data: {
-			'name':    brew_runtime.string_value(offense.name)
-			'message': brew_runtime.string_value(offense.message)
+			'name':    ruby.string_value(offense.name)
+			'message': ruby.string_value(offense.message)
 			'range':   unreferenced_let_range_value(offense.removal)
 		}
 		attributes: {
@@ -532,7 +532,7 @@ fn unreferenced_let_offense_value(offense UnreferencedLetOffense) brew_runtime.V
 	}
 }
 
-fn unreferenced_let_source(args []brew_runtime.Value) string {
+fn unreferenced_let_source(args []ruby.Value) string {
 	for value in args {
 		if value.type_name == 'String' || value.type_name == 'RuboCop::AST::ProcessedSource' {
 			return value.as_string()
@@ -554,7 +554,7 @@ fn unreferenced_let_definition_for(analysis UnreferencedLetAnalysis, name string
 }
 
 // Ruby def_node_matcher `def_node_matcher :definition_name, <<~PATTERN` at line 79.
-pub fn ruby_unreferenced_let_l79_d1_definition_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_l79_d1_definition_name(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return unreferenced_let_nil()
 	}
@@ -565,31 +565,31 @@ pub fn ruby_unreferenced_let_l79_d1_definition_name(args ...brew_runtime.Value) 
 	return if analysis.definitions.len == 0 || !analysis.definitions[0].has_symbol_name {
 		unreferenced_let_nil()
 	} else {
-		brew_runtime.Value{ type_name: 'Symbol', repr: analysis.definitions[0].name }
+		ruby.Value{ type_name: 'Symbol', repr: analysis.definitions[0].name }
 	}
 }
 
 // Ruby method `on_send(node)` at line 84.
-pub fn ruby_unreferenced_let_l84_d2_on_send(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_l84_d2_on_send(args ...ruby.Value) ruby.Value {
 	analysis := analyze_unreferenced_lets(unreferenced_let_source(args))
-	return brew_runtime.array_value(analysis.offenses.map(unreferenced_let_offense_value(it)))
+	return ruby.array_value(analysis.offenses.map(unreferenced_let_offense_value(it)))
 }
 
 // Ruby method `exempt_from_deletion?(name, block)` at line 109.
-pub fn ruby_unreferenced_let_l109_d3_exempt_from_deletion(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_l109_d3_exempt_from_deletion(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(true)
+		return ruby.bool_value(true)
 	}
 	name := args[0].as_string().trim_left(':')
 	analysis := analyze_unreferenced_lets(unreferenced_let_source(args[1..]))
 	definition := unreferenced_let_definition_for(analysis, name) or {
-		return brew_runtime.bool_value(true)
+		return ruby.bool_value(true)
 	}
-	return brew_runtime.bool_value(name in unreferenced_let_reserved_names || analysis.dynamic_dispatch || analysis.consumes_shared_examples || definition.within_shared || analysis.definitions_by_name[name] > 1 || name in analysis.referenced_names)
+	return ruby.bool_value(name in unreferenced_let_reserved_names || analysis.dynamic_dispatch || analysis.consumes_shared_examples || definition.within_shared || analysis.definitions_by_name[name] > 1 || name in analysis.referenced_names)
 }
 
 // Ruby method `removal_range(node)` at line 125.
-pub fn ruby_unreferenced_let_l125_d4_removal_range(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_l125_d4_removal_range(args ...ruby.Value) ruby.Value {
 	source := unreferenced_let_source(args)
 	analysis := analyze_unreferenced_lets(source)
 	name := if args.len > 1 { args[1].as_string().trim_left(':') } else { '' }
@@ -604,31 +604,31 @@ pub fn ruby_unreferenced_let_l125_d4_removal_range(args ...brew_runtime.Value) b
 }
 
 // Ruby method `absorbable_comment?(source_line)` at line 148.
-pub fn ruby_unreferenced_let_l148_d5_absorbable_comment(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_l148_d5_absorbable_comment(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || args[0].type_name == 'NilClass' {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(unreferenced_let_absorbable_comment(args[0].as_string()))
+	return ruby.bool_value(unreferenced_let_absorbable_comment(args[0].as_string()))
 }
 
 // Ruby method `blank_line?(source_line)` at line 156.
-pub fn ruby_unreferenced_let_l156_d6_blank_line(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_l156_d6_blank_line(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || args[0].type_name == 'NilClass' {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(unreferenced_let_blank_line(args[0].as_string()))
+	return ruby.bool_value(unreferenced_let_blank_line(args[0].as_string()))
 }
 
 // Ruby method `let_or_subject_line?(source_line)` at line 163.
-pub fn ruby_unreferenced_let_l163_d7_let_or_subject_line(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_l163_d7_let_or_subject_line(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || args[0].type_name == 'NilClass' {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(unreferenced_let_let_or_subject_line(args[0].as_string()))
+	return ruby.bool_value(unreferenced_let_let_or_subject_line(args[0].as_string()))
 }
 
 // Ruby method `preceding_sig(node)` at line 170.
-pub fn ruby_unreferenced_let_l170_d8_preceding_sig(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_l170_d8_preceding_sig(args ...ruby.Value) ruby.Value {
 	analysis := analyze_unreferenced_lets(unreferenced_let_source(args))
 	name := if args.len > 1 { args[1].as_string().trim_left(':') } else { '' }
 	definition := if name != '' {
@@ -641,7 +641,7 @@ pub fn ruby_unreferenced_let_l170_d8_preceding_sig(args ...brew_runtime.Value) b
 	if definition.preceding_sig_line < 0 {
 		return unreferenced_let_nil()
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'RuboCop::AST::BlockNode'
 		repr: 'sig'
 		attributes: {
@@ -651,70 +651,70 @@ pub fn ruby_unreferenced_let_l170_d8_preceding_sig(args ...brew_runtime.Value) b
 }
 
 // Ruby method `within_shared_definition?(node)` at line 179.
-pub fn ruby_unreferenced_let_l179_d9_within_shared_definition(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_l179_d9_within_shared_definition(args ...ruby.Value) ruby.Value {
 	analysis := analyze_unreferenced_lets(unreferenced_let_source(args))
 	name := if args.len > 1 { args[1].as_string().trim_left(':') } else { '' }
 	definition := unreferenced_let_definition_for(analysis, name) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(definition.within_shared)
+	return ruby.bool_value(definition.within_shared)
 }
 
 // Ruby method `consumes_shared_examples?` at line 184.
-pub fn ruby_unreferenced_let_l184_d10_consumes_shared_examples(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(analyze_unreferenced_lets(unreferenced_let_source(args)).consumes_shared_examples)
+pub fn ruby_unreferenced_let_l184_d10_consumes_shared_examples(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(analyze_unreferenced_lets(unreferenced_let_source(args)).consumes_shared_examples)
 }
 
 // Ruby method `dynamic_dispatch?` at line 197.
-pub fn ruby_unreferenced_let_l197_d11_dynamic_dispatch(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(analyze_unreferenced_lets(unreferenced_let_source(args)).dynamic_dispatch)
+pub fn ruby_unreferenced_let_l197_d11_dynamic_dispatch(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(analyze_unreferenced_lets(unreferenced_let_source(args)).dynamic_dispatch)
 }
 
 // Ruby method `overridden?(name)` at line 211.
-pub fn ruby_unreferenced_let_l211_d12_overridden(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_l211_d12_overridden(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	name := args[0].as_string().trim_left(':')
 	analysis := analyze_unreferenced_lets(unreferenced_let_source(args[1..]))
-	return brew_runtime.bool_value(analysis.definitions_by_name[name] > 1)
+	return ruby.bool_value(analysis.definitions_by_name[name] > 1)
 }
 
 // Ruby method `definitions_by_name` at line 216.
-pub fn ruby_unreferenced_let_l216_d13_definitions_by_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_l216_d13_definitions_by_name(args ...ruby.Value) ruby.Value {
 	analysis := analyze_unreferenced_lets(unreferenced_let_source(args))
-	mut values := map[string]brew_runtime.Value{}
+	mut values := map[string]ruby.Value{}
 	for name, count in analysis.definitions_by_name {
-		values[name] = brew_runtime.int_value(count)
+		values[name] = ruby.int_value(count)
 	}
-	return brew_runtime.map_value(values)
+	return ruby.map_value(values)
 }
 
 // Ruby method `referenced?(name)` at line 232.
-pub fn ruby_unreferenced_let_l232_d14_referenced(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_l232_d14_referenced(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	name := args[0].as_string().trim_left(':')
-	return brew_runtime.bool_value(name in analyze_unreferenced_lets(unreferenced_let_source(args[1..])).referenced_names)
+	return ruby.bool_value(name in analyze_unreferenced_lets(unreferenced_let_source(args[1..])).referenced_names)
 }
 
 // Ruby method `referenced_names` at line 246.
-pub fn ruby_unreferenced_let_l246_d15_referenced_names(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(analyze_unreferenced_lets(unreferenced_let_source(args)).referenced_names)
+pub fn ruby_unreferenced_let_l246_d15_referenced_names(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(analyze_unreferenced_lets(unreferenced_let_source(args)).referenced_names)
 }
 
 // Ruby method `definition_name_argument?(sym_node)` at line 273.
-pub fn ruby_unreferenced_let_l273_d16_definition_name_argument(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unreferenced_let_l273_d16_definition_name_argument(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	if raw := args[0].map_data['definition_name_argument'] {
 		return raw
 	}
 	position := (args[0].attributes['begin_pos'] or { '-1' }).int()
 	analysis := analyze_unreferenced_lets(unreferenced_let_source(args[1..]))
-	return brew_runtime.bool_value(unreferenced_let_name_argument_position(analysis.definitions, position))
+	return ruby.bool_value(unreferenced_let_name_argument_position(analysis.definitions, position))
 }
 
 // Original Ruby source (line-for-line):

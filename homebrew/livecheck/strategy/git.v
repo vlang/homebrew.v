@@ -1,6 +1,6 @@
 module strategy
 
-import brew_runtime
+import ruby
 import homebrew.download_strategy
 import net.urllib
 import regex
@@ -224,13 +224,13 @@ pub fn git_ls_remote_tags(url string, runner GitCommandRunner) !GitRemoteData {
 }
 
 pub fn git_native_command_runner(command GitCommand) !GitCommandOutput {
-	mut environment := brew_runtime.environment()
+	mut environment := ruby.environment()
 	for key, value in command.environment {
 		environment[key] = value
 	}
 	mut command_line := [command.program]
 	command_line << command.arguments
-	result := brew_runtime.run_captured_command(command_line, brew_runtime.CapturedCommandOptions{ environment: environment })!
+	result := ruby.run_captured_command(command_line, ruby.CapturedCommandOptions{ environment: environment })!
 	return GitCommandOutput{
 		stdout: result.stdout
 		has_stdout: result.stdout != ''

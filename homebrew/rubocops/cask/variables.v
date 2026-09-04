@@ -1,6 +1,6 @@
 module cask
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `rubocops/cask/variables.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -215,8 +215,8 @@ pub fn correct_cask_variables(source string) string {
 	return corrected
 }
 
-fn cask_variable_offense_value(offense CaskVariableOffense) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cop::Offense', offense.message, {
+fn cask_variable_offense_value(offense CaskVariableOffense) ruby.Value {
+	return ruby.structured_value('RuboCop::Cop::Offense', offense.message, {
 		'begin_pos':   offense.begin_pos.str()
 		'end_pos':     offense.end_pos.str()
 		'message':     offense.message
@@ -224,8 +224,8 @@ fn cask_variable_offense_value(offense CaskVariableOffense) brew_runtime.Value {
 	})
 }
 
-fn cask_variable_assignment_value(assignment CaskVariableAssignment) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::AST::LocalVariableAssignmentNode', assignment.source, {
+fn cask_variable_assignment_value(assignment CaskVariableAssignment) ruby.Value {
+	return ruby.structured_value('RuboCop::AST::LocalVariableAssignmentNode', assignment.source, {
 		'variable':       assignment.variable
 		'arch_condition': assignment.arch_condition
 		'true_source':    assignment.true_source
@@ -236,36 +236,36 @@ fn cask_variable_assignment_value(assignment CaskVariableAssignment) brew_runtim
 }
 
 // Ruby method `on_cask(cask_block)` at line 30.
-pub fn ruby_variables_l30_d1_on_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_variables_l30_d1_on_cask(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.array_value(audit_cask_variables(source).map(cask_variable_offense_value(it)))
+	return ruby.array_value(audit_cask_variables(source).map(cask_variable_offense_value(it)))
 }
 
 // Ruby def_delegator `def_delegator :@cask_block, :cask_node` at line 37.
-pub fn ruby_variables_l37_d2_cask_node(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_variables_l37_d2_cask_node(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.structured_value('RuboCop::AST::BlockNode', source, {
+	return ruby.structured_value('RuboCop::AST::BlockNode', source, {
 		'source':                    source
 		'variable_assignment_count': find_cask_variable_assignments(source).len.str()
 	})
 }
 
 // Ruby method `add_offenses` at line 40.
-pub fn ruby_variables_l40_d3_add_offenses(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_variables_l40_d3_add_offenses(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.array_value(audit_cask_variables(source).map(cask_variable_offense_value(it)))
+	return ruby.array_value(audit_cask_variables(source).map(cask_variable_offense_value(it)))
 }
 
 // Ruby method `blank_node?(node)` at line 65.
-pub fn ruby_variables_l65_d4_blank_node(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_variables_l65_d4_blank_node(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.bool_value(cask_variable_blank_node(source))
+	return ruby.bool_value(cask_variable_blank_node(source))
 }
 
 // Ruby def_node_search `def_node_search :variable_assignment, <<~PATTERN` at line 76.
-pub fn ruby_variables_l76_d5_variable_assignment(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_variables_l76_d5_variable_assignment(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.array_value(find_cask_variable_assignments(source).map(cask_variable_assignment_value(it)))
+	return ruby.array_value(find_cask_variable_assignments(source).map(cask_variable_assignment_value(it)))
 }
 
 // Original Ruby source (line-for-line):

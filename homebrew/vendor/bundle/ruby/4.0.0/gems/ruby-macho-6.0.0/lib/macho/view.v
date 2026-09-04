@@ -1,19 +1,19 @@
 module macho
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/ruby-macho-6.0.0/lib/macho/view.rb`.
 // The original source is retained below until every stub has a typed V body.
 @[heap]
 pub struct MachoView {
 pub:
-	macho_file brew_runtime.Value
+	macho_file ruby.Value
 	raw_data   string
 	endianness string
 	offset     i64
 }
 
-pub fn new_macho_view(macho_file brew_runtime.Value, raw_data string, endianness string, offset i64) &MachoView {
+pub fn new_macho_view(macho_file ruby.Value, raw_data string, endianness string, offset i64) &MachoView {
 	return &MachoView{
 		macho_file: macho_file
 		raw_data: raw_data
@@ -22,10 +22,10 @@ pub fn new_macho_view(macho_file brew_runtime.Value, raw_data string, endianness
 	}
 }
 
-pub fn (view &MachoView) to_h() brew_runtime.Value {
-	return brew_runtime.map_value({
-		'endianness': brew_runtime.object_value('Symbol', ':${view.endianness}')
-		'offset':     brew_runtime.int_value(view.offset)
+pub fn (view &MachoView) to_h() ruby.Value {
+	return ruby.map_value({
+		'endianness': ruby.object_value('Symbol', ':${view.endianness}')
+		'offset':     ruby.int_value(view.offset)
 	})
 }
 
@@ -34,13 +34,13 @@ pub fn (view &MachoView) inspect() string {
 	return '#<MachO::MachOView:0x${identity} @endianness=:${view.endianness}, @offset=${view.offset}, length=${view.raw_data.len}>'
 }
 
-fn macho_view_value(view &MachoView) brew_runtime.Value {
-	return brew_runtime.structured_value('MachO::MachOView', view.inspect(), {
+fn macho_view_value(view &MachoView) ruby.Value {
+	return ruby.structured_value('MachO::MachOView', view.inspect(), {
 		'macho_view_address': u64(voidptr(view)).str()
 	})
 }
 
-fn macho_view_from_args(args []brew_runtime.Value) &MachoView {
+fn macho_view_from_args(args []ruby.Value) &MachoView {
 	if args.len == 0 {
 		panic('MachOView method requires a receiver')
 	}
@@ -49,27 +49,27 @@ fn macho_view_from_args(args []brew_runtime.Value) &MachoView {
 }
 
 // Ruby attr_reader `attr_reader :macho_file` at line 7.
-pub fn ruby_view_l7_d1_macho_file(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_view_l7_d1_macho_file(args ...ruby.Value) ruby.Value {
 	return macho_view_from_args(args).macho_file
 }
 
 // Ruby attr_reader `attr_reader :raw_data` at line 10.
-pub fn ruby_view_l10_d2_raw_data(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(macho_view_from_args(args).raw_data)
+pub fn ruby_view_l10_d2_raw_data(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(macho_view_from_args(args).raw_data)
 }
 
 // Ruby attr_reader `attr_reader :endianness` at line 13.
-pub fn ruby_view_l13_d3_endianness(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Symbol', ':${macho_view_from_args(args).endianness}')
+pub fn ruby_view_l13_d3_endianness(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Symbol', ':${macho_view_from_args(args).endianness}')
 }
 
 // Ruby attr_reader `attr_reader :offset` at line 16.
-pub fn ruby_view_l16_d4_offset(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(macho_view_from_args(args).offset)
+pub fn ruby_view_l16_d4_offset(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(macho_view_from_args(args).offset)
 }
 
 // Ruby method `initialize(macho_file, raw_data, endianness, offset)` at line 23.
-pub fn ruby_view_l23_d5_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_view_l23_d5_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 4 {
 		panic('MachOView#initialize requires a MachO file, raw data, endianness, and offset')
 	}
@@ -77,13 +77,13 @@ pub fn ruby_view_l23_d5_initialize(args ...brew_runtime.Value) brew_runtime.Valu
 }
 
 // Ruby method `to_h` at line 31.
-pub fn ruby_view_l31_d6_to_h(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_view_l31_d6_to_h(args ...ruby.Value) ruby.Value {
 	return macho_view_from_args(args).to_h()
 }
 
 // Ruby method `inspect` at line 38.
-pub fn ruby_view_l38_d7_inspect(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(macho_view_from_args(args).inspect())
+pub fn ruby_view_l38_d7_inspect(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(macho_view_from_args(args).inspect())
 }
 
 // Original Ruby source (line-for-line):

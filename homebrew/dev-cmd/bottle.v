@@ -1,7 +1,7 @@
 module dev_cmd
 
 import crypto.sha256
-import brew_runtime
+import ruby
 import homebrew.utils
 import os
 import time
@@ -45,7 +45,7 @@ pub:
 	desc             string
 	license          string
 	homepage         string
-	raw              map[string]brew_runtime.Value
+	raw              map[string]ruby.Value
 }
 
 pub struct BottleJsonTag {
@@ -57,9 +57,9 @@ pub:
 	path_exec_files []string
 	all_files       []string
 	installed_size  i64
-	tab             brew_runtime.Value
-	sbom            brew_runtime.Value
-	raw             map[string]brew_runtime.Value
+	tab             ruby.Value
+	sbom            ruby.Value
+	raw             map[string]ruby.Value
 }
 
 pub struct BottleJsonBottle {
@@ -69,7 +69,7 @@ pub:
 	rebuild  int
 	date     string
 	tags     map[string]BottleJsonTag
-	raw      map[string]brew_runtime.Value
+	raw      map[string]ruby.Value
 }
 
 pub struct BottleJsonEntry {
@@ -233,26 +233,26 @@ pub:
 	old_checksums    BottleOldChecksumsInput
 }
 
-fn bottle_value_string(value brew_runtime.Value) string {
+fn bottle_value_string(value ruby.Value) string {
 	return if value.type_name == 'NilClass' { '' } else { value.as_string() }
 }
 
-fn bottle_value_int(value brew_runtime.Value) i64 {
+fn bottle_value_int(value ruby.Value) i64 {
 	return if value.type_name == 'Integer' { value.int_data } else { value.as_string().i64() }
 }
 
-fn bottle_value_strings(value brew_runtime.Value) []string {
+fn bottle_value_strings(value ruby.Value) []string {
 	if value.type_name != 'Array' {
 		return []
 	}
 	return (value.as_array() or { return [] }).map(it.as_string())
 }
 
-fn bottle_nil_value() brew_runtime.Value {
-	return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+fn bottle_nil_value() ruby.Value {
+	return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 }
 
-fn bottle_formula_from_value(value brew_runtime.Value) !BottleJsonFormula {
+fn bottle_formula_from_value(value ruby.Value) !BottleJsonFormula {
 	data := value.as_map()!
 	return BottleJsonFormula{
 		name: bottle_value_string(data['name'] or { bottle_nil_value() })
@@ -268,9 +268,9 @@ fn bottle_formula_from_value(value brew_runtime.Value) !BottleJsonFormula {
 	}
 }
 
-fn bottle_tag_from_value(value brew_runtime.Value, legacy_cellar string) !BottleJsonTag {
+fn bottle_tag_from_value(value ruby.Value, legacy_cellar string) !BottleJsonTag {
 	data := value.as_map()!
-	cellar := bottle_value_string(data['cellar'] or { brew_runtime.string_value(legacy_cellar) })
+	cellar := bottle_value_string(data['cellar'] or { ruby.string_value(legacy_cellar) })
 	return BottleJsonTag{
 		cellar: cellar
 		filename: bottle_value_string(data['filename'] or { bottle_nil_value() })
@@ -278,14 +278,14 @@ fn bottle_tag_from_value(value brew_runtime.Value, legacy_cellar string) !Bottle
 		sha256: bottle_value_string(data['sha256'] or { bottle_nil_value() })
 		path_exec_files: bottle_value_strings(data['path_exec_files'] or { bottle_nil_value() })
 		all_files: bottle_value_strings(data['all_files'] or { bottle_nil_value() })
-		installed_size: bottle_value_int(data['installed_size'] or { brew_runtime.int_value(0) })
+		installed_size: bottle_value_int(data['installed_size'] or { ruby.int_value(0) })
 		tab: data['tab'] or { bottle_nil_value() }
 		sbom: data['sbom'] or { bottle_nil_value() }
 		raw: data.clone()
 	}
 }
 
-fn bottle_json_bottle_from_value(value brew_runtime.Value) !BottleJsonBottle {
+fn bottle_json_bottle_from_value(value ruby.Value) !BottleJsonBottle {
 	data := value.as_map()!
 	legacy_cellar := bottle_value_string(data['cellar'] or { bottle_nil_value() })
 	tag_values := (data['tags'] or { return error('bottle is missing tags') }).as_map()!
@@ -296,14 +296,14 @@ fn bottle_json_bottle_from_value(value brew_runtime.Value) !BottleJsonBottle {
 	return BottleJsonBottle{
 		root_url: bottle_value_string(data['root_url'] or { bottle_nil_value() })
 		cellar: legacy_cellar
-		rebuild: int(bottle_value_int(data['rebuild'] or { brew_runtime.int_value(0) }))
+		rebuild: int(bottle_value_int(data['rebuild'] or { ruby.int_value(0) }))
 		date: bottle_value_string(data['date'] or { bottle_nil_value() })
 		tags: tags
 		raw: data.clone()
 	}
 }
 
-fn bottle_json_document_from_value(value brew_runtime.Value) !BottleJsonDocument {
+fn bottle_json_document_from_value(value ruby.Value) !BottleJsonDocument {
 	data := value.as_map()!
 	mut entries := map[string]BottleJsonEntry{}
 	for name, entry_value in data {
@@ -316,70 +316,70 @@ fn bottle_json_document_from_value(value brew_runtime.Value) !BottleJsonDocument
 	return BottleJsonDocument{ entries: entries }
 }
 
-fn bottle_formula_value(formula BottleJsonFormula) brew_runtime.Value {
+fn bottle_formula_value(formula BottleJsonFormula) ruby.Value {
 	mut data := formula.raw.clone()
-	data['name'] = brew_runtime.string_value(formula.name)
-	data['pkg_version'] = brew_runtime.string_value(formula.pkg_version)
-	data['path'] = brew_runtime.string_value(formula.path)
-	data['tap_git_path'] = brew_runtime.string_value(formula.tap_git_path)
-	data['tap_git_revision'] = brew_runtime.string_value(formula.tap_git_revision)
-	data['tap_git_remote'] = brew_runtime.string_value(formula.tap_git_remote)
-	data['desc'] = brew_runtime.string_value(formula.desc)
-	data['license'] = brew_runtime.string_value(formula.license)
-	data['homepage'] = brew_runtime.string_value(formula.homepage)
-	return brew_runtime.map_value(data)
+	data['name'] = ruby.string_value(formula.name)
+	data['pkg_version'] = ruby.string_value(formula.pkg_version)
+	data['path'] = ruby.string_value(formula.path)
+	data['tap_git_path'] = ruby.string_value(formula.tap_git_path)
+	data['tap_git_revision'] = ruby.string_value(formula.tap_git_revision)
+	data['tap_git_remote'] = ruby.string_value(formula.tap_git_remote)
+	data['desc'] = ruby.string_value(formula.desc)
+	data['license'] = ruby.string_value(formula.license)
+	data['homepage'] = ruby.string_value(formula.homepage)
+	return ruby.map_value(data)
 }
 
-fn bottle_tag_value(tag BottleJsonTag) brew_runtime.Value {
+fn bottle_tag_value(tag BottleJsonTag) ruby.Value {
 	mut data := tag.raw.clone()
-	data['cellar'] = brew_runtime.string_value(tag.cellar)
-	data['filename'] = brew_runtime.string_value(tag.filename)
-	data['local_filename'] = brew_runtime.string_value(tag.local_filename)
-	data['sha256'] = brew_runtime.string_value(tag.sha256)
-	data['path_exec_files'] = brew_runtime.string_array_value(tag.path_exec_files)
-	data['all_files'] = brew_runtime.string_array_value(tag.all_files)
-	data['installed_size'] = brew_runtime.int_value(tag.installed_size)
+	data['cellar'] = ruby.string_value(tag.cellar)
+	data['filename'] = ruby.string_value(tag.filename)
+	data['local_filename'] = ruby.string_value(tag.local_filename)
+	data['sha256'] = ruby.string_value(tag.sha256)
+	data['path_exec_files'] = ruby.string_array_value(tag.path_exec_files)
+	data['all_files'] = ruby.string_array_value(tag.all_files)
+	data['installed_size'] = ruby.int_value(tag.installed_size)
 	if tag.tab.type_name != '' {
 		data['tab'] = tag.tab
 	}
 	if tag.sbom.type_name != '' {
 		data['sbom'] = tag.sbom
 	}
-	return brew_runtime.map_value(data)
+	return ruby.map_value(data)
 }
 
-fn bottle_json_bottle_value(bottle BottleJsonBottle) brew_runtime.Value {
+fn bottle_json_bottle_value(bottle BottleJsonBottle) ruby.Value {
 	mut data := bottle.raw.clone()
 	data.delete('cellar')
-	data['root_url'] = brew_runtime.string_value(bottle.root_url)
-	data['rebuild'] = brew_runtime.int_value(bottle.rebuild)
+	data['root_url'] = ruby.string_value(bottle.root_url)
+	data['rebuild'] = ruby.int_value(bottle.rebuild)
 	if bottle.date != '' {
-		data['date'] = brew_runtime.string_value(bottle.date)
+		data['date'] = ruby.string_value(bottle.date)
 	}
-	mut tags := map[string]brew_runtime.Value{}
+	mut tags := map[string]ruby.Value{}
 	for tag, value in bottle.tags {
 		tags[tag] = bottle_tag_value(value)
 	}
-	data['tags'] = brew_runtime.map_value(tags)
-	return brew_runtime.map_value(data)
+	data['tags'] = ruby.map_value(tags)
+	return ruby.map_value(data)
 }
 
-pub fn bottle_json_document_value(document BottleJsonDocument) brew_runtime.Value {
-	mut data := map[string]brew_runtime.Value{}
+pub fn bottle_json_document_value(document BottleJsonDocument) ruby.Value {
+	mut data := map[string]ruby.Value{}
 	for name, entry in document.entries {
-		data[name] = brew_runtime.map_value({
+		data[name] = ruby.map_value({
 			'formula': bottle_formula_value(entry.formula)
 			'bottle':  bottle_json_bottle_value(entry.bottle)
 		})
 	}
-	return brew_runtime.map_value(data)
+	return ruby.map_value(data)
 }
 
 pub fn parse_bottle_json_files(filenames []string) ![]BottleJsonDocument {
 	mut documents := []BottleJsonDocument{cap: filenames.len}
 	for filename in filenames {
 		contents := os.read_file(filename) or { return error('${filename}: ${err.msg()}') }
-		value := brew_runtime.parse_json_value(contents) or { return error('${filename}: ${err.msg()}') }
+		value := ruby.parse_json_value(contents) or { return error('${filename}: ${err.msg()}') }
 		documents << bottle_json_document_from_value(value) or {
 			return error('${filename}: ${err.msg()}')
 		}
@@ -647,7 +647,7 @@ pub fn sudo_purge(enabled bool) !bool {
 	if !enabled {
 		return false
 	}
-	result := brew_runtime.run_command('/usr/bin/sudo', ['--non-interactive', '/usr/sbin/purge'])
+	result := ruby.run_command('/usr/bin/sudo', ['--non-interactive', '/usr/sbin/purge'])
 	if result.exit_code != 0 {
 		return error('purge failed (${result.exit_code}): ${result.output.trim_space()}')
 	}
@@ -708,7 +708,7 @@ fn bottle_filename(formula BottleFormula, tag string, rebuild int) string {
 }
 
 fn bottle_run_checked(program string, arguments []string) ! {
-	result := brew_runtime.run_command(program, arguments)
+	result := ruby.run_command(program, arguments)
 	if result.exit_code != 0 {
 		return error('${os.file_name(program)} failed (${result.exit_code}): ${result.output.trim_space()}')
 	}
@@ -865,8 +865,8 @@ pub fn bottle_formula(formula BottleFormula, options BottleCommandOptions,
 			path_exec_files: executables
 			all_files: files
 			installed_size: installed_size
-			tab: brew_runtime.map_value({})
-			sbom: brew_runtime.map_value({})
+			tab: ruby.map_value({})
+			sbom: ruby.map_value({})
 		}
 		document := BottleJsonDocument{
 			entries: {
@@ -895,7 +895,7 @@ pub fn bottle_formula(formula BottleFormula, options BottleCommandOptions,
 			}
 		}
 		json_path = os.join_path(output_directory, '${filename}.json')
-		os.write_file(json_path, brew_runtime.json_value_to_string(bottle_json_document_value(document)))!
+		os.write_file(json_path, ruby.json_value_to_string(bottle_json_document_value(document)))!
 	}
 	return BottleFormulaResult{
 		formula_name: formula.full_name
@@ -1082,26 +1082,26 @@ pub fn run_bottle_command(command BottleCommand) !BottleCommandResult {
 	return BottleCommandResult{ bundler_groups: ['bottle'], bottles: results }
 }
 
-pub fn bottle_boundary_input(input &BottleBoundaryInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::Bottle::Input', '', {
+pub fn bottle_boundary_input(input &BottleBoundaryInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::Bottle::Input', '', {
 		'bottle_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn bottle_boundary_from_value(value brew_runtime.Value) &BottleBoundaryInput {
+fn bottle_boundary_from_value(value ruby.Value) &BottleBoundaryInput {
 	address := value.attributes['bottle_input_address'] or { panic('invalid Bottle input') }
 	return unsafe { &BottleBoundaryInput(voidptr(address.u64())) }
 }
 
-fn bottle_cellar_from_value(value brew_runtime.Value) BottleCellar {
+fn bottle_cellar_from_value(value ruby.Value) BottleCellar {
 	return BottleCellar{ value: value.as_string(), is_symbol: value.type_name == 'Symbol' }
 }
 
-fn bottle_checksum_value(checksum BottleChecksum) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'tag':    brew_runtime.string_value(checksum.tag)
-		'digest': brew_runtime.string_value(checksum.digest)
-		'cellar': brew_runtime.structured_value(if checksum.cellar.is_symbol {
+fn bottle_checksum_value(checksum BottleChecksum) ruby.Value {
+	return ruby.map_value({
+		'tag':    ruby.string_value(checksum.tag)
+		'digest': ruby.string_value(checksum.digest)
+		'cellar': ruby.structured_value(if checksum.cellar.is_symbol {
 			'Symbol'
 		} else {
 			'String'
@@ -1109,76 +1109,76 @@ fn bottle_checksum_value(checksum BottleChecksum) brew_runtime.Value {
 	})
 }
 
-fn bottle_specification_value(specification BottleSpecification) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'root_url':  brew_runtime.string_value(specification.root_url)
-		'rebuild':   brew_runtime.int_value(specification.rebuild)
-		'checksums': brew_runtime.array_value(specification.checksums.map(bottle_checksum_value(it)))
+fn bottle_specification_value(specification BottleSpecification) ruby.Value {
+	return ruby.map_value({
+		'root_url':  ruby.string_value(specification.root_url)
+		'rebuild':   ruby.int_value(specification.rebuild)
+		'checksums': ruby.array_value(specification.checksums.map(bottle_checksum_value(it)))
 	})
 }
 
-fn bottle_formula_result_value(result BottleFormulaResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'formula_name':    brew_runtime.string_value(result.formula_name)
-		'bottle_path':     brew_runtime.string_value(result.bottle_path)
-		'json_path':       brew_runtime.string_value(result.json_path)
-		'output':          brew_runtime.string_value(result.output)
+fn bottle_formula_result_value(result BottleFormulaResult) ruby.Value {
+	return ruby.map_value({
+		'formula_name':    ruby.string_value(result.formula_name)
+		'bottle_path':     ruby.string_value(result.bottle_path)
+		'json_path':       ruby.string_value(result.json_path)
+		'output':          ruby.string_value(result.output)
 		'specification':   bottle_specification_value(result.specification)
-		'relocatable':     brew_runtime.bool_value(result.relocatable)
-		'skip_relocation': brew_runtime.bool_value(result.skip_relocation)
+		'relocatable':     ruby.bool_value(result.relocatable)
+		'skip_relocation': ruby.bool_value(result.skip_relocation)
 	})
 }
 
-fn bottle_merge_result_value(result BottleMergeResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'formula_name': brew_runtime.string_value(result.formula_name)
-		'output':       brew_runtime.string_value(result.output)
-		'formula_path': brew_runtime.string_value(result.formula_path)
-		'updated':      brew_runtime.bool_value(result.updated)
-		'all_bottle':   brew_runtime.bool_value(result.all_bottle)
-		'commit':       brew_runtime.string_array_value(result.commit)
+fn bottle_merge_result_value(result BottleMergeResult) ruby.Value {
+	return ruby.map_value({
+		'formula_name': ruby.string_value(result.formula_name)
+		'output':       ruby.string_value(result.output)
+		'formula_path': ruby.string_value(result.formula_path)
+		'updated':      ruby.bool_value(result.updated)
+		'all_bottle':   ruby.bool_value(result.all_bottle)
+		'commit':       ruby.string_array_value(result.commit)
 	})
 }
 
-fn bottle_command_result_value(result BottleCommandResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'bundler_groups': brew_runtime.string_array_value(result.bundler_groups)
-		'bottles':        brew_runtime.array_value(result.bottles.map(bottle_formula_result_value(it)))
-		'merged':         brew_runtime.array_value(result.merged.map(bottle_merge_result_value(it)))
+fn bottle_command_result_value(result BottleCommandResult) ruby.Value {
+	return ruby.map_value({
+		'bundler_groups': ruby.string_array_value(result.bundler_groups)
+		'bottles':        ruby.array_value(result.bottles.map(bottle_formula_result_value(it)))
+		'merged':         ruby.array_value(result.merged.map(bottle_merge_result_value(it)))
 	})
 }
 
-fn bottle_inspection_value(result BottleKegInspection) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'contains': brew_runtime.bool_value(result.contains)
-		'files':    brew_runtime.string_array_value(result.files)
-		'output':   brew_runtime.string_array_value(result.output)
+fn bottle_inspection_value(result BottleKegInspection) ruby.Value {
+	return ruby.map_value({
+		'contains': ruby.bool_value(result.contains)
+		'files':    ruby.string_array_value(result.files)
+		'output':   ruby.string_array_value(result.output)
 	})
 }
 
 // Ruby method `run` at line 100.
-pub fn ruby_bottle_l100_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_l100_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'command input is required')
+		return ruby.object_value('ArgumentError', 'command input is required')
 	}
 	result := run_bottle_command(bottle_boundary_from_value(args[0]).command) or {
-		return brew_runtime.object_value('Error', err.msg())
+		return ruby.object_value('Error', err.msg())
 	}
 	return bottle_command_result_value(result)
 }
 
 // Ruby method `generate_sha256_line(tag, digest, cellar, tag_column, digest_column)` at line 119.
-pub fn ruby_bottle_l119_d2_generate_sha256_line(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_l119_d2_generate_sha256_line(args ...ruby.Value) ruby.Value {
 	if args.len < 5 {
-		return brew_runtime.object_value('ArgumentError', 'tag, digest, cellar, tag_column and digest_column are required')
+		return ruby.object_value('ArgumentError', 'tag, digest, cellar, tag_column and digest_column are required')
 	}
-	return brew_runtime.string_value(generate_bottle_sha256_line(args[0].as_string(), args[1].as_string(), bottle_cellar_from_value(args[2]), int(args[3].int_data), int(args[4].int_data)))
+	return ruby.string_value(generate_bottle_sha256_line(args[0].as_string(), args[1].as_string(), bottle_cellar_from_value(args[2]), int(args[3].int_data), int(args[4].int_data)))
 }
 
 // Ruby method `bottle_output(bottle, root_url_using)` at line 135.
-pub fn ruby_bottle_l135_d3_bottle_output(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_l135_d3_bottle_output(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'bottle input is required')
+		return ruby.object_value('ArgumentError', 'bottle input is required')
 	}
 	input := bottle_boundary_from_value(args[0])
 	root_url_using := if args.len > 1 {
@@ -1186,102 +1186,102 @@ pub fn ruby_bottle_l135_d3_bottle_output(args ...brew_runtime.Value) brew_runtim
 	} else {
 		input.command.options.root_url_using
 	}
-	return brew_runtime.string_value(bottle_output(input.specification, root_url_using))
+	return ruby.string_value(bottle_output(input.specification, root_url_using))
 }
 
 // Ruby method `parse_json_files(filenames)` at line 164.
-pub fn ruby_bottle_l164_d4_parse_json_files(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_l164_d4_parse_json_files(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'filenames are required')
+		return ruby.object_value('ArgumentError', 'filenames are required')
 	}
 	documents := parse_bottle_json_files(args[0].as_string_array() or {
-		return brew_runtime.object_value('TypeError', err.msg())
-	}) or { return brew_runtime.object_value('JSONError', err.msg()) }
-	return brew_runtime.array_value(documents.map(bottle_json_document_value(it)))
+		return ruby.object_value('TypeError', err.msg())
+	}) or { return ruby.object_value('JSONError', err.msg()) }
+	return ruby.array_value(documents.map(bottle_json_document_value(it)))
 }
 
 // Ruby method `merge_json_files(json_files)` at line 171.
-pub fn ruby_bottle_l171_d5_merge_json_files(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_l171_d5_merge_json_files(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'JSON files are required')
+		return ruby.object_value('ArgumentError', 'JSON files are required')
 	}
 	return bottle_json_document_value(merge_bottle_json_files(bottle_boundary_from_value(args[0]).json_files))
 }
 
 // Ruby method `merge_bottle_spec(old_keys, old_bottle_spec, new_bottle_hash)` at line 189.
-pub fn ruby_bottle_l189_d6_merge_bottle_spec(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_l189_d6_merge_bottle_spec(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'merge input is required')
+		return ruby.object_value('ArgumentError', 'merge input is required')
 	}
 	input := bottle_boundary_from_value(args[0])
 	result := merge_bottle_spec(input.old_keys, input.specification, input.new_bottle)
-	return brew_runtime.map_value({
-		'mismatches': brew_runtime.string_array_value(result.mismatches)
-		'checksums':  brew_runtime.array_value(result.checksums.map(bottle_checksum_value(it)))
+	return ruby.map_value({
+		'mismatches': ruby.string_array_value(result.mismatches)
+		'checksums':  ruby.array_value(result.checksums.map(bottle_checksum_value(it)))
 	})
 }
 
 // Ruby method `keg_contain?(string, keg, ignores, formula_and_runtime_deps_names = nil)` at line 237.
-pub fn ruby_bottle_l237_d7_keg_contain(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_l237_d7_keg_contain(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'keg inspection input is required')
+		return ruby.object_value('ArgumentError', 'keg inspection input is required')
 	}
 	input := bottle_boundary_from_value(args[0])
 	return bottle_inspection_value(keg_contain(input.needle, input.keg, input.ignores, input.dependency_names, input.verbose))
 }
 
 // Ruby method `keg_contain_absolute_symlink_starting_with?(string, keg)` at line 289.
-pub fn ruby_bottle_l289_d8_keg_contain_absolute_symlink_starting_with(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_l289_d8_keg_contain_absolute_symlink_starting_with(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'keg inspection input is required')
+		return ruby.object_value('ArgumentError', 'keg inspection input is required')
 	}
 	input := bottle_boundary_from_value(args[0])
 	return bottle_inspection_value(keg_contain_absolute_symlink_starting_with(input.needle, input.keg, input.verbose))
 }
 
 // Ruby method `cellar_parameter_needed?(cellar)` at line 308.
-pub fn ruby_bottle_l308_d9_cellar_parameter_needed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_l308_d9_cellar_parameter_needed(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(cellar_parameter_needed(bottle_cellar_from_value(args[0])))
+	return ruby.bool_value(cellar_parameter_needed(bottle_cellar_from_value(args[0])))
 }
 
 // Ruby method `sudo_purge` at line 318.
-pub fn ruby_bottle_l318_d10_sudo_purge(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_l318_d10_sudo_purge(args ...ruby.Value) ruby.Value {
 	enabled := if args.len > 0 {
 		args[0].as_bool() or { false }
 	} else {
 		os.getenv('HOMEBREW_BOTTLE_SUDO_PURGE') != ''
 	}
-	purged := sudo_purge(enabled) or { return brew_runtime.object_value('CommandError', err.msg()) }
-	return brew_runtime.bool_value(purged)
+	purged := sudo_purge(enabled) or { return ruby.object_value('CommandError', err.msg()) }
+	return ruby.bool_value(purged)
 }
 
 // Ruby method `tar_args` at line 325.
-pub fn ruby_bottle_l325_d11_tar_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_l325_d11_tar_args(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_array_value(bottle_tar_args())
+	return ruby.string_array_value(bottle_tar_args())
 }
 
 // Ruby method `gnu_tar(gnu_tar_formula)` at line 330.
-pub fn ruby_bottle_l330_d12_gnu_tar(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_l330_d12_gnu_tar(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'gnu-tar formula is required')
+		return ruby.object_value('ArgumentError', 'gnu-tar formula is required')
 	}
-	return brew_runtime.string_value(gnu_tar(bottle_boundary_from_value(args[0]).gnu_tar))
+	return ruby.string_value(gnu_tar(bottle_boundary_from_value(args[0]).gnu_tar))
 }
 
 // Ruby method `reproducible_gnutar_args(mtime)` at line 335.
-pub fn ruby_bottle_l335_d13_reproducible_gnutar_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_l335_d13_reproducible_gnutar_args(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'mtime is required')
+		return ruby.object_value('ArgumentError', 'mtime is required')
 	}
-	return brew_runtime.string_array_value(reproducible_gnutar_args(args[0].as_string()))
+	return ruby.string_array_value(reproducible_gnutar_args(args[0].as_string()))
 }
 
 // Ruby method `gnu_tar_formula_ensure_installed_if_needed!` at line 353.
-pub fn ruby_bottle_l353_d14_gnu_tar_formula_ensure_installed_if_needed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_l353_d14_gnu_tar_formula_ensure_installed_if_needed(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return bottle_nil_value()
 	}
@@ -1289,69 +1289,69 @@ pub fn ruby_bottle_l353_d14_gnu_tar_formula_ensure_installed_if_needed(args ...b
 	if !formula.available {
 		return bottle_nil_value()
 	}
-	return brew_runtime.structured_value('Formula', 'gnu-tar', {
+	return ruby.structured_value('Formula', 'gnu-tar', {
 		'installed': formula.installed.str()
 		'opt_bin':   formula.opt_bin
 	})
 }
 
 // Ruby method `setup_tar_and_args!(mtime, default_tar: false)` at line 366.
-pub fn ruby_bottle_l366_d15_setup_tar_and_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_l366_d15_setup_tar_and_args(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'tar setup input is required')
+		return ruby.object_value('ArgumentError', 'tar setup input is required')
 	}
 	input := bottle_boundary_from_value(args[0])
 	result := setup_tar_and_args(input.mtime, input.only_json_tab, input.default_tar, input.gnu_tar)
-	return brew_runtime.map_value({
-		'tar':               brew_runtime.string_value(result.tar)
-		'args':              brew_runtime.string_array_value(result.args)
-		'installed_gnu_tar': brew_runtime.bool_value(result.installed_gnu_tar)
+	return ruby.map_value({
+		'tar':               ruby.string_value(result.tar)
+		'args':              ruby.string_array_value(result.args)
+		'installed_gnu_tar': ruby.bool_value(result.installed_gnu_tar)
 	})
 }
 
 // Ruby method `formula_ignores(formula)` at line 380.
-pub fn ruby_bottle_l380_d16_formula_ignores(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_l380_d16_formula_ignores(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'formula input is required')
+		return ruby.object_value('ArgumentError', 'formula input is required')
 	}
 	input := bottle_boundary_from_value(args[0])
 	cellar := if args.len > 1 { args[1].as_string() } else { input.command.options.cellar }
-	return brew_runtime.string_array_value(formula_ignores(input.formula, cellar))
+	return ruby.string_array_value(formula_ignores(input.formula, cellar))
 }
 
 // Ruby method `bottle_formula(formula)` at line 393.
-pub fn ruby_bottle_l393_d17_bottle_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_l393_d17_bottle_formula(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'formula input is required')
+		return ruby.object_value('ArgumentError', 'formula input is required')
 	}
 	input := bottle_boundary_from_value(args[0])
 	result := bottle_formula(input.formula, input.command.options, input.gnu_tar) or {
-		return brew_runtime.object_value('Error', err.msg())
+		return ruby.object_value('Error', err.msg())
 	}
 	return bottle_formula_result_value(result)
 }
 
 // Ruby method `merge` at line 713.
-pub fn ruby_bottle_l713_d18_merge(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_l713_d18_merge(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'command input is required')
+		return ruby.object_value('ArgumentError', 'command input is required')
 	}
 	results := merge_bottles(bottle_boundary_from_value(args[0]).command) or {
-		return brew_runtime.object_value('Error', err.msg())
+		return ruby.object_value('Error', err.msg())
 	}
-	return brew_runtime.array_value(results.map(bottle_merge_result_value(it)))
+	return ruby.array_value(results.map(bottle_merge_result_value(it)))
 }
 
 // Ruby method `old_checksums(formula, formula_ast, bottle_hash)` at line 897.
-pub fn ruby_bottle_l897_d19_old_checksums(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_l897_d19_old_checksums(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'checksum input is required')
+		return ruby.object_value('ArgumentError', 'checksum input is required')
 	}
 	result := old_checksums(bottle_boundary_from_value(args[0]).old_checksums) or {
-		return brew_runtime.object_value('Error', err.msg())
+		return ruby.object_value('Error', err.msg())
 	}
 	if result.exists {
-		return brew_runtime.array_value(result.checksums.map(bottle_checksum_value(it)))
+		return ruby.array_value(result.checksums.map(bottle_checksum_value(it)))
 	}
 	return bottle_nil_value()
 }

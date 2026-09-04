@@ -1,6 +1,6 @@
 module rubocops
 
-import brew_runtime
+import ruby
 import homebrew.rubocops as presence
 
 // Translated from Homebrew/brew `test/rubocops/presence_spec.rb`.
@@ -16,228 +16,228 @@ fn presence_spec_no_offense(source string) bool {
 }
 
 // Ruby it `it "registers an offense and corrects when `a.present? ? a : nil`" do` at line 7.
-pub fn ruby_presence_spec_l7_d1_registers(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_presence_spec_l7_d1_registers(args ...ruby.Value) ruby.Value {
 	source := 'a.present? ? a : nil'
-	return brew_runtime.bool_value(presence_spec_reports(source, 'a.presence', 'a.presence', source))
+	return ruby.bool_value(presence_spec_reports(source, 'a.presence', 'a.presence', source))
 }
 
 // Ruby it `it "registers an offense and corrects when `!a.present? ? nil: a`" do` at line 18.
-pub fn ruby_presence_spec_l18_d2_registers(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_presence_spec_l18_d2_registers(args ...ruby.Value) ruby.Value {
 	source := '!a.present? ? nil: a'
-	return brew_runtime.bool_value(presence_spec_reports(source, 'a.presence', 'a.presence', source))
+	return ruby.bool_value(presence_spec_reports(source, 'a.presence', 'a.presence', source))
 }
 
 // Ruby it `it "registers an offense and corrects when `a.blank? ? nil : a`" do` at line 29.
-pub fn ruby_presence_spec_l29_d3_registers(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_presence_spec_l29_d3_registers(args ...ruby.Value) ruby.Value {
 	source := 'a.blank? ? nil : a'
-	return brew_runtime.bool_value(presence_spec_reports(source, 'a.presence', 'a.presence', source))
+	return ruby.bool_value(presence_spec_reports(source, 'a.presence', 'a.presence', source))
 }
 
 // Ruby it `it "registers an offense and corrects when `!a.blank? ? a : nil`" do` at line 40.
-pub fn ruby_presence_spec_l40_d4_registers(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_presence_spec_l40_d4_registers(args ...ruby.Value) ruby.Value {
 	source := '!a.blank? ? a : nil'
-	return brew_runtime.bool_value(presence_spec_reports(source, 'a.presence', 'a.presence', source))
+	return ruby.bool_value(presence_spec_reports(source, 'a.presence', 'a.presence', source))
 }
 
 // Ruby it `it "registers an offense and corrects when `a.present? ? a : b`" do` at line 51.
-pub fn ruby_presence_spec_l51_d5_registers(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_presence_spec_l51_d5_registers(args ...ruby.Value) ruby.Value {
 	source := 'a.present? ? a : b'
-	return brew_runtime.bool_value(presence_spec_reports(source, 'a.presence || b', 'a.presence || b', source))
+	return ruby.bool_value(presence_spec_reports(source, 'a.presence || b', 'a.presence || b', source))
 }
 
 // Ruby it `it "registers an offense and corrects when `!a.present? ? b : a`" do` at line 62.
-pub fn ruby_presence_spec_l62_d6_registers(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_presence_spec_l62_d6_registers(args ...ruby.Value) ruby.Value {
 	source := '!a.present? ? b : a'
-	return brew_runtime.bool_value(presence_spec_reports(source, 'a.presence || b', 'a.presence || b', source))
+	return ruby.bool_value(presence_spec_reports(source, 'a.presence || b', 'a.presence || b', source))
 }
 
 // Ruby it `it "registers an offense and corrects when `a.blank? ? b : a`" do` at line 73.
-pub fn ruby_presence_spec_l73_d7_registers(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_presence_spec_l73_d7_registers(args ...ruby.Value) ruby.Value {
 	source := 'a.blank? ? b : a'
-	return brew_runtime.bool_value(presence_spec_reports(source, 'a.presence || b', 'a.presence || b', source))
+	return ruby.bool_value(presence_spec_reports(source, 'a.presence || b', 'a.presence || b', source))
 }
 
 // Ruby it `it "registers an offense and corrects when `!a.blank? ? a : b`" do` at line 84.
-pub fn ruby_presence_spec_l84_d8_registers(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_presence_spec_l84_d8_registers(args ...ruby.Value) ruby.Value {
 	source := '!a.blank? ? a : b'
-	return brew_runtime.bool_value(presence_spec_reports(source, 'a.presence || b', 'a.presence || b', source))
+	return ruby.bool_value(presence_spec_reports(source, 'a.presence || b', 'a.presence || b', source))
 }
 
 // Ruby it `it "registers an offense and corrects when `a.present? ? a : 1`" do` at line 95.
-pub fn ruby_presence_spec_l95_d9_registers(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_presence_spec_l95_d9_registers(args ...ruby.Value) ruby.Value {
 	source := 'a.present? ? a : 1'
-	return brew_runtime.bool_value(presence_spec_reports(source, 'a.presence || 1', 'a.presence || 1', source))
+	return ruby.bool_value(presence_spec_reports(source, 'a.presence || 1', 'a.presence || 1', source))
 }
 
 // Ruby it `it "registers an offense and corrects when `a.blank? ? 1 : a`" do` at line 106.
-pub fn ruby_presence_spec_l106_d10_registers(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_presence_spec_l106_d10_registers(args ...ruby.Value) ruby.Value {
 	source := 'a.blank? ? 1 : a'
-	return brew_runtime.bool_value(presence_spec_reports(source, 'a.presence || 1', 'a.presence || 1', source))
+	return ruby.bool_value(presence_spec_reports(source, 'a.presence || 1', 'a.presence || 1', source))
 }
 
 // Ruby it `it "registers an offense and corrects when `a(:bar).map(&:baz).present? ? a(:bar).map(&:baz) : nil`" do` at line 117.
-pub fn ruby_presence_spec_l117_d11_registers(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_presence_spec_l117_d11_registers(args ...ruby.Value) ruby.Value {
 	source := 'a(:bar).map(&:baz).present? ? a(:bar).map(&:baz) : nil'
-	return brew_runtime.bool_value(presence_spec_reports(source, 'a(:bar).map(&:baz).presence', 'a(:bar).map(&:baz).presence', source))
+	return ruby.bool_value(presence_spec_reports(source, 'a(:bar).map(&:baz).presence', 'a(:bar).map(&:baz).presence', source))
 }
 
 // Ruby it `it "registers an offense and corrects when `a.present? ? a : b[:c]`" do` at line 128.
-pub fn ruby_presence_spec_l128_d12_registers(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_presence_spec_l128_d12_registers(args ...ruby.Value) ruby.Value {
 	source := 'a.present? ? a : b[:c]'
-	return brew_runtime.bool_value(presence_spec_reports(source, 'a.presence || b[:c]', 'a.presence || b[:c]', source))
+	return ruby.bool_value(presence_spec_reports(source, 'a.presence || b[:c]', 'a.presence || b[:c]', source))
 }
 
 // Ruby it `it "registers an offense and corrects when multi-line if node" do` at line 139.
-pub fn ruby_presence_spec_l139_d13_registers(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_presence_spec_l139_d13_registers(args ...ruby.Value) ruby.Value {
 	source := 'if a.present?\n  a\nelse\n  nil\nend'
-	return brew_runtime.bool_value(presence_spec_reports(source, 'a.presence', 'a.presence', 'if a.present? ... end'))
+	return ruby.bool_value(presence_spec_reports(source, 'a.presence', 'a.presence', 'if a.present? ... end'))
 }
 
 // Ruby it `it "registers an offense and corrects when multi-line unless node" do` at line 154.
-pub fn ruby_presence_spec_l154_d14_registers(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_presence_spec_l154_d14_registers(args ...ruby.Value) ruby.Value {
 	source := 'unless a.present?\n  nil\nelse\n  a\nend'
-	return brew_runtime.bool_value(presence_spec_reports(source, 'a.presence', 'a.presence', 'unless a.present? ... end'))
+	return ruby.bool_value(presence_spec_reports(source, 'a.presence', 'a.presence', 'unless a.present? ... end'))
 }
 
 // Ruby it `it "registers an offense and corrects when multi-line if node with `+` operators in the else branch" do` at line 169.
-pub fn ruby_presence_spec_l169_d15_registers(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_presence_spec_l169_d15_registers(args ...ruby.Value) ruby.Value {
 	source := 'if a.present?\n  a\nelse\n  b.to_f + 12.0\nend'
-	return brew_runtime.bool_value(presence_spec_reports(source, 'a.presence || b.to_f + 12.0', 'a.presence || b.to_f + 12.0', 'if a.present? ... end'))
+	return ruby.bool_value(presence_spec_reports(source, 'a.presence || b.to_f + 12.0', 'a.presence || b.to_f + 12.0', 'if a.present? ... end'))
 }
 
 // Ruby it `it "registers an offense and corrects when multi-line if `*` operators in the else branch" do` at line 184.
-pub fn ruby_presence_spec_l184_d16_registers(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_presence_spec_l184_d16_registers(args ...ruby.Value) ruby.Value {
 	source := 'if a.present?\n  a\nelse\n  b.to_f * 12.0\nend'
-	return brew_runtime.bool_value(presence_spec_reports(source, 'a.presence || b.to_f * 12.0', 'a.presence || b.to_f * 12.0', 'if a.present? ... end'))
+	return ruby.bool_value(presence_spec_reports(source, 'a.presence || b.to_f * 12.0', 'a.presence || b.to_f * 12.0', 'if a.present? ... end'))
 }
 
 // Ruby it `it "registers an offense and corrects when `a if a.present?`" do` at line 199.
-pub fn ruby_presence_spec_l199_d17_registers(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_presence_spec_l199_d17_registers(args ...ruby.Value) ruby.Value {
 	source := 'a if a.present?'
-	return brew_runtime.bool_value(presence_spec_reports(source, 'a.presence', 'a.presence', source))
+	return ruby.bool_value(presence_spec_reports(source, 'a.presence', 'a.presence', source))
 }
 
 // Ruby it `it "registers an offense and corrects when `a unless a.blank?`" do` at line 210.
-pub fn ruby_presence_spec_l210_d18_registers(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_presence_spec_l210_d18_registers(args ...ruby.Value) ruby.Value {
 	source := 'a unless a.blank?'
-	return brew_runtime.bool_value(presence_spec_reports(source, 'a.presence', 'a.presence', source))
+	return ruby.bool_value(presence_spec_reports(source, 'a.presence', 'a.presence', source))
 }
 
 // Ruby it `it "registers an offense and corrects when `.present?` with method chain" do` at line 221.
-pub fn ruby_presence_spec_l221_d19_registers(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_presence_spec_l221_d19_registers(args ...ruby.Value) ruby.Value {
 	receiver := '[1, 2, 3].map { |num| num + 1 }\n            .map { |num| num + 2 }'
 	source := 'if ${receiver}\n            .present?\n            [1, 2, 3].map { |num| num + 1 }.map { |num| num + 2 }\nelse\n  b\nend'
 	corrected := '${receiver}.presence || b'
 	current := 'if [1, 2, 3].map { |num| num + 1 }            .map { |num| num + 2 }            .present? ... end'
-	return brew_runtime.bool_value(presence_spec_reports(source, corrected, corrected, current))
+	return ruby.bool_value(presence_spec_reports(source, corrected, corrected, current))
 }
 
 // Ruby it `it "registers an offense and corrects" do` at line 240.
-pub fn ruby_presence_spec_l240_d20_registers(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_presence_spec_l240_d20_registers(args ...ruby.Value) ruby.Value {
 	source := 'a.present? ?\n  a :\n  nil'
-	return brew_runtime.bool_value(presence_spec_reports(source, 'a.presence', 'a.presence', 'a.present? ? a : nil'))
+	return ruby.bool_value(presence_spec_reports(source, 'a.presence', 'a.presence', 'a.present? ? a : nil'))
 }
 
 // Ruby it `it "registers an offense and corrects" do` at line 255.
-pub fn ruby_presence_spec_l255_d21_registers(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_presence_spec_l255_d21_registers(args ...ruby.Value) ruby.Value {
 	source := 'if value.present?\n  value\nelse\n  do_something(value)\nend'
 	preferred := 'value.presence || do_something(value)'
-	return brew_runtime.bool_value(presence_spec_reports(source, preferred, preferred, 'if value.present? ... end'))
+	return ruby.bool_value(presence_spec_reports(source, preferred, preferred, 'if value.present? ... end'))
 }
 
 // Ruby it `it "registers an offense and corrects" do` at line 272.
-pub fn ruby_presence_spec_l272_d22_registers(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_presence_spec_l272_d22_registers(args ...ruby.Value) ruby.Value {
 	source := 'if value.present?\n  value\nelse\n  do_something value\nend'
 	preferred := 'value.presence || do_something(value)'
-	return brew_runtime.bool_value(presence_spec_reports(source, preferred, preferred, 'if value.present? ... end'))
+	return ruby.bool_value(presence_spec_reports(source, preferred, preferred, 'if value.present? ... end'))
 }
 
 // Ruby it `it "registers an offense and corrects" do` at line 289.
-pub fn ruby_presence_spec_l289_d23_registers(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_presence_spec_l289_d23_registers(args ...ruby.Value) ruby.Value {
 	source := 'if value.present?\n  value\nelse\n  do_something arg1, arg2\nend'
 	preferred := 'value.presence || do_something(arg1, arg2)'
-	return brew_runtime.bool_value(presence_spec_reports(source, preferred, preferred, 'if value.present? ... end'))
+	return ruby.bool_value(presence_spec_reports(source, preferred, preferred, 'if value.present? ... end'))
 }
 
 // Ruby it `it "registers an offense and corrects" do` at line 306.
-pub fn ruby_presence_spec_l306_d24_registers(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_presence_spec_l306_d24_registers(args ...ruby.Value) ruby.Value {
 	source := 'if value.present?\n  value\nelse\n  foo.do_something value\nend'
 	preferred := 'value.presence || foo.do_something(value)'
-	return brew_runtime.bool_value(presence_spec_reports(source, preferred, preferred, 'if value.present? ... end'))
+	return ruby.bool_value(presence_spec_reports(source, preferred, preferred, 'if value.present? ... end'))
 }
 
 // Ruby it `it "registers an offense and corrects when `#{operator}`" do` at line 324.
-pub fn ruby_presence_spec_l324_d25_registers(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_presence_spec_l324_d25_registers(args ...ruby.Value) ruby.Value {
 	for operator in ['<', '>', '<=', '>=', '==', '!='] {
 		source := 'a ${operator} if b.present?\n  b\nelse\n  c\nend'
 		corrected := 'a ${operator} (b.presence || c)'
 		if !presence_spec_reports(source, corrected, '(b.presence || c)', 'if b.present? ... end') {
-			return brew_runtime.bool_value(false)
+			return ruby.bool_value(false)
 		}
 	}
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
 // Ruby it `it "does not register an offense when using `#presence`" do` at line 341.
-pub fn ruby_presence_spec_l341_d26_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(presence_spec_no_offense('a.presence'))
+pub fn ruby_presence_spec_l341_d26_does(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(presence_spec_no_offense('a.presence'))
 }
 
 // Ruby it `it "does not register an offense when the expression does not return the receiver of `#present?`" do` at line 347.
-pub fn ruby_presence_spec_l347_d27_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(presence_spec_no_offense('a.present? ? b : nil') && presence_spec_no_offense('puts foo if present?\nputs foo if !present?'))
+pub fn ruby_presence_spec_l347_d27_does(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(presence_spec_no_offense('a.present? ? b : nil') && presence_spec_no_offense('puts foo if present?\nputs foo if !present?'))
 }
 
 // Ruby it `it "does not register an offense when the expression does not return the receiver of `#blank?`" do` at line 358.
-pub fn ruby_presence_spec_l358_d28_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(presence_spec_no_offense('a.blank? ? nil : b') && presence_spec_no_offense('puts foo if blank?\nputs foo if !blank?'))
+pub fn ruby_presence_spec_l358_d28_does(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(presence_spec_no_offense('a.blank? ? nil : b') && presence_spec_no_offense('puts foo if blank?\nputs foo if !blank?'))
 }
 
 // Ruby it `it "does not register an offense when if or unless modifier is used" do` at line 369.
-pub fn ruby_presence_spec_l369_d29_does(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(['a if a.blank?', 'a unless a.present?'].all(presence_spec_no_offense(it)))
+pub fn ruby_presence_spec_l369_d29_does(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(['a if a.blank?', 'a unless a.present?'].all(presence_spec_no_offense(it)))
 }
 
 // Ruby it `it "does not register an offense when the else block is multiline" do` at line 376.
-pub fn ruby_presence_spec_l376_d30_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_presence_spec_l376_d30_does(args ...ruby.Value) ruby.Value {
 	source := 'if a.present?\n  a\nelse\n  something\n  something\n  something\nend'
-	return brew_runtime.bool_value(presence_spec_no_offense(source))
+	return ruby.bool_value(presence_spec_no_offense(source))
 }
 
 // Ruby it `it "does not register an offense when the else block has multiple statements" do` at line 388.
-pub fn ruby_presence_spec_l388_d31_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_presence_spec_l388_d31_does(args ...ruby.Value) ruby.Value {
 	source := 'if a.present?\n  a\nelse\n  something; something; something\nend'
-	return brew_runtime.bool_value(presence_spec_no_offense(source))
+	return ruby.bool_value(presence_spec_no_offense(source))
 }
 
 // Ruby it `it "does not register an offense when including the elsif block" do` at line 398.
-pub fn ruby_presence_spec_l398_d32_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_presence_spec_l398_d32_does(args ...ruby.Value) ruby.Value {
 	source := 'if a.present?\n  a\nelsif b\n  b\nend'
-	return brew_runtime.bool_value(presence_spec_no_offense(source))
+	return ruby.bool_value(presence_spec_no_offense(source))
 }
 
 // Ruby it `it "does not register an offense when the else block has `if` node" do` at line 408.
-pub fn ruby_presence_spec_l408_d33_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_presence_spec_l408_d33_does(args ...ruby.Value) ruby.Value {
 	source := 'if a.present?\n  a\nelse\n  b if c\nend'
-	return brew_runtime.bool_value(presence_spec_no_offense(source))
+	return ruby.bool_value(presence_spec_no_offense(source))
 }
 
 // Ruby it `it "does not register an offense when the else block has `rescue` node" do` at line 418.
-pub fn ruby_presence_spec_l418_d34_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_presence_spec_l418_d34_does(args ...ruby.Value) ruby.Value {
 	source := 'if something_method.present?\n  something_method\nelse\n  invalid_method rescue StandardError\nend'
-	return brew_runtime.bool_value(presence_spec_no_offense(source))
+	return ruby.bool_value(presence_spec_no_offense(source))
 }
 
 // Ruby it `it "does not register an offense when the else block has `while` node" do` at line 428.
-pub fn ruby_presence_spec_l428_d35_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_presence_spec_l428_d35_does(args ...ruby.Value) ruby.Value {
 	source := 'if a.present?\n  a\nelse\n  fetch_state while waiting?\nend'
-	return brew_runtime.bool_value(presence_spec_no_offense(source))
+	return ruby.bool_value(presence_spec_no_offense(source))
 }
 
 // Ruby it `it "does not register an offense when using` at line 438.
-pub fn ruby_presence_spec_l438_d36_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_presence_spec_l438_d36_does(args ...ruby.Value) ruby.Value {
 	source := 'if something?\n  a\nelsif b.present?\n  b\nend'
-	return brew_runtime.bool_value(presence_spec_no_offense(source))
+	return ruby.bool_value(presence_spec_no_offense(source))
 }
 
 // Original Ruby source (line-for-line):

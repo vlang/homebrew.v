@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 import os
 
 pub struct FormulaVersionsInput {
@@ -35,7 +35,7 @@ pub type FormulaVersionsGitRunner = fn (FormulaVersionsGitRequest) !string
 
 pub type FormulaVersionsLoader = fn (FormulaVersionsLoadRequest) !Formula
 
-pub type FormulaVersionsOutputBlock = fn () !brew_runtime.Value
+pub type FormulaVersionsOutputBlock = fn () !ruby.Value
 
 @[heap]
 pub struct FormulaVersions {
@@ -104,9 +104,9 @@ pub fn new_formula_versions(input FormulaVersionsInput) &FormulaVersions {
 fn formula_versions_native_git_runner(request FormulaVersionsGitRequest) !string {
 	mut command := ['git']
 	command << request.arguments
-	result := brew_runtime.run_captured_command(command, brew_runtime.CapturedCommandOptions{
+	result := ruby.run_captured_command(command, ruby.CapturedCommandOptions{
 		chdir: request.repository
-		environment: brew_runtime.environment()
+		environment: ruby.environment()
 	})!
 	if result.exit_code != 0 {
 		message := result.stderr.trim_space()
@@ -201,7 +201,7 @@ pub fn (mut versions FormulaVersions) formula_at_revision(revision string,
 }
 
 pub fn formula_versions_nostdout(verbose bool,
-	block FormulaVersionsOutputBlock) !brew_runtime.Value {
+	block FormulaVersionsOutputBlock) !ruby.Value {
 	if verbose {
 		return block()
 	}
@@ -279,7 +279,7 @@ pub fn ruby_formula_versions_l85_d9_file_contents_at_revision(versions &FormulaV
 
 // Ruby method `nostdout(&block)` at line 94.
 pub fn ruby_formula_versions_l94_d10_nostdout(verbose bool,
-	block FormulaVersionsOutputBlock) !brew_runtime.Value {
+	block FormulaVersionsOutputBlock) !ruby.Value {
 	return formula_versions_nostdout(verbose, block)
 }
 

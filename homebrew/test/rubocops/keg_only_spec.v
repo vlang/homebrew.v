@@ -1,14 +1,14 @@
 module rubocops
 
-import brew_runtime
+import ruby
 import homebrew.rubocops as keg_only_core
 
 // Translated from Homebrew/brew `test/rubocops/keg_only_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
-pub fn ruby_keg_only_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::KegOnly', 'FormulaAudit/KegOnly')
+pub fn ruby_keg_only_spec_l7_d1_cop(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('RuboCop::Cop::FormulaAudit::KegOnly', 'FormulaAudit/KegOnly')
 }
 
 // Ruby it `it "reports and corrects an offense when the `keg_only` reason is capitalized" do` at line 9.

@@ -1,13 +1,13 @@
 module linux
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `extend/os/linux/compilers.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `preferred_gcc` at line 13.
-pub fn ruby_compilers_l13_d1_preferred_gcc(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(preferred_gcc())
+pub fn ruby_compilers_l13_d1_preferred_gcc(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(preferred_gcc())
 }
 
 pub fn preferred_gcc() string {

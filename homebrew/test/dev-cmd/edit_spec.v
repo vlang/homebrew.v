@@ -1,32 +1,32 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `test/dev-cmd/edit_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "opens a given Formula in an editor", :integration_test do` at line 10.
-pub fn ruby_edit_spec_l10_d1_opens(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_edit_spec_l10_d1_opens(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'edit command input is required')
+		return ruby.object_value('ArgumentError', 'edit command input is required')
 	}
 	result := run_edit(edit_input_from_value(args[0]).options) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(result.editor_invoked && result.editor_command.len > 0
+	return ruby.bool_value(result.editor_invoked && result.editor_command.len > 0
 		&& result.editor_command[0] == '/bin/cat' && result.stdout.contains('# something here')
 		&& result.stderr == '')
 }
 
 // Ruby it `it "auto-taps core when editing an API-known formula without the tap installed" do` at line 23.
-pub fn ruby_edit_spec_l23_d2_auto_taps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_edit_spec_l23_d2_auto_taps(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'edit command input is required')
+		return ruby.object_value('ArgumentError', 'edit command input is required')
 	}
 	input := edit_input_from_value(args[0])
-	result := run_edit(input.options) or { return brew_runtime.bool_value(false) }
+	result := run_edit(input.options) or { return ruby.bool_value(false) }
 	core_tap_name := edit_core_tap_name(input.options)
-	return brew_runtime.bool_value(result.tap_installs.any(it.name == core_tap_name && it.force)
+	return ruby.bool_value(result.tap_installs.any(it.name == core_tap_name && it.force)
 		&& result.editor_invoked)
 }
 

@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `dev-cmd/vendor-gems.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -134,56 +134,56 @@ pub:
 	options VendorGemsOptions
 }
 
-pub fn vendor_gems_input_boundary(input &VendorGemsInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::VendorGems::Input', '', {
+pub fn vendor_gems_input_boundary(input &VendorGemsInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::VendorGems::Input', '', {
 		'vendor_gems_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn vendor_gems_input_from_value(value brew_runtime.Value) &VendorGemsInput {
+fn vendor_gems_input_from_value(value ruby.Value) &VendorGemsInput {
 	address := value.attributes['vendor_gems_input_address'] or { panic('invalid VendorGems input') }
 	return unsafe { &VendorGemsInput(voidptr(address.u64())) }
 }
 
-fn vendor_gems_result_value(result VendorGemsResult) brew_runtime.Value {
-	mut environment := map[string]brew_runtime.Value{}
+fn vendor_gems_result_value(result VendorGemsResult) ruby.Value {
+	mut environment := map[string]ruby.Value{}
 	for name, value in result.environment {
-		environment[name] = brew_runtime.string_value(value)
+		environment[name] = ruby.string_value(value)
 	}
-	return brew_runtime.map_value({
-		'setup_gem_environment': brew_runtime.bool_value(result.setup_gem_environment)
-		'environment': brew_runtime.map_value(environment)
-		'working_dir': brew_runtime.string_value(result.working_dir)
-		'headings': brew_runtime.string_array_value(result.headings)
-		'commands': brew_runtime.array_value(result.commands.map(brew_runtime.string_array_value(it)))
-		'bundle_commands': brew_runtime.array_value(result.bundle_commands.map(brew_runtime.string_array_value(it)))
-		'removed_directories': brew_runtime.string_array_value(result.removed_directories)
-		'symlink_source': brew_runtime.string_value(result.symlink_source)
-		'symlink_destination': brew_runtime.string_value(result.symlink_destination)
-		'set_git_name_email': brew_runtime.bool_value(result.set_git_name_email)
-		'setup_git_gpg': brew_runtime.bool_value(result.setup_git_gpg)
+	return ruby.map_value({
+		'setup_gem_environment': ruby.bool_value(result.setup_gem_environment)
+		'environment': ruby.map_value(environment)
+		'working_dir': ruby.string_value(result.working_dir)
+		'headings': ruby.string_array_value(result.headings)
+		'commands': ruby.array_value(result.commands.map(ruby.string_array_value(it)))
+		'bundle_commands': ruby.array_value(result.bundle_commands.map(ruby.string_array_value(it)))
+		'removed_directories': ruby.string_array_value(result.removed_directories)
+		'symlink_source': ruby.string_value(result.symlink_source)
+		'symlink_destination': ruby.string_value(result.symlink_destination)
+		'set_git_name_email': ruby.bool_value(result.set_git_name_email)
+		'setup_git_gpg': ruby.bool_value(result.setup_git_gpg)
 	})
 }
 
 // Ruby method `run` at line 28.
-pub fn ruby_vendor_gems_l28_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vendor_gems_l28_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'command input is required')
+		return ruby.object_value('ArgumentError', 'command input is required')
 	}
 	return vendor_gems_result_value(run_vendor_gems(vendor_gems_input_from_value(args[0]).options))
 }
 
 // Ruby method `run_bundle(*args)` at line 97.
-pub fn ruby_vendor_gems_l97_d2_run_bundle(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_vendor_gems_l97_d2_run_bundle(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'bundle arguments are required')
+		return ruby.object_value('ArgumentError', 'bundle arguments are required')
 	}
 	arguments := args[0].as_string_array() or {
-		return brew_runtime.object_value('TypeError', err.msg())
+		return ruby.object_value('TypeError', err.msg())
 	}
 	success := if args.len > 1 { args[1].as_bool() or { false } } else { true }
-	return brew_runtime.string_array_value(vendor_gems_run_bundle(arguments, success) or {
-		return brew_runtime.object_value('ErrorDuringExecution', err.msg())
+	return ruby.string_array_value(vendor_gems_run_bundle(arguments, success) or {
+		return ruby.object_value('ErrorDuringExecution', err.msg())
 	})
 }
 

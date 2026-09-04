@@ -1,6 +1,6 @@
 module macho
 
-import brew_runtime
+import ruby
 import encoding.binary
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/ruby-macho-6.0.0/lib/macho/load_commands.rb`.
@@ -322,14 +322,14 @@ pub fn (value LoadCommandLCStr) int() int {
 	return value.offset
 }
 
-pub fn (value LoadCommandLCStr) to_h() brew_runtime.Value {
-	return brew_runtime.map_value({
-		'string': brew_runtime.string_value(value.value)
-		'offset': brew_runtime.int_value(value.offset)
+pub fn (value LoadCommandLCStr) to_h() ruby.Value {
+	return ruby.map_value({
+		'string': ruby.string_value(value.value)
+		'offset': ruby.int_value(value.offset)
 	})
 }
 
-pub fn new_load_command_lcstr(command &LoadCommandRecord, value brew_runtime.Value) !LoadCommandLCStr {
+pub fn new_load_command_lcstr(command &LoadCommandRecord, value ruby.Value) !LoadCommandLCStr {
 	if !command.has_view {
 		return LoadCommandLCStr{ value: value.as_string() }
 	}
@@ -489,24 +489,24 @@ fn parse_load_command_section(command &LoadCommandRecord, offset int, is_64 bool
 	}
 }
 
-pub fn (section LoadCommandSection) to_h() brew_runtime.Value {
+pub fn (section LoadCommandSection) to_h() ruby.Value {
 	mut values := {
-		'sectname':  brew_runtime.string_value(section.sectname)
-		'segname':   brew_runtime.string_value(section.segname)
-		'addr':      brew_runtime.int_value(i64(section.addr))
-		'size':      brew_runtime.int_value(i64(section.size))
-		'offset':    brew_runtime.int_value(section.offset)
-		'align':     brew_runtime.int_value(section.align)
-		'reloff':    brew_runtime.int_value(section.reloff)
-		'nreloc':    brew_runtime.int_value(section.nreloc)
-		'flags':     brew_runtime.int_value(section.flags)
-		'reserved1': brew_runtime.int_value(section.reserved1)
-		'reserved2': brew_runtime.int_value(section.reserved2)
+		'sectname':  ruby.string_value(section.sectname)
+		'segname':   ruby.string_value(section.segname)
+		'addr':      ruby.int_value(i64(section.addr))
+		'size':      ruby.int_value(i64(section.size))
+		'offset':    ruby.int_value(section.offset)
+		'align':     ruby.int_value(section.align)
+		'reloff':    ruby.int_value(section.reloff)
+		'nreloc':    ruby.int_value(section.nreloc)
+		'flags':     ruby.int_value(section.flags)
+		'reserved1': ruby.int_value(section.reserved1)
+		'reserved2': ruby.int_value(section.reserved2)
 	}
 	if section.is_64 {
-		values['reserved3'] = brew_runtime.int_value(section.reserved3)
+		values['reserved3'] = ruby.int_value(section.reserved3)
 	}
-	return brew_runtime.map_value(values)
+	return ruby.map_value(values)
 }
 
 fn load_command_number(command &LoadCommandRecord, name string) i64 {
@@ -739,7 +739,7 @@ pub fn new_load_command_from_bin(kind LoadCommandKind, view &LoadCommandView) !&
 	return command
 }
 
-pub fn create_load_command(command_symbol string, args []brew_runtime.Value) !&LoadCommandRecord {
+pub fn create_load_command(command_symbol string, args []ruby.Value) !&LoadCommandRecord {
 	name := normalize_lc_symbol(command_symbol)
 	if !is_creatable_load_command(name) {
 		return error('Load commands of type ${name} cannot be created manually')
@@ -869,10 +869,10 @@ pub fn new_twolevel_hint(blob u32) TwolevelHint {
 	return TwolevelHint{ isub_image: blob >> 24, itoc: blob & 0x00ff_ffff }
 }
 
-pub fn (hint TwolevelHint) to_h() brew_runtime.Value {
-	return brew_runtime.map_value({
-		'isub_image': brew_runtime.int_value(hint.isub_image)
-		'itoc':       brew_runtime.int_value(hint.itoc)
+pub fn (hint TwolevelHint) to_h() ruby.Value {
+	return ruby.map_value({
+		'isub_image': ruby.int_value(hint.isub_image)
+		'itoc':       ruby.int_value(hint.itoc)
 	})
 }
 
@@ -885,10 +885,10 @@ pub fn new_twolevel_hints_table(view &LoadCommandView, table_offset int, count i
 	return TwolevelHintsTable{ hints: hints }
 }
 
-pub fn (tool BuildTool) to_h() brew_runtime.Value {
-	return brew_runtime.map_value({
-		'tool':    brew_runtime.int_value(tool.tool)
-		'version': brew_runtime.int_value(tool.version)
+pub fn (tool BuildTool) to_h() ruby.Value {
+	return ruby.map_value({
+		'tool':    ruby.int_value(tool.tool)
+		'version': ruby.int_value(tool.version)
 	})
 }
 
@@ -968,24 +968,24 @@ pub fn (command &LoadCommandRecord) matching_segment() ?&LoadCommandRecord {
 	return none
 }
 
-fn lc_view_to_h(command &LoadCommandRecord) brew_runtime.Value {
+fn lc_view_to_h(command &LoadCommandRecord) ruby.Value {
 	if !command.has_view {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
-	return brew_runtime.map_value({
-		'offset':     brew_runtime.int_value(command.view_offset)
-		'endianness': brew_runtime.string_value(command.endianness)
-		'size':       brew_runtime.int_value(command.raw_data.len)
+	return ruby.map_value({
+		'offset':     ruby.int_value(command.view_offset)
+		'endianness': ruby.string_value(command.endianness)
+		'size':       ruby.int_value(command.raw_data.len)
 	})
 }
 
-fn add_lc_number(mut values map[string]brew_runtime.Value, command &LoadCommandRecord, name string) {
-	values[name] = brew_runtime.int_value(load_command_number(command, name))
+fn add_lc_number(mut values map[string]ruby.Value, command &LoadCommandRecord, name string) {
+	values[name] = ruby.int_value(load_command_number(command, name))
 }
 
-fn add_lc_string(mut values map[string]brew_runtime.Value, command &LoadCommandRecord, name string, nested bool) {
+fn add_lc_string(mut values map[string]ruby.Value, command &LoadCommandRecord, name string, nested bool) {
 	value := command.strings[name] or { LoadCommandLCStr{} }
-	values[name] = if nested { value.to_h() } else { brew_runtime.string_value(value.value) }
+	values[name] = if nested { value.to_h() } else { ruby.string_value(value.value) }
 }
 
 fn load_command_structure_format(kind LoadCommandKind) string {
@@ -1018,25 +1018,25 @@ fn load_command_structure_format(kind LoadCommandKind) string {
 	}
 }
 
-pub fn (command &LoadCommandRecord) to_h() brew_runtime.Value {
+pub fn (command &LoadCommandRecord) to_h() ruby.Value {
 	mut values := {
 		'view':      lc_view_to_h(command)
-		'cmd':       brew_runtime.int_value(command.cmd)
-		'cmdsize':   brew_runtime.int_value(command.cmdsize)
+		'cmd':       ruby.int_value(command.cmd)
+		'cmdsize':   ruby.int_value(command.cmdsize)
 		'type':      if symbol := command.type_symbol() {
-			brew_runtime.string_value(symbol)
+			ruby.string_value(symbol)
 		} else {
-			brew_runtime.object_value('NilClass', 'nil')
+			ruby.object_value('NilClass', 'nil')
 		}
-		'structure': brew_runtime.map_value({
-			'format':   brew_runtime.string_value(load_command_structure_format(command.kind))
-			'bytesize': brew_runtime.int_value(load_command_bytesize(command.kind))
+		'structure': ruby.map_value({
+			'format':   ruby.string_value(load_command_structure_format(command.kind))
+			'bytesize': ruby.int_value(load_command_bytesize(command.kind))
 		})
 	}
 	match command.kind {
 		.uuid {
-			values['uuid'] = brew_runtime.array_value(command.uuid.map(brew_runtime.int_value(it)))
-			values['uuid_string'] = brew_runtime.string_value(command.uuid_string())
+			values['uuid'] = ruby.array_value(command.uuid.map(ruby.int_value(it)))
+			values['uuid_string'] = ruby.string_value(command.uuid_string())
 		}
 		.segment, .segment64 {
 			add_lc_string(mut values, command, 'segname', false)
@@ -1044,7 +1044,7 @@ pub fn (command &LoadCommandRecord) to_h() brew_runtime.Value {
 				'flags'] {
 				add_lc_number(mut values, command, name)
 			}
-			values['sections'] = brew_runtime.array_value(command.sections.map(it.to_h()))
+			values['sections'] = ruby.array_value(command.sections.map(it.to_h()))
 		}
 		.dylib, .dylib_use {
 			add_lc_string(mut values, command, 'name', true)
@@ -1085,7 +1085,7 @@ pub fn (command &LoadCommandRecord) to_h() brew_runtime.Value {
 		.twolevel_hints {
 			add_lc_number(mut values, command, 'htoffset')
 			add_lc_number(mut values, command, 'nhints')
-			values['table'] = brew_runtime.array_value(command.hints.map(it.to_h()))
+			values['table'] = ruby.array_value(command.hints.map(it.to_h()))
 		}
 		.prebind_cksum { add_lc_number(mut values, command, 'cksum') }
 		.rpath { add_lc_string(mut values, command, 'path', true) }
@@ -1102,17 +1102,17 @@ pub fn (command &LoadCommandRecord) to_h() brew_runtime.Value {
 		}
 		.version_min {
 			add_lc_number(mut values, command, 'version')
-			values['version_string'] = brew_runtime.string_value(packed_version_string(u32(load_command_number(command, 'version'))))
+			values['version_string'] = ruby.string_value(packed_version_string(u32(load_command_number(command, 'version'))))
 			add_lc_number(mut values, command, 'sdk')
-			values['sdk_string'] = brew_runtime.string_value(packed_version_string(u32(load_command_number(command, 'sdk'))))
+			values['sdk_string'] = ruby.string_value(packed_version_string(u32(load_command_number(command, 'sdk'))))
 		}
 		.build_version {
 			add_lc_number(mut values, command, 'platform')
 			add_lc_number(mut values, command, 'minos')
-			values['minos_string'] = brew_runtime.string_value(packed_version_string(u32(load_command_number(command, 'minos'))))
+			values['minos_string'] = ruby.string_value(packed_version_string(u32(load_command_number(command, 'minos'))))
 			add_lc_number(mut values, command, 'sdk')
-			values['sdk_string'] = brew_runtime.string_value(packed_version_string(u32(load_command_number(command, 'sdk'))))
-			values['tool_entries'] = brew_runtime.array_value(command.tools.map(it.to_h()))
+			values['sdk_string'] = ruby.string_value(packed_version_string(u32(load_command_number(command, 'sdk'))))
+			values['tool_entries'] = ruby.array_value(command.tools.map(it.to_h()))
 		}
 		.dyld_info {
 			for name in ['rebase_off', 'rebase_size', 'bind_off', 'bind_size', 'weak_bind_off',
@@ -1127,7 +1127,7 @@ pub fn (command &LoadCommandRecord) to_h() brew_runtime.Value {
 		}
 		.source_version {
 			add_lc_number(mut values, command, 'version')
-			values['version_string'] = brew_runtime.string_value(packed_source_version_string(u64(load_command_number(command, 'version'))))
+			values['version_string'] = ruby.string_value(packed_source_version_string(u64(load_command_number(command, 'version'))))
 		}
 		.symseg {
 			add_lc_number(mut values, command, 'offset')
@@ -1155,51 +1155,51 @@ pub fn (command &LoadCommandRecord) to_h() brew_runtime.Value {
 		}
 		else {}
 	}
-	return brew_runtime.map_value(values)
+	return ruby.map_value(values)
 }
 
-fn load_command_boundary(command &LoadCommandRecord) brew_runtime.Value {
-	return brew_runtime.structured_value('MachO::LoadCommands::${command.kind}', command.type_symbol() or { '' }, {
+fn load_command_boundary(command &LoadCommandRecord) ruby.Value {
+	return ruby.structured_value('MachO::LoadCommands::${command.kind}', command.type_symbol() or { '' }, {
 		'load_command_address': u64(voidptr(command)).str()
 	})
 }
 
-fn load_command_from_args(args []brew_runtime.Value) &LoadCommandRecord {
+fn load_command_from_args(args []ruby.Value) &LoadCommandRecord {
 	if args.len == 0 { panic('load command method requires a receiver') }
 	address := (args[0].attribute('load_command_address') or { panic('${args[0].type_name} has no translated load command state') }).u64()
 	return unsafe { &LoadCommandRecord(voidptr(address)) }
 }
 
-fn lcstr_boundary(value &LoadCommandLCStr) brew_runtime.Value {
-	return brew_runtime.structured_value('MachO::LoadCommands::LoadCommand::LCStr', value.value, {
+fn lcstr_boundary(value &LoadCommandLCStr) ruby.Value {
+	return ruby.structured_value('MachO::LoadCommands::LoadCommand::LCStr', value.value, {
 		'load_command_lcstr_offset': value.offset.str()
 	})
 }
 
-fn context_boundary(context &SerializationContext) brew_runtime.Value {
-	return brew_runtime.structured_value('MachO::LoadCommands::SerializationContext', context.endianness, {
+fn context_boundary(context &SerializationContext) ruby.Value {
+	return ruby.structured_value('MachO::LoadCommands::SerializationContext', context.endianness, {
 		'load_command_context_address': u64(voidptr(context)).str()
 	})
 }
 
-fn context_from_value(value brew_runtime.Value) &SerializationContext {
+fn context_from_value(value ruby.Value) &SerializationContext {
 	address := (value.attribute('load_command_context_address') or { panic('${value.type_name} has no translated serialization context') }).u64()
 	return unsafe { &SerializationContext(voidptr(address)) }
 }
 
-fn view_boundary(view &LoadCommandView, kind LoadCommandKind) brew_runtime.Value {
-	return brew_runtime.structured_value('MachO::LoadCommands::View', '#<MachO::View>', {
+fn view_boundary(view &LoadCommandView, kind LoadCommandKind) ruby.Value {
+	return ruby.structured_value('MachO::LoadCommands::View', '#<MachO::View>', {
 		'load_command_view_address': u64(voidptr(view)).str()
 		'load_command_kind':         kind.str()
 	})
 }
 
-fn view_from_value(value brew_runtime.Value) &LoadCommandView {
+fn view_from_value(value ruby.Value) &LoadCommandView {
 	address := (value.attribute('load_command_view_address') or { panic('${value.type_name} has no translated load command view') }).u64()
 	return unsafe { &LoadCommandView(voidptr(address)) }
 }
 
-fn kind_from_value(value brew_runtime.Value) LoadCommandKind {
+fn kind_from_value(value ruby.Value) LoadCommandKind {
 	name := value.attribute('load_command_kind') or { return .load_command }
 	return match name {
 		'uuid' { .uuid }
@@ -1241,144 +1241,144 @@ fn kind_from_value(value brew_runtime.Value) LoadCommandKind {
 	}
 }
 
-fn hints_table_boundary(table &TwolevelHintsTable) brew_runtime.Value {
-	return brew_runtime.structured_value('MachO::LoadCommands::TwolevelHintsTable', '#<TwolevelHintsTable>', {
+fn hints_table_boundary(table &TwolevelHintsTable) ruby.Value {
+	return ruby.structured_value('MachO::LoadCommands::TwolevelHintsTable', '#<TwolevelHintsTable>', {
 		'load_command_hints_address': u64(voidptr(table)).str()
 	})
 }
 
-fn hints_table_from_args(args []brew_runtime.Value) &TwolevelHintsTable {
+fn hints_table_from_args(args []ruby.Value) &TwolevelHintsTable {
 	if args.len == 0 { panic('TwolevelHintsTable method requires a receiver') }
 	return unsafe { &TwolevelHintsTable(voidptr((args[0].attribute('load_command_hints_address') or { panic(err) }).u64())) }
 }
 
-fn hint_boundary(hint &TwolevelHint) brew_runtime.Value {
-	return brew_runtime.structured_value('MachO::LoadCommands::TwolevelHint', '#<TwolevelHint>', {
+fn hint_boundary(hint &TwolevelHint) ruby.Value {
+	return ruby.structured_value('MachO::LoadCommands::TwolevelHint', '#<TwolevelHint>', {
 		'load_command_hint_address': u64(voidptr(hint)).str()
 	})
 }
 
-fn hint_from_args(args []brew_runtime.Value) &TwolevelHint {
+fn hint_from_args(args []ruby.Value) &TwolevelHint {
 	if args.len == 0 { panic('TwolevelHint method requires a receiver') }
 	return unsafe { &TwolevelHint(voidptr((args[0].attribute('load_command_hint_address') or { panic(err) }).u64())) }
 }
 
-fn tools_boundary(entries &BuildToolEntries) brew_runtime.Value {
-	return brew_runtime.structured_value('MachO::LoadCommands::ToolEntries', '#<ToolEntries>', {
+fn tools_boundary(entries &BuildToolEntries) ruby.Value {
+	return ruby.structured_value('MachO::LoadCommands::ToolEntries', '#<ToolEntries>', {
 		'load_command_tools_address': u64(voidptr(entries)).str()
 	})
 }
 
-fn tools_from_args(args []brew_runtime.Value) &BuildToolEntries {
+fn tools_from_args(args []ruby.Value) &BuildToolEntries {
 	if args.len == 0 { panic('ToolEntries method requires a receiver') }
 	return unsafe { &BuildToolEntries(voidptr((args[0].attribute('load_command_tools_address') or { panic(err) }).u64())) }
 }
 
-fn tool_boundary(tool &BuildTool) brew_runtime.Value {
-	return brew_runtime.structured_value('MachO::LoadCommands::Tool', '#<Tool>', {
+fn tool_boundary(tool &BuildTool) ruby.Value {
+	return ruby.structured_value('MachO::LoadCommands::Tool', '#<Tool>', {
 		'load_command_tool_address': u64(voidptr(tool)).str()
 	})
 }
 
-fn tool_from_args(args []brew_runtime.Value) &BuildTool {
+fn tool_from_args(args []ruby.Value) &BuildTool {
 	if args.len == 0 { panic('Tool method requires a receiver') }
 	return unsafe { &BuildTool(voidptr((args[0].attribute('load_command_tool_address') or { panic(err) }).u64())) }
 }
 
 // Ruby method `self.new_from_bin(view)` at line 240.
-pub fn ruby_load_commands_l240_d1_self_new_from_bin(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l240_d1_self_new_from_bin(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('LoadCommand.new_from_bin requires a view') }
 	return load_command_boundary(new_load_command_from_bin(kind_from_value(args[0]), view_from_value(args[0])) or { panic(err) })
 }
 
 // Ruby method `self.create(cmd_sym, *args)` at line 250.
-pub fn ruby_load_commands_l250_d2_self_create(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l250_d2_self_create(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('LoadCommand.create requires a command symbol') }
 	return load_command_boundary(create_load_command(args[0].as_string(), args[1..]) or { panic(err) })
 }
 
 // Ruby method `serializable?` at line 272.
-pub fn ruby_load_commands_l272_d3_serializable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(load_command_from_args(args).serializable())
+pub fn ruby_load_commands_l272_d3_serializable(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(load_command_from_args(args).serializable())
 }
 
 // Ruby method `serialize(context)` at line 281.
-pub fn ruby_load_commands_l281_d4_serialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l281_d4_serialize(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('LoadCommand#serialize requires a context') }
-	return brew_runtime.string_value(load_command_from_args(args).serialize(*context_from_value(args[1])) or { panic(err) }.bytestr())
+	return ruby.string_value(load_command_from_args(args).serialize(*context_from_value(args[1])) or { panic(err) }.bytestr())
 }
 
 // Ruby method `offset` at line 290.
-pub fn ruby_load_commands_l290_d5_offset(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(load_command_from_args(args).source_offset() or { panic(err) })
+pub fn ruby_load_commands_l290_d5_offset(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(load_command_from_args(args).source_offset() or { panic(err) })
 }
 
 // Ruby method `type` at line 296.
-pub fn ruby_load_commands_l296_d6_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l296_d6_type(args ...ruby.Value) ruby.Value {
 	return if symbol := load_command_from_args(args).type_symbol() {
-		brew_runtime.string_value(symbol)
+		ruby.string_value(symbol)
 	} else {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	}
 }
 
 // Ruby alias `alias to_sym type` at line 300.
-pub fn ruby_load_commands_l300_d7_to_sym(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l300_d7_to_sym(args ...ruby.Value) ruby.Value {
 	return ruby_load_commands_l296_d6_type(...args)
 }
 
 // Ruby method `to_s` at line 304.
-pub fn ruby_load_commands_l304_d8_to_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(load_command_from_args(args).type_symbol() or { '' })
+pub fn ruby_load_commands_l304_d8_to_s(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(load_command_from_args(args).type_symbol() or { '' })
 }
 
 // Ruby method `to_h` at line 310.
-pub fn ruby_load_commands_l310_d9_to_h(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l310_d9_to_h(args ...ruby.Value) ruby.Value {
 	return load_command_from_args(args).to_h()
 }
 
 // Ruby method `initialize(lc, lc_str)` at line 332.
-pub fn ruby_load_commands_l332_d10_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l332_d10_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('LCStr#initialize requires a load command and string or offset') }
 	value := new_load_command_lcstr(load_command_from_args(args[..1]), args[1]) or { panic(err) }
-	return brew_runtime.structured_value('MachO::LoadCommands::LoadCommand::LCStr', value.value, {
+	return ruby.structured_value('MachO::LoadCommands::LoadCommand::LCStr', value.value, {
 		'load_command_lcstr_offset': value.offset.str()
 	})
 }
 
 // Ruby method `to_s` at line 353.
-pub fn ruby_load_commands_l353_d11_to_s(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l353_d11_to_s(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('LCStr#to_s requires a receiver') }
-	return brew_runtime.string_value(args[0].as_string())
+	return ruby.string_value(args[0].as_string())
 }
 
 // Ruby method `to_i` at line 359.
-pub fn ruby_load_commands_l359_d12_to_i(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l359_d12_to_i(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('LCStr#to_i requires a receiver') }
-	return brew_runtime.int_value((args[0].attribute('load_command_lcstr_offset') or { panic(err) }).int())
+	return ruby.int_value((args[0].attribute('load_command_lcstr_offset') or { panic(err) }).int())
 }
 
 // Ruby method `to_h` at line 364.
-pub fn ruby_load_commands_l364_d13_to_h(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l364_d13_to_h(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('LCStr#to_h requires a receiver') }
-	return brew_runtime.map_value({
-		'string': brew_runtime.string_value(args[0].as_string())
-		'offset': brew_runtime.int_value((args[0].attribute('load_command_lcstr_offset') or { panic(err) }).int())
+	return ruby.map_value({
+		'string': ruby.string_value(args[0].as_string())
+		'offset': ruby.int_value((args[0].attribute('load_command_lcstr_offset') or { panic(err) }).int())
 	})
 }
 
 // Ruby attr_reader `attr_reader :endianness` at line 376.
-pub fn ruby_load_commands_l376_d14_endianness(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(context_from_value(args[0]).endianness)
+pub fn ruby_load_commands_l376_d14_endianness(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(context_from_value(args[0]).endianness)
 }
 
 // Ruby attr_reader `attr_reader :alignment` at line 380.
-pub fn ruby_load_commands_l380_d15_alignment(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(context_from_value(args[0]).alignment)
+pub fn ruby_load_commands_l380_d15_alignment(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(context_from_value(args[0]).alignment)
 }
 
 // Ruby method `self.context_for(macho)` at line 385.
-pub fn ruby_load_commands_l385_d16_self_context_for(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l385_d16_self_context_for(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('SerializationContext.context_for requires a Mach-O') }
 	if args[0].attributes['load_command_context_address'] or { '' } != '' {
 		old := context_from_value(args[0])
@@ -1392,7 +1392,7 @@ pub fn ruby_load_commands_l385_d16_self_context_for(args ...brew_runtime.Value) 
 }
 
 // Ruby method `initialize(endianness, alignment)` at line 392.
-pub fn ruby_load_commands_l392_d17_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l392_d17_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('SerializationContext#initialize requires endianness and alignment') }
 	context := &SerializationContext{
 		endianness: normalize_lc_endianness(args[0].as_string())
@@ -1402,149 +1402,149 @@ pub fn ruby_load_commands_l392_d17_initialize(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby method `uuid_string` at line 407.
-pub fn ruby_load_commands_l407_d18_uuid_string(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(load_command_from_args(args).uuid_string())
+pub fn ruby_load_commands_l407_d18_uuid_string(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(load_command_from_args(args).uuid_string())
 }
 
 // Ruby method `to_s` at line 418.
-pub fn ruby_load_commands_l418_d19_to_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(load_command_from_args(args).uuid_string())
+pub fn ruby_load_commands_l418_d19_to_s(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(load_command_from_args(args).uuid_string())
 }
 
 // Ruby method `to_h` at line 423.
-pub fn ruby_load_commands_l423_d20_to_h(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l423_d20_to_h(args ...ruby.Value) ruby.Value {
 	return load_command_from_args(args).to_h()
 }
 
 // Ruby method `sections` at line 464.
-pub fn ruby_load_commands_l464_d21_sections(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.array_value(load_command_from_args(args).sections.map(it.to_h()))
+pub fn ruby_load_commands_l464_d21_sections(args ...ruby.Value) ruby.Value {
+	return ruby.array_value(load_command_from_args(args).sections.map(it.to_h()))
 }
 
 // Ruby method `flag?(flag)` at line 485.
-pub fn ruby_load_commands_l485_d22_flag(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l485_d22_flag(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('SegmentCommand#flag? requires a flag') }
-	return brew_runtime.bool_value(load_command_from_args(args).flag(args[1].as_string()))
+	return ruby.bool_value(load_command_from_args(args).flag(args[1].as_string()))
 }
 
 // Ruby method `guess_align` at line 496.
-pub fn ruby_load_commands_l496_d23_guess_align(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(load_command_from_args(args).guess_align())
+pub fn ruby_load_commands_l496_d23_guess_align(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(load_command_from_args(args).guess_align())
 }
 
 // Ruby method `to_h` at line 514.
-pub fn ruby_load_commands_l514_d24_to_h(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l514_d24_to_h(args ...ruby.Value) ruby.Value {
 	return load_command_from_args(args).to_h()
 }
 
 // Ruby method `flag?(flag)` at line 567.
-pub fn ruby_load_commands_l567_d25_flag(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l567_d25_flag(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('DylibCommand#flag? requires a flag') }
-	return brew_runtime.bool_value(load_command_from_args(args).flag(args[1].as_string()))
+	return ruby.bool_value(load_command_from_args(args).flag(args[1].as_string()))
 }
 
 // Ruby method `serialize(context)` at line 584.
-pub fn ruby_load_commands_l584_d26_serialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l584_d26_serialize(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('DylibCommand#serialize requires a context') }
-	return brew_runtime.string_value(load_command_from_args(args).serialize(*context_from_value(args[1])) or { panic(err) }.bytestr())
+	return ruby.string_value(load_command_from_args(args).serialize(*context_from_value(args[1])) or { panic(err) }.bytestr())
 }
 
 // Ruby method `to_h` at line 595.
-pub fn ruby_load_commands_l595_d27_to_h(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l595_d27_to_h(args ...ruby.Value) ruby.Value {
 	return load_command_from_args(args).to_h()
 }
 
 // Ruby alias `alias marker timestamp` at line 611.
-pub fn ruby_load_commands_l611_d28_marker(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(load_command_number(load_command_from_args(args), 'timestamp'))
+pub fn ruby_load_commands_l611_d28_marker(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(load_command_number(load_command_from_args(args), 'timestamp'))
 }
 
 // Ruby method `self.new_from_bin(view)` at line 619.
-pub fn ruby_load_commands_l619_d29_self_new_from_bin(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l619_d29_self_new_from_bin(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('DylibUseCommand.new_from_bin requires a view') }
 	return load_command_boundary(new_load_command_from_bin(.load_command, view_from_value(args[0])) or { panic(err) })
 }
 
 // Ruby method `flag?(flag)` at line 634.
-pub fn ruby_load_commands_l634_d30_flag(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l634_d30_flag(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('DylibUseCommand#flag? requires a flag') }
-	return brew_runtime.bool_value(load_command_from_args(args).flag(args[1].as_string()))
+	return ruby.bool_value(load_command_from_args(args).flag(args[1].as_string()))
 }
 
 // Ruby method `serialize(context)` at line 646.
-pub fn ruby_load_commands_l646_d31_serialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l646_d31_serialize(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('DylibUseCommand#serialize requires a context') }
-	return brew_runtime.string_value(load_command_from_args(args).serialize(*context_from_value(args[1])) or { panic(err) }.bytestr())
+	return ruby.string_value(load_command_from_args(args).serialize(*context_from_value(args[1])) or { panic(err) }.bytestr())
 }
 
 // Ruby method `to_h` at line 657.
-pub fn ruby_load_commands_l657_d32_to_h(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l657_d32_to_h(args ...ruby.Value) ruby.Value {
 	return load_command_from_args(args).to_h()
 }
 
 // Ruby method `serialize(context)` at line 676.
-pub fn ruby_load_commands_l676_d33_serialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l676_d33_serialize(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('DylinkerCommand#serialize requires a context') }
-	return brew_runtime.string_value(load_command_from_args(args).serialize(*context_from_value(args[1])) or { panic(err) }.bytestr())
+	return ruby.string_value(load_command_from_args(args).serialize(*context_from_value(args[1])) or { panic(err) }.bytestr())
 }
 
 // Ruby method `to_h` at line 686.
-pub fn ruby_load_commands_l686_d34_to_h(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l686_d34_to_h(args ...ruby.Value) ruby.Value {
 	return load_command_from_args(args).to_h()
 }
 
 // Ruby method `to_h` at line 707.
-pub fn ruby_load_commands_l707_d35_to_h(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l707_d35_to_h(args ...ruby.Value) ruby.Value {
 	return load_command_from_args(args).to_h()
 }
 
 // Ruby method `to_h` at line 752.
-pub fn ruby_load_commands_l752_d36_to_h(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l752_d36_to_h(args ...ruby.Value) ruby.Value {
 	return load_command_from_args(args).to_h()
 }
 
 // Ruby method `to_h` at line 803.
-pub fn ruby_load_commands_l803_d37_to_h(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l803_d37_to_h(args ...ruby.Value) ruby.Value {
 	return load_command_from_args(args).to_h()
 }
 
 // Ruby method `to_h` at line 817.
-pub fn ruby_load_commands_l817_d38_to_h(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l817_d38_to_h(args ...ruby.Value) ruby.Value {
 	return load_command_from_args(args).to_h()
 }
 
 // Ruby method `to_h` at line 831.
-pub fn ruby_load_commands_l831_d39_to_h(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l831_d39_to_h(args ...ruby.Value) ruby.Value {
 	return load_command_from_args(args).to_h()
 }
 
 // Ruby method `to_h` at line 845.
-pub fn ruby_load_commands_l845_d40_to_h(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l845_d40_to_h(args ...ruby.Value) ruby.Value {
 	return load_command_from_args(args).to_h()
 }
 
 // Ruby method `to_h` at line 868.
-pub fn ruby_load_commands_l868_d41_to_h(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l868_d41_to_h(args ...ruby.Value) ruby.Value {
 	return load_command_from_args(args).to_h()
 }
 
 // Ruby method `to_h` at line 936.
-pub fn ruby_load_commands_l936_d42_to_h(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l936_d42_to_h(args ...ruby.Value) ruby.Value {
 	return load_command_from_args(args).to_h()
 }
 
 // Ruby method `to_h` at line 974.
-pub fn ruby_load_commands_l974_d43_to_h(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l974_d43_to_h(args ...ruby.Value) ruby.Value {
 	return load_command_from_args(args).to_h()
 }
 
 // Ruby attr_reader `attr_reader :hints` at line 986.
-pub fn ruby_load_commands_l986_d44_hints(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.array_value(hints_table_from_args(args).hints.map(it.to_h()))
+pub fn ruby_load_commands_l986_d44_hints(args ...ruby.Value) ruby.Value {
+	return ruby.array_value(hints_table_from_args(args).hints.map(it.to_h()))
 }
 
 // Ruby method `initialize(view, htoffset, nhints)` at line 992.
-pub fn ruby_load_commands_l992_d45_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l992_d45_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 3 { panic('TwolevelHintsTable#initialize requires view, offset, and count') }
 	table := new_twolevel_hints_table(view_from_value(args[0]), int(args[1].as_int() or { panic(err) }), int(args[2].as_int() or { panic(err) })) or { panic(err) }
 	state := &TwolevelHintsTable{ hints: table.hints.clone() }
@@ -1552,17 +1552,17 @@ pub fn ruby_load_commands_l992_d45_initialize(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby attr_reader `attr_reader :isub_image` at line 1003.
-pub fn ruby_load_commands_l1003_d46_isub_image(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(hint_from_args(args).isub_image)
+pub fn ruby_load_commands_l1003_d46_isub_image(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(hint_from_args(args).isub_image)
 }
 
 // Ruby attr_reader `attr_reader :itoc` at line 1006.
-pub fn ruby_load_commands_l1006_d47_itoc(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(hint_from_args(args).itoc)
+pub fn ruby_load_commands_l1006_d47_itoc(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(hint_from_args(args).itoc)
 }
 
 // Ruby method `initialize(blob)` at line 1010.
-pub fn ruby_load_commands_l1010_d48_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l1010_d48_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('TwolevelHint#initialize requires a blob') }
 	hint := new_twolevel_hint(u32(args[0].as_int() or { panic(err) }))
 	state := &TwolevelHint{ isub_image: hint.isub_image, itoc: hint.itoc }
@@ -1570,95 +1570,95 @@ pub fn ruby_load_commands_l1010_d48_initialize(args ...brew_runtime.Value) brew_
 }
 
 // Ruby method `to_h` at line 1016.
-pub fn ruby_load_commands_l1016_d49_to_h(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l1016_d49_to_h(args ...ruby.Value) ruby.Value {
 	return hint_from_args(args).to_h()
 }
 
 // Ruby method `to_h` at line 1033.
-pub fn ruby_load_commands_l1033_d50_to_h(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l1033_d50_to_h(args ...ruby.Value) ruby.Value {
 	return load_command_from_args(args).to_h()
 }
 
 // Ruby method `serialize(context)` at line 1050.
-pub fn ruby_load_commands_l1050_d51_serialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l1050_d51_serialize(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('RpathCommand#serialize requires a context') }
-	return brew_runtime.string_value(load_command_from_args(args).serialize(*context_from_value(args[1])) or { panic(err) }.bytestr())
+	return ruby.string_value(load_command_from_args(args).serialize(*context_from_value(args[1])) or { panic(err) }.bytestr())
 }
 
 // Ruby method `to_h` at line 1060.
-pub fn ruby_load_commands_l1060_d52_to_h(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l1060_d52_to_h(args ...ruby.Value) ruby.Value {
 	return load_command_from_args(args).to_h()
 }
 
 // Ruby method `to_h` at line 1074.
-pub fn ruby_load_commands_l1074_d53_to_h(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l1074_d53_to_h(args ...ruby.Value) ruby.Value {
 	return load_command_from_args(args).to_h()
 }
 
 // Ruby method `serialize(context)` at line 1097.
-pub fn ruby_load_commands_l1097_d54_serialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l1097_d54_serialize(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('LinkeditDataCommand#serialize requires a context') }
-	return brew_runtime.string_value(load_command_from_args(args).serialize(*context_from_value(args[1])) or { panic(err) }.bytestr())
+	return ruby.string_value(load_command_from_args(args).serialize(*context_from_value(args[1])) or { panic(err) }.bytestr())
 }
 
 // Ruby method `superblob` at line 1107.
-pub fn ruby_load_commands_l1107_d55_superblob(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l1107_d55_superblob(args ...ruby.Value) ruby.Value {
 	blob := load_command_from_args(args).superblob() or { panic(err) }
-	return brew_runtime.object_value('MachO::CodeSigning::SuperBlob', blob.data.bytestr())
+	return ruby.object_value('MachO::CodeSigning::SuperBlob', blob.data.bytestr())
 }
 
 // Ruby method `to_h` at line 1114.
-pub fn ruby_load_commands_l1114_d56_to_h(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l1114_d56_to_h(args ...ruby.Value) ruby.Value {
 	return load_command_from_args(args).to_h()
 }
 
 // Ruby method `to_h` at line 1135.
-pub fn ruby_load_commands_l1135_d57_to_h(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l1135_d57_to_h(args ...ruby.Value) ruby.Value {
 	return load_command_from_args(args).to_h()
 }
 
 // Ruby method `to_h` at line 1151.
-pub fn ruby_load_commands_l1151_d58_to_h(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l1151_d58_to_h(args ...ruby.Value) ruby.Value {
 	return load_command_from_args(args).to_h()
 }
 
 // Ruby method `version_string` at line 1170.
-pub fn ruby_load_commands_l1170_d59_version_string(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(packed_version_string(u32(load_command_number(load_command_from_args(args), 'version'))))
+pub fn ruby_load_commands_l1170_d59_version_string(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(packed_version_string(u32(load_command_number(load_command_from_args(args), 'version'))))
 }
 
 // Ruby method `sdk_string` at line 1181.
-pub fn ruby_load_commands_l1181_d60_sdk_string(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(packed_version_string(u32(load_command_number(load_command_from_args(args), 'sdk'))))
+pub fn ruby_load_commands_l1181_d60_sdk_string(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(packed_version_string(u32(load_command_number(load_command_from_args(args), 'sdk'))))
 }
 
 // Ruby method `to_h` at line 1191.
-pub fn ruby_load_commands_l1191_d61_to_h(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l1191_d61_to_h(args ...ruby.Value) ruby.Value {
 	return load_command_from_args(args).to_h()
 }
 
 // Ruby method `minos_string` at line 1219.
-pub fn ruby_load_commands_l1219_d62_minos_string(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(packed_version_string(u32(load_command_number(load_command_from_args(args), 'minos'))))
+pub fn ruby_load_commands_l1219_d62_minos_string(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(packed_version_string(u32(load_command_number(load_command_from_args(args), 'minos'))))
 }
 
 // Ruby method `sdk_string` at line 1230.
-pub fn ruby_load_commands_l1230_d63_sdk_string(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(packed_version_string(u32(load_command_number(load_command_from_args(args), 'sdk'))))
+pub fn ruby_load_commands_l1230_d63_sdk_string(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(packed_version_string(u32(load_command_number(load_command_from_args(args), 'sdk'))))
 }
 
 // Ruby method `to_h` at line 1240.
-pub fn ruby_load_commands_l1240_d64_to_h(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l1240_d64_to_h(args ...ruby.Value) ruby.Value {
 	return load_command_from_args(args).to_h()
 }
 
 // Ruby attr_reader `attr_reader :tools` at line 1255.
-pub fn ruby_load_commands_l1255_d65_tools(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.array_value(tools_from_args(args).tools.map(it.to_h()))
+pub fn ruby_load_commands_l1255_d65_tools(args ...ruby.Value) ruby.Value {
+	return ruby.array_value(tools_from_args(args).tools.map(it.to_h()))
 }
 
 // Ruby method `initialize(view, ntools)` at line 1260.
-pub fn ruby_load_commands_l1260_d66_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l1260_d66_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('ToolEntries#initialize requires view and count') }
 	entries := new_build_tool_entries(view_from_value(args[0]), int(args[1].as_int() or { panic(err) })) or { panic(err) }
 	state := &BuildToolEntries{ tools: entries.tools.clone() }
@@ -1666,17 +1666,17 @@ pub fn ruby_load_commands_l1260_d66_initialize(args ...brew_runtime.Value) brew_
 }
 
 // Ruby attr_reader `attr_reader :tool` at line 1271.
-pub fn ruby_load_commands_l1271_d67_tool(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(tool_from_args(args).tool)
+pub fn ruby_load_commands_l1271_d67_tool(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(tool_from_args(args).tool)
 }
 
 // Ruby attr_reader `attr_reader :version` at line 1274.
-pub fn ruby_load_commands_l1274_d68_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(tool_from_args(args).version)
+pub fn ruby_load_commands_l1274_d68_version(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(tool_from_args(args).version)
 }
 
 // Ruby method `initialize(tool, version)` at line 1279.
-pub fn ruby_load_commands_l1279_d69_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l1279_d69_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Tool#initialize requires tool and version') }
 	tool := BuildTool{ tool: u32(args[0].as_int() or { panic(err) }), version: u32(args[1].as_int() or { panic(err) }) }
 	state := &BuildTool{ tool: tool.tool, version: tool.version }
@@ -1684,66 +1684,66 @@ pub fn ruby_load_commands_l1279_d69_initialize(args ...brew_runtime.Value) brew_
 }
 
 // Ruby method `to_h` at line 1285.
-pub fn ruby_load_commands_l1285_d70_to_h(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l1285_d70_to_h(args ...ruby.Value) ruby.Value {
 	return tool_from_args(args).to_h()
 }
 
 // Ruby method `to_h` at line 1330.
-pub fn ruby_load_commands_l1330_d71_to_h(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l1330_d71_to_h(args ...ruby.Value) ruby.Value {
 	return load_command_from_args(args).to_h()
 }
 
 // Ruby method `to_h` at line 1353.
-pub fn ruby_load_commands_l1353_d72_to_h(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l1353_d72_to_h(args ...ruby.Value) ruby.Value {
 	return load_command_from_args(args).to_h()
 }
 
 // Ruby method `to_h` at line 1369.
-pub fn ruby_load_commands_l1369_d73_to_h(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l1369_d73_to_h(args ...ruby.Value) ruby.Value {
 	return load_command_from_args(args).to_h()
 }
 
 // Ruby method `version_string` at line 1385.
-pub fn ruby_load_commands_l1385_d74_version_string(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(packed_source_version_string(u64(load_command_number(load_command_from_args(args), 'version'))))
+pub fn ruby_load_commands_l1385_d74_version_string(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(packed_source_version_string(u64(load_command_number(load_command_from_args(args), 'version'))))
 }
 
 // Ruby method `to_h` at line 1396.
-pub fn ruby_load_commands_l1396_d75_to_h(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l1396_d75_to_h(args ...ruby.Value) ruby.Value {
 	return load_command_from_args(args).to_h()
 }
 
 // Ruby method `to_h` at line 1414.
-pub fn ruby_load_commands_l1414_d76_to_h(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l1414_d76_to_h(args ...ruby.Value) ruby.Value {
 	return load_command_from_args(args).to_h()
 }
 
 // Ruby method `to_h` at line 1438.
-pub fn ruby_load_commands_l1438_d77_to_h(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l1438_d77_to_h(args ...ruby.Value) ruby.Value {
 	return load_command_from_args(args).to_h()
 }
 
 // Ruby method `to_h` at line 1459.
-pub fn ruby_load_commands_l1459_d78_to_h(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l1459_d78_to_h(args ...ruby.Value) ruby.Value {
 	return load_command_from_args(args).to_h()
 }
 
 // Ruby method `to_h` at line 1481.
-pub fn ruby_load_commands_l1481_d79_to_h(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l1481_d79_to_h(args ...ruby.Value) ruby.Value {
 	return load_command_from_args(args).to_h()
 }
 
 // Ruby method `to_h` at line 1507.
-pub fn ruby_load_commands_l1507_d80_to_h(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l1507_d80_to_h(args ...ruby.Value) ruby.Value {
 	return load_command_from_args(args).to_h()
 }
 
 // Ruby method `segment` at line 1517.
-pub fn ruby_load_commands_l1517_d81_segment(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_load_commands_l1517_d81_segment(args ...ruby.Value) ruby.Value {
 	return if segment := load_command_from_args(args).matching_segment() {
 		load_command_boundary(segment)
 	} else {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	}
 }
 

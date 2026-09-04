@@ -1,6 +1,6 @@
 module dsl
 
-import brew_runtime
+import ruby
 import homebrew.unpack_strategy
 
 // Translated from Homebrew/brew `cask/dsl/container.rb`.
@@ -13,8 +13,8 @@ pub mut:
 	has_kind   bool
 }
 
-fn cask_container_nil() brew_runtime.Value {
-	return brew_runtime.Value{
+fn cask_container_nil() ruby.Value {
+	return ruby.Value{
 		type_name: 'NilClass'
 		repr: 'nil'
 	}
@@ -37,25 +37,25 @@ pub fn new_cask_container(nested ?string, kind ?string) !CaskContainer {
 	return container
 }
 
-pub fn cask_container_value(container CaskContainer) brew_runtime.Value {
-	mut values := map[string]brew_runtime.Value{}
+pub fn cask_container_value(container CaskContainer) ruby.Value {
+	mut values := map[string]ruby.Value{}
 	if container.has_nested {
-		values['nested'] = brew_runtime.string_value(container.nested)
+		values['nested'] = ruby.string_value(container.nested)
 	}
 	if container.has_kind {
-		values['type'] = brew_runtime.Value{
+		values['type'] = ruby.Value{
 			type_name: 'Symbol'
 			repr: container.kind
 		}
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'Cask::DSL::Container'
 		repr: cask_container_inspect(container)
 		map_data: values
 	}
 }
 
-pub fn cask_container_from_value(value brew_runtime.Value) !CaskContainer {
+pub fn cask_container_from_value(value ruby.Value) !CaskContainer {
 	if value.type_name != 'Cask::DSL::Container' && value.type_name != 'Hash' {
 		return error('expected Cask::DSL::Container, got ${value.type_name}')
 	}
@@ -64,7 +64,7 @@ pub fn cask_container_from_value(value brew_runtime.Value) !CaskContainer {
 	return new_cask_container(nested, kind)
 }
 
-pub fn cask_container_pairs(container CaskContainer) map[string]brew_runtime.Value {
+pub fn cask_container_pairs(container CaskContainer) map[string]ruby.Value {
 	return cask_container_value(container).map_data.clone()
 }
 
@@ -79,7 +79,7 @@ fn cask_container_inspect(container CaskContainer) string {
 	return '{${pairs.join(', ')}}'
 }
 
-fn cask_container_from_args(args []brew_runtime.Value) ?CaskContainer {
+fn cask_container_from_args(args []ruby.Value) ?CaskContainer {
 	if args.len == 0 {
 		return none
 	}
@@ -87,17 +87,17 @@ fn cask_container_from_args(args []brew_runtime.Value) ?CaskContainer {
 }
 
 // Ruby attr_accessor `attr_accessor :nested` at line 11.
-pub fn ruby_container_l11_d1_nested(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_container_l11_d1_nested(args ...ruby.Value) ruby.Value {
 	container := cask_container_from_args(args) or { return cask_container_nil() }
 	return if container.has_nested {
-		brew_runtime.string_value(container.nested)
+		ruby.string_value(container.nested)
 	} else {
 		cask_container_nil()
 	}
 }
 
 // Ruby attr_accessor `attr_accessor :nested` at line 11.
-pub fn ruby_container_l11_d2_nested(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_container_l11_d2_nested(args ...ruby.Value) ruby.Value {
 	mut container := cask_container_from_args(args) or { return cask_container_nil() }
 	if args.len < 2 || args[1].type_name == 'NilClass' {
 		container.nested = ''
@@ -110,17 +110,17 @@ pub fn ruby_container_l11_d2_nested(args ...brew_runtime.Value) brew_runtime.Val
 }
 
 // Ruby attr_accessor `attr_accessor :type` at line 14.
-pub fn ruby_container_l14_d3_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_container_l14_d3_type(args ...ruby.Value) ruby.Value {
 	container := cask_container_from_args(args) or { return cask_container_nil() }
 	return if container.has_kind {
-		brew_runtime.Value{ type_name: 'Symbol', repr: container.kind }
+		ruby.Value{ type_name: 'Symbol', repr: container.kind }
 	} else {
 		cask_container_nil()
 	}
 }
 
 // Ruby attr_accessor `attr_accessor :type` at line 14.
-pub fn ruby_container_l14_d4_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_container_l14_d4_type(args ...ruby.Value) ruby.Value {
 	mut container := cask_container_from_args(args) or { return cask_container_nil() }
 	if args.len < 2 || args[1].type_name == 'NilClass' {
 		container.kind = ''
@@ -131,16 +131,16 @@ pub fn ruby_container_l14_d4_type(args ...brew_runtime.Value) brew_runtime.Value
 		?string(container.nested)
 	} else {
 		none
-	}, args[1].as_string()) or { return brew_runtime.object_value('RuntimeError', err.msg()) }
+	}, args[1].as_string()) or { return ruby.object_value('RuntimeError', err.msg()) }
 	return cask_container_value(updated)
 }
 
 // Ruby method `initialize(nested: nil, type: nil)` at line 17.
-pub fn ruby_container_l17_d5_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_container_l17_d5_initialize(args ...ruby.Value) ruby.Value {
 	keywords := if args.len > 0 && args[args.len - 1].type_name == 'Hash' {
 		args[args.len - 1].map_data
 	} else {
-		map[string]brew_runtime.Value{}
+		map[string]ruby.Value{}
 	}
 	nested := if raw := keywords['nested'] {
 		if raw.type_name == 'NilClass' { ?string(none) } else { ?string(raw.as_string()) }
@@ -153,20 +153,20 @@ pub fn ruby_container_l17_d5_initialize(args ...brew_runtime.Value) brew_runtime
 		none
 	}
 	container := new_cask_container(nested, kind) or {
-		return brew_runtime.object_value('RuntimeError', err.msg())
+		return ruby.object_value('RuntimeError', err.msg())
 	}
 	return cask_container_value(container)
 }
 
 // Ruby method `pairs` at line 28.
-pub fn ruby_container_l28_d6_pairs(args ...brew_runtime.Value) brew_runtime.Value {
-	container := cask_container_from_args(args) or { return brew_runtime.map_value({}) }
-	return brew_runtime.map_value(cask_container_pairs(container))
+pub fn ruby_container_l28_d6_pairs(args ...ruby.Value) ruby.Value {
+	container := cask_container_from_args(args) or { return ruby.map_value({}) }
+	return ruby.map_value(cask_container_pairs(container))
 }
 
 // Ruby method `to_yaml` at line 33.
-pub fn ruby_container_l33_d7_to_yaml(args ...brew_runtime.Value) brew_runtime.Value {
-	container := cask_container_from_args(args) or { return brew_runtime.string_value('--- {}\n') }
+pub fn ruby_container_l33_d7_to_yaml(args ...ruby.Value) ruby.Value {
+	container := cask_container_from_args(args) or { return ruby.string_value('--- {}\n') }
 	mut lines := ['---']
 	if container.has_nested {
 		lines << ':nested: ${container.nested}'
@@ -174,13 +174,13 @@ pub fn ruby_container_l33_d7_to_yaml(args ...brew_runtime.Value) brew_runtime.Va
 	if container.has_kind {
 		lines << ':type: :${container.kind}'
 	}
-	return brew_runtime.string_value('${lines.join('\n')}\n')
+	return ruby.string_value('${lines.join('\n')}\n')
 }
 
 // Ruby method `to_s = pairs.inspect` at line 38.
-pub fn ruby_container_l38_d8_to_s(args ...brew_runtime.Value) brew_runtime.Value {
-	container := cask_container_from_args(args) or { return brew_runtime.string_value('{}') }
-	return brew_runtime.string_value(cask_container_inspect(container))
+pub fn ruby_container_l38_d8_to_s(args ...ruby.Value) ruby.Value {
+	container := cask_container_from_args(args) or { return ruby.string_value('{}') }
+	return ruby.string_value(cask_container_inspect(container))
 }
 
 // Original Ruby source (line-for-line):

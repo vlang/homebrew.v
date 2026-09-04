@@ -1,6 +1,6 @@
 module test_bot
 
-import brew_runtime
+import ruby
 
 pub struct CleanupBeforeInput {
 pub:
@@ -73,7 +73,7 @@ pub fn cleanup_before_plan(input CleanupBeforeInput) CleanupPlan {
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `run!(args:)` at line 10.
-pub fn ruby_cleanup_before_l10_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cleanup_before_l10_d1_run(args ...ruby.Value) ruby.Value {
 	tap_name := cleanup_value_string(args, 0, '')
 	core_path := cleanup_value_string(args, 2, '')
 	github_actions := cleanup_value_bool(args, 5, false)
@@ -109,12 +109,12 @@ pub fn ruby_cleanup_before_l10_d1_run(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby method `cleanup_github_actions_hosted_runner; end` at line 33.
-pub fn ruby_cleanup_before_l33_d2_cleanup_github_actions_hosted_runner(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cleanup_before_l33_d2_cleanup_github_actions_hosted_runner(args ...ruby.Value) ruby.Value {
 	return cleanup_actions_value(cleanup_github_actions_hosted_runner_plan())
 }
 
 // Ruby method `untap_untrusted_taps` at line 36.
-pub fn ruby_cleanup_before_l36_d3_untap_untrusted_taps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cleanup_before_l36_d3_untap_untrusted_taps(args ...ruby.Value) ruby.Value {
 	current_tap := cleanup_value_string(args, 0, '')
 	taps := cleanup_value_strings(args, 1).map(CleanupTap{
 		name: it

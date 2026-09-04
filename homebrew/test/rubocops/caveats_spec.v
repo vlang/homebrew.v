@@ -1,14 +1,14 @@
 module rubocops
 
-import brew_runtime
+import ruby
 import homebrew.rubocops as caveats_core
 
 // Translated from Homebrew/brew `test/rubocops/caveats_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
-pub fn ruby_caveats_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::Caveats', 'FormulaAudit/Caveats')
+pub fn ruby_caveats_spec_l7_d1_cop(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('RuboCop::Cop::FormulaAudit::Caveats', 'FormulaAudit/Caveats')
 }
 
 // Ruby it `it "reports an offense if `setuid` is mentioned" do` at line 10.

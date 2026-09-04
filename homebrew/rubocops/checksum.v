@@ -1,6 +1,6 @@
 module rubocops
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `rubocops/checksum.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -192,8 +192,8 @@ pub fn correct_formula_checksum_case(source string) string {
 	return corrected
 }
 
-fn formula_checksum_problem_value(problem FormulaChecksumProblem) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cop::Problem', problem.message, {
+fn formula_checksum_problem_value(problem FormulaChecksumProblem) ruby.Value {
+	return ruby.structured_value('RuboCop::Cop::Problem', problem.message, {
 		'kind':        problem.kind
 		'checksum':    problem.checksum
 		'begin_pos':   problem.begin_pos.str()
@@ -204,21 +204,21 @@ fn formula_checksum_problem_value(problem FormulaChecksumProblem) brew_runtime.V
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 12.
-pub fn ruby_checksum_l12_d1_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_checksum_l12_d1_audit_formula(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.array_value(audit_formula_checksums(source).map(formula_checksum_problem_value(it)))
+	return ruby.array_value(audit_formula_checksums(source).map(formula_checksum_problem_value(it)))
 }
 
 // Ruby method `audit_sha256(checksum)` at line 27.
-pub fn ruby_checksum_l27_d2_audit_sha256(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_checksum_l27_d2_audit_sha256(args ...ruby.Value) ruby.Value {
 	checksum := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.array_value(audit_sha256_checksum(checksum, 0).map(formula_checksum_problem_value(it)))
+	return ruby.array_value(audit_sha256_checksum(checksum, 0).map(formula_checksum_problem_value(it)))
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 50.
-pub fn ruby_checksum_l50_d3_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_checksum_l50_d3_audit_formula(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.array_value(audit_formula_checksum_case(source).map(formula_checksum_problem_value(it)))
+	return ruby.array_value(audit_formula_checksum_case(source).map(formula_checksum_problem_value(it)))
 }
 
 // Original Ruby source (line-for-line):

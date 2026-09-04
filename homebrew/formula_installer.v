@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 import homebrew.api
 import homebrew.utils as spdx
 import os
@@ -891,7 +891,7 @@ pub fn fetch_downloads(mut downloads []InstallerDownloadPlan, mut queue Download
 // the serial queue has verified each archive. Source resources remain staged by
 // Formula#install, while poured bottles use the temporary-cellar marker path.
 pub fn stage_bottle_downloads(mut downloads []InstallerDownloadPlan) ![]string {
-	temporary_cellar_value := brew_runtime.environment_value('HOMEBREW_TEMP_CELLAR')
+	temporary_cellar_value := ruby.environment_value('HOMEBREW_TEMP_CELLAR')
 	temporary_cellar := if temporary_cellar_value != '' {
 		temporary_cellar_value
 	} else {
@@ -919,7 +919,7 @@ fn (installer FormulaInstaller) configured_install_locations() !(string, string,
 	prefix := if installer.prefix != '' {
 		installer.prefix.trim_right('/')
 	} else {
-		brew_runtime.environment_value('HOMEBREW_PREFIX').trim_right('/')
+		ruby.environment_value('HOMEBREW_PREFIX').trim_right('/')
 	}
 	if prefix == '' {
 		return error('HOMEBREW_PREFIX is required to install ${installer.formula.full_name}')
@@ -927,13 +927,13 @@ fn (installer FormulaInstaller) configured_install_locations() !(string, string,
 	cellar := if installer.cellar != '' {
 		installer.cellar.trim_right('/')
 	} else {
-		configured := brew_runtime.environment_value('HOMEBREW_CELLAR').trim_right('/')
+		configured := ruby.environment_value('HOMEBREW_CELLAR').trim_right('/')
 		if configured != '' { configured } else { os.join_path(prefix, 'Cellar') }
 	}
 	temporary_cellar := if installer.temporary_cellar != '' {
 		installer.temporary_cellar.trim_right('/')
 	} else {
-		configured := brew_runtime.environment_value('HOMEBREW_TEMP_CELLAR').trim_right('/')
+		configured := ruby.environment_value('HOMEBREW_TEMP_CELLAR').trim_right('/')
 		if configured != '' { configured } else { '/tmp/homebrew/Cellar' }
 	}
 	return prefix, cellar, temporary_cellar
@@ -1018,7 +1018,7 @@ pub fn (installer FormulaInstaller) pour_download_with_tab(mut download Installe
 	formula := formula_from_reference(download.formula, prefix, cellar)!
 	version := formula.pkg_version()!
 	target := formula.versioned_prefix(version)
-	if brew_runtime.path_exists(target) || os.is_link(target) {
+	if ruby.path_exists(target) || os.is_link(target) {
 		return error('${formula.full_name()} ${version.to_s()} is already installed')
 	}
 	mut staged_path := download.staged_path
@@ -1028,10 +1028,10 @@ pub fn (installer FormulaInstaller) pour_download_with_tab(mut download Installe
 		download.staged_path = staged_path
 		download.stage_marker = '${staged_path}.poured'
 	}
-	if !brew_runtime.is_dir(staged_path) {
+	if !ruby.is_dir(staged_path) {
 		return error('Staged bottle keg does not exist: ${staged_path}')
 	}
-	if brew_runtime.real_path(staged_path) == brew_runtime.real_path(target) {
+	if ruby.real_path(staged_path) == ruby.real_path(target) {
 		return error('Bottle staging path must differ from its Cellar destination: ${target}')
 	}
 	marker := if download.stage_marker != '' {
@@ -1049,9 +1049,9 @@ pub fn (installer FormulaInstaller) pour_download_with_tab(mut download Installe
 	mut tab := poured_tab_for_formula(formula, attributes, installer.installed_on_request, receipt)!
 	tab.write()!
 
-	repository_value := brew_runtime.environment_value('HOMEBREW_REPOSITORY')
+	repository_value := ruby.environment_value('HOMEBREW_REPOSITORY')
 	repository := if repository_value != '' { repository_value } else { prefix }
-	library_value := brew_runtime.environment_value('HOMEBREW_LIBRARY_PATH')
+	library_value := ruby.environment_value('HOMEBREW_LIBRARY_PATH')
 	library := if library_value != '' {
 		library_value
 	} else {
@@ -1182,15 +1182,15 @@ fn keg_installed_completions(keg Keg) []string {
 
 fn keg_primary_executable(keg Keg, formula Formula) string {
 	preferred := keg.join('bin', formula.name())
-	if brew_runtime.is_file(preferred) {
+	if ruby.is_file(preferred) {
 		return preferred
 	}
 	bin := keg.join('bin')
-	mut entries := brew_runtime.list_dir(bin) or { return '' }
+	mut entries := ruby.list_dir(bin) or { return '' }
 	entries.sort()
 	for entry in entries {
-		path := brew_runtime.join_path(bin, entry)
-		if brew_runtime.is_file(path) {
+		path := ruby.join_path(bin, entry)
+		if ruby.is_file(path) {
 			return path
 		}
 	}
@@ -1216,7 +1216,7 @@ pub fn (installer FormulaInstaller) finish_poured(result FormulaPourResult) !For
 	}
 	result.keg.remove_oldname_opt_records()!
 	return FormulaFinishResult{
-		summary: '${brew_runtime.real_path(result.keg.path)}: ${result.keg.abbreviated_size()}'
+		summary: '${ruby.real_path(result.keg.path)}: ${result.keg.abbreviated_size()}'
 		linked: linked
 		optlinked: result.keg.optlinked()
 		completions: keg_installed_completions(result.keg)
@@ -1438,14 +1438,14 @@ pub fn (installer FormulaInstaller) install_fetch_deps(computed []FormulaDepende
 }
 
 fn installer_find_paths(path string, mut paths []string) {
-	if !brew_runtime.path_exists(path) && !os.is_link(path) {
+	if !ruby.path_exists(path) && !os.is_link(path) {
 		return
 	}
 	paths << path
-	if !brew_runtime.is_dir(path) || os.is_link(path) {
+	if !ruby.is_dir(path) || os.is_link(path) {
 		return
 	}
-	mut children := brew_runtime.list_dir(path) or { return }
+	mut children := ruby.list_dir(path) or { return }
 	children.sort()
 	for child in children {
 		installer_find_paths(os.join_path(path, child), mut paths)
@@ -1463,11 +1463,11 @@ pub fn build_bottle_preinstall(prefix string) []string {
 fn copy_bottle_path(source string, destination string) ! {
 	if os.is_link(source) {
 		os.mkdir_all(os.dir(destination))!
-		if brew_runtime.path_exists(destination) || os.is_link(destination) {
+		if ruby.path_exists(destination) || os.is_link(destination) {
 			os.rm(destination)!
 		}
 		os.symlink(os.readlink(source)!, destination)!
-	} else if brew_runtime.is_dir(source) {
+	} else if ruby.is_dir(source) {
 		os.mkdir_all(destination)!
 	} else {
 		os.mkdir_all(os.dir(destination))!
@@ -1614,12 +1614,12 @@ pub fn (installer FormulaInstaller) build(mut state FormulaInstallerState,
 	state.has_start_time = true
 	formula := formula_from_reference(installer.formula, installer.prefix, installer.cellar)!
 	hook(formula) or {
-		if brew_runtime.is_dir(formula.prefix()) {
+		if ruby.is_dir(formula.prefix()) {
 			os.rmdir_all(formula.prefix()) or {}
 		}
 		return error(err.msg())
 	}
-	if !brew_runtime.is_dir(formula.prefix()) {
+	if !ruby.is_dir(formula.prefix()) {
 		return error('Empty installation')
 	}
 	keg := new_keg_with_paths(formula.prefix(), formula.cellar, formula.prefix_root)!
@@ -2368,7 +2368,7 @@ pub fn ruby_formula_installer_l988_d64_finish(installer &FormulaInstaller,
 
 // Ruby method `summary` at line 1082.
 pub fn ruby_formula_installer_l1082_d65_summary(keg &Keg) string {
-	return '${brew_runtime.real_path(keg.path)}: ${keg.abbreviated_size()}'
+	return '${ruby.real_path(keg.path)}: ${keg.abbreviated_size()}'
 }
 
 // Ruby method `build_time` at line 1091.

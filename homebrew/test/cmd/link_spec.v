@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 import homebrew.cmd as brew_cmd
 
 // Translated from Homebrew/brew `test/cmd/link_spec.rb`.
@@ -26,26 +26,26 @@ fn link_spec_run(keg brew_cmd.LinkCommandKeg) ?brew_cmd.LinkCommandResult {
 }
 
 // Ruby it `it "uses formula-aware conflict handling when linking a Formula" do` at line 10.
-pub fn ruby_link_spec_l10_d1_uses(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_link_spec_l10_d1_uses(args ...ruby.Value) ruby.Value {
 	result := link_spec_run(brew_cmd.LinkCommandKeg{
 		name: 'testball'
 		path: '/cellar/testball/1.0'
 		rack: '/cellar/testball'
-	}) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(result.conflicts_handled == ['testball'] && result.operations.len == 1 && result.operations[0].options == brew_cmd.LinkOperationOptions{} && result.stdout.contains('Linking /cellar/testball/1.0... 1 symlinks created.'))
+	}) or { return ruby.bool_value(false) }
+	return ruby.bool_value(result.conflicts_handled == ['testball'] && result.operations.len == 1 && result.operations[0].options == brew_cmd.LinkOperationOptions{} && result.stdout.contains('Linking /cellar/testball/1.0... 1 symlinks created.'))
 }
 
 // Ruby it `it "links a given Formula", :integration_test do` at line 28.
-pub fn ruby_link_spec_l28_d2_links(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_link_spec_l28_d2_links(args ...ruby.Value) ruby.Value {
 	result := link_spec_run(brew_cmd.LinkCommandKeg{
 		name: 'testball'
 		path: '/cellar/testball/1.0'
-	}) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(result.linked_kegs == ['testball'] && result.stdout.starts_with('Linking ') && result.stderr == '')
+	}) or { return ruby.bool_value(false) }
+	return ruby.bool_value(result.linked_kegs == ['testball'] && result.stdout.starts_with('Linking ') && result.stderr == '')
 }
 
 // Ruby it `it "does not print keg-only output when linking a` at line 45.
-pub fn ruby_link_spec_l45_d3_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_link_spec_l45_d3_does(args ...ruby.Value) ruby.Value {
 	unexpected_fragments := [
 		'unexpected caveat output',
 		'unexpected post_install output',
@@ -60,23 +60,23 @@ pub fn ruby_link_spec_l45_d3_does(args ...brew_runtime.Value) brew_runtime.Value
 			keg_only_reason: 'versioned_formula'
 			keg_only_text: 'unexpected caveat output'
 			bin_directory: true
-		}) or { return brew_runtime.bool_value(false) }
+		}) or { return ruby.bool_value(false) }
 		combined_output := result.stdout + result.stderr
 		if unexpected_fragments.any(combined_output.contains(it)) {
-			return brew_runtime.bool_value(false)
+			return ruby.bool_value(false)
 		}
 	}
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
 // Ruby method `caveats` at line 51.
-pub fn ruby_link_spec_l51_d4_caveats(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('unexpected caveat output')
+pub fn ruby_link_spec_l51_d4_caveats(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('unexpected caveat output')
 }
 
 // Ruby method `post_install; end` at line 55.
-pub fn ruby_link_spec_l55_d5_post_install(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+pub fn ruby_link_spec_l55_d5_post_install(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Original Ruby source (line-for-line):

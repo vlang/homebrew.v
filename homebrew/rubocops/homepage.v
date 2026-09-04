@@ -1,6 +1,6 @@
 module rubocops
 
-import brew_runtime
+import ruby
 import homebrew.rubocops.@shared as homepage_shared
 
 // Translated from Homebrew/brew `rubocops/homepage.rb`.
@@ -146,8 +146,8 @@ pub fn correct_formula_homepage(source string) string {
 	return corrected
 }
 
-fn formula_homepage_problem_value(problem homepage_shared.HomepageProblem) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cop::Problem', problem.message, {
+fn formula_homepage_problem_value(problem homepage_shared.HomepageProblem) ruby.Value {
+	return ruby.structured_value('RuboCop::Cop::Problem', problem.message, {
 		'kind':        problem.kind
 		'content':     problem.content
 		'begin_pos':   problem.begin_pos.str()
@@ -158,9 +158,9 @@ fn formula_homepage_problem_value(problem homepage_shared.HomepageProblem) brew_
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 16.
-pub fn ruby_homepage_l16_d1_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_homepage_l16_d1_audit_formula(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.array_value(audit_formula_homepage(source).map(formula_homepage_problem_value(it)))
+	return ruby.array_value(audit_formula_homepage(source).map(formula_homepage_problem_value(it)))
 }
 
 // Original Ruby source (line-for-line):

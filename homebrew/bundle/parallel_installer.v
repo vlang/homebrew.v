@@ -1,6 +1,6 @@
 module bundle
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `bundle/parallel_installer.rb`.
@@ -331,62 +331,62 @@ pub fn (mut installer ParallelInstaller) run() (int, int) {
 	return success, failure
 }
 
-fn parallel_installer_entry_value(entry InstallableEntry) brew_runtime.Value {
-	return brew_runtime.Value{
+fn parallel_installer_entry_value(entry InstallableEntry) ruby.Value {
+	return ruby.Value{
 		type_name: 'Installer::InstallableEntry'
 		repr: entry.name
 		map_data: {
-			'name':         brew_runtime.string_value(entry.name)
-			'full_name':    brew_runtime.string_value(entry.options.full_name)
-			'verb':         brew_runtime.string_value(entry.verb)
-			'package_kind': brew_runtime.string_value(entry.package_kind.str())
-			'fetchable':    brew_runtime.string_value(entry.fetchable_name)
-			'preinstall':   brew_runtime.bool_value(entry.preinstall)
-			'install':      brew_runtime.bool_value(entry.install)
+			'name':         ruby.string_value(entry.name)
+			'full_name':    ruby.string_value(entry.options.full_name)
+			'verb':         ruby.string_value(entry.verb)
+			'package_kind': ruby.string_value(entry.package_kind.str())
+			'fetchable':    ruby.string_value(entry.fetchable_name)
+			'preinstall':   ruby.bool_value(entry.preinstall)
+			'install':      ruby.bool_value(entry.install)
 		}
 	}
 }
 
-pub fn parallel_installer_entry_boundary(entry InstallableEntry) brew_runtime.Value {
+pub fn parallel_installer_entry_boundary(entry InstallableEntry) ruby.Value {
 	return parallel_installer_entry_value(entry)
 }
 
-fn parallel_installer_entry_from_value(value brew_runtime.Value) InstallableEntry {
+fn parallel_installer_entry_from_value(value ruby.Value) InstallableEntry {
 	fields := value.map_data.clone()
-	kind_name := (fields['package_kind'] or { brew_runtime.string_value('other') }).as_string()
+	kind_name := (fields['package_kind'] or { ruby.string_value('other') }).as_string()
 	return InstallableEntry{
-		name: (fields['name'] or { brew_runtime.string_value(value.repr) }).as_string()
+		name: (fields['name'] or { ruby.string_value(value.repr) }).as_string()
 		options: InstallerEntryOptions{
-			full_name: (fields['full_name'] or { brew_runtime.string_value('') }).as_string()
+			full_name: (fields['full_name'] or { ruby.string_value('') }).as_string()
 		}
-		verb: (fields['verb'] or { brew_runtime.string_value('Installing') }).as_string()
+		verb: (fields['verb'] or { ruby.string_value('Installing') }).as_string()
 		package_kind: match kind_name {
 			'brew' { .brew }
 			'cask' { .cask }
 			'tap' { .tap }
 			else { .other }
 		}
-		fetchable_name: (fields['fetchable'] or { brew_runtime.string_value('') }).as_string()
-		preinstall: (fields['preinstall'] or { brew_runtime.bool_value(true) }).bool_data
-		install: (fields['install'] or { brew_runtime.bool_value(true) }).bool_data
+		fetchable_name: (fields['fetchable'] or { ruby.string_value('') }).as_string()
+		preinstall: (fields['preinstall'] or { ruby.bool_value(true) }).bool_data
+		install: (fields['install'] or { ruby.bool_value(true) }).bool_data
 	}
 }
 
-fn parallel_installer_entries_from_value(value brew_runtime.Value) []InstallableEntry {
+fn parallel_installer_entries_from_value(value ruby.Value) []InstallableEntry {
 	return (value.as_array() or { panic(err) }).map(parallel_installer_entry_from_value(it))
 }
 
-fn parallel_installer_value(installer &ParallelInstaller) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::Bundle::ParallelInstaller', '', {
+fn parallel_installer_value(installer &ParallelInstaller) ruby.Value {
+	return ruby.structured_value('Homebrew::Bundle::ParallelInstaller', '', {
 		'parallel_installer_address': u64(voidptr(installer)).str()
 	})
 }
 
-pub fn parallel_installer_boundary(installer &ParallelInstaller) brew_runtime.Value {
+pub fn parallel_installer_boundary(installer &ParallelInstaller) ruby.Value {
 	return parallel_installer_value(installer)
 }
 
-fn parallel_installer_from_args(args []brew_runtime.Value,
+fn parallel_installer_from_args(args []ruby.Value,
 	method string) &ParallelInstaller {
 	if args.len == 0 || args[0].type_name != 'Homebrew::Bundle::ParallelInstaller' {
 		panic('ParallelInstaller#${method} requires a translated receiver')
@@ -397,36 +397,36 @@ fn parallel_installer_from_args(args []brew_runtime.Value,
 	return unsafe { &ParallelInstaller(voidptr(address.u64())) }
 }
 
-fn parallel_installer_config_from_value(value brew_runtime.Value) ParallelInstallerConfig {
+fn parallel_installer_config_from_value(value ruby.Value) ParallelInstallerConfig {
 	fields := value.map_data.clone()
 	return ParallelInstallerConfig{
-		jobs: int((fields['jobs'] or { brew_runtime.int_value(1) }).int_data)
-		no_upgrade: (fields['no_upgrade'] or { brew_runtime.bool_value(false) }).bool_data
-		verbose: (fields['verbose'] or { brew_runtime.bool_value(false) }).bool_data
-		force: (fields['force'] or { brew_runtime.bool_value(false) }).bool_data
-		quiet: (fields['quiet'] or { brew_runtime.bool_value(false) }).bool_data
-		verify_attestations: (fields['verify_attestations'] or { brew_runtime.bool_value(false) }).bool_data
-		tty_path: (fields['tty_path'] or { brew_runtime.string_value('/dev/tty') }).as_string()
+		jobs: int((fields['jobs'] or { ruby.int_value(1) }).int_data)
+		no_upgrade: (fields['no_upgrade'] or { ruby.bool_value(false) }).bool_data
+		verbose: (fields['verbose'] or { ruby.bool_value(false) }).bool_data
+		force: (fields['force'] or { ruby.bool_value(false) }).bool_data
+		quiet: (fields['quiet'] or { ruby.bool_value(false) }).bool_data
+		verify_attestations: (fields['verify_attestations'] or { ruby.bool_value(false) }).bool_data
+		tty_path: (fields['tty_path'] or { ruby.string_value('/dev/tty') }).as_string()
 	}
 }
 
-fn parallel_installer_counts_value(success int, failure int) brew_runtime.Value {
-	return brew_runtime.array_value([
-		brew_runtime.int_value(success),
-		brew_runtime.int_value(failure),
+fn parallel_installer_counts_value(success int, failure int) ruby.Value {
+	return ruby.array_value([
+		ruby.int_value(success),
+		ruby.int_value(failure),
 	])
 }
 
-fn parallel_installer_dependency_map_value(dependencies map[string][]string) brew_runtime.Value {
-	mut result := map[string]brew_runtime.Value{}
+fn parallel_installer_dependency_map_value(dependencies map[string][]string) ruby.Value {
+	mut result := map[string]ruby.Value{}
 	for name, values in dependencies {
-		result[name] = brew_runtime.string_array_value(values)
+		result[name] = ruby.string_array_value(values)
 	}
-	return brew_runtime.map_value(result)
+	return ruby.map_value(result)
 }
 
 // Ruby method `initialize(entries, jobs:, no_upgrade:, verbose:, force:, quiet:)` at line 25.
-pub fn ruby_parallel_installer_l25_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_parallel_installer_l25_d1_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('ParallelInstaller#initialize requires entries')
 	}
@@ -439,14 +439,14 @@ pub fn ruby_parallel_installer_l25_d1_initialize(args ...brew_runtime.Value) bre
 }
 
 // Ruby method `run!` at line 41.
-pub fn ruby_parallel_installer_l41_d2_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_parallel_installer_l41_d2_run(args ...ruby.Value) ruby.Value {
 	mut installer := parallel_installer_from_args(args, 'run!')
 	success, failure := installer.run()
 	return parallel_installer_counts_value(success, failure)
 }
 
 // Ruby method `build_dependency_map(entries)` at line 107.
-pub fn ruby_parallel_installer_l107_d3_build_dependency_map(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_parallel_installer_l107_d3_build_dependency_map(args ...ruby.Value) ruby.Value {
 	installer := parallel_installer_from_args(args, 'build_dependency_map')
 	entries := if args.len > 1 {
 		parallel_installer_entries_from_value(args[1])
@@ -457,26 +457,26 @@ pub fn ruby_parallel_installer_l107_d3_build_dependency_map(args ...brew_runtime
 }
 
 // Ruby method `write_output(message, stream: $stdout)` at line 191.
-pub fn ruby_parallel_installer_l191_d4_write_output(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_parallel_installer_l191_d4_write_output(args ...ruby.Value) ruby.Value {
 	mut installer := parallel_installer_from_args(args, 'write_output')
 	if args.len < 2 {
 		panic('ParallelInstaller#write_output requires a message')
 	}
-	stream := if args.len > 2 { args[2].map_data } else { map[string]brew_runtime.Value{} }
-	installer.write_output(args[1].as_string(), (stream['tty'] or { brew_runtime.bool_value(false) }).bool_data, (stream['stderr'] or { brew_runtime.bool_value(false) }).bool_data)
-	return brew_runtime.object_value('NilClass', 'nil')
+	stream := if args.len > 2 { args[2].map_data } else { map[string]ruby.Value{} }
+	installer.write_output(args[1].as_string(), (stream['tty'] or { ruby.bool_value(false) }).bool_data, (stream['stderr'] or { ruby.bool_value(false) }).bool_data)
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `normalize_formula_name(name)` at line 206.
-pub fn ruby_parallel_installer_l206_d5_normalize_formula_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_parallel_installer_l206_d5_normalize_formula_name(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('normalize_formula_name requires a name')
 	}
-	return brew_runtime.string_value(parallel_installer_normalize_formula_name(args[args.len - 1].as_string()))
+	return ruby.string_value(parallel_installer_normalize_formula_name(args[args.len - 1].as_string()))
 }
 
 // Ruby method `prepare_attestation_verification!(entries)` at line 211.
-pub fn ruby_parallel_installer_l211_d6_prepare_attestation_verification(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_parallel_installer_l211_d6_prepare_attestation_verification(args ...ruby.Value) ruby.Value {
 	mut installer := parallel_installer_from_args(args, 'prepare_attestation_verification!')
 	entries := if args.len > 1 {
 		parallel_installer_entries_from_value(args[1])
@@ -484,20 +484,20 @@ pub fn ruby_parallel_installer_l211_d6_prepare_attestation_verification(args ...
 		installer.entries.clone()
 	}
 	installer.prepare_attestation_verification(entries)
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `cask_dep_names(name, cask_names)` at line 224.
-pub fn ruby_parallel_installer_l224_d7_cask_dep_names(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_parallel_installer_l224_d7_cask_dep_names(args ...ruby.Value) ruby.Value {
 	installer := parallel_installer_from_args(args, 'cask_dep_names')
 	if args.len < 3 {
 		panic('ParallelInstaller#cask_dep_names requires name and cask names')
 	}
-	return brew_runtime.string_array_value(installer.cask_dep_names(args[1].as_string(), args[2].as_string_array() or { panic(err) }))
+	return ruby.string_array_value(installer.cask_dep_names(args[1].as_string(), args[2].as_string_array() or { panic(err) }))
 }
 
 // Ruby method `install_entries_parallel!(entries)` at line 237.
-pub fn ruby_parallel_installer_l237_d8_install_entries_parallel(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_parallel_installer_l237_d8_install_entries_parallel(args ...ruby.Value) ruby.Value {
 	mut installer := parallel_installer_from_args(args, 'install_entries_parallel!')
 	entries := if args.len > 1 {
 		parallel_installer_entries_from_value(args[1])
@@ -509,28 +509,28 @@ pub fn ruby_parallel_installer_l237_d8_install_entries_parallel(args ...brew_run
 }
 
 // Ruby method `install_entry!(entry)` at line 266.
-pub fn ruby_parallel_installer_l266_d9_install_entry(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_parallel_installer_l266_d9_install_entry(args ...ruby.Value) ruby.Value {
 	mut installer := parallel_installer_from_args(args, 'install_entry!')
 	if args.len < 2 {
 		panic('ParallelInstaller#install_entry! requires an entry')
 	}
-	return brew_runtime.bool_value(installer.install_entry(parallel_installer_entry_from_value(args[1])))
+	return ruby.bool_value(installer.install_entry(parallel_installer_entry_from_value(args[1])))
 }
 
 // Ruby method `do_install_entry!(entry)` at line 291.
-pub fn ruby_parallel_installer_l291_d10_do_install_entry(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_parallel_installer_l291_d10_do_install_entry(args ...ruby.Value) ruby.Value {
 	mut installer := parallel_installer_from_args(args, 'do_install_entry!')
 	if args.len < 2 {
 		panic('ParallelInstaller#do_install_entry! requires an entry')
 	}
-	return brew_runtime.bool_value(installer.do_install_entry(parallel_installer_entry_from_value(args[1])))
+	return ruby.bool_value(installer.do_install_entry(parallel_installer_entry_from_value(args[1])))
 }
 
 // Ruby method `clear_tty_line` at line 315.
-pub fn ruby_parallel_installer_l315_d11_clear_tty_line(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_parallel_installer_l315_d11_clear_tty_line(args ...ruby.Value) ruby.Value {
 	mut installer := parallel_installer_from_args(args, 'clear_tty_line')
 	installer.clear_tty_line()
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Original Ruby source (line-for-line):

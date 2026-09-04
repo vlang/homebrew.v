@@ -1,18 +1,18 @@
 module synchronization
 
-import brew_runtime
+import ruby
 import math
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/synchronization/abstract_struct.rb`.
 // The original source is retained below and the dynamic Ruby class operations are
 // exposed through explicit V definition and instance types.
-pub type AbstractStructPredicate = fn(brew_runtime.Value) bool
+pub type AbstractStructPredicate = fn(ruby.Value) bool
 
-pub type AbstractStructEach = fn(brew_runtime.Value)
+pub type AbstractStructEach = fn(ruby.Value)
 
-pub type AbstractStructEachPair = fn(string, brew_runtime.Value)
+pub type AbstractStructEachPair = fn(string, ruby.Value)
 
-pub type AbstractStructMergeResolver = fn(string, brew_runtime.Value, brew_runtime.Value) brew_runtime.Value
+pub type AbstractStructMergeResolver = fn(string, ruby.Value, ruby.Value) ruby.Value
 
 @[heap]
 pub struct AbstractStructClass {
@@ -28,16 +28,16 @@ pub struct AbstractStruct {
 pub:
 	definition &AbstractStructClass
 mut:
-	values []brew_runtime.Value
+	values []ruby.Value
 	frozen bool
 }
 
-fn abstract_struct_nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn abstract_struct_nil_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-fn abstract_struct_clone_value(value brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.Value{
+fn abstract_struct_clone_value(value ruby.Value) ruby.Value {
+	return ruby.Value{
 		type_name: value.type_name
 		repr: value.repr
 		bool_data: value.bool_data
@@ -50,7 +50,7 @@ fn abstract_struct_clone_value(value brew_runtime.Value) brew_runtime.Value {
 	}
 }
 
-fn abstract_struct_values_equal(left brew_runtime.Value, right brew_runtime.Value) bool {
+fn abstract_struct_values_equal(left ruby.Value, right ruby.Value) bool {
 	if left.type_name in ['Integer', 'Float'] && right.type_name in ['Integer', 'Float'] {
 		left_number := left.as_float() or { return false }
 		right_number := right.as_float() or { return false }
@@ -87,7 +87,7 @@ pub fn define_abstract_struct_class(parent string, base string, name string, mem
 	}
 }
 
-pub fn (definition &AbstractStructClass) new_instance(values ...brew_runtime.Value) !&AbstractStruct {
+pub fn (definition &AbstractStructClass) new_instance(values ...ruby.Value) !&AbstractStruct {
 	if values.len > definition.members.len {
 		return error('struct size differs')
 	}
@@ -113,12 +113,12 @@ pub fn (instance &AbstractStruct) members() []string {
 	return instance.definition.members.clone()
 }
 
-pub fn (instance &AbstractStruct) values() []brew_runtime.Value {
+pub fn (instance &AbstractStruct) values() []ruby.Value {
 	return instance.values.clone()
 }
 
-pub fn (instance &AbstractStruct) values_at(indexes []int) ![]brew_runtime.Value {
-	mut selected := []brew_runtime.Value{cap: indexes.len}
+pub fn (instance &AbstractStruct) values_at(indexes []int) ![]ruby.Value {
+	mut selected := []ruby.Value{cap: indexes.len}
 	for requested in indexes {
 		index := if requested < 0 { instance.values.len + requested } else { requested }
 		if index < 0 || index >= instance.values.len {
@@ -129,15 +129,15 @@ pub fn (instance &AbstractStruct) values_at(indexes []int) ![]brew_runtime.Value
 	return selected
 }
 
-pub fn (instance &AbstractStruct) to_h() map[string]brew_runtime.Value {
-	mut result := map[string]brew_runtime.Value{}
+pub fn (instance &AbstractStruct) to_h() map[string]ruby.Value {
+	mut result := map[string]ruby.Value{}
 	for index, member in instance.definition.members {
 		result[member] = instance.values[index]
 	}
 	return result
 }
 
-pub fn (instance &AbstractStruct) get_index(requested int) !brew_runtime.Value {
+pub fn (instance &AbstractStruct) get_index(requested int) !ruby.Value {
 	index := if requested < 0 { instance.values.len + requested } else { requested }
 	if index < 0 || index >= instance.values.len {
 		return error('offset ${requested} too large for struct(size:${instance.values.len})')
@@ -145,7 +145,7 @@ pub fn (instance &AbstractStruct) get_index(requested int) !brew_runtime.Value {
 	return instance.values[index]
 }
 
-pub fn (instance &AbstractStruct) get_member(member string) !brew_runtime.Value {
+pub fn (instance &AbstractStruct) get_member(member string) !ruby.Value {
 	index := instance.definition.members.index(member.trim_left(':'))
 	if index < 0 {
 		return error("no member '${member.trim_left(':')}' in struct")
@@ -177,8 +177,8 @@ pub fn (instance &AbstractStruct) each_pair(action AbstractStructEachPair) {
 	}
 }
 
-pub fn (instance &AbstractStruct) select(predicate AbstractStructPredicate) []brew_runtime.Value {
-	mut result := []brew_runtime.Value{}
+pub fn (instance &AbstractStruct) select(predicate AbstractStructPredicate) []ruby.Value {
+	mut result := []ruby.Value{}
 	for value in instance.values() {
 		if predicate(value) {
 			result << value
@@ -216,7 +216,7 @@ pub fn (instance &AbstractStruct) inspect() string {
 	return '#<${struct_name}${class_name} {${pairs.join(', ')}}>'
 }
 
-pub fn (instance &AbstractStruct) merge(other map[string]brew_runtime.Value) !&AbstractStruct {
+pub fn (instance &AbstractStruct) merge(other map[string]ruby.Value) !&AbstractStruct {
 	mut merged := instance.values()
 	for member, value in other {
 		index := instance.definition.members.index(member.trim_left(':'))
@@ -228,7 +228,7 @@ pub fn (instance &AbstractStruct) merge(other map[string]brew_runtime.Value) !&A
 	return instance.definition.new_instance(...merged)
 }
 
-pub fn (instance &AbstractStruct) merge_with(other map[string]brew_runtime.Value, resolver AbstractStructMergeResolver) !&AbstractStruct {
+pub fn (instance &AbstractStruct) merge_with(other map[string]ruby.Value, resolver AbstractStructMergeResolver) !&AbstractStruct {
 	mut merged := instance.values()
 	for member, value in other {
 		index := instance.definition.members.index(member.trim_left(':'))
@@ -256,13 +256,13 @@ pub fn (instance &AbstractStruct) is_frozen() bool {
 	return instance.frozen
 }
 
-fn abstract_struct_class_boundary(definition &AbstractStructClass) brew_runtime.Value {
-	return brew_runtime.structured_value('Class', definition.name, {
+fn abstract_struct_class_boundary(definition &AbstractStructClass) ruby.Value {
+	return ruby.structured_value('Class', definition.name, {
 		'abstract_struct_class_address': u64(voidptr(definition)).str()
 	})
 }
 
-fn abstract_struct_class_boundary_receiver(args []brew_runtime.Value) &AbstractStructClass {
+fn abstract_struct_class_boundary_receiver(args []ruby.Value) &AbstractStructClass {
 	if args.len == 0 {
 		panic('AbstractStruct class method requires a receiver')
 	}
@@ -270,13 +270,13 @@ fn abstract_struct_class_boundary_receiver(args []brew_runtime.Value) &AbstractS
 	return unsafe { &AbstractStructClass(voidptr(address)) }
 }
 
-fn abstract_struct_boundary(instance &AbstractStruct) brew_runtime.Value {
-	return brew_runtime.structured_value('Concurrent::Synchronization::AbstractStruct', instance.inspect(), {
+fn abstract_struct_boundary(instance &AbstractStruct) ruby.Value {
+	return ruby.structured_value('Concurrent::Synchronization::AbstractStruct', instance.inspect(), {
 		'abstract_struct_address': u64(voidptr(instance)).str()
 	})
 }
 
-fn abstract_struct_boundary_receiver(args []brew_runtime.Value) &AbstractStruct {
+fn abstract_struct_boundary_receiver(args []ruby.Value) &AbstractStruct {
 	if args.len == 0 {
 		panic('AbstractStruct method requires a receiver')
 	}
@@ -284,49 +284,49 @@ fn abstract_struct_boundary_receiver(args []brew_runtime.Value) &AbstractStruct 
 	return unsafe { &AbstractStruct(voidptr(address)) }
 }
 
-fn abstract_struct_boundary_indexes(values []brew_runtime.Value) []int {
+fn abstract_struct_boundary_indexes(values []ruby.Value) []int {
 	return values.map(int(it.as_int() or { panic(err) }))
 }
 
 // Ruby method `initialize(*values)` at line 9.
-pub fn ruby_abstract_struct_l9_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_struct_l9_d1_initialize(args ...ruby.Value) ruby.Value {
 	definition := abstract_struct_class_boundary_receiver(args)
 	return abstract_struct_boundary(definition.new_instance(...args[1..]) or { panic(err) })
 }
 
 // Ruby method `length` at line 19.
-pub fn ruby_abstract_struct_l19_d2_length(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(abstract_struct_boundary_receiver(args).length())
+pub fn ruby_abstract_struct_l19_d2_length(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(abstract_struct_boundary_receiver(args).length())
 }
 
 // Ruby alias_method `alias_method :size, :length` at line 22.
-pub fn ruby_abstract_struct_l22_d3_size(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_struct_l22_d3_size(args ...ruby.Value) ruby.Value {
 	return ruby_abstract_struct_l19_d2_length(...args)
 }
 
 // Ruby method `members` at line 29.
-pub fn ruby_abstract_struct_l29_d4_members(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(abstract_struct_boundary_receiver(args).members())
+pub fn ruby_abstract_struct_l29_d4_members(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(abstract_struct_boundary_receiver(args).members())
 }
 
 // Ruby method `ns_values` at line 38.
-pub fn ruby_abstract_struct_l38_d5_ns_values(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.array_value(abstract_struct_boundary_receiver(args).values())
+pub fn ruby_abstract_struct_l38_d5_ns_values(args ...ruby.Value) ruby.Value {
+	return ruby.array_value(abstract_struct_boundary_receiver(args).values())
 }
 
 // Ruby method `ns_values_at(indexes)` at line 45.
-pub fn ruby_abstract_struct_l45_d6_ns_values_at(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_struct_l45_d6_ns_values_at(args ...ruby.Value) ruby.Value {
 	instance := abstract_struct_boundary_receiver(args)
-	return brew_runtime.array_value(instance.values_at(abstract_struct_boundary_indexes(args[1..])) or { panic(err) })
+	return ruby.array_value(instance.values_at(abstract_struct_boundary_indexes(args[1..])) or { panic(err) })
 }
 
 // Ruby method `ns_to_h` at line 52.
-pub fn ruby_abstract_struct_l52_d7_ns_to_h(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.map_value(abstract_struct_boundary_receiver(args).to_h())
+pub fn ruby_abstract_struct_l52_d7_ns_to_h(args ...ruby.Value) ruby.Value {
+	return ruby.map_value(abstract_struct_boundary_receiver(args).to_h())
 }
 
 // Ruby method `ns_get(member)` at line 59.
-pub fn ruby_abstract_struct_l59_d8_ns_get(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_struct_l59_d8_ns_get(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('AbstractStruct#ns_get requires a member')
 	}
@@ -339,43 +339,43 @@ pub fn ruby_abstract_struct_l59_d8_ns_get(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby method `ns_equality(other)` at line 75.
-pub fn ruby_abstract_struct_l75_d9_ns_equality(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_struct_l75_d9_ns_equality(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	left := abstract_struct_boundary_receiver(args)
 	right := abstract_struct_boundary_receiver(args[1..])
-	return brew_runtime.bool_value(left.equal(right))
+	return ruby.bool_value(left.equal(right))
 }
 
 // Ruby method `ns_each` at line 82.
-pub fn ruby_abstract_struct_l82_d10_ns_each(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.array_value(abstract_struct_boundary_receiver(args).values())
+pub fn ruby_abstract_struct_l82_d10_ns_each(args ...ruby.Value) ruby.Value {
+	return ruby.array_value(abstract_struct_boundary_receiver(args).values())
 }
 
 // Ruby method `ns_each_pair` at line 89.
-pub fn ruby_abstract_struct_l89_d11_ns_each_pair(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.map_value(abstract_struct_boundary_receiver(args).to_h())
+pub fn ruby_abstract_struct_l89_d11_ns_each_pair(args ...ruby.Value) ruby.Value {
+	return ruby.map_value(abstract_struct_boundary_receiver(args).to_h())
 }
 
 // Ruby method `ns_select` at line 98.
-pub fn ruby_abstract_struct_l98_d12_ns_select(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_struct_l98_d12_ns_select(args ...ruby.Value) ruby.Value {
 	// Generic boundaries cannot carry a Ruby block; a translated selected-value
 	// array is accepted after the receiver, while typed callers use `select`.
 	return if args.len > 1 {
-		brew_runtime.array_value(args[1..].clone())
+		ruby.array_value(args[1..].clone())
 	} else {
-		brew_runtime.array_value([])
+		ruby.array_value([])
 	}
 }
 
 // Ruby method `ns_inspect` at line 105.
-pub fn ruby_abstract_struct_l105_d13_ns_inspect(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(abstract_struct_boundary_receiver(args).inspect())
+pub fn ruby_abstract_struct_l105_d13_ns_inspect(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(abstract_struct_boundary_receiver(args).inspect())
 }
 
 // Ruby method `ns_merge(other, &block)` at line 114.
-pub fn ruby_abstract_struct_l114_d14_ns_merge(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_struct_l114_d14_ns_merge(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('AbstractStruct#ns_merge requires a hash')
 	}
@@ -384,20 +384,20 @@ pub fn ruby_abstract_struct_l114_d14_ns_merge(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby method `ns_initialize_copy` at line 119.
-pub fn ruby_abstract_struct_l119_d15_ns_initialize_copy(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_struct_l119_d15_ns_initialize_copy(args ...ruby.Value) ruby.Value {
 	return abstract_struct_boundary(abstract_struct_boundary_receiver(args).duplicate(false))
 }
 
 // Ruby method `pr_underscore(clazz)` at line 130.
-pub fn ruby_abstract_struct_l130_d16_pr_underscore(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_struct_l130_d16_pr_underscore(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('pr_underscore requires a class')
 	}
-	return brew_runtime.string_value(underscore_struct_class(args[args.len - 1].as_string()))
+	return ruby.string_value(underscore_struct_class(args[args.len - 1].as_string()))
 }
 
 // Ruby method `self.define_struct_class(parent, base, name, members, &block)` at line 141.
-pub fn ruby_abstract_struct_l141_d17_self_define_struct_class(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_struct_l141_d17_self_define_struct_class(args ...ruby.Value) ruby.Value {
 	if args.len < 4 {
 		panic('define_struct_class requires parent, base, name and members')
 	}
@@ -411,17 +411,17 @@ pub fn ruby_abstract_struct_l141_d17_self_define_struct_class(args ...brew_runti
 }
 
 // Ruby method `ns_initialize(*values)` at line 145.
-pub fn ruby_abstract_struct_l145_d18_ns_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_struct_l145_d18_ns_initialize(args ...ruby.Value) ruby.Value {
 	return ruby_abstract_struct_l9_d1_initialize(...args)
 }
 
 // Ruby define_method `clazz.send(:define_method, member) do` at line 161.
-pub fn ruby_abstract_struct_l161_d19_member(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_struct_l161_d19_member(args ...ruby.Value) ruby.Value {
 	return ruby_abstract_struct_l59_d8_ns_get(...args)
 }
 
 // Ruby alias_method `clazz.singleton_class.send :alias_method, :[], :new` at line 166.
-pub fn ruby_abstract_struct_l166_d20_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_struct_l166_d20_anonymous(args ...ruby.Value) ruby.Value {
 	return ruby_abstract_struct_l9_d1_initialize(...args)
 }
 

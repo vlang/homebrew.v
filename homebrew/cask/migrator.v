@@ -1,6 +1,6 @@
 module cask
 
-import brew_runtime
+import ruby
 import os
 import x.json2
 
@@ -49,22 +49,22 @@ pub:
 	new_installed_file string
 }
 
-fn migrator_nil() brew_runtime.Value {
-	return brew_runtime.Value{
+fn migrator_nil() ruby.Value {
+	return ruby.Value{
 		type_name: 'NilClass'
 		repr: 'nil'
 	}
 }
 
-fn migrator_artifact_value(artifact MigratorArtifact) brew_runtime.Value {
-	return brew_runtime.Value{
+fn migrator_artifact_value(artifact MigratorArtifact) ruby.Value {
+	return ruby.Value{
 		type_name: artifact.class_name
 		repr: if artifact.display != '' { artifact.display } else { artifact.arguments.join(', ') }
 		map_data: {
-			'arguments': brew_runtime.string_array_value(artifact.arguments)
-			'target':    brew_runtime.string_value(artifact.target)
-			'relocated': brew_runtime.bool_value(artifact.relocated)
-			'path':      brew_runtime.object_value('Pathname', artifact.path)
+			'arguments': ruby.string_array_value(artifact.arguments)
+			'target':    ruby.string_value(artifact.target)
+			'relocated': ruby.bool_value(artifact.relocated)
+			'path':      ruby.object_value('Pathname', artifact.path)
 		}
 		attributes: {
 			'class_name': artifact.class_name
@@ -72,69 +72,69 @@ fn migrator_artifact_value(artifact MigratorArtifact) brew_runtime.Value {
 	}
 }
 
-fn migrator_artifact_from_value(value brew_runtime.Value) MigratorArtifact {
-	arguments := (value.map_data['arguments'] or { brew_runtime.string_array_value([]) }).as_string_array() or {
+fn migrator_artifact_from_value(value ruby.Value) MigratorArtifact {
+	arguments := (value.map_data['arguments'] or { ruby.string_array_value([]) }).as_string_array() or {
 		[]string{}
 	}
 	return MigratorArtifact{
 		class_name: value.attributes['class_name'] or { value.type_name }
 		arguments: arguments
-		target: (value.map_data['target'] or { brew_runtime.string_value('') }).as_string()
-		relocated: (value.map_data['relocated'] or { brew_runtime.bool_value(false) }).as_bool() or {
+		target: (value.map_data['target'] or { ruby.string_value('') }).as_string()
+		relocated: (value.map_data['relocated'] or { ruby.bool_value(false) }).as_bool() or {
 			false
 		}
 		display: value.as_string()
-		path: (value.map_data['path'] or { brew_runtime.string_value('') }).as_string()
+		path: (value.map_data['path'] or { ruby.string_value('') }).as_string()
 	}
 }
 
-pub fn migrator_cask_value(cask MigratorCask) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn migrator_cask_value(cask MigratorCask) ruby.Value {
+	return ruby.Value{
 		type_name: 'Cask::Cask'
 		repr: cask.token
 		map_data: {
-			'token':              brew_runtime.string_value(cask.token)
-			'old_tokens':         brew_runtime.string_array_value(cask.old_tokens)
-			'installed':          brew_runtime.bool_value(cask.installed)
-			'caskroom_path':      brew_runtime.object_value('Pathname', cask.caskroom_path)
+			'token':              ruby.string_value(cask.token)
+			'old_tokens':         ruby.string_array_value(cask.old_tokens)
+			'installed':          ruby.bool_value(cask.installed)
+			'caskroom_path':      ruby.object_value('Pathname', cask.caskroom_path)
 			'installed_caskfile': if cask.installed_caskfile == '' {
 				migrator_nil()
 			} else {
-				brew_runtime.object_value('Pathname', cask.installed_caskfile)
+				ruby.object_value('Pathname', cask.installed_caskfile)
 			}
-			'pin_path':           brew_runtime.object_value('Pathname', cask.pin_path)
+			'pin_path':           ruby.object_value('Pathname', cask.pin_path)
 			'pinned_version':     if cask.pinned_version == '' {
 				migrator_nil()
 			} else {
-				brew_runtime.string_value(cask.pinned_version)
+				ruby.string_value(cask.pinned_version)
 			}
-			'artifacts':          brew_runtime.array_value(cask.artifacts.map(migrator_artifact_value(it)))
+			'artifacts':          ruby.array_value(cask.artifacts.map(migrator_artifact_value(it)))
 		}
 	}
 }
 
-pub fn migrator_cask_from_value(value brew_runtime.Value) MigratorCask {
-	artifact_values := (value.map_data['artifacts'] or { brew_runtime.array_value([]) }).as_array() or {
-		[]brew_runtime.Value{}
+pub fn migrator_cask_from_value(value ruby.Value) MigratorCask {
+	artifact_values := (value.map_data['artifacts'] or { ruby.array_value([]) }).as_array() or {
+		[]ruby.Value{}
 	}
 	return MigratorCask{
-		token: (value.map_data['token'] or { brew_runtime.string_value(value.as_string()) }).as_string()
-		old_tokens: (value.map_data['old_tokens'] or { brew_runtime.string_array_value([]) }).as_string_array() or {
+		token: (value.map_data['token'] or { ruby.string_value(value.as_string()) }).as_string()
+		old_tokens: (value.map_data['old_tokens'] or { ruby.string_array_value([]) }).as_string_array() or {
 			[]string{}
 		}
-		installed: (value.map_data['installed'] or { brew_runtime.bool_value(false) }).as_bool() or {
+		installed: (value.map_data['installed'] or { ruby.bool_value(false) }).as_bool() or {
 			false
 		}
-		caskroom_path: (value.map_data['caskroom_path'] or { brew_runtime.string_value('') }).as_string()
-		installed_caskfile: (value.map_data['installed_caskfile'] or { brew_runtime.string_value('') }).as_string()
-		pin_path: (value.map_data['pin_path'] or { brew_runtime.string_value('') }).as_string()
-		pinned_version: (value.map_data['pinned_version'] or { brew_runtime.string_value('') }).as_string()
+		caskroom_path: (value.map_data['caskroom_path'] or { ruby.string_value('') }).as_string()
+		installed_caskfile: (value.map_data['installed_caskfile'] or { ruby.string_value('') }).as_string()
+		pin_path: (value.map_data['pin_path'] or { ruby.string_value('') }).as_string()
+		pinned_version: (value.map_data['pinned_version'] or { ruby.string_value('') }).as_string()
 		artifacts: artifact_values.map(migrator_artifact_from_value(it))
 	}
 }
 
-pub fn migrator_value(migrator Migrator) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn migrator_value(migrator Migrator) ruby.Value {
+	return ruby.Value{
 		type_name: 'Cask::Migrator'
 		repr: '${migrator.old_cask.token} -> ${migrator.new_cask.token}'
 		map_data: {
@@ -144,29 +144,29 @@ pub fn migrator_value(migrator Migrator) brew_runtime.Value {
 	}
 }
 
-fn migrator_from_value(value brew_runtime.Value) Migrator {
+fn migrator_from_value(value ruby.Value) Migrator {
 	return Migrator{
-		old_cask: migrator_cask_from_value(value.map_data['old_cask'] or { brew_runtime.Value{} })
-		new_cask: migrator_cask_from_value(value.map_data['new_cask'] or { brew_runtime.Value{} })
+		old_cask: migrator_cask_from_value(value.map_data['old_cask'] or { ruby.Value{} })
+		new_cask: migrator_cask_from_value(value.map_data['new_cask'] or { ruby.Value{} })
 	}
 }
 
-fn migrator_result_value(result MigratorResult) brew_runtime.Value {
-	return brew_runtime.Value{
+fn migrator_result_value(result MigratorResult) ruby.Value {
+	return ruby.Value{
 		type_name: 'Hash'
 		repr: result.action
 		map_data: {
-			'action':             brew_runtime.string_value(result.action)
-			'dry_run':            brew_runtime.bool_value(result.dry_run)
-			'migrated':           brew_runtime.bool_value(result.migrated)
-			'shared':             brew_runtime.array_value(result.shared.map(migrator_artifact_value(it)))
-			'uninstallable':      brew_runtime.array_value(result.uninstallable.map(migrator_artifact_value(it)))
-			'stdout':             brew_runtime.string_array_value(result.stdout)
-			'warnings':           brew_runtime.string_array_value(result.warnings)
-			'errors':             brew_runtime.string_array_value(result.errors)
-			'old_pin_removed':    brew_runtime.bool_value(result.old_pin_removed)
-			'new_pin_created':    brew_runtime.bool_value(result.new_pin_created)
-			'new_installed_file': brew_runtime.object_value('Pathname', result.new_installed_file)
+			'action':             ruby.string_value(result.action)
+			'dry_run':            ruby.bool_value(result.dry_run)
+			'migrated':           ruby.bool_value(result.migrated)
+			'shared':             ruby.array_value(result.shared.map(migrator_artifact_value(it)))
+			'uninstallable':      ruby.array_value(result.uninstallable.map(migrator_artifact_value(it)))
+			'stdout':             ruby.string_array_value(result.stdout)
+			'warnings':           ruby.string_array_value(result.warnings)
+			'errors':             ruby.string_array_value(result.errors)
+			'old_pin_removed':    ruby.bool_value(result.old_pin_removed)
+			'new_pin_created':    ruby.bool_value(result.new_pin_created)
+			'new_installed_file': ruby.object_value('Pathname', result.new_installed_file)
 		}
 	}
 }
@@ -270,7 +270,7 @@ pub fn replace_caskfile_token(path string, old_token string, new_token string) !
 			if trimmed.starts_with(prefix) {
 				leading_length := contents.len - trimmed.len
 				replaced := contents[..leading_length] + 'cask "${new_token}"' + trimmed[prefix.len..]
-				brew_runtime.atomic_write_file(path, replaced)!
+				ruby.atomic_write_file(path, replaced)!
 			}
 		}
 		'.json' {
@@ -280,7 +280,7 @@ pub fn replace_caskfile_token(path string, old_token string, new_token string) !
 			}
 			mut values := decoded.as_map()
 			values['token'] = json2.Any(new_token)
-			brew_runtime.atomic_write_file(path, json2.encode(json2.Any(values)))!
+			ruby.atomic_write_file(path, json2.encode(json2.Any(values)))!
 		}
 		else {}
 	}
@@ -487,7 +487,7 @@ pub fn migrate_if_needed(new_cask MigratorCask, old_casks map[string]MigratorCas
 }
 
 // Ruby attr_reader `attr_reader :old_cask, :new_cask` at line 13.
-pub fn ruby_migrator_l13_d1_old_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_l13_d1_old_cask(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return migrator_nil()
 	}
@@ -495,7 +495,7 @@ pub fn ruby_migrator_l13_d1_old_cask(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby attr_reader `attr_reader :old_cask, :new_cask` at line 13.
-pub fn ruby_migrator_l13_d2_new_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_l13_d2_new_cask(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return migrator_nil()
 	}
@@ -503,88 +503,88 @@ pub fn ruby_migrator_l13_d2_new_cask(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby method `initialize(old_cask, new_cask)` at line 16.
-pub fn ruby_migrator_l16_d3_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_l16_d3_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'Migrator#initialize requires two casks')
+		return ruby.object_value('ArgumentError', 'Migrator#initialize requires two casks')
 	}
 	migrator := new_migrator(migrator_cask_from_value(args[0]), migrator_cask_from_value(args[1])) or {
-		return brew_runtime.object_value('Cask::CaskNotInstalledError', err.msg())
+		return ruby.object_value('Cask::CaskNotInstalledError', err.msg())
 	}
 	return migrator_value(migrator)
 }
 
 // Ruby method `self.old_tokens_needing_migration(new_cask, dry_run: false)` at line 26.
-pub fn ruby_migrator_l26_d4_self_old_tokens_needing_migration(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_l26_d4_self_old_tokens_needing_migration(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.string_array_value([])
+		return ruby.string_array_value([])
 	}
 	dry_run := if args.len > 2 { args[2].as_bool() or { false } } else { false }
-	return brew_runtime.string_array_value(old_tokens_needing_migration(migrator_cask_from_value(args[0]), args[1].as_string(), dry_run))
+	return ruby.string_array_value(old_tokens_needing_migration(migrator_cask_from_value(args[0]), args[1].as_string(), dry_run))
 }
 
 // Ruby method `self.migrate_if_needed(new_cask, dry_run: false)` at line 46.
-pub fn ruby_migrator_l46_d5_self_migrate_if_needed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_l46_d5_self_migrate_if_needed(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.array_value([])
+		return ruby.array_value([])
 	}
 	new_cask := migrator_cask_from_value(args[0])
 	root := args[1].as_string()
 	dry_run := if args.len > 2 { args[2].as_bool() or { false } } else { false }
 	results := migrate_if_needed(new_cask, map[string]MigratorCask{}, root, dry_run)
-	return brew_runtime.array_value(results.map(migrator_result_value(it)))
+	return ruby.array_value(results.map(migrator_result_value(it)))
 }
 
 // Ruby method `migrate(dry_run: false)` at line 55.
-pub fn ruby_migrator_l55_d6_migrate(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_l55_d6_migrate(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return migrator_nil()
 	}
 	dry_run := if args.len > 1 { args[1].as_bool() or { false } } else { false }
 	result := migrator_from_value(args[0]).migrate(dry_run) or {
-		return brew_runtime.object_value('RuntimeError', err.msg())
+		return ruby.object_value('RuntimeError', err.msg())
 	}
 	return migrator_result_value(result)
 }
 
 // Ruby method `self.replace_caskfile_token(path, old_token, new_token)` at line 68.
-pub fn ruby_migrator_l68_d7_self_replace_caskfile_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_l68_d7_self_replace_caskfile_token(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
-		return brew_runtime.object_value('ArgumentError', 'replace_caskfile_token requires path and tokens')
+		return ruby.object_value('ArgumentError', 'replace_caskfile_token requires path and tokens')
 	}
 	replace_caskfile_token(args[0].as_string(), args[1].as_string(), args[2].as_string()) or {
-		return brew_runtime.object_value('RuntimeError', err.msg())
+		return ruby.object_value('RuntimeError', err.msg())
 	}
 	return migrator_nil()
 }
 
 // Ruby method `uninstall_old_cask(old_caskfile, dry_run:)` at line 84.
-pub fn ruby_migrator_l84_d8_uninstall_old_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_l84_d8_uninstall_old_cask(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'uninstall_old_cask requires a caskfile')
+		return ruby.object_value('ArgumentError', 'uninstall_old_cask requires a caskfile')
 	}
 	dry_run := if args.len > 2 { args[2].as_bool() or { false } } else { false }
 	result := migrator_from_value(args[0]).uninstall_old_cask(args[1].as_string(), dry_run) or {
-		return brew_runtime.object_value('RuntimeError', err.msg())
+		return ruby.object_value('RuntimeError', err.msg())
 	}
 	return migrator_result_value(result)
 }
 
 // Ruby method `shared_with_new_cask?(artifact)` at line 124.
-pub fn ruby_migrator_l124_d9_shared_with_new_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_l124_d9_shared_with_new_cask(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(migrator_from_value(args[0]).shared_with_new_cask(migrator_artifact_from_value(args[1])))
+	return ruby.bool_value(migrator_from_value(args[0]).shared_with_new_cask(migrator_artifact_from_value(args[1])))
 }
 
 // Ruby method `move_old_cask(old_caskfile, dry_run:)` at line 136.
-pub fn ruby_migrator_l136_d10_move_old_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_l136_d10_move_old_cask(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'move_old_cask requires a caskfile')
+		return ruby.object_value('ArgumentError', 'move_old_cask requires a caskfile')
 	}
 	dry_run := if args.len > 2 { args[2].as_bool() or { false } } else { false }
 	result := migrator_from_value(args[0]).move_old_cask(args[1].as_string(), dry_run) or {
-		return brew_runtime.object_value('RuntimeError', err.msg())
+		return ruby.object_value('RuntimeError', err.msg())
 	}
 	return migrator_result_value(result)
 }

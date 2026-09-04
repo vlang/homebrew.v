@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 import os
 import time
 import x.json2
@@ -112,43 +112,43 @@ fn bump_unversioned_iso8601(epoch i64) string {
 	return time.unix(epoch).format_rfc3339().replace('.000Z', 'Z')
 }
 
-fn bump_unversioned_nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn bump_unversioned_nil_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-fn bump_unversioned_state_value(state BumpUnversionedState) brew_runtime.Value {
-	return brew_runtime.map_value({
+fn bump_unversioned_state_value(state BumpUnversionedState) ruby.Value {
+	return ruby.map_value({
 		'sha256':     if state.sha256_present {
-			brew_runtime.string_value(state.sha256)
+			ruby.string_value(state.sha256)
 		} else {
 			bump_unversioned_nil_value()
 		}
-		'check_time': brew_runtime.string_value(state.check_time)
+		'check_time': ruby.string_value(state.check_time)
 		'time':       if state.time_present {
-			brew_runtime.string_value(state.time)
+			ruby.string_value(state.time)
 		} else {
 			bump_unversioned_nil_value()
 		}
 		'file_size':  if state.file_size_present {
-			brew_runtime.int_value(state.file_size)
+			ruby.int_value(state.file_size)
 		} else {
 			bump_unversioned_nil_value()
 		}
 	})
 }
 
-fn bump_unversioned_state_map_value(state map[string]BumpUnversionedState) brew_runtime.Value {
+fn bump_unversioned_state_map_value(state map[string]BumpUnversionedState) ruby.Value {
 	mut names := state.keys()
 	names.sort()
-	mut values := map[string]brew_runtime.Value{}
+	mut values := map[string]ruby.Value{}
 	for name in names {
 		values[name] = bump_unversioned_state_value(state[name])
 	}
-	return brew_runtime.map_value(values)
+	return ruby.map_value(values)
 }
 
 fn bump_unversioned_pretty_state(state map[string]BumpUnversionedState) string {
-	encoded := json2.encode(brew_runtime.json_any_from_value(bump_unversioned_state_map_value(state)),
+	encoded := json2.encode(ruby.json_any_from_value(bump_unversioned_state_map_value(state)),
 		prettify: true
 	)
 	mut lines := []string{cap: encoded.count('\n') + 1}
@@ -418,70 +418,70 @@ pub:
 	options BumpUnversionedCheckOptions
 }
 
-pub fn bump_unversioned_input_boundary(input &BumpUnversionedInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::BumpUnversionedCasks::Input', '', {
+pub fn bump_unversioned_input_boundary(input &BumpUnversionedInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::BumpUnversionedCasks::Input', '', {
 		'bump_unversioned_input_address': u64(voidptr(input)).str()
 	})
 }
 
-pub fn bump_unversioned_check_input_boundary(input &BumpUnversionedCheckInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::BumpUnversionedCasks::CheckInput', '', {
+pub fn bump_unversioned_check_input_boundary(input &BumpUnversionedCheckInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::BumpUnversionedCasks::CheckInput', '', {
 		'bump_unversioned_check_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn bump_unversioned_input_from_value(value brew_runtime.Value) &BumpUnversionedInput {
+fn bump_unversioned_input_from_value(value ruby.Value) &BumpUnversionedInput {
 	address := value.attributes['bump_unversioned_input_address'] or { panic('invalid bump-unversioned-casks input') }
 	return unsafe { &BumpUnversionedInput(voidptr(address.u64())) }
 }
 
-fn bump_unversioned_check_input_from_value(value brew_runtime.Value) &BumpUnversionedCheckInput {
+fn bump_unversioned_check_input_from_value(value ruby.Value) &BumpUnversionedCheckInput {
 	address := value.attributes['bump_unversioned_check_input_address'] or { panic('invalid bump-unversioned-casks check input') }
 	return unsafe { &BumpUnversionedCheckInput(voidptr(address.u64())) }
 }
 
-fn bump_unversioned_messages_value(messages []BumpUnversionedMessage) brew_runtime.Value {
-	return brew_runtime.array_value(messages.map(brew_runtime.map_value({
-		'kind': brew_runtime.string_value(it.kind.str())
-		'text': brew_runtime.string_value(it.text)
+fn bump_unversioned_messages_value(messages []BumpUnversionedMessage) ruby.Value {
+	return ruby.array_value(messages.map(ruby.map_value({
+		'kind': ruby.string_value(it.kind.str())
+		'text': ruby.string_value(it.text)
 	})))
 }
 
-fn bump_unversioned_result_value(result BumpUnversionedResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'bundler_groups':  brew_runtime.string_array_value(result.bundler_groups)
-		'state_file':      brew_runtime.string_value(result.state_file)
-		'state_directory': brew_runtime.string_value(result.state_directory)
-		'selected':        brew_runtime.string_array_value(result.selected)
-		'queued':          brew_runtime.string_array_value(result.queued)
-		'processed':       brew_runtime.string_array_value(result.processed)
+fn bump_unversioned_result_value(result BumpUnversionedResult) ruby.Value {
+	return ruby.map_value({
+		'bundler_groups':  ruby.string_array_value(result.bundler_groups)
+		'state_file':      ruby.string_value(result.state_file)
+		'state_directory': ruby.string_value(result.state_directory)
+		'selected':        ruby.string_array_value(result.selected)
+		'queued':          ruby.string_array_value(result.queued)
+		'processed':       ruby.string_array_value(result.processed)
 		'state':           bump_unversioned_state_map_value(result.state)
-		'state_writes':    brew_runtime.string_array_value(result.state_writes)
-		'commands':        brew_runtime.array_value(result.commands.map(brew_runtime.string_array_value(it)))
+		'state_writes':    ruby.string_array_value(result.state_writes)
+		'commands':        ruby.array_value(result.commands.map(ruby.string_array_value(it)))
 		'messages':        bump_unversioned_messages_value(result.messages)
-		'timed_out':       brew_runtime.bool_value(result.timed_out)
+		'timed_out':       ruby.bool_value(result.timed_out)
 	})
 }
 
 // Ruby method `run` at line 32.
-pub fn ruby_bump_unversioned_casks_l32_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_unversioned_casks_l32_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'command input is required')
+		return ruby.object_value('ArgumentError', 'command input is required')
 	}
 	result := run_bump_unversioned_casks(bump_unversioned_input_from_value(args[0]).options) or {
-		return brew_runtime.object_value('Error', err.msg())
+		return ruby.object_value('Error', err.msg())
 	}
 	return bump_unversioned_result_value(result)
 }
 
 // Ruby method `bump_unversioned_cask(cask, state:)` at line 90.
-pub fn ruby_bump_unversioned_casks_l90_d2_bump_unversioned_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_unversioned_casks_l90_d2_bump_unversioned_cask(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'cask input is required')
+		return ruby.object_value('ArgumentError', 'cask input is required')
 	}
 	input := bump_unversioned_check_input_from_value(args[0])
 	result := bump_unversioned_cask(input.cask, input.state, input.options) or {
-		return brew_runtime.object_value('RuntimeError', err.msg())
+		return ruby.object_value('RuntimeError', err.msg())
 	}
 	if result.skipped {
 		return bump_unversioned_nil_value()

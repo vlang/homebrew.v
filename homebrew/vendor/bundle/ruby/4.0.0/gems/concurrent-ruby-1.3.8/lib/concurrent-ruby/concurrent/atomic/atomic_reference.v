@@ -1,6 +1,6 @@
 module atomic
 
-import brew_runtime
+import ruby
 import math
 import sync
 
@@ -10,30 +10,30 @@ import sync
 pub struct AtomicReference {
 mut:
 	lock  sync.Mutex
-	value brew_runtime.Value
+	value ruby.Value
 }
 
-pub fn new_atomic_reference(value brew_runtime.Value) &AtomicReference {
+pub fn new_atomic_reference(value ruby.Value) &AtomicReference {
 	return &AtomicReference{
 		value: value
 	}
 }
 
-pub fn (mut reference AtomicReference) get() brew_runtime.Value {
+pub fn (mut reference AtomicReference) get() ruby.Value {
 	reference.lock.lock()
 	value := reference.value
 	reference.lock.unlock()
 	return value
 }
 
-pub fn (mut reference AtomicReference) set(value brew_runtime.Value) brew_runtime.Value {
+pub fn (mut reference AtomicReference) set(value ruby.Value) ruby.Value {
 	reference.lock.lock()
 	reference.value = value
 	reference.lock.unlock()
 	return value
 }
 
-pub fn (mut reference AtomicReference) get_and_set(value brew_runtime.Value) brew_runtime.Value {
+pub fn (mut reference AtomicReference) get_and_set(value ruby.Value) ruby.Value {
 	reference.lock.lock()
 	old_value := reference.value
 	reference.value = value
@@ -41,14 +41,14 @@ pub fn (mut reference AtomicReference) get_and_set(value brew_runtime.Value) bre
 	return old_value
 }
 
-fn atomic_numeric_value(value brew_runtime.Value) ?f64 {
+fn atomic_numeric_value(value ruby.Value) ?f64 {
 	if value.type_name != 'Integer' && value.type_name != 'Float' {
 		return none
 	}
 	return value.as_float() or { return none }
 }
 
-fn atomic_values_match(actual brew_runtime.Value, expected brew_runtime.Value) bool {
+fn atomic_values_match(actual ruby.Value, expected ruby.Value) bool {
 	if expected_numeric := atomic_numeric_value(expected) {
 		actual_numeric := atomic_numeric_value(actual) or { return false }
 		if math.is_nan(expected_numeric) {
@@ -59,7 +59,7 @@ fn atomic_values_match(actual brew_runtime.Value, expected brew_runtime.Value) b
 	return actual.type_name == expected.type_name && actual.repr == expected.repr
 }
 
-pub fn (mut reference AtomicReference) compare_and_set(expected brew_runtime.Value, value brew_runtime.Value) bool {
+pub fn (mut reference AtomicReference) compare_and_set(expected ruby.Value, value ruby.Value) bool {
 	reference.lock.lock()
 	if atomic_values_match(reference.value, expected) {
 		reference.value = value
@@ -79,41 +79,41 @@ pub fn (mut reference AtomicReference) description(super_description string) str
 	return '${base} value:${reference.get().repr}>'
 }
 
-fn atomic_reference_compare_from_args(args []brew_runtime.Value) bool {
+fn atomic_reference_compare_from_args(args []ruby.Value) bool {
 	return args.len >= 3 && atomic_values_match(args[0], args[1])
 }
 
 // Ruby alias_method `alias_method :_compare_and_set, :compare_and_set_reference` at line 39.
-pub fn ruby_atomic_reference_l39_d1_compare_and_set(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(atomic_reference_compare_from_args(args))
+pub fn ruby_atomic_reference_l39_d1_compare_and_set(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(atomic_reference_compare_from_args(args))
 }
 
 // Ruby alias_method `alias_method :compare_and_swap, :compare_and_set` at line 44.
-pub fn ruby_atomic_reference_l44_d2_compare_and_swap(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(atomic_reference_compare_from_args(args))
+pub fn ruby_atomic_reference_l44_d2_compare_and_swap(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(atomic_reference_compare_from_args(args))
 }
 
 // Ruby alias_method `alias_method :value, :get` at line 46.
-pub fn ruby_atomic_reference_l46_d3_value(args ...brew_runtime.Value) brew_runtime.Value {
-	return if args.len > 0 { args[0] } else { brew_runtime.object_value('NilClass', 'nil') }
+pub fn ruby_atomic_reference_l46_d3_value(args ...ruby.Value) ruby.Value {
+	return if args.len > 0 { args[0] } else { ruby.object_value('NilClass', 'nil') }
 }
 
 // Ruby alias_method `alias_method :value=, :set` at line 47.
-pub fn ruby_atomic_reference_l47_d4_value(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_atomic_reference_l47_d4_value(args ...ruby.Value) ruby.Value {
 	return if args.len > 0 {
 		args[args.len - 1]
 	} else {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	}
 }
 
 // Ruby alias_method `alias_method :swap, :get_and_set` at line 48.
-pub fn ruby_atomic_reference_l48_d5_swap(args ...brew_runtime.Value) brew_runtime.Value {
-	return if args.len > 1 { args[0] } else { brew_runtime.object_value('NilClass', 'nil') }
+pub fn ruby_atomic_reference_l48_d5_swap(args ...ruby.Value) ruby.Value {
+	return if args.len > 1 { args[0] } else { ruby.object_value('NilClass', 'nil') }
 }
 
 // Ruby method `to_s` at line 136.
-pub fn ruby_atomic_reference_l136_d6_to_s(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_atomic_reference_l136_d6_to_s(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('AtomicReference#to_s requires superclass description and value')
 	}
@@ -122,11 +122,11 @@ pub fn ruby_atomic_reference_l136_d6_to_s(args ...brew_runtime.Value) brew_runti
 	} else {
 		args[0].as_string()
 	}
-	return brew_runtime.string_value('${base} value:${args[1].repr}>')
+	return ruby.string_value('${base} value:${args[1].repr}>')
 }
 
 // Ruby alias_method `alias_method :inspect, :to_s` at line 140.
-pub fn ruby_atomic_reference_l140_d7_inspect(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_atomic_reference_l140_d7_inspect(args ...ruby.Value) ruby.Value {
 	return ruby_atomic_reference_l136_d6_to_s(...args)
 }
 

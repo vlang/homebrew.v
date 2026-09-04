@@ -1,6 +1,6 @@
 module cask
 
-import brew_runtime
+import ruby
 import os
 
 pub struct AuditUrl {
@@ -1186,45 +1186,45 @@ pub fn (mut audit CaskAudit) run() {
 	}
 }
 
-fn audit_nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('Nil', '')
+fn audit_nil_value() ruby.Value {
+	return ruby.object_value('Nil', '')
 }
 
-fn audit_cask_boundary(cask AuditCask) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'token':            brew_runtime.string_value(cask.token)
-		'version':          brew_runtime.string_value(cask.version)
-		'version_present':  brew_runtime.bool_value(cask.version_present)
-		'version_latest':   brew_runtime.bool_value(cask.version_latest)
-		'sha256':           brew_runtime.string_value(cask.sha256)
-		'sha256_present':   brew_runtime.bool_value(cask.sha256_present)
-		'sha256_no_check':  brew_runtime.bool_value(cask.sha256_no_check)
-		'url':              brew_runtime.string_value(cask.url.value)
-		'url_present':      brew_runtime.bool_value(cask.url_present)
-		'homepage':         brew_runtime.string_value(cask.homepage)
-		'homepage_present': brew_runtime.bool_value(cask.homepage_present)
-		'names':            brew_runtime.string_array_value(cask.names)
-		'description':      brew_runtime.string_value(cask.description)
-		'languages':        brew_runtime.string_array_value(cask.languages)
-		'auto_updates':     brew_runtime.bool_value(cask.auto_updates)
-		'deprecated':       brew_runtime.bool_value(cask.deprecated)
-		'disabled':         brew_runtime.bool_value(cask.disabled)
+fn audit_cask_boundary(cask AuditCask) ruby.Value {
+	return ruby.map_value({
+		'token':            ruby.string_value(cask.token)
+		'version':          ruby.string_value(cask.version)
+		'version_present':  ruby.bool_value(cask.version_present)
+		'version_latest':   ruby.bool_value(cask.version_latest)
+		'sha256':           ruby.string_value(cask.sha256)
+		'sha256_present':   ruby.bool_value(cask.sha256_present)
+		'sha256_no_check':  ruby.bool_value(cask.sha256_no_check)
+		'url':              ruby.string_value(cask.url.value)
+		'url_present':      ruby.bool_value(cask.url_present)
+		'homepage':         ruby.string_value(cask.homepage)
+		'homepage_present': ruby.bool_value(cask.homepage_present)
+		'names':            ruby.string_array_value(cask.names)
+		'description':      ruby.string_value(cask.description)
+		'languages':        ruby.string_array_value(cask.languages)
+		'auto_updates':     ruby.bool_value(cask.auto_updates)
+		'deprecated':       ruby.bool_value(cask.deprecated)
+		'disabled':         ruby.bool_value(cask.disabled)
 	})
 }
 
-fn audit_map_string(values map[string]brew_runtime.Value, key string, fallback string) string {
+fn audit_map_string(values map[string]ruby.Value, key string, fallback string) string {
 	return if value := values[key] { value.as_string() } else { fallback }
 }
 
-fn audit_map_bool(values map[string]brew_runtime.Value, key string, fallback bool) bool {
+fn audit_map_bool(values map[string]ruby.Value, key string, fallback bool) bool {
 	return if value := values[key] { value.as_bool() or { fallback } } else { fallback }
 }
 
-fn audit_map_strings(values map[string]brew_runtime.Value, key string) []string {
+fn audit_map_strings(values map[string]ruby.Value, key string) []string {
 	return if value := values[key] { value.as_string_array() or { []string{} } } else { []string{} }
 }
 
-fn audit_cask_from_value(value brew_runtime.Value) AuditCask {
+fn audit_cask_from_value(value ruby.Value) AuditCask {
 	values := value.as_map() or {
 		return AuditCask{
 			token: value.as_string()
@@ -1238,10 +1238,10 @@ fn audit_cask_from_value(value brew_runtime.Value) AuditCask {
 	return AuditCask{
 		token: audit_map_string(values, 'token', '')
 		version: audit_map_string(values, 'version', '')
-		version_present: audit_map_bool(values, 'version_present', values['version'] != brew_runtime.Value{})
+		version_present: audit_map_bool(values, 'version_present', values['version'] != ruby.Value{})
 		version_latest: audit_map_bool(values, 'version_latest', false)
 		sha256: audit_map_string(values, 'sha256', '')
-		sha256_present: audit_map_bool(values, 'sha256_present', values['sha256'] != brew_runtime.Value{})
+		sha256_present: audit_map_bool(values, 'sha256_present', values['sha256'] != ruby.Value{})
 		sha256_no_check: audit_map_bool(values, 'sha256_no_check', false)
 		url: AuditUrl{
 			value: url_value
@@ -1251,7 +1251,7 @@ fn audit_cask_from_value(value brew_runtime.Value) AuditCask {
 		}
 		url_present: audit_map_bool(values, 'url_present', url_value != '')
 		homepage: audit_map_string(values, 'homepage', '')
-		homepage_present: audit_map_bool(values, 'homepage_present', values['homepage'] != brew_runtime.Value{})
+		homepage_present: audit_map_bool(values, 'homepage_present', values['homepage'] != ruby.Value{})
 		names: audit_map_strings(values, 'names')
 		description: audit_map_string(values, 'description', '')
 		languages: audit_map_strings(values, 'languages')
@@ -1270,7 +1270,7 @@ fn audit_cask_from_value(value brew_runtime.Value) AuditCask {
 	}
 }
 
-fn audit_options_from_value(value brew_runtime.Value) AuditOptions {
+fn audit_options_from_value(value ruby.Value) AuditOptions {
 	values := value.as_map() or { return AuditOptions{} }
 	mut online := ?bool(none)
 	mut strict := ?bool(none)
@@ -1299,34 +1299,34 @@ fn audit_options_from_value(value brew_runtime.Value) AuditOptions {
 	}
 }
 
-fn audit_boundary_value(audit CaskAudit) brew_runtime.Value {
-	return brew_runtime.map_value({
+fn audit_boundary_value(audit CaskAudit) ruby.Value {
+	return ruby.map_value({
 		'cask':             audit_cask_boundary(audit.cask)
-		'download':         brew_runtime.bool_value(audit.download)
-		'online':           brew_runtime.bool_value(audit.online)
-		'strict':           brew_runtime.bool_value(audit.strict)
-		'signing':          brew_runtime.bool_value(audit.signing)
-		'new_cask':         brew_runtime.bool_value(audit.new_cask)
-		'only':             brew_runtime.string_array_value(audit.only)
-		'except':           brew_runtime.string_array_value(audit.except)
-		'errors':           brew_runtime.array_value(audit.errors.map(brew_runtime.map_value({
-			'message':   brew_runtime.string_value(it.message)
-			'location':  brew_runtime.string_value(it.location)
-			'corrected': brew_runtime.bool_value(it.corrected)
+		'download':         ruby.bool_value(audit.download)
+		'online':           ruby.bool_value(audit.online)
+		'strict':           ruby.bool_value(audit.strict)
+		'signing':          ruby.bool_value(audit.signing)
+		'new_cask':         ruby.bool_value(audit.new_cask)
+		'only':             ruby.string_array_value(audit.only)
+		'except':           ruby.string_array_value(audit.except)
+		'errors':           ruby.array_value(audit.errors.map(ruby.map_value({
+			'message':   ruby.string_value(it.message)
+			'location':  ruby.string_value(it.location)
+			'corrected': ruby.bool_value(it.corrected)
 		})))
-		'livecheck_result': brew_runtime.string_value(audit.livecheck_result)
-		'operations':       brew_runtime.string_array_value(audit.operations)
+		'livecheck_result': ruby.string_value(audit.livecheck_result)
+		'operations':       ruby.string_array_value(audit.operations)
 	})
 }
 
-fn audit_from_value(value brew_runtime.Value) CaskAudit {
+fn audit_from_value(value ruby.Value) CaskAudit {
 	values := value.as_map() or {
 		return new_cask_audit(audit_cask_from_value(value), AuditOptions{}, AuditCollaborators{})
 	}
 	cask_value := values['cask'] or { value }
 	mut audit := new_cask_audit(audit_cask_from_value(cask_value), audit_options_from_value(value), AuditCollaborators{})
 	if error_values := values['errors'] {
-		for error_value in error_values.as_array() or { []brew_runtime.Value{} } {
+		for error_value in error_values.as_array() or { []ruby.Value{} } {
 			error_map := error_value.as_map() or { continue }
 			audit.errors << AuditError{
 				message: audit_map_string(error_map, 'message', '')
@@ -1338,9 +1338,9 @@ fn audit_from_value(value brew_runtime.Value) CaskAudit {
 	return audit
 }
 
-fn audit_from_args(args []brew_runtime.Value) CaskAudit {
+fn audit_from_args(args []ruby.Value) CaskAudit {
 	if args.len > 0 && args[0].type_name == 'Hash' {
-		values := args[0].as_map() or { map[string]brew_runtime.Value{} }
+		values := args[0].as_map() or { map[string]ruby.Value{} }
 		if 'cask' in values {
 			return audit_from_value(args[0])
 		}
@@ -1350,14 +1350,14 @@ fn audit_from_args(args []brew_runtime.Value) CaskAudit {
 	return new_cask_audit(cask, options, AuditCollaborators{})
 }
 
-fn audit_method_boundary(name string, args []brew_runtime.Value) brew_runtime.Value {
+fn audit_method_boundary(name string, args []ruby.Value) ruby.Value {
 	mut audit := audit_from_args(args)
 	match name {
 		'cask' {
 			return audit_cask_boundary(audit.cask)
 		}
 		'download' {
-			return brew_runtime.bool_value(audit.download)
+			return ruby.bool_value(audit.download)
 		}
 		'livecheck_result=' {
 			audit.livecheck_result = if args.len > 1 { args[1].as_string() } else { '' }
@@ -1367,29 +1367,29 @@ fn audit_method_boundary(name string, args []brew_runtime.Value) brew_runtime.Va
 			return audit_boundary_value(audit)
 		}
 		'new_cask?' {
-			return brew_runtime.bool_value(audit.new_cask)
+			return ruby.bool_value(audit.new_cask)
 		}
 		'online?' {
-			return brew_runtime.bool_value(audit.online)
+			return ruby.bool_value(audit.online)
 		}
 		'signing?' {
-			return brew_runtime.bool_value(audit.signing)
+			return ruby.bool_value(audit.signing)
 		}
 		'strict?' {
-			return brew_runtime.bool_value(audit.strict)
+			return ruby.bool_value(audit.strict)
 		}
 		'run!' {
 			audit.run()
 			return audit_boundary_value(audit)
 		}
 		'errors' {
-			return brew_runtime.array_value(audit.errors.map(brew_runtime.string_value(it.message)))
+			return ruby.array_value(audit.errors.map(ruby.string_value(it.message)))
 		}
 		'errors?' {
-			return brew_runtime.bool_value(audit.errors_present())
+			return ruby.bool_value(audit.errors_present())
 		}
 		'success?' {
-			return brew_runtime.bool_value(audit.success())
+			return ruby.bool_value(audit.success())
 		}
 		'add_error' {
 			message := if args.len > 1 { args[1].as_string() } else { '' }
@@ -1400,43 +1400,43 @@ fn audit_method_boundary(name string, args []brew_runtime.Value) brew_runtime.Va
 		}
 		'result' {
 			return if value := audit.result_text() {
-				brew_runtime.string_value(value)
+				ruby.string_value(value)
 			} else {
 				audit_nil_value()
 			}
 		}
 		'summary' {
 			return if value := audit.summary_text() {
-				brew_runtime.string_value(value)
+				ruby.string_value(value)
 			} else {
 				audit_nil_value()
 			}
 		}
 		'extract_artifacts' {
 			manual := if args.len > 1 { args[1].as_bool() or { false } } else { false }
-			return brew_runtime.string_array_value(audit.extract_artifacts(manual).map(it.source))
+			return ruby.string_array_value(audit.extract_artifacts(manual).map(it.source))
 		}
 		'normalize_min_os' {
 			value := if args.len > 0 { args.last().as_string() } else { '' }
 			return if normalized := normalize_audit_min_os(value) {
-				brew_runtime.string_value(normalized)
+				ruby.string_value(normalized)
 			} else {
 				audit_nil_value()
 			}
 		}
 		'audit_livecheck_version' {
-			return brew_runtime.string_value(audit.audit_livecheck_version_check())
+			return ruby.string_value(audit.audit_livecheck_version_check())
 		}
 		'cask_sparkle_min_os' {
 			return if value := audit.cask_sparkle_minimum_os() {
-				brew_runtime.string_value(value)
+				ruby.string_value(value)
 			} else {
 				audit_nil_value()
 			}
 		}
 		'cask_bundle_min_os' {
 			return if value := audit.cask_bundle_minimum_os() {
-				brew_runtime.string_value(value)
+				ruby.string_value(value)
 			} else {
 				audit_nil_value()
 			}
@@ -1444,7 +1444,7 @@ fn audit_method_boundary(name string, args []brew_runtime.Value) brew_runtime.Va
 		'get_plist_main_binary' {
 			path := if args.len > 1 { args[1].as_string() } else { '' }
 			return if value := audit.plist_main_binary(path) {
-				brew_runtime.string_value(value)
+				ruby.string_value(value)
 			} else {
 				audit_nil_value()
 			}
@@ -1459,14 +1459,14 @@ fn audit_method_boundary(name string, args []brew_runtime.Value) brew_runtime.Va
 		'get_repo_data' {
 			host := if args.len > 1 { args[1].as_string() } else { 'github.com' }
 			return if pair := audit_repo_data(audit.cask, host) {
-				brew_runtime.string_array_value(pair)
+				ruby.string_array_value(pair)
 			} else {
 				audit_nil_value()
 			}
 		}
 		'self_submission?' {
 			owner := if args.len > 1 { args[1].as_string() } else { '' }
-			return brew_runtime.bool_value(audit.self_submission(owner))
+			return ruby.bool_value(audit.self_submission(owner))
 		}
 		'bad_url_format?' {
 			regex_matches := if args.len > 1 {
@@ -1476,43 +1476,43 @@ fn audit_method_boundary(name string, args []brew_runtime.Value) brew_runtime.Va
 			}
 			mut valid_matches := []bool{}
 			if args.len > 2 {
-				for value in args[2].as_array() or { []brew_runtime.Value{} } {
+				for value in args[2].as_array() or { []ruby.Value{} } {
 					valid_matches << (value.as_bool() or { false })
 				}
 			}
-			return brew_runtime.bool_value(audit_bad_url_format(regex_matches, valid_matches))
+			return ruby.bool_value(audit_bad_url_format(regex_matches, valid_matches))
 		}
 		'bad_sourceforge_url?' {
-			return brew_runtime.bool_value(audit_bad_sourceforge_url(audit.cask.url.value))
+			return ruby.bool_value(audit_bad_sourceforge_url(audit.cask.url.value))
 		}
 		'bad_osdn_url?' {
 			host := audit_url_host(audit.cask.url.value)
-			return brew_runtime.bool_value(host == 'osdn.jp' || host.ends_with('.osdn.jp'))
+			return ruby.bool_value(host == 'osdn.jp' || host.ends_with('.osdn.jp'))
 		}
 		'domain' {
-			return brew_runtime.string_value(audit_url_host(audit.cask.url.value))
+			return ruby.string_value(audit_url_host(audit.cask.url.value))
 		}
 		'verified_present?' {
-			return brew_runtime.bool_value(audit.cask.url.verified.trim_space() != '')
+			return ruby.bool_value(audit.cask.url.verified.trim_space() != '')
 		}
 		'core_tap' {
-			return brew_runtime.structured_value('Tap', audit.cask.tap.name, {
+			return ruby.structured_value('Tap', audit.cask.tap.name, {
 				'name': audit.cask.tap.name
 			})
 		}
 		'core_formula_names' {
-			return brew_runtime.string_array_value(audit.cask.tap.formula_names)
+			return ruby.string_array_value(audit.cask.tap.formula_names)
 		}
 		'core_cask_tap' {
-			return brew_runtime.structured_value('Tap', audit.cask.tap.name, {
+			return ruby.structured_value('Tap', audit.cask.tap.name, {
 				'name': audit.cask.tap.name
 			})
 		}
 		'core_cask_tokens' {
-			return brew_runtime.string_array_value(audit.cask.tap.cask_tokens)
+			return ruby.string_array_value(audit.cask.tap.cask_tokens)
 		}
 		'core_formula_url' {
-			return brew_runtime.string_value(audit.core_formula_url())
+			return ruby.string_value(audit.core_formula_url())
 		}
 		else {
 			audit.run_one(name.trim_string_left('audit_'))
@@ -1525,407 +1525,407 @@ fn audit_method_boundary(name string, args []brew_runtime.Value) brew_runtime.Va
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby attr_reader `attr_reader :cask` at line 34.
-pub fn ruby_audit_l34_d1_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l34_d1_cask(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('cask', args)
 }
 
 // Ruby attr_reader `attr_reader :download` at line 37.
-pub fn ruby_audit_l37_d2_download(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l37_d2_download(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('download', args)
 }
 
 // Ruby attr_writer `attr_writer :livecheck_result` at line 40.
-pub fn ruby_audit_l40_d3_livecheck_result(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l40_d3_livecheck_result(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('livecheck_result=', args)
 }
 
 // Ruby method `initialize(` at line 49.
-pub fn ruby_audit_l49_d4_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l49_d4_initialize(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('initialize', args)
 }
 
 // Ruby method `new_cask? = !!@new_cask` at line 76.
-pub fn ruby_audit_l76_d5_new_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l76_d5_new_cask(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('new_cask?', args)
 }
 
 // Ruby method `online? =!!@online` at line 79.
-pub fn ruby_audit_l79_d6_online(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l79_d6_online(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('online?', args)
 }
 
 // Ruby method `signing? = !!@signing` at line 82.
-pub fn ruby_audit_l82_d7_signing(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l82_d7_signing(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('signing?', args)
 }
 
 // Ruby method `strict? = !!@strict` at line 85.
-pub fn ruby_audit_l85_d8_strict(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l85_d8_strict(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('strict?', args)
 }
 
 // Ruby method `run!` at line 88.
-pub fn ruby_audit_l88_d9_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l88_d9_run(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('run!', args)
 }
 
 // Ruby method `errors` at line 108.
-pub fn ruby_audit_l108_d10_errors(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l108_d10_errors(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('errors', args)
 }
 
 // Ruby method `errors?` at line 113.
-pub fn ruby_audit_l113_d11_errors(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l113_d11_errors(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('errors?', args)
 }
 
 // Ruby method `success?` at line 118.
-pub fn ruby_audit_l118_d12_success(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l118_d12_success(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('success?', args)
 }
 
 // Ruby method `add_error(message, location: nil, strict_only: false)` at line 129.
-pub fn ruby_audit_l129_d13_add_error(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l129_d13_add_error(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('add_error', args)
 }
 
 // Ruby method `result` at line 137.
-pub fn ruby_audit_l137_d14_result(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l137_d14_result(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('result', args)
 }
 
 // Ruby method `summary` at line 142.
-pub fn ruby_audit_l142_d15_summary(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l142_d15_summary(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('summary', args)
 }
 
 // Ruby method `extract_artifacts(include_manual_installers: false, &_block)` at line 163.
-pub fn ruby_audit_l163_d16_extract_artifacts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l163_d16_extract_artifacts(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('extract_artifacts', args)
 }
 
 // Ruby method `normalize_min_os(min_os)` at line 256.
-pub fn ruby_audit_l256_d17_normalize_min_os(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l256_d17_normalize_min_os(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('normalize_min_os', args)
 }
 
 // Ruby method `audit_untrusted_pkg` at line 276.
-pub fn ruby_audit_l276_d18_audit_untrusted_pkg(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l276_d18_audit_untrusted_pkg(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('audit_untrusted_pkg', args)
 }
 
 // Ruby method `audit_stanza_requires_uninstall` at line 291.
-pub fn ruby_audit_l291_d19_audit_stanza_requires_uninstall(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l291_d19_audit_stanza_requires_uninstall(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('audit_stanza_requires_uninstall', args)
 }
 
 // Ruby method `audit_single_pre_postflight` at line 301.
-pub fn ruby_audit_l301_d20_audit_single_pre_postflight(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l301_d20_audit_single_pre_postflight(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('audit_single_pre_postflight', args)
 }
 
 // Ruby method `audit_single_uninstall_zap` at line 318.
-pub fn ruby_audit_l318_d21_audit_single_uninstall_zap(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l318_d21_audit_single_uninstall_zap(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('audit_single_uninstall_zap', args)
 }
 
 // Ruby method `audit_required_stanzas` at line 341.
-pub fn ruby_audit_l341_d22_audit_required_stanzas(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l341_d22_audit_required_stanzas(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('audit_required_stanzas', args)
 }
 
 // Ruby method `audit_description` at line 363.
-pub fn ruby_audit_l363_d23_audit_description(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l363_d23_audit_description(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('audit_description', args)
 }
 
 // Ruby method `audit_version_special_characters` at line 372.
-pub fn ruby_audit_l372_d24_audit_version_special_characters(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l372_d24_audit_version_special_characters(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('audit_version_special_characters', args)
 }
 
 // Ruby method `audit_no_string_version_latest` at line 384.
-pub fn ruby_audit_l384_d25_audit_no_string_version_latest(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l384_d25_audit_no_string_version_latest(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('audit_no_string_version_latest', args)
 }
 
 // Ruby method `audit_sha256_no_check_if_latest` at line 394.
-pub fn ruby_audit_l394_d26_audit_sha256_no_check_if_latest(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l394_d26_audit_sha256_no_check_if_latest(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('audit_sha256_no_check_if_latest', args)
 }
 
 // Ruby method `audit_sha256_no_check_if_unversioned` at line 406.
-pub fn ruby_audit_l406_d27_audit_sha256_no_check_if_unversioned(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l406_d27_audit_sha256_no_check_if_unversioned(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('audit_sha256_no_check_if_unversioned', args)
 }
 
 // Ruby method `audit_sha256_actually_256` at line 416.
-pub fn ruby_audit_l416_d28_audit_sha256_actually_256(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l416_d28_audit_sha256_actually_256(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('audit_sha256_actually_256', args)
 }
 
 // Ruby method `audit_sha256_invalid` at line 427.
-pub fn ruby_audit_l427_d29_audit_sha256_invalid(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l427_d29_audit_sha256_invalid(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('audit_sha256_invalid', args)
 }
 
 // Ruby method `audit_latest_with_livecheck` at line 438.
-pub fn ruby_audit_l438_d30_audit_latest_with_livecheck(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l438_d30_audit_latest_with_livecheck(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('audit_latest_with_livecheck', args)
 }
 
 // Ruby method `audit_latest_with_auto_updates` at line 447.
-pub fn ruby_audit_l447_d31_audit_latest_with_auto_updates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l447_d31_audit_latest_with_auto_updates(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('audit_latest_with_auto_updates', args)
 }
 
 // Ruby method `audit_hosting_with_livecheck` at line 458.
-pub fn ruby_audit_l458_d32_audit_hosting_with_livecheck(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l458_d32_audit_hosting_with_livecheck(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('audit_hosting_with_livecheck', args)
 }
 
 // Ruby method `audit_download_url_format` at line 483.
-pub fn ruby_audit_l483_d33_audit_download_url_format(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l483_d33_audit_download_url_format(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('audit_download_url_format', args)
 }
 
 // Ruby method `audit_download_url_is_osdn` at line 494.
-pub fn ruby_audit_l494_d34_audit_download_url_is_osdn(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l494_d34_audit_download_url_is_osdn(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('audit_download_url_is_osdn', args)
 }
 
 // Ruby method `audit_unnecessary_verified` at line 502.
-pub fn ruby_audit_l502_d35_audit_unnecessary_verified(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l502_d35_audit_unnecessary_verified(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('audit_unnecessary_verified', args)
 }
 
 // Ruby method `audit_generic_artifacts` at line 511.
-pub fn ruby_audit_l511_d36_audit_generic_artifacts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l511_d36_audit_generic_artifacts(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('audit_generic_artifacts', args)
 }
 
 // Ruby method `audit_languages` at line 520.
-pub fn ruby_audit_l520_d37_audit_languages(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l520_d37_audit_languages(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('audit_languages', args)
 }
 
 // Ruby method `audit_token` at line 529.
-pub fn ruby_audit_l529_d38_audit_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l529_d38_audit_token(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('audit_token', args)
 }
 
 // Ruby method `audit_token_conflicts` at line 538.
-pub fn ruby_audit_l538_d39_audit_token_conflicts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l538_d39_audit_token_conflicts(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('audit_token_conflicts', args)
 }
 
 // Ruby method `audit_token_bad_words` at line 547.
-pub fn ruby_audit_l547_d40_audit_token_bad_words(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l547_d40_audit_token_bad_words(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('audit_token_bad_words', args)
 }
 
 // Ruby method `audit_download` at line 575.
-pub fn ruby_audit_l575_d41_audit_download(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l575_d41_audit_download(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('audit_download', args)
 }
 
 // Ruby method `audit_livecheck_unneeded_long_version` at line 586.
-pub fn ruby_audit_l586_d42_audit_livecheck_unneeded_long_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l586_d42_audit_livecheck_unneeded_long_version(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('audit_livecheck_unneeded_long_version', args)
 }
 
 // Ruby method `audit_signing` at line 599.
-pub fn ruby_audit_l599_d43_audit_signing(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l599_d43_audit_signing(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('audit_signing', args)
 }
 
 // Ruby method `audit_artifact_case` at line 706.
-pub fn ruby_audit_l706_d44_audit_artifact_case(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l706_d44_audit_artifact_case(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('audit_artifact_case', args)
 }
 
 // Ruby method `audit_rosetta` at line 755.
-pub fn ruby_audit_l755_d45_audit_rosetta(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l755_d45_audit_rosetta(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('audit_rosetta', args)
 }
 
 // Ruby method `audit_livecheck_version` at line 830.
-pub fn ruby_audit_l830_d46_audit_livecheck_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l830_d46_audit_livecheck_version(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('audit_livecheck_version', args)
 }
 
 // Ruby method `audit_min_os` at line 880.
-pub fn ruby_audit_l880_d47_audit_min_os(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l880_d47_audit_min_os(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('audit_min_os', args)
 }
 
 // Ruby method `audit_github_prerelease_version` at line 929.
-pub fn ruby_audit_l929_d48_audit_github_prerelease_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l929_d48_audit_github_prerelease_version(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('audit_github_prerelease_version', args)
 }
 
 // Ruby method `audit_gitlab_prerelease_version` at line 943.
-pub fn ruby_audit_l943_d49_audit_gitlab_prerelease_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l943_d49_audit_gitlab_prerelease_version(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('audit_gitlab_prerelease_version', args)
 }
 
 // Ruby method `audit_forgejo_prerelease_version` at line 958.
-pub fn ruby_audit_l958_d50_audit_forgejo_prerelease_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l958_d50_audit_forgejo_prerelease_version(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('audit_forgejo_prerelease_version', args)
 }
 
 // Ruby method `audit_github_repository_archived` at line 972.
-pub fn ruby_audit_l972_d51_audit_github_repository_archived(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l972_d51_audit_github_repository_archived(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('audit_github_repository_archived', args)
 }
 
 // Ruby method `audit_gitlab_repository_archived` at line 987.
-pub fn ruby_audit_l987_d52_audit_gitlab_repository_archived(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l987_d52_audit_gitlab_repository_archived(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('audit_gitlab_repository_archived', args)
 }
 
 // Ruby method `audit_forgejo_repository_archived` at line 1004.
-pub fn ruby_audit_l1004_d53_audit_forgejo_repository_archived(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l1004_d53_audit_forgejo_repository_archived(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('audit_forgejo_repository_archived', args)
 }
 
 // Ruby method `audit_github_repository` at line 1021.
-pub fn ruby_audit_l1021_d54_audit_github_repository(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l1021_d54_audit_github_repository(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('audit_github_repository', args)
 }
 
 // Ruby method `audit_gitlab_repository` at line 1036.
-pub fn ruby_audit_l1036_d55_audit_gitlab_repository(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l1036_d55_audit_gitlab_repository(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('audit_gitlab_repository', args)
 }
 
 // Ruby method `audit_bitbucket_repository` at line 1051.
-pub fn ruby_audit_l1051_d56_audit_bitbucket_repository(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l1051_d56_audit_bitbucket_repository(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('audit_bitbucket_repository', args)
 }
 
 // Ruby method `audit_forgejo_repository` at line 1066.
-pub fn ruby_audit_l1066_d57_audit_forgejo_repository(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l1066_d57_audit_forgejo_repository(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('audit_forgejo_repository', args)
 }
 
 // Ruby method `audit_conflicts_with` at line 1081.
-pub fn ruby_audit_l1081_d58_audit_conflicts_with(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l1081_d58_audit_conflicts_with(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('audit_conflicts_with', args)
 }
 
 // Ruby method `audit_denylist` at line 1093.
-pub fn ruby_audit_l1093_d59_audit_denylist(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l1093_d59_audit_denylist(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('audit_denylist', args)
 }
 
 // Ruby method `audit_reverse_migration` at line 1101.
-pub fn ruby_audit_l1101_d60_audit_reverse_migration(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l1101_d60_audit_reverse_migration(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('audit_reverse_migration', args)
 }
 
 // Ruby method `audit_homepage_https_availability` at line 1110.
-pub fn ruby_audit_l1110_d61_audit_homepage_https_availability(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l1110_d61_audit_homepage_https_availability(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('audit_homepage_https_availability', args)
 }
 
 // Ruby method `audit_url_https_availability` at line 1130.
-pub fn ruby_audit_l1130_d62_audit_url_https_availability(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l1130_d62_audit_url_https_availability(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('audit_url_https_availability', args)
 }
 
 // Ruby method `audit_livecheck_https_availability` at line 1144.
-pub fn ruby_audit_l1144_d63_audit_livecheck_https_availability(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l1144_d63_audit_livecheck_https_availability(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('audit_livecheck_https_availability', args)
 }
 
 // Ruby method `audit_cask_path` at line 1169.
-pub fn ruby_audit_l1169_d64_audit_cask_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l1169_d64_audit_cask_path(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('audit_cask_path', args)
 }
 
 // Ruby method `audit_deprecate_disable` at line 1180.
-pub fn ruby_audit_l1180_d65_audit_deprecate_disable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l1180_d65_audit_deprecate_disable(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('audit_deprecate_disable', args)
 }
 
 // Ruby method `cask_sparkle_min_os` at line 1188.
-pub fn ruby_audit_l1188_d66_cask_sparkle_min_os(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l1188_d66_cask_sparkle_min_os(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('cask_sparkle_min_os', args)
 }
 
 // Ruby method `cask_bundle_min_os` at line 1217.
-pub fn ruby_audit_l1217_d67_cask_bundle_min_os(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l1217_d67_cask_bundle_min_os(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('cask_bundle_min_os', args)
 }
 
 // Ruby method `get_plist_main_binary(path)` at line 1307.
-pub fn ruby_audit_l1307_d68_get_plist_main_binary(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l1307_d68_get_plist_main_binary(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('get_plist_main_binary', args)
 }
 
 // Ruby method `validate_url_for_https_availability(url_to_check, url_type, location: nil, **options)` at line 1330.
-pub fn ruby_audit_l1330_d69_validate_url_for_https_availability(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l1330_d69_validate_url_for_https_availability(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('validate_url_for_https_availability', args)
 }
 
 // Ruby method `get_repo_data(regex)` at line 1343.
-pub fn ruby_audit_l1343_d70_get_repo_data(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l1343_d70_get_repo_data(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('get_repo_data', args)
 }
 
 // Ruby method `self_submission?(repo_owner)` at line 1356.
-pub fn ruby_audit_l1356_d71_self_submission(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l1356_d71_self_submission(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('self_submission?', args)
 }
 
 // Ruby method `bad_url_format?(regex, valid_formats_array)` at line 1365.
-pub fn ruby_audit_l1365_d72_bad_url_format(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l1365_d72_bad_url_format(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('bad_url_format?', args)
 }
 
 // Ruby method `bad_sourceforge_url?` at line 1372.
-pub fn ruby_audit_l1372_d73_bad_sourceforge_url(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l1372_d73_bad_sourceforge_url(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('bad_sourceforge_url?', args)
 }
 
 // Ruby method `bad_osdn_url?` at line 1381.
-pub fn ruby_audit_l1381_d74_bad_osdn_url(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l1381_d74_bad_osdn_url(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('bad_osdn_url?', args)
 }
 
 // Ruby method `domain` at line 1386.
-pub fn ruby_audit_l1386_d75_domain(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l1386_d75_domain(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('domain', args)
 }
 
 // Ruby method `verified_present?` at line 1391.
-pub fn ruby_audit_l1391_d76_verified_present(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l1391_d76_verified_present(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('verified_present?', args)
 }
 
 // Ruby method `core_tap` at line 1396.
-pub fn ruby_audit_l1396_d77_core_tap(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l1396_d77_core_tap(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('core_tap', args)
 }
 
 // Ruby method `core_formula_names` at line 1401.
-pub fn ruby_audit_l1401_d78_core_formula_names(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l1401_d78_core_formula_names(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('core_formula_names', args)
 }
 
 // Ruby method `core_cask_tap` at line 1406.
-pub fn ruby_audit_l1406_d79_core_cask_tap(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l1406_d79_core_cask_tap(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('core_cask_tap', args)
 }
 
 // Ruby method `core_cask_tokens` at line 1411.
-pub fn ruby_audit_l1411_d80_core_cask_tokens(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l1411_d80_core_cask_tokens(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('core_cask_tokens', args)
 }
 
 // Ruby method `core_formula_url` at line 1416.
-pub fn ruby_audit_l1416_d81_core_formula_url(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l1416_d81_core_formula_url(args ...ruby.Value) ruby.Value {
 	return audit_method_boundary('core_formula_url', args)
 }
 

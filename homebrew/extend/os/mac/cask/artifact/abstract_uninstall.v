@@ -1,17 +1,17 @@
 module artifact
 
-import brew_runtime
+import ruby
 import homebrew.cask
 
 // Translated from Homebrew/brew `extend/os/mac/cask/artifact/abstract_uninstall.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `undeletable?(target)` at line 16.
-pub fn ruby_abstract_uninstall_l16_d1_undeletable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_uninstall_l16_d1_undeletable(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('undeletable? requires a target')
 	}
-	return brew_runtime.bool_value(cask.macos_undeletable(args[0].as_string()))
+	return ruby.bool_value(cask.macos_undeletable(args[0].as_string()))
 }
 
 // Original Ruby source (line-for-line):

@@ -1,11 +1,11 @@
 module cask
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `extend/os/linux/cask/caskroom.rb`.
 // The original source is retained below until every stub has a typed V body.
 pub fn expected_caskroom_group() string {
-	result := brew_runtime.run_command('id', ['-gn'])
+	result := ruby.run_command('id', ['-gn'])
 	if result.exit_code == 0 && result.output.trim_space() != '' {
 		return result.output.trim_space()
 	}
@@ -13,9 +13,9 @@ pub fn expected_caskroom_group() string {
 }
 
 // Ruby method `expected_caskroom_group` at line 14.
-pub fn ruby_caskroom_l14_d1_expected_caskroom_group(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_caskroom_l14_d1_expected_caskroom_group(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value(expected_caskroom_group())
+	return ruby.string_value(expected_caskroom_group())
 }
 
 // Original Ruby source (line-for-line):

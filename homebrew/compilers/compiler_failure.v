@@ -1,6 +1,6 @@
 module compilers
 
-import brew_runtime
+import ruby
 import homebrew
 
 // Translated from Homebrew/brew `compilers/compiler_failure.rb`.
@@ -82,21 +82,21 @@ pub fn (failure &CompilerFailure) inspect() string {
 	return '#<CompilerFailure: ${failure.compiler_type} ${failure.failure_version.to_s()}>'
 }
 
-fn compiler_failure_version_value(version homebrew.Version) brew_runtime.Value {
-	return brew_runtime.structured_value('Version', version.to_s(), {
+fn compiler_failure_version_value(version homebrew.Version) ruby.Value {
+	return ruby.structured_value('Version', version.to_s(), {
 		'null': version.is_null().str()
 	})
 }
 
-fn compiler_failure_version_from_value(value brew_runtime.Value) homebrew.Version {
+fn compiler_failure_version_from_value(value ruby.Value) homebrew.Version {
 	if (value.attribute('null') or { 'false' }) == 'true' {
 		return homebrew.null_version()
 	}
 	return homebrew.new_version(value.as_string()) or { panic(err) }
 }
 
-fn compiler_failure_value(failure &CompilerFailure) brew_runtime.Value {
-	return brew_runtime.structured_value('CompilerFailure', failure.inspect(), {
+fn compiler_failure_value(failure &CompilerFailure) ruby.Value {
+	return ruby.structured_value('CompilerFailure', failure.inspect(), {
 		'compiler_failure_address': u64(voidptr(failure)).str()
 		'type':                     failure.compiler_type
 		'version':                  failure.failure_version.to_s()
@@ -104,7 +104,7 @@ fn compiler_failure_value(failure &CompilerFailure) brew_runtime.Value {
 	})
 }
 
-fn compiler_failure_from_value(value brew_runtime.Value) &CompilerFailure {
+fn compiler_failure_from_value(value ruby.Value) &CompilerFailure {
 	if address := value.attribute('compiler_failure_address') {
 		return unsafe { &CompilerFailure(voidptr(address.u64())) }
 	}
@@ -113,8 +113,8 @@ fn compiler_failure_from_value(value brew_runtime.Value) &CompilerFailure {
 	}, (value.attribute('exact_major_match') or { 'false' }) == 'true') or { panic(err) }
 }
 
-fn compiler_value(compiler Compiler) brew_runtime.Value {
-	return brew_runtime.structured_value('CompilerSelector::Compiler', compiler.name, {
+fn compiler_value(compiler Compiler) ruby.Value {
+	return ruby.structured_value('CompilerSelector::Compiler', compiler.name, {
 		'type':    compiler.compiler_type
 		'name':    compiler.name
 		'version': compiler.version.to_s()
@@ -122,7 +122,7 @@ fn compiler_value(compiler Compiler) brew_runtime.Value {
 	})
 }
 
-fn compiler_from_value(value brew_runtime.Value) Compiler {
+fn compiler_from_value(value ruby.Value) Compiler {
 	return Compiler{
 		compiler_type: (value.attribute('type') or { '' }).trim_string_left(':')
 		name: value.attribute('name') or { value.as_string() }
@@ -133,15 +133,15 @@ fn compiler_from_value(value brew_runtime.Value) Compiler {
 }
 
 // Ruby attr_reader `type` at line 7.
-pub fn ruby_compiler_failure_l7_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_compiler_failure_l7_type(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('CompilerFailure#type requires a receiver')
 	}
-	return brew_runtime.object_value('Symbol', compiler_failure_from_value(args[0]).compiler_type)
+	return ruby.object_value('Symbol', compiler_failure_from_value(args[0]).compiler_type)
 }
 
 // Ruby method `version(val = T.unsafe(nil))` at line 10.
-pub fn ruby_compiler_failure_l10_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_compiler_failure_l10_version(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('CompilerFailure#version requires a receiver')
 	}
@@ -153,21 +153,21 @@ pub fn ruby_compiler_failure_l10_version(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby alias `build version` at line 17.
-pub fn ruby_compiler_failure_l17_build(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_compiler_failure_l17_build(args ...ruby.Value) ruby.Value {
 	return ruby_compiler_failure_l10_version(...args)
 }
 
 // Ruby method `cause(_); end` at line 21.
-pub fn ruby_compiler_failure_l21_cause(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_compiler_failure_l21_cause(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('CompilerFailure#cause requires a receiver')
 	}
 	compiler_failure_from_value(args[0]).cause(if args.len > 1 { args[1].as_string() } else { '' })
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `self.create(spec, &block)` at line 31.
-pub fn ruby_compiler_failure_l31_self_create(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_compiler_failure_l31_self_create(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('CompilerFailure.create requires a compiler specification')
 	}
@@ -187,23 +187,23 @@ pub fn ruby_compiler_failure_l31_self_create(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby method `fails_with?(compiler)` at line 50.
-pub fn ruby_compiler_failure_l50_fails_with(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_compiler_failure_l50_fails_with(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('CompilerFailure#fails_with? requires a receiver and compiler')
 	}
-	return brew_runtime.bool_value(compiler_failure_from_value(args[0]).fails_with(compiler_from_value(args[1])))
+	return ruby.bool_value(compiler_failure_from_value(args[0]).fails_with(compiler_from_value(args[1])))
 }
 
 // Ruby method `inspect` at line 62.
-pub fn ruby_compiler_failure_l62_inspect(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_compiler_failure_l62_inspect(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('CompilerFailure#inspect requires a receiver')
 	}
-	return brew_runtime.string_value(compiler_failure_from_value(args[0]).inspect())
+	return ruby.string_value(compiler_failure_from_value(args[0]).inspect())
 }
 
 // Ruby method `initialize(type, version, exact_major_match:, &block)` at line 76.
-pub fn ruby_compiler_failure_l76_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_compiler_failure_l76_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('CompilerFailure#initialize requires type, version, and exact_major_match')
 	}
@@ -214,7 +214,7 @@ pub fn ruby_compiler_failure_l76_initialize(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby method `gcc_major(version)` at line 84.
-pub fn ruby_compiler_failure_l84_gcc_major(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_compiler_failure_l84_gcc_major(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('CompilerFailure#gcc_major requires a version')
 	}

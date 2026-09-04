@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 import homebrew.options as option_types
 
 // Translated from Homebrew/brew `cmd/options.rb`.
@@ -90,16 +90,16 @@ pub fn run_options_command(request OptionsCommandRequest) !string {
 	}
 }
 
-pub fn options_formula_value(formula OptionsFormula) brew_runtime.Value {
-	mut values := []brew_runtime.Value{}
+pub fn options_formula_value(formula OptionsFormula) ruby.Value {
+	mut values := []ruby.Value{}
 	for option in formula.install_options {
-		values << brew_runtime.structured_value('Option', option.flag, {
+		values << ruby.structured_value('Option', option.flag, {
 			'name':        option.name
 			'flag':        option.flag
 			'description': option.description
 		})
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'Formula'
 		repr: formula.full_name
 		attributes: {
@@ -107,18 +107,18 @@ pub fn options_formula_value(formula OptionsFormula) brew_runtime.Value {
 			'has_head':  formula.has_head.str()
 		}
 		map_data: {
-			'options': brew_runtime.array_value(values)
+			'options': ruby.array_value(values)
 		}
 	}
 }
 
-fn command_option_from_value(value brew_runtime.Value) option_types.FormulaOption {
+fn command_option_from_value(value ruby.Value) option_types.FormulaOption {
 	name := value.attribute('name') or { value.as_string().trim_left('-') }
 	return option_types.new_option(name, value.attribute('description') or { '' })
 }
 
-fn options_formula_from_value(value brew_runtime.Value) OptionsFormula {
-	option_values := (value.map_data['options'] or { brew_runtime.array_value([]) }).as_array() or { [] }
+fn options_formula_from_value(value ruby.Value) OptionsFormula {
+	option_values := (value.map_data['options'] or { ruby.array_value([]) }).as_array() or { [] }
 	return OptionsFormula{
 		full_name: value.attribute('full_name') or { value.as_string() }
 		install_options: option_values.map(command_option_from_value(it))
@@ -127,11 +127,11 @@ fn options_formula_from_value(value brew_runtime.Value) OptionsFormula {
 }
 
 // Ruby method `run` at line 34.
-pub fn ruby_options_l34_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_options_l34_d1_run(args ...ruby.Value) ruby.Value {
 	formula_values := if args.len > 0 {
-		args[0].as_array() or { []brew_runtime.Value{} }
+		args[0].as_array() or { []ruby.Value{} }
 	} else {
-		[]brew_runtime.Value{}
+		[]ruby.Value{}
 	}
 	compact := args.len > 1 && (args[1].as_bool() or { false })
 	selection := if args.len > 2 && args[2].as_string() == 'command' {
@@ -142,9 +142,9 @@ pub fn ruby_options_l34_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
 		OptionsCommandSelection.formulae
 	}
 	command_values := if args.len > 3 {
-		args[3].as_array() or { []brew_runtime.Value{} }
+		args[3].as_array() or { []ruby.Value{} }
 	} else {
-		[]brew_runtime.Value{}
+		[]ruby.Value{}
 	}
 	request := OptionsCommandRequest{
 		selection: selection
@@ -155,23 +155,23 @@ pub fn ruby_options_l34_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
 		compact: compact
 	}
 	output := run_options_command(request) or {
-		return brew_runtime.object_value(if selection == .none {
+		return ruby.object_value(if selection == .none {
 			'UsageError'
 		} else {
 			'RuntimeError'
 		}, err.msg())
 	}
-	return brew_runtime.string_value(output)
+	return ruby.string_value(output)
 }
 
 // Ruby method `puts_options(formulae)` at line 64.
-pub fn ruby_options_l64_d2_puts_options(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_options_l64_d2_puts_options(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'puts_options requires formulae')
+		return ruby.object_value('ArgumentError', 'puts_options requires formulae')
 	}
-	formula_values := args[0].as_array() or { []brew_runtime.Value{} }
+	formula_values := args[0].as_array() or { []ruby.Value{} }
 	compact := args.len > 1 && (args[1].as_bool() or { false })
-	return brew_runtime.string_value(render_formula_options(formula_values.map(options_formula_from_value(it)), compact))
+	return ruby.string_value(render_formula_options(formula_values.map(options_formula_from_value(it)), compact))
 }
 
 // Original Ruby source (line-for-line):

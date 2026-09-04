@@ -1,6 +1,6 @@
 module test
 
-import brew_runtime
+import ruby
 import homebrew
 
 // Translated from Homebrew/brew `test/lazy_object_spec.rb`.
@@ -27,7 +27,7 @@ pub fn ruby_lazy_object_spec_l22_d3_delegates() bool {
 // Ruby it `it "delegates to the underlying object" do` at line 28.
 pub fn ruby_lazy_object_spec_l28_d4_delegates() bool {
 	mut object := homebrew.ruby_lazy_object_l9_d1_initialize(lazy_integer_factory)
-	return !(homebrew.lazy_object_equals(mut object, brew_runtime.int_value(13)) or {
+	return !(homebrew.lazy_object_equals(mut object, ruby.int_value(13)) or {
 		return false
 	})
 }
@@ -35,15 +35,15 @@ pub fn ruby_lazy_object_spec_l28_d4_delegates() bool {
 // Ruby it `it "delegates to the underlying object" do` at line 34.
 pub fn ruby_lazy_object_spec_l34_d5_delegates() bool {
 	mut object := homebrew.ruby_lazy_object_l9_d1_initialize(lazy_integer_factory)
-	return homebrew.lazy_object_equals(mut object, brew_runtime.int_value(42)) or { return false }
+	return homebrew.lazy_object_equals(mut object, ruby.int_value(42)) or { return false }
 }
 
-fn lazy_integer_factory() !brew_runtime.Value {
-	return brew_runtime.int_value(42)
+fn lazy_integer_factory() !ruby.Value {
+	return ruby.int_value(42)
 }
 
-fn lazy_false_factory() !brew_runtime.Value {
-	return brew_runtime.bool_value(false)
+fn lazy_false_factory() !ruby.Value {
+	return ruby.bool_value(false)
 }
 
 // Original Ruby source (line-for-line):

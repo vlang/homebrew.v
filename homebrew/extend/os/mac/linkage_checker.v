@@ -1,6 +1,6 @@
 module mac
 
-import brew_runtime
+import ruby
 
 pub type MacDyldSharedCacheContains = fn(string) bool
 
@@ -21,12 +21,12 @@ fn mac_dyld_fixture_contains(path string) bool {
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `dylib_found_in_shared_cache?(dylib)` at line 14.
-pub fn ruby_linkage_checker_l14_d1_dylib_found_in_shared_cache(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_linkage_checker_l14_d1_dylib_found_in_shared_cache(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('dylib_found_in_shared_cache? requires a dylib path')
 	}
 	macos_major := if args.len > 1 { int(args[1].as_int() or { panic(err) }) } else { 11 }
-	return brew_runtime.bool_value(mac_dylib_found_in_shared_cache(args[0].as_string(), macos_major, mac_dyld_fixture_contains))
+	return ruby.bool_value(mac_dylib_found_in_shared_cache(args[0].as_string(), macos_major, mac_dyld_fixture_contains))
 }
 
 // Original Ruby source (line-for-line):

@@ -1,6 +1,6 @@
 module rubocops
 
-import brew_runtime
+import ruby
 import homebrew.utils
 
 // Translated from Homebrew/brew `rubocops/bottle.rb`.
@@ -34,8 +34,8 @@ pub:
 	value_end_pos   int
 }
 
-fn bottle_problem_value(problem BottleProblem) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cop::Problem', problem.message, {
+fn bottle_problem_value(problem BottleProblem) ruby.Value {
+	return ruby.structured_value('RuboCop::Cop::Problem', problem.message, {
 		'kind':             problem.kind
 		'begin_pos':        problem.begin_pos.str()
 		'end_pos':          problem.end_pos.str()
@@ -546,42 +546,42 @@ pub fn correct_bottle_order(source string) string {
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 14.
-pub fn ruby_bottle_l14_d1_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_l14_d1_audit_formula(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.array_value(audit_bottle_format(source).map(bottle_problem_value(it)))
+	return ruby.array_value(audit_bottle_format(source).map(bottle_problem_value(it)))
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 60.
-pub fn ruby_bottle_l60_d2_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_l60_d2_audit_formula(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.array_value(audit_bottle_tag_indentation(source).map(bottle_problem_value(it)))
+	return ruby.array_value(audit_bottle_tag_indentation(source).map(bottle_problem_value(it)))
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 95.
-pub fn ruby_bottle_l95_d3_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_l95_d3_audit_formula(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.array_value(audit_bottle_digest_indentation(source).map(bottle_problem_value(it)))
+	return ruby.array_value(audit_bottle_digest_indentation(source).map(bottle_problem_value(it)))
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 130.
-pub fn ruby_bottle_l130_d4_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_l130_d4_audit_formula(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.array_value(audit_bottle_order(source).map(bottle_problem_value(it)))
+	return ruby.array_value(audit_bottle_order(source).map(bottle_problem_value(it)))
 }
 
 // Ruby method `sha256_order(nodes)` at line 187.
-pub fn ruby_bottle_l187_d5_sha256_order(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_l187_d5_sha256_order(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.string_array_value(sha256_order(source))
+	return ruby.string_array_value(sha256_order(source))
 }
 
 // Ruby method `sha256_bottle_tag(node)` at line 194.
-pub fn ruby_bottle_l194_d6_sha256_bottle_tag(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bottle_l194_d6_sha256_bottle_tag(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	return if tag := sha256_bottle_tag(source) {
-		brew_runtime.object_value('Symbol', ':${tag}')
+		ruby.object_value('Symbol', ':${tag}')
 	} else {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	}
 }
 

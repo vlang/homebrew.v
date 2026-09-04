@@ -1,6 +1,6 @@
 module utility
 
-import brew_runtime
+import ruby
 import os
 import runtime
 
@@ -149,106 +149,106 @@ pub fn run_processor_command(command string) ?string {
 	return result.output
 }
 
-fn optional_float_value(value ?f64) brew_runtime.Value {
-	resolved := value or { return brew_runtime.object_value('NilClass', 'nil') }
-	return brew_runtime.float_value(resolved)
+fn optional_float_value(value ?f64) ruby.Value {
+	resolved := value or { return ruby.object_value('NilClass', 'nil') }
+	return ruby.float_value(resolved)
 }
 
-fn processor_counter_value(counter ProcessorCounter) brew_runtime.Value {
-	return brew_runtime.structured_value('ProcessorCounter', '#<Concurrent::Utility::ProcessorCounter>', {
+fn processor_counter_value(counter ProcessorCounter) ruby.Value {
+	return ruby.structured_value('ProcessorCounter', '#<Concurrent::Utility::ProcessorCounter>', {
 		'processor_count':          counter.processor_count.str()
 		'physical_processor_count': counter.physical_processor_count.str()
 	})
 }
 
 // Ruby method `initialize` at line 11.
-pub fn ruby_processor_counter_l11_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_processor_counter_l11_d1_initialize(args ...ruby.Value) ruby.Value {
 	return processor_counter_value(new_processor_counter())
 }
 
 // Ruby method `processor_count` at line 18.
-pub fn ruby_processor_counter_l18_d2_processor_count(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(new_processor_counter().processor_count)
+pub fn ruby_processor_counter_l18_d2_processor_count(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(new_processor_counter().processor_count)
 }
 
 // Ruby method `physical_processor_count` at line 22.
-pub fn ruby_processor_counter_l22_d3_physical_processor_count(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(new_processor_counter().physical_processor_count)
+pub fn ruby_processor_counter_l22_d3_physical_processor_count(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(new_processor_counter().physical_processor_count)
 }
 
 // Ruby method `available_processor_count` at line 26.
-pub fn ruby_processor_counter_l26_d4_available_processor_count(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.float_value(new_processor_counter().available_processor_count())
+pub fn ruby_processor_counter_l26_d4_available_processor_count(args ...ruby.Value) ruby.Value {
+	return ruby.float_value(new_processor_counter().available_processor_count())
 }
 
 // Ruby method `cpu_quota` at line 41.
-pub fn ruby_processor_counter_l41_d5_cpu_quota(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_processor_counter_l41_d5_cpu_quota(args ...ruby.Value) ruby.Value {
 	return optional_float_value(new_processor_counter().cpu_quota)
 }
 
 // Ruby method `cpu_shares` at line 45.
-pub fn ruby_processor_counter_l45_d6_cpu_shares(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_processor_counter_l45_d6_cpu_shares(args ...ruby.Value) ruby.Value {
 	return optional_float_value(new_processor_counter().cpu_shares)
 }
 
 // Ruby method `compute_processor_count` at line 51.
-pub fn ruby_processor_counter_l51_d7_compute_processor_count(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(compute_processor_count())
+pub fn ruby_processor_counter_l51_d7_compute_processor_count(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(compute_processor_count())
 }
 
 // Ruby method `compute_physical_processor_count` at line 59.
-pub fn ruby_processor_counter_l59_d8_compute_physical_processor_count(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(compute_physical_processor_count(compute_processor_count()))
+pub fn ruby_processor_counter_l59_d8_compute_physical_processor_count(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(compute_physical_processor_count(compute_processor_count()))
 }
 
 // Ruby method `run(command)` at line 99.
-pub fn ruby_processor_counter_l99_d9_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_processor_counter_l99_d9_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('run requires a command')
 	}
 	result := run_processor_command(args[0].as_string()) or {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
-	return brew_runtime.string_value(result)
+	return ruby.string_value(result)
 }
 
 // Ruby method `compute_cpu_quota` at line 104.
-pub fn ruby_processor_counter_l104_d10_compute_cpu_quota(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_processor_counter_l104_d10_compute_cpu_quota(args ...ruby.Value) ruby.Value {
 	return optional_float_value(compute_cpu_quota())
 }
 
 // Ruby method `compute_cpu_shares` at line 124.
-pub fn ruby_processor_counter_l124_d11_compute_cpu_shares(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_processor_counter_l124_d11_compute_cpu_shares(args ...ruby.Value) ruby.Value {
 	return optional_float_value(compute_cpu_shares())
 }
 
 // Ruby attr_reader `singleton_class.send :attr_reader, :processor_counter` at line 142.
-pub fn ruby_processor_counter_l142_d12_processor_counter(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_processor_counter_l142_d12_processor_counter(args ...ruby.Value) ruby.Value {
 	return processor_counter_value(new_processor_counter())
 }
 
 // Ruby method `self.processor_count` at line 160.
-pub fn ruby_processor_counter_l160_d13_self_processor_count(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_processor_counter_l160_d13_self_processor_count(args ...ruby.Value) ruby.Value {
 	return ruby_processor_counter_l18_d2_processor_count(...args)
 }
 
 // Ruby method `self.physical_processor_count` at line 181.
-pub fn ruby_processor_counter_l181_d14_self_physical_processor_count(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_processor_counter_l181_d14_self_physical_processor_count(args ...ruby.Value) ruby.Value {
 	return ruby_processor_counter_l22_d3_physical_processor_count(...args)
 }
 
 // Ruby method `self.available_processor_count` at line 194.
-pub fn ruby_processor_counter_l194_d15_self_available_processor_count(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_processor_counter_l194_d15_self_available_processor_count(args ...ruby.Value) ruby.Value {
 	return ruby_processor_counter_l26_d4_available_processor_count(...args)
 }
 
 // Ruby method `self.cpu_quota` at line 209.
-pub fn ruby_processor_counter_l209_d16_self_cpu_quota(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_processor_counter_l209_d16_self_cpu_quota(args ...ruby.Value) ruby.Value {
 	return ruby_processor_counter_l41_d5_cpu_quota(...args)
 }
 
 // Ruby method `self.cpu_shares` at line 217.
-pub fn ruby_processor_counter_l217_d17_self_cpu_shares(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_processor_counter_l217_d17_self_cpu_shares(args ...ruby.Value) ruby.Value {
 	return ruby_processor_counter_l45_d6_cpu_shares(...args)
 }
 

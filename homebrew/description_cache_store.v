@@ -1,13 +1,13 @@
 module homebrew
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `description_cache_store.rb`.
 // The original source is retained below until every stub has a typed V body.
 pub struct DescriptionFormula {
 pub:
 	full_name   string
-	description brew_runtime.Value
+	description ruby.Value
 }
 
 pub struct DescriptionRename {
@@ -42,7 +42,7 @@ pub fn new_description_cache_store(database CacheStoreDatabase) DescriptionCache
 }
 
 pub fn (mut store DescriptionCacheStore) update(formula_name string,
-	description brew_runtime.Value) {
+	description ruby.Value) {
 	store.database.set(formula_name, description)
 }
 
@@ -112,13 +112,13 @@ pub fn (mut store DescriptionCacheStore) update_from_report(report DescriptionRe
 	store.delete_from_formula_names(deletions)
 }
 
-pub fn (mut store DescriptionCacheStore) select(predicate CacheStorePredicate) map[string]brew_runtime.Value {
+pub fn (mut store DescriptionCacheStore) select(predicate CacheStorePredicate) map[string]ruby.Value {
 	return store.database.select(predicate)
 }
 
 // Ruby method `update!(formula_name, description)` at line 22.
 pub fn ruby_description_cache_store_l22_d1_update(mut store DescriptionCacheStore,
-	formula_name string, description brew_runtime.Value) {
+	formula_name string, description ruby.Value) {
 	store.update(formula_name, description)
 }
 
@@ -162,7 +162,7 @@ pub fn ruby_description_cache_store_l104_d7_delete_from_cask_tokens(mut store De
 
 // Ruby method `select(&block)` at line 108.
 pub fn ruby_description_cache_store_l108_d8_select(mut store DescriptionCacheStore,
-	predicate CacheStorePredicate) map[string]brew_runtime.Value {
+	predicate CacheStorePredicate) map[string]ruby.Value {
 	return store.select(predicate)
 }
 

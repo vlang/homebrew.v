@@ -1,20 +1,20 @@
 module test
 
-import brew_runtime
+import ruby
 import homebrew
 
-fn upgrade_spec_bool(value bool) brew_runtime.Value {
-	return brew_runtime.bool_value(value)
+fn upgrade_spec_bool(value bool) ruby.Value {
+	return ruby.bool_value(value)
 }
 
 fn upgrade_spec_formula(name string, version string, attributes map[string]string,
-	fields map[string]brew_runtime.Value) brew_runtime.Value {
+	fields map[string]ruby.Value) ruby.Value {
 	mut values := attributes.clone()
 	values['name'] = name
 	values['full_name'] = values['full_name'] or { name }
 	values['full_specified_name'] = values['full_specified_name'] or { values['full_name'] }
 	values['pkg_version'] = version
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'Formula'
 		repr: name
 		attributes: values
@@ -22,15 +22,15 @@ fn upgrade_spec_formula(name string, version string, attributes map[string]strin
 	}
 }
 
-fn upgrade_spec_installer(formula brew_runtime.Value, attributes map[string]string,
-	dependencies []brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.Value{
+fn upgrade_spec_installer(formula ruby.Value, attributes map[string]string,
+	dependencies []ruby.Value) ruby.Value {
+	return ruby.Value{
 		type_name: 'FormulaInstaller'
 		repr: formula.repr
 		attributes: attributes.clone()
 		map_data: {
 			'formula':      formula
-			'dependencies': brew_runtime.array_value(dependencies)
+			'dependencies': ruby.array_value(dependencies)
 		}
 	}
 }
@@ -39,7 +39,7 @@ fn upgrade_spec_installer(formula brew_runtime.Value, attributes map[string]stri
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "aligns a large mixed list of package names and versions" do` at line 13.
-pub fn ruby_upgrade_spec_l13_d1_aligns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_spec_l13_d1_aligns(args ...ruby.Value) ruby.Value {
 	upgrades := [
 		'sqlite 3.53.1 -> 3.53.2 (2.4MB)',
 		'docker 29.5.2 -> 29.6.0 (9.3MB)',
@@ -76,28 +76,28 @@ pub fn ruby_upgrade_spec_l13_d1_aligns(args ...brew_runtime.Value) brew_runtime.
 		'spotify             1.2.84.476 -> 1.2.92.148',
 		'visual-studio-code  1.111.0    -> 1.125.1',
 	]
-	actual := homebrew.ruby_upgrade_l26_d1_format_upgrade_summary(brew_runtime.string_array_value(upgrades)).as_string_array() or {
+	actual := homebrew.ruby_upgrade_l26_d1_format_upgrade_summary(ruby.string_array_value(upgrades)).as_string_array() or {
 		[]
 	}
 	return upgrade_spec_bool(actual == expected)
 }
 
 // Ruby it `it "shows the version transition for an unlinked dependency installed at an older version" do` at line 55.
-pub fn ruby_upgrade_spec_l55_d2_shows(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_spec_l55_d2_shows(args ...ruby.Value) ruby.Value {
 	dependency := upgrade_spec_formula('python@3.14', '3.14.6', {
 		'installed_versions': '2.7.14_2\x1f3.6.1\x1f3.6.4_4\x1f3.7.1'
 	}, {})
 	installer := upgrade_spec_installer(upgrade_spec_formula('testball', '0.2', {}, {}), {}, [
 		dependency,
 	])
-	result := homebrew.ruby_upgrade_l466_d8_upgrade_formula(installer, brew_runtime.structured_value('UpgradeOptions', '', {
+	result := homebrew.ruby_upgrade_l466_d8_upgrade_formula(installer, ruby.structured_value('UpgradeOptions', '', {
 		'dry_run': 'true'
 	}))
 	return upgrade_spec_bool(result.attributes['stdout'] or { '' }.contains('Would upgrade dependencies') && result.attributes['stdout'] or { '' }.contains('python@3.14 3.7.1 -> 3.14.6'))
 }
 
 // Ruby it `it "reports a failed upgrade instead of aborting the rest of the batch" do` at line 73.
-pub fn ruby_upgrade_spec_l73_d3_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_spec_l73_d3_reports(args ...ruby.Value) ruby.Value {
 	formula := upgrade_spec_formula('testball', '0.2', {}, {})
 	installer := upgrade_spec_installer(formula, {
 		'install_error': 'gzip decompression failed'
@@ -107,44 +107,44 @@ pub fn ruby_upgrade_spec_l73_d3_reports(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby it `it "explains when installed dependencies satisfy the bottle metadata" do` at line 84.
-pub fn ruby_upgrade_spec_l84_d4_explains(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_spec_l84_d4_explains(args ...ruby.Value) ruby.Value {
 	dependent := upgrade_spec_formula('dependent', '2.0', {}, {})
 	installer := upgrade_spec_installer(dependent, {
 		'all_runtime_dependencies_installed': 'true'
 	}, [])
-	formula := brew_runtime.Value{
+	formula := ruby.Value{
 		...dependent
 		map_data: {
 			'installer': installer
 		}
 	}
-	result := homebrew.ruby_upgrade_l65_d2_formula_installers(brew_runtime.array_value([
+	result := homebrew.ruby_upgrade_l65_d2_formula_installers(ruby.array_value([
 		formula,
-	]), brew_runtime.structured_value('UpgradeOptions', '', {
+	]), ruby.structured_value('UpgradeOptions', '', {
 		'dependents': 'true'
 	}))
 	return upgrade_spec_bool((result.attributes['stdout'] or { '' }) == '==> Not upgrading dependent: installed runtime dependencies satisfy bottle metadata\n')
 }
 
 // Ruby it `it "returns installed dependents unless they are primary formulae" do` at line 116.
-pub fn ruby_upgrade_spec_l116_d5_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_upgrade_spec_l116_d5_returns(args ...ruby.Value) ruby.Value {
 	installed := upgrade_spec_formula('installed-dependent', '2.0', {}, {})
 	primary := upgrade_spec_formula('primary', '2.0', {}, {})
-	dependants := brew_runtime.map_value({
-		'upgradeable': brew_runtime.array_value([installed, primary])
-		'pinned':      brew_runtime.array_value([])
-		'skipped':     brew_runtime.array_value([])
+	dependants := ruby.map_value({
+		'upgradeable': ruby.array_value([installed, primary])
+		'pinned':      ruby.array_value([])
+		'skipped':     ruby.array_value([])
 	})
-	config := brew_runtime.Value{
+	config := ruby.Value{
 		type_name: 'UpgradeOptions'
 		map_data: {
-			'installed_formulae': brew_runtime.array_value([installed, primary])
+			'installed_formulae': ruby.array_value([installed, primary])
 		}
 	}
-	result := homebrew.ruby_upgrade_l283_d7_upgrade_dependents(dependants, brew_runtime.array_value([
+	result := homebrew.ruby_upgrade_l283_d7_upgrade_dependents(dependants, ruby.array_value([
 		primary,
 	]), config)
-	values := (result.map_data['values'] or { brew_runtime.array_value([]) }).as_array() or { [] }
+	values := (result.map_data['values'] or { ruby.array_value([]) }).as_array() or { [] }
 	return upgrade_spec_bool(values.len == 1 && values[0].repr == 'installed-dependent')
 }
 

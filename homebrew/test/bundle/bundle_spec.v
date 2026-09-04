@@ -1,6 +1,6 @@
 module bundle
 
-import brew_runtime
+import ruby
 import homebrew
 import homebrew.bundle as production_bundle
 import os
@@ -9,7 +9,7 @@ import time
 // Translated from Homebrew/brew `test/bundle/bundle_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
-fn bundle_spec_root(args []brew_runtime.Value, label string) string {
+fn bundle_spec_root(args []ruby.Value, label string) string {
 	if args.len > 0 && args[0].as_string() != '' {
 		return args[0].as_string()
 	}
@@ -48,147 +48,147 @@ fn bundle_spec_mark_formula(name string, installed bool,
 }
 
 // Ruby it `it "omits all stdout output if verbose is false" do` at line 9.
-pub fn ruby_bundle_spec_l9_d1_omits(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bundle_spec_l9_d1_omits(args ...ruby.Value) ruby.Value {
 	mut runtime := bundle_spec_runtime(bundle_spec_root(args, 'quiet-success'))
 	success := runtime.run_system('/bin/echo', ['foo'], false)
-	return brew_runtime.bool_value(success && runtime.output.len == 0)
+	return ruby.bool_value(success && runtime.output.len == 0)
 }
 
 // Ruby it `it "emits all stdout output if verbose is true" do` at line 13.
-pub fn ruby_bundle_spec_l13_d2_emits(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bundle_spec_l13_d2_emits(args ...ruby.Value) ruby.Value {
 	mut runtime := bundle_spec_runtime(bundle_spec_root(args, 'verbose-success'))
 	success := runtime.run_system('/bin/echo', ['foo'], true)
-	return brew_runtime.bool_value(success && runtime.output == ['foo\n'])
+	return ruby.bool_value(success && runtime.output == ['foo\n'])
 }
 
 // Ruby it `it "emits all stdout output even if verbose is false" do` at line 19.
-pub fn ruby_bundle_spec_l19_d3_emits(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bundle_spec_l19_d3_emits(args ...ruby.Value) ruby.Value {
 	mut runtime := bundle_spec_runtime(bundle_spec_root(args, 'quiet-failure'))
 	success := runtime.run_system('/bin/sh', ['-c', 'echo foo && false'], false)
-	return brew_runtime.bool_value(!success && runtime.output == ['foo\n'])
+	return ruby.bool_value(!success && runtime.output == ['foo\n'])
 }
 
 // Ruby it `it "emits all stdout output only once if verbose is true" do` at line 26.
-pub fn ruby_bundle_spec_l26_d4_emits(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bundle_spec_l26_d4_emits(args ...ruby.Value) ruby.Value {
 	mut runtime := bundle_spec_runtime(bundle_spec_root(args, 'verbose-once'))
 	success := runtime.run_system('/bin/sh', ['-c', 'echo foo && true'], true)
-	return brew_runtime.bool_value(success && runtime.output == ['foo\n'])
+	return ruby.bool_value(success && runtime.output == ['foo\n'])
 }
 
 // Ruby it `it "finds it when present" do` at line 35.
-pub fn ruby_bundle_spec_l35_d5_finds(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bundle_spec_l35_d5_finds(args ...ruby.Value) ruby.Value {
 	root := bundle_spec_root(args, 'cask')
 	prefix := os.join_path(root, 'prefix')
 	library := os.join_path(root, 'library')
-	os.mkdir_all(os.join_path(prefix, 'Caskroom')) or { return brew_runtime.bool_value(false) }
+	os.mkdir_all(os.join_path(prefix, 'Caskroom')) or { return ruby.bool_value(false) }
 	os.mkdir_all(os.join_path(library, 'Taps', 'homebrew', 'homebrew-cask')) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	mut runtime := homebrew.new_bundle_runtime(homebrew.BundleRuntimeConfig{
 		prefix: prefix
 		library: library
 		no_install_from_api: true
 	})
-	return brew_runtime.bool_value(runtime.is_cask_installed())
+	return ruby.bool_value(runtime.is_cask_installed())
 }
 
 // Ruby subject `subject(:mark_installed!) { described_class.mark_as_installed_on_request!(entries) }` at line 45.
-pub fn ruby_bundle_spec_l45_d6_mark_installed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bundle_spec_l45_d6_mark_installed(args ...ruby.Value) ruby.Value {
 	name := if args.len > 0 && args[0].as_string() != '' {
 		args[0].as_string()
 	} else {
 		'myformula'
 	}
 	_ = bundle_spec_mark_formula(name, true, false)
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby let `let(:brewfile_content) { "brew 'myformula'" }` at line 47.
-pub fn ruby_bundle_spec_l47_d7_brewfile_content(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bundle_spec_l47_d7_brewfile_content(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value("brew 'myformula'")
+	return ruby.string_value("brew 'myformula'")
 }
 
 // Ruby let `let(:entries) { dsl.entries }` at line 48.
-pub fn ruby_bundle_spec_l48_d8_entries(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bundle_spec_l48_d8_entries(args ...ruby.Value) ruby.Value {
 	content := if args.len > 0 && args[0].as_string() != '' {
 		args[0].as_string()
 	} else {
 		ruby_bundle_spec_l47_d7_brewfile_content().as_string()
 	}
-	dsl := bundle_spec_dsl(content) or { return brew_runtime.array_value([]) }
-	return brew_runtime.array_value(dsl.entries.map(production_bundle.bundle_dsl_entry_value(it)))
+	dsl := bundle_spec_dsl(content) or { return ruby.array_value([]) }
+	return ruby.array_value(dsl.entries.map(production_bundle.bundle_dsl_entry_value(it)))
 }
 
 // Ruby let `let(:dsl) { Homebrew::Bundle::Dsl.new(Pathname.new("/fake/Brewfile")) }` at line 49.
-pub fn ruby_bundle_spec_l49_d9_dsl(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bundle_spec_l49_d9_dsl(args ...ruby.Value) ruby.Value {
 	content := if args.len > 0 && args[0].as_string() != '' {
 		args[0].as_string()
 	} else {
 		ruby_bundle_spec_l47_d7_brewfile_content().as_string()
 	}
 	dsl := bundle_spec_dsl(content) or {
-		return brew_runtime.object_value('RuntimeError', err.msg())
+		return ruby.object_value('RuntimeError', err.msg())
 	}
 	return production_bundle.bundle_dsl_value(dsl)
 }
 
 // Ruby let `let(:tabfile) { Pathname.new("/fake/INSTALL_RECEIPT.json") }` at line 50.
-pub fn ruby_bundle_spec_l50_d10_tabfile(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bundle_spec_l50_d10_tabfile(args ...ruby.Value) ruby.Value {
 	root := if args.len > 0 && args[0].as_string() != '' { args[0].as_string() } else { '/fake' }
-	return brew_runtime.object_value('Pathname', os.join_path(root, 'INSTALL_RECEIPT.json'))
+	return ruby.object_value('Pathname', os.join_path(root, 'INSTALL_RECEIPT.json'))
 }
 
 // Ruby let `let(:tab) { instance_double(Tab, installed_on_request: false, tabfile:) }` at line 59.
-pub fn ruby_bundle_spec_l59_d11_tab(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bundle_spec_l59_d11_tab(args ...ruby.Value) ruby.Value {
 	path := ruby_bundle_spec_l50_d10_tabfile(...args).as_string()
-	return brew_runtime.structured_value('Tab', path, {
+	return ruby.structured_value('Tab', path, {
 		'installed_on_request': 'false'
 		'tabfile':              path
 	})
 }
 
 // Ruby it `it "sets installed_on_request=true and writes" do` at line 66.
-pub fn ruby_bundle_spec_l66_d12_sets(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bundle_spec_l66_d12_sets(args ...ruby.Value) ruby.Value {
 	_ = args
 	runtime := bundle_spec_mark_formula('myformula', true, false)
-	return brew_runtime.bool_value(runtime.tabs['myformula'].installed_on_request
+	return ruby.bool_value(runtime.tabs['myformula'].installed_on_request
 		&& runtime.brew_tab_updates.len == 0)
 }
 
 // Ruby let `let(:brewfile_content) { "brew 'notinstalled'" }` at line 74.
-pub fn ruby_bundle_spec_l74_d13_brewfile_content(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bundle_spec_l74_d13_brewfile_content(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value("brew 'notinstalled'")
+	return ruby.string_value("brew 'notinstalled'")
 }
 
 // Ruby it `it "skips the formula" do` at line 80.
-pub fn ruby_bundle_spec_l80_d14_skips(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bundle_spec_l80_d14_skips(args ...ruby.Value) ruby.Value {
 	_ = args
 	runtime := bundle_spec_mark_formula('notinstalled', false, false)
-	return brew_runtime.bool_value(runtime.tabs.len == 0 && runtime.brew_tab_updates.len == 0)
+	return ruby.bool_value(runtime.tabs.len == 0 && runtime.brew_tab_updates.len == 0)
 }
 
 // Ruby let `let(:brewfile_content) { "brew 'alreadymarked'" }` at line 87.
-pub fn ruby_bundle_spec_l87_d15_brewfile_content(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bundle_spec_l87_d15_brewfile_content(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value("brew 'alreadymarked'")
+	return ruby.string_value("brew 'alreadymarked'")
 }
 
 // Ruby let `let(:tab) { instance_double(Tab, installed_on_request: true, tabfile:) }` at line 88.
-pub fn ruby_bundle_spec_l88_d16_tab(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bundle_spec_l88_d16_tab(args ...ruby.Value) ruby.Value {
 	path := ruby_bundle_spec_l50_d10_tabfile(...args).as_string()
-	return brew_runtime.structured_value('Tab', path, {
+	return ruby.structured_value('Tab', path, {
 		'installed_on_request': 'true'
 		'tabfile':              path
 	})
 }
 
 // Ruby it `it "skips writing" do` at line 95.
-pub fn ruby_bundle_spec_l95_d17_skips(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bundle_spec_l95_d17_skips(args ...ruby.Value) ruby.Value {
 	_ = args
 	runtime := bundle_spec_mark_formula('alreadymarked', true, true)
-	return brew_runtime.bool_value(runtime.tabs['alreadymarked'].installed_on_request
+	return ruby.bool_value(runtime.tabs['alreadymarked'].installed_on_request
 		&& runtime.brew_tab_updates.len == 0)
 }
 

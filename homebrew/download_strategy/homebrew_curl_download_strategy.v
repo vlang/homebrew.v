@@ -1,18 +1,18 @@
 module download_strategy
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `download_strategy/homebrew_curl_download_strategy.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `_curl_download(resolved_url, to, timeout)` at line 16.
-pub fn ruby_homebrew_curl_download_strategy_l16_d1_curl_download(mut strategy HomebrewCurlDownloadStrategy, resolved_url string, target string, timeout ?f64) !brew_runtime.CommandResult {
+pub fn ruby_homebrew_curl_download_strategy_l16_d1_curl_download(mut strategy HomebrewCurlDownloadStrategy, resolved_url string, target string, timeout ?f64) !ruby.CommandResult {
 	return strategy.curl_download(resolved_url, target, timeout)
 }
 
 // Ruby method `curl_output(*args, **options)` at line 23.
-pub fn ruby_homebrew_curl_download_strategy_l23_d2_curl_output(strategy &HomebrewCurlDownloadStrategy, arguments []string) !brew_runtime.CommandResult {
+pub fn ruby_homebrew_curl_download_strategy_l23_d2_curl_output(strategy &HomebrewCurlDownloadStrategy, arguments []string) !ruby.CommandResult {
 	return strategy.curl_output(arguments)
 }
 
@@ -27,7 +27,7 @@ pub fn new_homebrew_curl_download_strategy(url string, name string, version stri
 	}
 }
 
-pub fn (mut strategy HomebrewCurlDownloadStrategy) curl_download(resolved_url string, target string, timeout ?f64) !brew_runtime.CommandResult {
+pub fn (mut strategy HomebrewCurlDownloadStrategy) curl_download(resolved_url string, target string, timeout ?f64) !ruby.CommandResult {
 	_ = homebrew_curl_executable(strategy.curl.file.base.url)!
 	mut arguments := ['--remote-time', '--output', target]
 	if strategy.curl.try_partial {
@@ -40,7 +40,7 @@ pub fn (mut strategy HomebrewCurlDownloadStrategy) curl_download(resolved_url st
 	return strategy.curl_output(arguments)
 }
 
-pub fn (strategy &HomebrewCurlDownloadStrategy) curl_output(arguments []string) !brew_runtime.CommandResult {
+pub fn (strategy &HomebrewCurlDownloadStrategy) curl_output(arguments []string) !ruby.CommandResult {
 	curl := homebrew_curl_executable(strategy.curl.file.base.url)!
 	mut all_arguments := strategy.curl.curl_args()
 	all_arguments << strategy.curl.curl_opts()
@@ -48,7 +48,7 @@ pub fn (strategy &HomebrewCurlDownloadStrategy) curl_output(arguments []string) 
 		all_arguments << ['--connect-timeout', '15']
 	}
 	all_arguments << strategy.curl.expand_deferred_environment_args(arguments)
-	result := brew_runtime.run_command(curl, all_arguments)
+	result := ruby.run_command(curl, all_arguments)
 	if result.exit_code != 0 {
 		return error(result.output.trim_space())
 	}

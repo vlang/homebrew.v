@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 import homebrew
 import os
 import x.json2
@@ -33,7 +33,7 @@ pub:
 
 pub struct DetermineTestRunnersResult {
 pub:
-	runners             []map[string]brew_runtime.Value
+	runners             []map[string]ruby.Value
 	runners_json        string
 	stdout              string
 	github_output       string
@@ -53,21 +53,21 @@ fn determine_test_runners_positive_integer(value string) bool {
 	return value.bytes().all(it >= `0` && it <= `9`)
 }
 
-fn determine_test_runners_json_value(runners []map[string]brew_runtime.Value) brew_runtime.Value {
-	mut values := []brew_runtime.Value{cap: runners.len}
+fn determine_test_runners_json_value(runners []map[string]ruby.Value) ruby.Value {
+	mut values := []ruby.Value{cap: runners.len}
 	for runner in runners {
 		mut normalized := runner.clone()
 		if container := normalized['container'] {
 			if container.type_name == 'Container' {
-				normalized['container'] = brew_runtime.map_value({
-					'image':   brew_runtime.string_value(container.attributes['image'] or { '' })
-					'options': brew_runtime.string_value(container.attributes['options'] or { '' })
+				normalized['container'] = ruby.map_value({
+					'image':   ruby.string_value(container.attributes['image'] or { '' })
+					'options': ruby.string_value(container.attributes['options'] or { '' })
 				})
 			}
 		}
-		values << brew_runtime.map_value(normalized)
+		values << ruby.map_value(normalized)
 	}
-	return brew_runtime.array_value(values)
+	return ruby.array_value(values)
 }
 
 pub fn run_determine_test_runners(options DetermineTestRunnersOptions) !DetermineTestRunnersResult {
@@ -115,8 +115,8 @@ pub fn run_determine_test_runners(options DetermineTestRunnersOptions) !Determin
 	})!
 	runners := homebrew.github_runner_matrix_active_specs(matrix)
 	runners_value := determine_test_runners_json_value(runners)
-	runners_json := brew_runtime.json_value_to_string(runners_value)
-	pretty_runners := json2.encode(brew_runtime.json_any_from_value(runners_value), prettify: true)
+	runners_json := ruby.json_value_to_string(runners_value)
+	pretty_runners := json2.encode(ruby.json_any_from_value(runners_value), prettify: true)
 	stdout := '==> Runners\n${pretty_runners}\n'
 
 	if options.github_actions && options.github_output == '' {
@@ -142,33 +142,33 @@ pub fn run_determine_test_runners(options DetermineTestRunnersOptions) !Determin
 	}
 }
 
-pub fn determine_test_runners_input_boundary(input &DetermineTestRunnersInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::DetermineTestRunners::Input', '', {
+pub fn determine_test_runners_input_boundary(input &DetermineTestRunnersInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::DetermineTestRunners::Input', '', {
 		'determine_test_runners_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn determine_test_runners_input_from_value(value brew_runtime.Value) &DetermineTestRunnersInput {
+fn determine_test_runners_input_from_value(value ruby.Value) &DetermineTestRunnersInput {
 	address := value.attributes['determine_test_runners_input_address'] or {
 		panic('invalid DetermineTestRunners input')
 	}
 	return unsafe { &DetermineTestRunnersInput(voidptr(address.u64())) }
 }
 
-fn determine_test_runners_result_value(result DetermineTestRunnersResult) brew_runtime.Value {
-	return brew_runtime.map_value({
+fn determine_test_runners_result_value(result DetermineTestRunnersResult) ruby.Value {
+	return ruby.map_value({
 		'runners':             determine_test_runners_json_value(result.runners)
-		'runners_json':        brew_runtime.string_value(result.runners_json)
-		'stdout':              brew_runtime.string_value(result.stdout)
-		'github_output':       brew_runtime.string_value(result.github_output)
-		'github_output_wrote': brew_runtime.bool_value(result.github_output_wrote)
+		'runners_json':        ruby.string_value(result.runners_json)
+		'stdout':              ruby.string_value(result.stdout)
+		'github_output':       ruby.string_value(result.github_output)
+		'github_output_wrote': ruby.bool_value(result.github_output_wrote)
 	})
 }
 
 // Ruby method `run` at line 39.
-pub fn ruby_determine_test_runners_l39_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_determine_test_runners_l39_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'command input is required')
+		return ruby.object_value('ArgumentError', 'command input is required')
 	}
 	options := determine_test_runners_input_from_value(args[0]).options
 	result := run_determine_test_runners(options) or {
@@ -181,7 +181,7 @@ pub fn ruby_determine_test_runners_l39_d1_run(args ...brew_runtime.Value) brew_r
 		} else {
 			'Error'
 		}
-		return brew_runtime.object_value(error_type, err.msg())
+		return ruby.object_value(error_type, err.msg())
 	}
 	return determine_test_runners_result_value(result)
 }

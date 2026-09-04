@@ -1,6 +1,6 @@
 module download_strategies
 
-import brew_runtime
+import ruby
 import crypto.sha256
 import homebrew.download_strategy as production_strategy
 import os
@@ -59,7 +59,7 @@ fn curl_github_packages_spec_has_pair(arguments []string, flag string, value str
 }
 
 // Ruby subject `subject(:strategy) { described_class.new(url, name, version, **specs) }` at line 7.
-pub fn ruby_curl_github_packages_spec_l7_d1_strategy(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_curl_github_packages_spec_l7_d1_strategy(args ...ruby.Value) ruby.Value {
 	url := if args.len > 0 && args[0].as_string() != '' {
 		args[0].as_string()
 	} else {
@@ -68,7 +68,7 @@ pub fn ruby_curl_github_packages_spec_l7_d1_strategy(args ...brew_runtime.Value)
 	strategy := curl_github_packages_spec_strategy(url, '', production_strategy.DownloadMeta{
 		headers: ['Accept: application/vnd.oci.image.index.v1+json']
 	}, false)
-	return brew_runtime.structured_value('CurlGitHubPackagesDownloadStrategy', url, {
+	return ruby.structured_value('CurlGitHubPackagesDownloadStrategy', url, {
 		'url':     strategy.curl.file.base.url
 		'name':    strategy.curl.file.base.name
 		'version': strategy.curl.file.base.version
@@ -78,87 +78,87 @@ pub fn ruby_curl_github_packages_spec_l7_d1_strategy(args ...brew_runtime.Value)
 }
 
 // Ruby let `let(:name) { "foo" }` at line 9.
-pub fn ruby_curl_github_packages_spec_l9_d2_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_curl_github_packages_spec_l9_d2_name(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('foo')
+	return ruby.string_value('foo')
 }
 
 // Ruby let `let(:url) { "https://#{GitHubPackages::URL_DOMAIN}/v2/homebrew/core/spec_test/manifests/1.2.3" }` at line 10.
-pub fn ruby_curl_github_packages_spec_l10_d3_url(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_curl_github_packages_spec_l10_d3_url(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value(curl_github_packages_spec_manifest_url())
+	return ruby.string_value(curl_github_packages_spec_manifest_url())
 }
 
 // Ruby let `let(:version) { "1.2.3" }` at line 11.
-pub fn ruby_curl_github_packages_spec_l11_d4_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_curl_github_packages_spec_l11_d4_version(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('1.2.3')
+	return ruby.string_value('1.2.3')
 }
 
 // Ruby let `let(:specs) { { headers: ["Accept: application/vnd.oci.image.index.v1+json"] } }` at line 12.
-pub fn ruby_curl_github_packages_spec_l12_d5_specs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_curl_github_packages_spec_l12_d5_specs(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.map_value({
-		'headers': brew_runtime.string_array_value([
+	return ruby.map_value({
+		'headers': ruby.string_array_value([
 			'Accept: application/vnd.oci.image.index.v1+json',
 		])
 	})
 }
 
 // Ruby let `let(:authorization) { nil }` at line 13.
-pub fn ruby_curl_github_packages_spec_l13_d6_authorization(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_curl_github_packages_spec_l13_d6_authorization(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby let `let(:checksum) { "d7b9f4e8bf83608b71fe958a99f19f2e5e68bb2582965d32e41759c24f1aef97" }` at line 14.
-pub fn ruby_curl_github_packages_spec_l14_d7_checksum(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_curl_github_packages_spec_l14_d7_checksum(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value(curl_github_packages_spec_checksum)
+	return ruby.string_value(curl_github_packages_spec_checksum)
 }
 
 // Ruby let `let(:head_response) do` at line 15.
-pub fn ruby_curl_github_packages_spec_l15_d8_head_response(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_curl_github_packages_spec_l15_d8_head_response(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('HTTP/2 200\r\ncontent-length: 12671\r\ncontent-type: application/vnd.oci.image.index.v1+json\r\ndocker-content-digest: sha256:7d752ee92d9120e3884b452dce15328536a60d468023ea8e9f4b09839a5442e5\r\ndocker-distribution-api-version: registry/2.0\r\netag: "sha256:7d752ee92d9120e3884b452dce15328536a60d468023ea8e9f4b09839a5442e5"\r\ndate: Sun, 02 Apr 2023 22:45:08 GMT\r\nx-github-request-id: 8814:FA5A:14DAFB5:158D7A2:642A0574\r\n')
+	return ruby.string_value('HTTP/2 200\r\ncontent-length: 12671\r\ncontent-type: application/vnd.oci.image.index.v1+json\r\ndocker-content-digest: sha256:7d752ee92d9120e3884b452dce15328536a60d468023ea8e9f4b09839a5442e5\r\ndocker-distribution-api-version: registry/2.0\r\netag: "sha256:7d752ee92d9120e3884b452dce15328536a60d468023ea8e9f4b09839a5442e5"\r\ndate: Sun, 02 Apr 2023 22:45:08 GMT\r\nx-github-request-id: 8814:FA5A:14DAFB5:158D7A2:642A0574\r\n')
 }
 
 // Ruby it `it "calls curl with anonymous authentication headers" do` at line 51.
-pub fn ruby_curl_github_packages_spec_l51_d9_calls(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_curl_github_packages_spec_l51_d9_calls(args ...ruby.Value) ruby.Value {
 	_ = args
 	arguments := curl_github_packages_spec_headers('')
-	return brew_runtime.bool_value(curl_github_packages_spec_has_pair(arguments, '--header', 'Authorization: Bearer QQ==') && '--max-redirs' !in arguments)
+	return ruby.bool_value(curl_github_packages_spec_has_pair(arguments, '--header', 'Authorization: Bearer QQ==') && '--max-redirs' !in arguments)
 }
 
 // Ruby let `let(:authorization) { "Bearer dead-beef-cafe" }` at line 62.
-pub fn ruby_curl_github_packages_spec_l62_d10_authorization(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_curl_github_packages_spec_l62_d10_authorization(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('Bearer dead-beef-cafe')
+	return ruby.string_value('Bearer dead-beef-cafe')
 }
 
 // Ruby it `it "calls curl with the provided header value" do` at line 64.
-pub fn ruby_curl_github_packages_spec_l64_d11_calls(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_curl_github_packages_spec_l64_d11_calls(args ...ruby.Value) ruby.Value {
 	_ = args
 	arguments := curl_github_packages_spec_headers('Bearer dead-beef-cafe')
-	return brew_runtime.bool_value(curl_github_packages_spec_has_pair(arguments, '--header', 'Authorization: Bearer dead-beef-cafe'))
+	return ruby.bool_value(curl_github_packages_spec_has_pair(arguments, '--header', 'Authorization: Bearer dead-beef-cafe'))
 }
 
 // Ruby let `let(:url) { "https://#{GitHubPackages::URL_DOMAIN}/v2/homebrew/core/foo/blobs/sha256:#{checksum}" }` at line 79.
-pub fn ruby_curl_github_packages_spec_l79_d12_url(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_curl_github_packages_spec_l79_d12_url(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value(curl_github_packages_spec_blob_url())
+	return ruby.string_value(curl_github_packages_spec_blob_url())
 }
 
 // Ruby let `let(:specs) { { bottle: true } }` at line 80.
-pub fn ruby_curl_github_packages_spec_l80_d13_specs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_curl_github_packages_spec_l80_d13_specs(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.map_value({
-		'bottle': brew_runtime.bool_value(true)
+	return ruby.map_value({
+		'bottle': ruby.bool_value(true)
 	})
 }
 
 // Ruby it `it "uses the resolved basename without discovering existing cache files" do` at line 82.
-pub fn ruby_curl_github_packages_spec_l82_d14_uses(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_curl_github_packages_spec_l82_d14_uses(args ...ruby.Value) ruby.Value {
 	_ = args
 	cache_root := os.join_path(os.temp_dir(), 'brew-v-ghcr-cache-${os.getpid()}-${time.now().unix_micro()}')
 	old_cache := os.getenv('HOMEBREW_CACHE')
@@ -169,26 +169,26 @@ pub fn ruby_curl_github_packages_spec_l82_d14_uses(args ...brew_runtime.Value) b
 	location := strategy.cached_location()
 	digest := sha256.sum256(curl_github_packages_spec_blob_url().bytes()).hex()
 	expected := os.join_path(cache_root, 'downloads', '${digest}--foo--1.2.3.arm64_ventura.bottle.tar.gz')
-	return brew_runtime.bool_value(location == expected)
+	return ruby.bool_value(location == expected)
 }
 
 // Ruby let `let(:cache) { HOMEBREW_CACHE/"custom-cache" }` at line 92.
-pub fn ruby_curl_github_packages_spec_l92_d15_cache(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_curl_github_packages_spec_l92_d15_cache(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.object_value('Pathname', os.join_path(os.temp_dir(), 'homebrew-cache', 'custom-cache'))
+	return ruby.object_value('Pathname', os.join_path(os.temp_dir(), 'homebrew-cache', 'custom-cache'))
 }
 
 // Ruby let `let(:specs) { { bottle: true, cache: } }` at line 93.
-pub fn ruby_curl_github_packages_spec_l93_d16_specs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_curl_github_packages_spec_l93_d16_specs(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.map_value({
-		'bottle': brew_runtime.bool_value(true)
+	return ruby.map_value({
+		'bottle': ruby.bool_value(true)
 		'cache':  ruby_curl_github_packages_spec_l92_d15_cache()
 	})
 }
 
 // Ruby it `it "keeps cached downloads under HOMEBREW_CACHE downloads" do` at line 95.
-pub fn ruby_curl_github_packages_spec_l95_d17_keeps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_curl_github_packages_spec_l95_d17_keeps(args ...ruby.Value) ruby.Value {
 	_ = args
 	cache_root := os.join_path(os.temp_dir(), 'brew-v-ghcr-custom-${os.getpid()}-${time.now().unix_micro()}')
 	custom_cache := os.join_path(cache_root, 'custom-cache')
@@ -200,27 +200,27 @@ pub fn ruby_curl_github_packages_spec_l95_d17_keeps(args ...brew_runtime.Value) 
 	}, true)
 	strategy.set_resolved_basename('foo--1.2.3.arm64_ventura.bottle.tar.gz')
 	location := strategy.cached_location()
-	return brew_runtime.bool_value(os.dir(location) == os.join_path(cache_root, 'downloads')
+	return ruby.bool_value(os.dir(location) == os.join_path(cache_root, 'downloads')
 		&& os.dir(strategy.curl.file.symlink_location()) == custom_cache)
 }
 
 // Ruby let `let(:specs) { { bottle: true, mirrors: ["https://mirror.example/foo.tar.gz"] } }` at line 105.
-pub fn ruby_curl_github_packages_spec_l105_d18_specs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_curl_github_packages_spec_l105_d18_specs(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.map_value({
-		'bottle':  brew_runtime.bool_value(true)
-		'mirrors': brew_runtime.string_array_value(['https://mirror.example/foo.tar.gz'])
+	return ruby.map_value({
+		'bottle':  ruby.bool_value(true)
+		'mirrors': ruby.string_array_value(['https://mirror.example/foo.tar.gz'])
 	})
 }
 
 // Ruby it `it "uses generic cache discovery" do` at line 107.
-pub fn ruby_curl_github_packages_spec_l107_d19_uses(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_curl_github_packages_spec_l107_d19_uses(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut strategy := curl_github_packages_spec_strategy(curl_github_packages_spec_blob_url(), '', production_strategy.DownloadMeta{
 		mirrors: ['https://mirror.example/foo.tar.gz']
 	}, true)
 	strategy.set_resolved_basename('foo--1.2.3.arm64_ventura.bottle.tar.gz')
-	return brew_runtime.bool_value(!strategy.immutable_bottle_blob())
+	return ruby.bool_value(!strategy.immutable_bottle_blob())
 }
 
 // Original Ruby source (line-for-line):

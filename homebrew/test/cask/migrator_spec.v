@@ -1,6 +1,6 @@
 module cask
 
-import brew_runtime
+import ruby
 import homebrew.cask as migrator_core
 import os
 import time
@@ -208,7 +208,7 @@ fn migrator_spec_pin_case(dry_run bool, fail_new_pin bool) bool {
 }
 
 // Ruby let `let(:new_cask) { instance_double(Cask::Cask, token: "new-token", old_tokens: ["old-token"]) }` at line 8.
-pub fn ruby_migrator_spec_l8_d1_new_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_spec_l8_d1_new_cask(args ...ruby.Value) ruby.Value {
 	root := if args.len > 0 { args[0].as_string() } else { '/tmp' }
 	return migrator_core.migrator_cask_value(migrator_spec_new_cask(root, 'new-token', [
 		'old-token',
@@ -216,69 +216,69 @@ pub fn ruby_migrator_spec_l8_d1_new_cask(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `setup_installed_cask(dir, token)` at line 10.
-pub fn ruby_migrator_spec_l10_d2_setup_installed_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_spec_l10_d2_setup_installed_cask(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'setup_installed_cask requires dir and token')
+		return ruby.object_value('ArgumentError', 'setup_installed_cask requires dir and token')
 	}
 	path := migrator_spec_setup_installed_cask(args[0].as_string(), args[1].as_string()) or {
-		return brew_runtime.object_value('RuntimeError', err.msg())
+		return ruby.object_value('RuntimeError', err.msg())
 	}
-	return brew_runtime.object_value('Pathname', path)
+	return ruby.object_value('Pathname', path)
 }
 
 // Ruby it `it "returns old tokens that are still installed in their own Caskroom directory" do` at line 16.
-pub fn ruby_migrator_spec_l16_d3_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_spec_l16_d3_returns(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(migrator_spec_old_token_case(false))
+	return ruby.bool_value(migrator_spec_old_token_case(false))
 }
 
 // Ruby it `it "returns old tokens even when the new cask is installed under its own token" do` at line 25.
-pub fn ruby_migrator_spec_l25_d4_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_spec_l25_d4_returns(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(migrator_spec_old_token_case(true))
+	return ruby.bool_value(migrator_spec_old_token_case(true))
 }
 
 // Ruby it `it "ignores old tokens that have already been migrated" do` at line 35.
-pub fn ruby_migrator_spec_l35_d5_ignores(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_spec_l35_d5_ignores(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(migrator_spec_already_migrated_case())
+	return ruby.bool_value(migrator_spec_already_migrated_case())
 }
 
 // Ruby it `it "removes an empty Caskroom directory for an old token" do` at line 45.
-pub fn ruby_migrator_spec_l45_d6_removes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_spec_l45_d6_removes(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(migrator_spec_empty_directory_case())
+	return ruby.bool_value(migrator_spec_empty_directory_case())
 }
 
 // Ruby let `let(:old_cask) { Cask::CaskLoader.load(cask_path("local-caffeine")) }` at line 58.
-pub fn ruby_migrator_spec_l58_d7_old_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_spec_l58_d7_old_cask(args ...ruby.Value) ruby.Value {
 	root := if args.len > 0 { args[0].as_string() } else { '/tmp' }
 	caskfile := os.join_path(root, 'Caskroom', 'local-caffeine', '.metadata', '1.0', 'stamp', 'Casks', 'local-caffeine.rb')
 	return migrator_core.migrator_cask_value(migrator_spec_old_cask(root, 'local-caffeine', caskfile, []))
 }
 
 // Ruby let `let(:new_cask) { Cask::CaskLoader.load(cask_path("local-transmission")) }` at line 59.
-pub fn ruby_migrator_spec_l59_d8_new_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_spec_l59_d8_new_cask(args ...ruby.Value) ruby.Value {
 	root := if args.len > 0 { args[0].as_string() } else { '/tmp' }
 	return migrator_core.migrator_cask_value(migrator_spec_new_cask(root, 'local-transmission', [], []))
 }
 
 // Ruby let `let(:old_caskroom_path) { Cask::Caskroom.path/"local-caffeine" }` at line 60.
-pub fn ruby_migrator_spec_l60_d9_old_caskroom_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_spec_l60_d9_old_caskroom_path(args ...ruby.Value) ruby.Value {
 	root := if args.len > 0 { args[0].as_string() } else { '/tmp' }
-	return brew_runtime.object_value('Pathname', os.join_path(root, 'Caskroom', 'local-caffeine'))
+	return ruby.object_value('Pathname', os.join_path(root, 'Caskroom', 'local-caffeine'))
 }
 
 // Ruby let `let(:appdir) { Pathname(new_cask.config.appdir) }` at line 61.
-pub fn ruby_migrator_spec_l61_d10_appdir(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_spec_l61_d10_appdir(args ...ruby.Value) ruby.Value {
 	root := if args.len > 0 { args[0].as_string() } else { '/tmp' }
-	return brew_runtime.object_value('Pathname', os.join_path(root, 'Applications'))
+	return ruby.object_value('Pathname', os.join_path(root, 'Applications'))
 }
 
 // Ruby method `rename_old_cask_to_new_cask` at line 65.
-pub fn ruby_migrator_spec_l65_d11_rename_old_cask_to_new_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_spec_l65_d11_rename_old_cask_to_new_cask(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'new cask is required')
+		return ruby.object_value('ArgumentError', 'new cask is required')
 	}
 	cask := migrator_core.migrator_cask_from_value(args[0])
 	return migrator_core.migrator_cask_value(migrator_core.MigratorCask{
@@ -288,31 +288,31 @@ pub fn ruby_migrator_spec_l65_d11_rename_old_cask_to_new_cask(args ...brew_runti
 }
 
 // Ruby it `it "moves the old cask to the new token" do` at line 70.
-pub fn ruby_migrator_spec_l70_d12_moves(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_spec_l70_d12_moves(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(migrator_spec_move_case(false))
+	return ruby.bool_value(migrator_spec_move_case(false))
 }
 
 // Ruby it `it "moves the old cask to the new token without copying it into itself" do` at line 82.
-pub fn ruby_migrator_spec_l82_d13_moves(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_spec_l82_d13_moves(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(migrator_spec_move_case(true))
+	return ruby.bool_value(migrator_spec_move_case(true))
 }
 
 // Ruby it `it "uninstalls the old cask" do` at line 104.
-pub fn ruby_migrator_spec_l104_d14_uninstalls(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_spec_l104_d14_uninstalls(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(migrator_spec_uninstall_case(false, false))
+	return ruby.bool_value(migrator_spec_uninstall_case(false, false))
 }
 
 // Ruby it `it "does not uninstall the old cask in a dry run" do` at line 116.
-pub fn ruby_migrator_spec_l116_d15_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_spec_l116_d15_does(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(migrator_spec_uninstall_case(true, false))
+	return ruby.bool_value(migrator_spec_uninstall_case(true, false))
 }
 
 // Ruby let `let(:new_cask) { Cask::CaskLoader.load(cask_path("local-caffeine-clone")) }` at line 126.
-pub fn ruby_migrator_spec_l126_d16_new_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_spec_l126_d16_new_cask(args ...ruby.Value) ruby.Value {
 	root := if args.len > 0 { args[0].as_string() } else { '/tmp' }
 	app := migrator_core.MigratorArtifact{
 		class_name: 'Cask::Artifact::App'
@@ -326,76 +326,76 @@ pub fn ruby_migrator_spec_l126_d16_new_cask(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby it `it "keeps the shared artifact installed for the new cask" do` at line 135.
-pub fn ruby_migrator_spec_l135_d17_keeps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_spec_l135_d17_keeps(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(migrator_spec_uninstall_case(false, true))
+	return ruby.bool_value(migrator_spec_uninstall_case(false, true))
 }
 
 // Ruby let `let(:old_caskroom_path) { Pathname("/tmp/Caskroom/old-token") }` at line 149.
-pub fn ruby_migrator_spec_l149_d18_old_caskroom_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_spec_l149_d18_old_caskroom_path(args ...ruby.Value) ruby.Value {
 	root := if args.len > 0 { args[0].as_string() } else { '/tmp' }
-	return brew_runtime.object_value('Pathname', os.join_path(root, 'Caskroom', 'old-token'))
+	return ruby.object_value('Pathname', os.join_path(root, 'Caskroom', 'old-token'))
 }
 
 // Ruby let `let(:new_caskroom_path) { Pathname("/tmp/Caskroom/new-token") }` at line 150.
-pub fn ruby_migrator_spec_l150_d19_new_caskroom_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_spec_l150_d19_new_caskroom_path(args ...ruby.Value) ruby.Value {
 	root := if args.len > 0 { args[0].as_string() } else { '/tmp' }
-	return brew_runtime.object_value('Pathname', os.join_path(root, 'Caskroom', 'new-token'))
+	return ruby.object_value('Pathname', os.join_path(root, 'Caskroom', 'new-token'))
 }
 
 // Ruby let `let(:old_caskfile) { old_caskroom_path/".metadata/1.0/20240101000000/Casks/old-token.rb" }` at line 151.
-pub fn ruby_migrator_spec_l151_d20_old_caskfile(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_spec_l151_d20_old_caskfile(args ...ruby.Value) ruby.Value {
 	root := if args.len > 0 { args[0].as_string() } else { '/tmp' }
-	return brew_runtime.object_value('Pathname', os.join_path(root, 'Caskroom', 'old-token', '.metadata', '1.0', '20240101000000', 'Casks', 'old-token.rb'))
+	return ruby.object_value('Pathname', os.join_path(root, 'Caskroom', 'old-token', '.metadata', '1.0', '20240101000000', 'Casks', 'old-token.rb'))
 }
 
 // Ruby let `let(:new_caskfile) { new_caskroom_path/".metadata/1.0/20240101000000/Casks/new-token.rb" }` at line 152.
-pub fn ruby_migrator_spec_l152_d21_new_caskfile(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_spec_l152_d21_new_caskfile(args ...ruby.Value) ruby.Value {
 	root := if args.len > 0 { args[0].as_string() } else { '/tmp' }
-	return brew_runtime.object_value('Pathname', os.join_path(root, 'Caskroom', 'new-token', '.metadata', '1.0', '20240101000000', 'Casks', 'new-token.rb'))
+	return ruby.object_value('Pathname', os.join_path(root, 'Caskroom', 'new-token', '.metadata', '1.0', '20240101000000', 'Casks', 'new-token.rb'))
 }
 
 // Ruby let `let(:old_pin_path) { Pathname("/tmp/pinned_casks/old-token") }` at line 153.
-pub fn ruby_migrator_spec_l153_d22_old_pin_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_spec_l153_d22_old_pin_path(args ...ruby.Value) ruby.Value {
 	root := if args.len > 0 { args[0].as_string() } else { '/tmp' }
-	return brew_runtime.object_value('Pathname', os.join_path(root, 'pinned_casks', 'old-token'))
+	return ruby.object_value('Pathname', os.join_path(root, 'pinned_casks', 'old-token'))
 }
 
 // Ruby let `let(:new_pin_path) { Pathname("/tmp/pinned_casks/new-token") }` at line 154.
-pub fn ruby_migrator_spec_l154_d23_new_pin_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_spec_l154_d23_new_pin_path(args ...ruby.Value) ruby.Value {
 	root := if args.len > 0 { args[0].as_string() } else { '/tmp' }
-	return brew_runtime.object_value('Pathname', os.join_path(root, 'pinned_casks', 'new-token'))
+	return ruby.object_value('Pathname', os.join_path(root, 'pinned_casks', 'new-token'))
 }
 
 // Ruby let `let(:old_cask) do` at line 155.
-pub fn ruby_migrator_spec_l155_d24_old_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_spec_l155_d24_old_cask(args ...ruby.Value) ruby.Value {
 	root := if args.len > 0 { args[0].as_string() } else { '/tmp' }
-	old_file := ruby_migrator_spec_l151_d20_old_caskfile(brew_runtime.string_value(root)).as_string()
+	old_file := ruby_migrator_spec_l151_d20_old_caskfile(ruby.string_value(root)).as_string()
 	return migrator_core.migrator_cask_value(migrator_spec_old_cask(root, 'old-token', old_file, []))
 }
 
 // Ruby let `let(:new_cask) do` at line 165.
-pub fn ruby_migrator_spec_l165_d25_new_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_spec_l165_d25_new_cask(args ...ruby.Value) ruby.Value {
 	root := if args.len > 0 { args[0].as_string() } else { '/tmp' }
 	return migrator_core.migrator_cask_value(migrator_spec_new_cask(root, 'new-token', [], []))
 }
 
 // Ruby it `it "moves a cask pin to the new token" do` at line 185.
-pub fn ruby_migrator_spec_l185_d26_moves(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_spec_l185_d26_moves(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(migrator_spec_pin_case(false, false))
+	return ruby.bool_value(migrator_spec_pin_case(false, false))
 }
 
 // Ruby it `it "prints relative cask pin targets in dry run" do` at line 192.
-pub fn ruby_migrator_spec_l192_d27_prints(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_spec_l192_d27_prints(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(migrator_spec_pin_case(true, false))
+	return ruby.bool_value(migrator_spec_pin_case(true, false))
 }
 
 // Ruby it `it "does not remove the old cask pin when creating the new pin fails" do` at line 198.
-pub fn ruby_migrator_spec_l198_d28_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_migrator_spec_l198_d28_does(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(migrator_spec_pin_case(false, true))
+	return ruby.bool_value(migrator_spec_pin_case(false, true))
 }
 
 // Original Ruby source (line-for-line):

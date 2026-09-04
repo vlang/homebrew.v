@@ -1,6 +1,6 @@
 module cask
 
-import brew_runtime
+import ruby
 import homebrew.rubocops.@shared as install_steps_shared
 
 // Translated from Homebrew/brew `rubocops/cask/install_steps.rb`.
@@ -93,8 +93,8 @@ fn cask_install_steps_apply_edits(source string, edits []CaskInstallStepsEdit) s
 	return result
 }
 
-fn cask_install_steps_nil() brew_runtime.Value {
-	return brew_runtime.Value{
+fn cask_install_steps_nil() ruby.Value {
+	return ruby.Value{
 		type_name: 'NilClass'
 		repr: 'nil'
 	}
@@ -618,13 +618,13 @@ fn cask_install_steps_invalid_interpolation(source string, block_name string) ?C
 	return none
 }
 
-fn cask_install_steps_offense_value(offense CaskInstallStepsOffense) brew_runtime.Value {
-	return brew_runtime.Value{
+fn cask_install_steps_offense_value(offense CaskInstallStepsOffense) ruby.Value {
+	return ruby.Value{
 		type_name: 'RuboCop::Cop::Offense'
 		repr: offense.message
 		map_data: {
-			'message':     brew_runtime.string_value(offense.message)
-			'replacement': brew_runtime.string_value(offense.replacement)
+			'message':     ruby.string_value(offense.message)
+			'replacement': ruby.string_value(offense.replacement)
 		}
 		attributes: {
 			'begin_pos': offense.begin_pos.str()
@@ -633,15 +633,15 @@ fn cask_install_steps_offense_value(offense CaskInstallStepsOffense) brew_runtim
 	}
 }
 
-fn cask_install_steps_analysis_value(analysis CaskInstallStepsAnalysis) brew_runtime.Value {
+fn cask_install_steps_analysis_value(analysis CaskInstallStepsAnalysis) ruby.Value {
 	values := analysis.offenses.map(cask_install_steps_offense_value(it))
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'RuboCop::Cop::Cask::InstallSteps::Analysis'
 		repr: analysis.source
 		array_data: values
 		map_data: {
-			'offenses':  brew_runtime.array_value(values)
-			'corrected': brew_runtime.string_value(analysis.corrected)
+			'offenses':  ruby.array_value(values)
+			'corrected': ruby.string_value(analysis.corrected)
 		}
 	}
 }
@@ -737,21 +737,21 @@ pub fn correct_cask_install_steps(source string, file_path string) string {
 }
 
 // Ruby method `on_cask(cask_block)` at line 58.
-pub fn ruby_install_steps_l58_d1_on_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_l58_d1_on_cask(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { 'cask "foo" do\nend' }
 	file_path := if args.len > 1 { args[1].as_string() } else { '' }
 	return cask_install_steps_analysis_value(analyze_cask_install_steps(source, file_path))
 }
 
 // Ruby method `autocorrect_flight_block?(flight_stanza, steps_block)` at line 96.
-pub fn ruby_install_steps_l96_d2_autocorrect_flight_block(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_l96_d2_autocorrect_flight_block(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	file_path := if args.len > 2 { args[2].as_string() } else { '' }
-	return brew_runtime.bool_value(correct_cask_install_steps(source, file_path) != source)
+	return ruby.bool_value(correct_cask_install_steps(source, file_path) != source)
 }
 
 // Ruby method `keychain_certificate_step_lines(body_node)` at line 120.
-pub fn ruby_install_steps_l120_d3_keychain_certificate_step_lines(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_l120_d3_keychain_certificate_step_lines(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return cask_install_steps_nil()
 	}
@@ -759,11 +759,11 @@ pub fn ruby_install_steps_l120_d3_keychain_certificate_step_lines(args ...brew_r
 	lines := cask_keychain_certificate_step_lines(args[0].as_string(), block_name) or {
 		return cask_install_steps_nil()
 	}
-	return brew_runtime.string_array_value(lines)
+	return ruby.string_array_value(lines)
 }
 
 // Ruby method `keychain_delete_sequence_name(nodes)` at line 151.
-pub fn ruby_install_steps_l151_d4_keychain_delete_sequence_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_l151_d4_keychain_delete_sequence_name(args ...ruby.Value) ruby.Value {
 	nodes := if args.len > 0 && args[0].type_name == 'Array' {
 		(args[0].as_array() or { [] }).map(it.as_string())
 	} else {
@@ -771,27 +771,27 @@ pub fn ruby_install_steps_l151_d4_keychain_delete_sequence_name(args ...brew_run
 	}
 	name := cask_keychain_delete_sequence_name(nodes) or { return cask_install_steps_nil() }
 	return if name.is_str {
-		brew_runtime.string_value(name.value)
+		ruby.string_value(name.value)
 	} else {
-		brew_runtime.structured_value('RuboCop::AST::LvarNode', name.value, {
+		ruby.structured_value('RuboCop::AST::LvarNode', name.value, {
 			'name': name.value
 		})
 	}
 }
 
 // Ruby method `fingerprint_keychain_step_lines(nodes)` at line 163.
-pub fn ruby_install_steps_l163_d5_fingerprint_keychain_step_lines(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_l163_d5_fingerprint_keychain_step_lines(args ...ruby.Value) ruby.Value {
 	nodes := if args.len > 0 && args[0].type_name == 'Array' {
 		(args[0].as_array() or { [] }).map(it.as_string())
 	} else {
 		args.map(it.as_string())
 	}
 	lines := cask_fingerprint_keychain_step_lines(nodes) or { return cask_install_steps_nil() }
-	return brew_runtime.string_array_value(lines)
+	return ruby.string_array_value(lines)
 }
 
 // Ruby method `keychain_find_certificate_name(node)` at line 189.
-pub fn ruby_install_steps_l189_d6_keychain_find_certificate_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_l189_d6_keychain_find_certificate_name(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return cask_install_steps_nil()
 	}
@@ -799,21 +799,21 @@ pub fn ruby_install_steps_l189_d6_keychain_find_certificate_name(args ...brew_ru
 		return cask_install_steps_nil()
 	}
 	return if name.is_str {
-		brew_runtime.string_value(name.value)
+		ruby.string_value(name.value)
 	} else {
-		brew_runtime.structured_value('RuboCop::AST::LvarNode', name.value, {
+		ruby.structured_value('RuboCop::AST::LvarNode', name.value, {
 			'name': name.value
 		})
 	}
 }
 
 // Ruby method `certificate_path(node)` at line 229.
-pub fn ruby_install_steps_l229_d7_certificate_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_steps_l229_d7_certificate_path(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return cask_install_steps_nil()
 	}
 	path := cask_certificate_path(args[0].as_string()) or { return cask_install_steps_nil() }
-	return brew_runtime.string_value(path)
+	return ruby.string_value(path)
 }
 
 // Original Ruby source (line-for-line):

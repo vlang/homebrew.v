@@ -1,6 +1,6 @@
 module compilers
 
-import brew_runtime
+import ruby
 import os
 import regex
 
@@ -156,7 +156,7 @@ pub fn rspec_dynamic_matchers_decoration(test_root string,
 	}
 }
 
-fn rspec_matcher_roots(args []brew_runtime.Value) (string, string) {
+fn rspec_matcher_roots(args []ruby.Value) (string, string) {
 	return if args.len > 0 { args[0].as_string() } else { 'homebrew/test' }, if args.len > 1 {
 		args[1].as_string()
 	} else {
@@ -165,57 +165,57 @@ fn rspec_matcher_roots(args []brew_runtime.Value) (string, string) {
 }
 
 // Ruby method `self.gather_constants` at line 12.
-pub fn ruby_rspec_dynamic_matchers_l12_d1_self_gather_constants(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_rspec_dynamic_matchers_l12_d1_self_gather_constants(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.array_value([
-		brew_runtime.object_value('Module', 'RSpec::Matchers'),
+	return ruby.array_value([
+		ruby.object_value('Module', 'RSpec::Matchers'),
 	])
 }
 
 // Ruby method `decorate` at line 17.
-pub fn ruby_rspec_dynamic_matchers_l17_d2_decorate(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_rspec_dynamic_matchers_l17_d2_decorate(args ...ruby.Value) ruby.Value {
 	test_root, rbi_root := rspec_matcher_roots(args)
 	decoration := rspec_dynamic_matchers_decoration(test_root, rbi_root) or {
-		return brew_runtime.object_value('Error', err.msg())
+		return ruby.object_value('Error', err.msg())
 	}
 	return tapioca_decoration_value(decoration)
 }
 
 // Ruby method `missing_matchers` at line 34.
-pub fn ruby_rspec_dynamic_matchers_l34_d3_missing_matchers(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_rspec_dynamic_matchers_l34_d3_missing_matchers(args ...ruby.Value) ruby.Value {
 	test_root, rbi_root := rspec_matcher_roots(args)
-	return brew_runtime.string_array_value(rspec_missing_matchers(test_root, rbi_root) or {
-		return brew_runtime.object_value('Error', err.msg())
+	return ruby.string_array_value(rspec_missing_matchers(test_root, rbi_root) or {
+		return ruby.object_value('Error', err.msg())
 	})
 }
 
 // Ruby method `used_matchers` at line 39.
-pub fn ruby_rspec_dynamic_matchers_l39_d4_used_matchers(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_rspec_dynamic_matchers_l39_d4_used_matchers(args ...ruby.Value) ruby.Value {
 	test_root, _ := rspec_matcher_roots(args)
-	return brew_runtime.string_array_value(rspec_used_matchers(test_root) or {
-		return brew_runtime.object_value('Error', err.msg())
+	return ruby.string_array_value(rspec_used_matchers(test_root) or {
+		return ruby.object_value('Error', err.msg())
 	})
 }
 
 // Ruby method `declared_dynamic_matchers` at line 52.
-pub fn ruby_rspec_dynamic_matchers_l52_d5_declared_dynamic_matchers(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_rspec_dynamic_matchers_l52_d5_declared_dynamic_matchers(args ...ruby.Value) ruby.Value {
 	test_root, _ := rspec_matcher_roots(args)
-	return brew_runtime.string_array_value(rspec_declared_dynamic_matchers(test_root) or {
-		return brew_runtime.object_value('Error', err.msg())
+	return ruby.string_array_value(rspec_declared_dynamic_matchers(test_root) or {
+		return ruby.object_value('Error', err.msg())
 	})
 }
 
 // Ruby method `matcher_declaration_files` at line 76.
-pub fn ruby_rspec_dynamic_matchers_l76_d6_matcher_declaration_files(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_rspec_dynamic_matchers_l76_d6_matcher_declaration_files(args ...ruby.Value) ruby.Value {
 	test_root, _ := rspec_matcher_roots(args)
-	return brew_runtime.string_array_value(rspec_matcher_declaration_files(test_root))
+	return ruby.string_array_value(rspec_matcher_declaration_files(test_root))
 }
 
 // Ruby method `known_rspec_matchers` at line 82.
-pub fn ruby_rspec_dynamic_matchers_l82_d7_known_rspec_matchers(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_rspec_dynamic_matchers_l82_d7_known_rspec_matchers(args ...ruby.Value) ruby.Value {
 	_, rbi_root := rspec_matcher_roots(args)
-	return brew_runtime.string_array_value(rspec_known_matchers(rbi_root) or {
-		return brew_runtime.object_value('Error', err.msg())
+	return ruby.string_array_value(rspec_known_matchers(rbi_root) or {
+		return ruby.object_value('Error', err.msg())
 	})
 }
 

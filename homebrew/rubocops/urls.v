@@ -1,6 +1,6 @@
 module rubocops
 
-import brew_runtime
+import ruby
 import homebrew.rubocops.@shared as url_shared
 import homebrew.rubocops.extend as formula_cop
 
@@ -20,8 +20,8 @@ pub:
 	corrected string
 }
 
-fn formula_urls_nil() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn formula_urls_nil() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 fn formula_urls_tap(value string) string {
@@ -34,7 +34,7 @@ fn formula_urls_tap(value string) string {
 	return value.trim('/')
 }
 
-fn formula_urls_context(args []brew_runtime.Value) FormulaUrlsContext {
+fn formula_urls_context(args []ruby.Value) FormulaUrlsContext {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	mut tap := if args.len > 1 { formula_urls_tap(args[1].as_string()) } else { '' }
 	mut formula_name := if args.len > 2 { args[2].as_string() } else { '' }
@@ -374,52 +374,52 @@ pub fn audit_formula_git_strict_urls(context FormulaUrlsContext) FormulaUrlsAnal
 	return audit_formula_git_key(context, 'tag', true)
 }
 
-fn formula_urls_analysis_value(analysis FormulaUrlsAnalysis) brew_runtime.Value {
-	return brew_runtime.array_value(analysis.offenses.map(url_shared.url_problem_value(it)))
+fn formula_urls_analysis_value(analysis FormulaUrlsAnalysis) ruby.Value {
+	return ruby.array_value(analysis.offenses.map(url_shared.url_problem_value(it)))
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 16.
-pub fn ruby_urls_l16_d1_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_urls_l16_d1_audit_formula(args ...ruby.Value) ruby.Value {
 	return formula_urls_analysis_value(audit_formula_urls(formula_urls_context(args)))
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 66.
-pub fn ruby_urls_l66_d2_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_urls_l66_d2_audit_formula(args ...ruby.Value) ruby.Value {
 	return formula_urls_analysis_value(audit_formula_http_urls(formula_urls_context(args)))
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 105.
-pub fn ruby_urls_l105_d3_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_urls_l105_d3_audit_formula(args ...ruby.Value) ruby.Value {
 	return formula_urls_analysis_value(audit_formula_pypi_urls(formula_urls_context(args)))
 }
 
 // Ruby method `get_pypi_url(url)` at line 126.
-pub fn ruby_urls_l126_d4_get_pypi_url(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_urls_l126_d4_get_pypi_url(args ...ruby.Value) ruby.Value {
 	return if args.len == 0 {
 		formula_urls_nil()
 	} else {
-		brew_runtime.string_value(pypi_project_url(args[0].as_string()))
+		ruby.string_value(pypi_project_url(args[0].as_string()))
 	}
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 136.
-pub fn ruby_urls_l136_d5_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_urls_l136_d5_audit_formula(args ...ruby.Value) ruby.Value {
 	return formula_urls_analysis_value(audit_formula_git_urls(formula_urls_context(args)))
 }
 
 // Ruby def_node_matcher `def_node_matcher :url_has_revision?, <<~EOS` at line 149.
-pub fn ruby_urls_l149_d6_url_has_revision(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(args.len > 0 && formula_url_has_string_key(args[0].as_string(), 'revision'))
+pub fn ruby_urls_l149_d6_url_has_revision(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(args.len > 0 && formula_url_has_string_key(args[0].as_string(), 'revision'))
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 159.
-pub fn ruby_urls_l159_d7_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_urls_l159_d7_audit_formula(args ...ruby.Value) ruby.Value {
 	return formula_urls_analysis_value(audit_formula_git_strict_urls(formula_urls_context(args)))
 }
 
 // Ruby def_node_matcher `def_node_matcher :url_has_tag?, <<~EOS` at line 172.
-pub fn ruby_urls_l172_d8_url_has_tag(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(args.len > 0 && formula_url_has_string_key(args[0].as_string(), 'tag'))
+pub fn ruby_urls_l172_d8_url_has_tag(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(args.len > 0 && formula_url_has_string_key(args[0].as_string(), 'tag'))
 }
 
 // Original Ruby source (line-for-line):

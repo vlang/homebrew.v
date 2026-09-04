@@ -1,6 +1,6 @@
 module strategy
 
-import brew_runtime
+import ruby
 import homebrew.livecheck.strategy as header_strategy
 
 fn header_match_spec_regex(name string) header_strategy.GithubReleasesRegex {
@@ -152,141 +152,141 @@ fn header_match_spec_empty_fetch(url string) ![]header_strategy.HeaderMatchHeade
 	return []header_strategy.HeaderMatchHeaders{}
 }
 
-fn header_match_spec_header_value(value header_strategy.HeaderMatchValue) brew_runtime.Value {
+fn header_match_spec_header_value(value header_strategy.HeaderMatchValue) ruby.Value {
 	return if value.values.len == 1 {
-		brew_runtime.string_value(value.values[0])
+		ruby.string_value(value.values[0])
 	} else {
-		brew_runtime.string_array_value(value.values)
+		ruby.string_array_value(value.values)
 	}
 }
 
-fn header_match_spec_header_map(value header_strategy.HeaderMatchHeaders) brew_runtime.Value {
-	mut result := map[string]brew_runtime.Value{}
+fn header_match_spec_header_map(value header_strategy.HeaderMatchHeaders) ruby.Value {
+	mut result := map[string]ruby.Value{}
 	for name, header in value {
 		result[name] = header_match_spec_header_value(header)
 	}
-	return brew_runtime.map_value(result)
+	return ruby.map_value(result)
 }
 
 // Translated from Homebrew/brew `test/livecheck/strategy/header_match_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:header_match) { described_class }` at line 7.
-pub fn ruby_header_match_spec_l7_d1_header_match(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Class', 'Homebrew::Livecheck::Strategy::HeaderMatch')
+pub fn ruby_header_match_spec_l7_d1_header_match(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Class', 'Homebrew::Livecheck::Strategy::HeaderMatch')
 }
 
 // Ruby let `let(:http_url) { "https://brew.sh/blog/" }` at line 9.
-pub fn ruby_header_match_spec_l9_d2_http_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('https://brew.sh/blog/')
+pub fn ruby_header_match_spec_l9_d2_http_url(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('https://brew.sh/blog/')
 }
 
 // Ruby let `let(:non_http_url) { "ftp://brew.sh/" }` at line 10.
-pub fn ruby_header_match_spec_l10_d3_non_http_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('ftp://brew.sh/')
+pub fn ruby_header_match_spec_l10_d3_non_http_url(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('ftp://brew.sh/')
 }
 
 // Ruby let `let(:regexes) do` at line 11.
-pub fn ruby_header_match_spec_l11_d4_regexes(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'archive': brew_runtime.object_value('Regexp', header_match_spec_regex('archive').pattern)
-		'latest':  brew_runtime.object_value('Regexp', header_match_spec_regex('latest').pattern)
-		'loose':   brew_runtime.object_value('Regexp', header_match_spec_regex('loose').pattern)
+pub fn ruby_header_match_spec_l11_d4_regexes(args ...ruby.Value) ruby.Value {
+	return ruby.map_value({
+		'archive': ruby.object_value('Regexp', header_match_spec_regex('archive').pattern)
+		'latest':  ruby.object_value('Regexp', header_match_spec_regex('latest').pattern)
+		'loose':   ruby.object_value('Regexp', header_match_spec_regex('loose').pattern)
 	})
 }
 
 // Ruby let `let(:headers) do` at line 18.
-pub fn ruby_header_match_spec_l18_d5_headers(args ...brew_runtime.Value) brew_runtime.Value {
-	mut values := map[string]brew_runtime.Value{}
+pub fn ruby_header_match_spec_l18_d5_headers(args ...ruby.Value) ruby.Value {
+	mut values := map[string]ruby.Value{}
 	for name, headers in header_match_spec_headers() {
 		values[name] = header_match_spec_header_map(headers)
 	}
-	return brew_runtime.map_value(values)
+	return ruby.map_value(values)
 }
 
 // Ruby let `let(:matches) do` at line 50.
-pub fn ruby_header_match_spec_l50_d6_matches(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'content_disposition':              brew_runtime.string_array_value(['1.2.3'])
-		'location':                         brew_runtime.string_array_value(['1.2.4'])
-		'content_disposition_and_location': brew_runtime.string_array_value(['1.2.3', '1.2.4'])
+pub fn ruby_header_match_spec_l50_d6_matches(args ...ruby.Value) ruby.Value {
+	return ruby.map_value({
+		'content_disposition':              ruby.string_array_value(['1.2.3'])
+		'location':                         ruby.string_array_value(['1.2.4'])
+		'content_disposition_and_location': ruby.string_array_value(['1.2.3', '1.2.4'])
 	})
 }
 
 // Ruby it `it "returns true for an HTTP URL" do` at line 61.
-pub fn ruby_header_match_spec_l61_d7_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(header_strategy.header_match_matches_url('https://brew.sh/blog/'))
+pub fn ruby_header_match_spec_l61_d7_returns(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(header_strategy.header_match_matches_url('https://brew.sh/blog/'))
 }
 
 // Ruby it `it "returns false for a non-HTTP URL" do` at line 65.
-pub fn ruby_header_match_spec_l65_d8_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(!header_strategy.header_match_matches_url('ftp://brew.sh/'))
+pub fn ruby_header_match_spec_l65_d8_returns(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(!header_strategy.header_match_matches_url('ftp://brew.sh/'))
 }
 
 // Ruby it `it "returns an empty array if headers hash is empty" do` at line 71.
-pub fn ruby_header_match_spec_l71_d9_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_header_match_spec_l71_d9_returns(args ...ruby.Value) ruby.Value {
 	versions := header_strategy.header_match_versions_from_content(header_strategy.HeaderMatchVersionsRequest{
 		headers: [header_strategy.HeaderMatchHeaders{}]
-	}) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(versions.len == 0)
+	}) or { return ruby.bool_value(false) }
+	return ruby.bool_value(versions.len == 0)
 }
 
 // Ruby it `it "returns an empty array if checked headers do not contain versions" do` at line 75.
-pub fn ruby_header_match_spec_l75_d10_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_header_match_spec_l75_d10_returns(args ...ruby.Value) ruby.Value {
 	versions := header_strategy.header_match_versions_from_content(header_strategy.HeaderMatchVersionsRequest{
 		headers: [header_match_spec_headers()['no_version']]
-	}) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(versions.len == 0)
+	}) or { return ruby.bool_value(false) }
+	return ruby.bool_value(versions.len == 0)
 }
 
 // Ruby it `it "returns an array of version strings when given headers" do` at line 79.
-pub fn ruby_header_match_spec_l79_d11_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_header_match_spec_l79_d11_returns(args ...ruby.Value) ruby.Value {
 	headers := header_match_spec_headers()
 	content_disposition := header_strategy.header_match_versions_from_content(header_strategy.HeaderMatchVersionsRequest{
 		headers: [
 			headers['content_disposition'],
 		]
-	}) or { return brew_runtime.bool_value(false) }
+	}) or { return ruby.bool_value(false) }
 	location := header_strategy.header_match_versions_from_content(header_strategy.HeaderMatchVersionsRequest{
 		headers: [
 			headers['location'],
 		]
-	}) or { return brew_runtime.bool_value(false) }
+	}) or { return ruby.bool_value(false) }
 	combined := header_strategy.header_match_versions_from_content(header_strategy.HeaderMatchVersionsRequest{
 		headers: [
 			headers['content_disposition_and_location'],
 		]
-	}) or { return brew_runtime.bool_value(false) }
+	}) or { return ruby.bool_value(false) }
 	location_array := header_strategy.header_match_versions_from_content(header_strategy.HeaderMatchVersionsRequest{
 		headers: [
 			headers['location_array'],
 		]
-	}) or { return brew_runtime.bool_value(false) }
+	}) or { return ruby.bool_value(false) }
 	archive_regex := header_strategy.header_match_versions_from_content(header_strategy.HeaderMatchVersionsRequest{
 		headers: [
 			headers['content_disposition'],
 		]
 		regex: header_match_spec_regex('archive')
-	}) or { return brew_runtime.bool_value(false) }
+	}) or { return ruby.bool_value(false) }
 	location_regex := header_strategy.header_match_versions_from_content(header_strategy.HeaderMatchVersionsRequest{
 		headers: [
 			headers['location'],
 		]
 		regex: header_match_spec_regex('latest')
-	}) or { return brew_runtime.bool_value(false) }
+	}) or { return ruby.bool_value(false) }
 	combined_regex := header_strategy.header_match_versions_from_content(header_strategy.HeaderMatchVersionsRequest{
 		headers: [
 			headers['content_disposition_and_location'],
 		]
 		regex: header_match_spec_regex('latest')
-	}) or { return brew_runtime.bool_value(false) }
+	}) or { return ruby.bool_value(false) }
 	array_regex := header_strategy.header_match_versions_from_content(header_strategy.HeaderMatchVersionsRequest{
 		headers: [
 			headers['location_array'],
 		]
 		regex: header_match_spec_regex('latest')
-	}) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(content_disposition == ['1.2.3'] && location == [
+	}) or { return ruby.bool_value(false) }
+	return ruby.bool_value(content_disposition == ['1.2.3'] && location == [
 		'1.2.4',
 	] && combined == ['1.2.3', '1.2.4'] && location_array == ['1.2.4'] && archive_regex == [
 		'1.2.3',
@@ -296,7 +296,7 @@ pub fn ruby_header_match_spec_l79_d11_returns(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby it `it "returns an array of version strings when given headers and a block" do` at line 96.
-pub fn ruby_header_match_spec_l96_d12_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_header_match_spec_l96_d12_returns(args ...ruby.Value) ruby.Value {
 	headers := header_match_spec_headers()
 	merged_string := header_strategy.header_match_versions_from_content(header_strategy.HeaderMatchVersionsRequest{
 		headers: [
@@ -304,7 +304,7 @@ pub fn ruby_header_match_spec_l96_d12_returns(args ...brew_runtime.Value) brew_r
 		]
 		has_block: true
 		block: header_match_spec_merged_string
-	}) or { return brew_runtime.bool_value(false) }
+	}) or { return ruby.bool_value(false) }
 	all_string := header_strategy.header_match_versions_from_content(header_strategy.HeaderMatchVersionsRequest{
 		headers: [
 			headers['location'],
@@ -312,7 +312,7 @@ pub fn ruby_header_match_spec_l96_d12_returns(args ...brew_runtime.Value) brew_r
 		has_block: true
 		block_argument: .all_headers
 		block: header_match_spec_all_string
-	}) or { return brew_runtime.bool_value(false) }
+	}) or { return ruby.bool_value(false) }
 	merged_regex := header_strategy.header_match_versions_from_content(header_strategy.HeaderMatchVersionsRequest{
 		headers: [
 			headers['location'],
@@ -320,7 +320,7 @@ pub fn ruby_header_match_spec_l96_d12_returns(args ...brew_runtime.Value) brew_r
 		regex: header_match_spec_regex('latest')
 		has_block: true
 		block: header_match_spec_merged_string
-	}) or { return brew_runtime.bool_value(false) }
+	}) or { return ruby.bool_value(false) }
 	all_regex := header_strategy.header_match_versions_from_content(header_strategy.HeaderMatchVersionsRequest{
 		headers: [
 			headers['location'],
@@ -329,7 +329,7 @@ pub fn ruby_header_match_spec_l96_d12_returns(args ...brew_runtime.Value) brew_r
 		has_block: true
 		block_argument: .all_headers
 		block: header_match_spec_all_string
-	}) or { return brew_runtime.bool_value(false) }
+	}) or { return ruby.bool_value(false) }
 	merged_array := header_strategy.header_match_versions_from_content(header_strategy.HeaderMatchVersionsRequest{
 		headers: [
 			headers['content_disposition_and_location'],
@@ -337,7 +337,7 @@ pub fn ruby_header_match_spec_l96_d12_returns(args ...brew_runtime.Value) brew_r
 		regex: header_match_spec_regex('loose')
 		has_block: true
 		block: header_match_spec_merged_array
-	}) or { return brew_runtime.bool_value(false) }
+	}) or { return ruby.bool_value(false) }
 	all_array := header_strategy.header_match_versions_from_content(header_strategy.HeaderMatchVersionsRequest{
 		headers: [
 			headers['content_disposition_and_location'],
@@ -346,8 +346,8 @@ pub fn ruby_header_match_spec_l96_d12_returns(args ...brew_runtime.Value) brew_r
 		has_block: true
 		block_argument: .all_headers
 		block: header_match_spec_all_array
-	}) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(merged_string == ['1.2.4'] && all_string == ['1.2.4'] && merged_regex == [
+	}) or { return ruby.bool_value(false) }
+	return ruby.bool_value(merged_string == ['1.2.4'] && all_string == ['1.2.4'] && merged_regex == [
 		'1.2.4',
 	] && all_regex == ['1.2.4'] && merged_array == ['1.2.3', '1.2.4'] && all_array == [
 		'1.2.3',
@@ -356,116 +356,116 @@ pub fn ruby_header_match_spec_l96_d12_returns(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby it `it "allows a nil return from a block" do` at line 151.
-pub fn ruby_header_match_spec_l151_d13_allows(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_header_match_spec_l151_d13_allows(args ...ruby.Value) ruby.Value {
 	versions := header_strategy.header_match_versions_from_content(header_strategy.HeaderMatchVersionsRequest{
 		headers: [header_match_spec_headers()['location']]
 		has_block: true
 		block: header_match_spec_nil_block
-	}) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(versions.len == 0)
+	}) or { return ruby.bool_value(false) }
+	return ruby.bool_value(versions.len == 0)
 }
 
 // Ruby it `it "errors on an invalid return type from a block" do` at line 158.
-pub fn ruby_header_match_spec_l158_d14_errors(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_header_match_spec_l158_d14_errors(args ...ruby.Value) ruby.Value {
 	header_strategy.header_match_versions_from_content(header_strategy.HeaderMatchVersionsRequest{
 		headers: [header_match_spec_headers()['location']]
 		has_block: true
 		block: header_match_spec_invalid_block
-	}) or { return brew_runtime.bool_value(err.msg() == 'Return value of a strategy block must be a string or array of strings.') }
-	return brew_runtime.bool_value(false)
+	}) or { return ruby.bool_value(err.msg() == 'Return value of a strategy block must be a string or array of strings.') }
+	return ruby.bool_value(false)
 }
 
 // Ruby it `it "errors if the first block argument uses an unhandled name" do` at line 167.
-pub fn ruby_header_match_spec_l167_d15_errors(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_header_match_spec_l167_d15_errors(args ...ruby.Value) ruby.Value {
 	header_strategy.header_match_versions_from_content(header_strategy.HeaderMatchVersionsRequest{
 		headers: [header_match_spec_headers()['location']]
 		has_block: true
 		block_argument: .invalid
 		block: header_match_spec_merged_string
-	}) or { return brew_runtime.bool_value(err.msg() == 'First argument of HeaderMatch `strategy` block must be `headers` or `all_headers`') }
-	return brew_runtime.bool_value(false)
+	}) or { return ruby.bool_value(err.msg() == 'First argument of HeaderMatch `strategy` block must be `headers` or `all_headers`') }
+	return ruby.bool_value(false)
 }
 
 // Ruby let `let(:content) do` at line 177.
-pub fn ruby_header_match_spec_l177_d16_content(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(header_strategy.header_match_headers_json([
+pub fn ruby_header_match_spec_l177_d16_content(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(header_strategy.header_match_headers_json([
 		header_match_spec_headers()['location'],
 	]))
 }
 
 // Ruby let `let(:match_data) do` at line 181.
-pub fn ruby_header_match_spec_l181_d17_match_data(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_header_match_spec_l181_d17_match_data(args ...ruby.Value) ruby.Value {
 	base := {
-		'matches': brew_runtime.map_value({
-			'1.2.4': brew_runtime.object_value('Version', '1.2.4')
+		'matches': ruby.map_value({
+			'1.2.4': ruby.object_value('Version', '1.2.4')
 		})
-		'regex':   brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
-		'url':     brew_runtime.string_value('https://brew.sh/blog/')
+		'regex':   ruby.Value{ type_name: 'NilClass', repr: 'nil' }
+		'url':     ruby.string_value('https://brew.sh/blog/')
 	}
 	mut fetched := base.clone()
 	fetched['content'] = ruby_header_match_spec_l177_d16_content()
 	mut cached := base.clone()
-	cached['cached'] = brew_runtime.bool_value(true)
+	cached['cached'] = ruby.bool_value(true)
 	mut cached_default := base.clone()
-	cached_default['matches'] = brew_runtime.map_value({})
-	cached_default['cached'] = brew_runtime.bool_value(true)
-	return brew_runtime.map_value({
-		'fetched':        brew_runtime.map_value(fetched)
-		'cached':         brew_runtime.map_value(cached)
-		'cached_default': brew_runtime.map_value(cached_default)
+	cached_default['matches'] = ruby.map_value({})
+	cached_default['cached'] = ruby.bool_value(true)
+	return ruby.map_value({
+		'fetched':        ruby.map_value(fetched)
+		'cached':         ruby.map_value(cached)
+		'cached_default': ruby.map_value(cached_default)
 	})
 }
 
 // Ruby it `it "finds versions in fetched content" do` at line 195.
-pub fn ruby_header_match_spec_l195_d18_finds(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_header_match_spec_l195_d18_finds(args ...ruby.Value) ruby.Value {
 	actual := header_strategy.header_match_find_versions(header_strategy.HeaderMatchFindRequest{
 		url: 'https://brew.sh/blog/'
-	}, header_match_spec_fetch) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(actual.matches == {
+	}, header_match_spec_fetch) or { return ruby.bool_value(false) }
+	return ruby.bool_value(actual.matches == {
 		'1.2.4': '1.2.4'
 	} && actual.has_content && actual.content == ruby_header_match_spec_l177_d16_content().repr && !actual.has_cached)
 }
 
 // Ruby it `it "finds versions in provided content" do` at line 201.
-pub fn ruby_header_match_spec_l201_d19_finds(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_header_match_spec_l201_d19_finds(args ...ruby.Value) ruby.Value {
 	content := ruby_header_match_spec_l177_d16_content().repr
 	cached := header_strategy.header_match_find_versions(header_strategy.HeaderMatchFindRequest{
 		url: 'https://brew.sh/blog/'
 		content: content
-	}, header_match_spec_empty_fetch) or { return brew_runtime.bool_value(false) }
+	}, header_match_spec_empty_fetch) or { return ruby.bool_value(false) }
 	with_block := header_strategy.header_match_find_versions(header_strategy.HeaderMatchFindRequest{
 		url: 'https://brew.sh/blog/'
 		regex: header_match_spec_regex('latest')
 		content: content
 		has_block: true
 		block: header_match_spec_merged_string
-	}, header_match_spec_empty_fetch) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(cached.matches == {
+	}, header_match_spec_empty_fetch) or { return ruby.bool_value(false) }
+	return ruby.bool_value(cached.matches == {
 		'1.2.4': '1.2.4'
 	} && cached.has_cached && cached.cached && !cached.has_content && with_block.matches == {
 		'1.2.4': '1.2.4'
-	} && (with_block.regex or { return brew_runtime.bool_value(false) }).pattern == header_match_spec_regex('latest').pattern)
+	} && (with_block.regex or { return ruby.bool_value(false) }).pattern == header_match_spec_regex('latest').pattern)
 }
 
 // Ruby it `it "returns default match_data when url is blank" do` at line 221.
-pub fn ruby_header_match_spec_l221_d20_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_header_match_spec_l221_d20_returns(args ...ruby.Value) ruby.Value {
 	actual := header_strategy.header_match_find_versions(header_strategy.HeaderMatchFindRequest{
 		content: ruby_header_match_spec_l177_d16_content().repr
-	}, header_match_spec_empty_fetch) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(actual.matches.len == 0 && actual.url == '' && actual.has_cached && actual.cached && !actual.has_content)
+	}, header_match_spec_empty_fetch) or { return ruby.bool_value(false) }
+	return ruby.bool_value(actual.matches.len == 0 && actual.url == '' && actual.has_cached && actual.cached && !actual.has_content)
 }
 
 // Ruby it `it "returns default match_data when content is blank" do` at line 226.
-pub fn ruby_header_match_spec_l226_d21_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_header_match_spec_l226_d21_returns(args ...ruby.Value) ruby.Value {
 	empty_array := header_strategy.header_match_find_versions(header_strategy.HeaderMatchFindRequest{
 		url: 'https://brew.sh/blog/'
 		content: '[]'
-	}, header_match_spec_empty_fetch) or { return brew_runtime.bool_value(false) }
+	}, header_match_spec_empty_fetch) or { return ruby.bool_value(false) }
 	empty_hash := header_strategy.header_match_find_versions(header_strategy.HeaderMatchFindRequest{
 		url: 'https://brew.sh/blog/'
 		content: '[{}]'
-	}, header_match_spec_empty_fetch) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(empty_array.matches.len == 0 && empty_array.has_cached && empty_hash.matches.len == 0 && empty_hash.has_cached)
+	}, header_match_spec_empty_fetch) or { return ruby.bool_value(false) }
+	return ruby.bool_value(empty_array.matches.len == 0 && empty_array.has_cached && empty_hash.matches.len == 0 && empty_hash.has_cached)
 }
 
 // Original Ruby source (line-for-line):

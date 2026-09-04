@@ -1,6 +1,6 @@
 module mac
 
-import brew_runtime
+import ruby
 import os
 
 pub struct MachSlice {
@@ -190,13 +190,13 @@ pub fn mach_text_executable(contents string) bool {
 	return contents.starts_with('#!')
 }
 
-fn mach_state_value(state &MachState) brew_runtime.Value {
-	return brew_runtime.structured_value('MachOPathname', state.path, {
+fn mach_state_value(state &MachState) ruby.Value {
+	return ruby.structured_value('MachOPathname', state.path, {
 		'mach_address': u64(voidptr(state)).str()
 	})
 }
 
-fn mach_state_from_value(value brew_runtime.Value) &MachState {
+fn mach_state_from_value(value ruby.Value) &MachState {
 	address := value.attributes['mach_address'] or { panic('invalid MachOPathname receiver') }
 	return unsafe { &MachState(voidptr(address.u64())) }
 }
@@ -205,37 +205,37 @@ fn mach_state_from_value(value brew_runtime.Value) &MachState {
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `initialize(*args)` at line 14.
-pub fn ruby_mach_l14_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mach_l14_d1_initialize(args ...ruby.Value) ruby.Value {
 	path := if args.len > 0 { args[0].as_string() } else { '' }
 	return mach_state_value(new_mach_state(path, []MachSlice{}, []string{}, []MachLibrary{}, ''))
 }
 
 // Ruby method `dylib_id = macho.dylib_id` at line 24.
-pub fn ruby_mach_l24_d2_dylib_id(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mach_l24_d2_dylib_id(args ...ruby.Value) ruby.Value {
 	identifier := mach_state_from_value(args[0]).dylib_id
 	return if identifier == '' {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	} else {
-		brew_runtime.string_value(identifier)
+		ruby.string_value(identifier)
 	}
 }
 
 // Ruby method `macho` at line 27.
-pub fn ruby_mach_l27_d3_macho(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mach_l27_d3_macho(args ...ruby.Value) ruby.Value {
 	return args[0]
 }
 
 // Ruby method `mach_data` at line 34.
-pub fn ruby_mach_l34_d4_mach_data(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mach_l34_d4_mach_data(args ...ruby.Value) ruby.Value {
 	state := mach_state_from_value(args[0])
-	return brew_runtime.array_value(state.slices.map(brew_runtime.map_value({
-		'arch': brew_runtime.object_value('Symbol', mach_arch_name(it.cpu_type))
-		'type': brew_runtime.object_value('Symbol', mach_file_type(it.file_type))
+	return ruby.array_value(state.slices.map(ruby.map_value({
+		'arch': ruby.object_value('Symbol', mach_arch_name(it.cpu_type))
+		'type': ruby.object_value('Symbol', mach_file_type(it.file_type))
 	})))
 }
 
 // Ruby method `delete_rpath(rpath, strict: true)` at line 78.
-pub fn ruby_mach_l78_d5_delete_rpath(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mach_l78_d5_delete_rpath(args ...ruby.Value) ruby.Value {
 	mut state := mach_state_from_value(args[0])
 	deleted := state.delete_rpath(args[1].as_string(), if args.len > 2 {
 		args[2].bool_data
@@ -243,49 +243,49 @@ pub fn ruby_mach_l78_d5_delete_rpath(args ...brew_runtime.Value) brew_runtime.Va
 		true
 	}) or { panic(err) }
 	return if deleted == '' {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	} else {
-		brew_runtime.string_value(deleted)
+		ruby.string_value(deleted)
 	}
 }
 
 // Ruby method `change_rpath(old, new, uniq: false, last: false, strict: true)` at line 94.
-pub fn ruby_mach_l94_d6_change_rpath(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mach_l94_d6_change_rpath(args ...ruby.Value) ruby.Value {
 	mut state := mach_state_from_value(args[0])
-	options := if args.len > 3 { args[3].map_data.clone() } else { map[string]brew_runtime.Value{} }
-	state.change_rpath(args[1].as_string(), args[2].as_string(), (options['uniq'] or { brew_runtime.bool_value(false) }).bool_data, (options['last'] or { brew_runtime.bool_value(false) }).bool_data, (options['strict'] or { brew_runtime.bool_value(true) }).bool_data) or { panic(err) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	options := if args.len > 3 { args[3].map_data.clone() } else { map[string]ruby.Value{} }
+	state.change_rpath(args[1].as_string(), args[2].as_string(), (options['uniq'] or { ruby.bool_value(false) }).bool_data, (options['last'] or { ruby.bool_value(false) }).bool_data, (options['strict'] or { ruby.bool_value(true) }).bool_data) or { panic(err) }
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `change_dylib_id(id, strict: true)` at line 100.
-pub fn ruby_mach_l100_d7_change_dylib_id(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mach_l100_d7_change_dylib_id(args ...ruby.Value) ruby.Value {
 	mut state := mach_state_from_value(args[0])
 	state.change_dylib_id(args[1].as_string(), if args.len > 2 { args[2].bool_data } else { true }) or { panic(err) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `change_install_name(old, new, strict: true)` at line 106.
-pub fn ruby_mach_l106_d8_change_install_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mach_l106_d8_change_install_name(args ...ruby.Value) ruby.Value {
 	mut state := mach_state_from_value(args[0])
 	state.change_install_name(args[1].as_string(), args[2].as_string(), if args.len > 3 {
 		args[3].bool_data
 	} else {
 		true
 	}) or { panic(err) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `dynamically_linked_libraries(except: :none, resolve_variable_references: true)` at line 112.
-pub fn ruby_mach_l112_d9_dynamically_linked_libraries(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mach_l112_d9_dynamically_linked_libraries(args ...ruby.Value) ruby.Value {
 	state := mach_state_from_value(args[0])
 	except_flag := if args.len > 1 { args[1].as_string() } else { 'none' }
 	resolve := if args.len > 2 { args[2].bool_data } else { true }
-	return brew_runtime.string_array_value(state.dynamically_linked_libraries(except_flag, resolve))
+	return ruby.string_array_value(state.dynamically_linked_libraries(except_flag, resolve))
 }
 
 // Ruby method `rpaths(resolve_variable_references: true)` at line 122.
-pub fn ruby_mach_l122_d10_rpaths(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(mach_state_from_value(args[0]).resolved_rpaths(if args.len > 1 {
+pub fn ruby_mach_l122_d10_rpaths(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(mach_state_from_value(args[0]).resolved_rpaths(if args.len > 1 {
 		args[1].bool_data
 	} else {
 		true
@@ -293,8 +293,8 @@ pub fn ruby_mach_l122_d10_rpaths(args ...brew_runtime.Value) brew_runtime.Value 
 }
 
 // Ruby method `resolve_variable_name(name, resolve_rpaths: true)` at line 131.
-pub fn ruby_mach_l131_d11_resolve_variable_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(mach_state_from_value(args[0]).resolve_variable_name(args[1].as_string(), if args.len > 2 {
+pub fn ruby_mach_l131_d11_resolve_variable_name(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(mach_state_from_value(args[0]).resolve_variable_name(args[1].as_string(), if args.len > 2 {
 		args[2].bool_data
 	} else {
 		true
@@ -302,66 +302,66 @@ pub fn ruby_mach_l131_d11_resolve_variable_name(args ...brew_runtime.Value) brew
 }
 
 // Ruby method `resolve_rpath(name)` at line 144.
-pub fn ruby_mach_l144_d12_resolve_rpath(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mach_l144_d12_resolve_rpath(args ...ruby.Value) ruby.Value {
 	target := mach_state_from_value(args[0]).resolve_rpath(args[1].as_string()) or {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
-	return brew_runtime.string_value(target)
+	return ruby.string_value(target)
 }
 
 // Ruby method `archs` at line 154.
-pub fn ruby_mach_l154_d13_archs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.array_value(mach_state_from_value(args[0]).archs().map(brew_runtime.object_value('Symbol', it)))
+pub fn ruby_mach_l154_d13_archs(args ...ruby.Value) ruby.Value {
+	return ruby.array_value(mach_state_from_value(args[0]).archs().map(ruby.object_value('Symbol', it)))
 }
 
 // Ruby method `arch` at line 159.
-pub fn ruby_mach_l159_d14_arch(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Symbol', mach_state_from_value(args[0]).arch())
+pub fn ruby_mach_l159_d14_arch(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Symbol', mach_state_from_value(args[0]).arch())
 }
 
 // Ruby method `universal?` at line 168.
-pub fn ruby_mach_l168_d15_universal(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(mach_state_from_value(args[0]).arch() == 'universal')
+pub fn ruby_mach_l168_d15_universal(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(mach_state_from_value(args[0]).arch() == 'universal')
 }
 
 // Ruby method `i386?` at line 173.
-pub fn ruby_mach_l173_d16_i386(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(mach_state_from_value(args[0]).arch() == 'i386')
+pub fn ruby_mach_l173_d16_i386(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(mach_state_from_value(args[0]).arch() == 'i386')
 }
 
 // Ruby method `x86_64?` at line 178.
-pub fn ruby_mach_l178_d17_x86_64(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(mach_state_from_value(args[0]).arch() == 'x86_64')
+pub fn ruby_mach_l178_d17_x86_64(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(mach_state_from_value(args[0]).arch() == 'x86_64')
 }
 
 // Ruby method `ppc7400?` at line 183.
-pub fn ruby_mach_l183_d18_ppc7400(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(mach_state_from_value(args[0]).arch() == 'ppc7400')
+pub fn ruby_mach_l183_d18_ppc7400(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(mach_state_from_value(args[0]).arch() == 'ppc7400')
 }
 
 // Ruby method `ppc64?` at line 188.
-pub fn ruby_mach_l188_d19_ppc64(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(mach_state_from_value(args[0]).arch() == 'ppc64')
+pub fn ruby_mach_l188_d19_ppc64(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(mach_state_from_value(args[0]).arch() == 'ppc64')
 }
 
 // Ruby method `dylib?` at line 193.
-pub fn ruby_mach_l193_d20_dylib(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(mach_state_from_value(args[0]).has_type('dylib'))
+pub fn ruby_mach_l193_d20_dylib(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(mach_state_from_value(args[0]).has_type('dylib'))
 }
 
 // Ruby method `mach_o_executable?` at line 198.
-pub fn ruby_mach_l198_d21_mach_o_executable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(mach_state_from_value(args[0]).has_type('executable'))
+pub fn ruby_mach_l198_d21_mach_o_executable(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(mach_state_from_value(args[0]).has_type('executable'))
 }
 
 // Ruby alias `alias binary_executable? mach_o_executable?` at line 202.
-pub fn ruby_mach_l202_d22_binary_executable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mach_l202_d22_binary_executable(args ...ruby.Value) ruby.Value {
 	return ruby_mach_l198_d21_mach_o_executable(...args)
 }
 
 // Ruby method `mach_o_bundle?` at line 205.
-pub fn ruby_mach_l205_d23_mach_o_bundle(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(mach_state_from_value(args[0]).has_type('bundle'))
+pub fn ruby_mach_l205_d23_mach_o_bundle(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(mach_state_from_value(args[0]).has_type('bundle'))
 }
 
 // Original Ruby source (line-for-line):

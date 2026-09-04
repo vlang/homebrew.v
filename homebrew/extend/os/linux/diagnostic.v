@@ -1,6 +1,6 @@
 module linux
 
-import brew_runtime
+import ruby
 import homebrew.diagnostic
 
 pub enum LinuxSandboxState {
@@ -313,25 +313,25 @@ pub fn linux_check_cask_software_versions(mut context LinuxDiagnosticContext) {
 	}
 }
 
-fn linux_diagnostic_context_value(context &LinuxDiagnosticContext) brew_runtime.Value {
-	return brew_runtime.structured_value('OS::Linux::Diagnostic::Checks', '', {
+fn linux_diagnostic_context_value(context &LinuxDiagnosticContext) ruby.Value {
+	return ruby.structured_value('OS::Linux::Diagnostic::Checks', '', {
 		'linux_diagnostic_address': u64(voidptr(context)).str()
 	})
 }
 
-fn linux_diagnostic_context_from_value(value brew_runtime.Value) &LinuxDiagnosticContext {
+fn linux_diagnostic_context_from_value(value ruby.Value) &LinuxDiagnosticContext {
 	address := value.attributes['linux_diagnostic_address'] or {
 		panic('invalid OS::Linux::Diagnostic::Checks receiver')
 	}
 	return unsafe { &LinuxDiagnosticContext(voidptr(address.u64())) }
 }
 
-pub fn linux_diagnostic_boundary(context &LinuxDiagnosticContext) brew_runtime.Value {
+pub fn linux_diagnostic_boundary(context &LinuxDiagnosticContext) ruby.Value {
 	return linux_diagnostic_context_value(context)
 }
 
-fn linux_diagnostic_finding_value(result ?diagnostic.Finding) brew_runtime.Value {
-	value := result or { return brew_runtime.object_value('NilClass', 'nil') }
+fn linux_diagnostic_finding_value(result ?diagnostic.Finding) ruby.Value {
+	value := result or { return ruby.object_value('NilClass', 'nil') }
 	mut attributes := {
 		'text':  value.text
 		'tier':  value.tier
@@ -341,92 +341,92 @@ fn linux_diagnostic_finding_value(result ?diagnostic.Finding) brew_runtime.Value
 		attributes['remediation_text'] = remediation.text
 		attributes['remediation_commands'] = remediation.commands.join('\n')
 	}
-	return brew_runtime.structured_value('Homebrew::Diagnostic::Finding', value.string(), attributes)
+	return ruby.structured_value('Homebrew::Diagnostic::Finding', value.string(), attributes)
 }
 
 // Translated from Homebrew/brew `extend/os/linux/diagnostic.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `fatal_preinstall_checks` at line 22.
-pub fn ruby_diagnostic_l22_d1_fatal_preinstall_checks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(linux_fatal_preinstall_checks())
+pub fn ruby_diagnostic_l22_d1_fatal_preinstall_checks(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(linux_fatal_preinstall_checks())
 }
 
 // Ruby method `supported_configuration_checks` at line 31.
-pub fn ruby_diagnostic_l31_d2_supported_configuration_checks(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(linux_supported_configuration_checks())
+pub fn ruby_diagnostic_l31_d2_supported_configuration_checks(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(linux_supported_configuration_checks())
 }
 
 // Ruby method `check_tmpdir_sticky_bit` at line 40.
-pub fn ruby_diagnostic_l40_d3_check_tmpdir_sticky_bit(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l40_d3_check_tmpdir_sticky_bit(args ...ruby.Value) ruby.Value {
 	return linux_diagnostic_finding_value(linux_check_tmpdir_sticky_bit(*linux_diagnostic_context_from_value(args[0])))
 }
 
 // Ruby method `check_tmpdir_executable` at line 56.
-pub fn ruby_diagnostic_l56_d4_check_tmpdir_executable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l56_d4_check_tmpdir_executable(args ...ruby.Value) ruby.Value {
 	return linux_diagnostic_finding_value(linux_check_tmpdir_executable(*linux_diagnostic_context_from_value(args[0])))
 }
 
 // Ruby method `check_umask_not_zero` at line 83.
-pub fn ruby_diagnostic_l83_d5_check_umask_not_zero(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l83_d5_check_umask_not_zero(args ...ruby.Value) ruby.Value {
 	return linux_diagnostic_finding_value(linux_check_umask_not_zero(*linux_diagnostic_context_from_value(args[0])))
 }
 
 // Ruby method `check_supported_architecture` at line 102.
-pub fn ruby_diagnostic_l102_d6_check_supported_architecture(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l102_d6_check_supported_architecture(args ...ruby.Value) ruby.Value {
 	return linux_diagnostic_finding_value(linux_check_supported_architecture(*linux_diagnostic_context_from_value(args[0])))
 }
 
 // Ruby method `check_glibc_minimum_version` at line 116.
-pub fn ruby_diagnostic_l116_d7_check_glibc_minimum_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l116_d7_check_glibc_minimum_version(args ...ruby.Value) ruby.Value {
 	return linux_diagnostic_finding_value(linux_check_glibc_minimum_version(*linux_diagnostic_context_from_value(args[0])))
 }
 
 // Ruby method `check_glibc_version` at line 134.
-pub fn ruby_diagnostic_l134_d8_check_glibc_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l134_d8_check_glibc_version(args ...ruby.Value) ruby.Value {
 	return linux_diagnostic_finding_value(linux_check_glibc_version(*linux_diagnostic_context_from_value(args[0])))
 }
 
 // Ruby method `check_glibc_next_version` at line 155.
-pub fn ruby_diagnostic_l155_d9_check_glibc_next_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l155_d9_check_glibc_next_version(args ...ruby.Value) ruby.Value {
 	return linux_diagnostic_finding_value(linux_check_glibc_next_version(*linux_diagnostic_context_from_value(args[0])))
 }
 
 // Ruby method `check_kernel_minimum_version` at line 177.
-pub fn ruby_diagnostic_l177_d10_check_kernel_minimum_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l177_d10_check_kernel_minimum_version(args ...ruby.Value) ruby.Value {
 	return linux_diagnostic_finding_value(linux_check_kernel_minimum_version(*linux_diagnostic_context_from_value(args[0])))
 }
 
 // Ruby method `check_linux_sandbox` at line 196.
-pub fn ruby_diagnostic_l196_d11_check_linux_sandbox(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l196_d11_check_linux_sandbox(args ...ruby.Value) ruby.Value {
 	return linux_diagnostic_finding_value(linux_check_linux_sandbox(*linux_diagnostic_context_from_value(args[0])))
 }
 
 // Ruby method `check_linuxbrew_core` at line 221.
-pub fn ruby_diagnostic_l221_d12_check_linuxbrew_core(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l221_d12_check_linuxbrew_core(args ...ruby.Value) ruby.Value {
 	return linux_diagnostic_finding_value(linux_check_linuxbrew_core(*linux_diagnostic_context_from_value(args[0])))
 }
 
 // Ruby method `check_linuxbrew_bottle_domain` at line 239.
-pub fn ruby_diagnostic_l239_d13_check_linuxbrew_bottle_domain(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l239_d13_check_linuxbrew_bottle_domain(args ...ruby.Value) ruby.Value {
 	return linux_diagnostic_finding_value(linux_check_linuxbrew_bottle_domain(*linux_diagnostic_context_from_value(args[0])))
 }
 
 // Ruby method `check_for_symlinked_home` at line 249.
-pub fn ruby_diagnostic_l249_d14_check_for_symlinked_home(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l249_d14_check_for_symlinked_home(args ...ruby.Value) ruby.Value {
 	return linux_diagnostic_finding_value(linux_check_for_symlinked_home(*linux_diagnostic_context_from_value(args[0])))
 }
 
 // Ruby method `check_gcc_dependent_linkage` at line 272.
-pub fn ruby_diagnostic_l272_d15_check_gcc_dependent_linkage(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l272_d15_check_gcc_dependent_linkage(args ...ruby.Value) ruby.Value {
 	return linux_diagnostic_finding_value(linux_check_gcc_dependent_linkage(*linux_diagnostic_context_from_value(args[0])))
 }
 
 // Ruby method `check_cask_software_versions` at line 316.
-pub fn ruby_diagnostic_l316_d16_check_cask_software_versions(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_diagnostic_l316_d16_check_cask_software_versions(args ...ruby.Value) ruby.Value {
 	mut context := linux_diagnostic_context_from_value(args[0])
 	linux_check_cask_software_versions(mut context)
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Original Ruby source (line-for-line):

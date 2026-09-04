@@ -1,22 +1,22 @@
 module types
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/types/typed_enumerable.rb`.
 // The original source is retained below until every stub has a typed V body.
 @[heap]
 pub struct TypedEnumerableType {
 pub:
-	type_value       brew_runtime.Value
+	type_value       ruby.Value
 	underlying_class string = 'Enumerable'
 	display_prefix   string = 'T::Enumerable'
 }
 
-pub fn new_typed_enumerable_type(type_value brew_runtime.Value) &TypedEnumerableType {
+pub fn new_typed_enumerable_type(type_value ruby.Value) &TypedEnumerableType {
 	return new_typed_enumerable_subtype(type_value, 'Enumerable', 'T::Enumerable')
 }
 
-pub fn new_typed_enumerable_subtype(type_value brew_runtime.Value, underlying_class string,
+pub fn new_typed_enumerable_subtype(type_value ruby.Value, underlying_class string,
 	display_prefix string) &TypedEnumerableType {
 	return &TypedEnumerableType{
 		type_value: type_value
@@ -25,7 +25,7 @@ pub fn new_typed_enumerable_subtype(type_value brew_runtime.Value, underlying_cl
 	}
 }
 
-fn enumerable_value_is_a(value brew_runtime.Value, class_name string) bool {
+fn enumerable_value_is_a(value ruby.Value, class_name string) bool {
 	if value.type_name == class_name {
 		return true
 	}
@@ -37,14 +37,14 @@ fn enumerable_value_is_a(value brew_runtime.Value, class_name string) bool {
 	return ancestors.split(',').map(it.trim_space()).any(it == class_name)
 }
 
-fn enumerable_element_name(type_value brew_runtime.Value) string {
+fn enumerable_element_name(type_value ruby.Value) string {
 	if base_type := base_type_from_value(type_value) {
 		return base_type.name() or { type_value.as_string() }
 	}
 	return type_value.attribute('name') or { type_value.as_string() }
 }
 
-fn enumerable_element_valid(type_value brew_runtime.Value, value brew_runtime.Value,
+fn enumerable_element_valid(type_value ruby.Value, value ruby.Value,
 	recursive bool) !bool {
 	if base_type := base_type_from_value(type_value) {
 		return if recursive { base_type.recursively_valid(value)! } else { base_type.valid(value)! }
@@ -77,11 +77,11 @@ pub fn (typed &TypedEnumerableType) name() string {
 	return '${typed.display_prefix}[${enumerable_element_name(typed.type_value)}]'
 }
 
-pub fn (typed &TypedEnumerableType) valid(value brew_runtime.Value) bool {
+pub fn (typed &TypedEnumerableType) valid(value ruby.Value) bool {
 	return enumerable_value_is_a(value, typed.underlying_class)
 }
 
-pub fn (typed &TypedEnumerableType) recursively_valid(value brew_runtime.Value) !bool {
+pub fn (typed &TypedEnumerableType) recursively_valid(value ruby.Value) !bool {
 	if !typed.valid(value) {
 		return false
 	}
@@ -103,7 +103,7 @@ pub fn (typed &TypedEnumerableType) recursively_valid(value brew_runtime.Value) 
 				return false
 			}
 			for key, item in value.map_data {
-				if !pair_type.types[0].recursively_valid(brew_runtime.string_value(key))! || !pair_type.types[1].recursively_valid(item)! {
+				if !pair_type.types[0].recursively_valid(ruby.string_value(key))! || !pair_type.types[1].recursively_valid(item)! {
 					return false
 				}
 			}
@@ -131,7 +131,7 @@ fn enumerable_underlying_subtype(left string, right string) bool {
 	return left == right || right == 'Enumerable'
 }
 
-pub fn (typed &TypedEnumerableType) subtype_of_single(other brew_runtime.Value) !bool {
+pub fn (typed &TypedEnumerableType) subtype_of_single(other ruby.Value) !bool {
 	if other.type_name.starts_with('T::Types::Typed') {
 		other_underlying := other.attribute('underlying_class') or { return false }
 		if !enumerable_underlying_subtype(typed.underlying_class, other_underlying) {
@@ -151,20 +151,20 @@ pub fn (typed &TypedEnumerableType) subtype_of_single(other brew_runtime.Value) 
 	return false
 }
 
-fn enumerable_simple_type_for(value brew_runtime.Value) brew_runtime.Value {
+fn enumerable_simple_type_for(value ruby.Value) ruby.Value {
 	name := if value.type_name == 'Bool' { 'T::Boolean' } else { value.type_name }
 	return base_type_boundary_value(new_simple_base_type(name, ['Object']))
 }
 
-pub fn enumerable_type_from_instances(value brew_runtime.Value) brew_runtime.Value {
+pub fn enumerable_type_from_instances(value ruby.Value) ruby.Value {
 	if !enumerable_value_is_a(value, 'Enumerable') {
 		return enumerable_simple_type_for(value)
 	}
-	mut objects := []brew_runtime.Value{}
+	mut objects := []ruby.Value{}
 	match value.type_name {
 		'Hash' {
 			for key, item in value.map_data {
-				objects << brew_runtime.string_value(key)
+				objects << ruby.string_value(key)
 				objects << item
 			}
 		}
@@ -187,7 +187,7 @@ pub fn enumerable_type_from_instances(value brew_runtime.Value) brew_runtime.Val
 	}
 }
 
-pub fn enumerable_type_from_instance(value brew_runtime.Value) brew_runtime.Value {
+pub fn enumerable_type_from_instance(value ruby.Value) ruby.Value {
 	if value.type_name == 'Bool' {
 		return base_type_boundary_value(new_custom_base_type('T::Boolean', 'T::Boolean', [
 			'Bool',
@@ -209,33 +209,33 @@ pub fn enumerable_type_from_instance(value brew_runtime.Value) brew_runtime.Valu
 		}
 	}
 	if value.type_name == 'Hash' {
-		mut keys := []brew_runtime.Value{}
-		mut values := []brew_runtime.Value{}
+		mut keys := []ruby.Value{}
+		mut values := []ruby.Value{}
 		for key, item in value.map_data {
-			keys << brew_runtime.string_value(key)
+			keys << ruby.string_value(key)
 			values << item
 		}
-		key_type := enumerable_type_from_instances(brew_runtime.array_value(keys))
-		value_type := enumerable_type_from_instances(brew_runtime.array_value(values))
-		return brew_runtime.object_value('T::Types::TypedHash', '${prefix}[${enumerable_element_name(key_type)}, ${enumerable_element_name(value_type)}]')
+		key_type := enumerable_type_from_instances(ruby.array_value(keys))
+		value_type := enumerable_type_from_instances(ruby.array_value(values))
+		return ruby.object_value('T::Types::TypedHash', '${prefix}[${enumerable_element_name(key_type)}, ${enumerable_element_name(value_type)}]')
 	}
 	mut typeable := value.array_data.clone()
 	if value.type_name == 'Range' {
 		typeable = typeable.filter(it.type_name != 'NilClass')
 	}
-	element_type := enumerable_type_from_instances(brew_runtime.array_value(typeable))
-	return brew_runtime.object_value('T::Types::${value.type_name}', '${prefix}[${enumerable_element_name(element_type)}]')
+	element_type := enumerable_type_from_instances(ruby.array_value(typeable))
+	return ruby.object_value('T::Types::${value.type_name}', '${prefix}[${enumerable_element_name(element_type)}]')
 }
 
-pub fn (typed &TypedEnumerableType) describe_obj(value brew_runtime.Value) string {
+pub fn (typed &TypedEnumerableType) describe_obj(value ruby.Value) string {
 	if !enumerable_value_is_a(value, 'Enumerable') {
 		return new_custom_base_type('T::Types::TypedEnumerable', typed.name(), [], []).describe_obj(value)
 	}
 	return enumerable_type_from_instance(value).as_string()
 }
 
-fn typed_enumerable_value(typed &TypedEnumerableType) brew_runtime.Value {
-	return brew_runtime.Value{
+fn typed_enumerable_value(typed &TypedEnumerableType) ruby.Value {
+	return ruby.Value{
 		type_name: match typed.display_prefix {
 			'T::Array' { 'T::Types::TypedArray' }
 			'T::Hash' { 'T::Types::TypedHash' }
@@ -257,7 +257,7 @@ fn typed_enumerable_value(typed &TypedEnumerableType) brew_runtime.Value {
 	}
 }
 
-fn typed_enumerable_from_args(args []brew_runtime.Value) &TypedEnumerableType {
+fn typed_enumerable_from_args(args []ruby.Value) &TypedEnumerableType {
 	if args.len == 0 {
 		panic('TypedEnumerable method requires a receiver')
 	}
@@ -268,7 +268,7 @@ fn typed_enumerable_from_args(args []brew_runtime.Value) &TypedEnumerableType {
 }
 
 // Ruby method `initialize(type)` at line 9.
-pub fn ruby_typed_enumerable_l9_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_typed_enumerable_l9_d1_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('TypedEnumerable#initialize requires a type')
 	}
@@ -276,64 +276,64 @@ pub fn ruby_typed_enumerable_l9_d1_initialize(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby method `type` at line 13.
-pub fn ruby_typed_enumerable_l13_d2_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_typed_enumerable_l13_d2_type(args ...ruby.Value) ruby.Value {
 	return typed_enumerable_from_args(args).type_value
 }
 
 // Ruby method `build_type` at line 17.
-pub fn ruby_typed_enumerable_l17_d3_build_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_typed_enumerable_l17_d3_build_type(args ...ruby.Value) ruby.Value {
 	typed_enumerable_from_args(args).build_type() or { panic(err) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `underlying_class` at line 22.
-pub fn ruby_typed_enumerable_l22_d4_underlying_class(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Class', typed_enumerable_from_args(args).underlying_class)
+pub fn ruby_typed_enumerable_l22_d4_underlying_class(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Class', typed_enumerable_from_args(args).underlying_class)
 }
 
 // Ruby method `name` at line 27.
-pub fn ruby_typed_enumerable_l27_d5_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(typed_enumerable_from_args(args).name())
+pub fn ruby_typed_enumerable_l27_d5_name(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(typed_enumerable_from_args(args).name())
 }
 
 // Ruby method `valid?(obj)` at line 32.
-pub fn ruby_typed_enumerable_l32_d6_valid(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_typed_enumerable_l32_d6_valid(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('TypedEnumerable#valid? requires an object')
 	}
-	return brew_runtime.bool_value(typed_enumerable_from_args(args).valid(args[1]))
+	return ruby.bool_value(typed_enumerable_from_args(args).valid(args[1]))
 }
 
 // Ruby method `recursively_valid?(obj)` at line 37.
-pub fn ruby_typed_enumerable_l37_d7_recursively_valid(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_typed_enumerable_l37_d7_recursively_valid(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('TypedEnumerable#recursively_valid? requires an object')
 	}
-	return brew_runtime.bool_value(typed_enumerable_from_args(args).recursively_valid(args[1]) or {
+	return ruby.bool_value(typed_enumerable_from_args(args).recursively_valid(args[1]) or {
 		panic(err)
 	})
 }
 
 // Ruby method `subtype_of_single?(other)` at line 90.
-pub fn ruby_typed_enumerable_l90_d8_subtype_of_single(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_typed_enumerable_l90_d8_subtype_of_single(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('TypedEnumerable#subtype_of_single? requires another type')
 	}
-	return brew_runtime.bool_value(typed_enumerable_from_args(args).subtype_of_single(args[1]) or {
+	return ruby.bool_value(typed_enumerable_from_args(args).subtype_of_single(args[1]) or {
 		panic(err)
 	})
 }
 
 // Ruby method `describe_obj(obj)` at line 108.
-pub fn ruby_typed_enumerable_l108_d9_describe_obj(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_typed_enumerable_l108_d9_describe_obj(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('TypedEnumerable#describe_obj requires an object')
 	}
-	return brew_runtime.string_value(typed_enumerable_from_args(args).describe_obj(args[1]))
+	return ruby.string_value(typed_enumerable_from_args(args).describe_obj(args[1]))
 }
 
 // Ruby method `type_from_instances(objs)` at line 113.
-pub fn ruby_typed_enumerable_l113_d10_type_from_instances(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_typed_enumerable_l113_d10_type_from_instances(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('TypedEnumerable#type_from_instances requires objects')
 	}
@@ -341,7 +341,7 @@ pub fn ruby_typed_enumerable_l113_d10_type_from_instances(args ...brew_runtime.V
 }
 
 // Ruby method `type_from_instance(obj)` at line 135.
-pub fn ruby_typed_enumerable_l135_d11_type_from_instance(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_typed_enumerable_l135_d11_type_from_instance(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('TypedEnumerable#type_from_instance requires an object')
 	}
@@ -349,16 +349,16 @@ pub fn ruby_typed_enumerable_l135_d11_type_from_instance(args ...brew_runtime.Va
 }
 
 // Ruby method `initialize` at line 176.
-pub fn ruby_typed_enumerable_l176_d12_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_typed_enumerable_l176_d12_initialize(args ...ruby.Value) ruby.Value {
 	return typed_enumerable_value(new_typed_enumerable_type(base_type_boundary_value(base_untyped_type())))
 }
 
 // Ruby method `valid?(obj)` at line 180.
-pub fn ruby_typed_enumerable_l180_d13_valid(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_typed_enumerable_l180_d13_valid(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('TypedEnumerable::Untyped#valid? requires an object')
 	}
-	return brew_runtime.bool_value(typed_enumerable_from_args(args).valid(args[1]))
+	return ruby.bool_value(typed_enumerable_from_args(args).valid(args[1]))
 }
 
 // Original Ruby source (line-for-line):

@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 import regex
 
 // Translated from Homebrew/brew `dev-cmd/generate-man-completions.rb`.
@@ -70,37 +70,37 @@ pub fn generate_man_completions_plan(options GenerateManCompletionsOptions) Gene
 	}
 }
 
-pub fn generate_man_completions_input_boundary(input &GenerateManCompletionsInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::GenerateManCompletions::Input', '', {
+pub fn generate_man_completions_input_boundary(input &GenerateManCompletionsInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::GenerateManCompletions::Input', '', {
 		'generate_man_completions_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn generate_man_completions_input_from_value(value brew_runtime.Value) &GenerateManCompletionsInput {
+fn generate_man_completions_input_from_value(value ruby.Value) &GenerateManCompletionsInput {
 	address := value.attributes['generate_man_completions_input_address'] or {
 		panic('invalid GenerateManCompletions input')
 	}
 	return unsafe { &GenerateManCompletionsInput(voidptr(address.u64())) }
 }
 
-fn generate_man_completions_result_value(result GenerateManCompletionsResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'bundler_groups':            brew_runtime.string_array_value(result.bundler_groups)
-		'rebuild_internal_commands': brew_runtime.bool_value(result.rebuild_internal_commands)
-		'regenerate_man_pages':      brew_runtime.bool_value(result.regenerate_man_pages)
-		'man_pages_quiet':           brew_runtime.bool_value(result.man_pages_quiet)
-		'update_shell_completions':  brew_runtime.bool_value(result.update_shell_completions)
-		'diff_command':              brew_runtime.string_array_value(result.diff_command)
-		'status':                    brew_runtime.object_value('Symbol', result.status)
-		'message':                   brew_runtime.string_value(result.message)
-		'failed':                    brew_runtime.bool_value(result.failed)
+fn generate_man_completions_result_value(result GenerateManCompletionsResult) ruby.Value {
+	return ruby.map_value({
+		'bundler_groups':            ruby.string_array_value(result.bundler_groups)
+		'rebuild_internal_commands': ruby.bool_value(result.rebuild_internal_commands)
+		'regenerate_man_pages':      ruby.bool_value(result.regenerate_man_pages)
+		'man_pages_quiet':           ruby.bool_value(result.man_pages_quiet)
+		'update_shell_completions':  ruby.bool_value(result.update_shell_completions)
+		'diff_command':              ruby.string_array_value(result.diff_command)
+		'status':                    ruby.object_value('Symbol', result.status)
+		'message':                   ruby.string_value(result.message)
+		'failed':                    ruby.bool_value(result.failed)
 	})
 }
 
 // Ruby method `run` at line 26.
-pub fn ruby_generate_man_completions_l26_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_man_completions_l26_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'command input is required')
+		return ruby.object_value('ArgumentError', 'command input is required')
 	}
 	return generate_man_completions_result_value(generate_man_completions_plan(generate_man_completions_input_from_value(args[0]).options))
 }

@@ -1,37 +1,37 @@
 module utils
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `utils/linkage.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `self.binary_linked_to_library?(binary, library)` at line 9.
-pub fn ruby_linkage_l9_d1_self_binary_linked_to_library(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_linkage_l9_d1_self_binary_linked_to_library(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(binary_linked_to_library(args[0].as_string(),
-		args[1].as_string(), brew_runtime.environment_value('HOMEBREW_PREFIX')))
+	return ruby.bool_value(binary_linked_to_library(args[0].as_string(),
+		args[1].as_string(), ruby.environment_value('HOMEBREW_PREFIX')))
 }
 
 fn normalize_linkage_path(path string, prefix string) string {
-	if prefix != '' && path.starts_with(prefix) && brew_runtime.path_exists(path) {
-		return brew_runtime.real_path(path)
+	if prefix != '' && path.starts_with(prefix) && ruby.path_exists(path) {
+		return ruby.real_path(path)
 	}
 	return path
 }
 
 pub fn dynamically_linked_libraries(binary string) []string {
-	kernel := brew_runtime.kernel_info().name
+	kernel := ruby.kernel_info().name
 	if kernel == 'Darwin' {
-		result := brew_runtime.run_command('/usr/bin/otool', ['-L', binary])
+		result := ruby.run_command('/usr/bin/otool', ['-L', binary])
 		if result.exit_code != 0 {
 			return []
 		}
 		return result.output.split_into_lines()[1..].map(it.trim_space().all_before(' (')).filter(it != '')
 	}
-	ldd := brew_runtime.find_executable('ldd') or { return [] }
-	result := brew_runtime.run_command(ldd, [binary])
+	ldd := ruby.find_executable('ldd') or { return [] }
+	result := ruby.run_command(ldd, [binary])
 	if result.exit_code != 0 {
 		return []
 	}

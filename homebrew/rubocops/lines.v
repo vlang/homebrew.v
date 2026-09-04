@@ -1,6 +1,6 @@
 module rubocops
 
-import brew_runtime
+import ruby
 import homebrew.rubocops.@shared as conditionals
 import homebrew.utils
 
@@ -1551,7 +1551,7 @@ pub fn audit_lines_rust(context LinesContext) LinesAnalysis {
 	return lines_analysis(context, offenses)
 }
 
-fn lines_context_from_values(args []brew_runtime.Value) ?LinesContext {
+fn lines_context_from_values(args []ruby.Value) ?LinesContext {
 	if args.len == 0 {
 		return none
 	}
@@ -1564,27 +1564,27 @@ fn lines_context_from_values(args []brew_runtime.Value) ?LinesContext {
 	}
 }
 
-pub fn lines_analysis_value(analysis LinesAnalysis) brew_runtime.Value {
-	offenses := analysis.offenses.map(brew_runtime.structured_value('RuboCop::Cop::Offense', it.message, {
+pub fn lines_analysis_value(analysis LinesAnalysis) ruby.Value {
+	offenses := analysis.offenses.map(ruby.structured_value('RuboCop::Cop::Offense', it.message, {
 		'begin_pos':   it.begin_pos.str()
 		'end_pos':     it.end_pos.str()
 		'message':     it.message
 		'replacement': it.replacement
 		'remove':      it.remove.str()
 	}))
-	return brew_runtime.map_value({
-		'offenses':  brew_runtime.array_value(offenses)
-		'corrected': brew_runtime.string_value(analysis.corrected)
+	return ruby.map_value({
+		'offenses':  ruby.array_value(offenses)
+		'corrected': ruby.string_value(analysis.corrected)
 	})
 }
 
-fn lines_audit_adapter(args []brew_runtime.Value, audit fn(LinesContext) LinesAnalysis) brew_runtime.Value {
-	context := lines_context_from_values(args) or { return brew_runtime.object_value('ArgumentError', 'source is required') }
+fn lines_audit_adapter(args []ruby.Value, audit fn(LinesContext) LinesAnalysis) ruby.Value {
+	context := lines_context_from_values(args) or { return ruby.object_value('ArgumentError', 'source is required') }
 	return lines_analysis_value(audit(context))
 }
 
-fn lines_calls_value(calls []LinesCall) brew_runtime.Value {
-	return brew_runtime.array_value(calls.map(brew_runtime.structured_value('RuboCop::AST::SendNode', it.source, {
+fn lines_calls_value(calls []LinesCall) ruby.Value {
+	return ruby.array_value(calls.map(ruby.structured_value('RuboCop::AST::SendNode', it.source, {
 		'target':    it.target
 		'arguments': it.arguments.join(', ')
 		'begin_pos': it.begin_pos.str()
@@ -1592,8 +1592,8 @@ fn lines_calls_value(calls []LinesCall) brew_runtime.Value {
 	})))
 }
 
-fn lines_completion_writes_value(nodes []LinesCompletionWrite) brew_runtime.Value {
-	return brew_runtime.array_value(nodes.map(brew_runtime.structured_value('RuboCop::AST::SendNode', it.source, {
+fn lines_completion_writes_value(nodes []LinesCompletionWrite) ruby.Value {
+	return ruby.array_value(nodes.map(ruby.structured_value('RuboCop::AST::SendNode', it.source, {
 		'base_name':       it.base_name
 		'shell':           it.shell
 		'executable':      it.executable
@@ -1603,38 +1603,38 @@ fn lines_completion_writes_value(nodes []LinesCompletionWrite) brew_runtime.Valu
 }
 
 // Ruby method `audit_formula(_formula_nodes)` at line 14.
-pub fn ruby_lines_l14_d1_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lines_l14_d1_audit_formula(args ...ruby.Value) ruby.Value {
 	return lines_audit_adapter(args, audit_lines_deprecated_dependencies)
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 36.
-pub fn ruby_lines_l36_d2_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lines_l36_d2_audit_formula(args ...ruby.Value) ruby.Value {
 	return lines_audit_adapter(args, audit_lines_class_inheritance)
 }
 
 // Ruby method `audit_formula(_formula_nodes)` at line 52.
-pub fn ruby_lines_l52_d3_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lines_l52_d3_audit_formula(args ...ruby.Value) ruby.Value {
 	return lines_audit_adapter(args, audit_lines_comments)
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 94.
-pub fn ruby_lines_l94_d4_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lines_l94_d4_audit_formula(args ...ruby.Value) ruby.Value {
 	return lines_audit_adapter(args, audit_lines_assert_statements)
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 144.
-pub fn ruby_lines_l144_d5_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lines_l144_d5_audit_formula(args ...ruby.Value) ruby.Value {
 	return lines_audit_adapter(args, audit_lines_option_declarations)
 }
 
 // Ruby method `unless_modifier?(node)` at line 214.
-pub fn ruby_lines_l214_d6_unless_modifier(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(args.len > 0 && lines_unless_modifier(args[0].as_string()))
+pub fn ruby_lines_l214_d6_unless_modifier(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(args.len > 0 && lines_unless_modifier(args[0].as_string()))
 }
 
 // Ruby def_node_search `def_node_search :depends_on_build_with, <<~EOS` at line 222.
-pub fn ruby_lines_l222_d7_depends_on_build_with(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(if args.len > 0 {
+pub fn ruby_lines_l222_d7_depends_on_build_with(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(if args.len > 0 {
 		lines_depends_on_build_with(args[0].as_string())
 	} else {
 		[]string{}
@@ -1642,67 +1642,67 @@ pub fn ruby_lines_l222_d7_depends_on_build_with(args ...brew_runtime.Value) brew
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 233.
-pub fn ruby_lines_l233_d8_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lines_l233_d8_audit_formula(args ...ruby.Value) ruby.Value {
 	return lines_audit_adapter(args, audit_lines_mpi)
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 254.
-pub fn ruby_lines_l254_d9_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lines_l254_d9_audit_formula(args ...ruby.Value) ruby.Value {
 	return lines_audit_adapter(args, audit_lines_std_npm_args)
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 292.
-pub fn ruby_lines_l292_d10_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lines_l292_d10_audit_formula(args ...ruby.Value) ruby.Value {
 	return lines_audit_adapter(args, audit_lines_quictls)
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 311.
-pub fn ruby_lines_l311_d11_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lines_l311_d11_audit_formula(args ...ruby.Value) ruby.Value {
 	return lines_audit_adapter(args, audit_lines_pyoxidizer)
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 324.
-pub fn ruby_lines_l324_d12_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lines_l324_d12_audit_formula(args ...ruby.Value) ruby.Value {
 	return lines_audit_adapter(args, audit_lines_libiconv)
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 337.
-pub fn ruby_lines_l337_d13_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lines_l337_d13_audit_formula(args ...ruby.Value) ruby.Value {
 	return lines_audit_adapter(args, audit_lines_full_dependencies)
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 360.
-pub fn ruby_lines_l360_d14_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lines_l360_d14_audit_formula(args ...ruby.Value) ruby.Value {
 	return lines_audit_adapter(args, audit_lines_safe_popen)
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 391.
-pub fn ruby_lines_l391_d15_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lines_l391_d15_audit_formula(args ...ruby.Value) ruby.Value {
 	return lines_audit_adapter(args, audit_lines_shell_variables)
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 421.
-pub fn ruby_lines_l421_d16_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lines_l421_d16_audit_formula(args ...ruby.Value) ruby.Value {
 	return lines_audit_adapter(args, audit_lines_license_arrays)
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 440.
-pub fn ruby_lines_l440_d17_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lines_l440_d17_audit_formula(args ...ruby.Value) ruby.Value {
 	return lines_audit_adapter(args, audit_lines_licenses)
 }
 
 // Ruby def_node_matcher `def_node_matcher :license_exception?, <<~EOS` at line 454.
-pub fn ruby_lines_l454_d18_license_exception(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(args.len > 0 && lines_license_exception(args[0].as_string()))
+pub fn ruby_lines_l454_d18_license_exception(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(args.len > 0 && lines_license_exception(args[0].as_string()))
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 464.
-pub fn ruby_lines_l464_d19_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lines_l464_d19_audit_formula(args ...ruby.Value) ruby.Value {
 	return lines_audit_adapter(args, audit_lines_java_versions)
 }
 
 // Ruby def_node_search `def_node_search :java_home_method_call, <<~PATTERN` at line 571.
-pub fn ruby_lines_l571_d20_java_home_method_call(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lines_l571_d20_java_home_method_call(args ...ruby.Value) ruby.Value {
 	return lines_calls_value(if args.len > 0 {
 		lines_java_home_calls(args[0].as_string())
 	} else {
@@ -1711,7 +1711,7 @@ pub fn ruby_lines_l571_d20_java_home_method_call(args ...brew_runtime.Value) bre
 }
 
 // Ruby def_node_search `def_node_search :java_version_assignment, <<~PATTERN` at line 575.
-pub fn ruby_lines_l575_d21_java_version_assignment(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lines_l575_d21_java_version_assignment(args ...ruby.Value) ruby.Value {
 	return lines_calls_value(if args.len > 1 {
 		lines_java_version_assignments(args[0].as_string(), args[1].as_string())
 	} else {
@@ -1720,27 +1720,27 @@ pub fn ruby_lines_l575_d21_java_version_assignment(args ...brew_runtime.Value) b
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 585.
-pub fn ruby_lines_l585_d22_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lines_l585_d22_audit_formula(args ...ruby.Value) ruby.Value {
 	return lines_audit_adapter(args, audit_lines_python_versions)
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 635.
-pub fn ruby_lines_l635_d23_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lines_l635_d23_audit_formula(args ...ruby.Value) ruby.Value {
 	return lines_audit_adapter(args, audit_lines_on_system)
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 678.
-pub fn ruby_lines_l678_d24_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lines_l678_d24_audit_formula(args ...ruby.Value) ruby.Value {
 	return lines_audit_adapter(args, audit_lines_macos_on_linux)
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 690.
-pub fn ruby_lines_l690_d25_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lines_l690_d25_audit_formula(args ...ruby.Value) ruby.Value {
 	return lines_audit_adapter(args, audit_lines_generate_completions)
 }
 
 // Ruby def_node_search `def_node_search :correctable_shell_completion_node, <<~EOS` at line 744.
-pub fn ruby_lines_l744_d26_correctable_shell_completion_node(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lines_l744_d26_correctable_shell_completion_node(args ...ruby.Value) ruby.Value {
 	return lines_completion_writes_value(if args.len > 0 {
 		lines_shell_completion_writes(args[0].as_string()).filter(it.matched)
 	} else {
@@ -1749,7 +1749,7 @@ pub fn ruby_lines_l744_d26_correctable_shell_completion_node(args ...brew_runtim
 }
 
 // Ruby def_node_search `def_node_search :shell_completion_node, <<~EOS` at line 760.
-pub fn ruby_lines_l760_d27_shell_completion_node(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lines_l760_d27_shell_completion_node(args ...ruby.Value) ruby.Value {
 	return lines_completion_writes_value(if args.len > 0 {
 		lines_shell_completion_writes(args[0].as_string())
 	} else {
@@ -1758,28 +1758,28 @@ pub fn ruby_lines_l760_d27_shell_completion_node(args ...brew_runtime.Value) bre
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 775.
-pub fn ruby_lines_l775_d28_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lines_l775_d28_audit_formula(args ...ruby.Value) ruby.Value {
 	return lines_audit_adapter(args, audit_lines_single_generate_call)
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 842.
-pub fn ruby_lines_l842_d29_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lines_l842_d29_audit_formula(args ...ruby.Value) ruby.Value {
 	return lines_audit_adapter(args, audit_lines_redundant_completion_shells)
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 883.
-pub fn ruby_lines_l883_d30_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lines_l883_d30_audit_formula(args ...ruby.Value) ruby.Value {
 	return lines_audit_adapter(args, audit_lines_miscellaneous)
 }
 
 // Ruby method `modifier?(node)` at line 1091.
-pub fn ruby_lines_l1091_d31_modifier(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(args.len > 0 && lines_modifier(args[0].as_string()))
+pub fn ruby_lines_l1091_d31_modifier(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(args.len > 0 && lines_modifier(args[0].as_string()))
 }
 
 // Ruby def_node_search `def_node_search :conditional_dependencies, <<~EOS` at line 1097.
-pub fn ruby_lines_l1097_d32_conditional_dependencies(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(if args.len > 0 {
+pub fn ruby_lines_l1097_d32_conditional_dependencies(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(if args.len > 0 {
 		lines_conditional_dependencies(args[0].as_string())
 	} else {
 		[]string{}
@@ -1787,44 +1787,44 @@ pub fn ruby_lines_l1097_d32_conditional_dependencies(args ...brew_runtime.Value)
 }
 
 // Ruby def_node_matcher `def_node_matcher :hash_dep, <<~EOS` at line 1105.
-pub fn ruby_lines_l1105_d33_hash_dep(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lines_l1105_d33_hash_dep(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.array_value([]brew_runtime.Value{})
+		return ruby.array_value([]ruby.Value{})
 	}
 	dependency, options := lines_hash_dep(args[0].as_string())
-	return brew_runtime.array_value([brew_runtime.string_value(dependency),
-		brew_runtime.string_array_value(options)])
+	return ruby.array_value([ruby.string_value(dependency),
+		ruby.string_array_value(options)])
 }
 
 // Ruby def_node_matcher `def_node_matcher :destructure_hash, <<~EOS` at line 1109.
-pub fn ruby_lines_l1109_d34_destructure_hash(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lines_l1109_d34_destructure_hash(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.array_value([]brew_runtime.Value{})
+		return ruby.array_value([]ruby.Value{})
 	}
 	key, value := lines_destructure_hash(args[0].as_string())
-	return brew_runtime.string_array_value([key, value])
+	return ruby.string_array_value([key, value])
 }
 
 // Ruby def_node_search `def_node_search :formula_path_strings, <<~EOS` at line 1113.
-pub fn ruby_lines_l1113_d35_formula_path_strings(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lines_l1113_d35_formula_path_strings(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.string_array_value([]string{})
+		return ruby.string_array_value([]string{})
 	}
-	return brew_runtime.string_array_value(lines_formula_path_strings(args[0].as_string(), args[1].as_string()))
+	return ruby.string_array_value(lines_formula_path_strings(args[0].as_string(), args[1].as_string()))
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 1124.
-pub fn ruby_lines_l1124_d36_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lines_l1124_d36_audit_formula(args ...ruby.Value) ruby.Value {
 	return lines_audit_adapter(args, audit_lines_make_check)
 }
 
 // Ruby method `audit_formula(_formula_nodes)` at line 1149.
-pub fn ruby_lines_l1149_d37_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lines_l1149_d37_audit_formula(args ...ruby.Value) ruby.Value {
 	return lines_audit_adapter(args, audit_lines_requirements)
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 1162.
-pub fn ruby_lines_l1162_d38_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lines_l1162_d38_audit_formula(args ...ruby.Value) ruby.Value {
 	return lines_audit_adapter(args, audit_lines_rust)
 }
 

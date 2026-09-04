@@ -1,13 +1,13 @@
 module bundle
 
-import brew_runtime
+import ruby
 import homebrew.bundle as brew_bundle
 import os
 
 // Translated from Homebrew/brew `test/bundle/brew_services_spec.rb`.
 // The original source is retained below for source-level traceability.
-fn brew_services_spec_bool(value bool) brew_runtime.Value {
-	return brew_runtime.bool_value(value)
+fn brew_services_spec_bool(value bool) ruby.Value {
+	return ruby.bool_value(value)
 }
 
 fn brew_services_spec_entry(name string) brew_bundle.BundleDslEntry {
@@ -15,7 +15,7 @@ fn brew_services_spec_entry(name string) brew_bundle.BundleDslEntry {
 		entry_type: 'brew'
 		name: name
 		options: {
-			'restart_service': brew_runtime.bool_value(true)
+			'restart_service': ruby.bool_value(true)
 		}
 	}
 }
@@ -58,7 +58,7 @@ fn brew_services_spec_versioned_service_file(launchctl bool) bool {
 }
 
 // Ruby it `it "returns started services", :needs_daemon_manager do` at line 13.
-pub fn ruby_brew_services_spec_l13_d1_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_services_spec_l13_d1_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut state := brew_bundle.new_brew_services_state()
 	state.launchctl = true
@@ -67,7 +67,7 @@ pub fn ruby_brew_services_spec_l13_d1_returns(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby it `it "returns empty array when no services exist", :needs_daemon_manager do` at line 33.
-pub fn ruby_brew_services_spec_l33_d2_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_services_spec_l33_d2_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut state := brew_bundle.new_brew_services_state()
 	state.systemctl = true
@@ -76,7 +76,7 @@ pub fn ruby_brew_services_spec_l33_d2_returns(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby it `it "returns the missing daemon manager fallback when no daemon manager is available" do` at line 38.
-pub fn ruby_brew_services_spec_l38_d3_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_services_spec_l38_d3_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut state := brew_bundle.new_brew_services_state()
 	state.linux = true
@@ -84,7 +84,7 @@ pub fn ruby_brew_services_spec_l38_d3_returns(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby it `it "exits with error on macOS when no daemon manager is available", :needs_macos do` at line 45.
-pub fn ruby_brew_services_spec_l45_d4_exits(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_services_spec_l45_d4_exits(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut state := brew_bundle.new_brew_services_state()
 	state.load_started_services() or {
@@ -94,7 +94,7 @@ pub fn ruby_brew_services_spec_l45_d4_exits(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby it `it "warns and returns an empty array on Linux", :needs_linux do` at line 55.
-pub fn ruby_brew_services_spec_l55_d5_warns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_services_spec_l55_d5_warns(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut state := brew_bundle.new_brew_services_state()
 	state.linux = true
@@ -105,7 +105,7 @@ pub fn ruby_brew_services_spec_l55_d5_warns(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby it `it "when the service is started" do` at line 64.
-pub fn ruby_brew_services_spec_l64_d6_when(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_services_spec_l64_d6_when(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut state := brew_services_spec_loaded_state(['nginx'])
 	result := state.stop('nginx', false, false) or { false }
@@ -115,7 +115,7 @@ pub fn ruby_brew_services_spec_l64_d6_when(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby it `it "when the service is already stopped" do` at line 72.
-pub fn ruby_brew_services_spec_l72_d7_when(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_services_spec_l72_d7_when(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut state := brew_services_spec_loaded_state([])
 	result := state.stop('nginx', false, false) or { false }
@@ -123,7 +123,7 @@ pub fn ruby_brew_services_spec_l72_d7_when(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby it `it "starts the service" do` at line 81.
-pub fn ruby_brew_services_spec_l81_d8_starts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_services_spec_l81_d8_starts(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut state := brew_services_spec_loaded_state([])
 	result := state.start('nginx', '', false)
@@ -135,7 +135,7 @@ pub fn ruby_brew_services_spec_l81_d8_starts(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby it `it "runs the service" do` at line 89.
-pub fn ruby_brew_services_spec_l89_d9_runs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_services_spec_l89_d9_runs(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut state := brew_services_spec_loaded_state([])
 	result := state.run('nginx', '', false)
@@ -147,7 +147,7 @@ pub fn ruby_brew_services_spec_l89_d9_runs(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby it `it "restarts the service" do` at line 97.
-pub fn ruby_brew_services_spec_l97_d10_restarts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_services_spec_l97_d10_restarts(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut state := brew_services_spec_loaded_state([])
 	result := state.restart('nginx', '', false)
@@ -159,36 +159,36 @@ pub fn ruby_brew_services_spec_l97_d10_restarts(args ...brew_runtime.Value) brew
 }
 
 // Ruby subject `subject(:services) { described_class.new }` at line 107.
-pub fn ruby_brew_services_spec_l107_d11_services(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_services_spec_l107_d11_services(args ...ruby.Value) ruby.Value {
 	_ = args
 	return brew_bundle.brew_services_state_boundary(brew_bundle.new_brew_services_state())
 }
 
 // Ruby it `it "matches a tap-qualified formula by base name" do` at line 116.
-pub fn ruby_brew_services_spec_l116_d12_matches(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_services_spec_l116_d12_matches(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut state := brew_services_spec_loaded_state(['mailhog'])
 	return brew_services_spec_bool(state.installed_and_up_to_date(brew_services_spec_entry('some-tap/tap/mailhog'), false) or { false })
 }
 
 // Ruby it `it "matches a non-tap-qualified formula by name" do` at line 122.
-pub fn ruby_brew_services_spec_l122_d13_matches(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_services_spec_l122_d13_matches(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut state := brew_services_spec_loaded_state(['mailhog'])
 	return brew_services_spec_bool(state.installed_and_up_to_date(brew_services_spec_entry('mailhog'), false) or { false })
 }
 
 // Ruby it `it "returns false when service is not started" do` at line 127.
-pub fn ruby_brew_services_spec_l127_d14_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_services_spec_l127_d14_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut state := brew_services_spec_loaded_state(['mailhog'])
 	return brew_services_spec_bool(!(state.installed_and_up_to_date(brew_services_spec_entry('some-tap/tap/nginx'), false) or { true }))
 }
 
 // Ruby let `let(:foo) do` at line 135.
-pub fn ruby_brew_services_spec_l135_d15_foo(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_services_spec_l135_d15_foo(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.structured_value('Formula', 'fooformula', {
+	return ruby.structured_value('Formula', 'fooformula', {
 		'name':         'fooformula'
 		'version':      '1.0'
 		'rack':         'HOMEBREW_CELLAR/fooformula'
@@ -198,21 +198,21 @@ pub fn ruby_brew_services_spec_l135_d15_foo(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby it `it "returns the versioned service file" do` at line 147.
-pub fn ruby_brew_services_spec_l147_d16_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_services_spec_l147_d16_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	return brew_services_spec_bool(brew_services_spec_versioned_service_file(true) && brew_services_spec_versioned_service_file(false))
 }
 
 // Ruby let `let(:service_basename) { "#{foo.plist_name}.plist" }` at line 168.
-pub fn ruby_brew_services_spec_l168_d17_service_basename(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_services_spec_l168_d17_service_basename(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('homebrew.mxcl.fooformula.plist')
+	return ruby.string_value('homebrew.mxcl.fooformula.plist')
 }
 
 // Ruby let `let(:service_basename) { "#{foo.service_name}.service" }` at line 178.
-pub fn ruby_brew_services_spec_l178_d18_service_basename(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_brew_services_spec_l178_d18_service_basename(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('fooformula.service')
+	return ruby.string_value('fooformula.service')
 }
 
 // Original Ruby source (line-for-line):

@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 import net.urllib
 
 pub enum DepsCombineMode {
@@ -331,7 +331,7 @@ pub fn deps_input_formulae_and_casks(command DepsCommand) []DepsDependent {
 	return deps_unique_dependents(inputs)
 }
 
-pub fn deps_brewfile_path(value brew_runtime.Value) ?string {
+pub fn deps_brewfile_path(value ruby.Value) ?string {
 	if value.type_name != 'String' || value.as_string() == '' {
 		return none
 	}
@@ -737,8 +737,8 @@ pub fn run_deps_command(mut command DepsCommand) DepsCommandResult {
 	return result
 }
 
-pub fn deps_item_value(item DepsItem) brew_runtime.Value {
-	return brew_runtime.structured_value(if item.kind == .requirement {
+pub fn deps_item_value(item DepsItem) ruby.Value {
+	return ruby.structured_value(if item.kind == .requirement {
 		'Requirement'
 	} else {
 		'Dependency'
@@ -758,7 +758,7 @@ pub fn deps_item_value(item DepsItem) brew_runtime.Value {
 	})
 }
 
-fn deps_item_from_value(value brew_runtime.Value) DepsItem {
+fn deps_item_from_value(value ruby.Value) DepsItem {
 	kind := if value.type_name.contains('Requirement') || value.attributes['kind'] or { '' } == 'requirement' {
 		DepsItemKind.requirement
 	} else {
@@ -780,8 +780,8 @@ fn deps_item_from_value(value brew_runtime.Value) DepsItem {
 	}
 }
 
-pub fn deps_dependent_value(dependent DepsDependent) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn deps_dependent_value(dependent DepsDependent) ruby.Value {
+	return ruby.Value{
 		type_name: if dependent.kind == .cask { 'CaskDependent' } else { 'Formula' }
 		repr: dependent.full_name
 		attributes: {
@@ -793,22 +793,22 @@ pub fn deps_dependent_value(dependent DepsDependent) brew_runtime.Value {
 			'has_runtime_dependencies': dependent.has_runtime_dependencies.str()
 		}
 		map_data: {
-			'deps':                 brew_runtime.array_value(dependent.deps.map(deps_item_value(it)))
-			'requirements':         brew_runtime.array_value(dependent.requirements.map(deps_item_value(it)))
-			'runtime_dependencies': brew_runtime.array_value(dependent.runtime_dependencies.map(deps_item_value(it)))
+			'deps':                 ruby.array_value(dependent.deps.map(deps_item_value(it)))
+			'requirements':         ruby.array_value(dependent.requirements.map(deps_item_value(it)))
+			'runtime_dependencies': ruby.array_value(dependent.runtime_dependencies.map(deps_item_value(it)))
 		}
 	}
 }
 
-fn deps_dependent_from_value(value brew_runtime.Value) DepsDependent {
-	deps_values := (value.map_data['deps'] or { brew_runtime.array_value([]) }).as_array() or {
-		[]brew_runtime.Value{}
+fn deps_dependent_from_value(value ruby.Value) DepsDependent {
+	deps_values := (value.map_data['deps'] or { ruby.array_value([]) }).as_array() or {
+		[]ruby.Value{}
 	}
-	requirement_values := (value.map_data['requirements'] or { brew_runtime.array_value([]) }).as_array() or {
-		[]brew_runtime.Value{}
+	requirement_values := (value.map_data['requirements'] or { ruby.array_value([]) }).as_array() or {
+		[]ruby.Value{}
 	}
-	runtime_values := (value.map_data['runtime_dependencies'] or { brew_runtime.array_value([]) }).as_array() or {
-		[]brew_runtime.Value{}
+	runtime_values := (value.map_data['runtime_dependencies'] or { ruby.array_value([]) }).as_array() or {
+		[]ruby.Value{}
 	}
 	return DepsDependent{
 		kind: if value.type_name.contains('Cask') || value.attributes['kind'] or { '' } == 'cask' {
@@ -827,15 +827,15 @@ fn deps_dependent_from_value(value brew_runtime.Value) DepsDependent {
 	}
 }
 
-fn deps_bool(value brew_runtime.Value, name string) bool {
+fn deps_bool(value ruby.Value, name string) bool {
 	return if field := value.map_data[name] { field.as_bool() or { false } } else { false }
 }
 
-fn deps_string(value brew_runtime.Value, name string) string {
+fn deps_string(value ruby.Value, name string) string {
 	return if field := value.map_data[name] { field.as_string() } else { '' }
 }
 
-fn deps_options_from_value(value brew_runtime.Value) DepsCommandOptions {
+fn deps_options_from_value(value ruby.Value) DepsCommandOptions {
 	return DepsCommandOptions{
 		topological: deps_bool(value, 'topological')
 		direct: deps_bool(value, 'direct')
@@ -868,13 +868,13 @@ fn deps_options_from_value(value brew_runtime.Value) DepsCommandOptions {
 	}
 }
 
-fn deps_values(value brew_runtime.Value, name string) []brew_runtime.Value {
-	return (value.map_data[name] or { brew_runtime.array_value([]) }).as_array() or {
-		[]brew_runtime.Value{}
+fn deps_values(value ruby.Value, name string) []ruby.Value {
+	return (value.map_data[name] or { ruby.array_value([]) }).as_array() or {
+		[]ruby.Value{}
 	}
 }
 
-fn deps_command_from_value(value brew_runtime.Value) DepsCommand {
+fn deps_command_from_value(value ruby.Value) DepsCommand {
 	options_value := value.map_data['options'] or { value }
 	named := deps_values(value, 'named').map(deps_dependent_from_value(it))
 	all_formulae := deps_values(value, 'all_formulae').map(deps_dependent_from_value(it))
@@ -916,8 +916,8 @@ fn deps_command_from_value(value brew_runtime.Value) DepsCommand {
 	}
 }
 
-fn deps_result_value(result DepsCommandResult) brew_runtime.Value {
-	return brew_runtime.structured_value(if result.error == '' {
+fn deps_result_value(result DepsCommandResult) ruby.Value {
+	return ruby.structured_value(if result.error == '' {
 		'DepsCommandResult'
 	} else {
 		'UsageError'
@@ -930,75 +930,75 @@ fn deps_result_value(result DepsCommandResult) brew_runtime.Value {
 	})
 }
 
-fn deps_items_value(items []DepsItem) brew_runtime.Value {
-	return brew_runtime.array_value(items.map(deps_item_value(it)))
+fn deps_items_value(items []DepsItem) ruby.Value {
+	return ruby.array_value(items.map(deps_item_value(it)))
 }
 
 // Translated from Homebrew/brew `cmd/deps.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `initialize(argv = ARGV.freeze)` at line 108.
-pub fn ruby_deps_l108_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_deps_l108_d1_initialize(args ...ruby.Value) ruby.Value {
 	argv := if args.len > 0 { args[0].as_string_array() or { []string{} } } else { []string{} }
-	return brew_runtime.structured_value('Homebrew::Cmd::Deps', argv.str(), {
+	return ruby.structured_value('Homebrew::Cmd::Deps', argv.str(), {
 		'argv':                     argv.join('\x1f')
 		'use_runtime_dependencies': 'true'
 	})
 }
 
 // Ruby method `run` at line 114.
-pub fn ruby_deps_l114_d2_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_deps_l114_d2_run(args ...ruby.Value) ruby.Value {
 	mut command := if args.len > 0 { deps_command_from_value(args[0]) } else { DepsCommand{} }
 	return deps_result_value(run_deps_command(mut command))
 }
 
 // Ruby method `input_formulae_and_casks` at line 234.
-pub fn ruby_deps_l234_d3_input_formulae_and_casks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_deps_l234_d3_input_formulae_and_casks(args ...ruby.Value) ruby.Value {
 	command := if args.len > 0 { deps_command_from_value(args[0]) } else { DepsCommand{} }
-	return brew_runtime.array_value(deps_input_formulae_and_casks(command).map(deps_dependent_value(it)))
+	return ruby.array_value(deps_input_formulae_and_casks(command).map(deps_dependent_value(it)))
 }
 
 // Ruby method `brewfile_path(value)` at line 255.
-pub fn ruby_deps_l255_d4_brewfile_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_deps_l255_d4_brewfile_path(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('NilClass', '')
+		return ruby.object_value('NilClass', '')
 	}
 	if path := deps_brewfile_path(args[0]) {
-		return brew_runtime.string_value(path)
+		return ruby.string_value(path)
 	}
-	return brew_runtime.object_value('NilClass', '')
+	return ruby.object_value('NilClass', '')
 }
 
 // Ruby method `sorted_dependents(formulae_or_casks)` at line 263.
-pub fn ruby_deps_l263_d5_sorted_dependents(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_deps_l263_d5_sorted_dependents(args ...ruby.Value) ruby.Value {
 	values := if args.len > 0 {
-		args[0].as_array() or { []brew_runtime.Value{} }
+		args[0].as_array() or { []ruby.Value{} }
 	} else {
-		[]brew_runtime.Value{}
+		[]ruby.Value{}
 	}
-	return brew_runtime.array_value(deps_sorted_dependents(values.map(deps_dependent_from_value(it))).map(deps_dependent_value(it)))
+	return ruby.array_value(deps_sorted_dependents(values.map(deps_dependent_from_value(it))).map(deps_dependent_value(it)))
 }
 
 // Ruby method `condense_requirements(deps)` at line 268.
-pub fn ruby_deps_l268_d6_condense_requirements(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_deps_l268_d6_condense_requirements(args ...ruby.Value) ruby.Value {
 	items := if args.len > 0 {
-		args[0].as_array() or { []brew_runtime.Value{} }
+		args[0].as_array() or { []ruby.Value{} }
 	} else {
-		[]brew_runtime.Value{}
+		[]ruby.Value{}
 	}
 	options := if args.len > 1 { deps_options_from_value(args[1]) } else { DepsCommandOptions{} }
 	return deps_items_value(deps_condense_requirements(items.map(deps_item_from_value(it)), options))
 }
 
 // Ruby method `dep_display_name(dep)` at line 274.
-pub fn ruby_deps_l274_d7_dep_display_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_deps_l274_d7_dep_display_name(args ...ruby.Value) ruby.Value {
 	item := if args.len > 0 { deps_item_from_value(args[0]) } else { DepsItem{} }
 	options := if args.len > 1 { deps_options_from_value(args[1]) } else { DepsCommandOptions{} }
-	return brew_runtime.string_value(deps_dep_display_name(item, options))
+	return ruby.string_value(deps_dep_display_name(item, options))
 }
 
 // Ruby method `deps_for_dependent(dependency, recursive: false)` at line 304.
-pub fn ruby_deps_l304_d8_deps_for_dependent(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_deps_l304_d8_deps_for_dependent(args ...ruby.Value) ruby.Value {
 	dependent := if args.len > 0 { deps_dependent_from_value(args[0]) } else { DepsDependent{} }
 	command := if args.len > 1 { deps_command_from_value(args[1]) } else { DepsCommand{} }
 	recursive := args.len > 2 && (args[2].as_bool() or { false })
@@ -1006,11 +1006,11 @@ pub fn ruby_deps_l304_d8_deps_for_dependent(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby method `deps_for_dependents(dependents, deps_combine_mode:, recursive:)` at line 327.
-pub fn ruby_deps_l327_d9_deps_for_dependents(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_deps_l327_d9_deps_for_dependents(args ...ruby.Value) ruby.Value {
 	values := if args.len > 0 {
-		args[0].as_array() or { []brew_runtime.Value{} }
+		args[0].as_array() or { []ruby.Value{} }
 	} else {
-		[]brew_runtime.Value{}
+		[]ruby.Value{}
 	}
 	command := if args.len > 1 { deps_command_from_value(args[1]) } else { DepsCommand{} }
 	mode := if args.len > 2 && args[2].as_string().to_lower() == 'union' {
@@ -1023,68 +1023,68 @@ pub fn ruby_deps_l327_d9_deps_for_dependents(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby method `check_head_spec(dependents)` at line 333.
-pub fn ruby_deps_l333_d10_check_head_spec(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_deps_l333_d10_check_head_spec(args ...ruby.Value) ruby.Value {
 	values := if args.len > 0 {
-		args[0].as_array() or { []brew_runtime.Value{} }
+		args[0].as_array() or { []ruby.Value{} }
 	} else {
-		[]brew_runtime.Value{}
+		[]ruby.Value{}
 	}
-	return brew_runtime.string_value(deps_check_head_spec(values.map(deps_dependent_from_value(it))))
+	return ruby.string_value(deps_check_head_spec(values.map(deps_dependent_from_value(it))))
 }
 
 // Ruby method `puts_deps(dependents, recursive: false)` at line 340.
-pub fn ruby_deps_l340_d11_puts_deps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_deps_l340_d11_puts_deps(args ...ruby.Value) ruby.Value {
 	values := if args.len > 0 {
-		args[0].as_array() or { []brew_runtime.Value{} }
+		args[0].as_array() or { []ruby.Value{} }
 	} else {
-		[]brew_runtime.Value{}
+		[]ruby.Value{}
 	}
 	command := if args.len > 1 { deps_command_from_value(args[1]) } else { DepsCommand{} }
 	recursive := args.len > 2 && (args[2].as_bool() or { false })
 	output, warning := deps_puts_deps(command, values.map(deps_dependent_from_value(it)), recursive)
-	return brew_runtime.structured_value('DepsOutput', output, {
+	return ruby.structured_value('DepsOutput', output, {
 		'stdout':  output
 		'warning': warning
 	})
 }
 
 // Ruby method `dot_code(dependents, recursive:)` at line 352.
-pub fn ruby_deps_l352_d12_dot_code(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_deps_l352_d12_dot_code(args ...ruby.Value) ruby.Value {
 	values := if args.len > 0 {
-		args[0].as_array() or { []brew_runtime.Value{} }
+		args[0].as_array() or { []ruby.Value{} }
 	} else {
-		[]brew_runtime.Value{}
+		[]ruby.Value{}
 	}
 	command := if args.len > 1 { deps_command_from_value(args[1]) } else { DepsCommand{} }
 	recursive := args.len > 2 && (args[2].as_bool() or { false })
-	return brew_runtime.string_value(deps_dot_code(command, values.map(deps_dependent_from_value(it)), recursive))
+	return ruby.string_value(deps_dot_code(command, values.map(deps_dependent_from_value(it)), recursive))
 }
 
 // Ruby method `graph_deps(formula, dep_graph:, recursive:)` at line 380.
-pub fn ruby_deps_l380_d13_graph_deps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_deps_l380_d13_graph_deps(args ...ruby.Value) ruby.Value {
 	formula := if args.len > 0 { deps_dependent_from_value(args[0]) } else { DepsDependent{} }
 	command := if args.len > 1 { deps_command_from_value(args[1]) } else { DepsCommand{} }
 	recursive := args.len > 2 && (args[2].as_bool() or { false })
 	mut graph := DepsGraph{}
 	deps_graph_deps(command, formula, mut graph, recursive)
-	mut graph_values := map[string]brew_runtime.Value{}
+	mut graph_values := map[string]ruby.Value{}
 	for node in graph.nodes {
 		graph_values[node] = deps_items_value(graph.edges[node])
 	}
-	return brew_runtime.map_value(graph_values)
+	return ruby.map_value(graph_values)
 }
 
 // Ruby method `puts_deps_tree(dependents, recursive: false)` at line 397.
-pub fn ruby_deps_l397_d14_puts_deps_tree(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_deps_l397_d14_puts_deps_tree(args ...ruby.Value) ruby.Value {
 	values := if args.len > 0 {
-		args[0].as_array() or { []brew_runtime.Value{} }
+		args[0].as_array() or { []ruby.Value{} }
 	} else {
-		[]brew_runtime.Value{}
+		[]ruby.Value{}
 	}
 	command := if args.len > 1 { deps_command_from_value(args[1]) } else { DepsCommand{} }
 	recursive := args.len > 2 && (args[2].as_bool() or { false })
 	output, warning, failed := deps_puts_deps_tree(command, values.map(deps_dependent_from_value(it)), recursive)
-	return brew_runtime.structured_value('DepsTreeOutput', output, {
+	return ruby.structured_value('DepsTreeOutput', output, {
 		'stdout':  output
 		'warning': warning
 		'failed':  failed.str()
@@ -1092,21 +1092,21 @@ pub fn ruby_deps_l397_d14_puts_deps_tree(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `dependables(formula)` at line 407.
-pub fn ruby_deps_l407_d15_dependables(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_deps_l407_d15_dependables(args ...ruby.Value) ruby.Value {
 	formula := if args.len > 0 { deps_dependent_from_value(args[0]) } else { DepsDependent{} }
 	command := if args.len > 1 { deps_command_from_value(args[1]) } else { DepsCommand{} }
 	return deps_items_value(deps_dependables(command, formula))
 }
 
 // Ruby method `recursive_deps_tree(formula, deps_seen:, prefix:, recursive:)` at line 423.
-pub fn ruby_deps_l423_d16_recursive_deps_tree(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_deps_l423_d16_recursive_deps_tree(args ...ruby.Value) ruby.Value {
 	formula := if args.len > 0 { deps_dependent_from_value(args[0]) } else { DepsDependent{} }
 	command := if args.len > 1 { deps_command_from_value(args[1]) } else { DepsCommand{} }
 	prefix := if args.len > 2 { args[2].as_string() } else { '' }
 	recursive := args.len > 3 && (args[3].as_bool() or { false })
 	mut seen := map[string]bool{}
 	output, failed := deps_recursive_deps_tree(command, formula, mut seen, prefix, recursive)
-	return brew_runtime.structured_value('DepsTreeOutput', output, {
+	return ruby.structured_value('DepsTreeOutput', output, {
 		'stdout': output
 		'failed': failed.str()
 	})

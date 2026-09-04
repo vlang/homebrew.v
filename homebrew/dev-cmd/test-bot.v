@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `dev-cmd/test-bot.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -49,35 +49,35 @@ pub:
 	options TestBotCommandOptions
 }
 
-pub fn test_bot_command_input_boundary(input &TestBotCommandInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::Cmd::TestBotCmd::Input', '', {
+pub fn test_bot_command_input_boundary(input &TestBotCommandInput) ruby.Value {
+	return ruby.structured_value('Homebrew::Cmd::TestBotCmd::Input', '', {
 		'test_bot_command_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn test_bot_command_input_from_value(value brew_runtime.Value) &TestBotCommandInput {
+fn test_bot_command_input_from_value(value ruby.Value) &TestBotCommandInput {
 	address := value.attributes['test_bot_command_input_address'] or {
 		panic('invalid TestBotCmd input')
 	}
 	return unsafe { &TestBotCommandInput(voidptr(address.u64())) }
 }
 
-fn test_bot_command_result_value(result TestBotCommandResult) brew_runtime.Value {
-	mut environment := map[string]brew_runtime.Value{}
+fn test_bot_command_result_value(result TestBotCommandResult) ruby.Value {
+	mut environment := map[string]ruby.Value{}
 	for name, value in result.environment {
-		environment[name] = brew_runtime.string_value(value)
+		environment[name] = ruby.string_value(value)
 	}
-	return brew_runtime.map_value({
-		'environment': brew_runtime.map_value(environment)
-		'bundler_groups': brew_runtime.string_array_value(result.bundler_groups)
-		'run_test_bot': brew_runtime.bool_value(result.run_test_bot)
+	return ruby.map_value({
+		'environment': ruby.map_value(environment)
+		'bundler_groups': ruby.string_array_value(result.bundler_groups)
+		'run_test_bot': ruby.bool_value(result.run_test_bot)
 	})
 }
 
 // Ruby method `run` at line 124.
-pub fn ruby_test_bot_l124_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_bot_l124_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'command input is required')
+		return ruby.object_value('ArgumentError', 'command input is required')
 	}
 	return test_bot_command_result_value(run_test_bot_command(test_bot_command_input_from_value(args[0]).options))
 }

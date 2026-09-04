@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 import homebrew
 
 // Translated from Homebrew/brew `test/dev-cmd/bump-cask-pr_spec.rb`.
@@ -581,7 +581,7 @@ fn bump_cask_spec_days_cask(elapsed bool) BumpCaskPrCask {
 	}
 }
 
-pub fn bump_cask_pr_spec_all_boundaries() []brew_runtime.Value {
+pub fn bump_cask_pr_spec_all_boundaries() []ruby.Value {
 	command := ruby_bump_cask_pr_spec_l9_d1_bump_cask_pr()
 	version_general := ruby_bump_cask_pr_spec_l83_d9_new_version() or { panic(err) }
 	version_arm := ruby_bump_cask_pr_spec_l192_d15_new_version_arm() or { panic(err) }
@@ -601,64 +601,64 @@ pub fn bump_cask_pr_spec_all_boundaries() []brew_runtime.Value {
 	}
 	tap := ruby_bump_cask_pr_spec_l634_d42_tap()
 	return [
-		brew_runtime.Value{
+		ruby.Value{
 			type_name: 'Homebrew::DevCmd::BumpCaskPr'
 			repr: command.args.join(' ')
-			array_data: command.args.map(brew_runtime.string_value(it))
+			array_data: command.args.map(ruby.string_value(it))
 		},
-		brew_runtime.string_value(ruby_bump_cask_pr_spec_l11_d2_newest_macos()),
+		ruby.string_value(ruby_bump_cask_pr_spec_l11_d2_newest_macos()),
 		bump_cask_pr_cask_value(ruby_bump_cask_pr_spec_l12_d3_c()),
 		bump_cask_pr_cask_value(ruby_bump_cask_pr_spec_l22_d4_c_depends_on_intel()),
 		bump_cask_pr_cask_value(ruby_bump_cask_pr_spec_l34_d5_c_on_system()),
 		bump_cask_pr_cask_value(ruby_bump_cask_pr_spec_l46_d6_c_on_system_depends_on_intel()),
 		bump_cask_pr_cask_value(ruby_bump_cask_pr_spec_l60_d7_c_arm_intel()),
-		brew_runtime.string_value(ruby_bump_cask_pr_spec_l81_d8_older_macos()),
+		ruby.string_value(ruby_bump_cask_pr_spec_l81_d8_older_macos()),
 		homebrew.bump_version_parser_value(version_general),
-		brew_runtime.bool_value(ruby_bump_cask_pr_spec_l86_d10_returns()),
-		brew_runtime.bool_value(ruby_bump_cask_pr_spec_l100_d11_returns()),
-		brew_runtime.bool_value(ruby_bump_cask_pr_spec_l114_d12_returns()),
-		brew_runtime.bool_value(ruby_bump_cask_pr_spec_l138_d13_returns()),
-		brew_runtime.bool_value(ruby_bump_cask_pr_spec_l162_d14_returns()),
+		ruby.bool_value(ruby_bump_cask_pr_spec_l86_d10_returns()),
+		ruby.bool_value(ruby_bump_cask_pr_spec_l100_d11_returns()),
+		ruby.bool_value(ruby_bump_cask_pr_spec_l114_d12_returns()),
+		ruby.bool_value(ruby_bump_cask_pr_spec_l138_d13_returns()),
+		ruby.bool_value(ruby_bump_cask_pr_spec_l162_d14_returns()),
 		homebrew.bump_version_parser_value(version_arm),
 		homebrew.bump_version_parser_value(version_intel),
 		homebrew.bump_version_parser_value(version_arm_intel),
 		homebrew.bump_version_parser_value(version_intel_arm),
-		brew_runtime.bool_value(ruby_bump_cask_pr_spec_l197_d19_returns()),
-		brew_runtime.string_value(ruby_bump_cask_pr_spec_l256_d20_contents()),
-		brew_runtime.bool_value(ruby_bump_cask_pr_spec_l276_d21_is()),
-		brew_runtime.bool_value(ruby_bump_cask_pr_spec_l283_d22_raises()),
-		brew_runtime.string_value(ruby_bump_cask_pr_spec_l290_d23_old_hash()),
-		brew_runtime.string_value(ruby_bump_cask_pr_spec_l291_d24_new_hash()),
-		brew_runtime.string_value(ruby_bump_cask_pr_spec_l292_d25_intel_hash()),
+		ruby.bool_value(ruby_bump_cask_pr_spec_l197_d19_returns()),
+		ruby.string_value(ruby_bump_cask_pr_spec_l256_d20_contents()),
+		ruby.bool_value(ruby_bump_cask_pr_spec_l276_d21_is()),
+		ruby.bool_value(ruby_bump_cask_pr_spec_l283_d22_raises()),
+		ruby.string_value(ruby_bump_cask_pr_spec_l290_d23_old_hash()),
+		ruby.string_value(ruby_bump_cask_pr_spec_l291_d24_new_hash()),
+		ruby.string_value(ruby_bump_cask_pr_spec_l292_d25_intel_hash()),
 		bump_cask_pr_cask_value(ruby_bump_cask_pr_spec_l299_d26_cask_from_contents(ruby_bump_cask_pr_spec_l256_d20_contents())),
-		brew_runtime.bool_value(ruby_bump_cask_pr_spec_l307_d27_splits()),
-		brew_runtime.bool_value(ruby_bump_cask_pr_spec_l342_d28_splits()),
-		brew_runtime.bool_value(ruby_bump_cask_pr_spec_l380_d29_splits()),
-		brew_runtime.bool_value(ruby_bump_cask_pr_spec_l410_d30_splits()),
-		brew_runtime.bool_value(ruby_bump_cask_pr_spec_l446_d31_only()),
-		brew_runtime.bool_value(ruby_bump_cask_pr_spec_l486_d32_updates()),
-		brew_runtime.bool_value(ruby_bump_cask_pr_spec_l526_d33_requires()),
-		brew_runtime.bool_value(ruby_bump_cask_pr_spec_l557_d34_leaves()),
+		ruby.bool_value(ruby_bump_cask_pr_spec_l307_d27_splits()),
+		ruby.bool_value(ruby_bump_cask_pr_spec_l342_d28_splits()),
+		ruby.bool_value(ruby_bump_cask_pr_spec_l380_d29_splits()),
+		ruby.bool_value(ruby_bump_cask_pr_spec_l410_d30_splits()),
+		ruby.bool_value(ruby_bump_cask_pr_spec_l446_d31_only()),
+		ruby.bool_value(ruby_bump_cask_pr_spec_l486_d32_updates()),
+		ruby.bool_value(ruby_bump_cask_pr_spec_l526_d33_requires()),
+		ruby.bool_value(ruby_bump_cask_pr_spec_l557_d34_leaves()),
 		bump_cask_pr_cask_value(ruby_bump_cask_pr_spec_l586_d35_c_throttle()),
 		bump_cask_pr_cask_value(ruby_bump_cask_pr_spec_l600_d36_c_throttle_days()),
 		bump_cask_pr_cask_value(ruby_bump_cask_pr_spec_l614_d37_c_throttle_rate_and_days()),
 		homebrew.bump_version_parser_value(throttle_version),
-		brew_runtime.string_value(ruby_bump_cask_pr_spec_l629_d39_throttle_error()),
-		brew_runtime.string_value(ruby_bump_cask_pr_spec_l630_d40_throttle_days_error()),
-		brew_runtime.string_value(ruby_bump_cask_pr_spec_l631_d41_throttle_rate_days_error()),
-		brew_runtime.object_value('Tap', '${tap.user}/${tap.repository}'),
-		brew_runtime.bool_value(ruby_bump_cask_pr_spec_l637_d43_outputs()),
-		brew_runtime.bool_value(ruby_bump_cask_pr_spec_l643_d44_does()),
+		ruby.string_value(ruby_bump_cask_pr_spec_l629_d39_throttle_error()),
+		ruby.string_value(ruby_bump_cask_pr_spec_l630_d40_throttle_days_error()),
+		ruby.string_value(ruby_bump_cask_pr_spec_l631_d41_throttle_rate_days_error()),
+		ruby.object_value('Tap', '${tap.user}/${tap.repository}'),
+		ruby.bool_value(ruby_bump_cask_pr_spec_l637_d43_outputs()),
+		ruby.bool_value(ruby_bump_cask_pr_spec_l643_d44_does()),
 		homebrew.bump_version_parser_value(ruby_bump_cask_pr_spec_l650_d45_empty_version()),
-		brew_runtime.bool_value(ruby_bump_cask_pr_spec_l656_d46_does()),
-		brew_runtime.bool_value(ruby_bump_cask_pr_spec_l665_d47_does()),
+		ruby.bool_value(ruby_bump_cask_pr_spec_l656_d46_does()),
+		ruby.bool_value(ruby_bump_cask_pr_spec_l665_d47_does()),
 		homebrew.bump_version_parser_value(indivisible_rate),
-		brew_runtime.bool_value(ruby_bump_cask_pr_spec_l676_d49_throttles()),
+		ruby.bool_value(ruby_bump_cask_pr_spec_l676_d49_throttles()),
 		homebrew.bump_version_parser_value(indivisible_rate_days),
-		brew_runtime.bool_value(ruby_bump_cask_pr_spec_l693_d51_throttles()),
-		brew_runtime.bool_value(ruby_bump_cask_pr_spec_l703_d52_does()),
-		brew_runtime.bool_value(ruby_bump_cask_pr_spec_l717_d53_throttles()),
-		brew_runtime.bool_value(ruby_bump_cask_pr_spec_l727_d54_does()),
+		ruby.bool_value(ruby_bump_cask_pr_spec_l693_d51_throttles()),
+		ruby.bool_value(ruby_bump_cask_pr_spec_l703_d52_does()),
+		ruby.bool_value(ruby_bump_cask_pr_spec_l717_d53_throttles()),
+		ruby.bool_value(ruby_bump_cask_pr_spec_l727_d54_does()),
 	]
 }
 

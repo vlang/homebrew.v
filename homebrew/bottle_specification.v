@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `bottle_specification.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -92,11 +92,11 @@ pub fn (cellar BottleCellar) relocatable() bool {
 }
 
 fn default_bottle_domain() string {
-	configured := brew_runtime.environment_value('HOMEBREW_BOTTLE_DOMAIN')
+	configured := ruby.environment_value('HOMEBREW_BOTTLE_DOMAIN')
 	if configured != '' {
 		return configured.trim_string_right('/')
 	}
-	configured_default := brew_runtime.environment_value('HOMEBREW_BOTTLE_DEFAULT_DOMAIN')
+	configured_default := ruby.environment_value('HOMEBREW_BOTTLE_DEFAULT_DOMAIN')
 	if configured_default != '' {
 		return configured_default.trim_string_right('/')
 	}
@@ -104,7 +104,7 @@ fn default_bottle_domain() string {
 }
 
 fn default_bottle_repository() string {
-	configured := brew_runtime.environment_value('HOMEBREW_DEFAULT_REPOSITORY')
+	configured := ruby.environment_value('HOMEBREW_DEFAULT_REPOSITORY')
 	if configured != '' {
 		return configured
 	}
@@ -194,18 +194,18 @@ fn bottle_parent_path(path string) string {
 }
 
 pub fn default_bottle_location_context(tag BottleTag) BottleLocationContext {
-	mut prefix := brew_runtime.environment_value('HOMEBREW_PREFIX')
+	mut prefix := ruby.environment_value('HOMEBREW_PREFIX')
 	if prefix == '' {
 		prefix = tag.default_prefix()
 	}
-	mut cellar := brew_runtime.environment_value('HOMEBREW_CELLAR')
+	mut cellar := ruby.environment_value('HOMEBREW_CELLAR')
 	if cellar == '' {
 		cellar = '${prefix}/Cellar'
 	}
 	return BottleLocationContext{
 		prefix:                prefix
 		cellar:                cellar
-		relocate_build_prefix: brew_runtime.environment_value('HOMEBREW_RELOCATE_BUILD_PREFIX') != ''
+		relocate_build_prefix: ruby.environment_value('HOMEBREW_RELOCATE_BUILD_PREFIX') != ''
 		linux:                 tag.linux()
 	}
 }

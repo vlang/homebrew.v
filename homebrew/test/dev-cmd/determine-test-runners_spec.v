@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 import homebrew
 import os
 
@@ -23,7 +23,7 @@ pub fn determine_test_runners_spec_get_runners(file string, ephemeral_suffix str
 	if lines.len == 0 || !lines[0].starts_with('runners=') {
 		return error('missing runners output')
 	}
-	runner_hash := brew_runtime.parse_json_value(lines[0].all_after('runners='))!.as_array()!
+	runner_hash := ruby.parse_json_value(lines[0].all_after('runners='))!.as_array()!
 	mut runners := []string{cap: runner_hash.len}
 	for item in runner_hash {
 		runner := item.as_map()!['runner'] or { return error('runner output has no runner') }

@@ -1,44 +1,44 @@
 module utils
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `utils/shell.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `from_path(path)` at line 15.
-pub fn ruby_shell_l15_d1_from_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shell_l15_d1_from_path(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Utils::Shell.from_path requires a path') }
 	if shell := shell_from_path(args[0].as_string()) {
-		return brew_runtime.object_value('Symbol', shell)
+		return ruby.object_value('Symbol', shell)
 	}
 	return shell_nil_value()
 }
 
 // Ruby method `preferred_path(default: "")` at line 24.
-pub fn ruby_shell_l24_d2_preferred_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shell_l24_d2_preferred_path(args ...ruby.Value) ruby.Value {
 	default_value := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.string_value(shell_preferred_path(default_value))
+	return ruby.string_value(shell_preferred_path(default_value))
 }
 
 // Ruby method `preferred` at line 29.
-pub fn ruby_shell_l29_d3_preferred(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shell_l29_d3_preferred(args ...ruby.Value) ruby.Value {
 	if shell := shell_preferred() {
-		return brew_runtime.object_value('Symbol', shell)
+		return ruby.object_value('Symbol', shell)
 	}
 	return shell_nil_value()
 }
 
 // Ruby method `parent` at line 34.
-pub fn ruby_shell_l34_d4_parent(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shell_l34_d4_parent(args ...ruby.Value) ruby.Value {
 	if shell := shell_parent() {
-		return brew_runtime.object_value('Symbol', shell)
+		return ruby.object_value('Symbol', shell)
 	}
 	return shell_nil_value()
 }
 
 // Ruby method `export_value(key, value, shell = preferred)` at line 40.
-pub fn ruby_shell_l40_d5_export_value(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shell_l40_d5_export_value(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Utils::Shell.export_value requires key and value') }
 	shell := if args.len > 2 {
 		args[2].as_string().trim_left(':')
@@ -46,48 +46,48 @@ pub fn ruby_shell_l40_d5_export_value(args ...brew_runtime.Value) brew_runtime.V
 		shell_preferred() or { '' }
 	}
 	if exported := shell_export_value(args[0].as_string(), args[1].as_string(), shell) {
-		return brew_runtime.string_value(exported)
+		return ruby.string_value(exported)
 	}
 	return shell_nil_value()
 }
 
 // Ruby method `profile` at line 58.
-pub fn ruby_shell_l58_d6_profile(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(shell_profile())
+pub fn ruby_shell_l58_d6_profile(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(shell_profile())
 }
 
 // Ruby method `set_variable_in_profile(variable, value)` at line 80.
-pub fn ruby_shell_l80_d7_set_variable_in_profile(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shell_l80_d7_set_variable_in_profile(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Utils::Shell.set_variable_in_profile requires variable and value') }
 	if command := shell_set_variable_in_profile(args[0].as_string(), args[1].as_string(), shell_preferred() or { '' }, shell_profile()) {
-		return brew_runtime.string_value(command)
+		return ruby.string_value(command)
 	}
 	return shell_nil_value()
 }
 
 // Ruby method `prepend_path_in_profile(path)` at line 96.
-pub fn ruby_shell_l96_d8_prepend_path_in_profile(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shell_l96_d8_prepend_path_in_profile(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Utils::Shell.prepend_path_in_profile requires a path') }
 	if command := shell_prepend_path_in_profile(args[0].as_string(), shell_preferred() or { '' }, shell_profile()) {
-		return brew_runtime.string_value(command)
+		return ruby.string_value(command)
 	}
 	return shell_nil_value()
 }
 
 // Ruby method `csh_quote(str)` at line 130.
-pub fn ruby_shell_l130_d9_csh_quote(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shell_l130_d9_csh_quote(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Utils::Shell.csh_quote requires a value') }
-	return brew_runtime.string_value(shell_csh_quote(args[0].as_string()))
+	return ruby.string_value(shell_csh_quote(args[0].as_string()))
 }
 
 // Ruby method `sh_quote(str)` at line 144.
-pub fn ruby_shell_l144_d10_sh_quote(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shell_l144_d10_sh_quote(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Utils::Shell.sh_quote requires a value') }
-	return brew_runtime.string_value(shell_sh_quote(args[0].as_string()))
+	return ruby.string_value(shell_sh_quote(args[0].as_string()))
 }
 
 // Ruby method `shell_with_prompt(type, preferred_path:, notice:, home: Dir.home)` at line 157.
-pub fn ruby_shell_l157_d11_shell_with_prompt(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shell_l157_d11_shell_with_prompt(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('Utils::Shell.shell_with_prompt requires type and preferred_path') }
 	notice := if args.len > 2 { args[2].as_string() } else { '' }
 	home := if args.len > 3 { args[3].as_string() } else { os.home_dir() }
@@ -95,8 +95,8 @@ pub fn ruby_shell_l157_d11_shell_with_prompt(args ...brew_runtime.Value) brew_ru
 		preferred_path: args[1].as_string()
 		notice: notice
 		home: home
-	}) or { return brew_runtime.object_value('RuntimeError', err.msg()) }
-	return brew_runtime.string_value(command)
+	}) or { return ruby.object_value('RuntimeError', err.msg()) }
+	return ruby.string_value(command)
 }
 
 const shell_names = ['bash', 'csh', 'fish', 'ksh', 'mksh', 'pwsh', 'rc', 'sh', 'tcsh', 'zsh']
@@ -147,7 +147,7 @@ pub fn shell_preferred() ?string {
 }
 
 pub fn shell_parent() ?string {
-	result := brew_runtime.run_captured_command(['ps', '-p', os.getppid().str(), '-o', 'ucomm='], brew_runtime.CapturedCommandOptions{ environment: brew_runtime.environment() }) or { return none }
+	result := ruby.run_captured_command(['ps', '-p', os.getppid().str(), '-o', 'ucomm='], ruby.CapturedCommandOptions{ environment: ruby.environment() }) or { return none }
 	if result.exit_code != 0 {
 		return none
 	}
@@ -320,8 +320,8 @@ fn shell_homebrew_library_path() string {
 	return if value != '' { value } else { os.join_path(os.getwd(), 'homebrew') }
 }
 
-fn shell_nil_value() brew_runtime.Value {
-	return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+fn shell_nil_value() ruby.Value {
+	return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 }
 
 // Original Ruby source (line-for-line):

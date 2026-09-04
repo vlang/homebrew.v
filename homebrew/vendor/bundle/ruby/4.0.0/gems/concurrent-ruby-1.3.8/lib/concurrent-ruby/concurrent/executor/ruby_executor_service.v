@@ -1,6 +1,6 @@
 module executor
 
-import brew_runtime
+import ruby
 import sync
 import time
 
@@ -26,7 +26,7 @@ pub fn new_ruby_executor_service(options AbstractExecutorOptions) &RubyExecutorS
 	}
 }
 
-pub fn (mut executor RubyExecutorService) post(task ExecutorTask, args []brew_runtime.Value) !bool {
+pub fn (mut executor RubyExecutorService) post(task ExecutorTask, args []ruby.Value) !bool {
 	executor.lock.lock()
 	if !executor.stop {
 		executor.lock.unlock()
@@ -104,13 +104,13 @@ pub fn (mut executor RubyExecutorService) wait_for_termination(timeout ?time.Dur
 	return false
 }
 
-fn executor_base_boundary_value(executor &RubyExecutorService) brew_runtime.Value {
-	return brew_runtime.structured_value('Concurrent::RubyExecutorService', '#<Concurrent::RubyExecutorService>', {
+fn executor_base_boundary_value(executor &RubyExecutorService) ruby.Value {
+	return ruby.structured_value('Concurrent::RubyExecutorService', '#<Concurrent::RubyExecutorService>', {
 		'ruby_executor_address': u64(voidptr(executor)).str()
 	})
 }
 
-fn executor_base_boundary_receiver(args []brew_runtime.Value) &RubyExecutorService {
+fn executor_base_boundary_receiver(args []ruby.Value) &RubyExecutorService {
 	if args.len == 0 {
 		panic('RubyExecutorService method requires a receiver')
 	}
@@ -120,7 +120,7 @@ fn executor_base_boundary_receiver(args []brew_runtime.Value) &RubyExecutorServi
 	return unsafe { &RubyExecutorService(voidptr(address)) }
 }
 
-fn executor_base_boundary_timeout(args []brew_runtime.Value, index int) ?time.Duration {
+fn executor_base_boundary_timeout(args []ruby.Value, index int) ?time.Duration {
 	if index >= args.len || args[index].type_name == 'NilClass' {
 		return none
 	}
@@ -129,76 +129,76 @@ fn executor_base_boundary_timeout(args []brew_runtime.Value, index int) ?time.Du
 }
 
 // Ruby method `initialize(*args, &block)` at line 11.
-pub fn ruby_ruby_executor_service_l11_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ruby_executor_service_l11_d1_initialize(args ...ruby.Value) ruby.Value {
 	return executor_base_boundary_value(new_ruby_executor_service(abstract_executor_options_from_boundary(args)))
 }
 
 // Ruby method `post(*args, &task)` at line 17.
-pub fn ruby_ruby_executor_service_l17_d2_post(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ruby_executor_service_l17_d2_post(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('ArgumentError: no block given')
 	}
 	mut executor := executor_base_boundary_receiver(args)
-	return brew_runtime.bool_value(executor.post(boundary_noop_executor_task, args[1..].clone()) or {
+	return ruby.bool_value(executor.post(boundary_noop_executor_task, args[1..].clone()) or {
 		panic(err)
 	})
 }
 
 // Ruby method `shutdown` at line 33.
-pub fn ruby_ruby_executor_service_l33_d3_shutdown(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ruby_executor_service_l33_d3_shutdown(args ...ruby.Value) ruby.Value {
 	mut executor := executor_base_boundary_receiver(args)
-	return brew_runtime.bool_value(executor.shutdown())
+	return ruby.bool_value(executor.shutdown())
 }
 
 // Ruby method `kill` at line 42.
-pub fn ruby_ruby_executor_service_l42_d4_kill(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ruby_executor_service_l42_d4_kill(args ...ruby.Value) ruby.Value {
 	mut executor := executor_base_boundary_receiver(args)
-	return brew_runtime.bool_value(executor.kill())
+	return ruby.bool_value(executor.kill())
 }
 
 // Ruby method `wait_for_termination(timeout = nil)` at line 52.
-pub fn ruby_ruby_executor_service_l52_d5_wait_for_termination(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ruby_executor_service_l52_d5_wait_for_termination(args ...ruby.Value) ruby.Value {
 	mut executor := executor_base_boundary_receiver(args)
-	return brew_runtime.bool_value(executor.wait_for_termination(executor_base_boundary_timeout(args, 1)))
+	return ruby.bool_value(executor.wait_for_termination(executor_base_boundary_timeout(args, 1)))
 }
 
 // Ruby method `stop_event` at line 58.
-pub fn ruby_ruby_executor_service_l58_d6_stop_event(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ruby_executor_service_l58_d6_stop_event(args ...ruby.Value) ruby.Value {
 	mut executor := executor_base_boundary_receiver(args)
-	return brew_runtime.bool_value(!executor.running())
+	return ruby.bool_value(!executor.running())
 }
 
 // Ruby method `stopped_event` at line 62.
-pub fn ruby_ruby_executor_service_l62_d7_stopped_event(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ruby_executor_service_l62_d7_stopped_event(args ...ruby.Value) ruby.Value {
 	mut executor := executor_base_boundary_receiver(args)
-	return brew_runtime.bool_value(executor.is_shutdown())
+	return ruby.bool_value(executor.is_shutdown())
 }
 
 // Ruby method `ns_shutdown_execution` at line 66.
-pub fn ruby_ruby_executor_service_l66_d8_ns_shutdown_execution(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ruby_executor_service_l66_d8_ns_shutdown_execution(args ...ruby.Value) ruby.Value {
 	mut executor := executor_base_boundary_receiver(args)
 	executor.lock.lock()
 	executor.stopped = true
 	executor.lock.unlock()
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
 // Ruby method `ns_running?` at line 70.
-pub fn ruby_ruby_executor_service_l70_d9_ns_running(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ruby_executor_service_l70_d9_ns_running(args ...ruby.Value) ruby.Value {
 	mut executor := executor_base_boundary_receiver(args)
-	return brew_runtime.bool_value(executor.running())
+	return ruby.bool_value(executor.running())
 }
 
 // Ruby method `ns_shuttingdown?` at line 74.
-pub fn ruby_ruby_executor_service_l74_d10_ns_shuttingdown(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ruby_executor_service_l74_d10_ns_shuttingdown(args ...ruby.Value) ruby.Value {
 	mut executor := executor_base_boundary_receiver(args)
-	return brew_runtime.bool_value(executor.shutting_down())
+	return ruby.bool_value(executor.shutting_down())
 }
 
 // Ruby method `ns_shutdown?` at line 78.
-pub fn ruby_ruby_executor_service_l78_d11_ns_shutdown(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ruby_executor_service_l78_d11_ns_shutdown(args ...ruby.Value) ruby.Value {
 	mut executor := executor_base_boundary_receiver(args)
-	return brew_runtime.bool_value(executor.is_shutdown())
+	return ruby.bool_value(executor.is_shutdown())
 }
 
 // Original Ruby source (line-for-line):

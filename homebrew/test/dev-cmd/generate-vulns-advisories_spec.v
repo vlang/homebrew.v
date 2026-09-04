@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 import homebrew.vulns
 import os
 
@@ -60,7 +60,7 @@ pub fn ruby_generate_vulns_advisories_spec_l10_d1_writes(root string) !bool {
 	if files != ['BREW-nvi-CVE-2015-2305.json'] || result.written_files.len != 1 {
 		return false
 	}
-	record := brew_runtime.parse_json_value(os.read_file(os.join_path(out, files[0]))!)!.as_map()!
+	record := ruby.parse_json_value(os.read_file(os.join_path(out, files[0]))!)!.as_map()!
 	affected := record['affected']!.as_array()![0].as_map()!
 	package := affected['package']!.as_map()!
 	events := affected['ranges']!.as_array()![0].as_map()!['events']!.as_array()!

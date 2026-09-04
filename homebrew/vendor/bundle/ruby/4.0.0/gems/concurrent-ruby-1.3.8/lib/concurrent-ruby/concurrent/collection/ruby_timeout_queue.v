@@ -1,6 +1,6 @@
 module collection
 
-import brew_runtime
+import ruby
 import sync
 import time
 
@@ -9,7 +9,7 @@ import time
 pub struct TimeoutQueuePopResult {
 pub:
 	found bool
-	value brew_runtime.Value
+	value ruby.Value
 }
 
 @[heap]
@@ -17,7 +17,7 @@ struct TimeoutQueueState {
 	mutex     &sync.Mutex
 	condition &sync.Cond
 mut:
-	values []brew_runtime.Value
+	values []ruby.Value
 }
 
 @[heap]
@@ -26,11 +26,11 @@ mut:
 	state &TimeoutQueueState
 }
 
-fn timeout_queue_nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn timeout_queue_nil_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-pub fn new_ruby_timeout_queue(initial []brew_runtime.Value) &RubyTimeoutQueue {
+pub fn new_ruby_timeout_queue(initial []ruby.Value) &RubyTimeoutQueue {
 	mutex := sync.new_mutex()
 	return &RubyTimeoutQueue{
 		state: &TimeoutQueueState{
@@ -41,7 +41,7 @@ pub fn new_ruby_timeout_queue(initial []brew_runtime.Value) &RubyTimeoutQueue {
 	}
 }
 
-pub fn (mut queue RubyTimeoutQueue) push(value brew_runtime.Value) {
+pub fn (mut queue RubyTimeoutQueue) push(value ruby.Value) {
 	queue.state.mutex.lock()
 	queue.state.values << value
 	queue.state.condition.signal()
@@ -110,14 +110,14 @@ pub fn (mut queue RubyTimeoutQueue) len() int {
 	return queue.state.values.len
 }
 
-fn timeout_queue_boundary_new(initial []brew_runtime.Value) brew_runtime.Value {
+fn timeout_queue_boundary_new(initial []ruby.Value) ruby.Value {
 	queue := new_ruby_timeout_queue(initial)
-	return brew_runtime.structured_value('Concurrent::Collection::RubyTimeoutQueue', '#<Concurrent::Collection::RubyTimeoutQueue>', {
+	return ruby.structured_value('Concurrent::Collection::RubyTimeoutQueue', '#<Concurrent::Collection::RubyTimeoutQueue>', {
 		'timeout_queue_address': u64(voidptr(queue)).str()
 	})
 }
 
-fn timeout_queue_boundary_receiver(args []brew_runtime.Value) &RubyTimeoutQueue {
+fn timeout_queue_boundary_receiver(args []ruby.Value) &RubyTimeoutQueue {
 	if args.len == 0 {
 		panic('RubyTimeoutQueue method requires a receiver')
 	}
@@ -127,7 +127,7 @@ fn timeout_queue_boundary_receiver(args []brew_runtime.Value) &RubyTimeoutQueue 
 	return unsafe { &RubyTimeoutQueue(voidptr(address)) }
 }
 
-fn timeout_queue_boundary_pop(args []brew_runtime.Value) brew_runtime.Value {
+fn timeout_queue_boundary_pop(args []ruby.Value) ruby.Value {
 	mut queue := timeout_queue_boundary_receiver(args)
 	non_block := if args.len > 1 { args[1].as_bool() or { false } } else { false }
 	timeout := if args.len > 2 && args[2].type_name != 'NilClass' {
@@ -140,12 +140,12 @@ fn timeout_queue_boundary_pop(args []brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `initialize(*args)` at line 6.
-pub fn ruby_ruby_timeout_queue_l6_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ruby_timeout_queue_l6_d1_initialize(args ...ruby.Value) ruby.Value {
 	return timeout_queue_boundary_new(args)
 }
 
 // Ruby method `push(obj)` at line 17.
-pub fn ruby_ruby_timeout_queue_l17_d2_push(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ruby_timeout_queue_l17_d2_push(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('RubyTimeoutQueue#push requires object')
 	}
@@ -155,27 +155,27 @@ pub fn ruby_ruby_timeout_queue_l17_d2_push(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby alias_method `alias_method :enq, :push` at line 23.
-pub fn ruby_ruby_timeout_queue_l23_d3_enq(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ruby_timeout_queue_l23_d3_enq(args ...ruby.Value) ruby.Value {
 	return ruby_ruby_timeout_queue_l17_d2_push(...args)
 }
 
 // Ruby alias_method `alias_method :<<, :push` at line 24.
-pub fn ruby_ruby_timeout_queue_l24_d4_push(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ruby_timeout_queue_l24_d4_push(args ...ruby.Value) ruby.Value {
 	return ruby_ruby_timeout_queue_l17_d2_push(...args)
 }
 
 // Ruby method `pop(non_block = false, timeout: nil)` at line 26.
-pub fn ruby_ruby_timeout_queue_l26_d5_pop(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ruby_timeout_queue_l26_d5_pop(args ...ruby.Value) ruby.Value {
 	return timeout_queue_boundary_pop(args)
 }
 
 // Ruby alias_method `alias_method :deq, :pop` at line 50.
-pub fn ruby_ruby_timeout_queue_l50_d6_deq(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ruby_timeout_queue_l50_d6_deq(args ...ruby.Value) ruby.Value {
 	return timeout_queue_boundary_pop(args)
 }
 
 // Ruby alias_method `alias_method :shift, :pop` at line 51.
-pub fn ruby_ruby_timeout_queue_l51_d7_shift(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_ruby_timeout_queue_l51_d7_shift(args ...ruby.Value) ruby.Value {
 	return timeout_queue_boundary_pop(args)
 }
 

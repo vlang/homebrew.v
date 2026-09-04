@@ -1,6 +1,6 @@
 module test_bot
 
-import brew_runtime
+import ruby
 import homebrew.test_bot as production_test_bot
 import os
 import time
@@ -83,23 +83,23 @@ fn formulae_spec_missing_all_case(tags []string, checksums []string, cellars []s
 }
 
 // Ruby it `it "requires exact matches when either name is tap-qualified", :aggregate_failures do` at line 8.
-pub fn ruby_formulae_spec_l8_d1_requires(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formulae_spec_l8_d1_requires(args ...ruby.Value) ruby.Value {
 	_ = args
 	unqualified := production_test_bot.FormulaeDependency{ name: 'foo', full_name: 'foo' }
 	qualified := production_test_bot.FormulaeDependency{
 		name: 'homebrew/core/foo'
 		full_name: 'homebrew/core/foo'
 	}
-	return brew_runtime.bool_value(production_test_bot.dependency_name_match(unqualified, 'foo') && production_test_bot.dependency_name_match(qualified, 'homebrew/core/foo')
+	return ruby.bool_value(production_test_bot.dependency_name_match(unqualified, 'foo') && production_test_bot.dependency_name_match(qualified, 'homebrew/core/foo')
 		&& !production_test_bot.dependency_name_match(qualified, 'foo')
 		&& !production_test_bot.dependency_name_match(qualified, 'user/tap/foo'))
 }
 
 // Ruby it `it "writes a warning annotation for the new recursive dependency impact" do` at line 31.
-pub fn ruby_formulae_spec_l31_d2_writes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formulae_spec_l31_d2_writes(args ...ruby.Value) ruby.Value {
 	_ = args
 	root := formulae_spec_root('dependencies')
-	os.mkdir_all(root) or { return brew_runtime.bool_value(false) }
+	os.mkdir_all(root) or { return ruby.bool_value(false) }
 	defer { os.rmdir_all(root) or {} }
 	bar := production_test_bot.FormulaeDependency{
 		name: 'bar'
@@ -123,14 +123,14 @@ pub fn ruby_formulae_spec_l31_d2_writes(args ...brew_runtime.Value) brew_runtime
 	}
 	mut runner := formulae_spec_runner(root, false, false, true)
 	runner.annotate_added_dependencies(formula)
-	return brew_runtime.bool_value(runner.annotations.len == 1
+	return ruby.bool_value(runner.annotations.len == 1
 		&& runner.annotations[0].title == 'foo: new dependency impact'
 		&& runner.annotations[0].message.contains('3 new recursive dependencies')
 		&& runner.annotations[0].message.contains('1900000'))
 }
 
 // Ruby method `write_platform_bottle_formula(formula_path, tag, sha256)` at line 105.
-pub fn ruby_formulae_spec_l105_d3_write_platform_bottle_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formulae_spec_l105_d3_write_platform_bottle_formula(args ...ruby.Value) ruby.Value {
 	path := if args.len > 0 {
 		args[0].as_string()
 	} else {
@@ -139,29 +139,29 @@ pub fn ruby_formulae_spec_l105_d3_write_platform_bottle_formula(args ...brew_run
 	tag := if args.len > 1 { args[1].as_string() } else { 'arm64_tahoe' }
 	checksum := if args.len > 2 { args[2].as_string() } else { formulae_spec_sha }
 	formulae_spec_write_platform_formula(path, tag, checksum) or {
-		return brew_runtime.object_value('IOError', err.msg())
+		return ruby.object_value('IOError', err.msg())
 	}
-	return brew_runtime.int_value(os.file_size(path))
+	return ruby.int_value(os.file_size(path))
 }
 
 // Ruby method `write_bottle_json(tap_path, tag, sha256, cellar: "any_skip_relocation")` at line 129.
-pub fn ruby_formulae_spec_l129_d4_write_bottle_json(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formulae_spec_l129_d4_write_bottle_json(args ...ruby.Value) ruby.Value {
 	root := if args.len > 0 { args[0].as_string() } else { formulae_spec_root('json') }
 	tag := if args.len > 1 { args[1].as_string() } else { 'arm64_tahoe' }
 	checksum := if args.len > 2 { args[2].as_string() } else { formulae_spec_sha }
 	cellar := if args.len > 3 { args[3].as_string() } else { 'any_skip_relocation' }
-	os.mkdir_all(root) or { return brew_runtime.object_value('IOError', err.msg()) }
+	os.mkdir_all(root) or { return ruby.object_value('IOError', err.msg()) }
 	path := formulae_spec_write_bottle_json(root, tag, checksum, cellar) or {
-		return brew_runtime.object_value('IOError', err.msg())
+		return ruby.object_value('IOError', err.msg())
 	}
-	return brew_runtime.int_value(os.file_size(path))
+	return ruby.int_value(os.file_size(path))
 }
 
 // Ruby method `all_bottle_formula(formula_path)` at line 145.
-pub fn ruby_formulae_spec_l145_d5_all_bottle_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formulae_spec_l145_d5_all_bottle_formula(args ...ruby.Value) ruby.Value {
 	root := if args.len > 0 { os.dir(args[0].as_string()) } else { formulae_spec_root('all') }
 	formula := formulae_spec_all_bottle_formula(root, 'arm64_tahoe')
-	return brew_runtime.structured_value('Formula', formula.full_name, {
+	return ruby.structured_value('Formula', formula.full_name, {
 		'name':           formula.name
 		'path':           formula.path
 		'has_all_bottle': formula.has_all_bottle.str()
@@ -170,93 +170,93 @@ pub fn ruby_formulae_spec_l145_d5_all_bottle_formula(args ...brew_runtime.Value)
 }
 
 // Ruby method `formulae_test_bot(tap_path, tmpdir)` at line 157.
-pub fn ruby_formulae_spec_l157_d6_formulae_test_bot(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formulae_spec_l157_d6_formulae_test_bot(args ...ruby.Value) ruby.Value {
 	root := if args.len > 0 { args[0].as_string() } else { formulae_spec_root('runner') }
-	os.mkdir_all(root) or { return brew_runtime.object_value('IOError', err.msg()) }
+	os.mkdir_all(root) or { return ruby.object_value('IOError', err.msg()) }
 	return production_test_bot.formulae_boundary_value(formulae_spec_runner(root, true, true, false))
 }
 
 // Ruby it `it "writes a warning annotation for a platform-specific bottle replacing an all bottle" do` at line 168.
-pub fn ruby_formulae_spec_l168_d7_writes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formulae_spec_l168_d7_writes(args ...ruby.Value) ruby.Value {
 	_ = args
 	annotations := formulae_spec_missing_all_case(['arm64_tahoe', 'tahoe'], [
 		formulae_spec_sha,
 		'd'.repeat(64),
 	], ['any_skip_relocation', 'any_skip_relocation'])
-	return brew_runtime.bool_value(annotations.len == 1
+	return ruby.bool_value(annotations.len == 1
 		&& annotations[0].title == 'foo: missing :all bottle'
 		&& annotations[0].message.contains('sha256 `${formulae_spec_sha}`'))
 }
 
 // Ruby it `it "does not write a warning annotation when local JSON already has an all bottle" do` at line 196.
-pub fn ruby_formulae_spec_l196_d8_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formulae_spec_l196_d8_does(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(formulae_spec_missing_all_case(['arm64_tahoe', 'all'], [
+	return ruby.bool_value(formulae_spec_missing_all_case(['arm64_tahoe', 'all'], [
 		formulae_spec_sha,
 		'e'.repeat(64),
 	], ['any_skip_relocation', 'any_skip_relocation']).len == 0)
 }
 
 // Ruby it `it "does not write a warning annotation for a single platform-specific bottle" do` at line 217.
-pub fn ruby_formulae_spec_l217_d9_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formulae_spec_l217_d9_does(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(formulae_spec_missing_all_case(['arm64_tahoe'], [
+	return ruby.bool_value(formulae_spec_missing_all_case(['arm64_tahoe'], [
 		formulae_spec_sha,
 	], ['any_skip_relocation']).len == 0)
 }
 
 // Ruby it `it "writes a warning annotation when matching checksums have different cellars" do` at line 236.
-pub fn ruby_formulae_spec_l236_d10_writes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formulae_spec_l236_d10_writes(args ...ruby.Value) ruby.Value {
 	_ = args
 	annotations := formulae_spec_missing_all_case(['arm64_tahoe', 'tahoe'], [
 		formulae_spec_sha,
 		formulae_spec_sha,
 	], ['any_skip_relocation', 'any'])
-	return brew_runtime.bool_value(annotations.len == 1
+	return ruby.bool_value(annotations.len == 1
 		&& annotations[0].message.contains('sha256 `${formulae_spec_sha}`'))
 }
 
 // Ruby it `it "does not write a warning annotation when platform bottles can become an all bottle" do` at line 257.
-pub fn ruby_formulae_spec_l257_d11_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formulae_spec_l257_d11_does(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(formulae_spec_missing_all_case(['arm64_tahoe', 'tahoe'], [
+	return ruby.bool_value(formulae_spec_missing_all_case(['arm64_tahoe', 'tahoe'], [
 		formulae_spec_sha,
 		formulae_spec_sha,
 	], ['any_skip_relocation', 'any_skip_relocation']).len == 0)
 }
 
 // Ruby it `it "returns false (not nil) when tap is nil" do` at line 279.
-pub fn ruby_formulae_spec_l279_d12_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formulae_spec_l279_d12_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	root := formulae_spec_root('no-tap')
 	mut runner := formulae_spec_runner(root, false, false, false)
-	return brew_runtime.bool_value(!runner.testing_portable_ruby())
+	return ruby.bool_value(!runner.testing_portable_ruby())
 }
 
 // Ruby it `it "returns false (not nil) when testing portable ruby" do` at line 300.
-pub fn ruby_formulae_spec_l300_d13_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formulae_spec_l300_d13_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	root := formulae_spec_root('portable')
 	mut runner := formulae_spec_runner(root, true, true, false)
 	runner.set_testing_formulae(['portable-ruby'])
-	return brew_runtime.bool_value(runner.testing_portable_ruby() && !runner.verify_local_bottles())
+	return ruby.bool_value(runner.testing_portable_ruby() && !runner.verify_local_bottles())
 }
 
 // Ruby it `it "restores bottled config with InstallRenamed handling" do` at line 322.
-pub fn ruby_formulae_spec_l322_d14_restores(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formulae_spec_l322_d14_restores(args ...ruby.Value) ruby.Value {
 	_ = args
 	root := formulae_spec_root('config')
-	os.mkdir_all(root) or { return brew_runtime.bool_value(false) }
+	os.mkdir_all(root) or { return ruby.bool_value(false) }
 	defer { os.rmdir_all(root) or {} }
 	prefix := os.join_path(root, 'prefix')
 	bottle_prefix := os.join_path(root, 'Cellar', 'test-bot-config', '2.0', '.bottle')
 	config_file := os.join_path(prefix, 'etc', 'test-bot-config.conf')
 	default_file := '${config_file}.default'
 	new_file := os.join_path(bottle_prefix, 'etc', 'test-bot-config.conf')
-	os.mkdir_all(os.dir(config_file)) or { return brew_runtime.bool_value(false) }
-	os.mkdir_all(os.dir(new_file)) or { return brew_runtime.bool_value(false) }
-	os.write_file(config_file, 'old\n') or { return brew_runtime.bool_value(false) }
-	os.write_file(new_file, 'new\n') or { return brew_runtime.bool_value(false) }
+	os.mkdir_all(os.dir(config_file)) or { return ruby.bool_value(false) }
+	os.mkdir_all(os.dir(new_file)) or { return ruby.bool_value(false) }
+	os.write_file(config_file, 'old\n') or { return ruby.bool_value(false) }
+	os.write_file(new_file, 'new\n') or { return ruby.bool_value(false) }
 	runner := formulae_spec_runner(root, false, false, false)
 	runner.cleanup_bottle_etc_var(production_test_bot.FormulaeFormula{
 		name: 'test-bot-config'
@@ -264,7 +264,7 @@ pub fn ruby_formulae_spec_l322_d14_restores(args ...brew_runtime.Value) brew_run
 		bottle_prefix: bottle_prefix
 		prefix_root: prefix
 	})
-	return brew_runtime.bool_value(os.read_file(config_file) or { '' } == 'new\n'
+	return ruby.bool_value(os.read_file(config_file) or { '' } == 'new\n'
 		&& !os.exists(default_file))
 }
 

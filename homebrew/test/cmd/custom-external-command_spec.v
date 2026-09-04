@@ -1,20 +1,20 @@
 module cmd
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `test/cmd/custom-external-command_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "is supported" do` at line 5.
-pub fn ruby_custom_external_command_spec_l5_d1_is(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_custom_external_command_spec_l5_d1_is(args ...ruby.Value) ruby.Value {
 	directory := if args.len > 0 { args[0].as_string() } else { os.temp_dir() }
 	command := if args.len > 1 {
 		args[1].as_string()
 	} else {
 		'custom-external-command-${os.getpid()}'
 	}
-	return brew_runtime.bool_value(custom_external_command_supported(directory, command))
+	return ruby.bool_value(custom_external_command_supported(directory, command))
 }
 
 pub fn custom_external_command_supported(directory string, command string) bool {
@@ -23,7 +23,7 @@ pub fn custom_external_command_supported(directory string, command string) bool 
 	os.write_file(path, "#!/bin/sh\necho 'I am ${command}.'\n") or { return false }
 	defer { os.rm(path) or {} }
 	os.chmod(path, 0o755) or { return false }
-	result := brew_runtime.run_command(path, [])
+	result := ruby.run_command(path, [])
 	return result.exit_code == 0 && result.output == 'I am ${command}.\n'
 }
 

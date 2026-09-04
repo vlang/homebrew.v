@@ -1,23 +1,23 @@
 module deep_dup
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `extend/object/deep_dup/hash.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `deep_dup` at line 14.
-pub fn ruby_hash_l14_d1_deep_dup(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_hash_l14_d1_deep_dup(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.structured_value('Hash', '{}', {})
+		return ruby.structured_value('Hash', '{}', {})
 	}
 	attributes := args[0].attributes.clone()
-	return brew_runtime.structured_value('Hash', attributes.str(), attributes)
+	return ruby.structured_value('Hash', attributes.str(), attributes)
 }
 
 // deep_dup_values translates Hash#deep_dup for typed string-keyed maps. V map
 // keys are values, so only the recursively copied values need replacement.
-pub fn deep_dup_hash_values(values map[string]brew_runtime.Value) map[string]brew_runtime.Value {
-	mut duplicated := map[string]brew_runtime.Value{}
+pub fn deep_dup_hash_values(values map[string]ruby.Value) map[string]ruby.Value {
+	mut duplicated := map[string]ruby.Value{}
 	for key, value in values {
 		duplicated[key] = deep_dup_value(value)
 	}

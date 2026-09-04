@@ -1,6 +1,6 @@
 module cask
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `rubocops/cask/discontinued.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -194,8 +194,8 @@ pub fn correct_cask_discontinued(source string, today string) string {
 	return corrected
 }
 
-fn discontinued_offense_value(offense DiscontinuedOffense) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cop::Offense', offense.message, {
+fn discontinued_offense_value(offense DiscontinuedOffense) ruby.Value {
+	return ruby.structured_value('RuboCop::Cop::Offense', offense.message, {
 		'kind':        offense.kind
 		'begin_pos':   offense.begin_pos.str()
 		'end_pos':     offense.end_pos.str()
@@ -205,23 +205,23 @@ fn discontinued_offense_value(offense DiscontinuedOffense) brew_runtime.Value {
 }
 
 // Ruby method `on_cask_stanza_block(stanza_block)` at line 15.
-pub fn ruby_discontinued_l15_d1_on_cask_stanza_block(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_discontinued_l15_d1_on_cask_stanza_block(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
-	today := if args.len > 1 { args[1].as_string() } else { brew_runtime.today_iso() }
-	return brew_runtime.array_value(audit_cask_discontinued(source, today).map(discontinued_offense_value(it)))
+	today := if args.len > 1 { args[1].as_string() } else { ruby.today_iso() }
+	return ruby.array_value(audit_cask_discontinued(source, today).map(discontinued_offense_value(it)))
 }
 
 // Ruby def_node_matcher `def_node_matcher :caveats_contains_only_discontinued?, <<~EOS` at line 30.
-pub fn ruby_discontinued_l30_d2_caveats_contains_only_discontinued(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_discontinued_l30_d2_caveats_contains_only_discontinued(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.bool_value(caveats_contains_only_discontinued(source))
+	return ruby.bool_value(caveats_contains_only_discontinued(source))
 }
 
 // Ruby def_node_search `def_node_search :find_discontinued_method_call, <<~EOS` at line 37.
-pub fn ruby_discontinued_l37_d3_find_discontinued_method_call(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_discontinued_l37_d3_find_discontinued_method_call(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.array_value(find_discontinued_calls(source, 0, source.len).map(fn [source] (call []int) brew_runtime.Value {
-		return brew_runtime.structured_value('RuboCop::AST::SendNode', 'discontinued', {
+	return ruby.array_value(find_discontinued_calls(source, 0, source.len).map(fn [source] (call []int) ruby.Value {
+		return ruby.structured_value('RuboCop::AST::SendNode', 'discontinued', {
 			'begin_pos': call[0].str()
 			'end_pos':   call[1].str()
 			'source':    source[call[0]..call[1]]

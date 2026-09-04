@@ -1,12 +1,12 @@
 module homebrew
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `shell_command.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `run` at line 11.
-pub fn ruby_shell_command_l11_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shell_command_l11_d1_run(args ...ruby.Value) ruby.Value {
 	command_name := if args.len > 0 { args[0].as_string() } else { '' }
 	dev_cmd := if args.len > 1 { args[1].as_bool() or { false } } else { false }
 	panic(shell_command_error(command_name, dev_cmd).msg())

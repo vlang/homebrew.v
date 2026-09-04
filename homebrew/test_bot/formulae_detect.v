@@ -1,6 +1,6 @@
 module test_bot
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `test_bot/formulae_detect.rb`.
@@ -99,23 +99,23 @@ pub fn new_formulae_detect(argument string, config FormulaeDetectConfig) &Formul
 	}
 }
 
-fn formulae_detect_nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn formulae_detect_nil_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-fn formulae_detect_error_value(kind string, message string) brew_runtime.Value {
-	return brew_runtime.structured_value(kind, message, {
+fn formulae_detect_error_value(kind string, message string) ruby.Value {
+	return ruby.structured_value(kind, message, {
 		'message': message
 	})
 }
 
-pub fn formulae_detect_boundary(detector &FormulaeDetect) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::TestBot::FormulaeDetect', detector.argument, {
+pub fn formulae_detect_boundary(detector &FormulaeDetect) ruby.Value {
+	return ruby.structured_value('Homebrew::TestBot::FormulaeDetect', detector.argument, {
 		'formulae_detect_address': u64(voidptr(detector)).str()
 	})
 }
 
-fn formulae_detect_receiver(args []brew_runtime.Value) !&FormulaeDetect {
+fn formulae_detect_receiver(args []ruby.Value) !&FormulaeDetect {
 	if args.len == 0 || 'formulae_detect_address' !in args[0].attributes {
 		return error('FormulaeDetect receiver is required')
 	}
@@ -126,7 +126,7 @@ fn formulae_detect_receiver(args []brew_runtime.Value) !&FormulaeDetect {
 	return unsafe { &FormulaeDetect(voidptr(address)) }
 }
 
-fn formulae_detect_args_from_value(value brew_runtime.Value) FormulaeDetectArgs {
+fn formulae_detect_args_from_value(value ruby.Value) FormulaeDetectArgs {
 	return FormulaeDetectArgs{
 		dry_run: value.attributes['dry_run'] or { 'false' } == 'true'
 		debug: value.attributes['debug'] or { 'false' } == 'true'
@@ -443,25 +443,25 @@ pub fn (mut detector FormulaeDetect) run(args FormulaeDetectArgs) ! {
 }
 
 // Ruby attr_reader `attr_reader :testing_formulae, :added_formulae, :deleted_formulae` at line 12.
-pub fn ruby_formulae_detect_l12_d1_testing_formulae(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formulae_detect_l12_d1_testing_formulae(args ...ruby.Value) ruby.Value {
 	detector := formulae_detect_receiver(args) or { return formulae_detect_error_value('ArgumentError', err.msg()) }
-	return brew_runtime.string_array_value(detector.testing_formulae)
+	return ruby.string_array_value(detector.testing_formulae)
 }
 
 // Ruby attr_reader `attr_reader :testing_formulae, :added_formulae, :deleted_formulae` at line 12.
-pub fn ruby_formulae_detect_l12_d2_added_formulae(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formulae_detect_l12_d2_added_formulae(args ...ruby.Value) ruby.Value {
 	detector := formulae_detect_receiver(args) or { return formulae_detect_error_value('ArgumentError', err.msg()) }
-	return brew_runtime.string_array_value(detector.added_formulae)
+	return ruby.string_array_value(detector.added_formulae)
 }
 
 // Ruby attr_reader `attr_reader :testing_formulae, :added_formulae, :deleted_formulae` at line 12.
-pub fn ruby_formulae_detect_l12_d3_deleted_formulae(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formulae_detect_l12_d3_deleted_formulae(args ...ruby.Value) ruby.Value {
 	detector := formulae_detect_receiver(args) or { return formulae_detect_error_value('ArgumentError', err.msg()) }
-	return brew_runtime.string_array_value(detector.deleted_formulae)
+	return ruby.string_array_value(detector.deleted_formulae)
 }
 
 // Ruby method `initialize(argument, tap:, git:, dry_run:, fail_fast:, verbose:)` at line 24.
-pub fn ruby_formulae_detect_l24_d4_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formulae_detect_l24_d4_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return formulae_detect_error_value('ArgumentError', 'initialize requires an argument')
 	}
@@ -473,7 +473,7 @@ pub fn ruby_formulae_detect_l24_d4_initialize(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby method `run!(args:)` at line 35.
-pub fn ruby_formulae_detect_l35_d5_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formulae_detect_l35_d5_run(args ...ruby.Value) ruby.Value {
 	mut detector := formulae_detect_receiver(args) or { return formulae_detect_error_value('ArgumentError', err.msg()) }
 	options := if args.len > 1 {
 		formulae_detect_args_from_value(args[1])
@@ -485,7 +485,7 @@ pub fn ruby_formulae_detect_l35_d5_run(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby method `detect_formulae!(args:)` at line 51.
-pub fn ruby_formulae_detect_l51_d6_detect_formulae(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formulae_detect_l51_d6_detect_formulae(args ...ruby.Value) ruby.Value {
 	mut detector := formulae_detect_receiver(args) or { return formulae_detect_error_value('ArgumentError', err.msg()) }
 	options := if args.len > 1 {
 		formulae_detect_args_from_value(args[1])
@@ -497,7 +497,7 @@ pub fn ruby_formulae_detect_l51_d6_detect_formulae(args ...brew_runtime.Value) b
 }
 
 // Ruby method `safe_formula_canonical_name(formula_name, args:)` at line 230.
-pub fn ruby_formulae_detect_l230_d7_safe_formula_canonical_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formulae_detect_l230_d7_safe_formula_canonical_name(args ...ruby.Value) ruby.Value {
 	mut detector := formulae_detect_receiver(args) or { return formulae_detect_error_value('ArgumentError', err.msg()) }
 	if args.len < 2 {
 		return formulae_detect_error_value('ArgumentError', 'formula name is required')
@@ -510,11 +510,11 @@ pub fn ruby_formulae_detect_l230_d7_safe_formula_canonical_name(args ...brew_run
 	name := detector.safe_formula_canonical_name(args[1].as_string(), options) or {
 		return formulae_detect_nil_value()
 	}
-	return brew_runtime.string_value(name)
+	return ruby.string_value(name)
 }
 
 // Ruby method `rev_parse(ref)` at line 240.
-pub fn ruby_formulae_detect_l240_d8_rev_parse(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formulae_detect_l240_d8_rev_parse(args ...ruby.Value) ruby.Value {
 	mut detector := formulae_detect_receiver(args) or { return formulae_detect_error_value('ArgumentError', err.msg()) }
 	if args.len < 2 {
 		return formulae_detect_error_value('ArgumentError', 'Git reference is required')
@@ -522,20 +522,20 @@ pub fn ruby_formulae_detect_l240_d8_rev_parse(args ...brew_runtime.Value) brew_r
 	revision := detector.rev_parse(args[1].as_string()) or {
 		return formulae_detect_error_value('RuntimeError', err.msg())
 	}
-	return brew_runtime.string_value(revision)
+	return ruby.string_value(revision)
 }
 
 // Ruby method `current_sha1` at line 245.
-pub fn ruby_formulae_detect_l245_d9_current_sha1(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formulae_detect_l245_d9_current_sha1(args ...ruby.Value) ruby.Value {
 	mut detector := formulae_detect_receiver(args) or { return formulae_detect_error_value('ArgumentError', err.msg()) }
 	revision := detector.current_sha1() or {
 		return formulae_detect_error_value('RuntimeError', err.msg())
 	}
-	return brew_runtime.string_value(revision)
+	return ruby.string_value(revision)
 }
 
 // Ruby method `diff_formulae(start_revision, end_revision, path, filter)` at line 257.
-pub fn ruby_formulae_detect_l257_d10_diff_formulae(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formulae_detect_l257_d10_diff_formulae(args ...ruby.Value) ruby.Value {
 	mut detector := formulae_detect_receiver(args) or { return formulae_detect_error_value('ArgumentError', err.msg()) }
 	if args.len < 5 {
 		return formulae_detect_error_value('ArgumentError', 'start revision, end revision, path and filter are required')
@@ -543,7 +543,7 @@ pub fn ruby_formulae_detect_l257_d10_diff_formulae(args ...brew_runtime.Value) b
 	formulae := detector.diff_formulae(args[1].as_string(), args[2].as_string(), args[3].as_string(), args[4].as_string()) or {
 		return formulae_detect_error_value('RuntimeError', err.msg())
 	}
-	return brew_runtime.string_array_value(formulae)
+	return ruby.string_array_value(formulae)
 }
 
 // Original Ruby source (line-for-line):

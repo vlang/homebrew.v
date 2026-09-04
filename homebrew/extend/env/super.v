@@ -1,6 +1,6 @@
 module env
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `extend/ENV/super.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -45,7 +45,7 @@ pub const superenv_sanitized_variables = [
 
 pub type SuperenvPathPredicate = fn(string) bool
 
-pub type SuperenvAction = fn(mut SuperenvState) !brew_runtime.Value
+pub type SuperenvAction = fn(mut SuperenvState) !ruby.Value
 
 pub type SuperenvVoidAction = fn(mut SuperenvState) !
 

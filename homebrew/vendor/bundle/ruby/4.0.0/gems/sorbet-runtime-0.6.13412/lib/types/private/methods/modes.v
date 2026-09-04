@@ -1,6 +1,6 @@
 module methods
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/private/methods/modes.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -12,33 +12,33 @@ pub const override_modes = ['override', 'overridable_override']
 pub const non_override_modes = ['standard', 'abstract', 'overridable', 'untyped']
 
 // Ruby method `self.standard` at line 5.
-pub fn ruby_modes_l5_d1_self_standard(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('standard')
+pub fn ruby_modes_l5_d1_self_standard(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('standard')
 }
 
 // Ruby method `self.abstract` at line 8.
-pub fn ruby_modes_l8_d2_self_abstract(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('abstract')
+pub fn ruby_modes_l8_d2_self_abstract(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('abstract')
 }
 
 // Ruby method `self.overridable` at line 11.
-pub fn ruby_modes_l11_d3_self_overridable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('overridable')
+pub fn ruby_modes_l11_d3_self_overridable(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('overridable')
 }
 
 // Ruby method `self.override` at line 14.
-pub fn ruby_modes_l14_d4_self_override(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('override')
+pub fn ruby_modes_l14_d4_self_override(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('override')
 }
 
 // Ruby method `self.overridable_override` at line 17.
-pub fn ruby_modes_l17_d5_self_overridable_override(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('overridable_override')
+pub fn ruby_modes_l17_d5_self_overridable_override(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('overridable_override')
 }
 
 // Ruby method `self.untyped` at line 20.
-pub fn ruby_modes_l20_d6_self_untyped(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('untyped')
+pub fn ruby_modes_l20_d6_self_untyped(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('untyped')
 }
 
 // Original Ruby source (line-for-line):

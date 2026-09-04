@@ -1,12 +1,12 @@
 module cmd
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `test/cmd/mcp-server_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "starts the MCP server", :integration_test do` at line 5.
-pub fn ruby_mcp_server_spec_l5_d1_starts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mcp_server_spec_l5_d1_starts(args ...ruby.Value) ruby.Value {
 	stdout := if args.len > 0 {
 		args[0].as_string()
 	} else {
@@ -18,7 +18,7 @@ pub fn ruby_mcp_server_spec_l5_d1_starts(args ...brew_runtime.Value) brew_runtim
 		'==> Started Homebrew MCP server...\n'
 	}
 	exit_code := if args.len > 2 { int(args[2].int_data) } else { 0 }
-	return brew_runtime.bool_value(mcp_server_ping_succeeded(stdout, stderr, exit_code))
+	return ruby.bool_value(mcp_server_ping_succeeded(stdout, stderr, exit_code))
 }
 
 pub fn mcp_server_ping_succeeded(stdout string, stderr string, exit_code int) bool {

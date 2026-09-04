@@ -1,6 +1,6 @@
 module cask
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `cask/staged.rb`.
@@ -89,7 +89,7 @@ pub fn (mut state StagedState) set_ownership(paths []string, user string, group 
 	}
 }
 
-fn staged_paths_from_value(value brew_runtime.Value) []string {
+fn staged_paths_from_value(value ruby.Value) []string {
 	return if value.type_name == 'Array' {
 		value.as_string_array() or { [] }
 	} else {
@@ -97,51 +97,51 @@ fn staged_paths_from_value(value brew_runtime.Value) []string {
 	}
 }
 
-fn staged_state_value(state &StagedState) brew_runtime.Value {
-	return brew_runtime.structured_value('Cask::Staged', state.cask, {
+fn staged_state_value(state &StagedState) ruby.Value {
+	return ruby.structured_value('Cask::Staged', state.cask, {
 		'staged_state_address': u64(voidptr(state)).str()
 	})
 }
 
-fn staged_state_from_value(value brew_runtime.Value) &StagedState {
+fn staged_state_from_value(value ruby.Value) &StagedState {
 	address := value.attributes['staged_state_address'] or { panic('invalid Cask::Staged state') }
 	return unsafe { &StagedState(voidptr(address.u64())) }
 }
 
-pub fn staged_state_boundary(state &StagedState) brew_runtime.Value {
+pub fn staged_state_boundary(state &StagedState) ruby.Value {
 	return staged_state_value(state)
 }
 
 // Ruby method `set_permissions(paths, permissions_str)` at line 19.
-pub fn ruby_staged_l19_d1_set_permissions(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_staged_l19_d1_set_permissions(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
-		return brew_runtime.object_value('ArgumentError', 'state, paths and permissions are required')
+		return ruby.object_value('ArgumentError', 'state, paths and permissions are required')
 	}
 	mut state := staged_state_from_value(args[0])
 	state.set_permissions(staged_paths_from_value(args[1]), args[2].as_string())
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `set_ownership(paths, user: T.must(User.current), group: "staff")` at line 28.
-pub fn ruby_staged_l28_d2_set_ownership(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_staged_l28_d2_set_ownership(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'state and paths are required')
+		return ruby.object_value('ArgumentError', 'state and paths are required')
 	}
 	mut state := staged_state_from_value(args[0])
 	user := if args.len > 2 { args[2].as_string() } else { state.current_user }
 	group := if args.len > 3 { args[3].as_string() } else { 'staff' }
 	state.set_ownership(staged_paths_from_value(args[1]), user, group) or {
-		return brew_runtime.object_value('Cask::CaskError', err.msg())
+		return ruby.object_value('Cask::CaskError', err.msg())
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `remove_nonexistent(paths)` at line 58.
-pub fn ruby_staged_l58_d3_remove_nonexistent(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_staged_l58_d3_remove_nonexistent(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.string_array_value([])
+		return ruby.string_array_value([])
 	}
-	return brew_runtime.string_array_value(staged_state_from_value(args[0]).remove_nonexistent(staged_paths_from_value(args[1])))
+	return ruby.string_array_value(staged_state_from_value(args[0]).remove_nonexistent(staged_paths_from_value(args[1])))
 }
 
 // Original Ruby source (line-for-line):

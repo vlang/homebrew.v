@@ -1,6 +1,6 @@
 module artifact
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `cask/artifact/keyboard_layout.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -57,9 +57,9 @@ pub fn uninstall_keyboard_layout(artifact MovedArtifact,
 }
 
 // Ruby method `install_phase(adopt: false, auto_updates: false, force: false, verbose: false, predecessor: nil,` at line 22.
-pub fn ruby_keyboard_layout_l22_d1_install_phase(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keyboard_layout_l22_d1_install_phase(args ...ruby.Value) ruby.Value {
 	artifact := moved_adapter_artifact(args) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	options := if args.len > 1 {
 		moved_install_options_from_value(args[1])
@@ -70,9 +70,9 @@ pub fn ruby_keyboard_layout_l22_d1_install_phase(args ...brew_runtime.Value) bre
 }
 
 // Ruby method `uninstall_phase(skip: false, force: false, adopt: false, verbose: false, successor: nil, upgrade: false,` at line 40.
-pub fn ruby_keyboard_layout_l40_d2_uninstall_phase(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keyboard_layout_l40_d2_uninstall_phase(args ...ruby.Value) ruby.Value {
 	artifact := moved_adapter_artifact(args) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	options := if args.len > 1 {
 		moved_uninstall_options_from_value(args[1])
@@ -83,7 +83,7 @@ pub fn ruby_keyboard_layout_l40_d2_uninstall_phase(args ...brew_runtime.Value) b
 }
 
 // Ruby method `delete_keyboard_layout_cache(command: SystemCommand)` at line 49.
-pub fn ruby_keyboard_layout_l49_d3_delete_keyboard_layout_cache(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keyboard_layout_l49_d3_delete_keyboard_layout_cache(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut result := MovedOperationResult{}
 	delete_keyboard_layout_cache_with_command(default_artifact_command_runner, mut result)

@@ -1,6 +1,6 @@
 module cask
 
-import brew_runtime
+import ruby
 import homebrew.utils
 
 // Translated from Homebrew/brew `cask/list.rb`.
@@ -40,21 +40,21 @@ pub:
 	options        CaskListOptions
 }
 
-fn cask_list_bool(value brew_runtime.Value, key string) bool {
+fn cask_list_bool(value ruby.Value, key string) bool {
 	if item := value.map_data[key] {
 		return item.as_bool() or { false }
 	}
 	return (value.attributes[key] or { 'false' }) == 'true'
 }
 
-fn cask_list_int(value brew_runtime.Value, key string, fallback int) int {
+fn cask_list_int(value ruby.Value, key string, fallback int) int {
 	if item := value.map_data[key] {
 		return int(item.as_int() or { i64(fallback) })
 	}
 	return (value.attributes[key] or { return fallback }).int()
 }
 
-fn cask_list_artifact_from_value(value brew_runtime.Value) CaskListArtifact {
+fn cask_list_artifact_from_value(value ruby.Value) CaskListArtifact {
 	class_name := value.attributes['class_name'] or { value.type_name }
 	return CaskListArtifact{
 		class_name: class_name
@@ -66,9 +66,9 @@ fn cask_list_artifact_from_value(value brew_runtime.Value) CaskListArtifact {
 	}
 }
 
-fn cask_list_cask_from_value(value brew_runtime.Value) CaskListCask {
-	artifact_values := (value.map_data['artifacts'] or { brew_runtime.array_value([]) }).as_array() or {
-		[]brew_runtime.Value{}
+fn cask_list_cask_from_value(value ruby.Value) CaskListCask {
+	artifact_values := (value.map_data['artifacts'] or { ruby.array_value([]) }).as_array() or {
+		[]ruby.Value{}
 	}
 	installed_version := if raw := value.map_data['installed_version'] {
 		if raw.type_name == 'NilClass' {
@@ -94,7 +94,7 @@ fn cask_list_cask_from_value(value brew_runtime.Value) CaskListCask {
 	}
 }
 
-fn cask_list_artifact_value(artifact CaskListArtifact) brew_runtime.Value {
+fn cask_list_artifact_value(artifact CaskListArtifact) ruby.Value {
 	mut attributes := {
 		'class_name':           artifact.class_name
 		'english_name':         artifact.english_name
@@ -104,58 +104,58 @@ fn cask_list_artifact_value(artifact CaskListArtifact) brew_runtime.Value {
 	if artifact.summarizes_installed {
 		attributes['summary'] = artifact.summary
 	}
-	return brew_runtime.structured_value(artifact.class_name, artifact.display, attributes)
+	return ruby.structured_value(artifact.class_name, artifact.display, attributes)
 }
 
-pub fn cask_list_cask_value(cask CaskListCask) brew_runtime.Value {
-	mut installed_version := brew_runtime.object_value('NilClass', 'nil')
+pub fn cask_list_cask_value(cask CaskListCask) ruby.Value {
+	mut installed_version := ruby.object_value('NilClass', 'nil')
 	mut attributes := {
 		'token':     cask.token
 		'full_name': cask.full_name
 		'installed': cask.installed.str()
 	}
 	if version := cask.installed_version {
-		installed_version = brew_runtime.string_value(version)
+		installed_version = ruby.string_value(version)
 		attributes['installed_version'] = version
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'Cask::Cask'
 		repr: cask.token
 		attributes: attributes
 		map_data: {
 			'installed_version': installed_version
-			'artifacts':         brew_runtime.array_value(cask.artifacts.map(cask_list_artifact_value(it)))
+			'artifacts':         ruby.array_value(cask.artifacts.map(cask_list_artifact_value(it)))
 		}
 	}
 }
 
-fn cask_list_options_value(options CaskListOptions) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'one':           brew_runtime.bool_value(options.one)
-		'full_name':     brew_runtime.bool_value(options.full_name)
-		'versions':      brew_runtime.bool_value(options.versions)
-		'console_width': brew_runtime.int_value(options.console_width)
-		'stream_is_tty': brew_runtime.bool_value(options.stream_is_tty)
+fn cask_list_options_value(options CaskListOptions) ruby.Value {
+	return ruby.map_value({
+		'one':           ruby.bool_value(options.one)
+		'full_name':     ruby.bool_value(options.full_name)
+		'versions':      ruby.bool_value(options.versions)
+		'console_width': ruby.int_value(options.console_width)
+		'stream_is_tty': ruby.bool_value(options.stream_is_tty)
 	})
 }
 
-pub fn cask_list_request_value(request CaskListRequest) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn cask_list_request_value(request CaskListRequest) ruby.Value {
+	return ruby.Value{
 		type_name: 'Cask::ListRequest'
 		map_data: {
-			'casks':          brew_runtime.array_value(request.casks.map(cask_list_cask_value(it)))
-			'caskroom_casks': brew_runtime.array_value(request.caskroom_casks.map(cask_list_cask_value(it)))
+			'casks':          ruby.array_value(request.casks.map(cask_list_cask_value(it)))
+			'caskroom_casks': ruby.array_value(request.caskroom_casks.map(cask_list_cask_value(it)))
 			'options':        cask_list_options_value(request.options)
 		}
 	}
 }
 
-fn cask_list_request_from_value(value brew_runtime.Value) CaskListRequest {
-	casks := (value.map_data['casks'] or { brew_runtime.array_value([]) }).as_array() or {
-		[]brew_runtime.Value{}
+fn cask_list_request_from_value(value ruby.Value) CaskListRequest {
+	casks := (value.map_data['casks'] or { ruby.array_value([]) }).as_array() or {
+		[]ruby.Value{}
 	}
-	caskroom_casks := (value.map_data['caskroom_casks'] or { brew_runtime.array_value([]) }).as_array() or {
-		[]brew_runtime.Value{}
+	caskroom_casks := (value.map_data['caskroom_casks'] or { ruby.array_value([]) }).as_array() or {
+		[]ruby.Value{}
 	}
 	options_value := value.map_data['options'] or { value }
 	return CaskListRequest{
@@ -254,7 +254,7 @@ pub fn cask_list_casks(request CaskListRequest) !string {
 }
 
 // Ruby method `self.list_casks(*casks, one: false, full_name: false, versions: false)` at line 25.
-pub fn ruby_list_l25_d1_self_list_casks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_list_l25_d1_self_list_casks(args ...ruby.Value) ruby.Value {
 	request := if args.len == 1 && args[0].type_name == 'Cask::ListRequest' {
 		cask_list_request_from_value(args[0])
 	} else {
@@ -263,25 +263,25 @@ pub fn ruby_list_l25_d1_self_list_casks(args ...brew_runtime.Value) brew_runtime
 		}
 	}
 	output := cask_list_casks(request) or {
-		return brew_runtime.object_value('CaskNotInstalledError', err.msg())
+		return ruby.object_value('CaskNotInstalledError', err.msg())
 	}
-	return brew_runtime.string_value(output)
+	return ruby.string_value(output)
 }
 
 // Ruby method `self.list_artifacts(cask)` at line 48.
-pub fn ruby_list_l48_d2_self_list_artifacts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_list_l48_d2_self_list_artifacts(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'cask is required')
+		return ruby.object_value('ArgumentError', 'cask is required')
 	}
-	return brew_runtime.string_value(cask_list_artifacts(cask_list_cask_from_value(args[0])))
+	return ruby.string_value(cask_list_artifacts(cask_list_cask_from_value(args[0])))
 }
 
 // Ruby method `self.format_versioned(cask)` at line 63.
-pub fn ruby_list_l63_d3_self_format_versioned(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_list_l63_d3_self_format_versioned(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'cask is required')
+		return ruby.object_value('ArgumentError', 'cask is required')
 	}
-	return brew_runtime.string_value(cask_list_format_versioned(cask_list_cask_from_value(args[0])))
+	return ruby.string_value(cask_list_format_versioned(cask_list_cask_from_value(args[0])))
 }
 
 // Original Ruby source (line-for-line):

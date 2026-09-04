@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `dev-cmd/update-sponsors.rb`.
@@ -129,20 +129,20 @@ pub fn run_update_sponsors(options UpdateSponsorsOptions) !UpdateSponsorsResult 
 	}
 }
 
-pub fn update_sponsors_input_boundary(input &UpdateSponsorsInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::UpdateSponsors::Input', '', {
+pub fn update_sponsors_input_boundary(input &UpdateSponsorsInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::UpdateSponsors::Input', '', {
 		'update_sponsors_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn update_sponsors_input_from_value(value brew_runtime.Value) !&UpdateSponsorsInput {
+fn update_sponsors_input_from_value(value ruby.Value) !&UpdateSponsorsInput {
 	address := value.attributes['update_sponsors_input_address'] or {
 		return error('invalid UpdateSponsors input')
 	}
 	return unsafe { &UpdateSponsorsInput(voidptr(address.u64())) }
 }
 
-fn update_sponsor_from_value(value brew_runtime.Value) !UpdateSponsorsSponsorship {
+fn update_sponsor_from_value(value ruby.Value) !UpdateSponsorsSponsorship {
 	sponsor := value.as_map() or { return error('sponsor must be a Hash') }
 	login_value := sponsor['login'] or { return error('sponsor login is required') }
 	name := if name_value := sponsor['name'] {
@@ -168,65 +168,65 @@ fn update_sponsor_from_value(value brew_runtime.Value) !UpdateSponsorsSponsorshi
 	}
 }
 
-fn update_sponsors_result_value(result UpdateSponsorsResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'named_sponsors':         brew_runtime.string_array_value(result.named_sponsors)
-		'logo_sponsors':          brew_runtime.string_array_value(result.logo_sponsors)
-		'largest_monthly_amount': brew_runtime.int_value(result.largest_monthly_amount)
-		'readme_path':            brew_runtime.string_value(result.readme_path)
-		'content':                brew_runtime.string_value(result.content)
-		'diff_command':           brew_runtime.string_array_value(result.diff_command)
-		'stdout':                 brew_runtime.string_value(result.stdout)
-		'stderr':                 brew_runtime.string_value(result.stderr)
-		'failed':                 brew_runtime.bool_value(result.failed)
+fn update_sponsors_result_value(result UpdateSponsorsResult) ruby.Value {
+	return ruby.map_value({
+		'named_sponsors':         ruby.string_array_value(result.named_sponsors)
+		'logo_sponsors':          ruby.string_array_value(result.logo_sponsors)
+		'largest_monthly_amount': ruby.int_value(result.largest_monthly_amount)
+		'readme_path':            ruby.string_value(result.readme_path)
+		'content':                ruby.string_value(result.content)
+		'diff_command':           ruby.string_array_value(result.diff_command)
+		'stdout':                 ruby.string_value(result.stdout)
+		'stderr':                 ruby.string_value(result.stderr)
+		'failed':                 ruby.bool_value(result.failed)
 	})
 }
 
 // Ruby method `run` at line 27.
-pub fn ruby_update_sponsors_l27_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_sponsors_l27_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'command input is required')
+		return ruby.object_value('ArgumentError', 'command input is required')
 	}
 	input := update_sponsors_input_from_value(args[0]) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	result := run_update_sponsors(input.options) or {
-		return brew_runtime.object_value('Error', err.msg())
+		return ruby.object_value('Error', err.msg())
 	}
 	return update_sponsors_result_value(result)
 }
 
 // Ruby method `sponsor_name(sponsor)` at line 67.
-pub fn ruby_update_sponsors_l67_d2_sponsor_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_sponsors_l67_d2_sponsor_name(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'sponsor is required')
+		return ruby.object_value('ArgumentError', 'sponsor is required')
 	}
 	sponsor := update_sponsor_from_value(args[0]) or {
-		return brew_runtime.object_value('TypeError', err.msg())
+		return ruby.object_value('TypeError', err.msg())
 	}
-	return brew_runtime.string_value(update_sponsor_name(sponsor))
+	return ruby.string_value(update_sponsor_name(sponsor))
 }
 
 // Ruby method `sponsor_logo(sponsor)` at line 72.
-pub fn ruby_update_sponsors_l72_d3_sponsor_logo(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_sponsors_l72_d3_sponsor_logo(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'sponsor is required')
+		return ruby.object_value('ArgumentError', 'sponsor is required')
 	}
 	sponsor := update_sponsor_from_value(args[0]) or {
-		return brew_runtime.object_value('TypeError', err.msg())
+		return ruby.object_value('TypeError', err.msg())
 	}
-	return brew_runtime.string_value(update_sponsor_logo(sponsor))
+	return ruby.string_value(update_sponsor_logo(sponsor))
 }
 
 // Ruby method `sponsor_url(sponsor)` at line 77.
-pub fn ruby_update_sponsors_l77_d4_sponsor_url(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_sponsors_l77_d4_sponsor_url(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'sponsor is required')
+		return ruby.object_value('ArgumentError', 'sponsor is required')
 	}
 	sponsor := update_sponsor_from_value(args[0]) or {
-		return brew_runtime.object_value('TypeError', err.msg())
+		return ruby.object_value('TypeError', err.msg())
 	}
-	return brew_runtime.string_value(update_sponsor_url(sponsor))
+	return ruby.string_value(update_sponsor_url(sponsor))
 }
 
 // Original Ruby source (line-for-line):

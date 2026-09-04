@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `dev-cmd/rubydoc.rb`.
@@ -37,20 +37,20 @@ pub fn rubydoc_plan(options RubydocOptions) RubydocPlan {
 	}
 }
 
-fn rubydoc_plan_value(plan RubydocPlan) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'bundler_groups': brew_runtime.string_array_value(plan.bundler_groups)
-		'working_dir':    brew_runtime.string_value(plan.working_dir)
-		'output_dir':     brew_runtime.string_value(plan.output_dir)
-		'command':        brew_runtime.string_array_value(plan.command)
-		'browser_url':    brew_runtime.string_value(plan.browser_url)
+fn rubydoc_plan_value(plan RubydocPlan) ruby.Value {
+	return ruby.map_value({
+		'bundler_groups': ruby.string_array_value(plan.bundler_groups)
+		'working_dir':    ruby.string_value(plan.working_dir)
+		'output_dir':     ruby.string_value(plan.output_dir)
+		'command':        ruby.string_array_value(plan.command)
+		'browser_url':    ruby.string_value(plan.browser_url)
 	})
 }
 
 // Ruby method `run` at line 20.
-pub fn ruby_rubydoc_l20_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_rubydoc_l20_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'library path is required')
+		return ruby.object_value('ArgumentError', 'library path is required')
 	}
 	return rubydoc_plan_value(rubydoc_plan(RubydocOptions{
 		library_path: args[0].as_string()

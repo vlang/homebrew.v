@@ -1,6 +1,6 @@
 module download_strategy
 
-import brew_runtime
+import ruby
 import os
 import time
 
@@ -271,7 +271,7 @@ pub fn (strategy &VCSDownloadStrategy) git_fix_absolute_submodule_gitdir_referen
 			continue
 		}
 		relative := lexical_relative_path(work_dir, git_directory)
-		brew_runtime.atomic_write_file(dot_git, 'gitdir: ${relative}\n')!
+		ruby.atomic_write_file(dot_git, 'gitdir: ${relative}\n')!
 	}
 }
 

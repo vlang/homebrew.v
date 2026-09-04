@@ -1,6 +1,6 @@
 module test
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `test/formula_installer_bottle_spec.rb`.
@@ -53,22 +53,22 @@ mut:
 }
 
 fn formula_installer_bottle_spec_root(label string) string {
-	return brew_runtime.join_path(brew_runtime.temporary_directory(), 'brew-v-formula-installer-bottle-${label}-${brew_runtime.process_id()}')
+	return ruby.join_path(ruby.temporary_directory(), 'brew-v-formula-installer-bottle-${label}-${ruby.process_id()}')
 }
 
 pub fn formula_installer_bottle_spec_keg_path(formula FormulaInstallerBottleSpecFormula) string {
-	cellar := brew_runtime.join_path(formula.root, 'Cellar')
-	rack := brew_runtime.join_path(cellar, formula.name)
-	return brew_runtime.join_path(rack, formula.version)
+	cellar := ruby.join_path(formula.root, 'Cellar')
+	rack := ruby.join_path(cellar, formula.name)
+	return ruby.join_path(rack, formula.version)
 }
 
 pub fn formula_installer_bottle_spec_cache_path(formula FormulaInstallerBottleSpecFormula) string {
-	cache := brew_runtime.join_path(formula.root, 'cache')
-	return brew_runtime.join_path(cache, '${formula.name}--${formula.version}.bottle.tar.gz')
+	cache := ruby.join_path(formula.root, 'cache')
+	return ruby.join_path(cache, '${formula.name}--${formula.version}.bottle.tar.gz')
 }
 
 pub fn formula_installer_bottle_spec_prefix(formula FormulaInstallerBottleSpecFormula) string {
-	return brew_runtime.join_path(formula.root, 'prefix')
+	return ruby.join_path(formula.root, 'prefix')
 }
 
 fn formula_installer_bottle_spec_remove_path(path string) ! {
@@ -91,17 +91,17 @@ fn formula_installer_bottle_spec_install(formula FormulaInstallerBottleSpecFormu
 		return error('${formula.name} cannot be poured from a bottle')
 	}
 	cache_path := formula_installer_bottle_spec_cache_path(formula)
-	brew_runtime.make_dir_all(os.dir(cache_path))!
-	if !brew_runtime.path_exists(cache_path) {
+	ruby.make_dir_all(os.dir(cache_path))!
+	if !ruby.path_exists(cache_path) {
 		contents := if formula.corrupt_cached_download {
 			'corrupt'.repeat(1000)
 		} else {
 			formula_installer_bottle_spec_valid_archive(formula)
 		}
-		brew_runtime.write_file(cache_path, contents)!
+		ruby.write_file(cache_path, contents)!
 	}
 	mut install := FormulaInstallerBottleSpecInstall{}
-	mut archive := brew_runtime.read_file(cache_path)!
+	mut archive := ruby.read_file(cache_path)!
 	if !archive.starts_with('homebrew-bottle-v1\n') {
 		// GitHub Packages blobs are trusted before extraction. An extraction
 		// failure still discards the bad cache entry and retries the download.
@@ -109,51 +109,51 @@ fn formula_installer_bottle_spec_install(formula FormulaInstallerBottleSpecFormu
 		formula_installer_bottle_spec_remove_path(cache_path)!
 		install.discarded_corrupt_cache = true
 		install.stderr = 'Removing corrupt cached download: ${cache_path}\n'
-		brew_runtime.write_file(cache_path, formula_installer_bottle_spec_valid_archive(formula))!
-		archive = brew_runtime.read_file(cache_path)!
+		ruby.write_file(cache_path, formula_installer_bottle_spec_valid_archive(formula))!
+		archive = ruby.read_file(cache_path)!
 		install.redownloaded = true
 	}
 	if !archive.contains('name=${formula.name}') || !archive.contains('version=${formula.version}') {
 		return error('Bottle archive did not contain ${formula.name}/${formula.version}')
 	}
 	keg := formula_installer_bottle_spec_keg_path(formula)
-	bin := brew_runtime.join_path(keg, 'bin')
-	libexec := brew_runtime.join_path(keg, 'libexec')
-	brew_runtime.make_dir_all(bin)!
-	brew_runtime.make_dir_all(libexec)!
-	brew_runtime.write_file(brew_runtime.join_path(bin, formula.name), '#!/bin/sh\nexit 0\n')!
-	brew_runtime.write_file(brew_runtime.join_path(libexec, 'helper'), 'installed from bottle\n')!
-	brew_runtime.write_file(brew_runtime.join_path(keg, 'INSTALL_RECEIPT.json'), '{"poured_from_bottle":true}\n')!
+	bin := ruby.join_path(keg, 'bin')
+	libexec := ruby.join_path(keg, 'libexec')
+	ruby.make_dir_all(bin)!
+	ruby.make_dir_all(libexec)!
+	ruby.write_file(ruby.join_path(bin, formula.name), '#!/bin/sh\nexit 0\n')!
+	ruby.write_file(ruby.join_path(libexec, 'helper'), 'installed from bottle\n')!
+	ruby.write_file(ruby.join_path(keg, 'INSTALL_RECEIPT.json'), '{"poured_from_bottle":true}\n')!
 	return install
 }
 
 pub fn formula_installer_bottle_spec_test_basic_formula_setup(formula FormulaInstallerBottleSpecFormula) !FormulaInstallerBottleSpecSetup {
 	keg := formula_installer_bottle_spec_keg_path(formula)
-	bin := brew_runtime.join_path(keg, 'bin')
-	libexec := brew_runtime.join_path(keg, 'libexec')
-	if !brew_runtime.is_dir(bin) {
+	bin := ruby.join_path(keg, 'bin')
+	libexec := ruby.join_path(keg, 'libexec')
+	if !ruby.is_dir(bin) {
 		return error('${bin} is not a directory')
 	}
-	if !brew_runtime.is_dir(libexec) {
+	if !ruby.is_dir(libexec) {
 		return error('${libexec} is not a directory')
 	}
-	if brew_runtime.path_exists(brew_runtime.join_path(keg, 'main.c')) {
+	if ruby.path_exists(ruby.join_path(keg, 'main.c')) {
 		return error('source file main.c remained in the poured keg')
 	}
-	linked_bin := brew_runtime.join_path(formula_installer_bottle_spec_prefix(formula), 'bin')
-	brew_runtime.make_dir_all(linked_bin)!
-	for entry in brew_runtime.list_dir(bin)! {
-		source := brew_runtime.join_path(bin, entry)
-		target := brew_runtime.join_path(linked_bin, entry)
+	linked_bin := ruby.join_path(formula_installer_bottle_spec_prefix(formula), 'bin')
+	ruby.make_dir_all(linked_bin)!
+	for entry in ruby.list_dir(bin)! {
+		source := ruby.join_path(bin, entry)
+		target := ruby.join_path(linked_bin, entry)
 		formula_installer_bottle_spec_remove_path(target)!
 		os.symlink(source, target)!
 	}
 	return FormulaInstallerBottleSpecSetup{
-		bin_directory: brew_runtime.is_dir(bin)
-		libexec_directory: brew_runtime.is_dir(libexec)
-		source_removed: !brew_runtime.path_exists(brew_runtime.join_path(keg, 'main.c'))
-		linked_bin: brew_runtime.is_dir(linked_bin)
-			&& brew_runtime.is_link(brew_runtime.join_path(linked_bin, formula.name))
+		bin_directory: ruby.is_dir(bin)
+		libexec_directory: ruby.is_dir(libexec)
+		source_removed: !ruby.path_exists(ruby.join_path(keg, 'main.c'))
+		linked_bin: ruby.is_dir(linked_bin)
+			&& ruby.is_link(ruby.join_path(linked_bin, formula.name))
 	}
 }
 
@@ -167,16 +167,16 @@ pub fn formula_installer_bottle_spec_temporarily_install(formula FormulaInstalle
 	if formula.root == '' {
 		return error('a fixture root is required')
 	}
-	latest_before := brew_runtime.is_dir(formula_installer_bottle_spec_keg_path(formula))
+	latest_before := ruby.is_dir(formula_installer_bottle_spec_keg_path(formula))
 	install := formula_installer_bottle_spec_install(formula)!
 	setup := formula_installer_bottle_spec_test_basic_formula_setup(formula) or {
 		formula_installer_bottle_spec_cleanup(formula) or {}
 		return err
 	}
 	keg := formula_installer_bottle_spec_keg_path(formula)
-	receipt := brew_runtime.join_path(keg, 'INSTALL_RECEIPT.json')
-	poured_from_bottle := brew_runtime.read_file(receipt)!.contains('"poured_from_bottle":true')
-	latest_during := brew_runtime.is_dir(keg)
+	receipt := ruby.join_path(keg, 'INSTALL_RECEIPT.json')
+	poured_from_bottle := ruby.read_file(receipt)!.contains('"poured_from_bottle":true')
+	latest_during := ruby.is_dir(keg)
 	formula_installer_bottle_spec_cleanup(formula)!
 	return FormulaInstallerBottleSpecRun{
 		formula: formula
@@ -190,9 +190,9 @@ pub fn formula_installer_bottle_spec_temporarily_install(formula FormulaInstalle
 		stderr: install.stderr
 		homebrew_failed: false
 		cleaned: true
-		keg_exists_after_cleanup: brew_runtime.path_exists(keg)
-		latest_after_cleanup: brew_runtime.is_dir(keg)
-		cache_exists_after_cleanup: brew_runtime.path_exists(formula_installer_bottle_spec_cache_path(formula))
+		keg_exists_after_cleanup: ruby.path_exists(keg)
+		latest_after_cleanup: ruby.is_dir(keg)
+		cache_exists_after_cleanup: ruby.path_exists(formula_installer_bottle_spec_cache_path(formula))
 	}
 }
 
@@ -204,7 +204,7 @@ pub fn formula_installer_bottle_spec_expected_skip_relocation() bool {
 	}
 }
 
-fn formula_installer_bottle_spec_formula_from_args(args []brew_runtime.Value,
+fn formula_installer_bottle_spec_formula_from_args(args []ruby.Value,
 	label string) FormulaInstallerBottleSpecFormula {
 	if args.len == 0 {
 		return FormulaInstallerBottleSpecFormula{
@@ -235,8 +235,8 @@ fn formula_installer_bottle_spec_run_succeeded(run FormulaInstallerBottleSpecRun
 		&& !run.cache_exists_after_cleanup
 }
 
-fn formula_installer_bottle_spec_run_value(run FormulaInstallerBottleSpecRun) brew_runtime.Value {
-	return brew_runtime.structured_value('FormulaInstallerBottleSpecRun', run.formula.name, {
+fn formula_installer_bottle_spec_run_value(run FormulaInstallerBottleSpecRun) ruby.Value {
+	return ruby.structured_value('FormulaInstallerBottleSpecRun', run.formula.name, {
 		'latest_before':           run.latest_before.str()
 		'latest_during':           run.latest_during.str()
 		'poured_from_bottle':      run.poured_from_bottle.str()
@@ -249,41 +249,41 @@ fn formula_installer_bottle_spec_run_value(run FormulaInstallerBottleSpecRun) br
 }
 
 // Ruby alias_matcher `alias_matcher :pour_bottle, :be_pour_bottle` at line 14.
-pub fn ruby_formula_installer_bottle_spec_l14_d1_pour_bottle(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_bottle_spec_l14_d1_pour_bottle(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.structured_value('RSpec::AliasedMatcher', 'pour_bottle', {
+		return ruby.structured_value('RSpec::AliasedMatcher', 'pour_bottle', {
 			'alias':   'pour_bottle'
 			'matcher': 'be_pour_bottle'
 		})
 	}
 	if args[0].type_name == 'Bool' {
-		return brew_runtime.bool_value(args[0].bool_data)
+		return ruby.bool_value(args[0].bool_data)
 	}
-	return brew_runtime.bool_value((args[0].attributes['pour_bottle'] or { 'false' }) == 'true')
+	return ruby.bool_value((args[0].attributes['pour_bottle'] or { 'false' }) == 'true')
 }
 
 // Ruby matcher `matcher :be_poured_from_bottle do` at line 16.
-pub fn ruby_formula_installer_bottle_spec_l16_d2_be_poured_from_bottle(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_bottle_spec_l16_d2_be_poured_from_bottle(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.structured_value('RSpec::Matcher', 'be_poured_from_bottle', {
+		return ruby.structured_value('RSpec::Matcher', 'be_poured_from_bottle', {
 			'attribute': 'poured_from_bottle'
 		})
 	}
 	if args[0].type_name == 'Bool' {
-		return brew_runtime.bool_value(args[0].bool_data)
+		return ruby.bool_value(args[0].bool_data)
 	}
-	return brew_runtime.bool_value((args[0].attributes['poured_from_bottle'] or {
+	return ruby.bool_value((args[0].attributes['poured_from_bottle'] or {
 		'false'
 	}) == 'true')
 }
 
 // Ruby method `temporarily_install_bottle(formula)` at line 20.
-pub fn ruby_formula_installer_bottle_spec_l20_d3_temporarily_install_bottle(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_bottle_spec_l20_d3_temporarily_install_bottle(args ...ruby.Value) ruby.Value {
 	formula := formula_installer_bottle_spec_formula_from_args(args, 'temporary')
-	brew_runtime.remove_all(formula.root) or {}
-	defer { brew_runtime.remove_all(formula.root) or {} }
+	ruby.remove_all(formula.root) or {}
+	defer { ruby.remove_all(formula.root) or {} }
 	run := formula_installer_bottle_spec_temporarily_install(formula) or {
-		return brew_runtime.structured_value('FormulaInstallerBottleSpecError', err.msg(), {
+		return ruby.structured_value('FormulaInstallerBottleSpecError', err.msg(), {
 			'success': 'false'
 		})
 	}
@@ -291,63 +291,63 @@ pub fn ruby_formula_installer_bottle_spec_l20_d3_temporarily_install_bottle(args
 }
 
 // Ruby method `test_basic_formula_setup(formula)` at line 62.
-pub fn ruby_formula_installer_bottle_spec_l62_d4_test_basic_formula_setup(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_bottle_spec_l62_d4_test_basic_formula_setup(args ...ruby.Value) ruby.Value {
 	formula := formula_installer_bottle_spec_formula_from_args(args, 'setup')
-	brew_runtime.remove_all(formula.root) or {}
-	defer { brew_runtime.remove_all(formula.root) or {} }
+	ruby.remove_all(formula.root) or {}
+	defer { ruby.remove_all(formula.root) or {} }
 	run := formula_installer_bottle_spec_temporarily_install(formula) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(run.setup.bin_directory && run.setup.libexec_directory
+	return ruby.bool_value(run.setup.bin_directory && run.setup.libexec_directory
 		&& run.setup.source_removed && run.setup.linked_bin)
 }
 
 // Ruby specify `specify "basic bottle install" do` at line 82.
-pub fn ruby_formula_installer_bottle_spec_l82_d5_basic(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_bottle_spec_l82_d5_basic(args ...ruby.Value) ruby.Value {
 	formula := formula_installer_bottle_spec_formula_from_args(args, 'basic')
-	brew_runtime.remove_all(formula.root) or {}
-	defer { brew_runtime.remove_all(formula.root) or {} }
+	ruby.remove_all(formula.root) or {}
+	defer { ruby.remove_all(formula.root) or {} }
 	run := formula_installer_bottle_spec_temporarily_install(formula) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(formula_installer_bottle_spec_run_succeeded(run))
+	return ruby.bool_value(formula_installer_bottle_spec_run_succeeded(run))
 }
 
 // Ruby specify `specify "basic bottle install with cellar information on sha256 line" do` at line 91.
-pub fn ruby_formula_installer_bottle_spec_l91_d6_basic(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_bottle_spec_l91_d6_basic(args ...ruby.Value) ruby.Value {
 	formula := FormulaInstallerBottleSpecFormula{
 		...formula_installer_bottle_spec_formula_from_args(args, 'cellar')
 		skip_relocation: formula_installer_bottle_spec_expected_skip_relocation()
 	}
-	brew_runtime.remove_all(formula.root) or {}
-	defer { brew_runtime.remove_all(formula.root) or {} }
+	ruby.remove_all(formula.root) or {}
+	defer { ruby.remove_all(formula.root) or {} }
 	run := formula_installer_bottle_spec_temporarily_install(formula) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(formula_installer_bottle_spec_run_succeeded(run)
+	return ruby.bool_value(formula_installer_bottle_spec_run_succeeded(run)
 		&& run.formula.skip_relocation == formula_installer_bottle_spec_expected_skip_relocation())
 }
 
 // Ruby specify `specify "bottle install with a corrupt cached download", :aggregate_failures do` at line 105.
-pub fn ruby_formula_installer_bottle_spec_l105_d7_bottle(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_bottle_spec_l105_d7_bottle(args ...ruby.Value) ruby.Value {
 	base := formula_installer_bottle_spec_formula_from_args(args, 'corrupt')
 	formula := FormulaInstallerBottleSpecFormula{
 		...base
 		corrupt_cached_download: true
 		trust_cached_download: true
 	}
-	brew_runtime.remove_all(formula.root) or {}
-	defer { brew_runtime.remove_all(formula.root) or {} }
+	ruby.remove_all(formula.root) or {}
+	defer { ruby.remove_all(formula.root) or {} }
 	run := formula_installer_bottle_spec_temporarily_install(formula) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(formula_installer_bottle_spec_run_succeeded(run)
+	return ruby.bool_value(formula_installer_bottle_spec_run_succeeded(run)
 		&& run.discarded_corrupt_cache && run.redownloaded
 		&& run.stderr.contains('Removing corrupt cached download') && !run.homebrew_failed)
 }
 
 // Ruby specify `specify "build tools error" do` at line 134.
-pub fn ruby_formula_installer_bottle_spec_l134_d8_build(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_bottle_spec_l134_d8_build(args ...ruby.Value) ruby.Value {
 	base := formula_installer_bottle_spec_formula_from_args(args, 'build-tools')
 	formula := FormulaInstallerBottleSpecFormula{
 		...base
@@ -356,13 +356,13 @@ pub fn ruby_formula_installer_bottle_spec_l134_d8_build(args ...brew_runtime.Val
 		pour_bottle: false
 		development_tools_installed: false
 	}
-	brew_runtime.remove_all(formula.root) or {}
-	defer { brew_runtime.remove_all(formula.root) or {} }
+	ruby.remove_all(formula.root) or {}
+	defer { ruby.remove_all(formula.root) or {} }
 	formula_installer_bottle_spec_install(formula) or {
-		return brew_runtime.bool_value(err.msg().contains('build tools is required')
-			&& !brew_runtime.path_exists(formula_installer_bottle_spec_keg_path(formula)))
+		return ruby.bool_value(err.msg().contains('build tools is required')
+			&& !ruby.path_exists(formula_installer_bottle_spec_keg_path(formula)))
 	}
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 // Original Ruby source (line-for-line):

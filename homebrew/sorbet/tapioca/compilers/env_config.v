@@ -1,6 +1,6 @@
 module compilers
 
-import brew_runtime
+import ruby
 import homebrew
 
 // Translated from Homebrew/brew `sorbet/tapioca/compilers/env_config.rb`.
@@ -41,15 +41,15 @@ pub fn env_config_compiler_decoration() TapiocaDecoration {
 }
 
 // Ruby method `self.gather_constants = [Homebrew::EnvConfig]` at line 13.
-pub fn ruby_env_config_l13_d1_self_gather_constants(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_env_config_l13_d1_self_gather_constants(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.array_value([
-		brew_runtime.object_value('Module', 'Homebrew::EnvConfig'),
+	return ruby.array_value([
+		ruby.object_value('Module', 'Homebrew::EnvConfig'),
 	])
 }
 
 // Ruby method `decorate` at line 16.
-pub fn ruby_env_config_l16_d2_decorate(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_env_config_l16_d2_decorate(args ...ruby.Value) ruby.Value {
 	_ = args
 	return tapioca_decoration_value(env_config_compiler_decoration())
 }

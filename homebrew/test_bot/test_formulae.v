@@ -1,6 +1,6 @@
 module test_bot
 
-import brew_runtime
+import ruby
 import homebrew.utils
 import os
 import time
@@ -148,23 +148,23 @@ pub fn new_test_formulae(config TestFormulaeConfig) &TestFormulae {
 	}
 }
 
-fn test_formulae_nil() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn test_formulae_nil() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-fn test_formulae_error(kind string, message string) brew_runtime.Value {
-	return brew_runtime.structured_value(kind, message, {
+fn test_formulae_error(kind string, message string) ruby.Value {
+	return ruby.structured_value(kind, message, {
 		'message': message
 	})
 }
 
-pub fn test_formulae_boundary(test_formulae &TestFormulae) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::TestBot::TestFormulae', test_formulae.artifact_cache, {
+pub fn test_formulae_boundary(test_formulae &TestFormulae) ruby.Value {
+	return ruby.structured_value('Homebrew::TestBot::TestFormulae', test_formulae.artifact_cache, {
 		'test_formulae_address': u64(voidptr(test_formulae)).str()
 	})
 }
 
-fn test_formulae_receiver(args []brew_runtime.Value) !&TestFormulae {
+fn test_formulae_receiver(args []ruby.Value) !&TestFormulae {
 	if args.len == 0 || 'test_formulae_address' !in args[0].attributes {
 		return error('TestFormulae receiver is required')
 	}
@@ -175,8 +175,8 @@ fn test_formulae_receiver(args []brew_runtime.Value) !&TestFormulae {
 	return unsafe { &TestFormulae(voidptr(address)) }
 }
 
-pub fn test_formulae_dependency_boundary(dependency TestFormulaeDependency) brew_runtime.Value {
-	return brew_runtime.structured_value('Dependency', dependency.name, {
+pub fn test_formulae_dependency_boundary(dependency TestFormulaeDependency) ruby.Value {
+	return ruby.structured_value('Dependency', dependency.name, {
 		'name':         dependency.name
 		'formula_name': dependency.formula_name
 		'build':        dependency.build.str()
@@ -184,12 +184,12 @@ pub fn test_formulae_dependency_boundary(dependency TestFormulaeDependency) brew
 	})
 }
 
-pub fn test_formulae_artifact_boundary(artifact TestFormulaeArtifact) brew_runtime.Value {
-	mut files := map[string]brew_runtime.Value{}
+pub fn test_formulae_artifact_boundary(artifact TestFormulaeArtifact) ruby.Value {
+	mut files := map[string]ruby.Value{}
 	for path, contents in artifact.files {
-		files[path] = brew_runtime.string_value(contents)
+		files[path] = ruby.string_value(contents)
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'GitHub::Artifact'
 		repr: artifact.name
 		attributes: {
@@ -198,15 +198,15 @@ pub fn test_formulae_artifact_boundary(artifact TestFormulaeArtifact) brew_runti
 			'id':                   artifact.id.str()
 		}
 		map_data: {
-			'files': brew_runtime.map_value(files)
+			'files': ruby.map_value(files)
 		}
 	}
 }
 
-fn test_formulae_artifact_from_value(value brew_runtime.Value) TestFormulaeArtifact {
+fn test_formulae_artifact_from_value(value ruby.Value) TestFormulaeArtifact {
 	mut files := map[string]string{}
 	if file_values := value.map_data['files'] {
-		for path, contents in file_values.as_map() or { map[string]brew_runtime.Value{} } {
+		for path, contents in file_values.as_map() or { map[string]ruby.Value{} } {
 			files[path] = contents.as_string()
 		}
 	}
@@ -218,16 +218,16 @@ fn test_formulae_artifact_from_value(value brew_runtime.Value) TestFormulaeArtif
 	}
 }
 
-pub fn test_formulae_check_suite_boundary(suite TestFormulaeCheckSuite) brew_runtime.Value {
+pub fn test_formulae_check_suite_boundary(suite TestFormulaeCheckSuite) ruby.Value {
 	mut workflow := test_formulae_nil()
 	if run := suite.workflow_run {
-		workflow = brew_runtime.structured_value('GitHub::WorkflowRun', run.database_id.str(), {
+		workflow = ruby.structured_value('GitHub::WorkflowRun', run.database_id.str(), {
 			'database_id': run.database_id.str()
 			'event':       run.event
 			'name':        run.name
 		})
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'GitHub::CheckSuite'
 		repr: suite.updated_at
 		attributes: {
@@ -236,7 +236,7 @@ pub fn test_formulae_check_suite_boundary(suite TestFormulaeCheckSuite) brew_run
 		}
 		map_data: {
 			'workflow_run': workflow
-			'check_runs':   brew_runtime.array_value(suite.check_runs.map(brew_runtime.structured_value('GitHub::CheckRun', it.name, {
+			'check_runs':   ruby.array_value(suite.check_runs.map(ruby.structured_value('GitHub::CheckRun', it.name, {
 				'name':   it.name
 				'status': it.status
 			})))
@@ -244,7 +244,7 @@ pub fn test_formulae_check_suite_boundary(suite TestFormulaeCheckSuite) brew_run
 	}
 }
 
-fn test_formulae_check_suite_from_value(value brew_runtime.Value) TestFormulaeCheckSuite {
+fn test_formulae_check_suite_from_value(value ruby.Value) TestFormulaeCheckSuite {
 	workflow_value := value.map_data['workflow_run'] or { test_formulae_nil() }
 	workflow_run := if workflow_value.type_name in ['NilClass', 'Nil'] {
 		none
@@ -255,19 +255,19 @@ fn test_formulae_check_suite_from_value(value brew_runtime.Value) TestFormulaeCh
 			name: workflow_value.attributes['name'] or { '' }
 		})
 	}
-	check_run_values := value.map_data['check_runs'] or { brew_runtime.array_value([]) }
+	check_run_values := value.map_data['check_runs'] or { ruby.array_value([]) }
 	return TestFormulaeCheckSuite{
 		status: value.attributes['status'] or { '' }
 		updated_at: value.attributes['updated_at'] or { '' }
 		workflow_run: workflow_run
-		check_runs: (check_run_values.as_array() or { []brew_runtime.Value{} }).map(TestFormulaeCheckRun{
+		check_runs: (check_run_values.as_array() or { []ruby.Value{} }).map(TestFormulaeCheckRun{
 			name: it.attributes['name'] or { it.as_string() }
 			status: it.attributes['status'] or { '' }
 		})
 	}
 }
 
-fn test_formulae_dependency_from_value(value brew_runtime.Value) TestFormulaeDependency {
+fn test_formulae_dependency_from_value(value ruby.Value) TestFormulaeDependency {
 	return TestFormulaeDependency{
 		name: value.attributes['name'] or { value.as_string() }
 		formula_name: value.attributes['formula_name'] or { value.as_string() }
@@ -276,12 +276,12 @@ fn test_formulae_dependency_from_value(value brew_runtime.Value) TestFormulaeDep
 	}
 }
 
-fn test_formulae_dependencies_from_value(value brew_runtime.Value) []TestFormulaeDependency {
-	return (value.as_array() or { []brew_runtime.Value{} }).map(test_formulae_dependency_from_value(it))
+fn test_formulae_dependencies_from_value(value ruby.Value) []TestFormulaeDependency {
+	return (value.as_array() or { []ruby.Value{} }).map(test_formulae_dependency_from_value(it))
 }
 
-pub fn test_formulae_formula_boundary(formula TestFormulaeFormula) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn test_formulae_formula_boundary(formula TestFormulaeFormula) ruby.Value {
+	return ruby.Value{
 		type_name: 'Formula'
 		repr: if formula.full_name == '' { formula.name } else { formula.full_name }
 		attributes: {
@@ -300,18 +300,18 @@ pub fn test_formulae_formula_boundary(formula TestFormulaeFormula) brew_runtime.
 			'unsatisfied_requirements': formula.unsatisfied_requirements.join('\x1f')
 		}
 		map_data: {
-			'dependencies':           brew_runtime.array_value(formula.dependencies.map(test_formulae_dependency_boundary(it)))
-			'recursive_dependencies': brew_runtime.array_value(formula.recursive_dependencies.map(test_formulae_dependency_boundary(it)))
+			'dependencies':           ruby.array_value(formula.dependencies.map(test_formulae_dependency_boundary(it)))
+			'recursive_dependencies': ruby.array_value(formula.recursive_dependencies.map(test_formulae_dependency_boundary(it)))
 		}
 	}
 }
 
-fn test_formulae_split_attribute(value brew_runtime.Value, name string) []string {
+fn test_formulae_split_attribute(value ruby.Value, name string) []string {
 	raw := value.attributes[name] or { return [] }
 	return if raw == '' { [] } else { raw.split('\x1f') }
 }
 
-fn test_formulae_formula_from_value(value brew_runtime.Value) TestFormulaeFormula {
+fn test_formulae_formula_from_value(value ruby.Value) TestFormulaeFormula {
 	name := value.attributes['name'] or { value.as_string().all_after_last('/') }
 	return TestFormulaeFormula{
 		name: name
@@ -340,30 +340,30 @@ fn test_formulae_formula_from_value(value brew_runtime.Value) TestFormulaeFormul
 	}
 }
 
-fn test_formulae_any_to_value(value json2.Any) brew_runtime.Value {
+fn test_formulae_any_to_value(value json2.Any) ruby.Value {
 	return match value {
 		map[string]json2.Any {
-			mut mapped := map[string]brew_runtime.Value{}
+			mut mapped := map[string]ruby.Value{}
 			for key, nested in value {
 				mapped[key] = test_formulae_any_to_value(nested)
 			}
-			brew_runtime.map_value(mapped)
+			ruby.map_value(mapped)
 		}
-		[]json2.Any { brew_runtime.array_value(value.map(test_formulae_any_to_value(it))) }
-		string { brew_runtime.string_value(value) }
-		bool { brew_runtime.bool_value(value) }
-		i64 { brew_runtime.int_value(value) }
-		int { brew_runtime.int_value(value) }
-		i32 { brew_runtime.int_value(value) }
-		i16 { brew_runtime.int_value(value) }
-		i8 { brew_runtime.int_value(value) }
-		u64 { brew_runtime.int_value(i64(value)) }
-		u32 { brew_runtime.int_value(i64(value)) }
-		u16 { brew_runtime.int_value(i64(value)) }
-		u8 { brew_runtime.int_value(i64(value)) }
-		f64 { brew_runtime.float_value(value) }
-		f32 { brew_runtime.float_value(value) }
-		time.Time { brew_runtime.string_value(value.format_rfc3339()) }
+		[]json2.Any { ruby.array_value(value.map(test_formulae_any_to_value(it))) }
+		string { ruby.string_value(value) }
+		bool { ruby.bool_value(value) }
+		i64 { ruby.int_value(value) }
+		int { ruby.int_value(value) }
+		i32 { ruby.int_value(value) }
+		i16 { ruby.int_value(value) }
+		i8 { ruby.int_value(value) }
+		u64 { ruby.int_value(i64(value)) }
+		u32 { ruby.int_value(i64(value)) }
+		u16 { ruby.int_value(i64(value)) }
+		u8 { ruby.int_value(i64(value)) }
+		f64 { ruby.float_value(value) }
+		f32 { ruby.float_value(value) }
+		time.Time { ruby.string_value(value.format_rfc3339()) }
 		json2.Null { test_formulae_nil() }
 	}
 }
@@ -924,39 +924,39 @@ pub fn (test_formulae &TestFormulae) sorted_formulae() ![]string {
 }
 
 // Ruby attr_accessor `attr_accessor :skipped_or_failed_formulae` at line 10.
-pub fn ruby_test_formulae_l10_d1_skipped_or_failed_formulae(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_formulae_l10_d1_skipped_or_failed_formulae(args ...ruby.Value) ruby.Value {
 	test_formulae := test_formulae_receiver(args) or { return test_formulae_error('ArgumentError', err.msg()) }
-	return brew_runtime.string_array_value(test_formulae.skipped_or_failed_formulae)
+	return ruby.string_array_value(test_formulae.skipped_or_failed_formulae)
 }
 
 // Ruby attr_accessor `attr_accessor :skipped_or_failed_formulae` at line 10.
-pub fn ruby_test_formulae_l10_d2_skipped_or_failed_formulae(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_formulae_l10_d2_skipped_or_failed_formulae(args ...ruby.Value) ruby.Value {
 	mut test_formulae := test_formulae_receiver(args) or { return test_formulae_error('ArgumentError', err.msg()) }
 	if args.len < 2 {
 		return test_formulae_error('ArgumentError', 'skipped_or_failed_formulae= requires a value')
 	}
 	test_formulae.skipped_or_failed_formulae = args[1].as_string_array() or { return test_formulae_error('TypeError', err.msg()) }
-	return brew_runtime.string_array_value(test_formulae.skipped_or_failed_formulae)
+	return ruby.string_array_value(test_formulae.skipped_or_failed_formulae)
 }
 
 // Ruby attr_reader `attr_reader :artifact_cache` at line 13.
-pub fn ruby_test_formulae_l13_d3_artifact_cache(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_formulae_l13_d3_artifact_cache(args ...ruby.Value) ruby.Value {
 	test_formulae := test_formulae_receiver(args) or { return test_formulae_error('ArgumentError', err.msg()) }
-	return brew_runtime.object_value('Pathname', test_formulae.artifact_cache)
+	return ruby.object_value('Pathname', test_formulae.artifact_cache)
 }
 
 // Ruby attr_reader `attr_reader :downloaded_artifacts` at line 16.
-pub fn ruby_test_formulae_l16_d4_downloaded_artifacts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_formulae_l16_d4_downloaded_artifacts(args ...ruby.Value) ruby.Value {
 	test_formulae := test_formulae_receiver(args) or { return test_formulae_error('ArgumentError', err.msg()) }
-	mut downloaded := map[string]brew_runtime.Value{}
+	mut downloaded := map[string]ruby.Value{}
 	for sha, artifacts in test_formulae.downloaded_artifacts {
-		downloaded[sha] = brew_runtime.string_array_value(artifacts)
+		downloaded[sha] = ruby.string_array_value(artifacts)
 	}
-	return brew_runtime.map_value(downloaded)
+	return ruby.map_value(downloaded)
 }
 
 // Ruby method `initialize(tap:, git:, dry_run:, fail_fast:, verbose:)` at line 27.
-pub fn ruby_test_formulae_l27_d5_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_formulae_l27_d5_initialize(args ...ruby.Value) ruby.Value {
 	tap := if args.len > 0 && args[0].type_name !in ['NilClass', 'Nil'] {
 		TestTap{
 			name: args[0].attributes['name'] or { args[0].as_string() }
@@ -983,7 +983,7 @@ pub fn ruby_test_formulae_l27_d5_initialize(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby method `download_artifacts_from_previous_run!(artifact_pattern, dry_run:)` at line 40.
-pub fn ruby_test_formulae_l40_d6_download_artifacts_from_previous_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_formulae_l40_d6_download_artifacts_from_previous_run(args ...ruby.Value) ruby.Value {
 	mut test_formulae := test_formulae_receiver(args) or { return test_formulae_error('ArgumentError', err.msg()) }
 	pattern := if args.len > 1 { args[1].as_string() } else { '' }
 	dry_run := args.len > 2 && (args[2].as_bool() or { false })
@@ -994,26 +994,26 @@ pub fn ruby_test_formulae_l40_d6_download_artifacts_from_previous_run(args ...br
 }
 
 // Ruby method `require_current_tap_trust_env` at line 116.
-pub fn ruby_test_formulae_l116_d7_require_current_tap_trust_env(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_formulae_l116_d7_require_current_tap_trust_env(args ...ruby.Value) ruby.Value {
 	test_formulae := test_formulae_receiver(args) or { return test_formulae_error('ArgumentError', err.msg()) }
-	mut values := map[string]brew_runtime.Value{}
+	mut values := map[string]ruby.Value{}
 	for name, value in test_formulae.require_current_tap_trust_env() {
-		values[name] = brew_runtime.string_value(value)
+		values[name] = ruby.string_value(value)
 	}
-	return brew_runtime.map_value(values)
+	return ruby.map_value(values)
 }
 
 // Ruby method `cached_event_json` at line 121.
-pub fn ruby_test_formulae_l121_d8_cached_event_json(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_formulae_l121_d8_cached_event_json(args ...ruby.Value) ruby.Value {
 	test_formulae := test_formulae_receiver(args) or { return test_formulae_error('ArgumentError', err.msg()) }
 	if path := test_formulae.cached_event_json() {
-		return brew_runtime.object_value('Pathname', path)
+		return ruby.object_value('Pathname', path)
 	}
 	return test_formulae_nil()
 }
 
 // Ruby method `github_event_payload` at line 128.
-pub fn ruby_test_formulae_l128_d9_github_event_payload(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_formulae_l128_d9_github_event_payload(args ...ruby.Value) ruby.Value {
 	test_formulae := test_formulae_receiver(args) or { return test_formulae_error('ArgumentError', err.msg()) }
 	if payload := test_formulae.github_event_payload() {
 		return test_formulae_any_to_value(payload)
@@ -1022,36 +1022,36 @@ pub fn ruby_test_formulae_l128_d9_github_event_payload(args ...brew_runtime.Valu
 }
 
 // Ruby method `previous_github_sha` at line 135.
-pub fn ruby_test_formulae_l135_d10_previous_github_sha(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_formulae_l135_d10_previous_github_sha(args ...ruby.Value) ruby.Value {
 	test_formulae := test_formulae_receiver(args) or { return test_formulae_error('ArgumentError', err.msg()) }
 	if sha := test_formulae.previous_github_sha() {
-		return brew_runtime.string_value(sha)
+		return ruby.string_value(sha)
 	}
 	return test_formulae_nil()
 }
 
 // Ruby method `artifact_metadata(check_suite_nodes, repo, event_name, workflow_name, check_run_name, artifact_pattern)` at line 164.
-pub fn ruby_test_formulae_l164_d11_artifact_metadata(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_formulae_l164_d11_artifact_metadata(args ...ruby.Value) ruby.Value {
 	test_formulae := test_formulae_receiver(args) or { return test_formulae_error('ArgumentError', err.msg()) }
 	if args.len < 7 {
 		return test_formulae_error('ArgumentError', 'artifact_metadata requires six arguments')
 	}
-	nodes := (args[1].as_array() or { []brew_runtime.Value{} }).map(test_formulae_check_suite_from_value(it))
+	nodes := (args[1].as_array() or { []ruby.Value{} }).map(test_formulae_check_suite_from_value(it))
 	artifacts := test_formulae.artifact_metadata(nodes, args[2].as_string(), args[3].as_string(), args[4].as_string(), args[5].as_string(), args[6].as_string())
-	return brew_runtime.array_value(artifacts.map(test_formulae_artifact_boundary(it)))
+	return ruby.array_value(artifacts.map(test_formulae_artifact_boundary(it)))
 }
 
 // Ruby method `no_diff?(formula, git_ref)` at line 227.
-pub fn ruby_test_formulae_l227_d12_no_diff(args ...brew_runtime.Value) brew_runtime.Value {
-	mut test_formulae := test_formulae_receiver(args) or { return brew_runtime.bool_value(false) }
+pub fn ruby_test_formulae_l227_d12_no_diff(args ...ruby.Value) ruby.Value {
+	mut test_formulae := test_formulae_receiver(args) or { return ruby.bool_value(false) }
 	if args.len < 3 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(test_formulae.no_diff(test_formulae_formula_from_value(args[1]), args[2].as_string()))
+	return ruby.bool_value(test_formulae.no_diff(test_formulae_formula_from_value(args[1]), args[2].as_string()))
 }
 
 // Ruby method `local_bottle_hash(formula, bottle_dir:)` at line 242.
-pub fn ruby_test_formulae_l242_d13_local_bottle_hash(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_formulae_l242_d13_local_bottle_hash(args ...ruby.Value) ruby.Value {
 	test_formulae := test_formulae_receiver(args) or { return test_formulae_error('ArgumentError', err.msg()) }
 	if args.len < 2 {
 		return test_formulae_nil()
@@ -1064,29 +1064,29 @@ pub fn ruby_test_formulae_l242_d13_local_bottle_hash(args ...brew_runtime.Value)
 }
 
 // Ruby method `artifact_cache_valid?(formula, formulae_dependents: false)` at line 249.
-pub fn ruby_test_formulae_l249_d14_artifact_cache_valid(args ...brew_runtime.Value) brew_runtime.Value {
-	mut test_formulae := test_formulae_receiver(args) or { return brew_runtime.bool_value(false) }
+pub fn ruby_test_formulae_l249_d14_artifact_cache_valid(args ...ruby.Value) ruby.Value {
+	mut test_formulae := test_formulae_receiver(args) or { return ruby.bool_value(false) }
 	if args.len < 2 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	dependents := args.len > 2 && (args[2].as_bool() or { false })
-	return brew_runtime.bool_value(test_formulae.artifact_cache_valid(test_formulae_formula_from_value(args[1]), dependents))
+	return ruby.bool_value(test_formulae.artifact_cache_valid(test_formulae_formula_from_value(args[1]), dependents))
 }
 
 // Ruby method `bottle_glob(formula_name, bottle_dir = Pathname.pwd, ext = ".tar.gz", bottle_tag: Utils::Bottles.tag.to_s)` at line 281.
-pub fn ruby_test_formulae_l281_d15_bottle_glob(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_formulae_l281_d15_bottle_glob(args ...ruby.Value) ruby.Value {
 	test_formulae := test_formulae_receiver(args) or { return test_formulae_error('ArgumentError', err.msg()) }
 	if args.len < 2 {
-		return brew_runtime.string_array_value([])
+		return ruby.string_array_value([])
 	}
 	directory := if args.len > 2 { args[2].as_string() } else { os.getwd() }
 	extension := if args.len > 3 { args[3].as_string() } else { '.tar.gz' }
 	tag := if args.len > 4 { args[4].as_string() } else { test_formulae.bottle_tag }
-	return brew_runtime.string_array_value(test_formulae.bottle_glob(args[1].as_string(), directory, extension, tag))
+	return ruby.string_array_value(test_formulae.bottle_glob(args[1].as_string(), directory, extension, tag))
 }
 
 // Ruby method `install_formula_from_bottle!(formula_name, testing_formulae_dependents:, dry_run:,` at line 293.
-pub fn ruby_test_formulae_l293_d16_install_formula_from_bottle(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_formulae_l293_d16_install_formula_from_bottle(args ...ruby.Value) ruby.Value {
 	mut test_formulae := test_formulae_receiver(args) or { return test_formulae_error('ArgumentError', err.msg()) }
 	if args.len < 2 {
 		return test_formulae_error('ArgumentError', 'formula name is required')
@@ -1095,41 +1095,41 @@ pub fn ruby_test_formulae_l293_d16_install_formula_from_bottle(args ...brew_runt
 	dry_run := args.len > 3 && (args[3].as_bool() or { false })
 	directory := if args.len > 4 { args[4].as_string() } else { os.getwd() }
 	installed := test_formulae.install_formula_from_bottle(args[1].as_string(), dependents, dry_run, directory) or { return test_formulae_error('RuntimeError', err.msg()) }
-	return brew_runtime.bool_value(installed)
+	return ruby.bool_value(installed)
 }
 
 // Ruby method `bottled?(formula, no_older_versions: false)` at line 342.
-pub fn ruby_test_formulae_l342_d17_bottled(args ...brew_runtime.Value) brew_runtime.Value {
-	test_formulae := test_formulae_receiver(args) or { return brew_runtime.bool_value(false) }
+pub fn ruby_test_formulae_l342_d17_bottled(args ...ruby.Value) ruby.Value {
+	test_formulae := test_formulae_receiver(args) or { return ruby.bool_value(false) }
 	if args.len < 2 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	no_older := args.len > 2 && (args[2].as_bool() or { false })
-	return brew_runtime.bool_value(test_formulae.bottled(test_formulae_formula_from_value(args[1]), no_older))
+	return ruby.bool_value(test_formulae.bottled(test_formulae_formula_from_value(args[1]), no_older))
 }
 
 // Ruby method `bottled_or_built?(formula, built_formulae, no_older_versions: false)` at line 364.
-pub fn ruby_test_formulae_l364_d18_bottled_or_built(args ...brew_runtime.Value) brew_runtime.Value {
-	test_formulae := test_formulae_receiver(args) or { return brew_runtime.bool_value(false) }
+pub fn ruby_test_formulae_l364_d18_bottled_or_built(args ...ruby.Value) ruby.Value {
+	test_formulae := test_formulae_receiver(args) or { return ruby.bool_value(false) }
 	if args.len < 3 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	built := args[2].as_string_array() or { []string{} }
 	no_older := args.len > 3 && (args[3].as_bool() or { false })
-	return brew_runtime.bool_value(test_formulae.bottled_or_built(test_formulae_formula_from_value(args[1]), built, no_older))
+	return ruby.bool_value(test_formulae.bottled_or_built(test_formulae_formula_from_value(args[1]), built, no_older))
 }
 
 // Ruby method `downloads_using_homebrew_curl?(formula)` at line 369.
-pub fn ruby_test_formulae_l369_d19_downloads_using_homebrew_curl(args ...brew_runtime.Value) brew_runtime.Value {
-	test_formulae := test_formulae_receiver(args) or { return brew_runtime.bool_value(false) }
+pub fn ruby_test_formulae_l369_d19_downloads_using_homebrew_curl(args ...ruby.Value) ruby.Value {
+	test_formulae := test_formulae_receiver(args) or { return ruby.bool_value(false) }
 	if args.len < 2 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(test_formulae.downloads_using_homebrew_curl(test_formulae_formula_from_value(args[1])))
+	return ruby.bool_value(test_formulae.downloads_using_homebrew_curl(test_formulae_formula_from_value(args[1])))
 }
 
 // Ruby method `install_curl_if_needed(formula)` at line 378.
-pub fn ruby_test_formulae_l378_d20_install_curl_if_needed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_formulae_l378_d20_install_curl_if_needed(args ...ruby.Value) ruby.Value {
 	mut test_formulae := test_formulae_receiver(args) or { return test_formulae_error('ArgumentError', err.msg()) }
 	if args.len > 1 {
 		test_formulae.install_curl_if_needed(test_formulae_formula_from_value(args[1]))
@@ -1138,7 +1138,7 @@ pub fn ruby_test_formulae_l378_d20_install_curl_if_needed(args ...brew_runtime.V
 }
 
 // Ruby method `install_mercurial_if_needed(deps, reqs)` at line 386.
-pub fn ruby_test_formulae_l386_d21_install_mercurial_if_needed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_formulae_l386_d21_install_mercurial_if_needed(args ...ruby.Value) ruby.Value {
 	mut test_formulae := test_formulae_receiver(args) or { return test_formulae_error('ArgumentError', err.msg()) }
 	dependencies := if args.len > 1 { test_formulae_dependencies_from_value(args[1]) } else { [] }
 	requirements := if args.len > 2 { test_formulae_dependencies_from_value(args[2]) } else { [] }
@@ -1147,7 +1147,7 @@ pub fn ruby_test_formulae_l386_d21_install_mercurial_if_needed(args ...brew_runt
 }
 
 // Ruby method `install_subversion_if_needed(deps, reqs)` at line 394.
-pub fn ruby_test_formulae_l394_d22_install_subversion_if_needed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_formulae_l394_d22_install_subversion_if_needed(args ...ruby.Value) ruby.Value {
 	mut test_formulae := test_formulae_receiver(args) or { return test_formulae_error('ArgumentError', err.msg()) }
 	dependencies := if args.len > 1 { test_formulae_dependencies_from_value(args[1]) } else { [] }
 	requirements := if args.len > 2 { test_formulae_dependencies_from_value(args[2]) } else { [] }
@@ -1156,7 +1156,7 @@ pub fn ruby_test_formulae_l394_d22_install_subversion_if_needed(args ...brew_run
 }
 
 // Ruby method `skipped(formula_name, reason)` at line 402.
-pub fn ruby_test_formulae_l402_d23_skipped(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_formulae_l402_d23_skipped(args ...ruby.Value) ruby.Value {
 	mut test_formulae := test_formulae_receiver(args) or { return test_formulae_error('ArgumentError', err.msg()) }
 	if args.len < 3 {
 		return test_formulae_error('ArgumentError', 'skipped requires a formula and reason')
@@ -1166,7 +1166,7 @@ pub fn ruby_test_formulae_l402_d23_skipped(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `failed(formula_name, reason)` at line 413.
-pub fn ruby_test_formulae_l413_d24_failed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_formulae_l413_d24_failed(args ...ruby.Value) ruby.Value {
 	mut test_formulae := test_formulae_receiver(args) or { return test_formulae_error('ArgumentError', err.msg()) }
 	if args.len < 3 {
 		return test_formulae_error('ArgumentError', 'failed requires a formula and reason')
@@ -1176,30 +1176,30 @@ pub fn ruby_test_formulae_l413_d24_failed(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby method `unsatisfied_requirements_messages(formula)` at line 424.
-pub fn ruby_test_formulae_l424_d25_unsatisfied_requirements_messages(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_formulae_l424_d25_unsatisfied_requirements_messages(args ...ruby.Value) ruby.Value {
 	test_formulae := test_formulae_receiver(args) or { return test_formulae_error('ArgumentError', err.msg()) }
 	if args.len > 1 {
 		if message := test_formulae.unsatisfied_requirements_messages(test_formulae_formula_from_value(args[1])) {
-			return brew_runtime.string_value(message)
+			return ruby.string_value(message)
 		}
 	}
 	return test_formulae_nil()
 }
 
 // Ruby method `previous_run_artifact_specifier` at line 435.
-pub fn ruby_test_formulae_l435_d26_previous_run_artifact_specifier(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_formulae_l435_d26_previous_run_artifact_specifier(args ...ruby.Value) ruby.Value {
 	test_formulae := test_formulae_receiver(args) or { return test_formulae_error('ArgumentError', err.msg()) }
 	value := test_formulae.previous_run_artifact_specifier() or {
 		return test_formulae_error('NotImplementedError', err.msg())
 	}
-	return brew_runtime.string_value(value)
+	return ruby.string_value(value)
 }
 
 // Ruby method `cleanup_during!(keep_formulae = [], args:)` at line 440.
-pub fn ruby_test_formulae_l440_d27_cleanup_during(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_formulae_l440_d27_cleanup_during(args ...ruby.Value) ruby.Value {
 	mut test_formulae := test_formulae_receiver(args) or { return test_formulae_error('ArgumentError', err.msg()) }
 	keep_formulae := if args.len > 1 { args[1].as_string_array() or { []string{} } } else { [] }
-	options_value := if args.len > 2 { args[2] } else { brew_runtime.Value{} }
+	options_value := if args.len > 2 { args[2] } else { ruby.Value{} }
 	options := TestCommandArgs{
 		cleanup: (options_value.attributes['cleanup'] or { 'false' }) == 'true'
 		local_mode: (options_value.attributes['local'] or { 'false' }) == 'true'
@@ -1209,10 +1209,10 @@ pub fn ruby_test_formulae_l440_d27_cleanup_during(args ...brew_runtime.Value) br
 }
 
 // Ruby method `sorted_formulae` at line 491.
-pub fn ruby_test_formulae_l491_d28_sorted_formulae(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_formulae_l491_d28_sorted_formulae(args ...ruby.Value) ruby.Value {
 	test_formulae := test_formulae_receiver(args) or { return test_formulae_error('ArgumentError', err.msg()) }
 	sorted := test_formulae.sorted_formulae() or { return test_formulae_error('RuntimeError', err.msg()) }
-	return brew_runtime.string_array_value(sorted)
+	return ruby.string_array_value(sorted)
 }
 
 // Original Ruby source (line-for-line):

@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 import homebrew.cmd as production_cmd
 
 // Translated from Homebrew/brew `test/cmd/trust_spec.rb`.
@@ -33,108 +33,108 @@ fn trust_spec_store(entries map[string][]string) production_cmd.TrustCommandStor
 }
 
 // Ruby it `it "notes official taps are always trusted", :integration_test do` at line 20.
-pub fn ruby_trust_spec_l20_d1_notes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_trust_spec_l20_d1_notes(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := production_cmd.run_trust_command(production_cmd.TrustCommandOptions{
 		named: ['homebrew/core']
 	}, production_cmd.TrustCommandStore{}, trust_spec_taps()) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(result.stdout == 'Official tap homebrew/core is always trusted.\n'
+	return ruby.bool_value(result.stdout == 'Official tap homebrew/core is always trusted.\n'
 		&& result.store.entries['tap'].len == 0)
 }
 
 // Ruby it `it "trusts a command with the plural switch alias" do` at line 28.
-pub fn ruby_trust_spec_l28_d2_trusts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_trust_spec_l28_d2_trusts(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := production_cmd.run_trust_command(production_cmd.TrustCommandOptions{
 		commands: true
 		named: ['thirdparty/foo/hello']
 	}, production_cmd.TrustCommandStore{}, trust_spec_taps()) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(result.stdout == 'Trusted command: thirdparty/foo/hello\n'
+	return ruby.bool_value(result.stdout == 'Trusted command: thirdparty/foo/hello\n'
 		&& result.store.entries['command'] == ['thirdparty/foo/hello'])
 }
 
 // Ruby it `it "trusts the whole tap by its remote URL" do` at line 50.
-pub fn ruby_trust_spec_l50_d3_trusts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_trust_spec_l50_d3_trusts(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := production_cmd.run_trust_command(production_cmd.TrustCommandOptions{
 		tap: true
 		named: ['thirdparty/custom']
 	}, production_cmd.TrustCommandStore{}, trust_spec_taps()) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(result.stdout == 'Trusted tap: https://gitlab.com/other/repo\n'
+	return ruby.bool_value(result.stdout == 'Trusted tap: https://gitlab.com/other/repo\n'
 		&& result.store.entries['tap'] == ['https://gitlab.com/other/repo'])
 }
 
 // Ruby it `it "trusts an individual formula by its remote-qualified entry" do` at line 56.
-pub fn ruby_trust_spec_l56_d4_trusts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_trust_spec_l56_d4_trusts(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := production_cmd.run_trust_command(production_cmd.TrustCommandOptions{
 		formula: true
 		named: ['thirdparty/custom/bar']
 	}, production_cmd.TrustCommandStore{}, trust_spec_taps()) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(result.stdout == 'Trusted formula: https://gitlab.com/other/repo/bar\n'
+	return ruby.bool_value(result.stdout == 'Trusted formula: https://gitlab.com/other/repo/bar\n'
 		&& result.store.entries['formula'] == ['https://gitlab.com/other/repo/bar'])
 }
 
 // Ruby it `it "trusts a not-yet-installed tap directly by its non-GitHub remote URL" do` at line 63.
-pub fn ruby_trust_spec_l63_d5_trusts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_trust_spec_l63_d5_trusts(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := production_cmd.run_trust_command(production_cmd.TrustCommandOptions{
 		tap: true
 		named: ['https://gitlab.com/absent/repo']
 	}, production_cmd.TrustCommandStore{}, trust_spec_taps()) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(result.stdout == 'Trusted tap: https://gitlab.com/absent/repo\n'
+	return ruby.bool_value(result.stdout == 'Trusted tap: https://gitlab.com/absent/repo\n'
 		&& result.store.entries['tap'] == ['https://gitlab.com/absent/repo'])
 }
 
 // Ruby it `it "canonicalises a GitHub default-remote URL to the tap name" do` at line 71.
-pub fn ruby_trust_spec_l71_d6_canonicalises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_trust_spec_l71_d6_canonicalises(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := production_cmd.run_trust_command(production_cmd.TrustCommandOptions{
 		tap: true
 		named: ['https://github.com/thirdparty/homebrew-foo']
 	}, production_cmd.TrustCommandStore{}, trust_spec_taps()) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(result.stdout == 'Trusted tap: thirdparty/foo\n'
+	return ruby.bool_value(result.stdout == 'Trusted tap: thirdparty/foo\n'
 		&& result.store.entries['tap'] == ['thirdparty/foo'])
 }
 
 // Ruby it `it "rejects a bare @-string instead of trusting it as a tap" do` at line 79.
-pub fn ruby_trust_spec_l79_d7_rejects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_trust_spec_l79_d7_rejects(args ...ruby.Value) ruby.Value {
 	_ = args
 	production_cmd.run_trust_command(production_cmd.TrustCommandOptions{
 		named: ['foo@bar']
 	}, production_cmd.TrustCommandStore{}, trust_spec_taps()) or {
-		return brew_runtime.bool_value(err.msg().contains('fully-qualified'))
+		return ruby.bool_value(err.msg().contains('fully-qualified'))
 	}
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 // Ruby it `it "lists trusted entries with no arguments" do` at line 87.
-pub fn ruby_trust_spec_l87_d8_lists(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_trust_spec_l87_d8_lists(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := production_cmd.run_trust_command(production_cmd.TrustCommandOptions{}, trust_spec_store({
 		'tap':     ['thirdparty/foo']
 		'formula': ['thirdparty/foo/bar']
 		'cask':    []
 		'command': []
-	}), trust_spec_taps()) or { return brew_runtime.bool_value(false) }
+	}), trust_spec_taps()) or { return ruby.bool_value(false) }
 	expected := 'All official taps and commands are trusted.\nTrusted taps:\n  thirdparty/foo\nTrusted formulae:\n  thirdparty/foo/bar\n'
-	return brew_runtime.bool_value(result.stdout == expected)
+	return ruby.bool_value(result.stdout == expected)
 }
 
 // Ruby it `it "lists trusted entries as json with no arguments" do` at line 103.
-pub fn ruby_trust_spec_l103_d9_lists(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_trust_spec_l103_d9_lists(args ...ruby.Value) ruby.Value {
 	_ = args
 	store := trust_spec_store({
 		'tap':     ['thirdparty/foo']
@@ -145,15 +145,15 @@ pub fn ruby_trust_spec_l103_d9_lists(args ...brew_runtime.Value) brew_runtime.Va
 	result := production_cmd.run_trust_command(production_cmd.TrustCommandOptions{
 		json_requested: true
 		json_version: 'v1'
-	}, store, trust_spec_taps()) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(result.stdout.contains('"taps"')
+	}, store, trust_spec_taps()) or { return ruby.bool_value(false) }
+	return ruby.bool_value(result.stdout.contains('"taps"')
 		&& result.stdout.contains('"thirdparty/foo"') && result.stdout.contains('"formulae"')
 		&& result.stdout.contains('"thirdparty/foo/bar"') && result.stdout.contains('"casks": []')
 		&& result.stdout.contains('"commands": []'))
 }
 
 // Ruby it `it "lists trusted entries as a json array for a selected type" do` at line 122.
-pub fn ruby_trust_spec_l122_d10_lists(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_trust_spec_l122_d10_lists(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := production_cmd.run_trust_command(production_cmd.TrustCommandOptions{
 		formula: true
@@ -161,33 +161,33 @@ pub fn ruby_trust_spec_l122_d10_lists(args ...brew_runtime.Value) brew_runtime.V
 		json_version: 'v1'
 	}, trust_spec_store({
 		'formula': ['thirdparty/foo/bar']
-	}), trust_spec_taps()) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(result.stdout == '[\n  "thirdparty/foo/bar"\n]\n')
+	}), trust_spec_taps()) or { return ruby.bool_value(false) }
+	return ruby.bool_value(result.stdout == '[\n  "thirdparty/foo/bar"\n]\n')
 }
 
 // Ruby it `it "rejects json output with named arguments" do` at line 129.
-pub fn ruby_trust_spec_l129_d11_rejects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_trust_spec_l129_d11_rejects(args ...ruby.Value) ruby.Value {
 	_ = args
 	production_cmd.run_trust_command(production_cmd.TrustCommandOptions{
 		json_requested: true
 		json_version: 'v1'
 		named: ['thirdparty/foo']
 	}, production_cmd.TrustCommandStore{}, trust_spec_taps()) or {
-		return brew_runtime.bool_value(err.msg().contains('requires no named arguments'))
+		return ruby.bool_value(err.msg().contains('requires no named arguments'))
 	}
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 // Ruby it `it "rejects json without an explicit version" do` at line 134.
-pub fn ruby_trust_spec_l134_d12_rejects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_trust_spec_l134_d12_rejects(args ...ruby.Value) ruby.Value {
 	_ = args
 	production_cmd.run_trust_command(production_cmd.TrustCommandOptions{
 		json_requested: true
 	}, production_cmd.TrustCommandStore{}, trust_spec_taps()) or {
-		return brew_runtime.bool_value(err.msg().contains('OptionParser::MissingArgument')
+		return ruby.bool_value(err.msg().contains('OptionParser::MissingArgument')
 			&& err.msg().contains('--json'))
 	}
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 // Original Ruby source (line-for-line):

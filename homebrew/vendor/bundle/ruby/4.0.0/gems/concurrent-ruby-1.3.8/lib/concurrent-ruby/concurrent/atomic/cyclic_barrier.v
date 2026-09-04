@@ -1,6 +1,6 @@
 module atomic
 
-import brew_runtime
+import ruby
 import sync
 import time
 
@@ -167,14 +167,14 @@ pub fn (mut barrier CyclicBarrier) ns_initialize(parties int, action ?BarrierAct
 	barrier.state.mutex.unlock()
 }
 
-fn barrier_boundary_new(parties int) brew_runtime.Value {
+fn barrier_boundary_new(parties int) ruby.Value {
 	barrier := new_cyclic_barrier(parties, none) or { panic(err) }
-	return brew_runtime.structured_value('Concurrent::CyclicBarrier', '#<Concurrent::CyclicBarrier>', {
+	return ruby.structured_value('Concurrent::CyclicBarrier', '#<Concurrent::CyclicBarrier>', {
 		'barrier_address': u64(voidptr(barrier)).str()
 	})
 }
 
-fn barrier_boundary_receiver(args []brew_runtime.Value) &CyclicBarrier {
+fn barrier_boundary_receiver(args []ruby.Value) &CyclicBarrier {
 	if args.len == 0 {
 		panic('CyclicBarrier method requires a receiver')
 	}
@@ -184,7 +184,7 @@ fn barrier_boundary_receiver(args []brew_runtime.Value) &CyclicBarrier {
 	return unsafe { &CyclicBarrier(voidptr(address)) }
 }
 
-fn barrier_boundary_timeout(args []brew_runtime.Value, index int) ?time.Duration {
+fn barrier_boundary_timeout(args []ruby.Value, index int) ?time.Duration {
 	if index >= args.len || args[index].type_name == 'NilClass' {
 		return none
 	}
@@ -192,7 +192,7 @@ fn barrier_boundary_timeout(args []brew_runtime.Value, index int) ?time.Duration
 	return time.Duration(seconds * f64(time.second))
 }
 
-fn barrier_status_from_value(value brew_runtime.Value) BarrierStatus {
+fn barrier_status_from_value(value ruby.Value) BarrierStatus {
 	return match value.as_string().trim_left(':') {
 		'fulfilled' { .fulfilled }
 		'broken' { .broken }
@@ -202,7 +202,7 @@ fn barrier_status_from_value(value brew_runtime.Value) BarrierStatus {
 }
 
 // Ruby method `initialize(parties, &block)` at line 40.
-pub fn ruby_cyclic_barrier_l40_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cyclic_barrier_l40_d1_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('CyclicBarrier#initialize requires parties')
 	}
@@ -211,38 +211,38 @@ pub fn ruby_cyclic_barrier_l40_d1_initialize(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby method `parties` at line 49.
-pub fn ruby_cyclic_barrier_l49_d2_parties(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cyclic_barrier_l49_d2_parties(args ...ruby.Value) ruby.Value {
 	mut barrier := barrier_boundary_receiver(args)
-	return brew_runtime.int_value(barrier.parties())
+	return ruby.int_value(barrier.parties())
 }
 
 // Ruby method `number_waiting` at line 54.
-pub fn ruby_cyclic_barrier_l54_d3_number_waiting(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cyclic_barrier_l54_d3_number_waiting(args ...ruby.Value) ruby.Value {
 	mut barrier := barrier_boundary_receiver(args)
-	return brew_runtime.int_value(barrier.number_waiting())
+	return ruby.int_value(barrier.number_waiting())
 }
 
 // Ruby method `wait(timeout = nil)` at line 66.
-pub fn ruby_cyclic_barrier_l66_d4_wait(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cyclic_barrier_l66_d4_wait(args ...ruby.Value) ruby.Value {
 	mut barrier := barrier_boundary_receiver(args)
-	return brew_runtime.bool_value(barrier.wait(barrier_boundary_timeout(args, 1)) or { panic(err) })
+	return ruby.bool_value(barrier.wait(barrier_boundary_timeout(args, 1)) or { panic(err) })
 }
 
 // Ruby method `reset` at line 95.
-pub fn ruby_cyclic_barrier_l95_d5_reset(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cyclic_barrier_l95_d5_reset(args ...ruby.Value) ruby.Value {
 	mut barrier := barrier_boundary_receiver(args)
 	barrier.reset()
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `broken?` at line 105.
-pub fn ruby_cyclic_barrier_l105_d6_broken(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cyclic_barrier_l105_d6_broken(args ...ruby.Value) ruby.Value {
 	mut barrier := barrier_boundary_receiver(args)
-	return brew_runtime.bool_value(barrier.is_broken())
+	return ruby.bool_value(barrier.is_broken())
 }
 
 // Ruby method `ns_generation_done(generation, status, continue = true)` at line 111.
-pub fn ruby_cyclic_barrier_l111_d7_ns_generation_done(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cyclic_barrier_l111_d7_ns_generation_done(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('CyclicBarrier#ns_generation_done requires generation and status')
 	}
@@ -252,20 +252,20 @@ pub fn ruby_cyclic_barrier_l111_d7_ns_generation_done(args ...brew_runtime.Value
 	barrier.state.mutex.lock()
 	barrier.generation_done_locked(generation, barrier_status_from_value(args[2]), continue_generation)
 	barrier.state.mutex.unlock()
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `ns_next_generation` at line 117.
-pub fn ruby_cyclic_barrier_l117_d8_ns_next_generation(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cyclic_barrier_l117_d8_ns_next_generation(args ...ruby.Value) ruby.Value {
 	mut barrier := barrier_boundary_receiver(args)
 	barrier.state.mutex.lock()
 	barrier.next_generation_locked()
 	barrier.state.mutex.unlock()
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `ns_initialize(parties, &block)` at line 122.
-pub fn ruby_cyclic_barrier_l122_d9_ns_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cyclic_barrier_l122_d9_ns_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('CyclicBarrier#ns_initialize requires parties')
 	}

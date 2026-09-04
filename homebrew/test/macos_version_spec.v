@@ -1,157 +1,157 @@
 module test
 
-import brew_runtime
+import ruby
 import homebrew
 
 // Translated from Homebrew/brew `test/macos_version_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:version) { described_class.new("10.15") }` at line 7.
-pub fn ruby_macos_version_spec_l7_d1_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_macos_version_spec_l7_d1_version(args ...ruby.Value) ruby.Value {
 	return macos_boundary(homebrew.new_macos_version('10.15') or { panic(err) })
 }
 
 // Ruby let `let(:tahoe_major) { described_class.new("26.0") }` at line 8.
-pub fn ruby_macos_version_spec_l8_d2_tahoe_major(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_macos_version_spec_l8_d2_tahoe_major(args ...ruby.Value) ruby.Value {
 	return macos_boundary(homebrew.new_macos_version('26.0') or { panic(err) })
 }
 
 // Ruby let `let(:big_sur_major) { described_class.new("11.0") }` at line 9.
-pub fn ruby_macos_version_spec_l9_d3_big_sur_major(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_macos_version_spec_l9_d3_big_sur_major(args ...ruby.Value) ruby.Value {
 	return macos_boundary(homebrew.new_macos_version('11.0') or { panic(err) })
 }
 
 // Ruby let `let(:big_sur_update) { described_class.new("11.1") }` at line 10.
-pub fn ruby_macos_version_spec_l10_d4_big_sur_update(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_macos_version_spec_l10_d4_big_sur_update(args ...ruby.Value) ruby.Value {
 	return macos_boundary(homebrew.new_macos_version('11.1') or { panic(err) })
 }
 
 // Ruby let `let(:frozen_version) { described_class.new("10.15").freeze }` at line 11.
-pub fn ruby_macos_version_spec_l11_d5_frozen_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_macos_version_spec_l11_d5_frozen_version(args ...ruby.Value) ruby.Value {
 	return macos_boundary(homebrew.new_macos_version('10.15') or { panic(err) })
 }
 
 // Ruby it `it "returns the kernel major version" do` at line 14.
-pub fn ruby_macos_version_spec_l14_d6_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_macos_version_spec_l14_d6_returns(args ...ruby.Value) ruby.Value {
 	values := ['10.15', '26.0', '11.0', '11.1']
 	expected := ['19', '25', '20', '20']
 	for index, value in values {
-		version := homebrew.new_macos_version(value) or { return brew_runtime.bool_value(false) }
+		version := homebrew.new_macos_version(value) or { return ruby.bool_value(false) }
 		if version.kernel_major_version().to_s() != expected[index] {
-			return brew_runtime.bool_value(false)
+			return ruby.bool_value(false)
 		}
 	}
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
 // Ruby it `it "matches the major version returned by OS.kernel_version", :needs_macos do` at line 21.
-pub fn ruby_macos_version_spec_l21_d7_matches(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_macos_version_spec_l21_d7_matches(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.bool_value(true)
+		return ruby.bool_value(true)
 	}
 	version := homebrew.new_macos_version(args[0].as_string()) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(version.kernel_major_version().to_s() == args[1].as_string())
+	return ruby.bool_value(version.kernel_major_version().to_s() == args[1].as_string())
 }
 
 // Ruby it `it "raises an error if the symbol is not a valid macOS version" do` at line 28.
-pub fn ruby_macos_version_spec_l28_d8_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	_ := homebrew.macos_version_from_symbol('foo') or { return brew_runtime.bool_value(true) }
-	return brew_runtime.bool_value(false)
+pub fn ruby_macos_version_spec_l28_d8_raises(args ...ruby.Value) ruby.Value {
+	_ := homebrew.macos_version_from_symbol('foo') or { return ruby.bool_value(true) }
+	return ruby.bool_value(false)
 }
 
 // Ruby it `it "creates a new version from a valid macOS version" do` at line 34.
-pub fn ruby_macos_version_spec_l34_d9_creates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_macos_version_spec_l34_d9_creates(args ...ruby.Value) ruby.Value {
 	version := homebrew.macos_version_from_symbol('catalina') or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(version.str() == '10.15')
+	return ruby.bool_value(version.str() == '10.15')
 }
 
 // Ruby it `it "raises an error if the version is not a valid macOS version" do` at line 41.
-pub fn ruby_macos_version_spec_l41_d10_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	_ := homebrew.new_macos_version('1.2') or { return brew_runtime.bool_value(true) }
-	return brew_runtime.bool_value(false)
+pub fn ruby_macos_version_spec_l41_d10_raises(args ...ruby.Value) ruby.Value {
+	_ := homebrew.new_macos_version('1.2') or { return ruby.bool_value(true) }
+	return ruby.bool_value(false)
 }
 
 // Ruby it `it "creates a new version from a valid macOS version" do` at line 47.
-pub fn ruby_macos_version_spec_l47_d11_creates(args ...brew_runtime.Value) brew_runtime.Value {
-	version := homebrew.new_macos_version('11') or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(version.compare_symbol('big_sur') == 0)
+pub fn ruby_macos_version_spec_l47_d11_creates(args ...ruby.Value) ruby.Value {
+	version := homebrew.new_macos_version('11') or { return ruby.bool_value(false) }
+	return ruby.bool_value(version.compare_symbol('big_sur') == 0)
 }
 
 // Ruby specify `specify "comparisons" do` at line 53.
-pub fn ruby_macos_version_spec_l53_d12_comparisons(args ...brew_runtime.Value) brew_runtime.Value {
-	version := homebrew.new_macos_version('10.15') or { return brew_runtime.bool_value(false) }
-	older := homebrew.new_macos_version('10.3') or { return brew_runtime.bool_value(false) }
-	newer := homebrew.new_macos_version('11') or { return brew_runtime.bool_value(false) }
-	outdated := homebrew.new_macos_version('10.0') or { return brew_runtime.bool_value(false) }
-	is_outdated := outdated.outdated_release('12') or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(version.compare_symbol('catalina') == 0
+pub fn ruby_macos_version_spec_l53_d12_comparisons(args ...ruby.Value) ruby.Value {
+	version := homebrew.new_macos_version('10.15') or { return ruby.bool_value(false) }
+	older := homebrew.new_macos_version('10.3') or { return ruby.bool_value(false) }
+	newer := homebrew.new_macos_version('11') or { return ruby.bool_value(false) }
+	outdated := homebrew.new_macos_version('10.0') or { return ruby.bool_value(false) }
+	is_outdated := outdated.outdated_release('12') or { return ruby.bool_value(false) }
+	return ruby.bool_value(version.compare_symbol('catalina') == 0
 		&& version.compare_symbol('tahoe') < 0 && version.compare(older) > 0
 		&& version.compare(newer) < 0 && newer.inspect() == '#<MacOSVersion: "11">' && is_outdated)
 }
 
 // Ruby specify `specify "comparison with :big_sur" do` at line 86.
-pub fn ruby_macos_version_spec_l86_d13_comparison(args ...brew_runtime.Value) brew_runtime.Value {
-	major := homebrew.new_macos_version('11.0') or { return brew_runtime.bool_value(false) }
-	update := homebrew.new_macos_version('11.1') or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(major.compare_symbol('big_sur') == 0
+pub fn ruby_macos_version_spec_l86_d13_comparison(args ...ruby.Value) ruby.Value {
+	major := homebrew.new_macos_version('11.0') or { return ruby.bool_value(false) }
+	update := homebrew.new_macos_version('11.1') or { return ruby.bool_value(false) }
+	return ruby.bool_value(major.compare_symbol('big_sur') == 0
 		&& update.compare_symbol('big_sur') == 0)
 }
 
 // Ruby let `let(:catalina_update) { described_class.new("10.15.1") }` at line 102.
-pub fn ruby_macos_version_spec_l102_d14_catalina_update(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_macos_version_spec_l102_d14_catalina_update(args ...ruby.Value) ruby.Value {
 	return macos_boundary(homebrew.new_macos_version('10.15.1') or { panic(err) })
 }
 
 // Ruby specify `specify do` at line 104.
-pub fn ruby_macos_version_spec_l104_d15_do(args ...brew_runtime.Value) brew_runtime.Value {
-	big_sur := homebrew.new_macos_version('11.1') or { return brew_runtime.bool_value(false) }
-	catalina := homebrew.new_macos_version('10.15.1') or { return brew_runtime.bool_value(false) }
+pub fn ruby_macos_version_spec_l104_d15_do(args ...ruby.Value) ruby.Value {
+	big_sur := homebrew.new_macos_version('11.1') or { return ruby.bool_value(false) }
+	catalina := homebrew.new_macos_version('10.15.1') or { return ruby.bool_value(false) }
 	null_version := homebrew.null_macos_version()
-	return brew_runtime.bool_value(big_sur.strip_patch().str() == '11'
+	return ruby.bool_value(big_sur.strip_patch().str() == '11'
 		&& catalina.strip_patch().str() == '10.15' && null_version.strip_patch().is_null)
 }
 
 // Ruby specify `specify "#to_sym" do` at line 111.
-pub fn ruby_macos_version_spec_l111_d16_to_sym(args ...brew_runtime.Value) brew_runtime.Value {
-	version := homebrew.new_macos_version('10.15') or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(version.to_symbol() == 'catalina'
+pub fn ruby_macos_version_spec_l111_d16_to_sym(args ...ruby.Value) ruby.Value {
+	version := homebrew.new_macos_version('10.15') or { return ruby.bool_value(false) }
+	return ruby.bool_value(version.to_symbol() == 'catalina'
 		&& homebrew.null_macos_version().to_symbol() == 'dunno')
 }
 
 // Ruby specify `specify "#pretty_name" do` at line 126.
-pub fn ruby_macos_version_spec_l126_d17_pretty_name(args ...brew_runtime.Value) brew_runtime.Value {
-	catalina := homebrew.new_macos_version('10.15') or { return brew_runtime.bool_value(false) }
-	big_sur := homebrew.new_macos_version('11') or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(catalina.pretty_name() == 'Catalina'
+pub fn ruby_macos_version_spec_l126_d17_pretty_name(args ...ruby.Value) ruby.Value {
+	catalina := homebrew.new_macos_version('10.15') or { return ruby.bool_value(false) }
+	big_sur := homebrew.new_macos_version('11') or { return ruby.bool_value(false) }
+	return ruby.bool_value(catalina.pretty_name() == 'Catalina'
 		&& big_sur.pretty_name() == 'Big Sur')
 }
 
 // Ruby it `it "returns true if version requires a Nehalem CPU" do` at line 146.
-pub fn ruby_macos_version_spec_l146_d18_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	version := homebrew.new_macos_version('10.15') or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(version.requires_nehalem_cpu(true, 'nehalem') or { false })
+pub fn ruby_macos_version_spec_l146_d18_returns(args ...ruby.Value) ruby.Value {
+	version := homebrew.new_macos_version('10.15') or { return ruby.bool_value(false) }
+	return ruby.bool_value(version.requires_nehalem_cpu(true, 'nehalem') or { false })
 }
 
 // Ruby it `it "raises an error" do` at line 153.
-pub fn ruby_macos_version_spec_l153_d19_raises(args ...brew_runtime.Value) brew_runtime.Value {
-	version := homebrew.new_macos_version('10.15') or { return brew_runtime.bool_value(false) }
-	_ := version.requires_nehalem_cpu(false, '') or { return brew_runtime.bool_value(true) }
-	return brew_runtime.bool_value(false)
+pub fn ruby_macos_version_spec_l153_d19_raises(args ...ruby.Value) ruby.Value {
+	version := homebrew.new_macos_version('10.15') or { return ruby.bool_value(false) }
+	_ := version.requires_nehalem_cpu(false, '') or { return ruby.bool_value(true) }
+	return ruby.bool_value(false)
 }
 
 // Ruby it `it "returns false when version is null" do` at line 160.
-pub fn ruby_macos_version_spec_l160_d20_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(!(homebrew.null_macos_version().requires_nehalem_cpu(false, '') or {
+pub fn ruby_macos_version_spec_l160_d20_returns(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(!(homebrew.null_macos_version().requires_nehalem_cpu(false, '') or {
 		true
 	}))
 }
 
-fn macos_boundary(version homebrew.MacOSVersion) brew_runtime.Value {
-	return brew_runtime.structured_value('MacOSVersion', version.str(), {
+fn macos_boundary(version homebrew.MacOSVersion) ruby.Value {
+	return ruby.structured_value('MacOSVersion', version.str(), {
 		'value': version.str()
 		'null':  version.is_null.str()
 		'sym':   version.to_symbol()

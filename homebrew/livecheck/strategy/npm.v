@@ -1,6 +1,6 @@
 module strategy
 
-import brew_runtime
+import ruby
 import homebrew.livecheck
 import homebrew.utils
 import net.urllib
@@ -104,53 +104,53 @@ fn npm_empty_fetcher(_ livecheck.StrategyCurlRequest) !utils.CurlCommandResult {
 }
 
 // Ruby method `self.match?(url)` at line 40.
-pub fn ruby_npm_l40_d1_self_match(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_npm_l40_d1_self_match(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(npm_matches_url(args[0].as_string()))
+	return ruby.bool_value(npm_matches_url(args[0].as_string()))
 }
 
 // Ruby method `self.generate_input_values(url)` at line 50.
-pub fn ruby_npm_l50_d2_self_generate_input_values(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_npm_l50_d2_self_generate_input_values(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.map_value({})
+		return ruby.map_value({})
 	}
 	generated := npm_generate_input_values(args[0].as_string())
 	if !generated.present {
-		return brew_runtime.map_value({})
+		return ruby.map_value({})
 	}
-	return brew_runtime.map_value({
-		'url': brew_runtime.string_value(generated.url)
+	return ruby.map_value({
+		'url': ruby.string_value(generated.url)
 	})
 }
 
 // Ruby method `self.find_versions(url:, regex: nil, content: nil, options: Options.new, &block)` at line 76.
-pub fn ruby_npm_l76_d3_self_find_versions(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_npm_l76_d3_self_find_versions(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.map_value({})
+		return ruby.map_value({})
 	}
 	content := if args.len > 1 { ?string(args[1].as_string()) } else { none }
 	result := npm_find_versions(NpmFindRequest{
 		url: args[0].as_string()
 		content: content
-	}, npm_empty_fetcher) or { return brew_runtime.object_value('Error', err.msg()) }
-	mut matches := map[string]brew_runtime.Value{}
+	}, npm_empty_fetcher) or { return ruby.object_value('Error', err.msg()) }
+	mut matches := map[string]ruby.Value{}
 	for version in result.matches.keys() {
-		matches[version] = brew_runtime.string_value(version)
+		matches[version] = ruby.string_value(version)
 	}
 	mut values := {
-		'matches': brew_runtime.map_value(matches)
-		'regex':   brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
-		'url':     brew_runtime.string_value(result.url)
+		'matches': ruby.map_value(matches)
+		'regex':   ruby.Value{ type_name: 'NilClass', repr: 'nil' }
+		'url':     ruby.string_value(result.url)
 	}
 	if result.has_cached {
-		values['cached'] = brew_runtime.bool_value(result.cached)
+		values['cached'] = ruby.bool_value(result.cached)
 	}
 	if result.has_content {
-		values['content'] = brew_runtime.string_value(result.content)
+		values['content'] = ruby.string_value(result.content)
 	}
-	return brew_runtime.map_value(values)
+	return ruby.map_value(values)
 }
 
 // Original Ruby source (line-for-line):

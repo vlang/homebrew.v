@@ -1,6 +1,6 @@
 module rubocops
 
-import brew_runtime
+import ruby
 import time
 
 // Translated from Homebrew/brew `rubocops/deprecate_disable.rb`.
@@ -591,8 +591,8 @@ pub fn analyze_deprecate_disable_reasons(source string) DeprecateDisableAnalysis
 	}
 }
 
-fn deprecate_disable_argument_value(node DeprecateDisableArgumentNode) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::AST::Node', node.source, {
+fn deprecate_disable_argument_value(node DeprecateDisableArgumentNode) ruby.Value {
+	return ruby.structured_value('RuboCop::AST::Node', node.source, {
 		'key':       node.key
 		'kind':      node.kind
 		'content':   node.content
@@ -601,47 +601,47 @@ fn deprecate_disable_argument_value(node DeprecateDisableArgumentNode) brew_runt
 	})
 }
 
-fn deprecate_disable_analysis_value(analysis DeprecateDisableAnalysis) brew_runtime.Value {
-	offenses := analysis.offenses.map(brew_runtime.structured_value('RuboCop::Cop::Offense', it.message, {
+fn deprecate_disable_analysis_value(analysis DeprecateDisableAnalysis) ruby.Value {
+	offenses := analysis.offenses.map(ruby.structured_value('RuboCop::Cop::Offense', it.message, {
 		'begin_pos':   it.begin_pos.str()
 		'end_pos':     it.end_pos.str()
 		'message':     it.message
 		'replacement': it.replacement
 	}))
-	return brew_runtime.map_value({
-		'offenses':  brew_runtime.array_value(offenses)
-		'corrected': brew_runtime.string_value(analysis.corrected)
+	return ruby.map_value({
+		'offenses':  ruby.array_value(offenses)
+		'corrected': ruby.string_value(analysis.corrected)
 	})
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 14.
-pub fn ruby_deprecate_disable_l14_d1_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_deprecate_disable_l14_d1_audit_formula(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	return deprecate_disable_analysis_value(analyze_deprecate_disable_dates(source) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	})
 }
 
 // Ruby def_node_search `def_node_search :date, <<~EOS` at line 34.
-pub fn ruby_deprecate_disable_l34_d2_date(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_deprecate_disable_l34_d2_date(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.array_value([]brew_runtime.Value{})
+		return ruby.array_value([]ruby.Value{})
 	}
-	return brew_runtime.array_value(deprecate_disable_date_nodes(args[0].as_string()).map(deprecate_disable_argument_value(it)))
+	return ruby.array_value(deprecate_disable_date_nodes(args[0].as_string()).map(deprecate_disable_argument_value(it)))
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 46.
-pub fn ruby_deprecate_disable_l46_d3_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_deprecate_disable_l46_d3_audit_formula(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	return deprecate_disable_analysis_value(analyze_deprecate_disable_reasons(source))
 }
 
 // Ruby def_node_search `def_node_search :reason, <<~EOS` at line 86.
-pub fn ruby_deprecate_disable_l86_d4_reason(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_deprecate_disable_l86_d4_reason(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.array_value([]brew_runtime.Value{})
+		return ruby.array_value([]ruby.Value{})
 	}
-	return brew_runtime.array_value(deprecate_disable_reason_nodes(args[0].as_string()).map(deprecate_disable_argument_value(it)))
+	return ruby.array_value(deprecate_disable_reason_nodes(args[0].as_string()).map(deprecate_disable_argument_value(it)))
 }
 
 // Original Ruby source (line-for-line):

@@ -1,6 +1,6 @@
 module bindata
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/bindata-2.5.1/lib/bindata/io.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -626,12 +626,12 @@ fn (mut writer IOWrite) write_little_endian_bits(initial_value u64, initial_nbit
 	}
 }
 
-fn io_nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn io_nil_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-fn binary_string_io_value(stream &BinaryStringIO) brew_runtime.Value {
-	return brew_runtime.Value{
+fn binary_string_io_value(stream &BinaryStringIO) ruby.Value {
+	return ruby.Value{
 		type_name: 'StringIO'
 		repr: stream.value()
 		int_data: i64(u64(voidptr(stream)))
@@ -642,15 +642,15 @@ fn binary_string_io_value(stream &BinaryStringIO) brew_runtime.Value {
 	}
 }
 
-fn binary_string_io_from_value(value brew_runtime.Value) &BinaryStringIO {
+fn binary_string_io_from_value(value ruby.Value) &BinaryStringIO {
 	if address := value.attributes['binary_string_io_address'] {
 		return unsafe { &BinaryStringIO(voidptr(address.u64())) }
 	}
 	return new_binary_string_io(value.as_string())
 }
 
-pub fn io_read_boundary_value(reader &IORead) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn io_read_boundary_value(reader &IORead) ruby.Value {
+	return ruby.Value{
 		type_name: 'BinData::IO::Read'
 		repr: 'BinData::IO::Read'
 		int_data: i64(u64(voidptr(reader)))
@@ -660,15 +660,15 @@ pub fn io_read_boundary_value(reader &IORead) brew_runtime.Value {
 	}
 }
 
-fn io_read_from_value(value brew_runtime.Value) &IORead {
+fn io_read_from_value(value ruby.Value) &IORead {
 	address := value.attributes['io_read_address'] or {
 		panic('expected BinData::IO::Read, got ${value.type_name}')
 	}
 	return unsafe { &IORead(voidptr(address.u64())) }
 }
 
-pub fn io_write_boundary_value(writer &IOWrite) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn io_write_boundary_value(writer &IOWrite) ruby.Value {
+	return ruby.Value{
 		type_name: 'BinData::IO::Write'
 		repr: 'BinData::IO::Write'
 		int_data: i64(u64(voidptr(writer)))
@@ -678,15 +678,15 @@ pub fn io_write_boundary_value(writer &IOWrite) brew_runtime.Value {
 	}
 }
 
-fn io_write_from_value(value brew_runtime.Value) &IOWrite {
+fn io_write_from_value(value ruby.Value) &IOWrite {
 	address := value.attributes['io_write_address'] or {
 		panic('expected BinData::IO::Write, got ${value.type_name}')
 	}
 	return unsafe { &IOWrite(voidptr(address.u64())) }
 }
 
-fn raw_io_value(raw &RawIO) brew_runtime.Value {
-	return brew_runtime.Value{
+fn raw_io_value(raw &RawIO) ruby.Value {
+	return ruby.Value{
 		type_name: 'BinData::IO::RawIO'
 		repr: 'BinData::IO::RawIO'
 		int_data: i64(u64(voidptr(raw)))
@@ -696,15 +696,15 @@ fn raw_io_value(raw &RawIO) brew_runtime.Value {
 	}
 }
 
-fn raw_io_from_value(value brew_runtime.Value) &RawIO {
+fn raw_io_from_value(value ruby.Value) &RawIO {
 	address := value.attributes['raw_io_address'] or {
 		panic('expected BinData::IO::RawIO, got ${value.type_name}')
 	}
 	return unsafe { &RawIO(voidptr(address.u64())) }
 }
 
-pub fn io_transform_boundary_value(transform &IOTransform) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn io_transform_boundary_value(transform &IOTransform) ruby.Value {
+	return ruby.Value{
 		type_name: 'BinData::IO::Transform'
 		repr: 'BinData::IO::Transform'
 		int_data: i64(u64(voidptr(transform)))
@@ -715,14 +715,14 @@ pub fn io_transform_boundary_value(transform &IOTransform) brew_runtime.Value {
 	}
 }
 
-fn io_transform_from_value(value brew_runtime.Value) &IOTransform {
+fn io_transform_from_value(value ruby.Value) &IOTransform {
 	address := value.attributes['io_transform_address'] or {
 		panic('expected BinData::IO::Transform, got ${value.type_name}')
 	}
 	return unsafe { &IOTransform(voidptr(address.u64())) }
 }
 
-fn io_chain_from_value(value brew_runtime.Value) &IOChain {
+fn io_chain_from_value(value ruby.Value) &IOChain {
 	if value.type_name == 'BinData::IO::Read' {
 		return io_read_from_value(value).io
 	}
@@ -738,14 +738,14 @@ fn io_chain_from_value(value brew_runtime.Value) &IOChain {
 	return raw_io_chain(new_raw_io(binary_string_io_from_value(value)))
 }
 
-fn io_boundary_int(args []brew_runtime.Value, index int, name string) int {
+fn io_boundary_int(args []ruby.Value, index int, name string) int {
 	if index >= args.len {
 		panic('${name} requires argument ${index + 1}')
 	}
 	return int(args[index].as_int() or { panic(err) })
 }
 
-fn io_boundary_endian(value brew_runtime.Value) BitEndian {
+fn io_boundary_endian(value ruby.Value) BitEndian {
 	return match value.as_string().trim_left(':') {
 		'big' { .big }
 		'little' { .little }
@@ -754,13 +754,13 @@ fn io_boundary_endian(value brew_runtime.Value) BitEndian {
 }
 
 // Ruby method `self.create_string_io(str = "")` at line 9.
-pub fn ruby_io_l9_d1_self_create_string_io(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_io_l9_d1_self_create_string_io(args ...ruby.Value) ruby.Value {
 	value := if args.len > 0 { args[0].as_string() } else { '' }
 	return binary_string_io_value(new_binary_string_io(value))
 }
 
 // Ruby method `initialize(io)` at line 32.
-pub fn ruby_io_l32_d2_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_io_l32_d2_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('BinData::IO::Read#initialize requires io')
 	}
@@ -771,7 +771,7 @@ pub fn ruby_io_l32_d2_initialize(args ...brew_runtime.Value) brew_runtime.Value 
 }
 
 // Ruby method `transform(io)` at line 56.
-pub fn ruby_io_l56_d3_transform(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_io_l56_d3_transform(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('BinData::IO::Read#transform requires a transform')
 	}
@@ -782,100 +782,100 @@ pub fn ruby_io_l56_d3_transform(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `num_bytes_remaining` at line 68.
-pub fn ruby_io_l68_d4_num_bytes_remaining(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_io_l68_d4_num_bytes_remaining(args ...ruby.Value) ruby.Value {
 	mut reader := io_read_from_value(args[0])
-	return brew_runtime.int_value(reader.num_bytes_remaining() or { panic(err) })
+	return ruby.int_value(reader.num_bytes_remaining() or { panic(err) })
 }
 
 // Ruby method `skipbytes(n)` at line 73.
-pub fn ruby_io_l73_d5_skipbytes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_io_l73_d5_skipbytes(args ...ruby.Value) ruby.Value {
 	mut reader := io_read_from_value(args[0])
 	reader.skipbytes(io_boundary_int(args, 1, 'skipbytes')) or { panic(err) }
 	return io_nil_value()
 }
 
 // Ruby method `seek_to_abs_offset(n)` at line 79.
-pub fn ruby_io_l79_d6_seek_to_abs_offset(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_io_l79_d6_seek_to_abs_offset(args ...ruby.Value) ruby.Value {
 	mut reader := io_read_from_value(args[0])
 	reader.seek_to_abs_offset(io_boundary_int(args, 1, 'seek_to_abs_offset')) or { panic(err) }
 	return io_nil_value()
 }
 
 // Ruby method `readbytes(n)` at line 89.
-pub fn ruby_io_l89_d7_readbytes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_io_l89_d7_readbytes(args ...ruby.Value) ruby.Value {
 	mut reader := io_read_from_value(args[0])
-	return brew_runtime.string_value(reader.readbytes(io_boundary_int(args, 1, 'readbytes')) or {
+	return ruby.string_value(reader.readbytes(io_boundary_int(args, 1, 'readbytes')) or {
 		panic(err)
 	}.bytestr())
 }
 
 // Ruby method `read_all_bytes` at line 95.
-pub fn ruby_io_l95_d8_read_all_bytes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_io_l95_d8_read_all_bytes(args ...ruby.Value) ruby.Value {
 	mut reader := io_read_from_value(args[0])
-	return brew_runtime.string_value(reader.read_all_bytes() or { panic(err) }.bytestr())
+	return ruby.string_value(reader.read_all_bytes() or { panic(err) }.bytestr())
 }
 
 // Ruby method `readbits(nbits, endian)` at line 102.
-pub fn ruby_io_l102_d9_readbits(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_io_l102_d9_readbits(args ...ruby.Value) ruby.Value {
 	mut reader := io_read_from_value(args[0])
 	value := reader.readbits(io_boundary_int(args, 1, 'readbits'), io_boundary_endian(args[2])) or {
 		panic(err)
 	}
-	return brew_runtime.int_value(i64(value))
+	return ruby.int_value(i64(value))
 }
 
 // Ruby method `reset_read_bits` at line 118.
-pub fn ruby_io_l118_d10_reset_read_bits(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_io_l118_d10_reset_read_bits(args ...ruby.Value) ruby.Value {
 	mut reader := io_read_from_value(args[0])
 	reader.reset_read_bits()
 	return io_nil_value()
 }
 
 // Ruby method `read(n = nil)` at line 126.
-pub fn ruby_io_l126_d11_read(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_io_l126_d11_read(args ...ruby.Value) ruby.Value {
 	mut reader := io_read_from_value(args[0])
 	n := if args.len > 1 && args[1].type_name != 'NilClass' {
 		io_boundary_int(args, 1, 'read')
 	} else {
 		-1
 	}
-	return brew_runtime.string_value(reader.read(n) or { panic(err) }.bytestr())
+	return ruby.string_value(reader.read(n) or { panic(err) }.bytestr())
 }
 
 // Ruby method `read_big_endian_bits(nbits)` at line 135.
-pub fn ruby_io_l135_d12_read_big_endian_bits(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_io_l135_d12_read_big_endian_bits(args ...ruby.Value) ruby.Value {
 	mut reader := io_read_from_value(args[0])
-	return brew_runtime.int_value(i64(reader.read_big_endian_bits(io_boundary_int(args, 1, 'read_big_endian_bits')) or { panic(err) }))
+	return ruby.int_value(i64(reader.read_big_endian_bits(io_boundary_int(args, 1, 'read_big_endian_bits')) or { panic(err) }))
 }
 
 // Ruby method `accumulate_big_endian_bits` at line 147.
-pub fn ruby_io_l147_d13_accumulate_big_endian_bits(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_io_l147_d13_accumulate_big_endian_bits(args ...ruby.Value) ruby.Value {
 	mut reader := io_read_from_value(args[0])
 	reader.accumulate_big_endian_bits() or { panic(err) }
 	return io_nil_value()
 }
 
 // Ruby method `read_little_endian_bits(nbits)` at line 153.
-pub fn ruby_io_l153_d14_read_little_endian_bits(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_io_l153_d14_read_little_endian_bits(args ...ruby.Value) ruby.Value {
 	mut reader := io_read_from_value(args[0])
-	return brew_runtime.int_value(i64(reader.read_little_endian_bits(io_boundary_int(args, 1, 'read_little_endian_bits')) or { panic(err) }))
+	return ruby.int_value(i64(reader.read_little_endian_bits(io_boundary_int(args, 1, 'read_little_endian_bits')) or { panic(err) }))
 }
 
 // Ruby method `accumulate_little_endian_bits` at line 165.
-pub fn ruby_io_l165_d15_accumulate_little_endian_bits(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_io_l165_d15_accumulate_little_endian_bits(args ...ruby.Value) ruby.Value {
 	mut reader := io_read_from_value(args[0])
 	reader.accumulate_little_endian_bits() or { panic(err) }
 	return io_nil_value()
 }
 
 // Ruby method `mask(nbits)` at line 171.
-pub fn ruby_io_l171_d16_mask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_io_l171_d16_mask(args ...ruby.Value) ruby.Value {
 	index := if args.len > 1 { 1 } else { 0 }
-	return brew_runtime.int_value(i64(mask_bits(io_boundary_int(args, index, 'mask'))))
+	return ruby.int_value(i64(mask_bits(io_boundary_int(args, index, 'mask'))))
 }
 
 // Ruby method `initialize(io)` at line 184.
-pub fn ruby_io_l184_d17_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_io_l184_d17_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('BinData::IO::Write#initialize requires io')
 	}
@@ -886,7 +886,7 @@ pub fn ruby_io_l184_d17_initialize(args ...brew_runtime.Value) brew_runtime.Valu
 }
 
 // Ruby method `transform(io)` at line 207.
-pub fn ruby_io_l207_d18_transform(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_io_l207_d18_transform(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('BinData::IO::Write#transform requires a transform')
 	}
@@ -897,65 +897,65 @@ pub fn ruby_io_l207_d18_transform(args ...brew_runtime.Value) brew_runtime.Value
 }
 
 // Ruby method `seek_to_abs_offset(n)` at line 219.
-pub fn ruby_io_l219_d19_seek_to_abs_offset(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_io_l219_d19_seek_to_abs_offset(args ...ruby.Value) ruby.Value {
 	mut writer := io_write_from_value(args[0])
 	writer.seek_to_abs_offset(io_boundary_int(args, 1, 'seek_to_abs_offset')) or { panic(err) }
 	return io_nil_value()
 }
 
 // Ruby method `writebytes(str)` at line 227.
-pub fn ruby_io_l227_d20_writebytes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_io_l227_d20_writebytes(args ...ruby.Value) ruby.Value {
 	mut writer := io_write_from_value(args[0])
-	return brew_runtime.int_value(writer.writebytes(args[1].as_string().bytes()) or { panic(err) })
+	return ruby.int_value(writer.writebytes(args[1].as_string().bytes()) or { panic(err) })
 }
 
 // Ruby method `writebits(val, nbits, endian)` at line 234.
-pub fn ruby_io_l234_d21_writebits(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_io_l234_d21_writebits(args ...ruby.Value) ruby.Value {
 	mut writer := io_write_from_value(args[0])
 	writer.writebits(u64(args[1].as_int() or { panic(err) }), io_boundary_int(args, 2, 'writebits'), io_boundary_endian(args[3])) or { panic(err) }
 	return io_nil_value()
 }
 
 // Ruby method `flushbits` at line 251.
-pub fn ruby_io_l251_d22_flushbits(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_io_l251_d22_flushbits(args ...ruby.Value) ruby.Value {
 	mut writer := io_write_from_value(args[0])
 	writer.flushbits() or { panic(err) }
 	return io_nil_value()
 }
 
 // Ruby alias `alias flush flushbits` at line 258.
-pub fn ruby_io_l258_d23_flush(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_io_l258_d23_flush(args ...ruby.Value) ruby.Value {
 	return ruby_io_l251_d22_flushbits(...args)
 }
 
 // Ruby method `write(data)` at line 263.
-pub fn ruby_io_l263_d24_write(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_io_l263_d24_write(args ...ruby.Value) ruby.Value {
 	mut writer := io_write_from_value(args[0])
-	return brew_runtime.int_value(writer.write(args[1].as_string().bytes()) or { panic(err) })
+	return ruby.int_value(writer.write(args[1].as_string().bytes()) or { panic(err) })
 }
 
 // Ruby method `write_big_endian_bits(val, nbits)` at line 267.
-pub fn ruby_io_l267_d25_write_big_endian_bits(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_io_l267_d25_write_big_endian_bits(args ...ruby.Value) ruby.Value {
 	mut writer := io_write_from_value(args[0])
 	writer.write_big_endian_bits(u64(args[1].as_int() or { panic(err) }), io_boundary_int(args, 2, 'write_big_endian_bits')) or { panic(err) }
 	return io_nil_value()
 }
 
 // Ruby method `write_little_endian_bits(val, nbits)` at line 288.
-pub fn ruby_io_l288_d26_write_little_endian_bits(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_io_l288_d26_write_little_endian_bits(args ...ruby.Value) ruby.Value {
 	mut writer := io_write_from_value(args[0])
 	writer.write_little_endian_bits(u64(args[1].as_int() or { panic(err) }), io_boundary_int(args, 2, 'write_little_endian_bits')) or { panic(err) }
 	return io_nil_value()
 }
 
 // Ruby method `mask(nbits)` at line 309.
-pub fn ruby_io_l309_d27_mask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_io_l309_d27_mask(args ...ruby.Value) ruby.Value {
 	index := if args.len > 1 { 1 } else { 0 }
-	return brew_runtime.int_value(i64(mask_bits(io_boundary_int(args, index, 'mask'))))
+	return ruby.int_value(i64(mask_bits(io_boundary_int(args, index, 'mask'))))
 }
 
 // Ruby method `initialize(io)` at line 316.
-pub fn ruby_io_l316_d28_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_io_l316_d28_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('BinData::IO::RawIO#initialize requires io')
 	}
@@ -963,64 +963,64 @@ pub fn ruby_io_l316_d28_initialize(args ...brew_runtime.Value) brew_runtime.Valu
 }
 
 // Ruby method `is_seekable?(io)` at line 327.
-pub fn ruby_io_l327_d29_is_seekable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_io_l327_d29_is_seekable(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(binary_string_io_from_value(args[args.len - 1]).seekable)
+	return ruby.bool_value(binary_string_io_from_value(args[args.len - 1]).seekable)
 }
 
 // Ruby method `seekable?` at line 333.
-pub fn ruby_io_l333_d30_seekable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(raw_io_from_value(args[0]).seekable())
+pub fn ruby_io_l333_d30_seekable(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(raw_io_from_value(args[0]).seekable())
 }
 
 // Ruby method `num_bytes_remaining` at line 337.
-pub fn ruby_io_l337_d31_num_bytes_remaining(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_io_l337_d31_num_bytes_remaining(args ...ruby.Value) ruby.Value {
 	mut raw := raw_io_from_value(args[0])
-	return brew_runtime.int_value(raw.num_bytes_remaining() or { panic(err) })
+	return ruby.int_value(raw.num_bytes_remaining() or { panic(err) })
 }
 
 // Ruby method `offset` at line 346.
-pub fn ruby_io_l346_d32_offset(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(raw_io_from_value(args[0]).offset())
+pub fn ruby_io_l346_d32_offset(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(raw_io_from_value(args[0]).offset())
 }
 
 // Ruby method `skip(n)` at line 350.
-pub fn ruby_io_l350_d33_skip(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_io_l350_d33_skip(args ...ruby.Value) ruby.Value {
 	mut raw := raw_io_from_value(args[0])
 	raw.skip(io_boundary_int(args, 1, 'skip')) or { panic(err) }
 	return io_nil_value()
 }
 
 // Ruby method `seek_abs(n)` at line 356.
-pub fn ruby_io_l356_d34_seek_abs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_io_l356_d34_seek_abs(args ...ruby.Value) ruby.Value {
 	mut raw := raw_io_from_value(args[0])
 	raw.seek_abs(io_boundary_int(args, 1, 'seek_abs')) or { panic(err) }
 	return io_nil_value()
 }
 
 // Ruby method `read(n)` at line 361.
-pub fn ruby_io_l361_d35_read(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_io_l361_d35_read(args ...ruby.Value) ruby.Value {
 	mut raw := raw_io_from_value(args[0])
 	n := if args.len > 1 && args[1].type_name != 'NilClass' {
 		io_boundary_int(args, 1, 'read')
 	} else {
 		-1
 	}
-	return brew_runtime.string_value(raw.read(n).bytestr())
+	return ruby.string_value(raw.read(n).bytestr())
 }
 
 // Ruby method `write(data)` at line 365.
-pub fn ruby_io_l365_d36_write(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_io_l365_d36_write(args ...ruby.Value) ruby.Value {
 	mut raw := raw_io_from_value(args[0])
-	return brew_runtime.int_value(raw.write(args[1].as_string().bytes()))
+	return ruby.int_value(raw.write(args[1].as_string().bytes()))
 }
 
 // Ruby method `transform_changes_stream_length!` at line 387.
-pub fn ruby_io_l387_d37_transform_changes_stream_length(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_io_l387_d37_transform_changes_stream_length(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(true)
+		return ruby.bool_value(true)
 	}
 	mut transform := io_transform_from_value(args[0])
 	transform.transform_changes_stream_length()
@@ -1028,149 +1028,149 @@ pub fn ruby_io_l387_d37_transform_changes_stream_length(args ...brew_runtime.Val
 }
 
 // Ruby method `initialize` at line 392.
-pub fn ruby_io_l392_d38_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_io_l392_d38_initialize(args ...ruby.Value) ruby.Value {
 	return io_transform_boundary_value(new_io_transform())
 }
 
 // Ruby method `before_transform; end` at line 399.
-pub fn ruby_io_l399_d39_before_transform(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_io_l399_d39_before_transform(args ...ruby.Value) ruby.Value {
 	mut transform := io_transform_from_value(args[0])
 	transform.before_transform() or { panic(err) }
 	return io_nil_value()
 }
 
 // Ruby method `after_read_transform; end` at line 404.
-pub fn ruby_io_l404_d40_after_read_transform(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_io_l404_d40_after_read_transform(args ...ruby.Value) ruby.Value {
 	mut transform := io_transform_from_value(args[0])
 	transform.after_read_transform() or { panic(err) }
 	return io_nil_value()
 }
 
 // Ruby method `after_write_transform; end` at line 409.
-pub fn ruby_io_l409_d41_after_write_transform(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_io_l409_d41_after_write_transform(args ...ruby.Value) ruby.Value {
 	mut transform := io_transform_from_value(args[0])
 	transform.after_write_transform() or { panic(err) }
 	return io_nil_value()
 }
 
 // Ruby method `prepend_to_chain(chain)` at line 414.
-pub fn ruby_io_l414_d42_prepend_to_chain(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_io_l414_d42_prepend_to_chain(args ...ruby.Value) ruby.Value {
 	mut transform := io_transform_from_value(args[0])
 	transform.prepend_to_chain(io_chain_from_value(args[1])) or { panic(err) }
 	return io_transform_boundary_value(transform)
 }
 
 // Ruby method `seekable?` at line 421.
-pub fn ruby_io_l421_d43_seekable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(io_transform_from_value(args[0]).seekable())
+pub fn ruby_io_l421_d43_seekable(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(io_transform_from_value(args[0]).seekable())
 }
 
 // Ruby method `num_bytes_remaining` at line 426.
-pub fn ruby_io_l426_d44_num_bytes_remaining(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_io_l426_d44_num_bytes_remaining(args ...ruby.Value) ruby.Value {
 	mut transform := io_transform_from_value(args[0])
-	return brew_runtime.int_value(transform.num_bytes_remaining() or { panic(err) })
+	return ruby.int_value(transform.num_bytes_remaining() or { panic(err) })
 }
 
 // Ruby method `offset` at line 431.
-pub fn ruby_io_l431_d45_offset(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(io_transform_from_value(args[0]).offset())
+pub fn ruby_io_l431_d45_offset(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(io_transform_from_value(args[0]).offset())
 }
 
 // Ruby method `skip(n)` at line 436.
-pub fn ruby_io_l436_d46_skip(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_io_l436_d46_skip(args ...ruby.Value) ruby.Value {
 	mut transform := io_transform_from_value(args[0])
 	transform.skip(io_boundary_int(args, 1, 'skip')) or { panic(err) }
 	return io_nil_value()
 }
 
 // Ruby method `seek_abs(n)` at line 441.
-pub fn ruby_io_l441_d47_seek_abs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_io_l441_d47_seek_abs(args ...ruby.Value) ruby.Value {
 	mut transform := io_transform_from_value(args[0])
 	transform.seek_abs(io_boundary_int(args, 1, 'seek_abs')) or { panic(err) }
 	return io_nil_value()
 }
 
 // Ruby method `read(n)` at line 446.
-pub fn ruby_io_l446_d48_read(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_io_l446_d48_read(args ...ruby.Value) ruby.Value {
 	mut transform := io_transform_from_value(args[0])
 	n := if args.len > 1 && args[1].type_name != 'NilClass' {
 		io_boundary_int(args, 1, 'read')
 	} else {
 		-1
 	}
-	return brew_runtime.string_value(transform.read(n) or { panic(err) }.bytestr())
+	return ruby.string_value(transform.read(n) or { panic(err) }.bytestr())
 }
 
 // Ruby method `write(data)` at line 451.
-pub fn ruby_io_l451_d49_write(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_io_l451_d49_write(args ...ruby.Value) ruby.Value {
 	mut transform := io_transform_from_value(args[0])
-	return brew_runtime.int_value(transform.write(args[1].as_string().bytes()) or { panic(err) })
+	return ruby.int_value(transform.write(args[1].as_string().bytes()) or { panic(err) })
 }
 
 // Ruby method `create_empty_binary_string` at line 458.
-pub fn ruby_io_l458_d50_create_empty_binary_string(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('')
+pub fn ruby_io_l458_d50_create_empty_binary_string(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('')
 }
 
 // Ruby method `chain_seekable?` at line 462.
-pub fn ruby_io_l462_d51_chain_seekable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(io_transform_from_value(args[0]).chain_seekable())
+pub fn ruby_io_l462_d51_chain_seekable(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(io_transform_from_value(args[0]).chain_seekable())
 }
 
 // Ruby method `chain_num_bytes_remaining` at line 466.
-pub fn ruby_io_l466_d52_chain_num_bytes_remaining(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_io_l466_d52_chain_num_bytes_remaining(args ...ruby.Value) ruby.Value {
 	mut transform := io_transform_from_value(args[0])
-	return brew_runtime.int_value(transform.chain_num_bytes_remaining() or { panic(err) })
+	return ruby.int_value(transform.chain_num_bytes_remaining() or { panic(err) })
 }
 
 // Ruby method `chain_offset` at line 470.
-pub fn ruby_io_l470_d53_chain_offset(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(io_transform_from_value(args[0]).chain_offset())
+pub fn ruby_io_l470_d53_chain_offset(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(io_transform_from_value(args[0]).chain_offset())
 }
 
 // Ruby method `chain_skip(n)` at line 474.
-pub fn ruby_io_l474_d54_chain_skip(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_io_l474_d54_chain_skip(args ...ruby.Value) ruby.Value {
 	mut transform := io_transform_from_value(args[0])
 	transform.chain_skip(io_boundary_int(args, 1, 'chain_skip')) or { panic(err) }
 	return io_nil_value()
 }
 
 // Ruby method `chain_seek_abs(n)` at line 478.
-pub fn ruby_io_l478_d55_chain_seek_abs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_io_l478_d55_chain_seek_abs(args ...ruby.Value) ruby.Value {
 	mut transform := io_transform_from_value(args[0])
 	transform.chain_seek_abs(io_boundary_int(args, 1, 'chain_seek_abs')) or { panic(err) }
 	return io_nil_value()
 }
 
 // Ruby method `chain_read(n)` at line 482.
-pub fn ruby_io_l482_d56_chain_read(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_io_l482_d56_chain_read(args ...ruby.Value) ruby.Value {
 	mut transform := io_transform_from_value(args[0])
 	n := if args.len > 1 && args[1].type_name != 'NilClass' {
 		io_boundary_int(args, 1, 'chain_read')
 	} else {
 		-1
 	}
-	return brew_runtime.string_value(transform.chain_read(n) or { panic(err) }.bytestr())
+	return ruby.string_value(transform.chain_read(n) or { panic(err) }.bytestr())
 }
 
 // Ruby method `chain_write(data)` at line 486.
-pub fn ruby_io_l486_d57_chain_write(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_io_l486_d57_chain_write(args ...ruby.Value) ruby.Value {
 	mut transform := io_transform_from_value(args[0])
-	return brew_runtime.int_value(transform.chain_write(args[1].as_string().bytes()) or { panic(err) })
+	return ruby.int_value(transform.chain_write(args[1].as_string().bytes()) or { panic(err) })
 }
 
 // Ruby method `seekable?` at line 495.
-pub fn ruby_io_l495_d58_seekable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(false)
+pub fn ruby_io_l495_d58_seekable(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(false)
 }
 
 // Ruby method `num_bytes_remaining` at line 499.
-pub fn ruby_io_l499_d59_num_bytes_remaining(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_io_l499_d59_num_bytes_remaining(args ...ruby.Value) ruby.Value {
 	panic('stream is unseekable')
 }
 
 // Ruby method `skip(n)` at line 503.
-pub fn ruby_io_l503_d60_skip(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_io_l503_d60_skip(args ...ruby.Value) ruby.Value {
 	mut chain := io_chain_from_value(args[0])
 	n := io_boundary_int(args, 1, 'skip')
 	if n < 0 {
@@ -1186,7 +1186,7 @@ pub fn ruby_io_l503_d60_skip(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `seek_abs(n)` at line 514.
-pub fn ruby_io_l514_d61_seek_abs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_io_l514_d61_seek_abs(args ...ruby.Value) ruby.Value {
 	mut chain := io_chain_from_value(args[0])
 	target := io_boundary_int(args, 1, 'seek_abs')
 	delta := target - chain.offset()

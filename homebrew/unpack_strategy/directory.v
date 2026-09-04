@@ -1,6 +1,6 @@
 module unpack_strategy
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `unpack_strategy/directory.rb`.
@@ -20,7 +20,7 @@ pub fn ruby_directory_l15_d2_self_can_extract(path string) bool {
 pub fn ruby_directory_l28_d3_initialize(path string, ref_type string, ref string, merge_xattrs bool, move bool) Strategy {
 	return Strategy{
 		kind: .directory
-		path: brew_runtime.real_path(path)
+		path: ruby.real_path(path)
 		ref_type: ref_type
 		ref: ref
 		merge_xattrs: merge_xattrs
@@ -51,7 +51,7 @@ pub fn new_directory_strategy(path string, move bool) Strategy {
 }
 
 pub fn directory_can_extract(path string) bool {
-	return brew_runtime.is_dir(path)
+	return ruby.is_dir(path)
 }
 
 pub fn directory_extract_to_dir(path string, unpack_dir string, basename string, verbose bool, move bool) ! {
@@ -61,13 +61,13 @@ pub fn directory_extract_to_dir(path string, unpack_dir string, basename string,
 		directory_move_to_dir(path, unpack_dir, verbose)!
 		return
 	}
-	children := brew_runtime.list_dir(path)!
+	children := ruby.list_dir(path)!
 	if children.len == 0 {
 		return
 	}
 	mut arguments := ['-pR']
 	for child in children {
-		arguments << brew_runtime.join_path(path, child)
+		arguments << ruby.join_path(path, child)
 	}
 	arguments << unpack_dir
 	checked_command(command_path('cp')!, arguments)!
@@ -75,9 +75,9 @@ pub fn directory_extract_to_dir(path string, unpack_dir string, basename string,
 
 pub fn directory_move_to_dir(path string, unpack_dir string, verbose bool) ! {
 	_ = verbose
-	for name in brew_runtime.list_dir(path)! {
-		source := brew_runtime.join_path(path, name)
-		destination := brew_runtime.join_path(unpack_dir, name)
+	for name in ruby.list_dir(path)! {
+		source := ruby.join_path(path, name)
+		destination := ruby.join_path(unpack_dir, name)
 		if os.exists(destination) || os.is_link(destination) {
 			source_directory := os.is_dir(source) && !os.is_link(source)
 			destination_directory := os.is_dir(destination) && !os.is_link(destination)

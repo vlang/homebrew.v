@@ -1,6 +1,6 @@
 module cask
 
-import brew_runtime
+import ruby
 import homebrew.rubocops.cask.ast as cask_ast
 import homebrew.rubocops.@shared as conditionals
 import homebrew.utils
@@ -43,7 +43,7 @@ struct CaskOnSystemEdit {
 	replacement string
 }
 
-fn on_system_source(args []brew_runtime.Value) string {
+fn on_system_source(args []ruby.Value) string {
 	if args.len == 0 {
 		return ''
 	}
@@ -422,8 +422,8 @@ pub fn correct_cask_on_system_conditionals(source string) string {
 	return corrected
 }
 
-fn on_system_problem_value(problem CaskOnSystemProblem) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cop::Offense', problem.message, {
+fn on_system_problem_value(problem CaskOnSystemProblem) ruby.Value {
+	return ruby.structured_value('RuboCop::Cop::Offense', problem.message, {
 		'kind':              problem.kind
 		'begin_pos':         problem.begin_pos.str()
 		'end_pos':           problem.end_pos.str()
@@ -436,12 +436,12 @@ fn on_system_problem_value(problem CaskOnSystemProblem) brew_runtime.Value {
 	})
 }
 
-fn on_system_problem_values(problems []CaskOnSystemProblem) brew_runtime.Value {
-	return brew_runtime.array_value(problems.map(on_system_problem_value(it)))
+fn on_system_problem_values(problems []CaskOnSystemProblem) ruby.Value {
+	return ruby.array_value(problems.map(on_system_problem_value(it)))
 }
 
-fn on_system_match_value(matched CaskOnSystemArchMatch) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::AST::BlockNode', matched.method, {
+fn on_system_match_value(matched CaskOnSystemArchMatch) ruby.Value {
+	return ruby.structured_value('RuboCop::AST::BlockNode', matched.method, {
 		'method':        matched.method
 		'begin_pos':     matched.begin_pos.str()
 		'end_pos':       matched.end_pos.str()
@@ -452,42 +452,42 @@ fn on_system_match_value(matched CaskOnSystemArchMatch) brew_runtime.Value {
 }
 
 // Ruby method `on_cask(cask_block)` at line 38.
-pub fn ruby_on_system_conditionals_l38_d1_on_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_on_system_conditionals_l38_d1_on_cask(args ...ruby.Value) ruby.Value {
 	return on_system_problem_values(audit_cask_on_system_conditionals(on_system_source(args)))
 }
 
 // Ruby attr_reader `attr_reader :cask_block` at line 57.
-pub fn ruby_on_system_conditionals_l57_d2_cask_block(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_on_system_conditionals_l57_d2_cask_block(args ...ruby.Value) ruby.Value {
 	source := on_system_source(args)
-	return brew_runtime.structured_value('RuboCop::Cask::AST::CaskBlock', source, {
+	return ruby.structured_value('RuboCop::Cask::AST::CaskBlock', source, {
 		'source': source
 	})
 }
 
 // Ruby def_delegators `def_delegators :cask_block, :toplevel_stanzas, :cask_body` at line 59.
-pub fn ruby_on_system_conditionals_l59_d3_toplevel_stanzas(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_on_system_conditionals_l59_d3_toplevel_stanzas(args ...ruby.Value) ruby.Value {
 	source := on_system_source(args)
 	block := cask_ast.parse_cask_ast_stanza_block(source, true) or {
-		return brew_runtime.array_value([]brew_runtime.Value{})
+		return ruby.array_value([]ruby.Value{})
 	}
-	mut values := []brew_runtime.Value{}
+	mut values := []ruby.Value{}
 	for stanza in cask_ast.cask_ast_block_stanzas(block, false) {
 		begin_pos, end_pos := cask_ast.cask_ast_stanza_range(stanza, false)
-		values << brew_runtime.structured_value('RuboCop::Cask::AST::Stanza', source[begin_pos..end_pos], {
+		values << ruby.structured_value('RuboCop::Cask::AST::Stanza', source[begin_pos..end_pos], {
 			'name':      cask_ast.cask_ast_stanza_name(stanza)
 			'begin_pos': begin_pos.str()
 			'end_pos':   end_pos.str()
 		})
 	}
-	return brew_runtime.array_value(values)
+	return ruby.array_value(values)
 }
 
 // Ruby def_delegators `def_delegators :cask_block, :toplevel_stanzas, :cask_body` at line 59.
-pub fn ruby_on_system_conditionals_l59_d4_cask_body(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_on_system_conditionals_l59_d4_cask_body(args ...ruby.Value) ruby.Value {
 	source := on_system_source(args)
-	root := on_system_root(source) or { return brew_runtime.object_value('NilClass', 'nil') }
+	root := on_system_root(source) or { return ruby.object_value('NilClass', 'nil') }
 	if root.children.len == 0 {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	begin_pos := root.children[0].source_range.begin_pos
 	end_pos := root.children.last().source_range.end_pos
@@ -496,7 +496,7 @@ pub fn ruby_on_system_conditionals_l59_d4_cask_body(args ...brew_runtime.Value) 
 	} else {
 		'RuboCop::AST::BeginNode'
 	}
-	return brew_runtime.structured_value(type_name, source[begin_pos..end_pos], {
+	return ruby.structured_value(type_name, source[begin_pos..end_pos], {
 		'begin_pos': begin_pos.str()
 		'end_pos':   end_pos.str()
 		'source':    source[begin_pos..end_pos]
@@ -504,19 +504,19 @@ pub fn ruby_on_system_conditionals_l59_d4_cask_body(args ...brew_runtime.Value) 
 }
 
 // Ruby method `simplify_sha256_stanzas` at line 62.
-pub fn ruby_on_system_conditionals_l62_d5_simplify_sha256_stanzas(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_on_system_conditionals_l62_d5_simplify_sha256_stanzas(args ...ruby.Value) ruby.Value {
 	return on_system_problem_values(audit_cask_on_system_conditionals(on_system_source(args)).filter(it.kind == 'sha256_arch_blocks'))
 }
 
 // Ruby method `simplify_arch_version_stanzas` at line 89.
-pub fn ruby_on_system_conditionals_l89_d6_simplify_arch_version_stanzas(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_on_system_conditionals_l89_d6_simplify_arch_version_stanzas(args ...ruby.Value) ruby.Value {
 	return on_system_problem_values(audit_cask_on_system_conditionals(on_system_source(args)).filter(it.kind == 'identical_arch_versions'))
 }
 
 // Ruby method `comments_in_node_ranges?(*nodes)` at line 138.
-pub fn ruby_on_system_conditionals_l138_d7_comments_in_node_ranges(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_on_system_conditionals_l138_d7_comments_in_node_ranges(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	source := on_system_source(args)
 	mut ranges := [][]int{}
@@ -527,22 +527,22 @@ pub fn ruby_on_system_conditionals_l138_d7_comments_in_node_ranges(args ...brew_
 	if ranges.len == 0 {
 		ranges << [0, source.len]
 	}
-	return brew_runtime.bool_value(cask_comments_in_node_ranges(source, ranges))
+	return ruby.bool_value(cask_comments_in_node_ranges(source, ranges))
 }
 
 // Ruby method `audit_identical_sha256_across_architectures` at line 150.
-pub fn ruby_on_system_conditionals_l150_d8_audit_identical_sha256_across_architectures(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_on_system_conditionals_l150_d8_audit_identical_sha256_across_architectures(args ...ruby.Value) ruby.Value {
 	return on_system_problem_values(audit_cask_on_system_conditionals(on_system_source(args)).filter(it.kind == 'identical_sha256_hash'))
 }
 
 // Ruby def_node_search `def_node_search :sha256_on_arch_stanzas, <<~PATTERN` at line 186.
-pub fn ruby_on_system_conditionals_l186_d9_sha256_on_arch_stanzas(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.array_value(cask_sha256_on_arch_stanzas(on_system_source(args)).map(on_system_match_value(it)))
+pub fn ruby_on_system_conditionals_l186_d9_sha256_on_arch_stanzas(args ...ruby.Value) ruby.Value {
+	return ruby.array_value(cask_sha256_on_arch_stanzas(on_system_source(args)).map(on_system_match_value(it)))
 }
 
 // Ruby def_node_search `def_node_search :version_and_sha256_on_arch_stanzas, <<~PATTERN` at line 194.
-pub fn ruby_on_system_conditionals_l194_d10_version_and_sha256_on_arch_stanzas(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.array_value(cask_version_and_sha256_on_arch_stanzas(on_system_source(args)).map(on_system_match_value(it)))
+pub fn ruby_on_system_conditionals_l194_d10_version_and_sha256_on_arch_stanzas(args ...ruby.Value) ruby.Value {
+	return ruby.array_value(cask_version_and_sha256_on_arch_stanzas(on_system_source(args)).map(on_system_match_value(it)))
 }
 
 // Original Ruby source (line-for-line):

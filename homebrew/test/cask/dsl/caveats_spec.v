@@ -1,6 +1,6 @@
 module dsl
 
-import brew_runtime
+import ruby
 import homebrew.cask.dsl as cask_dsl
 
 // Translated from Homebrew/brew `test/cask/dsl/caveats_spec.rb`.
@@ -13,7 +13,7 @@ pub fn ruby_caveats_spec_l7_d1_caveats() cask_dsl.CaskCaveats {
 }
 
 // Ruby let `let(:cask) { Cask::CaskLoader.load(cask_path("with-caveats-everything")) }` at line 9.
-pub fn ruby_caveats_spec_l9_d2_cask() brew_runtime.Value {
+pub fn ruby_caveats_spec_l9_d2_cask() ruby.Value {
 	return caveats_spec_cask('sonoma', '/opt/homebrew', 'intel', false)
 }
 
@@ -26,7 +26,7 @@ pub fn ruby_caveats_spec_l10_d3_dsl() cask_dsl.CaskCaveats {
 pub fn ruby_caveats_spec_l15_d4_includes() bool {
 	mut caveats := ruby_caveats_spec_l7_d1_caveats()
 	caveats.invoke('logout', [])
-	caveats = caveats_spec_eval(caveats, brew_runtime.string_value('Custom caveat text.'))
+	caveats = caveats_spec_eval(caveats, ruby.string_value('Custom caveat text.'))
 	return caveats_spec_text(caveats) == 'Custom caveat text.\n\n${caveats_spec_logout_text()}'
 }
 
@@ -46,7 +46,7 @@ pub fn ruby_caveats_spec_l50_d6_keeps() bool {
 
 // Ruby it `it "keeps custom caveats" do` at line 62.
 pub fn ruby_caveats_spec_l62_d7_keeps() bool {
-	caveats := caveats_spec_eval(ruby_caveats_spec_l7_d1_caveats(), brew_runtime.string_value('Custom caveat text\n'))
+	caveats := caveats_spec_eval(ruby_caveats_spec_l7_d1_caveats(), ruby.string_value('Custom caveat text\n'))
 	return caveats_spec_text_without_conditional(caveats) == 'Custom caveat text\n'
 }
 
@@ -203,16 +203,16 @@ pub fn ruby_caveats_spec_l366_d30_returns() bool {
 const caveats_spec_token = 'with-caveats-everything'
 
 fn caveats_spec_cask(macos_version string, homebrew_prefix string, system_arch string,
-	rosetta_installed bool) brew_runtime.Value {
-	return brew_runtime.Value{
+	rosetta_installed bool) ruby.Value {
+	return ruby.Value{
 		type_name: 'Cask'
 		repr: caveats_spec_token
 		map_data: {
-			'token':             brew_runtime.string_value(caveats_spec_token)
-			'macos_version':     brew_runtime.string_value(macos_version)
-			'homebrew_prefix':   brew_runtime.string_value(homebrew_prefix)
-			'system_arch':       brew_runtime.string_value(system_arch)
-			'rosetta_installed': brew_runtime.bool_value(rosetta_installed)
+			'token':             ruby.string_value(caveats_spec_token)
+			'macos_version':     ruby.string_value(macos_version)
+			'homebrew_prefix':   ruby.string_value(homebrew_prefix)
+			'system_arch':       ruby.string_value(system_arch)
+			'rosetta_installed': ruby.bool_value(rosetta_installed)
 		}
 	}
 }
@@ -222,15 +222,15 @@ fn caveats_spec_new(macos_version string, homebrew_prefix string, system_arch st
 	return cask_dsl.new_cask_caveats(caveats_spec_cask(macos_version, homebrew_prefix, system_arch, rosetta_installed))
 }
 
-fn caveats_spec_nil() brew_runtime.Value {
-	return brew_runtime.Value{
+fn caveats_spec_nil() ruby.Value {
+	return ruby.Value{
 		type_name: 'NilClass'
 		repr: 'nil'
 	}
 }
 
 fn caveats_spec_eval(caveats cask_dsl.CaskCaveats,
-	result brew_runtime.Value) cask_dsl.CaskCaveats {
+	result ruby.Value) cask_dsl.CaskCaveats {
 	value := cask_dsl.ruby_caveats_l80_d9_eval_caveats(cask_dsl.cask_caveats_value(caveats), result)
 	return cask_dsl.cask_caveats_from_value(value) or { panic(err) }
 }
@@ -244,7 +244,7 @@ fn caveats_spec_text_without_conditional(caveats cask_dsl.CaskCaveats) string {
 }
 
 fn caveats_spec_invoked(caveats cask_dsl.CaskCaveats, name string) bool {
-	return cask_dsl.ruby_caveats_l68_d7_invoked(cask_dsl.cask_caveats_value(caveats), brew_runtime.Value{
+	return cask_dsl.ruby_caveats_l68_d7_invoked(cask_dsl.cask_caveats_value(caveats), ruby.Value{
 		type_name: 'Symbol'
 		repr: ':${name}'
 	}).as_bool() or { false }
@@ -276,38 +276,38 @@ fn caveats_spec_accessibility_text(navigation string) string {
 	return '${caveats_spec_token} is not signed and requires Accessibility access,\nso you will need to re-grant Accessibility access every time the app is updated.\n\nEnable or re-enable it in:\n  ${navigation} → Accessibility\nTo re-enable, untick and retick ${caveats_spec_token}.app.\n'
 }
 
-pub fn caveats_spec_all_boundaries() []brew_runtime.Value {
+pub fn caveats_spec_all_boundaries() []ruby.Value {
 	return [
 		cask_dsl.cask_caveats_value(ruby_caveats_spec_l7_d1_caveats()),
 		ruby_caveats_spec_l9_d2_cask(),
 		cask_dsl.cask_caveats_value(ruby_caveats_spec_l10_d3_dsl()),
-		brew_runtime.bool_value(ruby_caveats_spec_l15_d4_includes()),
-		brew_runtime.bool_value(ruby_caveats_spec_l32_d5_excludes()),
-		brew_runtime.bool_value(ruby_caveats_spec_l50_d6_keeps()),
-		brew_runtime.bool_value(ruby_caveats_spec_l62_d7_keeps()),
-		brew_runtime.bool_value(ruby_caveats_spec_l70_d8_returns()),
-		brew_runtime.bool_value(ruby_caveats_spec_l79_d9_returns()),
-		brew_runtime.bool_value(ruby_caveats_spec_l89_d10_returns()),
-		brew_runtime.bool_value(ruby_caveats_spec_l95_d11_returns()),
-		brew_runtime.bool_value(ruby_caveats_spec_l105_d12_returns()),
-		brew_runtime.bool_value(ruby_caveats_spec_l123_d13_does()),
-		brew_runtime.bool_value(ruby_caveats_spec_l134_d14_returns()),
-		brew_runtime.bool_value(ruby_caveats_spec_l152_d15_returns()),
-		brew_runtime.bool_value(ruby_caveats_spec_l172_d16_returns()),
-		brew_runtime.bool_value(ruby_caveats_spec_l188_d17_returns()),
-		brew_runtime.bool_value(ruby_caveats_spec_l205_d18_returns()),
-		brew_runtime.bool_value(ruby_caveats_spec_l220_d19_does()),
-		brew_runtime.bool_value(ruby_caveats_spec_l231_d20_returns()),
-		brew_runtime.bool_value(ruby_caveats_spec_l244_d21_returns()),
-		brew_runtime.bool_value(ruby_caveats_spec_l257_d22_returns()),
-		brew_runtime.bool_value(ruby_caveats_spec_l270_d23_returns()),
-		brew_runtime.bool_value(ruby_caveats_spec_l285_d24_returns()),
-		brew_runtime.bool_value(ruby_caveats_spec_l302_d25_does()),
-		brew_runtime.bool_value(ruby_caveats_spec_l312_d26_does()),
-		brew_runtime.bool_value(ruby_caveats_spec_l323_d27_returns()),
-		brew_runtime.bool_value(ruby_caveats_spec_l337_d28_returns()),
-		brew_runtime.bool_value(ruby_caveats_spec_l351_d29_returns()),
-		brew_runtime.bool_value(ruby_caveats_spec_l366_d30_returns()),
+		ruby.bool_value(ruby_caveats_spec_l15_d4_includes()),
+		ruby.bool_value(ruby_caveats_spec_l32_d5_excludes()),
+		ruby.bool_value(ruby_caveats_spec_l50_d6_keeps()),
+		ruby.bool_value(ruby_caveats_spec_l62_d7_keeps()),
+		ruby.bool_value(ruby_caveats_spec_l70_d8_returns()),
+		ruby.bool_value(ruby_caveats_spec_l79_d9_returns()),
+		ruby.bool_value(ruby_caveats_spec_l89_d10_returns()),
+		ruby.bool_value(ruby_caveats_spec_l95_d11_returns()),
+		ruby.bool_value(ruby_caveats_spec_l105_d12_returns()),
+		ruby.bool_value(ruby_caveats_spec_l123_d13_does()),
+		ruby.bool_value(ruby_caveats_spec_l134_d14_returns()),
+		ruby.bool_value(ruby_caveats_spec_l152_d15_returns()),
+		ruby.bool_value(ruby_caveats_spec_l172_d16_returns()),
+		ruby.bool_value(ruby_caveats_spec_l188_d17_returns()),
+		ruby.bool_value(ruby_caveats_spec_l205_d18_returns()),
+		ruby.bool_value(ruby_caveats_spec_l220_d19_does()),
+		ruby.bool_value(ruby_caveats_spec_l231_d20_returns()),
+		ruby.bool_value(ruby_caveats_spec_l244_d21_returns()),
+		ruby.bool_value(ruby_caveats_spec_l257_d22_returns()),
+		ruby.bool_value(ruby_caveats_spec_l270_d23_returns()),
+		ruby.bool_value(ruby_caveats_spec_l285_d24_returns()),
+		ruby.bool_value(ruby_caveats_spec_l302_d25_does()),
+		ruby.bool_value(ruby_caveats_spec_l312_d26_does()),
+		ruby.bool_value(ruby_caveats_spec_l323_d27_returns()),
+		ruby.bool_value(ruby_caveats_spec_l337_d28_returns()),
+		ruby.bool_value(ruby_caveats_spec_l351_d29_returns()),
+		ruby.bool_value(ruby_caveats_spec_l366_d30_returns()),
 	]
 }
 

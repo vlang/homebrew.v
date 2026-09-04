@@ -1,6 +1,6 @@
 module bindata
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/bindata-2.5.1/lib/bindata/uint8_array.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -50,7 +50,7 @@ pub fn read_uint8_array(data []u8, params Uint8ArrayParams) ![]u8 {
 	return data.clone()
 }
 
-fn uint8_values(value brew_runtime.Value) []u8 {
+fn uint8_values(value ruby.Value) []u8 {
 	if value.type_name == 'String' {
 		return value.as_string().bytes()
 	}
@@ -66,7 +66,7 @@ fn uint8_values(value brew_runtime.Value) []u8 {
 	return result
 }
 
-fn uint8_params(value brew_runtime.Value) Uint8ArrayParams {
+fn uint8_params(value ruby.Value) Uint8ArrayParams {
 	if value.type_name != 'Hash' {
 		return sanitize_uint8_array_params(none, '') or { panic(err) }
 	}
@@ -81,15 +81,15 @@ fn uint8_params(value brew_runtime.Value) Uint8ArrayParams {
 }
 
 // Ruby method `value_to_binary_string(val)` at line 32.
-pub fn ruby_uint8_array_l32_d1_value_to_binary_string(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uint8_array_l32_d1_value_to_binary_string(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Uint8Array#value_to_binary_string requires a value')
 	}
-	return brew_runtime.string_value(uint8_array_to_binary_string(uint8_values(args[0])))
+	return ruby.string_value(uint8_array_to_binary_string(uint8_values(args[0])))
 }
 
 // Ruby method `read_and_return_value(io)` at line 36.
-pub fn ruby_uint8_array_l36_d2_read_and_return_value(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uint8_array_l36_d2_read_and_return_value(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Uint8Array#read_and_return_value requires IO data')
 	}
@@ -102,32 +102,32 @@ pub fn ruby_uint8_array_l36_d2_read_and_return_value(args ...brew_runtime.Value)
 	}
 	data := if args.len >= 2 { args[1] } else { args[0] }
 	bytes := read_uint8_array(uint8_values(data), params) or { panic(err) }
-	return brew_runtime.array_value(bytes.map(brew_runtime.int_value(i64(it))))
+	return ruby.array_value(bytes.map(ruby.int_value(i64(it))))
 }
 
 // Ruby method `sensible_default` at line 46.
-pub fn ruby_uint8_array_l46_d3_sensible_default(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.array_value([]brew_runtime.Value{})
+pub fn ruby_uint8_array_l46_d3_sensible_default(args ...ruby.Value) ruby.Value {
+	return ruby.array_value([]ruby.Value{})
 }
 
 // Ruby method `sanitize_parameters!(obj_class, params) # :nodoc:` at line 52.
-pub fn ruby_uint8_array_l52_d4_sanitize_parameters(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uint8_array_l52_d4_sanitize_parameters(args ...ruby.Value) ruby.Value {
 	params_value := if args.len >= 2 {
 		args[1]
 	} else if args.len == 1 {
 		args[0]
 	} else {
-		brew_runtime.map_value(map[string]brew_runtime.Value{})
+		ruby.map_value(map[string]ruby.Value{})
 	}
 	params := uint8_params(params_value)
-	mut sanitized := map[string]brew_runtime.Value{}
+	mut sanitized := map[string]ruby.Value{}
 	if length := params.initial_length {
-		sanitized['initial_length'] = brew_runtime.int_value(length)
+		sanitized['initial_length'] = ruby.int_value(length)
 	}
 	if params.read_until.len > 0 {
-		sanitized['read_until'] = brew_runtime.string_value(params.read_until)
+		sanitized['read_until'] = ruby.string_value(params.read_until)
 	}
-	return brew_runtime.map_value(sanitized)
+	return ruby.map_value(sanitized)
 }
 
 // Original Ruby source (line-for-line):

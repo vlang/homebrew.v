@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `cmd/--cellar.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -13,21 +13,21 @@ pub fn cellar_output(cellar string, formula_racks []string) string {
 }
 
 // Ruby method `self.command_name = "--cellar"` at line 10.
-pub fn ruby_cellar_l10_d1_self_command_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('--cellar')
+pub fn ruby_cellar_l10_d1_self_command_name(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('--cellar')
 }
 
 // Ruby method `run` at line 25.
-pub fn ruby_cellar_l25_d2_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cellar_l25_d2_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', '--cellar#run requires the Cellar path')
+		return ruby.object_value('ArgumentError', '--cellar#run requires the Cellar path')
 	}
 	cellar := args[0].as_string()
 	mut racks := []string{}
 	if args.len > 1 {
 		racks = args[1].as_string_array() or { args[1..].map(it.as_string()) }
 	}
-	return brew_runtime.string_value(cellar_output(cellar, racks))
+	return ruby.string_value(cellar_output(cellar, racks))
 }
 
 // Original Ruby source (line-for-line):

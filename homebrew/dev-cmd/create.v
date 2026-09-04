@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 import homebrew
 import os
 
@@ -64,13 +64,13 @@ pub:
 	options CreateOptions
 }
 
-pub fn create_input_boundary(input &CreateInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::Create::Input', '', {
+pub fn create_input_boundary(input &CreateInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::Create::Input', '', {
 		'create_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn create_input_from_value(value brew_runtime.Value) &CreateInput {
+fn create_input_from_value(value ruby.Value) &CreateInput {
 	address := value.attributes['create_input_address'] or { panic('invalid Create input') }
 	return unsafe { &CreateInput(voidptr(address.u64())) }
 }
@@ -286,73 +286,73 @@ pub fn run_create(options CreateOptions) !CreateResult {
 	return result
 }
 
-fn create_result_value(result CreateResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'path':                     brew_runtime.object_value('Pathname', result.path)
-		'name':                     brew_runtime.string_value(result.name)
-		'token':                    brew_runtime.string_value(result.token)
-		'version':                  brew_runtime.string_value(result.version)
-		'content':                  brew_runtime.string_value(result.content)
-		'mode':                     brew_runtime.string_value(result.mode)
-		'tap':                      brew_runtime.string_value(result.tap)
-		'stdout':                   brew_runtime.string_array_value(result.stdout)
-		'prompts':                  brew_runtime.string_array_value(result.prompts)
-		'editor_path':              brew_runtime.object_value('Pathname', result.editor_path)
-		'python_resources_updated': brew_runtime.bool_value(result.python_resources_updated)
+fn create_result_value(result CreateResult) ruby.Value {
+	return ruby.map_value({
+		'path':                     ruby.object_value('Pathname', result.path)
+		'name':                     ruby.string_value(result.name)
+		'token':                    ruby.string_value(result.token)
+		'version':                  ruby.string_value(result.version)
+		'content':                  ruby.string_value(result.content)
+		'mode':                     ruby.string_value(result.mode)
+		'tap':                      ruby.string_value(result.tap)
+		'stdout':                   ruby.string_array_value(result.stdout)
+		'prompts':                  ruby.string_array_value(result.prompts)
+		'editor_path':              ruby.object_value('Pathname', result.editor_path)
+		'python_resources_updated': ruby.bool_value(result.python_resources_updated)
 	})
 }
 
-fn create_error_value(err IError) brew_runtime.Value {
+fn create_error_value(err IError) ruby.Value {
 	message := err.msg()
 	if message.starts_with('TapUnavailableError:') {
-		return brew_runtime.object_value('TapUnavailableError', message)
+		return ruby.object_value('TapUnavailableError', message)
 	}
 	if message.starts_with('CaskAlreadyCreatedError:') {
-		return brew_runtime.object_value('Cask::CaskAlreadyCreatedError', message)
+		return ruby.object_value('Cask::CaskAlreadyCreatedError', message)
 	}
 	if message.contains('is not allowed to be created') || message.contains('is already aliased to')
 		|| message.starts_with('Version cannot be determined') {
-		return brew_runtime.object_value('SystemExit', message)
+		return ruby.object_value('SystemExit', message)
 	}
-	return brew_runtime.object_value('RuntimeError', message)
+	return ruby.object_value('RuntimeError', message)
 }
 
 // Ruby method `run` at line 73.
-pub fn ruby_create_l73_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_create_l73_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || args[0].type_name != 'Homebrew::DevCmd::Create::Input' {
-		return brew_runtime.object_value('ArgumentError', 'Create input is required')
+		return ruby.object_value('ArgumentError', 'Create input is required')
 	}
 	result := run_create(create_input_from_value(args[0]).options) or { return create_error_value(err) }
 	return create_result_value(result)
 }
 
 // Ruby method `create_cask` at line 86.
-pub fn ruby_create_l86_d2_create_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_create_l86_d2_create_cask(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || args[0].type_name != 'Homebrew::DevCmd::Create::Input' {
-		return brew_runtime.object_value('ArgumentError', 'Create input is required')
+		return ruby.object_value('ArgumentError', 'Create input is required')
 	}
 	result := create_cask(create_input_from_value(args[0]).options) or { return create_error_value(err) }
 	return create_result_value(result)
 }
 
 // Ruby method `create_formula` at line 157.
-pub fn ruby_create_l157_d3_create_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_create_l157_d3_create_formula(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || args[0].type_name != 'Homebrew::DevCmd::Create::Input' {
-		return brew_runtime.object_value('ArgumentError', 'Create input is required')
+		return ruby.object_value('ArgumentError', 'Create input is required')
 	}
 	result := create_formula(create_input_from_value(args[0]).options) or { return create_error_value(err) }
 	return create_result_value(result)
 }
 
 // Ruby method `__gets` at line 250.
-pub fn ruby_create_l250_d4_gets(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_create_l250_d4_gets(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || args[0].type_name == 'NilClass' {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	line := create_gets(args[0].as_string(), true) or {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
-	return brew_runtime.string_value(line)
+	return ruby.string_value(line)
 }
 
 // Original Ruby source (line-for-line):

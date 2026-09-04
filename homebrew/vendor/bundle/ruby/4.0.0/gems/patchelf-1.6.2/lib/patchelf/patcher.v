@@ -1,6 +1,6 @@
 module patchelf
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/patchelf-1.6.2/lib/patchelf/patcher.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -34,23 +34,23 @@ pub:
 	in_file string
 	elf     &AltSaver
 pub mut:
-	set       map[string]brew_runtime.Value
+	set       map[string]ruby.Value
 	rpath_sym string = 'runpath'
 	on_error  PatchElfErrorMode
 }
 
-fn patcher_nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn patcher_nil_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-fn patcher_value(patcher &Patcher) brew_runtime.Value {
-	return brew_runtime.structured_value('PatchELF::Patcher', 'Patcher(${patcher.in_file})', {
+fn patcher_value(patcher &Patcher) ruby.Value {
+	return ruby.structured_value('PatchELF::Patcher', 'Patcher(${patcher.in_file})', {
 		'patcher_address': u64(voidptr(patcher)).str()
 		'in_file':         patcher.in_file
 	})
 }
 
-fn patcher_from_args(args []brew_runtime.Value) &Patcher {
+fn patcher_from_args(args []ruby.Value) &Patcher {
 	if args.len == 0 {
 		panic('PatchELF::Patcher method requires a receiver')
 	}
@@ -58,7 +58,7 @@ fn patcher_from_args(args []brew_runtime.Value) &Patcher {
 	return unsafe { &Patcher(voidptr(address.u64())) }
 }
 
-fn patcher_require(args []brew_runtime.Value, count int, name string) {
+fn patcher_require(args []ruby.Value, count int, name string) {
 	if args.len < count {
 		panic('${name} requires ${count} argument(s), including receiver')
 	}
@@ -79,7 +79,7 @@ pub fn new_patcher(filename string, on_error PatchElfErrorMode, logging bool) !&
 	return &Patcher{
 		in_file: filename
 		elf: elf
-		set: map[string]brew_runtime.Value{}
+		set: map[string]ruby.Value{}
 		on_error: mode
 	}
 }
@@ -91,7 +91,7 @@ pub fn new_patcher_from_bytes(filename string, data []u8, on_error PatchElfError
 	return &Patcher{
 		in_file: filename
 		elf: elf
-		set: map[string]brew_runtime.Value{}
+		set: map[string]ruby.Value{}
 		on_error: mode
 	}
 }
@@ -188,7 +188,7 @@ pub fn (mut patcher Patcher) set_interpreter(interpreter string) !bool {
 	if !current.exists {
 		return false
 	}
-	patcher.set['interpreter'] = brew_runtime.string_value(interpreter)
+	patcher.set['interpreter'] = ruby.string_value(interpreter)
 	return true
 }
 
@@ -200,7 +200,7 @@ pub fn (patcher &Patcher) needed() !PatchElfMaybeStrings {
 }
 
 pub fn (mut patcher Patcher) set_needed(needed []string) {
-	patcher.set['needed'] = brew_runtime.string_array_value(needed)
+	patcher.set['needed'] = ruby.string_array_value(needed)
 }
 
 pub fn (mut patcher Patcher) add_needed(name string) ! {
@@ -240,7 +240,7 @@ pub fn (mut patcher Patcher) set_soname(name string) !bool {
 	if !current.exists {
 		return false
 	}
-	patcher.set['soname'] = brew_runtime.string_value(name)
+	patcher.set['soname'] = ruby.string_value(name)
 	return true
 }
 
@@ -259,11 +259,11 @@ pub fn (patcher &Patcher) rpath() !PatchElfMaybeString {
 }
 
 pub fn (mut patcher Patcher) set_rpath(path string) {
-	patcher.set['rpath'] = brew_runtime.string_value(path)
+	patcher.set['rpath'] = ruby.string_value(path)
 }
 
 pub fn (mut patcher Patcher) set_runpath(path string) {
-	patcher.set[patcher.rpath_sym] = brew_runtime.string_value(path)
+	patcher.set[patcher.rpath_sym] = ruby.string_value(path)
 }
 
 pub fn (mut patcher Patcher) use_rpath() &Patcher {
@@ -291,12 +291,12 @@ pub fn (mut patcher Patcher) save(out_file ?string, patchelf_compatible bool) !b
 }
 
 // Ruby attr_reader `attr_reader :elf` at line 18.
-pub fn ruby_patcher_l18_d1_elf(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_patcher_l18_d1_elf(args ...ruby.Value) ruby.Value {
 	return alt_saver_value(patcher_from_args(args).elf)
 }
 
 // Ruby method `initialize(filename, on_error: :log, logging: true)` at line 30.
-pub fn ruby_patcher_l30_d2_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_patcher_l30_d2_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Patcher#initialize requires a filename')
 	}
@@ -318,13 +318,13 @@ pub fn ruby_patcher_l30_d2_initialize(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby method `interpreter` at line 50.
-pub fn ruby_patcher_l50_d3_interpreter(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_patcher_l50_d3_interpreter(args ...ruby.Value) ruby.Value {
 	result := patcher_from_args(args).interpreter() or { panic(err) }
-	return if result.exists { brew_runtime.string_value(result.value) } else { patcher_nil_value() }
+	return if result.exists { ruby.string_value(result.value) } else { patcher_nil_value() }
 }
 
 // Ruby method `interpreter=(interp)` at line 60.
-pub fn ruby_patcher_l60_d4_interpreter(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_patcher_l60_d4_interpreter(args ...ruby.Value) ruby.Value {
 	patcher_require(args, 2, 'Patcher#interpreter=')
 	mut patcher := patcher_from_args(args)
 	changed := patcher.set_interpreter(args[1].as_string()) or { panic(err) }
@@ -332,17 +332,17 @@ pub fn ruby_patcher_l60_d4_interpreter(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby method `needed` at line 72.
-pub fn ruby_patcher_l72_d5_needed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_patcher_l72_d5_needed(args ...ruby.Value) ruby.Value {
 	result := patcher_from_args(args).needed() or { panic(err) }
 	return if result.exists {
-		brew_runtime.string_array_value(result.value)
+		ruby.string_array_value(result.value)
 	} else {
 		patcher_nil_value()
 	}
 }
 
 // Ruby method `needed=(needs)` at line 79.
-pub fn ruby_patcher_l79_d6_needed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_patcher_l79_d6_needed(args ...ruby.Value) ruby.Value {
 	patcher_require(args, 2, 'Patcher#needed=')
 	mut patcher := patcher_from_args(args)
 	patcher.set_needed(args[1].as_string_array() or { panic(err) })
@@ -350,7 +350,7 @@ pub fn ruby_patcher_l79_d6_needed(args ...brew_runtime.Value) brew_runtime.Value
 }
 
 // Ruby method `add_needed(need)` at line 87.
-pub fn ruby_patcher_l87_d7_add_needed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_patcher_l87_d7_add_needed(args ...ruby.Value) ruby.Value {
 	patcher_require(args, 2, 'Patcher#add_needed')
 	mut patcher := patcher_from_args(args)
 	patcher.add_needed(args[1].as_string()) or { panic(err) }
@@ -358,7 +358,7 @@ pub fn ruby_patcher_l87_d7_add_needed(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby method `remove_needed(need)` at line 96.
-pub fn ruby_patcher_l96_d8_remove_needed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_patcher_l96_d8_remove_needed(args ...ruby.Value) ruby.Value {
 	patcher_require(args, 2, 'Patcher#remove_needed')
 	mut patcher := patcher_from_args(args)
 	patcher.remove_needed(args[1].as_string()) or { panic(err) }
@@ -366,7 +366,7 @@ pub fn ruby_patcher_l96_d8_remove_needed(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `replace_needed(src, tar)` at line 109.
-pub fn ruby_patcher_l109_d9_replace_needed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_patcher_l109_d9_replace_needed(args ...ruby.Value) ruby.Value {
 	patcher_require(args, 3, 'Patcher#replace_needed')
 	mut patcher := patcher_from_args(args)
 	patcher.replace_needed(args[1].as_string(), args[2].as_string()) or { panic(err) }
@@ -374,13 +374,13 @@ pub fn ruby_patcher_l109_d9_replace_needed(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `soname` at line 124.
-pub fn ruby_patcher_l124_d10_soname(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_patcher_l124_d10_soname(args ...ruby.Value) ruby.Value {
 	result := patcher_from_args(args).soname() or { panic(err) }
-	return if result.exists { brew_runtime.string_value(result.value) } else { patcher_nil_value() }
+	return if result.exists { ruby.string_value(result.value) } else { patcher_nil_value() }
 }
 
 // Ruby method `soname=(name)` at line 134.
-pub fn ruby_patcher_l134_d11_soname(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_patcher_l134_d11_soname(args ...ruby.Value) ruby.Value {
 	patcher_require(args, 2, 'Patcher#soname=')
 	mut patcher := patcher_from_args(args)
 	changed := patcher.set_soname(args[1].as_string()) or { panic(err) }
@@ -388,19 +388,19 @@ pub fn ruby_patcher_l134_d11_soname(args ...brew_runtime.Value) brew_runtime.Val
 }
 
 // Ruby method `runpath` at line 142.
-pub fn ruby_patcher_l142_d12_runpath(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_patcher_l142_d12_runpath(args ...ruby.Value) ruby.Value {
 	result := patcher_from_args(args).runpath() or { panic(err) }
-	return if result.exists { brew_runtime.string_value(result.value) } else { patcher_nil_value() }
+	return if result.exists { ruby.string_value(result.value) } else { patcher_nil_value() }
 }
 
 // Ruby method `rpath` at line 148.
-pub fn ruby_patcher_l148_d13_rpath(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_patcher_l148_d13_rpath(args ...ruby.Value) ruby.Value {
 	result := patcher_from_args(args).rpath() or { panic(err) }
-	return if result.exists { brew_runtime.string_value(result.value) } else { patcher_nil_value() }
+	return if result.exists { ruby.string_value(result.value) } else { patcher_nil_value() }
 }
 
 // Ruby method `rpath=(rpath)` at line 158.
-pub fn ruby_patcher_l158_d14_rpath(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_patcher_l158_d14_rpath(args ...ruby.Value) ruby.Value {
 	patcher_require(args, 2, 'Patcher#rpath=')
 	mut patcher := patcher_from_args(args)
 	patcher.set_rpath(args[1].as_string())
@@ -408,7 +408,7 @@ pub fn ruby_patcher_l158_d14_rpath(args ...brew_runtime.Value) brew_runtime.Valu
 }
 
 // Ruby method `runpath=(runpath)` at line 168.
-pub fn ruby_patcher_l168_d15_runpath(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_patcher_l168_d15_runpath(args ...ruby.Value) ruby.Value {
 	patcher_require(args, 2, 'Patcher#runpath=')
 	mut patcher := patcher_from_args(args)
 	patcher.set_runpath(args[1].as_string())
@@ -416,13 +416,13 @@ pub fn ruby_patcher_l168_d15_runpath(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby method `use_rpath!` at line 174.
-pub fn ruby_patcher_l174_d16_use_rpath(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_patcher_l174_d16_use_rpath(args ...ruby.Value) ruby.Value {
 	mut patcher := patcher_from_args(args)
 	return patcher_value(patcher.use_rpath())
 }
 
 // Ruby method `save(out_file = nil, patchelf_compatible: false)` at line 185.
-pub fn ruby_patcher_l185_d17_save(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_patcher_l185_d17_save(args ...ruby.Value) ruby.Value {
 	mut patcher := patcher_from_args(args)
 	mut output := ?string(none)
 	mut compatible := false
@@ -432,11 +432,11 @@ pub fn ruby_patcher_l185_d17_save(args ...brew_runtime.Value) brew_runtime.Value
 	if args.len > 2 {
 		compatible = args[2].as_bool() or { panic(err) }
 	}
-	return brew_runtime.bool_value(patcher.save(output, compatible) or { panic(err) })
+	return ruby.bool_value(patcher.save(output, compatible) or { panic(err) })
 }
 
 // Ruby method `log_or_raise(msg, exception = PatchELF::PatchError)` at line 202.
-pub fn ruby_patcher_l202_d18_log_or_raise(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_patcher_l202_d18_log_or_raise(args ...ruby.Value) ruby.Value {
 	patcher_require(args, 2, 'Patcher#log_or_raise')
 	exception := if args.len > 2 { args[2].as_string() } else { 'PatchError' }
 	patcher_from_args(args).log_or_raise(args[1].as_string(), exception) or { panic(err) }
@@ -444,50 +444,50 @@ pub fn ruby_patcher_l202_d18_log_or_raise(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby method `interpreter_` at line 208.
-pub fn ruby_patcher_l208_d19_interpreter(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_patcher_l208_d19_interpreter(args ...ruby.Value) ruby.Value {
 	result := patcher_from_args(args).interpreter_raw() or { panic(err) }
-	return if result.exists { brew_runtime.string_value(result.value) } else { patcher_nil_value() }
+	return if result.exists { ruby.string_value(result.value) } else { patcher_nil_value() }
 }
 
 // Ruby method `needed_` at line 216.
-pub fn ruby_patcher_l216_d20_needed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_patcher_l216_d20_needed(args ...ruby.Value) ruby.Value {
 	result := patcher_from_args(args).needed_raw() or { panic(err) }
 	return if result.exists {
-		brew_runtime.string_array_value(result.value)
+		ruby.string_array_value(result.value)
 	} else {
 		patcher_nil_value()
 	}
 }
 
 // Ruby method `runpath_(rpath_sym = :runpath)` at line 224.
-pub fn ruby_patcher_l224_d21_runpath(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_patcher_l224_d21_runpath(args ...ruby.Value) ruby.Value {
 	kind := if args.len > 1 { args[1].as_string() } else { 'runpath' }
 	result := patcher_from_args(args).runpath_raw(kind) or { panic(err) }
-	return if result.exists { brew_runtime.string_value(result.value) } else { patcher_nil_value() }
+	return if result.exists { ruby.string_value(result.value) } else { patcher_nil_value() }
 }
 
 // Ruby method `soname_` at line 229.
-pub fn ruby_patcher_l229_d22_soname(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_patcher_l229_d22_soname(args ...ruby.Value) ruby.Value {
 	result := patcher_from_args(args).soname_raw() or { panic(err) }
-	return if result.exists { brew_runtime.string_value(result.value) } else { patcher_nil_value() }
+	return if result.exists { ruby.string_value(result.value) } else { patcher_nil_value() }
 }
 
 // Ruby method `dirty?` at line 234.
-pub fn ruby_patcher_l234_d23_dirty(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(patcher_from_args(args).dirty())
+pub fn ruby_patcher_l234_d23_dirty(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(patcher_from_args(args).dirty())
 }
 
 // Ruby method `tag_name_or_log(type, log_msg)` at line 238.
-pub fn ruby_patcher_l238_d24_tag_name_or_log(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_patcher_l238_d24_tag_name_or_log(args ...ruby.Value) ruby.Value {
 	patcher_require(args, 3, 'Patcher#tag_name_or_log')
 	result := patcher_from_args(args).tag_name_or_log(args[1].as_string(), args[2].as_string()) or {
 		panic(err)
 	}
-	return if result.exists { brew_runtime.string_value(result.value) } else { patcher_nil_value() }
+	return if result.exists { ruby.string_value(result.value) } else { patcher_nil_value() }
 }
 
 // Ruby method `dynamic_or_log` at line 248.
-pub fn ruby_patcher_l248_d25_dynamic_or_log(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_patcher_l248_d25_dynamic_or_log(args ...ruby.Value) ruby.Value {
 	result := patcher_from_args(args).dynamic_or_log() or { panic(err) }
 	return if result.exists { alt_section_value(result.value) } else { patcher_nil_value() }
 }

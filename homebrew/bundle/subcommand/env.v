@@ -1,12 +1,12 @@
 module subcommand
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `bundle/subcommand/env.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `run` at line 28.
-pub fn ruby_env_l28_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_env_l28_d1_run(args ...ruby.Value) ruby.Value {
 	options := BundleExecSubcommandOptions{
 		check: if args.len > 0 { args[0].as_bool() or { false } } else { false }
 		no_secrets: if args.len > 1 { args[1].as_bool() or { false } } else { false }
@@ -40,8 +40,8 @@ pub fn run_env_subcommand(options BundleExecSubcommandOptions) BundleExecSubcomm
 	}
 }
 
-fn bundle_exec_invocation_value(invocation BundleExecSubcommandInvocation) brew_runtime.Value {
-	return brew_runtime.structured_value('Bundle::ExecSubcommand::Invocation', invocation.args.join(' '), {
+fn bundle_exec_invocation_value(invocation BundleExecSubcommandInvocation) ruby.Value {
+	return ruby.structured_value('Bundle::ExecSubcommand::Invocation', invocation.args.join(' '), {
 		'command':    invocation.command
 		'args':       invocation.args.join('\n')
 		'check':      invocation.options.check.str()

@@ -1,6 +1,6 @@
 module executor
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/executor/serialized_execution_delegator.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -18,7 +18,7 @@ pub fn new_serialized_execution_delegator(executor ExecutorAdapter) &SerializedE
 	}
 }
 
-pub fn (mut delegator SerializedExecutionDelegator) post(task ExecutorTask, args []brew_runtime.Value) bool {
+pub fn (mut delegator SerializedExecutionDelegator) post(task ExecutorTask, args []ruby.Value) bool {
 	if !delegator.executor.running() {
 		return false
 	}
@@ -33,13 +33,13 @@ pub fn (delegator &SerializedExecutionDelegator) serialized() bool {
 	return true
 }
 
-fn serialized_delegator_boundary_value(delegator &SerializedExecutionDelegator) brew_runtime.Value {
-	return brew_runtime.structured_value('Concurrent::SerializedExecutionDelegator', '#<Concurrent::SerializedExecutionDelegator>', {
+fn serialized_delegator_boundary_value(delegator &SerializedExecutionDelegator) ruby.Value {
+	return ruby.structured_value('Concurrent::SerializedExecutionDelegator', '#<Concurrent::SerializedExecutionDelegator>', {
 		'serialized_delegator_address': u64(voidptr(delegator)).str()
 	})
 }
 
-fn serialized_delegator_boundary_receiver(args []brew_runtime.Value) &SerializedExecutionDelegator {
+fn serialized_delegator_boundary_receiver(args []ruby.Value) &SerializedExecutionDelegator {
 	if args.len == 0 {
 		panic('SerializedExecutionDelegator method requires a receiver')
 	}
@@ -50,17 +50,17 @@ fn serialized_delegator_boundary_receiver(args []brew_runtime.Value) &Serialized
 }
 
 // Ruby method `initialize(executor)` at line 15.
-pub fn ruby_serialized_execution_delegator_l15_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_serialized_execution_delegator_l15_d1_initialize(args ...ruby.Value) ruby.Value {
 	return serialized_delegator_boundary_value(new_serialized_execution_delegator(boundary_executor_adapter()))
 }
 
 // Ruby method `post(*args, &task)` at line 22.
-pub fn ruby_serialized_execution_delegator_l22_d2_post(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_serialized_execution_delegator_l22_d2_post(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('ArgumentError: no block given')
 	}
 	mut delegator := serialized_delegator_boundary_receiver(args)
-	return brew_runtime.bool_value(delegator.post(boundary_noop_executor_task, args[1..].clone()))
+	return ruby.bool_value(delegator.post(boundary_noop_executor_task, args[1..].clone()))
 }
 
 // Original Ruby source (line-for-line):

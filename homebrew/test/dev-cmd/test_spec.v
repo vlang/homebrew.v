@@ -1,12 +1,12 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `test/dev-cmd/test_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "tests a given Formula", :integration_test do` at line 11.
-pub fn ruby_test_spec_l11_d1_tests(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_spec_l11_d1_tests(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := run_formula_tests(FormulaTestOptions{
 		formulae: [FormulaTestTarget{
@@ -18,12 +18,12 @@ pub fn ruby_test_spec_l11_d1_tests(args ...brew_runtime.Value) brew_runtime.Valu
 			linked: true
 		}]
 	})
-	return brew_runtime.bool_value(!result.failed && result.attempts.len == 1
+	return ruby.bool_value(!result.failed && result.attempts.len == 1
 		&& result.attempts[0].heading == 'Testing testball')
 }
 
 // Ruby it `it "blocks network access when test phase is offline", :integration_test do` at line 35.
-pub fn ruby_test_spec_l35_d2_blocks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_test_spec_l35_d2_blocks(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := run_formula_tests(FormulaTestOptions{
 		formulae: [FormulaTestTarget{
@@ -38,7 +38,7 @@ pub fn ruby_test_spec_l35_d2_blocks(args ...brew_runtime.Value) brew_runtime.Val
 			failure_message: 'curl: (6) Could not resolve host: example.org'
 		}]
 	})
-	return brew_runtime.bool_value(result.failed && result.attempts[0].deny_network
+	return ruby.bool_value(result.failed && result.attempts[0].deny_network
 		&& result.errors.any(it.contains('Could not resolve host')))
 }
 

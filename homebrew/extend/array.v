@@ -1,6 +1,6 @@
 module extend
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `extend/array.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -30,40 +30,40 @@ pub fn array_to_sentence(values []string, words_connector string, two_words_conn
 	}
 }
 
-fn boundary_array_element(args []brew_runtime.Value, index int, method string) brew_runtime.Value {
+fn boundary_array_element(args []ruby.Value, index int, method string) ruby.Value {
 	if args.len == 0 {
 		panic('Array#${method} requires a receiver')
 	}
 	values := args[0].as_string_array() or { panic(err) }
 	return if index < values.len {
-		brew_runtime.string_value(values[index])
+		ruby.string_value(values[index])
 	} else {
-		brew_runtime.object_value('NilClass', '')
+		ruby.object_value('NilClass', '')
 	}
 }
 
 // Ruby method `second = self[1]` at line 12.
-pub fn ruby_array_l12_d1_second(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_array_l12_d1_second(args ...ruby.Value) ruby.Value {
 	return boundary_array_element(args, 1, 'second')
 }
 
 // Ruby method `third = self[2]` at line 21.
-pub fn ruby_array_l21_d2_third(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_array_l21_d2_third(args ...ruby.Value) ruby.Value {
 	return boundary_array_element(args, 2, 'third')
 }
 
 // Ruby method `fourth = self[3]` at line 30.
-pub fn ruby_array_l30_d3_fourth(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_array_l30_d3_fourth(args ...ruby.Value) ruby.Value {
 	return boundary_array_element(args, 3, 'fourth')
 }
 
 // Ruby method `fifth = self[4]` at line 39.
-pub fn ruby_array_l39_d4_fifth(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_array_l39_d4_fifth(args ...ruby.Value) ruby.Value {
 	return boundary_array_element(args, 4, 'fifth')
 }
 
 // Ruby method `to_sentence(words_connector: ", ", two_words_connector: " and ", last_word_connector: " and ")` at line 93.
-pub fn ruby_array_l93_d5_to_sentence(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_array_l93_d5_to_sentence(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Array#to_sentence requires a receiver')
 	}
@@ -71,7 +71,7 @@ pub fn ruby_array_l93_d5_to_sentence(args ...brew_runtime.Value) brew_runtime.Va
 	words := if args.len > 1 { args[1].as_string() } else { ', ' }
 	two_words := if args.len > 2 { args[2].as_string() } else { ' and ' }
 	last_word := if args.len > 3 { args[3].as_string() } else { ' and ' }
-	return brew_runtime.string_value(array_to_sentence(values, words, two_words, last_word))
+	return ruby.string_value(array_to_sentence(values, words, two_words, last_word))
 }
 
 // Original Ruby source (line-for-line):

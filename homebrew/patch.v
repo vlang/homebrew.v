@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `patch.rb`.
 // The original source is retained below.
@@ -158,7 +158,7 @@ const patch_apply_script = 'cd -- "\$1" && printf %s "\$2" | patch -g 0 -f "-\$3
 // headers are also checked before execution so a malformed dry-run can never
 // turn target parsing into an escape bypass.
 pub fn ensure_patch_targets_within(text string, strip string, base string) ! {
-	if !brew_runtime.is_dir(base) {
+	if !ruby.is_dir(base) {
 		return error('Patch base directory does not exist: ${base}')
 	}
 	for target in selected_patch_targets(text, strip) {
@@ -182,8 +182,8 @@ pub fn ensure_patch_targets_within(text string, strip string, base string) ! {
 	}
 }
 
-fn run_patch_process(script string, base string, text string, strip string) brew_runtime.CommandResult {
-	return brew_runtime.run_command(patch_environment, ['LC_ALL=C', 'LANG=C', patch_shell, '-c',
+fn run_patch_process(script string, base string, text string, strip string) ruby.CommandResult {
+	return ruby.run_command(patch_environment, ['LC_ALL=C', 'LANG=C', patch_shell, '-c',
 		script, 'brew-v-patch', base, text, strip])
 }
 
@@ -257,7 +257,7 @@ fn strip_patch_path(path string, strip string) string {
 }
 
 fn ensure_patch_target_child(base string, target string) ! {
-	base_path := lexical_absolute_path(brew_runtime.real_path(base), '')
+	base_path := lexical_absolute_path(ruby.real_path(base), '')
 	target_path := lexical_absolute_path(base_path, target)
 	if target_path != base_path && !target_path.starts_with('${base_path}/') {
 		return error('Patch target path escapes the staged source tree: ${target}')
@@ -536,8 +536,8 @@ const patch_value_separator = '\x1f'
 
 // patch_model_value and patch_model_from_value bridge translated generic Ruby
 // callers while preserving the factory's concrete V representation.
-pub fn patch_model_value(patch PatchModel) brew_runtime.Value {
-	return brew_runtime.structured_value(patch.kind.value(), patch.inspect(), {
+pub fn patch_model_value(patch PatchModel) ruby.Value {
+	return ruby.structured_value(patch.kind.value(), patch.inspect(), {
 		'kind':            patch.kind.value()
 		'strip':           patch.strip
 		'text':            patch.text
@@ -554,7 +554,7 @@ pub fn patch_model_value(patch PatchModel) brew_runtime.Value {
 	})
 }
 
-pub fn patch_model_from_value(value brew_runtime.Value) !PatchModel {
+pub fn patch_model_from_value(value ruby.Value) !PatchModel {
 	kind := match value.attribute('kind')! {
 		'ExternalPatch' { PatchKind.external }
 		'LocalPatch' { PatchKind.local }
@@ -597,7 +597,7 @@ fn split_patch_value_list(value string) []string {
 	return if value == '' { []string{} } else { value.split(patch_value_separator) }
 }
 
-fn patch_request_from_values(args []brew_runtime.Value) !PatchFactoryRequest {
+fn patch_request_from_values(args []ruby.Value) !PatchFactoryRequest {
 	if args.len == 0 {
 		return error('Patch.create requires strip and src')
 	}
@@ -646,11 +646,11 @@ fn patch_request_from_values(args []brew_runtime.Value) !PatchFactoryRequest {
 	}
 }
 
-fn patch_config_string(config map[string]brew_runtime.Value, key string) string {
+fn patch_config_string(config map[string]ruby.Value, key string) string {
 	return if key in config { config[key].as_string() } else { '' }
 }
 
-fn patch_config_strings(config map[string]brew_runtime.Value, key string) ![]string {
+fn patch_config_strings(config map[string]ruby.Value, key string) ![]string {
 	if key !in config {
 		return []string{}
 	}
@@ -676,7 +676,7 @@ pub fn ruby_patch_l46_d3_self_ensure_targets_within(text string, strip string, b
 }
 
 // Ruby method `self.create(strip, src, &block)` at line 73.
-pub fn ruby_patch_l73_d4_self_create(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_patch_l73_d4_self_create(args ...ruby.Value) ruby.Value {
 	request := patch_request_from_values(args) or { panic(err) }
 	return patch_model_value(create_patch(request) or { panic(err) })
 }

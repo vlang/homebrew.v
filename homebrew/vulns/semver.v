@@ -1,6 +1,6 @@
 module vulns
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vulns/semver.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -217,7 +217,7 @@ pub fn (interval SemverRange) contains(version string) ?bool {
 	return true
 }
 
-pub fn semver_value(version SemverVersion) brew_runtime.Value {
+pub fn semver_value(version SemverVersion) ruby.Value {
 	mut representation := '${version.major}.${version.minor}.${version.patch}'
 	if version.prerelease.len > 0 {
 		representation += '-${version.prerelease.map(it.value).join('.')}'
@@ -225,26 +225,26 @@ pub fn semver_value(version SemverVersion) brew_runtime.Value {
 	if version.build.len > 0 {
 		representation += '+${version.build.join('.')}'
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'Semver'
 		repr: representation
 		map_data: {
-			'core':       brew_runtime.string_array_value([version.major, version.minor,
+			'core':       ruby.string_array_value([version.major, version.minor,
 				version.patch])
-			'prerelease': brew_runtime.string_array_value(version.prerelease.map(it.value))
-			'build':      brew_runtime.string_array_value(version.build)
+			'prerelease': ruby.string_array_value(version.prerelease.map(it.value))
+			'build':      ruby.string_array_value(version.build)
 		}
 	}
 }
 
-pub fn semver_from_value(value brew_runtime.Value) ?SemverVersion {
+pub fn semver_from_value(value ruby.Value) ?SemverVersion {
 	if value.type_name != 'Semver' {
 		return none
 	}
 	return parse_semver(value.repr)
 }
 
-fn semver_identifiers_from_value(value brew_runtime.Value) ![]SemverIdentifier {
+fn semver_identifiers_from_value(value ruby.Value) ![]SemverIdentifier {
 	items := value.as_array()!
 	mut identifiers := []SemverIdentifier{cap: items.len}
 	for item in items {
@@ -264,43 +264,43 @@ fn semver_identifiers_from_value(value brew_runtime.Value) ![]SemverIdentifier {
 }
 
 // Ruby method `self.compare(left, right)` at line 34.
-pub fn ruby_semver_l34_d1_self_compare(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_semver_l34_d1_self_compare(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	return if comparison := compare_semver(args[0].as_string(), args[1].as_string()) {
-		brew_runtime.int_value(comparison)
+		ruby.int_value(comparison)
 	} else {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	}
 }
 
 // Ruby method `self.parse(version)` at line 46.
-pub fn ruby_semver_l46_d2_self_parse(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_semver_l46_d2_self_parse(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	return if version := parse_semver(args[0].as_string()) {
 		semver_value(version)
 	} else {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	}
 }
 
 // Ruby method `self.compare_prerelease(left, right)` at line 57.
-pub fn ruby_semver_l57_d3_self_compare_prerelease(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_semver_l57_d3_self_compare_prerelease(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	left := semver_identifiers_from_value(args[0]) or { panic(err) }
 	right := semver_identifiers_from_value(args[1]) or { panic(err) }
-	return brew_runtime.int_value(compare_semver_prerelease(left, right))
+	return ruby.int_value(compare_semver_prerelease(left, right))
 }
 
 // Ruby method `self.compare_identifier(lhs, rhs)` at line 72.
-pub fn ruby_semver_l72_d4_self_compare_identifier(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_semver_l72_d4_self_compare_identifier(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	left := SemverIdentifier{
 		value: args[0].as_string()
@@ -310,7 +310,7 @@ pub fn ruby_semver_l72_d4_self_compare_identifier(args ...brew_runtime.Value) br
 		value: args[1].as_string()
 		numeric: semver_ascii_digits(args[1].as_string())
 	}
-	return brew_runtime.int_value(compare_semver_identifier(left, right))
+	return ruby.int_value(compare_semver_identifier(left, right))
 }
 
 // Original Ruby source (line-for-line):

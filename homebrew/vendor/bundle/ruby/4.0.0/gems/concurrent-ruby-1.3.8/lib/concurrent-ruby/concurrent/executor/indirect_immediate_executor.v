@@ -1,6 +1,6 @@
 module executor
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/executor/indirect_immediate_executor.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -16,7 +16,7 @@ pub fn new_indirect_immediate_executor() &IndirectImmediateExecutor {
 	}
 }
 
-pub fn (mut executor IndirectImmediateExecutor) post(task ImmediateTask, args []brew_runtime.Value) bool {
+pub fn (mut executor IndirectImmediateExecutor) post(task ImmediateTask, args []ruby.Value) bool {
 	if !executor.immediate.running() {
 		return false
 	}
@@ -30,18 +30,18 @@ pub fn (mut executor IndirectImmediateExecutor) shutdown() bool {
 }
 
 // Ruby method `initialize` at line 21.
-pub fn ruby_indirect_immediate_executor_l21_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.structured_value('IndirectImmediateExecutor', '#<Concurrent::IndirectImmediateExecutor>', {
+pub fn ruby_indirect_immediate_executor_l21_d1_initialize(args ...ruby.Value) ruby.Value {
+	return ruby.structured_value('IndirectImmediateExecutor', '#<Concurrent::IndirectImmediateExecutor>', {
 		'stopped': 'false'
 	})
 }
 
 // Ruby method `post(*args, &task)` at line 27.
-pub fn ruby_indirect_immediate_executor_l27_d2_post(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_indirect_immediate_executor_l27_d2_post(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('ArgumentError: no block given')
 	}
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
 // Original Ruby source (line-for-line):

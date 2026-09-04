@@ -1,6 +1,6 @@
 module utils
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `utils/shell_completion.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -75,7 +75,7 @@ pub fn generate_completion_output(commands []string, parameter CompletionParamet
 	}
 	mut arguments := commands[1..].clone()
 	arguments << parameter.arguments
-	result := brew_runtime.run_command_with_environment(commands[0], arguments,
+	result := ruby.run_command_with_environment(commands[0], arguments,
 		parameter.environment)
 	if result.exit_code != 0 {
 		return error(result.output.trim_space())
@@ -84,30 +84,30 @@ pub fn generate_completion_output(commands []string, parameter CompletionParamet
 }
 
 // Ruby method `self.default_completion_shells(format)` at line 10.
-pub fn ruby_shell_completion_l10_d1_self_default_completion_shells(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_shell_completion_l10_d1_self_default_completion_shells(args ...ruby.Value) ruby.Value {
 	format := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.string_array_value(default_completion_shells(format))
+	return ruby.string_array_value(default_completion_shells(format))
 }
 
 // Ruby method `self.completion_shell_parameter(format, shell, executable, env)` at line 27.
-pub fn ruby_shell_completion_l27_d2_self_completion_shell_parameter(args ...brew_runtime.Value) brew_runtime.Value {
-	if args.len < 3 { return brew_runtime.object_value('NilClass', '') }
+pub fn ruby_shell_completion_l27_d2_self_completion_shell_parameter(args ...ruby.Value) ruby.Value {
+	if args.len < 3 { return ruby.object_value('NilClass', '') }
 	parameter := completion_shell_parameter(args[0].as_string(), args[1].as_string(),
 		args[2].as_string(), map[string]string{})
 	if parameter.arguments.len == 0 {
-		return brew_runtime.structured_value('NilClass', '', parameter.environment)
+		return ruby.structured_value('NilClass', '', parameter.environment)
 	}
 	if parameter.arguments.len == 1 {
-		return brew_runtime.structured_value('String', parameter.arguments[0],
+		return ruby.structured_value('String', parameter.arguments[0],
 			parameter.environment)
 	}
-	return brew_runtime.structured_value('Array', parameter.arguments.str(), parameter.environment)
+	return ruby.structured_value('Array', parameter.arguments.str(), parameter.environment)
 }
 
 // Ruby method `self.generate_completion_output(commands, shell_parameter, env)` at line 64.
-pub fn ruby_shell_completion_l64_d3_self_generate_completion_output(args ...brew_runtime.Value) brew_runtime.Value {
-	if args.len == 0 { return brew_runtime.string_value('') }
-	commands := args[0].as_string_array() or { return brew_runtime.string_value('') }
+pub fn ruby_shell_completion_l64_d3_self_generate_completion_output(args ...ruby.Value) ruby.Value {
+	if args.len == 0 { return ruby.string_value('') }
+	commands := args[0].as_string_array() or { return ruby.string_value('') }
 	parameter_arguments := if args.len > 1 { args[1].as_string_array() or {
 			if args[1].type_name == 'NilClass' { []string{} } else { [
 					args[1].as_string()] }
@@ -117,7 +117,7 @@ pub fn ruby_shell_completion_l64_d3_self_generate_completion_output(args ...brew
 	output := generate_completion_output(commands, CompletionParameter{
 		arguments: parameter_arguments
 	}) or { panic(err) }
-	return brew_runtime.string_value(output)
+	return ruby.string_value(output)
 }
 
 // Original Ruby source (line-for-line):

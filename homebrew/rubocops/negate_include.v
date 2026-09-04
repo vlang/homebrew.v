@@ -1,6 +1,6 @@
 module rubocops
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `rubocops/negate_include.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -291,8 +291,8 @@ pub fn analyze_negate_includes(source string) NegateIncludeAnalysis {
 	}
 }
 
-fn negate_include_call_value(call NegateIncludeCall) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::AST::NodeMatch', call.source, {
+fn negate_include_call_value(call NegateIncludeCall) ruby.Value {
+	return ruby.structured_value('RuboCop::AST::NodeMatch', call.source, {
 		'receiver':       call.receiver
 		'object':         call.object
 		'begin_pos':      call.begin_pos.str()
@@ -304,8 +304,8 @@ fn negate_include_call_value(call NegateIncludeCall) brew_runtime.Value {
 	})
 }
 
-fn negate_include_offense_value(offense NegateIncludeOffense) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cop::Offense', offense.message, {
+fn negate_include_offense_value(offense NegateIncludeOffense) ruby.Value {
+	return ruby.structured_value('RuboCop::Cop::Offense', offense.message, {
 		'receiver':    offense.call.receiver
 		'object':      offense.call.object
 		'begin_pos':   offense.begin_pos.str()
@@ -316,20 +316,20 @@ fn negate_include_offense_value(offense NegateIncludeOffense) brew_runtime.Value
 }
 
 // Ruby def_node_matcher `def_node_matcher :negate_include_call?, <<~PATTERN` at line 31.
-pub fn ruby_negate_include_l31_d1_negate_include_call(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_negate_include_l31_d1_negate_include_call(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	call := negate_include_call(source) or {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	return negate_include_call_value(call)
 }
 
 // Ruby method `on_send(node)` at line 36.
-pub fn ruby_negate_include_l36_d2_on_send(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_negate_include_l36_d2_on_send(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	analysis := analyze_negate_includes(source)
 	if analysis.offenses.len == 0 {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	return negate_include_offense_value(analysis.offenses[0])
 }

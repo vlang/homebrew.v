@@ -1,6 +1,6 @@
 module cask
 
-import brew_runtime
+import ruby
 import os
 import x.json2
 
@@ -143,7 +143,7 @@ fn caskroom_artifacts_any(artifacts []CaskLoaderArtifact) json2.Any {
 }
 
 fn caskroom_write_installed_json(path string, values map[string]json2.Any) ! {
-	brew_runtime.atomic_write_file(path, json2.encode(json2.Any(values), prettify: true))!
+	ruby.atomic_write_file(path, json2.encode(json2.Any(values), prettify: true))!
 }
 
 pub fn caskroom_migrate_caskfile_to_json(caskfile string,
@@ -300,7 +300,7 @@ pub fn caskroom_migrate_caskfile_to_json(caskfile string,
 	}
 	if verified_version != version || !caskroom_artifacts_equivalent(verified_artifacts, artifacts) {
 		if original_contents != '' {
-			brew_runtime.atomic_write_file(json_caskfile, original_contents)!
+			ruby.atomic_write_file(json_caskfile, original_contents)!
 		} else if os.exists(json_caskfile) {
 			os.rm(json_caskfile)!
 		}
@@ -337,7 +337,7 @@ pub fn caskroom_expected_group() string {
 pub fn caskroom_group_correct(path string, expected_group string) bool {
 	mut group_id := -1
 	$if linux {
-		group_result := brew_runtime.run_command('getent', ['group', expected_group])
+		group_result := ruby.run_command('getent', ['group', expected_group])
 		if group_result.exit_code == 0 {
 			fields := group_result.output.trim_space().split(':')
 			if fields.len >= 3 {
@@ -345,7 +345,7 @@ pub fn caskroom_group_correct(path string, expected_group string) bool {
 			}
 		}
 	} $else $if macos {
-		group_result := brew_runtime.run_command('dscl', ['.', '-read', '/Groups/${expected_group}',
+		group_result := ruby.run_command('dscl', ['.', '-read', '/Groups/${expected_group}',
 			'PrimaryGroupID'])
 		if group_result.exit_code == 0 {
 			fields := group_result.output.fields()
@@ -355,7 +355,7 @@ pub fn caskroom_group_correct(path string, expected_group string) bool {
 		}
 	} $else {
 		if expected_group == caskroom_expected_group() {
-			group_result := brew_runtime.run_command('id', ['-g'])
+			group_result := ruby.run_command('id', ['-g'])
 			if group_result.exit_code == 0 {
 				group_id = group_result.output.trim_space().int()
 			}
@@ -375,7 +375,7 @@ pub fn caskroom_chgrp_path(path string, sudo bool, expected_group string) ! {
 		command = 'sudo'
 		arguments = ['chgrp', expected_group, path]
 	}
-	result := brew_runtime.run_command(command, arguments)
+	result := ruby.run_command(command, arguments)
 	if result.exit_code != 0 {
 		return error(result.output.trim_space())
 	}
@@ -444,73 +444,73 @@ pub fn caskroom_casks(path string, context CaskLoaderLoadContext) []CaskLoaderCa
 }
 
 // Ruby method `self.path` at line 17.
-pub fn ruby_caskroom_l17_d1_self_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_caskroom_l17_d1_self_path(args ...ruby.Value) ruby.Value {
 	prefix := if args.len > 0 { args[0].as_string() } else { '/opt/homebrew' }
-	return brew_runtime.string_value(caskroom_path(prefix))
+	return ruby.string_value(caskroom_path(prefix))
 }
 
 // Ruby method `self.paths` at line 23.
-pub fn ruby_caskroom_l23_d2_self_paths(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_caskroom_l23_d2_self_paths(args ...ruby.Value) ruby.Value {
 	path := if args.len > 0 { args[0].as_string() } else { caskroom_path('/opt/homebrew') }
-	return brew_runtime.string_array_value(caskroom_paths(path))
+	return ruby.string_array_value(caskroom_paths(path))
 }
 
 // Ruby method `self.tokens` at line 32.
-pub fn ruby_caskroom_l32_d3_self_tokens(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_caskroom_l32_d3_self_tokens(args ...ruby.Value) ruby.Value {
 	path := if args.len > 0 { args[0].as_string() } else { caskroom_path('/opt/homebrew') }
-	return brew_runtime.string_array_value(caskroom_tokens(path))
+	return ruby.string_array_value(caskroom_tokens(path))
 }
 
 // Ruby method `self.any_casks_installed?` at line 37.
-pub fn ruby_caskroom_l37_d4_self_any_casks_installed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_caskroom_l37_d4_self_any_casks_installed(args ...ruby.Value) ruby.Value {
 	path := if args.len > 0 { args[0].as_string() } else { caskroom_path('/opt/homebrew') }
-	return brew_runtime.bool_value(caskroom_any_casks_installed(path))
+	return ruby.bool_value(caskroom_any_casks_installed(path))
 }
 
 // Ruby method `self.cask_installed?(token)` at line 42.
-pub fn ruby_caskroom_l42_d5_self_cask_installed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_caskroom_l42_d5_self_cask_installed(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	path := if args.len > 1 { args[1].as_string() } else { caskroom_path('/opt/homebrew') }
-	return brew_runtime.bool_value(caskroom_cask_installed(path, args[0].as_string()))
+	return ruby.bool_value(caskroom_cask_installed(path, args[0].as_string()))
 }
 
 // Ruby method `self.cask_installed_caskfile(token, old_tokens: [])` at line 47.
-pub fn ruby_caskroom_l47_d6_self_cask_installed_caskfile(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_caskroom_l47_d6_self_cask_installed_caskfile(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	path := if args.len > 2 { args[2].as_string() } else { caskroom_path('/opt/homebrew') }
 	old_tokens := if args.len > 1 { args[1].string_array_data } else { []string{} }
 	if caskfile := caskroom_installed_caskfile(path, args[0].as_string(), old_tokens) {
-		return brew_runtime.string_value(caskfile)
+		return ruby.string_value(caskfile)
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `self.cask_installed_version(token, old_tokens: [])` at line 65.
-pub fn ruby_caskroom_l65_d7_self_cask_installed_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_caskroom_l65_d7_self_cask_installed_version(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	path := if args.len > 2 { args[2].as_string() } else { caskroom_path('/opt/homebrew') }
 	old_tokens := if args.len > 1 { args[1].string_array_data } else { []string{} }
 	if version := caskroom_installed_version(path, args[0].as_string(), old_tokens) {
-		return brew_runtime.string_value(version)
+		return ruby.string_value(version)
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `self.migrate_caskfile_to_json(caskfile)` at line 72.
-pub fn ruby_caskroom_l72_d8_self_migrate_caskfile_to_json(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_caskroom_l72_d8_self_migrate_caskfile_to_json(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'caskfile is required')
+		return ruby.object_value('ArgumentError', 'caskfile is required')
 	}
 	result := caskroom_migrate_caskfile_to_json(args[0].as_string(), CaskroomMigrationContext{}) or {
-		return brew_runtime.object_value('RuntimeError', err.msg())
+		return ruby.object_value('RuntimeError', err.msg())
 	}
-	return brew_runtime.structured_value('CaskroomMigrationResult', result.json_path, {
+	return ruby.structured_value('CaskroomMigrationResult', result.json_path, {
 		'token':       result.token
 		'source_path': result.source_path
 		'json_path':   result.json_path
@@ -521,29 +521,29 @@ pub fn ruby_caskroom_l72_d8_self_migrate_caskfile_to_json(args ...brew_runtime.V
 }
 
 // Ruby method `self.artifacts_equivalent?(first, second)` at line 154.
-pub fn ruby_caskroom_l154_d9_self_artifacts_equivalent(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_caskroom_l154_d9_self_artifacts_equivalent(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	first := args[0].string_array_data.map(CaskLoaderArtifact{ kind: it })
 	second := args[1].string_array_data.map(CaskLoaderArtifact{ kind: it })
-	return brew_runtime.bool_value(caskroom_artifacts_equivalent(first, second))
+	return ruby.bool_value(caskroom_artifacts_equivalent(first, second))
 }
 
 // Ruby method `self.corrupt_cask_dirs` at line 161.
-pub fn ruby_caskroom_l161_d10_self_corrupt_cask_dirs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_caskroom_l161_d10_self_corrupt_cask_dirs(args ...ruby.Value) ruby.Value {
 	path := if args.len > 0 { args[0].as_string() } else { caskroom_path('/opt/homebrew') }
-	return brew_runtime.string_array_value(caskroom_corrupt_cask_dirs(path))
+	return ruby.string_array_value(caskroom_corrupt_cask_dirs(path))
 }
 
 // Ruby method `self.cask_with_metadata?(cask_path)` at line 166.
-pub fn ruby_caskroom_l166_d11_self_cask_with_metadata(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(args.len > 0 && caskroom_cask_with_metadata(args[0].as_string()))
+pub fn ruby_caskroom_l166_d11_self_cask_with_metadata(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(args.len > 0 && caskroom_cask_with_metadata(args[0].as_string()))
 }
 
 // Ruby method `self.token_from_full_token(token)` at line 172.
-pub fn ruby_caskroom_l172_d12_self_token_from_full_token(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(if args.len > 0 {
+pub fn ruby_caskroom_l172_d12_self_token_from_full_token(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(if args.len > 0 {
 		caskroom_token_from_full_token(args[0].as_string())
 	} else {
 		''
@@ -551,7 +551,7 @@ pub fn ruby_caskroom_l172_d12_self_token_from_full_token(args ...brew_runtime.Va
 }
 
 // Ruby method `self.ensure_caskroom_exists` at line 178.
-pub fn ruby_caskroom_l178_d13_self_ensure_caskroom_exists(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_caskroom_l178_d13_self_ensure_caskroom_exists(args ...ruby.Value) ruby.Value {
 	path := if args.len > 0 { args[0].as_string() } else { caskroom_path('/opt/homebrew') }
 	group_correct := if args.len > 1 {
 		args[1].bool_data
@@ -559,9 +559,9 @@ pub fn ruby_caskroom_l178_d13_self_ensure_caskroom_exists(args ...brew_runtime.V
 		caskroom_group_correct(path, caskroom_expected_group())
 	}
 	result := caskroom_ensure_exists(path, group_correct, false, false, true) or {
-		return brew_runtime.object_value('ErrorDuringExecution', err.msg())
+		return ruby.object_value('ErrorDuringExecution', err.msg())
 	}
-	return brew_runtime.structured_value('CaskroomEnsureResult', result.output, {
+	return ruby.structured_value('CaskroomEnsureResult', result.output, {
 		'created':       result.created.str()
 		'sudo':          result.sudo.str()
 		'changed_group': result.changed_group.str()
@@ -569,17 +569,17 @@ pub fn ruby_caskroom_l178_d13_self_ensure_caskroom_exists(args ...brew_runtime.V
 }
 
 // Ruby method `self.chgrp_path(path, sudo)` at line 196.
-pub fn ruby_caskroom_l196_d14_self_chgrp_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_caskroom_l196_d14_self_chgrp_path(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'path is required')
+		return ruby.object_value('ArgumentError', 'path is required')
 	}
-	caskroom_chgrp_path(args[0].as_string(), args.len > 1 && args[1].bool_data, caskroom_expected_group()) or { return brew_runtime.object_value('ErrorDuringExecution', err.msg()) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	caskroom_chgrp_path(args[0].as_string(), args.len > 1 && args[1].bool_data, caskroom_expected_group()) or { return ruby.object_value('ErrorDuringExecution', err.msg()) }
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `self.caskroom_group_correct?(path)` at line 201.
-pub fn ruby_caskroom_l201_d15_self_caskroom_group_correct(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(args.len > 0 && caskroom_group_correct(args[0].as_string(), if args.len > 1 {
+pub fn ruby_caskroom_l201_d15_self_caskroom_group_correct(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(args.len > 0 && caskroom_group_correct(args[0].as_string(), if args.len > 1 {
 		args[1].as_string()
 	} else {
 		caskroom_expected_group()
@@ -587,8 +587,8 @@ pub fn ruby_caskroom_l201_d15_self_caskroom_group_correct(args ...brew_runtime.V
 }
 
 // Ruby attr_writer `attr_writer :expected_caskroom_group` at line 212.
-pub fn ruby_caskroom_l212_d16_expected_caskroom_group(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(if args.len > 0 {
+pub fn ruby_caskroom_l212_d16_expected_caskroom_group(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(if args.len > 0 {
 		args[0].as_string()
 	} else {
 		caskroom_expected_group()
@@ -596,15 +596,15 @@ pub fn ruby_caskroom_l212_d16_expected_caskroom_group(args ...brew_runtime.Value
 }
 
 // Ruby method `self.expected_caskroom_group` at line 216.
-pub fn ruby_caskroom_l216_d17_self_expected_caskroom_group(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_caskroom_l216_d17_self_expected_caskroom_group(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value(caskroom_expected_group())
+	return ruby.string_value(caskroom_expected_group())
 }
 
 // Ruby method `self.casks(config: nil)` at line 227.
-pub fn ruby_caskroom_l227_d18_self_casks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_caskroom_l227_d18_self_casks(args ...ruby.Value) ruby.Value {
 	path := if args.len > 0 { args[0].as_string() } else { caskroom_path('/opt/homebrew') }
-	return brew_runtime.array_value(caskroom_casks(path, CaskLoaderLoadContext{}).map(brew_runtime.structured_value('Cask::Cask', it.token, {
+	return ruby.array_value(caskroom_casks(path, CaskLoaderLoadContext{}).map(ruby.structured_value('Cask::Cask', it.token, {
 		'token':   it.token
 		'version': it.version
 	})))

@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 import encoding.utf8
 import os
 
@@ -121,41 +121,41 @@ pub:
 	options UpdateMaintainersOptions
 }
 
-pub fn update_maintainers_input_boundary(input &UpdateMaintainersInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::UpdateMaintainers::Input', '', {
+pub fn update_maintainers_input_boundary(input &UpdateMaintainersInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::UpdateMaintainers::Input', '', {
 		'update_maintainers_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn update_maintainers_input_from_value(value brew_runtime.Value) &UpdateMaintainersInput {
+fn update_maintainers_input_from_value(value ruby.Value) &UpdateMaintainersInput {
 	address := value.attributes['update_maintainers_input_address'] or {
 		panic('invalid UpdateMaintainers input')
 	}
 	return unsafe { &UpdateMaintainersInput(voidptr(address.u64())) }
 }
 
-fn update_maintainers_result_value(result UpdateMaintainersResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'bundler_groups': brew_runtime.string_array_value(result.bundler_groups)
-		'lead_sentence': brew_runtime.string_value(result.lead_sentence)
-		'maintainers_sentence': brew_runtime.string_value(result.maintainers_sentence)
-		'readme_path': brew_runtime.string_value(result.readme_path)
-		'diff_command': brew_runtime.string_array_value(result.diff_command)
-		'regenerate_manpages': brew_runtime.bool_value(result.regenerate_manpages)
-		'manpages_quiet': brew_runtime.bool_value(result.manpages_quiet)
-		'stdout': brew_runtime.string_value(result.stdout)
-		'stderr': brew_runtime.string_value(result.stderr)
-		'failed': brew_runtime.bool_value(result.failed)
+fn update_maintainers_result_value(result UpdateMaintainersResult) ruby.Value {
+	return ruby.map_value({
+		'bundler_groups': ruby.string_array_value(result.bundler_groups)
+		'lead_sentence': ruby.string_value(result.lead_sentence)
+		'maintainers_sentence': ruby.string_value(result.maintainers_sentence)
+		'readme_path': ruby.string_value(result.readme_path)
+		'diff_command': ruby.string_array_value(result.diff_command)
+		'regenerate_manpages': ruby.bool_value(result.regenerate_manpages)
+		'manpages_quiet': ruby.bool_value(result.manpages_quiet)
+		'stdout': ruby.string_value(result.stdout)
+		'stderr': ruby.string_value(result.stderr)
+		'failed': ruby.bool_value(result.failed)
 	})
 }
 
 // Ruby method `run` at line 25.
-pub fn ruby_update_maintainers_l25_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_maintainers_l25_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'command input is required')
+		return ruby.object_value('ArgumentError', 'command input is required')
 	}
 	return update_maintainers_result_value(run_update_maintainers(update_maintainers_input_from_value(args[0]).options) or {
-		return brew_runtime.object_value('Error', err.msg())
+		return ruby.object_value('Error', err.msg())
 	})
 }
 

@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `cmd/unpin.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -28,22 +28,22 @@ pub fn unpin_packages(mut packages []PinPackageState) PinCommandResult {
 }
 
 // Ruby method `run` at line 28.
-pub fn ruby_unpin_l28_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unpin_l28_d1_run(args ...ruby.Value) ruby.Value {
 	mut packages := pin_boundary_packages(args)
 	result := unpin_packages(mut packages)
 	return unpin_command_result_value(result, packages)
 }
 
-fn unpin_command_result_value(result PinCommandResult, packages []PinPackageState) brew_runtime.Value {
+fn unpin_command_result_value(result PinCommandResult, packages []PinPackageState) ruby.Value {
 	mut messages := result.warnings.clone()
 	messages << result.failures
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'UnpinCommandResult'
 		repr: messages.join('\n')
 		map_data: {
-			'warnings': brew_runtime.string_array_value(result.warnings)
-			'failures': brew_runtime.string_array_value(result.failures)
-			'packages': brew_runtime.array_value(packages.map(pin_package_value(it)))
+			'warnings': ruby.string_array_value(result.warnings)
+			'failures': ruby.string_array_value(result.failures)
+			'packages': ruby.array_value(packages.map(pin_package_value(it)))
 		}
 		attributes: {
 			'failed': result.failed().str()

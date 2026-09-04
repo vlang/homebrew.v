@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `deprecate_disable.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -174,8 +174,8 @@ pub fn deprecate_disable_reason_from_string(value ?string, kind DeprecateDisable
 	return none
 }
 
-pub fn deprecate_disable_subject_value(subject DeprecateDisableSubject) brew_runtime.Value {
-	return brew_runtime.structured_value('DeprecateDisableSubject',
+pub fn deprecate_disable_subject_value(subject DeprecateDisableSubject) ruby.Value {
+	return ruby.structured_value('DeprecateDisableSubject',
 		deprecate_disable_type(subject), {
 		'kind':                subject.kind.str()
 		'deprecated':          subject.deprecated.str()
@@ -191,7 +191,7 @@ pub fn deprecate_disable_subject_value(subject DeprecateDisableSubject) brew_run
 	})
 }
 
-fn deprecate_disable_subject_from_value(value brew_runtime.Value) DeprecateDisableSubject {
+fn deprecate_disable_subject_from_value(value ruby.Value) DeprecateDisableSubject {
 	if value.type_name != 'DeprecateDisableSubject' {
 		panic('expected DeprecateDisableSubject, got ${value.type_name}')
 	}
@@ -216,44 +216,44 @@ fn deprecate_disable_subject_from_value(value brew_runtime.Value) DeprecateDisab
 }
 
 // Ruby method `type(formula_or_cask)` at line 40.
-pub fn ruby_deprecate_disable_l40_d1_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_deprecate_disable_l40_d1_type(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('DeprecateDisable.type requires a formula or cask')
 	}
 	type_name := deprecate_disable_type(deprecate_disable_subject_from_value(args[0]))
 	return if type_name == '' {
-		brew_runtime.object_value('NilClass', '')
+		ruby.object_value('NilClass', '')
 	} else {
-		brew_runtime.object_value('Symbol', type_name)
+		ruby.object_value('Symbol', type_name)
 	}
 }
 
 // Ruby method `replacement_with_type(formula, cask)` at line 52.
-pub fn ruby_deprecate_disable_l52_d2_replacement_with_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_deprecate_disable_l52_d2_replacement_with_type(args ...ruby.Value) ruby.Value {
 	formula := if args.len > 0 && args[0].type_name != 'NilClass' { args[0].as_string() } else { '' }
 	cask := if args.len > 1 && args[1].type_name != 'NilClass' { args[1].as_string() } else { '' }
 	replacement := deprecate_disable_replacement_with_type(formula, cask)
 	return if replacement == '' {
-		brew_runtime.object_value('NilClass', '')
+		ruby.object_value('NilClass', '')
 	} else {
-		brew_runtime.string_value(replacement)
+		ruby.string_value(replacement)
 	}
 }
 
 // Ruby method `message(formula_or_cask)` at line 63.
-pub fn ruby_deprecate_disable_l63_d3_message(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_deprecate_disable_l63_d3_message(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('DeprecateDisable.message requires a formula or cask')
 	}
 	message := deprecate_disable_message(deprecate_disable_subject_from_value(args[0]),
-		brew_runtime.today_iso()) or { return brew_runtime.object_value('NilClass', '') }
-	return brew_runtime.string_value(message)
+		ruby.today_iso()) or { return ruby.object_value('NilClass', '') }
+	return ruby.string_value(message)
 }
 
 // Ruby method `to_reason_string_or_symbol(string, type:)` at line 122.
-pub fn ruby_deprecate_disable_l122_d4_to_reason_string_or_symbol(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_deprecate_disable_l122_d4_to_reason_string_or_symbol(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || args[0].type_name == 'NilClass' {
-		return brew_runtime.object_value('NilClass', '')
+		return ruby.object_value('NilClass', '')
 	}
 	kind := if args.len > 1 && args[1].as_string().trim_left(':') == 'cask' {
 		DeprecateDisablePackageKind.cask
@@ -261,12 +261,12 @@ pub fn ruby_deprecate_disable_l122_d4_to_reason_string_or_symbol(args ...brew_ru
 		DeprecateDisablePackageKind.formula
 	}
 	reason := deprecate_disable_reason_from_string(args[0].as_string(), kind) or {
-		return brew_runtime.object_value('NilClass', '')
+		return ruby.object_value('NilClass', '')
 	}
 	return if reason.is_symbol {
-		brew_runtime.object_value('Symbol', reason.value)
+		ruby.object_value('Symbol', reason.value)
 	} else {
-		brew_runtime.string_value(reason.value)
+		ruby.string_value(reason.value)
 	}
 }
 

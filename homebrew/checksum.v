@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `checksum.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -62,7 +62,7 @@ pub fn (checksum Checksum) equals(other Checksum) bool {
 	return checksum.hexdigest == other.hexdigest
 }
 
-fn checksum_from_boundary(arguments []brew_runtime.Value, method string) Checksum {
+fn checksum_from_boundary(arguments []ruby.Value, method string) Checksum {
 	if arguments.len == 0 {
 		panic('Checksum#${method} requires a receiver')
 	}
@@ -70,51 +70,51 @@ fn checksum_from_boundary(arguments []brew_runtime.Value, method string) Checksu
 }
 
 // Ruby attr_reader `attr_reader :hexdigest` at line 9.
-pub fn ruby_checksum_l9_d1_hexdigest(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(checksum_from_boundary(args, 'hexdigest').hexdigest)
+pub fn ruby_checksum_l9_d1_hexdigest(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(checksum_from_boundary(args, 'hexdigest').hexdigest)
 }
 
 // Ruby method `initialize(hexdigest)` at line 12.
-pub fn ruby_checksum_l12_d2_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_checksum_l12_d2_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Checksum#initialize requires a digest')
 	}
-	return brew_runtime.object_value('Checksum', new_checksum(args[0].as_string()).hexdigest)
+	return ruby.object_value('Checksum', new_checksum(args[0].as_string()).hexdigest)
 }
 
 // Ruby method `inspect` at line 17.
-pub fn ruby_checksum_l17_d3_inspect(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(checksum_from_boundary(args, 'inspect').inspect())
+pub fn ruby_checksum_l17_d3_inspect(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(checksum_from_boundary(args, 'inspect').inspect())
 }
 
 // Ruby delegate `delegate [:empty?, :to_s, :length, :[]] => :@hexdigest` at line 21.
-pub fn ruby_checksum_l21_d4_empty(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(checksum_from_boundary(args, 'empty?').is_empty())
+pub fn ruby_checksum_l21_d4_empty(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(checksum_from_boundary(args, 'empty?').is_empty())
 }
 
 // Ruby delegate `delegate [:empty?, :to_s, :length, :[]] => :@hexdigest` at line 21.
-pub fn ruby_checksum_l21_d5_to_s(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(checksum_from_boundary(args, 'to_s').str())
+pub fn ruby_checksum_l21_d5_to_s(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(checksum_from_boundary(args, 'to_s').str())
 }
 
 // Ruby delegate `delegate [:empty?, :to_s, :length, :[]] => :@hexdigest` at line 21.
-pub fn ruby_checksum_l21_d6_length(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(checksum_from_boundary(args, 'length').length())
+pub fn ruby_checksum_l21_d6_length(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(checksum_from_boundary(args, 'length').length())
 }
 
 // Ruby delegate `delegate [:empty?, :to_s, :length, :[]] => :@hexdigest` at line 21.
-pub fn ruby_checksum_l21_d7_index(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_checksum_l21_d7_index(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Checksum#[] requires a receiver and index')
 	}
 	index := args[1].as_int() or { panic(err) }
-	return brew_runtime.string_value(checksum_from_boundary(args, '[]').character_at(int(index)) or {
-		return brew_runtime.object_value('NilClass', '')
+	return ruby.string_value(checksum_from_boundary(args, '[]').character_at(int(index)) or {
+		return ruby.object_value('NilClass', '')
 	})
 }
 
 // Ruby method `==(other)` at line 24.
-pub fn ruby_checksum_l24_d8_equals(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_checksum_l24_d8_equals(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Checksum#== requires a receiver and another value')
 	}
@@ -125,7 +125,7 @@ pub fn ruby_checksum_l24_d8_equals(args ...brew_runtime.Value) brew_runtime.Valu
 		'Checksum' { receiver.equals(new_checksum(other.as_string())) }
 		else { false }
 	}
-	return brew_runtime.bool_value(equal)
+	return ruby.bool_value(equal)
 }
 
 // Original Ruby source (line-for-line):

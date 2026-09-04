@@ -1,6 +1,6 @@
 module mac
 
-import brew_runtime
+import ruby
 
 pub struct MacReadallCask {
 pub:
@@ -56,7 +56,7 @@ pub fn mac_readall_valid_casks(os_name string, current_macos_version int, arch s
 	return MacReadallResult{ valid: valid, errors: errors, processed: processed }
 }
 
-fn mac_readall_casks_from_value(value brew_runtime.Value) ![]MacReadallCask {
+fn mac_readall_casks_from_value(value ruby.Value) ![]MacReadallCask {
 	mut casks := []MacReadallCask{}
 	for item in value.as_array()! {
 		values := item.as_map()!
@@ -68,10 +68,10 @@ fn mac_readall_casks_from_value(value brew_runtime.Value) ![]MacReadallCask {
 		}
 		casks << MacReadallCask{
 			path: (values['path'] or { return error('cask path is required') }).as_string()
-			url_present: (values['url_present'] or { brew_runtime.bool_value(true) }).as_bool()!
+			url_present: (values['url_present'] or { ruby.bool_value(true) }).as_bool()!
 			macos_versions: versions
-			macos_comparator: (values['macos_comparator'] or { brew_runtime.string_value('>=') }).as_string()
-			evaluation_error: (values['evaluation_error'] or { brew_runtime.string_value('') }).as_string()
+			macos_comparator: (values['macos_comparator'] or { ruby.string_value('>=') }).as_string()
+			evaluation_error: (values['evaluation_error'] or { ruby.string_value('') }).as_string()
 		}
 	}
 	return casks
@@ -81,7 +81,7 @@ fn mac_readall_casks_from_value(value brew_runtime.Value) ![]MacReadallCask {
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `valid_casks?(tap, os_name: nil, arch: ::Hardware::CPU.type, files: nil)` at line 23.
-pub fn ruby_readall_l23_d1_valid_casks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_readall_l23_d1_valid_casks(args ...ruby.Value) ruby.Value {
 	os_name := if args.len > 0 { args[0].as_string() } else { 'macos' }
 	current_version := if args.len > 1 { int(args[1].as_int() or { panic(err) }) } else { 15 }
 	arch := if args.len > 2 { args[2].as_string() } else { 'arm' }
@@ -91,7 +91,7 @@ pub fn ruby_readall_l23_d1_valid_casks(args ...brew_runtime.Value) brew_runtime.
 		[]MacReadallCask{}
 	}
 	linux_super_valid := if args.len > 4 { args[4].as_bool() or { panic(err) } } else { true }
-	return brew_runtime.bool_value(mac_readall_valid_casks(os_name, current_version, arch, casks, linux_super_valid).valid)
+	return ruby.bool_value(mac_readall_valid_casks(os_name, current_version, arch, casks, linux_super_valid).valid)
 }
 
 // Original Ruby source (line-for-line):

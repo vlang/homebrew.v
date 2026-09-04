@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 
 pub struct MissingFormulaReason {
 pub:
@@ -231,32 +231,32 @@ pub fn missing_formula_reason(name string, silent bool, show_info bool,
 	return MissingFormulaReason{}
 }
 
-pub fn missing_formula_reason_value(reason MissingFormulaReason) brew_runtime.Value {
+pub fn missing_formula_reason_value(reason MissingFormulaReason) ruby.Value {
 	if !reason.present {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
-	return brew_runtime.string_value(reason.text)
+	return ruby.string_value(reason.text)
 }
 
 // Translated from Homebrew/brew `missing_formula.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `reason(name, silent: false, show_info: false)` at line 15.
-pub fn ruby_missing_formula_l15_d1_reason(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_missing_formula_l15_d1_reason(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('reason requires a formula name') }
 	return missing_formula_reason_value(missing_formula_reason(args[0].as_string(), false, false, MissingFormulaContext{}))
 }
 
 // Ruby method `disallowed_reason(name)` at line 21.
-pub fn ruby_missing_formula_l21_d2_disallowed_reason(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_missing_formula_l21_d2_disallowed_reason(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('disallowed_reason requires a formula name') }
 	return missing_formula_reason_value(missing_formula_disallowed_reason(args[0].as_string()))
 }
 
 // Ruby method `tap_migration_reason(name)` at line 102.
-pub fn ruby_missing_formula_l102_d3_tap_migration_reason(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_missing_formula_l102_d3_tap_migration_reason(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	tap := MissingFormulaTap{
 		name: args[1].as_string()
@@ -270,9 +270,9 @@ pub fn ruby_missing_formula_l102_d3_tap_migration_reason(args ...brew_runtime.Va
 }
 
 // Ruby method `deleted_reason(name, silent: false)` at line 155.
-pub fn ruby_missing_formula_l155_d4_deleted_reason(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_missing_formula_l155_d4_deleted_reason(args ...ruby.Value) ruby.Value {
 	if args.len < 7 {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	record := MissingDeletedFormula{
 		name: args[0].as_string()
@@ -289,13 +289,13 @@ pub fn ruby_missing_formula_l155_d4_deleted_reason(args ...brew_runtime.Value) b
 }
 
 // Ruby method `cask_reason(name, silent: false, show_info: false); end` at line 220.
-pub fn ruby_missing_formula_l220_d5_cask_reason(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+pub fn ruby_missing_formula_l220_d5_cask_reason(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `suggest_command(name, command); end` at line 223.
-pub fn ruby_missing_formula_l223_d6_suggest_command(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+pub fn ruby_missing_formula_l223_d6_suggest_command(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Original Ruby source (line-for-line):

@@ -1,6 +1,6 @@
 module extensions
 
-import brew_runtime
+import ruby
 import json2
 import os
 
@@ -26,7 +26,7 @@ pub struct ExtensionEntry {
 pub:
 	entry_type string
 	name       string
-	options    map[string]brew_runtime.Value
+	options    map[string]ruby.Value
 }
 
 pub struct ExtensionState {
@@ -77,7 +77,7 @@ pub fn extension_switch_description(description string) string {
 }
 
 pub fn extension_entry(definition ExtensionDefinition, name string,
-	options map[string]brew_runtime.Value) !ExtensionEntry {
+	options map[string]ruby.Value) !ExtensionEntry {
 	if options.len > 0 {
 		mut option_symbols := []string{}
 		for key in options.keys() {
@@ -89,7 +89,7 @@ pub fn extension_entry(definition ExtensionDefinition, name string,
 	return ExtensionEntry{
 		entry_type: definition.type_name
 		name: name
-		options: map[string]brew_runtime.Value{}
+		options: map[string]ruby.Value{}
 	}
 }
 
@@ -326,7 +326,7 @@ pub fn extension_installable(registry ExtensionRegistry, type_name string) ?Exte
 }
 
 // Ruby method `self.inherited(subclass)` at line 16.
-pub fn ruby_extension_l16_d1_self_inherited(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extension_l16_d1_self_inherited(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return extension_boundary_error('ArgumentError', 'extension subclass is required')
 	}
@@ -341,23 +341,23 @@ pub fn ruby_extension_l16_d1_self_inherited(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby method `self.banner_name; end` at line 22.
-pub fn ruby_extension_l22_d2_self_banner_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extension_l22_d2_self_banner_name(args ...ruby.Value) ruby.Value {
 	definition := extension_definition_from_boundary(args) or {
 		return extension_boundary_error('NotImplementedError', err.msg())
 	}
-	return brew_runtime.string_value(definition.banner_name)
+	return ruby.string_value(definition.banner_name)
 }
 
 // Ruby method `self.switch_description(description)` at line 25.
-pub fn ruby_extension_l25_d3_self_switch_description(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extension_l25_d3_self_switch_description(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return extension_boundary_error('ArgumentError', 'description is required')
 	}
-	return brew_runtime.string_value(extension_switch_description(args[0].as_string()))
+	return ruby.string_value(extension_switch_description(args[0].as_string()))
 }
 
 // Ruby method `self.entry(name, options = {})` at line 30.
-pub fn ruby_extension_l30_d4_self_entry(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extension_l30_d4_self_entry(args ...ruby.Value) ruby.Value {
 	state := extension_state_from_boundary(args) or {
 		return extension_boundary_error('ArgumentError', err.msg())
 	}
@@ -369,7 +369,7 @@ pub fn ruby_extension_l30_d4_self_entry(args ...brew_runtime.Value) brew_runtime
 			return extension_boundary_error('ArgumentError', err.msg())
 		}
 	} else {
-		map[string]brew_runtime.Value{}
+		map[string]ruby.Value{}
 	}
 	entry := extension_entry(state.definition, args[1].as_string(), options) or {
 		return extension_boundary_error('RuntimeError', err.msg())
@@ -378,61 +378,61 @@ pub fn ruby_extension_l30_d4_self_entry(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby method `self.flag` at line 37.
-pub fn ruby_extension_l37_d5_self_flag(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extension_l37_d5_self_flag(args ...ruby.Value) ruby.Value {
 	definition := extension_definition_from_boundary(args) or {
 		return extension_boundary_error('ArgumentError', err.msg())
 	}
-	return brew_runtime.string_value(extension_flag(definition))
+	return ruby.string_value(extension_flag(definition))
 }
 
 // Ruby method `self.predicate_method` at line 42.
-pub fn ruby_extension_l42_d6_self_predicate_method(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extension_l42_d6_self_predicate_method(args ...ruby.Value) ruby.Value {
 	definition := extension_definition_from_boundary(args) or {
 		return extension_boundary_error('ArgumentError', err.msg())
 	}
-	return brew_runtime.object_value('Symbol', extension_predicate_method(definition))
+	return ruby.object_value('Symbol', extension_predicate_method(definition))
 }
 
 // Ruby method `self.package_manager_name` at line 47.
-pub fn ruby_extension_l47_d7_self_package_manager_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extension_l47_d7_self_package_manager_name(args ...ruby.Value) ruby.Value {
 	definition := extension_definition_from_boundary(args) or {
 		return extension_boundary_error('ArgumentError', err.msg())
 	}
-	return brew_runtime.string_value(extension_package_manager_name(definition))
+	return ruby.string_value(extension_package_manager_name(definition))
 }
 
 // Ruby method `self.package_manager_installed?` at line 52.
-pub fn ruby_extension_l52_d8_self_package_manager_installed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extension_l52_d8_self_package_manager_installed(args ...ruby.Value) ruby.Value {
 	state := extension_state_from_boundary(args) or {
 		return extension_boundary_error('ArgumentError', err.msg())
 	}
-	return brew_runtime.bool_value(state.executable != '')
+	return ruby.bool_value(state.executable != '')
 }
 
 // Ruby method `self.package_manager_executable` at line 57.
-pub fn ruby_extension_l57_d9_self_package_manager_executable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extension_l57_d9_self_package_manager_executable(args ...ruby.Value) ruby.Value {
 	state := extension_state_from_boundary(args) or {
 		return extension_boundary_error('ArgumentError', err.msg())
 	}
 	if state.executable == '' {
-		return brew_runtime.object_value('NilClass', '')
+		return ruby.object_value('NilClass', '')
 	}
-	return brew_runtime.object_value('Pathname', state.executable)
+	return ruby.object_value('Pathname', state.executable)
 }
 
 // Ruby method `self.package_manager_executable!` at line 62.
-pub fn ruby_extension_l62_d10_self_package_manager_executable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extension_l62_d10_self_package_manager_executable(args ...ruby.Value) ruby.Value {
 	state := extension_state_from_boundary(args) or {
 		return extension_boundary_error('ArgumentError', err.msg())
 	}
 	if state.executable == '' {
 		return extension_boundary_error('RuntimeError', '${extension_package_manager_name(state.definition)} is not installed')
 	}
-	return brew_runtime.object_value('Pathname', state.executable)
+	return ruby.object_value('Pathname', state.executable)
 }
 
 // Ruby method `self.package_manager_env(executable)` at line 67.
-pub fn ruby_extension_l67_d11_self_package_manager_env(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extension_l67_d11_self_package_manager_env(args ...ruby.Value) ruby.Value {
 	state := extension_state_from_boundary(args) or {
 		return extension_boundary_error('ArgumentError', err.msg())
 	}
@@ -443,7 +443,7 @@ pub fn ruby_extension_l67_d11_self_package_manager_env(args ...brew_runtime.Valu
 }
 
 // Ruby method `self.with_package_manager_env(&_blk)` at line 76.
-pub fn ruby_extension_l76_d12_self_with_package_manager_env(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extension_l76_d12_self_with_package_manager_env(args ...ruby.Value) ruby.Value {
 	state := extension_state_from_boundary(args) or {
 		return extension_boundary_error('ArgumentError', err.msg())
 	}
@@ -457,117 +457,117 @@ pub fn ruby_extension_l76_d12_self_with_package_manager_env(args ...brew_runtime
 }
 
 // Ruby method `self.package_description` at line 82.
-pub fn ruby_extension_l82_d13_self_package_description(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extension_l82_d13_self_package_description(args ...ruby.Value) ruby.Value {
 	definition := extension_definition_from_boundary(args) or {
 		return extension_boundary_error('ArgumentError', err.msg())
 	}
-	return brew_runtime.string_value(extension_package_description(definition))
+	return ruby.string_value(extension_package_description(definition))
 }
 
 // Ruby method `self.dump_supported?` at line 87.
-pub fn ruby_extension_l87_d14_self_dump_supported(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(true)
+pub fn ruby_extension_l87_d14_self_dump_supported(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(true)
 }
 
 // Ruby method `self.dump_disable_description` at line 92.
-pub fn ruby_extension_l92_d15_self_dump_disable_description(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extension_l92_d15_self_dump_disable_description(args ...ruby.Value) ruby.Value {
 	definition := extension_definition_from_boundary(args) or {
 		return extension_boundary_error('ArgumentError', err.msg())
 	}
-	return brew_runtime.string_value(extension_dump_disable_description(definition))
+	return ruby.string_value(extension_dump_disable_description(definition))
 }
 
 // Ruby method `self.dump_disable_env` at line 97.
-pub fn ruby_extension_l97_d16_self_dump_disable_env(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extension_l97_d16_self_dump_disable_env(args ...ruby.Value) ruby.Value {
 	definition := extension_definition_from_boundary(args) or {
 		return extension_boundary_error('ArgumentError', err.msg())
 	}
-	return brew_runtime.object_value('Symbol', extension_dump_disable_env(definition))
+	return ruby.object_value('Symbol', extension_dump_disable_env(definition))
 }
 
 // Ruby method `self.cleanup_disable_env` at line 102.
-pub fn ruby_extension_l102_d17_self_cleanup_disable_env(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extension_l102_d17_self_cleanup_disable_env(args ...ruby.Value) ruby.Value {
 	definition := extension_definition_from_boundary(args) or {
 		return extension_boundary_error('ArgumentError', err.msg())
 	}
-	return brew_runtime.object_value('Symbol', extension_cleanup_disable_env(definition))
+	return ruby.object_value('Symbol', extension_cleanup_disable_env(definition))
 }
 
 // Ruby method `self.dump_disable_supported?` at line 107.
-pub fn ruby_extension_l107_d18_self_dump_disable_supported(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(true)
+pub fn ruby_extension_l107_d18_self_dump_disable_supported(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(true)
 }
 
 // Ruby method `self.cleanup_disable_description` at line 112.
-pub fn ruby_extension_l112_d19_self_cleanup_disable_description(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extension_l112_d19_self_cleanup_disable_description(args ...ruby.Value) ruby.Value {
 	definition := extension_definition_from_boundary(args) or {
 		return extension_boundary_error('ArgumentError', err.msg())
 	}
-	return brew_runtime.string_value(extension_cleanup_disable_description(definition))
+	return ruby.string_value(extension_cleanup_disable_description(definition))
 }
 
 // Ruby method `self.dump_disable_predicate_method` at line 117.
-pub fn ruby_extension_l117_d20_self_dump_disable_predicate_method(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extension_l117_d20_self_dump_disable_predicate_method(args ...ruby.Value) ruby.Value {
 	definition := extension_definition_from_boundary(args) or {
 		return extension_boundary_error('ArgumentError', err.msg())
 	}
-	return brew_runtime.object_value('Symbol', extension_disable_predicate_method(definition))
+	return ruby.object_value('Symbol', extension_disable_predicate_method(definition))
 }
 
 // Ruby method `self.disable_predicate_method` at line 122.
-pub fn ruby_extension_l122_d21_self_disable_predicate_method(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extension_l122_d21_self_disable_predicate_method(args ...ruby.Value) ruby.Value {
 	definition := extension_definition_from_boundary(args) or {
 		return extension_boundary_error('ArgumentError', err.msg())
 	}
-	return brew_runtime.object_value('Symbol', extension_disable_predicate_method(definition))
+	return ruby.object_value('Symbol', extension_disable_predicate_method(definition))
 }
 
 // Ruby method `self.add_supported?` at line 127.
-pub fn ruby_extension_l127_d22_self_add_supported(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(true)
+pub fn ruby_extension_l127_d22_self_add_supported(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(true)
 }
 
 // Ruby method `self.remove_supported?` at line 132.
-pub fn ruby_extension_l132_d23_self_remove_supported(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(true)
+pub fn ruby_extension_l132_d23_self_remove_supported(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(true)
 }
 
 // Ruby method `self.install_supported?` at line 137.
-pub fn ruby_extension_l137_d24_self_install_supported(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(true)
+pub fn ruby_extension_l137_d24_self_install_supported(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(true)
 }
 
 // Ruby method `self.install_verb(_name = "", _options = {})` at line 142.
-pub fn ruby_extension_l142_d25_self_install_verb(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('Installing')
+pub fn ruby_extension_l142_d25_self_install_verb(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('Installing')
 }
 
 // Ruby method `self.fetchable_name(name, options = {}, no_upgrade: false)` at line 153.
-pub fn ruby_extension_l153_d26_self_fetchable_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', '')
+pub fn ruby_extension_l153_d26_self_fetchable_name(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('NilClass', '')
 }
 
 // Ruby method `self.cleanup_heading` at line 162.
-pub fn ruby_extension_l162_d27_self_cleanup_heading(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extension_l162_d27_self_cleanup_heading(args ...ruby.Value) ruby.Value {
 	definition := extension_definition_from_boundary(args) or {
 		return extension_boundary_error('ArgumentError', err.msg())
 	}
 	if heading := definition.cleanup_heading {
-		return brew_runtime.string_value(heading)
+		return ruby.string_value(heading)
 	}
-	return brew_runtime.object_value('NilClass', '')
+	return ruby.object_value('NilClass', '')
 }
 
 // Ruby method `self.cleanup_supported?` at line 167.
-pub fn ruby_extension_l167_d28_self_cleanup_supported(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extension_l167_d28_self_cleanup_supported(args ...ruby.Value) ruby.Value {
 	definition := extension_definition_from_boundary(args) or {
 		return extension_boundary_error('ArgumentError', err.msg())
 	}
-	return brew_runtime.bool_value(extension_cleanup_supported(definition))
+	return ruby.bool_value(extension_cleanup_supported(definition))
 }
 
 // Ruby method `self.reset!; end` at line 172.
-pub fn ruby_extension_l172_d29_self_reset(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extension_l172_d29_self_reset(args ...ruby.Value) ruby.Value {
 	mut state := extension_state_from_boundary(args) or {
 		return extension_boundary_error('ArgumentError', err.msg())
 	}
@@ -578,7 +578,7 @@ pub fn ruby_extension_l172_d29_self_reset(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby method `self.packages; end` at line 175.
-pub fn ruby_extension_l175_d30_self_packages(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extension_l175_d30_self_packages(args ...ruby.Value) ruby.Value {
 	state := extension_state_from_boundary(args) or {
 		return extension_boundary_error('ArgumentError', err.msg())
 	}
@@ -586,7 +586,7 @@ pub fn ruby_extension_l175_d30_self_packages(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby method `self.installed_packages; end` at line 178.
-pub fn ruby_extension_l178_d31_self_installed_packages(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extension_l178_d31_self_installed_packages(args ...ruby.Value) ruby.Value {
 	state := extension_state_from_boundary(args) or {
 		return extension_boundary_error('ArgumentError', err.msg())
 	}
@@ -594,55 +594,55 @@ pub fn ruby_extension_l178_d31_self_installed_packages(args ...brew_runtime.Valu
 }
 
 // Ruby method `self.dump_entry(package)` at line 181.
-pub fn ruby_extension_l181_d32_self_dump_entry(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extension_l181_d32_self_dump_entry(args ...ruby.Value) ruby.Value {
 	definition := extension_definition_from_boundary(args) or {
 		return extension_boundary_error('ArgumentError', err.msg())
 	}
 	if args.len < 2 {
 		return extension_boundary_error('ArgumentError', 'package is required')
 	}
-	return brew_runtime.string_value(extension_dump_entry(definition, extension_package_from_value(args[1])))
+	return ruby.string_value(extension_dump_entry(definition, extension_package_from_value(args[1])))
 }
 
 // Ruby method `self.quote(value)` at line 191.
-pub fn ruby_extension_l191_d33_self_quote(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extension_l191_d33_self_quote(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return extension_boundary_error('ArgumentError', 'value is required')
 	}
-	return brew_runtime.string_value(extension_quote(args[0].as_string()))
+	return ruby.string_value(extension_quote(args[0].as_string()))
 }
 
 // Ruby method `self.dump_name(package)` at line 196.
-pub fn ruby_extension_l196_d34_self_dump_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extension_l196_d34_self_dump_name(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return extension_boundary_error('ArgumentError', 'package is required')
 	}
-	return brew_runtime.string_value(extension_package_from_value(args[0]).name)
+	return ruby.string_value(extension_package_from_value(args[0]).name)
 }
 
 // Ruby method `self.dump_with(_package)` at line 201.
-pub fn ruby_extension_l201_d35_self_dump_with(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', '')
+pub fn ruby_extension_l201_d35_self_dump_with(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('NilClass', '')
 }
 
 // Ruby method `self.dump` at line 206.
-pub fn ruby_extension_l206_d36_self_dump(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extension_l206_d36_self_dump(args ...ruby.Value) ruby.Value {
 	state := extension_state_from_boundary(args) or {
 		return extension_boundary_error('ArgumentError', err.msg())
 	}
-	return brew_runtime.string_value(extension_dump(state))
+	return ruby.string_value(extension_dump(state))
 }
 
 // Ruby method `self.dump_output(describe: false, no_restart: false)` at line 211.
-pub fn ruby_extension_l211_d37_self_dump_output(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extension_l211_d37_self_dump_output(args ...ruby.Value) ruby.Value {
 	state := extension_state_from_boundary(args) or {
 		return extension_boundary_error('ArgumentError', err.msg())
 	}
-	return brew_runtime.string_value(extension_dump(state))
+	return ruby.string_value(extension_dump(state))
 }
 
 // Ruby method `self.check(entries, exit_on_first_error: false, no_upgrade: false, verbose: false)` at line 226.
-pub fn ruby_extension_l226_d38_self_check(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extension_l226_d38_self_check(args ...ruby.Value) ruby.Value {
 	if args.len < 6 {
 		return extension_boundary_error('ArgumentError', 'find_actionable collaborator result is required')
 	}
@@ -650,12 +650,12 @@ pub fn ruby_extension_l226_d38_self_check(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby method `self.cleanup_items(entries)` at line 231.
-pub fn ruby_extension_l231_d39_self_cleanup_items(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extension_l231_d39_self_cleanup_items(args ...ruby.Value) ruby.Value {
 	state := extension_state_from_boundary(args) or {
 		return extension_boundary_error('ArgumentError', err.msg())
 	}
 	if state.executable == '' {
-		return brew_runtime.string_array_value([])
+		return ruby.string_array_value([])
 	}
 	entries := if args.len > 1 { extension_entries_from_value(args[1]) } else { []ExtensionEntry{} }
 	mut kept := []string{}
@@ -665,26 +665,26 @@ pub fn ruby_extension_l231_d39_self_cleanup_items(args ...brew_runtime.Value) br
 		}
 	}
 	if kept.len == 0 {
-		return brew_runtime.string_array_value([])
+		return ruby.string_array_value([])
 	}
-	return brew_runtime.string_array_value(state.packages.filter(it.name !in kept).map(it.name))
+	return ruby.string_array_value(state.packages.filter(it.name !in kept).map(it.name))
 }
 
 // Ruby method `self.cleanup_item_name(item)` at line 245.
-pub fn ruby_extension_l245_d40_self_cleanup_item_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extension_l245_d40_self_cleanup_item_name(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return extension_boundary_error('ArgumentError', 'item is required')
 	}
-	return brew_runtime.string_value(args[0].as_string())
+	return ruby.string_value(args[0].as_string())
 }
 
 // Ruby method `self.legacy_check_step` at line 250.
-pub fn ruby_extension_l250_d41_self_legacy_check_step(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Symbol', 'registered_extensions_to_install')
+pub fn ruby_extension_l250_d41_self_legacy_check_step(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Symbol', 'registered_extensions_to_install')
 }
 
 // Ruby method `self.cleanup!(items)` at line 255.
-pub fn ruby_extension_l255_d42_self_cleanup(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extension_l255_d42_self_cleanup(args ...ruby.Value) ruby.Value {
 	mut state := extension_state_from_boundary(args) or {
 		return extension_boundary_error('ArgumentError', err.msg())
 	}
@@ -699,7 +699,7 @@ pub fn ruby_extension_l255_d42_self_cleanup(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby method `self.uninstall_package!(name, executable: Pathname.new(""))` at line 268.
-pub fn ruby_extension_l268_d43_self_uninstall_package(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extension_l268_d43_self_uninstall_package(args ...ruby.Value) ruby.Value {
 	definition := extension_definition_from_boundary(args) or {
 		return extension_boundary_error('ArgumentError', err.msg())
 	}
@@ -707,7 +707,7 @@ pub fn ruby_extension_l268_d43_self_uninstall_package(args ...brew_runtime.Value
 }
 
 // Ruby method `self.package_record(name, with: nil)` at line 273.
-pub fn ruby_extension_l273_d44_self_package_record(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extension_l273_d44_self_package_record(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return extension_boundary_error('ArgumentError', 'name is required')
 	}
@@ -719,7 +719,7 @@ pub fn ruby_extension_l273_d44_self_package_record(args ...brew_runtime.Value) b
 }
 
 // Ruby method `self.package_installed?(name, with: nil)` at line 280.
-pub fn ruby_extension_l280_d45_self_package_installed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extension_l280_d45_self_package_installed(args ...ruby.Value) ruby.Value {
 	state := extension_state_from_boundary(args) or {
 		return extension_boundary_error('ArgumentError', err.msg())
 	}
@@ -727,11 +727,11 @@ pub fn ruby_extension_l280_d45_self_package_installed(args ...brew_runtime.Value
 		return extension_boundary_error('ArgumentError', 'name is required')
 	}
 	with := if args.len > 2 { args[2].as_string_array() or { [] } } else { [] }
-	return brew_runtime.bool_value(extension_package_installed(state, args[1].as_string(), with))
+	return ruby.bool_value(extension_package_installed(state, args[1].as_string(), with))
 }
 
 // Ruby method `self.preinstall!(name, with: nil, no_upgrade: false, verbose: false, **_options)` at line 293.
-pub fn ruby_extension_l293_d46_self_preinstall(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extension_l293_d46_self_preinstall(args ...ruby.Value) ruby.Value {
 	mut state := extension_state_from_boundary(args) or {
 		return extension_boundary_error('ArgumentError', err.msg())
 	}
@@ -753,13 +753,13 @@ pub fn ruby_extension_l293_d46_self_preinstall(args ...brew_runtime.Value) brew_
 		if verbose {
 			state.output << 'Skipping install of ${name} ${extension_package_description(state.definition)}. It is already installed.'
 		}
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
 // Ruby method `self.ensure_package_manager_installed!(name, verbose: false)` at line 307.
-pub fn ruby_extension_l307_d47_self_ensure_package_manager_installed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extension_l307_d47_self_ensure_package_manager_installed(args ...ruby.Value) ruby.Value {
 	mut state := extension_state_from_boundary(args) or {
 		return extension_boundary_error('ArgumentError', err.msg())
 	}
@@ -781,7 +781,7 @@ pub fn ruby_extension_l307_d47_self_ensure_package_manager_installed(args ...bre
 }
 
 // Ruby method `self.install!(name, with: nil, preinstall: true, no_upgrade: false, verbose: false, force: false,` at line 339.
-pub fn ruby_extension_l339_d48_self_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extension_l339_d48_self_install(args ...ruby.Value) ruby.Value {
 	mut state := extension_state_from_boundary(args) or {
 		return extension_boundary_error('ArgumentError', err.msg())
 	}
@@ -790,11 +790,11 @@ pub fn ruby_extension_l339_d48_self_install(args ...brew_runtime.Value) brew_run
 	}
 	preinstall := if args.len > 3 { args[3].as_bool() or { true } } else { true }
 	if !preinstall {
-		return brew_runtime.bool_value(true)
+		return ruby.bool_value(true)
 	}
 	install_result := if args.len > 7 { args[7].as_bool() or { false } } else { false }
 	if !install_result {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	with := if args.len > 2 { args[2].as_string_array() or { [] } } else { [] }
 	package := extension_package_record(args[1].as_string(), with)
@@ -808,29 +808,29 @@ pub fn ruby_extension_l339_d48_self_install(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby method `failure_reason(package, no_upgrade:)` at line 356.
-pub fn ruby_extension_l356_d49_failure_reason(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extension_l356_d49_failure_reason(args ...ruby.Value) ruby.Value {
 	state := extension_state_from_boundary(args) or {
 		return extension_boundary_error('ArgumentError', err.msg())
 	}
 	if args.len < 2 {
 		return extension_boundary_error('ArgumentError', 'package is required')
 	}
-	return brew_runtime.string_value(extension_failure_reason(state, extension_package_from_value(args[1])))
+	return ruby.string_value(extension_failure_reason(state, extension_package_from_value(args[1])))
 }
 
 // Ruby method `installed_and_up_to_date?(package, no_upgrade: false)` at line 361.
-pub fn ruby_extension_l361_d50_installed_and_up_to_date(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extension_l361_d50_installed_and_up_to_date(args ...ruby.Value) ruby.Value {
 	state := extension_state_from_boundary(args) or {
 		return extension_boundary_error('ArgumentError', err.msg())
 	}
 	if args.len < 2 {
 		return extension_boundary_error('ArgumentError', 'package is required')
 	}
-	return brew_runtime.bool_value(extension_installed_and_up_to_date(state, extension_package_from_value(args[1])))
+	return ruby.bool_value(extension_installed_and_up_to_date(state, extension_package_from_value(args[1])))
 }
 
 // Ruby method `self.install_package!(name, with: nil, verbose: false)` at line 372.
-pub fn ruby_extension_l372_d51_self_install_package(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extension_l372_d51_self_install_package(args ...ruby.Value) ruby.Value {
 	definition := extension_definition_from_boundary(args) or {
 		return extension_boundary_error('ArgumentError', err.msg())
 	}
@@ -838,7 +838,7 @@ pub fn ruby_extension_l372_d51_self_install_package(args ...brew_runtime.Value) 
 }
 
 // Ruby method `register_extension(extension)` at line 383.
-pub fn ruby_extension_l383_d52_register_extension(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extension_l383_d52_register_extension(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return extension_boundary_error('ArgumentError', 'extension is required')
 	}
@@ -852,7 +852,7 @@ pub fn ruby_extension_l383_d52_register_extension(args ...brew_runtime.Value) br
 }
 
 // Ruby method `extensions` at line 390.
-pub fn ruby_extension_l390_d53_extensions(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extension_l390_d53_extensions(args ...ruby.Value) ruby.Value {
 	registry := if args.len > 0 {
 		extension_registry_from_value(args[0])
 	} else {
@@ -862,7 +862,7 @@ pub fn ruby_extension_l390_d53_extensions(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby method `extension(type)` at line 396.
-pub fn ruby_extension_l396_d54_extension(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extension_l396_d54_extension(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		return extension_boundary_error('ArgumentError', 'registry and type are required')
 	}
@@ -870,11 +870,11 @@ pub fn ruby_extension_l396_d54_extension(args ...brew_runtime.Value) brew_runtim
 	if definition := registered_extension(registry, args[1].as_string()) {
 		return extension_definition_value(definition)
 	}
-	return brew_runtime.object_value('NilClass', '')
+	return ruby.object_value('NilClass', '')
 }
 
 // Ruby method `installable(type)` at line 406.
-pub fn ruby_extension_l406_d55_installable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extension_l406_d55_installable(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		return extension_boundary_error('ArgumentError', 'registry and type are required')
 	}
@@ -882,26 +882,26 @@ pub fn ruby_extension_l406_d55_installable(args ...brew_runtime.Value) brew_runt
 	if definition := extension_installable(registry, args[1].as_string()) {
 		return extension_definition_value(definition)
 	}
-	return brew_runtime.object_value('NilClass', '')
+	return ruby.object_value('NilClass', '')
 }
 
-pub fn extension_definition_value(definition ExtensionDefinition) brew_runtime.Value {
+pub fn extension_definition_value(definition ExtensionDefinition) ruby.Value {
 	cleanup_heading := if heading := definition.cleanup_heading {
-		brew_runtime.string_value(heading)
+		ruby.string_value(heading)
 	} else {
-		brew_runtime.object_value('NilClass', '')
+		ruby.object_value('NilClass', '')
 	}
-	return brew_runtime.map_value({
-		'class_name':      brew_runtime.string_value(definition.class_name)
-		'type_name':       brew_runtime.string_value(definition.type_name)
-		'banner_name':     brew_runtime.string_value(definition.banner_name)
-		'check_label':     brew_runtime.string_value(definition.check_label)
-		'original_paths':  brew_runtime.string_array_value(definition.original_paths)
+	return ruby.map_value({
+		'class_name':      ruby.string_value(definition.class_name)
+		'type_name':       ruby.string_value(definition.type_name)
+		'banner_name':     ruby.string_value(definition.banner_name)
+		'check_label':     ruby.string_value(definition.check_label)
+		'original_paths':  ruby.string_array_value(definition.original_paths)
 		'cleanup_heading': cleanup_heading
 	})
 }
 
-pub fn extension_definition_from_value(value brew_runtime.Value) ExtensionDefinition {
+pub fn extension_definition_from_value(value ruby.Value) ExtensionDefinition {
 	values := value.as_map() or {
 		return ExtensionDefinition{
 			class_name: value.type_name
@@ -925,14 +925,14 @@ pub fn extension_definition_from_value(value brew_runtime.Value) ExtensionDefini
 	}
 }
 
-pub fn extension_package_value(package ExtensionPackage) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'name': brew_runtime.string_value(package.name)
-		'with': brew_runtime.string_array_value(package.with)
+pub fn extension_package_value(package ExtensionPackage) ruby.Value {
+	return ruby.map_value({
+		'name': ruby.string_value(package.name)
+		'with': ruby.string_array_value(package.with)
 	})
 }
 
-pub fn extension_package_from_value(value brew_runtime.Value) ExtensionPackage {
+pub fn extension_package_from_value(value ruby.Value) ExtensionPackage {
 	values := value.as_map() or {
 		return ExtensionPackage{
 			name: value.as_string()
@@ -944,52 +944,52 @@ pub fn extension_package_from_value(value brew_runtime.Value) ExtensionPackage {
 	}
 }
 
-pub fn extension_packages_value(packages []ExtensionPackage) brew_runtime.Value {
-	return brew_runtime.array_value(packages.map(extension_package_value(it)))
+pub fn extension_packages_value(packages []ExtensionPackage) ruby.Value {
+	return ruby.array_value(packages.map(extension_package_value(it)))
 }
 
-fn extension_packages_from_value(value brew_runtime.Value) []ExtensionPackage {
+fn extension_packages_from_value(value ruby.Value) []ExtensionPackage {
 	values := value.as_array() or { return [] }
 	return values.map(extension_package_from_value(it))
 }
 
-pub fn extension_entry_value(entry ExtensionEntry) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'type':    brew_runtime.object_value('Symbol', entry.entry_type)
-		'name':    brew_runtime.string_value(entry.name)
-		'options': brew_runtime.map_value(entry.options)
+pub fn extension_entry_value(entry ExtensionEntry) ruby.Value {
+	return ruby.map_value({
+		'type':    ruby.object_value('Symbol', entry.entry_type)
+		'name':    ruby.string_value(entry.name)
+		'options': ruby.map_value(entry.options)
 	})
 }
 
-pub fn extension_entry_from_value(value brew_runtime.Value) ExtensionEntry {
+pub fn extension_entry_from_value(value ruby.Value) ExtensionEntry {
 	values := value.as_map() or { return ExtensionEntry{} }
 	return ExtensionEntry{
 		entry_type: if 'type' in values { values['type'].as_string() } else { '' }
 		name: if 'name' in values { values['name'].as_string() } else { '' }
 		options: if 'options' in values {
-			values['options'].as_map() or { map[string]brew_runtime.Value{} }} else {
-			map[string]brew_runtime.Value{}}
+			values['options'].as_map() or { map[string]ruby.Value{} }} else {
+			map[string]ruby.Value{}}
 	}
 }
 
-fn extension_entries_from_value(value brew_runtime.Value) []ExtensionEntry {
+fn extension_entries_from_value(value ruby.Value) []ExtensionEntry {
 	values := value.as_array() or { return [] }
 	return values.map(extension_entry_from_value(it))
 }
 
-pub fn extension_state_value(state ExtensionState) brew_runtime.Value {
-	return brew_runtime.map_value({
+pub fn extension_state_value(state ExtensionState) ruby.Value {
+	return ruby.map_value({
 		'_definition':        extension_definition_value(state.definition)
-		'executable':         brew_runtime.string_value(state.executable)
+		'executable':         ruby.string_value(state.executable)
 		'packages':           extension_packages_value(state.packages)
 		'installed_packages': extension_packages_value(state.installed_packages)
-		'output':             brew_runtime.string_array_value(state.output)
-		'uninstalled':        brew_runtime.string_array_value(state.uninstalled)
-		'reset_count':        brew_runtime.int_value(state.reset_count)
+		'output':             ruby.string_array_value(state.output)
+		'uninstalled':        ruby.string_array_value(state.uninstalled)
+		'reset_count':        ruby.int_value(state.reset_count)
 	})
 }
 
-pub fn extension_state_from_value(value brew_runtime.Value) ExtensionState {
+pub fn extension_state_from_value(value ruby.Value) ExtensionState {
 	values := value.as_map() or {
 		return ExtensionState{
 			definition: extension_definition_from_value(value)
@@ -1014,23 +1014,23 @@ pub fn extension_state_from_value(value brew_runtime.Value) ExtensionState {
 	}
 }
 
-pub fn extension_definitions_value(definitions []ExtensionDefinition) brew_runtime.Value {
-	return brew_runtime.array_value(definitions.map(extension_definition_value(it)))
+pub fn extension_definitions_value(definitions []ExtensionDefinition) ruby.Value {
+	return ruby.array_value(definitions.map(extension_definition_value(it)))
 }
 
-fn extension_definitions_from_value(value brew_runtime.Value) []ExtensionDefinition {
+fn extension_definitions_from_value(value ruby.Value) []ExtensionDefinition {
 	values := value.as_array() or { return [] }
 	return values.map(extension_definition_from_value(it))
 }
 
-pub fn extension_registry_value(registry ExtensionRegistry) brew_runtime.Value {
-	return brew_runtime.map_value({
+pub fn extension_registry_value(registry ExtensionRegistry) ruby.Value {
+	return ruby.map_value({
 		'extensions':    extension_definitions_value(registry.extensions)
 		'package_types': extension_definitions_value(registry.package_types)
 	})
 }
 
-pub fn extension_registry_from_value(value brew_runtime.Value) ExtensionRegistry {
+pub fn extension_registry_from_value(value ruby.Value) ExtensionRegistry {
 	values := value.as_map() or { return ExtensionRegistry{} }
 	return ExtensionRegistry{
 		extensions: if 'extensions' in values {
@@ -1042,30 +1042,30 @@ pub fn extension_registry_from_value(value brew_runtime.Value) ExtensionRegistry
 	}
 }
 
-fn extension_state_from_boundary(args []brew_runtime.Value) !ExtensionState {
+fn extension_state_from_boundary(args []ruby.Value) !ExtensionState {
 	if args.len == 0 {
 		return error('extension receiver is required')
 	}
 	return extension_state_from_value(args[0])
 }
 
-fn extension_definition_from_boundary(args []brew_runtime.Value) !ExtensionDefinition {
+fn extension_definition_from_boundary(args []ruby.Value) !ExtensionDefinition {
 	if args.len == 0 {
 		return error('extension receiver is required')
 	}
 	return extension_definition_from_value(args[0])
 }
 
-fn extension_string_map_value(values map[string]string) brew_runtime.Value {
-	mut result := map[string]brew_runtime.Value{}
+fn extension_string_map_value(values map[string]string) ruby.Value {
+	mut result := map[string]ruby.Value{}
 	for key, value in values {
-		result[key] = brew_runtime.string_value(value)
+		result[key] = ruby.string_value(value)
 	}
-	return brew_runtime.map_value(result)
+	return ruby.map_value(result)
 }
 
-fn extension_boundary_error(type_name string, message string) brew_runtime.Value {
-	return brew_runtime.object_value(type_name, message)
+fn extension_boundary_error(type_name string, message string) ruby.Value {
+	return ruby.object_value(type_name, message)
 }
 
 // Original Ruby source (line-for-line):

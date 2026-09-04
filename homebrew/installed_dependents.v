@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `installed_dependents.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -198,8 +198,8 @@ pub fn find_some_installed_dependents(context InstalledDependentsContext) ?Insta
 	}
 }
 
-pub fn installed_dependent_keg_value(keg InstalledDependentKeg) brew_runtime.Value {
-	return brew_runtime.structured_value('Keg', keg.id, {
+pub fn installed_dependent_keg_value(keg InstalledDependentKeg) ruby.Value {
+	return ruby.structured_value('Keg', keg.id, {
 		'id':               keg.id
 		'name':             keg.name
 		'version':          keg.version
@@ -212,7 +212,7 @@ pub fn installed_dependent_keg_value(keg InstalledDependentKeg) brew_runtime.Val
 	})
 }
 
-fn installed_dependent_keg_from_value(value brew_runtime.Value) InstalledDependentKeg {
+fn installed_dependent_keg_from_value(value ruby.Value) InstalledDependentKeg {
 	return InstalledDependentKeg{
 		id: value.attributes['id'] or { value.repr }
 		name: value.attributes['name'] or { value.repr }
@@ -226,22 +226,22 @@ fn installed_dependent_keg_from_value(value brew_runtime.Value) InstalledDepende
 	}
 }
 
-fn installed_dependency_value(dependency InstalledDependentDependency) brew_runtime.Value {
-	return brew_runtime.structured_value('Dependency', dependency.full_name, {
+fn installed_dependency_value(dependency InstalledDependentDependency) ruby.Value {
+	return ruby.structured_value('Dependency', dependency.full_name, {
 		'full_name': dependency.full_name
 		'tap':       dependency.tap
 	})
 }
 
-fn installed_dependency_from_value(value brew_runtime.Value) InstalledDependentDependency {
+fn installed_dependency_from_value(value ruby.Value) InstalledDependentDependency {
 	return InstalledDependentDependency{
 		full_name: value.attributes['full_name'] or { value.repr }
 		tap: value.attributes['tap'] or { '' }
 	}
 }
 
-pub fn installed_dependent_formula_value(formula InstalledDependentFormula) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn installed_dependent_formula_value(formula InstalledDependentFormula) ruby.Value {
+	return ruby.Value{
 		type_name: 'Formula'
 		repr: if formula.display_name == '' { formula.name } else { formula.display_name }
 		attributes: {
@@ -255,7 +255,7 @@ pub fn installed_dependent_formula_value(formula InstalledDependentFormula) brew
 	}
 }
 
-fn installed_dependent_formula_from_value(value brew_runtime.Value) InstalledDependentFormula {
+fn installed_dependent_formula_from_value(value ruby.Value) InstalledDependentFormula {
 	return InstalledDependentFormula{
 		name: value.attributes['name'] or { value.repr }
 		tap: value.attributes['tap'] or { '' }
@@ -266,8 +266,8 @@ fn installed_dependent_formula_from_value(value brew_runtime.Value) InstalledDep
 	}
 }
 
-pub fn installed_dependent_cask_value(cask InstalledDependentCask) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn installed_dependent_cask_value(cask InstalledDependentCask) ruby.Value {
+	return ruby.Value{
 		type_name: 'Cask::Cask'
 		repr: if cask.display_name == '' { cask.token } else { cask.display_name }
 		attributes: {
@@ -278,7 +278,7 @@ pub fn installed_dependent_cask_value(cask InstalledDependentCask) brew_runtime.
 	}
 }
 
-fn installed_dependent_cask_from_value(value brew_runtime.Value) InstalledDependentCask {
+fn installed_dependent_cask_from_value(value ruby.Value) InstalledDependentCask {
 	return InstalledDependentCask{
 		token: value.attributes['token'] or { value.repr }
 		display_name: value.attributes['display_name'] or { value.repr }
@@ -286,46 +286,46 @@ fn installed_dependent_cask_from_value(value brew_runtime.Value) InstalledDepend
 	}
 }
 
-pub fn installed_dependents_context_value(context InstalledDependentsContext) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn installed_dependents_context_value(context InstalledDependentsContext) ruby.Value {
+	return ruby.Value{
 		type_name: 'InstalledDependents::Context'
 		repr: 'installed dependents context'
 		map_data: {
-			'kegs':               brew_runtime.array_value(context.kegs.map(installed_dependent_keg_value(it)))
-			'installed_formulae': brew_runtime.array_value(context.installed_formulae.map(installed_dependent_formula_value(it)))
-			'installed_casks':    brew_runtime.array_value(context.installed_casks.map(installed_dependent_cask_value(it)))
-			'excluded_casks':     brew_runtime.string_array_value(context.excluded_casks)
+			'kegs':               ruby.array_value(context.kegs.map(installed_dependent_keg_value(it)))
+			'installed_formulae': ruby.array_value(context.installed_formulae.map(installed_dependent_formula_value(it)))
+			'installed_casks':    ruby.array_value(context.installed_casks.map(installed_dependent_cask_value(it)))
+			'excluded_casks':     ruby.string_array_value(context.excluded_casks)
 		}
 	}
 }
 
-fn installed_dependents_context_from_value(value brew_runtime.Value) !InstalledDependentsContext {
+fn installed_dependents_context_from_value(value ruby.Value) !InstalledDependentsContext {
 	if value.type_name != 'InstalledDependents::Context' {
 		return error('expected InstalledDependents::Context')
 	}
 	values := value.map_data.clone()
 	return InstalledDependentsContext{
-		kegs: (values['kegs'] or { brew_runtime.array_value([]) }).as_array()!.map(installed_dependent_keg_from_value(it))
-		installed_formulae: (values['installed_formulae'] or { brew_runtime.array_value([]) }).as_array()!.map(installed_dependent_formula_from_value(it))
-		installed_casks: (values['installed_casks'] or { brew_runtime.array_value([]) }).as_array()!.map(installed_dependent_cask_from_value(it))
-		excluded_casks: (values['excluded_casks'] or { brew_runtime.string_array_value([]) }).as_string_array()!
+		kegs: (values['kegs'] or { ruby.array_value([]) }).as_array()!.map(installed_dependent_keg_from_value(it))
+		installed_formulae: (values['installed_formulae'] or { ruby.array_value([]) }).as_array()!.map(installed_dependent_formula_from_value(it))
+		installed_casks: (values['installed_casks'] or { ruby.array_value([]) }).as_array()!.map(installed_dependent_cask_from_value(it))
+		excluded_casks: (values['excluded_casks'] or { ruby.string_array_value([]) }).as_string_array()!
 	}
 }
 
 // Ruby method `find_some_installed_dependents(kegs, casks: [])` at line 26.
-pub fn ruby_installed_dependents_l26_d1_find_some_installed_dependents(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installed_dependents_l26_d1_find_some_installed_dependents(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'installed dependents context is required')
+		return ruby.object_value('ArgumentError', 'installed dependents context is required')
 	}
 	context := installed_dependents_context_from_value(args[0]) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	result := find_some_installed_dependents(context) or {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
-	return brew_runtime.array_value([
-		brew_runtime.array_value(result.required_kegs.map(installed_dependent_keg_value(it))),
-		brew_runtime.string_array_value(result.dependents),
+	return ruby.array_value([
+		ruby.array_value(result.required_kegs.map(installed_dependent_keg_value(it))),
+		ruby.string_array_value(result.dependents),
 	])
 }
 

@@ -1,6 +1,6 @@
 module rubocops
 
-import brew_runtime
+import ruby
 import homebrew.rubocops as non_public_api_core
 
 // Translated from Homebrew/brew `test/rubocops/non_public_api_usage_spec.rb`.
@@ -17,8 +17,8 @@ fn non_public_api_spec_audit(statement string, formula_tap string) []non_public_
 }
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
-pub fn ruby_non_public_api_usage_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::NonPublicApiUsage', 'FormulaAudit/NonPublicApiUsage')
+pub fn ruby_non_public_api_usage_spec_l7_d1_cop(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('RuboCop::Cop::FormulaAudit::NonPublicApiUsage', 'FormulaAudit/NonPublicApiUsage')
 }
 
 // Ruby it `it "reports an offense for using `tap` (an @api internal method)" do` at line 20.

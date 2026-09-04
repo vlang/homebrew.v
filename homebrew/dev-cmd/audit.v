@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `dev-cmd/audit.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -192,102 +192,102 @@ pub:
 	problems []AuditProblem
 }
 
-pub fn audit_run_input_boundary(input &AuditRunInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::Audit::RunInput', '', {
+pub fn audit_run_input_boundary(input &AuditRunInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::Audit::RunInput', '', {
 		'audit_run_input_address': u64(voidptr(input)).str()
 	})
 }
 
-pub fn audit_cask_for_audit_input_boundary(input &AuditCaskForAuditInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::Audit::CaskForAuditInput', '', {
+pub fn audit_cask_for_audit_input_boundary(input &AuditCaskForAuditInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::Audit::CaskForAuditInput', '', {
 		'audit_cask_for_audit_input_address': u64(voidptr(input)).str()
 	})
 }
 
-pub fn audit_print_problems_input_boundary(input &AuditPrintProblemsInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::Audit::PrintProblemsInput', '', {
+pub fn audit_print_problems_input_boundary(input &AuditPrintProblemsInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::Audit::PrintProblemsInput', '', {
 		'audit_print_problems_input_address': u64(voidptr(input)).str()
 	})
 }
 
-pub fn audit_format_problems_input_boundary(input &AuditFormatProblemsInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::Audit::FormatProblemsInput', '', {
+pub fn audit_format_problems_input_boundary(input &AuditFormatProblemsInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::Audit::FormatProblemsInput', '', {
 		'audit_format_problems_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn audit_run_input_from_value(value brew_runtime.Value) !&AuditRunInput {
+fn audit_run_input_from_value(value ruby.Value) !&AuditRunInput {
 	address := value.attributes['audit_run_input_address'] or {
 		return error('invalid Audit command input')
 	}
 	return unsafe { &AuditRunInput(voidptr(address.u64())) }
 }
 
-fn audit_cask_for_audit_input_from_value(value brew_runtime.Value) !&AuditCaskForAuditInput {
+fn audit_cask_for_audit_input_from_value(value ruby.Value) !&AuditCaskForAuditInput {
 	address := value.attributes['audit_cask_for_audit_input_address'] or {
 		return error('invalid Audit cask input')
 	}
 	return unsafe { &AuditCaskForAuditInput(voidptr(address.u64())) }
 }
 
-fn audit_print_problems_input_from_value(value brew_runtime.Value) !&AuditPrintProblemsInput {
+fn audit_print_problems_input_from_value(value ruby.Value) !&AuditPrintProblemsInput {
 	address := value.attributes['audit_print_problems_input_address'] or {
 		return error('invalid Audit print input')
 	}
 	return unsafe { &AuditPrintProblemsInput(voidptr(address.u64())) }
 }
 
-fn audit_format_problems_input_from_value(value brew_runtime.Value) !&AuditFormatProblemsInput {
+fn audit_format_problems_input_from_value(value ruby.Value) !&AuditFormatProblemsInput {
 	address := value.attributes['audit_format_problems_input_address'] or {
 		return error('invalid Audit format input')
 	}
 	return unsafe { &AuditFormatProblemsInput(voidptr(address.u64())) }
 }
 
-fn audit_problem_value(problem AuditProblem) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'message':      brew_runtime.string_value(problem.message)
-		'corrected':    brew_runtime.bool_value(problem.corrected)
-		'has_location': brew_runtime.bool_value(problem.location.has_location)
-		'line':         brew_runtime.int_value(problem.location.line)
-		'column':       brew_runtime.int_value(problem.location.column)
+fn audit_problem_value(problem AuditProblem) ruby.Value {
+	return ruby.map_value({
+		'message':      ruby.string_value(problem.message)
+		'corrected':    ruby.bool_value(problem.corrected)
+		'has_location': ruby.bool_value(problem.location.has_location)
+		'line':         ruby.int_value(problem.location.line)
+		'column':       ruby.int_value(problem.location.column)
 	})
 }
 
-fn audit_cask_value(cask AuditCask) brew_runtime.Value {
-	return brew_runtime.structured_value('Cask::Cask', cask.full_name, {
+fn audit_cask_value(cask AuditCask) ruby.Value {
+	return ruby.structured_value('Cask::Cask', cask.full_name, {
 		'full_name':    cask.full_name
 		'path':         cask.path
 		'refreshed_os': cask.refreshed_os
 	})
 }
 
-fn audit_run_result_value(result AuditRunResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'stdout':                  brew_runtime.string_array_value(result.stdout)
-		'stderr':                  brew_runtime.string_array_value(result.stderr)
-		'gem_groups':              brew_runtime.string_array_value(result.gem_groups)
-		'selected_formulae':       brew_runtime.string_array_value(result.selected_formulae)
-		'selected_casks':          brew_runtime.string_array_value(result.selected_casks)
-		'strict':                  brew_runtime.bool_value(result.strict)
-		'online':                  brew_runtime.bool_value(result.online)
-		'tap_audit':               brew_runtime.bool_value(result.tap_audit)
-		'skip_style':              brew_runtime.bool_value(result.skip_style)
-		'no_named_args':           brew_runtime.bool_value(result.no_named_args)
-		'style_files':             brew_runtime.string_array_value(result.style_files)
-		'style_only_cops':         brew_runtime.string_array_value(result.style_only_cops)
-		'style_except_cops':       brew_runtime.string_array_value(result.style_except_cops)
-		'formula_only':            brew_runtime.string_array_value(result.formula_only)
-		'api_access_enabled':      brew_runtime.bool_value(result.api_access_enabled_during_external_audit)
-		'tap_problem_count':       brew_runtime.int_value(result.tap_problem_count)
-		'formula_problem_count':   brew_runtime.int_value(result.formula_problem_count)
-		'cask_problem_count':      brew_runtime.int_value(result.cask_problem_count)
-		'corrected_problem_count': brew_runtime.int_value(result.corrected_problem_count)
-		'annotations':             brew_runtime.array_value(result.annotations.map(brew_runtime.map_value({
-			'message': brew_runtime.string_value(it.message)
-			'file':    brew_runtime.string_value(it.file)
-			'line':    brew_runtime.int_value(it.line)
-			'column':  brew_runtime.int_value(it.column)
+fn audit_run_result_value(result AuditRunResult) ruby.Value {
+	return ruby.map_value({
+		'stdout':                  ruby.string_array_value(result.stdout)
+		'stderr':                  ruby.string_array_value(result.stderr)
+		'gem_groups':              ruby.string_array_value(result.gem_groups)
+		'selected_formulae':       ruby.string_array_value(result.selected_formulae)
+		'selected_casks':          ruby.string_array_value(result.selected_casks)
+		'strict':                  ruby.bool_value(result.strict)
+		'online':                  ruby.bool_value(result.online)
+		'tap_audit':               ruby.bool_value(result.tap_audit)
+		'skip_style':              ruby.bool_value(result.skip_style)
+		'no_named_args':           ruby.bool_value(result.no_named_args)
+		'style_files':             ruby.string_array_value(result.style_files)
+		'style_only_cops':         ruby.string_array_value(result.style_only_cops)
+		'style_except_cops':       ruby.string_array_value(result.style_except_cops)
+		'formula_only':            ruby.string_array_value(result.formula_only)
+		'api_access_enabled':      ruby.bool_value(result.api_access_enabled_during_external_audit)
+		'tap_problem_count':       ruby.int_value(result.tap_problem_count)
+		'formula_problem_count':   ruby.int_value(result.formula_problem_count)
+		'cask_problem_count':      ruby.int_value(result.cask_problem_count)
+		'corrected_problem_count': ruby.int_value(result.corrected_problem_count)
+		'annotations':             ruby.array_value(result.annotations.map(ruby.map_value({
+			'message': ruby.string_value(it.message)
+			'file':    ruby.string_value(it.file)
+			'line':    ruby.int_value(it.line)
+			'column':  ruby.int_value(it.column)
 		})))
 	})
 }
@@ -634,53 +634,53 @@ pub fn run_audit(options AuditOptions, environment AuditEnvironment) !AuditRunRe
 }
 
 // Ruby method `run` at line 98.
-pub fn ruby_audit_l98_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l98_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'command input is required')
+		return ruby.object_value('ArgumentError', 'command input is required')
 	}
 	input := audit_run_input_from_value(args[0]) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	result := run_audit(input.options, input.environment) or {
-		return brew_runtime.object_value('Error', err.msg())
+		return ruby.object_value('Error', err.msg())
 	}
 	return audit_run_result_value(result)
 }
 
 // Ruby method `cask_for_audit(path, cask_audit_os, cask_audit_arch)` at line 365.
-pub fn ruby_audit_l365_d2_cask_for_audit(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l365_d2_cask_for_audit(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'cask input is required')
+		return ruby.object_value('ArgumentError', 'cask input is required')
 	}
 	input := audit_cask_for_audit_input_from_value(args[0]) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	cask := cask_for_audit(input.cask, input.os, input.arch) or {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	return audit_cask_value(cask)
 }
 
 // Ruby method `print_problems(results)` at line 390.
-pub fn ruby_audit_l390_d3_print_problems(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l390_d3_print_problems(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'results are required')
+		return ruby.object_value('ArgumentError', 'results are required')
 	}
 	input := audit_print_problems_input_from_value(args[0]) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
-	return brew_runtime.string_array_value(print_audit_problems(input.results, input.display_filename))
+	return ruby.string_array_value(print_audit_problems(input.results, input.display_filename))
 }
 
 // Ruby method `format_problem_lines(problems)` at line 405.
-pub fn ruby_audit_l405_d4_format_problem_lines(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_audit_l405_d4_format_problem_lines(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'problems are required')
+		return ruby.object_value('ArgumentError', 'problems are required')
 	}
 	input := audit_format_problems_input_from_value(args[0]) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
-	return brew_runtime.string_array_value(format_audit_problem_lines(input.problems))
+	return ruby.string_array_value(format_audit_problem_lines(input.problems))
 }
 
 // Original Ruby source (line-for-line):

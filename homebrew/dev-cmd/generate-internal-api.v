@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 import os
 import time
 
@@ -10,15 +10,15 @@ import time
 pub struct GenerateInternalApiFormula {
 pub:
 	name              string
-	hash              map[string]brew_runtime.Value
-	serialized_by_tag map[string]map[string]brew_runtime.Value
+	hash              map[string]ruby.Value
+	serialized_by_tag map[string]map[string]ruby.Value
 }
 
 pub struct GenerateInternalApiCask {
 pub:
 	token             string
-	hash              map[string]brew_runtime.Value
-	serialized_by_tag map[string]map[string]brew_runtime.Value
+	hash              map[string]ruby.Value
+	serialized_by_tag map[string]map[string]ruby.Value
 }
 
 pub struct GenerateInternalApiOptions {
@@ -49,9 +49,9 @@ pub:
 
 pub struct GenerateInternalApiResult {
 pub:
-	formulae      map[string]map[string]brew_runtime.Value
-	casks         map[string]map[string]brew_runtime.Value
-	packages      map[string]brew_runtime.Value
+	formulae      map[string]map[string]ruby.Value
+	casks         map[string]map[string]ruby.Value
+	packages      map[string]ruby.Value
 	written_files []string
 }
 
@@ -76,12 +76,12 @@ fn generate_internal_api_remove(path string) {
 	}
 }
 
-fn generate_internal_api_string_map(values map[string]string) brew_runtime.Value {
-	mut result := map[string]brew_runtime.Value{}
+fn generate_internal_api_string_map(values map[string]string) ruby.Value {
+	mut result := map[string]ruby.Value{}
 	for key, value in values {
-		result[key] = brew_runtime.string_value(value)
+		result[key] = ruby.string_value(value)
 	}
-	return brew_runtime.map_value(result)
+	return ruby.map_value(result)
 }
 
 fn generate_internal_api_executables(contents string) map[string][]string {
@@ -139,7 +139,7 @@ pub fn run_generate_internal_api(options GenerateInternalApiOptions) !GenerateIn
 	executables_contents := os.read_file(executables_path) or { '' }
 	executables := generate_internal_api_executables(executables_contents)
 
-	mut all_formulae := map[string]map[string]brew_runtime.Value{}
+	mut all_formulae := map[string]map[string]ruby.Value{}
 	mut formula_definitions := map[string]GenerateInternalApiFormula{}
 	for requested_name in options.formula_names {
 		formula := options.formulas[requested_name] or {
@@ -148,13 +148,13 @@ pub fn run_generate_internal_api(options GenerateInternalApiOptions) !GenerateIn
 		name := formula.name
 		mut hash := formula.hash.clone()
 		if formula_executables := executables[name] {
-			hash['executables'] = brew_runtime.string_array_value(formula_executables)
+			hash['executables'] = ruby.string_array_value(formula_executables)
 		}
 		all_formulae[name] = hash.clone()
 		formula_definitions[name] = formula
 	}
 
-	mut all_casks := map[string]map[string]brew_runtime.Value{}
+	mut all_casks := map[string]map[string]ruby.Value{}
 	mut cask_definitions := map[string]GenerateInternalApiCask{}
 	for path in options.cask_files {
 		cask := options.casks[path] or {
@@ -164,51 +164,51 @@ pub fn run_generate_internal_api(options GenerateInternalApiOptions) !GenerateIn
 		cask_definitions[cask.token] = cask
 	}
 
-	mut packages := map[string]brew_runtime.Value{}
+	mut packages := map[string]ruby.Value{}
 	for bottle_tag in options.bottle_tags {
 		generated_at := if options.generated_at > 0 {
 			options.generated_at
 		} else {
 			time.now().unix()
 		}
-		mut formulae := map[string]brew_runtime.Value{}
+		mut formulae := map[string]ruby.Value{}
 		for name, hash in all_formulae {
 			formula := formula_definitions[name] or {
 				return error("Error while generating data for formula '${name}'.")
 			}
 			serialized := (formula.serialized_by_tag[bottle_tag] or { hash }).clone()
-			formulae[name] = brew_runtime.map_value(serialized)
+			formulae[name] = ruby.map_value(serialized)
 		}
 
-		mut casks := map[string]brew_runtime.Value{}
+		mut casks := map[string]ruby.Value{}
 		for token, hash in all_casks {
 			cask := cask_definitions[token] or {
 				return error("Error while generating data for cask '${token}'.")
 			}
 			serialized := (cask.serialized_by_tag[bottle_tag] or { hash }).clone()
-			casks[token] = brew_runtime.map_value(serialized)
+			casks[token] = ruby.map_value(serialized)
 		}
 
-		json_contents := brew_runtime.map_value({
-			'metadata':               brew_runtime.map_value({
-				'homebrew_version': brew_runtime.string_value(options.homebrew_version)
-				'bottle_tag':       brew_runtime.string_value(bottle_tag)
-				'generated_at':     brew_runtime.int_value(generated_at)
+		json_contents := ruby.map_value({
+			'metadata':               ruby.map_value({
+				'homebrew_version': ruby.string_value(options.homebrew_version)
+				'bottle_tag':       ruby.string_value(bottle_tag)
+				'generated_at':     ruby.int_value(generated_at)
 			})
-			'formulae':               brew_runtime.map_value(formulae)
-			'casks':                  brew_runtime.map_value(casks)
+			'formulae':               ruby.map_value(formulae)
+			'casks':                  ruby.map_value(casks)
 			'formula_aliases':        generate_internal_api_string_map(options.formula_aliases)
 			'formula_renames':        generate_internal_api_string_map(options.formula_renames)
 			'cask_renames':           generate_internal_api_string_map(options.cask_renames)
-			'formula_tap_git_head':   brew_runtime.string_value(options.formula_tap_git_head)
-			'cask_tap_git_head':      brew_runtime.string_value(options.cask_tap_git_head)
+			'formula_tap_git_head':   ruby.string_value(options.formula_tap_git_head)
+			'cask_tap_git_head':      ruby.string_value(options.cask_tap_git_head)
 			'formula_tap_migrations': generate_internal_api_string_map(options.formula_migrations)
 			'cask_tap_migrations':    generate_internal_api_string_map(options.cask_migrations)
 		})
 		packages[bottle_tag] = json_contents
 		if !options.dry_run {
 			relative_path := 'api/internal/packages.${bottle_tag}.json'
-			os.write_file(generate_internal_api_path(root, relative_path), brew_runtime.json_value_to_string(json_contents))!
+			os.write_file(generate_internal_api_path(root, relative_path), ruby.json_value_to_string(json_contents))!
 			written_files << relative_path
 		}
 	}
@@ -221,40 +221,40 @@ pub fn run_generate_internal_api(options GenerateInternalApiOptions) !GenerateIn
 	}
 }
 
-pub fn generate_internal_api_input_boundary(input &GenerateInternalApiInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::GenerateInternalApi::Input', '', {
+pub fn generate_internal_api_input_boundary(input &GenerateInternalApiInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::GenerateInternalApi::Input', '', {
 		'generate_internal_api_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn generate_internal_api_input_from_value(value brew_runtime.Value) &GenerateInternalApiInput {
+fn generate_internal_api_input_from_value(value ruby.Value) &GenerateInternalApiInput {
 	address := value.attributes['generate_internal_api_input_address'] or {
 		panic('invalid GenerateInternalApi input')
 	}
 	return unsafe { &GenerateInternalApiInput(voidptr(address.u64())) }
 }
 
-fn generate_internal_api_result_value(result GenerateInternalApiResult) brew_runtime.Value {
-	mut formulae := map[string]brew_runtime.Value{}
+fn generate_internal_api_result_value(result GenerateInternalApiResult) ruby.Value {
+	mut formulae := map[string]ruby.Value{}
 	for name, hash in result.formulae {
-		formulae[name] = brew_runtime.map_value(hash)
+		formulae[name] = ruby.map_value(hash)
 	}
-	mut casks := map[string]brew_runtime.Value{}
+	mut casks := map[string]ruby.Value{}
 	for token, hash in result.casks {
-		casks[token] = brew_runtime.map_value(hash)
+		casks[token] = ruby.map_value(hash)
 	}
-	return brew_runtime.map_value({
-		'formulae':      brew_runtime.map_value(formulae)
-		'casks':         brew_runtime.map_value(casks)
-		'packages':      brew_runtime.map_value(result.packages)
-		'written_files': brew_runtime.string_array_value(result.written_files)
+	return ruby.map_value({
+		'formulae':      ruby.map_value(formulae)
+		'casks':         ruby.map_value(casks)
+		'packages':      ruby.map_value(result.packages)
+		'written_files': ruby.string_array_value(result.written_files)
 	})
 }
 
 // Ruby method `run` at line 28.
-pub fn ruby_generate_internal_api_l28_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_internal_api_l28_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'command input is required')
+		return ruby.object_value('ArgumentError', 'command input is required')
 	}
 	input := generate_internal_api_input_from_value(args[0])
 	result := run_generate_internal_api(input.options) or {
@@ -265,7 +265,7 @@ pub fn ruby_generate_internal_api_l28_d1_run(args ...brew_runtime.Value) brew_ru
 		} else {
 			'Error'
 		}
-		return brew_runtime.object_value(error_type, err.msg())
+		return ruby.object_value(error_type, err.msg())
 	}
 	return generate_internal_api_result_value(result)
 }

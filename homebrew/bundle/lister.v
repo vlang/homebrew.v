@@ -1,14 +1,14 @@
 module bundle
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `bundle/lister.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `self.list(entries, formulae:, casks:, taps:, extension_types: {})` at line 14.
-pub fn ruby_lister_l14_d1_self_list(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lister_l14_d1_self_list(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_array_value([])
+		return ruby.string_array_value([])
 	}
 	entries := bundle_list_entries_from_value(args[0])
 	formulae := if args.len > 1 { args[1].as_bool() or { false } } else { false }
@@ -19,13 +19,13 @@ pub fn ruby_lister_l14_d1_self_list(args ...brew_runtime.Value) brew_runtime.Val
 	} else {
 		map[string]bool{}
 	}
-	return brew_runtime.string_array_value(list_bundle_entries(entries, formulae, casks, taps, extensions))
+	return ruby.string_array_value(list_bundle_entries(entries, formulae, casks, taps, extensions))
 }
 
 // Ruby method `self.show?(type, formulae:, casks:, taps:, extension_types:)` at line 25.
-pub fn ruby_lister_l25_d2_self_show(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lister_l25_d2_self_show(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	entry_type := args[0].as_string()
 	formulae := if args.len > 1 { args[1].as_bool() or { false } } else { false }
@@ -36,7 +36,7 @@ pub fn ruby_lister_l25_d2_self_show(args ...brew_runtime.Value) brew_runtime.Val
 	} else {
 		map[string]bool{}
 	}
-	return brew_runtime.bool_value(show_bundle_entry(entry_type, formulae, casks, taps, extensions))
+	return ruby.bool_value(show_bundle_entry(entry_type, formulae, casks, taps, extensions))
 }
 
 pub struct BundleListEntry {
@@ -61,19 +61,19 @@ pub fn list_bundle_entries(entries []BundleListEntry, formulae bool, casks bool,
 	return names
 }
 
-fn bundle_list_entry_from_value(value brew_runtime.Value) BundleListEntry {
+fn bundle_list_entry_from_value(value ruby.Value) BundleListEntry {
 	return BundleListEntry{
 		entry_type: value.attribute('type') or { value.attribute('entry_type') or { '' } }
 		name: value.attribute('name') or { value.as_string() }
 	}
 }
 
-fn bundle_list_entries_from_value(value brew_runtime.Value) []BundleListEntry {
+fn bundle_list_entries_from_value(value ruby.Value) []BundleListEntry {
 	values := value.as_array() or { [] }
 	return values.map(bundle_list_entry_from_value(it))
 }
 
-fn bundle_extension_types_from_value(value brew_runtime.Value) map[string]bool {
+fn bundle_extension_types_from_value(value ruby.Value) map[string]bool {
 	values := value.as_map() or { return map[string]bool{} }
 	mut extensions := map[string]bool{}
 	for name, enabled in values {

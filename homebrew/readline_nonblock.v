@@ -1,12 +1,12 @@
 module homebrew
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `readline_nonblock.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `initialize(io)` at line 12.
-pub fn ruby_readline_nonblock_l12_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_readline_nonblock_l12_d1_initialize(args ...ruby.Value) ruby.Value {
 	events := if args.len > 0 { readline_events_from_value(args[0]) } else { []ReadlineReadEvent{} }
 	return readline_nonblock_boundary_value(ReadlineNonblock{}, ReadlineNonblockSource{
 		events: events
@@ -14,9 +14,9 @@ pub fn ruby_readline_nonblock_l12_d1_initialize(args ...brew_runtime.Value) brew
 }
 
 // Ruby method `read` at line 29.
-pub fn ruby_readline_nonblock_l29_d2_read(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_readline_nonblock_l29_d2_read(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'reader state is required')
+		return ruby.object_value('ArgumentError', 'reader state is required')
 	}
 	mut reader := readline_nonblock_from_value(args[0])
 	mut source := readline_nonblock_source_from_value(args[0])
@@ -175,8 +175,8 @@ pub fn (mut reader ReadlineNonblock) read(mut source ReadlineNonblockSource) !st
 }
 
 fn readline_nonblock_boundary_value(reader ReadlineNonblock, source ReadlineNonblockSource,
-	status string, value string) brew_runtime.Value {
-	return brew_runtime.Value{
+	status string, value string) ruby.Value {
+	return ruby.Value{
 		type_name: 'ReadlineNonblock'
 		repr: value
 		array_data: source.events.map(readline_event_value(it))
@@ -193,15 +193,15 @@ fn readline_nonblock_boundary_value(reader ReadlineNonblock, source ReadlineNonb
 	}
 }
 
-fn readline_event_value(event ReadlineReadEvent) brew_runtime.Value {
+fn readline_event_value(event ReadlineReadEvent) ruby.Value {
 	return match event.kind {
-		.data { brew_runtime.string_value(event.data) }
-		.wait_readable { brew_runtime.object_value('IO::WaitReadable', '') }
-		.eof { brew_runtime.object_value('EOFError', '') }
+		.data { ruby.string_value(event.data) }
+		.wait_readable { ruby.object_value('IO::WaitReadable', '') }
+		.eof { ruby.object_value('EOFError', '') }
 	}
 }
 
-fn readline_events_from_value(value brew_runtime.Value) []ReadlineReadEvent {
+fn readline_events_from_value(value ruby.Value) []ReadlineReadEvent {
 	event_values := if value.type_name == 'Array' { value.array_data } else { value.array_data }
 	return event_values.map(match it.type_name {
 		'IO::WaitReadable' { readline_wait_readable() }
@@ -210,14 +210,14 @@ fn readline_events_from_value(value brew_runtime.Value) []ReadlineReadEvent {
 	})
 }
 
-fn readline_nonblock_from_value(value brew_runtime.Value) ReadlineNonblock {
+fn readline_nonblock_from_value(value ruby.Value) ReadlineNonblock {
 	return ReadlineNonblock{
 		buffer: value.attributes['buffer'] or { '' }
 		line: value.attributes['line'] or { '' }
 	}
 }
 
-fn readline_nonblock_source_from_value(value brew_runtime.Value) ReadlineNonblockSource {
+fn readline_nonblock_source_from_value(value ruby.Value) ReadlineNonblockSource {
 	return ReadlineNonblockSource{
 		events: readline_events_from_value(value)
 		cursor: (value.attributes['cursor'] or { '0' }).int()

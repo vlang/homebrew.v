@@ -1,6 +1,6 @@
 module requirements
 
-import brew_runtime
+import ruby
 import homebrew
 import homebrew.requirements as requirement_api
 
@@ -14,7 +14,7 @@ pub fn macos_requirement_message(requirement requirement_api.MacOSRequirement,
 	return requirement.message(dependent_type, true)
 }
 
-fn macos_requirement_from_boundary(args []brew_runtime.Value) !requirement_api.MacOSRequirement {
+fn macos_requirement_from_boundary(args []ruby.Value) !requirement_api.MacOSRequirement {
 	versions := if args.len > 0 && args[0].type_name == 'Array' {
 		args[0].as_string_array()!
 	} else {
@@ -31,20 +31,20 @@ fn macos_requirement_from_boundary(args []brew_runtime.Value) !requirement_api.M
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `macos_version_satisfied?` at line 12.
-pub fn ruby_macos_requirement_l12_d1_macos_version_satisfied(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_macos_requirement_l12_d1_macos_version_satisfied(args ...ruby.Value) ruby.Value {
 	requirement := macos_requirement_from_boundary(args) or { panic(err) }
 	current_index := if args.len > 0 && args[0].type_name == 'Array' { 2 } else { 0 }
 	current_text := if args.len > current_index { args[current_index].as_string() } else { '26.0' }
 	current := homebrew.new_macos_version(current_text) or { panic(err) }
-	return brew_runtime.bool_value(macos_requirement_satisfied(requirement, current))
+	return ruby.bool_value(macos_requirement_satisfied(requirement, current))
 }
 
 // Ruby method `message(type: :formula)` at line 17.
-pub fn ruby_macos_requirement_l17_d2_message(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_macos_requirement_l17_d2_message(args ...ruby.Value) ruby.Value {
 	requirement := macos_requirement_from_boundary(args) or { panic(err) }
 	type_index := if args.len > 0 && args[0].type_name == 'Array' { 2 } else { 0 }
 	dependent_type := if args.len > type_index { args[type_index].as_string() } else { 'formula' }
-	return brew_runtime.string_value(macos_requirement_message(requirement, dependent_type))
+	return ruby.string_value(macos_requirement_message(requirement, dependent_type))
 }
 
 // Original Ruby source (line-for-line):

@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 import homebrew.cli
 import homebrew.cmd
 import homebrew.api
@@ -127,14 +127,14 @@ fn execute_install_dispatch(arguments []string) ! {
 	} else {
 		[]string{}
 	}
-	prefix_value := brew_runtime.environment_value('HOMEBREW_PREFIX').trim_right('/')
+	prefix_value := ruby.environment_value('HOMEBREW_PREFIX').trim_right('/')
 	mut prefix := prefix_value
 	if prefix == '' {
 		prefix = current_bottle_tag().default_prefix()
 	}
-	cellar_value := brew_runtime.environment_value('HOMEBREW_CELLAR').trim_right('/')
+	cellar_value := ruby.environment_value('HOMEBREW_CELLAR').trim_right('/')
 	cellar := if cellar_value == '' { '${prefix}/Cellar' } else { cellar_value }
-	temporary_cellar_value := brew_runtime.environment_value('HOMEBREW_TEMP_CELLAR').trim_right('/')
+	temporary_cellar_value := ruby.environment_value('HOMEBREW_TEMP_CELLAR').trim_right('/')
 	temporary_cellar := if temporary_cellar_value == '' {
 		'/tmp/homebrew/Cellar'
 	} else {

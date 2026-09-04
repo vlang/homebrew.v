@@ -1,6 +1,6 @@
 module cask_loader
 
-import brew_runtime
+import ruby
 import homebrew.cask as brew_cask
 import os
 import time
@@ -43,17 +43,17 @@ fn from_uri_loader_spec_rejects_scheme(scheme string, cache_path string) bool {
 }
 
 // Ruby it `it "returns a loader when given an URI" do` at line 6.
-pub fn ruby_from_uri_loader_spec_l6_d1_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_from_uri_loader_spec_l6_d1_returns(args ...ruby.Value) ruby.Value {
 	cache_path := if args.len > 0 { args[0].as_string() } else { from_uri_loader_temp_cache('uri') }
 	loader := from_uri_loader_spec_try_new(brew_cask.CaskLoaderReference{
 		kind: .uri
 		value: 'https://brew.sh/'
-	}, false, cache_path) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(loader.kind == .uri && loader.url == 'https://brew.sh/')
+	}, false, cache_path) or { return ruby.bool_value(false) }
+	return ruby.bool_value(loader.kind == .uri && loader.url == 'https://brew.sh/')
 }
 
 // Ruby it `it "returns a loader when given a string which can be parsed to a URI" do` at line 10.
-pub fn ruby_from_uri_loader_spec_l10_d2_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_from_uri_loader_spec_l10_d2_returns(args ...ruby.Value) ruby.Value {
 	cache_path := if args.len > 0 {
 		args[0].as_string()
 	} else {
@@ -62,59 +62,59 @@ pub fn ruby_from_uri_loader_spec_l10_d2_returns(args ...brew_runtime.Value) brew
 	loader := from_uri_loader_spec_try_new(brew_cask.CaskLoaderReference{
 		kind: .text
 		value: 'https://brew.sh/'
-	}, false, cache_path) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(loader.kind == .uri && loader.url == 'https://brew.sh/')
+	}, false, cache_path) or { return ruby.bool_value(false) }
+	return ruby.bool_value(loader.kind == .uri && loader.url == 'https://brew.sh/')
 }
 
 // Ruby it `it "returns nil when path loading is disabled" do` at line 14.
-pub fn ruby_from_uri_loader_spec_l14_d3_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_from_uri_loader_spec_l14_d3_returns(args ...ruby.Value) ruby.Value {
 	path := if args.len > 0 { args[0].as_string() } else { from_uri_loader_fixture }
 	loader := from_uri_loader_spec_try_new(brew_cask.CaskLoaderReference{
 		kind: .uri
 		value: 'file://${path}'
 	}, true, from_uri_loader_temp_cache('forbidden'))
-	return brew_runtime.bool_value(loader == none)
+	return ruby.bool_value(loader == none)
 }
 
 // Ruby it `it "returns nil when given a string with Cask contents containing a URL" do` at line 19.
-pub fn ruby_from_uri_loader_spec_l19_d4_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_from_uri_loader_spec_l19_d4_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	content := "cask 'token' do\n  url 'https://brew.sh/'\nend\n"
 	loader := from_uri_loader_spec_try_new(brew_cask.CaskLoaderReference{
 		kind: .text
 		value: content
 	}, false, from_uri_loader_temp_cache('content'))
-	return brew_runtime.bool_value(loader == none)
+	return ruby.bool_value(loader == none)
 }
 
 // Ruby it `it "raises an error when given an https URL" do` at line 29.
-pub fn ruby_from_uri_loader_spec_l29_d5_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_from_uri_loader_spec_l29_d5_raises(args ...ruby.Value) ruby.Value {
 	cache_path := if args.len > 0 {
 		args[0].as_string()
 	} else {
 		from_uri_loader_temp_cache('https')
 	}
-	return brew_runtime.bool_value(from_uri_loader_spec_rejects_scheme('https', cache_path))
+	return ruby.bool_value(from_uri_loader_spec_rejects_scheme('https', cache_path))
 }
 
 // Ruby it `it "raises an error when given an ftp URL" do` at line 36.
-pub fn ruby_from_uri_loader_spec_l36_d6_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_from_uri_loader_spec_l36_d6_raises(args ...ruby.Value) ruby.Value {
 	cache_path := if args.len > 0 { args[0].as_string() } else { from_uri_loader_temp_cache('ftp') }
-	return brew_runtime.bool_value(from_uri_loader_spec_rejects_scheme('ftp', cache_path))
+	return ruby.bool_value(from_uri_loader_spec_rejects_scheme('ftp', cache_path))
 }
 
 // Ruby it `it "raises an error when given an sftp URL" do` at line 43.
-pub fn ruby_from_uri_loader_spec_l43_d7_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_from_uri_loader_spec_l43_d7_raises(args ...ruby.Value) ruby.Value {
 	cache_path := if args.len > 0 {
 		args[0].as_string()
 	} else {
 		from_uri_loader_temp_cache('sftp')
 	}
-	return brew_runtime.bool_value(from_uri_loader_spec_rejects_scheme('sftp', cache_path))
+	return ruby.bool_value(from_uri_loader_spec_rejects_scheme('sftp', cache_path))
 }
 
 // Ruby it `it "does not raise an error when given a file URL", :needs_utils_curl do` at line 50.
-pub fn ruby_from_uri_loader_spec_l50_d8_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_from_uri_loader_spec_l50_d8_does(args ...ruby.Value) ruby.Value {
 	cache_path := if args.len > 0 {
 		args[0].as_string()
 	} else {
@@ -126,8 +126,8 @@ pub fn ruby_from_uri_loader_spec_l50_d8_does(args ...brew_runtime.Value) brew_ru
 		cask: brew_cask.CaskLoaderCask{
 			token: 'local-caffeine'
 		}
-	}) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(loaded.token == 'local-caffeine'
+	}) or { return ruby.bool_value(false) }
+	return ruby.bool_value(loaded.token == 'local-caffeine'
 		&& loaded.sourcefile_path == os.join_path(cache_path, os.base(source_path))
 		&& loaded.source == os.read_file(source_path) or { '' })
 }

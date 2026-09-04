@@ -1,6 +1,6 @@
 module utility
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/utility/native_integer.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -21,14 +21,14 @@ pub fn ensure_lower_bound(value i64) !i64 {
 	return value
 }
 
-pub fn ensure_integer_value(value brew_runtime.Value) !i64 {
+pub fn ensure_integer_value(value ruby.Value) !i64 {
 	if value.type_name != 'Integer' {
 		return error('${value.as_string()} is not an Integer')
 	}
 	return value.as_int()
 }
 
-pub fn ensure_integer_and_bounds(value brew_runtime.Value) !i64 {
+pub fn ensure_integer_and_bounds(value ruby.Value) !i64 {
 	integer := ensure_integer_value(value)!
 	ensure_upper_bound(integer)!
 	return ensure_lower_bound(integer)
@@ -48,7 +48,7 @@ pub fn ensure_positive_and_no_zero(value i64) !i64 {
 	return value
 }
 
-fn required_integer_arg(args []brew_runtime.Value) i64 {
+fn required_integer_arg(args []ruby.Value) i64 {
 	if args.len == 0 {
 		panic('integer value is required')
 	}
@@ -56,42 +56,42 @@ fn required_integer_arg(args []brew_runtime.Value) i64 {
 }
 
 // Ruby method `ensure_upper_bound(value)` at line 10.
-pub fn ruby_native_integer_l10_d1_ensure_upper_bound(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(ensure_upper_bound(required_integer_arg(args)) or {
+pub fn ruby_native_integer_l10_d1_ensure_upper_bound(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(ensure_upper_bound(required_integer_arg(args)) or {
 		panic('RangeError: ${err}')
 	})
 }
 
 // Ruby method `ensure_lower_bound(value)` at line 17.
-pub fn ruby_native_integer_l17_d2_ensure_lower_bound(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(ensure_lower_bound(required_integer_arg(args)) or {
+pub fn ruby_native_integer_l17_d2_ensure_lower_bound(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(ensure_lower_bound(required_integer_arg(args)) or {
 		panic('RangeError: ${err}')
 	})
 }
 
 // Ruby method `ensure_integer(value)` at line 24.
-pub fn ruby_native_integer_l24_d3_ensure_integer(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(required_integer_arg(args))
+pub fn ruby_native_integer_l24_d3_ensure_integer(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(required_integer_arg(args))
 }
 
 // Ruby method `ensure_integer_and_bounds(value)` at line 31.
-pub fn ruby_native_integer_l31_d4_ensure_integer_and_bounds(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_native_integer_l31_d4_ensure_integer_and_bounds(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('integer value is required')
 	}
-	return brew_runtime.int_value(ensure_integer_and_bounds(args[0]) or { panic(err) })
+	return ruby.int_value(ensure_integer_and_bounds(args[0]) or { panic(err) })
 }
 
 // Ruby method `ensure_positive(value)` at line 37.
-pub fn ruby_native_integer_l37_d5_ensure_positive(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(ensure_positive(required_integer_arg(args)) or {
+pub fn ruby_native_integer_l37_d5_ensure_positive(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(ensure_positive(required_integer_arg(args)) or {
 		panic('ArgumentError: ${err}')
 	})
 }
 
 // Ruby method `ensure_positive_and_no_zero(value)` at line 44.
-pub fn ruby_native_integer_l44_d6_ensure_positive_and_no_zero(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(ensure_positive_and_no_zero(required_integer_arg(args)) or {
+pub fn ruby_native_integer_l44_d6_ensure_positive_and_no_zero(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(ensure_positive_and_no_zero(required_integer_arg(args)) or {
 		panic('ArgumentError: ${err}')
 	})
 }

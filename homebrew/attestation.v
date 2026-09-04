@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 import crypto.sha256
 import os
 import time
@@ -86,7 +86,7 @@ pub:
 fn attestation_real_ensure_gh(mut runtime AttestationRuntime, name string, _ string,
 	_ bool) !string {
 	runtime.ensure_calls++
-	return brew_runtime.find_executable(name)
+	return ruby.find_executable(name)
 }
 
 fn attestation_real_command(mut runtime AttestationRuntime,
@@ -94,7 +94,7 @@ fn attestation_real_command(mut runtime AttestationRuntime,
 	runtime.commands << command
 	mut argv := [command.executable]
 	argv << command.args
-	result := brew_runtime.run_captured_command(argv, brew_runtime.CapturedCommandOptions{
+	result := ruby.run_captured_command(argv, ruby.CapturedCommandOptions{
 		environment: command.environment
 		chdir: command.chdir
 	})!
@@ -370,36 +370,36 @@ pub fn attestation_injected_collaborators() AttestationCollaborators {
 }
 
 // Ruby method `self.gh_executable` at line 67.
-pub fn ruby_attestation_l67_d1_self_gh_executable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_attestation_l67_d1_self_gh_executable(args ...ruby.Value) ruby.Value {
 	if args.len > 0 && args[0].as_string() != '' {
-		return brew_runtime.object_value('Pathname', args[0].as_string())
+		return ruby.object_value('Pathname', args[0].as_string())
 	}
 	mut runtime := AttestationRuntime{}
 	path := attestation_gh_executable(mut runtime, attestation_default_collaborators()) or {
-		return brew_runtime.object_value('RuntimeError', err.msg())
+		return ruby.object_value('RuntimeError', err.msg())
 	}
-	return brew_runtime.object_value('Pathname', path)
+	return ruby.object_value('Pathname', path)
 }
 
 // Ruby method `self.sort_formulae_for_install(formulae)` at line 88.
-pub fn ruby_attestation_l88_d2_self_sort_formulae_for_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_attestation_l88_d2_self_sort_formulae_for_install(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'formulae are required')
+		return ruby.object_value('ArgumentError', 'formulae are required')
 	}
 	formulae := attestation_formulae_from_value(args[0])
 	mut runtime := AttestationRuntime{
 		gh_executable_cache: if args.len > 1 { args[1].as_string() } else { '' }
 	}
 	sorted := attestation_sort_formulae_for_install(formulae, mut runtime, attestation_injected_collaborators()) or {
-		return brew_runtime.object_value('RuntimeError', err.msg())
+		return ruby.object_value('RuntimeError', err.msg())
 	}
 	return attestation_formulae_value(sorted)
 }
 
 // Ruby method `self.check_attestation(bottle, signing_repo, signing_workflow = nil, subject = nil)` at line 115.
-pub fn ruby_attestation_l115_d3_self_check_attestation(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_attestation_l115_d3_self_check_attestation(args ...ruby.Value) ruby.Value {
 	if args.len < 6 {
-		return brew_runtime.object_value('ArgumentError', 'bottle, repository, options, credentials, and command result are required')
+		return ruby.object_value('ArgumentError', 'bottle, repository, options, credentials, and command result are required')
 	}
 	bottle := attestation_bottle_from_value(args[0])
 	workflow := attestation_optional_string(args[2])
@@ -415,9 +415,9 @@ pub fn ruby_attestation_l115_d3_self_check_attestation(args ...brew_runtime.Valu
 }
 
 // Ruby method `self.check_core_attestation(bottle)` at line 203.
-pub fn ruby_attestation_l203_d4_self_check_core_attestation(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_attestation_l203_d4_self_check_core_attestation(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
-		return brew_runtime.object_value('ArgumentError', 'bottle, credentials, and command results are required')
+		return ruby.object_value('ArgumentError', 'bottle, credentials, and command results are required')
 	}
 	mut runtime := AttestationRuntime{
 		gh_executable_cache: if args.len > 4 { args[4].as_string() } else { '/extremely/fake/gh' }
@@ -433,104 +433,104 @@ pub fn ruby_attestation_l203_d4_self_check_core_attestation(args ...brew_runtime
 	return attestation_record_value(record)
 }
 
-pub fn attestation_formulae_value(formulae []AttestationFormula) brew_runtime.Value {
-	return brew_runtime.array_value(formulae.map(brew_runtime.structured_value('Formula', it.full_name, {
+pub fn attestation_formulae_value(formulae []AttestationFormula) ruby.Value {
+	return ruby.array_value(formulae.map(ruby.structured_value('Formula', it.full_name, {
 		'full_name': it.full_name
 	})))
 }
 
-pub fn attestation_formulae_from_value(value brew_runtime.Value) []AttestationFormula {
+pub fn attestation_formulae_from_value(value ruby.Value) []AttestationFormula {
 	values := value.as_array() or { return [] }
 	return values.map(AttestationFormula{
 		full_name: it.attributes['full_name'] or { it.as_string() }
 	})
 }
 
-pub fn attestation_bottle_value(bottle AttestationBottle) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'name':                  brew_runtime.string_value(bottle.name)
-		'cached_download':       brew_runtime.string_value(bottle.cached_download)
-		'filename':              brew_runtime.string_value(bottle.filename)
-		'filename_name':         brew_runtime.string_value(bottle.filename_name)
-		'filename_version':      brew_runtime.string_value(bottle.filename_version)
-		'tag':                   brew_runtime.object_value('Symbol', bottle.tag)
-		'url':                   brew_runtime.string_value(bottle.url)
-		'resource_name':         brew_runtime.string_value(bottle.resource_name)
-		'resource_checksum':     brew_runtime.string_value(bottle.resource_checksum)
-		'bottle_domain_custom':  brew_runtime.bool_value(bottle.bottle_domain_custom)
-		'default_bottle_domain': brew_runtime.string_value(bottle.default_bottle_domain)
+pub fn attestation_bottle_value(bottle AttestationBottle) ruby.Value {
+	return ruby.map_value({
+		'name':                  ruby.string_value(bottle.name)
+		'cached_download':       ruby.string_value(bottle.cached_download)
+		'filename':              ruby.string_value(bottle.filename)
+		'filename_name':         ruby.string_value(bottle.filename_name)
+		'filename_version':      ruby.string_value(bottle.filename_version)
+		'tag':                   ruby.object_value('Symbol', bottle.tag)
+		'url':                   ruby.string_value(bottle.url)
+		'resource_name':         ruby.string_value(bottle.resource_name)
+		'resource_checksum':     ruby.string_value(bottle.resource_checksum)
+		'bottle_domain_custom':  ruby.bool_value(bottle.bottle_domain_custom)
+		'default_bottle_domain': ruby.string_value(bottle.default_bottle_domain)
 	})
 }
 
-pub fn attestation_bottle_from_value(value brew_runtime.Value) AttestationBottle {
+pub fn attestation_bottle_from_value(value ruby.Value) AttestationBottle {
 	values := value.as_map() or { return AttestationBottle{} }
 	return AttestationBottle{
-		name: (values['name'] or { brew_runtime.string_value('') }).as_string()
-		cached_download: (values['cached_download'] or { brew_runtime.string_value('') }).as_string()
-		filename: (values['filename'] or { brew_runtime.string_value('') }).as_string()
-		filename_name: (values['filename_name'] or { brew_runtime.string_value('') }).as_string()
-		filename_version: (values['filename_version'] or { brew_runtime.string_value('') }).as_string()
-		tag: (values['tag'] or { brew_runtime.string_value('') }).as_string()
-		url: (values['url'] or { brew_runtime.string_value('') }).as_string()
-		resource_name: (values['resource_name'] or { brew_runtime.string_value('') }).as_string()
-		resource_checksum: (values['resource_checksum'] or { brew_runtime.string_value('') }).as_string()
+		name: (values['name'] or { ruby.string_value('') }).as_string()
+		cached_download: (values['cached_download'] or { ruby.string_value('') }).as_string()
+		filename: (values['filename'] or { ruby.string_value('') }).as_string()
+		filename_name: (values['filename_name'] or { ruby.string_value('') }).as_string()
+		filename_version: (values['filename_version'] or { ruby.string_value('') }).as_string()
+		tag: (values['tag'] or { ruby.string_value('') }).as_string()
+		url: (values['url'] or { ruby.string_value('') }).as_string()
+		resource_name: (values['resource_name'] or { ruby.string_value('') }).as_string()
+		resource_checksum: (values['resource_checksum'] or { ruby.string_value('') }).as_string()
 		bottle_domain_custom: (values['bottle_domain_custom'] or {
-			brew_runtime.bool_value(false)}).as_bool() or { false }
+			ruby.bool_value(false)}).as_bool() or { false }
 		default_bottle_domain: (values['default_bottle_domain'] or {
-			brew_runtime.string_value('https://ghcr.io/v2/homebrew/core')}).as_string()
+			ruby.string_value('https://ghcr.io/v2/homebrew/core')}).as_string()
 	}
 }
 
-pub fn attestation_command_result_value(result AttestationCommandResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'stdout':          brew_runtime.string_value(result.stdout)
-		'stderr':          brew_runtime.string_value(result.stderr)
-		'exit_status':     brew_runtime.int_value(result.exit_status)
-		'failed':          brew_runtime.bool_value(result.failed)
-		'failure_message': brew_runtime.string_value(result.failure_message)
+pub fn attestation_command_result_value(result AttestationCommandResult) ruby.Value {
+	return ruby.map_value({
+		'stdout':          ruby.string_value(result.stdout)
+		'stderr':          ruby.string_value(result.stderr)
+		'exit_status':     ruby.int_value(result.exit_status)
+		'failed':          ruby.bool_value(result.failed)
+		'failure_message': ruby.string_value(result.failure_message)
 	})
 }
 
-pub fn attestation_command_result_from_value(value brew_runtime.Value) AttestationCommandResult {
+pub fn attestation_command_result_from_value(value ruby.Value) AttestationCommandResult {
 	values := value.as_map() or { return AttestationCommandResult{} }
 	return AttestationCommandResult{
-		stdout: (values['stdout'] or { brew_runtime.string_value('') }).as_string()
-		stderr: (values['stderr'] or { brew_runtime.string_value('') }).as_string()
-		exit_status: int((values['exit_status'] or { brew_runtime.int_value(0) }).as_int() or { 0 })
-		failed: (values['failed'] or { brew_runtime.bool_value(false) }).as_bool() or { false }
-		failure_message: (values['failure_message'] or { brew_runtime.string_value('') }).as_string()
+		stdout: (values['stdout'] or { ruby.string_value('') }).as_string()
+		stderr: (values['stderr'] or { ruby.string_value('') }).as_string()
+		exit_status: int((values['exit_status'] or { ruby.int_value(0) }).as_int() or { 0 })
+		failed: (values['failed'] or { ruby.bool_value(false) }).as_bool() or { false }
+		failure_message: (values['failure_message'] or { ruby.string_value('') }).as_string()
 	}
 }
 
-pub fn attestation_command_results_value(results []AttestationCommandResult) brew_runtime.Value {
-	return brew_runtime.array_value(results.map(attestation_command_result_value(it)))
+pub fn attestation_command_results_value(results []AttestationCommandResult) ruby.Value {
+	return ruby.array_value(results.map(attestation_command_result_value(it)))
 }
 
-pub fn attestation_command_results_from_value(value brew_runtime.Value) []AttestationCommandResult {
+pub fn attestation_command_results_from_value(value ruby.Value) []AttestationCommandResult {
 	values := value.as_array() or { return [] }
 	return values.map(attestation_command_result_from_value(it))
 }
 
-pub fn attestation_record_value(record AttestationRecord) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'subjects':            brew_runtime.string_array_value(record.subjects)
-		'verified_timestamps': brew_runtime.string_array_value(record.verified_timestamps)
-		'raw_json':            brew_runtime.string_value(json2.encode(record.raw))
+pub fn attestation_record_value(record AttestationRecord) ruby.Value {
+	return ruby.map_value({
+		'subjects':            ruby.string_array_value(record.subjects)
+		'verified_timestamps': ruby.string_array_value(record.verified_timestamps)
+		'raw_json':            ruby.string_value(json2.encode(record.raw))
 	})
 }
 
-fn attestation_optional_string(value brew_runtime.Value) ?string {
+fn attestation_optional_string(value ruby.Value) ?string {
 	if value.type_name == 'NilClass' || value.as_string() == '' {
 		return none
 	}
 	return value.as_string()
 }
 
-fn attestation_error_value(message string) brew_runtime.Value {
+fn attestation_error_value(message string) ruby.Value {
 	if separator := message.index(': ') {
-		return brew_runtime.object_value(message[..separator], message[separator + 2..])
+		return ruby.object_value(message[..separator], message[separator + 2..])
 	}
-	return brew_runtime.object_value('RuntimeError', message)
+	return ruby.object_value('RuntimeError', message)
 }
 
 // Original Ruby source (line-for-line):

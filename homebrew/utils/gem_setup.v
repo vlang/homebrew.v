@@ -1,6 +1,6 @@
 module utils
 
-import brew_runtime
+import ruby
 import os
 import time
 
@@ -159,12 +159,12 @@ pub:
 	paths_restored            bool
 }
 
-fn gem_setup_nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn gem_setup_nil_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-fn gem_setup_error_value(type_name string, message string) brew_runtime.Value {
-	return brew_runtime.object_value(type_name, message)
+fn gem_setup_error_value(type_name string, message string) ruby.Value {
+	return ruby.object_value(type_name, message)
 }
 
 pub fn gem_setup_vendor_directory(paths GemSetupPaths) string {
@@ -646,31 +646,31 @@ pub fn install_bundler_gems(config GemSetupBundlerConfig, mut state GemSetupStat
 	}
 }
 
-fn gem_setup_definition_value(definition GemSetupBundlerDefinition) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'groups':       brew_runtime.string_array_value(definition.groups)
-		'locked_specs': brew_runtime.string_array_value(definition.locked_specs.map(it.full_name))
+fn gem_setup_definition_value(definition GemSetupBundlerDefinition) ruby.Value {
+	return ruby.map_value({
+		'groups':       ruby.string_array_value(definition.groups)
+		'locked_specs': ruby.string_array_value(definition.locked_specs.map(it.full_name))
 	})
 }
 
-fn gem_setup_environment_result_value(result GemSetupEnvironmentResult) brew_runtime.Value {
-	mut environment := map[string]brew_runtime.Value{}
+fn gem_setup_environment_result_value(result GemSetupEnvironmentResult) ruby.Value {
+	mut environment := map[string]ruby.Value{}
 	for key, value in result.environment {
-		environment[key] = brew_runtime.string_value(value)
+		environment[key] = ruby.string_value(value)
 	}
-	mut gem_paths := map[string]brew_runtime.Value{}
+	mut gem_paths := map[string]ruby.Value{}
 	for key, value in result.gem_paths {
-		gem_paths[key] = brew_runtime.string_value(value)
+		gem_paths[key] = ruby.string_value(value)
 	}
-	return brew_runtime.map_value({
-		'environment': brew_runtime.map_value(environment)
-		'gem_paths':   brew_runtime.map_value(gem_paths)
-		'gem_home':    brew_runtime.string_value(result.gem_home)
-		'gem_cache':   brew_runtime.string_value(result.gem_cache)
+	return ruby.map_value({
+		'environment': ruby.map_value(environment)
+		'gem_paths':   ruby.map_value(gem_paths)
+		'gem_home':    ruby.string_value(result.gem_home)
+		'gem_cache':   ruby.string_value(result.gem_cache)
 	})
 }
 
-fn gem_setup_string_map_from_value(value brew_runtime.Value) map[string]string {
+fn gem_setup_string_map_from_value(value ruby.Value) map[string]string {
 	mut result := map[string]string{}
 	for key, item in value.map_data {
 		result[key] = item.as_string()
@@ -678,22 +678,22 @@ fn gem_setup_string_map_from_value(value brew_runtime.Value) map[string]string {
 	return result
 }
 
-fn gem_setup_paths_from_value(value brew_runtime.Value) GemSetupPaths {
+fn gem_setup_paths_from_value(value ruby.Value) GemSetupPaths {
 	values := value.map_data.clone()
 	return GemSetupPaths{
-		library: (values['library'] or { brew_runtime.string_value('') }).as_string()
-		ruby_version: (values['ruby_version'] or { brew_runtime.string_value('') }).as_string()
-		ruby_prefix: (values['ruby_prefix'] or { brew_runtime.string_value('') }).as_string()
-		gem_bindir: (values['gem_bindir'] or { brew_runtime.string_value('') }).as_string()
-		rubygems_version: (values['rubygems_version'] or { brew_runtime.string_value('2.2.0') }).as_string()
+		library: (values['library'] or { ruby.string_value('') }).as_string()
+		ruby_version: (values['ruby_version'] or { ruby.string_value('') }).as_string()
+		ruby_prefix: (values['ruby_prefix'] or { ruby.string_value('') }).as_string()
+		gem_bindir: (values['gem_bindir'] or { ruby.string_value('') }).as_string()
+		rubygems_version: (values['rubygems_version'] or { ruby.string_value('2.2.0') }).as_string()
 	}
 }
 
-fn gem_setup_definition_from_value(value brew_runtime.Value) GemSetupBundlerDefinition {
-	groups := (value.map_data['groups'] or { brew_runtime.string_array_value([]string{}) }).as_string_array() or {
+fn gem_setup_definition_from_value(value ruby.Value) GemSetupBundlerDefinition {
+	groups := (value.map_data['groups'] or { ruby.string_array_value([]string{}) }).as_string_array() or {
 		[]string{}
 	}
-	locked := (value.map_data['locked_specs'] or { brew_runtime.string_array_value([]string{}) }).as_string_array() or {
+	locked := (value.map_data['locked_specs'] or { ruby.string_array_value([]string{}) }).as_string_array() or {
 		[]string{}
 	}
 	return GemSetupBundlerDefinition{
@@ -703,15 +703,15 @@ fn gem_setup_definition_from_value(value brew_runtime.Value) GemSetupBundlerDefi
 }
 
 // Ruby method `self.gemfile` at line 29.
-pub fn ruby_gem_setup_l29_d1_self_gemfile(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_gem_setup_l29_d1_self_gemfile(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return gem_setup_error_value('KeyError', 'key not found: HOMEBREW_LIBRARY')
 	}
-	return brew_runtime.string_value(gem_setup_gemfile(args[0].as_string()))
+	return ruby.string_value(gem_setup_gemfile(args[0].as_string()))
 }
 
 // Ruby method `self.bundler_definition` at line 34.
-pub fn ruby_gem_setup_l34_d2_self_bundler_definition(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_gem_setup_l34_d2_self_bundler_definition(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || args[0].type_name != 'Hash' {
 		return gem_setup_error_value('ArgumentError', 'bundler definition is required')
 	}
@@ -720,62 +720,62 @@ pub fn ruby_gem_setup_l34_d2_self_bundler_definition(args ...brew_runtime.Value)
 }
 
 // Ruby method `self.valid_gem_groups` at line 39.
-pub fn ruby_gem_setup_l39_d3_self_valid_gem_groups(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_gem_setup_l39_d3_self_valid_gem_groups(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_array_value([]string{})
+		return ruby.string_array_value([]string{})
 	}
 	definition := if args[0].type_name == 'Hash' {
 		gem_setup_definition_from_value(args[0])
 	} else {
 		GemSetupBundlerDefinition{ groups: args[0].as_string_array() or { []string{} } }
 	}
-	return brew_runtime.string_array_value(gem_setup_valid_gem_groups(definition))
+	return ruby.string_array_value(gem_setup_valid_gem_groups(definition))
 }
 
 // Ruby method `self.ruby_bindir` at line 50.
-pub fn ruby_gem_setup_l50_d4_self_ruby_bindir(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_gem_setup_l50_d4_self_ruby_bindir(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return gem_setup_error_value('ArgumentError', 'Ruby prefix is required')
 	}
-	return brew_runtime.string_value(gem_setup_ruby_bindir(args[0].as_string()))
+	return ruby.string_value(gem_setup_ruby_bindir(args[0].as_string()))
 }
 
 // Ruby method `self.ohai_if_defined(message)` at line 54.
-pub fn ruby_gem_setup_l54_d5_self_ohai_if_defined(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_gem_setup_l54_d5_self_ohai_if_defined(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return gem_setup_error_value('ArgumentError', 'message is required')
 	}
-	return brew_runtime.string_value(gem_setup_ohai(args[0].as_string()).text)
+	return ruby.string_value(gem_setup_ohai(args[0].as_string()).text)
 }
 
 // Ruby method `self.opoo_if_defined(message)` at line 62.
-pub fn ruby_gem_setup_l62_d6_self_opoo_if_defined(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_gem_setup_l62_d6_self_opoo_if_defined(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return gem_setup_error_value('ArgumentError', 'message is required')
 	}
-	return brew_runtime.string_value(gem_setup_opoo(args[0].as_string()).text)
+	return ruby.string_value(gem_setup_opoo(args[0].as_string()).text)
 }
 
 // Ruby method `self.odie_if_defined(message)` at line 70.
-pub fn ruby_gem_setup_l70_d7_self_odie_if_defined(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_gem_setup_l70_d7_self_odie_if_defined(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return gem_setup_error_value('ArgumentError', 'message is required')
 	}
 	message := gem_setup_odie(args[0].as_string())
-	return brew_runtime.structured_value('SystemExit', message.text, {
+	return ruby.structured_value('SystemExit', message.text, {
 		'status': message.exit_code.str()
 	})
 }
 
 // Ruby method `self.setup_gem_environment!(setup_path: true)` at line 79.
-pub fn ruby_gem_setup_l79_d8_self_setup_gem_environment(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_gem_setup_l79_d8_self_setup_gem_environment(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || args[0].type_name != 'Hash' {
 		return gem_setup_error_value('ArgumentError', 'gem environment config is required')
 	}
 	values := args[0].map_data.clone()
-	environment_value := values['environment'] or { brew_runtime.map_value({}) }
-	paths_value := values['paths'] or { brew_runtime.map_value({}) }
-	setup_path := (values['setup_path'] or { brew_runtime.bool_value(true) }).as_bool() or { true }
+	environment_value := values['environment'] or { ruby.map_value({}) }
+	paths_value := values['paths'] or { ruby.map_value({}) }
+	setup_path := (values['setup_path'] or { ruby.bool_value(true) }).as_bool() or { true }
 	result := setup_gem_environment(GemSetupEnvironmentConfig{
 		environment: gem_setup_string_map_from_value(environment_value)
 		paths: gem_setup_paths_from_value(paths_value)
@@ -785,43 +785,43 @@ pub fn ruby_gem_setup_l79_d8_self_setup_gem_environment(args ...brew_runtime.Val
 }
 
 // Ruby method `self.install_gem!(name, version: nil, setup_gem_environment: true)` at line 115.
-pub fn ruby_gem_setup_l115_d9_self_install_gem(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_gem_setup_l115_d9_self_install_gem(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return gem_setup_error_value('ArgumentError', 'gem name is required')
 	}
-	return brew_runtime.map_value({
-		'name':                  brew_runtime.string_value(args[0].as_string())
+	return ruby.map_value({
+		'name':                  ruby.string_value(args[0].as_string())
 		'version':               if args.len > 1 { args[1] } else { gem_setup_nil_value() }
-		'setup_gem_environment': if args.len > 2 { args[2] } else { brew_runtime.bool_value(true) }
-		'operation':             brew_runtime.string_value('find_or_install_and_prepend_load_paths')
+		'setup_gem_environment': if args.len > 2 { args[2] } else { ruby.bool_value(true) }
+		'operation':             ruby.string_value('find_or_install_and_prepend_load_paths')
 	})
 }
 
 // Ruby method `self.find_in_path(executable)` at line 142.
-pub fn ruby_gem_setup_l142_d10_self_find_in_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_gem_setup_l142_d10_self_find_in_path(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		return gem_setup_nil_value()
 	}
 	path := gem_setup_find_in_path(args[0].as_string(), args[1].as_string()) or {
 		return gem_setup_nil_value()
 	}
-	return brew_runtime.string_value(path)
+	return ruby.string_value(path)
 }
 
 // Ruby method `self.user_gem_groups` at line 149.
-pub fn ruby_gem_setup_l149_d11_self_user_gem_groups(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_gem_setup_l149_d11_self_user_gem_groups(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_array_value([]string{})
+		return ruby.string_array_value([]string{})
 	}
 	mut state := GemSetupState{}
 	groups := gem_setup_user_gem_groups(args[0].as_string(), mut state) or {
 		return gem_setup_error_value('IOError', err.msg())
 	}
-	return brew_runtime.string_array_value(groups)
+	return ruby.string_array_value(groups)
 }
 
 // Ruby method `self.write_user_gem_groups(groups)` at line 158.
-pub fn ruby_gem_setup_l158_d12_self_write_user_gem_groups(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_gem_setup_l158_d12_self_write_user_gem_groups(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		return gem_setup_error_value('ArgumentError', 'path and groups are required')
 	}
@@ -832,11 +832,11 @@ pub fn ruby_gem_setup_l158_d12_self_write_user_gem_groups(args ...brew_runtime.V
 	gem_setup_write_user_gem_groups(args[0].as_string(), groups, mut state) or {
 		return gem_setup_error_value('IOError', err.msg())
 	}
-	return brew_runtime.string_array_value(groups)
+	return ruby.string_array_value(groups)
 }
 
 // Ruby method `self.forget_user_gem_groups!` at line 181.
-pub fn ruby_gem_setup_l181_d13_self_forget_user_gem_groups(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_gem_setup_l181_d13_self_forget_user_gem_groups(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return gem_setup_error_value('ArgumentError', 'gem groups path is required')
 	}
@@ -844,58 +844,58 @@ pub fn ruby_gem_setup_l181_d13_self_forget_user_gem_groups(args ...brew_runtime.
 	gem_setup_forget_user_gem_groups(args[0].as_string(), mut state) or {
 		return gem_setup_error_value('IOError', err.msg())
 	}
-	return brew_runtime.string_array_value([]string{})
+	return ruby.string_array_value([]string{})
 }
 
 // Ruby method `self.user_vendor_version` at line 186.
-pub fn ruby_gem_setup_l186_d14_self_user_vendor_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_gem_setup_l186_d14_self_user_vendor_version(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.int_value(0)
+		return ruby.int_value(0)
 	}
 	mut state := GemSetupState{}
 	version := gem_setup_user_vendor_version(args[0].as_string(), mut state) or {
 		return gem_setup_error_value('IOError', err.msg())
 	}
-	return brew_runtime.int_value(version)
+	return ruby.int_value(version)
 }
 
 // Ruby method `self.install_bundler_gems!(only_warn_on_failure: false, setup_path: true, groups: [])` at line 195.
-pub fn ruby_gem_setup_l195_d15_self_install_bundler_gems(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_gem_setup_l195_d15_self_install_bundler_gems(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || args[0].type_name != 'Hash' {
 		return gem_setup_error_value('ArgumentError', 'bundler config is required')
 	}
 	values := args[0].map_data.clone()
-	paths := gem_setup_paths_from_value(values['paths'] or { brew_runtime.map_value({}) })
+	paths := gem_setup_paths_from_value(values['paths'] or { ruby.map_value({}) })
 	environment := gem_setup_string_map_from_value(values['environment'] or {
-		brew_runtime.map_value({})
+		ruby.map_value({})
 	})
 	definition := gem_setup_definition_from_value(values['definition'] or {
-		brew_runtime.map_value({})
+		ruby.map_value({})
 	})
-	groups := (values['groups'] or { brew_runtime.string_array_value([]string{}) }).as_string_array() or {
+	groups := (values['groups'] or { ruby.string_array_value([]string{}) }).as_string_array() or {
 		[]string{}
 	}
 	mut state := GemSetupState{}
 	plan := plan_install_bundler_gems(GemSetupBundlerConfig{
 		environment: environment
 		paths: paths
-		gem_groups_file: (values['gem_groups_file'] or { brew_runtime.string_value('') }).as_string()
-		vendor_version_file: (values['vendor_version_file'] or { brew_runtime.string_value('') }).as_string()
-		gem_dir: (values['gem_dir'] or { brew_runtime.string_value('') }).as_string()
+		gem_groups_file: (values['gem_groups_file'] or { ruby.string_value('') }).as_string()
+		vendor_version_file: (values['vendor_version_file'] or { ruby.string_value('') }).as_string()
+		gem_dir: (values['gem_dir'] or { ruby.string_value('') }).as_string()
 		definition: definition
 		groups: groups
-		only_warn_on_failure: (values['only_warn_on_failure'] or { brew_runtime.bool_value(false) }).as_bool() or { false }
-		setup_path: (values['setup_path'] or { brew_runtime.bool_value(true) }).as_bool() or { true }
+		only_warn_on_failure: (values['only_warn_on_failure'] or { ruby.bool_value(false) }).as_bool() or { false }
+		setup_path: (values['setup_path'] or { ruby.bool_value(true) }).as_bool() or { true }
 	}, mut state) or { return gem_setup_error_value('ArgumentError', err.msg()) }
-	mut plan_environment := map[string]brew_runtime.Value{}
+	mut plan_environment := map[string]ruby.Value{}
 	for key, value in plan.environment {
-		plan_environment[key] = brew_runtime.string_value(value)
+		plan_environment[key] = ruby.string_value(value)
 	}
-	return brew_runtime.map_value({
-		'environment': brew_runtime.map_value(plan_environment)
-		'groups':      brew_runtime.string_array_value(plan.groups)
-		'bundle':      brew_runtime.string_value(plan.bundle)
-		'skipped':     brew_runtime.bool_value(plan.skipped)
+	return ruby.map_value({
+		'environment': ruby.map_value(plan_environment)
+		'groups':      ruby.string_array_value(plan.groups)
+		'bundle':      ruby.string_value(plan.bundle)
+		'skipped':     ruby.bool_value(plan.skipped)
 	})
 }
 

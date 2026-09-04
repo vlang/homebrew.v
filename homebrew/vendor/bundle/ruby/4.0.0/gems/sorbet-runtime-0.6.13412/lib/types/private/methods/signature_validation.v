@@ -1,13 +1,13 @@
 module methods
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/private/methods/signature_validation.rb`.
 // The original source is retained below until every stub has a typed V body.
 pub struct ValidationTypePair {
 pub:
 	name       string
-	type_value brew_runtime.Value
+	type_value ruby.Value
 }
 
 @[heap]
@@ -24,13 +24,13 @@ pub:
 	arg_types                   []ValidationTypePair
 	req_arg_count               int
 	rest_name                   string
-	rest_type                   brew_runtime.Value
-	kwarg_types                 map[string]brew_runtime.Value
+	rest_type                   ruby.Value
+	kwarg_types                 map[string]ruby.Value
 	req_kwarg_names             []string
 	keyrest_name                string
-	keyrest_type                brew_runtime.Value
+	keyrest_type                ruby.Value
 	block_name                  string
-	effective_return_type       brew_runtime.Value
+	effective_return_type       ruby.Value
 	check_level                 string = 'always'
 	override_allow_incompatible string
 	super_signature             ?&ValidationSignature
@@ -89,15 +89,15 @@ pub fn validate_signature_non_override_mode(signature ValidationSignature) ! {
 	}
 }
 
-fn validation_is_nil_type(value brew_runtime.Value) bool {
+fn validation_is_nil_type(value ruby.Value) bool {
 	return value.type_name == 'NilClass' || value.repr == 'nil'
 }
 
-fn validation_type_name(value brew_runtime.Value) string {
+fn validation_type_name(value ruby.Value) string {
 	return value.attribute('name') or { value.attribute('raw_type') or { value.as_string() } }
 }
 
-fn validation_type_subtype(left brew_runtime.Value, right brew_runtime.Value) bool {
+fn validation_type_subtype(left ruby.Value, right ruby.Value) bool {
 	left_name := validation_type_name(left)
 	right_name := validation_type_name(right)
 	if right.type_name in ['T::Types::Anything', 'T::Types::Untyped'] || right_name in [
@@ -190,7 +190,7 @@ pub fn validate_signature_override_types(signature ValidationSignature,
 	}
 	mut base_return := super_signature.effective_return_type
 	if base_return.type_name == 'T::Private::Types::Void' {
-		base_return = brew_runtime.object_value('T::Types::Anything', 'T.anything')
+		base_return = ruby.object_value('T::Types::Anything', 'T.anything')
 	}
 	if !validation_type_subtype(signature.effective_return_type, base_return) {
 		return error('Incompatible return type in signature for ${mode_noun} of method `${signature.method_name}`:\n* Base: `${validation_type_name(super_signature.effective_return_type)}` (in ${super_signature.method_desc})\n* ${mode_noun.capitalize()}: `${validation_type_name(signature.effective_return_type)}` (in ${signature.method_desc})\n(The types must be covariant.)')
@@ -231,21 +231,21 @@ pub fn validate_signature(signature ValidationSignature, tests_enabled bool) ! {
 	validate_signature_non_override_mode(signature)!
 }
 
-fn signature_value_type(value brew_runtime.Value, key string) brew_runtime.Value {
-	return value.map_data[key] or { brew_runtime.object_value('NilClass', 'nil') }
+fn signature_value_type(value ruby.Value, key string) ruby.Value {
+	return value.map_data[key] or { ruby.object_value('NilClass', 'nil') }
 }
 
-fn validation_signature_from_value(value brew_runtime.Value) ValidationSignature {
+fn validation_signature_from_value(value ruby.Value) ValidationSignature {
 	mut arg_types := []ValidationTypePair{}
 	if raw_args := value.map_data['arg_types'] {
-		for name, type_value in raw_args.as_map() or { map[string]brew_runtime.Value{} } {
+		for name, type_value in raw_args.as_map() or { map[string]ruby.Value{} } {
 			arg_types << ValidationTypePair{ name: name, type_value: type_value }
 		}
 	}
 	kwarg_types := if raw_kwargs := value.map_data['kwarg_types'] {
-		raw_kwargs.as_map() or { map[string]brew_runtime.Value{} }
+		raw_kwargs.as_map() or { map[string]ruby.Value{} }
 	} else {
-		map[string]brew_runtime.Value{}
+		map[string]ruby.Value{}
 	}
 	mut super_signature := ?&ValidationSignature(none)
 	if raw_super := value.map_data['super_signature'] {
@@ -277,14 +277,14 @@ fn validation_signature_from_value(value brew_runtime.Value) ValidationSignature
 	}
 }
 
-fn signature_validation_value(signature ValidationSignature) brew_runtime.Value {
-	return brew_runtime.structured_value('T::Private::Methods::SignatureValidation', signature.method_name, {
+fn signature_validation_value(signature ValidationSignature) ruby.Value {
+	return ruby.structured_value('T::Private::Methods::SignatureValidation', signature.method_name, {
 		'validated': 'true'
 	})
 }
 
 // Ruby method `self.validate(signature)` at line 8.
-pub fn ruby_signature_validation_l8_d1_self_validate(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_signature_validation_l8_d1_self_validate(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('SignatureValidation.validate requires a signature')
 	}
@@ -295,8 +295,8 @@ pub fn ruby_signature_validation_l8_d1_self_validate(args ...brew_runtime.Value)
 }
 
 // Ruby method `self.pretty_mode(mode)` at line 101.
-pub fn ruby_signature_validation_l101_d2_self_pretty_mode(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(pretty_signature_mode(if args.len > 0 {
+pub fn ruby_signature_validation_l101_d2_self_pretty_mode(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(pretty_signature_mode(if args.len > 0 {
 		args[0].as_string()
 	} else {
 		''
@@ -304,16 +304,16 @@ pub fn ruby_signature_validation_l101_d2_self_pretty_mode(args ...brew_runtime.V
 }
 
 // Ruby method `self.validate_override_mode(signature, super_signature)` at line 109.
-pub fn ruby_signature_validation_l109_d3_self_validate_override_mode(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_signature_validation_l109_d3_self_validate_override_mode(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('SignatureValidation.validate_override_mode requires two signatures')
 	}
 	validate_signature_override_mode(validation_signature_from_value(args[0]), validation_signature_from_value(args[1])) or { panic(err.msg()) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `self.validate_non_override_mode(mode, method_name, method, source_loc=method.source_location)` at line 143.
-pub fn ruby_signature_validation_l143_d4_self_validate_non_override_mode(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_signature_validation_l143_d4_self_validate_non_override_mode(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('SignatureValidation.validate_non_override_mode requires mode, method name, and method')
 	}
@@ -327,70 +327,70 @@ pub fn ruby_signature_validation_l143_d4_self_validate_non_override_mode(args ..
 		owner_includes_enumerable: method.attribute('owner_includes_enumerable') or { 'false' } == 'true'
 	}
 	validate_signature_non_override_mode(signature) or { panic(err.msg()) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `self.validate_override_shape(signature, super_signature)` at line 180.
-pub fn ruby_signature_validation_l180_d5_self_validate_override_shape(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_signature_validation_l180_d5_self_validate_override_shape(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('SignatureValidation.validate_override_shape requires two signatures')
 	}
 	validate_signature_override_shape(validation_signature_from_value(args[0]), validation_signature_from_value(args[1])) or { panic(err.msg()) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `self.check_level_active?(sig)` at line 245.
-pub fn ruby_signature_validation_l245_d6_self_check_level_active(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_signature_validation_l245_d6_self_check_level_active(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	tests_enabled := if args.len > 1 { args[1].as_bool() or { false } } else { false }
-	return brew_runtime.bool_value(signature_check_level_active(validation_signature_from_value(args[0]), tests_enabled))
+	return ruby.bool_value(signature_check_level_active(validation_signature_from_value(args[0]), tests_enabled))
 }
 
 // Ruby method `self.validate_override_types(signature, super_signature)` at line 249.
-pub fn ruby_signature_validation_l249_d7_self_validate_override_types(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_signature_validation_l249_d7_self_validate_override_types(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('SignatureValidation.validate_override_types requires two signatures')
 	}
 	tests_enabled := if args.len > 2 { args[2].as_bool() or { false } } else { false }
 	validate_signature_override_types(validation_signature_from_value(args[0]), validation_signature_from_value(args[1]), tests_enabled) or { panic(err.msg()) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `self.validate_override_visibility(signature, super_signature)` at line 316.
-pub fn ruby_signature_validation_l316_d8_self_validate_override_visibility(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_signature_validation_l316_d8_self_validate_override_visibility(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('SignatureValidation.validate_override_visibility requires two signatures')
 	}
 	validate_signature_override_visibility(validation_signature_from_value(args[0]), validation_signature_from_value(args[1])) or { panic(err.msg()) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `self.method_visibility(method)` at line 339.
-pub fn ruby_signature_validation_l339_d9_self_method_visibility(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_signature_validation_l339_d9_self_method_visibility(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('SignatureValidation.method_visibility requires a method')
 	}
-	return brew_runtime.object_value('Symbol', ':${args[0].attribute('visibility') or { 'public' }}')
+	return ruby.object_value('Symbol', ':${args[0].attribute('visibility') or { 'public' }}')
 }
 
 // Ruby method `self.visibility_strength(vis)` at line 347.
-pub fn ruby_signature_validation_l347_d10_self_visibility_strength(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_signature_validation_l347_d10_self_visibility_strength(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('SignatureValidation.visibility_strength requires a visibility')
 	}
-	return brew_runtime.int_value(i64(validation_visibility_strength(args[0].as_string()) or {
+	return ruby.int_value(i64(validation_visibility_strength(args[0].as_string()) or {
 		panic(err.msg())
 	}))
 }
 
 // Ruby method `self.base_override_loc_str(signature, super_signature)` at line 351.
-pub fn ruby_signature_validation_l351_d11_self_base_override_loc_str(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_signature_validation_l351_d11_self_base_override_loc_str(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('SignatureValidation.base_override_loc_str requires two signatures')
 	}
-	return brew_runtime.string_value(validation_base_override_location(validation_signature_from_value(args[0]), validation_signature_from_value(args[1])))
+	return ruby.string_value(validation_base_override_location(validation_signature_from_value(args[0]), validation_signature_from_value(args[1])))
 }
 
 // Original Ruby source (line-for-line):

@@ -1,6 +1,6 @@
 module update_report
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `cmd/update_report/reporter.rb`.
@@ -533,29 +533,29 @@ pub fn reporter_migrate_formula_renames(formulae []ReporterMigrationPackage) []s
 	return migrated
 }
 
-fn reporter_report_to_value(report ReporterReport) brew_runtime.Value {
-	renames := report.renamed_formulae.map(brew_runtime.structured_value('Rename', '${it.old_name} -> ${it.new_name}', {
+fn reporter_report_to_value(report ReporterReport) ruby.Value {
+	renames := report.renamed_formulae.map(ruby.structured_value('Rename', '${it.old_name} -> ${it.new_name}', {
 		'old_name': it.old_name
 		'new_name': it.new_name
 	}))
-	cask_renames := report.renamed_casks.map(brew_runtime.structured_value('Rename', '${it.old_name} -> ${it.new_name}', {
+	cask_renames := report.renamed_casks.map(ruby.structured_value('Rename', '${it.old_name} -> ${it.new_name}', {
 		'old_name': it.old_name
 		'new_name': it.new_name
 	}))
-	return brew_runtime.map_value({
-		'A':  brew_runtime.string_array_value(report.added_formulae)
-		'AC': brew_runtime.string_array_value(report.added_casks)
-		'D':  brew_runtime.string_array_value(report.deleted_formulae)
-		'DC': brew_runtime.string_array_value(report.deleted_casks)
-		'M':  brew_runtime.string_array_value(report.modified_formulae)
-		'MC': brew_runtime.string_array_value(report.modified_casks)
-		'R':  brew_runtime.array_value(renames)
-		'RC': brew_runtime.array_value(cask_renames)
-		'T':  brew_runtime.string_array_value(report.tap_migrations)
+	return ruby.map_value({
+		'A':  ruby.string_array_value(report.added_formulae)
+		'AC': ruby.string_array_value(report.added_casks)
+		'D':  ruby.string_array_value(report.deleted_formulae)
+		'DC': ruby.string_array_value(report.deleted_casks)
+		'M':  ruby.string_array_value(report.modified_formulae)
+		'MC': ruby.string_array_value(report.modified_casks)
+		'R':  ruby.array_value(renames)
+		'RC': ruby.array_value(cask_renames)
+		'T':  ruby.string_array_value(report.tap_migrations)
 	})
 }
 
-fn reporter_renames_from_value(value brew_runtime.Value) []ReporterRename {
+fn reporter_renames_from_value(value ruby.Value) []ReporterRename {
 	mut renames := []ReporterRename{}
 	for entry in value.array_data {
 		old_name := entry.attributes['old_name'] or { '' }
@@ -567,38 +567,38 @@ fn reporter_renames_from_value(value brew_runtime.Value) []ReporterRename {
 	return renames
 }
 
-fn reporter_report_from_value(value brew_runtime.Value) ReporterReport {
+fn reporter_report_from_value(value ruby.Value) ReporterReport {
 	return ReporterReport{
-		added_formulae: (value.map_data['A'] or { brew_runtime.string_array_value([]) }).string_array_data
-		added_casks: (value.map_data['AC'] or { brew_runtime.string_array_value([]) }).string_array_data
-		deleted_formulae: (value.map_data['D'] or { brew_runtime.string_array_value([]) }).string_array_data
-		deleted_casks: (value.map_data['DC'] or { brew_runtime.string_array_value([]) }).string_array_data
-		modified_formulae: (value.map_data['M'] or { brew_runtime.string_array_value([]) }).string_array_data
-		modified_casks: (value.map_data['MC'] or { brew_runtime.string_array_value([]) }).string_array_data
-		renamed_formulae: reporter_renames_from_value(value.map_data['R'] or { brew_runtime.array_value([]) })
-		renamed_casks: reporter_renames_from_value(value.map_data['RC'] or { brew_runtime.array_value([]) })
-		tap_migrations: (value.map_data['T'] or { brew_runtime.string_array_value([]) }).string_array_data
+		added_formulae: (value.map_data['A'] or { ruby.string_array_value([]) }).string_array_data
+		added_casks: (value.map_data['AC'] or { ruby.string_array_value([]) }).string_array_data
+		deleted_formulae: (value.map_data['D'] or { ruby.string_array_value([]) }).string_array_data
+		deleted_casks: (value.map_data['DC'] or { ruby.string_array_value([]) }).string_array_data
+		modified_formulae: (value.map_data['M'] or { ruby.string_array_value([]) }).string_array_data
+		modified_casks: (value.map_data['MC'] or { ruby.string_array_value([]) }).string_array_data
+		renamed_formulae: reporter_renames_from_value(value.map_data['R'] or { ruby.array_value([]) })
+		renamed_casks: reporter_renames_from_value(value.map_data['RC'] or { ruby.array_value([]) })
+		tap_migrations: (value.map_data['T'] or { ruby.string_array_value([]) }).string_array_data
 	}
 }
 
-fn reporter_migration_result_to_value(result ReporterMigrationResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'actions':           brew_runtime.string_array_value(result.actions)
-		'warnings':          brew_runtime.string_array_value(result.warnings)
-		'installed_taps':    brew_runtime.string_array_value(result.installed_taps)
-		'updated_formulae':  brew_runtime.string_array_value(result.updated_formulae)
-		'migrated_casks':    brew_runtime.string_array_value(result.migrated_casks)
-		'migrated_formulae': brew_runtime.string_array_value(result.migrated_formulae)
+fn reporter_migration_result_to_value(result ReporterMigrationResult) ruby.Value {
+	return ruby.map_value({
+		'actions':           ruby.string_array_value(result.actions)
+		'warnings':          ruby.string_array_value(result.warnings)
+		'installed_taps':    ruby.string_array_value(result.installed_taps)
+		'updated_formulae':  ruby.string_array_value(result.updated_formulae)
+		'migrated_casks':    ruby.string_array_value(result.migrated_casks)
+		'migrated_formulae': ruby.string_array_value(result.migrated_formulae)
 	})
 }
 
-fn reporter_migration_packages_from_value(value brew_runtime.Value) []ReporterMigrationPackage {
-	values := if value.array_data.len > 0 { value.array_data } else { []brew_runtime.Value{} }
+fn reporter_migration_packages_from_value(value ruby.Value) []ReporterMigrationPackage {
+	values := if value.array_data.len > 0 { value.array_data } else { []ruby.Value{} }
 	mut packages := []ReporterMigrationPackage{}
 	for item in values {
 		mut racks := map[string]bool{}
 		mut nonempty := map[string]bool{}
-		oldnames := (item.map_data['oldnames'] or { brew_runtime.string_array_value([]) }).string_array_data
+		oldnames := (item.map_data['oldnames'] or { ruby.string_array_value([]) }).string_array_data
 		for oldname in oldnames {
 			racks[oldname] = (item.attributes['rack_${oldname}'] or { 'false' }) == 'true'
 			nonempty[oldname] = (item.attributes['nonempty_${oldname}'] or { 'false' }) == 'true'
@@ -616,8 +616,8 @@ fn reporter_migration_packages_from_value(value brew_runtime.Value) []ReporterMi
 	return packages
 }
 
-pub fn reporter_to_value(reporter Reporter) brew_runtime.Value {
-	return brew_runtime.structured_value('Reporter', reporter.tap.name, {
+pub fn reporter_to_value(reporter Reporter) ruby.Value {
+	return ruby.structured_value('Reporter', reporter.tap.name, {
 		'tap_name':              reporter.tap.name
 		'tap_path':              reporter.tap.path
 		'repository_var_suffix': reporter.tap.repository_var_suffix
@@ -632,7 +632,7 @@ pub fn reporter_to_value(reporter Reporter) brew_runtime.Value {
 	})
 }
 
-fn reporter_from_value(value brew_runtime.Value) Reporter {
+fn reporter_from_value(value ruby.Value) Reporter {
 	return Reporter{
 		tap: ReporterTap{
 			name: value.attributes['tap_name'] or { value.repr }
@@ -651,15 +651,15 @@ fn reporter_from_value(value brew_runtime.Value) Reporter {
 }
 
 // Ruby method `initialize(var_name)` at line 25.
-pub fn ruby_reporter_l25_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_reporter_l25_d1_initialize(args ...ruby.Value) ruby.Value {
 	name := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.object_value('Reporter::ReporterRevisionUnsetError', '${name} is unset!')
+	return ruby.object_value('Reporter::ReporterRevisionUnsetError', '${name} is unset!')
 }
 
 // Ruby method `initialize(tap, api_names_txt: nil, api_names_before_txt: nil, api_dir_prefix: nil)` at line 34.
-pub fn ruby_reporter_l34_d2_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_reporter_l34_d2_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'tap is required')
+		return ruby.object_value('ArgumentError', 'tap is required')
 	}
 	value := args[0]
 	tap := ReporterTap{
@@ -674,13 +674,13 @@ pub fn ruby_reporter_l34_d2_initialize(args ...brew_runtime.Value) brew_runtime.
 		environment = args[1].attributes.clone()
 	}
 	reporter := new_reporter(tap, environment, value.attributes['api_names_txt'] or { '' }, value.attributes['api_names_before_txt'] or { '' }, value.attributes['api_dir_prefix'] or { '' }) or {
-		return brew_runtime.object_value('Reporter::ReporterRevisionUnsetError', err.msg())
+		return ruby.object_value('Reporter::ReporterRevisionUnsetError', err.msg())
 	}
 	return reporter_to_value(reporter)
 }
 
 // Ruby method `report(auto_update: false)` at line 56.
-pub fn ruby_reporter_l56_d3_report(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_reporter_l56_d3_report(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return reporter_report_to_value(ReporterReport{})
 	}
@@ -693,12 +693,12 @@ pub fn ruby_reporter_l56_d3_report(args ...brew_runtime.Value) brew_runtime.Valu
 }
 
 // Ruby method `updated?` at line 211.
-pub fn ruby_reporter_l211_d4_updated(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(args.len > 0 && reporter_from_value(args[0]).updated())
+pub fn ruby_reporter_l211_d4_updated(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(args.len > 0 && reporter_from_value(args[0]).updated())
 }
 
 // Ruby method `migrate_tap_migration` at line 220.
-pub fn ruby_reporter_l220_d5_migrate_tap_migration(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_reporter_l220_d5_migrate_tap_migration(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return reporter_migration_result_to_value(reporter_migrate_tap_migrations(ReporterReport{}, ReporterTap{}, ReporterMigrationContext{}))
 	}
@@ -722,25 +722,25 @@ pub fn ruby_reporter_l220_d5_migrate_tap_migration(args ...brew_runtime.Value) b
 }
 
 // Ruby method `migrate_cask_rename` at line 313.
-pub fn ruby_reporter_l313_d6_migrate_cask_rename(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_reporter_l313_d6_migrate_cask_rename(args ...ruby.Value) ruby.Value {
 	values := if args.len > 0 { args[0].string_array_data } else { []string{} }
-	return brew_runtime.string_array_value(reporter_migrate_cask_renames(values))
+	return ruby.string_array_value(reporter_migrate_cask_renames(values))
 }
 
 // Ruby method `migrate_formula_rename(force:, verbose:)` at line 320.
-pub fn ruby_reporter_l320_d7_migrate_formula_rename(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_reporter_l320_d7_migrate_formula_rename(args ...ruby.Value) ruby.Value {
 	packages := if args.len > 0 {
 		reporter_migration_packages_from_value(args[0])
 	} else {
 		[]ReporterMigrationPackage{}
 	}
-	return brew_runtime.string_array_value(reporter_migrate_formula_renames(packages))
+	return ruby.string_array_value(reporter_migrate_formula_renames(packages))
 }
 
 // Ruby method `ensure_trusted_tap_installed!(name, new_name, new_tap)` at line 342.
-pub fn ruby_reporter_l342_d8_ensure_trusted_tap_installed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_reporter_l342_d8_ensure_trusted_tap_installed(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	tap_value := args[2]
 	result := reporter_ensure_trusted_tap_installed(args[0].as_string(), args[1].as_string(), ReporterTap{
@@ -749,7 +749,7 @@ pub fn ruby_reporter_l342_d8_ensure_trusted_tap_installed(args ...brew_runtime.V
 		trusted: (tap_value.attributes['trusted'] or { 'false' }) == 'true'
 		official: (tap_value.attributes['official'] or { 'false' }) == 'true'
 	})
-	return brew_runtime.structured_value('TrustResult', result.warning, {
+	return ruby.structured_value('TrustResult', result.warning, {
 		'allowed':       result.allowed.str()
 		'installed_tap': result.installed_tap.str()
 		'warning':       result.warning
@@ -757,8 +757,8 @@ pub fn ruby_reporter_l342_d8_ensure_trusted_tap_installed(args ...brew_runtime.V
 }
 
 // Ruby method `diff` at line 370.
-pub fn ruby_reporter_l370_d9_diff(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(if args.len > 0 {
+pub fn ruby_reporter_l370_d9_diff(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(if args.len > 0 {
 		reporter_from_value(args[0]).diff()
 	} else {
 		''
@@ -766,20 +766,20 @@ pub fn ruby_reporter_l370_d9_diff(args ...brew_runtime.Value) brew_runtime.Value
 }
 
 // Ruby attr_reader `attr_reader :tap` at line 414.
-pub fn ruby_reporter_l414_d10_tap(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_reporter_l414_d10_tap(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	reporter := reporter_from_value(args[0])
-	return brew_runtime.structured_value('Tap', reporter.tap.name, {
+	return ruby.structured_value('Tap', reporter.tap.name, {
 		'name': reporter.tap.name
 		'path': reporter.tap.path
 	})
 }
 
 // Ruby attr_reader `attr_reader :initial_revision` at line 417.
-pub fn ruby_reporter_l417_d11_initial_revision(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(if args.len > 0 {
+pub fn ruby_reporter_l417_d11_initial_revision(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(if args.len > 0 {
 		reporter_from_value(args[0]).initial_revision
 	} else {
 		''
@@ -787,8 +787,8 @@ pub fn ruby_reporter_l417_d11_initial_revision(args ...brew_runtime.Value) brew_
 }
 
 // Ruby attr_reader `attr_reader :current_revision` at line 420.
-pub fn ruby_reporter_l420_d12_current_revision(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(if args.len > 0 {
+pub fn ruby_reporter_l420_d12_current_revision(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(if args.len > 0 {
 		reporter_from_value(args[0]).current_revision
 	} else {
 		''
@@ -796,8 +796,8 @@ pub fn ruby_reporter_l420_d12_current_revision(args ...brew_runtime.Value) brew_
 }
 
 // Ruby attr_reader `attr_reader :api_names_txt` at line 423.
-pub fn ruby_reporter_l423_d13_api_names_txt(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(if args.len > 0 {
+pub fn ruby_reporter_l423_d13_api_names_txt(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(if args.len > 0 {
 		reporter_from_value(args[0]).api_names_txt
 	} else {
 		''
@@ -805,8 +805,8 @@ pub fn ruby_reporter_l423_d13_api_names_txt(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby attr_reader `attr_reader :api_names_before_txt` at line 426.
-pub fn ruby_reporter_l426_d14_api_names_before_txt(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(if args.len > 0 {
+pub fn ruby_reporter_l426_d14_api_names_before_txt(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(if args.len > 0 {
 		reporter_from_value(args[0]).api_names_before_txt
 	} else {
 		''
@@ -814,8 +814,8 @@ pub fn ruby_reporter_l426_d14_api_names_before_txt(args ...brew_runtime.Value) b
 }
 
 // Ruby attr_reader `attr_reader :api_dir_prefix` at line 429.
-pub fn ruby_reporter_l429_d15_api_dir_prefix(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(if args.len > 0 {
+pub fn ruby_reporter_l429_d15_api_dir_prefix(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(if args.len > 0 {
 		reporter_from_value(args[0]).api_dir_prefix
 	} else {
 		''
@@ -823,11 +823,11 @@ pub fn ruby_reporter_l429_d15_api_dir_prefix(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby method `installed_from_api?(api_names_txt = @api_names_txt, api_names_before_txt = @api_names_before_txt,` at line 435.
-pub fn ruby_reporter_l435_d16_installed_from_api(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_reporter_l435_d16_installed_from_api(args ...ruby.Value) ruby.Value {
 	if args.len >= 3 {
-		return brew_runtime.bool_value(reporter_installed_from_api(args[0].as_string(), args[1].as_string(), args[2].as_string()))
+		return ruby.bool_value(reporter_installed_from_api(args[0].as_string(), args[1].as_string(), args[2].as_string()))
 	}
-	return brew_runtime.bool_value(args.len > 0 && reporter_from_value(args[0]).installed_from_api())
+	return ruby.bool_value(args.len > 0 && reporter_from_value(args[0]).installed_from_api())
 }
 
 // Original Ruby source (line-for-line):

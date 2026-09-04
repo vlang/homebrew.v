@@ -1,6 +1,6 @@
 module artifact
 
-import brew_runtime
+import ruby
 import homebrew.cask.artifact as core
 import os
 
@@ -16,7 +16,7 @@ struct BinarySpecFixture {
 
 struct BinarySpecInstallResult {
 	symlink_result core.SymlinkedOperationResult
-	executable     brew_runtime.Value
+	executable     ruby.Value
 	disabled       bool
 }
 
@@ -36,7 +36,7 @@ fn binary_spec_paths(token string) (string, string, string) {
 	return source, binarydir, target
 }
 
-fn binary_spec_cask_value(token string, installed_without_artifacts bool) brew_runtime.Value {
+fn binary_spec_cask_value(token string, installed_without_artifacts bool) ruby.Value {
 	source, binarydir, target := binary_spec_paths(token)
 	artifact := core.SymlinkedArtifact{
 		source: source
@@ -44,7 +44,7 @@ fn binary_spec_cask_value(token string, installed_without_artifacts bool) brew_r
 		english_name: 'Binary'
 		caskroom_path: os.join_path(os.temp_dir(), 'brew-v-binary-spec-values', token, 'Caskroom', token)
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'Cask'
 		repr: token
 		attributes: {
@@ -54,7 +54,7 @@ fn binary_spec_cask_value(token string, installed_without_artifacts bool) brew_r
 			'installed_without_artifacts': installed_without_artifacts.str()
 		}
 		map_data: {
-			'artifacts': brew_runtime.array_value([
+			'artifacts': ruby.array_value([
 				core.symlinked_artifact_to_value(artifact),
 			])
 		}
@@ -112,15 +112,15 @@ fn binary_spec_install(fixture BinarySpecFixture, binaries bool) BinarySpecInsta
 			symlink_result: core.SymlinkedOperationResult{
 				skipped: true
 			}
-			executable: brew_runtime.object_value('NilClass', 'nil')
+			executable: ruby.object_value('NilClass', 'nil')
 			disabled: true
 		}
 	}
 	artifact := binary_spec_artifact(fixture)
 	mut symlink_result := core.link_symlinked_artifact_with_command(artifact, core.SymlinkedInstallOptions{}, binary_spec_runner)
-	mut executable := brew_runtime.object_value('NilClass', 'nil')
+	mut executable := ruby.object_value('NilClass', 'nil')
 	if symlink_result.success {
-		executable = core.ruby_binary_l18_d1_link(brew_runtime.string_value(fixture.source))
+		executable = core.ruby_binary_l18_d1_link(ruby.string_value(fixture.source))
 		if executable.type_name == 'CaskError' || executable.type_name == 'ArgumentError' {
 			symlink_result.success = false
 			symlink_result.error = executable.repr
@@ -201,113 +201,113 @@ pub fn binary_spec_case(index int) bool {
 }
 
 // Ruby let `let(:cask) do` at line 5.
-pub fn ruby_binary_spec_l5_d1_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_binary_spec_l5_d1_cask(args ...ruby.Value) ruby.Value {
 	_ = args
 	return binary_spec_cask_value('with-binary', true)
 }
 
 // Ruby let `let(:artifacts) { cask.artifacts.grep(described_class) }` at line 10.
-pub fn ruby_binary_spec_l10_d2_artifacts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_binary_spec_l10_d2_artifacts(args ...ruby.Value) ruby.Value {
 	cask := if args.len > 0 { args[0] } else { binary_spec_cask_value('with-binary', true) }
-	return cask.map_data['artifacts'] or { brew_runtime.array_value([]) }
+	return cask.map_data['artifacts'] or { ruby.array_value([]) }
 }
 
 // Ruby let `let(:binarydir) { cask.config.binarydir }` at line 11.
-pub fn ruby_binary_spec_l11_d3_binarydir(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_binary_spec_l11_d3_binarydir(args ...ruby.Value) ruby.Value {
 	cask := if args.len > 0 { args[0] } else { binary_spec_cask_value('with-binary', true) }
-	return brew_runtime.string_value(cask.attributes['binarydir'] or { '' })
+	return ruby.string_value(cask.attributes['binarydir'] or { '' })
 }
 
 // Ruby let `let(:expected_path) { binarydir.join("binary") }` at line 12.
-pub fn ruby_binary_spec_l12_d4_expected_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_binary_spec_l12_d4_expected_path(args ...ruby.Value) ruby.Value {
 	binarydir := if args.len > 0 {
 		args[0].as_string()
 	} else {
 		binary_spec_cask_value('with-binary', true).attributes['binarydir'] or { '' }
 	}
-	return brew_runtime.string_value(os.join_path(binarydir, 'binary'))
+	return ruby.string_value(os.join_path(binarydir, 'binary'))
 }
 
 // Ruby let `let(:cask) do` at line 24.
-pub fn ruby_binary_spec_l24_d5_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_binary_spec_l24_d5_cask(args ...ruby.Value) ruby.Value {
 	_ = args
 	return binary_spec_cask_value('with-binary', false)
 }
 
 // Ruby it `it "doesn't link the binary when --no-binaries is specified" do` at line 28.
-pub fn ruby_binary_spec_l28_d6_doesn(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_binary_spec_l28_d6_doesn(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(binary_spec_case(6))
+	return ruby.bool_value(binary_spec_case(6))
 }
 
 // Ruby it `it "links the binary to the proper directory" do` at line 34.
-pub fn ruby_binary_spec_l34_d7_links(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_binary_spec_l34_d7_links(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(binary_spec_case(7))
+	return ruby.bool_value(binary_spec_case(7))
 }
 
 // Ruby let `let(:cask) do` at line 44.
-pub fn ruby_binary_spec_l44_d8_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_binary_spec_l44_d8_cask(args ...ruby.Value) ruby.Value {
 	_ = args
 	return binary_spec_cask_value('with-non-executable-binary', true)
 }
 
 // Ruby let `let(:expected_path) { cask.config.binarydir.join("naked_non_executable") }` at line 50.
-pub fn ruby_binary_spec_l50_d9_expected_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_binary_spec_l50_d9_expected_path(args ...ruby.Value) ruby.Value {
 	cask := if args.len > 0 {
 		args[0]
 	} else {
 		binary_spec_cask_value('with-non-executable-binary', true)
 	}
-	return brew_runtime.string_value(os.join_path(cask.attributes['binarydir'] or { '' }, 'naked_non_executable'))
+	return ruby.string_value(os.join_path(cask.attributes['binarydir'] or { '' }, 'naked_non_executable'))
 }
 
 // Ruby it `it "makes the binary executable" do` at line 52.
-pub fn ruby_binary_spec_l52_d10_makes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_binary_spec_l52_d10_makes(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(binary_spec_case(10))
+	return ruby.bool_value(binary_spec_case(10))
 }
 
 // Ruby it `it "avoids clobbering an existing binary by linking over it" do` at line 65.
-pub fn ruby_binary_spec_l65_d11_avoids(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_binary_spec_l65_d11_avoids(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(binary_spec_case(11))
+	return ruby.bool_value(binary_spec_case(11))
 }
 
 // Ruby it `it "avoids clobbering an existing symlink" do` at line 77.
-pub fn ruby_binary_spec_l77_d12_avoids(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_binary_spec_l77_d12_avoids(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(binary_spec_case(12))
+	return ruby.bool_value(binary_spec_case(12))
 }
 
 // Ruby it `it "skips linking when the target is already a symlink to the source" do` at line 89.
-pub fn ruby_binary_spec_l89_d13_skips(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_binary_spec_l89_d13_skips(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(binary_spec_case(13))
+	return ruby.bool_value(binary_spec_case(13))
 }
 
 // Ruby it `it "raises a clean error when the target symlink cannot be resolved" do` at line 100.
-pub fn ruby_binary_spec_l100_d14_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_binary_spec_l100_d14_raises(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(binary_spec_case(14))
+	return ruby.bool_value(binary_spec_case(14))
 }
 
 // Ruby it `it "creates parent directory if it doesn't exist" do` at line 110.
-pub fn ruby_binary_spec_l110_d15_creates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_binary_spec_l110_d15_creates(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(binary_spec_case(15))
+	return ruby.bool_value(binary_spec_case(15))
 }
 
 // Ruby let `let(:cask) do` at line 121.
-pub fn ruby_binary_spec_l121_d16_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_binary_spec_l121_d16_cask(args ...ruby.Value) ruby.Value {
 	_ = args
 	return binary_spec_cask_value('with-embedded-binary', true)
 }
 
 // Ruby it `it "links the binary to the proper directory" do` at line 127.
-pub fn ruby_binary_spec_l127_d17_links(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_binary_spec_l127_d17_links(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(binary_spec_case(17))
+	return ruby.bool_value(binary_spec_case(17))
 }
 
 // Original Ruby source (line-for-line):

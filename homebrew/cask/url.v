@@ -1,6 +1,6 @@
 module cask
 
-import brew_runtime
+import ruby
 import net.urllib
 import os
 import regex
@@ -10,30 +10,30 @@ import regex
 pub struct CaskURL {
 pub:
 	uri            string
-	options        map[string]brew_runtime.Value
+	options        map[string]ruby.Value
 	caller_path    string
 	caller_line    int
 	raw_line_value string
 	has_raw_line   bool
 }
 
-fn cask_url_nil() brew_runtime.Value {
-	return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+fn cask_url_nil() ruby.Value {
+	return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 }
 
-fn cask_url_header(value brew_runtime.Value) brew_runtime.Value {
+fn cask_url_header(value ruby.Value) ruby.Value {
 	if value.type_name == 'NilClass' {
 		return value
 	}
 	if value.type_name == 'Array' {
 		return value
 	}
-	return brew_runtime.string_array_value([value.as_string()])
+	return ruby.string_array_value([value.as_string()])
 }
 
-pub fn new_cask_url(uri string, supplied map[string]brew_runtime.Value) !CaskURL {
+pub fn new_cask_url(uri string, supplied map[string]ruby.Value) !CaskURL {
 	urllib.parse(uri)!
-	mut options := map[string]brew_runtime.Value{}
+	mut options := map[string]ruby.Value{}
 	for key in ['verified', 'using', 'tag', 'branch', 'revisions', 'revision', 'trust_cert', 'cookies',
 		'referer', 'header', 'user_agent', 'data', 'only_path'] {
 		if raw := supplied[key] {
@@ -43,13 +43,13 @@ pub fn new_cask_url(uri string, supplied map[string]brew_runtime.Value) !CaskURL
 		}
 	}
 	if 'user_agent' !in options {
-		options['user_agent'] = brew_runtime.Value{ type_name: 'Symbol', repr: 'default' }
+		options['user_agent'] = ruby.Value{ type_name: 'Symbol', repr: 'default' }
 	}
-	caller := supplied['caller_location'] or { brew_runtime.Value{} }
+	caller := supplied['caller_location'] or { ruby.Value{} }
 	line_text := caller.attributes['lineno'] or {
 		if raw := caller.map_data['lineno'] { raw.as_string() } else { '0' }
 	}
-	raw_line := supplied['raw_url_line'] or { brew_runtime.Value{} }
+	raw_line := supplied['raw_url_line'] or { ruby.Value{} }
 	return CaskURL{
 		uri: uri
 		options: options
@@ -63,15 +63,15 @@ pub fn new_cask_url(uri string, supplied map[string]brew_runtime.Value) !CaskURL
 	}
 }
 
-pub fn cask_url_value(url CaskURL) brew_runtime.Value {
+pub fn cask_url_value(url CaskURL) ruby.Value {
 	mut values := url.options.clone()
-	values['uri'] = brew_runtime.string_value(url.uri)
-	values['caller_path'] = brew_runtime.string_value(url.caller_path)
-	values['caller_line'] = brew_runtime.int_value(url.caller_line)
+	values['uri'] = ruby.string_value(url.uri)
+	values['caller_path'] = ruby.string_value(url.caller_path)
+	values['caller_line'] = ruby.int_value(url.caller_line)
 	if url.has_raw_line {
-		values['raw_url_line'] = brew_runtime.string_value(url.raw_line_value)
+		values['raw_url_line'] = ruby.string_value(url.raw_line_value)
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'Cask::URL'
 		repr: url.uri
 		map_data: values
@@ -81,18 +81,18 @@ pub fn cask_url_value(url CaskURL) brew_runtime.Value {
 	}
 }
 
-pub fn cask_url_from_value(value brew_runtime.Value) !CaskURL {
+pub fn cask_url_from_value(value ruby.Value) !CaskURL {
 	if value.type_name != 'Cask::URL' {
 		return error('expected Cask::URL, got ${value.type_name}')
 	}
 	mut supplied := value.map_data.clone()
 	if raw_path := supplied['caller_path'] {
-		supplied['caller_location'] = brew_runtime.structured_value('Thread::Backtrace::Location', raw_path.as_string(), {
+		supplied['caller_location'] = ruby.structured_value('Thread::Backtrace::Location', raw_path.as_string(), {
 			'path':   raw_path.as_string()
-			'lineno': (supplied['caller_line'] or { brew_runtime.int_value(0) }).as_string()
+			'lineno': (supplied['caller_line'] or { ruby.int_value(0) }).as_string()
 		})
 	}
-	return new_cask_url((supplied['uri'] or { brew_runtime.string_value(value.as_string()) }).as_string(), supplied)
+	return new_cask_url((supplied['uri'] or { ruby.string_value(value.as_string()) }).as_string(), supplied)
 }
 
 pub fn (url CaskURL) parsed() !urllib.URL {
@@ -132,159 +132,159 @@ pub fn (url CaskURL) unversioned(ignore_major_version bool) bool {
 	return !interpolated.contains(r'#{')
 }
 
-fn cask_url_receiver(args []brew_runtime.Value) ?CaskURL {
+fn cask_url_receiver(args []ruby.Value) ?CaskURL {
 	if args.len == 0 {
 		return none
 	}
 	return cask_url_from_value(args[0]) or { return none }
 }
 
-fn cask_url_option(args []brew_runtime.Value, key string) brew_runtime.Value {
+fn cask_url_option(args []ruby.Value, key string) ruby.Value {
 	url := cask_url_receiver(args) or { return cask_url_nil() }
 	return url.options[key] or { cask_url_nil() }
 }
 
 // Ruby attr_reader `attr_reader :uri` at line 11.
-pub fn ruby_url_l11_d1_uri(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_url_l11_d1_uri(args ...ruby.Value) ruby.Value {
 	url := cask_url_receiver(args) or { return cask_url_nil() }
-	return brew_runtime.object_value('URI::Generic', url.uri)
+	return ruby.object_value('URI::Generic', url.uri)
 }
 
 // Ruby attr_reader `attr_reader :revisions` at line 14.
-pub fn ruby_url_l14_d2_revisions(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_url_l14_d2_revisions(args ...ruby.Value) ruby.Value {
 	return cask_url_option(args, 'revisions')
 }
 
 // Ruby attr_reader `attr_reader :trust_cert` at line 17.
-pub fn ruby_url_l17_d3_trust_cert(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_url_l17_d3_trust_cert(args ...ruby.Value) ruby.Value {
 	return cask_url_option(args, 'trust_cert')
 }
 
 // Ruby attr_reader `attr_reader :cookies, :data` at line 20.
-pub fn ruby_url_l20_d4_cookies(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_url_l20_d4_cookies(args ...ruby.Value) ruby.Value {
 	return cask_url_option(args, 'cookies')
 }
 
 // Ruby attr_reader `attr_reader :cookies, :data` at line 20.
-pub fn ruby_url_l20_d5_data(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_url_l20_d5_data(args ...ruby.Value) ruby.Value {
 	return cask_url_option(args, 'data')
 }
 
 // Ruby attr_reader `attr_reader :header` at line 23.
-pub fn ruby_url_l23_d6_header(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_url_l23_d6_header(args ...ruby.Value) ruby.Value {
 	return cask_url_option(args, 'header')
 }
 
 // Ruby attr_reader `attr_reader :referer` at line 26.
-pub fn ruby_url_l26_d7_referer(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_url_l26_d7_referer(args ...ruby.Value) ruby.Value {
 	return cask_url_option(args, 'referer')
 }
 
 // Ruby attr_reader `attr_reader :specs` at line 29.
-pub fn ruby_url_l29_d8_specs(args ...brew_runtime.Value) brew_runtime.Value {
-	url := cask_url_receiver(args) or { return brew_runtime.map_value({}) }
-	return brew_runtime.map_value(url.options)
+pub fn ruby_url_l29_d8_specs(args ...ruby.Value) ruby.Value {
+	url := cask_url_receiver(args) or { return ruby.map_value({}) }
+	return ruby.map_value(url.options)
 }
 
 // Ruby attr_reader `attr_reader :user_agent` at line 32.
-pub fn ruby_url_l32_d9_user_agent(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_url_l32_d9_user_agent(args ...ruby.Value) ruby.Value {
 	return cask_url_option(args, 'user_agent')
 }
 
 // Ruby attr_reader `attr_reader :using` at line 35.
-pub fn ruby_url_l35_d10_using(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_url_l35_d10_using(args ...ruby.Value) ruby.Value {
 	return cask_url_option(args, 'using')
 }
 
 // Ruby attr_reader `attr_reader :tag, :branch, :revision, :only_path, :verified` at line 38.
-pub fn ruby_url_l38_d11_tag(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_url_l38_d11_tag(args ...ruby.Value) ruby.Value {
 	return cask_url_option(args, 'tag')
 }
 
 // Ruby attr_reader `attr_reader :tag, :branch, :revision, :only_path, :verified` at line 38.
-pub fn ruby_url_l38_d12_branch(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_url_l38_d12_branch(args ...ruby.Value) ruby.Value {
 	return cask_url_option(args, 'branch')
 }
 
 // Ruby attr_reader `attr_reader :tag, :branch, :revision, :only_path, :verified` at line 38.
-pub fn ruby_url_l38_d13_revision(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_url_l38_d13_revision(args ...ruby.Value) ruby.Value {
 	return cask_url_option(args, 'revision')
 }
 
 // Ruby attr_reader `attr_reader :tag, :branch, :revision, :only_path, :verified` at line 38.
-pub fn ruby_url_l38_d14_only_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_url_l38_d14_only_path(args ...ruby.Value) ruby.Value {
 	return cask_url_option(args, 'only_path')
 }
 
 // Ruby attr_reader `attr_reader :tag, :branch, :revision, :only_path, :verified` at line 38.
-pub fn ruby_url_l38_d15_verified(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_url_l38_d15_verified(args ...ruby.Value) ruby.Value {
 	return cask_url_option(args, 'verified')
 }
 
 // Ruby def_delegators `def_delegators :uri, :path, :scheme, :to_s` at line 42.
-pub fn ruby_url_l42_d16_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_url_l42_d16_path(args ...ruby.Value) ruby.Value {
 	url := cask_url_receiver(args) or { return cask_url_nil() }
-	parsed := url.parsed() or { return brew_runtime.object_value('URI::InvalidURIError', err.msg()) }
-	return brew_runtime.string_value(parsed.path)
+	parsed := url.parsed() or { return ruby.object_value('URI::InvalidURIError', err.msg()) }
+	return ruby.string_value(parsed.path)
 }
 
 // Ruby def_delegators `def_delegators :uri, :path, :scheme, :to_s` at line 42.
-pub fn ruby_url_l42_d17_scheme(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_url_l42_d17_scheme(args ...ruby.Value) ruby.Value {
 	url := cask_url_receiver(args) or { return cask_url_nil() }
-	parsed := url.parsed() or { return brew_runtime.object_value('URI::InvalidURIError', err.msg()) }
-	return brew_runtime.string_value(parsed.scheme)
+	parsed := url.parsed() or { return ruby.object_value('URI::InvalidURIError', err.msg()) }
+	return ruby.string_value(parsed.scheme)
 }
 
 // Ruby def_delegators `def_delegators :uri, :path, :scheme, :to_s` at line 42.
-pub fn ruby_url_l42_d18_to_s(args ...brew_runtime.Value) brew_runtime.Value {
-	url := cask_url_receiver(args) or { return brew_runtime.string_value('') }
-	return brew_runtime.string_value(url.uri)
+pub fn ruby_url_l42_d18_to_s(args ...ruby.Value) ruby.Value {
+	url := cask_url_receiver(args) or { return ruby.string_value('') }
+	return ruby.string_value(url.uri)
 }
 
 // Ruby method `initialize(` at line 66.
-pub fn ruby_url_l66_d19_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_url_l66_d19_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'URL.new requires a URI')
+		return ruby.object_value('ArgumentError', 'URL.new requires a URI')
 	}
 	options := if args.len > 1 && args[args.len - 1].type_name == 'Hash' {
 		args[args.len - 1].map_data.clone()
 	} else {
-		map[string]brew_runtime.Value{}
+		map[string]ruby.Value{}
 	}
 	url := new_cask_url(args[0].as_string(), options) or {
-		return brew_runtime.object_value('URI::InvalidURIError', err.msg())
+		return ruby.object_value('URI::InvalidURIError', err.msg())
 	}
 	return cask_url_value(url)
 }
 
 // Ruby method `location` at line 96.
-pub fn ruby_url_l96_d20_location(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_url_l96_d20_location(args ...ruby.Value) ruby.Value {
 	url := cask_url_receiver(args) or { return cask_url_nil() }
 	line := url.raw_url_line() or { '' }
 	column := line.index('url') or { -1 }
-	return brew_runtime.structured_value('Homebrew::SourceLocation', '${url.caller_line}:${column}', {
+	return ruby.structured_value('Homebrew::SourceLocation', '${url.caller_line}:${column}', {
 		'line':   url.caller_line.str()
 		'column': column.str()
 	})
 }
 
 // Ruby method `unversioned?(ignore_major_version: false)` at line 101.
-pub fn ruby_url_l101_d21_unversioned(args ...brew_runtime.Value) brew_runtime.Value {
-	url := cask_url_receiver(args) or { return brew_runtime.bool_value(false) }
+pub fn ruby_url_l101_d21_unversioned(args ...ruby.Value) ruby.Value {
+	url := cask_url_receiver(args) or { return ruby.bool_value(false) }
 	keywords := if args.len > 1 && args[args.len - 1].type_name == 'Hash' {
 		args[args.len - 1].map_data
 	} else {
-		map[string]brew_runtime.Value{}
+		map[string]ruby.Value{}
 	}
-	ignore_major := (keywords['ignore_major_version'] or { brew_runtime.bool_value(false) }).as_bool() or { false }
-	return brew_runtime.bool_value(url.unversioned(ignore_major))
+	ignore_major := (keywords['ignore_major_version'] or { ruby.bool_value(false) }).as_bool() or { false }
+	return ruby.bool_value(url.unversioned(ignore_major))
 }
 
 // Ruby method `raw_url_line` at line 115.
-pub fn ruby_url_l115_d22_raw_url_line(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_url_l115_d22_raw_url_line(args ...ruby.Value) ruby.Value {
 	url := cask_url_receiver(args) or { return cask_url_nil() }
 	line := url.raw_url_line() or { return cask_url_nil() }
-	return brew_runtime.string_value(line)
+	return ruby.string_value(line)
 }
 
 // Original Ruby source (line-for-line):

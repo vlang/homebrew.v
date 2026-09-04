@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `dev-cmd/sh.rb`.
@@ -83,13 +83,13 @@ pub:
 	options ShOptions
 }
 
-pub fn sh_input_boundary(input &ShInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::Sh::Input', '', {
+pub fn sh_input_boundary(input &ShInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::Sh::Input', '', {
 		'sh_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn sh_input_from_value(value brew_runtime.Value) &ShInput {
+fn sh_input_from_value(value ruby.Value) &ShInput {
 	address := value.attributes['sh_input_address'] or { panic('invalid Sh input') }
 	return unsafe { &ShInput(voidptr(address.u64())) }
 }
@@ -271,58 +271,58 @@ pub fn run_sh_command(options ShOptions) ShCommandPlan {
 	}
 }
 
-fn sh_environment_plan_value(plan ShEnvironmentPlan) brew_runtime.Value {
-	mut environment := map[string]brew_runtime.Value{}
+fn sh_environment_plan_value(plan ShEnvironmentPlan) ruby.Value {
+	mut environment := map[string]ruby.Value{}
 	for name, value in plan.environment {
-		environment[name] = brew_runtime.string_value(value)
+		environment[name] = ruby.string_value(value)
 	}
-	return brew_runtime.map_value({
-		'prompt':                  brew_runtime.string_value(plan.prompt)
-		'notice':                  brew_runtime.string_value(sh_optional_string(plan.notice))
-		'install_bundler_gems':    brew_runtime.bool_value(plan.install_bundler_gems)
-		'setup_path':              brew_runtime.bool_value(plan.setup_path)
-		'activated_extension':     brew_runtime.string_value(plan.activated_extension)
-		'dependencies':            brew_runtime.string_array_value(plan.dependencies)
-		'setup_build_environment': brew_runtime.bool_value(plan.setup_build_environment)
-		'environment':             brew_runtime.map_value(environment)
+	return ruby.map_value({
+		'prompt':                  ruby.string_value(plan.prompt)
+		'notice':                  ruby.string_value(sh_optional_string(plan.notice))
+		'install_bundler_gems':    ruby.bool_value(plan.install_bundler_gems)
+		'setup_path':              ruby.bool_value(plan.setup_path)
+		'activated_extension':     ruby.string_value(plan.activated_extension)
+		'dependencies':            ruby.string_array_value(plan.dependencies)
+		'setup_build_environment': ruby.bool_value(plan.setup_build_environment)
+		'environment':             ruby.map_value(environment)
 	})
 }
 
-fn sh_command_plan_value(plan ShCommandPlan) brew_runtime.Value {
-	return brew_runtime.map_value({
+fn sh_command_plan_value(plan ShCommandPlan) ruby.Value {
+	return ruby.map_value({
 		'environment':    sh_environment_plan_value(plan.environment)
-		'preferred_path': brew_runtime.string_value(plan.preferred_path)
-		'mode':           brew_runtime.object_value('Symbol', plan.mode)
-		'program':        brew_runtime.string_value(plan.program)
-		'arguments':      brew_runtime.string_array_value(plan.arguments)
-		'safe':           brew_runtime.bool_value(plan.safe)
-		'prompt_command': brew_runtime.string_value(plan.prompt.command)
-		'prompt_notice':  brew_runtime.string_value(sh_optional_string(plan.prompt.notice))
-		'prompt_shell':   brew_runtime.string_value(plan.prompt.shell)
-		'prompt_zdotdir': brew_runtime.string_value(plan.prompt.zdotdir)
+		'preferred_path': ruby.string_value(plan.preferred_path)
+		'mode':           ruby.object_value('Symbol', plan.mode)
+		'program':        ruby.string_value(plan.program)
+		'arguments':      ruby.string_array_value(plan.arguments)
+		'safe':           ruby.bool_value(plan.safe)
+		'prompt_command': ruby.string_value(plan.prompt.command)
+		'prompt_notice':  ruby.string_value(sh_optional_string(plan.prompt.notice))
+		'prompt_shell':   ruby.string_value(plan.prompt.shell)
+		'prompt_zdotdir': ruby.string_value(plan.prompt.zdotdir)
 	})
 }
 
 // Ruby method `run` at line 40.
-pub fn ruby_sh_l40_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sh_l40_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'command input is required')
+		return ruby.object_value('ArgumentError', 'command input is required')
 	}
 	return sh_command_plan_value(run_sh_command(sh_input_from_value(args[0]).options))
 }
 
 // Ruby method `setup_ruby_environment!` at line 61.
-pub fn ruby_sh_l61_d2_setup_ruby_environment(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sh_l61_d2_setup_ruby_environment(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'command input is required')
+		return ruby.object_value('ArgumentError', 'command input is required')
 	}
 	return sh_environment_plan_value(setup_sh_ruby_environment(sh_input_from_value(args[0]).options))
 }
 
 // Ruby method `setup_build_environment!` at line 78.
-pub fn ruby_sh_l78_d3_setup_build_environment(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sh_l78_d3_setup_build_environment(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'command input is required')
+		return ruby.object_value('ArgumentError', 'command input is required')
 	}
 	return sh_environment_plan_value(setup_sh_build_environment(sh_input_from_value(args[0]).options))
 }

@@ -1,20 +1,20 @@
 module subcommand
 
-import brew_runtime
+import ruby
 import homebrew.bundle
 
 // Translated from Homebrew/brew `bundle/subcommand/dump.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `run` at line 77.
-pub fn ruby_dump_l77_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dump_l77_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
-		return brew_runtime.object_value('ArgumentError', 'path config, dump input, and selection are required')
+		return ruby.object_value('ArgumentError', 'path config, dump input, and selection are required')
 	}
 	// Dumper owns the Value decoders; its boundary preserves the source-shaped
 	// config/selection/input order. The command adapter accepts config/input/
 	// selection and reorders only at this generic migration edge.
-	force := if args.len > 3 { args[3] } else { brew_runtime.bool_value(false) }
+	force := if args.len > 3 { args[3] } else { ruby.bool_value(false) }
 	return bundle.ruby_dumper_l70_d3_self_dump_brewfile(args[0], args[2], args[1], force)
 }
 

@@ -1,6 +1,6 @@
 module types
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/abstract_utils.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -48,7 +48,7 @@ pub fn unresolved_abstract_methods(info AbstractModuleInfo) []AbstractMethodInfo
 	return declared_abstract_methods(info).filter(it.actual_mode.trim_string_left(':') == 'abstract')
 }
 
-fn abstract_method_from_value(value brew_runtime.Value) AbstractMethodInfo {
+fn abstract_method_from_value(value ruby.Value) AbstractMethodInfo {
 	return AbstractMethodInfo{
 		name: value.attribute('name') or { value.as_string() }
 		owner: value.attribute('owner') or { '' }
@@ -58,8 +58,8 @@ fn abstract_method_from_value(value brew_runtime.Value) AbstractMethodInfo {
 	}
 }
 
-fn abstract_method_value(method AbstractMethodInfo) brew_runtime.Value {
-	return brew_runtime.structured_value('UnboundMethod', method.name, {
+fn abstract_method_value(method AbstractMethodInfo) ruby.Value {
+	return ruby.structured_value('UnboundMethod', method.name, {
 		'name':        method.name
 		'owner':       method.owner
 		'mode':        method.mode
@@ -68,12 +68,12 @@ fn abstract_method_value(method AbstractMethodInfo) brew_runtime.Value {
 	})
 }
 
-fn abstract_module_from_value(value brew_runtime.Value) AbstractModuleInfo {
+fn abstract_module_from_value(value ruby.Value) AbstractModuleInfo {
 	mut ancestors := [][]AbstractMethodInfo{}
-	ancestor_values := value.map_data['ancestors'] or { brew_runtime.array_value([]) }
-	for ancestor in ancestor_values.as_array() or { []brew_runtime.Value{} } {
+	ancestor_values := value.map_data['ancestors'] or { ruby.array_value([]) }
+	for ancestor in ancestor_values.as_array() or { []ruby.Value{} } {
 		mut methods := []AbstractMethodInfo{}
-		for method in ancestor.as_array() or { []brew_runtime.Value{} } {
+		for method in ancestor.as_array() or { []ruby.Value{} } {
 			methods << abstract_method_from_value(method)
 		}
 		ancestors << methods
@@ -88,38 +88,38 @@ fn abstract_module_from_value(value brew_runtime.Value) AbstractModuleInfo {
 	}
 }
 
-fn abstract_methods_value(methods []AbstractMethodInfo) brew_runtime.Value {
-	return brew_runtime.array_value(methods.map(abstract_method_value(it)))
+fn abstract_methods_value(methods []AbstractMethodInfo) ruby.Value {
+	return ruby.array_value(methods.map(abstract_method_value(it)))
 }
 
 // Ruby method `self.abstract_module?(mod)` at line 14.
-pub fn ruby_abstract_utils_l14_d1_self_abstract_module(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_utils_l14_d1_self_abstract_module(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(abstract_module(abstract_module_from_value(args[0])))
+	return ruby.bool_value(abstract_module(abstract_module_from_value(args[0])))
 }
 
 // Ruby method `self.abstract_method?(method)` at line 18.
-pub fn ruby_abstract_utils_l18_d2_self_abstract_method(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_utils_l18_d2_self_abstract_method(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(abstract_method(abstract_method_from_value(args[0])))
+	return ruby.bool_value(abstract_method(abstract_method_from_value(args[0])))
 }
 
 // Ruby method `self.abstract_methods_for(mod)` at line 25.
-pub fn ruby_abstract_utils_l25_d3_self_abstract_methods_for(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_utils_l25_d3_self_abstract_methods_for(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.array_value([])
+		return ruby.array_value([])
 	}
 	return abstract_methods_value(unresolved_abstract_methods(abstract_module_from_value(args[0])))
 }
 
 // Ruby method `self.declared_abstract_methods_for(mod)` at line 39.
-pub fn ruby_abstract_utils_l39_d4_self_declared_abstract_methods_for(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_abstract_utils_l39_d4_self_declared_abstract_methods_for(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.array_value([])
+		return ruby.array_value([])
 	}
 	return abstract_methods_value(declared_abstract_methods(abstract_module_from_value(args[0])))
 }

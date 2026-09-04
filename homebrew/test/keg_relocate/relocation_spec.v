@@ -1,89 +1,89 @@
 module keg_relocate
 
-import brew_runtime
+import ruby
 import homebrew
 
 // Translated from Homebrew/brew `test/keg_relocate/relocation_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:prefix) { HOMEBREW_PREFIX.to_s }` at line 7.
-pub fn ruby_relocation_spec_l7_d1_prefix(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('/opt/homebrew')
+pub fn ruby_relocation_spec_l7_d1_prefix(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('/opt/homebrew')
 }
 
 // Ruby let `let(:cellar) { HOMEBREW_CELLAR.to_s }` at line 8.
-pub fn ruby_relocation_spec_l8_d2_cellar(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('/opt/homebrew/Cellar')
+pub fn ruby_relocation_spec_l8_d2_cellar(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('/opt/homebrew/Cellar')
 }
 
 // Ruby let `let(:repository) { HOMEBREW_REPOSITORY.to_s }` at line 9.
-pub fn ruby_relocation_spec_l9_d3_repository(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('/opt/homebrew')
+pub fn ruby_relocation_spec_l9_d3_repository(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('/opt/homebrew')
 }
 
 // Ruby let `let(:library) { HOMEBREW_LIBRARY.to_s }` at line 10.
-pub fn ruby_relocation_spec_l10_d4_library(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('/opt/homebrew/Library')
+pub fn ruby_relocation_spec_l10_d4_library(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('/opt/homebrew/Library')
 }
 
 // Ruby let `let(:prefix_placeholder) { "@@HOMEBREW_PREFIX@@" }` at line 11.
-pub fn ruby_relocation_spec_l11_d5_prefix_placeholder(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(homebrew.keg_prefix_placeholder)
+pub fn ruby_relocation_spec_l11_d5_prefix_placeholder(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(homebrew.keg_prefix_placeholder)
 }
 
 // Ruby let `let(:cellar_placeholder) { "@@HOMEBREW_CELLAR@@" }` at line 12.
-pub fn ruby_relocation_spec_l12_d6_cellar_placeholder(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(homebrew.keg_cellar_placeholder)
+pub fn ruby_relocation_spec_l12_d6_cellar_placeholder(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(homebrew.keg_cellar_placeholder)
 }
 
 // Ruby let `let(:repository_placeholder) { "@@HOMEBREW_REPOSITORY@@" }` at line 13.
-pub fn ruby_relocation_spec_l13_d7_repository_placeholder(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(homebrew.keg_repository_placeholder)
+pub fn ruby_relocation_spec_l13_d7_repository_placeholder(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(homebrew.keg_repository_placeholder)
 }
 
 // Ruby let `let(:library_placeholder) { "@@HOMEBREW_LIBRARY@@" }` at line 14.
-pub fn ruby_relocation_spec_l14_d8_library_placeholder(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(homebrew.keg_library_placeholder)
+pub fn ruby_relocation_spec_l14_d8_library_placeholder(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(homebrew.keg_library_placeholder)
 }
 
 // Ruby let `let(:escaped_prefix) { /(?:(?<=-F|-I|-L|-isystem)|(?<![a-zA-Z0-9]))#{Regexp.escape(HOMEBREW_PREFIX)}/o }` at line 15.
-pub fn ruby_relocation_spec_l15_d9_escaped_prefix(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Regexp', homebrew.keg_path_regex_source('/opt/homebrew', false))
+pub fn ruby_relocation_spec_l15_d9_escaped_prefix(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Regexp', homebrew.keg_path_regex_source('/opt/homebrew', false))
 }
 
 // Ruby let `let(:escaped_cellar) { /(?:(?<=-F|-I|-L|-isystem)|(?<![a-zA-Z0-9]))#{HOMEBREW_CELLAR}/o }` at line 16.
-pub fn ruby_relocation_spec_l16_d10_escaped_cellar(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Regexp', homebrew.keg_path_regex_source('/opt/homebrew/Cellar', true))
+pub fn ruby_relocation_spec_l16_d10_escaped_cellar(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Regexp', homebrew.keg_path_regex_source('/opt/homebrew/Cellar', true))
 }
 
 // Ruby method `setup_relocation` at line 18.
-pub fn ruby_relocation_spec_l18_d11_setup_relocation(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_relocation_spec_l18_d11_setup_relocation(args ...ruby.Value) ruby.Value {
 	return homebrew.keg_relocation_value(relocation_spec_relocation())
 }
 
 // Ruby specify `specify "#add_replacement_pair" do` at line 27.
-pub fn ruby_relocation_spec_l27_d12_add_replacement_pair(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_relocation_spec_l27_d12_add_replacement_pair(args ...ruby.Value) ruby.Value {
 	relocation := relocation_spec_relocation()
-	prefix_pair := relocation.replacement_pair_for('prefix') or { return brew_runtime.bool_value(false) }
-	cellar_pair := relocation.replacement_pair_for('cellar') or { return brew_runtime.bool_value(false) }
-	repository_pair := relocation.replacement_pair_for('repository_placeholder') or { return brew_runtime.bool_value(false) }
-	library_pair := relocation.replacement_pair_for('library_placeholder') or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(prefix_pair.new_value == homebrew.keg_prefix_placeholder && cellar_pair.new_value == homebrew.keg_cellar_placeholder && repository_pair.new_value == '/opt/homebrew' && library_pair.new_value == '/opt/homebrew/Library')
+	prefix_pair := relocation.replacement_pair_for('prefix') or { return ruby.bool_value(false) }
+	cellar_pair := relocation.replacement_pair_for('cellar') or { return ruby.bool_value(false) }
+	repository_pair := relocation.replacement_pair_for('repository_placeholder') or { return ruby.bool_value(false) }
+	library_pair := relocation.replacement_pair_for('library_placeholder') or { return ruby.bool_value(false) }
+	return ruby.bool_value(prefix_pair.new_value == homebrew.keg_prefix_placeholder && cellar_pair.new_value == homebrew.keg_cellar_placeholder && repository_pair.new_value == '/opt/homebrew' && library_pair.new_value == '/opt/homebrew/Library')
 }
 
 // Ruby specify `specify "#replace_text!" do` at line 36.
-pub fn ruby_relocation_spec_l36_d13_replace_text(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_relocation_spec_l36_d13_replace_text(args ...ruby.Value) ruby.Value {
 	relocation := relocation_spec_relocation()
 	unchanged, first_changed := relocation.replace_text('foo')
 	text := '/opt/homebrew/foo\n/opt/homebrew/Cellar/foo\nfoo/opt/homebrew/bar\nfoo/opt/homebrew/Cellar/bar\n@@HOMEBREW_REPOSITORY@@/foo\nfoo@@HOMEBREW_LIBRARY@@/bar\n'
 	replaced, changed := relocation.replace_text(text)
 	expected := '@@HOMEBREW_PREFIX@@/foo\n@@HOMEBREW_CELLAR@@/foo\nfoo/opt/homebrew/bar\nfoo/opt/homebrew/Cellar/bar\n/opt/homebrew/foo\nfoo/opt/homebrew/Library/bar\n'
-	return brew_runtime.bool_value(unchanged == 'foo' && !first_changed && changed && replaced == expected)
+	return ruby.bool_value(unchanged == 'foo' && !first_changed && changed && replaced == expected)
 }
 
 // Ruby specify `specify "::path_to_regex" do` at line 62.
-pub fn ruby_relocation_spec_l62_d14_path_to_regex(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(homebrew.keg_path_regex_source('/opt/homebrew', false).ends_with('/opt/homebrew') && homebrew.keg_path_regex_source('foo.bar', false).ends_with('foo\\.bar') && homebrew.keg_path_regex_source('foo.bar', true).ends_with('foo.bar'))
+pub fn ruby_relocation_spec_l62_d14_path_to_regex(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(homebrew.keg_path_regex_source('/opt/homebrew', false).ends_with('/opt/homebrew') && homebrew.keg_path_regex_source('foo.bar', false).ends_with('foo\\.bar') && homebrew.keg_path_regex_source('foo.bar', true).ends_with('foo.bar'))
 }
 
 fn relocation_spec_relocation() homebrew.KegRelocation {

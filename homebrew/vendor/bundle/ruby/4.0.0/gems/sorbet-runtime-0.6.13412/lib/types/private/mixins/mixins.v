@@ -1,6 +1,6 @@
 module mixins
 
-import brew_runtime
+import ruby
 import sync
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/private/mixins/mixins.rb`.
@@ -9,7 +9,7 @@ import sync
 pub struct MixinsRegistry {
 	mutex &sync.Mutex = sync.new_mutex()
 mut:
-	class_methods map[string][]brew_runtime.Value
+	class_methods map[string][]ruby.Value
 }
 
 pub fn new_mixins_registry() &MixinsRegistry {
@@ -18,12 +18,12 @@ pub fn new_mixins_registry() &MixinsRegistry {
 
 const mixins_registry_global = new_mixins_registry()
 
-fn mixin_id(value brew_runtime.Value) string {
+fn mixin_id(value ruby.Value) string {
 	return value.attribute('object_id') or { '${value.type_name}:${value.as_string()}' }
 }
 
-pub fn (mut registry MixinsRegistry) declare(mixin brew_runtime.Value,
-	class_methods []brew_runtime.Value) ![]brew_runtime.Value {
+pub fn (mut registry MixinsRegistry) declare(mixin ruby.Value,
+	class_methods []ruby.Value) ![]ruby.Value {
 	if mixin.type_name == 'Class' {
 		return error('Classes cannot be used as mixins, and so mixes_in_class_methods cannot be used on a Class.')
 	}
@@ -32,20 +32,20 @@ pub fn (mut registry MixinsRegistry) declare(mixin brew_runtime.Value,
 		registry.mutex.unlock()
 	}
 	id := mixin_id(mixin)
-	existing := registry.class_methods[id] or { []brew_runtime.Value{} }
+	existing := registry.class_methods[id] or { []ruby.Value{} }
 	mut combined := existing.clone()
 	combined << class_methods
 	registry.class_methods[id] = combined.clone()
 	return combined
 }
 
-pub fn (mut registry MixinsRegistry) included_class_methods(mixin brew_runtime.Value,
-	_other brew_runtime.Value) []brew_runtime.Value {
+pub fn (mut registry MixinsRegistry) included_class_methods(mixin ruby.Value,
+	_other ruby.Value) []ruby.Value {
 	registry.mutex.lock()
 	defer {
 		registry.mutex.unlock()
 	}
-	return (registry.class_methods[mixin_id(mixin)] or { []brew_runtime.Value{} }).clone()
+	return (registry.class_methods[mixin_id(mixin)] or { []ruby.Value{} }).clone()
 }
 
 fn global_mixins_registry() &MixinsRegistry {
@@ -53,13 +53,13 @@ fn global_mixins_registry() &MixinsRegistry {
 }
 
 // Ruby method `included(other)` at line 6.
-pub fn ruby_mixins_l6_d1_included(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mixins_l6_d1_included(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('MixesInClassMethods#included requires a mixin and consumer')
 	}
 	mut registry := global_mixins_registry()
 	methods := registry.included_class_methods(args[0], args[1])
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'T::Private::MixesInClassMethods::ExtensionPlan'
 		repr: args[1].as_string()
 		array_data: methods
@@ -70,13 +70,13 @@ pub fn ruby_mixins_l6_d1_included(args ...brew_runtime.Value) brew_runtime.Value
 }
 
 // Ruby method `self.declare_mixes_in_class_methods(mixin, class_methods)` at line 14.
-pub fn ruby_mixins_l14_d2_self_declare_mixes_in_class_methods(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mixins_l14_d2_self_declare_mixes_in_class_methods(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Mixins.declare_mixes_in_class_methods requires a mixin and class methods')
 	}
 	methods := args[1].as_array() or { panic(err.msg()) }
 	mut registry := global_mixins_registry()
-	return brew_runtime.array_value(registry.declare(args[0], methods) or { panic(err.msg()) })
+	return ruby.array_value(registry.declare(args[0], methods) or { panic(err.msg()) })
 }
 
 // Original Ruby source (line-for-line):

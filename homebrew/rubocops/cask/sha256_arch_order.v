@@ -1,6 +1,6 @@
 module cask
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `rubocops/cask/sha256_arch_order.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -388,8 +388,8 @@ pub fn correct_sha256_arch_order(source string) string {
 	return corrected
 }
 
-fn sha256_arch_order_offense_value(offense Sha256ArchOrderOffense) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cop::Offense', offense.message, {
+fn sha256_arch_order_offense_value(offense Sha256ArchOrderOffense) ruby.Value {
+	return ruby.structured_value('RuboCop::Cop::Offense', offense.message, {
 		'begin_pos':             offense.begin_pos.str()
 		'end_pos':               offense.end_pos.str()
 		'message':               offense.message
@@ -399,25 +399,25 @@ fn sha256_arch_order_offense_value(offense Sha256ArchOrderOffense) brew_runtime.
 }
 
 // Ruby method `on_cask_stanza_block(cask_stanza_block)` at line 32.
-pub fn ruby_sha256_arch_order_l32_d1_on_cask_stanza_block(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sha256_arch_order_l32_d1_on_cask_stanza_block(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	offenses := audit_sha256_arch_order(source)
 	return if offenses.len == 0 {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	} else {
 		sha256_arch_order_offense_value(offenses[0])
 	}
 }
 
 // Ruby method `rebuild(node, pairs)` at line 59.
-pub fn ruby_sha256_arch_order_l59_d2_rebuild(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_sha256_arch_order_l59_d2_rebuild(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	stanzas := sha256_arch_order_stanzas(source)
 	if stanzas.len == 0 {
-		return brew_runtime.string_value('')
+		return ruby.string_value('')
 	}
 	stanza := stanzas[0]
-	return brew_runtime.string_value(rebuild_sha256_arch_order(stanza.column, sha256_arch_order_pairs_sorted(stanza.pairs)))
+	return ruby.string_value(rebuild_sha256_arch_order(stanza.column, sha256_arch_order_pairs_sorted(stanza.pairs)))
 }
 
 // Original Ruby source (line-for-line):

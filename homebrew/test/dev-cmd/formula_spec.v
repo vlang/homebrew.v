@@ -1,18 +1,18 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `test/dev-cmd/formula_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "prints a given Formula's path", :integration_test do` at line 10.
-pub fn ruby_formula_spec_l10_d1_prints(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_spec_l10_d1_prints(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'formula path is required')
+		return ruby.object_value('ArgumentError', 'formula path is required')
 	}
 	path := args[0].as_string()
-	output := run_formula_command([path], []) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(output == '${path}\n')
+	output := run_formula_command([path], []) or { return ruby.bool_value(false) }
+	return ruby.bool_value(output == '${path}\n')
 }
 
 // Original Ruby source (line-for-line):

@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 import math
 import os
 import rand
@@ -492,37 +492,37 @@ pub fn generate_cask_ci_matrix(input GenerateCaskCIMatrixInput) ![]CaskCIJob {
 	return jobs
 }
 
-fn cask_ci_job_value(job CaskCIJob) brew_runtime.Value {
+fn cask_ci_job_value(job CaskCIJob) ruby.Value {
 	mut value := {
-		'name':   brew_runtime.string_value(job.name)
-		'tap':    brew_runtime.string_value(job.tap)
-		'runner': brew_runtime.string_value(job.runner)
+		'name':   ruby.string_value(job.name)
+		'tap':    ruby.string_value(job.tap)
+		'runner': ruby.string_value(job.runner)
 	}
 	if job.kind == 'syntax' {
-		value['stable'] = brew_runtime.bool_value(job.stable)
+		value['stable'] = ruby.bool_value(job.stable)
 		if job.skip_audit {
-			value['skip_audit'] = brew_runtime.bool_value(true)
+			value['skip_audit'] = ruby.bool_value(true)
 		}
 	} else {
-		value['cask'] = brew_runtime.map_value({
-			'token': brew_runtime.string_value(job.cask_token)
-			'path':  brew_runtime.string_value(job.cask_path)
+		value['cask'] = ruby.map_value({
+			'token': ruby.string_value(job.cask_token)
+			'path':  ruby.string_value(job.cask_path)
 		})
-		value['audit_args'] = brew_runtime.string_array_value(job.audit_args)
-		value['fetch_args'] = brew_runtime.string_array_value(job.fetch_args)
-		value['skip_install'] = brew_runtime.bool_value(job.skip_install)
+		value['audit_args'] = ruby.string_array_value(job.audit_args)
+		value['fetch_args'] = ruby.string_array_value(job.fetch_args)
+		value['skip_install'] = ruby.bool_value(job.skip_install)
 		if job.has_container {
-			value['container'] = brew_runtime.map_value({
-				'image':   brew_runtime.string_value(job.container.image)
-				'options': brew_runtime.string_value(job.container.options)
+			value['container'] = ruby.map_value({
+				'image':   ruby.string_value(job.container.image)
+				'options': ruby.string_value(job.container.options)
 			})
 		}
 	}
-	return brew_runtime.map_value(value)
+	return ruby.map_value(value)
 }
 
-fn cask_ci_jobs_value(jobs []CaskCIJob) brew_runtime.Value {
-	return brew_runtime.array_value(jobs.map(cask_ci_job_value(it)))
+fn cask_ci_jobs_value(jobs []CaskCIJob) ruby.Value {
+	return ruby.array_value(jobs.map(cask_ci_job_value(it)))
 }
 
 pub fn run_generate_cask_ci_matrix(options GenerateCaskCICommandOptions) !GenerateCaskCICommandResult {
@@ -578,8 +578,8 @@ pub fn run_generate_cask_ci_matrix(options GenerateCaskCICommandOptions) !Genera
 		return error('Maximum job matrix size exceeded: ${jobs.len}/${cask_ci_max_jobs}')
 	}
 	jobs_value := cask_ci_jobs_value(jobs)
-	matrix_json := brew_runtime.json_value_to_string(jobs_value)
-	stdout := json2.encode(brew_runtime.json_any_from_value(jobs_value), prettify: true) + '\n'
+	matrix_json := ruby.json_value_to_string(jobs_value)
+	stdout := json2.encode(ruby.json_any_from_value(jobs_value), prettify: true) + '\n'
 	mut wrote := false
 	if options.github_output != '' {
 		mut output := os.open_append(options.github_output)!
@@ -663,118 +663,118 @@ pub fn cask_ci_find_changed_files(tap CaskCITap) !CaskCIChangedFiles {
 	return cask_ci_classify_changed_files(tap, modified, added)
 }
 
-fn cask_ci_runner_value(runner CaskCIRunner) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'symbol': brew_runtime.string_value(runner.symbol)
-		'name':   brew_runtime.string_value(runner.name)
-		'arch':   brew_runtime.string_value(runner.arch)
-		'weight': brew_runtime.float_value(runner.weight)
+fn cask_ci_runner_value(runner CaskCIRunner) ruby.Value {
+	return ruby.map_value({
+		'symbol': ruby.string_value(runner.symbol)
+		'name':   ruby.string_value(runner.name)
+		'arch':   ruby.string_value(runner.arch)
+		'weight': ruby.float_value(runner.weight)
 	})
 }
 
-fn cask_ci_pointer_value(type_name string, key string, pointer voidptr) brew_runtime.Value {
-	return brew_runtime.structured_value(type_name, '', {
+fn cask_ci_pointer_value(type_name string, key string, pointer voidptr) ruby.Value {
+	return ruby.structured_value(type_name, '', {
 		key: u64(pointer).str()
 	})
 }
 
-pub fn generate_cask_ci_command_input_value(input &GenerateCaskCICommandInput) brew_runtime.Value {
+pub fn generate_cask_ci_command_input_value(input &GenerateCaskCICommandInput) ruby.Value {
 	return cask_ci_pointer_value('GenerateCaskCICommandInput', 'command_address', voidptr(input))
 }
 
-pub fn cask_ci_cask_value(cask &CaskCIItem) brew_runtime.Value {
+pub fn cask_ci_cask_value(cask &CaskCIItem) ruby.Value {
 	return cask_ci_pointer_value('CaskCIItem', 'cask_address', voidptr(cask))
 }
 
-pub fn cask_ci_runner_pairs_input_value(input &CaskCIRunnerPairsInput) brew_runtime.Value {
+pub fn cask_ci_runner_pairs_input_value(input &CaskCIRunnerPairsInput) ruby.Value {
 	return cask_ci_pointer_value('CaskCIRunnerPairsInput', 'runner_pairs_address', voidptr(input))
 }
 
-pub fn cask_ci_architectures_input_value(input &CaskCIArchitecturesInput) brew_runtime.Value {
+pub fn cask_ci_architectures_input_value(input &CaskCIArchitecturesInput) ruby.Value {
 	return cask_ci_pointer_value('CaskCIArchitecturesInput', 'architectures_address', voidptr(input))
 }
 
-pub fn cask_ci_random_runner_input_value(input &CaskCIRandomRunnerInput) brew_runtime.Value {
+pub fn cask_ci_random_runner_input_value(input &CaskCIRandomRunnerInput) ruby.Value {
 	return cask_ci_pointer_value('CaskCIRandomRunnerInput', 'random_runner_address', voidptr(input))
 }
 
-pub fn generate_cask_ci_matrix_input_value(input &GenerateCaskCIMatrixInput) brew_runtime.Value {
+pub fn generate_cask_ci_matrix_input_value(input &GenerateCaskCIMatrixInput) ruby.Value {
 	return cask_ci_pointer_value('GenerateCaskCIMatrixInput', 'matrix_address', voidptr(input))
 }
 
-pub fn cask_ci_tap_value(tap &CaskCITap) brew_runtime.Value {
+pub fn cask_ci_tap_value(tap &CaskCITap) ruby.Value {
 	return cask_ci_pointer_value('CaskCITap', 'tap_address', voidptr(tap))
 }
 
 // Ruby method `run` at line 63.
-pub fn ruby_generate_cask_ci_matrix_l63_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_cask_ci_matrix_l63_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || 'command_address' !in args[0].attributes {
-		return brew_runtime.object_value('ArgumentError', 'command input is required')
+		return ruby.object_value('ArgumentError', 'command input is required')
 	}
 	input := unsafe { &GenerateCaskCICommandInput(voidptr(args[0].attributes['command_address'].u64())) }
 	result := run_generate_cask_ci_matrix(input.options) or {
-		return brew_runtime.object_value('UsageError', err.msg())
+		return ruby.object_value('UsageError', err.msg())
 	}
-	return brew_runtime.map_value({
+	return ruby.map_value({
 		'matrix':              cask_ci_jobs_value(result.jobs)
-		'matrix_json':         brew_runtime.string_value(result.matrix_json)
-		'stdout':              brew_runtime.string_value(result.stdout)
-		'github_output_wrote': brew_runtime.bool_value(result.github_output_wrote)
+		'matrix_json':         ruby.string_value(result.matrix_json)
+		'stdout':              ruby.string_value(result.stdout)
+		'github_output_wrote': ruby.bool_value(result.github_output_wrote)
 	})
 }
 
 // Ruby method `filter_runners(cask)` at line 136.
-pub fn ruby_generate_cask_ci_matrix_l136_d2_filter_runners(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_cask_ci_matrix_l136_d2_filter_runners(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || 'cask_address' !in args[0].attributes {
-		return brew_runtime.object_value('ArgumentError', 'cask is required')
+		return ruby.object_value('ArgumentError', 'cask is required')
 	}
 	cask := unsafe { &CaskCIItem(voidptr(args[0].attributes['cask_address'].u64())) }
-	return brew_runtime.array_value(cask_ci_filter_runners(*cask).map(cask_ci_runner_value(it)))
+	return ruby.array_value(cask_ci_filter_runners(*cask).map(cask_ci_runner_value(it)))
 }
 
 // Ruby method `runner_arch_pairs(runners:, multi_os:)` at line 176.
-pub fn ruby_generate_cask_ci_matrix_l176_d3_runner_arch_pairs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_cask_ci_matrix_l176_d3_runner_arch_pairs(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || 'runner_pairs_address' !in args[0].attributes {
-		return brew_runtime.object_value('ArgumentError', 'runner pair input is required')
+		return ruby.object_value('ArgumentError', 'runner pair input is required')
 	}
 	input := unsafe { &CaskCIRunnerPairsInput(voidptr(args[0].attributes['runner_pairs_address'].u64())) }
-	mut values := []brew_runtime.Value{}
+	mut values := []ruby.Value{}
 	for pair in cask_ci_runner_arch_pairs(input.runners, input.multi_os) {
-		values << brew_runtime.array_value([
+		values << ruby.array_value([
 			cask_ci_runner_value(pair.runner),
-			brew_runtime.string_value(pair.arch),
-			brew_runtime.bool_value(pair.native_runner_arch),
+			ruby.string_value(pair.arch),
+			ruby.bool_value(pair.native_runner_arch),
 		])
 	}
-	return brew_runtime.array_value(values)
+	return ruby.array_value(values)
 }
 
 // Ruby method `runners(cask:)` at line 196.
-pub fn ruby_generate_cask_ci_matrix_l196_d4_runners(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_cask_ci_matrix_l196_d4_runners(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || 'cask_address' !in args[0].attributes {
-		return brew_runtime.object_value('ArgumentError', 'cask is required')
+		return ruby.object_value('ArgumentError', 'cask is required')
 	}
 	cask := unsafe { &CaskCIItem(voidptr(args[0].attributes['cask_address'].u64())) }
 	selected := cask_ci_runners(*cask, []f64{}) or {
-		return brew_runtime.object_value('RuntimeError', err.msg())
+		return ruby.object_value('RuntimeError', err.msg())
 	}
-	return brew_runtime.map_value({
-		'runners':  brew_runtime.array_value(selected.runners.map(cask_ci_runner_value(it)))
-		'multi_os': brew_runtime.bool_value(selected.multi_os)
+	return ruby.map_value({
+		'runners':  ruby.array_value(selected.runners.map(cask_ci_runner_value(it)))
+		'multi_os': ruby.bool_value(selected.multi_os)
 	})
 }
 
 // Ruby method `architectures(cask:, os:)` at line 220.
-pub fn ruby_generate_cask_ci_matrix_l220_d5_architectures(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_cask_ci_matrix_l220_d5_architectures(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || 'architectures_address' !in args[0].attributes {
-		return brew_runtime.object_value('ArgumentError', 'architectures input is required')
+		return ruby.object_value('ArgumentError', 'architectures input is required')
 	}
 	input := unsafe { &CaskCIArchitecturesInput(voidptr(args[0].attributes['architectures_address'].u64())) }
-	return brew_runtime.string_array_value(cask_ci_architectures(input.cask, input.operating_system))
+	return ruby.string_array_value(cask_ci_architectures(input.cask, input.operating_system))
 }
 
 // Ruby method `random_runner(available_runners = ARM_MACOS_RUNNERS)` at line 241.
-pub fn ruby_generate_cask_ci_matrix_l241_d6_random_runner(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_cask_ci_matrix_l241_d6_random_runner(args ...ruby.Value) ruby.Value {
 	mut runners := cask_ci_arm_macos_runners()
 	mut samples := []f64{}
 	if args.len > 0 && 'random_runner_address' in args[0].attributes {
@@ -783,39 +783,39 @@ pub fn ruby_generate_cask_ci_matrix_l241_d6_random_runner(args ...brew_runtime.V
 		samples = input.samples.clone()
 	}
 	runner := cask_ci_random_runner(runners, samples) or {
-		return brew_runtime.object_value('RuntimeError', err.msg())
+		return ruby.object_value('RuntimeError', err.msg())
 	}
 	return cask_ci_runner_value(runner)
 }
 
 // Ruby method `generate_matrix(tap, labels: [], cask_names: [], skip_install: false, new_cask: false)` at line 253.
-pub fn ruby_generate_cask_ci_matrix_l253_d7_generate_matrix(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_cask_ci_matrix_l253_d7_generate_matrix(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || 'matrix_address' !in args[0].attributes {
-		return brew_runtime.object_value('ArgumentError', 'matrix input is required')
+		return ruby.object_value('ArgumentError', 'matrix input is required')
 	}
 	input := unsafe { &GenerateCaskCIMatrixInput(voidptr(args[0].attributes['matrix_address'].u64())) }
 	jobs := generate_cask_ci_matrix(*input) or {
-		return brew_runtime.object_value('RuntimeError', err.msg())
+		return ruby.object_value('RuntimeError', err.msg())
 	}
 	return cask_ci_jobs_value(jobs)
 }
 
 // Ruby method `find_changed_files(tap)` at line 351.
-pub fn ruby_generate_cask_ci_matrix_l351_d8_find_changed_files(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_generate_cask_ci_matrix_l351_d8_find_changed_files(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || 'tap_address' !in args[0].attributes {
-		return brew_runtime.object_value('ArgumentError', 'tap is required')
+		return ruby.object_value('ArgumentError', 'tap is required')
 	}
 	tap := unsafe { &CaskCITap(voidptr(args[0].attributes['tap_address'].u64())) }
 	changed := cask_ci_find_changed_files(*tap) or {
-		return brew_runtime.object_value('RuntimeError', err.msg())
+		return ruby.object_value('RuntimeError', err.msg())
 	}
-	return brew_runtime.map_value({
-		'modified_files':                brew_runtime.string_array_value(changed.modified_files)
-		'added_files':                   brew_runtime.string_array_value(changed.added_files)
-		'modified_ruby_files':           brew_runtime.string_array_value(changed.modified_ruby_files)
-		'modified_command_files':        brew_runtime.string_array_value(changed.modified_command_files)
-		'modified_github_actions_files': brew_runtime.string_array_value(changed.modified_github_actions_files)
-		'modified_cask_files':           brew_runtime.string_array_value(changed.modified_cask_files)
+	return ruby.map_value({
+		'modified_files':                ruby.string_array_value(changed.modified_files)
+		'added_files':                   ruby.string_array_value(changed.added_files)
+		'modified_ruby_files':           ruby.string_array_value(changed.modified_ruby_files)
+		'modified_command_files':        ruby.string_array_value(changed.modified_command_files)
+		'modified_github_actions_files': ruby.string_array_value(changed.modified_github_actions_files)
+		'modified_cask_files':           ruby.string_array_value(changed.modified_cask_files)
 	})
 }
 

@@ -1,6 +1,6 @@
 module rubocops
 
-import brew_runtime
+import ruby
 import homebrew.rubocops as urls_core
 
 // Translated from Homebrew/brew `test/rubocops/urls_spec.rb`.
@@ -176,13 +176,13 @@ fn urls_spec_source(url string) string {
 }
 
 // Ruby subject `subject(:cop) { described_class.new }` at line 7.
-pub fn ruby_urls_spec_l7_d1_cop(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('RuboCop::Cop::FormulaAudit::Urls', 'FormulaAudit/Urls')
+pub fn ruby_urls_spec_l7_d1_cop(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('RuboCop::Cop::FormulaAudit::Urls', 'FormulaAudit/Urls')
 }
 
 // Ruby let `let(:offense_list) do` at line 9.
-pub fn ruby_urls_spec_l9_d2_offense_list(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.array_value(urls_spec_cases().map(brew_runtime.structured_value('Hash', it.url, {
+pub fn ruby_urls_spec_l9_d2_offense_list(args ...ruby.Value) ruby.Value {
+	return ruby.array_value(urls_spec_cases().map(ruby.structured_value('Hash', it.url, {
 		'url':         it.url
 		'msg':         it.message
 		'col':         '2'
@@ -191,7 +191,7 @@ pub fn ruby_urls_spec_l9_d2_offense_list(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby it `it "reports all offenses in `offense_list`" do` at line 200.
-pub fn ruby_urls_spec_l200_d3_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_urls_spec_l200_d3_reports(args ...ruby.Value) ruby.Value {
 	for item in urls_spec_cases() {
 		analysis := urls_core.audit_formula_urls(urls_core.FormulaUrlsContext{
 			source: urls_spec_source(item.url)
@@ -199,39 +199,39 @@ pub fn ruby_urls_spec_l200_d3_reports(args ...brew_runtime.Value) brew_runtime.V
 			formula_name: 'foo'
 		})
 		if !analysis.offenses.any(it.message == item.message) {
-			return brew_runtime.bool_value(false)
+			return ruby.bool_value(false)
 		}
 	}
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
 // Ruby it `it "reports an offense for GitHub repositories with git:// prefix" do` at line 228.
-pub fn ruby_urls_spec_l228_d4_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_urls_spec_l228_d4_reports(args ...ruby.Value) ruby.Value {
 	source := 'class Foo < Formula\n  desc "foo"\n  url "https://foo.com"\n\n  stable do\n    url "git://github.com/foo.git",\n        :tag => "v1.0.1",\n        :revision => "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"\n    version "1.0.1"\n  end\nend'
 	offenses := urls_core.audit_formula_urls(urls_core.FormulaUrlsContext{ source: source }).offenses
-	return brew_runtime.bool_value(offenses.len == 1 && offenses[0].message == 'Please use https:// for git://github.com/foo.git')
+	return ruby.bool_value(offenses.len == 1 && offenses[0].message == 'Please use https:// for git://github.com/foo.git')
 }
 
 // Ruby it `it "reports an offense if `url` is the same as `mirror`" do` at line 245.
-pub fn ruby_urls_spec_l245_d5_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_urls_spec_l245_d5_reports(args ...ruby.Value) ruby.Value {
 	url := 'https://ftpmirror.fnu.org/foo/foo-1.0.tar.gz'
 	source := 'class Foo < Formula\n  desc "foo"\n  url "${url}"\n  mirror "${url}"\nend'
 	offenses := urls_core.audit_formula_urls(urls_core.FormulaUrlsContext{ source: source }).offenses
-	return brew_runtime.bool_value(offenses.len == 1 && offenses[0].kind == 'duplicate_mirror' && offenses[0].message == 'URL should not be duplicated as a mirror: ${url}')
+	return ruby.bool_value(offenses.len == 1 && offenses[0].kind == 'duplicate_mirror' && offenses[0].message == 'URL should not be duplicated as a mirror: ${url}')
 }
 
 // Ruby it `it "does not report offenses that are skipped for `livecheck` block URLs" do` at line 256.
-pub fn ruby_urls_spec_l256_d6_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_urls_spec_l256_d6_does(args ...ruby.Value) ruby.Value {
 	source := 'class Foo < Formula\n  desc "foo"\n  url "https://brew.sh/test-0.0.1.tgz"\n  livecheck do\n    url "https://sourceforge.net/projects/homebrew/rss?path=/brew"\n  end\n  resource "foo" do\n    url "https://brew.sh/foo-1.0.tar.gz"\n    livecheck do\n      url "https://sourceforge.net/projects/homebrew/rss?path=/resource"\n    end\n  end\n  resource "livecheck-url-symbol" do\n    url "https://brew.sh/livecheck-url-no-argument-1.0.tar.gz"\n    livecheck do\n      url :url\n    end\n  end\n  resource "livecheck-no-url" do\n    url "https://brew.sh/livecheck-no-url-1.0.tar.gz"\n    livecheck do\n      skip "No version information available"\n    end\n  end\n  resource "livecheck-url-no-arg" do\n    url "https://brew.sh/livecheck-url-no-arg-1.0.tar.gz"\n    livecheck do\n      url\n    end\n  end\nend'
-	return brew_runtime.bool_value(urls_core.audit_formula_urls(urls_core.FormulaUrlsContext{
+	return ruby.bool_value(urls_core.audit_formula_urls(urls_core.FormulaUrlsContext{
 		source: source
 	}).offenses.len == 0)
 }
 
 // Ruby it `it "does not report an offense based on the username or repo name of a GitHub URL" do` at line 312.
-pub fn ruby_urls_spec_l312_d7_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_urls_spec_l312_d7_does(args ...ruby.Value) ruby.Value {
 	source := urls_spec_source('https://github.com/scriptingosx/cool-darwin-app/archive/refs/tags/v0.1.1.tar.gz')
-	return brew_runtime.bool_value(urls_core.audit_formula_urls(urls_core.FormulaUrlsContext{
+	return ruby.bool_value(urls_core.audit_formula_urls(urls_core.FormulaUrlsContext{
 		source: source
 		formula_tap: 'homebrew-core'
 		formula_name: 'foo'
@@ -239,12 +239,12 @@ pub fn ruby_urls_spec_l312_d7_does(args ...brew_runtime.Value) brew_runtime.Valu
 }
 
 // Ruby let `let(:expected_url) { "https://www.apache.org/dyn/closer.lua?path=apr/apr-1.7.6.tar.bz2" }` at line 325.
-pub fn ruby_urls_spec_l325_d8_expected_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('https://www.apache.org/dyn/closer.lua?path=apr/apr-1.7.6.tar.bz2')
+pub fn ruby_urls_spec_l325_d8_expected_url(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('https://www.apache.org/dyn/closer.lua?path=apr/apr-1.7.6.tar.bz2')
 }
 
 // Ruby it `it "registers an offense and corrects" do` at line 328.
-pub fn ruby_urls_spec_l328_d9_registers(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_urls_spec_l328_d9_registers(args ...ruby.Value) ruby.Value {
 	expected := ruby_urls_spec_l325_d8_expected_url().as_string()
 	mut urls := [
 		'https://dist.apache.org/repos/dist/release/apr/apr-1.7.6.tar.bz2',
@@ -262,13 +262,13 @@ pub fn ruby_urls_spec_l328_d9_registers(args ...brew_runtime.Value) brew_runtime
 		source := urls_spec_source(url)
 		analysis := urls_core.audit_formula_urls(urls_core.FormulaUrlsContext{ source: source })
 		if analysis.offenses.len != 1 {
-			return brew_runtime.bool_value(false)
+			return ruby.bool_value(false)
 		}
 		if analysis.offenses[0].message != '${url} should be: ${expected}' || analysis.corrected != urls_spec_source(expected) {
-			return brew_runtime.bool_value(false)
+			return ruby.bool_value(false)
 		}
 	}
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
 // Original Ruby source (line-for-line):

@@ -1,36 +1,36 @@
 module synchronization
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/synchronization/lock.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `wait(timeout = nil)` at line 13.
-pub fn ruby_lock_l13_d1_wait(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lock_l13_d1_wait(args ...ruby.Value) ruby.Value {
 	mut lockable := lockable_boundary_receiver(args)
 	lockable.wait(lockable_boundary_timeout(args, 1))
 	return args[0]
 }
 
 // Ruby method `wait_until(timeout = nil, &condition)` at line 19.
-pub fn ruby_lock_l19_d2_wait_until(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lock_l19_d2_wait_until(args ...ruby.Value) ruby.Value {
 	mut lockable := lockable_boundary_receiver(args)
 	expected := if args.len > 2 { args[2].as_bool() or { false } } else { false }
 	result := lockable.wait_until(lockable_boundary_timeout(args, 1), fn [expected] () bool {
 		return expected
 	})
-	return brew_runtime.bool_value(result)
+	return ruby.bool_value(result)
 }
 
 // Ruby method `signal` at line 25.
-pub fn ruby_lock_l25_d3_signal(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lock_l25_d3_signal(args ...ruby.Value) ruby.Value {
 	mut lockable := lockable_boundary_receiver(args)
 	lockable.signal()
 	return args[0]
 }
 
 // Ruby method `broadcast` at line 31.
-pub fn ruby_lock_l31_d4_broadcast(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_lock_l31_d4_broadcast(args ...ruby.Value) ruby.Value {
 	mut lockable := lockable_boundary_receiver(args)
 	lockable.broadcast()
 	return args[0]

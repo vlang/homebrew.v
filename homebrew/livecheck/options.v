@@ -1,6 +1,6 @@
 module livecheck
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `livecheck/options.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -9,15 +9,15 @@ const livecheck_option_names = ['compressed', 'cookies', 'header', 'homebrew_cur
 
 pub struct LivecheckOptions {
 pub mut:
-	values map[string]brew_runtime.Value
+	values map[string]ruby.Value
 }
 
-fn options_nil() brew_runtime.Value {
-	return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+fn options_nil() ruby.Value {
+	return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 }
 
-pub fn new_livecheck_options(values map[string]brew_runtime.Value) LivecheckOptions {
-	mut filtered := map[string]brew_runtime.Value{}
+pub fn new_livecheck_options(values map[string]ruby.Value) LivecheckOptions {
+	mut filtered := map[string]ruby.Value{}
 	for key, value in values {
 		if key in livecheck_option_names && value.type_name != 'NilClass' {
 			filtered[key] = value
@@ -26,19 +26,19 @@ pub fn new_livecheck_options(values map[string]brew_runtime.Value) LivecheckOpti
 	return LivecheckOptions{ values: filtered }
 }
 
-pub fn livecheck_options_value(options LivecheckOptions) brew_runtime.Value {
-	return brew_runtime.Value{ type_name: 'Homebrew::Livecheck::Options', repr: options.values.str(), map_data: options.values }
+pub fn livecheck_options_value(options LivecheckOptions) ruby.Value {
+	return ruby.Value{ type_name: 'Homebrew::Livecheck::Options', repr: options.values.str(), map_data: options.values }
 }
 
-pub fn livecheck_options_from_value(value brew_runtime.Value) !LivecheckOptions {
+pub fn livecheck_options_from_value(value ruby.Value) !LivecheckOptions {
 	if value.type_name !in ['Homebrew::Livecheck::Options', 'Hash'] {
 		return error('expected Livecheck::Options or Hash, got ${value.type_name}')
 	}
 	return new_livecheck_options(value.map_data)
 }
 
-pub fn (options LivecheckOptions) url_options() map[string]brew_runtime.Value {
-	mut result := map[string]brew_runtime.Value{}
+pub fn (options LivecheckOptions) url_options() map[string]ruby.Value {
+	mut result := map[string]ruby.Value{}
 	for key in livecheck_option_names {
 		result[key] = options.values[key] or { options_nil() }
 	}
@@ -66,7 +66,7 @@ pub fn (mut options LivecheckOptions) merge_in_place(other LivecheckOptions) Liv
 	return options
 }
 
-fn option_values_equal(left brew_runtime.Value, right brew_runtime.Value) bool {
+fn option_values_equal(left ruby.Value, right ruby.Value) bool {
 	if left.type_name != right.type_name || left.repr != right.repr || left.bool_data != right.bool_data || left.int_data != right.int_data || left.string_array_data != right.string_array_data {
 		return false
 	}
@@ -105,80 +105,80 @@ pub fn (options LivecheckOptions) equals(other LivecheckOptions) bool {
 }
 
 // Ruby method `url_options` at line 39.
-pub fn ruby_options_l39_d1_url_options(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_options_l39_d1_url_options(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'url_options requires a receiver')
+		return ruby.object_value('ArgumentError', 'url_options requires a receiver')
 	}
-	options := livecheck_options_from_value(args[0]) or { return brew_runtime.object_value('TypeError', err.msg()) }
-	return brew_runtime.map_value(options.url_options())
+	options := livecheck_options_from_value(args[0]) or { return ruby.object_value('TypeError', err.msg()) }
+	return ruby.map_value(options.url_options())
 }
 
 // Ruby method `to_hash` at line 54.
-pub fn ruby_options_l54_d2_to_hash(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_options_l54_d2_to_hash(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'to_hash requires a receiver')
+		return ruby.object_value('ArgumentError', 'to_hash requires a receiver')
 	}
-	options := livecheck_options_from_value(args[0]) or { return brew_runtime.object_value('TypeError', err.msg()) }
-	return brew_runtime.map_value(options.values)
+	options := livecheck_options_from_value(args[0]) or { return ruby.object_value('TypeError', err.msg()) }
+	return ruby.map_value(options.values)
 }
 
 // Ruby method `to_h = to_hash.transform_keys(&:to_sym)` at line 60.
-pub fn ruby_options_l60_d3_to_h(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_options_l60_d3_to_h(args ...ruby.Value) ruby.Value {
 	return ruby_options_l54_d2_to_hash(...args)
 }
 
 // Ruby method `merge(other)` at line 69.
-pub fn ruby_options_l69_d4_merge(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_options_l69_d4_merge(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'merge requires another Options or Hash')
+		return ruby.object_value('ArgumentError', 'merge requires another Options or Hash')
 	}
-	options := livecheck_options_from_value(args[0]) or { return brew_runtime.object_value('TypeError', err.msg()) }
-	other := livecheck_options_from_value(args[1]) or { return brew_runtime.object_value('TypeError', err.msg()) }
+	options := livecheck_options_from_value(args[0]) or { return ruby.object_value('TypeError', err.msg()) }
+	other := livecheck_options_from_value(args[1]) or { return ruby.object_value('TypeError', err.msg()) }
 	return livecheck_options_value(options.merge(other))
 }
 
 // Ruby method `merge!(other)` at line 86.
-pub fn ruby_options_l86_d5_merge(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_options_l86_d5_merge(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'merge! requires another Options or Hash')
+		return ruby.object_value('ArgumentError', 'merge! requires another Options or Hash')
 	}
 	mut options := livecheck_options_from_value(args[0]) or {
-		return brew_runtime.object_value('TypeError', err.msg())
+		return ruby.object_value('TypeError', err.msg())
 	}
 	other := livecheck_options_from_value(args[1]) or {
-		return brew_runtime.object_value('TypeError', err.msg())
+		return ruby.object_value('TypeError', err.msg())
 	}
 	return livecheck_options_value(options.merge_in_place(other))
 }
 
 // Ruby method `==(other)` at line 108.
-pub fn ruby_options_l108_d6_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_options_l108_d6_anonymous(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	options := livecheck_options_from_value(args[0]) or { return brew_runtime.bool_value(false) }
-	other := livecheck_options_from_value(args[1]) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(options.equals(other))
+	options := livecheck_options_from_value(args[0]) or { return ruby.bool_value(false) }
+	other := livecheck_options_from_value(args[1]) or { return ruby.bool_value(false) }
+	return ruby.bool_value(options.equals(other))
 }
 
 // Ruby alias `alias eql? ==` at line 120.
-pub fn ruby_options_l120_d7_eql(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_options_l120_d7_eql(args ...ruby.Value) ruby.Value {
 	return ruby_options_l108_d6_anonymous(...args)
 }
 
 // Ruby method `empty? = to_hash.empty?` at line 124.
-pub fn ruby_options_l124_d8_empty(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_options_l124_d8_empty(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'empty? requires a receiver')
+		return ruby.object_value('ArgumentError', 'empty? requires a receiver')
 	}
-	options := livecheck_options_from_value(args[0]) or { return brew_runtime.object_value('TypeError', err.msg()) }
-	return brew_runtime.bool_value(options.values.len == 0)
+	options := livecheck_options_from_value(args[0]) or { return ruby.object_value('TypeError', err.msg()) }
+	return ruby.bool_value(options.values.len == 0)
 }
 
 // Ruby method `present? = !empty?` at line 128.
-pub fn ruby_options_l128_d9_present(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_options_l128_d9_present(args ...ruby.Value) ruby.Value {
 	value := ruby_options_l124_d8_empty(...args)
-	return if value.type_name == 'Bool' { brew_runtime.bool_value(!value.bool_data) } else { value }
+	return if value.type_name == 'Bool' { ruby.bool_value(!value.bool_data) } else { value }
 }
 
 // Original Ruby source (line-for-line):

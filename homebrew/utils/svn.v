@@ -1,40 +1,40 @@
 module utils
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `utils/svn.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `available?` at line 15.
-pub fn ruby_svn_l15_d1_available(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_svn_l15_d1_available(args ...ruby.Value) ruby.Value {
 	mut client := svn_default_client()
-	return brew_runtime.bool_value(svn_client_available(mut client))
+	return ruby.bool_value(svn_client_available(mut client))
 }
 
 // Ruby method `version` at line 20.
-pub fn ruby_svn_l20_d2_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_svn_l20_d2_version(args ...ruby.Value) ruby.Value {
 	mut client := svn_default_client()
 	if version := svn_client_version(mut client) {
-		return brew_runtime.string_value(version)
+		return ruby.string_value(version)
 	}
 	return svn_nil_value()
 }
 
 // Ruby method `remote_exists?(url)` at line 29.
-pub fn ruby_svn_l29_d3_remote_exists(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_svn_l29_d3_remote_exists(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Utils::Svn.remote_exists? requires a URL') }
 	mut client := svn_default_client()
-	return brew_runtime.bool_value(svn_client_remote_exists(mut client, args[0].as_string()))
+	return ruby.bool_value(svn_client_remote_exists(mut client, args[0].as_string()))
 }
 
 // Ruby method `invalid_cert_flags` at line 41.
-pub fn ruby_svn_l41_d4_invalid_cert_flags(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_svn_l41_d4_invalid_cert_flags(args ...ruby.Value) ruby.Value {
 	mut client := svn_default_client()
 	version := svn_client_version(mut client) or { '' }
 	flags := svn_invalid_cert_flags(version)
 	eprintln('Warning: ${flags.warning}')
-	return brew_runtime.string_array_value(flags.args)
+	return ruby.string_array_value(flags.args)
 }
 
 pub struct SvnCommandResult {
@@ -153,8 +153,8 @@ fn svn_compare_versions(left string, right string) int {
 }
 
 fn svn_run_command(command []string) !SvnCommandResult {
-	result := brew_runtime.run_captured_command(command, brew_runtime.CapturedCommandOptions{
-		environment: brew_runtime.environment()
+	result := ruby.run_captured_command(command, ruby.CapturedCommandOptions{
+		environment: ruby.environment()
 	})!
 	return SvnCommandResult{ exit_code: result.exit_code, stdout: result.stdout, stderr: result.stderr }
 }
@@ -167,8 +167,8 @@ fn svn_default_shim() string {
 	return os.find_abs_path_of_executable('svn') or { 'svn' }
 }
 
-fn svn_nil_value() brew_runtime.Value {
-	return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+fn svn_nil_value() ruby.Value {
+	return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 }
 
 // Original Ruby source (line-for-line):

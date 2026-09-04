@@ -1,6 +1,6 @@
 module sections
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/elftools-1.3.1/lib/elftools/sections/section.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -37,7 +37,7 @@ pub fn (section ElfSection) data() ![]u8 {
 	return section.stream[start..end].clone()
 }
 
-fn elf_section_header(value brew_runtime.Value) ElfSectionHeader {
+fn elf_section_header(value ruby.Value) ElfSectionHeader {
 	return ElfSectionHeader{
 		sh_type: (value.attribute('sh_type') or { '0' }).int()
 		sh_name: (value.attribute('sh_name') or { '0' }).int()
@@ -46,8 +46,8 @@ fn elf_section_header(value brew_runtime.Value) ElfSectionHeader {
 	}
 }
 
-fn elf_section_value(section ElfSection) brew_runtime.Value {
-	return brew_runtime.structured_value('ELFTools::Sections::Section', 'Section', {
+fn elf_section_value(section ElfSection) ruby.Value {
+	return ruby.structured_value('ELFTools::Sections::Section', 'Section', {
 		'sh_type':       section.header.sh_type.str()
 		'sh_name':       section.header.sh_name.str()
 		'sh_offset':     section.header.sh_offset.str()
@@ -58,7 +58,7 @@ fn elf_section_value(section ElfSection) brew_runtime.Value {
 	})
 }
 
-fn elf_section_from_value(value brew_runtime.Value) ElfSection {
+fn elf_section_from_value(value ruby.Value) ElfSection {
 	return ElfSection{
 		header: elf_section_header(value)
 		stream: (value.attribute('stream') or { '' }).bytes()
@@ -68,12 +68,12 @@ fn elf_section_from_value(value brew_runtime.Value) ElfSection {
 }
 
 // Ruby attr_reader `attr_reader :header` at line 8.
-pub fn ruby_section_l8_d1_header(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_section_l8_d1_header(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Section#header requires a receiver')
 	}
 	header := elf_section_from_value(args[0]).header
-	return brew_runtime.structured_value('ELF_Shdr', '', {
+	return ruby.structured_value('ELF_Shdr', '', {
 		'sh_type':   header.sh_type.str()
 		'sh_name':   header.sh_name.str()
 		'sh_offset': header.sh_offset.str()
@@ -82,15 +82,15 @@ pub fn ruby_section_l8_d1_header(args ...brew_runtime.Value) brew_runtime.Value 
 }
 
 // Ruby attr_reader `attr_reader :stream` at line 9.
-pub fn ruby_section_l9_d2_stream(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_section_l9_d2_stream(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Section#stream requires a receiver')
 	}
-	return brew_runtime.string_value(args[0].attribute('stream') or { panic('section has no stream') })
+	return ruby.string_value(args[0].attribute('stream') or { panic('section has no stream') })
 }
 
 // Ruby method `initialize(header, stream, offset_from_vma: nil, strtab: nil, **_kwargs)` at line 22.
-pub fn ruby_section_l22_d3_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_section_l22_d3_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Section#initialize requires a header and stream')
 	}
@@ -104,32 +104,32 @@ pub fn ruby_section_l22_d3_initialize(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby method `type` at line 32.
-pub fn ruby_section_l32_d4_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_section_l32_d4_type(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Section#type requires a receiver')
 	}
-	return brew_runtime.int_value(elf_section_from_value(args[0]).section_type())
+	return ruby.int_value(elf_section_from_value(args[0]).section_type())
 }
 
 // Ruby method `name` at line 38.
-pub fn ruby_section_l38_d5_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_section_l38_d5_name(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Section#name requires a receiver')
 	}
-	return brew_runtime.string_value(elf_section_from_value(args[0]).name() or { panic(err) })
+	return ruby.string_value(elf_section_from_value(args[0]).name() or { panic(err) })
 }
 
 // Ruby method `data` at line 44.
-pub fn ruby_section_l44_d6_data(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_section_l44_d6_data(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Section#data requires a receiver')
 	}
-	return brew_runtime.string_value(elf_section_from_value(args[0]).data() or { panic(err) }.bytestr())
+	return ruby.string_value(elf_section_from_value(args[0]).data() or { panic(err) }.bytestr())
 }
 
 // Ruby method `null?` at line 51.
-pub fn ruby_section_l51_d7_null(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(false)
+pub fn ruby_section_l51_d7_null(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(false)
 }
 
 // Original Ruby source (line-for-line):

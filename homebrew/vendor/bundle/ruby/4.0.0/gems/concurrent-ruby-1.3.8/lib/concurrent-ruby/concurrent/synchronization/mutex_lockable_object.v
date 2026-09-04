@@ -1,12 +1,12 @@
 module synchronization
 
-import brew_runtime
+import ruby
 import sync
 import time
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/synchronization/mutex_lockable_object.rb`.
 // The original source is retained below until every stub has a typed V body.
-pub type LockableAction = fn() !brew_runtime.Value
+pub type LockableAction = fn() !ruby.Value
 
 pub type LockableCondition = fn() bool
 
@@ -38,7 +38,7 @@ pub fn (lockable &MutexLockableObject) copy() &MutexLockableObject {
 	return new_mutex_lockable_object()
 }
 
-pub fn (mut lockable MutexLockableObject) synchronize(action LockableAction) !brew_runtime.Value {
+pub fn (mut lockable MutexLockableObject) synchronize(action LockableAction) !ruby.Value {
 	lockable.state.mutex.lock()
 	defer {
 		lockable.state.mutex.unlock()
@@ -120,18 +120,18 @@ pub fn (mut lockable MutexLockableObject) broadcast() {
 	lockable.state.mutex.unlock()
 }
 
-fn lockable_nil_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn lockable_nil_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-fn lockable_boundary_new(type_name string) brew_runtime.Value {
+fn lockable_boundary_new(type_name string) ruby.Value {
 	lockable := new_mutex_lockable_object()
-	return brew_runtime.structured_value(type_name, '#<${type_name}>', {
+	return ruby.structured_value(type_name, '#<${type_name}>', {
 		'lockable_address': u64(voidptr(lockable)).str()
 	})
 }
 
-fn lockable_boundary_receiver(args []brew_runtime.Value) &MutexLockableObject {
+fn lockable_boundary_receiver(args []ruby.Value) &MutexLockableObject {
 	if args.len == 0 {
 		panic('lockable method requires a receiver')
 	}
@@ -141,7 +141,7 @@ fn lockable_boundary_receiver(args []brew_runtime.Value) &MutexLockableObject {
 	return unsafe { &MutexLockableObject(voidptr(address)) }
 }
 
-fn lockable_boundary_timeout(args []brew_runtime.Value, index int) ?time.Duration {
+fn lockable_boundary_timeout(args []ruby.Value, index int) ?time.Duration {
 	if index >= args.len || args[index].type_name == 'NilClass' {
 		return none
 	}
@@ -150,31 +150,31 @@ fn lockable_boundary_timeout(args []brew_runtime.Value, index int) ?time.Duratio
 }
 
 // Ruby method `ns_signal` at line 11.
-pub fn ruby_mutex_lockable_object_l11_d1_ns_signal(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mutex_lockable_object_l11_d1_ns_signal(args ...ruby.Value) ruby.Value {
 	mut lockable := lockable_boundary_receiver(args)
 	lockable.signal()
 	return args[0]
 }
 
 // Ruby method `ns_broadcast` at line 16.
-pub fn ruby_mutex_lockable_object_l16_d2_ns_broadcast(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mutex_lockable_object_l16_d2_ns_broadcast(args ...ruby.Value) ruby.Value {
 	mut lockable := lockable_boundary_receiver(args)
 	lockable.broadcast()
 	return args[0]
 }
 
 // Ruby method `initialize` at line 30.
-pub fn ruby_mutex_lockable_object_l30_d3_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mutex_lockable_object_l30_d3_initialize(args ...ruby.Value) ruby.Value {
 	return lockable_boundary_new('Concurrent::Synchronization::MutexLockableObject')
 }
 
 // Ruby method `initialize_copy(other)` at line 36.
-pub fn ruby_mutex_lockable_object_l36_d4_initialize_copy(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mutex_lockable_object_l36_d4_initialize_copy(args ...ruby.Value) ruby.Value {
 	return lockable_boundary_new('Concurrent::Synchronization::MutexLockableObject')
 }
 
 // Ruby method `synchronize` at line 44.
-pub fn ruby_mutex_lockable_object_l44_d5_synchronize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mutex_lockable_object_l44_d5_synchronize(args ...ruby.Value) ruby.Value {
 	mut lockable := lockable_boundary_receiver(args)
 	lockable.state.mutex.lock()
 	value := if args.len > 1 { args[1] } else { lockable_nil_value() }
@@ -183,29 +183,29 @@ pub fn ruby_mutex_lockable_object_l44_d5_synchronize(args ...brew_runtime.Value)
 }
 
 // Ruby method `ns_wait(timeout = nil)` at line 52.
-pub fn ruby_mutex_lockable_object_l52_d6_ns_wait(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mutex_lockable_object_l52_d6_ns_wait(args ...ruby.Value) ruby.Value {
 	mut lockable := lockable_boundary_receiver(args)
 	lockable.wait(lockable_boundary_timeout(args, 1))
 	return args[0]
 }
 
 // Ruby method `initialize` at line 65.
-pub fn ruby_mutex_lockable_object_l65_d7_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mutex_lockable_object_l65_d7_initialize(args ...ruby.Value) ruby.Value {
 	return lockable_boundary_new('Concurrent::Synchronization::MonitorLockableObject')
 }
 
 // Ruby method `initialize_copy(other)` at line 71.
-pub fn ruby_mutex_lockable_object_l71_d8_initialize_copy(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mutex_lockable_object_l71_d8_initialize_copy(args ...ruby.Value) ruby.Value {
 	return lockable_boundary_new('Concurrent::Synchronization::MonitorLockableObject')
 }
 
 // Ruby method `synchronize # TODO may be a problem with lock.synchronize { lock.wait }` at line 79.
-pub fn ruby_mutex_lockable_object_l79_d9_synchronize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mutex_lockable_object_l79_d9_synchronize(args ...ruby.Value) ruby.Value {
 	return ruby_mutex_lockable_object_l44_d5_synchronize(...args)
 }
 
 // Ruby method `ns_wait(timeout = nil)` at line 83.
-pub fn ruby_mutex_lockable_object_l83_d10_ns_wait(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mutex_lockable_object_l83_d10_ns_wait(args ...ruby.Value) ruby.Value {
 	return ruby_mutex_lockable_object_l52_d6_ns_wait(...args)
 }
 

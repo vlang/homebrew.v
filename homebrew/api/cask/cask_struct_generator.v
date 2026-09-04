@@ -1,6 +1,6 @@
 module cask
 
-import brew_runtime
+import ruby
 import homebrew
 import homebrew.api
 
@@ -15,27 +15,27 @@ pub:
 }
 
 struct CaskGeneratorLanguageStruct {
-	variation map[string]brew_runtime.Value
+	variation map[string]ruby.Value
 	cask      api.CaskStruct
 }
 
-fn cask_generator_nil() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', '')
+fn cask_generator_nil() ruby.Value {
+	return ruby.object_value('NilClass', '')
 }
 
-fn cask_generator_symbol(value string) brew_runtime.Value {
-	return brew_runtime.object_value('Symbol', value.trim_space().trim_string_left(':'))
+fn cask_generator_symbol(value string) ruby.Value {
+	return ruby.object_value('Symbol', value.trim_space().trim_string_left(':'))
 }
 
-fn cask_generator_array(value brew_runtime.Value) []brew_runtime.Value {
-	return value.as_array() or { []brew_runtime.Value{} }
+fn cask_generator_array(value ruby.Value) []ruby.Value {
+	return value.as_array() or { []ruby.Value{} }
 }
 
-fn cask_generator_map(value brew_runtime.Value) map[string]brew_runtime.Value {
-	return value.as_map() or { map[string]brew_runtime.Value{} }
+fn cask_generator_map(value ruby.Value) map[string]ruby.Value {
+	return value.as_map() or { map[string]ruby.Value{} }
 }
 
-fn cask_generator_present(value brew_runtime.Value) bool {
+fn cask_generator_present(value ruby.Value) bool {
 	return match value.type_name {
 		'NilClass' { false }
 		'Bool' { value.bool_data }
@@ -46,26 +46,26 @@ fn cask_generator_present(value brew_runtime.Value) bool {
 	}
 }
 
-fn cask_generator_deep_normalize_keys(value brew_runtime.Value) brew_runtime.Value {
+fn cask_generator_deep_normalize_keys(value ruby.Value) ruby.Value {
 	if value.type_name == 'Array' {
-		return brew_runtime.array_value(cask_generator_array(value).map(cask_generator_deep_normalize_keys(it)))
+		return ruby.array_value(cask_generator_array(value).map(cask_generator_deep_normalize_keys(it)))
 	}
 	if value.type_name == 'Hash' {
-		mut normalized := map[string]brew_runtime.Value{}
+		mut normalized := map[string]ruby.Value{}
 		for key, item in value.map_data {
 			normalized[key.trim_string_left(':')] = cask_generator_deep_normalize_keys(item)
 		}
-		return brew_runtime.map_value(normalized)
+		return ruby.map_value(normalized)
 	}
 	return value
 }
 
-fn cask_generator_merge_variations(input map[string]brew_runtime.Value,
-	bottle_tag string) map[string]brew_runtime.Value {
+fn cask_generator_merge_variations(input map[string]ruby.Value,
+	bottle_tag string) map[string]ruby.Value {
 	merged := if bottle_tag == '' {
-		homebrew.ruby_api_l194_d4_self_merge_variations(brew_runtime.map_value(input))
+		homebrew.ruby_api_l194_d4_self_merge_variations(ruby.map_value(input))
 	} else {
-		homebrew.ruby_api_l194_d4_self_merge_variations(brew_runtime.map_value(input), brew_runtime.string_value(bottle_tag))
+		homebrew.ruby_api_l194_d4_self_merge_variations(ruby.map_value(input), ruby.string_value(bottle_tag))
 	}
 	return cask_generator_map(cask_generator_deep_normalize_keys(merged))
 }
@@ -84,33 +84,33 @@ fn cask_generator_macos_symbol(version string) ?string {
 	return none
 }
 
-fn cask_generator_requirement_hash(value brew_runtime.Value) map[string]brew_runtime.Value {
+fn cask_generator_requirement_hash(value ruby.Value) map[string]ruby.Value {
 	if value.type_name != 'MacOSRequirement' {
 		return cask_generator_map(cask_generator_deep_normalize_keys(value))
 	}
 	versions := cask_generator_array(value.map_data['versions'] or {
-		brew_runtime.array_value([])
+		ruby.array_value([])
 	})
 	if versions.len == 0 {
-		return map[string]brew_runtime.Value{}
+		return map[string]ruby.Value{}
 	}
 	comparator := (value.map_data['comparator'] or {
-		brew_runtime.string_value('>=')
+		ruby.string_value('>=')
 	}).as_string()
 	return {
-		comparator: brew_runtime.array_value(versions)
+		comparator: ruby.array_value(versions)
 	}
 }
 
-pub fn cask_generator_process_depends_on(depends_on map[string]brew_runtime.Value) map[string]brew_runtime.Value {
-	mut processed := map[string]brew_runtime.Value{}
+pub fn cask_generator_process_depends_on(depends_on map[string]ruby.Value) map[string]ruby.Value {
+	mut processed := map[string]ruby.Value{}
 	for raw_key, raw_value in depends_on {
 		key := raw_key.trim_string_left(':')
 		if key == 'arch' {
 			architectures := cask_generator_array(raw_value)
 			kind := if architectures.len > 0 {
 				(cask_generator_map(architectures[0])['type'] or {
-					brew_runtime.string_value('arm64')
+					ruby.string_value('arm64')
 				}).as_string().trim_string_left(':')
 			} else {
 				'arm64'
@@ -134,14 +134,14 @@ pub fn cask_generator_process_depends_on(depends_on map[string]brew_runtime.Valu
 		dep_type := value.keys()[0].trim_string_left(':')
 		versions := cask_generator_array(value[value.keys()[0]])
 		if dep_type == '==' {
-			mut symbols := []brew_runtime.Value{}
+			mut symbols := []ruby.Value{}
 			for version in versions {
 				if symbol := cask_generator_macos_symbol(version.as_string()) {
 					symbols << cask_generator_symbol(symbol)
 				}
 			}
 			if symbols.len > 0 {
-				processed[key] = brew_runtime.array_value(symbols)
+				processed[key] = ruby.array_value(symbols)
 			}
 			continue
 		}
@@ -153,14 +153,14 @@ pub fn cask_generator_process_depends_on(depends_on map[string]brew_runtime.Valu
 			processed[key] = if dep_type in ['>=', '<='] {
 				cask_generator_symbol(symbol)
 			} else {
-				brew_runtime.string_value('${dep_type} :${symbol}')
+				ruby.string_value('${dep_type} :${symbol}')
 			}
 		}
 	}
 	return processed
 }
 
-pub fn cask_generator_process_artifacts(artifacts []brew_runtime.Value) []api.CaskArtifact {
+pub fn cask_generator_process_artifacts(artifacts []ruby.Value) []api.CaskArtifact {
 	mut processed := []api.CaskArtifact{}
 	for artifact_value in artifacts {
 		artifact := cask_generator_map(artifact_value)
@@ -183,7 +183,7 @@ pub fn cask_generator_process_artifacts(artifacts []brew_runtime.Value) []api.Ca
 			continue
 		}
 		mut arguments := cask_generator_array(value)
-		mut keyword_arguments := map[string]brew_runtime.Value{}
+		mut keyword_arguments := map[string]ruby.Value{}
 		if arguments.len > 0 && arguments.last().type_name == 'Hash' {
 			keyword_arguments = cask_generator_map(arguments.last())
 			arguments = arguments[..arguments.len - 1].clone()
@@ -197,8 +197,8 @@ pub fn cask_generator_process_artifacts(artifacts []brew_runtime.Value) []api.Ca
 	return processed
 }
 
-pub fn cask_generator_process_url_specs(url_specs map[string]brew_runtime.Value) map[string]brew_runtime.Value {
-	mut processed := map[string]brew_runtime.Value{}
+pub fn cask_generator_process_url_specs(url_specs map[string]ruby.Value) map[string]ruby.Value {
+	mut processed := map[string]ruby.Value{}
 	for raw_key, raw_value in url_specs {
 		key := raw_key.trim_string_left(':')
 		value := match key {
@@ -213,13 +213,13 @@ pub fn cask_generator_process_url_specs(url_specs map[string]brew_runtime.Value)
 	return processed
 }
 
-fn cask_generator_artifacts_value(artifacts []api.CaskArtifact) brew_runtime.Value {
-	mut values := []brew_runtime.Value{}
+fn cask_generator_artifacts_value(artifacts []api.CaskArtifact) ruby.Value {
+	mut values := []ruby.Value{}
 	for artifact in artifacts {
-		values << brew_runtime.array_value([
+		values << ruby.array_value([
 			cask_generator_symbol(artifact.key),
-			brew_runtime.array_value(artifact.args),
-			brew_runtime.map_value(artifact.kwargs),
+			ruby.array_value(artifact.args),
+			ruby.map_value(artifact.kwargs),
 			if artifact.has_block {
 				cask_generator_symbol('empty_block')
 			} else {
@@ -227,14 +227,14 @@ fn cask_generator_artifacts_value(artifacts []api.CaskArtifact) brew_runtime.Val
 			},
 		])
 	}
-	return brew_runtime.array_value(values)
+	return ruby.array_value(values)
 }
 
-pub fn cask_generator_generate_cask_struct_hash(input map[string]brew_runtime.Value,
+pub fn cask_generator_generate_cask_struct_hash(input map[string]ruby.Value,
 	options CaskStructGeneratorOptions) api.CaskStruct {
 	mut hash := cask_generator_merge_variations(input, options.bottle_tag)
 	language_variations := cask_generator_array(hash['language_variations'] or {
-		brew_runtime.array_value([])
+		ruby.array_value([])
 	})
 	hash.delete('language_variations')
 	mut language_structs := []CaskGeneratorLanguageStruct{}
@@ -253,7 +253,7 @@ pub fn cask_generator_generate_cask_struct_hash(input map[string]brew_runtime.Va
 	}
 
 	hash['conflicts_with_args'] = if conflicts := hash['conflicts_with'] {
-		brew_runtime.map_value(cask_generator_map(conflicts))
+		ruby.map_value(cask_generator_map(conflicts))
 	} else {
 		cask_generator_nil()
 	}
@@ -262,12 +262,12 @@ pub fn cask_generator_generate_cask_struct_hash(input map[string]brew_runtime.Va
 		if container_type := arguments['type'] {
 			arguments['type'] = cask_generator_symbol(container_type.as_string())
 		}
-		brew_runtime.map_value(arguments)
+		ruby.map_value(arguments)
 	} else {
 		cask_generator_nil()
 	}
 	if depends_on := hash['depends_on'] {
-		hash['depends_on_args'] = brew_runtime.map_value(cask_generator_process_depends_on(cask_generator_map(depends_on)))
+		hash['depends_on_args'] = ruby.map_value(cask_generator_process_depends_on(cask_generator_map(depends_on)))
 	}
 	for key in ['deprecate_args', 'disable_args'] {
 		if arguments_value := hash[key] {
@@ -276,7 +276,7 @@ pub fn cask_generator_generate_cask_struct_hash(input map[string]brew_runtime.Va
 				arguments['because'] = homebrew.ruby_deprecate_disable_l122_d4_to_reason_string_or_symbol(arguments['because'] or {
 					cask_generator_nil()
 				}, cask_generator_symbol('cask'))
-				hash[key] = brew_runtime.map_value(arguments)
+				hash[key] = ruby.map_value(arguments)
 			}
 		}
 	}
@@ -286,15 +286,15 @@ pub fn cask_generator_generate_cask_struct_hash(input map[string]brew_runtime.Va
 	}
 	hash['raw_caveats'] = hash['caveats'] or { cask_generator_nil() }
 	if renames := hash['rename'] {
-		mut pairs := []brew_runtime.Value{}
+		mut pairs := []ruby.Value{}
 		for operation_value in cask_generator_array(renames) {
 			operation := cask_generator_map(operation_value)
-			pairs << brew_runtime.array_value([
+			pairs << ruby.array_value([
 				operation['from'] or { cask_generator_nil() },
 				operation['to'] or { cask_generator_nil() },
 			])
 		}
-		hash['renames'] = brew_runtime.array_value(pairs)
+		hash['renames'] = ruby.array_value(pairs)
 	} else {
 		hash['renames'] = cask_generator_nil()
 	}
@@ -306,27 +306,27 @@ pub fn cask_generator_generate_cask_struct_hash(input map[string]brew_runtime.Va
 	if checksum.type_name == 'NilClass' {
 		hash.delete('ruby_source_checksum')
 	} else {
-		hash['ruby_source_checksum'] = brew_runtime.map_value({
+		hash['ruby_source_checksum'] = ruby.map_value({
 			'sha256': checksum
 		})
 	}
 	if path := hash['ruby_source_path'] {
 		if path.type_name != 'NilClass' {
-			hash['ruby_source_path'] = brew_runtime.string_value(path.as_string())
+			hash['ruby_source_path'] = ruby.string_value(path.as_string())
 		}
 	}
-	sha256 := brew_runtime.string_value((hash['sha256'] or { cask_generator_nil() }).as_string())
+	sha256 := ruby.string_value((hash['sha256'] or { cask_generator_nil() }).as_string())
 	hash['sha256'] = if sha256.as_string() == 'no_check' {
 		cask_generator_symbol('no_check')
 	} else {
 		sha256
 	}
 	hash['tap_string'] = hash['tap'] or { cask_generator_nil() }
-	hash['url_args'] = brew_runtime.string_array_value([(hash['url'] or {
+	hash['url_args'] = ruby.string_array_value([(hash['url'] or {
 		cask_generator_nil()
 	}).as_string()])
 	if url_specs := hash['url_specs'] {
-		hash['url_kwargs'] = brew_runtime.map_value(cask_generator_process_url_specs(cask_generator_map(url_specs)))
+		hash['url_kwargs'] = ruby.map_value(cask_generator_process_url_specs(cask_generator_map(url_specs)))
 	}
 	for predicate, source in {
 		'auto_updates': hash['auto_updates'] or { cask_generator_nil() }
@@ -339,56 +339,56 @@ pub fn cask_generator_generate_cask_struct_hash(input map[string]brew_runtime.Va
 		'disable':      hash['disable_args'] or { cask_generator_nil() }
 		'homepage':     hash['homepage'] or { cask_generator_nil() }
 	} {
-		hash['${predicate}_present'] = brew_runtime.bool_value(cask_generator_present(source))
+		hash['${predicate}_present'] = ruby.bool_value(cask_generator_present(source))
 	}
 	cask_struct := api.cask_struct_from_hash(hash, options.paths, options.ignore_types)
 	if language_structs.len == 0 {
 		return cask_struct
 	}
 	serialized_cask := cask_struct.serialize()
-	mut processed_variations := []brew_runtime.Value{}
+	mut processed_variations := []ruby.Value{}
 	for generated in language_structs {
-		mut overrides := map[string]brew_runtime.Value{}
+		mut overrides := map[string]ruby.Value{}
 		for key, value in generated.cask.serialize() {
 			base_value := serialized_cask[key] or { cask_generator_nil() }
 			if !api.api_struct_value_equal(base_value, value) {
 				overrides[key] = value
 			}
 		}
-		processed_variations << brew_runtime.map_value({
-			'languages': generated.variation['languages'] or { brew_runtime.array_value([]) }
-			'default':   brew_runtime.bool_value((generated.variation['default'] or {
-				brew_runtime.bool_value(false)
+		processed_variations << ruby.map_value({
+			'languages': generated.variation['languages'] or { ruby.array_value([]) }
+			'default':   ruby.bool_value((generated.variation['default'] or {
+				ruby.bool_value(false)
 			}).type_name == 'Bool' && (generated.variation['default'] or {
-				brew_runtime.bool_value(false)
+				ruby.bool_value(false)
 			}).bool_data)
 			'value':     generated.variation['value'] or { cask_generator_nil() }
-			'overrides': brew_runtime.map_value(overrides)
+			'overrides': ruby.map_value(overrides)
 		})
 	}
 	mut serialized_with_languages := serialized_cask.clone()
-	serialized_with_languages['language_variations'] = brew_runtime.array_value(processed_variations)
+	serialized_with_languages['language_variations'] = ruby.array_value(processed_variations)
 	return api.cask_struct_deserialize(serialized_with_languages, options.paths)
 }
 
 // Ruby method `generate_cask_struct_hash(hash, bottle_tag: Homebrew::SimulateSystem.current_tag, ignore_types: false)` at line 14.
-pub fn ruby_cask_struct_generator_l14_d1_generate_cask_struct_hash(hash map[string]brew_runtime.Value,
+pub fn ruby_cask_struct_generator_l14_d1_generate_cask_struct_hash(hash map[string]ruby.Value,
 	options CaskStructGeneratorOptions) api.CaskStruct {
 	return cask_generator_generate_cask_struct_hash(hash, options)
 }
 
 // Ruby method `process_depends_on(depends_on)` at line 110.
-pub fn ruby_cask_struct_generator_l110_d2_process_depends_on(depends_on map[string]brew_runtime.Value) map[string]brew_runtime.Value {
+pub fn ruby_cask_struct_generator_l110_d2_process_depends_on(depends_on map[string]ruby.Value) map[string]ruby.Value {
 	return cask_generator_process_depends_on(depends_on)
 }
 
 // Ruby method `process_artifacts(artifacts)` at line 146.
-pub fn ruby_cask_struct_generator_l146_d3_process_artifacts(artifacts []brew_runtime.Value) []api.CaskArtifact {
+pub fn ruby_cask_struct_generator_l146_d3_process_artifacts(artifacts []ruby.Value) []api.CaskArtifact {
 	return cask_generator_process_artifacts(artifacts)
 }
 
 // Ruby method `process_url_specs(url_specs)` at line 165.
-pub fn ruby_cask_struct_generator_l165_d4_process_url_specs(url_specs map[string]brew_runtime.Value) map[string]brew_runtime.Value {
+pub fn ruby_cask_struct_generator_l165_d4_process_url_specs(url_specs map[string]ruby.Value) map[string]ruby.Value {
 	return cask_generator_process_url_specs(url_specs)
 }
 

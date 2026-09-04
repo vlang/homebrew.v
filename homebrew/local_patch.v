@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `local_patch.rb`.
@@ -150,8 +150,8 @@ pub fn local_patch_from_model(model PatchModel, owner LocalPatchOwner) !LocalPat
 	return patch
 }
 
-fn local_patch_value(patch LocalPatch) brew_runtime.Value {
-	return brew_runtime.structured_value('LocalPatch', patch.inspect(), {
+fn local_patch_value(patch LocalPatch) ruby.Value {
+	return ruby.structured_value('LocalPatch', patch.inspect(), {
 		'strip':              patch.embedded.strip
 		'file':               patch.file
 		'directory':          patch.embedded.directory
@@ -168,7 +168,7 @@ fn local_patch_value(patch LocalPatch) brew_runtime.Value {
 	})
 }
 
-fn local_patch_from_value(value brew_runtime.Value) !LocalPatch {
+fn local_patch_from_value(value ruby.Value) !LocalPatch {
 	mut patch := new_local_patch(value.attributes['strip'] or { 'p1' }, value.attributes['file'] or { '' }, value.attributes['directory'] or { '' }, if (value.attributes['resolves'] or { '' }) == '' {
 		[]string{}
 	} else {
@@ -189,50 +189,50 @@ fn local_patch_from_value(value brew_runtime.Value) !LocalPatch {
 }
 
 // Ruby attr_reader `attr_reader :file` at line 9.
-pub fn ruby_local_patch_l9_d1_file(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_local_patch_l9_d1_file(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'receiver is required')
+		return ruby.object_value('ArgumentError', 'receiver is required')
 	}
-	patch := local_patch_from_value(args[0]) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
-	return brew_runtime.string_value(patch.file)
+	patch := local_patch_from_value(args[0]) or { return ruby.object_value('ArgumentError', err.msg()) }
+	return ruby.string_value(patch.file)
 }
 
 // Ruby attr_reader `attr_reader :owner` at line 12.
-pub fn ruby_local_patch_l12_d2_owner(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_local_patch_l12_d2_owner(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'receiver is required')
+		return ruby.object_value('ArgumentError', 'receiver is required')
 	}
-	patch := local_patch_from_value(args[0]) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+	patch := local_patch_from_value(args[0]) or { return ruby.object_value('ArgumentError', err.msg()) }
 	if !patch.has_owner {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
-	return brew_runtime.structured_value('SoftwareSpec', patch.owner.software_spec_name, {
+	return ruby.structured_value('SoftwareSpec', patch.owner.software_spec_name, {
 		'formula_path': patch.owner.formula_path
 	})
 }
 
 // Ruby method `self.valid_path?(path_string)` at line 15.
-pub fn ruby_local_patch_l15_d3_self_valid_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(args.len > 0 && valid_local_patch_path(args[0].as_string()))
+pub fn ruby_local_patch_l15_d3_self_valid_path(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(args.len > 0 && valid_local_patch_path(args[0].as_string()))
 }
 
 // Ruby attr_reader `attr_reader :type` at line 25.
-pub fn ruby_local_patch_l25_d4_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_local_patch_l25_d4_type(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'receiver is required')
+		return ruby.object_value('ArgumentError', 'receiver is required')
 	}
-	patch := local_patch_from_value(args[0]) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+	patch := local_patch_from_value(args[0]) or { return ruby.object_value('ArgumentError', err.msg()) }
 	return if patch.type_name == '' {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	} else {
-		brew_runtime.object_value('Symbol', patch.type_name)
+		ruby.object_value('Symbol', patch.type_name)
 	}
 }
 
 // Ruby method `initialize(strip, file, directory = nil, resolves: [], type: nil)` at line 36.
-pub fn ruby_local_patch_l36_d5_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_local_patch_l36_d5_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'strip and file are required')
+		return ruby.object_value('ArgumentError', 'strip and file are required')
 	}
 	patch := new_local_patch(args[0].as_string(), args[1].as_string(), if args.len > 2 {
 		args[2].as_string()
@@ -243,35 +243,35 @@ pub fn ruby_local_patch_l36_d5_initialize(args ...brew_runtime.Value) brew_runti
 	} else {
 		''
 	}) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	return local_patch_value(patch)
 }
 
 // Ruby method `resolves` at line 45.
-pub fn ruby_local_patch_l45_d6_resolves(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_local_patch_l45_d6_resolves(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_array_value([])
+		return ruby.string_array_value([])
 	}
-	patch := local_patch_from_value(args[0]) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
-	return brew_runtime.string_array_value(patch.resolved_identifiers())
+	patch := local_patch_from_value(args[0]) or { return ruby.object_value('ArgumentError', err.msg()) }
+	return ruby.string_array_value(patch.resolved_identifiers())
 }
 
 // Ruby method `filename = file.to_s.delete_prefix("Patches/")` at line 50.
-pub fn ruby_local_patch_l50_d7_filename(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_local_patch_l50_d7_filename(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_value('')
+		return ruby.string_value('')
 	}
-	patch := local_patch_from_value(args[0]) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
-	return brew_runtime.string_value(patch.filename())
+	patch := local_patch_from_value(args[0]) or { return ruby.object_value('ArgumentError', err.msg()) }
+	return ruby.string_value(patch.filename())
 }
 
 // Ruby method `contents` at line 53.
-pub fn ruby_local_patch_l53_d8_contents(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_local_patch_l53_d8_contents(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'receiver is required')
+		return ruby.object_value('ArgumentError', 'receiver is required')
 	}
-	mut patch := local_patch_from_value(args[0]) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+	mut patch := local_patch_from_value(args[0]) or { return ruby.object_value('ArgumentError', err.msg()) }
 	if args.len > 1 {
 		owner := args[1]
 		patch = patch.with_owner(LocalPatchOwner{
@@ -284,29 +284,29 @@ pub fn ruby_local_patch_l53_d8_contents(args ...brew_runtime.Value) brew_runtime
 			software_spec_name: owner.attributes['software_spec_name'] or { '' }
 		})
 	}
-	return brew_runtime.string_value(patch.contents() or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+	return ruby.string_value(patch.contents() or {
+		return ruby.object_value('ArgumentError', err.msg())
 	})
 }
 
 // Ruby method `inspect` at line 86.
-pub fn ruby_local_patch_l86_d9_inspect(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_local_patch_l86_d9_inspect(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_value('')
+		return ruby.string_value('')
 	}
-	patch := local_patch_from_value(args[0]) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
-	return brew_runtime.string_value(patch.inspect())
+	patch := local_patch_from_value(args[0]) or { return ruby.object_value('ArgumentError', err.msg()) }
+	return ruby.string_value(patch.inspect())
 }
 
 // Ruby method `api_source_repository_path(path)` at line 93.
-pub fn ruby_local_patch_l93_d10_api_source_repository_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_local_patch_l93_d10_api_source_repository_path(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	if path := local_patch_api_source_repository_path(args[0].as_string(), args[1].as_string()) {
-		return brew_runtime.string_value(path)
+		return ruby.string_value(path)
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Original Ruby source (line-for-line):

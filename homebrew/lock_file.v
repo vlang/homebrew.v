@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 import os
 import os.filelock
 
@@ -32,14 +32,14 @@ mut:
 	backend ?filelock.FileLock
 }
 
-pub type LockFileAction = fn() !brew_runtime.Value
+pub type LockFileAction = fn() !ruby.Value
 
 fn configured_locks_directory() string {
-	configured := brew_runtime.environment_value('HOMEBREW_LOCKS')
+	configured := ruby.environment_value('HOMEBREW_LOCKS')
 	if configured != '' {
 		return configured
 	}
-	prefix := brew_runtime.environment_value('HOMEBREW_PREFIX')
+	prefix := ruby.environment_value('HOMEBREW_PREFIX')
 	return if prefix == '' {
 		os.join_path(os.temp_dir(), 'homebrew-locks')
 	} else {
@@ -107,7 +107,7 @@ pub fn (mut lock_file LockFile) unlock(unlink bool) ! {
 	}
 }
 
-pub fn (mut lock_file LockFile) with_lock(action LockFileAction) !brew_runtime.Value {
+pub fn (mut lock_file LockFile) with_lock(action LockFileAction) !ruby.Value {
 	lock_file.lock()!
 	defer {
 		lock_file.unlock(false) or {}
@@ -143,7 +143,7 @@ pub fn ruby_lock_file_l74_d5_unlock(mut lock_file LockFile, unlink bool) ! {
 
 // Ruby method `with_lock(&_block)` at line 86.
 pub fn ruby_lock_file_l86_d6_with_lock(mut lock_file LockFile,
-	action LockFileAction) !brew_runtime.Value {
+	action LockFileAction) !ruby.Value {
 	return lock_file.with_lock(action)
 }
 

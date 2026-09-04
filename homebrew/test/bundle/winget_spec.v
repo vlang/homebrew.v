@@ -1,16 +1,16 @@
 module bundle
 
-import brew_runtime
+import ruby
 import homebrew.bundle.extensions
 
-fn winget_spec_bool(value bool) brew_runtime.Value {
-	return brew_runtime.bool_value(value)
+fn winget_spec_bool(value bool) ruby.Value {
+	return ruby.bool_value(value)
 }
 
 fn winget_spec_entry() extensions.ExtensionEntry {
 	return extensions.winget_entry('PowerToys', {
-		'id':     brew_runtime.string_value('XP89DCGQ3K6VLD')
-		'source': brew_runtime.string_value('msstore')
+		'id':     ruby.string_value('XP89DCGQ3K6VLD')
+		'source': ruby.string_value('msstore')
 	}) or { panic(err) }
 }
 
@@ -28,11 +28,11 @@ fn winget_spec_apps() []extensions.WingetApp {
 }
 
 fn winget_spec_install(state extensions.WingetState, name string, id string, source string,
-	normal extensions.WingetCommandResult, elevated extensions.WingetCommandResult) brew_runtime.Value {
-	return extensions.ruby_winget_l387_d32_install(extensions.winget_state_value(state), brew_runtime.string_value(name), brew_runtime.string_value(id), brew_runtime.string_value(source), brew_runtime.bool_value(true), extensions.winget_command_result_value(normal), extensions.winget_command_result_value(elevated))
+	normal extensions.WingetCommandResult, elevated extensions.WingetCommandResult) ruby.Value {
+	return extensions.ruby_winget_l387_d32_install(extensions.winget_state_value(state), ruby.string_value(name), ruby.string_value(id), ruby.string_value(source), ruby.bool_value(true), extensions.winget_command_result_value(normal), extensions.winget_command_result_value(elevated))
 }
 
-fn winget_spec_result(value brew_runtime.Value) bool {
+fn winget_spec_result(value ruby.Value) bool {
 	if value.type_name != 'Hash' || 'result' !in value.map_data {
 		return false
 	}
@@ -43,13 +43,13 @@ fn winget_spec_result(value brew_runtime.Value) bool {
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:entry) do` at line 11.
-pub fn ruby_winget_spec_l11_d1_entry(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_spec_l11_d1_entry(args ...ruby.Value) ruby.Value {
 	_ = args
 	return extensions.extension_entry_value(winget_spec_entry())
 }
 
 // Ruby it `it "checks app installation by source and ID" do` at line 20.
-pub fn ruby_winget_spec_l20_d2_checks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_spec_l20_d2_checks(args ...ruby.Value) ruby.Value {
 	_ = args
 	return winget_spec_bool(extensions.winget_app_installed([
 		extensions.WingetRecord{ id: 'XP89DCGQ3K6VLD', source: 'msstore' },
@@ -57,7 +57,7 @@ pub fn ruby_winget_spec_l20_d2_checks(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby it `it "returns app names in failure messages" do` at line 25.
-pub fn ruby_winget_spec_l25_d3_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_spec_l25_d3_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	installed := extensions.winget_app_installed([], 'XP89DCGQ3K6VLD', 'msstore')
 	message := 'WinGet Package ${winget_spec_entry().name} needs to be installed.'
@@ -65,13 +65,13 @@ pub fn ruby_winget_spec_l25_d3_returns(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby subject `subject(:dumper) { described_class }` at line 32.
-pub fn ruby_winget_spec_l32_d4_dumper(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_spec_l32_d4_dumper(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.object_value('Homebrew::Bundle::Winget', 'Homebrew::Bundle::Winget')
+	return ruby.object_value('Homebrew::Bundle::Winget', 'Homebrew::Bundle::Winget')
 }
 
 // Ruby it `it "returns an empty list and dumps an empty string" do` at line 40.
-pub fn ruby_winget_spec_l40_d5_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_spec_l40_d5_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	apps := extensions.winget_packages([])
 	dump_text := apps.map(extensions.winget_dump_entry(it)).join('\n')
@@ -79,7 +79,7 @@ pub fn ruby_winget_spec_l40_d5_returns(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby it `it "returns app details and dumps Brewfile entries" do` at line 88.
-pub fn ruby_winget_spec_l88_d6_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_spec_l88_d6_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	apps := winget_spec_apps()
 	packages := extensions.winget_packages(apps)
@@ -89,7 +89,7 @@ pub fn ruby_winget_spec_l88_d6_returns(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby it `it "resolves exported IDs through their source before dumping" do` at line 107.
-pub fn ruby_winget_spec_l107_d7_resolves(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_spec_l107_d7_resolves(args ...ruby.Value) ruby.Value {
 	_ = args
 	exported := [
 		extensions.WingetApp{ id: 'Valve.Steam', name: 'Valve.Steam', source: 'winget' },
@@ -102,7 +102,7 @@ pub fn ruby_winget_spec_l107_d7_resolves(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby it `it "parses human-readable names from winget list output" do` at line 127.
-pub fn ruby_winget_spec_l127_d8_parses(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_spec_l127_d8_parses(args ...ruby.Value) ruby.Value {
 	_ = args
 	output := '\r   - \r\nName       Id                Version\n------------------------------------\nSteam      Valve.Steam       2.10.91.91\nDiscord    XPDC2RH70K22MN    1.0.9188\n'
 	return winget_spec_bool(extensions.winget_parse_list_names(output) == {
@@ -112,7 +112,7 @@ pub fn ruby_winget_spec_l127_d8_parses(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby it `it "parses indented winget list output" do` at line 142.
-pub fn ruby_winget_spec_l142_d9_parses(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_spec_l142_d9_parses(args ...ruby.Value) ruby.Value {
 	_ = args
 	output := '    Name       Id                Version\n    ------------------------------------\n    Long Name  Example.App       1.0\n'
 	return winget_spec_bool(extensions.winget_parse_list_names(output) == {
@@ -121,7 +121,7 @@ pub fn ruby_winget_spec_l142_d9_parses(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby it `it "finds winget in the default Windows app location" do` at line 154.
-pub fn ruby_winget_spec_l154_d10_finds(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_spec_l154_d10_finds(args ...ruby.Value) ruby.Value {
 	_ = args
 	state := extensions.WingetState{
 		is_wsl: true
@@ -132,7 +132,7 @@ pub fn ruby_winget_spec_l154_d10_finds(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby it `it "converts default Windows app paths to WSL paths" do` at line 165.
-pub fn ruby_winget_spec_l165_d11_converts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_spec_l165_d11_converts(args ...ruby.Value) ruby.Value {
 	_ = args
 	paths := extensions.winget_windows_apps_executables({
 		'LOCALAPPDATA': r'C:\Users\BrewTest\AppData\Local'
@@ -143,18 +143,18 @@ pub fn ruby_winget_spec_l165_d11_converts(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby it `it "skips" do` at line 188.
-pub fn ruby_winget_spec_l188_d12_skips(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_spec_l188_d12_skips(args ...ruby.Value) ruby.Value {
 	_ = args
 	state := extensions.WingetState{
 		executable: 'winget.exe'
 		records: [extensions.WingetRecord{ id: 'XP89DCGQ3K6VLD', source: 'msstore' }]
 	}
-	result := extensions.ruby_winget_l354_d31_preinstall(extensions.winget_state_value(state), brew_runtime.string_value('PowerToys'), brew_runtime.string_value('XP89DCGQ3K6VLD'), brew_runtime.string_value('msstore'))
+	result := extensions.ruby_winget_l354_d31_preinstall(extensions.winget_state_value(state), ruby.string_value('PowerToys'), ruby.string_value('XP89DCGQ3K6VLD'), ruby.string_value('msstore'))
 	return winget_spec_bool(result.type_name == 'Bool' && !(result.as_bool() or { true }))
 }
 
 // Ruby it `it "installs app using its source and ID" do` at line 200.
-pub fn ruby_winget_spec_l200_d13_installs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_spec_l200_d13_installs(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := winget_spec_install(extensions.WingetState{ executable: 'winget.exe' }, 'PowerToys', 'XP89DCGQ3K6VLD', 'msstore', extensions.WingetCommandResult{ success: true }, extensions.WingetCommandResult{})
 	state := extensions.winget_state_from_value(result.map_data['state'])
@@ -164,7 +164,7 @@ pub fn ruby_winget_spec_l200_d13_installs(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby it `it "keeps the package dump cache filtered and sorted after installation" do` at line 212.
-pub fn ruby_winget_spec_l212_d14_keeps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_spec_l212_d14_keeps(args ...ruby.Value) ruby.Value {
 	_ = args
 	mut state := extensions.WingetState{
 		executable: 'winget.exe'
@@ -183,7 +183,7 @@ pub fn ruby_winget_spec_l212_d14_keeps(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby it `it "retries elevated when winget reports an elevation-like installer failure" do` at line 248.
-pub fn ruby_winget_spec_l248_d15_retries(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_spec_l248_d15_retries(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := winget_spec_install(extensions.WingetState{ executable: 'winget.exe' }, 'Hue Sync', 'Philips.HueSync', 'winget', extensions.WingetCommandResult{
 		success: false
@@ -196,7 +196,7 @@ pub fn ruby_winget_spec_l248_d15_retries(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby it `it "suggests an elevated Windows install when the elevated retry fails" do` at line 268.
-pub fn ruby_winget_spec_l268_d16_suggests(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_spec_l268_d16_suggests(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := winget_spec_install(extensions.WingetState{ executable: 'winget.exe' }, 'Hue Sync', 'Philips.HueSync', 'winget', extensions.WingetCommandResult{
 		output: 'Installer failed with exit code: 1603\n'
@@ -206,7 +206,7 @@ pub fn ruby_winget_spec_l268_d16_suggests(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby it `it "suggests manual installation for installers that need UI" do` at line 293.
-pub fn ruby_winget_spec_l293_d17_suggests(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_spec_l293_d17_suggests(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := winget_spec_install(extensions.WingetState{ executable: 'winget.exe' }, 'Hue Sync', 'Philips.HueSync', 'winget', extensions.WingetCommandResult{
 		output: 'Installer requires interactive user input\n'
@@ -216,18 +216,18 @@ pub fn ruby_winget_spec_l293_d17_suggests(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby it `it "raises an error" do` at line 317.
-pub fn ruby_winget_spec_l317_d18_raises(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_spec_l317_d18_raises(args ...ruby.Value) ruby.Value {
 	_ = args
-	result := extensions.ruby_winget_l354_d31_preinstall(extensions.winget_state_value(extensions.WingetState{}), brew_runtime.string_value('PowerToys'), brew_runtime.string_value('XP89DCGQ3K6VLD'), brew_runtime.string_value('msstore'))
+	result := extensions.ruby_winget_l354_d31_preinstall(extensions.winget_state_value(extensions.WingetState{}), ruby.string_value('PowerToys'), ruby.string_value('XP89DCGQ3K6VLD'), ruby.string_value('msstore'))
 	return winget_spec_bool(result.type_name == 'RuntimeError' && result.as_string().contains('winget.exe is not installed'))
 }
 
 // Ruby it `it "returns packages not in Brewfile entries by source and ID" do` at line 341.
-pub fn ruby_winget_spec_l341_d19_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_spec_l341_d19_returns(args ...ruby.Value) ruby.Value {
 	_ = args
 	entries := [extensions.winget_entry('Steam', {
-		'id':     brew_runtime.string_value('Valve.Steam')
-		'source': brew_runtime.string_value('winget')
+		'id':     ruby.string_value('Valve.Steam')
+		'source': ruby.string_value('winget')
 	}) or { panic(err) }]
 	exported := [
 		extensions.WingetApp{ id: 'Valve.Steam', name: 'Steam', source: 'winget' },
@@ -238,13 +238,13 @@ pub fn ruby_winget_spec_l341_d19_returns(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby it `it "uses the default source when computing kept packages" do` at line 350.
-pub fn ruby_winget_spec_l350_d20_uses(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_spec_l350_d20_uses(args ...ruby.Value) ruby.Value {
 	_ = args
 	entry := extensions.ExtensionEntry{
 		entry_type: 'winget'
 		name: 'Valve.Steam'
 		options: {
-			'id': brew_runtime.string_value('Valve.Steam')
+			'id': ruby.string_value('Valve.Steam')
 		}
 	}
 	exported := [
@@ -256,13 +256,13 @@ pub fn ruby_winget_spec_l350_d20_uses(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby it `it "does not resolve app names during cleanup discovery" do` at line 358.
-pub fn ruby_winget_spec_l358_d21_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_spec_l358_d21_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	entry := extensions.ExtensionEntry{
 		entry_type: 'winget'
 		name: 'Steam'
 		options: {
-			'id': brew_runtime.string_value('Valve.Steam')
+			'id': ruby.string_value('Valve.Steam')
 		}
 	}
 	items := extensions.winget_cleanup_items([entry], 'winget.exe', [
@@ -272,7 +272,7 @@ pub fn ruby_winget_spec_l358_d21_does(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby it `it "uninstalls packages by exact ID and source" do` at line 363.
-pub fn ruby_winget_spec_l363_d22_uninstalls(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_winget_spec_l363_d22_uninstalls(args ...ruby.Value) ruby.Value {
 	_ = args
 	item := extensions.winget_cleanup_item(extensions.WingetApp{
 		id: 'XPDC2RH70K22MN'
@@ -281,7 +281,7 @@ pub fn ruby_winget_spec_l363_d22_uninstalls(args ...brew_runtime.Value) brew_run
 	})
 	result := extensions.ruby_winget_l326_d29_cleanup(extensions.winget_state_value(extensions.WingetState{
 		executable: 'winget.exe'
-	}), brew_runtime.string_array_value([item]))
+	}), ruby.string_array_value([item]))
 	state := extensions.winget_state_from_value(result)
 	return winget_spec_bool(state.commands == [[
 		'winget.exe',

@@ -1,6 +1,6 @@
 module strategy
 
-import brew_runtime
+import ruby
 import homebrew.livecheck
 import homebrew.livecheck.strategy as cpan_core
 import homebrew.utils
@@ -61,8 +61,8 @@ fn cpan_spec_match_data_equal(left cpan_core.PageMatchData,
 }
 
 // Ruby subject `subject(:cpan) { described_class }` at line 7.
-pub fn ruby_cpan_spec_l7_d1_cpan() brew_runtime.Value {
-	return brew_runtime.object_value('Class', 'Homebrew::Livecheck::Strategy::Cpan')
+pub fn ruby_cpan_spec_l7_d1_cpan() ruby.Value {
+	return ruby.object_value('Class', 'Homebrew::Livecheck::Strategy::Cpan')
 }
 
 // Ruby let `let(:cpan_urls) do` at line 9.

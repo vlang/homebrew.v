@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `dev-cmd/install-bundler-gems.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -42,7 +42,7 @@ pub fn install_bundler_gems_plan(options InstallBundlerGemsOptions) InstallBundl
 }
 
 // Ruby method `run` at line 26.
-pub fn ruby_install_bundler_gems_l26_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_bundler_gems_l26_d1_run(args ...ruby.Value) ruby.Value {
 	groups_provided := args.len > 0 && args[0].type_name !in ['Nil', 'NilClass', '']
 	groups := if groups_provided { args[0].as_string_array() or { []string{} } } else { []string{} }
 	add_groups := if args.len > 1 && args[1].type_name !in ['Nil', 'NilClass', ''] {
@@ -61,9 +61,9 @@ pub fn ruby_install_bundler_gems_l26_d1_run(args ...brew_runtime.Value) brew_run
 		add_groups: add_groups
 		valid_groups: valid_groups
 	})
-	return brew_runtime.map_value({
-		'groups':                 brew_runtime.string_array_value(plan.groups)
-		'forget_user_gem_groups': brew_runtime.bool_value(plan.forget_user_gem_groups)
+	return ruby.map_value({
+		'groups':                 ruby.string_array_value(plan.groups)
+		'forget_user_gem_groups': ruby.bool_value(plan.forget_user_gem_groups)
 	})
 }
 

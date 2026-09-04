@@ -1,6 +1,6 @@
 module test
 
-import brew_runtime
+import ruby
 import homebrew.compilers
 import homebrew.extend
 import homebrew.extend.env as env_extension
@@ -382,127 +382,127 @@ fn env_spec_activation_setup(environment map[string]string, _ extend.Environment
 	return environment.clone()
 }
 
-fn env_spec_mutating_block(environment map[string]string) !brew_runtime.Value {
+fn env_spec_mutating_block(environment map[string]string) !ruby.Value {
 	mut temporary := environment.clone()
 	temporary['foo'] = 'bar'
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'NilClass'
 		repr: 'nil'
 	}
 }
 
-fn env_spec_failing_block(environment map[string]string) !brew_runtime.Value {
+fn env_spec_failing_block(environment map[string]string) !ruby.Value {
 	mut temporary := environment.clone()
 	temporary['foo'] = 'bar'
 	return error('StandardError')
 }
 
-fn env_spec_one_block(_ map[string]string) !brew_runtime.Value {
-	return brew_runtime.int_value(1)
+fn env_spec_one_block(_ map[string]string) !ruby.Value {
+	return ruby.int_value(1)
 }
 
-fn env_spec_interface_block(environment map[string]string) !brew_runtime.Value {
+fn env_spec_interface_block(environment map[string]string) !ruby.Value {
 	mut keys := environment.keys()
 	keys.sort()
-	return brew_runtime.string_array_value(keys)
+	return ruby.string_array_value(keys)
 }
 
-fn env_spec_stdenv_deparallelized(mut state env_extension.SharedEnvState) !brew_runtime.Value {
+fn env_spec_stdenv_deparallelized(mut state env_extension.SharedEnvState) !ruby.Value {
 	if 'MAKEFLAGS' in state.to_map() {
 		return error('MAKEFLAGS was not removed')
 	}
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
-fn env_spec_superenv_deparallelized(mut state env_extension.SuperenvState) !brew_runtime.Value {
+fn env_spec_superenv_deparallelized(mut state env_extension.SuperenvState) !ruby.Value {
 	if 'MAKEFLAGS' in state.to_map() {
 		return error('MAKEFLAGS was not removed')
 	}
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
-fn env_spec_cleared_mutation(mut view env_extension.SensitiveEnvironmentView) !brew_runtime.Value {
+fn env_spec_cleared_mutation(mut view env_extension.SensitiveEnvironmentView) !ruby.Value {
 	view.values['FOO'] = 'baz'
 	view.values['OTHER_TOKEN'] = 'secret'
 	secret := if value := view.values['SECRET_TOKEN'] {
-		brew_runtime.string_value(value)
+		ruby.string_value(value)
 	} else {
-		brew_runtime.Value{
+		ruby.Value{
 			type_name: 'NilClass'
 			repr: 'nil'
 		}
 	}
-	return brew_runtime.array_value([secret, brew_runtime.string_value(view.values['FOO'] or { '' })])
+	return ruby.array_value([secret, ruby.string_value(view.values['FOO'] or { '' })])
 }
 
-fn env_spec_private_token(mut view env_extension.SensitiveEnvironmentView) !brew_runtime.Value {
-	return brew_runtime.string_value(view.values['HOMEBREW_PRIVATE_TOKEN'] or { '' })
+fn env_spec_private_token(mut view env_extension.SensitiveEnvironmentView) !ruby.Value {
+	return ruby.string_value(view.values['HOMEBREW_PRIVATE_TOKEN'] or { '' })
 }
 
-fn env_spec_secret_token(mut view env_extension.SensitiveEnvironmentView) !brew_runtime.Value {
-	return brew_runtime.string_value(view.values['SECRET_TOKEN'] or { '' })
+fn env_spec_secret_token(mut view env_extension.SensitiveEnvironmentView) !ruby.Value {
+	return ruby.string_value(view.values['SECRET_TOKEN'] or { '' })
 }
 
-fn env_spec_github_token(mut view env_extension.SensitiveEnvironmentView) !brew_runtime.Value {
-	return brew_runtime.string_value(view.values['HOMEBREW_GITHUB_API_TOKEN'] or { '' })
+fn env_spec_github_token(mut view env_extension.SensitiveEnvironmentView) !ruby.Value {
+	return ruby.string_value(view.values['HOMEBREW_GITHUB_API_TOKEN'] or { '' })
 }
 
-fn env_spec_nil_sensitive(mut _ env_extension.SensitiveEnvironmentView) !brew_runtime.Value {
-	return brew_runtime.Value{
+fn env_spec_nil_sensitive(mut _ env_extension.SensitiveEnvironmentView) !ruby.Value {
+	return ruby.Value{
 		type_name: 'NilClass'
 		repr: 'nil'
 	}
 }
 
-fn env_spec_map_value(values map[string]string) brew_runtime.Value {
-	mut translated := map[string]brew_runtime.Value{}
+fn env_spec_map_value(values map[string]string) ruby.Value {
+	mut translated := map[string]ruby.Value{}
 	for key, value in values {
-		translated[key] = brew_runtime.string_value(value)
+		translated[key] = ruby.string_value(value)
 	}
-	return brew_runtime.map_value(translated)
+	return ruby.map_value(translated)
 }
 
-pub fn env_spec_all_boundaries() []brew_runtime.Value {
+pub fn env_spec_all_boundaries() []ruby.Value {
 	return [
 		env_spec_map_value(ruby_env_spec_l7_d1_env().to_map()),
-		brew_runtime.bool_value(ruby_env_spec_l12_d2_supports()),
-		brew_runtime.bool_value(ruby_env_spec_l19_d3_restores()),
-		brew_runtime.bool_value(ruby_env_spec_l30_d4_ensures()),
-		brew_runtime.bool_value(ruby_env_spec_l44_d5_returns()),
-		brew_runtime.bool_value(ruby_env_spec_l48_d6_does()),
-		brew_runtime.bool_value(ruby_env_spec_l61_d7_appends()),
-		brew_runtime.bool_value(ruby_env_spec_l67_d8_appends()),
-		brew_runtime.bool_value(ruby_env_spec_l73_d9_appends()),
-		brew_runtime.bool_value(ruby_env_spec_l80_d10_coerces()),
-		brew_runtime.bool_value(ruby_env_spec_l87_d11_prepends()),
-		brew_runtime.bool_value(ruby_env_spec_l93_d12_prepends()),
-		brew_runtime.bool_value(ruby_env_spec_l99_d13_prepends()),
-		brew_runtime.bool_value(ruby_env_spec_l106_d14_coerces()),
-		brew_runtime.bool_value(ruby_env_spec_l113_d15_appends()),
-		brew_runtime.bool_value(ruby_env_spec_l123_d16_prepends()),
-		brew_runtime.bool_value(ruby_env_spec_l133_d17_allows()),
-		brew_runtime.bool_value(ruby_env_spec_l139_d18_deparallelize_block_form_restores_makeflags()),
-		brew_runtime.bool_value(ruby_env_spec_l150_d19_list()),
-		brew_runtime.bool_value(ruby_env_spec_l157_d20_removes()),
-		brew_runtime.bool_value(ruby_env_spec_l163_d21_preserves()),
-		brew_runtime.bool_value(ruby_env_spec_l169_d22_leaves()),
-		brew_runtime.bool_value(ruby_env_spec_l175_d23_restores()),
-		brew_runtime.bool_value(ruby_env_spec_l194_d24_defers()),
-		brew_runtime.bool_value(ruby_env_spec_l204_d25_never()),
-		brew_runtime.bool_value(ruby_env_spec_l213_d26_keeps()),
-		brew_runtime.bool_value(ruby_env_spec_l220_d27_restores()),
-		brew_runtime.bool_value(ruby_env_spec_l228_d28_leaves()),
-		brew_runtime.bool_value(ruby_env_spec_l232_d29_expands()),
-		brew_runtime.bool_value(ruby_env_spec_l251_d30_initializes()),
-		brew_runtime.bool_value(ruby_env_spec_l257_d31_supports()),
-		brew_runtime.bool_value(ruby_env_spec_l264_d32_supports()),
-		brew_runtime.bool_value(ruby_env_spec_l273_d33_sets()),
-		brew_runtime.bool_value(ruby_env_spec_l282_d34_sets()),
-		brew_runtime.bool_value(ruby_env_spec_l286_d35_sets()),
-		brew_runtime.string_value(ruby_env_spec_l295_d36_gcc()),
-		brew_runtime.bool_value(ruby_env_spec_l299_d37_sets()),
-		brew_runtime.bool_value(ruby_env_spec_l303_d38_sets()),
-		brew_runtime.bool_value(ruby_env_spec_l312_d39_sets()),
+		ruby.bool_value(ruby_env_spec_l12_d2_supports()),
+		ruby.bool_value(ruby_env_spec_l19_d3_restores()),
+		ruby.bool_value(ruby_env_spec_l30_d4_ensures()),
+		ruby.bool_value(ruby_env_spec_l44_d5_returns()),
+		ruby.bool_value(ruby_env_spec_l48_d6_does()),
+		ruby.bool_value(ruby_env_spec_l61_d7_appends()),
+		ruby.bool_value(ruby_env_spec_l67_d8_appends()),
+		ruby.bool_value(ruby_env_spec_l73_d9_appends()),
+		ruby.bool_value(ruby_env_spec_l80_d10_coerces()),
+		ruby.bool_value(ruby_env_spec_l87_d11_prepends()),
+		ruby.bool_value(ruby_env_spec_l93_d12_prepends()),
+		ruby.bool_value(ruby_env_spec_l99_d13_prepends()),
+		ruby.bool_value(ruby_env_spec_l106_d14_coerces()),
+		ruby.bool_value(ruby_env_spec_l113_d15_appends()),
+		ruby.bool_value(ruby_env_spec_l123_d16_prepends()),
+		ruby.bool_value(ruby_env_spec_l133_d17_allows()),
+		ruby.bool_value(ruby_env_spec_l139_d18_deparallelize_block_form_restores_makeflags()),
+		ruby.bool_value(ruby_env_spec_l150_d19_list()),
+		ruby.bool_value(ruby_env_spec_l157_d20_removes()),
+		ruby.bool_value(ruby_env_spec_l163_d21_preserves()),
+		ruby.bool_value(ruby_env_spec_l169_d22_leaves()),
+		ruby.bool_value(ruby_env_spec_l175_d23_restores()),
+		ruby.bool_value(ruby_env_spec_l194_d24_defers()),
+		ruby.bool_value(ruby_env_spec_l204_d25_never()),
+		ruby.bool_value(ruby_env_spec_l213_d26_keeps()),
+		ruby.bool_value(ruby_env_spec_l220_d27_restores()),
+		ruby.bool_value(ruby_env_spec_l228_d28_leaves()),
+		ruby.bool_value(ruby_env_spec_l232_d29_expands()),
+		ruby.bool_value(ruby_env_spec_l251_d30_initializes()),
+		ruby.bool_value(ruby_env_spec_l257_d31_supports()),
+		ruby.bool_value(ruby_env_spec_l264_d32_supports()),
+		ruby.bool_value(ruby_env_spec_l273_d33_sets()),
+		ruby.bool_value(ruby_env_spec_l282_d34_sets()),
+		ruby.bool_value(ruby_env_spec_l286_d35_sets()),
+		ruby.string_value(ruby_env_spec_l295_d36_gcc()),
+		ruby.bool_value(ruby_env_spec_l299_d37_sets()),
+		ruby.bool_value(ruby_env_spec_l303_d38_sets()),
+		ruby.bool_value(ruby_env_spec_l312_d39_sets()),
 	]
 }
 

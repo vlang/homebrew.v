@@ -1,6 +1,6 @@
 module extend
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `extend/ENV.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -20,7 +20,7 @@ pub:
 
 pub type BuildEnvironmentSetup = fn(environment map[string]string, extension EnvironmentExtension, options BuildEnvironmentOptions) !map[string]string
 
-pub type BuildEnvironmentBlock = fn(environment map[string]string) !brew_runtime.Value
+pub type BuildEnvironmentBlock = fn(environment map[string]string) !ruby.Value
 
 pub fn activate_environment_extensions(env ?string, superenv_bin ?string) EnvironmentExtension {
 	if requested := env {
@@ -38,7 +38,7 @@ pub fn activate_environment_extensions(env ?string, superenv_bin ?string) Enviro
 // The caller's map is value-isolated, matching Ruby's ensure-based restoration.
 pub fn with_build_environment(environment map[string]string, options BuildEnvironmentOptions,
 	superenv_bin ?string, setup BuildEnvironmentSetup,
-	block BuildEnvironmentBlock) !brew_runtime.Value {
+	block BuildEnvironmentBlock) !ruby.Value {
 	extension := activate_environment_extensions(options.env, superenv_bin)
 	temporary := setup(environment.clone(), extension, options)!
 	return block(temporary)
@@ -52,7 +52,7 @@ pub fn ruby_env_l25_d1_activate_extensions(env ?string, superenv_bin ?string) En
 // Ruby method `with_build_environment(env: nil, cc: nil, build_bottle: false, bottle_arch: nil, debug_symbols: false, &_block)` at line 43.
 pub fn ruby_env_l43_d2_with_build_environment(environment map[string]string,
 	options BuildEnvironmentOptions, superenv_bin ?string, setup BuildEnvironmentSetup,
-	block BuildEnvironmentBlock) !brew_runtime.Value {
+	block BuildEnvironmentBlock) !ruby.Value {
 	return with_build_environment(environment, options, superenv_bin, setup, block)
 }
 

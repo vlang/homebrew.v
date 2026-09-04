@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `keg_relocate.rb`.
@@ -116,17 +116,17 @@ pub fn prepare_keg_relocation_to_locations(prefix string, cellar string, reposit
 	relocation.add_replacement_pair('cellar', keg_cellar_placeholder, cellar)
 	relocation.add_replacement_pair('repository', keg_repository_placeholder, repository)
 	relocation.add_replacement_pair('library', keg_library_placeholder, library)
-	relocation.add_replacement_pair('perl', keg_perl_placeholder, brew_runtime.join_path(prefix, 'opt/perl/bin/perl'))
+	relocation.add_replacement_pair('perl', keg_perl_placeholder, ruby.join_path(prefix, 'opt/perl/bin/perl'))
 	return relocation
 }
 
 fn keg_regular_files(keg Keg) []string {
-	return keg.find().filter(brew_runtime.is_file(it) && !brew_runtime.is_link(it))
+	return keg.find().filter(ruby.is_file(it) && !ruby.is_link(it))
 }
 
 fn keg_file_description(path string) string {
-	file_program := brew_runtime.find_executable('file') or { return '' }
-	result := brew_runtime.run_command(file_program, ['-b', path])
+	file_program := ruby.find_executable('file') or { return '' }
+	result := ruby.run_command(file_program, ['-b', path])
 	return if result.exit_code == 0 { result.output.trim_space() } else { '' }
 }
 
@@ -141,7 +141,7 @@ pub fn (keg Keg) mach_o_files() []string {
 }
 
 fn otool_linked_libraries(path string) []string {
-	result := brew_runtime.run_command('/usr/bin/otool', ['-L', path])
+	result := ruby.run_command('/usr/bin/otool', ['-L', path])
 	if result.exit_code != 0 {
 		return []string{}
 	}
@@ -156,7 +156,7 @@ fn otool_linked_libraries(path string) []string {
 }
 
 fn otool_dylib_id(path string) ?string {
-	result := brew_runtime.run_command('/usr/bin/otool', ['-D', path])
+	result := ruby.run_command('/usr/bin/otool', ['-D', path])
 	if result.exit_code != 0 {
 		return none
 	}
@@ -168,7 +168,7 @@ fn otool_dylib_id(path string) ?string {
 }
 
 fn otool_rpaths(path string) []string {
-	result := brew_runtime.run_command('/usr/bin/otool', ['-l', path])
+	result := ruby.run_command('/usr/bin/otool', ['-l', path])
 	if result.exit_code != 0 {
 		return []string{}
 	}
@@ -210,14 +210,14 @@ fn make_keg_file_writable(path string) ! {
 }
 
 fn run_install_name_tool(arguments []string) ! {
-	result := brew_runtime.run_command('/usr/bin/install_name_tool', arguments)
+	result := ruby.run_command('/usr/bin/install_name_tool', arguments)
 	if result.exit_code != 0 {
 		return error(result.output.trim_space())
 	}
 }
 
 fn codesign_relocated_binary(path string) ! {
-	result := brew_runtime.run_command('/usr/bin/codesign', ['--sign', '-', '--force', path])
+	result := ruby.run_command('/usr/bin/codesign', ['--sign', '-', '--force', path])
 	if result.exit_code != 0 {
 		return error('Failed applying an ad-hoc signature to ${path}: ${result.output.trim_space()}')
 	}
@@ -277,16 +277,16 @@ pub fn (keg Keg) replace_text_in_files(relocation KegRelocation,
 	candidates.sort()
 	mut changed := []string{}
 	for path in candidates {
-		if !brew_runtime.is_file(path) || brew_runtime.is_link(path) {
+		if !ruby.is_file(path) || ruby.is_link(path) {
 			continue
 		}
-		contents := brew_runtime.read_file(path) or { continue }
+		contents := ruby.read_file(path) or { continue }
 		replaced, modified := relocation.replace_text(contents)
 		if !modified {
 			continue
 		}
 		make_keg_file_writable(path)!
-		brew_runtime.atomic_write_file(path, replaced)!
+		ruby.atomic_write_file(path, replaced)!
 		changed << path
 	}
 	return changed
@@ -430,11 +430,11 @@ pub fn keg_each_unique_file_matching(keg Keg, needle string) []string {
 }
 
 fn keg_file_inode(path string) string {
-	mac_result := brew_runtime.run_command('stat', ['-f', '%i', path])
+	mac_result := ruby.run_command('stat', ['-f', '%i', path])
 	if mac_result.exit_code == 0 {
 		return mac_result.output.trim_space()
 	}
-	linux_result := brew_runtime.run_command('stat', ['-c', '%i', path])
+	linux_result := ruby.run_command('stat', ['-c', '%i', path])
 	return if linux_result.exit_code == 0 {
 		linux_result.output.trim_space()
 	} else {
@@ -508,19 +508,19 @@ pub fn keg_text_matches_in_file(file string, needle string, ignores []string,
 }
 
 // Ruby method `initialize` at line 22.
-pub fn ruby_keg_relocate_l22_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_relocate_l22_d1_initialize(args ...ruby.Value) ruby.Value {
 	return keg_relocation_value(new_keg_relocation())
 }
 
 // Ruby method `freeze` at line 27.
-pub fn ruby_keg_relocate_l27_d2_freeze(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_relocate_l27_d2_freeze(args ...ruby.Value) ruby.Value {
 	return keg_relocation_value(keg_relocation_from_value(args[0] or { keg_relocation_value(new_keg_relocation()) }))
 }
 
 // Ruby method `add_replacement_pair(key, old_value, new_value, path: false)` at line 33.
-pub fn ruby_keg_relocate_l33_d3_add_replacement_pair(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_relocate_l33_d3_add_replacement_pair(args ...ruby.Value) ruby.Value {
 	if args.len < 4 {
-		return brew_runtime.object_value('ArgumentError', 'replacement pair requires relocation, key, old and new values')
+		return ruby.object_value('ArgumentError', 'replacement pair requires relocation, key, old and new values')
 	}
 	mut relocation := keg_relocation_from_value(args[0])
 	relocation.add_replacement_pair_with_path(args[1].as_string(), args[2].as_string(), args[3].as_string(), args.len > 4 && args[4].bool_data)
@@ -528,65 +528,65 @@ pub fn ruby_keg_relocate_l33_d3_add_replacement_pair(args ...brew_runtime.Value)
 }
 
 // Ruby method `replacement_pair_for(key)` at line 39.
-pub fn ruby_keg_relocate_l39_d4_replacement_pair_for(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_relocate_l39_d4_replacement_pair_for(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('KeyError', 'replacement key is required')
+		return ruby.object_value('KeyError', 'replacement key is required')
 	}
-	pair := keg_relocation_from_value(args[0]).replacement_pair_for(args[1].as_string()) or { return brew_runtime.object_value('KeyError', err.msg()) }
+	pair := keg_relocation_from_value(args[0]).replacement_pair_for(args[1].as_string()) or { return ruby.object_value('KeyError', err.msg()) }
 	return keg_replacement_pair_value(pair)
 }
 
 // Ruby method `replace_text!(text)` at line 44.
-pub fn ruby_keg_relocate_l44_d5_replace_text(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_relocate_l44_d5_replace_text(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	replaced, changed := keg_relocation_from_value(args[0]).replace_text(args[1].as_string())
-	return brew_runtime.map_value({
-		'changed': brew_runtime.bool_value(changed)
-		'text':    brew_runtime.string_value(replaced)
+	return ruby.map_value({
+		'changed': ruby.bool_value(changed)
+		'text':    ruby.string_value(replaced)
 	})
 }
 
 // Ruby method `self.path_to_regex(path)` at line 60.
-pub fn ruby_keg_relocate_l60_d6_self_path_to_regex(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_relocate_l60_d6_self_path_to_regex(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('Regexp', keg_path_regex_source('', false))
+		return ruby.object_value('Regexp', keg_path_regex_source('', false))
 	}
-	return brew_runtime.object_value('Regexp', keg_path_regex_source(args[0].as_string(), args.len > 1 && args[1].bool_data))
+	return ruby.object_value('Regexp', keg_path_regex_source(args[0].as_string(), args.len > 1 && args[1].bool_data))
 }
 
 // Ruby method `fix_dynamic_linkage` at line 72.
-pub fn ruby_keg_relocate_l72_d7_fix_dynamic_linkage(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(relocation_keg_from_value(args[0] or { brew_runtime.map_value(map[string]brew_runtime.Value{}) }).fix_dynamic_linkage() or { return brew_runtime.object_value('SystemCallError', err.msg()) })
+pub fn ruby_keg_relocate_l72_d7_fix_dynamic_linkage(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(relocation_keg_from_value(args[0] or { ruby.map_value(map[string]ruby.Value{}) }).fix_dynamic_linkage() or { return ruby.object_value('SystemCallError', err.msg()) })
 }
 
 // Ruby method `relocate_dynamic_linkage(_relocation, skip_protodesc_cold: false); end` at line 89.
-pub fn ruby_keg_relocate_l89_d8_relocate_dynamic_linkage(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_relocate_l89_d8_relocate_dynamic_linkage(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.string_array_value([])
+		return ruby.string_array_value([])
 	}
 	mut keg := relocation_keg_from_value(args[0])
-	return brew_runtime.string_array_value(keg.relocate_dynamic_linkage(keg_relocation_from_value(args[1])) or { return brew_runtime.object_value('SystemCallError', err.msg()) })
+	return ruby.string_array_value(keg.relocate_dynamic_linkage(keg_relocation_from_value(args[1])) or { return ruby.object_value('SystemCallError', err.msg()) })
 }
 
 // Ruby method `new_usr_local_replacement_pairs` at line 94.
-pub fn ruby_keg_relocate_l94_d9_new_usr_local_replacement_pairs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.map_value(keg_replacement_pairs_value(keg_new_usr_local_pairs(relocation_keg_from_value(args[0] or { brew_runtime.map_value(map[string]brew_runtime.Value{}) }).name)))
+pub fn ruby_keg_relocate_l94_d9_new_usr_local_replacement_pairs(args ...ruby.Value) ruby.Value {
+	return ruby.map_value(keg_replacement_pairs_value(keg_new_usr_local_pairs(relocation_keg_from_value(args[0] or { ruby.map_value(map[string]ruby.Value{}) }).name)))
 }
 
 // Ruby method `prepare_relocation_to_placeholders(new_usr_local_relocation: new_usr_local_relocation?)` at line 144.
-pub fn ruby_keg_relocate_l144_d10_prepare_relocation_to_placeholders(args ...brew_runtime.Value) brew_runtime.Value {
-	keg := relocation_keg_from_value(args[0] or { brew_runtime.map_value(map[string]brew_runtime.Value{}) })
+pub fn ruby_keg_relocate_l144_d10_prepare_relocation_to_placeholders(args ...ruby.Value) ruby.Value {
+	keg := relocation_keg_from_value(args[0] or { ruby.map_value(map[string]ruby.Value{}) })
 	repository := if args.len > 1 { args[1].as_string() } else { keg.prefix }
 	library := if args.len > 2 { args[2].as_string() } else { os.join_path(repository, 'Library') }
 	return keg_relocation_value(prepare_keg_relocation_to_placeholders(keg, repository, library, args.len > 3 && args[3].bool_data))
 }
 
 // Ruby method `replace_locations_with_placeholders` at line 173.
-pub fn ruby_keg_relocate_l173_d11_replace_locations_with_placeholders(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_relocate_l173_d11_replace_locations_with_placeholders(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_array_value([])
+		return ruby.string_array_value([])
 	}
 	mut keg := relocation_keg_from_value(args[0])
 	relocation := prepare_keg_relocation_to_placeholders(keg, if args.len > 1 {
@@ -594,12 +594,12 @@ pub fn ruby_keg_relocate_l173_d11_replace_locations_with_placeholders(args ...br
 	} else {
 		keg.prefix
 	}, if args.len > 2 { args[2].as_string() } else { os.join_path(keg.prefix, 'Library') }, args.len > 3 && args[3].bool_data)
-	return brew_runtime.string_array_value(keg.replace_text_in_files(relocation, []string{}) or { return brew_runtime.object_value('SystemCallError', err.msg()) })
+	return ruby.string_array_value(keg.replace_text_in_files(relocation, []string{}) or { return ruby.object_value('SystemCallError', err.msg()) })
 }
 
 // Ruby method `prepare_relocation_to_locations` at line 180.
-pub fn ruby_keg_relocate_l180_d12_prepare_relocation_to_locations(args ...brew_runtime.Value) brew_runtime.Value {
-	keg := relocation_keg_from_value(args[0] or { brew_runtime.map_value(map[string]brew_runtime.Value{}) })
+pub fn ruby_keg_relocate_l180_d12_prepare_relocation_to_locations(args ...ruby.Value) ruby.Value {
+	keg := relocation_keg_from_value(args[0] or { ruby.map_value(map[string]ruby.Value{}) })
 	return keg_relocation_value(prepare_keg_relocation_to_locations(keg.prefix, keg.cellar, if args.len > 1 {
 		args[1].as_string()
 	} else {
@@ -608,68 +608,68 @@ pub fn ruby_keg_relocate_l180_d12_prepare_relocation_to_locations(args ...brew_r
 }
 
 // Ruby method `replace_placeholders_with_locations(files, skip_linkage: false)` at line 195.
-pub fn ruby_keg_relocate_l195_d13_replace_placeholders_with_locations(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_relocate_l195_d13_replace_placeholders_with_locations(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_array_value([])
+		return ruby.string_array_value([])
 	}
 	mut keg := relocation_keg_from_value(args[0])
 	files := if args.len > 1 { args[1].as_string_array() or { []string{} } } else { []string{} }
-	return brew_runtime.string_array_value(keg.replace_placeholders_with_locations(keg.prefix, keg.cellar, if args.len > 2 {
+	return ruby.string_array_value(keg.replace_placeholders_with_locations(keg.prefix, keg.cellar, if args.len > 2 {
 		args[2].as_string()
 	} else {
 		keg.prefix
-	}, if args.len > 3 { args[3].as_string() } else { os.join_path(keg.prefix, 'Library') }, files, args.len > 4 && args[4].bool_data) or { return brew_runtime.object_value('SystemCallError', err.msg()) })
+	}, if args.len > 3 { args[3].as_string() } else { os.join_path(keg.prefix, 'Library') }, files, args.len > 4 && args[4].bool_data) or { return ruby.object_value('SystemCallError', err.msg()) })
 }
 
 // Ruby method `openjdk_dep_name_if_applicable` at line 202.
-pub fn ruby_keg_relocate_l202_d14_openjdk_dep_name_if_applicable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_relocate_l202_d14_openjdk_dep_name_if_applicable(args ...ruby.Value) ruby.Value {
 	dependencies := if args.len > 0 {
 		args[0].as_string_array() or { []string{} }
 	} else {
 		[]string{}
 	}
 	if dependency := keg_openjdk_dependency(dependencies) {
-		return brew_runtime.string_value(dependency)
+		return ruby.string_value(dependency)
 	}
 	return keg_relocate_nil()
 }
 
 // Ruby method `homebrew_created_file?(file)` at line 211.
-pub fn ruby_keg_relocate_l211_d15_homebrew_created_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(args.len > 0 && keg_homebrew_created_file(args[0].as_string()))
+pub fn ruby_keg_relocate_l211_d15_homebrew_created_file(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(args.len > 0 && keg_homebrew_created_file(args[0].as_string()))
 }
 
 // Ruby method `replace_text_in_files(relocation, files: nil)` at line 218.
-pub fn ruby_keg_relocate_l218_d16_replace_text_in_files(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_relocate_l218_d16_replace_text_in_files(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.string_array_value([])
+		return ruby.string_array_value([])
 	}
 	keg := relocation_keg_from_value(args[0])
 	files := if args.len > 2 { args[2].as_string_array() or { []string{} } } else { []string{} }
-	return brew_runtime.string_array_value(keg.replace_text_in_files(keg_relocation_from_value(args[1]), files) or { return brew_runtime.object_value('SystemCallError', err.msg()) })
+	return ruby.string_array_value(keg.replace_text_in_files(keg_relocation_from_value(args[1]), files) or { return ruby.object_value('SystemCallError', err.msg()) })
 }
 
 // Ruby method `relocate_build_prefix(keg, old_prefix, new_prefix)` at line 250.
-pub fn ruby_keg_relocate_l250_d17_relocate_build_prefix(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_relocate_l250_d17_relocate_build_prefix(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
-		return brew_runtime.string_array_value([])
+		return ruby.string_array_value([])
 	}
-	return brew_runtime.string_array_value(relocation_keg_from_value(args[0]).relocate_build_prefix(args[1].as_string(), args[2].as_string()) or { return brew_runtime.object_value('RuntimeError', err.msg()) })
+	return ruby.string_array_value(relocation_keg_from_value(args[0]).relocate_build_prefix(args[1].as_string(), args[2].as_string()) or { return ruby.object_value('RuntimeError', err.msg()) })
 }
 
 // Ruby method `detect_cxx_stdlibs(_options = {})` at line 290.
-pub fn ruby_keg_relocate_l290_d18_detect_cxx_stdlibs(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.array_value([])
+pub fn ruby_keg_relocate_l290_d18_detect_cxx_stdlibs(args ...ruby.Value) ruby.Value {
+	return ruby.array_value([])
 }
 
 // Ruby method `recursive_fgrep_args` at line 295.
-pub fn ruby_keg_relocate_l295_d19_recursive_fgrep_args(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('-lr')
+pub fn ruby_keg_relocate_l295_d19_recursive_fgrep_args(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('-lr')
 }
 
 // Ruby method `egrep_args` at line 301.
-pub fn ruby_keg_relocate_l301_d20_egrep_args(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.array_value([brew_runtime.string_value('grep'), brew_runtime.string_array_value([
+pub fn ruby_keg_relocate_l301_d20_egrep_args(args ...ruby.Value) ruby.Value {
+	return ruby.array_value([ruby.string_value('grep'), ruby.string_array_value([
 		'--files-with-matches',
 		'--perl-regexp',
 		'--binary-files=text',
@@ -677,47 +677,47 @@ pub fn ruby_keg_relocate_l301_d20_egrep_args(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby method `each_unique_file_matching(string, &_block)` at line 313.
-pub fn ruby_keg_relocate_l313_d21_each_unique_file_matching(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_relocate_l313_d21_each_unique_file_matching(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.string_array_value([])
+		return ruby.string_array_value([])
 	}
-	return brew_runtime.string_array_value(keg_each_unique_file_matching(relocation_keg_from_value(args[0]), args[1].as_string()))
+	return ruby.string_array_value(keg_each_unique_file_matching(relocation_keg_from_value(args[0]), args[1].as_string()))
 }
 
 // Ruby method `binary_file?(file)` at line 330.
-pub fn ruby_keg_relocate_l330_d22_binary_file(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(args.len > 0 && keg_binary_file(args[args.len - 1].as_string()))
+pub fn ruby_keg_relocate_l330_d22_binary_file(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(args.len > 0 && keg_binary_file(args[args.len - 1].as_string()))
 }
 
 // Ruby method `lib` at line 340.
-pub fn ruby_keg_relocate_l340_d23_lib(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Pathname', os.join_path(relocation_keg_from_value(args[0] or { brew_runtime.map_value(map[string]brew_runtime.Value{}) }).path, 'lib'))
+pub fn ruby_keg_relocate_l340_d23_lib(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Pathname', os.join_path(relocation_keg_from_value(args[0] or { ruby.map_value(map[string]ruby.Value{}) }).path, 'lib'))
 }
 
 // Ruby method `libexec` at line 345.
-pub fn ruby_keg_relocate_l345_d24_libexec(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Pathname', os.join_path(relocation_keg_from_value(args[0] or { brew_runtime.map_value(map[string]brew_runtime.Value{}) }).path, 'libexec'))
+pub fn ruby_keg_relocate_l345_d24_libexec(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Pathname', os.join_path(relocation_keg_from_value(args[0] or { ruby.map_value(map[string]ruby.Value{}) }).path, 'libexec'))
 }
 
 // Ruby method `text_files` at line 350.
-pub fn ruby_keg_relocate_l350_d25_text_files(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(keg_text_files(relocation_keg_from_value(args[0] or { brew_runtime.map_value(map[string]brew_runtime.Value{}) })))
+pub fn ruby_keg_relocate_l350_d25_text_files(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(keg_text_files(relocation_keg_from_value(args[0] or { ruby.map_value(map[string]ruby.Value{}) })))
 }
 
 // Ruby method `libtool_files` at line 392.
-pub fn ruby_keg_relocate_l392_d26_libtool_files(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(keg_libtool_files(relocation_keg_from_value(args[0] or { brew_runtime.map_value(map[string]brew_runtime.Value{}) })))
+pub fn ruby_keg_relocate_l392_d26_libtool_files(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(keg_libtool_files(relocation_keg_from_value(args[0] or { ruby.map_value(map[string]ruby.Value{}) })))
 }
 
 // Ruby method `symlink_files` at line 404.
-pub fn ruby_keg_relocate_l404_d27_symlink_files(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(keg_symlink_files(relocation_keg_from_value(args[0] or { brew_runtime.map_value(map[string]brew_runtime.Value{}) })))
+pub fn ruby_keg_relocate_l404_d27_symlink_files(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(keg_symlink_files(relocation_keg_from_value(args[0] or { ruby.map_value(map[string]ruby.Value{}) })))
 }
 
 // Ruby method `self.text_matches_in_file(file, string, ignores, linked_libraries, formula_and_runtime_deps_names)` at line 417.
-pub fn ruby_keg_relocate_l417_d28_self_text_matches_in_file(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_relocate_l417_d28_self_text_matches_in_file(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.array_value([])
+		return ruby.array_value([])
 	}
 	ignores := if args.len > 2 { args[2].as_string_array() or { []string{} } } else { []string{} }
 	linked := if args.len > 3 { args[3].as_string_array() or { []string{} } } else { []string{} }
@@ -726,42 +726,42 @@ pub fn ruby_keg_relocate_l417_d28_self_text_matches_in_file(args ...brew_runtime
 	} else {
 		[]string{}
 	}
-	matches := keg_text_matches_in_file(args[0].as_string(), args[1].as_string(), ignores, linked, dependencies) or { return brew_runtime.object_value('SystemCallError', err.msg()) }
-	return brew_runtime.array_value(matches.map(brew_runtime.string_array_value(it)))
+	matches := keg_text_matches_in_file(args[0].as_string(), args[1].as_string(), ignores, linked, dependencies) or { return ruby.object_value('SystemCallError', err.msg()) }
+	return ruby.array_value(matches.map(ruby.string_array_value(it)))
 }
 
 // Ruby method `self.file_linked_libraries(_file, _string)` at line 458.
-pub fn ruby_keg_relocate_l458_d29_self_file_linked_libraries(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value([])
+pub fn ruby_keg_relocate_l458_d29_self_file_linked_libraries(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value([])
 }
 
 // Ruby method `new_usr_local_relocation?` at line 465.
-pub fn ruby_keg_relocate_l465_d30_new_usr_local_relocation(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_keg_relocate_l465_d30_new_usr_local_relocation(args ...ruby.Value) ruby.Value {
 	prefix := if args.len > 0 { args[0].as_string() } else { '' }
 	formula_present := args.len > 1 && args[1].bool_data
 	tap_present := args.len > 2 && args[2].bool_data
 	disabled := args.len > 3 && args[3].bool_data
-	return brew_runtime.bool_value(prefix == '/usr/local' && (!formula_present || !tap_present || !disabled))
+	return ruby.bool_value(prefix == '/usr/local' && (!formula_present || !tap_present || !disabled))
 }
 
-fn relocation_keg_from_value(value brew_runtime.Value) Keg {
+fn relocation_keg_from_value(value ruby.Value) Keg {
 	values := value.map_data.clone()
-	path := (values['path'] or { brew_runtime.string_value(value.as_string()) }).as_string()
-	cellar := (values['cellar'] or { brew_runtime.string_value(os.dir(os.dir(path))) }).as_string()
-	prefix := (values['prefix'] or { brew_runtime.string_value(os.dir(cellar)) }).as_string()
-	return Keg{ path: path, name: (values['name'] or { brew_runtime.string_value(os.base(os.dir(path))) }).as_string(), prefix: prefix, cellar: cellar }
+	path := (values['path'] or { ruby.string_value(value.as_string()) }).as_string()
+	cellar := (values['cellar'] or { ruby.string_value(os.dir(os.dir(path))) }).as_string()
+	prefix := (values['prefix'] or { ruby.string_value(os.dir(cellar)) }).as_string()
+	return Keg{ path: path, name: (values['name'] or { ruby.string_value(os.base(os.dir(path))) }).as_string(), prefix: prefix, cellar: cellar }
 }
 
-pub fn keg_relocation_keg_value(keg Keg) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'path':   brew_runtime.string_value(keg.path)
-		'name':   brew_runtime.string_value(keg.name)
-		'prefix': brew_runtime.string_value(keg.prefix)
-		'cellar': brew_runtime.string_value(keg.cellar)
+pub fn keg_relocation_keg_value(keg Keg) ruby.Value {
+	return ruby.map_value({
+		'path':   ruby.string_value(keg.path)
+		'name':   ruby.string_value(keg.name)
+		'prefix': ruby.string_value(keg.prefix)
+		'cellar': ruby.string_value(keg.cellar)
 	})
 }
 
-fn keg_relocation_from_value(value brew_runtime.Value) KegRelocation {
+fn keg_relocation_from_value(value ruby.Value) KegRelocation {
 	mut relocation := new_keg_relocation()
 	if value.type_name != 'Hash' {
 		return relocation
@@ -771,33 +771,33 @@ fn keg_relocation_from_value(value brew_runtime.Value) KegRelocation {
 			continue
 		}
 		values := entry.map_data.clone()
-		relocation.add_replacement_pair_with_path(key, (values['old'] or { brew_runtime.string_value('') }).as_string(), (values['new'] or { brew_runtime.string_value('') }).as_string(), (values['path'] or { brew_runtime.bool_value(false) }).bool_data)
+		relocation.add_replacement_pair_with_path(key, (values['old'] or { ruby.string_value('') }).as_string(), (values['new'] or { ruby.string_value('') }).as_string(), (values['path'] or { ruby.bool_value(false) }).bool_data)
 	}
 	return relocation
 }
 
-pub fn keg_relocation_value(relocation KegRelocation) brew_runtime.Value {
-	return brew_runtime.map_value(keg_replacement_pairs_value(relocation.replacement_map))
+pub fn keg_relocation_value(relocation KegRelocation) ruby.Value {
+	return ruby.map_value(keg_replacement_pairs_value(relocation.replacement_map))
 }
 
-fn keg_replacement_pairs_value(pairs map[string]KegReplacementPair) map[string]brew_runtime.Value {
-	mut values := map[string]brew_runtime.Value{}
+fn keg_replacement_pairs_value(pairs map[string]KegReplacementPair) map[string]ruby.Value {
+	mut values := map[string]ruby.Value{}
 	for key, pair in pairs {
 		values[key] = keg_replacement_pair_value(pair)
 	}
 	return values
 }
 
-fn keg_replacement_pair_value(pair KegReplacementPair) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'old':  brew_runtime.string_value(pair.old_value)
-		'new':  brew_runtime.string_value(pair.new_value)
-		'path': brew_runtime.bool_value(pair.path)
+fn keg_replacement_pair_value(pair KegReplacementPair) ruby.Value {
+	return ruby.map_value({
+		'old':  ruby.string_value(pair.old_value)
+		'new':  ruby.string_value(pair.new_value)
+		'path': ruby.bool_value(pair.path)
 	})
 }
 
-fn keg_relocate_nil() brew_runtime.Value {
-	return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+fn keg_relocate_nil() ruby.Value {
+	return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 }
 
 // Original Ruby source (line-for-line):

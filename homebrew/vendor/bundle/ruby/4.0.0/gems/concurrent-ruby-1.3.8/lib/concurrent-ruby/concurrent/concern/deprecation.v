@@ -1,6 +1,6 @@
 module concern
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/concern/deprecation.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -16,21 +16,21 @@ pub fn deprecated_method_message(old_name string, new_name string) string {
 }
 
 // Ruby method `deprecated(message, strip = 2)` at line 12.
-pub fn ruby_deprecation_l12_d1_deprecated(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_deprecation_l12_d1_deprecated(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('deprecated requires a message')
 	}
 	strip := if args.len > 1 { int(args[1].as_int() or { 2 }) } else { 2 }
 	caller_line := if args.len > 2 { args[2].as_string() } else { '' }
-	return brew_runtime.string_value(deprecation_message(args[0].as_string(), caller_line, strip))
+	return ruby.string_value(deprecation_message(args[0].as_string(), caller_line, strip))
 }
 
 // Ruby method `deprecated_method(old_name, new_name)` at line 27.
-pub fn ruby_deprecation_l27_d2_deprecated_method(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_deprecation_l27_d2_deprecated_method(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('deprecated_method requires old and new names')
 	}
-	return brew_runtime.string_value(deprecated_method_message(args[0].as_string(), args[1].as_string()))
+	return ruby.string_value(deprecated_method_message(args[0].as_string(), args[1].as_string()))
 }
 
 // Original Ruby source (line-for-line):

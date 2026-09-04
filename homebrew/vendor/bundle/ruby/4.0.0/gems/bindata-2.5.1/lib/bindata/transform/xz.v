@@ -1,6 +1,6 @@
 module transform
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/bindata-2.5.1/lib/bindata/transform/xz.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -32,7 +32,7 @@ pub fn (transform &XzTransform) after_write_transform() ![]u8 {
 }
 
 // Ruby method `initialize(read_length)` at line 11.
-pub fn ruby_xz_l11_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_xz_l11_d1_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('BinData::Transform::XZ#initialize requires read_length')
 	}
@@ -42,22 +42,22 @@ pub fn ruby_xz_l11_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value 
 }
 
 // Ruby method `read(n)` at line 16.
-pub fn ruby_xz_l16_d2_read(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_xz_l16_d2_read(args ...ruby.Value) ruby.Value {
 	return translated_read(.xz, args)
 }
 
 // Ruby method `write(data)` at line 21.
-pub fn ruby_xz_l21_d3_write(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_xz_l21_d3_write(args ...ruby.Value) ruby.Value {
 	return translated_write(args)
 }
 
 // Ruby method `after_read_transform` at line 26.
-pub fn ruby_xz_l26_d4_after_read_transform(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_xz_l26_d4_after_read_transform(args ...ruby.Value) ruby.Value {
 	return translated_after_read(args)
 }
 
 // Ruby method `after_write_transform` at line 30.
-pub fn ruby_xz_l30_d5_after_write_transform(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_xz_l30_d5_after_write_transform(args ...ruby.Value) ruby.Value {
 	return translated_after_write(.xz, args)
 }
 

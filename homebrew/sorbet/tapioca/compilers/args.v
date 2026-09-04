@@ -1,6 +1,6 @@
 module compilers
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `sorbet/tapioca/compilers/args.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -103,116 +103,116 @@ pub fn args_compiler_decoration(command ArgsCompilerCommand) ?ArgsCompilerDecora
 	}
 }
 
-fn args_compiler_methods_value(methods []TapiocaGeneratedMethod) brew_runtime.Value {
-	return brew_runtime.array_value(methods.map(brew_runtime.map_value({
-		'name':         brew_runtime.string_value(it.name)
-		'return_type':  brew_runtime.string_value(it.return_type)
-		'class_method': brew_runtime.bool_value(it.class_method)
-		'parameters':   brew_runtime.string_array_value(it.parameters)
+fn args_compiler_methods_value(methods []TapiocaGeneratedMethod) ruby.Value {
+	return ruby.array_value(methods.map(ruby.map_value({
+		'name':         ruby.string_value(it.name)
+		'return_type':  ruby.string_value(it.return_type)
+		'class_method': ruby.bool_value(it.class_method)
+		'parameters':   ruby.string_array_value(it.parameters)
 	})))
 }
 
-fn args_compiler_decoration_value(decoration ArgsCompilerDecoration) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'command_name':         brew_runtime.string_value(decoration.command_name)
-		'args_class_name':      brew_runtime.string_value(decoration.args_class_name)
-		'args_superclass_name': brew_runtime.string_value(decoration.args_superclass_name)
+fn args_compiler_decoration_value(decoration ArgsCompilerDecoration) ruby.Value {
+	return ruby.map_value({
+		'command_name':         ruby.string_value(decoration.command_name)
+		'args_class_name':      ruby.string_value(decoration.args_class_name)
+		'args_superclass_name': ruby.string_value(decoration.args_superclass_name)
 		'args_methods':         args_compiler_methods_value(decoration.args_methods)
 		'command_methods':      args_compiler_methods_value(decoration.command_methods)
 	})
 }
 
-fn args_compiler_input_value(input &ArgsCompilerInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Tapioca::Compilers::Args::Input', '', {
+fn args_compiler_input_value(input &ArgsCompilerInput) ruby.Value {
+	return ruby.structured_value('Tapioca::Compilers::Args::Input', '', {
 		'args_compiler_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn args_compiler_input_from_value(value brew_runtime.Value) &ArgsCompilerInput {
+fn args_compiler_input_from_value(value ruby.Value) &ArgsCompilerInput {
 	address := value.attributes['args_compiler_input_address'] or {
 		panic('invalid Args compiler input')
 	}
 	return unsafe { &ArgsCompilerInput(voidptr(address.u64())) }
 }
 
-fn args_compiler_parser_value(parser &ArgsCompilerParser) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::CLI::Parser', '', {
+fn args_compiler_parser_value(parser &ArgsCompilerParser) ruby.Value {
+	return ruby.structured_value('Homebrew::CLI::Parser', '', {
 		'args_compiler_parser_address': u64(voidptr(parser)).str()
 	})
 }
 
-fn args_compiler_parser_from_value(value brew_runtime.Value) &ArgsCompilerParser {
+fn args_compiler_parser_from_value(value ruby.Value) &ArgsCompilerParser {
 	address := value.attributes['args_compiler_parser_address'] or {
 		panic('invalid Args compiler parser')
 	}
 	return unsafe { &ArgsCompilerParser(voidptr(address.u64())) }
 }
 
-pub fn args_compiler_input_boundary(input &ArgsCompilerInput) brew_runtime.Value {
+pub fn args_compiler_input_boundary(input &ArgsCompilerInput) ruby.Value {
 	return args_compiler_input_value(input)
 }
 
-pub fn args_compiler_parser_boundary(parser &ArgsCompilerParser) brew_runtime.Value {
+pub fn args_compiler_parser_boundary(parser &ArgsCompilerParser) ruby.Value {
 	return args_compiler_parser_value(parser)
 }
 
 // Ruby method `self.gather_constants` at line 19.
-pub fn ruby_args_l19_d1_self_gather_constants(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_args_l19_d1_self_gather_constants(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.array_value([])
+		return ruby.array_value([])
 	}
 	input := args_compiler_input_from_value(args[0])
-	return brew_runtime.array_value(input.commands.map(brew_runtime.object_value('Class', it.name)))
+	return ruby.array_value(input.commands.map(ruby.object_value('Class', it.name)))
 }
 
 // Ruby method `decorate` at line 28.
-pub fn ruby_args_l28_d2_decorate(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_args_l28_d2_decorate(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'input and command are required')
+		return ruby.object_value('ArgumentError', 'input and command are required')
 	}
 	input := args_compiler_input_from_value(args[0])
 	name := args[1].as_string()
 	matches := input.commands.filter(it.name == name)
 	if matches.len == 0 {
-		return brew_runtime.object_value('NameError', 'unknown command ${name}')
+		return ruby.object_value('NameError', 'unknown command ${name}')
 	}
 	decoration := args_compiler_decoration(matches[0]) or {
-		return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+		return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 	}
 	return args_compiler_decoration_value(decoration)
 }
 
 // Ruby method `args_table(parser) = parser.args.methods(false)` at line 43.
-pub fn ruby_args_l43_d3_args_table(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_args_l43_d3_args_table(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'parser is required')
+		return ruby.object_value('ArgumentError', 'parser is required')
 	}
-	return brew_runtime.string_array_value(args_compiler_args_table(*args_compiler_parser_from_value(args[0])))
+	return ruby.string_array_value(args_compiler_args_table(*args_compiler_parser_from_value(args[0])))
 }
 
 // Ruby method `comma_arrays(parser)` at line 46.
-pub fn ruby_args_l46_d4_comma_arrays(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_args_l46_d4_comma_arrays(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'parser is required')
+		return ruby.object_value('ArgumentError', 'parser is required')
 	}
-	return brew_runtime.string_array_value(args_compiler_comma_arrays(*args_compiler_parser_from_value(args[0])))
+	return ruby.string_array_value(args_compiler_comma_arrays(*args_compiler_parser_from_value(args[0])))
 }
 
 // Ruby method `get_return_type(method_name, comma_array_methods)` at line 52.
-pub fn ruby_args_l52_d5_get_return_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_args_l52_d5_get_return_type(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'method and comma-array methods are required')
+		return ruby.object_value('ArgumentError', 'method and comma-array methods are required')
 	}
 	comma_arrays := args[1].as_string_array() or {
-		return brew_runtime.object_value('TypeError', err.msg())
+		return ruby.object_value('TypeError', err.msg())
 	}
-	return brew_runtime.string_value(args_compiler_return_type(args[0].as_string(), comma_arrays))
+	return ruby.string_value(args_compiler_return_type(args[0].as_string(), comma_arrays))
 }
 
 // Ruby method `create_args_methods(klass, parser)` at line 65.
-pub fn ruby_args_l65_d6_create_args_methods(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_args_l65_d6_create_args_methods(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'parser is required')
+		return ruby.object_value('ArgumentError', 'parser is required')
 	}
 	parser_value := args[args.len - 1]
 	return args_compiler_methods_value(args_compiler_create_methods(*args_compiler_parser_from_value(parser_value)))

@@ -1,20 +1,20 @@
 module blank
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `extend/blank/symbol.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `blank? = empty?` at line 12.
-pub fn ruby_symbol_l12_d1_blank(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_symbol_l12_d1_blank(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Symbol#blank? requires a receiver') }
-	return brew_runtime.bool_value(value_is_blank(args[0]))
+	return ruby.bool_value(value_is_blank(args[0]))
 }
 
 // Ruby method `present? = !empty? # :nodoc:` at line 15.
-pub fn ruby_symbol_l15_d2_present(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_symbol_l15_d2_present(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('Symbol#present? requires a receiver') }
-	return brew_runtime.bool_value(value_is_present(args[0]))
+	return ruby.bool_value(value_is_present(args[0]))
 }
 
 // Original Ruby source (line-for-line):

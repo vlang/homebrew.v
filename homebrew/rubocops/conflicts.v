@@ -1,6 +1,6 @@
 module rubocops
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `rubocops/conflicts.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -165,8 +165,8 @@ pub fn correct_formula_conflicts(source string, formula_name string, versioned_f
 	return corrected
 }
 
-fn formula_conflict_problem_value(problem FormulaConflictProblem) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cop::Problem', problem.message, {
+fn formula_conflict_problem_value(problem FormulaConflictProblem) ruby.Value {
+	return ruby.structured_value('RuboCop::Cop::Problem', problem.message, {
 		'kind':        problem.kind
 		'begin_pos':   problem.begin_pos.str()
 		'end_pos':     problem.end_pos.str()
@@ -176,12 +176,12 @@ fn formula_conflict_problem_value(problem FormulaConflictProblem) brew_runtime.V
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 17.
-pub fn ruby_conflicts_l17_d1_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_conflicts_l17_d1_audit_formula(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	formula_name := if args.len > 1 { args[1].as_string() } else { '' }
 	versioned := if args.len > 2 { args[2].bool_data } else { false }
 	allowlisted := if args.len > 3 { args[3].bool_data } else { false }
-	return brew_runtime.array_value(audit_formula_conflicts(source, formula_name, versioned, allowlisted).map(formula_conflict_problem_value(it)))
+	return ruby.array_value(audit_formula_conflicts(source, formula_name, versioned, allowlisted).map(formula_conflict_problem_value(it)))
 }
 
 // Original Ruby source (line-for-line):

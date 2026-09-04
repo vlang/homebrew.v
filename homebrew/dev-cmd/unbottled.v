@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `dev-cmd/unbottled.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -344,7 +344,7 @@ fn unbottled_split_attribute(value string) []string {
 	return value.split(',').map(it.trim_space()).filter(it != '')
 }
 
-fn unbottled_formula_from_value(value brew_runtime.Value) UnbottledFormula {
+fn unbottled_formula_from_value(value ruby.Value) UnbottledFormula {
 	return UnbottledFormula{
 		name: if value.attributes['name'] != '' {
 			value.attributes['name']
@@ -363,13 +363,13 @@ fn unbottled_formula_from_value(value brew_runtime.Value) UnbottledFormula {
 	}
 }
 
-fn unbottled_formulae_from_value(value brew_runtime.Value) []UnbottledFormula {
+fn unbottled_formulae_from_value(value ruby.Value) []UnbottledFormula {
 	values := value.as_array() or { return [] }
 	return values.map(unbottled_formula_from_value(it))
 }
 
-fn unbottled_formula_value(formula UnbottledFormula) brew_runtime.Value {
-	return brew_runtime.structured_value('Formula', formula.name, {
+fn unbottled_formula_value(formula UnbottledFormula) ruby.Value {
+	return ruby.structured_value('Formula', formula.name, {
 		'name':                  formula.name
 		'deprecated':            formula.deprecated.str()
 		'disabled':              formula.disabled.str()
@@ -383,29 +383,29 @@ fn unbottled_formula_value(formula UnbottledFormula) brew_runtime.Value {
 	})
 }
 
-fn unbottled_formulae_value(formulae []UnbottledFormula) brew_runtime.Value {
-	return brew_runtime.array_value(formulae.map(unbottled_formula_value(it)))
+fn unbottled_formulae_value(formulae []UnbottledFormula) ruby.Value {
+	return ruby.array_value(formulae.map(unbottled_formula_value(it)))
 }
 
-fn unbottled_graph_value(graph UnbottledDependencyGraph) brew_runtime.Value {
-	mut dependencies := map[string]brew_runtime.Value{}
-	mut uses := map[string]brew_runtime.Value{}
+fn unbottled_graph_value(graph UnbottledDependencyGraph) ruby.Value {
+	mut dependencies := map[string]ruby.Value{}
+	mut uses := map[string]ruby.Value{}
 	for name, formulae in graph.dependencies {
 		dependencies[name] = unbottled_formulae_value(formulae)
 	}
 	for name, formulae in graph.uses {
 		uses[name] = unbottled_formulae_value(formulae)
 	}
-	return brew_runtime.map_value({
-		'deps_hash': brew_runtime.map_value(dependencies)
-		'uses_hash': brew_runtime.map_value(uses)
+	return ruby.map_value({
+		'deps_hash': ruby.map_value(dependencies)
+		'uses_hash': ruby.map_value(uses)
 	})
 }
 
 // Ruby method `run` at line 44.
-pub fn ruby_unbottled_l44_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unbottled_l44_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	value := args[0]
 	formulae := if args.len > 1 { unbottled_formulae_from_value(args[1]) } else { [] }
@@ -425,11 +425,11 @@ pub fn ruby_unbottled_l44_d1_run(args ...brew_runtime.Value) brew_runtime.Value 
 		core_tap_installed: value.attributes['core_tap_installed'] == 'true'
 		git_log: value.attributes['git_log']
 	}
-	return brew_runtime.string_value(run_unbottled(request) or { panic(err) })
+	return ruby.string_value(run_unbottled(request) or { panic(err) })
 }
 
 // Ruby method `formulae_all_installs_from_args(eval_all)` at line 128.
-pub fn ruby_unbottled_l128_d2_formulae_all_installs_from_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unbottled_l128_d2_formulae_all_installs_from_args(args ...ruby.Value) ruby.Value {
 	formulae := if args.len > 1 { unbottled_formulae_from_value(args[1]) } else { [] }
 	selection := select_unbottled_formulae(UnbottledSelectionRequest{
 		named_formulae: if args.len > 2 && (args[2].as_bool() or { false }) { formulae } else { [] }
@@ -437,20 +437,20 @@ pub fn ruby_unbottled_l128_d2_formulae_all_installs_from_args(args ...brew_runti
 		dependents: args.len > 3 && (args[3].as_bool() or { false })
 		eval_all: args.len > 0 && (args[0].as_bool() or { false })
 	}) or { panic(err) }
-	mut installs := map[string]brew_runtime.Value{}
+	mut installs := map[string]ruby.Value{}
 	for name, count in selection.formula_installs {
-		installs[name] = brew_runtime.int_value(count)
+		installs[name] = ruby.int_value(count)
 	}
-	return brew_runtime.map_value({
+	return ruby.map_value({
 		'formulae':         unbottled_formulae_value(selection.formulae)
 		'all_formulae':     unbottled_formulae_value(selection.all_formulae)
-		'formula_installs': brew_runtime.map_value(installs)
-		'sort':             brew_runtime.string_value(selection.sort_description)
+		'formula_installs': ruby.map_value(installs)
+		'sort':             ruby.string_value(selection.sort_description)
 	})
 }
 
 // Ruby method `deps_uses_from_formulae(all_formulae)` at line 187.
-pub fn ruby_unbottled_l187_d3_deps_uses_from_formulae(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unbottled_l187_d3_deps_uses_from_formulae(args ...ruby.Value) ruby.Value {
 	return unbottled_graph_value(unbottled_dependency_graph(if args.len > 0 {
 		unbottled_formulae_from_value(args[0])
 	} else {
@@ -459,8 +459,8 @@ pub fn ruby_unbottled_l187_d3_deps_uses_from_formulae(args ...brew_runtime.Value
 }
 
 // Ruby method `output_total(formulae)` at line 209.
-pub fn ruby_unbottled_l209_d4_output_total(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(unbottled_total_output(if args.len > 0 {
+pub fn ruby_unbottled_l209_d4_output_total(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(unbottled_total_output(if args.len > 0 {
 		unbottled_formulae_from_value(args[0])
 	} else {
 		[]
@@ -468,7 +468,7 @@ pub fn ruby_unbottled_l209_d4_output_total(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `output_unbottled(formulae, deps_hash, noun, hash, any_named_args)` at line 225.
-pub fn ruby_unbottled_l225_d5_output_unbottled(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_unbottled_l225_d5_output_unbottled(args ...ruby.Value) ruby.Value {
 	formulae := if args.len > 0 { unbottled_formulae_from_value(args[0]) } else { [] }
 	mut graph := UnbottledDependencyGraph{}
 	if args.len > 1 && args[1].type_name == 'Hash' {
@@ -484,7 +484,7 @@ pub fn ruby_unbottled_l225_d5_output_unbottled(args ...brew_runtime.Value) brew_
 			counts[name] = value.as_int() or { 0 }
 		}
 	}
-	return brew_runtime.string_value(unbottled_status_output(formulae, graph, UnbottledBottleTag{
+	return ruby.string_value(unbottled_status_output(formulae, graph, UnbottledBottleTag{
 		name: if args.len > 5 { args[5].as_string() } else { '' }
 		linux: args.len > 6 && (args[6].as_bool() or { false })
 		arch: if args.len > 7 { args[7].as_string() } else { '' }
@@ -492,8 +492,8 @@ pub fn ruby_unbottled_l225_d5_output_unbottled(args ...brew_runtime.Value) brew_
 }
 
 // Ruby method `output_lost_bottles` at line 303.
-pub fn ruby_unbottled_l303_d6_output_lost_bottles(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(unbottled_lost_bottles_output(if args.len > 0 {
+pub fn ruby_unbottled_l303_d6_output_lost_bottles(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(unbottled_lost_bottles_output(if args.len > 0 {
 		args[0].as_string()
 	} else {
 		''

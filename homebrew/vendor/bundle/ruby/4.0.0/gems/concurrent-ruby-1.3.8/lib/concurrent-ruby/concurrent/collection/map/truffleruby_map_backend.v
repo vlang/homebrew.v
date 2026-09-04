@@ -1,6 +1,6 @@
 module map
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.8/lib/concurrent-ruby/concurrent/collection/map/truffleruby_map_backend.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -18,7 +18,7 @@ pub fn new_truffleruby_map_backend(options MapBackendOptions) TruffleRubyMapBack
 }
 
 // Ruby method `initialize(options = nil)` at line 8.
-pub fn ruby_truffleruby_map_backend_l8_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_truffleruby_map_backend_l8_d1_initialize(args ...ruby.Value) ruby.Value {
 	options := if args.len > 0 && args[0].type_name == 'Hash' {
 		map_options_from_boundary(args[0])
 	} else {
@@ -32,7 +32,7 @@ pub fn ruby_truffleruby_map_backend_l8_d1_initialize(args ...brew_runtime.Value)
 	if load_factor := backend.load_factor {
 		attributes['load_factor'] = load_factor.str()
 	}
-	return brew_runtime.structured_value('Concurrent::Collection::TruffleRubyMapBackend', '#<Concurrent::Collection::TruffleRubyMapBackend>', attributes)
+	return ruby.structured_value('Concurrent::Collection::TruffleRubyMapBackend', '#<Concurrent::Collection::TruffleRubyMapBackend>', attributes)
 }
 
 // Original Ruby source (line-for-line):

@@ -1,6 +1,6 @@
 module bindata
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/bindata-2.5.1/lib/bindata/warnings.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -27,11 +27,11 @@ pub fn validate_initialize_instance_arguments(argument_count int, caller string)
 	}
 }
 
-pub fn deprecated_struct_has_key(fields map[string]brew_runtime.Value, key string) bool {
+pub fn deprecated_struct_has_key(fields map[string]ruby.Value, key string) bool {
 	return key in fields
 }
 
-fn initializer_owner_from_value(value brew_runtime.Value) InitializerOwner {
+fn initializer_owner_from_value(value ruby.Value) InitializerOwner {
 	return InitializerOwner{
 		owner: value.attribute('initialize_owner') or { 'BinData::Base' }
 		superclass_name: value.attribute('superclass_name') or { '' }
@@ -39,12 +39,12 @@ fn initializer_owner_from_value(value brew_runtime.Value) InitializerOwner {
 }
 
 // Ruby alias_method `alias_method :initialize_without_warning, :initialize` at line 11.
-pub fn ruby_warnings_l11_d1_initialize_without_warning(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_warnings_l11_d1_initialize_without_warning(args ...ruby.Value) ruby.Value {
 	return ruby_base_l80_d7_initialize(...args)
 }
 
 // Ruby method `initialize_with_warning(*args)` at line 12.
-pub fn ruby_warnings_l12_d2_initialize_with_warning(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_warnings_l12_d2_initialize_with_warning(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Base#initialize_with_warning requires a receiver')
 	}
@@ -53,12 +53,12 @@ pub fn ruby_warnings_l12_d2_initialize_with_warning(args ...brew_runtime.Value) 
 }
 
 // Ruby alias `alias initialize initialize_with_warning` at line 23.
-pub fn ruby_warnings_l23_d3_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_warnings_l23_d3_initialize(args ...ruby.Value) ruby.Value {
 	return ruby_warnings_l12_d2_initialize_with_warning(...args)
 }
 
 // Ruby method `initialize_instance(*args)` at line 25.
-pub fn ruby_warnings_l25_d4_initialize_instance(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_warnings_l25_d4_initialize_instance(args ...ruby.Value) ruby.Value {
 	argument_count := if args.len > 0 && args[0].type_name.starts_with('BinData::') {
 		args.len - 1
 	} else {
@@ -67,15 +67,15 @@ pub fn ruby_warnings_l25_d4_initialize_instance(args ...brew_runtime.Value) brew
 	validate_initialize_instance_arguments(argument_count, 'BinData::Base#initialize_instance') or {
 		panic(err)
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby alias `alias has_key? key?` at line 34.
-pub fn ruby_warnings_l34_d5_has_key(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_warnings_l34_d5_has_key(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Struct#has_key? requires a receiver and key')
 	}
-	return brew_runtime.bool_value(deprecated_struct_has_key(args[0].map_data, args[1].as_string().trim_left(':')))
+	return ruby.bool_value(deprecated_struct_has_key(args[0].map_data, args[1].as_string().trim_left(':')))
 }
 
 // Original Ruby source (line-for-line):

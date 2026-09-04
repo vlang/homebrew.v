@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `embedded_patch.rb`.
 // The original source is retained below.
@@ -63,7 +63,7 @@ pub fn (patch EmbeddedPatch) external() bool {
 // target_directory translates Pathname.pwd followed by the optional directory.
 pub fn (patch EmbeddedPatch) target_directory(current_directory string) string {
 	if patch.has_directory && patch.directory != '' {
-		return brew_runtime.join_path(current_directory, patch.directory)
+		return ruby.join_path(current_directory, patch.directory)
 	}
 	return current_directory
 }

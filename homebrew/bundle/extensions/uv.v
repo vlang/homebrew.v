@@ -1,6 +1,6 @@
 module extensions
 
-import brew_runtime
+import ruby
 
 pub struct UvTool {
 pub:
@@ -18,8 +18,8 @@ pub mut:
 	commands           [][]string
 }
 
-fn uv_error(kind string, message string, attributes map[string]string) brew_runtime.Value {
-	return brew_runtime.structured_value(kind, message, attributes)
+fn uv_error(kind string, message string, attributes map[string]string) ruby.Value {
+	return ruby.structured_value(kind, message, attributes)
 }
 
 pub fn uv_definition() ExtensionDefinition {
@@ -156,22 +156,22 @@ pub fn uv_normalized_options(name string, requirements []string, source string) 
 	}
 }
 
-pub fn uv_tool_value(tool UvTool) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'name':   brew_runtime.string_value(tool.name)
-		'with':   brew_runtime.string_array_value(tool.with)
+pub fn uv_tool_value(tool UvTool) ruby.Value {
+	return ruby.map_value({
+		'name':   ruby.string_value(tool.name)
+		'with':   ruby.string_array_value(tool.with)
 		'source': if tool.source == '' {
-			brew_runtime.object_value('NilClass', '')
+			ruby.object_value('NilClass', '')
 		} else {
-			brew_runtime.string_value(tool.source)
+			ruby.string_value(tool.source)
 		}
 	})
 }
 
-pub fn uv_tool_from_value(value brew_runtime.Value) UvTool {
+pub fn uv_tool_from_value(value ruby.Value) UvTool {
 	values := value.as_map() or { return uv_normalized_options(value.as_string(), [], '') }
 	if 'options' in values {
-		options := values['options'].as_map() or { map[string]brew_runtime.Value{} }
+		options := values['options'].as_map() or { map[string]ruby.Value{} }
 		return uv_normalized_options(if 'name' in values { values['name'].as_string() } else { '' }, if 'with' in options {
 			options['with'].as_string_array() or { [] }
 		} else {
@@ -191,31 +191,31 @@ pub fn uv_tool_from_value(value brew_runtime.Value) UvTool {
 	}
 }
 
-pub fn uv_tools_value(tools []UvTool) brew_runtime.Value {
-	return brew_runtime.array_value(tools.map(uv_tool_value(it)))
+pub fn uv_tools_value(tools []UvTool) ruby.Value {
+	return ruby.array_value(tools.map(uv_tool_value(it)))
 }
 
-pub fn uv_tools_from_value(value brew_runtime.Value) []UvTool {
+pub fn uv_tools_from_value(value ruby.Value) []UvTool {
 	items := value.as_array() or { return [] }
 	return items.map(uv_tool_from_value(it))
 }
 
-pub fn uv_state_value(state UvState) brew_runtime.Value {
-	return brew_runtime.map_value({
+pub fn uv_state_value(state UvState) ruby.Value {
+	return ruby.map_value({
 		'_definition':        extension_definition_value(uv_definition())
 		'executable':         if state.executable == '' {
-			brew_runtime.object_value('NilClass', '')
+			ruby.object_value('NilClass', '')
 		} else {
-			brew_runtime.object_value('Pathname', state.executable)
+			ruby.object_value('Pathname', state.executable)
 		}
 		'packages':           uv_tools_value(state.packages)
 		'installed_packages': uv_tools_value(state.installed_packages)
-		'output':             brew_runtime.string_array_value(state.output)
-		'commands':           brew_runtime.array_value(state.commands.map(brew_runtime.string_array_value(it)))
+		'output':             ruby.string_array_value(state.output)
+		'commands':           ruby.array_value(state.commands.map(ruby.string_array_value(it)))
 	})
 }
 
-pub fn uv_state_from_value(value brew_runtime.Value) UvState {
+pub fn uv_state_from_value(value ruby.Value) UvState {
 	values := value.as_map() or { return UvState{} }
 	mut commands := [][]string{}
 	if 'commands' in values {
@@ -236,7 +236,7 @@ pub fn uv_state_from_value(value brew_runtime.Value) UvState {
 	}
 }
 
-pub fn uv_entry(name string, options map[string]brew_runtime.Value) !ExtensionEntry {
+pub fn uv_entry(name string, options map[string]ruby.Value) !ExtensionEntry {
 	mut unknown_options := []string{}
 	for key in options.keys() {
 		if key !in ['with', 'source'] {
@@ -252,7 +252,7 @@ pub fn uv_entry(name string, options map[string]brew_runtime.Value) !ExtensionEn
 			return error('options[:with](${options['with'].repr}) should be an Array of String objects')
 		}
 	}
-	source_value := options['source'] or { brew_runtime.object_value('NilClass', '') }
+	source_value := options['source'] or { ruby.object_value('NilClass', '') }
 	if source_value.type_name !in ['String', 'NilClass'] {
 		return error('options[:source](${source_value.repr}) should be a String object')
 	}
@@ -264,13 +264,13 @@ pub fn uv_entry(name string, options map[string]brew_runtime.Value) !ExtensionEn
 	if source != '' && uv_local_source(source) {
 		return error('options[:source](${source_value.repr}) is local to this machine so cannot be used in a Brewfile')
 	}
-	mut normalized := map[string]brew_runtime.Value{}
+	mut normalized := map[string]ruby.Value{}
 	normalized_with := uv_normalize_with(requirements)
 	if normalized_with.len > 0 {
-		normalized['with'] = brew_runtime.string_array_value(normalized_with)
+		normalized['with'] = ruby.string_array_value(normalized_with)
 	}
 	if source != '' {
-		normalized['source'] = brew_runtime.string_value(source)
+		normalized['source'] = ruby.string_value(source)
 	}
 	return ExtensionEntry{
 		entry_type: 'uv'
@@ -354,39 +354,39 @@ pub fn uv_cleanup_items(entries []ExtensionEntry, executable string, tools []UvT
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `type = :uv` at line 25.
-pub fn ruby_uv_l25_d1_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uv_l25_d1_type(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.object_value('Symbol', 'uv')
+	return ruby.object_value('Symbol', 'uv')
 }
 
 // Ruby method `check_label = "uv Tool"` at line 28.
-pub fn ruby_uv_l28_d2_check_label(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uv_l28_d2_check_label(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('uv Tool')
+	return ruby.string_value('uv Tool')
 }
 
 // Ruby method `banner_name = "uv tools"` at line 31.
-pub fn ruby_uv_l31_d3_banner_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uv_l31_d3_banner_name(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('uv tools')
+	return ruby.string_value('uv tools')
 }
 
 // Ruby method `entry(name, options = {})` at line 34.
-pub fn ruby_uv_l34_d4_entry(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uv_l34_d4_entry(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return uv_error('ArgumentError', 'name is required', {})
 	}
 	options := if args.len > 1 {
 		args[1].as_map() or { return uv_error('ArgumentError', err.msg(), {}) }
 	} else {
-		map[string]brew_runtime.Value{}
+		map[string]ruby.Value{}
 	}
 	entry := uv_entry(args[0].as_string(), options) or { return uv_error('RuntimeError', err.msg(), {}) }
 	return extension_entry_value(entry)
 }
 
 // Ruby method `reset!` at line 62.
-pub fn ruby_uv_l62_d5_reset(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uv_l62_d5_reset(args ...ruby.Value) ruby.Value {
 	mut state := if args.len > 0 { uv_state_from_value(args[0]) } else { UvState{} }
 	state.packages = []
 	state.installed_packages = []
@@ -394,13 +394,13 @@ pub fn ruby_uv_l62_d5_reset(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `cleanup_heading` at line 68.
-pub fn ruby_uv_l68_d6_cleanup_heading(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uv_l68_d6_cleanup_heading(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('uv tools')
+	return ruby.string_value('uv tools')
 }
 
 // Ruby method `packages` at line 73.
-pub fn ruby_uv_l73_d7_packages(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uv_l73_d7_packages(args ...ruby.Value) ruby.Value {
 	state := if args.len > 0 { uv_state_from_value(args[0]) } else { UvState{} }
 	if state.packages.len > 0 {
 		return uv_tools_value(state.packages)
@@ -413,35 +413,35 @@ pub fn ruby_uv_l73_d7_packages(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `dump_name(package)` at line 87.
-pub fn ruby_uv_l87_d8_dump_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uv_l87_d8_dump_name(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return uv_error('ArgumentError', 'package is required', {})
 	}
-	return brew_runtime.string_value(uv_tool_from_value(args[0]).name)
+	return ruby.string_value(uv_tool_from_value(args[0]).name)
 }
 
 // Ruby method `dump_with(package)` at line 92.
-pub fn ruby_uv_l92_d9_dump_with(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uv_l92_d9_dump_with(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return uv_error('ArgumentError', 'package is required', {})
 	}
-	return brew_runtime.string_array_value(uv_tool_from_value(args[0]).with)
+	return ruby.string_array_value(uv_tool_from_value(args[0]).with)
 }
 
 // Ruby method `dump_source(package)` at line 97.
-pub fn ruby_uv_l97_d10_dump_source(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uv_l97_d10_dump_source(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return uv_error('ArgumentError', 'package is required', {})
 	}
 	source := uv_tool_from_value(args[0]).source
 	if source == '' {
-		return brew_runtime.object_value('NilClass', '')
+		return ruby.object_value('NilClass', '')
 	}
-	return brew_runtime.string_value(source)
+	return ruby.string_value(source)
 }
 
 // Ruby method `install_package!(name, with: nil, source: nil, verbose: false)` at line 109.
-pub fn ruby_uv_l109_d11_install_package(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uv_l109_d11_install_package(args ...ruby.Value) ruby.Value {
 	state := if args.len > 0 { uv_state_from_value(args[0]) } else { UvState{} }
 	if state.executable == '' {
 		return uv_error('RuntimeError', 'uv is not installed', {})
@@ -450,15 +450,15 @@ pub fn ruby_uv_l109_d11_install_package(args ...brew_runtime.Value) brew_runtime
 	requirements := if args.len > 2 { args[2].as_string_array() or { [] } } else { [] }
 	source := if args.len > 3 && args[3].type_name != 'NilClass' { args[3].as_string() } else { '' }
 	result := if args.len > 5 { args[5].as_bool() or { false } } else { false }
-	return brew_runtime.map_value({
-		'result':  brew_runtime.bool_value(result)
-		'command': brew_runtime.string_array_value(([state.executable] as []string).clone())
-		'args':    brew_runtime.string_array_value(uv_install_args(name, requirements, source))
+	return ruby.map_value({
+		'result':  ruby.bool_value(result)
+		'command': ruby.string_array_value(([state.executable] as []string).clone())
+		'args':    ruby.string_array_value(uv_install_args(name, requirements, source))
 	})
 }
 
 // Ruby method `installed_packages` at line 122.
-pub fn ruby_uv_l122_d12_installed_packages(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uv_l122_d12_installed_packages(args ...ruby.Value) ruby.Value {
 	state := if args.len > 0 { uv_state_from_value(args[0]) } else { UvState{} }
 	if state.installed_packages.len > 0 {
 		return uv_tools_value(state.installed_packages)
@@ -467,43 +467,43 @@ pub fn ruby_uv_l122_d12_installed_packages(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `parse_tool_list(output)` at line 130.
-pub fn ruby_uv_l130_d13_parse_tool_list(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uv_l130_d13_parse_tool_list(args ...ruby.Value) ruby.Value {
 	return uv_tools_value(uv_parse_tool_list(if args.len > 0 { args[0].as_string() } else { '' }))
 }
 
 // Ruby method `parse_source(required_raw)` at line 157.
-pub fn ruby_uv_l157_d14_parse_source(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uv_l157_d14_parse_source(args ...ruby.Value) ruby.Value {
 	source := uv_parse_source(if args.len > 0 && args[0].type_name != 'NilClass' {
 		args[0].as_string()
 	} else {
 		''
 	})
 	if source == '' {
-		return brew_runtime.object_value('NilClass', '')
+		return ruby.object_value('NilClass', '')
 	}
-	return brew_runtime.string_value(source)
+	return ruby.string_value(source)
 }
 
 // Ruby method `name_with_extras(name, extras_raw)` at line 168.
-pub fn ruby_uv_l168_d15_name_with_extras(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uv_l168_d15_name_with_extras(args ...ruby.Value) ruby.Value {
 	name := if args.len > 0 { args[0].as_string() } else { '' }
 	extras := if args.len > 1 && args[1].type_name != 'NilClass' { args[1].as_string() } else { '' }
-	return brew_runtime.string_value(uv_name_with_extras(name, extras))
+	return ruby.string_value(uv_name_with_extras(name, extras))
 }
 
 // Ruby method `parse_with_requirements(with_raw)` at line 179.
-pub fn ruby_uv_l179_d16_parse_with_requirements(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uv_l179_d16_parse_with_requirements(args ...ruby.Value) ruby.Value {
 	with_raw := if args.len > 0 && args[0].type_name != 'NilClass' {
 		args[0].as_string()
 	} else {
 		''
 	}
-	return brew_runtime.string_array_value(uv_parse_with_requirements(with_raw))
+	return ruby.string_array_value(uv_parse_with_requirements(with_raw))
 }
 
 // Ruby method `continuation_constraint?(requirement)` at line 200.
-pub fn ruby_uv_l200_d17_continuation_constraint(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(uv_continuation_constraint(if args.len > 0 {
+pub fn ruby_uv_l200_d17_continuation_constraint(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(uv_continuation_constraint(if args.len > 0 {
 		args[0].as_string()
 	} else {
 		''
@@ -511,8 +511,8 @@ pub fn ruby_uv_l200_d17_continuation_constraint(args ...brew_runtime.Value) brew
 }
 
 // Ruby method `normalize_constraint(requirement)` at line 206.
-pub fn ruby_uv_l206_d18_normalize_constraint(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(uv_normalize_constraint(if args.len > 0 {
+pub fn ruby_uv_l206_d18_normalize_constraint(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(uv_normalize_constraint(if args.len > 0 {
 		args[0].as_string()
 	} else {
 		''
@@ -520,22 +520,22 @@ pub fn ruby_uv_l206_d18_normalize_constraint(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby method `normalize_with(with)` at line 212.
-pub fn ruby_uv_l212_d19_normalize_with(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uv_l212_d19_normalize_with(args ...ruby.Value) ruby.Value {
 	requirements := if args.len > 0 { args[0].as_string_array() or { [] } } else { [] }
-	return brew_runtime.string_array_value(uv_normalize_with(requirements))
+	return ruby.string_array_value(uv_normalize_with(requirements))
 }
 
 // Ruby method `normalize_source(source)` at line 218.
-pub fn ruby_uv_l218_d20_normalize_source(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uv_l218_d20_normalize_source(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || args[0].type_name == 'NilClass' {
-		return brew_runtime.object_value('NilClass', '')
+		return ruby.object_value('NilClass', '')
 	}
-	return brew_runtime.string_value(uv_normalize_source(args[0].as_string()))
+	return ruby.string_value(uv_normalize_source(args[0].as_string()))
 }
 
 // Ruby method `normalize_name(name)` at line 224.
-pub fn ruby_uv_l224_d21_normalize_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(uv_normalize_name(if args.len > 0 {
+pub fn ruby_uv_l224_d21_normalize_name(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(uv_normalize_name(if args.len > 0 {
 		args[0].as_string()
 	} else {
 		''
@@ -543,7 +543,7 @@ pub fn ruby_uv_l224_d21_normalize_name(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby method `package_record(name, with: nil, source: nil)` at line 248.
-pub fn ruby_uv_l248_d22_package_record(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uv_l248_d22_package_record(args ...ruby.Value) ruby.Value {
 	name := if args.len > 0 { args[0].as_string() } else { '' }
 	requirements := if args.len > 1 { args[1].as_string_array() or { [] } } else { [] }
 	source := if args.len > 2 && args[2].type_name != 'NilClass' { args[2].as_string() } else { '' }
@@ -551,7 +551,7 @@ pub fn ruby_uv_l248_d22_package_record(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby method `normalized_options(name, with:, source: nil)` at line 253.
-pub fn ruby_uv_l253_d23_normalized_options(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uv_l253_d23_normalized_options(args ...ruby.Value) ruby.Value {
 	name := if args.len > 0 { args[0].as_string() } else { '' }
 	requirements := if args.len > 1 { args[1].as_string_array() or { [] } } else { [] }
 	source := if args.len > 2 && args[2].type_name != 'NilClass' { args[2].as_string() } else { '' }
@@ -559,43 +559,43 @@ pub fn ruby_uv_l253_d23_normalized_options(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `package_name(package)` at line 263.
-pub fn ruby_uv_l263_d24_package_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uv_l263_d24_package_name(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return uv_error('ArgumentError', 'package is required', {})
 	}
-	return brew_runtime.string_value(uv_tool_from_value(args[0]).name)
+	return ruby.string_value(uv_tool_from_value(args[0]).name)
 }
 
 // Ruby method `package_with(package)` at line 269.
-pub fn ruby_uv_l269_d25_package_with(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uv_l269_d25_package_with(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return uv_error('ArgumentError', 'package is required', {})
 	}
-	return brew_runtime.string_array_value(uv_tool_from_value(args[0]).with)
+	return ruby.string_array_value(uv_tool_from_value(args[0]).with)
 }
 
 // Ruby method `package_source(package)` at line 279.
-pub fn ruby_uv_l279_d26_package_source(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uv_l279_d26_package_source(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return uv_error('ArgumentError', 'package is required', {})
 	}
 	source := uv_tool_from_value(args[0]).source
 	if source == '' {
-		return brew_runtime.object_value('NilClass', '')
+		return ruby.object_value('NilClass', '')
 	}
-	return brew_runtime.string_value(source)
+	return ruby.string_value(source)
 }
 
 // Ruby method `dump_entry(package)` at line 287.
-pub fn ruby_uv_l287_d27_dump_entry(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uv_l287_d27_dump_entry(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return uv_error('ArgumentError', 'package is required', {})
 	}
-	return brew_runtime.string_value(uv_dump_entry(uv_tool_from_value(args[0])))
+	return ruby.string_value(uv_dump_entry(uv_tool_from_value(args[0])))
 }
 
 // Ruby method `preinstall!(name, with: nil, source: nil, no_upgrade: false, verbose: false, **_options)` at line 305.
-pub fn ruby_uv_l305_d28_preinstall(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uv_l305_d28_preinstall(args ...ruby.Value) ruby.Value {
 	state := if args.len > 0 { uv_state_from_value(args[0]) } else { UvState{} }
 	name := if args.len > 1 { args[1].as_string() } else { '' }
 	requirements := if args.len > 2 { args[2].as_string_array() or { [] } } else { [] }
@@ -608,18 +608,18 @@ pub fn ruby_uv_l305_d28_preinstall(args ...brew_runtime.Value) brew_runtime.Valu
 	}
 	if uv_package_installed(state.installed_packages, name, requirements, source) {
 		if verbose {
-			return brew_runtime.map_value({
-				'result': brew_runtime.bool_value(false)
-				'output': brew_runtime.string_value('Skipping install of ${name} uv tool. It is already installed.')
+			return ruby.map_value({
+				'result': ruby.bool_value(false)
+				'output': ruby.string_value('Skipping install of ${name} uv tool. It is already installed.')
 			})
 		}
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
 // Ruby method `install!(name, with: nil, source: nil, preinstall: true, no_upgrade: false, verbose: false, force: false,` at line 330.
-pub fn ruby_uv_l330_d29_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uv_l330_d29_install(args ...ruby.Value) ruby.Value {
 	mut state := if args.len > 0 { uv_state_from_value(args[0]) } else { UvState{} }
 	name := if args.len > 1 { args[1].as_string() } else { '' }
 	requirements := if args.len > 2 { args[2].as_string_array() or { [] } } else { [] }
@@ -628,7 +628,7 @@ pub fn ruby_uv_l330_d29_install(args ...brew_runtime.Value) brew_runtime.Value {
 	verbose := if args.len > 5 { args[5].as_bool() or { false } } else { false }
 	result := if args.len > 6 { args[6].as_bool() or { false } } else { false }
 	if !preinstall {
-		return brew_runtime.bool_value(true)
+		return ruby.bool_value(true)
 	}
 	if verbose {
 		state.output << 'Installing ${name} uv tool. It is not currently installed.'
@@ -638,8 +638,8 @@ pub fn ruby_uv_l330_d29_install(args ...brew_runtime.Value) brew_runtime.Value {
 	full_command << uv_install_args(name, requirements, source)
 	state.commands << full_command
 	if !result {
-		return brew_runtime.map_value({
-			'result': brew_runtime.bool_value(false)
+		return ruby.map_value({
+			'result': ruby.bool_value(false)
 			'state':  uv_state_value(state)
 		})
 	}
@@ -650,30 +650,30 @@ pub fn ruby_uv_l330_d29_install(args ...brew_runtime.Value) brew_runtime.Value {
 	if tool !in state.packages {
 		state.packages << tool
 	}
-	return brew_runtime.map_value({
-		'result': brew_runtime.bool_value(true)
+	return ruby.map_value({
+		'result': ruby.bool_value(true)
 		'state':  uv_state_value(state)
 	})
 }
 
 // Ruby method `package_installed?(name, with: nil, source: nil)` at line 353.
-pub fn ruby_uv_l353_d30_package_installed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uv_l353_d30_package_installed(args ...ruby.Value) ruby.Value {
 	installed := if args.len > 0 { uv_tools_from_value(args[0]) } else { [] }
 	name := if args.len > 1 { args[1].as_string() } else { '' }
 	requirements := if args.len > 2 { args[2].as_string_array() or { [] } } else { [] }
 	source := if args.len > 3 && args[3].type_name != 'NilClass' { args[3].as_string() } else { '' }
-	return brew_runtime.bool_value(uv_package_installed(installed, name, requirements, source))
+	return ruby.bool_value(uv_package_installed(installed, name, requirements, source))
 }
 
 // Ruby method `uninstall_package!(name, executable: Pathname.new(""))` at line 358.
-pub fn ruby_uv_l358_d31_uninstall_package(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uv_l358_d31_uninstall_package(args ...ruby.Value) ruby.Value {
 	name := if args.len > 0 { args[0].as_string() } else { '' }
 	executable := if args.len > 1 { args[1].as_string() } else { '' }
-	return brew_runtime.string_array_value([executable, 'tool', 'uninstall', name])
+	return ruby.string_array_value([executable, 'tool', 'uninstall', name])
 }
 
 // Ruby method `format_checkable(entries)` at line 364.
-pub fn ruby_uv_l364_d32_format_checkable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uv_l364_d32_format_checkable(args ...ruby.Value) ruby.Value {
 	entries_value := if args.len > 0 { args[0].as_array() or { [] } } else { [] }
 	mut tools := []UvTool{}
 	for entry_value in entries_value {
@@ -686,13 +686,13 @@ pub fn ruby_uv_l364_d32_format_checkable(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby method `installed_and_up_to_date?(package, no_upgrade: false)` at line 371.
-pub fn ruby_uv_l371_d33_installed_and_up_to_date(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uv_l371_d33_installed_and_up_to_date(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	installed := uv_tools_from_value(args[0])
 	package := uv_tool_from_value(args[1])
-	return brew_runtime.bool_value(uv_package_installed(installed, package.name, package.with, package.source))
+	return ruby.bool_value(uv_package_installed(installed, package.name, package.with, package.source))
 }
 
 // Original Ruby source (line-for-line):

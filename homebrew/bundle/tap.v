@@ -1,6 +1,6 @@
 module bundle
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `bundle/tap.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -39,16 +39,16 @@ pub:
 	output             []string
 }
 
-fn bundle_tap_bool(value brew_runtime.Value, fallback bool) bool {
+fn bundle_tap_bool(value ruby.Value, fallback bool) bool {
 	return value.as_bool() or { fallback }
 }
 
-fn bundle_tap_strings(value brew_runtime.Value) []string {
+fn bundle_tap_strings(value ruby.Value) []string {
 	return value.as_string_array() or { [] }
 }
 
-fn bundle_tap_nil() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', '')
+fn bundle_tap_nil() ruby.Value {
+	return ruby.object_value('NilClass', '')
 }
 
 fn bundle_tap_unique(values []string) []string {
@@ -63,20 +63,20 @@ fn bundle_tap_unique(values []string) []string {
 	return result
 }
 
-pub fn bundle_tap_value(tap BundleTap) brew_runtime.Value {
-	return brew_runtime.Value{
+pub fn bundle_tap_value(tap BundleTap) ruby.Value {
+	return ruby.Value{
 		type_name: 'Tap'
 		repr: tap.name
 		map_data: {
-			'name':             brew_runtime.string_value(tap.name)
+			'name':             ruby.string_value(tap.name)
 			'remote':           if tap.remote == '' {
 				bundle_tap_nil()
 			} else {
-				brew_runtime.string_value(tap.remote)
+				ruby.string_value(tap.remote)
 			}
-			'default_remote':   brew_runtime.string_value(tap.default_remote)
-			'match_references': brew_runtime.string_array_value(tap.match_references)
-			'installed?':       brew_runtime.bool_value(tap.installed)
+			'default_remote':   ruby.string_value(tap.default_remote)
+			'match_references': ruby.string_array_value(tap.match_references)
+			'installed?':       ruby.bool_value(tap.installed)
 		}
 		attributes: {
 			'name': tap.name
@@ -84,97 +84,97 @@ pub fn bundle_tap_value(tap BundleTap) brew_runtime.Value {
 	}
 }
 
-pub fn bundle_tap_from_value(value brew_runtime.Value) BundleTap {
+pub fn bundle_tap_from_value(value ruby.Value) BundleTap {
 	fields := value.map_data.clone()
 	remote_value := fields['remote'] or { bundle_tap_nil() }
 	return BundleTap{
-		name: (fields['name'] or { brew_runtime.string_value(value.attributes['name'] or { value.repr }) }).as_string()
+		name: (fields['name'] or { ruby.string_value(value.attributes['name'] or { value.repr }) }).as_string()
 		remote: if remote_value.type_name in ['Nil', 'NilClass'] {
 			''
 		} else {
 			remote_value.as_string()
 		}
-		default_remote: (fields['default_remote'] or { brew_runtime.string_value('') }).as_string()
-		match_references: bundle_tap_strings(fields['match_references'] or { brew_runtime.string_array_value([]) })
-		installed: bundle_tap_bool(fields['installed?'] or { brew_runtime.bool_value(true) }, true)
+		default_remote: (fields['default_remote'] or { ruby.string_value('') }).as_string()
+		match_references: bundle_tap_strings(fields['match_references'] or { ruby.string_array_value([]) })
+		installed: bundle_tap_bool(fields['installed?'] or { ruby.bool_value(true) }, true)
 	}
 }
 
-fn bundle_taps_value(taps []BundleTap) brew_runtime.Value {
-	return brew_runtime.array_value(taps.map(bundle_tap_value(it)))
+fn bundle_taps_value(taps []BundleTap) ruby.Value {
+	return ruby.array_value(taps.map(bundle_tap_value(it)))
 }
 
-fn bundle_taps_from_value(value brew_runtime.Value) []BundleTap {
+fn bundle_taps_from_value(value ruby.Value) []BundleTap {
 	return value.as_array() or { [] }.map(bundle_tap_from_value(it))
 }
 
-pub fn bundle_tap_state_value(state BundleTapState) brew_runtime.Value {
-	mut trusted := map[string]brew_runtime.Value{}
+pub fn bundle_tap_state_value(state BundleTapState) ruby.Value {
+	mut trusted := map[string]ruby.Value{}
 	for entry_type, entries in state.trusted_entries {
-		trusted[entry_type] = brew_runtime.string_array_value(entries)
+		trusted[entry_type] = ruby.string_array_value(entries)
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'Homebrew::Bundle::Tap::State'
 		array_data: state.taps.map(bundle_tap_value(it))
 		map_data: {
-			'installed_taps':     brew_runtime.string_array_value(state.installed_taps)
-			'installed_override': brew_runtime.bool_value(state.installed_override)
-			'developer':          brew_runtime.bool_value(state.developer)
-			'github_api_token':   brew_runtime.string_value(state.github_api_token)
-			'trusted_entries':    brew_runtime.map_value(trusted)
-			'skipped_taps':       brew_runtime.string_array_value(state.skipped_taps)
+			'installed_taps':     ruby.string_array_value(state.installed_taps)
+			'installed_override': ruby.bool_value(state.installed_override)
+			'developer':          ruby.bool_value(state.developer)
+			'github_api_token':   ruby.string_value(state.github_api_token)
+			'trusted_entries':    ruby.map_value(trusted)
+			'skipped_taps':       ruby.string_array_value(state.skipped_taps)
 		}
 	}
 }
 
-pub fn bundle_tap_state_from_value(value brew_runtime.Value) BundleTapState {
+pub fn bundle_tap_state_from_value(value ruby.Value) BundleTapState {
 	fields := value.map_data.clone()
 	mut trusted := map[string][]string{}
-	for entry_type, entries in (fields['trusted_entries'] or { brew_runtime.map_value({}) }).as_map() or {
-		map[string]brew_runtime.Value{}
+	for entry_type, entries in (fields['trusted_entries'] or { ruby.map_value({}) }).as_map() or {
+		map[string]ruby.Value{}
 	} {
 		trusted[entry_type] = bundle_tap_strings(entries)
 	}
 	return BundleTapState{
 		taps: value.array_data.map(bundle_tap_from_value(it))
-		installed_taps: bundle_tap_strings(fields['installed_taps'] or { brew_runtime.string_array_value([]) })
-		installed_override: bundle_tap_bool(fields['installed_override'] or { brew_runtime.bool_value(false) }, false)
-		developer: bundle_tap_bool(fields['developer'] or { brew_runtime.bool_value(false) }, false)
-		github_api_token: (fields['github_api_token'] or { brew_runtime.string_value('') }).as_string()
+		installed_taps: bundle_tap_strings(fields['installed_taps'] or { ruby.string_array_value([]) })
+		installed_override: bundle_tap_bool(fields['installed_override'] or { ruby.bool_value(false) }, false)
+		developer: bundle_tap_bool(fields['developer'] or { ruby.bool_value(false) }, false)
+		github_api_token: (fields['github_api_token'] or { ruby.string_value('') }).as_string()
 		trusted_entries: trusted
-		skipped_taps: bundle_tap_strings(fields['skipped_taps'] or { brew_runtime.string_array_value([]) })
+		skipped_taps: bundle_tap_strings(fields['skipped_taps'] or { ruby.string_array_value([]) })
 	}
 }
 
-pub fn bundle_tap_effects_value(effects BundleTapEffects) brew_runtime.Value {
-	mut command_results := map[string]brew_runtime.Value{}
+pub fn bundle_tap_effects_value(effects BundleTapEffects) ruby.Value {
+	mut command_results := map[string]ruby.Value{}
 	for command, result in effects.command_results {
-		command_results[command] = brew_runtime.bool_value(result)
+		command_results[command] = ruby.bool_value(result)
 	}
-	return brew_runtime.map_value({
-		'command_results': brew_runtime.map_value(command_results)
+	return ruby.map_value({
+		'command_results': ruby.map_value(command_results)
 	})
 }
 
-pub fn bundle_tap_effects_from_value(value brew_runtime.Value) BundleTapEffects {
-	fields := value.as_map() or { map[string]brew_runtime.Value{} }
+pub fn bundle_tap_effects_from_value(value ruby.Value) BundleTapEffects {
+	fields := value.as_map() or { map[string]ruby.Value{} }
 	mut command_results := map[string]bool{}
-	for command, result in (fields['command_results'] or { brew_runtime.map_value({}) }).as_map() or {
-		map[string]brew_runtime.Value{}
+	for command, result in (fields['command_results'] or { ruby.map_value({}) }).as_map() or {
+		map[string]ruby.Value{}
 	} {
 		command_results[command] = bundle_tap_bool(result, false)
 	}
 	return BundleTapEffects{ command_results: command_results }
 }
 
-fn bundle_tap_action_value(result BundleTapActionResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'result':             brew_runtime.bool_value(result.success)
+fn bundle_tap_action_value(result BundleTapActionResult) ruby.Value {
+	return ruby.map_value({
+		'result':             ruby.bool_value(result.success)
 		'state':              bundle_tap_state_value(result.state)
-		'command':            brew_runtime.string_array_value(result.command)
-		'failed_taps':        brew_runtime.string_array_value(result.failed_taps)
-		'cache_cleared_taps': brew_runtime.string_array_value(result.cache_cleared_taps)
-		'output':             brew_runtime.string_array_value(result.output)
+		'command':            ruby.string_array_value(result.command)
+		'failed_taps':        ruby.string_array_value(result.failed_taps)
+		'cache_cleared_taps': ruby.string_array_value(result.cache_cleared_taps)
+		'output':             ruby.string_array_value(result.output)
 	})
 }
 
@@ -338,12 +338,12 @@ pub fn bundle_tap_dump(state BundleTapState, dumped_formulae []string, dumped_ca
 	return bundle_tap_unique(lines).join('\n')
 }
 
-fn bundle_tap_entry_from_value(value brew_runtime.Value) BundleDslEntry {
-	fields := value.as_map() or { map[string]brew_runtime.Value{} }
+fn bundle_tap_entry_from_value(value ruby.Value) BundleDslEntry {
+	fields := value.as_map() or { map[string]ruby.Value{} }
 	return BundleDslEntry{
-		entry_type: value.attributes['type'] or { (fields['type'] or { brew_runtime.string_value('') }).as_string() }
-		name: value.attributes['name'] or { (fields['name'] or { brew_runtime.string_value(value.repr) }).as_string() }
-		options: (fields['options'] or { brew_runtime.map_value({}) }).as_map() or { value.map_data.clone() }
+		entry_type: value.attributes['type'] or { (fields['type'] or { ruby.string_value('') }).as_string() }
+		name: value.attributes['name'] or { (fields['name'] or { ruby.string_value(value.repr) }).as_string() }
+		options: (fields['options'] or { ruby.map_value({}) }).as_map() or { value.map_data.clone() }
 	}
 }
 
@@ -360,37 +360,37 @@ pub fn bundle_tap_find_actionable(state BundleTapState, entries []BundleDslEntry
 }
 
 // Ruby method `type = :tap` at line 13.
-pub fn ruby_tap_l13_d1_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tap_l13_d1_type(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.object_value('Symbol', 'tap')
+	return ruby.object_value('Symbol', 'tap')
 }
 
 // Ruby method `check_label = "Tap"` at line 16.
-pub fn ruby_tap_l16_d2_check_label(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tap_l16_d2_check_label(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('Tap')
+	return ruby.string_value('Tap')
 }
 
 // Ruby method `reset!` at line 19.
-pub fn ruby_tap_l19_d3_reset(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tap_l19_d3_reset(args ...ruby.Value) ruby.Value {
 	state := if args.len > 0 { bundle_tap_state_from_value(args[0]) } else { BundleTapState{} }
 	return bundle_tap_state_value(bundle_tap_reset(state))
 }
 
 // Ruby method `preinstall!(name, no_upgrade: false, verbose: false, **_options)` at line 32.
-pub fn ruby_tap_l32_d4_preinstall(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tap_l32_d4_preinstall(args ...ruby.Value) ruby.Value {
 	state := if args.len > 0 { bundle_tap_state_from_value(args[0]) } else { BundleTapState{} }
 	name := if args.len > 1 { args[1].as_string() } else { '' }
 	verbose := if args.len > 3 { bundle_tap_bool(args[3], false) } else { false }
 	result, output := bundle_tap_preinstall(state, name, verbose)
-	return brew_runtime.map_value({
-		'result': brew_runtime.bool_value(result)
-		'output': brew_runtime.string_array_value(output)
+	return ruby.map_value({
+		'result': ruby.bool_value(result)
+		'output': ruby.string_array_value(output)
 	})
 }
 
 // Ruby method `install!(name, preinstall: true, no_upgrade: false, verbose: false, force: false, clone_target: nil,` at line 54.
-pub fn ruby_tap_l54_d5_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tap_l54_d5_install(args ...ruby.Value) ruby.Value {
 	state := if args.len > 0 { bundle_tap_state_from_value(args[0]) } else { BundleTapState{} }
 	name := if args.len > 1 { args[1].as_string() } else { '' }
 	preinstall := if args.len > 2 { bundle_tap_bool(args[2], true) } else { true }
@@ -410,59 +410,59 @@ pub fn ruby_tap_l54_d5_install(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `install_verb(_name = "", _options = {})` at line 84.
-pub fn ruby_tap_l84_d6_install_verb(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tap_l84_d6_install_verb(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('Tapping')
+	return ruby.string_value('Tapping')
 }
 
 // Ruby method `dump(dumped_formulae: [], dumped_casks: [])` at line 89.
-pub fn ruby_tap_l89_d7_dump(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tap_l89_d7_dump(args ...ruby.Value) ruby.Value {
 	state := if args.len > 0 { bundle_tap_state_from_value(args[0]) } else { BundleTapState{} }
 	dumped_formulae := if args.len > 1 { bundle_tap_strings(args[1]) } else { [] }
 	dumped_casks := if args.len > 2 { bundle_tap_strings(args[2]) } else { [] }
-	return brew_runtime.string_value(bundle_tap_dump(state, dumped_formulae, dumped_casks))
+	return ruby.string_value(bundle_tap_dump(state, dumped_formulae, dumped_casks))
 }
 
 // Ruby method `dump_output(describe: false, no_restart: false)` at line 136.
-pub fn ruby_tap_l136_d8_dump_output(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tap_l136_d8_dump_output(args ...ruby.Value) ruby.Value {
 	state := if args.len > 0 { bundle_tap_state_from_value(args[0]) } else { BundleTapState{} }
-	return brew_runtime.string_value(bundle_tap_dump(state, [], []))
+	return ruby.string_value(bundle_tap_dump(state, [], []))
 }
 
 // Ruby method `tap_names` at line 144.
-pub fn ruby_tap_l144_d9_tap_names(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tap_l144_d9_tap_names(args ...ruby.Value) ruby.Value {
 	state := if args.len > 0 { bundle_tap_state_from_value(args[0]) } else { BundleTapState{} }
-	return brew_runtime.string_array_value(bundle_tap_names(state))
+	return ruby.string_array_value(bundle_tap_names(state))
 }
 
 // Ruby method `installed_taps` at line 149.
-pub fn ruby_tap_l149_d10_installed_taps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tap_l149_d10_installed_taps(args ...ruby.Value) ruby.Value {
 	state := if args.len > 0 { bundle_tap_state_from_value(args[0]) } else { BundleTapState{} }
-	return brew_runtime.string_array_value(bundle_tap_installed_names(state))
+	return ruby.string_array_value(bundle_tap_installed_names(state))
 }
 
 // Ruby method `taps` at line 154.
-pub fn ruby_tap_l154_d11_taps(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tap_l154_d11_taps(args ...ruby.Value) ruby.Value {
 	state := if args.len > 0 { bundle_tap_state_from_value(args[0]) } else { BundleTapState{} }
 	return bundle_taps_value(bundle_tap_taps(state))
 }
 
 // Ruby method `find_actionable(entries, exit_on_first_error: false, no_upgrade: false, verbose: false)` at line 167.
-pub fn ruby_tap_l167_d12_find_actionable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tap_l167_d12_find_actionable(args ...ruby.Value) ruby.Value {
 	state := if args.len > 0 { bundle_tap_state_from_value(args[0]) } else { BundleTapState{} }
 	entries := if args.len > 1 {
 		args[1].as_array() or { [] }.map(bundle_tap_entry_from_value(it))
 	} else {
 		[]BundleDslEntry{}
 	}
-	return brew_runtime.string_array_value(bundle_tap_find_actionable(state, entries))
+	return ruby.string_array_value(bundle_tap_find_actionable(state, entries))
 }
 
 // Ruby method `installed_and_up_to_date?(package, no_upgrade: false)` at line 180.
-pub fn ruby_tap_l180_d13_installed_and_up_to_date(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tap_l180_d13_installed_and_up_to_date(args ...ruby.Value) ruby.Value {
 	state := if args.len > 0 { bundle_tap_state_from_value(args[0]) } else { BundleTapState{} }
 	package := if args.len > 1 { args[1].as_string() } else { '' }
-	return brew_runtime.bool_value(package in bundle_tap_installed_names(state))
+	return ruby.bool_value(package in bundle_tap_installed_names(state))
 }
 
 // Original Ruby source (line-for-line):

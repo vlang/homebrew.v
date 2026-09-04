@@ -1,6 +1,6 @@
 module segments
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/elftools-1.3.1/lib/elftools/segments/segment.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -42,7 +42,7 @@ pub fn (segment ElfSegment) executable() bool {
 	return segment.header.p_flags & 1 == 1
 }
 
-fn elf_segment_header(value brew_runtime.Value) ElfSegmentHeader {
+fn elf_segment_header(value ruby.Value) ElfSegmentHeader {
 	return ElfSegmentHeader{
 		p_type: (value.attribute('p_type') or { '0' }).int()
 		p_offset: (value.attribute('p_offset') or { '0' }).i64()
@@ -54,8 +54,8 @@ fn elf_segment_header(value brew_runtime.Value) ElfSegmentHeader {
 	}
 }
 
-fn elf_segment_value(segment ElfSegment) brew_runtime.Value {
-	return brew_runtime.structured_value('ELFTools::Segments::Segment', 'Segment', {
+fn elf_segment_value(segment ElfSegment) ruby.Value {
+	return ruby.structured_value('ELFTools::Segments::Segment', 'Segment', {
 		'p_type':   segment.header.p_type.str()
 		'p_offset': segment.header.p_offset.str()
 		'p_filesz': segment.header.p_filesz.str()
@@ -67,7 +67,7 @@ fn elf_segment_value(segment ElfSegment) brew_runtime.Value {
 	})
 }
 
-fn elf_segment_from_value(value brew_runtime.Value) ElfSegment {
+fn elf_segment_from_value(value ruby.Value) ElfSegment {
 	return ElfSegment{
 		header: elf_segment_header(value)
 		stream: (value.attribute('stream') or { '' }).bytes()
@@ -75,12 +75,12 @@ fn elf_segment_from_value(value brew_runtime.Value) ElfSegment {
 }
 
 // Ruby attr_reader `attr_reader :header` at line 7.
-pub fn ruby_segment_l7_d1_header(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_segment_l7_d1_header(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Segment#header requires a receiver')
 	}
 	header := elf_segment_from_value(args[0]).header
-	return brew_runtime.structured_value('ELF_Phdr', '', {
+	return ruby.structured_value('ELF_Phdr', '', {
 		'p_type':   header.p_type.str()
 		'p_offset': header.p_offset.str()
 		'p_filesz': header.p_filesz.str()
@@ -92,15 +92,15 @@ pub fn ruby_segment_l7_d1_header(args ...brew_runtime.Value) brew_runtime.Value 
 }
 
 // Ruby attr_reader `attr_reader :stream` at line 8.
-pub fn ruby_segment_l8_d2_stream(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_segment_l8_d2_stream(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Segment#stream requires a receiver')
 	}
-	return brew_runtime.string_value(args[0].attribute('stream') or { panic('segment has no stream') })
+	return ruby.string_value(args[0].attribute('stream') or { panic('segment has no stream') })
 }
 
 // Ruby method `initialize(header, stream, offset_from_vma: nil)` at line 17.
-pub fn ruby_segment_l17_d3_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_segment_l17_d3_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('Segment#initialize requires a header and stream')
 	}
@@ -111,43 +111,43 @@ pub fn ruby_segment_l17_d3_initialize(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby method `type` at line 26.
-pub fn ruby_segment_l26_d4_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_segment_l26_d4_type(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Segment#type requires a receiver')
 	}
-	return brew_runtime.int_value(elf_segment_from_value(args[0]).header.p_type)
+	return ruby.int_value(elf_segment_from_value(args[0]).header.p_type)
 }
 
 // Ruby method `data` at line 32.
-pub fn ruby_segment_l32_d5_data(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_segment_l32_d5_data(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Segment#data requires a receiver')
 	}
-	return brew_runtime.string_value(elf_segment_from_value(args[0]).data() or { panic(err) }.bytestr())
+	return ruby.string_value(elf_segment_from_value(args[0]).data() or { panic(err) }.bytestr())
 }
 
 // Ruby method `readable?` at line 39.
-pub fn ruby_segment_l39_d6_readable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_segment_l39_d6_readable(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Segment#readable? requires a receiver')
 	}
-	return brew_runtime.bool_value(elf_segment_from_value(args[0]).readable())
+	return ruby.bool_value(elf_segment_from_value(args[0]).readable())
 }
 
 // Ruby method `writable?` at line 45.
-pub fn ruby_segment_l45_d7_writable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_segment_l45_d7_writable(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Segment#writable? requires a receiver')
 	}
-	return brew_runtime.bool_value(elf_segment_from_value(args[0]).writable())
+	return ruby.bool_value(elf_segment_from_value(args[0]).writable())
 }
 
 // Ruby method `executable?` at line 51.
-pub fn ruby_segment_l51_d8_executable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_segment_l51_d8_executable(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('Segment#executable? requires a receiver')
 	}
-	return brew_runtime.bool_value(elf_segment_from_value(args[0]).executable())
+	return ruby.bool_value(elf_segment_from_value(args[0]).executable())
 }
 
 // Original Ruby source (line-for-line):

@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `dev-cmd/update-python-resources.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -144,68 +144,68 @@ pub:
 	updater UpdatePythonResourcesUpdater @[required]
 }
 
-pub fn update_python_resources_input_boundary(input &UpdatePythonResourcesInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::UpdatePythonResources::Input', '', {
+pub fn update_python_resources_input_boundary(input &UpdatePythonResourcesInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::UpdatePythonResources::Input', '', {
 		'update_python_resources_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn update_python_resources_input_from_value(value brew_runtime.Value) &UpdatePythonResourcesInput {
+fn update_python_resources_input_from_value(value ruby.Value) &UpdatePythonResourcesInput {
 	address := value.attributes['update_python_resources_input_address'] or {
 		panic('invalid UpdatePythonResources input')
 	}
 	return unsafe { &UpdatePythonResourcesInput(voidptr(address.u64())) }
 }
 
-fn update_python_resources_request_value(request UpdatePythonResourcesRequest) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'formula':                      brew_runtime.string_value(request.formula.name)
-		'tap_official':                 brew_runtime.bool_value(request.formula.tap_official)
-		'version':                      brew_runtime.string_value(request.version)
-		'version_provided':             brew_runtime.bool_value(request.version_provided)
-		'package_name':                 brew_runtime.string_value(request.package_name)
-		'package_name_provided':        brew_runtime.bool_value(request.package_name_provided)
-		'extra_packages':               brew_runtime.string_array_value(request.extra_packages)
-		'extra_packages_provided':      brew_runtime.bool_value(request.extra_packages_provided)
-		'exclude_packages':             brew_runtime.string_array_value(request.exclude_packages)
-		'exclude_packages_provided':    brew_runtime.bool_value(request.exclude_packages_provided)
-		'install_dependencies':         brew_runtime.bool_value(request.install_dependencies)
-		'print_only':                   brew_runtime.bool_value(request.print_only)
-		'quiet':                        brew_runtime.bool_value(request.quiet)
-		'verbose':                      brew_runtime.bool_value(request.verbose)
-		'ignore_errors':                brew_runtime.bool_value(request.ignore_errors)
-		'ignore_non_pypi_packages':     brew_runtime.bool_value(request.ignore_non_pypi_packages)
-		'ignore_main_package_cooldown': brew_runtime.bool_value(request.ignore_main_package_cooldown)
+fn update_python_resources_request_value(request UpdatePythonResourcesRequest) ruby.Value {
+	return ruby.map_value({
+		'formula':                      ruby.string_value(request.formula.name)
+		'tap_official':                 ruby.bool_value(request.formula.tap_official)
+		'version':                      ruby.string_value(request.version)
+		'version_provided':             ruby.bool_value(request.version_provided)
+		'package_name':                 ruby.string_value(request.package_name)
+		'package_name_provided':        ruby.bool_value(request.package_name_provided)
+		'extra_packages':               ruby.string_array_value(request.extra_packages)
+		'extra_packages_provided':      ruby.bool_value(request.extra_packages_provided)
+		'exclude_packages':             ruby.string_array_value(request.exclude_packages)
+		'exclude_packages_provided':    ruby.bool_value(request.exclude_packages_provided)
+		'install_dependencies':         ruby.bool_value(request.install_dependencies)
+		'print_only':                   ruby.bool_value(request.print_only)
+		'quiet':                        ruby.bool_value(request.quiet)
+		'verbose':                      ruby.bool_value(request.verbose)
+		'ignore_errors':                ruby.bool_value(request.ignore_errors)
+		'ignore_non_pypi_packages':     ruby.bool_value(request.ignore_non_pypi_packages)
+		'ignore_main_package_cooldown': ruby.bool_value(request.ignore_main_package_cooldown)
 	})
 }
 
-fn update_python_resources_outcome_value(outcome UpdatePythonResourcesOutcome) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'updated': brew_runtime.bool_value(outcome.updated)
-		'printed': brew_runtime.bool_value(outcome.printed)
-		'stdout':  brew_runtime.string_value(outcome.stdout)
-		'stderr':  brew_runtime.string_value(outcome.stderr)
-		'failed':  brew_runtime.bool_value(outcome.failed)
+fn update_python_resources_outcome_value(outcome UpdatePythonResourcesOutcome) ruby.Value {
+	return ruby.map_value({
+		'updated': ruby.bool_value(outcome.updated)
+		'printed': ruby.bool_value(outcome.printed)
+		'stdout':  ruby.string_value(outcome.stdout)
+		'stderr':  ruby.string_value(outcome.stderr)
+		'failed':  ruby.bool_value(outcome.failed)
 	})
 }
 
-fn update_python_resources_result_value(result UpdatePythonResourcesResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'bundler_groups':   brew_runtime.string_array_value(result.bundler_groups)
-		'requests':         brew_runtime.array_value(result.requests.map(update_python_resources_request_value(it)))
-		'outcomes':         brew_runtime.array_value(result.outcomes.map(update_python_resources_outcome_value(it)))
-		'updated_formulae': brew_runtime.string_array_value(result.updated_formulae)
-		'printed_formulae': brew_runtime.string_array_value(result.printed_formulae)
-		'stdout':           brew_runtime.string_value(result.stdout)
-		'stderr':           brew_runtime.string_value(result.stderr)
-		'failed':           brew_runtime.bool_value(result.failed)
+fn update_python_resources_result_value(result UpdatePythonResourcesResult) ruby.Value {
+	return ruby.map_value({
+		'bundler_groups':   ruby.string_array_value(result.bundler_groups)
+		'requests':         ruby.array_value(result.requests.map(update_python_resources_request_value(it)))
+		'outcomes':         ruby.array_value(result.outcomes.map(update_python_resources_outcome_value(it)))
+		'updated_formulae': ruby.string_array_value(result.updated_formulae)
+		'printed_formulae': ruby.string_array_value(result.printed_formulae)
+		'stdout':           ruby.string_value(result.stdout)
+		'stderr':           ruby.string_value(result.stderr)
+		'failed':           ruby.bool_value(result.failed)
 	})
 }
 
 // Ruby method `run` at line 44.
-pub fn ruby_update_python_resources_l44_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_python_resources_l44_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'command input is required')
+		return ruby.object_value('ArgumentError', 'command input is required')
 	}
 	input := update_python_resources_input_from_value(args[0])
 	return update_python_resources_result_value(run_update_python_resources(input.options, input.updater) or {
@@ -214,7 +214,7 @@ pub fn ruby_update_python_resources_l44_d1_run(args ...brew_runtime.Value) brew_
 		} else {
 			'FatalError'
 		}
-		return brew_runtime.object_value(error_type, err.msg())
+		return ruby.object_value(error_type, err.msg())
 	})
 }
 

@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `head_software_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -24,20 +24,20 @@ pub fn (spec HeadSoftwareSpec) verify_download_integrity(_filename string) {
 }
 
 // Ruby method `initialize(flags: [])` at line 8.
-pub fn ruby_head_software_spec_l8_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_head_software_spec_l8_d1_initialize(args ...ruby.Value) ruby.Value {
 	flags := if args.len > 0 { args[0].as_string_array() or { []string{} } } else { []string{} }
 	spec := new_head_software_spec(flags)
-	return brew_runtime.structured_value('HeadSoftwareSpec', 'HEAD', {
+	return ruby.structured_value('HeadSoftwareSpec', 'HEAD', {
 		'flags':   spec.flags.join(',')
 		'version': spec.version.to_s()
 	})
 }
 
 // Ruby method `verify_download_integrity(_filename)` at line 14.
-pub fn ruby_head_software_spec_l14_d2_verify_download_integrity(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_head_software_spec_l14_d2_verify_download_integrity(args ...ruby.Value) ruby.Value {
 	spec := new_head_software_spec([])
 	spec.verify_download_integrity(if args.len > 0 { args[0].as_string() } else { '' })
-	return brew_runtime.object_value('NilClass', '')
+	return ruby.object_value('NilClass', '')
 }
 
 // Original Ruby source (line-for-line):

@@ -1,6 +1,6 @@
 module shared
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `rubocops/shared/no_autobump_helper.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -53,8 +53,8 @@ pub fn audit_no_autobump_reason(reason string, is_symbol bool, begin_pos int, en
 	return problems
 }
 
-fn no_autobump_reason_problem_value(problem NoAutobumpReasonProblem) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cop::Problem', problem.message, {
+fn no_autobump_reason_problem_value(problem NoAutobumpReasonProblem) ruby.Value {
+	return ruby.structured_value('RuboCop::Cop::Problem', problem.message, {
 		'kind':        problem.kind
 		'reason':      problem.reason
 		'is_symbol':   problem.is_symbol.str()
@@ -66,7 +66,7 @@ fn no_autobump_reason_problem_value(problem NoAutobumpReasonProblem) brew_runtim
 }
 
 // Ruby method `audit_no_autobump(_type, reason_node)` at line 16.
-pub fn ruby_no_autobump_helper_l16_d1_audit_no_autobump(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_no_autobump_helper_l16_d1_audit_no_autobump(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string().trim_space() } else { '' }
 	is_symbol := source.starts_with(':')
 	reason := if is_symbol {
@@ -74,7 +74,7 @@ pub fn ruby_no_autobump_helper_l16_d1_audit_no_autobump(args ...brew_runtime.Val
 	} else {
 		source.trim('"\'')
 	}
-	return brew_runtime.array_value(audit_no_autobump_reason(reason, is_symbol, 0, source.len).map(no_autobump_reason_problem_value(it)))
+	return ruby.array_value(audit_no_autobump_reason(reason, is_symbol, 0, source.len).map(no_autobump_reason_problem_value(it)))
 }
 
 // Original Ruby source (line-for-line):

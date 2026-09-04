@@ -1,51 +1,51 @@
 module utils
 
-import brew_runtime
+import ruby
 import homebrew.utils as brew_utils
 
 // Translated from Homebrew/brew `test/utils/user_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:user) { described_class.current }` at line 7.
-pub fn ruby_user_spec_l7_d1_user(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_user_spec_l7_d1_user(args ...ruby.Value) ruby.Value {
 	return brew_utils.ruby_user_l26_d2_self_current()
 }
 
 // Ruby it `it { is_expected.to eq ENV.fetch("USER") }` at line 9.
-pub fn ruby_user_spec_l9_d2_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
-	user := brew_utils.current_user() or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(user.name == brew_runtime.environment_value('USER')
-		|| user.name == brew_runtime.current_username())
+pub fn ruby_user_spec_l9_d2_anonymous(args ...ruby.Value) ruby.Value {
+	user := brew_utils.current_user() or { return ruby.bool_value(false) }
+	return ruby.bool_value(user.name == ruby.environment_value('USER')
+		|| user.name == ruby.current_username())
 }
 
 // Ruby let `let(:who_output) { "" }` at line 12.
-pub fn ruby_user_spec_l12_d3_who_output(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('')
+pub fn ruby_user_spec_l12_d3_who_output(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('')
 }
 
 // Ruby let `let(:who_output) do` at line 22.
-pub fn ruby_user_spec_l22_d4_who_output(args ...brew_runtime.Value) brew_runtime.Value {
-	name := brew_runtime.current_username()
-	return brew_runtime.string_value('${name}   console  Oct  1 11:23\n${name}   ttys001  Oct  1 11:25\n')
+pub fn ruby_user_spec_l22_d4_who_output(args ...ruby.Value) ruby.Value {
+	name := ruby.current_username()
+	return ruby.string_value('${name}   console  Oct  1 11:23\n${name}   ttys001  Oct  1 11:25\n')
 }
 
 // Ruby it `it(:gui?) { expect(user.gui?).to be true }` at line 29.
-pub fn ruby_user_spec_l29_d5_gui(args ...brew_runtime.Value) brew_runtime.Value {
-	user := brew_utils.current_user() or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(user.gui_from_who_output(ruby_user_spec_l22_d4_who_output().as_string(),
+pub fn ruby_user_spec_l29_d5_gui(args ...ruby.Value) ruby.Value {
+	user := brew_utils.current_user() or { return ruby.bool_value(false) }
+	return ruby.bool_value(user.gui_from_who_output(ruby_user_spec_l22_d4_who_output().as_string(),
 		true))
 }
 
 // Ruby let `let(:who_output) do` at line 33.
-pub fn ruby_user_spec_l33_d6_who_output(args ...brew_runtime.Value) brew_runtime.Value {
-	name := brew_runtime.current_username()
-	return brew_runtime.string_value('${name}   ttys001  Oct  1 11:25\nfake_user              ttys002  Oct  1 11:27\n')
+pub fn ruby_user_spec_l33_d6_who_output(args ...ruby.Value) ruby.Value {
+	name := ruby.current_username()
+	return ruby.string_value('${name}   ttys001  Oct  1 11:25\nfake_user              ttys002  Oct  1 11:27\n')
 }
 
 // Ruby it `it(:gui?) { expect(user.gui?).to be false }` at line 40.
-pub fn ruby_user_spec_l40_d7_gui(args ...brew_runtime.Value) brew_runtime.Value {
-	user := brew_utils.current_user() or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(!user.gui_from_who_output(ruby_user_spec_l33_d6_who_output().as_string(),
+pub fn ruby_user_spec_l40_d7_gui(args ...ruby.Value) ruby.Value {
+	user := brew_utils.current_user() or { return ruby.bool_value(false) }
+	return ruby.bool_value(!user.gui_from_who_output(ruby_user_spec_l33_d6_who_output().as_string(),
 		true))
 }
 

@@ -1,12 +1,12 @@
 module cmd
 
-import brew_runtime
+import ruby
 import homebrew.cmd as list_cmd
 import os
 import x.json2
 
-fn list_spec_truth(value bool) brew_runtime.Value {
-	return brew_runtime.bool_value(value)
+fn list_spec_truth(value bool) ruby.Value {
+	return ruby.bool_value(value)
 }
 
 fn list_spec_formula(name string, versions []string, installed_on_request bool) list_cmd.ListFormula {
@@ -27,8 +27,8 @@ fn list_spec_cask(token string, versions []string) list_cmd.ListCask {
 	}
 }
 
-fn list_spec_formula_value(formula list_cmd.ListFormula) brew_runtime.Value {
-	return brew_runtime.Value{
+fn list_spec_formula_value(formula list_cmd.ListFormula) ruby.Value {
+	return ruby.Value{
 		type_name: 'Formula'
 		repr: formula.name
 		attributes: {
@@ -43,8 +43,8 @@ fn list_spec_formula_value(formula list_cmd.ListFormula) brew_runtime.Value {
 	}
 }
 
-fn list_spec_cask_value(cask list_cmd.ListCask) brew_runtime.Value {
-	return brew_runtime.Value{
+fn list_spec_cask_value(cask list_cmd.ListCask) ruby.Value {
+	return ruby.Value{
 		type_name: 'Cask::Cask'
 		repr: cask.token
 		attributes: {
@@ -58,26 +58,26 @@ fn list_spec_cask_value(cask list_cmd.ListCask) brew_runtime.Value {
 	}
 }
 
-fn list_spec_request_value(request list_cmd.ListCommandRequest) brew_runtime.Value {
-	return brew_runtime.Value{
+fn list_spec_request_value(request list_cmd.ListCommandRequest) ruby.Value {
+	return ruby.Value{
 		type_name: 'ListCommandRequest'
 		map_data: {
-			'formula':                 brew_runtime.bool_value(request.formula)
-			'cask':                    brew_runtime.bool_value(request.cask)
-			'full_name':               brew_runtime.bool_value(request.full_name)
-			'versions':                brew_runtime.bool_value(request.versions)
-			'json':                    brew_runtime.bool_value(request.json)
-			'multiple':                brew_runtime.bool_value(request.multiple)
-			'pinned':                  brew_runtime.bool_value(request.pinned)
-			'installed_on_request':    brew_runtime.bool_value(request.installed_on_request)
-			'no_installed_on_request': brew_runtime.bool_value(request.no_installed_on_request)
-			'one':                     brew_runtime.bool_value(request.one)
-			'stdout_tty':              brew_runtime.bool_value(request.stdout_tty)
-			'named':                   brew_runtime.string_array_value(request.named)
-			'formulae':                brew_runtime.array_value(request.formulae.map(list_spec_formula_value(it)))
-			'casks':                   brew_runtime.array_value(request.casks.map(list_spec_cask_value(it)))
-			'cellar':                  brew_runtime.string_value(request.cellar)
-			'caskroom':                brew_runtime.string_value(request.caskroom)
+			'formula':                 ruby.bool_value(request.formula)
+			'cask':                    ruby.bool_value(request.cask)
+			'full_name':               ruby.bool_value(request.full_name)
+			'versions':                ruby.bool_value(request.versions)
+			'json':                    ruby.bool_value(request.json)
+			'multiple':                ruby.bool_value(request.multiple)
+			'pinned':                  ruby.bool_value(request.pinned)
+			'installed_on_request':    ruby.bool_value(request.installed_on_request)
+			'no_installed_on_request': ruby.bool_value(request.no_installed_on_request)
+			'one':                     ruby.bool_value(request.one)
+			'stdout_tty':              ruby.bool_value(request.stdout_tty)
+			'named':                   ruby.string_array_value(request.named)
+			'formulae':                ruby.array_value(request.formulae.map(list_spec_formula_value(it)))
+			'casks':                   ruby.array_value(request.casks.map(list_spec_cask_value(it)))
+			'cellar':                  ruby.string_value(request.cellar)
+			'caskroom':                ruby.string_value(request.caskroom)
 		}
 	}
 }
@@ -125,29 +125,29 @@ fn list_spec_argv_request(argv []string) list_cmd.ListCommandRequest {
 	return request
 }
 
-fn list_spec_output_value(result list_cmd.ListCommandResult, include_status bool) brew_runtime.Value {
-	mut values := [brew_runtime.string_value(result.stdout),
-		brew_runtime.string_value(result.stderr)]
+fn list_spec_output_value(result list_cmd.ListCommandResult, include_status bool) ruby.Value {
+	mut values := [ruby.string_value(result.stdout),
+		ruby.string_value(result.stderr)]
 	if include_status {
-		values << brew_runtime.Value{
+		values << ruby.Value{
 			type_name: 'Process::Status'
 			repr: if result.error == '' { '0' } else { '1' }
 			bool_data: result.error == ''
 		}
 	}
-	return brew_runtime.array_value(values)
+	return ruby.array_value(values)
 }
 
 fn list_spec_json_string(value string) string {
 	return json2.encode(value)
 }
 
-fn list_spec_nullable(value brew_runtime.Value, key string) string {
+fn list_spec_nullable(value ruby.Value, key string) string {
 	raw := value.attributes[key] or { return 'null' }
 	return if raw == '' { 'null' } else { list_spec_json_string(raw) }
 }
 
-fn list_spec_json_versions(value brew_runtime.Value) string {
+fn list_spec_json_versions(value ruby.Value) string {
 	versions := if nested := value.map_data['versions'] {
 		nested.as_string_array() or { []string{} }
 	} else {
@@ -157,12 +157,12 @@ fn list_spec_json_versions(value brew_runtime.Value) string {
 	return '[${versions.map(list_spec_json_string(it)).join(',')}]'
 }
 
-fn list_spec_formula_json(value brew_runtime.Value) string {
+fn list_spec_formula_json(value ruby.Value) string {
 	name := value.attributes['name'] or { value.repr }
 	return '{"name":${list_spec_json_string(name)},"versions":${list_spec_json_versions(value)},"linked_version":${list_spec_nullable(value, 'linked_version')},"optlinked_version":${list_spec_nullable(value, 'optlinked_version')},"pinned_version":${list_spec_nullable(value, 'pinned_version')}}'
 }
 
-fn list_spec_cask_json(value brew_runtime.Value) string {
+fn list_spec_cask_json(value ruby.Value) string {
 	token := value.attributes['token'] or { value.repr }
 	return '{"token":${list_spec_json_string(token)},"versions":${list_spec_json_versions(value)},"pinned_version":${list_spec_nullable(value, 'pinned_version')}}'
 }
@@ -184,35 +184,35 @@ fn list_spec_fresh_root(label string) string {
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:formulae) { %w[bar foo qux] }` at line 10.
-pub fn ruby_list_spec_l10_d1_formulae(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_array_value(['bar', 'foo', 'qux'])
+pub fn ruby_list_spec_l10_d1_formulae(args ...ruby.Value) ruby.Value {
+	return ruby.string_array_value(['bar', 'foo', 'qux'])
 }
 
 // Ruby method `list_versions_json(formulae: [], casks: [])` at line 12.
-pub fn ruby_list_spec_l12_d2_list_versions_json(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_list_spec_l12_d2_list_versions_json(args ...ruby.Value) ruby.Value {
 	formulae := if args.len > 0 {
-		args[0].as_array() or { []brew_runtime.Value{} }
+		args[0].as_array() or { []ruby.Value{} }
 	} else {
-		[]brew_runtime.Value{}
+		[]ruby.Value{}
 	}
 	casks := if args.len > 1 {
-		args[1].as_array() or { []brew_runtime.Value{} }
+		args[1].as_array() or { []ruby.Value{} }
 	} else {
-		[]brew_runtime.Value{}
+		[]ruby.Value{}
 	}
 	json := '{"formulae":[${formulae.map(list_spec_formula_json(it)).join(',')}],"casks":[${casks.map(list_spec_cask_json(it)).join(',')}]}'
-	return brew_runtime.string_value('${json}\n')
+	return ruby.string_value('${json}\n')
 }
 
 // Ruby method `install_formula_version(name, version)` at line 28.
-pub fn ruby_list_spec_l28_d3_install_formula_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_list_spec_l28_d3_install_formula_version(args ...ruby.Value) ruby.Value {
 	name := if args.len > 0 { args[0].as_string() } else { 'testball' }
 	version := if args.len > 1 { args[1].as_string() } else { '0.1' }
 	root := if args.len > 2 { args[2].as_string() } else { '' }
 	rack := if root == '' { '' } else { os.join_path(root, name) }
 	if rack != '' {
 		os.mkdir_all(os.join_path(rack, version, 'somedir')) or {
-			return brew_runtime.object_value('SystemCallError', err.msg())
+			return ruby.object_value('SystemCallError', err.msg())
 		}
 	}
 	return list_spec_formula_value(list_cmd.ListFormula{
@@ -224,7 +224,7 @@ pub fn ruby_list_spec_l28_d3_install_formula_version(args ...brew_runtime.Value)
 }
 
 // Ruby method `install_cask(token)` at line 32.
-pub fn ruby_list_spec_l32_d4_install_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_list_spec_l32_d4_install_cask(args ...ruby.Value) ruby.Value {
 	token := if args.len > 0 { args[0].as_string() } else { 'local-caffeine' }
 	version := if token == 'local-caffeine' {
 		'1.2.3'
@@ -233,7 +233,7 @@ pub fn ruby_list_spec_l32_d4_install_cask(args ...brew_runtime.Value) brew_runti
 	path := if root == '' { '' } else { os.join_path(root, token) }
 	if path != '' && version != '' {
 		os.mkdir_all(os.join_path(path, version)) or {
-			return brew_runtime.object_value('SystemCallError', err.msg())
+			return ruby.object_value('SystemCallError', err.msg())
 		}
 	}
 	return list_spec_cask_value(list_cmd.ListCask{
@@ -245,17 +245,17 @@ pub fn ruby_list_spec_l32_d4_install_cask(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby method `bash_list_env` at line 36.
-pub fn ruby_list_spec_l36_d5_bash_list_env(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'HOMEBREW_CASKROOM': brew_runtime.string_value(os.getenv('HOMEBREW_CASKROOM'))
-		'HOMEBREW_CELLAR':   brew_runtime.string_value(os.getenv('HOMEBREW_CELLAR'))
-		'HOMEBREW_LIBRARY':  brew_runtime.string_value(os.getenv('HOMEBREW_LIBRARY'))
-		'HOMEBREW_PREFIX':   brew_runtime.string_value(os.getenv('HOMEBREW_PREFIX'))
+pub fn ruby_list_spec_l36_d5_bash_list_env(args ...ruby.Value) ruby.Value {
+	return ruby.map_value({
+		'HOMEBREW_CASKROOM': ruby.string_value(os.getenv('HOMEBREW_CASKROOM'))
+		'HOMEBREW_CELLAR':   ruby.string_value(os.getenv('HOMEBREW_CELLAR'))
+		'HOMEBREW_LIBRARY':  ruby.string_value(os.getenv('HOMEBREW_LIBRARY'))
+		'HOMEBREW_PREFIX':   ruby.string_value(os.getenv('HOMEBREW_PREFIX'))
 	})
 }
 
 // Ruby method `run_list_bash(env = {})` at line 45.
-pub fn ruby_list_spec_l45_d6_run_list_bash(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_list_spec_l45_d6_run_list_bash(args ...ruby.Value) ruby.Value {
 	formula := list_spec_formula('testball', ['0.1', '0.2'], true)
 	cask := list_spec_cask('local-caffeine', ['1.2.3'])
 	plain := list_cmd.run_list_command(list_cmd.ListCommandRequest{
@@ -275,7 +275,7 @@ pub fn ruby_list_spec_l45_d6_run_list_bash(args ...brew_runtime.Value) brew_runt
 		casks: [cask]
 	})
 	success := plain.stdout == 'testball\nlocal-caffeine\n' && formula_versions.stdout == 'testball 0.1 0.2\n' && cask_versions.stdout == 'local-caffeine 1.2.3\n'
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'Process::Status'
 		repr: if success { '0' } else { '1' }
 		bool_data: success
@@ -283,19 +283,19 @@ pub fn ruby_list_spec_l45_d6_run_list_bash(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `bash_list_output(argv)` at line 117.
-pub fn ruby_list_spec_l117_d7_bash_list_output(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_list_spec_l117_d7_bash_list_output(args ...ruby.Value) ruby.Value {
 	argv := if args.len > 0 { args[0].as_string_array() or { []string{} } } else { []string{} }
 	return list_spec_output_value(list_cmd.run_list_command(list_spec_argv_request(argv)), true)
 }
 
 // Ruby method `ruby_list_output(argv)` at line 125.
-pub fn ruby_list_spec_l125_d8_ruby_list_output(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_list_spec_l125_d8_ruby_list_output(args ...ruby.Value) ruby.Value {
 	argv := if args.len > 0 { args[0].as_string_array() or { []string{} } } else { []string{} }
 	return list_spec_output_value(list_cmd.run_list_command(list_spec_argv_request(argv)), false)
 }
 
 // Ruby it `it "matches the Bash fast path against the Ruby command", :cask do` at line 142.
-pub fn ruby_list_spec_l142_d9_matches(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_list_spec_l142_d9_matches(args ...ruby.Value) ruby.Value {
 	root := list_spec_fresh_root('matches')
 	defer { os.rmdir_all(root) or {} }
 	caskroom := os.join_path(root, 'Caskroom')
@@ -311,14 +311,14 @@ pub fn ruby_list_spec_l142_d9_matches(args ...brew_runtime.Value) brew_runtime.V
 		mut request := list_spec_argv_request(argv)
 		request.caskroom = caskroom
 		bash := list_cmd.run_list_command(request)
-		ruby := list_cmd.run_list_command(request)
-		passed = passed && bash.stdout == ruby.stdout && bash.stderr == ruby.stderr && bash.error == ''
+		ruby_result := list_cmd.run_list_command(request)
+		passed = passed && bash.stdout == ruby_result.stdout && bash.stderr == ruby_result.stderr && bash.error == ''
 	}
 	return list_spec_truth(passed)
 }
 
 // Ruby it `it "prints all installed formulae" do` at line 160.
-pub fn ruby_list_spec_l160_d10_prints(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_list_spec_l160_d10_prints(args ...ruby.Value) ruby.Value {
 	formulae := ['bar', 'foo', 'qux'].map(list_spec_formula(it, ['1.0'], true))
 	result := list_cmd.run_list_command(list_cmd.ListCommandRequest{
 		formula: true
@@ -328,7 +328,7 @@ pub fn ruby_list_spec_l160_d10_prints(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby it `it "prints full names for formulae installed from untrusted taps", :trust_store do` at line 170.
-pub fn ruby_list_spec_l170_d11_prints(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_list_spec_l170_d11_prints(args ...ruby.Value) ruby.Value {
 	result := list_cmd.run_list_command(list_cmd.ListCommandRequest{
 		formula: true
 		full_name: true
@@ -344,7 +344,7 @@ pub fn ruby_list_spec_l170_d11_prints(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby it `it "continues when an installation receipt is invalid" do` at line 193.
-pub fn ruby_list_spec_l193_d12_continues(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_list_spec_l193_d12_continues(args ...ruby.Value) ruby.Value {
 	result := list_cmd.run_list_command(list_cmd.ListCommandRequest{
 		formula: true
 		full_name: true
@@ -371,17 +371,17 @@ pub fn ruby_list_spec_l193_d12_continues(args ...brew_runtime.Value) brew_runtim
 }
 
 // Ruby let `let(:on_request) do` at line 205.
-pub fn ruby_list_spec_l205_d13_on_request(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_list_spec_l205_d13_on_request(args ...ruby.Value) ruby.Value {
 	return list_spec_formula_value(list_spec_formula('on-request', ['1.0'], true))
 }
 
 // Ruby let `let(:dependency) do` at line 211.
-pub fn ruby_list_spec_l211_d14_dependency(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_list_spec_l211_d14_dependency(args ...ruby.Value) ruby.Value {
 	return list_spec_formula_value(list_spec_formula('dependency', ['1.0'], false))
 }
 
 // Ruby it `it "lists only formulae installed on request with --installed-on-request" do` at line 226.
-pub fn ruby_list_spec_l226_d15_lists(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_list_spec_l226_d15_lists(args ...ruby.Value) ruby.Value {
 	result := list_cmd.run_list_command(list_cmd.ListCommandRequest{
 		installed_on_request: true
 		formulae: [list_spec_formula('on-request', ['1.0'], true),
@@ -391,7 +391,7 @@ pub fn ruby_list_spec_l226_d15_lists(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby it `it "lists only dependencies with --no-installed-on-request" do` at line 230.
-pub fn ruby_list_spec_l230_d16_lists(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_list_spec_l230_d16_lists(args ...ruby.Value) ruby.Value {
 	result := list_cmd.run_list_command(list_cmd.ListCommandRequest{
 		no_installed_on_request: true
 		formulae: [list_spec_formula('on-request', ['1.0'], true),
@@ -401,7 +401,7 @@ pub fn ruby_list_spec_l230_d16_lists(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby it `it "lists every formula by category when both flags are combined" do` at line 234.
-pub fn ruby_list_spec_l234_d17_lists(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_list_spec_l234_d17_lists(args ...ruby.Value) ruby.Value {
 	result := list_cmd.run_list_command(list_cmd.ListCommandRequest{
 		installed_on_request: true
 		no_installed_on_request: true
@@ -412,7 +412,7 @@ pub fn ruby_list_spec_l234_d17_lists(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby it `it "covers Bash list output and errors", :cask, :needs_jq do` at line 240.
-pub fn ruby_list_spec_l240_d18_covers(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_list_spec_l240_d18_covers(args ...ruby.Value) ruby.Value {
 	formula := list_spec_formula_value(list_cmd.ListFormula{
 		name: 'testball'
 		full_name: 'testball'
@@ -429,14 +429,14 @@ pub fn ruby_list_spec_l240_d18_covers(args ...brew_runtime.Value) brew_runtime.V
 	formula_attributes['pinned_version'] = '0.2'
 	mut cask_attributes := cask.attributes.clone()
 	cask_attributes['pinned_version'] = '1.2.3'
-	formula_json := ruby_list_spec_l12_d2_list_versions_json(brew_runtime.array_value([
-		brew_runtime.Value{
+	formula_json := ruby_list_spec_l12_d2_list_versions_json(ruby.array_value([
+		ruby.Value{
 			type_name: formula.type_name
 			repr: formula.repr
 			attributes: formula_attributes
 		},
-	]), brew_runtime.array_value([
-		brew_runtime.Value{
+	]), ruby.array_value([
+		ruby.Value{
 			type_name: cask.type_name
 			repr: cask.repr
 			attributes: cask_attributes
@@ -448,19 +448,19 @@ pub fn ruby_list_spec_l240_d18_covers(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby it `it "fails when versions JSON reaches the Ruby fallback" do` at line 290.
-pub fn ruby_list_spec_l290_d19_fails(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_list_spec_l290_d19_fails(args ...ruby.Value) ruby.Value {
 	result := list_cmd.run_list_command(list_cmd.ListCommandRequest{ versions: true, json: true })
 	return list_spec_truth(result.error == '`brew list --versions --json` is only supported by the fast Bash path with `jq`.')
 }
 
 // Ruby it `it "fails clearly when JSON without versions reaches the Ruby fallback" do` at line 295.
-pub fn ruby_list_spec_l295_d20_fails(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_list_spec_l295_d20_fails(args ...ruby.Value) ruby.Value {
 	result := list_cmd.run_list_command(list_cmd.ListCommandRequest{ json: true })
 	return list_spec_truth(result.error == '`brew list --json` requires `--versions`.')
 }
 
 // Ruby it `it "prints pinned formulae and casks", :cask, :integration_test do` at line 300.
-pub fn ruby_list_spec_l300_d21_prints(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_list_spec_l300_d21_prints(args ...ruby.Value) ruby.Value {
 	result := list_cmd.run_list_command(list_cmd.ListCommandRequest{
 		pinned: true
 		versions: true
@@ -489,7 +489,7 @@ pub fn ruby_list_spec_l300_d21_prints(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby it `it "warns about broken Caskroom symlinks" do` at line 314.
-pub fn ruby_list_spec_l314_d22_warns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_list_spec_l314_d22_warns(args ...ruby.Value) ruby.Value {
 	root := list_spec_fresh_root('broken')
 	defer { os.rmdir_all(root) or {} }
 	os.symlink('missing-cask', os.join_path(root, 'dangling-alias')) or { return list_spec_truth(false) }
@@ -498,7 +498,7 @@ pub fn ruby_list_spec_l314_d22_warns(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby it `it "fails only for explicitly named missing pinned packages", :cask do` at line 322.
-pub fn ruby_list_spec_l322_d23_fails(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_list_spec_l322_d23_fails(args ...ruby.Value) ruby.Value {
 	result := list_cmd.run_list_command(list_cmd.ListCommandRequest{
 		pinned: true
 		versions: true
@@ -528,7 +528,7 @@ pub fn ruby_list_spec_l322_d23_fails(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby it `it "warns for explicitly named unpinned packages", :cask do` at line 337.
-pub fn ruby_list_spec_l337_d24_warns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_list_spec_l337_d24_warns(args ...ruby.Value) ruby.Value {
 	result := list_cmd.run_list_command(list_cmd.ListCommandRequest{
 		pinned: true
 		cask: true
@@ -539,7 +539,7 @@ pub fn ruby_list_spec_l337_d24_warns(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby it `it "does not fail for unpinned Caskroom entries without named arguments", :cask do` at line 346.
-pub fn ruby_list_spec_l346_d25_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_list_spec_l346_d25_does(args ...ruby.Value) ruby.Value {
 	result := list_cmd.run_list_command(list_cmd.ListCommandRequest{
 		pinned: true
 		cask: true

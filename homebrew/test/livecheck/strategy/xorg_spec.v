@@ -1,6 +1,6 @@
 module strategy
 
-import brew_runtime
+import ruby
 import homebrew.livecheck
 import homebrew.livecheck.strategy as xorg_core
 import homebrew.utils
@@ -55,8 +55,8 @@ fn xorg_spec_match_data_equal(left xorg_core.PageMatchData,
 }
 
 // Ruby subject `subject(:xorg) { described_class }` at line 7.
-pub fn ruby_xorg_spec_l7_d1_xorg() brew_runtime.Value {
-	return brew_runtime.object_value('Class', 'Homebrew::Livecheck::Strategy::Xorg')
+pub fn ruby_xorg_spec_l7_d1_xorg() ruby.Value {
+	return ruby.object_value('Class', 'Homebrew::Livecheck::Strategy::Xorg')
 }
 
 // Ruby let `let(:xorg_urls) do` at line 9.

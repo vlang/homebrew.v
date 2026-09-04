@@ -1,6 +1,6 @@
 module types
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/sorbet-runtime-0.6.13412/lib/types/syntax.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -30,19 +30,19 @@ pub fn syntax_extended(target_name string, is_module bool,
 	}
 }
 
-fn syntax_plan_value(plan SyntaxHookPlan) brew_runtime.Value {
-	return brew_runtime.Value{
+fn syntax_plan_value(plan SyntaxHookPlan) ruby.Value {
+	return ruby.Value{
 		type_name: 'T::Syntax::HookPlan'
 		repr: plan.target_name
 		map_data: {
-			'prepend': brew_runtime.string_array_value(plan.prepend)
-			'include': brew_runtime.string_array_value(plan.include)
+			'prepend': ruby.string_array_value(plan.prepend)
+			'include': ruby.string_array_value(plan.include)
 		}
 	}
 }
 
 // Ruby method `self.included(other)` at line 32.
-pub fn ruby_syntax_l32_d1_self_included(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_syntax_l32_d1_self_included(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return syntax_plan_value(SyntaxHookPlan{})
 	}
@@ -52,7 +52,7 @@ pub fn ruby_syntax_l32_d1_self_included(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby method `self.extended(other)` at line 37.
-pub fn ruby_syntax_l37_d2_self_extended(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_syntax_l37_d2_self_extended(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return syntax_plan_value(SyntaxHookPlan{})
 	}

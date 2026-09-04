@@ -1,6 +1,6 @@
 module cask
 
-import brew_runtime
+import ruby
 import homebrew
 import homebrew.cask.artifact as cask_artifact
 import homebrew.cask.dsl as dsl_types
@@ -22,26 +22,26 @@ pub struct CaskLanguageBlock {
 pub:
 	languages  []string
 	result     string
-	mutations  map[string]brew_runtime.Value
+	mutations  map[string]ruby.Value
 	is_default bool
 }
 
 pub struct CaskDSL {
 pub mut:
-	cask                            brew_runtime.Value
+	cask                            ruby.Value
 	token                           string
 	artifacts                       ArtifactSet
-	no_autobump_message             brew_runtime.Value
+	no_autobump_message             ruby.Value
 	deprecation_date                string
-	deprecation_reason              brew_runtime.Value
+	deprecation_reason              ruby.Value
 	deprecation_replacement_cask    string
 	deprecation_replacement_formula string
-	deprecate_args                  map[string]brew_runtime.Value
+	deprecate_args                  map[string]ruby.Value
 	disable_date                    string
-	disable_reason                  brew_runtime.Value
+	disable_reason                  ruby.Value
 	disable_replacement_cask        string
 	disable_replacement_formula     string
-	disable_args                    map[string]brew_runtime.Value
+	disable_args                    map[string]ruby.Value
 	homepage_browsed                string
 	on_system_block_min_os          string
 	depends_on_set_in_block         bool
@@ -65,7 +65,7 @@ pub mut:
 	renames                         []dsl_types.CaskRename
 	version_value                   dsl_types.CaskVersion
 	has_version                     bool
-	sha256_value                    brew_runtime.Value
+	sha256_value                    ruby.Value
 	has_sha256                      bool
 	arch_value                      string
 	has_arch                        bool
@@ -78,7 +78,7 @@ pub mut:
 	caveats_value                   dsl_types.CaskCaveats
 	auto_updates_value              bool
 	has_auto_updates                bool
-	livecheck_value                 brew_runtime.Value
+	livecheck_value                 ruby.Value
 	livecheck_strategy              string
 	no_autobump_defined             bool
 	autobump                        bool = true
@@ -88,15 +88,15 @@ pub mut:
 	unique_set_in_block             map[string]bool
 }
 
-fn cask_dsl_nil() brew_runtime.Value {
-	return brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+fn cask_dsl_nil() ruby.Value {
+	return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 }
 
-fn cask_dsl_error(kind string, message string) brew_runtime.Value {
-	return brew_runtime.object_value(kind, message)
+fn cask_dsl_error(kind string, message string) ruby.Value {
+	return ruby.object_value(kind, message)
 }
 
-fn cask_dsl_value_string(value brew_runtime.Value) string {
+fn cask_dsl_value_string(value ruby.Value) string {
 	return if value.type_name == 'Symbol' {
 		value.as_string().trim_left(':')
 	} else {
@@ -104,30 +104,30 @@ fn cask_dsl_value_string(value brew_runtime.Value) string {
 	}
 }
 
-fn cask_dsl_value_bool(value brew_runtime.Value, fallback bool) bool {
+fn cask_dsl_value_bool(value ruby.Value, fallback bool) bool {
 	return if value.type_name == 'Bool' { value.bool_data } else { fallback }
 }
 
-fn cask_dsl_keywords(args []brew_runtime.Value) map[string]brew_runtime.Value {
+fn cask_dsl_keywords(args []ruby.Value) map[string]ruby.Value {
 	for index := args.len - 1; index >= 0; index-- {
 		if args[index].type_name == 'Hash' {
 			return args[index].map_data.clone()
 		}
 	}
-	return map[string]brew_runtime.Value{}
+	return map[string]ruby.Value{}
 }
 
-fn cask_dsl_cask_field(cask brew_runtime.Value, key string) brew_runtime.Value {
+fn cask_dsl_cask_field(cask ruby.Value, key string) ruby.Value {
 	if value := cask.map_data[key] {
 		return value
 	}
 	if value := cask.attributes[key] {
-		return brew_runtime.string_value(value)
+		return ruby.string_value(value)
 	}
 	return cask_dsl_nil()
 }
 
-fn cask_dsl_cask_bool(cask brew_runtime.Value, key string, fallback bool) bool {
+fn cask_dsl_cask_bool(cask ruby.Value, key string, fallback bool) bool {
 	value := cask_dsl_cask_field(cask, key)
 	if value.type_name == 'Bool' {
 		return value.bool_data
@@ -138,7 +138,7 @@ fn cask_dsl_cask_bool(cask brew_runtime.Value, key string, fallback bool) bool {
 	return fallback
 }
 
-fn cask_dsl_config_field(cask brew_runtime.Value, key string) brew_runtime.Value {
+fn cask_dsl_config_field(cask ruby.Value, key string) ruby.Value {
 	config := cask_dsl_cask_field(cask, 'config')
 	if config.type_name == 'Hash' {
 		return config.map_data[key] or { cask_dsl_nil() }
@@ -146,7 +146,7 @@ fn cask_dsl_config_field(cask brew_runtime.Value, key string) brew_runtime.Value
 	return cask_dsl_nil()
 }
 
-pub fn new_cask_dsl(cask brew_runtime.Value) CaskDSL {
+pub fn new_cask_dsl(cask ruby.Value) CaskDSL {
 	token_value := cask_dsl_cask_field(cask, 'token')
 	token := if token_value.type_name == 'NilClass' {
 		cask.as_string()
@@ -156,121 +156,121 @@ pub fn new_cask_dsl(cask brew_runtime.Value) CaskDSL {
 	return CaskDSL{
 		cask: cask
 		token: token
-		artifacts: new_artifact_set([]brew_runtime.Value{})
+		artifacts: new_artifact_set([]ruby.Value{})
 		depends_on_value: dsl_types.CaskDependsOn{}
 		caveats_value: dsl_types.new_cask_caveats(cask)
 		livecheck_value: homebrew.livecheck_dsl_value(homebrew.new_livecheck_dsl(cask))
 	}
 }
 
-fn cask_language_block_value(block CaskLanguageBlock) brew_runtime.Value {
-	return brew_runtime.Value{
+fn cask_language_block_value(block CaskLanguageBlock) ruby.Value {
+	return ruby.Value{
 		type_name: 'Cask::DSL::LanguageBlock'
 		repr: block.result
 		map_data: {
-			'languages': brew_runtime.string_array_value(block.languages)
-			'result':    brew_runtime.string_value(block.result)
-			'mutations': brew_runtime.map_value(block.mutations)
-			'default':   brew_runtime.bool_value(block.is_default)
+			'languages': ruby.string_array_value(block.languages)
+			'result':    ruby.string_value(block.result)
+			'mutations': ruby.map_value(block.mutations)
+			'default':   ruby.bool_value(block.is_default)
 		}
 	}
 }
 
-fn cask_language_block_from_value(value brew_runtime.Value) CaskLanguageBlock {
+fn cask_language_block_from_value(value ruby.Value) CaskLanguageBlock {
 	return CaskLanguageBlock{
-		languages: (value.map_data['languages'] or { brew_runtime.string_array_value([]) }).as_string_array() or { []string{} }
-		result: (value.map_data['result'] or { brew_runtime.string_value(value.as_string()) }).as_string()
-		mutations: (value.map_data['mutations'] or { brew_runtime.map_value({}) }).map_data.clone()
-		is_default: cask_dsl_value_bool(value.map_data['default'] or { brew_runtime.bool_value(false) }, false)
+		languages: (value.map_data['languages'] or { ruby.string_array_value([]) }).as_string_array() or { []string{} }
+		result: (value.map_data['result'] or { ruby.string_value(value.as_string()) }).as_string()
+		mutations: (value.map_data['mutations'] or { ruby.map_value({}) }).map_data.clone()
+		is_default: cask_dsl_value_bool(value.map_data['default'] or { ruby.bool_value(false) }, false)
 	}
 }
 
-pub fn cask_dsl_value(dsl CaskDSL) brew_runtime.Value {
-	mut rename_values := []brew_runtime.Value{}
+pub fn cask_dsl_value(dsl CaskDSL) ruby.Value {
+	mut rename_values := []ruby.Value{}
 	for rename in dsl.renames {
 		rename_values << dsl_types.cask_rename_value(rename)
 	}
 	mut values := {
 		'cask':                            dsl.cask
-		'token':                           brew_runtime.string_value(dsl.token)
+		'token':                           ruby.string_value(dsl.token)
 		'artifacts':                       artifact_set_value(dsl.artifacts)
 		'no_autobump_message':             dsl.no_autobump_message
 		'deprecation_date':                if dsl.deprecation_date == '' {
 			cask_dsl_nil()
 		} else {
-			brew_runtime.object_value('Date', dsl.deprecation_date)
+			ruby.object_value('Date', dsl.deprecation_date)
 		}
 		'deprecation_reason':              dsl.deprecation_reason
 		'deprecation_replacement_cask':    if dsl.deprecation_replacement_cask == '' {
 			cask_dsl_nil()
 		} else {
-			brew_runtime.string_value(dsl.deprecation_replacement_cask)
+			ruby.string_value(dsl.deprecation_replacement_cask)
 		}
 		'deprecation_replacement_formula': if dsl.deprecation_replacement_formula == '' {
 			cask_dsl_nil()
 		} else {
-			brew_runtime.string_value(dsl.deprecation_replacement_formula)
+			ruby.string_value(dsl.deprecation_replacement_formula)
 		}
 		'deprecate_args':                  if dsl.deprecate_args.len == 0 {
 			cask_dsl_nil()
 		} else {
-			brew_runtime.map_value(dsl.deprecate_args)
+			ruby.map_value(dsl.deprecate_args)
 		}
 		'disable_date':                    if dsl.disable_date == '' {
 			cask_dsl_nil()
 		} else {
-			brew_runtime.object_value('Date', dsl.disable_date)
+			ruby.object_value('Date', dsl.disable_date)
 		}
 		'disable_reason':                  dsl.disable_reason
 		'disable_replacement_cask':        if dsl.disable_replacement_cask == '' {
 			cask_dsl_nil()
 		} else {
-			brew_runtime.string_value(dsl.disable_replacement_cask)
+			ruby.string_value(dsl.disable_replacement_cask)
 		}
 		'disable_replacement_formula':     if dsl.disable_replacement_formula == '' {
 			cask_dsl_nil()
 		} else {
-			brew_runtime.string_value(dsl.disable_replacement_formula)
+			ruby.string_value(dsl.disable_replacement_formula)
 		}
 		'disable_args':                    if dsl.disable_args.len == 0 {
 			cask_dsl_nil()
 		} else {
-			brew_runtime.map_value(dsl.disable_args)
+			ruby.map_value(dsl.disable_args)
 		}
 		'homepage_browsed':                if dsl.homepage_browsed == '' {
 			cask_dsl_nil()
 		} else {
-			brew_runtime.object_value('Date', dsl.homepage_browsed)
+			ruby.object_value('Date', dsl.homepage_browsed)
 		}
 		'on_system_block_min_os':          if dsl.on_system_block_min_os == '' {
 			cask_dsl_nil()
 		} else {
-			brew_runtime.object_value('MacOSVersion', dsl.on_system_block_min_os)
+			ruby.object_value('MacOSVersion', dsl.on_system_block_min_os)
 		}
-		'depends_on_set_in_block':         brew_runtime.bool_value(dsl.depends_on_set_in_block)
-		'deprecated':                      brew_runtime.bool_value(dsl.deprecated)
-		'disabled':                        brew_runtime.bool_value(dsl.disabled)
-		'livecheck_defined':               brew_runtime.bool_value(dsl.livecheck_defined)
-		'on_system_blocks_exist':          brew_runtime.bool_value(dsl.on_system_blocks_exist)
-		'on_os_blocks_exist':              brew_runtime.bool_value(dsl.on_os_blocks_exist)
-		'names':                           brew_runtime.string_array_value(dsl.names)
+		'depends_on_set_in_block':         ruby.bool_value(dsl.depends_on_set_in_block)
+		'deprecated':                      ruby.bool_value(dsl.deprecated)
+		'disabled':                        ruby.bool_value(dsl.disabled)
+		'livecheck_defined':               ruby.bool_value(dsl.livecheck_defined)
+		'on_system_blocks_exist':          ruby.bool_value(dsl.on_system_blocks_exist)
+		'on_os_blocks_exist':              ruby.bool_value(dsl.on_os_blocks_exist)
+		'names':                           ruby.string_array_value(dsl.names)
 		'description':                     if dsl.has_description {
-			brew_runtime.string_value(dsl.description)
+			ruby.string_value(dsl.description)
 		} else {
 			cask_dsl_nil()
 		}
 		'homepage':                        if dsl.has_homepage {
-			brew_runtime.string_value(dsl.homepage)
+			ruby.string_value(dsl.homepage)
 		} else {
 			cask_dsl_nil()
 		}
-		'language_blocks':                 brew_runtime.array_value(dsl.language_blocks.map(cask_language_block_value(it)))
+		'language_blocks':                 ruby.array_value(dsl.language_blocks.map(cask_language_block_value(it)))
 		'language_eval':                   if dsl.language_evaluated {
-			brew_runtime.string_value(dsl.language_eval_value)
+			ruby.string_value(dsl.language_eval_value)
 		} else {
 			cask_dsl_nil()
 		}
-		'language_evaluated':              brew_runtime.bool_value(dsl.language_evaluated)
+		'language_evaluated':              ruby.bool_value(dsl.language_evaluated)
 		'url':                             if dsl.has_url {
 			cask_url_value(dsl.url_value)
 		} else {
@@ -281,7 +281,7 @@ pub fn cask_dsl_value(dsl CaskDSL) brew_runtime.Value {
 		} else {
 			cask_dsl_nil()
 		}
-		'renames':                         brew_runtime.array_value(rename_values)
+		'renames':                         ruby.array_value(rename_values)
 		'version':                         if dsl.has_version {
 			dsl_types.cask_version_value(dsl.version_value)
 		} else {
@@ -293,12 +293,12 @@ pub fn cask_dsl_value(dsl CaskDSL) brew_runtime.Value {
 			cask_dsl_nil()
 		}
 		'arch':                            if dsl.has_arch {
-			brew_runtime.string_value(dsl.arch_value)
+			ruby.string_value(dsl.arch_value)
 		} else {
 			cask_dsl_nil()
 		}
 		'os':                              if dsl.has_os {
-			brew_runtime.string_value(dsl.os_value)
+			ruby.string_value(dsl.os_value)
 		} else {
 			cask_dsl_nil()
 		}
@@ -311,40 +311,40 @@ pub fn cask_dsl_value(dsl CaskDSL) brew_runtime.Value {
 		'staged_path':                     if dsl.staged_path_value == '' {
 			cask_dsl_nil()
 		} else {
-			brew_runtime.object_value('Pathname', dsl.staged_path_value)
+			ruby.object_value('Pathname', dsl.staged_path_value)
 		}
 		'caveats':                         dsl_types.cask_caveats_value(dsl.caveats_value)
-		'caveat_texts':                    brew_runtime.string_array_value(dsl.caveats_value.custom)
+		'caveat_texts':                    ruby.string_array_value(dsl.caveats_value.custom)
 		'auto_updates':                    if dsl.has_auto_updates {
-			brew_runtime.bool_value(dsl.auto_updates_value)
+			ruby.bool_value(dsl.auto_updates_value)
 		} else {
 			cask_dsl_nil()
 		}
 		'livecheck':                       dsl.livecheck_value
-		'livecheck_strategy':              brew_runtime.string_value(dsl.livecheck_strategy)
-		'no_autobump_defined':             brew_runtime.bool_value(dsl.no_autobump_defined)
-		'autobump':                        brew_runtime.bool_value(dsl.autobump)
-		'called_in_on_system_block':       brew_runtime.bool_value(dsl.called_in_on_system_block)
-		'called_in_on_os_block':           brew_runtime.bool_value(dsl.called_in_on_os_block)
+		'livecheck_strategy':              ruby.string_value(dsl.livecheck_strategy)
+		'no_autobump_defined':             ruby.bool_value(dsl.no_autobump_defined)
+		'autobump':                        ruby.bool_value(dsl.autobump)
+		'called_in_on_system_block':       ruby.bool_value(dsl.called_in_on_system_block)
+		'called_in_on_os_block':           ruby.bool_value(dsl.called_in_on_os_block)
 	}
-	mut unique := map[string]brew_runtime.Value{}
+	mut unique := map[string]ruby.Value{}
 	for key, set in dsl.unique_set {
-		unique[key] = brew_runtime.bool_value(set)
+		unique[key] = ruby.bool_value(set)
 	}
-	values['unique_set'] = brew_runtime.map_value(unique)
-	mut in_block := map[string]brew_runtime.Value{}
+	values['unique_set'] = ruby.map_value(unique)
+	mut in_block := map[string]ruby.Value{}
 	for key, set in dsl.unique_set_in_block {
-		in_block[key] = brew_runtime.bool_value(set)
+		in_block[key] = ruby.bool_value(set)
 	}
-	values['unique_set_in_block'] = brew_runtime.map_value(in_block)
-	return brew_runtime.Value{
+	values['unique_set_in_block'] = ruby.map_value(in_block)
+	return ruby.Value{
 		type_name: 'Cask::DSL'
 		repr: dsl.token
 		map_data: values
 	}
 }
 
-fn cask_dsl_map_bools(value brew_runtime.Value) map[string]bool {
+fn cask_dsl_map_bools(value ruby.Value) map[string]bool {
 	mut result := map[string]bool{}
 	for key, raw in value.map_data {
 		result[key] = cask_dsl_value_bool(raw, false)
@@ -352,34 +352,34 @@ fn cask_dsl_map_bools(value brew_runtime.Value) map[string]bool {
 	return result
 }
 
-pub fn cask_dsl_from_value(value brew_runtime.Value) !CaskDSL {
+pub fn cask_dsl_from_value(value ruby.Value) !CaskDSL {
 	if value.type_name != 'Cask::DSL' {
 		return error('expected Cask::DSL, got ${value.type_name}')
 	}
-	cask := value.map_data['cask'] or { brew_runtime.object_value('Cask', value.as_string()) }
+	cask := value.map_data['cask'] or { ruby.object_value('Cask', value.as_string()) }
 	mut dsl := new_cask_dsl(cask)
-	dsl.token = (value.map_data['token'] or { brew_runtime.string_value(value.as_string()) }).as_string()
-	dsl.artifacts = artifact_set_from_value(value.map_data['artifacts'] or { artifact_set_value(new_artifact_set([]brew_runtime.Value{})) })!
+	dsl.token = (value.map_data['token'] or { ruby.string_value(value.as_string()) }).as_string()
+	dsl.artifacts = artifact_set_from_value(value.map_data['artifacts'] or { artifact_set_value(new_artifact_set([]ruby.Value{})) })!
 	dsl.no_autobump_message = value.map_data['no_autobump_message'] or { cask_dsl_nil() }
 	dsl.deprecation_date = (value.map_data['deprecation_date'] or { cask_dsl_nil() }).as_string().replace('nil', '')
 	dsl.deprecation_reason = value.map_data['deprecation_reason'] or { cask_dsl_nil() }
 	dsl.deprecation_replacement_cask = (value.map_data['deprecation_replacement_cask'] or { cask_dsl_nil() }).as_string().replace('nil', '')
 	dsl.deprecation_replacement_formula = (value.map_data['deprecation_replacement_formula'] or { cask_dsl_nil() }).as_string().replace('nil', '')
-	dsl.deprecate_args = (value.map_data['deprecate_args'] or { brew_runtime.map_value({}) }).map_data.clone()
+	dsl.deprecate_args = (value.map_data['deprecate_args'] or { ruby.map_value({}) }).map_data.clone()
 	dsl.disable_date = (value.map_data['disable_date'] or { cask_dsl_nil() }).as_string().replace('nil', '')
 	dsl.disable_reason = value.map_data['disable_reason'] or { cask_dsl_nil() }
 	dsl.disable_replacement_cask = (value.map_data['disable_replacement_cask'] or { cask_dsl_nil() }).as_string().replace('nil', '')
 	dsl.disable_replacement_formula = (value.map_data['disable_replacement_formula'] or { cask_dsl_nil() }).as_string().replace('nil', '')
-	dsl.disable_args = (value.map_data['disable_args'] or { brew_runtime.map_value({}) }).map_data.clone()
+	dsl.disable_args = (value.map_data['disable_args'] or { ruby.map_value({}) }).map_data.clone()
 	dsl.homepage_browsed = (value.map_data['homepage_browsed'] or { cask_dsl_nil() }).as_string().replace('nil', '')
 	dsl.on_system_block_min_os = (value.map_data['on_system_block_min_os'] or { cask_dsl_nil() }).as_string().replace('nil', '')
-	dsl.depends_on_set_in_block = cask_dsl_value_bool(value.map_data['depends_on_set_in_block'] or { brew_runtime.bool_value(false) }, false)
-	dsl.deprecated = cask_dsl_value_bool(value.map_data['deprecated'] or { brew_runtime.bool_value(false) }, false)
-	dsl.disabled = cask_dsl_value_bool(value.map_data['disabled'] or { brew_runtime.bool_value(false) }, false)
-	dsl.livecheck_defined = cask_dsl_value_bool(value.map_data['livecheck_defined'] or { brew_runtime.bool_value(false) }, false)
-	dsl.on_system_blocks_exist = cask_dsl_value_bool(value.map_data['on_system_blocks_exist'] or { brew_runtime.bool_value(false) }, false)
-	dsl.on_os_blocks_exist = cask_dsl_value_bool(value.map_data['on_os_blocks_exist'] or { brew_runtime.bool_value(false) }, false)
-	dsl.names = (value.map_data['names'] or { brew_runtime.string_array_value([]) }).as_string_array() or { []string{} }
+	dsl.depends_on_set_in_block = cask_dsl_value_bool(value.map_data['depends_on_set_in_block'] or { ruby.bool_value(false) }, false)
+	dsl.deprecated = cask_dsl_value_bool(value.map_data['deprecated'] or { ruby.bool_value(false) }, false)
+	dsl.disabled = cask_dsl_value_bool(value.map_data['disabled'] or { ruby.bool_value(false) }, false)
+	dsl.livecheck_defined = cask_dsl_value_bool(value.map_data['livecheck_defined'] or { ruby.bool_value(false) }, false)
+	dsl.on_system_blocks_exist = cask_dsl_value_bool(value.map_data['on_system_blocks_exist'] or { ruby.bool_value(false) }, false)
+	dsl.on_os_blocks_exist = cask_dsl_value_bool(value.map_data['on_os_blocks_exist'] or { ruby.bool_value(false) }, false)
+	dsl.names = (value.map_data['names'] or { ruby.string_array_value([]) }).as_string_array() or { []string{} }
 	if raw := value.map_data['description'] {
 		if raw.type_name != 'NilClass' {
 			dsl.description = raw.as_string()
@@ -392,11 +392,11 @@ pub fn cask_dsl_from_value(value brew_runtime.Value) !CaskDSL {
 			dsl.has_homepage = true
 		}
 	}
-	for raw in (value.map_data['language_blocks'] or { brew_runtime.array_value([]brew_runtime.Value{}) }).as_array() or { []brew_runtime.Value{} } {
+	for raw in (value.map_data['language_blocks'] or { ruby.array_value([]ruby.Value{}) }).as_array() or { []ruby.Value{} } {
 		dsl.language_blocks << cask_language_block_from_value(raw)
 	}
-	dsl.language_evaluated = cask_dsl_value_bool(value.map_data['language_evaluated'] or { brew_runtime.bool_value(false) }, false)
-	dsl.language_eval_value = (value.map_data['language_eval'] or { brew_runtime.string_value('') }).as_string()
+	dsl.language_evaluated = cask_dsl_value_bool(value.map_data['language_evaluated'] or { ruby.bool_value(false) }, false)
+	dsl.language_eval_value = (value.map_data['language_eval'] or { ruby.string_value('') }).as_string()
 	if raw := value.map_data['url'] {
 		if raw.type_name != 'NilClass' {
 			dsl.url_value = cask_url_from_value(raw)!
@@ -409,7 +409,7 @@ pub fn cask_dsl_from_value(value brew_runtime.Value) !CaskDSL {
 			dsl.has_container = true
 		}
 	}
-	for raw in (value.map_data['renames'] or { brew_runtime.array_value([]brew_runtime.Value{}) }).as_array() or { []brew_runtime.Value{} } {
+	for raw in (value.map_data['renames'] or { ruby.array_value([]ruby.Value{}) }).as_array() or { []ruby.Value{} } {
 		dsl.renames << dsl_types.cask_rename_from_value(raw)!
 	}
 	if raw := value.map_data['version'] {
@@ -443,11 +443,11 @@ pub fn cask_dsl_from_value(value brew_runtime.Value) !CaskDSL {
 			dsl.has_conflicts_with = true
 		}
 	}
-	dsl.staged_path_value = (value.map_data['staged_path'] or { brew_runtime.string_value('') }).as_string()
+	dsl.staged_path_value = (value.map_data['staged_path'] or { ruby.string_value('') }).as_string()
 	if caveats := value.map_data['caveats'] {
 		dsl.caveats_value = dsl_types.cask_caveats_from_value(caveats)!
 	} else {
-		dsl.caveats_value.custom = (value.map_data['caveat_texts'] or { brew_runtime.string_array_value([]) }).as_string_array() or { []string{} }
+		dsl.caveats_value.custom = (value.map_data['caveat_texts'] or { ruby.string_array_value([]) }).as_string_array() or { []string{} }
 	}
 	if raw := value.map_data['auto_updates'] {
 		if raw.type_name == 'Bool' {
@@ -456,17 +456,17 @@ pub fn cask_dsl_from_value(value brew_runtime.Value) !CaskDSL {
 		}
 	}
 	dsl.livecheck_value = value.map_data['livecheck'] or { cask_dsl_nil() }
-	dsl.livecheck_strategy = (value.map_data['livecheck_strategy'] or { brew_runtime.string_value('') }).as_string()
-	dsl.no_autobump_defined = cask_dsl_value_bool(value.map_data['no_autobump_defined'] or { brew_runtime.bool_value(false) }, false)
-	dsl.autobump = cask_dsl_value_bool(value.map_data['autobump'] or { brew_runtime.bool_value(true) }, true)
-	dsl.called_in_on_system_block = cask_dsl_value_bool(value.map_data['called_in_on_system_block'] or { brew_runtime.bool_value(false) }, false)
-	dsl.called_in_on_os_block = cask_dsl_value_bool(value.map_data['called_in_on_os_block'] or { brew_runtime.bool_value(false) }, false)
-	dsl.unique_set = cask_dsl_map_bools(value.map_data['unique_set'] or { brew_runtime.map_value({}) })
-	dsl.unique_set_in_block = cask_dsl_map_bools(value.map_data['unique_set_in_block'] or { brew_runtime.map_value({}) })
+	dsl.livecheck_strategy = (value.map_data['livecheck_strategy'] or { ruby.string_value('') }).as_string()
+	dsl.no_autobump_defined = cask_dsl_value_bool(value.map_data['no_autobump_defined'] or { ruby.bool_value(false) }, false)
+	dsl.autobump = cask_dsl_value_bool(value.map_data['autobump'] or { ruby.bool_value(true) }, true)
+	dsl.called_in_on_system_block = cask_dsl_value_bool(value.map_data['called_in_on_system_block'] or { ruby.bool_value(false) }, false)
+	dsl.called_in_on_os_block = cask_dsl_value_bool(value.map_data['called_in_on_os_block'] or { ruby.bool_value(false) }, false)
+	dsl.unique_set = cask_dsl_map_bools(value.map_data['unique_set'] or { ruby.map_value({}) })
+	dsl.unique_set_in_block = cask_dsl_map_bools(value.map_data['unique_set_in_block'] or { ruby.map_value({}) })
 	return dsl
 }
 
-fn cask_dsl_receiver(args []brew_runtime.Value, method string) ?CaskDSL {
+fn cask_dsl_receiver(args []ruby.Value, method string) ?CaskDSL {
 	if args.len == 0 {
 		_ = method
 		return none
@@ -496,7 +496,7 @@ fn cask_dsl_system_os(dsl CaskDSL) string {
 		value := configured.as_string().trim_left(':').to_lower()
 		return if value in ['mac', 'macos', 'darwin'] { 'macos' } else { value }
 	}
-	return if brew_runtime.kernel_info().name == 'Darwin' { 'macos' } else { 'linux' }
+	return if ruby.kernel_info().name == 'Darwin' { 'macos' } else { 'linux' }
 }
 
 fn cask_dsl_system_arch(dsl CaskDSL) string {
@@ -505,11 +505,11 @@ fn cask_dsl_system_arch(dsl CaskDSL) string {
 		value := configured.as_string().trim_left(':').to_lower()
 		return if value in ['arm', 'arm64', 'aarch64'] { 'arm' } else { 'intel' }
 	}
-	machine := brew_runtime.run_command('/usr/bin/uname', ['-m']).output.trim_space().to_lower()
+	machine := ruby.run_command('/usr/bin/uname', ['-m']).output.trim_space().to_lower()
 	return if machine.contains('arm') || machine.contains('aarch') { 'arm' } else { 'intel' }
 }
 
-fn cask_dsl_selected(dsl CaskDSL, arm brew_runtime.Value, intel brew_runtime.Value) brew_runtime.Value {
+fn cask_dsl_selected(dsl CaskDSL, arm ruby.Value, intel ruby.Value) ruby.Value {
 	return if cask_dsl_system_arch(dsl) == 'arm' { arm } else { intel }
 }
 
@@ -617,27 +617,27 @@ fn cask_dsl_today(dsl CaskDSL) string {
 	return if configured.type_name != 'NilClass' {
 		configured.as_string()
 	} else {
-		brew_runtime.today_iso()
+		ruby.today_iso()
 	}
 }
 
-fn cask_dsl_argument_error(method string) brew_runtime.Value {
+fn cask_dsl_argument_error(method string) ruby.Value {
 	return cask_dsl_error('ArgumentError', '${method} requires a Cask::DSL receiver')
 }
 
-fn cask_dsl_receiver_or_error(args []brew_runtime.Value, method string) !CaskDSL {
+fn cask_dsl_receiver_or_error(args []ruby.Value, method string) !CaskDSL {
 	if args.len == 0 {
 		return error('${method} requires a Cask::DSL receiver')
 	}
 	return cask_dsl_from_value(args[0])
 }
 
-fn cask_dsl_optional_string(value string) brew_runtime.Value {
-	return if value == '' { cask_dsl_nil() } else { brew_runtime.string_value(value) }
+fn cask_dsl_optional_string(value string) ruby.Value {
+	return if value == '' { cask_dsl_nil() } else { ruby.string_value(value) }
 }
 
-fn cask_dsl_positional(args []brew_runtime.Value) []brew_runtime.Value {
-	mut values := []brew_runtime.Value{}
+fn cask_dsl_positional(args []ruby.Value) []ruby.Value {
+	mut values := []ruby.Value{}
 	for index in 1 .. args.len {
 		if args[index].type_name != 'Hash' {
 			values << args[index]
@@ -646,7 +646,7 @@ fn cask_dsl_positional(args []brew_runtime.Value) []brew_runtime.Value {
 	return values
 }
 
-fn (mut dsl CaskDSL) set_no_autobump_value(because brew_runtime.Value) ! {
+fn (mut dsl CaskDSL) set_no_autobump_value(because ruby.Value) ! {
 	reason := cask_dsl_value_string(because)
 	if because.type_name == 'Symbol' && reason !in cask_dsl_valid_no_autobump_reasons {
 		return error("'because' argument should use valid symbol or a string!")
@@ -660,127 +660,127 @@ fn (mut dsl CaskDSL) set_no_autobump_value(because brew_runtime.Value) ! {
 }
 
 // Ruby attr_reader `attr_reader :cask` at line 142.
-pub fn ruby_dsl_l142_d1_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l142_d1_cask(args ...ruby.Value) ruby.Value {
 	dsl := cask_dsl_receiver(args, 'cask') or { return cask_dsl_argument_error('cask') }
 	return dsl.cask
 }
 
 // Ruby attr_reader `attr_reader :token` at line 145.
-pub fn ruby_dsl_l145_d2_token(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l145_d2_token(args ...ruby.Value) ruby.Value {
 	dsl := cask_dsl_receiver(args, 'token') or { return cask_dsl_argument_error('token') }
-	return brew_runtime.string_value(dsl.token)
+	return ruby.string_value(dsl.token)
 }
 
 // Ruby attr_reader `attr_reader :no_autobump_message` at line 148.
-pub fn ruby_dsl_l148_d3_no_autobump_message(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l148_d3_no_autobump_message(args ...ruby.Value) ruby.Value {
 	dsl := cask_dsl_receiver(args, 'no_autobump_message') or { return cask_dsl_argument_error('no_autobump_message') }
 	return dsl.no_autobump_message
 }
 
 // Ruby attr_reader `attr_reader :artifacts` at line 151.
-pub fn ruby_dsl_l151_d4_artifacts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l151_d4_artifacts(args ...ruby.Value) ruby.Value {
 	dsl := cask_dsl_receiver(args, 'artifacts') or { return cask_dsl_argument_error('artifacts') }
 	return artifact_set_value(dsl.artifacts)
 }
 
 // Ruby attr_reader `attr_reader :deprecation_date` at line 154.
-pub fn ruby_dsl_l154_d5_deprecation_date(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l154_d5_deprecation_date(args ...ruby.Value) ruby.Value {
 	dsl := cask_dsl_receiver(args, 'deprecation_date') or { return cask_dsl_argument_error('deprecation_date') }
 	return if dsl.deprecation_date == '' {
 		cask_dsl_nil()
 	} else {
-		brew_runtime.object_value('Date', dsl.deprecation_date)
+		ruby.object_value('Date', dsl.deprecation_date)
 	}
 }
 
 // Ruby attr_reader `attr_reader :deprecation_reason` at line 157.
-pub fn ruby_dsl_l157_d6_deprecation_reason(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l157_d6_deprecation_reason(args ...ruby.Value) ruby.Value {
 	dsl := cask_dsl_receiver(args, 'deprecation_reason') or { return cask_dsl_argument_error('deprecation_reason') }
 	return dsl.deprecation_reason
 }
 
 // Ruby attr_reader `attr_reader :deprecation_replacement_cask` at line 160.
-pub fn ruby_dsl_l160_d7_deprecation_replacement_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l160_d7_deprecation_replacement_cask(args ...ruby.Value) ruby.Value {
 	dsl := cask_dsl_receiver(args, 'deprecation_replacement_cask') or { return cask_dsl_argument_error('deprecation_replacement_cask') }
 	return cask_dsl_optional_string(dsl.deprecation_replacement_cask)
 }
 
 // Ruby attr_reader `attr_reader :deprecation_replacement_formula` at line 163.
-pub fn ruby_dsl_l163_d8_deprecation_replacement_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l163_d8_deprecation_replacement_formula(args ...ruby.Value) ruby.Value {
 	dsl := cask_dsl_receiver(args, 'deprecation_replacement_formula') or { return cask_dsl_argument_error('deprecation_replacement_formula') }
 	return cask_dsl_optional_string(dsl.deprecation_replacement_formula)
 }
 
 // Ruby attr_reader `attr_reader :deprecate_args` at line 166.
-pub fn ruby_dsl_l166_d9_deprecate_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l166_d9_deprecate_args(args ...ruby.Value) ruby.Value {
 	dsl := cask_dsl_receiver(args, 'deprecate_args') or { return cask_dsl_argument_error('deprecate_args') }
 	return if dsl.deprecate_args.len == 0 {
 		cask_dsl_nil()
 	} else {
-		brew_runtime.map_value(dsl.deprecate_args)
+		ruby.map_value(dsl.deprecate_args)
 	}
 }
 
 // Ruby attr_reader `attr_reader :disable_date` at line 169.
-pub fn ruby_dsl_l169_d10_disable_date(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l169_d10_disable_date(args ...ruby.Value) ruby.Value {
 	dsl := cask_dsl_receiver(args, 'disable_date') or { return cask_dsl_argument_error('disable_date') }
 	return if dsl.disable_date == '' {
 		cask_dsl_nil()
 	} else {
-		brew_runtime.object_value('Date', dsl.disable_date)
+		ruby.object_value('Date', dsl.disable_date)
 	}
 }
 
 // Ruby attr_reader `attr_reader :disable_reason` at line 172.
-pub fn ruby_dsl_l172_d11_disable_reason(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l172_d11_disable_reason(args ...ruby.Value) ruby.Value {
 	dsl := cask_dsl_receiver(args, 'disable_reason') or { return cask_dsl_argument_error('disable_reason') }
 	return dsl.disable_reason
 }
 
 // Ruby attr_reader `attr_reader :disable_replacement_cask` at line 175.
-pub fn ruby_dsl_l175_d12_disable_replacement_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l175_d12_disable_replacement_cask(args ...ruby.Value) ruby.Value {
 	dsl := cask_dsl_receiver(args, 'disable_replacement_cask') or { return cask_dsl_argument_error('disable_replacement_cask') }
 	return cask_dsl_optional_string(dsl.disable_replacement_cask)
 }
 
 // Ruby attr_reader `attr_reader :disable_replacement_formula` at line 178.
-pub fn ruby_dsl_l178_d13_disable_replacement_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l178_d13_disable_replacement_formula(args ...ruby.Value) ruby.Value {
 	dsl := cask_dsl_receiver(args, 'disable_replacement_formula') or { return cask_dsl_argument_error('disable_replacement_formula') }
 	return cask_dsl_optional_string(dsl.disable_replacement_formula)
 }
 
 // Ruby attr_reader `attr_reader :homepage_browsed` at line 181.
-pub fn ruby_dsl_l181_d14_homepage_browsed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l181_d14_homepage_browsed(args ...ruby.Value) ruby.Value {
 	dsl := cask_dsl_receiver(args, 'homepage_browsed') or { return cask_dsl_argument_error('homepage_browsed') }
 	return if dsl.homepage_browsed == '' {
 		cask_dsl_nil()
 	} else {
-		brew_runtime.object_value('Date', dsl.homepage_browsed)
+		ruby.object_value('Date', dsl.homepage_browsed)
 	}
 }
 
 // Ruby attr_reader `attr_reader :disable_args` at line 184.
-pub fn ruby_dsl_l184_d15_disable_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l184_d15_disable_args(args ...ruby.Value) ruby.Value {
 	dsl := cask_dsl_receiver(args, 'disable_args') or { return cask_dsl_argument_error('disable_args') }
 	return if dsl.disable_args.len == 0 {
 		cask_dsl_nil()
 	} else {
-		brew_runtime.map_value(dsl.disable_args)
+		ruby.map_value(dsl.disable_args)
 	}
 }
 
 // Ruby attr_reader `attr_reader :on_system_block_min_os` at line 187.
-pub fn ruby_dsl_l187_d16_on_system_block_min_os(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l187_d16_on_system_block_min_os(args ...ruby.Value) ruby.Value {
 	dsl := cask_dsl_receiver(args, 'on_system_block_min_os') or { return cask_dsl_argument_error('on_system_block_min_os') }
 	return if dsl.on_system_block_min_os == '' {
 		cask_dsl_nil()
 	} else {
-		brew_runtime.object_value('MacOSVersion', dsl.on_system_block_min_os)
+		ruby.object_value('MacOSVersion', dsl.on_system_block_min_os)
 	}
 }
 
 // Ruby method `initialize(cask)` at line 190.
-pub fn ruby_dsl_l190_d17_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l190_d17_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return cask_dsl_error('ArgumentError', 'Cask::DSL#initialize requires a cask')
 	}
@@ -788,51 +788,51 @@ pub fn ruby_dsl_l190_d17_initialize(args ...brew_runtime.Value) brew_runtime.Val
 }
 
 // Ruby method `depends_on_set_in_block? = @depends_on_set_in_block` at line 249.
-pub fn ruby_dsl_l249_d18_depends_on_set_in_block(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l249_d18_depends_on_set_in_block(args ...ruby.Value) ruby.Value {
 	dsl := cask_dsl_receiver(args, 'depends_on_set_in_block?') or { return cask_dsl_argument_error('depends_on_set_in_block?') }
-	return brew_runtime.bool_value(dsl.depends_on_set_in_block)
+	return ruby.bool_value(dsl.depends_on_set_in_block)
 }
 
 // Ruby method `deprecated? = @deprecated` at line 252.
-pub fn ruby_dsl_l252_d19_deprecated(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l252_d19_deprecated(args ...ruby.Value) ruby.Value {
 	dsl := cask_dsl_receiver(args, 'deprecated?') or { return cask_dsl_argument_error('deprecated?') }
-	return brew_runtime.bool_value(dsl.deprecated)
+	return ruby.bool_value(dsl.deprecated)
 }
 
 // Ruby method `disabled? = @disabled` at line 255.
-pub fn ruby_dsl_l255_d20_disabled(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l255_d20_disabled(args ...ruby.Value) ruby.Value {
 	dsl := cask_dsl_receiver(args, 'disabled?') or { return cask_dsl_argument_error('disabled?') }
-	return brew_runtime.bool_value(dsl.disabled)
+	return ruby.bool_value(dsl.disabled)
 }
 
 // Ruby method `livecheck_defined? = @livecheck_defined` at line 258.
-pub fn ruby_dsl_l258_d21_livecheck_defined(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l258_d21_livecheck_defined(args ...ruby.Value) ruby.Value {
 	dsl := cask_dsl_receiver(args, 'livecheck_defined?') or { return cask_dsl_argument_error('livecheck_defined?') }
-	return brew_runtime.bool_value(dsl.livecheck_defined)
+	return ruby.bool_value(dsl.livecheck_defined)
 }
 
 // Ruby method `on_system_blocks_exist? = @on_system_blocks_exist` at line 261.
-pub fn ruby_dsl_l261_d22_on_system_blocks_exist(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l261_d22_on_system_blocks_exist(args ...ruby.Value) ruby.Value {
 	dsl := cask_dsl_receiver(args, 'on_system_blocks_exist?') or { return cask_dsl_argument_error('on_system_blocks_exist?') }
-	return brew_runtime.bool_value(dsl.on_system_blocks_exist)
+	return ruby.bool_value(dsl.on_system_blocks_exist)
 }
 
 // Ruby method `on_os_blocks_exist? = @on_os_blocks_exist` at line 264.
-pub fn ruby_dsl_l264_d23_on_os_blocks_exist(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l264_d23_on_os_blocks_exist(args ...ruby.Value) ruby.Value {
 	dsl := cask_dsl_receiver(args, 'on_os_blocks_exist?') or { return cask_dsl_argument_error('on_os_blocks_exist?') }
-	return brew_runtime.bool_value(dsl.on_os_blocks_exist)
+	return ruby.bool_value(dsl.on_os_blocks_exist)
 }
 
 // Ruby method `name(*args)` at line 278.
-pub fn ruby_dsl_l278_d24_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l278_d24_name(args ...ruby.Value) ruby.Value {
 	mut dsl := cask_dsl_receiver(args, 'name') or { return cask_dsl_argument_error('name') }
 	positionals := cask_dsl_positional(args)
 	if positionals.len == 0 {
-		return brew_runtime.string_array_value(dsl.names)
+		return ruby.string_array_value(dsl.names)
 	}
 	for raw in positionals {
 		if raw.type_name == 'Array' {
-			dsl.names << raw.as_string_array() or { raw.as_array() or { []brew_runtime.Value{} }.map(it.as_string()) }
+			dsl.names << raw.as_string_array() or { raw.as_array() or { []ruby.Value{} }.map(it.as_string()) }
 		} else {
 			dsl.names << raw.as_string()
 		}
@@ -841,12 +841,12 @@ pub fn ruby_dsl_l278_d24_name(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `desc(description = nil)` at line 294.
-pub fn ruby_dsl_l294_d25_desc(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l294_d25_desc(args ...ruby.Value) ruby.Value {
 	mut dsl := cask_dsl_receiver(args, 'desc') or { return cask_dsl_argument_error('desc') }
 	positionals := cask_dsl_positional(args)
 	if positionals.len == 0 || positionals[0].type_name == 'NilClass' {
 		return if dsl.has_description {
-			brew_runtime.string_value(dsl.description)
+			ruby.string_value(dsl.description)
 		} else {
 			cask_dsl_nil()
 		}
@@ -858,7 +858,7 @@ pub fn ruby_dsl_l294_d25_desc(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `set_unique_stanza(stanza, should_return, &_block)` at line 307.
-pub fn ruby_dsl_l307_d26_set_unique_stanza(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l307_d26_set_unique_stanza(args ...ruby.Value) ruby.Value {
 	mut dsl := cask_dsl_receiver(args, 'set_unique_stanza') or { return cask_dsl_argument_error('set_unique_stanza') }
 	if args.len < 3 {
 		return cask_dsl_error('ArgumentError', 'set_unique_stanza requires stanza and should_return')
@@ -892,7 +892,7 @@ pub fn ruby_dsl_l307_d26_set_unique_stanza(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `homepage(homepage = nil, browsed: nil)` at line 341.
-pub fn ruby_dsl_l341_d27_homepage(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l341_d27_homepage(args ...ruby.Value) ruby.Value {
 	mut dsl := cask_dsl_receiver(args, 'homepage') or { return cask_dsl_argument_error('homepage') }
 	positionals := cask_dsl_positional(args)
 	keywords := cask_dsl_keywords(args)
@@ -903,7 +903,7 @@ pub fn ruby_dsl_l341_d27_homepage(args ...brew_runtime.Value) brew_runtime.Value
 			}
 		}
 		return if dsl.has_homepage {
-			brew_runtime.string_value(dsl.homepage)
+			ruby.string_value(dsl.homepage)
 		} else {
 			cask_dsl_nil()
 		}
@@ -922,16 +922,16 @@ pub fn ruby_dsl_l341_d27_homepage(args ...brew_runtime.Value) brew_runtime.Value
 }
 
 // Ruby method `language(*args, default: false, &block)` at line 360.
-pub fn ruby_dsl_l360_d28_language(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l360_d28_language(args ...ruby.Value) ruby.Value {
 	mut dsl := cask_dsl_receiver(args, 'language') or { return cask_dsl_argument_error('language') }
 	if args.len == 1 {
 		result := cask_dsl_evaluate_language(mut dsl) or {
 			return cask_dsl_error('CaskInvalidError', err.msg())
 		}
-		return brew_runtime.string_value(result)
+		return ruby.string_value(result)
 	}
 	keywords := cask_dsl_keywords(args)
-	is_default := cask_dsl_value_bool(keywords['default'] or { brew_runtime.bool_value(false) }, false)
+	is_default := cask_dsl_value_bool(keywords['default'] or { ruby.bool_value(false) }, false)
 	mut languages := []string{}
 	mut block_value := cask_dsl_nil()
 	for index in 1 .. args.len {
@@ -951,7 +951,7 @@ pub fn ruby_dsl_l360_d28_language(args ...brew_runtime.Value) brew_runtime.Value
 		result := cask_dsl_evaluate_language(mut dsl) or {
 			return cask_dsl_error('CaskInvalidError', err.msg())
 		}
-		return brew_runtime.string_value(result)
+		return ruby.string_value(result)
 	}
 	if block_value.type_name == 'NilClass' {
 		return cask_dsl_error('CaskInvalidError', 'No block given to language stanza.')
@@ -974,45 +974,45 @@ pub fn ruby_dsl_l360_d28_language(args ...brew_runtime.Value) brew_runtime.Value
 }
 
 // Ruby method `language_eval` at line 380.
-pub fn ruby_dsl_l380_d29_language_eval(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l380_d29_language_eval(args ...ruby.Value) ruby.Value {
 	mut dsl := cask_dsl_receiver(args, 'language_eval') or { return cask_dsl_argument_error('language_eval') }
 	result := cask_dsl_evaluate_language(mut dsl) or { return cask_dsl_error('CaskInvalidError', err.msg()) }
 	return if result == '' && dsl.language_blocks.len == 0 {
 		cask_dsl_nil()
 	} else {
-		brew_runtime.string_value(result)
+		ruby.string_value(result)
 	}
 }
 
 // Ruby method `languages` at line 407.
-pub fn ruby_dsl_l407_d30_languages(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l407_d30_languages(args ...ruby.Value) ruby.Value {
 	dsl := cask_dsl_receiver(args, 'languages') or { return cask_dsl_argument_error('languages') }
 	mut result := []string{}
 	for block in dsl.language_blocks {
 		result << block.languages
 	}
-	return brew_runtime.string_array_value(result)
+	return ruby.string_array_value(result)
 }
 
 // Ruby method `language_groups` at line 412.
-pub fn ruby_dsl_l412_d31_language_groups(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l412_d31_language_groups(args ...ruby.Value) ruby.Value {
 	dsl := cask_dsl_receiver(args, 'language_groups') or { return cask_dsl_argument_error('language_groups') }
-	return brew_runtime.array_value(dsl.language_blocks.map(brew_runtime.string_array_value(it.languages)))
+	return ruby.array_value(dsl.language_blocks.map(ruby.string_array_value(it.languages)))
 }
 
 // Ruby method `default_language_group` at line 417.
-pub fn ruby_dsl_l417_d32_default_language_group(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l417_d32_default_language_group(args ...ruby.Value) ruby.Value {
 	dsl := cask_dsl_receiver(args, 'default_language_group') or { return cask_dsl_argument_error('default_language_group') }
 	for block in dsl.language_blocks {
 		if block.is_default {
-			return brew_runtime.string_array_value(block.languages)
+			return ruby.string_array_value(block.languages)
 		}
 	}
 	return cask_dsl_nil()
 }
 
 // Ruby method `url(uri = nil, **options)` at line 434.
-pub fn ruby_dsl_l434_d33_url(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l434_d33_url(args ...ruby.Value) ruby.Value {
 	mut dsl := cask_dsl_receiver(args, 'url') or { return cask_dsl_argument_error('url') }
 	positionals := cask_dsl_positional(args)
 	if positionals.len == 0 || positionals[0].type_name == 'NilClass' {
@@ -1027,7 +1027,7 @@ pub fn ruby_dsl_l434_d33_url(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `container(nested: nil, type: nil)` at line 464.
-pub fn ruby_dsl_l464_d34_container(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l464_d34_container(args ...ruby.Value) ruby.Value {
 	mut dsl := cask_dsl_receiver(args, 'container') or { return cask_dsl_argument_error('container') }
 	keywords := cask_dsl_keywords(args)
 	nested_raw := keywords['nested'] or { cask_dsl_nil() }
@@ -1050,11 +1050,11 @@ pub fn ruby_dsl_l464_d34_container(args ...brew_runtime.Value) brew_runtime.Valu
 }
 
 // Ruby method `rename(from = T.unsafe(nil), to = T.unsafe(nil))` at line 486.
-pub fn ruby_dsl_l486_d35_rename(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l486_d35_rename(args ...ruby.Value) ruby.Value {
 	mut dsl := cask_dsl_receiver(args, 'rename') or { return cask_dsl_argument_error('rename') }
 	positionals := cask_dsl_positional(args)
 	if positionals.len == 0 || positionals[0].type_name == 'NilClass' {
-		return brew_runtime.array_value(dsl.renames.map(dsl_types.cask_rename_value(it)))
+		return ruby.array_value(dsl.renames.map(dsl_types.cask_rename_value(it)))
 	}
 	if positionals.len < 2 {
 		return cask_dsl_error('ArgumentError', 'rename requires from and to')
@@ -1064,7 +1064,7 @@ pub fn ruby_dsl_l486_d35_rename(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `version(arg = nil)` at line 503.
-pub fn ruby_dsl_l503_d36_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l503_d36_version(args ...ruby.Value) ruby.Value {
 	mut dsl := cask_dsl_receiver(args, 'version') or { return cask_dsl_argument_error('version') }
 	positionals := cask_dsl_positional(args)
 	if positionals.len == 0 || positionals[0].type_name == 'NilClass' {
@@ -1080,7 +1080,7 @@ pub fn ruby_dsl_l503_d36_version(args ...brew_runtime.Value) brew_runtime.Value 
 	}
 	dsl.set_unique('version') or { return cask_dsl_error('CaskInvalidError', err.msg()) }
 	if raw.type_name == 'Symbol' && cask_dsl_value_string(raw) == 'latest' && !dsl.no_autobump_defined {
-		dsl.set_no_autobump_value(brew_runtime.Value{ type_name: 'Symbol', repr: 'latest_version' }) or {
+		dsl.set_no_autobump_value(ruby.Value{ type_name: 'Symbol', repr: 'latest_version' }) or {
 			return cask_dsl_error('CaskInvalidError', err.msg())
 		}
 	}
@@ -1092,7 +1092,7 @@ pub fn ruby_dsl_l503_d36_version(args ...brew_runtime.Value) brew_runtime.Value 
 }
 
 // Ruby method `sha256(arg = nil, arm: nil, intel: nil, x86_64: nil, x86_64_linux: nil, arm64_linux: nil)` at line 545.
-pub fn ruby_dsl_l545_d37_sha256(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l545_d37_sha256(args ...ruby.Value) ruby.Value {
 	mut dsl := cask_dsl_receiver(args, 'sha256') or { return cask_dsl_argument_error('sha256') }
 	positionals := cask_dsl_positional(args)
 	keywords := cask_dsl_keywords(args)
@@ -1122,9 +1122,9 @@ pub fn ruby_dsl_l545_d37_sha256(args ...brew_runtime.Value) brew_runtime.Value {
 		}
 	}
 	if selected.type_name == 'Symbol' && cask_dsl_value_string(selected) == 'no_check' {
-		dsl.sha256_value = brew_runtime.Value{ type_name: 'Symbol', repr: 'no_check' }
+		dsl.sha256_value = ruby.Value{ type_name: 'Symbol', repr: 'no_check' }
 	} else if selected.type_name == 'String' {
-		dsl.sha256_value = brew_runtime.object_value('Checksum', selected.as_string())
+		dsl.sha256_value = ruby.object_value('Checksum', selected.as_string())
 	} else if selected.type_name == 'NilClass' {
 		dsl.sha256_value = cask_dsl_nil()
 	} else {
@@ -1135,13 +1135,13 @@ pub fn ruby_dsl_l545_d37_sha256(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `arch(arm: nil, intel: nil)` at line 581.
-pub fn ruby_dsl_l581_d38_arch(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l581_d38_arch(args ...ruby.Value) ruby.Value {
 	mut dsl := cask_dsl_receiver(args, 'arch') or { return cask_dsl_argument_error('arch') }
 	keywords := cask_dsl_keywords(args)
 	arm := keywords['arm'] or { cask_dsl_nil() }
 	intel := keywords['intel'] or { cask_dsl_nil() }
 	if arm.type_name == 'NilClass' && intel.type_name == 'NilClass' {
-		return if dsl.has_arch { brew_runtime.string_value(dsl.arch_value) } else { cask_dsl_nil() }
+		return if dsl.has_arch { ruby.string_value(dsl.arch_value) } else { cask_dsl_nil() }
 	}
 	dsl.set_unique('arch') or { return cask_dsl_error('CaskInvalidError', err.msg()) }
 	dsl.on_system_blocks_exist = true
@@ -1152,13 +1152,13 @@ pub fn ruby_dsl_l581_d38_arch(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `os(macos: nil, linux: nil)` at line 606.
-pub fn ruby_dsl_l606_d39_os(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l606_d39_os(args ...ruby.Value) ruby.Value {
 	mut dsl := cask_dsl_receiver(args, 'os') or { return cask_dsl_argument_error('os') }
 	keywords := cask_dsl_keywords(args)
 	macos := keywords['macos'] or { cask_dsl_nil() }
 	linux := keywords['linux'] or { cask_dsl_nil() }
 	if macos.type_name == 'NilClass' && linux.type_name == 'NilClass' {
-		return if dsl.has_os { brew_runtime.string_value(dsl.os_value) } else { cask_dsl_nil() }
+		return if dsl.has_os { ruby.string_value(dsl.os_value) } else { cask_dsl_nil() }
 	}
 	dsl.set_unique('os') or { return cask_dsl_error('CaskInvalidError', err.msg()) }
 	dsl.on_system_blocks_exist = true
@@ -1169,7 +1169,7 @@ pub fn ruby_dsl_l606_d39_os(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `depends_on(arg = nil, **kwargs)` at line 623.
-pub fn ruby_dsl_l623_d40_depends_on(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l623_d40_depends_on(args ...ruby.Value) ruby.Value {
 	mut dsl := cask_dsl_receiver(args, 'depends_on') or { return cask_dsl_argument_error('depends_on') }
 	mut kwargs := cask_dsl_keywords(args)
 	positionals := cask_dsl_positional(args)
@@ -1182,9 +1182,9 @@ pub fn ruby_dsl_l623_d40_depends_on(args ...brew_runtime.Value) brew_runtime.Val
 			if 'macos' in kwargs || 'maximum_macos' in kwargs {
 				return cask_dsl_error('CaskInvalidError', '`depends_on :macos` cannot be combined with another macOS `depends_on`')
 			}
-			kwargs['macos'] = brew_runtime.Value{ type_name: 'Symbol', repr: 'any' }
+			kwargs['macos'] = ruby.Value{ type_name: 'Symbol', repr: 'any' }
 		} else if name == 'linux' {
-			kwargs['linux'] = brew_runtime.Value{ type_name: 'Symbol', repr: 'any' }
+			kwargs['linux'] = ruby.Value{ type_name: 'Symbol', repr: 'any' }
 		} else {
 			return cask_dsl_error('CaskInvalidError', "invalid 'depends_on' value: ${positionals[0].repr}")
 		}
@@ -1199,7 +1199,7 @@ pub fn ruby_dsl_l623_d40_depends_on(args ...brew_runtime.Value) brew_runtime.Val
 }
 
 // Ruby method `conflicts_with(**kwargs)` at line 655.
-pub fn ruby_dsl_l655_d41_conflicts_with(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l655_d41_conflicts_with(args ...ruby.Value) ruby.Value {
 	mut dsl := cask_dsl_receiver(args, 'conflicts_with') or { return cask_dsl_argument_error('conflicts_with') }
 	kwargs := cask_dsl_keywords(args)
 	if kwargs.len == 0 {
@@ -1222,18 +1222,18 @@ pub fn ruby_dsl_l655_d41_conflicts_with(args ...brew_runtime.Value) brew_runtime
 }
 
 // Ruby method `caskroom_path` at line 667.
-pub fn ruby_dsl_l667_d42_caskroom_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l667_d42_caskroom_path(args ...ruby.Value) ruby.Value {
 	dsl := cask_dsl_receiver(args, 'caskroom_path') or { return cask_dsl_argument_error('caskroom_path') }
 	path := cask_dsl_cask_field(dsl.cask, 'caskroom_path')
 	return if path.type_name == 'NilClass' {
-		brew_runtime.object_value('Pathname', '/opt/homebrew/Caskroom/${dsl.token}')
+		ruby.object_value('Pathname', '/opt/homebrew/Caskroom/${dsl.token}')
 	} else {
-		brew_runtime.object_value('Pathname', path.as_string())
+		ruby.object_value('Pathname', path.as_string())
 	}
 }
 
 // Ruby method `staged_path` at line 675.
-pub fn ruby_dsl_l675_d43_staged_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l675_d43_staged_path(args ...ruby.Value) ruby.Value {
 	mut dsl := cask_dsl_receiver(args, 'staged_path') or { return cask_dsl_argument_error('staged_path') }
 	if dsl.staged_path_value == '' {
 		base := ruby_dsl_l667_d42_caskroom_path(cask_dsl_value(dsl)).as_string().trim_right('/')
@@ -1244,11 +1244,11 @@ pub fn ruby_dsl_l675_d43_staged_path(args ...brew_runtime.Value) brew_runtime.Va
 		}
 		dsl.staged_path_value = '${base}/${version}'
 	}
-	return brew_runtime.object_value('Pathname', dsl.staged_path_value)
+	return ruby.object_value('Pathname', dsl.staged_path_value)
 }
 
 // Ruby method `caveats(*strings, &block)` at line 691.
-pub fn ruby_dsl_l691_d44_caveats(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l691_d44_caveats(args ...ruby.Value) ruby.Value {
 	mut dsl := cask_dsl_receiver(args, 'caveats') or { return cask_dsl_argument_error('caveats') }
 	positionals := cask_dsl_positional(args)
 	if positionals.len == 0 {
@@ -1263,18 +1263,18 @@ pub fn ruby_dsl_l691_d44_caveats(args ...brew_runtime.Value) brew_runtime.Value 
 }
 
 // Ruby method `caveats_object = @caveats` at line 705.
-pub fn ruby_dsl_l705_d45_caveats_object(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l705_d45_caveats_object(args ...ruby.Value) ruby.Value {
 	dsl := cask_dsl_receiver(args, 'caveats_object') or { return cask_dsl_argument_error('caveats_object') }
 	return dsl_types.cask_caveats_value(dsl.caveats_value)
 }
 
 // Ruby method `auto_updates(auto_updates = nil)` at line 711.
-pub fn ruby_dsl_l711_d46_auto_updates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l711_d46_auto_updates(args ...ruby.Value) ruby.Value {
 	mut dsl := cask_dsl_receiver(args, 'auto_updates') or { return cask_dsl_argument_error('auto_updates') }
 	positionals := cask_dsl_positional(args)
 	if positionals.len == 0 || positionals[0].type_name == 'NilClass' {
 		return if dsl.has_auto_updates {
-			brew_runtime.bool_value(dsl.auto_updates_value)
+			ruby.bool_value(dsl.auto_updates_value)
 		} else {
 			cask_dsl_nil()
 		}
@@ -1289,7 +1289,7 @@ pub fn ruby_dsl_l711_d46_auto_updates(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby method `livecheck(&block)` at line 719.
-pub fn ruby_dsl_l719_d47_livecheck(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l719_d47_livecheck(args ...ruby.Value) ruby.Value {
 	mut dsl := cask_dsl_receiver(args, 'livecheck') or { return cask_dsl_argument_error('livecheck') }
 	positionals := cask_dsl_positional(args)
 	if positionals.len == 0 {
@@ -1300,9 +1300,9 @@ pub fn ruby_dsl_l719_d47_livecheck(args ...brew_runtime.Value) brew_runtime.Valu
 	}
 	dsl.livecheck_defined = true
 	dsl.livecheck_value = positionals[0]
-	dsl.livecheck_strategy = (positionals[0].map_data['strategy'] or { brew_runtime.string_value('') }).as_string().trim_left(':')
+	dsl.livecheck_strategy = (positionals[0].map_data['strategy'] or { ruby.string_value('') }).as_string().trim_left(':')
 	if dsl.livecheck_strategy == 'extract_plist' && !dsl.no_autobump_defined {
-		dsl.set_no_autobump_value(brew_runtime.Value{ type_name: 'Symbol', repr: 'extract_plist' }) or {
+		dsl.set_no_autobump_value(ruby.Value{ type_name: 'Symbol', repr: 'extract_plist' }) or {
 			return cask_dsl_error('CaskInvalidError', err.msg())
 		}
 	}
@@ -1310,10 +1310,10 @@ pub fn ruby_dsl_l719_d47_livecheck(args ...brew_runtime.Value) brew_runtime.Valu
 }
 
 // Ruby method `no_autobump!(because:)` at line 736.
-pub fn ruby_dsl_l736_d48_no_autobump(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l736_d48_no_autobump(args ...ruby.Value) ruby.Value {
 	mut dsl := cask_dsl_receiver(args, 'no_autobump!') or { return cask_dsl_argument_error('no_autobump!') }
 	tap := cask_dsl_cask_field(dsl.cask, 'tap')
-	if tap.type_name != 'NilClass' && !cask_dsl_value_bool(tap.map_data['official'] or { brew_runtime.bool_value(false) }, false) {
+	if tap.type_name != 'NilClass' && !cask_dsl_value_bool(tap.map_data['official'] or { ruby.bool_value(false) }, false) {
 		return cask_dsl_error('CaskInvalidError', "'no_autobump!' can only be used in official Homebrew taps.")
 	}
 	because := cask_dsl_keywords(args)['because'] or {
@@ -1324,13 +1324,13 @@ pub fn ruby_dsl_l736_d48_no_autobump(args ...brew_runtime.Value) brew_runtime.Va
 }
 
 // Ruby method `autobump?` at line 747.
-pub fn ruby_dsl_l747_d49_autobump(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l747_d49_autobump(args ...ruby.Value) ruby.Value {
 	dsl := cask_dsl_receiver(args, 'autobump?') or { return cask_dsl_argument_error('autobump?') }
-	return brew_runtime.bool_value(dsl.autobump)
+	return ruby.bool_value(dsl.autobump)
 }
 
 // Ruby method `deprecate!(date:, because:, replacement: nil, replacement_formula: nil, replacement_cask: nil)` at line 765.
-pub fn ruby_dsl_l765_d50_deprecate(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l765_d50_deprecate(args ...ruby.Value) ruby.Value {
 	mut dsl := cask_dsl_receiver(args, 'deprecate!') or { return cask_dsl_argument_error('deprecate!') }
 	kwargs := cask_dsl_keywords(args)
 	date := kwargs['date'] or { return cask_dsl_error('ArgumentError', "missing keyword: 'date'") }
@@ -1370,13 +1370,13 @@ pub fn ruby_dsl_l765_d50_deprecate(args ...brew_runtime.Value) brew_runtime.Valu
 }
 
 // Ruby method `disable!(date:, because:, replacement: nil, replacement_formula: nil, replacement_cask: nil)` at line 802.
-pub fn ruby_dsl_l802_d51_disable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l802_d51_disable(args ...ruby.Value) ruby.Value {
 	mut dsl := cask_dsl_receiver(args, 'disable!') or { return cask_dsl_argument_error('disable!') }
 	kwargs := cask_dsl_keywords(args)
 	date := kwargs['date'] or { return cask_dsl_error('ArgumentError', "missing keyword: 'date'") }
 	mut because := kwargs['because'] or { return cask_dsl_error('ArgumentError', "missing keyword: 'because'") }
 	if because.type_name == 'Symbol' && cask_dsl_value_string(because) == 'unsigned' {
-		because = brew_runtime.Value{ type_name: 'Symbol', repr: 'fails_gatekeeper_check' }
+		because = ruby.Value{ type_name: 'Symbol', repr: 'fails_gatekeeper_check' }
 	}
 	replacement := kwargs['replacement'] or { cask_dsl_nil() }
 	replacement_formula := kwargs['replacement_formula'] or { cask_dsl_nil() }
@@ -1426,7 +1426,7 @@ pub fn ruby_dsl_l802_d51_disable(args ...brew_runtime.Value) brew_runtime.Value 
 }
 
 // Ruby define_method `define_method(klass.dsl_key) do |*args, **kwargs|` at line 836.
-pub fn ruby_dsl_l836_d52_klass_dsl_key(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l836_d52_klass_dsl_key(args ...ruby.Value) ruby.Value {
 	mut dsl := cask_dsl_receiver(args, 'artifact') or { return cask_dsl_argument_error('artifact') }
 	if args.len < 2 {
 		return cask_dsl_error('ArgumentError', 'artifact stanza requires its DSL key')
@@ -1436,7 +1436,7 @@ pub fn ruby_dsl_l836_d52_klass_dsl_key(args ...brew_runtime.Value) brew_runtime.
 		return cask_dsl_error('CaskInvalidError', "invalid '${key}' stanza")
 	}
 	kwargs := cask_dsl_keywords(args)
-	mut artifact_args := []brew_runtime.Value{}
+	mut artifact_args := []ruby.Value{}
 	for index in 2 .. args.len {
 		if args[index].type_name != 'Hash' { artifact_args << args[index] }
 	}
@@ -1467,7 +1467,7 @@ pub fn ruby_dsl_l836_d52_klass_dsl_key(args ...brew_runtime.Value) brew_runtime.
 		attributes[name] = value.as_string()
 	}
 	class_name := key.split('_').map(it.title()).join('')
-	mut artifact := brew_runtime.structured_value('Cask::Artifact::${class_name}', artifact_args.map(it.as_string()).join(', '), attributes)
+	mut artifact := ruby.structured_value('Cask::Artifact::${class_name}', artifact_args.map(it.as_string()).join(', '), attributes)
 	if key == 'pkg' {
 		if artifact_args.len == 0 {
 			return cask_dsl_error('CaskInvalidError', "invalid 'pkg' stanza: missing path")
@@ -1480,9 +1480,9 @@ pub fn ruby_dsl_l836_d52_klass_dsl_key(args ...brew_runtime.Value) brew_runtime.
 	} else if key == 'app' && artifact_args.len > 0 {
 		app_value := cask_artifact.app_artifact_value(cask_artifact.AppArtifact{
 			source: artifact_args[0].as_string()
-			target: (kwargs['target'] or { brew_runtime.string_value('') }).as_string()
+			target: (kwargs['target'] or { ruby.string_value('') }).as_string()
 		})
-		artifact = brew_runtime.Value{
+		artifact = ruby.Value{
 			...app_value
 			attributes: {
 				'dsl_key': 'app'
@@ -1498,13 +1498,13 @@ pub fn ruby_dsl_l836_d52_klass_dsl_key(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby define_method `define_method(dsl_key) do |&block|` at line 853.
-pub fn ruby_dsl_l853_d53_dsl_key(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l853_d53_dsl_key(args ...ruby.Value) ruby.Value {
 	mut dsl := cask_dsl_receiver(args, 'artifact block') or { return cask_dsl_argument_error('artifact block') }
 	if args.len < 3 {
 		return cask_dsl_error('ArgumentError', 'artifact block requires a DSL key and block')
 	}
 	key := cask_dsl_value_string(args[1])
-	artifact := brew_runtime.Value{
+	artifact := ruby.Value{
 		type_name: 'Cask::Artifact::${key.split('_').map(it.title()).join('')}'
 		repr: key
 		map_data: {
@@ -1522,14 +1522,14 @@ pub fn ruby_dsl_l853_d53_dsl_key(args ...brew_runtime.Value) brew_runtime.Value 
 }
 
 // Ruby define_method `define_method(klass.dsl_key) do |steps = nil, **kwargs, &block|` at line 862.
-pub fn ruby_dsl_l862_d54_klass_dsl_key(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l862_d54_klass_dsl_key(args ...ruby.Value) ruby.Value {
 	mut dsl := cask_dsl_receiver(args, 'install step artifact') or { return cask_dsl_argument_error('install step artifact') }
 	if args.len < 2 {
 		return cask_dsl_error('ArgumentError', 'install step artifact requires its DSL key')
 	}
 	key := cask_dsl_value_string(args[1])
-	steps := if args.len > 2 { args[2] } else { brew_runtime.array_value([]brew_runtime.Value{}) }
-	artifact := brew_runtime.Value{
+	steps := if args.len > 2 { args[2] } else { ruby.array_value([]ruby.Value{}) }
+	artifact := ruby.Value{
 		type_name: 'Cask::Artifact::${key.split('_').map(it.title()).join('')}'
 		repr: steps.repr
 		map_data: {
@@ -1547,22 +1547,22 @@ pub fn ruby_dsl_l862_d54_klass_dsl_key(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby method `method_missing(method, *_args)` at line 875.
-pub fn ruby_dsl_l875_d55_method_missing(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l875_d55_method_missing(args ...ruby.Value) ruby.Value {
 	dsl := cask_dsl_receiver(args, 'method_missing') or { return cask_dsl_argument_error('method_missing') }
 	method := if args.len > 1 { cask_dsl_value_string(args[1]) } else { '' }
 	return cask_dsl_error('NoMethodError', "undefined method '${method}' for Cask '${dsl.token}'")
 }
 
 // Ruby method `respond_to_missing?(_method_name, _include_private = false)` at line 880.
-pub fn ruby_dsl_l880_d56_respond_to_missing(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l880_d56_respond_to_missing(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return cask_dsl_argument_error('respond_to_missing?')
 	}
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 // Ruby method `os_version` at line 885.
-pub fn ruby_dsl_l885_d57_os_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l885_d57_os_version(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return cask_dsl_argument_error('os_version')
 	}
@@ -1570,13 +1570,13 @@ pub fn ruby_dsl_l885_d57_os_version(args ...brew_runtime.Value) brew_runtime.Val
 }
 
 // Ruby method `appdir` at line 893.
-pub fn ruby_dsl_l893_d58_appdir(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l893_d58_appdir(args ...ruby.Value) ruby.Value {
 	dsl := cask_dsl_receiver(args, 'appdir') or { return cask_dsl_argument_error('appdir') }
 	if cask_dsl_cask_bool(dsl.cask, 'generating_hash', false) {
-		return brew_runtime.string_value('\$APPDIR')
+		return ruby.string_value('\$APPDIR')
 	}
 	configured := cask_dsl_config_field(dsl.cask, 'appdir')
-	return brew_runtime.object_value('Pathname', if configured.type_name == 'NilClass' {
+	return ruby.object_value('Pathname', if configured.type_name == 'NilClass' {
 		'/Applications'
 	} else {
 		configured.as_string().trim_right('/')
@@ -1584,13 +1584,13 @@ pub fn ruby_dsl_l893_d58_appdir(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `no_autobump_defined?` at line 902.
-pub fn ruby_dsl_l902_d59_no_autobump_defined(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l902_d59_no_autobump_defined(args ...ruby.Value) ruby.Value {
 	dsl := cask_dsl_receiver(args, 'no_autobump_defined?') or { return cask_dsl_argument_error('no_autobump_defined?') }
-	return brew_runtime.bool_value(dsl.no_autobump_defined)
+	return ruby.bool_value(dsl.no_autobump_defined)
 }
 
 // Ruby method `set_no_autobump(because:)` at line 907.
-pub fn ruby_dsl_l907_d60_set_no_autobump(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_dsl_l907_d60_set_no_autobump(args ...ruby.Value) ruby.Value {
 	mut dsl := cask_dsl_receiver(args, 'set_no_autobump') or { return cask_dsl_argument_error('set_no_autobump') }
 	because := cask_dsl_keywords(args)['because'] or {
 		if args.len > 1 {

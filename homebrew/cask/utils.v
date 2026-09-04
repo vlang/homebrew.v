@@ -1,6 +1,6 @@
 module cask
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `cask/utils.rb`.
@@ -51,8 +51,8 @@ fn cask_utils_native_runner(command CaskUtilsCommand) !bool {
 	}
 	argv << command.executable
 	argv << command.args
-	result := brew_runtime.run_captured_command(argv, brew_runtime.CapturedCommandOptions{
-		environment: brew_runtime.environment()
+	result := ruby.run_captured_command(argv, ruby.CapturedCommandOptions{
+		environment: ruby.environment()
 	})!
 	if result.exit_code != 0 {
 		message := if result.stderr.trim_space() != '' {
@@ -148,7 +148,7 @@ fn cask_utils_effective_username(options CaskUtilsPermissionOptions) string {
 	if options.username != '' {
 		return options.username
 	}
-	return brew_runtime.current_username()
+	return ruby.current_username()
 }
 
 // gain_permissions_with_runner preserves the source retry order: an operation is
@@ -288,7 +288,7 @@ pub fn privacy_security_preference_pane(access string, macos_major int) string {
 }
 
 pub fn current_macos_major_version() int {
-	result := brew_runtime.run_command('/usr/bin/sw_vers', ['-productVersion'])
+	result := ruby.run_command('/usr/bin/sw_vers', ['-productVersion'])
 	if result.exit_code == 0 {
 		major := result.output.trim_space().all_before('.').int()
 		if major > 0 {
@@ -325,54 +325,54 @@ pub fn token_from(name string) string {
 	return filtered.trim('-')
 }
 
-fn cask_utils_void_result(result CaskUtilsPermissionResult) brew_runtime.Value {
+fn cask_utils_void_result(result CaskUtilsPermissionResult) ruby.Value {
 	if result.success {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
-	return brew_runtime.object_value('CaskError', result.error)
+	return ruby.object_value('CaskError', result.error)
 }
 
 // Ruby method `self.privacy_security_preference_pane(access)` at line 17.
-pub fn ruby_utils_l17_d1_self_privacy_security_preference_pane(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_utils_l17_d1_self_privacy_security_preference_pane(args ...ruby.Value) ruby.Value {
 	access := if args.len > 0 { args[0].as_string() } else { '' }
 	major := if args.len > 1 { int(args[1].int_data) } else { current_macos_major_version() }
-	return brew_runtime.string_value(privacy_security_preference_pane(access, major))
+	return ruby.string_value(privacy_security_preference_pane(access, major))
 }
 
 // Ruby method `self.full_disk_access_enabled?` at line 28.
-pub fn ruby_utils_l28_d2_self_full_disk_access_enabled(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_utils_l28_d2_self_full_disk_access_enabled(args ...ruby.Value) ruby.Value {
 	path := if args.len > 0 { args[0].as_string() } else { full_disk_access_tcc_path }
-	return brew_runtime.bool_value(full_disk_access_enabled(path))
+	return ruby.bool_value(full_disk_access_enabled(path))
 }
 
 // Ruby method `self.gain_permissions_mkpath(path, command: SystemCommand)` at line 33.
-pub fn ruby_utils_l33_d3_self_gain_permissions_mkpath(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_utils_l33_d3_self_gain_permissions_mkpath(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'path is required')
+		return ruby.object_value('ArgumentError', 'path is required')
 	}
 	return cask_utils_void_result(gain_permissions_mkpath(args[0].as_string()))
 }
 
 // Ruby method `self.gain_permissions_rmdir(path, command: SystemCommand)` at line 45.
-pub fn ruby_utils_l45_d4_self_gain_permissions_rmdir(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_utils_l45_d4_self_gain_permissions_rmdir(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'path is required')
+		return ruby.object_value('ArgumentError', 'path is required')
 	}
 	return cask_utils_void_result(gain_permissions_rmdir(args[0].as_string()))
 }
 
 // Ruby method `self.gain_permissions_remove(path, command: SystemCommand)` at line 56.
-pub fn ruby_utils_l56_d5_self_gain_permissions_remove(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_utils_l56_d5_self_gain_permissions_remove(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'path is required')
+		return ruby.object_value('ArgumentError', 'path is required')
 	}
 	return cask_utils_void_result(gain_permissions_remove(args[0].as_string()))
 }
 
 // Ruby method `self.gain_permissions(path, command_args, command, &_block)` at line 92.
-pub fn ruby_utils_l92_d6_self_gain_permissions(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_utils_l92_d6_self_gain_permissions(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'path is required')
+		return ruby.object_value('ArgumentError', 'path is required')
 	}
 	command_args := if args.len > 1 {
 		args[1].as_string_array() or { []string{} }
@@ -392,14 +392,14 @@ pub fn ruby_utils_l92_d6_self_gain_permissions(args ...brew_runtime.Value) brew_
 }
 
 // Ruby method `self.path_occupied?(path)` at line 137.
-pub fn ruby_utils_l137_d7_self_path_occupied(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(args.len > 0 && path_occupied(args[0].as_string()))
+pub fn ruby_utils_l137_d7_self_path_occupied(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(args.len > 0 && path_occupied(args[0].as_string()))
 }
 
 // Ruby method `self.token_from(name)` at line 142.
-pub fn ruby_utils_l142_d8_self_token_from(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_utils_l142_d8_self_token_from(args ...ruby.Value) ruby.Value {
 	name := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.string_value(token_from(name))
+	return ruby.string_value(token_from(name))
 }
 
 // Original Ruby source (line-for-line):

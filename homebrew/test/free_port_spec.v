@@ -1,6 +1,6 @@
 module test
 
-import brew_runtime
+import ruby
 import homebrew
 import net
 
@@ -8,21 +8,21 @@ import net
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:instance) { Object.new.extend(described_class) }` at line 8.
-pub fn ruby_free_port_spec_l8_d1_instance(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Homebrew::FreePort', 'instance')
+pub fn ruby_free_port_spec_l8_d1_instance(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Homebrew::FreePort', 'instance')
 }
 
 // Ruby it `it "returns a free TCP/IP port" do` at line 11.
-pub fn ruby_free_port_spec_l11_d2_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	port := homebrew.free_port() or { return brew_runtime.bool_value(false) }
+pub fn ruby_free_port_spec_l11_d2_returns(args ...ruby.Value) ruby.Value {
+	port := homebrew.free_port() or { return ruby.bool_value(false) }
 	if port < 1024 || port > 65535 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	mut server := net.listen_tcp(.ip, '127.0.0.1:${port}') or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	server.close() or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(true)
+	server.close() or { return ruby.bool_value(false) }
+	return ruby.bool_value(true)
 }
 
 // Original Ruby source (line-for-line):

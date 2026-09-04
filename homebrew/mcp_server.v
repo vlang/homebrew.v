@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `mcp_server.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -13,7 +13,7 @@ pub:
 	name         string
 	description  string
 	command      string
-	input_schema brew_runtime.Value
+	input_schema ruby.Value
 	required     []string
 }
 
@@ -43,27 +43,27 @@ pub mut:
 pub struct McpResponse {
 pub:
 	present bool
-	value   brew_runtime.Value
+	value   ruby.Value
 }
 
-fn mcp_string_property(description string) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'type':        brew_runtime.string_value('string')
-		'description': brew_runtime.string_value(description)
+fn mcp_string_property(description string) ruby.Value {
+	return ruby.map_value({
+		'type':        ruby.string_value('string')
+		'description': ruby.string_value(description)
 	})
 }
 
-fn mcp_boolean_property(description string) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'type':        brew_runtime.string_value('boolean')
-		'description': brew_runtime.string_value(description)
+fn mcp_boolean_property(description string) ruby.Value {
+	return ruby.map_value({
+		'type':        ruby.string_value('boolean')
+		'description': ruby.string_value(description)
 	})
 }
 
-fn mcp_schema(properties map[string]brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'type':       brew_runtime.string_value('object')
-		'properties': brew_runtime.map_value(properties)
+fn mcp_schema(properties map[string]ruby.Value) ruby.Value {
+	return ruby.map_value({
+		'type':       ruby.string_value('object')
+		'properties': ruby.map_value(properties)
 	})
 }
 
@@ -98,7 +98,7 @@ pub fn mcp_tools() []McpTool {
 			name: 'update'
 			description: 'Fetch the newest version of Homebrew and all formulae from GitHub using `git` and perform any necessary migrations.'
 			command: 'brew update'
-			input_schema: mcp_schema(map[string]brew_runtime.Value{})
+			input_schema: mcp_schema(map[string]ruby.Value{})
 		},
 		McpTool{
 			name: 'upgrade'
@@ -123,19 +123,19 @@ pub fn mcp_tools() []McpTool {
 			name: 'config'
 			description: 'Show Homebrew and system configuration info useful for debugging. If you file a bug report, you will be required to provide this information.'
 			command: 'brew config'
-			input_schema: mcp_schema(map[string]brew_runtime.Value{})
+			input_schema: mcp_schema(map[string]ruby.Value{})
 		},
 		McpTool{
 			name: 'doctor'
 			description: "Check your system for potential problems. Will exit with a non-zero status if any potential problems are found. Please note that these warnings are just used to help the Homebrew maintainers with debugging if you file an issue. If everything you use Homebrew for is working fine: please don't worry or file an issue; just ignore this."
 			command: 'brew doctor'
-			input_schema: mcp_schema(map[string]brew_runtime.Value{})
+			input_schema: mcp_schema(map[string]ruby.Value{})
 		},
 		McpTool{
 			name: 'typecheck'
 			description: 'Check for typechecking errors using Sorbet.'
 			command: 'brew typecheck'
-			input_schema: mcp_schema(map[string]brew_runtime.Value{})
+			input_schema: mcp_schema(map[string]ruby.Value{})
 		},
 		McpTool{
 			name: 'style'
@@ -162,7 +162,7 @@ pub fn mcp_tools() []McpTool {
 			name: 'commands'
 			description: 'Show lists of built-in and external commands.'
 			command: 'brew commands'
-			input_schema: mcp_schema(map[string]brew_runtime.Value{})
+			input_schema: mcp_schema(map[string]ruby.Value{})
 		},
 		McpTool{
 			name: 'help'
@@ -175,27 +175,27 @@ pub fn mcp_tools() []McpTool {
 	]
 }
 
-fn mcp_tool_value(tool McpTool) brew_runtime.Value {
+fn mcp_tool_value(tool McpTool) ruby.Value {
 	mut values := {
-		'name':        brew_runtime.string_value(tool.name)
-		'description': brew_runtime.string_value(tool.description)
-		'command':     brew_runtime.string_value(tool.command)
+		'name':        ruby.string_value(tool.name)
+		'description': ruby.string_value(tool.description)
+		'command':     ruby.string_value(tool.command)
 		'inputSchema': tool.input_schema
 	}
 	if tool.required.len > 0 {
-		values['required'] = brew_runtime.string_array_value(tool.required)
+		values['required'] = ruby.string_array_value(tool.required)
 	}
-	return brew_runtime.map_value(values)
+	return ruby.map_value(values)
 }
 
 pub fn new_mcp_server(argv []string, stdin_lines []string, brew_file string,
 	version string) McpServerState {
 	return McpServerState{
 		brew_file: if brew_file == '' {
-			brew_runtime.environment_value('HOMEBREW_BREW_FILE')} else {
+			ruby.environment_value('HOMEBREW_BREW_FILE')} else {
 			brew_file}
 		version: if version == '' {
-			brew_runtime.environment_value('HOMEBREW_VERSION')} else {
+			ruby.environment_value('HOMEBREW_VERSION')} else {
 			version}
 		debug_logging: '--debug' in argv || '-d' in argv
 		ping_switch: '--ping' in argv
@@ -203,10 +203,10 @@ pub fn new_mcp_server(argv []string, stdin_lines []string, brew_file string,
 	}
 }
 
-pub fn mcp_server_info(version string) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'name':    brew_runtime.string_value('brew-mcp-server')
-		'version': brew_runtime.string_value(version)
+pub fn mcp_server_info(version string) ruby.Value {
+	return ruby.map_value({
+		'name':    ruby.string_value('brew-mcp-server')
+		'version': ruby.string_value(version)
 	})
 }
 
@@ -220,16 +220,16 @@ pub fn mcp_log(mut server McpServerState, text string) {
 	server.stderr_lines << '${text}\n'
 }
 
-fn mcp_response(id brew_runtime.Value, key string, payload brew_runtime.Value) brew_runtime.Value {
+fn mcp_response(id ruby.Value, key string, payload ruby.Value) ruby.Value {
 	mut values := {
-		'jsonrpc': brew_runtime.string_value(mcp_json_rpc_version)
+		'jsonrpc': ruby.string_value(mcp_json_rpc_version)
 		'id':      id
 	}
 	values[key] = payload
-	return brew_runtime.map_value(values)
+	return ruby.map_value(values)
 }
 
-pub fn mcp_respond_result(id ?brew_runtime.Value, result brew_runtime.Value) McpResponse {
+pub fn mcp_respond_result(id ?ruby.Value, result ruby.Value) McpResponse {
 	response_id := id or { return McpResponse{} }
 	return McpResponse{
 		present: true
@@ -237,35 +237,35 @@ pub fn mcp_respond_result(id ?brew_runtime.Value, result brew_runtime.Value) Mcp
 	}
 }
 
-pub fn mcp_respond_error(id brew_runtime.Value, message string) McpResponse {
+pub fn mcp_respond_error(id ruby.Value, message string) McpResponse {
 	return McpResponse{
 		present: true
-		value: mcp_response(id, 'error', brew_runtime.map_value({
-			'code':    brew_runtime.int_value(mcp_error_code)
-			'message': brew_runtime.string_value(message)
+		value: mcp_response(id, 'error', ruby.map_value({
+			'code':    ruby.int_value(mcp_error_code)
+			'message': ruby.string_value(message)
 		}))
 	}
 }
 
-fn mcp_bool(arguments map[string]brew_runtime.Value, key string) bool {
+fn mcp_bool(arguments map[string]ruby.Value, key string) bool {
 	value := arguments[key] or { return false }
 	return value.type_name == 'Bool' && value.bool_data
 }
 
 pub fn mcp_tool_command_arguments(tool_name string,
-	arguments map[string]brew_runtime.Value) []string {
+	arguments map[string]ruby.Value) []string {
 	match tool_name {
 		'style' {
 			mut output := []string{}
 			if mcp_bool(arguments, 'fix') { output << '--fix' }
 			if mcp_bool(arguments, 'changed') { output << '--changed' }
-			files := (arguments['files'] or { brew_runtime.string_value('') }).as_string().trim_space()
+			files := (arguments['files'] or { ruby.string_value('') }).as_string().trim_space()
 			if files != '' { output << files.fields() }
 			return output
 		}
 		'tests' {
 			mut output := []string{}
-			only := (arguments['only'] or { brew_runtime.string_value('') }).as_string().trim_space()
+			only := (arguments['only'] or { ruby.string_value('') }).as_string().trim_space()
 			if only != '' { output << '--only=${only}' }
 			if mcp_bool(arguments, 'fail_fast') { output << '--fail-fast' }
 			if mcp_bool(arguments, 'changed') { output << '--changed' }
@@ -274,17 +274,17 @@ pub fn mcp_tool_command_arguments(tool_name string,
 		}
 		'search' {
 			return [
-				(arguments['text_or_regex'] or { brew_runtime.string_value('') }).as_string(),
+				(arguments['text_or_regex'] or { ruby.string_value('') }).as_string(),
 			].filter(it != '')
 		}
 		'help' {
 			return [
-				(arguments['command'] or { brew_runtime.string_value('') }).as_string(),
+				(arguments['command'] or { ruby.string_value('') }).as_string(),
 			].filter(it != '')
 		}
 		else {
 			return [
-				(arguments['formula_or_cask'] or { brew_runtime.string_value('') }).as_string(),
+				(arguments['formula_or_cask'] or { ruby.string_value('') }).as_string(),
 			].filter(it != '')
 		}
 	}
@@ -300,23 +300,23 @@ fn mcp_inline_cask_definition(value string) bool {
 }
 
 fn mcp_default_command_runner(executable string, arguments []string) !McpCommandExecution {
-	result := brew_runtime.run_command(executable, arguments)
+	result := ruby.run_command(executable, arguments)
 	return McpCommandExecution{ output: result.output, chunks: [result.output] }
 }
 
-pub fn mcp_respond_to_tools_call(mut server McpServerState, id brew_runtime.Value,
-	request brew_runtime.Value, runner McpCommandRunner) !McpResponse {
+pub fn mcp_respond_to_tools_call(mut server McpServerState, id ruby.Value,
+	request ruby.Value, runner McpCommandRunner) !McpResponse {
 	request_values := request.map_data.clone()
 	params_value := request_values['params'] or { return mcp_respond_error(id, 'Unknown tool') }
 	params := params_value.map_data.clone()
-	tool_name := (params['name'] or { brew_runtime.string_value('') }).as_string()
+	tool_name := (params['name'] or { ruby.string_value('') }).as_string()
 	tool := mcp_tools().filter(it.name == tool_name)
 	if tool.len == 0 {
 		return mcp_respond_error(id, 'Unknown tool')
 	}
-	arguments_value := params['arguments'] or { brew_runtime.map_value(map[string]brew_runtime.Value{}) }
+	arguments_value := params['arguments'] or { ruby.map_value(map[string]ruby.Value{}) }
 	arguments := arguments_value.map_data.clone()
-	formula_or_cask := (arguments['formula_or_cask'] or { brew_runtime.string_value('') }).as_string()
+	formula_or_cask := (arguments['formula_or_cask'] or { ruby.string_value('') }).as_string()
 	if formula_or_cask != '' && mcp_inline_cask_definition(formula_or_cask) {
 		return mcp_respond_error(id, 'Invalid formula or cask argument')
 	}
@@ -326,7 +326,7 @@ pub fn mcp_respond_to_tools_call(mut server McpServerState, id brew_runtime.Valu
 	brew_arguments << command_arguments
 	execution := runner(server.brew_file, brew_arguments)!
 	progress_token := if meta_value := params['_meta'] {
-		(meta_value.map_data['progressToken'] or { brew_runtime.Value{} }).as_string()
+		(meta_value.map_data['progressToken'] or { ruby.Value{} }).as_string()
 	} else {
 		''
 	}
@@ -342,83 +342,83 @@ pub fn mcp_respond_to_tools_call(mut server McpServerState, id brew_runtime.Valu
 			if chunk == '' {
 				continue
 			}
-			progress := brew_runtime.map_value({
-				'jsonrpc': brew_runtime.string_value(mcp_json_rpc_version)
-				'method':  brew_runtime.string_value('notifications/progress')
-				'params':  brew_runtime.map_value({
-					'progressToken': brew_runtime.string_value(progress_token)
-					'progress':      brew_runtime.int_value(index + 1)
+			progress := ruby.map_value({
+				'jsonrpc': ruby.string_value(mcp_json_rpc_version)
+				'method':  ruby.string_value('notifications/progress')
+				'params':  ruby.map_value({
+					'progressToken': ruby.string_value(progress_token)
+					'progress':      ruby.int_value(index + 1)
 				})
 			})
-			server.stdout_lines << brew_runtime.json_value_to_string(progress)
+			server.stdout_lines << ruby.json_value_to_string(progress)
 		}
 	}
-	return mcp_respond_result(id, brew_runtime.map_value({
-		'content': brew_runtime.array_value([
-			brew_runtime.map_value({
-				'type': brew_runtime.string_value('text')
-				'text': brew_runtime.string_value(execution.output)
+	return mcp_respond_result(id, ruby.map_value({
+		'content': ruby.array_value([
+			ruby.map_value({
+				'type': ruby.string_value('text')
+				'text': ruby.string_value(execution.output)
 			}),
 		])
 	}))
 }
 
-pub fn mcp_handle_request(mut server McpServerState, request brew_runtime.Value,
+pub fn mcp_handle_request(mut server McpServerState, request ruby.Value,
 	runner McpCommandRunner) !McpResponse {
 	values := request.map_data.clone()
 	id := values['id'] or { return McpResponse{} }
 	if id.type_name == 'NilClass' || id.type_name == '' {
 		return McpResponse{}
 	}
-	method := (values['method'] or { brew_runtime.string_value('') }).as_string()
+	method := (values['method'] or { ruby.string_value('') }).as_string()
 	match method {
 		'initialize' {
-			return mcp_respond_result(id, brew_runtime.map_value({
-				'protocolVersion': brew_runtime.string_value(mcp_protocol_version)
-				'capabilities':    brew_runtime.map_value({
-					'tools':     brew_runtime.map_value({
-						'listChanged': brew_runtime.bool_value(false)
+			return mcp_respond_result(id, ruby.map_value({
+				'protocolVersion': ruby.string_value(mcp_protocol_version)
+				'capabilities':    ruby.map_value({
+					'tools':     ruby.map_value({
+						'listChanged': ruby.bool_value(false)
 					})
-					'prompts':   brew_runtime.map_value(map[string]brew_runtime.Value{})
-					'resources': brew_runtime.map_value(map[string]brew_runtime.Value{})
-					'logging':   brew_runtime.map_value(map[string]brew_runtime.Value{})
-					'roots':     brew_runtime.map_value(map[string]brew_runtime.Value{})
+					'prompts':   ruby.map_value(map[string]ruby.Value{})
+					'resources': ruby.map_value(map[string]ruby.Value{})
+					'logging':   ruby.map_value(map[string]ruby.Value{})
+					'roots':     ruby.map_value(map[string]ruby.Value{})
 				})
 				'serverInfo':      mcp_server_info(server.version)
 			}))
 		}
 		'resources/list' {
-			return mcp_respond_result(id, brew_runtime.map_value({
-				'resources': brew_runtime.array_value([])
+			return mcp_respond_result(id, ruby.map_value({
+				'resources': ruby.array_value([])
 			}))
 		}
 		'resources/templates/list' {
-			return mcp_respond_result(id, brew_runtime.map_value({
-				'resourceTemplates': brew_runtime.array_value([])
+			return mcp_respond_result(id, ruby.map_value({
+				'resourceTemplates': ruby.array_value([])
 			}))
 		}
 		'prompts/list' {
-			return mcp_respond_result(id, brew_runtime.map_value({
-				'prompts': brew_runtime.array_value([])
+			return mcp_respond_result(id, ruby.map_value({
+				'prompts': ruby.array_value([])
 			}))
 		}
 		'ping' {
-			return mcp_respond_result(id, brew_runtime.map_value(map[string]brew_runtime.Value{}))
+			return mcp_respond_result(id, ruby.map_value(map[string]ruby.Value{}))
 		}
 		'get_server_info' {
 			return mcp_respond_result(id, mcp_server_info(server.version))
 		}
 		'logging/setLevel' {
-			params := (values['params'] or { brew_runtime.map_value(map[string]brew_runtime.Value{}) }).map_data.clone()
-			server.debug_logging = (params['level'] or { brew_runtime.string_value('') }).as_string() == 'debug'
-			return mcp_respond_result(id, brew_runtime.map_value(map[string]brew_runtime.Value{}))
+			params := (values['params'] or { ruby.map_value(map[string]ruby.Value{}) }).map_data.clone()
+			server.debug_logging = (params['level'] or { ruby.string_value('') }).as_string() == 'debug'
+			return mcp_respond_result(id, ruby.map_value(map[string]ruby.Value{}))
 		}
 		'notifications/initialized', 'notifications/cancelled' {
 			return McpResponse{}
 		}
 		'tools/list' {
-			return mcp_respond_result(id, brew_runtime.map_value({
-				'tools': brew_runtime.array_value(mcp_tools().map(mcp_tool_value(it)))
+			return mcp_respond_result(id, ruby.map_value({
+				'tools': ruby.array_value(mcp_tools().map(mcp_tool_value(it)))
 			}))
 		}
 		'tools/call' {
@@ -449,12 +449,12 @@ pub fn mcp_run(mut server McpServerState, runner McpCommandRunner) {
 		if input.trim_space() == '' {
 			continue
 		}
-		request := brew_runtime.parse_json_value(input) or {
+		request := ruby.parse_json_value(input) or {
 			mcp_log(mut server, 'Error: ${err.msg()}')
 			server.exit_code = 1
 			return
 		}
-		mcp_debug(mut server, 'Request: ${brew_runtime.json_value_to_string(request)}')
+		mcp_debug(mut server, 'Request: ${ruby.json_value_to_string(request)}')
 		response := mcp_handle_request(mut server, request, runner) or {
 			mcp_log(mut server, 'Error: ${err.msg()}')
 			server.exit_code = 1
@@ -464,47 +464,47 @@ pub fn mcp_run(mut server McpServerState, runner McpCommandRunner) {
 			mcp_debug(mut server, 'Response: nil')
 			continue
 		}
-		mcp_debug(mut server, 'Response: ${brew_runtime.json_value_to_string(response.value)}')
-		server.stdout_lines << brew_runtime.json_value_to_string(response.value)
+		mcp_debug(mut server, 'Response: ${ruby.json_value_to_string(response.value)}')
+		server.stdout_lines << ruby.json_value_to_string(response.value)
 		if server.ping_switch {
 			break
 		}
 	}
 }
 
-pub fn mcp_server_state_value(server McpServerState) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'brew_file':         brew_runtime.string_value(server.brew_file)
-		'version':           brew_runtime.string_value(server.version)
-		'debug_logging':     brew_runtime.bool_value(server.debug_logging)
-		'ping_switch':       brew_runtime.bool_value(server.ping_switch)
-		'stdin':             brew_runtime.string_array_value(server.stdin_lines)
-		'stdout':            brew_runtime.string_array_value(server.stdout_lines)
-		'stderr':            brew_runtime.string_array_value(server.stderr_lines)
-		'exit_code':         brew_runtime.int_value(server.exit_code)
-		'interrupt_on_read': brew_runtime.bool_value(server.interrupt_on_read)
-		'read_error':        brew_runtime.string_value(server.read_error)
+pub fn mcp_server_state_value(server McpServerState) ruby.Value {
+	return ruby.map_value({
+		'brew_file':         ruby.string_value(server.brew_file)
+		'version':           ruby.string_value(server.version)
+		'debug_logging':     ruby.bool_value(server.debug_logging)
+		'ping_switch':       ruby.bool_value(server.ping_switch)
+		'stdin':             ruby.string_array_value(server.stdin_lines)
+		'stdout':            ruby.string_array_value(server.stdout_lines)
+		'stderr':            ruby.string_array_value(server.stderr_lines)
+		'exit_code':         ruby.int_value(server.exit_code)
+		'interrupt_on_read': ruby.bool_value(server.interrupt_on_read)
+		'read_error':        ruby.string_value(server.read_error)
 	})
 }
 
-fn mcp_server_state_from_value(value brew_runtime.Value) McpServerState {
+fn mcp_server_state_from_value(value ruby.Value) McpServerState {
 	values := value.map_data.clone()
 	return McpServerState{
-		brew_file: (values['brew_file'] or { brew_runtime.string_value('brew') }).as_string()
-		version: (values['version'] or { brew_runtime.string_value('') }).as_string()
-		debug_logging: (values['debug_logging'] or { brew_runtime.bool_value(false) }).bool_data
-		ping_switch: (values['ping_switch'] or { brew_runtime.bool_value(false) }).bool_data
-		stdin_lines: (values['stdin'] or { brew_runtime.string_array_value([]) }).as_string_array() or { []string{} }
-		stdout_lines: (values['stdout'] or { brew_runtime.string_array_value([]) }).as_string_array() or { []string{} }
-		stderr_lines: (values['stderr'] or { brew_runtime.string_array_value([]) }).as_string_array() or { []string{} }
-		exit_code: int((values['exit_code'] or { brew_runtime.int_value(0) }).int_data)
-		interrupt_on_read: (values['interrupt_on_read'] or { brew_runtime.bool_value(false) }).bool_data
-		read_error: (values['read_error'] or { brew_runtime.string_value('') }).as_string()
+		brew_file: (values['brew_file'] or { ruby.string_value('brew') }).as_string()
+		version: (values['version'] or { ruby.string_value('') }).as_string()
+		debug_logging: (values['debug_logging'] or { ruby.bool_value(false) }).bool_data
+		ping_switch: (values['ping_switch'] or { ruby.bool_value(false) }).bool_data
+		stdin_lines: (values['stdin'] or { ruby.string_array_value([]) }).as_string_array() or { []string{} }
+		stdout_lines: (values['stdout'] or { ruby.string_array_value([]) }).as_string_array() or { []string{} }
+		stderr_lines: (values['stderr'] or { ruby.string_array_value([]) }).as_string_array() or { []string{} }
+		exit_code: int((values['exit_code'] or { ruby.int_value(0) }).int_data)
+		interrupt_on_read: (values['interrupt_on_read'] or { ruby.bool_value(false) }).bool_data
+		read_error: (values['read_error'] or { ruby.string_value('') }).as_string()
 	}
 }
 
 // Ruby method `initialize(stdin: $stdin, stdout: $stdout, stderr: $stderr)` at line 194.
-pub fn ruby_mcp_server_l194_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mcp_server_l194_d1_initialize(args ...ruby.Value) ruby.Value {
 	argv := if args.len > 0 { args[0].as_string_array() or { []string{} } } else { []string{} }
 	stdin_lines := if args.len > 1 {
 		args[1].as_string_array() or { []string{} }
@@ -519,78 +519,78 @@ pub fn ruby_mcp_server_l194_d1_initialize(args ...brew_runtime.Value) brew_runti
 }
 
 // Ruby method `debug_logging? = @debug_logging` at line 203.
-pub fn ruby_mcp_server_l203_d2_debug_logging(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(args.len > 0 && mcp_server_state_from_value(args[0]).debug_logging)
+pub fn ruby_mcp_server_l203_d2_debug_logging(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(args.len > 0 && mcp_server_state_from_value(args[0]).debug_logging)
 }
 
 // Ruby method `ping_switch? = @ping_switch` at line 206.
-pub fn ruby_mcp_server_l206_d3_ping_switch(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(args.len > 0 && mcp_server_state_from_value(args[0]).ping_switch)
+pub fn ruby_mcp_server_l206_d3_ping_switch(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(args.len > 0 && mcp_server_state_from_value(args[0]).ping_switch)
 }
 
 // Ruby method `run` at line 209.
-pub fn ruby_mcp_server_l209_d4_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mcp_server_l209_d4_run(args ...ruby.Value) ruby.Value {
 	mut server := mcp_server_state_from_value(args[0] or { mcp_server_state_value(new_mcp_server([], [], '', '')) })
 	mcp_run(mut server, mcp_default_command_runner)
 	return mcp_server_state_value(server)
 }
 
 // Ruby method `debug(text)` at line 246.
-pub fn ruby_mcp_server_l246_d5_debug(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mcp_server_l246_d5_debug(args ...ruby.Value) ruby.Value {
 	mut server := mcp_server_state_from_value(args[0] or { mcp_server_state_value(new_mcp_server([], [], '', '')) })
 	mcp_debug(mut server, if args.len > 1 { args[1].as_string() } else { '' })
 	return mcp_server_state_value(server)
 }
 
 // Ruby method `log(text)` at line 253.
-pub fn ruby_mcp_server_l253_d6_log(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mcp_server_l253_d6_log(args ...ruby.Value) ruby.Value {
 	mut server := mcp_server_state_from_value(args[0] or { mcp_server_state_value(new_mcp_server([], [], '', '')) })
 	mcp_log(mut server, if args.len > 1 { args[1].as_string() } else { '' })
 	return mcp_server_state_value(server)
 }
 
 // Ruby method `handle_request(request)` at line 259.
-pub fn ruby_mcp_server_l259_d7_handle_request(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mcp_server_l259_d7_handle_request(args ...ruby.Value) ruby.Value {
 	mut server := mcp_server_state_from_value(args[0] or { mcp_server_state_value(new_mcp_server([], [], '', '')) })
-	response := mcp_handle_request(mut server, args[1] or { brew_runtime.map_value(map[string]brew_runtime.Value{}) }, mcp_default_command_runner) or { return brew_runtime.object_value('RuntimeError', err.msg()) }
+	response := mcp_handle_request(mut server, args[1] or { ruby.map_value(map[string]ruby.Value{}) }, mcp_default_command_runner) or { return ruby.object_value('RuntimeError', err.msg()) }
 	return if response.present {
 		response.value
 	} else {
-		brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+		ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 	}
 }
 
 // Ruby method `respond_to_tools_call(id, request)` at line 301.
-pub fn ruby_mcp_server_l301_d8_respond_to_tools_call(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mcp_server_l301_d8_respond_to_tools_call(args ...ruby.Value) ruby.Value {
 	mut server := mcp_server_state_from_value(args[0] or { mcp_server_state_value(new_mcp_server([], [], '', '')) })
-	response := mcp_respond_to_tools_call(mut server, args[1] or { brew_runtime.int_value(0) }, args[2] or { brew_runtime.map_value(map[string]brew_runtime.Value{}) }, mcp_default_command_runner) or { return brew_runtime.object_value('RuntimeError', err.msg()) }
+	response := mcp_respond_to_tools_call(mut server, args[1] or { ruby.int_value(0) }, args[2] or { ruby.map_value(map[string]ruby.Value{}) }, mcp_default_command_runner) or { return ruby.object_value('RuntimeError', err.msg()) }
 	return response.value
 }
 
 // Ruby method `tool_command_arguments(tool_name, arguments)` at line 366.
-pub fn ruby_mcp_server_l366_d9_tool_command_arguments(args ...brew_runtime.Value) brew_runtime.Value {
-	arguments := (args[1] or { brew_runtime.map_value(map[string]brew_runtime.Value{}) }).map_data.clone()
-	return brew_runtime.string_array_value(mcp_tool_command_arguments((args[0] or { brew_runtime.string_value('') }).as_string(), arguments))
+pub fn ruby_mcp_server_l366_d9_tool_command_arguments(args ...ruby.Value) ruby.Value {
+	arguments := (args[1] or { ruby.map_value(map[string]ruby.Value{}) }).map_data.clone()
+	return ruby.string_array_value(mcp_tool_command_arguments((args[0] or { ruby.string_value('') }).as_string(), arguments))
 }
 
 // Ruby method `respond_result(id = nil, result = {})` at line 397.
-pub fn ruby_mcp_server_l397_d10_respond_result(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mcp_server_l397_d10_respond_result(args ...ruby.Value) ruby.Value {
 	id := if args.len > 0 && args[0].type_name != 'NilClass' {
-		?brew_runtime.Value(args[0])
+		?ruby.Value(args[0])
 	} else {
 		none
 	}
-	response := mcp_respond_result(id, args[1] or { brew_runtime.map_value(map[string]brew_runtime.Value{}) })
+	response := mcp_respond_result(id, args[1] or { ruby.map_value(map[string]ruby.Value{}) })
 	return if response.present {
 		response.value
 	} else {
-		brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' }
+		ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 	}
 }
 
 // Ruby method `respond_error(id, message)` at line 404.
-pub fn ruby_mcp_server_l404_d11_respond_error(args ...brew_runtime.Value) brew_runtime.Value {
-	return mcp_respond_error(args[0] or { brew_runtime.Value{ type_name: 'NilClass', repr: 'nil' } }, if args.len > 1 {
+pub fn ruby_mcp_server_l404_d11_respond_error(args ...ruby.Value) ruby.Value {
+	return mcp_respond_error(args[0] or { ruby.Value{ type_name: 'NilClass', repr: 'nil' } }, if args.len > 1 {
 		args[1].as_string()
 	} else {
 		''

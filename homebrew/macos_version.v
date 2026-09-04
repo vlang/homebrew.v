@@ -1,17 +1,17 @@
 module homebrew
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `macos_version.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby attr_reader `attr_reader :version` at line 11.
-pub fn ruby_macos_version_l11_d1_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return if args.len > 0 { args[0] } else { brew_runtime.object_value('Nil', '') }
+pub fn ruby_macos_version_l11_d1_version(args ...ruby.Value) ruby.Value {
+	return if args.len > 0 { args[0] } else { ruby.object_value('Nil', '') }
 }
 
 // Ruby method `initialize(version)` at line 14.
-pub fn ruby_macos_version_l14_d2_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_macos_version_l14_d2_initialize(args ...ruby.Value) ruby.Value {
 	value := if args.len > 0 { args[0].as_string() } else { '' }
 	inspected := if args.len == 0 || args[0].type_name == 'Nil' {
 		'nil'
@@ -20,47 +20,47 @@ pub fn ruby_macos_version_l14_d2_initialize(args ...brew_runtime.Value) brew_run
 	} else {
 		'"${value}"'
 	}
-	return brew_runtime.structured_value('MacOSVersion::Error',
+	return ruby.structured_value('MacOSVersion::Error',
 		'unknown or unsupported macOS version: ${inspected}', {
 		'version': value
 	})
 }
 
 // Ruby method `self.kernel_major_version(macos_version)` at line 37.
-pub fn ruby_macos_version_l37_d3_self_kernel_major_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_macos_version_l37_d3_self_kernel_major_version(args ...ruby.Value) ruby.Value {
 	version := macos_version_from_args(args) or { panic(err) }
-	return brew_runtime.object_value('Version', version.kernel_major_version().to_s())
+	return ruby.object_value('Version', version.kernel_major_version().to_s())
 }
 
 // Ruby method `self.from_symbol(version)` at line 52.
-pub fn ruby_macos_version_l52_d4_self_from_symbol(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_macos_version_l52_d4_self_from_symbol(args ...ruby.Value) ruby.Value {
 	name := if args.len > 0 { args[0].as_string() } else { '' }
 	return macos_version_value(macos_version_from_symbol(name) or { panic(err) })
 }
 
 // Ruby attr_reader `attr_reader :comparison_cache` at line 58.
-pub fn ruby_macos_version_l58_d5_comparison_cache(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.structured_value('Hash', '{}', {})
+pub fn ruby_macos_version_l58_d5_comparison_cache(args ...ruby.Value) ruby.Value {
+	return ruby.structured_value('Hash', '{}', {})
 }
 
 // Ruby attr_reader `attr_reader :sym` at line 61.
-pub fn ruby_macos_version_l61_d6_sym(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_macos_version_l61_d6_sym(args ...ruby.Value) ruby.Value {
 	if args.len > 0 && args[0].attributes['sym'].len > 0 {
-		return brew_runtime.object_value('Symbol', args[0].attributes['sym'])
+		return ruby.object_value('Symbol', args[0].attributes['sym'])
 	}
-	return brew_runtime.object_value('Nil', '')
+	return ruby.object_value('Nil', '')
 }
 
 // Ruby method `initialize(version)` at line 64.
-pub fn ruby_macos_version_l64_d7_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_macos_version_l64_d7_initialize(args ...ruby.Value) ruby.Value {
 	value := if args.len > 0 { args[0].as_string() } else { '' }
 	return macos_version_value(new_macos_version(value) or { panic(err) })
 }
 
 // Ruby method `<=>(other)` at line 75.
-pub fn ruby_macos_version_l75_d8_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_macos_version_l75_d8_anonymous(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('Nil', '')
+		return ruby.object_value('Nil', '')
 	}
 	version := macos_version_from_value(args[0]) or { panic(err) }
 	comparison := if args[1].type_name == 'Symbol' {
@@ -69,96 +69,96 @@ pub fn ruby_macos_version_l75_d8_anonymous(args ...brew_runtime.Value) brew_runt
 		other := new_version(args[1].as_string()) or { panic(err) }
 		version.version.compare_to(other)
 	}
-	return brew_runtime.int_value(comparison)
+	return ruby.int_value(comparison)
 }
 
 // Ruby method `strip_patch` at line 96.
-pub fn ruby_macos_version_l96_d9_strip_patch(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_macos_version_l96_d9_strip_patch(args ...ruby.Value) ruby.Value {
 	version := macos_version_from_args(args) or { panic(err) }
 	return macos_version_value(version.strip_patch())
 }
 
 // Ruby method `to_sym` at line 108.
-pub fn ruby_macos_version_l108_d10_to_sym(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_macos_version_l108_d10_to_sym(args ...ruby.Value) ruby.Value {
 	version := macos_version_from_args(args) or { panic(err) }
-	return brew_runtime.object_value('Symbol', version.to_symbol())
+	return ruby.object_value('Symbol', version.to_symbol())
 }
 
 // Ruby method `pretty_name` at line 119.
-pub fn ruby_macos_version_l119_d11_pretty_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_macos_version_l119_d11_pretty_name(args ...ruby.Value) ruby.Value {
 	version := macos_version_from_args(args) or { panic(err) }
-	return brew_runtime.string_value(version.pretty_name())
+	return ruby.string_value(version.pretty_name())
 }
 
 // Ruby method `inspect` at line 130.
-pub fn ruby_macos_version_l130_d12_inspect(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_macos_version_l130_d12_inspect(args ...ruby.Value) ruby.Value {
 	version := macos_version_from_args(args) or { panic(err) }
-	return brew_runtime.string_value(version.inspect())
+	return ruby.string_value(version.inspect())
 }
 
 // Ruby method `outdated_release?` at line 135.
-pub fn ruby_macos_version_l135_d13_outdated_release(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_macos_version_l135_d13_outdated_release(args ...ruby.Value) ruby.Value {
 	version := macos_version_from_args(args) or { panic(err) }
 	oldest := if args.len > 1 {
 		args[1].as_string()
 	} else {
-		brew_runtime.environment_value('HOMEBREW_MACOS_OLDEST_SUPPORTED')
+		ruby.environment_value('HOMEBREW_MACOS_OLDEST_SUPPORTED')
 	}
-	return brew_runtime.bool_value(version.outdated_release(oldest) or { panic(err) })
+	return ruby.bool_value(version.outdated_release(oldest) or { panic(err) })
 }
 
 // Ruby method `prerelease?` at line 140.
-pub fn ruby_macos_version_l140_d14_prerelease(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_macos_version_l140_d14_prerelease(args ...ruby.Value) ruby.Value {
 	version := macos_version_from_args(args) or { panic(err) }
 	newest := if args.len > 1 {
 		args[1].as_string()
 	} else {
-		brew_runtime.environment_value('HOMEBREW_MACOS_NEWEST_UNSUPPORTED')
+		ruby.environment_value('HOMEBREW_MACOS_NEWEST_UNSUPPORTED')
 	}
-	return brew_runtime.bool_value(version.prerelease(newest) or { panic(err) })
+	return ruby.bool_value(version.prerelease(newest) or { panic(err) })
 }
 
 // Ruby method `unsupported_release?` at line 145.
-pub fn ruby_macos_version_l145_d15_unsupported_release(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_macos_version_l145_d15_unsupported_release(args ...ruby.Value) ruby.Value {
 	version := macos_version_from_args(args) or { panic(err) }
 	oldest := if args.len > 1 {
 		args[1].as_string()
 	} else {
-		brew_runtime.environment_value('HOMEBREW_MACOS_OLDEST_SUPPORTED')
+		ruby.environment_value('HOMEBREW_MACOS_OLDEST_SUPPORTED')
 	}
 	newest := if args.len > 2 {
 		args[2].as_string()
 	} else {
-		brew_runtime.environment_value('HOMEBREW_MACOS_NEWEST_UNSUPPORTED')
+		ruby.environment_value('HOMEBREW_MACOS_NEWEST_UNSUPPORTED')
 	}
-	return brew_runtime.bool_value(version.unsupported_release(oldest, newest) or { panic(err) })
+	return ruby.bool_value(version.unsupported_release(oldest, newest) or { panic(err) })
 }
 
 // Ruby method `requires_nehalem_cpu?` at line 150.
-pub fn ruby_macos_version_l150_d16_requires_nehalem_cpu(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_macos_version_l150_d16_requires_nehalem_cpu(args ...ruby.Value) ruby.Value {
 	version := macos_version_from_args(args) or { panic(err) }
 	intel := if args.len > 1 { args[1].as_bool() or { false } } else { false }
 	oldest_cpu := if args.len > 2 { args[2].as_string() } else { '' }
-	return brew_runtime.bool_value(version.requires_nehalem_cpu(intel, oldest_cpu) or { panic(err) })
+	return ruby.bool_value(version.requires_nehalem_cpu(intel, oldest_cpu) or { panic(err) })
 }
 
 // Ruby alias `alias requires_sse4? requires_nehalem_cpu?` at line 160.
-pub fn ruby_macos_version_l160_d17_requires_sse4(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_macos_version_l160_d17_requires_sse4(args ...ruby.Value) ruby.Value {
 	return ruby_macos_version_l150_d16_requires_nehalem_cpu(...args)
 }
 
 // Ruby alias `alias requires_sse41? requires_nehalem_cpu?` at line 161.
-pub fn ruby_macos_version_l161_d18_requires_sse41(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_macos_version_l161_d18_requires_sse41(args ...ruby.Value) ruby.Value {
 	return ruby_macos_version_l150_d16_requires_nehalem_cpu(...args)
 }
 
 // Ruby alias `alias requires_sse42? requires_nehalem_cpu?` at line 162.
-pub fn ruby_macos_version_l162_d19_requires_sse42(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_macos_version_l162_d19_requires_sse42(args ...ruby.Value) ruby.Value {
 	return ruby_macos_version_l150_d16_requires_nehalem_cpu(...args)
 }
 
 // Ruby alias `alias requires_popcnt? requires_nehalem_cpu?` at line 163.
-pub fn ruby_macos_version_l163_d20_requires_popcnt(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_macos_version_l163_d20_requires_popcnt(args ...ruby.Value) ruby.Value {
 	return ruby_macos_version_l150_d16_requires_nehalem_cpu(...args)
 }
 
@@ -316,22 +316,22 @@ fn title_word(value string) string {
 	return value[..1].to_upper() + value[1..]
 }
 
-fn macos_version_value(version MacOSVersion) brew_runtime.Value {
-	return brew_runtime.structured_value('MacOSVersion', version.str(), {
+fn macos_version_value(version MacOSVersion) ruby.Value {
+	return ruby.structured_value('MacOSVersion', version.str(), {
 		'value': version.str()
 		'null':  version.is_null.str()
 		'sym':   version.to_symbol()
 	})
 }
 
-fn macos_version_from_args(args []brew_runtime.Value) !MacOSVersion {
+fn macos_version_from_args(args []ruby.Value) !MacOSVersion {
 	if args.len == 0 {
 		return error('missing MacOSVersion receiver')
 	}
 	return macos_version_from_value(args[0])
 }
 
-fn macos_version_from_value(value brew_runtime.Value) !MacOSVersion {
+fn macos_version_from_value(value ruby.Value) !MacOSVersion {
 	if value.attributes['null'] == 'true' {
 		return null_macos_version()
 	}

@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 import time
 
 // Translated from Homebrew/brew `utils.rb`.
@@ -11,15 +11,15 @@ pub:
 	email string
 }
 
-pub type ParallelValueOperation = fn(brew_runtime.Value) !brew_runtime.Value
+pub type ParallelValueOperation = fn(ruby.Value) !ruby.Value
 
 struct ParallelValueResult {
 	index         int
-	value         brew_runtime.Value
+	value         ruby.Value
 	error_message string
 }
 
-fn run_parallel_value(index int, item brew_runtime.Value, operation ParallelValueOperation,
+fn run_parallel_value(index int, item ruby.Value, operation ParallelValueOperation,
 	results chan ParallelValueResult) {
 	value := operation(item) or {
 		results <- ParallelValueResult{
@@ -50,7 +50,7 @@ pub fn name_from_full_name(full_name string) string {
 	return if parts.len == 3 { parts[2] } else { full_name }
 }
 
-pub fn name_or_token(object brew_runtime.Value) string {
+pub fn name_or_token(object ruby.Value) string {
 	if object.type_name == 'Cask::Cask' {
 		return object.attributes['token'] or { object.repr }
 	}
@@ -69,16 +69,16 @@ pub fn is_full_name(full_name string) bool {
 	return full_name.count('/') == 2
 }
 
-pub fn parallel_map_values(items []brew_runtime.Value,
-	operation ParallelValueOperation) ![]brew_runtime.Value {
+pub fn parallel_map_values(items []ruby.Value,
+	operation ParallelValueOperation) ![]ruby.Value {
 	if items.len == 0 {
-		return []brew_runtime.Value{}
+		return []ruby.Value{}
 	}
 	results := chan ParallelValueResult{ cap: items.len }
 	for index, item in items {
 		spawn run_parallel_value(index, item, operation, results)
 	}
-	mut ordered := []brew_runtime.Value{len: items.len}
+	mut ordered := []ruby.Value{len: items.len}
 	mut errors := []string{len: items.len}
 	for _ in 0 .. items.len {
 		result := <-results
@@ -181,73 +181,73 @@ pub fn is_safe_filename(basename string) bool {
 	return safe_filename_part(basename) == basename
 }
 
-pub fn convert_to_string_or_symbol(input string) brew_runtime.Value {
+pub fn convert_to_string_or_symbol(input string) ruby.Value {
 	if input.starts_with(':') {
-		return brew_runtime.object_value('Symbol', input[1..])
+		return ruby.object_value('Symbol', input[1..])
 	}
-	return brew_runtime.string_value(input)
+	return ruby.string_value(input)
 }
 
-pub fn deep_stringify_symbols(obj brew_runtime.Value) brew_runtime.Value {
+pub fn deep_stringify_symbols(obj ruby.Value) ruby.Value {
 	if obj.type_name == 'String' {
-		return brew_runtime.string_value(if obj.repr.starts_with(':') || obj.repr.starts_with('\\') {
+		return ruby.string_value(if obj.repr.starts_with(':') || obj.repr.starts_with('\\') {
 			'\\${obj.repr}'
 		} else {
 			obj.repr
 		})
 	}
 	if obj.type_name == 'Symbol' {
-		return brew_runtime.string_value(':${obj.repr}')
+		return ruby.string_value(':${obj.repr}')
 	}
 	if obj.type_name == 'Array' {
-		return brew_runtime.array_value(obj.array_data.map(deep_stringify_symbols(it)))
+		return ruby.array_value(obj.array_data.map(deep_stringify_symbols(it)))
 	}
 	if obj.type_name == 'Hash' {
-		mut mapped := map[string]brew_runtime.Value{}
+		mut mapped := map[string]ruby.Value{}
 		for key, value in obj.map_data {
 			// Value maps encode Ruby Symbol keys with their leading `:`. Preserve
 			// that source type while String keys still use the normal escaping.
 			stringified_key := if key.starts_with(':') {
 				key
 			} else {
-				deep_stringify_symbols(brew_runtime.string_value(key)).repr
+				deep_stringify_symbols(ruby.string_value(key)).repr
 			}
 			mapped[stringified_key] = deep_stringify_symbols(value)
 		}
-		return brew_runtime.map_value(mapped)
+		return ruby.map_value(mapped)
 	}
 	return obj
 }
 
-pub fn deep_unstringify_symbols(obj brew_runtime.Value) brew_runtime.Value {
+pub fn deep_unstringify_symbols(obj ruby.Value) ruby.Value {
 	if obj.type_name == 'String' {
 		if obj.repr.starts_with('\\') {
-			return brew_runtime.string_value(obj.repr[1..])
+			return ruby.string_value(obj.repr[1..])
 		}
 		if obj.repr.starts_with(':') {
-			return brew_runtime.object_value('Symbol', obj.repr[1..])
+			return ruby.object_value('Symbol', obj.repr[1..])
 		}
 		return obj
 	}
 	if obj.type_name == 'Array' {
-		return brew_runtime.array_value(obj.array_data.map(deep_unstringify_symbols(it)))
+		return ruby.array_value(obj.array_data.map(deep_unstringify_symbols(it)))
 	}
 	if obj.type_name == 'Hash' {
-		mut mapped := map[string]brew_runtime.Value{}
+		mut mapped := map[string]ruby.Value{}
 		for key, value in obj.map_data {
-			converted_key := deep_unstringify_symbols(brew_runtime.string_value(key))
+			converted_key := deep_unstringify_symbols(ruby.string_value(key))
 			mapped[if converted_key.type_name == 'Symbol' {
 				':${converted_key.repr}'
 			} else {
 				converted_key.repr
 			}] = deep_unstringify_symbols(value)
 		}
-		return brew_runtime.map_value(mapped)
+		return ruby.map_value(mapped)
 	}
 	return obj
 }
 
-fn value_is_blank(value brew_runtime.Value, compact_zero bool, compact_false bool) bool {
+fn value_is_blank(value ruby.Value, compact_zero bool, compact_false bool) bool {
 	if value.type_name == 'NilClass' {
 		return true
 	}
@@ -266,25 +266,25 @@ fn value_is_blank(value brew_runtime.Value, compact_zero bool, compact_false boo
 	return (value.type_name == 'Array' && value.array_data.len == 0) || (value.type_name == 'Hash' && value.map_data.len == 0)
 }
 
-pub fn deep_compact_blank(obj brew_runtime.Value, compact_zero bool,
-	compact_false bool) ?brew_runtime.Value {
+pub fn deep_compact_blank(obj ruby.Value, compact_zero bool,
+	compact_false bool) ?ruby.Value {
 	mut compacted := obj
 	if obj.type_name == 'Array' {
-		mut values := []brew_runtime.Value{}
+		mut values := []ruby.Value{}
 		for value in obj.array_data {
 			if kept := deep_compact_blank(value, compact_zero, compact_false) {
 				values << kept
 			}
 		}
-		compacted = brew_runtime.array_value(values)
+		compacted = ruby.array_value(values)
 	} else if obj.type_name == 'Hash' {
-		mut values := map[string]brew_runtime.Value{}
+		mut values := map[string]ruby.Value{}
 		for key, value in obj.map_data {
 			if kept := deep_compact_blank(value, compact_zero, compact_false) {
 				values[key] = kept
 			}
 		}
-		compacted = brew_runtime.map_value(values)
+		compacted = ruby.map_value(values)
 	}
 	if value_is_blank(compacted, compact_zero, compact_false) {
 		return none
@@ -292,121 +292,121 @@ pub fn deep_compact_blank(obj brew_runtime.Value, compact_zero bool,
 	return compacted
 }
 
-fn nil_boundary_value() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn nil_boundary_value() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `self.deconstantize(path)` at line 17.
-pub fn ruby_utils_l17_d1_self_deconstantize(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(deconstantize(args[0].as_string()))
+pub fn ruby_utils_l17_d1_self_deconstantize(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(deconstantize(args[0].as_string()))
 }
 
 // Ruby method `self.demodulize(path)` at line 33.
-pub fn ruby_utils_l33_d2_self_demodulize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_utils_l33_d2_self_demodulize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 || args[0].type_name == 'NilClass' {
 		panic('No constant path provided')
 	}
-	return brew_runtime.string_value(demodulize(args[0].as_string()) or { panic(err) })
+	return ruby.string_value(demodulize(args[0].as_string()) or { panic(err) })
 }
 
 // Ruby method `self.name_from_full_name(full_name)` at line 44.
-pub fn ruby_utils_l44_d3_self_name_from_full_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(name_from_full_name(args[0].as_string()))
+pub fn ruby_utils_l44_d3_self_name_from_full_name(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(name_from_full_name(args[0].as_string()))
 }
 
 // Ruby method `self.name_or_token(formula_or_cask)` at line 51.
-pub fn ruby_utils_l51_d4_self_name_or_token(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(name_or_token(args[0]))
+pub fn ruby_utils_l51_d4_self_name_or_token(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(name_or_token(args[0]))
 }
 
 // Ruby method `self.tap_from_full_name(full_name)` at line 56.
-pub fn ruby_utils_l56_d5_self_tap_from_full_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_utils_l56_d5_self_tap_from_full_name(args ...ruby.Value) ruby.Value {
 	return if tap := tap_from_full_name(args[0].as_string()) {
-		brew_runtime.string_value(tap)
+		ruby.string_value(tap)
 	} else {
 		nil_boundary_value()
 	}
 }
 
 // Ruby method `self.full_name?(full_name)` at line 65.
-pub fn ruby_utils_l65_d6_self_full_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(is_full_name(args[0].as_string()))
+pub fn ruby_utils_l65_d6_self_full_name(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(is_full_name(args[0].as_string()))
 }
 
 // Ruby method `self.parallel_map(items, &block)` at line 83.
-pub fn ruby_utils_l83_d7_self_parallel_map(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_utils_l83_d7_self_parallel_map(args ...ruby.Value) ruby.Value {
 	items := args[0].as_array() or { panic(err) }
-	return brew_runtime.array_value(parallel_map_values(items, fn (value brew_runtime.Value) !brew_runtime.Value {
+	return ruby.array_value(parallel_map_values(items, fn (value ruby.Value) !ruby.Value {
 		return value
 	}) or { panic(err) })
 }
 
 // Ruby method `self.pluralize(stem, count, plural: "s", singular: "", include_count: false)` at line 100.
-pub fn ruby_utils_l100_d8_self_pluralize(args ...brew_runtime.Value) brew_runtime.Value {
-	options := if args.len > 2 { args[2].map_data } else { map[string]brew_runtime.Value{} }
-	plural_suffix := options['plural'] or { brew_runtime.string_value('s') }
-	singular_suffix := options['singular'] or { brew_runtime.string_value('') }
-	include_count := options['include_count'] or { brew_runtime.bool_value(false) }
-	return brew_runtime.string_value(pluralize(args[0].as_string(), args[1].as_int() or {
+pub fn ruby_utils_l100_d8_self_pluralize(args ...ruby.Value) ruby.Value {
+	options := if args.len > 2 { args[2].map_data } else { map[string]ruby.Value{} }
+	plural_suffix := options['plural'] or { ruby.string_value('s') }
+	singular_suffix := options['singular'] or { ruby.string_value('') }
+	include_count := options['include_count'] or { ruby.bool_value(false) }
+	return ruby.string_value(pluralize(args[0].as_string(), args[1].as_int() or {
 		panic(err)
 	}, plural_suffix.as_string(), singular_suffix.as_string(), include_count.bool_data))
 }
 
 // Ruby method `self.exponential_backoff_sleep(try, base: 2, &_blk)` at line 118.
-pub fn ruby_utils_l118_d9_self_exponential_backoff_sleep(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_utils_l118_d9_self_exponential_backoff_sleep(args ...ruby.Value) ruby.Value {
 	attempt := int(args[0].as_int() or { panic(err) })
-	options := if args.len > 1 { args[1].map_data } else { map[string]brew_runtime.Value{} }
-	base_value := options['base'] or { brew_runtime.int_value(2) }
+	options := if args.len > 1 { args[1].map_data } else { map[string]ruby.Value{} }
+	base_value := options['base'] or { ruby.int_value(2) }
 	wait := exponential_backoff_wait(attempt, int(base_value.as_int() or { panic(err) })) or {
 		panic(err)
 	}
-	return brew_runtime.int_value(wait)
+	return ruby.int_value(wait)
 }
 
 // Ruby method `self.parse_author!(author)` at line 125.
-pub fn ruby_utils_l125_d10_self_parse_author(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_utils_l125_d10_self_parse_author(args ...ruby.Value) ruby.Value {
 	author := parse_author(args[0].as_string()) or { panic(err) }
-	return brew_runtime.map_value({
-		'name':  brew_runtime.string_value(author.name)
-		'email': brew_runtime.string_value(author.email)
+	return ruby.map_value({
+		'name':  ruby.string_value(author.name)
+		'email': ruby.string_value(author.email)
 	})
 }
 
 // Ruby method `self.underscore(camel_cased_word)` at line 146.
-pub fn ruby_utils_l146_d11_self_underscore(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(underscore(args[0].as_string()))
+pub fn ruby_utils_l146_d11_self_underscore(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(underscore(args[0].as_string()))
 }
 
 // Ruby method `self.safe_filename?(basename)` at line 162.
-pub fn ruby_utils_l162_d12_self_safe_filename(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(is_safe_filename(args[0].as_string()))
+pub fn ruby_utils_l162_d12_self_safe_filename(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(is_safe_filename(args[0].as_string()))
 }
 
 // Ruby method `self.safe_filename(basename)` at line 167.
-pub fn ruby_utils_l167_d13_self_safe_filename(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(safe_filename_part(args[0].as_string()))
+pub fn ruby_utils_l167_d13_self_safe_filename(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(safe_filename_part(args[0].as_string()))
 }
 
 // Ruby method `self.convert_to_string_or_symbol(string)` at line 177.
-pub fn ruby_utils_l177_d14_self_convert_to_string_or_symbol(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_utils_l177_d14_self_convert_to_string_or_symbol(args ...ruby.Value) ruby.Value {
 	return convert_to_string_or_symbol(args[0].as_string())
 }
 
 // Ruby method `self.deep_stringify_symbols(obj)` at line 184.
-pub fn ruby_utils_l184_d15_self_deep_stringify_symbols(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_utils_l184_d15_self_deep_stringify_symbols(args ...ruby.Value) ruby.Value {
 	return deep_stringify_symbols(args[0])
 }
 
 // Ruby method `self.deep_unstringify_symbols(obj)` at line 207.
-pub fn ruby_utils_l207_d16_self_deep_unstringify_symbols(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_utils_l207_d16_self_deep_unstringify_symbols(args ...ruby.Value) ruby.Value {
 	return deep_unstringify_symbols(args[0])
 }
 
 // Ruby method `self.deep_compact_blank(obj, compact_zero: true, compact_false: true)` at line 231.
-pub fn ruby_utils_l231_d17_self_deep_compact_blank(args ...brew_runtime.Value) brew_runtime.Value {
-	options := if args.len > 1 { args[1].map_data } else { map[string]brew_runtime.Value{} }
-	compact_zero := options['compact_zero'] or { brew_runtime.bool_value(true) }
-	compact_false := options['compact_false'] or { brew_runtime.bool_value(true) }
+pub fn ruby_utils_l231_d17_self_deep_compact_blank(args ...ruby.Value) ruby.Value {
+	options := if args.len > 1 { args[1].map_data } else { map[string]ruby.Value{} }
+	compact_zero := options['compact_zero'] or { ruby.bool_value(true) }
+	compact_false := options['compact_false'] or { ruby.bool_value(true) }
 	return deep_compact_blank(args[0], compact_zero.bool_data, compact_false.bool_data) or {
 		nil_boundary_value()
 	}

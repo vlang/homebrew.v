@@ -1,6 +1,6 @@
 module ffi
 
-import brew_runtime
+import ruby
 
 pub fn objective_c_class_get(name string) NativePointer {
 	if name == '' {
@@ -41,17 +41,17 @@ pub fn objective_c_message_send(receiver NativePointer, selector_name string,
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `self.class_get(name)` at line 15.
-pub fn ruby_objective_c_l15_d1_self_class_get(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_objective_c_l15_d1_self_class_get(args ...ruby.Value) ruby.Value {
 	return native_pointer_value(objective_c_class_get(args[0].as_string()))
 }
 
 // Ruby method `self.selector(name)` at line 20.
-pub fn ruby_objective_c_l20_d2_self_selector(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_objective_c_l20_d2_self_selector(args ...ruby.Value) ruby.Value {
 	return native_pointer_value(objective_c_selector(args[0].as_string()))
 }
 
 // Ruby method `self.message_send(receiver, selector_name, argument_types, return_type, *arguments)` at line 33.
-pub fn ruby_objective_c_l33_d3_self_message_send(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_objective_c_l33_d3_self_message_send(args ...ruby.Value) ruby.Value {
 	receiver := NativePointer{ address: (args[0].attributes['address'] or { '0' }).u64(), value: args[0].as_string(), properties: map[string]string{} }
 	argument_types := args[2].as_array() or { [] }.map(int(it.int_data))
 	return_type := int(args[3].int_data)

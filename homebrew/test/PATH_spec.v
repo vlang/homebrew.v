@@ -1,6 +1,6 @@
 module test
 
-import brew_runtime
+import ruby
 import homebrew
 
 // Translated from Homebrew/brew `test/PATH_spec.rb`.
@@ -83,7 +83,7 @@ pub fn ruby_path_spec_l59_d10_aggregate_failures() bool {
 // Ruby it `it "always returns false when comparing against something which does not respond to `#to_ary` or `#to_str`" do` at line 66.
 pub fn ruby_path_spec_l66_d11_always() bool {
 	path := homebrew.new_brew_path()
-	return !homebrew.brew_path_equals_value(path, brew_runtime.object_value('Object', '#<Object>'))
+	return !homebrew.brew_path_equals_value(path, ruby.object_value('Object', '#<Object>'))
 }
 
 // Ruby it `it "returns true if a path is included", :aggregate_failures do` at line 72.

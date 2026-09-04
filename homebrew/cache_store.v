@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 import os
 import x.json2
 
@@ -11,7 +11,7 @@ pub:
 	type_name  string
 	cache_root string
 pub mut:
-	values map[string]brew_runtime.Value
+	values map[string]ruby.Value
 	loaded bool
 	dirty  bool
 }
@@ -22,15 +22,15 @@ pub mut:
 	counts    map[string]int
 }
 
-pub type CacheStoreUseBlock = fn(mut CacheStoreDatabase) !brew_runtime.Value
+pub type CacheStoreUseBlock = fn(mut CacheStoreDatabase) !ruby.Value
 
-pub type CacheStorePredicate = fn(string, brew_runtime.Value) bool
+pub type CacheStorePredicate = fn(string, ruby.Value) bool
 
 pub fn new_cache_store_database(type_name string, cache_root string) CacheStoreDatabase {
 	return CacheStoreDatabase{
 		type_name: type_name
 		cache_root: cache_root
-		values: map[string]brew_runtime.Value{}
+		values: map[string]ruby.Value{}
 	}
 }
 
@@ -38,7 +38,7 @@ pub fn cache_store_path(type_name string, cache_root string) string {
 	return os.join_path(cache_root, '${type_name}.json')
 }
 
-fn cache_store_value_to_json(value brew_runtime.Value) json2.Any {
+fn cache_store_value_to_json(value ruby.Value) json2.Any {
 	if value.type_name == 'Bool' {
 		return json2.Any(value.bool_data)
 	}
@@ -71,37 +71,37 @@ fn cache_store_value_to_json(value brew_runtime.Value) json2.Any {
 	return json2.Any(value.repr)
 }
 
-fn cache_store_value_from_json(value json2.Any) brew_runtime.Value {
+fn cache_store_value_from_json(value json2.Any) ruby.Value {
 	if value is string {
-		return brew_runtime.string_value(value)
+		return ruby.string_value(value)
 	}
 	if value is bool {
-		return brew_runtime.bool_value(value)
+		return ruby.bool_value(value)
 	}
 	if value is i64 {
-		return brew_runtime.int_value(value)
+		return ruby.int_value(value)
 	}
 	if value is f64 {
 		if value == f64(i64(value)) {
-			return brew_runtime.int_value(i64(value))
+			return ruby.int_value(i64(value))
 		}
-		return brew_runtime.float_value(value)
+		return ruby.float_value(value)
 	}
 	if value is []json2.Any {
-		mut items := []brew_runtime.Value{}
+		mut items := []ruby.Value{}
 		for item in value {
 			items << cache_store_value_from_json(item)
 		}
-		return brew_runtime.array_value(items)
+		return ruby.array_value(items)
 	}
 	if value is map[string]json2.Any {
-		mut mapped := map[string]brew_runtime.Value{}
+		mut mapped := map[string]ruby.Value{}
 		for key, item in value {
 			mapped[key] = cache_store_value_from_json(item)
 		}
-		return brew_runtime.map_value(mapped)
+		return ruby.map_value(mapped)
 	}
-	return brew_runtime.Value{ type_name: 'NilClass' }
+	return ruby.Value{ type_name: 'NilClass' }
 }
 
 fn (mut database CacheStoreDatabase) load() {
@@ -116,7 +116,7 @@ fn (mut database CacheStoreDatabase) load() {
 	contents := os.read_file(path) or { return }
 	decoded := json2.decode[json2.Any](contents) or { return }
 	if decoded is map[string]json2.Any {
-		mut values := map[string]brew_runtime.Value{}
+		mut values := map[string]ruby.Value{}
 		for key, value in decoded {
 			values[key] = cache_store_value_from_json(value)
 		}
@@ -132,13 +132,13 @@ pub fn (database CacheStoreDatabase) created() bool {
 	return os.exists(database.cache_path())
 }
 
-pub fn (mut database CacheStoreDatabase) set(key string, value brew_runtime.Value) {
+pub fn (mut database CacheStoreDatabase) set(key string, value ruby.Value) {
 	database.load()
 	database.dirty = true
 	database.values[key] = value
 }
 
-pub fn (mut database CacheStoreDatabase) get(key string) ?brew_runtime.Value {
+pub fn (mut database CacheStoreDatabase) get(key string) ?ruby.Value {
 	if !database.created() {
 		return none
 	}
@@ -173,7 +173,7 @@ pub fn (mut database CacheStoreDatabase) write_if_dirty() ! {
 	for key, value in database.values {
 		encoded[key] = cache_store_value_to_json(value)
 	}
-	brew_runtime.atomic_write_file(database.cache_path(), json2.encode(json2.Any(encoded)))!
+	ruby.atomic_write_file(database.cache_path(), json2.encode(json2.Any(encoded)))!
 }
 
 pub fn (database CacheStoreDatabase) mtime() ?i64 {
@@ -183,9 +183,9 @@ pub fn (database CacheStoreDatabase) mtime() ?i64 {
 	return os.file_last_mod_unix(database.cache_path())
 }
 
-pub fn (mut database CacheStoreDatabase) select(predicate CacheStorePredicate) map[string]brew_runtime.Value {
+pub fn (mut database CacheStoreDatabase) select(predicate CacheStorePredicate) map[string]ruby.Value {
 	database.load()
-	mut selected := map[string]brew_runtime.Value{}
+	mut selected := map[string]ruby.Value{}
 	for key, value in database.values {
 		if predicate(key, value) {
 			selected[key] = value
@@ -205,7 +205,7 @@ pub fn (mut database CacheStoreDatabase) keys() []string {
 }
 
 pub fn cache_store_use(mut registry CacheStoreRegistry, type_name string, cache_root string,
-	block CacheStoreUseBlock) !brew_runtime.Value {
+	block CacheStoreUseBlock) !ruby.Value {
 	mut database := registry.databases[type_name] or {
 		new_cache_store_database(type_name, cache_root)
 	}
@@ -224,7 +224,7 @@ pub fn cache_store_use(mut registry CacheStoreRegistry, type_name string, cache_
 
 // Ruby method `self.use(type, &_blk)` at line 26.
 pub fn ruby_cache_store_l26_d1_self_use(mut registry CacheStoreRegistry, type_name string,
-	cache_root string, block CacheStoreUseBlock) !brew_runtime.Value {
+	cache_root string, block CacheStoreUseBlock) !ruby.Value {
 	return cache_store_use(mut registry, type_name, cache_root, block)
 }
 
@@ -236,13 +236,13 @@ pub fn ruby_cache_store_l53_d2_initialize(type_name string,
 
 // Ruby method `set(key, value)` at line 60.
 pub fn ruby_cache_store_l60_d3_set(mut database CacheStoreDatabase, key string,
-	value brew_runtime.Value) {
+	value ruby.Value) {
 	database.set(key, value)
 }
 
 // Ruby method `get(key)` at line 67.
 pub fn ruby_cache_store_l67_d4_get(mut database CacheStoreDatabase,
-	key string) ?brew_runtime.Value {
+	key string) ?ruby.Value {
 	return database.get(key)
 }
 
@@ -273,7 +273,7 @@ pub fn ruby_cache_store_l108_d9_mtime(database CacheStoreDatabase) ?i64 {
 
 // Ruby method `select(&block)` at line 118.
 pub fn ruby_cache_store_l118_d10_select(mut database CacheStoreDatabase,
-	predicate CacheStorePredicate) map[string]brew_runtime.Value {
+	predicate CacheStorePredicate) map[string]ruby.Value {
 	return database.select(predicate)
 }
 
@@ -289,18 +289,18 @@ pub fn ruby_cache_store_l132_d12_each_key(mut database CacheStoreDatabase) []str
 
 // Ruby attr_writer `attr_writer :db` at line 137.
 pub fn ruby_cache_store_l137_d13_db(mut database CacheStoreDatabase,
-	values ?map[string]brew_runtime.Value) {
+	values ?map[string]ruby.Value) {
 	if assigned := values {
 		database.values = assigned.clone()
 		database.loaded = true
 	} else {
-		database.values = map[string]brew_runtime.Value{}
+		database.values = map[string]ruby.Value{}
 		database.loaded = false
 	}
 }
 
 // Ruby method `db` at line 145.
-pub fn ruby_cache_store_l145_d14_db(mut database CacheStoreDatabase) map[string]brew_runtime.Value {
+pub fn ruby_cache_store_l145_d14_db(mut database CacheStoreDatabase) map[string]ruby.Value {
 	database.load()
 	return database.values.clone()
 }

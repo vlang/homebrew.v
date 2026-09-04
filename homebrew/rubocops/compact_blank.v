@@ -1,6 +1,6 @@
 module rubocops
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `rubocops/compact_blank.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -433,8 +433,8 @@ pub fn analyze_compact_blank(source string) CompactBlankAnalysis {
 	}
 }
 
-fn compact_blank_call_value(call CompactBlankCall, type_name string) brew_runtime.Value {
-	return brew_runtime.structured_value(type_name, call.source, {
+fn compact_blank_call_value(call CompactBlankCall, type_name string) ruby.Value {
+	return ruby.structured_value(type_name, call.source, {
 		'method':            call.method
 		'kind':              call.kind
 		'arguments':         call.arguments.join(',')
@@ -446,8 +446,8 @@ fn compact_blank_call_value(call CompactBlankCall, type_name string) brew_runtim
 	})
 }
 
-fn compact_blank_offense_value(offense CompactBlankOffense) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cop::Offense', offense.message, {
+fn compact_blank_offense_value(offense CompactBlankOffense) ruby.Value {
+	return ruby.structured_value('RuboCop::Cop::Offense', offense.message, {
 		'method':      offense.call.method
 		'begin_pos':   offense.begin_pos.str()
 		'end_pos':     offense.end_pos.str()
@@ -457,46 +457,46 @@ fn compact_blank_offense_value(offense CompactBlankOffense) brew_runtime.Value {
 }
 
 // Ruby def_node_matcher `def_node_matcher :reject_with_block?, <<~PATTERN` at line 51.
-pub fn ruby_compact_blank_l51_d1_reject_with_block(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_compact_blank_l51_d1_reject_with_block(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	for call in compact_blank_candidates(source) {
 		if call.kind == 'block' {
 			return compact_blank_call_value(call, 'RuboCop::AST::NodeMatch')
 		}
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby def_node_matcher `def_node_matcher :reject_with_block_pass?, <<~PATTERN` at line 59.
-pub fn ruby_compact_blank_l59_d2_reject_with_block_pass(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_compact_blank_l59_d2_reject_with_block_pass(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	for call in compact_blank_candidates(source) {
 		if call.kind == 'block_pass' {
 			return compact_blank_call_value(call, 'RuboCop::AST::NodeMatch')
 		}
 	}
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `on_send(node)` at line 66.
-pub fn ruby_compact_blank_l66_d3_on_send(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_compact_blank_l66_d3_on_send(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	offenses := audit_compact_blank(source)
 	if offenses.len == 0 {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	return compact_blank_offense_value(offenses[0])
 }
 
 // Ruby method `bad_method?(node)` at line 79.
-pub fn ruby_compact_blank_l79_d4_bad_method(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_compact_blank_l79_d4_bad_method(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	calls := compact_blank_candidates(source)
-	return brew_runtime.bool_value(calls.len > 0 && compact_blank_bad_method(calls[0]))
+	return ruby.bool_value(calls.len > 0 && compact_blank_bad_method(calls[0]))
 }
 
 // Ruby method `use_single_value_block_argument?(arguments, receiver_in_block)` at line 93.
-pub fn ruby_compact_blank_l93_d5_use_single_value_block_argument(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_compact_blank_l93_d5_use_single_value_block_argument(args ...ruby.Value) ruby.Value {
 	arguments := if args.len > 0 && args[0].type_name == 'Array' {
 		args[0].string_array_data
 	} else if args.len > 0 && args[0].as_string() != '' {
@@ -505,11 +505,11 @@ pub fn ruby_compact_blank_l93_d5_use_single_value_block_argument(args ...brew_ru
 		[]string{}
 	}
 	receiver := if args.len > 1 { args[1].as_string() } else { '' }
-	return brew_runtime.bool_value(compact_blank_uses_single_value(arguments, receiver))
+	return ruby.bool_value(compact_blank_uses_single_value(arguments, receiver))
 }
 
 // Ruby method `use_hash_value_block_argument?(arguments, receiver_in_block)` at line 100.
-pub fn ruby_compact_blank_l100_d6_use_hash_value_block_argument(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_compact_blank_l100_d6_use_hash_value_block_argument(args ...ruby.Value) ruby.Value {
 	arguments := if args.len > 0 && args[0].type_name == 'Array' {
 		args[0].string_array_data
 	} else if args.len > 0 && args[0].as_string() != '' {
@@ -518,36 +518,36 @@ pub fn ruby_compact_blank_l100_d6_use_hash_value_block_argument(args ...brew_run
 		[]string{}
 	}
 	receiver := if args.len > 1 { args[1].as_string() } else { '' }
-	return brew_runtime.bool_value(compact_blank_uses_hash_value(arguments, receiver))
+	return ruby.bool_value(compact_blank_uses_hash_value(arguments, receiver))
 }
 
 // Ruby method `offense_range(node)` at line 105.
-pub fn ruby_compact_blank_l105_d7_offense_range(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_compact_blank_l105_d7_offense_range(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	calls := compact_blank_candidates(source)
 	if calls.len == 0 {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	call := calls[0]
-	return brew_runtime.structured_value('Parser::Source::Range', call.source, {
+	return ruby.structured_value('Parser::Source::Range', call.source, {
 		'begin_pos': call.selector_begin.str()
 		'end_pos':   call.end_pos.str()
 	})
 }
 
 // Ruby method `preferred_method(node)` at line 116.
-pub fn ruby_compact_blank_l116_d8_preferred_method(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_compact_blank_l116_d8_preferred_method(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_value('compact_blank!')
+		return ruby.string_value('compact_blank!')
 	}
 	if args[0].attributes['method'] == 'reject' || args[0].as_string() == 'reject' {
-		return brew_runtime.string_value('compact_blank')
+		return ruby.string_value('compact_blank')
 	}
 	calls := compact_blank_candidates(args[0].as_string())
 	if calls.len > 0 && calls[0].method == 'reject' {
-		return brew_runtime.string_value('compact_blank')
+		return ruby.string_value('compact_blank')
 	}
-	return brew_runtime.string_value('compact_blank!')
+	return ruby.string_value('compact_blank!')
 }
 
 // Original Ruby source (line-for-line):

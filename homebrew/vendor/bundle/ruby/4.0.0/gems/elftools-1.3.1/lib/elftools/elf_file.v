@@ -1,6 +1,6 @@
 module elftools
 
-import brew_runtime
+import ruby
 import encoding.hex
 import os
 
@@ -395,41 +395,41 @@ pub fn (file &ElfFile) save(filename string) ! {
 	os.write_file_array(filename, output)!
 }
 
-fn elf_header_value(header ElfHeader) brew_runtime.Value {
+fn elf_header_value(header ElfHeader) ruby.Value {
 	mut attributes := struct_record_value(header.state).attributes.clone()
 	attributes['magic'] = header.e_ident.magic.bytestr()
 	attributes['ei_class'] = header.e_ident.ei_class.str()
 	attributes['ei_data'] = header.e_ident.ei_data.str()
-	return brew_runtime.structured_value('ELFTools::Structs::ELF_Ehdr', 'ELF_Ehdr', attributes)
+	return ruby.structured_value('ELFTools::Structs::ELF_Ehdr', 'ELF_Ehdr', attributes)
 }
 
-fn elf_file_section_value(section ElfFileSection) brew_runtime.Value {
+fn elf_file_section_value(section ElfFileSection) ruby.Value {
 	mut attributes := struct_record_value(section.header.state).attributes.clone()
 	attributes['name'] = section.name
 	attributes['has_name'] = section.has_name.str()
 	attributes['stream'] = section.stream.bytestr()
-	return brew_runtime.structured_value('ELFTools::Sections::${section.class_name}', section.name, attributes)
+	return ruby.structured_value('ELFTools::Sections::${section.class_name}', section.name, attributes)
 }
 
-fn elf_file_segment_value(segment ElfFileSegment) brew_runtime.Value {
+fn elf_file_segment_value(segment ElfFileSegment) ruby.Value {
 	mut attributes := struct_record_value(segment.header.state).attributes.clone()
 	attributes['stream'] = segment.stream.bytestr()
-	return brew_runtime.structured_value('ELFTools::Segments::${segment.class_name}', segment.class_name, attributes)
+	return ruby.structured_value('ELFTools::Segments::${segment.class_name}', segment.class_name, attributes)
 }
 
-fn elf_file_value(file ElfFile) brew_runtime.Value {
-	return brew_runtime.structured_value('ELFTools::ELFFile', 'ELFFile', {
+fn elf_file_value(file ElfFile) ruby.Value {
+	return ruby.structured_value('ELFTools::ELFFile', 'ELFFile', {
 		'stream':    file.stream.bytestr()
 		'elf_class': file.elf_class.str()
 		'endian':    file.endian.str()
 	})
 }
 
-fn elf_file_from_value(value brew_runtime.Value) ElfFile {
+fn elf_file_from_value(value ruby.Value) ElfFile {
 	return new_elf_file((value.attribute('stream') or { value.as_string() }).bytes()) or { panic(err) }
 }
 
-fn elf_constant_value(prefix string, value brew_runtime.Value) !u32 {
+fn elf_constant_value(prefix string, value ruby.Value) !u32 {
 	constants := if prefix == 'PT' {
 		{
 			'PT_NULL':              u32(0)
@@ -569,200 +569,200 @@ fn elf_constant_value(prefix string, value brew_runtime.Value) !u32 {
 }
 
 // Ruby attr_reader `attr_reader :stream` at line 13.
-pub fn ruby_elf_file_l13_d1_stream(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_elf_file_l13_d1_stream(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('ELFFile#stream requires a receiver') }
-	return brew_runtime.string_value(elf_file_from_value(args[0]).stream.bytestr())
+	return ruby.string_value(elf_file_from_value(args[0]).stream.bytestr())
 }
 
 // Ruby attr_reader `attr_reader :elf_class` at line 14.
-pub fn ruby_elf_file_l14_d2_elf_class(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_elf_file_l14_d2_elf_class(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('ELFFile#elf_class requires a receiver') }
-	return brew_runtime.int_value(elf_file_from_value(args[0]).elf_class)
+	return ruby.int_value(elf_file_from_value(args[0]).elf_class)
 }
 
 // Ruby attr_reader `attr_reader :endian` at line 15.
-pub fn ruby_elf_file_l15_d3_endian(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_elf_file_l15_d3_endian(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('ELFFile#endian requires a receiver') }
-	return brew_runtime.string_value(':${elf_file_from_value(args[0]).endian}')
+	return ruby.string_value(':${elf_file_from_value(args[0]).endian}')
 }
 
 // Ruby method `initialize(stream)` at line 24.
-pub fn ruby_elf_file_l24_d4_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_elf_file_l24_d4_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('ELFFile#initialize requires a stream') }
 	return elf_file_value(new_elf_file(args[0].as_string().bytes()) or { panic(err) })
 }
 
 // Ruby method `header` at line 35.
-pub fn ruby_elf_file_l35_d5_header(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_elf_file_l35_d5_header(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('ELFFile#header requires a receiver') }
 	mut file := elf_file_from_value(args[0])
 	return elf_header_value(file.header() or { panic(err) })
 }
 
 // Ruby method `build_id` at line 52.
-pub fn ruby_elf_file_l52_d6_build_id(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_elf_file_l52_d6_build_id(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('ELFFile#build_id requires a receiver') }
 	mut file := elf_file_from_value(args[0])
 	return if build_id := file.build_id() {
-		brew_runtime.string_value(build_id)
+		ruby.string_value(build_id)
 	} else {
-		brew_runtime.object_value('NilClass', 'nil')
+		ruby.object_value('NilClass', 'nil')
 	}
 }
 
 // Ruby method `machine` at line 71.
-pub fn ruby_elf_file_l71_d7_machine(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_elf_file_l71_d7_machine(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('ELFFile#machine requires a receiver') }
 	mut file := elf_file_from_value(args[0])
-	return brew_runtime.string_value(file.machine() or { panic(err) })
+	return ruby.string_value(file.machine() or { panic(err) })
 }
 
 // Ruby method `elf_type` at line 82.
-pub fn ruby_elf_file_l82_d8_elf_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_elf_file_l82_d8_elf_type(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('ELFFile#elf_type requires a receiver') }
 	mut file := elf_file_from_value(args[0])
-	return brew_runtime.string_value(file.elf_type() or { panic(err) })
+	return ruby.string_value(file.elf_type() or { panic(err) })
 }
 
 // Ruby method `num_sections` at line 93.
-pub fn ruby_elf_file_l93_d9_num_sections(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_elf_file_l93_d9_num_sections(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('ELFFile#num_sections requires a receiver') }
 	mut file := elf_file_from_value(args[0])
-	return brew_runtime.int_value(file.header() or { panic(err) }.e_shnum)
+	return ruby.int_value(file.header() or { panic(err) }.e_shnum)
 }
 
 // Ruby method `section_by_name(name)` at line 107.
-pub fn ruby_elf_file_l107_d10_section_by_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_elf_file_l107_d10_section_by_name(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('ELFFile#section_by_name requires a receiver and name') }
 	mut file := elf_file_from_value(args[0])
-	section := file.section_by_name(args[1].as_string()) or { return brew_runtime.object_value('NilClass', 'nil') }
+	section := file.section_by_name(args[1].as_string()) or { return ruby.object_value('NilClass', 'nil') }
 	return elf_file_section_value(section)
 }
 
 // Ruby method `each_sections(&block)` at line 122.
-pub fn ruby_elf_file_l122_d11_each_sections(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_elf_file_l122_d11_each_sections(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('ELFFile#each_sections requires a receiver') }
 	mut file := elf_file_from_value(args[0])
-	return brew_runtime.array_value(file.sections() or { panic(err) }.map(elf_file_section_value(it)))
+	return ruby.array_value(file.sections() or { panic(err) }.map(elf_file_section_value(it)))
 }
 
 // Ruby method `sections` at line 133.
-pub fn ruby_elf_file_l133_d12_sections(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_elf_file_l133_d12_sections(args ...ruby.Value) ruby.Value {
 	return ruby_elf_file_l122_d11_each_sections(...args)
 }
 
 // Ruby method `section_at(n)` at line 144.
-pub fn ruby_elf_file_l144_d13_section_at(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_elf_file_l144_d13_section_at(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('ELFFile#section_at requires a receiver and index') }
 	mut file := elf_file_from_value(args[0])
-	section := file.section_at(int(args[1].as_int() or { panic(err) })) or { return brew_runtime.object_value('NilClass', 'nil') }
+	section := file.section_at(int(args[1].as_int() or { panic(err) })) or { return ruby.object_value('NilClass', 'nil') }
 	return elf_file_section_value(section)
 }
 
 // Ruby method `sections_by_type(type, &block)` at line 163.
-pub fn ruby_elf_file_l163_d14_sections_by_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_elf_file_l163_d14_sections_by_type(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('ELFFile#sections_by_type requires a receiver and type') }
 	mut file := elf_file_from_value(args[0])
 	section_type := elf_constant_value('SHT', args[1]) or { panic(err) }
-	return brew_runtime.array_value(file.sections_by_type(section_type, ignore_file_section) or {
+	return ruby.array_value(file.sections_by_type(section_type, ignore_file_section) or {
 		panic(err)
 	}.map(elf_file_section_value(it)))
 }
 
 // Ruby method `strtab_section` at line 173.
-pub fn ruby_elf_file_l173_d15_strtab_section(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_elf_file_l173_d15_strtab_section(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('ELFFile#strtab_section requires a receiver') }
 	mut file := elf_file_from_value(args[0])
-	section := file.strtab_section() or { return brew_runtime.object_value('NilClass', 'nil') }
+	section := file.strtab_section() or { return ruby.object_value('NilClass', 'nil') }
 	return elf_file_section_value(section)
 }
 
 // Ruby method `num_segments` at line 181.
-pub fn ruby_elf_file_l181_d16_num_segments(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_elf_file_l181_d16_num_segments(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('ELFFile#num_segments requires a receiver') }
 	mut file := elf_file_from_value(args[0])
-	return brew_runtime.int_value(file.header() or { panic(err) }.e_phnum)
+	return ruby.int_value(file.header() or { panic(err) }.e_phnum)
 }
 
 // Ruby method `each_segments(&block)` at line 195.
-pub fn ruby_elf_file_l195_d17_each_segments(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_elf_file_l195_d17_each_segments(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('ELFFile#each_segments requires a receiver') }
 	mut file := elf_file_from_value(args[0])
-	return brew_runtime.array_value(file.segments() or { panic(err) }.map(elf_file_segment_value(it)))
+	return ruby.array_value(file.segments() or { panic(err) }.map(elf_file_segment_value(it)))
 }
 
 // Ruby method `segments` at line 206.
-pub fn ruby_elf_file_l206_d18_segments(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_elf_file_l206_d18_segments(args ...ruby.Value) ruby.Value {
 	return ruby_elf_file_l195_d17_each_segments(...args)
 }
 
 // Ruby method `segment_by_type(type)` at line 251.
-pub fn ruby_elf_file_l251_d19_segment_by_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_elf_file_l251_d19_segment_by_type(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('ELFFile#segment_by_type requires a receiver and type') }
 	mut file := elf_file_from_value(args[0])
 	program_type := elf_constant_value('PT', args[1]) or { panic(err) }
-	segment := file.segment_by_type(program_type) or { return brew_runtime.object_value('NilClass', 'nil') }
+	segment := file.segment_by_type(program_type) or { return ruby.object_value('NilClass', 'nil') }
 	return elf_file_segment_value(segment)
 }
 
 // Ruby method `segments_by_type(type, &block)` at line 266.
-pub fn ruby_elf_file_l266_d20_segments_by_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_elf_file_l266_d20_segments_by_type(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('ELFFile#segments_by_type requires a receiver and type') }
 	mut file := elf_file_from_value(args[0])
 	program_type := elf_constant_value('PT', args[1]) or { panic(err) }
-	return brew_runtime.array_value(file.segments_by_type(program_type, ignore_file_segment) or {
+	return ruby.array_value(file.segments_by_type(program_type, ignore_file_segment) or {
 		panic(err)
 	}.map(elf_file_segment_value(it)))
 }
 
 // Ruby method `segment_at(n)` at line 278.
-pub fn ruby_elf_file_l278_d21_segment_at(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_elf_file_l278_d21_segment_at(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('ELFFile#segment_at requires a receiver and index') }
 	mut file := elf_file_from_value(args[0])
-	segment := file.segment_at(int(args[1].as_int() or { panic(err) })) or { return brew_runtime.object_value('NilClass', 'nil') }
+	segment := file.segment_at(int(args[1].as_int() or { panic(err) })) or { return ruby.object_value('NilClass', 'nil') }
 	return elf_file_segment_value(segment)
 }
 
 // Ruby method `offset_from_vma(vma, size = 1)` at line 293.
-pub fn ruby_elf_file_l293_d22_offset_from_vma(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_elf_file_l293_d22_offset_from_vma(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('ELFFile#offset_from_vma requires a receiver and address') }
 	mut file := elf_file_from_value(args[0])
 	size := if args.len > 2 { args[2].as_int() or { panic(err) } } else { i64(1) }
 	offset := file.offset_from_vma(args[1].as_int() or { panic(err) }, size) or {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
-	return brew_runtime.int_value(offset)
+	return ruby.int_value(offset)
 }
 
 // Ruby method `patches` at line 301.
-pub fn ruby_elf_file_l301_d23_patches(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_elf_file_l301_d23_patches(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('ELFFile#patches requires a receiver') }
 	file := elf_file_from_value(args[0])
-	mut result := map[string]brew_runtime.Value{}
+	mut result := map[string]ruby.Value{}
 	for position, value in file.patches() {
-		result[position.str()] = brew_runtime.string_value(value.bytestr())
+		result[position.str()] = ruby.string_value(value.bytestr())
 	}
-	return brew_runtime.map_value(result)
+	return ruby.map_value(result)
 }
 
 // Ruby method `save(filename)` at line 315.
-pub fn ruby_elf_file_l315_d24_save(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_elf_file_l315_d24_save(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('ELFFile#save requires a receiver and filename') }
 	file := elf_file_from_value(args[0])
 	file.save(args[1].as_string()) or { panic(err) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `loaded_headers` at line 327.
-pub fn ruby_elf_file_l327_d25_loaded_headers(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_elf_file_l327_d25_loaded_headers(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('ELFFile#loaded_headers requires a receiver') }
 	mut file := elf_file_from_value(args[0])
 	file.header() or { panic(err) }
-	return brew_runtime.array_value(file.loaded_headers().map(struct_record_value(it)))
+	return ruby.array_value(file.loaded_headers().map(struct_record_value(it)))
 }
 
 // Ruby method `identify` at line 339.
-pub fn ruby_elf_file_l339_d26_identify(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_elf_file_l339_d26_identify(args ...ruby.Value) ruby.Value {
 	if args.len == 0 { panic('ELFFile#identify requires a stream or receiver') }
 	data := if stream := args[0].attribute('stream') {
 		stream.bytes()
@@ -773,7 +773,7 @@ pub fn ruby_elf_file_l339_d26_identify(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby method `create_section(n)` at line 359.
-pub fn ruby_elf_file_l359_d27_create_section(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_elf_file_l359_d27_create_section(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('ELFFile#create_section requires a receiver and index') }
 	mut file := elf_file_from_value(args[0])
 	return elf_file_section_value(file.create_section(int(args[1].as_int() or { panic(err) })) or {
@@ -782,7 +782,7 @@ pub fn ruby_elf_file_l359_d27_create_section(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby method `create_segment(n)` at line 370.
-pub fn ruby_elf_file_l370_d28_create_segment(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_elf_file_l370_d28_create_segment(args ...ruby.Value) ruby.Value {
 	if args.len < 2 { panic('ELFFile#create_segment requires a receiver and index') }
 	mut file := elf_file_from_value(args[0])
 	return elf_file_segment_value(file.create_segment(int(args[1].as_int() or { panic(err) })) or {

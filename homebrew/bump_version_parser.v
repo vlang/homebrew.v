@@ -1,40 +1,40 @@
 module homebrew
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `bump_version_parser.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby attr_reader `attr_reader :arm, :general, :intel` at line 10.
-pub fn ruby_bump_version_parser_l10_d1_arm(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_version_parser_l10_d1_arm(args ...ruby.Value) ruby.Value {
 	return bump_version_parser_attribute(args, 'arm')
 }
 
 // Ruby attr_reader `attr_reader :arm, :general, :intel` at line 10.
-pub fn ruby_bump_version_parser_l10_d2_general(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_version_parser_l10_d2_general(args ...ruby.Value) ruby.Value {
 	return bump_version_parser_attribute(args, 'general')
 }
 
 // Ruby attr_reader `attr_reader :arm, :general, :intel` at line 10.
-pub fn ruby_bump_version_parser_l10_d3_intel(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_version_parser_l10_d3_intel(args ...ruby.Value) ruby.Value {
 	return bump_version_parser_attribute(args, 'intel')
 }
 
 // Ruby method `initialize(general: nil, arm: nil, intel: nil)` at line 17.
-pub fn ruby_bump_version_parser_l17_d4_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_version_parser_l17_d4_initialize(args ...ruby.Value) ruby.Value {
 	mut general := ?BumpVersion(none)
 	mut arm := ?BumpVersion(none)
 	mut intel := ?BumpVersion(none)
 	if args.len == 1 && args[0].type_name == 'Hash' {
 		values := args[0].map_data.clone()
 		general = bump_version_from_value(values['general'] or {
-			brew_runtime.object_value('NilClass', '')
+			ruby.object_value('NilClass', '')
 		})
 		arm = bump_version_from_value(values['arm'] or {
-			brew_runtime.object_value('NilClass', '')
+			ruby.object_value('NilClass', '')
 		})
 		intel = bump_version_from_value(values['intel'] or {
-			brew_runtime.object_value('NilClass', '')
+			ruby.object_value('NilClass', '')
 		})
 	} else {
 		if args.len > 0 {
@@ -48,7 +48,7 @@ pub fn ruby_bump_version_parser_l17_d4_initialize(args ...brew_runtime.Value) br
 		}
 	}
 	parser := new_bump_version_parser(general, arm, intel) or {
-		return brew_runtime.structured_value('UsageError', err.msg(), {
+		return ruby.structured_value('UsageError', err.msg(), {
 			'message': err.msg()
 		})
 	}
@@ -56,47 +56,47 @@ pub fn ruby_bump_version_parser_l17_d4_initialize(args ...brew_runtime.Value) br
 }
 
 // Ruby method `parse_version(version)` at line 30.
-pub fn ruby_bump_version_parser_l30_d5_parse_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_version_parser_l30_d5_parse_version(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('NilClass', '')
+		return ruby.object_value('NilClass', '')
 	}
 	version := bump_version_from_value(args[args.len - 1]) or {
-		return brew_runtime.object_value('NilClass', '')
+		return ruby.object_value('NilClass', '')
 	}
 	return bump_version_value(version)
 }
 
 // Ruby method `parse_cask_version(version)` at line 43.
-pub fn ruby_bump_version_parser_l43_d6_parse_cask_version(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_version_parser_l43_d6_parse_cask_version(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('NilClass', '')
+		return ruby.object_value('NilClass', '')
 	}
 	return bump_version_value(new_cask_bump_version(args[args.len - 1].as_string()))
 }
 
 // Ruby method `blank?` at line 52.
-pub fn ruby_bump_version_parser_l52_d7_blank(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_version_parser_l52_d7_blank(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.bool_value(true)
+		return ruby.bool_value(true)
 	}
 	parser := bump_version_parser_from_value(args[0]) or {
-		return brew_runtime.bool_value(true)
+		return ruby.bool_value(true)
 	}
-	return brew_runtime.bool_value(parser.is_blank())
+	return ruby.bool_value(parser.is_blank())
 }
 
 // Ruby method `==(other)` at line 57.
-pub fn ruby_bump_version_parser_l57_d8_anonymous(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_bump_version_parser_l57_d8_anonymous(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	parser := bump_version_parser_from_value(args[0]) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	other := bump_version_parser_from_value(args[1]) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(parser.equals(other))
+	return ruby.bool_value(parser.equals(other))
 }
 
 // BumpVersionSource records whether Ruby's parser retained a Formula Version
@@ -176,7 +176,7 @@ pub fn (parser BumpVersionParser) equals(other BumpVersionParser) bool {
 
 // bump_version_parser_value and bump_version_parser_from_value provide a stable
 // adapter for generic translated callers while retaining optionality and source.
-pub fn bump_version_parser_value(parser BumpVersionParser) brew_runtime.Value {
+pub fn bump_version_parser_value(parser BumpVersionParser) ruby.Value {
 	mut attributes := map[string]string{}
 	for name, version in {
 		'general': parser.general
@@ -188,10 +188,10 @@ pub fn bump_version_parser_value(parser BumpVersionParser) brew_runtime.Value {
 			attributes['${name}_source'] = parsed.source.str()
 		}
 	}
-	return brew_runtime.structured_value('BumpVersionParser', bump_version_parser_repr(parser), attributes)
+	return ruby.structured_value('BumpVersionParser', bump_version_parser_repr(parser), attributes)
 }
 
-pub fn bump_version_parser_from_value(value brew_runtime.Value) !BumpVersionParser {
+pub fn bump_version_parser_from_value(value ruby.Value) !BumpVersionParser {
 	if value.type_name != 'BumpVersionParser' {
 		return error('expected BumpVersionParser, got ${value.type_name}')
 	}
@@ -210,7 +210,7 @@ fn bump_version_from_optional_string(value ?string) ?BumpVersion {
 	return new_cask_bump_version(text)
 }
 
-fn bump_version_from_value(value brew_runtime.Value) ?BumpVersion {
+fn bump_version_from_value(value ruby.Value) ?BumpVersion {
 	if value.type_name in ['Nil', 'NilClass'] || value.as_string().trim_space().len == 0 {
 		return none
 	}
@@ -223,16 +223,16 @@ fn bump_version_from_value(value brew_runtime.Value) ?BumpVersion {
 	return new_cask_bump_version(value.as_string())
 }
 
-fn bump_version_value(version BumpVersion) brew_runtime.Value {
+fn bump_version_value(version BumpVersion) ruby.Value {
 	type_name := if version.source == .formula { 'Version' } else { 'Cask::DSL::Version' }
-	return brew_runtime.structured_value(type_name, version.value, {
+	return ruby.structured_value(type_name, version.value, {
 		'value':  version.value
 		'source': version.source.str()
 		'latest': version.latest.str()
 	})
 }
 
-fn bump_version_from_attribute(value brew_runtime.Value, name string) ?BumpVersion {
+fn bump_version_from_attribute(value ruby.Value, name string) ?BumpVersion {
 	text := value.attributes[name] or { return none }
 	if text.trim_space().len == 0 {
 		return none
@@ -249,12 +249,12 @@ fn bump_version_from_attribute(value brew_runtime.Value, name string) ?BumpVersi
 	}
 }
 
-fn bump_version_parser_attribute(args []brew_runtime.Value, name string) brew_runtime.Value {
+fn bump_version_parser_attribute(args []ruby.Value, name string) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('NilClass', '')
+		return ruby.object_value('NilClass', '')
 	}
 	parser := bump_version_parser_from_value(args[0]) or {
-		return brew_runtime.object_value('NilClass', '')
+		return ruby.object_value('NilClass', '')
 	}
 	mut version := ?BumpVersion(none)
 	match name {
@@ -269,7 +269,7 @@ fn bump_version_parser_attribute(args []brew_runtime.Value, name string) brew_ru
 		}
 		else {}
 	}
-	parsed := version or { return brew_runtime.object_value('NilClass', '') }
+	parsed := version or { return ruby.object_value('NilClass', '') }
 	return bump_version_value(parsed)
 }
 

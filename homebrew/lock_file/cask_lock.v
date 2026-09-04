@@ -1,17 +1,17 @@
 module lock_file
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `lock_file/cask_lock.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `initialize(cask_token)` at line 7.
-pub fn ruby_cask_lock_l7_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_cask_lock_l7_d1_initialize(args ...ruby.Value) ruby.Value {
 	token := if args.len > 0 { args[0].as_string() } else { '' }
 	prefix := if args.len > 1 {
 		args[1].as_string()
 	} else {
-		brew_runtime.environment_value('HOMEBREW_PREFIX')
+		ruby.environment_value('HOMEBREW_PREFIX')
 	}
 	target := new_cask_lock_target(token, prefix)
 	return lock_target_value(target)
@@ -26,12 +26,12 @@ pub:
 pub fn new_cask_lock_target(cask_token string, homebrew_prefix string) LockTarget {
 	return LockTarget{
 		kind: 'cask'
-		path: brew_runtime.join_path(homebrew_prefix, 'Caskroom/${cask_token}')
+		path: ruby.join_path(homebrew_prefix, 'Caskroom/${cask_token}')
 	}
 }
 
-fn lock_target_value(target LockTarget) brew_runtime.Value {
-	return brew_runtime.structured_value('CaskLock', target.path, {
+fn lock_target_value(target LockTarget) ruby.Value {
+	return ruby.structured_value('CaskLock', target.path, {
 		'kind': target.kind
 		'path': target.path
 	})

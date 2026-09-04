@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `test/dev-cmd/formula-analytics_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -57,25 +57,25 @@ fn formula_analytics_spec_failing_bridge(_request FormulaAnalyticsBridgeRequest)
 }
 
 // Ruby it `it "preserves WSL in formatted Linux versions" do` at line 13.
-pub fn ruby_formula_analytics_spec_l13_d1_preserves(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_analytics_spec_l13_d1_preserves(args ...ruby.Value) ruby.Value {
 	formatted := format_os_version_dimension('Ubuntu 24.04.3 LTS${formula_analytics_wsl_suffix}') or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(formatted == 'Ubuntu 24.04 LTS${formula_analytics_wsl_suffix}')
+	return ruby.bool_value(formatted == 'Ubuntu 24.04 LTS${formula_analytics_wsl_suffix}')
 }
 
 // Ruby it `it "ranks sampled environment configurations by non-default use" do` at line 21.
-pub fn ruby_formula_analytics_spec_l21_d2_ranks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_analytics_spec_l21_d2_ranks(args ...ruby.Value) ruby.Value {
 	base := formula_analytics_spec_options(formula_analytics_spec_ranked_bridge)
 	options := FormulaAnalyticsOptions{
 		...base
 		homebrew_env_config: true
 	}
 	reports, _ := run_formula_analytics_query(options) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	if reports.len != 1 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	report := reports[0]
 	valid := report.category == 'homebrew_env_config' && report.total_items == 3
@@ -90,41 +90,41 @@ pub fn ruby_formula_analytics_spec_l21_d2_ranks(args ...brew_runtime.Value) brew
 		&& report.items[2].dimension == 'HOMEBREW_MAKE_JOBS'
 		&& report.items[2].formatted_count == '4' && report.items[2].percent == '0'
 		&& report.items[2].default_value == 'The number of available CPU cores.'
-	return brew_runtime.bool_value(valid)
+	return ruby.bool_value(valid)
 }
 
 // Ruby it `it "streams the JSON request to the bridge script and parses JSON lines" do` at line 74.
-pub fn ruby_formula_analytics_spec_l74_d3_streams(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_analytics_spec_l74_d3_streams(args ...ruby.Value) ruby.Value {
 	options := formula_analytics_spec_options(formula_analytics_spec_echo_bridge)
 	records := each_formula_analytics_influx_record('SELECT 1', options) or {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	if records.len != 1 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	record := records[0]
-	return brew_runtime.bool_value(formula_analytics_field(record, 'host') == formula_analytics_influx_host
+	return ruby.bool_value(formula_analytics_field(record, 'host') == formula_analytics_influx_host
 		&& formula_analytics_field(record, 'org') == formula_analytics_influx_org
 		&& formula_analytics_field(record, 'database') == formula_analytics_influx_bucket
 		&& formula_analytics_field(record, 'query') == 'SELECT 1')
 }
 
 // Ruby it `it "reports unauthenticated bridge errors as a token problem" do` at line 92.
-pub fn ruby_formula_analytics_spec_l92_d4_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_analytics_spec_l92_d4_reports(args ...ruby.Value) ruby.Value {
 	options := formula_analytics_spec_options(formula_analytics_spec_unauthenticated_bridge)
 	each_formula_analytics_influx_record('SELECT 1', options) or {
-		return brew_runtime.bool_value(err.msg().contains('Could not authenticate with InfluxDB'))
+		return ruby.bool_value(err.msg().contains('Could not authenticate with InfluxDB'))
 	}
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 // Ruby it `it "reports other bridge failures with their standard error output" do` at line 109.
-pub fn ruby_formula_analytics_spec_l109_d5_reports(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_analytics_spec_l109_d5_reports(args ...ruby.Value) ruby.Value {
 	options := formula_analytics_spec_options(formula_analytics_spec_failing_bridge)
 	each_formula_analytics_influx_record('SELECT 1', options) or {
-		return brew_runtime.bool_value(err.msg().contains('InfluxDB query failed:\nTraceback: boom'))
+		return ruby.bool_value(err.msg().contains('InfluxDB query failed:\nTraceback: boom'))
 	}
-	return brew_runtime.bool_value(false)
+	return ruby.bool_value(false)
 }
 
 // Original Ruby source (line-for-line):

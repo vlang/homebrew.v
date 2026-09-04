@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 import os
 
 pub struct WhichFormulaEntry {
@@ -22,21 +22,21 @@ pub:
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:shell_cellar) do` at line 13.
-pub fn ruby_which_formula_spec_l13_d1_shell_cellar(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_which_formula_spec_l13_d1_shell_cellar(args ...ruby.Value) ruby.Value {
 	library_path := if args.len > 0 { args[0].as_string() } else { '' }
 	cellar := if args.len > 1 { args[1].as_string() } else { '' }
-	return brew_runtime.string_value(which_formula_shell_cellar(library_path, cellar))
+	return ruby.string_value(which_formula_shell_cellar(library_path, cellar))
 }
 
 // Ruby it `it "finds formulae using the Bash command path" do` at line 41.
-pub fn ruby_which_formula_spec_l41_d2_finds(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_which_formula_spec_l41_d2_finds(args ...ruby.Value) ruby.Value {
 	database := 'foo(1.0.0):foo2 foo3\nbar(1.2.3):\nbaz(10.4):baz\nqux(4.5.6):QUX\nquux:quux\n'
 	entries := parse_which_formula_database(database)
 	found := which_formula_lookup(['foo2', 'baz', 'QUX', 'quux'], entries, false, false)
 	missing := which_formula_lookup(['bar'], entries, false, false)
 	verbose := which_formula_lookup(['bar'], entries, false, true)
 	disabled := which_formula_lookup(['foo2'], [], true, false)
-	return brew_runtime.bool_value(found.stdout == 'foo\nbaz\nqux\nquux\n' && found.stderr == ''
+	return ruby.bool_value(found.stdout == 'foo\nbaz\nqux\nquux\n' && found.stderr == ''
 		&& found.exit_code == 0 && missing.stdout == '' && missing.exit_code == 1
 		&& verbose.verbose_set && verbose.exit_code == 1 && disabled.exit_code == 1
 		&& disabled.stderr == 'Error: HOMEBREW_NO_INSTALL_FROM_API must be unset to use `brew which-formula` or `brew exec`.\n')

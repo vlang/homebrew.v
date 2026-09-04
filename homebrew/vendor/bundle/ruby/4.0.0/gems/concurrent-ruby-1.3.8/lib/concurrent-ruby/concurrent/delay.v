@@ -1,6 +1,6 @@
 module concurrent
 
-import brew_runtime
+import ruby
 import sync
 import time
 
@@ -13,20 +13,20 @@ pub struct Delay {
 mut:
 	ivar               &IVar
 	task               IVarTask @[required]
-	args               []brew_runtime.Value
+	args               []ruby.Value
 	evaluation_started bool
 	evaluating_thread  u64
 }
 
-pub fn new_delay(task IVarTask, args []brew_runtime.Value) &Delay {
+pub fn new_delay(task IVarTask, args []ruby.Value) &Delay {
 	return new_delay_with_executor(task, args, false)
 }
 
-pub fn new_async_delay(task IVarTask, args []brew_runtime.Value) &Delay {
+pub fn new_async_delay(task IVarTask, args []ruby.Value) &Delay {
 	return new_delay_with_executor(task, args, true)
 }
 
-pub fn new_delay_with_executor(task IVarTask, args []brew_runtime.Value, async_execution bool) &Delay {
+pub fn new_delay_with_executor(task IVarTask, args []ruby.Value, async_execution bool) &Delay {
 	return &Delay{
 		mutex: sync.new_mutex()
 		async_execution: async_execution
@@ -69,7 +69,7 @@ pub fn (mut delay Delay) execute_task_once() bool {
 	return true
 }
 
-pub fn (mut delay Delay) value(timeout ?time.Duration) brew_runtime.Value {
+pub fn (mut delay Delay) value(timeout ?time.Duration) ruby.Value {
 	if delay.async_execution {
 		delay.execute_task_once()
 		return delay.ivar.value(timeout)
@@ -98,7 +98,7 @@ pub fn (mut delay Delay) value(timeout ?time.Duration) brew_runtime.Value {
 	return delay.ivar.value(time.Duration(0))
 }
 
-pub fn (mut delay Delay) value_or_error(timeout ?time.Duration) !brew_runtime.Value {
+pub fn (mut delay Delay) value_or_error(timeout ?time.Duration) !ruby.Value {
 	value := delay.value(timeout)
 	reason := delay.ivar.reason()
 	if reason.len > 0 {
@@ -116,7 +116,7 @@ pub fn (mut delay Delay) wait(timeout ?time.Duration) bool {
 	return true
 }
 
-pub fn (mut delay Delay) reconfigure(task IVarTask, args []brew_runtime.Value) bool {
+pub fn (mut delay Delay) reconfigure(task IVarTask, args []ruby.Value) bool {
 	delay.mutex.lock()
 	defer {
 		delay.mutex.unlock()
@@ -149,13 +149,13 @@ pub fn (mut delay Delay) is_complete() bool {
 	return delay.ivar.is_complete()
 }
 
-fn delay_boundary_value(delay &Delay) brew_runtime.Value {
-	return brew_runtime.structured_value('Concurrent::Delay', '#<Concurrent::Delay>', {
+fn delay_boundary_value(delay &Delay) ruby.Value {
+	return ruby.structured_value('Concurrent::Delay', '#<Concurrent::Delay>', {
 		'delay_address': u64(voidptr(delay)).str()
 	})
 }
 
-fn delay_boundary_receiver(args []brew_runtime.Value) &Delay {
+fn delay_boundary_receiver(args []ruby.Value) &Delay {
 	if args.len == 0 {
 		panic('Delay method requires a receiver')
 	}
@@ -165,7 +165,7 @@ fn delay_boundary_receiver(args []brew_runtime.Value) &Delay {
 	return unsafe { &Delay(voidptr(address)) }
 }
 
-fn delay_boundary_timeout(args []brew_runtime.Value, index int) ?time.Duration {
+fn delay_boundary_timeout(args []ruby.Value, index int) ?time.Duration {
 	if index >= args.len || args[index].type_name == 'NilClass' {
 		return none
 	}
@@ -174,7 +174,7 @@ fn delay_boundary_timeout(args []brew_runtime.Value, index int) ?time.Duration {
 }
 
 // Ruby method `initialize(opts = {}, &block)` at line 62.
-pub fn ruby_delay_l62_d1_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_delay_l62_d1_initialize(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('ArgumentError: no block given')
 	}
@@ -182,40 +182,40 @@ pub fn ruby_delay_l62_d1_initialize(args ...brew_runtime.Value) brew_runtime.Val
 }
 
 // Ruby method `value(timeout = nil)` at line 77.
-pub fn ruby_delay_l77_d2_value(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_delay_l77_d2_value(args ...ruby.Value) ruby.Value {
 	mut delay := delay_boundary_receiver(args)
 	return delay.value(delay_boundary_timeout(args, 1))
 }
 
 // Ruby method `value!(timeout = nil)` at line 113.
-pub fn ruby_delay_l113_d3_value(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_delay_l113_d3_value(args ...ruby.Value) ruby.Value {
 	mut delay := delay_boundary_receiver(args)
 	return delay.value_or_error(delay_boundary_timeout(args, 1)) or { panic(err) }
 }
 
 // Ruby method `wait(timeout = nil)` at line 132.
-pub fn ruby_delay_l132_d4_wait(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_delay_l132_d4_wait(args ...ruby.Value) ruby.Value {
 	mut delay := delay_boundary_receiver(args)
 	delay.wait(delay_boundary_timeout(args, 1))
 	return args[0]
 }
 
 // Ruby method `reconfigure(&block)` at line 146.
-pub fn ruby_delay_l146_d5_reconfigure(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_delay_l146_d5_reconfigure(args ...ruby.Value) ruby.Value {
 	mut delay := delay_boundary_receiver(args)
 	if args.len < 2 {
 		panic('ArgumentError: no block given')
 	}
-	return brew_runtime.bool_value(delay.reconfigure(future_value_task, [args[1]]))
+	return ruby.bool_value(delay.reconfigure(future_value_task, [args[1]]))
 }
 
 // Ruby method `ns_initialize(opts, &block)` at line 160.
-pub fn ruby_delay_l160_d6_ns_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_delay_l160_d6_ns_initialize(args ...ruby.Value) ruby.Value {
 	return ruby_delay_l62_d1_initialize(...args)
 }
 
 // Ruby method `execute_task_once # :nodoc:` at line 173.
-pub fn ruby_delay_l173_d7_execute_task_once(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_delay_l173_d7_execute_task_once(args ...ruby.Value) ruby.Value {
 	mut delay := delay_boundary_receiver(args)
 	delay.execute_task_once()
 	return args[0]

@@ -1,6 +1,6 @@
 module extensions
 
-import brew_runtime
+import ruby
 
 pub struct FlatpakPackage {
 pub:
@@ -20,8 +20,8 @@ pub mut:
 	commands              [][]string
 }
 
-fn flatpak_error(kind string, message string) brew_runtime.Value {
-	return brew_runtime.structured_value(kind, message, {
+fn flatpak_error(kind string, message string) ruby.Value {
+	return ruby.structured_value(kind, message, {
 		'message': message
 	})
 }
@@ -36,19 +36,19 @@ pub fn flatpak_definition() ExtensionDefinition {
 	}
 }
 
-pub fn flatpak_package_value(package FlatpakPackage) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'name':       brew_runtime.string_value(package.name)
-		'remote':     brew_runtime.string_value(package.remote)
+pub fn flatpak_package_value(package FlatpakPackage) ruby.Value {
+	return ruby.map_value({
+		'name':       ruby.string_value(package.name)
+		'remote':     ruby.string_value(package.remote)
 		'remote_url': if package.remote_url == '' {
-			brew_runtime.object_value('NilClass', '')
+			ruby.object_value('NilClass', '')
 		} else {
-			brew_runtime.string_value(package.remote_url)
+			ruby.string_value(package.remote_url)
 		}
 	})
 }
 
-pub fn flatpak_package_from_value(value brew_runtime.Value) FlatpakPackage {
+pub fn flatpak_package_from_value(value ruby.Value) FlatpakPackage {
 	values := value.as_map() or {
 		return FlatpakPackage{
 			name: value.as_string()
@@ -56,7 +56,7 @@ pub fn flatpak_package_from_value(value brew_runtime.Value) FlatpakPackage {
 		}
 	}
 	if 'options' in values {
-		options := values['options'].as_map() or { map[string]brew_runtime.Value{} }
+		options := values['options'].as_map() or { map[string]ruby.Value{} }
 		return FlatpakPackage{
 			name: if 'name' in values { values['name'].as_string() } else { '' }
 			remote: if 'remote' in options { options['remote'].as_string() } else { 'flathub' }
@@ -74,24 +74,24 @@ pub fn flatpak_package_from_value(value brew_runtime.Value) FlatpakPackage {
 	}
 }
 
-pub fn flatpak_packages_value(packages []FlatpakPackage) brew_runtime.Value {
-	return brew_runtime.array_value(packages.map(flatpak_package_value(it)))
+pub fn flatpak_packages_value(packages []FlatpakPackage) ruby.Value {
+	return ruby.array_value(packages.map(flatpak_package_value(it)))
 }
 
-pub fn flatpak_packages_from_value(value brew_runtime.Value) []FlatpakPackage {
+pub fn flatpak_packages_from_value(value ruby.Value) []FlatpakPackage {
 	items := value.as_array() or { return [] }
 	return items.map(flatpak_package_from_value(it))
 }
 
-fn flatpak_string_map_value(values map[string]string) brew_runtime.Value {
-	mut mapped := map[string]brew_runtime.Value{}
+fn flatpak_string_map_value(values map[string]string) ruby.Value {
+	mut mapped := map[string]ruby.Value{}
 	for key, value in values {
-		mapped[key] = brew_runtime.string_value(value)
+		mapped[key] = ruby.string_value(value)
 	}
-	return brew_runtime.map_value(mapped)
+	return ruby.map_value(mapped)
 }
 
-fn flatpak_string_map_from_value(value brew_runtime.Value) map[string]string {
+fn flatpak_string_map_from_value(value ruby.Value) map[string]string {
 	values := value.as_map() or { return {} }
 	mut mapped := map[string]string{}
 	for key, item in values {
@@ -100,24 +100,24 @@ fn flatpak_string_map_from_value(value brew_runtime.Value) map[string]string {
 	return mapped
 }
 
-pub fn flatpak_state_value(state FlatpakState) brew_runtime.Value {
-	return brew_runtime.map_value({
+pub fn flatpak_state_value(state FlatpakState) ruby.Value {
+	return ruby.map_value({
 		'_definition':           extension_definition_value(flatpak_definition())
 		'executable':            if state.executable == '' {
-			brew_runtime.object_value('NilClass', '')
+			ruby.object_value('NilClass', '')
 		} else {
-			brew_runtime.object_value('Pathname', state.executable)
+			ruby.object_value('Pathname', state.executable)
 		}
-		'packages':              brew_runtime.string_array_value(state.packages)
+		'packages':              ruby.string_array_value(state.packages)
 		'packages_with_remotes': flatpak_packages_value(state.packages_with_remotes)
 		'installed_packages':    flatpak_packages_value(state.installed_packages)
 		'remote_urls':           flatpak_string_map_value(state.remote_urls)
-		'output':                brew_runtime.string_array_value(state.output)
-		'commands':              brew_runtime.array_value(state.commands.map(brew_runtime.string_array_value(it)))
+		'output':                ruby.string_array_value(state.output)
+		'commands':              ruby.array_value(state.commands.map(ruby.string_array_value(it)))
 	})
 }
 
-pub fn flatpak_state_from_value(value brew_runtime.Value) FlatpakState {
+pub fn flatpak_state_from_value(value ruby.Value) FlatpakState {
 	values := value.as_map() or { return FlatpakState{} }
 	mut commands := [][]string{}
 	if 'commands' in values {
@@ -146,7 +146,7 @@ pub fn flatpak_state_from_value(value brew_runtime.Value) FlatpakState {
 	}
 }
 
-pub fn flatpak_entry(name string, options map[string]brew_runtime.Value) !ExtensionEntry {
+pub fn flatpak_entry(name string, options map[string]ruby.Value) !ExtensionEntry {
 	mut unknown := []string{}
 	for key in options.keys() {
 		if key !in ['remote', 'url'] {
@@ -156,8 +156,8 @@ pub fn flatpak_entry(name string, options map[string]brew_runtime.Value) !Extens
 	if unknown.len > 0 {
 		return error('unknown options([${unknown.join(', ')}]) for flatpak')
 	}
-	remote_value := options['remote'] or { brew_runtime.object_value('NilClass', '') }
-	url_value := options['url'] or { brew_runtime.object_value('NilClass', '') }
+	remote_value := options['remote'] or { ruby.object_value('NilClass', '') }
+	url_value := options['url'] or { ruby.object_value('NilClass', '') }
 	if remote_value.type_name !in ['String', 'NilClass'] {
 		return error('options[:remote](${remote_value.repr}) should be a String object')
 	}
@@ -169,10 +169,10 @@ pub fn flatpak_entry(name string, options map[string]brew_runtime.Value) !Extens
 		return error('url: parameter cannot be used when remote: is already a URL')
 	}
 	mut normalized := {
-		'remote': brew_runtime.string_value(remote)
+		'remote': ruby.string_value(remote)
 	}
 	if url_value.type_name == 'String' {
-		normalized['url'] = brew_runtime.string_value(url_value.as_string())
+		normalized['url'] = ruby.string_value(url_value.as_string())
 	}
 	return ExtensionEntry{
 		entry_type: 'flatpak'
@@ -379,51 +379,51 @@ pub fn flatpak_install(mut state FlatpakState, name string, remote string, url s
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `type = :flatpak` at line 13.
-pub fn ruby_flatpak_l13_d1_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_l13_d1_type(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.object_value('Symbol', 'flatpak')
+	return ruby.object_value('Symbol', 'flatpak')
 }
 
 // Ruby method `check_label = "Flatpak"` at line 16.
-pub fn ruby_flatpak_l16_d2_check_label(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_l16_d2_check_label(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('Flatpak')
+	return ruby.string_value('Flatpak')
 }
 
 // Ruby method `banner_name = "Flatpak packages"` at line 19.
-pub fn ruby_flatpak_l19_d3_banner_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_l19_d3_banner_name(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('Flatpak packages')
+	return ruby.string_value('Flatpak packages')
 }
 
 // Ruby method `switch_description(description)` at line 22.
-pub fn ruby_flatpak_l22_d4_switch_description(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_l22_d4_switch_description(args ...ruby.Value) ruby.Value {
 	description := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.string_value('${extension_switch_description(description)} Note: Linux only.')
+	return ruby.string_value('${extension_switch_description(description)} Note: Linux only.')
 }
 
 // Ruby method `cleanup_heading` at line 27.
-pub fn ruby_flatpak_l27_d5_cleanup_heading(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_l27_d5_cleanup_heading(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('flatpaks')
+	return ruby.string_value('flatpaks')
 }
 
 // Ruby method `entry(name, options = {})` at line 32.
-pub fn ruby_flatpak_l32_d6_entry(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_l32_d6_entry(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return flatpak_error('ArgumentError', 'name is required')
 	}
 	options := if args.len > 1 {
 		args[1].as_map() or { return flatpak_error('ArgumentError', err.msg()) }
 	} else {
-		map[string]brew_runtime.Value{}
+		map[string]ruby.Value{}
 	}
 	entry := flatpak_entry(args[0].as_string(), options) or { return flatpak_error('RuntimeError', err.msg()) }
 	return extension_entry_value(entry)
 }
 
 // Ruby method `reset!` at line 56.
-pub fn ruby_flatpak_l56_d7_reset(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_l56_d7_reset(args ...ruby.Value) ruby.Value {
 	mut state := if args.len > 0 { flatpak_state_from_value(args[0]) } else { FlatpakState{} }
 	state.packages = []
 	state.packages_with_remotes = []
@@ -433,7 +433,7 @@ pub fn ruby_flatpak_l56_d7_reset(args ...brew_runtime.Value) brew_runtime.Value 
 }
 
 // Ruby method `remote_urls` at line 64.
-pub fn ruby_flatpak_l64_d8_remote_urls(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_l64_d8_remote_urls(args ...ruby.Value) ruby.Value {
 	state := if args.len > 0 { flatpak_state_from_value(args[0]) } else { FlatpakState{} }
 	if state.remote_urls.len > 0 {
 		return flatpak_string_map_value(state.remote_urls)
@@ -449,7 +449,7 @@ pub fn ruby_flatpak_l64_d8_remote_urls(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby method `packages_with_remotes` at line 87.
-pub fn ruby_flatpak_l87_d9_packages_with_remotes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_l87_d9_packages_with_remotes(args ...ruby.Value) ruby.Value {
 	state := if args.len > 0 { flatpak_state_from_value(args[0]) } else { FlatpakState{} }
 	if state.packages_with_remotes.len > 0 {
 		return flatpak_packages_value(state.packages_with_remotes)
@@ -463,21 +463,21 @@ pub fn ruby_flatpak_l87_d9_packages_with_remotes(args ...brew_runtime.Value) bre
 }
 
 // Ruby method `packages` at line 116.
-pub fn ruby_flatpak_l116_d10_packages(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_l116_d10_packages(args ...ruby.Value) ruby.Value {
 	state := if args.len > 0 { flatpak_state_from_value(args[0]) } else { FlatpakState{} }
 	if state.packages.len > 0 {
-		return brew_runtime.string_array_value(state.packages)
+		return ruby.string_array_value(state.packages)
 	}
 	packages := if args.len > 1 {
 		flatpak_packages_from_value(args[1])
 	} else {
 		state.packages_with_remotes
 	}
-	return brew_runtime.string_array_value(packages.map(it.name))
+	return ruby.string_array_value(packages.map(it.name))
 }
 
 // Ruby method `installed_packages` at line 124.
-pub fn ruby_flatpak_l124_d11_installed_packages(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_l124_d11_installed_packages(args ...ruby.Value) ruby.Value {
 	state := if args.len > 0 { flatpak_state_from_value(args[0]) } else { FlatpakState{} }
 	if state.installed_packages.len > 0 {
 		return flatpak_packages_value(state.installed_packages)
@@ -486,41 +486,41 @@ pub fn ruby_flatpak_l124_d11_installed_packages(args ...brew_runtime.Value) brew
 }
 
 // Ruby method `dump_entry(package)` at line 132.
-pub fn ruby_flatpak_l132_d12_dump_entry(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_l132_d12_dump_entry(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return flatpak_error('ArgumentError', 'package is required')
 	}
-	return brew_runtime.string_value(flatpak_dump_entry(flatpak_package_from_value(args[0])))
+	return ruby.string_value(flatpak_dump_entry(flatpak_package_from_value(args[0])))
 }
 
 // Ruby method `dump` at line 159.
-pub fn ruby_flatpak_l159_d13_dump(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_l159_d13_dump(args ...ruby.Value) ruby.Value {
 	packages := if args.len > 0 { flatpak_packages_from_value(args[0]) } else { [] }
-	return brew_runtime.string_value(packages.map(flatpak_dump_entry(it)).join('\n'))
+	return ruby.string_value(packages.map(flatpak_dump_entry(it)).join('\n'))
 }
 
 // Ruby method `preinstall!(name, with: nil, no_upgrade: false, verbose: false, remote: "flathub", url: nil, **_options)` at line 174.
-pub fn ruby_flatpak_l174_d14_preinstall(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_l174_d14_preinstall(args ...ruby.Value) ruby.Value {
 	state := if args.len > 0 { flatpak_state_from_value(args[0]) } else { FlatpakState{} }
 	name := if args.len > 1 { args[1].as_string() } else { '' }
 	verbose := if args.len > 4 { args[4].as_bool() or { false } } else { false }
 	if state.executable == '' {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	if flatpak_package_installed(state.installed_packages, name, none) {
 		if verbose {
-			return brew_runtime.map_value({
-				'result': brew_runtime.bool_value(false)
-				'output': brew_runtime.string_value('Skipping install of ${name} Flatpak. It is already installed.')
+			return ruby.map_value({
+				'result': ruby.bool_value(false)
+				'output': ruby.string_value('Skipping install of ${name} Flatpak. It is already installed.')
 			})
 		}
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
 // Ruby method `install!(name, with: nil, preinstall: true, no_upgrade: false, verbose: false, force: false,` at line 203.
-pub fn ruby_flatpak_l203_d15_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_l203_d15_install(args ...ruby.Value) ruby.Value {
 	mut state := if args.len > 0 { flatpak_state_from_value(args[0]) } else { FlatpakState{} }
 	name := if args.len > 1 { args[1].as_string() } else { '' }
 	preinstall := if args.len > 3 { args[3].as_bool() or { true } } else { true }
@@ -535,14 +535,14 @@ pub fn ruby_flatpak_l203_d15_install(args ...brew_runtime.Value) brew_runtime.Va
 	install_success := if args.len > 10 { args[10].as_bool() or { false } } else { false }
 	list_output := if args.len > 11 { args[11].as_string() } else { '' }
 	result := flatpak_install(mut state, name, remote, url, preinstall, verbose, existing_url, install_success, list_output)
-	return brew_runtime.map_value({
-		'result': brew_runtime.bool_value(result)
+	return ruby.map_value({
+		'result': ruby.bool_value(result)
 		'state':  flatpak_state_value(state)
 	})
 }
 
 // Ruby method `install_flatpakref!(flatpak, name, url, verbose:)` at line 257.
-pub fn ruby_flatpak_l257_d16_install_flatpakref(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_l257_d16_install_flatpakref(args ...ruby.Value) ruby.Value {
 	mut state := if args.len > 0 { flatpak_state_from_value(args[0]) } else { FlatpakState{} }
 	flatpak := if args.len > 1 { args[1].as_string() } else { state.executable }
 	state.executable = flatpak
@@ -552,19 +552,19 @@ pub fn ruby_flatpak_l257_d16_install_flatpakref(args ...brew_runtime.Value) brew
 	result := if args.len > 5 { args[5].as_bool() or { false } } else { false }
 	list_output := if args.len > 6 { args[6].as_string() } else { '' }
 	installed := flatpak_install(mut state, name, url, '', true, verbose, '', result, list_output)
-	return brew_runtime.map_value({
-		'result': brew_runtime.bool_value(installed)
+	return ruby.map_value({
+		'result': ruby.bool_value(installed)
 		'state':  flatpak_state_value(state)
 	})
 }
 
 // Ruby method `generate_single_app_remote_name(app_id)` at line 277.
-pub fn ruby_flatpak_l277_d17_generate_single_app_remote_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('${if args.len > 0 { args[0].as_string() } else { '' }}-origin')
+pub fn ruby_flatpak_l277_d17_generate_single_app_remote_name(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('${if args.len > 0 { args[0].as_string() } else { '' }}-origin')
 }
 
 // Ruby method `ensure_single_app_remote_exists!(flatpak, remote_name, url, verbose:)` at line 284.
-pub fn ruby_flatpak_l284_d18_ensure_single_app_remote_exists(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_l284_d18_ensure_single_app_remote_exists(args ...ruby.Value) ruby.Value {
 	executable := if args.len > 0 { args[0].as_string() } else { '' }
 	remote := if args.len > 1 { args[1].as_string() } else { '' }
 	url := if args.len > 2 { args[2].as_string() } else { '' }
@@ -575,14 +575,14 @@ pub fn ruby_flatpak_l284_d18_ensure_single_app_remote_exists(args ...brew_runtim
 		''
 	}
 	commands, output := flatpak_ensure_single_app_remote(executable, remote, url, existing, verbose)
-	return brew_runtime.map_value({
-		'commands': brew_runtime.array_value(commands.map(brew_runtime.string_array_value(it)))
-		'output':   brew_runtime.string_array_value(output)
+	return ruby.map_value({
+		'commands': ruby.array_value(commands.map(ruby.string_array_value(it)))
+		'output':   ruby.string_array_value(output)
 	})
 }
 
 // Ruby method `ensure_named_remote_exists!(flatpak, remote_name, url, verbose:)` at line 303.
-pub fn ruby_flatpak_l303_d19_ensure_named_remote_exists(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_l303_d19_ensure_named_remote_exists(args ...ruby.Value) ruby.Value {
 	executable := if args.len > 0 { args[0].as_string() } else { '' }
 	remote := if args.len > 1 { args[1].as_string() } else { '' }
 	url := if args.len > 2 { args[2].as_string() } else { '' }
@@ -593,37 +593,37 @@ pub fn ruby_flatpak_l303_d19_ensure_named_remote_exists(args ...brew_runtime.Val
 		''
 	}
 	commands, output := flatpak_ensure_named_remote(executable, remote, url, existing, verbose)
-	return brew_runtime.map_value({
-		'commands': brew_runtime.array_value(commands.map(brew_runtime.string_array_value(it)))
-		'output':   brew_runtime.string_array_value(output)
+	return ruby.map_value({
+		'commands': ruby.array_value(commands.map(ruby.string_array_value(it)))
+		'output':   ruby.string_array_value(output)
 	})
 }
 
 // Ruby method `get_remote_url(flatpak, remote_name)` at line 320.
-pub fn ruby_flatpak_l320_d20_get_remote_url(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_l320_d20_get_remote_url(args ...ruby.Value) ruby.Value {
 	remote := if args.len > 1 { args[1].as_string() } else { '' }
 	output := if args.len > 2 { args[2].as_string() } else { '' }
 	url := flatpak_get_remote_url(output, remote)
 	if url == '' {
-		return brew_runtime.object_value('NilClass', '')
+		return ruby.object_value('NilClass', '')
 	}
-	return brew_runtime.string_value(url)
+	return ruby.string_value(url)
 }
 
 // Ruby method `add_remote!(flatpak, remote_name, url, verbose:)` at line 331.
-pub fn ruby_flatpak_l331_d21_add_remote(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_l331_d21_add_remote(args ...ruby.Value) ruby.Value {
 	executable := if args.len > 0 { args[0].as_string() } else { '' }
 	remote := if args.len > 1 { args[1].as_string() } else { '' }
 	url := if args.len > 2 { args[2].as_string() } else { '' }
 	result := if args.len > 4 { args[4].as_bool() or { false } } else { false }
-	return brew_runtime.map_value({
-		'result':  brew_runtime.bool_value(result)
-		'command': brew_runtime.string_array_value(flatpak_add_remote_command(executable, remote, url))
+	return ruby.map_value({
+		'result':  ruby.bool_value(result)
+		'command': ruby.string_array_value(flatpak_add_remote_command(executable, remote, url))
 	})
 }
 
 // Ruby method `package_installed?(name, with: nil, remote: nil)` at line 349.
-pub fn ruby_flatpak_l349_d22_package_installed(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_l349_d22_package_installed(args ...ruby.Value) ruby.Value {
 	installed := if args.len > 0 { flatpak_packages_from_value(args[0]) } else { [] }
 	name := if args.len > 1 { args[1].as_string() } else { '' }
 	remote := if args.len > 3 && args[3].type_name != 'NilClass' {
@@ -631,32 +631,32 @@ pub fn ruby_flatpak_l349_d22_package_installed(args ...brew_runtime.Value) brew_
 	} else {
 		none
 	}
-	return brew_runtime.bool_value(flatpak_package_installed(installed, name, remote))
+	return ruby.bool_value(flatpak_package_installed(installed, name, remote))
 }
 
 // Ruby method `cleanup_items(entries)` at line 360.
-pub fn ruby_flatpak_l360_d23_cleanup_items(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_l360_d23_cleanup_items(args ...ruby.Value) ruby.Value {
 	entry_values := if args.len > 0 { args[0].as_array() or { [] } } else { [] }
 	entries := entry_values.map(extension_entry_from_value(it))
 	executable := if args.len > 1 { args[1].as_string() } else { '' }
 	packages := if args.len > 2 { args[2].as_string_array() or { [] } } else { [] }
-	return brew_runtime.string_array_value(flatpak_cleanup_items(entries, executable, packages))
+	return ruby.string_array_value(flatpak_cleanup_items(entries, executable, packages))
 }
 
 // Ruby method `cleanup!(flatpaks)` at line 373.
-pub fn ruby_flatpak_l373_d24_cleanup(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_l373_d24_cleanup(args ...ruby.Value) ruby.Value {
 	items := if args.len > 0 { args[0].as_string_array() or { [] } } else { [] }
-	commands := items.map(brew_runtime.string_array_value(['flatpak', 'uninstall', '-y', '--system',
+	commands := items.map(ruby.string_array_value(['flatpak', 'uninstall', '-y', '--system',
 		it]))
 	suffix := if items.len == 1 { '' } else { 's' }
-	return brew_runtime.map_value({
-		'commands': brew_runtime.array_value(commands)
-		'output':   brew_runtime.string_value('Uninstalled ${items.len} flatpak${suffix}')
+	return ruby.map_value({
+		'commands': ruby.array_value(commands)
+		'output':   ruby.string_value('Uninstalled ${items.len} flatpak${suffix}')
 	})
 }
 
 // Ruby method `format_checkable(entries)` at line 382.
-pub fn ruby_flatpak_l382_d25_format_checkable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_l382_d25_format_checkable(args ...ruby.Value) ruby.Value {
 	entry_values := if args.len > 0 { args[0].as_array() or { [] } } else { [] }
 	mut packages := []FlatpakPackage{}
 	for entry_value in entry_values {
@@ -669,7 +669,7 @@ pub fn ruby_flatpak_l382_d25_format_checkable(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby method `failure_reason(package, no_upgrade:)` at line 389.
-pub fn ruby_flatpak_l389_d26_failure_reason(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_l389_d26_failure_reason(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return flatpak_error('ArgumentError', 'package is required')
 	}
@@ -678,35 +678,35 @@ pub fn ruby_flatpak_l389_d26_failure_reason(args ...brew_runtime.Value) brew_run
 	} else {
 		args[0].as_string()
 	}
-	return brew_runtime.string_value('Flatpak ${name} needs to be installed.')
+	return ruby.string_value('Flatpak ${name} needs to be installed.')
 }
 
 // Ruby method `installed_and_up_to_date?(package, no_upgrade: false)` at line 401.
-pub fn ruby_flatpak_l401_d27_installed_and_up_to_date(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_flatpak_l401_d27_installed_and_up_to_date(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	installed := flatpak_packages_from_value(args[0])
 	package_value := args[1]
 	if package_value.type_name != 'Hash' {
-		return brew_runtime.bool_value(flatpak_package_installed(installed, package_value.as_string(), none))
+		return ruby.bool_value(flatpak_package_installed(installed, package_value.as_string(), none))
 	}
 	package := flatpak_package_from_value(package_value)
-	values := package_value.as_map() or { map[string]brew_runtime.Value{} }
+	values := package_value.as_map() or { map[string]ruby.Value{} }
 	options := if 'options' in values {
-		values['options'].as_map() or { map[string]brew_runtime.Value{} }
+		values['options'].as_map() or { map[string]ruby.Value{} }
 	} else {
-		map[string]brew_runtime.Value{}
+		map[string]ruby.Value{}
 	}
 	url := if 'url' in options { options['url'].as_string() } else { '' }
 	remote := if 'remote' in options { options['remote'].as_string() } else { 'flathub' }
 	if url == '' && (remote.starts_with('http://') || remote.starts_with('https://')) {
 		if remote.ends_with('.flatpakref') {
-			return brew_runtime.bool_value(flatpak_package_installed(installed, package.name, none))
+			return ruby.bool_value(flatpak_package_installed(installed, package.name, none))
 		}
-		return brew_runtime.bool_value(flatpak_package_installed(installed, package.name, ?string('${package.name}-origin')))
+		return ruby.bool_value(flatpak_package_installed(installed, package.name, ?string('${package.name}-origin')))
 	}
-	return brew_runtime.bool_value(flatpak_package_installed(installed, package.name, ?string(remote)))
+	return ruby.bool_value(flatpak_package_installed(installed, package.name, ?string(remote)))
 }
 
 // Original Ruby source (line-for-line):

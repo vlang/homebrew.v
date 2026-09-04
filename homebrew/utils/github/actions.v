@@ -1,6 +1,6 @@
 module github
 
-import brew_runtime
+import ruby
 import homebrew.utils
 import os
 
@@ -116,8 +116,8 @@ pub fn (annotation ActionsAnnotation) relevant() bool {
 	return !annotation.options.file.starts_with('../') && annotation.options.file != '..'
 }
 
-fn actions_annotation_value(annotation ActionsAnnotation) brew_runtime.Value {
-	return brew_runtime.structured_value('GitHub::Actions::Annotation', annotation.str(), {
+fn actions_annotation_value(annotation ActionsAnnotation) ruby.Value {
+	return ruby.structured_value('GitHub::Actions::Annotation', annotation.str(), {
 		'kind':           annotation.kind
 		'message':        annotation.message
 		'file':           annotation.options.file
@@ -133,7 +133,7 @@ fn actions_annotation_value(annotation ActionsAnnotation) brew_runtime.Value {
 	})
 }
 
-fn actions_annotation_from_value(value brew_runtime.Value) ActionsAnnotation {
+fn actions_annotation_from_value(value ruby.Value) ActionsAnnotation {
 	return ActionsAnnotation{
 		kind: value.attributes['kind']
 		message: value.attributes['message']
@@ -152,7 +152,7 @@ fn actions_annotation_from_value(value brew_runtime.Value) ActionsAnnotation {
 	}
 }
 
-fn actions_optional_string(args []brew_runtime.Value, index int) string {
+fn actions_optional_string(args []ruby.Value, index int) string {
 	return if index < args.len && args[index].type_name !in ['NilClass', 'Nil'] {
 		args[index].as_string()
 	} else {
@@ -160,7 +160,7 @@ fn actions_optional_string(args []brew_runtime.Value, index int) string {
 	}
 }
 
-fn actions_optional_int(args []brew_runtime.Value, index int) (int, bool) {
+fn actions_optional_int(args []ruby.Value, index int) (int, bool) {
 	if index >= args.len || args[index].type_name in ['NilClass', 'Nil'] {
 		return 0, false
 	}
@@ -168,8 +168,8 @@ fn actions_optional_int(args []brew_runtime.Value, index int) (int, bool) {
 }
 
 // Ruby method `self.escape(string)` at line 10.
-pub fn ruby_actions_l10_d1_self_escape(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(actions_escape(if args.len > 0 {
+pub fn ruby_actions_l10_d1_self_escape(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(actions_escape(if args.len > 0 {
 		args[0].as_string()
 	} else {
 		''
@@ -177,13 +177,13 @@ pub fn ruby_actions_l10_d1_self_escape(args ...brew_runtime.Value) brew_runtime.
 }
 
 // Ruby method `self.env_set?` at line 18.
-pub fn ruby_actions_l18_d2_self_env_set(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_actions_l18_d2_self_env_set(args ...ruby.Value) ruby.Value {
 	value := if args.len > 0 { args[0].as_string() } else { os.getenv('GITHUB_ACTIONS') }
-	return brew_runtime.bool_value(value != '')
+	return ruby.bool_value(value != '')
 }
 
 // Ruby method `self.puts_annotation_if_env_set!(type, message, file: nil, line: nil)` at line 29.
-pub fn ruby_actions_l29_d3_self_puts_annotation_if_env_set(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_actions_l29_d3_self_puts_annotation_if_env_set(args ...ruby.Value) ruby.Value {
 	tests_set := if args.len > 4 {
 		args[4].as_bool() or { false }
 	} else {
@@ -195,35 +195,35 @@ pub fn ruby_actions_l29_d3_self_puts_annotation_if_env_set(args ...brew_runtime.
 		os.getenv('GITHUB_ACTIONS') != ''
 	}
 	if tests_set || !actions_set || args.len < 2 {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
 	line, has_line := actions_optional_int(args, 3)
 	annotation := new_actions_annotation(args[0].as_string(), args[1].as_string(), ActionsAnnotationOptions{
 		file: actions_optional_string(args, 2)
 		line: line
 		has_line: has_line
-	}) or { return brew_runtime.bool_value(false) }
+	}) or { return ruby.bool_value(false) }
 	if annotation.kind == 'notice' {
 		println(annotation.str())
 	} else {
 		eprintln(annotation.str())
 	}
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
 // Ruby method `self.path_relative_to_workspace(path)` at line 45.
-pub fn ruby_actions_l45_d4_self_path_relative_to_workspace(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_actions_l45_d4_self_path_relative_to_workspace(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
 	workspace := if args.len > 1 { args[1].as_string() } else { os.getenv('GITHUB_WORKSPACE') }
-	return brew_runtime.object_value('Pathname', actions_path_relative_to_workspace(args[0].as_string(), workspace))
+	return ruby.object_value('Pathname', actions_path_relative_to_workspace(args[0].as_string(), workspace))
 }
 
 // Ruby method `initialize(type, message, file: nil, title: nil, line: nil, end_line: nil, column: nil, end_column: nil)` at line 65.
-pub fn ruby_actions_l65_d5_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_actions_l65_d5_initialize(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'type and message are required')
+		return ruby.object_value('ArgumentError', 'type and message are required')
 	}
 	line, has_line := actions_optional_int(args, 4)
 	end_line, has_end_line := actions_optional_int(args, 5)
@@ -241,21 +241,21 @@ pub fn ruby_actions_l65_d5_initialize(args ...brew_runtime.Value) brew_runtime.V
 		end_column: end_column
 		has_end_column: has_end_column
 		workspace: if args.len > 8 { args[8].as_string() } else { os.getenv('GITHUB_WORKSPACE') }
-	}) or { return brew_runtime.object_value('ArgumentError', err.msg()) }
+	}) or { return ruby.object_value('ArgumentError', err.msg()) }
 	return actions_annotation_value(annotation)
 }
 
 // Ruby method `to_s` at line 81.
-pub fn ruby_actions_l81_d6_to_s(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_actions_l81_d6_to_s(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_value('')
+		return ruby.string_value('')
 	}
-	return brew_runtime.string_value(actions_annotation_from_value(args[0]).str())
+	return ruby.string_value(actions_annotation_from_value(args[0]).str())
 }
 
 // Ruby method `relevant?` at line 109.
-pub fn ruby_actions_l109_d7_relevant(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(args.len > 0 && actions_annotation_from_value(args[0]).relevant())
+pub fn ruby_actions_l109_d7_relevant(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(args.len > 0 && actions_annotation_from_value(args[0]).relevant())
 }
 
 // Original Ruby source (line-for-line):

@@ -1,6 +1,6 @@
 module bindata
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/bindata-2.5.1/lib/bindata/string.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -88,7 +88,7 @@ pub fn read_bin_string(data string, options BinStringOptions) !string {
 	return data[..length]
 }
 
-pub fn sanitize_bin_string_pad_byte(value brew_runtime.Value) !string {
+pub fn sanitize_bin_string_pad_byte(value ruby.Value) !string {
 	if value.type_name == 'Integer' {
 		byte := value.as_int()!
 		if byte < 0 || byte > 255 {
@@ -103,7 +103,7 @@ pub fn sanitize_bin_string_pad_byte(value brew_runtime.Value) !string {
 	return pad_byte
 }
 
-pub fn sanitize_bin_string_parameters(parameters map[string]brew_runtime.Value) !map[string]brew_runtime.Value {
+pub fn sanitize_bin_string_parameters(parameters map[string]ruby.Value) !map[string]ruby.Value {
 	mut result := parameters.clone()
 	if 'initial_length' in result && 'read_length' !in result {
 		result['read_length'] = result['initial_length']
@@ -121,12 +121,12 @@ pub fn sanitize_bin_string_parameters(parameters map[string]brew_runtime.Value) 
 		result.delete('pad_left')
 	}
 	if 'pad_byte' in result {
-		result['pad_byte'] = brew_runtime.string_value(sanitize_bin_string_pad_byte(result['pad_byte'])!)
+		result['pad_byte'] = ruby.string_value(sanitize_bin_string_pad_byte(result['pad_byte'])!)
 	}
 	return result
 }
 
-fn bin_string_options_from_value(value brew_runtime.Value) BinStringOptions {
+fn bin_string_options_from_value(value ruby.Value) BinStringOptions {
 	read_length := if raw := value.attributes['read_length'] { ?int(raw.int()) } else { none }
 	length := if raw := value.attributes['length'] { ?int(raw.int()) } else { none }
 	return BinStringOptions{
@@ -140,7 +140,7 @@ fn bin_string_options_from_value(value brew_runtime.Value) BinStringOptions {
 	}
 }
 
-pub fn bin_string_options_value(options BinStringOptions, value string) brew_runtime.Value {
+pub fn bin_string_options_value(options BinStringOptions, value string) ruby.Value {
 	mut attributes := {
 		'trim_padding': options.trim_padding.str()
 		'pad_front':    options.pad_front.str()
@@ -156,11 +156,11 @@ pub fn bin_string_options_value(options BinStringOptions, value string) brew_run
 	if options.has_assertion {
 		attributes['asserted_value'] = value
 	}
-	return brew_runtime.structured_value('BinData::String', value, attributes)
+	return ruby.structured_value('BinData::String', value, attributes)
 }
 
 // Ruby method `initialize_shared_instance` at line 59.
-pub fn ruby_string_l59_d1_initialize_shared_instance(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_string_l59_d1_initialize_shared_instance(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('String#initialize_shared_instance requires a receiver')
 	}
@@ -168,89 +168,89 @@ pub fn ruby_string_l59_d1_initialize_shared_instance(args ...brew_runtime.Value)
 	validate_bin_string_options(options) or { panic(err) }
 	mut attributes := args[0].attributes.clone()
 	attributes['warn_no_read_length'] = bin_string_warns_without_read_length(options).str()
-	return brew_runtime.structured_value(args[0].type_name, args[0].repr, attributes)
+	return ruby.structured_value(args[0].type_name, args[0].repr, attributes)
 }
 
 // Ruby method `assign(val)` at line 67.
-pub fn ruby_string_l67_d2_assign(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_string_l67_d2_assign(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('String#assign requires a value')
 	}
 	value := if args.len > 1 { args[1] } else { args[0] }
-	return brew_runtime.string_value(value.as_string())
+	return ruby.string_value(value.as_string())
 }
 
 // Ruby method `snapshot` at line 71.
-pub fn ruby_string_l71_d3_snapshot(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_string_l71_d3_snapshot(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('String#snapshot requires a receiver')
 	}
 	value := args[0].attributes['value'] or { args[0].as_string() }
-	return brew_runtime.string_value(bin_string_snapshot(value, bin_string_options_from_value(args[0])))
+	return ruby.string_value(bin_string_snapshot(value, bin_string_options_from_value(args[0])))
 }
 
 // Ruby method `clamp_to_length(str)` at line 86.
-pub fn ruby_string_l86_d4_clamp_to_length(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_string_l86_d4_clamp_to_length(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('String#clamp_to_length requires a receiver and string')
 	}
-	return brew_runtime.string_value(clamp_bin_string_to_length(args[1].as_string(), bin_string_options_from_value(args[0])))
+	return ruby.string_value(clamp_bin_string_to_length(args[1].as_string(), bin_string_options_from_value(args[0])))
 }
 
 // Ruby method `trim_padding(str)` at line 104.
-pub fn ruby_string_l104_d5_trim_padding(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_string_l104_d5_trim_padding(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('String#trim_padding requires a receiver and string')
 	}
-	return brew_runtime.string_value(trim_bin_string_padding(args[1].as_string(), bin_string_options_from_value(args[0])))
+	return ruby.string_value(trim_bin_string_padding(args[1].as_string(), bin_string_options_from_value(args[0])))
 }
 
 // Ruby method `value_to_binary_string(val)` at line 112.
-pub fn ruby_string_l112_d6_value_to_binary_string(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_string_l112_d6_value_to_binary_string(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('String#value_to_binary_string requires a receiver and value')
 	}
-	return brew_runtime.string_value(bin_string_binary(args[1].as_string(), bin_string_options_from_value(args[0])))
+	return ruby.string_value(bin_string_binary(args[1].as_string(), bin_string_options_from_value(args[0])))
 }
 
 // Ruby method `read_and_return_value(io)` at line 116.
-pub fn ruby_string_l116_d7_read_and_return_value(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_string_l116_d7_read_and_return_value(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('String#read_and_return_value requires a receiver and input')
 	}
-	return brew_runtime.string_value(read_bin_string(args[1].as_string(), bin_string_options_from_value(args[0])) or { panic(err) })
+	return ruby.string_value(read_bin_string(args[1].as_string(), bin_string_options_from_value(args[0])) or { panic(err) })
 }
 
 // Ruby method `sensible_default` at line 121.
-pub fn ruby_string_l121_d8_sensible_default(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('')
+pub fn ruby_string_l121_d8_sensible_default(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('')
 }
 
 // Ruby method `read_and_return_value(io)` at line 127.
-pub fn ruby_string_l127_d9_read_and_return_value(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_string_l127_d9_read_and_return_value(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('WarnNoReadLengthPlugin#read_and_return_value requires a receiver')
 	}
 	debug_name := args[0].attributes['debug_name'] or { args[0].repr }
 	eprintln('${debug_name} does not have a :read_length parameter - returning empty string')
-	return brew_runtime.string_value('')
+	return ruby.string_value('')
 }
 
 // Ruby method `sanitize_parameters!(obj_class, params)` at line 135.
-pub fn ruby_string_l135_d10_sanitize_parameters(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_string_l135_d10_sanitize_parameters(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('StringArgProcessor#sanitize_parameters! requires params')
 	}
 	params := args[args.len - 1].as_map() or { panic(err) }
-	return brew_runtime.map_value(sanitize_bin_string_parameters(params) or { panic(err) })
+	return ruby.map_value(sanitize_bin_string_parameters(params) or { panic(err) })
 }
 
 // Ruby method `sanitized_pad_byte(byte)` at line 145.
-pub fn ruby_string_l145_d11_sanitized_pad_byte(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_string_l145_d11_sanitized_pad_byte(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		panic('sanitized_pad_byte requires a byte')
 	}
-	return brew_runtime.string_value(sanitize_bin_string_pad_byte(args[args.len - 1]) or {
+	return ruby.string_value(sanitize_bin_string_pad_byte(args[args.len - 1]) or {
 		panic(err)
 	})
 }

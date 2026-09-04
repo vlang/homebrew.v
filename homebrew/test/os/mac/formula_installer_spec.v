@@ -1,40 +1,40 @@
 module mac
 
-import brew_runtime
+import ruby
 import homebrew.extend.os.mac as mac_installer
 
 // Translated from Homebrew/brew `test/os/mac/formula_installer_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby subject `subject(:keg) { described_class.new(keg_path) }` at line 8.
-pub fn ruby_formula_installer_spec_l8_d1_keg(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_installer_spec_l8_d1_keg(args ...ruby.Value) ruby.Value {
 	path := if args.len > 0 { args[0].as_string() } else { 'keg_path' }
-	return brew_runtime.structured_value('FormulaInstaller', 'FormulaInstaller(${path})', {
+	return ruby.structured_value('FormulaInstaller', 'FormulaInstaller(${path})', {
 		'keg_path': path
 	})
 }
 
 // Ruby subject `subject(:formula_installer) { described_class.new(Testball.new) }` at line 13.
-pub fn ruby_formula_installer_spec_l13_d2_formula_installer(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.structured_value('FormulaInstaller', 'Testball', {
+pub fn ruby_formula_installer_spec_l13_d2_formula_installer(args ...ruby.Value) ruby.Value {
+	return ruby.structured_value('FormulaInstaller', 'Testball', {
 		'formula':              'Testball'
 		'installed_on_request': 'true'
 	})
 }
 
 // Ruby it `it "is true when non-developer and non-outdated" do` at line 15.
-pub fn ruby_formula_installer_spec_l15_d3_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(mac_installer.mac_fresh_install(false, false, true, false))
+pub fn ruby_formula_installer_spec_l15_d3_is(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(mac_installer.mac_fresh_install(false, false, true, false))
 }
 
 // Ruby it `it "is false in developer mode" do` at line 22.
-pub fn ruby_formula_installer_spec_l22_d4_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(!mac_installer.mac_fresh_install(true, false, true, false))
+pub fn ruby_formula_installer_spec_l22_d4_is(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(!mac_installer.mac_fresh_install(true, false, true, false))
 }
 
 // Ruby it `it "is false on outdated releases" do` at line 29.
-pub fn ruby_formula_installer_spec_l29_d5_is(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(!mac_installer.mac_fresh_install(false, true, true, false))
+pub fn ruby_formula_installer_spec_l29_d5_is(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(!mac_installer.mac_fresh_install(false, true, true, false))
 }
 
 // Original Ruby source (line-for-line):

@@ -1,6 +1,6 @@
 module elftools
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `vendor/bundle/ruby/4.0.0/gems/elftools-1.3.1/lib/elftools/util.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -15,7 +15,7 @@ pub fn align_number(number i64, bit int) !i64 {
 	return (number + n) & ~(n - 1)
 }
 
-pub fn constant_value(module_name string, constants map[string]i64, value brew_runtime.Value) !i64 {
+pub fn constant_value(module_name string, constants map[string]i64, value ruby.Value) !i64 {
 	short_name := module_name.trim_string_left('ELFTools::')
 	if value.type_name == 'Integer' {
 		integer := value.as_int()!
@@ -49,9 +49,9 @@ pub fn cstring(data []u8, offset int) ?string {
 	return none
 }
 
-pub fn select_values_by_type(values []brew_runtime.Value, expected_type string,
-	on_match fn(brew_runtime.Value)) []brew_runtime.Value {
-	mut selected := []brew_runtime.Value{}
+pub fn select_values_by_type(values []ruby.Value, expected_type string,
+	on_match fn(ruby.Value)) []ruby.Value {
+	mut selected := []ruby.Value{}
 	for value in values {
 		actual_type := value.attribute('type') or { value.type_name }
 		if actual_type == expected_type {
@@ -62,18 +62,18 @@ pub fn select_values_by_type(values []brew_runtime.Value, expected_type string,
 	return selected
 }
 
-fn ignore_selected_value(_ brew_runtime.Value) {}
+fn ignore_selected_value(_ ruby.Value) {}
 
 // Ruby method `align(num, bit)` at line 19.
-pub fn ruby_util_l19_d1_align(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_util_l19_d1_align(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('ELFTools::Util.align requires num and bit')
 	}
-	return brew_runtime.int_value(align_number(args[0].as_int() or { panic(err) }, int(args[1].as_int() or { panic(err) })) or { panic(err) })
+	return ruby.int_value(align_number(args[0].as_int() or { panic(err) }, int(args[1].as_int() or { panic(err) })) or { panic(err) })
 }
 
 // Ruby method `to_constant(mod, val)` at line 36.
-pub fn ruby_util_l36_d2_to_constant(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_util_l36_d2_to_constant(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
 		panic('ELFTools::Util.to_constant requires module name, constants, and value')
 	}
@@ -81,28 +81,28 @@ pub fn ruby_util_l36_d2_to_constant(args ...brew_runtime.Value) brew_runtime.Val
 	for name, value in args[1].as_map() or { panic(err) } {
 		constants[name] = value.as_int() or { panic(err) }
 	}
-	return brew_runtime.int_value(constant_value(args[0].as_string(), constants, args[2]) or {
+	return ruby.int_value(constant_value(args[0].as_string(), constants, args[2]) or {
 		panic(err)
 	})
 }
 
 // Ruby method `cstring(stream, offset)` at line 61.
-pub fn ruby_util_l61_d3_cstring(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_util_l61_d3_cstring(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('ELFTools::Util.cstring requires stream data and offset')
 	}
 	value := cstring(args[0].as_string().bytes(), int(args[1].as_int() or { panic(err) })) or {
-		return brew_runtime.object_value('NilClass', 'nil')
+		return ruby.object_value('NilClass', 'nil')
 	}
-	return brew_runtime.string_value(value)
+	return ruby.string_value(value)
 }
 
 // Ruby method `select_by_type(enum, type)` at line 88.
-pub fn ruby_util_l88_d4_select_by_type(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_util_l88_d4_select_by_type(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
 		panic('ELFTools::Util.select_by_type requires values and a type')
 	}
-	return brew_runtime.array_value(select_values_by_type(args[0].as_array() or { panic(err) }, args[1].as_string(), ignore_selected_value))
+	return ruby.array_value(select_values_by_type(args[0].as_array() or { panic(err) }, args[1].as_string(), ignore_selected_value))
 }
 
 // Original Ruby source (line-for-line):

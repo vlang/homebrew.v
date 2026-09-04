@@ -1,6 +1,6 @@
 module homebrew
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `formula_creator.rb`.
@@ -358,8 +358,8 @@ pub fn write_formula(mut creator FormulaCreator, path string, downloaded_content
 	return path
 }
 
-fn formula_creator_boundary_value(creator FormulaCreator) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::FormulaCreator', creator.name, {
+fn formula_creator_boundary_value(creator FormulaCreator) ruby.Value {
+	return ruby.structured_value('Homebrew::FormulaCreator', creator.name, {
 		'name':                      creator.name
 		'version':                   creator.version
 		'url':                       creator.url
@@ -378,7 +378,7 @@ fn formula_creator_boundary_value(creator FormulaCreator) brew_runtime.Value {
 	})
 }
 
-fn formula_creator_from_boundary(value brew_runtime.Value) FormulaCreator {
+fn formula_creator_from_boundary(value ruby.Value) FormulaCreator {
 	return FormulaCreator{
 		name: value.attributes['name']
 		version: value.attributes['version']
@@ -398,19 +398,19 @@ fn formula_creator_from_boundary(value brew_runtime.Value) FormulaCreator {
 	}
 }
 
-fn formula_creator_options_from_args(args []brew_runtime.Value) FormulaCreatorOptions {
+fn formula_creator_options_from_args(args []ruby.Value) FormulaCreatorOptions {
 	if args.len > 0 && args[0].type_name == 'Hash' {
-		values := args[0].as_map() or { map[string]brew_runtime.Value{} }
+		values := args[0].as_map() or { map[string]ruby.Value{} }
 		return FormulaCreatorOptions{
-			url: (values['url'] or { brew_runtime.string_value('') }).as_string()
-			name: (values['name'] or { brew_runtime.string_value('') }).as_string()
-			version: (values['version'] or { brew_runtime.string_value('') }).as_string()
-			tap: (values['tap'] or { brew_runtime.string_value('homebrew/core') }).as_string()
-			mode: (values['mode'] or { brew_runtime.string_value('') }).as_string()
-			license: (values['license'] or { brew_runtime.string_value('') }).as_string()
-			fetch: (values['fetch'] or { brew_runtime.bool_value(false) }).as_bool() or { false }
-			head: (values['head'] or { brew_runtime.bool_value(false) }).as_bool() or { false }
-			latest_release: (values['latest_release'] or { brew_runtime.string_value('') }).as_string()
+			url: (values['url'] or { ruby.string_value('') }).as_string()
+			name: (values['name'] or { ruby.string_value('') }).as_string()
+			version: (values['version'] or { ruby.string_value('') }).as_string()
+			tap: (values['tap'] or { ruby.string_value('homebrew/core') }).as_string()
+			mode: (values['mode'] or { ruby.string_value('') }).as_string()
+			license: (values['license'] or { ruby.string_value('') }).as_string()
+			fetch: (values['fetch'] or { ruby.bool_value(false) }).as_bool() or { false }
+			head: (values['head'] or { ruby.bool_value(false) }).as_bool() or { false }
+			latest_release: (values['latest_release'] or { ruby.string_value('') }).as_string()
 		}
 	}
 	return FormulaCreatorOptions{
@@ -427,18 +427,18 @@ fn formula_creator_options_from_args(args []brew_runtime.Value) FormulaCreatorOp
 }
 
 // Ruby attr_accessor `attr_accessor :name` at line 15.
-pub fn ruby_formula_creator_l15_d1_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(if args.len > 0 { args[0].attributes['name'] } else { '' })
+pub fn ruby_formula_creator_l15_d1_name(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(if args.len > 0 { args[0].attributes['name'] } else { '' })
 }
 
 // Ruby attr_accessor `attr_accessor :name` at line 15.
-pub fn ruby_formula_creator_l15_d2_name(args ...brew_runtime.Value) brew_runtime.Value {
-	return if args.len > 1 { args[1] } else { brew_runtime.string_value('') }
+pub fn ruby_formula_creator_l15_d2_name(args ...ruby.Value) ruby.Value {
+	return if args.len > 1 { args[1] } else { ruby.string_value('') }
 }
 
 // Ruby attr_reader `attr_reader :version` at line 18.
-pub fn ruby_formula_creator_l18_d3_version(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('Version', if args.len > 0 {
+pub fn ruby_formula_creator_l18_d3_version(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('Version', if args.len > 0 {
 		args[0].attributes['version']
 	} else {
 		''
@@ -446,34 +446,34 @@ pub fn ruby_formula_creator_l18_d3_version(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby attr_reader `attr_reader :url` at line 21.
-pub fn ruby_formula_creator_l21_d4_url(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(if args.len > 0 { args[0].attributes['url'] } else { '' })
+pub fn ruby_formula_creator_l21_d4_url(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(if args.len > 0 { args[0].attributes['url'] } else { '' })
 }
 
 // Ruby attr_reader `attr_reader :head` at line 24.
-pub fn ruby_formula_creator_l24_d5_head(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(args.len > 0 && args[0].attributes['head'] == 'true')
+pub fn ruby_formula_creator_l24_d5_head(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(args.len > 0 && args[0].attributes['head'] == 'true')
 }
 
 // Ruby method `initialize(url:, name: nil, version: nil, tap: nil, mode: nil, license: nil, fetch: false, head: false)` at line 30.
-pub fn ruby_formula_creator_l30_d6_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_creator_l30_d6_initialize(args ...ruby.Value) ruby.Value {
 	return formula_creator_boundary_value(new_formula_creator(formula_creator_options_from_args(args)))
 }
 
 // Ruby method `verify_tap_available!` at line 106.
-pub fn ruby_formula_creator_l106_d7_verify_tap_available(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_creator_l106_d7_verify_tap_available(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'FormulaCreator receiver is required')
+		return ruby.object_value('ArgumentError', 'FormulaCreator receiver is required')
 	}
 	creator := formula_creator_from_boundary(args[0])
-	creator.verify_tap_available() or { return brew_runtime.object_value('TapUnavailableError', err.msg()) }
-	return brew_runtime.object_value('NilClass', 'nil')
+	creator.verify_tap_available() or { return ruby.object_value('TapUnavailableError', err.msg()) }
+	return ruby.object_value('NilClass', 'nil')
 }
 
 // Ruby method `write_formula!` at line 111.
-pub fn ruby_formula_creator_l111_d8_write_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_creator_l111_d8_write_formula(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'FormulaCreator and path are required')
+		return ruby.object_value('ArgumentError', 'FormulaCreator and path are required')
 	}
 	mut creator := formula_creator_from_boundary(args[0])
 	path := write_formula(mut creator, args[1].as_string(), if args.len > 2 {
@@ -484,39 +484,39 @@ pub fn ruby_formula_creator_l111_d8_write_formula(args ...brew_runtime.Value) br
 		args[4].as_string_array() or { []string{} }
 	} else {
 		[]string{}
-	}) or { return brew_runtime.object_value('RuntimeError', err.msg()) }
-	return brew_runtime.object_value('Pathname', path)
+	}) or { return ruby.object_value('RuntimeError', err.msg()) }
+	return ruby.object_value('Pathname', path)
 }
 
 // Ruby method `latest_versioned_formula(name)` at line 154.
-pub fn ruby_formula_creator_l154_d9_latest_versioned_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_creator_l154_d9_latest_versioned_formula(args ...ruby.Value) ruby.Value {
 	name := if args.len > 0 { args[0].as_string() } else { '' }
 	formula_names := if args.len > 1 {
 		args[1].as_string_array() or { []string{} }
 	} else {
 		[]string{}
 	}
-	return brew_runtime.string_value(latest_versioned_formula(name, formula_names))
+	return ruby.string_value(latest_versioned_formula(name, formula_names))
 }
 
 // Ruby method `template` at line 162.
-pub fn ruby_formula_creator_l162_d10_template(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_creator_l162_d10_template(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_value('')
+		return ruby.string_value('')
 	}
 	formula_names := if args.len > 1 {
 		args[1].as_string_array() or { []string{} }
 	} else {
 		[]string{}
 	}
-	return brew_runtime.string_value(formula_creator_template(formula_creator_from_boundary(args[0]), formula_names))
+	return ruby.string_value(formula_creator_template(formula_creator_from_boundary(args[0]), formula_names))
 }
 
 // Ruby method `install` at line 225.
-pub fn ruby_formula_creator_l225_d11_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_formula_creator_l225_d11_install(args ...ruby.Value) ruby.Value {
 	mode := if args.len > 0 { args[0].as_string() } else { '' }
 	name := if args.len > 1 { args[1].as_string() } else { '' }
-	return brew_runtime.string_value(formula_creator_install(mode, name))
+	return ruby.string_value(formula_creator_install(mode, name))
 }
 
 // Original Ruby source (line-for-line):

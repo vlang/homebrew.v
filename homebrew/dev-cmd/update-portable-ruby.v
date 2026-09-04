@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `dev-cmd/update-portable-ruby.rb`.
@@ -45,7 +45,7 @@ pub fn run_update_portable_ruby(options UpdatePortableRubyOptions) !UpdatePortab
 		writes[path] = 'ruby_TAG=${checksum.tag}\nruby_SHA=${checksum.digest}\n'
 	}
 	for path, contents in writes {
-		brew_runtime.atomic_write_file(path, contents)!
+		ruby.atomic_write_file(path, contents)!
 	}
 	return UpdatePortableRubyResult{
 		formula_name: 'portable-ruby'
@@ -65,39 +65,39 @@ pub:
 	options UpdatePortableRubyOptions
 }
 
-pub fn update_portable_ruby_input_boundary(input &UpdatePortableRubyInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::UpdatePortableRuby::Input', '', {
+pub fn update_portable_ruby_input_boundary(input &UpdatePortableRubyInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::UpdatePortableRuby::Input', '', {
 		'update_portable_ruby_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn update_portable_ruby_input_from_value(value brew_runtime.Value) &UpdatePortableRubyInput {
+fn update_portable_ruby_input_from_value(value ruby.Value) &UpdatePortableRubyInput {
 	address := value.attributes['update_portable_ruby_input_address'] or {
 		panic('invalid UpdatePortableRuby input')
 	}
 	return unsafe { &UpdatePortableRubyInput(voidptr(address.u64())) }
 }
 
-fn update_portable_ruby_result_value(result UpdatePortableRubyResult) brew_runtime.Value {
-	mut writes := map[string]brew_runtime.Value{}
+fn update_portable_ruby_result_value(result UpdatePortableRubyResult) ruby.Value {
+	mut writes := map[string]ruby.Value{}
 	for path, contents in result.writes {
-		writes[path] = brew_runtime.string_value(contents)
+		writes[path] = ruby.string_value(contents)
 	}
-	return brew_runtime.map_value({
-		'formula_name': brew_runtime.string_value(result.formula_name)
-		'no_api': brew_runtime.bool_value(result.no_api)
-		'writes': brew_runtime.map_value(writes)
-		'commands': brew_runtime.array_value(result.commands.map(brew_runtime.string_array_value(it)))
+	return ruby.map_value({
+		'formula_name': ruby.string_value(result.formula_name)
+		'no_api': ruby.bool_value(result.no_api)
+		'writes': ruby.map_value(writes)
+		'commands': ruby.array_value(result.commands.map(ruby.string_array_value(it)))
 	})
 }
 
 // Ruby method `run` at line 25.
-pub fn ruby_update_portable_ruby_l25_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_update_portable_ruby_l25_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'command input is required')
+		return ruby.object_value('ArgumentError', 'command input is required')
 	}
 	return update_portable_ruby_result_value(run_update_portable_ruby(update_portable_ruby_input_from_value(args[0]).options) or {
-		return brew_runtime.object_value('Error', err.msg())
+		return ruby.object_value('Error', err.msg())
 	})
 }
 

@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 import homebrew
 import homebrew.cmd as install_cmd
 
@@ -8,7 +8,7 @@ import homebrew.cmd as install_cmd
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby it `it "prints a formula dry-run plan when asking" do` at line 12.
-pub fn ruby_install_spec_l12_d1_prints(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_spec_l12_d1_prints(args ...ruby.Value) ruby.Value {
 	_ = args
 	plan := homebrew.ask_formulae_plan([
 		homebrew.FormulaInstallCandidate{
@@ -18,20 +18,20 @@ pub fn ruby_install_spec_l12_d1_prints(args ...brew_runtime.Value) brew_runtime.
 			name: 'changed'
 		},
 	], [], 'installation', false)
-	return brew_runtime.bool_value(plan.output == '==> Would install 2 formulae:\nadded changed\n')
+	return ruby.bool_value(plan.output == '==> Would install 2 formulae:\nadded changed\n')
 }
 
 // Ruby it `it "skips ask input when asking for only requested formulae" do` at line 40.
-pub fn ruby_install_spec_l40_d2_skips(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_spec_l40_d2_skips(args ...ruby.Value) ruby.Value {
 	_ = args
 	plan := homebrew.ask_formulae_plan([homebrew.FormulaInstallCandidate{
 		name: 'testball'
 	}], [], 'installation', true)
-	return brew_runtime.bool_value(plan.output == '==> Would install 1 formula:\ntestball\n' && !plan.prompt_needed)
+	return ruby.bool_value(plan.output == '==> Would install 1 formula:\ntestball\n' && !plan.prompt_needed)
 }
 
 // Ruby it `it "does not list ignored formula dependencies when asking" do` at line 62.
-pub fn ruby_install_spec_l62_d3_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_spec_l62_d3_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	plan := homebrew.ask_formulae_plan([homebrew.FormulaInstallCandidate{
 		name: 'testball'
@@ -40,11 +40,11 @@ pub fn ruby_install_spec_l62_d3_does(args ...brew_runtime.Value) brew_runtime.Va
 			name: 'dependency'
 		}]
 	}], [], 'installation', true)
-	return brew_runtime.bool_value(plan.output == '==> Would install 1 formula:\ntestball\n' && !plan.prompt_needed && !plan.output.contains('dependency'))
+	return ruby.bool_value(plan.output == '==> Would install 1 formula:\ntestball\n' && !plan.prompt_needed && !plan.output.contains('dependency'))
 }
 
 // Ruby it `it "uses the requested action when asking for formulae with dependencies" do` at line 86.
-pub fn ruby_install_spec_l86_d4_uses(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_spec_l86_d4_uses(args ...ruby.Value) ruby.Value {
 	_ = args
 	plan := homebrew.ask_formulae_plan([homebrew.FormulaInstallCandidate{
 		name: 'changed'
@@ -52,11 +52,11 @@ pub fn ruby_install_spec_l86_d4_uses(args ...brew_runtime.Value) brew_runtime.Va
 			name: 'dependency'
 		}]
 	}], [], 'upgrade', true)
-	return brew_runtime.bool_value(plan.action == 'upgrade' && plan.prompt_needed && plan.output == '==> Would upgrade 1 formula:\nchanged\n==> Would install 1 dependency for changed:\ndependency\n')
+	return ruby.bool_value(plan.action == 'upgrade' && plan.prompt_needed && plan.output == '==> Would upgrade 1 formula:\nchanged\n==> Would install 1 dependency for changed:\ndependency\n')
 }
 
 // Ruby it `it "groups an installed dependency under the upgrade header in the dry-run plan" do` at line 116.
-pub fn ruby_install_spec_l116_d5_groups(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_spec_l116_d5_groups(args ...ruby.Value) ruby.Value {
 	_ = args
 	plan := homebrew.ask_formulae_plan([homebrew.FormulaInstallCandidate{
 		name: 'changed'
@@ -65,11 +65,11 @@ pub fn ruby_install_spec_l116_d5_groups(args ...brew_runtime.Value) brew_runtime
 			installed: true
 		}]
 	}], [], 'installation', false)
-	return brew_runtime.bool_value(plan.output == '==> Would install 1 formula:\nchanged\n==> Would upgrade 1 dependency for changed:\ndependency\n')
+	return ruby.bool_value(plan.output == '==> Would install 1 formula:\nchanged\n==> Would upgrade 1 dependency for changed:\ndependency\n')
 }
 
 // Ruby it `it "prompts again for return ask input" do` at line 143.
-pub fn ruby_install_spec_l143_d6_prompts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_spec_l143_d6_prompts(args ...ruby.Value) ruby.Value {
 	_ = args
 	for character in [`\r`, `\n`] {
 		result := homebrew.ask_input(homebrew.InstallAskInput{
@@ -79,14 +79,14 @@ pub fn ruby_install_spec_l143_d6_prompts(args ...brew_runtime.Value) brew_runtim
 			characters: [int(character), int(`n`)]
 		})
 		if !result.exited || result.consumed != 2 || result.output != "==> Do you want to proceed with the upgrade? [y/n]\nInvalid input. Please press 'y' to proceed, or 'n' to abort.\n" {
-			return brew_runtime.bool_value(false)
+			return ruby.bool_value(false)
 		}
 	}
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
 // Ruby it `it "accepts single character ask input" do` at line 159.
-pub fn ruby_install_spec_l159_d7_accepts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_spec_l159_d7_accepts(args ...ruby.Value) ruby.Value {
 	_ = args
 	for character in [`y`, `Y`] {
 		result := homebrew.ask_input(homebrew.InstallAskInput{
@@ -96,14 +96,14 @@ pub fn ruby_install_spec_l159_d7_accepts(args ...brew_runtime.Value) brew_runtim
 			characters: [int(character)]
 		})
 		if !result.accepted || result.exited {
-			return brew_runtime.bool_value(false)
+			return ruby.bool_value(false)
 		}
 	}
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
 // Ruby it `it "declines single character ask input" do` at line 170.
-pub fn ruby_install_spec_l170_d8_declines(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_spec_l170_d8_declines(args ...ruby.Value) ruby.Value {
 	_ = args
 	for character in [`n`, `N`] {
 		result := homebrew.ask_input(homebrew.InstallAskInput{
@@ -113,14 +113,14 @@ pub fn ruby_install_spec_l170_d8_declines(args ...brew_runtime.Value) brew_runti
 			characters: [int(character)]
 		})
 		if !result.exited || result.accepted {
-			return brew_runtime.bool_value(false)
+			return ruby.bool_value(false)
 		}
 	}
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
 // Ruby it `it "terminates on ask cancellation input" do` at line 182.
-pub fn ruby_install_spec_l182_d9_terminates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_spec_l182_d9_terminates(args ...ruby.Value) ruby.Value {
 	_ = args
 	for character in [27, 3, 4] {
 		result := homebrew.ask_input(homebrew.InstallAskInput{
@@ -130,14 +130,14 @@ pub fn ruby_install_spec_l182_d9_terminates(args ...brew_runtime.Value) brew_run
 			characters: [character]
 		})
 		if !result.exited {
-			return brew_runtime.bool_value(false)
+			return ruby.bool_value(false)
 		}
 	}
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
 // Ruby it `it "terminates on ask interrupt" do` at line 194.
-pub fn ruby_install_spec_l194_d10_terminates(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_spec_l194_d10_terminates(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := homebrew.ask_input(homebrew.InstallAskInput{
 		action: 'upgrade'
@@ -146,21 +146,21 @@ pub fn ruby_install_spec_l194_d10_terminates(args ...brew_runtime.Value) brew_ru
 		characters: [int(`x`)]
 		interrupt_index: 0
 	})
-	return brew_runtime.bool_value(result.exited && result.consumed == 0)
+	return ruby.bool_value(result.exited && result.consumed == 0)
 }
 
 // Ruby it `it "skips ask input without a TTY" do` at line 205.
-pub fn ruby_install_spec_l205_d11_skips(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_spec_l205_d11_skips(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := homebrew.ask_input(homebrew.InstallAskInput{
 		action: 'upgrade'
 		characters: [int(`y`)]
 	})
-	return brew_runtime.bool_value(!result.accepted && !result.exited && result.output == '' && result.consumed == 0)
+	return ruby.bool_value(!result.accepted && !result.exited && result.output == '' && result.consumed == 0)
 }
 
 // Ruby it `it "uses shared prompt rules for ask plans" do` at line 212.
-pub fn ruby_install_spec_l212_d12_uses(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_spec_l212_d12_uses(args ...ruby.Value) ruby.Value {
 	_ = args
 	values := [
 		homebrew.ask_prompt_needed(['fish'], ['fish'], false, true),
@@ -169,20 +169,20 @@ pub fn ruby_install_spec_l212_d12_uses(args ...brew_runtime.Value) brew_runtime.
 		homebrew.ask_prompt_needed(['fish'], ['fish'], true, true),
 		homebrew.ask_prompt_needed([], [], false, false),
 	]
-	return brew_runtime.bool_value(values == [false, true, true, true, false])
+	return ruby.bool_value(values == [false, true, true, true, false])
 }
 
 // Ruby it `it "prints casks when asking", :cask do` at line 222.
-pub fn ruby_install_spec_l222_d13_prints(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_spec_l222_d13_prints(args ...ruby.Value) ruby.Value {
 	_ = args
 	plan := homebrew.ask_casks_plan([homebrew.CaskInstallCandidate{
 		full_name: 'local-caffeine'
 	}], 'installation', false, false)
-	return brew_runtime.bool_value(plan.output == '==> Would install 1 cask:\nlocal-caffeine\n')
+	return ruby.bool_value(plan.output == '==> Would install 1 cask:\nlocal-caffeine\n')
 }
 
 // Ruby it `it "prompts when asking for casks with dependencies", :cask do` at line 233.
-pub fn ruby_install_spec_l233_d14_prompts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_spec_l233_d14_prompts(args ...ruby.Value) ruby.Value {
 	_ = args
 	plan := homebrew.ask_casks_plan([homebrew.CaskInstallCandidate{
 		full_name: 'local-caffeine'
@@ -190,11 +190,11 @@ pub fn ruby_install_spec_l233_d14_prompts(args ...brew_runtime.Value) brew_runti
 			name: 'unar'
 		}]
 	}], 'installation', true, false)
-	return brew_runtime.bool_value(plan.prompt_needed && plan.output == '==> Would install 1 cask:\nlocal-caffeine\n==> Would install 1 dependency for local-caffeine:\nunar\n')
+	return ruby.bool_value(plan.prompt_needed && plan.output == '==> Would install 1 cask:\nlocal-caffeine\n==> Would install 1 dependency for local-caffeine:\nunar\n')
 }
 
 // Ruby it `it "does not read installed formula metadata for cask dependency dry-run plans", :cask do` at line 254.
-pub fn ruby_install_spec_l254_d15_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_spec_l254_d15_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	plan := homebrew.ask_casks_plan([homebrew.CaskInstallCandidate{
 		full_name: 'local-caffeine'
@@ -202,11 +202,11 @@ pub fn ruby_install_spec_l254_d15_does(args ...brew_runtime.Value) brew_runtime.
 			name: 'ripgrep'
 		}]
 	}], 'installation', false, false)
-	return brew_runtime.bool_value(plan.output.contains('ripgrep') && !plan.prompt_needed)
+	return ruby.bool_value(plan.output.contains('ripgrep') && !plan.prompt_needed)
 }
 
 // Ruby it `it "prompts when asking for casks with cask dependencies", :cask do` at line 276.
-pub fn ruby_install_spec_l276_d16_prompts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_spec_l276_d16_prompts(args ...ruby.Value) ruby.Value {
 	_ = args
 	plan := homebrew.ask_casks_plan([homebrew.CaskInstallCandidate{
 		full_name: 'with-depends-on-cask'
@@ -214,20 +214,20 @@ pub fn ruby_install_spec_l276_d16_prompts(args ...brew_runtime.Value) brew_runti
 			full_name: 'local-transmission-zip'
 		}]
 	}], 'installation', true, false)
-	return brew_runtime.bool_value(plan.prompt_needed && plan.output.contains('local-transmission-zip'))
+	return ruby.bool_value(plan.prompt_needed && plan.output.contains('local-transmission-zip'))
 }
 
 // Ruby it `it "prints a cask reinstallation dry-run plan when asking", :cask do` at line 291.
-pub fn ruby_install_spec_l291_d17_prints(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_spec_l291_d17_prints(args ...ruby.Value) ruby.Value {
 	_ = args
 	plan := homebrew.ask_casks_plan([homebrew.CaskInstallCandidate{
 		full_name: 'local-caffeine'
 	}], 'reinstallation', false, false)
-	return brew_runtime.bool_value(plan.output == '==> Would reinstall 1 cask:\nlocal-caffeine\n')
+	return ruby.bool_value(plan.output == '==> Would reinstall 1 cask:\nlocal-caffeine\n')
 }
 
 // Ruby it `it "does not prompt when skipped cask dependencies will not be installed", :cask do` at line 302.
-pub fn ruby_install_spec_l302_d18_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_spec_l302_d18_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	plan := homebrew.ask_casks_plan([homebrew.CaskInstallCandidate{
 		full_name: 'with-depends-on-cask'
@@ -235,11 +235,11 @@ pub fn ruby_install_spec_l302_d18_does(args ...brew_runtime.Value) brew_runtime.
 			full_name: 'local-transmission-zip'
 		}]
 	}], 'installation', true, true)
-	return brew_runtime.bool_value(!plan.prompt_needed && plan.output == '==> Would install 1 cask:\nwith-depends-on-cask\n')
+	return ruby.bool_value(!plan.prompt_needed && plan.output == '==> Would install 1 cask:\nwith-depends-on-cask\n')
 }
 
 // Ruby it `it "installs an explicitly requested tap before resolving a formula" do` at line 315.
-pub fn ruby_install_spec_l315_d19_installs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_spec_l315_d19_installs(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := install_cmd.execute_install_command(install_cmd.InstallCommandContext{
 		arguments: ['user/repo/foo']
@@ -249,8 +249,8 @@ pub fn ruby_install_spec_l315_d19_installs(args ...brew_runtime.Value) brew_runt
 		environment: install_cmd.InstallCommandEnvironment{}
 		unavailable_name: 'user/repo/foo'
 		unavailable_message: 'If you trust this tap, retry after installing it.'
-	}) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(result.events.len >= 3 && result.events[..3] == [
+	}) or { return ruby.bool_value(false) }
+	return ruby.bool_value(result.events.len >= 3 && result.events[..3] == [
 		'ensure_tap:user/repo',
 		'trust:user/repo/foo',
 		'resolve_packages',
@@ -258,7 +258,7 @@ pub fn ruby_install_spec_l315_d19_installs(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby it `it "starts formula prelude fetches before dependant checks when not asking" do` at line 332.
-pub fn ruby_install_spec_l332_d20_starts(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_spec_l332_d20_starts(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := install_cmd.execute_install_command(install_cmd.InstallCommandContext{
 		arguments: ['--yes', 'testball']
@@ -268,14 +268,14 @@ pub fn ruby_install_spec_l332_d20_starts(args ...brew_runtime.Value) brew_runtim
 		}]
 		environment: install_cmd.InstallCommandEnvironment{}
 		downloads_heading: 'Fetching downloads for: testball'
-	}) or { return brew_runtime.bool_value(false) }
+	}) or { return ruby.bool_value(false) }
 	prelude_index := result.events.index('prelude_fetch:testball')
 	dependants_index := result.events.index('dependants')
-	return brew_runtime.bool_value(prelude_index >= 0 && dependants_index > prelude_index && result.download_queue_closed)
+	return ruby.bool_value(prelude_index >= 0 && dependants_index > prelude_index && result.download_queue_closed)
 }
 
 // Ruby it `it "installs what did download after an earlier failure" do` at line 366.
-pub fn ruby_install_spec_l366_d21_installs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_spec_l366_d21_installs(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := install_cmd.execute_install_command(install_cmd.InstallCommandContext{
 		arguments: ['--yes', 'testball']
@@ -285,14 +285,14 @@ pub fn ruby_install_spec_l366_d21_installs(args ...brew_runtime.Value) brew_runt
 		}]
 		environment: install_cmd.InstallCommandEnvironment{}
 		prior_failed: true
-	}) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(result.failed && result.formulae_installed == [
+	}) or { return ruby.bool_value(false) }
+	return ruby.bool_value(result.failed && result.formulae_installed == [
 		'testball',
 	])
 }
 
 // Ruby it `it "names the cask that failed to install", :cask do` at line 397.
-pub fn ruby_install_spec_l397_d22_names(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_spec_l397_d22_names(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := install_cmd.execute_install_command(install_cmd.InstallCommandContext{
 		arguments: ['--yes', 'local-caffeine']
@@ -301,12 +301,12 @@ pub fn ruby_install_spec_l397_d22_names(args ...brew_runtime.Value) brew_runtime
 			install_error: 'uh-oh'
 		}]
 		environment: install_cmd.InstallCommandEnvironment{}
-	}) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(result.failed && result.stderr.contains('local-caffeine: uh-oh'))
+	}) or { return ruby.bool_value(false) }
+	return ruby.bool_value(result.failed && result.stderr.contains('local-caffeine: uh-oh'))
 }
 
 // Ruby it `it "drains metadata-only prelude fetches before the dry-run plan when asking" do` at line 420.
-pub fn ruby_install_spec_l420_d23_drains(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_spec_l420_d23_drains(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := install_cmd.execute_install_command(install_cmd.InstallCommandContext{
 		arguments: ['testball']
@@ -317,25 +317,25 @@ pub fn ruby_install_spec_l420_d23_drains(args ...brew_runtime.Value) brew_runtim
 		environment: install_cmd.InstallCommandEnvironment{}
 		formula_ask_output: '==> Would install 1 formula:\ntestball\n'
 		downloads_heading: 'Fetching downloads for: testball'
-	}) or { return brew_runtime.bool_value(false) }
+	}) or { return ruby.bool_value(false) }
 	manifest_index := result.events.index('download_bottle_manifests')
 	dependants_index := result.events.index('dependants')
-	return brew_runtime.bool_value(manifest_index > dependants_index && result.stdout.starts_with('==> Would install 1 formula:') && result.download_queue_closed)
+	return ruby.bool_value(manifest_index > dependants_index && result.stdout.starts_with('==> Would install 1 formula:') && result.download_queue_closed)
 }
 
 // Ruby it `it "does not install `homebrew/cask` when a cask remains unavailable" do` at line 457.
-pub fn ruby_install_spec_l457_d24_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_spec_l457_d24_does(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := install_cmd.execute_install_command(install_cmd.InstallCommandContext{
 		arguments: ['foo']
 		environment: install_cmd.InstallCommandEnvironment{}
 		unavailable_name: 'foo'
-	}) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(result.failed && result.events.all(!it.starts_with('ensure_tap:homebrew/cask')))
+	}) or { return ruby.bool_value(false) }
+	return ruby.bool_value(result.failed && result.events.all(!it.starts_with('ensure_tap:homebrew/cask')))
 }
 
 // Ruby it `it "builds from source and pours a keg-only bottle", :integration_test do` at line 477.
-pub fn ruby_install_spec_l477_d25_builds(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_spec_l477_d25_builds(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := install_cmd.execute_install_command(install_cmd.InstallCommandContext{
 		arguments: ['--yes', 'sourceball', 'testball_bottle']
@@ -350,27 +350,27 @@ pub fn ruby_install_spec_l477_d25_builds(args ...brew_runtime.Value) brew_runtim
 			},
 		]
 		environment: install_cmd.InstallCommandEnvironment{}
-	}) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(result.formulae_installed == ['sourceball', 'testball_bottle'])
+	}) or { return ruby.bool_value(false) }
+	return ruby.bool_value(result.formulae_installed == ['sourceball', 'testball_bottle'])
 }
 
 // Ruby method `install` at line 487.
-pub fn ruby_install_spec_l487_d26_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_spec_l487_d26_install(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.map_value({
-		'path':    brew_runtime.string_value('built-from-source')
-		'content': brew_runtime.string_value('test')
+	return ruby.map_value({
+		'path':    ruby.string_value('built-from-source')
+		'content': ruby.string_value('test')
 	})
 }
 
 // Ruby let `let(:formula_name) { "testball1" }` at line 512.
-pub fn ruby_install_spec_l512_d27_formula_name(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_spec_l512_d27_formula_name(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_value('testball1')
+	return ruby.string_value('testball1')
 }
 
 // Ruby it `it "installs a HEAD Formula", :integration_test do` at line 514.
-pub fn ruby_install_spec_l514_d28_installs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_spec_l514_d28_installs(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := install_cmd.execute_install_command(install_cmd.InstallCommandContext{
 		arguments: ['--yes', 'testball1', '--HEAD']
@@ -380,18 +380,18 @@ pub fn ruby_install_spec_l514_d28_installs(args ...brew_runtime.Value) brew_runt
 			head: true
 		}]
 		environment: install_cmd.InstallCommandEnvironment{}
-	}) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(result.formulae_installed == ['testball1'])
+	}) or { return ruby.bool_value(false) }
+	return ruby.bool_value(result.formulae_installed == ['testball1'])
 }
 
 // Ruby method `install` at line 533.
-pub fn ruby_install_spec_l533_d29_install(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_spec_l533_d29_install(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.string_array_value(['bin/something.bin', 'README'])
+	return ruby.string_array_value(['bin/something.bin', 'README'])
 }
 
 // Ruby it `it "prints a shared fetch heading and correct upgrade count", :cask do` at line 553.
-pub fn ruby_install_spec_l553_d30_prints(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_install_spec_l553_d30_prints(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := install_cmd.execute_install_command(install_cmd.InstallCommandContext{
 		arguments: ['--yes', 'codex']
@@ -408,8 +408,8 @@ pub fn ruby_install_spec_l553_d30_prints(args ...brew_runtime.Value) brew_runtim
 		}]
 		environment: install_cmd.InstallCommandEnvironment{}
 		downloads_heading: 'Fetching downloads for: testball_bottle and codex'
-	}) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(result.stdout == '==> Upgrading 1 outdated package:\ncodex 0.117.0 -> 0.118.0\n' && result.events.contains('Fetching downloads for: testball_bottle and codex') && result.casks_upgraded == [
+	}) or { return ruby.bool_value(false) }
+	return ruby.bool_value(result.stdout == '==> Upgrading 1 outdated package:\ncodex 0.117.0 -> 0.118.0\n' && result.events.contains('Fetching downloads for: testball_bottle and codex') && result.casks_upgraded == [
 		'codex',
 	])
 }

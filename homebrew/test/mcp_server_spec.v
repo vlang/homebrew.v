@@ -1,278 +1,278 @@
 module test
 
-import brew_runtime
+import ruby
 import homebrew
 
 // Translated from Homebrew/brew `test/mcp_server_spec.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:stdin) { StringIO.new }` at line 9.
-pub fn ruby_mcp_server_spec_l9_d1_stdin(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('StringIO', '')
+pub fn ruby_mcp_server_spec_l9_d1_stdin(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('StringIO', '')
 }
 
 // Ruby let `let(:stdout) { StringIO.new }` at line 10.
-pub fn ruby_mcp_server_spec_l10_d2_stdout(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('StringIO', '')
+pub fn ruby_mcp_server_spec_l10_d2_stdout(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('StringIO', '')
 }
 
 // Ruby let `let(:stderr) { StringIO.new }` at line 11.
-pub fn ruby_mcp_server_spec_l11_d3_stderr(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.object_value('StringIO', '')
+pub fn ruby_mcp_server_spec_l11_d3_stderr(args ...ruby.Value) ruby.Value {
+	return ruby.object_value('StringIO', '')
 }
 
 // Ruby let `let(:server) { described_class.new(stdin:, stdout:, stderr:) }` at line 12.
-pub fn ruby_mcp_server_spec_l12_d4_server(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mcp_server_spec_l12_d4_server(args ...ruby.Value) ruby.Value {
 	return homebrew.mcp_server_state_value(homebrew.new_mcp_server([], [], '/brew', '4.0.0'))
 }
 
 // Ruby let `let(:jsonrpc) { Homebrew::McpServer::JSON_RPC_VERSION }` at line 13.
-pub fn ruby_mcp_server_spec_l13_d5_jsonrpc(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(homebrew.mcp_json_rpc_version)
+pub fn ruby_mcp_server_spec_l13_d5_jsonrpc(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(homebrew.mcp_json_rpc_version)
 }
 
 // Ruby let `let(:id) { Random.rand(1000) }` at line 14.
-pub fn ruby_mcp_server_spec_l14_d6_id(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(42)
+pub fn ruby_mcp_server_spec_l14_d6_id(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(42)
 }
 
 // Ruby let `let(:code) { Homebrew::McpServer::ERROR_CODE }` at line 15.
-pub fn ruby_mcp_server_spec_l15_d7_code(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.int_value(homebrew.mcp_error_code)
+pub fn ruby_mcp_server_spec_l15_d7_code(args ...ruby.Value) ruby.Value {
+	return ruby.int_value(homebrew.mcp_error_code)
 }
 
 // Ruby it `it "sets debug_logging to false by default" do` at line 18.
-pub fn ruby_mcp_server_spec_l18_d8_sets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(!homebrew.new_mcp_server([], [], '/brew', '4.0.0').debug_logging)
+pub fn ruby_mcp_server_spec_l18_d8_sets(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(!homebrew.new_mcp_server([], [], '/brew', '4.0.0').debug_logging)
 }
 
 // Ruby it `it "sets debug_logging to true if --debug is in ARGV" do` at line 22.
-pub fn ruby_mcp_server_spec_l22_d9_sets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(homebrew.new_mcp_server(['--debug'], [], '/brew', '4.0.0').debug_logging)
+pub fn ruby_mcp_server_spec_l22_d9_sets(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(homebrew.new_mcp_server(['--debug'], [], '/brew', '4.0.0').debug_logging)
 }
 
 // Ruby it `it "sets debug_logging to true if -d is in ARGV" do` at line 27.
-pub fn ruby_mcp_server_spec_l27_d10_sets(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(homebrew.new_mcp_server(['-d'], [], '/brew', '4.0.0').debug_logging)
+pub fn ruby_mcp_server_spec_l27_d10_sets(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(homebrew.new_mcp_server(['-d'], [], '/brew', '4.0.0').debug_logging)
 }
 
 // Ruby it `it "logs debug output when debug_logging is true" do` at line 34.
-pub fn ruby_mcp_server_spec_l34_d11_logs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mcp_server_spec_l34_d11_logs(args ...ruby.Value) ruby.Value {
 	mut server := homebrew.new_mcp_server(['--debug'], [], '/brew', '4.0.0')
 	homebrew.mcp_debug(mut server, 'foo')
-	return brew_runtime.bool_value(server.stderr_lines.join('').contains('foo'))
+	return ruby.bool_value(server.stderr_lines.join('').contains('foo'))
 }
 
 // Ruby it `it "does not log debug output when debug_logging is false" do` at line 40.
-pub fn ruby_mcp_server_spec_l40_d12_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mcp_server_spec_l40_d12_does(args ...ruby.Value) ruby.Value {
 	mut server := homebrew.new_mcp_server([], [], '/brew', '4.0.0')
 	homebrew.mcp_debug(mut server, 'foo')
-	return brew_runtime.bool_value(server.stderr_lines.len == 0)
+	return ruby.bool_value(server.stderr_lines.len == 0)
 }
 
 // Ruby it `it "logs to stderr" do` at line 45.
-pub fn ruby_mcp_server_spec_l45_d13_logs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mcp_server_spec_l45_d13_logs(args ...ruby.Value) ruby.Value {
 	mut server := homebrew.new_mcp_server([], [], '/brew', '4.0.0')
 	homebrew.mcp_log(mut server, 'bar')
-	return brew_runtime.bool_value(server.stderr_lines.join('').contains('bar'))
+	return ruby.bool_value(server.stderr_lines.join('').contains('bar'))
 }
 
 // Ruby it `it "responds to initialize method" do` at line 52.
-pub fn ruby_mcp_server_spec_l52_d14_responds(args ...brew_runtime.Value) brew_runtime.Value {
-	response := mcp_spec_handle('initialize', brew_runtime.map_value(map[string]brew_runtime.Value{}))
-	result := response.value.map_data['result'] or { return brew_runtime.bool_value(false) }
-	protocol := result.map_data['protocolVersion'] or { return brew_runtime.bool_value(false) }
-	server_info := result.map_data['serverInfo'] or { return brew_runtime.bool_value(false) }
-	name := server_info.map_data['name'] or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(response.present && protocol.as_string() == homebrew.mcp_protocol_version && name.as_string() == 'brew-mcp-server')
+pub fn ruby_mcp_server_spec_l52_d14_responds(args ...ruby.Value) ruby.Value {
+	response := mcp_spec_handle('initialize', ruby.map_value(map[string]ruby.Value{}))
+	result := response.value.map_data['result'] or { return ruby.bool_value(false) }
+	protocol := result.map_data['protocolVersion'] or { return ruby.bool_value(false) }
+	server_info := result.map_data['serverInfo'] or { return ruby.bool_value(false) }
+	name := server_info.map_data['name'] or { return ruby.bool_value(false) }
+	return ruby.bool_value(response.present && protocol.as_string() == homebrew.mcp_protocol_version && name.as_string() == 'brew-mcp-server')
 }
 
 // Ruby it `it "responds to resources/list" do` at line 72.
-pub fn ruby_mcp_server_spec_l72_d15_responds(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mcp_server_spec_l72_d15_responds(args ...ruby.Value) ruby.Value {
 	return mcp_spec_result_array_empty('resources/list', 'resources')
 }
 
 // Ruby it `it "responds to resources/templates/list" do` at line 78.
-pub fn ruby_mcp_server_spec_l78_d16_responds(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mcp_server_spec_l78_d16_responds(args ...ruby.Value) ruby.Value {
 	return mcp_spec_result_array_empty('resources/templates/list', 'resourceTemplates')
 }
 
 // Ruby it `it "responds to prompts/list" do` at line 84.
-pub fn ruby_mcp_server_spec_l84_d17_responds(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mcp_server_spec_l84_d17_responds(args ...ruby.Value) ruby.Value {
 	return mcp_spec_result_array_empty('prompts/list', 'prompts')
 }
 
 // Ruby it `it "responds to ping" do` at line 90.
-pub fn ruby_mcp_server_spec_l90_d18_responds(args ...brew_runtime.Value) brew_runtime.Value {
-	response := mcp_spec_handle('ping', brew_runtime.map_value(map[string]brew_runtime.Value{}))
-	result := response.value.map_data['result'] or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(response.present && result.map_data.len == 0)
+pub fn ruby_mcp_server_spec_l90_d18_responds(args ...ruby.Value) ruby.Value {
+	response := mcp_spec_handle('ping', ruby.map_value(map[string]ruby.Value{}))
+	result := response.value.map_data['result'] or { return ruby.bool_value(false) }
+	return ruby.bool_value(response.present && result.map_data.len == 0)
 }
 
 // Ruby it `it "responds to get_server_info" do` at line 96.
-pub fn ruby_mcp_server_spec_l96_d19_responds(args ...brew_runtime.Value) brew_runtime.Value {
-	response := mcp_spec_handle('get_server_info', brew_runtime.map_value(map[string]brew_runtime.Value{}))
-	result := response.value.map_data['result'] or { return brew_runtime.bool_value(false) }
-	name := result.map_data['name'] or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(response.present && name.as_string() == 'brew-mcp-server')
+pub fn ruby_mcp_server_spec_l96_d19_responds(args ...ruby.Value) ruby.Value {
+	response := mcp_spec_handle('get_server_info', ruby.map_value(map[string]ruby.Value{}))
+	result := response.value.map_data['result'] or { return ruby.bool_value(false) }
+	name := result.map_data['name'] or { return ruby.bool_value(false) }
+	return ruby.bool_value(response.present && name.as_string() == 'brew-mcp-server')
 }
 
 // Ruby it `it "responds to logging/setLevel with debug" do` at line 102.
-pub fn ruby_mcp_server_spec_l102_d20_responds(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mcp_server_spec_l102_d20_responds(args ...ruby.Value) ruby.Value {
 	mut server := homebrew.new_mcp_server([], [], '/brew', '4.0.0')
-	response := homebrew.mcp_handle_request(mut server, mcp_spec_request('logging/setLevel', brew_runtime.map_value({
-		'level': brew_runtime.string_value('debug')
-	}), true), mcp_spec_runner) or { return brew_runtime.bool_value(false) }
-	result := response.value.map_data['result'] or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(server.debug_logging && response.present && result.map_data.len == 0)
+	response := homebrew.mcp_handle_request(mut server, mcp_spec_request('logging/setLevel', ruby.map_value({
+		'level': ruby.string_value('debug')
+	}), true), mcp_spec_runner) or { return ruby.bool_value(false) }
+	result := response.value.map_data['result'] or { return ruby.bool_value(false) }
+	return ruby.bool_value(server.debug_logging && response.present && result.map_data.len == 0)
 }
 
 // Ruby it `it "responds to logging/setLevel with non-debug" do` at line 109.
-pub fn ruby_mcp_server_spec_l109_d21_responds(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mcp_server_spec_l109_d21_responds(args ...ruby.Value) ruby.Value {
 	mut server := homebrew.new_mcp_server(['--debug'], [], '/brew', '4.0.0')
-	response := homebrew.mcp_handle_request(mut server, mcp_spec_request('logging/setLevel', brew_runtime.map_value({
-		'level': brew_runtime.string_value('info')
-	}), true), mcp_spec_runner) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(!server.debug_logging && response.present)
+	response := homebrew.mcp_handle_request(mut server, mcp_spec_request('logging/setLevel', ruby.map_value({
+		'level': ruby.string_value('info')
+	}), true), mcp_spec_runner) or { return ruby.bool_value(false) }
+	return ruby.bool_value(!server.debug_logging && response.present)
 }
 
 // Ruby it `it "responds to notifications/initialized" do` at line 116.
-pub fn ruby_mcp_server_spec_l116_d22_responds(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mcp_server_spec_l116_d22_responds(args ...ruby.Value) ruby.Value {
 	return mcp_spec_notification('notifications/initialized')
 }
 
 // Ruby it `it "responds to notifications/cancelled" do` at line 121.
-pub fn ruby_mcp_server_spec_l121_d23_responds(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mcp_server_spec_l121_d23_responds(args ...ruby.Value) ruby.Value {
 	return mcp_spec_notification('notifications/cancelled')
 }
 
 // Ruby it `it "responds to tools/list" do` at line 126.
-pub fn ruby_mcp_server_spec_l126_d24_responds(args ...brew_runtime.Value) brew_runtime.Value {
-	response := mcp_spec_handle('tools/list', brew_runtime.map_value(map[string]brew_runtime.Value{}))
-	result := response.value.map_data['result'] or { return brew_runtime.bool_value(false) }
-	tools_value := result.map_data['tools'] or { return brew_runtime.bool_value(false) }
-	tools := tools_value.as_array() or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(tools.len == homebrew.mcp_tools().len && tools.len == 14)
+pub fn ruby_mcp_server_spec_l126_d24_responds(args ...ruby.Value) ruby.Value {
+	response := mcp_spec_handle('tools/list', ruby.map_value(map[string]ruby.Value{}))
+	result := response.value.map_data['result'] or { return ruby.bool_value(false) }
+	tools_value := result.map_data['tools'] or { return ruby.bool_value(false) }
+	tools := tools_value.as_array() or { return ruby.bool_value(false) }
+	return ruby.bool_value(tools.len == homebrew.mcp_tools().len && tools.len == 14)
 }
 
 // Ruby it `it "responds to tools/call for` at line 133.
-pub fn ruby_mcp_server_spec_l133_d25_responds(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mcp_server_spec_l133_d25_responds(args ...ruby.Value) ruby.Value {
 	for tool in homebrew.mcp_tools() {
-		mut arguments := map[string]brew_runtime.Value{}
+		mut arguments := map[string]ruby.Value{}
 		for required in tool.required {
-			arguments[required] = brew_runtime.string_value('dummy')
+			arguments[required] = ruby.string_value('dummy')
 		}
 		response := mcp_spec_tools_call(tool.name, arguments)
 		if !response.present || mcp_spec_content_text(response) != 'output for ${tool.name}' {
-			return brew_runtime.bool_value(false)
+			return ruby.bool_value(false)
 		}
 	}
-	return brew_runtime.bool_value(true)
+	return ruby.bool_value(true)
 }
 
 // Ruby it `it "passes tool arguments as argv when spawning brew" do` at line 156.
-pub fn ruby_mcp_server_spec_l156_d26_passes(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mcp_server_spec_l156_d26_passes(args ...ruby.Value) ruby.Value {
 	response := mcp_spec_tools_call('search', {
-		'text_or_regex': brew_runtime.string_value('visual studio;beta')
+		'text_or_regex': ruby.string_value('visual studio;beta')
 	})
-	return brew_runtime.bool_value(mcp_spec_content_text(response) == 'output for search' && homebrew.mcp_tool_command_arguments('search', {
-		'text_or_regex': brew_runtime.string_value('visual studio;beta')
+	return ruby.bool_value(mcp_spec_content_text(response) == 'output for search' && homebrew.mcp_tool_command_arguments('search', {
+		'text_or_regex': ruby.string_value('visual studio;beta')
 	}) == ['visual studio;beta'])
 }
 
 // Ruby it `it "rejects an inline cask definition argument without spawning brew" do` at line 172.
-pub fn ruby_mcp_server_spec_l172_d27_rejects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mcp_server_spec_l172_d27_rejects(args ...ruby.Value) ruby.Value {
 	response := mcp_spec_tools_call('info', {
-		'formula_or_cask': brew_runtime.string_value('cask "evil" do\n  url "https://example.com"\nend')
+		'formula_or_cask': ruby.string_value('cask "evil" do\n  url "https://example.com"\nend')
 	})
-	return brew_runtime.bool_value(mcp_spec_error(response) == 'Invalid formula or cask argument')
+	return ruby.bool_value(mcp_spec_error(response) == 'Invalid formula or cask argument')
 }
 
 // Ruby it `it "responds to tools/call for unknown tool" do` at line 186.
-pub fn ruby_mcp_server_spec_l186_d28_responds(args ...brew_runtime.Value) brew_runtime.Value {
-	response := mcp_spec_tools_call('not_a_tool', map[string]brew_runtime.Value{})
-	return brew_runtime.bool_value(mcp_spec_error(response) == 'Unknown tool')
+pub fn ruby_mcp_server_spec_l186_d28_responds(args ...ruby.Value) ruby.Value {
+	response := mcp_spec_tools_call('not_a_tool', map[string]ruby.Value{})
+	return ruby.bool_value(mcp_spec_error(response) == 'Unknown tool')
 }
 
 // Ruby it `it "responds with error for unknown method" do` at line 192.
-pub fn ruby_mcp_server_spec_l192_d29_responds(args ...brew_runtime.Value) brew_runtime.Value {
-	response := mcp_spec_handle('not_a_method', brew_runtime.map_value(map[string]brew_runtime.Value{}))
-	return brew_runtime.bool_value(mcp_spec_error(response) == 'Method not found')
+pub fn ruby_mcp_server_spec_l192_d29_responds(args ...ruby.Value) ruby.Value {
+	response := mcp_spec_handle('not_a_method', ruby.map_value(map[string]ruby.Value{}))
+	return ruby.bool_value(mcp_spec_error(response) == 'Method not found')
 }
 
 // Ruby it `it "returns nil if id is nil" do` at line 198.
-pub fn ruby_mcp_server_spec_l198_d30_returns(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mcp_server_spec_l198_d30_returns(args ...ruby.Value) ruby.Value {
 	mut server := homebrew.new_mcp_server([], [], '/brew', '4.0.0')
-	response := homebrew.mcp_handle_request(mut server, mcp_spec_request('initialize', brew_runtime.map_value(map[string]brew_runtime.Value{}), false), mcp_spec_runner) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(!response.present)
+	response := homebrew.mcp_handle_request(mut server, mcp_spec_request('initialize', ruby.map_value(map[string]ruby.Value{}), false), mcp_spec_runner) or { return ruby.bool_value(false) }
+	return ruby.bool_value(!response.present)
 }
 
 // Ruby it `it "returns nil if id is nil" do` at line 205.
-pub fn ruby_mcp_server_spec_l205_d31_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(!homebrew.mcp_respond_result(none, brew_runtime.map_value(map[string]brew_runtime.Value{})).present)
+pub fn ruby_mcp_server_spec_l205_d31_returns(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(!homebrew.mcp_respond_result(none, ruby.map_value(map[string]ruby.Value{})).present)
 }
 
 // Ruby it `it "returns a result hash if id is present" do` at line 209.
-pub fn ruby_mcp_server_spec_l209_d32_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	response := homebrew.mcp_respond_result(brew_runtime.int_value(42), brew_runtime.map_value({
-		'foo': brew_runtime.string_value('bar')
+pub fn ruby_mcp_server_spec_l209_d32_returns(args ...ruby.Value) ruby.Value {
+	response := homebrew.mcp_respond_result(ruby.int_value(42), ruby.map_value({
+		'foo': ruby.string_value('bar')
 	}))
-	result := response.value.map_data['result'] or { return brew_runtime.bool_value(false) }
-	foo := result.map_data['foo'] or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(response.present && foo.as_string() == 'bar')
+	result := response.value.map_data['result'] or { return ruby.bool_value(false) }
+	foo := result.map_data['foo'] or { return ruby.bool_value(false) }
+	return ruby.bool_value(response.present && foo.as_string() == 'bar')
 }
 
 // Ruby it `it "returns an error hash" do` at line 216.
-pub fn ruby_mcp_server_spec_l216_d33_returns(args ...brew_runtime.Value) brew_runtime.Value {
-	response := homebrew.mcp_respond_error(brew_runtime.int_value(42), 'fail')
-	error_value := response.value.map_data['error'] or { return brew_runtime.bool_value(false) }
-	code := error_value.map_data['code'] or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(mcp_spec_error(response) == 'fail' && code.int_data == homebrew.mcp_error_code)
+pub fn ruby_mcp_server_spec_l216_d33_returns(args ...ruby.Value) ruby.Value {
+	response := homebrew.mcp_respond_error(ruby.int_value(42), 'fail')
+	error_value := response.value.map_data['error'] or { return ruby.bool_value(false) }
+	code := error_value.map_data['code'] or { return ruby.bool_value(false) }
+	return ruby.bool_value(mcp_spec_error(response) == 'fail' && code.int_data == homebrew.mcp_error_code)
 }
 
 // Ruby it `it "preserves search text as a single raw argv argument" do` at line 223.
-pub fn ruby_mcp_server_spec_l223_d34_preserves(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mcp_server_spec_l223_d34_preserves(args ...ruby.Value) ruby.Value {
 	arguments := homebrew.mcp_tool_command_arguments('search', {
-		'text_or_regex': brew_runtime.string_value('visual studio;beta')
+		'text_or_regex': ruby.string_value('visual studio;beta')
 	})
-	return brew_runtime.bool_value(arguments == ['visual studio;beta'])
+	return ruby.bool_value(arguments == ['visual studio;beta'])
 }
 
 // Ruby let `let(:sleep_time) { 0.001 }` at line 231.
-pub fn ruby_mcp_server_spec_l231_d35_sleep_time(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.float_value(0.001)
+pub fn ruby_mcp_server_spec_l231_d35_sleep_time(args ...ruby.Value) ruby.Value {
+	return ruby.float_value(0.001)
 }
 
 // Ruby it `it "runs the loop and exits cleanly on interrupt" do` at line 233.
-pub fn ruby_mcp_server_spec_l233_d36_runs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mcp_server_spec_l233_d36_runs(args ...ruby.Value) ruby.Value {
 	mut server := homebrew.new_mcp_server(['--debug'], ['{"id":42,"method":"ping"}'], '/brew', '4.0.0')
 	homebrew.mcp_run(mut server, mcp_spec_runner)
-	return brew_runtime.bool_value(server.exit_code == 0 && server.stderr_lines.join('').contains('Response: {'))
+	return ruby.bool_value(server.exit_code == 0 && server.stderr_lines.join('').contains('Response: {'))
 }
 
 // Ruby it `it "runs the loop and logs 'Response: nil' when handle_request returns nil" do` at line 251.
-pub fn ruby_mcp_server_spec_l251_d37_runs(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mcp_server_spec_l251_d37_runs(args ...ruby.Value) ruby.Value {
 	mut server := homebrew.new_mcp_server(['--debug'], [
 		'{"id":42,"method":"notifications/initialized"}',
 	], '/brew', '4.0.0')
 	homebrew.mcp_run(mut server, mcp_spec_runner)
-	return brew_runtime.bool_value(server.exit_code == 0 && server.stderr_lines.join('').contains('Response: nil'))
+	return ruby.bool_value(server.exit_code == 0 && server.stderr_lines.join('').contains('Response: nil'))
 }
 
 // Ruby it `it "exits on Interrupt" do` at line 269.
-pub fn ruby_mcp_server_spec_l269_d38_exits(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mcp_server_spec_l269_d38_exits(args ...ruby.Value) ruby.Value {
 	mut server := homebrew.new_mcp_server([], [], '/brew', '4.0.0')
 	server.interrupt_on_read = true
 	homebrew.mcp_run(mut server, mcp_spec_runner)
-	return brew_runtime.bool_value(server.exit_code == 0)
+	return ruby.bool_value(server.exit_code == 0)
 }
 
 // Ruby it `it "exits on error" do` at line 280.
-pub fn ruby_mcp_server_spec_l280_d39_exits(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_mcp_server_spec_l280_d39_exits(args ...ruby.Value) ruby.Value {
 	mut server := homebrew.new_mcp_server([], [], '/brew', '4.0.0')
 	server.read_error = 'fail'
 	homebrew.mcp_run(mut server, mcp_spec_runner)
-	return brew_runtime.bool_value(server.exit_code == 1 && server.stderr_lines.join('').contains('Error: fail'))
+	return ruby.bool_value(server.exit_code == 1 && server.stderr_lines.join('').contains('Error: fail'))
 }
 
 fn mcp_spec_runner(_executable string, arguments []string) !homebrew.McpCommandExecution {
@@ -285,41 +285,41 @@ fn mcp_spec_runner(_executable string, arguments []string) !homebrew.McpCommandE
 	}
 }
 
-fn mcp_spec_request(method string, params brew_runtime.Value, with_id bool) brew_runtime.Value {
+fn mcp_spec_request(method string, params ruby.Value, with_id bool) ruby.Value {
 	mut values := {
-		'method': brew_runtime.string_value(method)
+		'method': ruby.string_value(method)
 		'params': params
 	}
 	if with_id {
-		values['id'] = brew_runtime.int_value(42)
+		values['id'] = ruby.int_value(42)
 	}
-	return brew_runtime.map_value(values)
+	return ruby.map_value(values)
 }
 
-fn mcp_spec_handle(method string, params brew_runtime.Value) homebrew.McpResponse {
+fn mcp_spec_handle(method string, params ruby.Value) homebrew.McpResponse {
 	mut server := homebrew.new_mcp_server([], [], '/brew', '4.0.0')
 	return homebrew.mcp_handle_request(mut server, mcp_spec_request(method, params, true), mcp_spec_runner) or { homebrew.McpResponse{} }
 }
 
-fn mcp_spec_result_array_empty(method string, key string) brew_runtime.Value {
-	response := mcp_spec_handle(method, brew_runtime.map_value(map[string]brew_runtime.Value{}))
+fn mcp_spec_result_array_empty(method string, key string) ruby.Value {
+	response := mcp_spec_handle(method, ruby.map_value(map[string]ruby.Value{}))
 	if !response.present {
-		return brew_runtime.bool_value(false)
+		return ruby.bool_value(false)
 	}
-	result := response.value.map_data['result'] or { return brew_runtime.bool_value(false) }
-	entries_value := result.map_data[key] or { return brew_runtime.bool_value(false) }
-	entries := entries_value.as_array() or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(entries.len == 0)
+	result := response.value.map_data['result'] or { return ruby.bool_value(false) }
+	entries_value := result.map_data[key] or { return ruby.bool_value(false) }
+	entries := entries_value.as_array() or { return ruby.bool_value(false) }
+	return ruby.bool_value(entries.len == 0)
 }
 
-fn mcp_spec_notification(method string) brew_runtime.Value {
-	return brew_runtime.bool_value(!mcp_spec_handle(method, brew_runtime.map_value(map[string]brew_runtime.Value{})).present)
+fn mcp_spec_notification(method string) ruby.Value {
+	return ruby.bool_value(!mcp_spec_handle(method, ruby.map_value(map[string]ruby.Value{})).present)
 }
 
-fn mcp_spec_tools_call(name string, arguments map[string]brew_runtime.Value) homebrew.McpResponse {
-	return mcp_spec_handle('tools/call', brew_runtime.map_value({
-		'name':      brew_runtime.string_value(name)
-		'arguments': brew_runtime.map_value(arguments)
+fn mcp_spec_tools_call(name string, arguments map[string]ruby.Value) homebrew.McpResponse {
+	return mcp_spec_handle('tools/call', ruby.map_value({
+		'name':      ruby.string_value(name)
+		'arguments': ruby.map_value(arguments)
 	}))
 }
 

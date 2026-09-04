@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 import os
 
 // Translated from Homebrew/brew `dev-cmd/extract.rb`.
@@ -98,74 +98,74 @@ pub struct ExtractMonkeyPatchInput {
 pub mut:
 	patch_state ExtractMonkeyPatchState
 pub:
-	result        brew_runtime.Value
+	result        ruby.Value
 	error_message string
 }
 
-pub fn extract_input_boundary(input &ExtractInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::Extract::Input', '', {
+pub fn extract_input_boundary(input &ExtractInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::Extract::Input', '', {
 		'extract_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn extract_input_from_value(value brew_runtime.Value) !&ExtractInput {
+fn extract_input_from_value(value ruby.Value) !&ExtractInput {
 	address := value.attributes['extract_input_address'] or {
 		return error('invalid Extract input')
 	}
 	return unsafe { &ExtractInput(voidptr(address.u64())) }
 }
 
-pub fn extract_formula_revision_input_boundary(input &ExtractFormulaRevisionInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::Extract::FormulaRevisionInput', '', {
+pub fn extract_formula_revision_input_boundary(input &ExtractFormulaRevisionInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::Extract::FormulaRevisionInput', '', {
 		'extract_formula_revision_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn extract_formula_revision_input_from_value(value brew_runtime.Value) !&ExtractFormulaRevisionInput {
+fn extract_formula_revision_input_from_value(value ruby.Value) !&ExtractFormulaRevisionInput {
 	address := value.attributes['extract_formula_revision_input_address'] or {
 		return error('invalid Extract formula revision input')
 	}
 	return unsafe { &ExtractFormulaRevisionInput(voidptr(address.u64())) }
 }
 
-pub fn extract_monkey_patch_input_boundary(input &ExtractMonkeyPatchInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::Extract::MonkeyPatchInput', '', {
+pub fn extract_monkey_patch_input_boundary(input &ExtractMonkeyPatchInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::Extract::MonkeyPatchInput', '', {
 		'extract_monkey_patch_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn extract_monkey_patch_input_from_value(value brew_runtime.Value) !&ExtractMonkeyPatchInput {
+fn extract_monkey_patch_input_from_value(value ruby.Value) !&ExtractMonkeyPatchInput {
 	address := value.attributes['extract_monkey_patch_input_address'] or {
 		return error('invalid Extract monkey patch input')
 	}
 	return unsafe { &ExtractMonkeyPatchInput(voidptr(address.u64())) }
 }
 
-fn extract_nil() brew_runtime.Value {
-	return brew_runtime.object_value('NilClass', 'nil')
+fn extract_nil() ruby.Value {
+	return ruby.object_value('NilClass', 'nil')
 }
 
-fn extract_formula_value(formula ExtractFormula) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'name':     brew_runtime.string_value(formula.name)
-		'path':     brew_runtime.object_value('Pathname', formula.path)
-		'version':  brew_runtime.string_value(formula.version)
-		'contents': brew_runtime.string_value(formula.contents)
+fn extract_formula_value(formula ExtractFormula) ruby.Value {
+	return ruby.map_value({
+		'name':     ruby.string_value(formula.name)
+		'path':     ruby.object_value('Pathname', formula.path)
+		'version':  ruby.string_value(formula.version)
+		'contents': ruby.string_value(formula.contents)
 	})
 }
 
-fn extract_result_value(result ExtractResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'name':                      brew_runtime.string_value(result.name)
-		'version':                   brew_runtime.string_value(result.version)
-		'formula_version':           brew_runtime.string_value(result.formula_version)
-		'revision':                  brew_runtime.string_value(result.revision)
-		'path':                      brew_runtime.object_value('Pathname', result.path)
-		'contents':                  brew_runtime.string_value(result.contents)
-		'stdout':                    brew_runtime.string_array_value(result.stdout)
-		'debug':                     brew_runtime.string_array_value(result.debug)
-		'destination_tap_installed': brew_runtime.bool_value(result.destination_tap_installed)
-		'overwrote':                 brew_runtime.bool_value(result.overwrote)
+fn extract_result_value(result ExtractResult) ruby.Value {
+	return ruby.map_value({
+		'name':                      ruby.string_value(result.name)
+		'version':                   ruby.string_value(result.version)
+		'formula_version':           ruby.string_value(result.formula_version)
+		'revision':                  ruby.string_value(result.revision)
+		'path':                      ruby.object_value('Pathname', result.path)
+		'contents':                  ruby.string_value(result.contents)
+		'stdout':                    ruby.string_array_value(result.stdout)
+		'debug':                     ruby.string_array_value(result.debug)
+		'destination_tap_installed': ruby.bool_value(result.destination_tap_installed)
+		'overwrote':                 ruby.bool_value(result.overwrote)
 	})
 }
 
@@ -374,8 +374,8 @@ pub fn end_extract_monkey_patch(mut state ExtractMonkeyPatchState) {
 	state.dependency_cache_clears++
 }
 
-pub fn with_extract_monkey_patch(mut state ExtractMonkeyPatchState, result brew_runtime.Value,
-	error_message string) !brew_runtime.Value {
+pub fn with_extract_monkey_patch(mut state ExtractMonkeyPatchState, result ruby.Value,
+	error_message string) !ruby.Value {
 	begin_extract_monkey_patch(mut state)
 	if error_message != '' {
 		end_extract_monkey_patch(mut state)
@@ -604,50 +604,50 @@ pub fn run_extract(options ExtractOptions) !ExtractResult {
 }
 
 // Ruby method `run` at line 36.
-pub fn ruby_extract_l36_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extract_l36_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'command input is required')
+		return ruby.object_value('ArgumentError', 'command input is required')
 	}
 	input := extract_input_from_value(args[0]) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	result := run_extract(input.options) or {
-		return brew_runtime.object_value('SystemExit', err.msg())
+		return ruby.object_value('SystemExit', err.msg())
 	}
 	return extract_result_value(result)
 }
 
 // Ruby method `formula_at_revision(repo, name, file, rev)` at line 165.
-pub fn ruby_extract_l165_d2_formula_at_revision(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extract_l165_d2_formula_at_revision(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'formula revision input is required')
+		return ruby.object_value('ArgumentError', 'formula revision input is required')
 	}
 	mut input := extract_formula_revision_input_from_value(args[0]) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	formula := extract_formula_at_revision(mut input.patch_state, input.repo, input.name, input.file, input.revision, input.contents) or { return extract_nil() }
 	return extract_formula_value(formula)
 }
 
 // Ruby method `with_monkey_patch(&_block)` at line 176.
-pub fn ruby_extract_l176_d3_with_monkey_patch(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extract_l176_d3_with_monkey_patch(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'monkey patch input is required')
+		return ruby.object_value('ArgumentError', 'monkey patch input is required')
 	}
 	mut input := extract_monkey_patch_input_from_value(args[0]) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	return with_extract_monkey_patch(mut input.patch_state, input.result, input.error_message) or {
-		brew_runtime.object_value('RuntimeError', err.msg())
+		ruby.object_value('RuntimeError', err.msg())
 	}
 }
 
-fn extract_patch_alias(args []brew_runtime.Value, target string) brew_runtime.Value {
+fn extract_patch_alias(args []ruby.Value, target string) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'monkey patch input is required')
+		return ruby.object_value('ArgumentError', 'monkey patch input is required')
 	}
 	mut input := extract_monkey_patch_input_from_value(args[0]) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	match target {
 		'BottleSpecification' {
@@ -667,18 +667,18 @@ fn extract_patch_alias(args []brew_runtime.Value, target string) brew_runtime.Va
 			input.patch_state.dependency_symbol_adapter = true
 		}
 	}
-	return brew_runtime.structured_value('AliasMethod', target, {
+	return ruby.structured_value('AliasMethod', target, {
 		'target': target
 		'action': 'save'
 	})
 }
 
-fn extract_patch_restore(args []brew_runtime.Value, target string) brew_runtime.Value {
+fn extract_patch_restore(args []ruby.Value, target string) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'monkey patch input is required')
+		return ruby.object_value('ArgumentError', 'monkey patch input is required')
 	}
 	mut input := extract_monkey_patch_input_from_value(args[0]) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
 	match target {
 		'BottleSpecification' {
@@ -694,73 +694,73 @@ fn extract_patch_restore(args []brew_runtime.Value, target string) brew_runtime.
 			input.patch_state.dependency_symbol_adapter = input.patch_state.saved_dependency_adapter
 		}
 	}
-	return brew_runtime.structured_value('AliasMethod', target, {
+	return ruby.structured_value('AliasMethod', target, {
 		'target': target
 		'action': 'restore'
 	})
 }
 
 // Ruby alias_method `send(:alias_method, :old_method_missing, :method_missing)` at line 181.
-pub fn ruby_extract_l181_d4_old_method_missing(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extract_l181_d4_old_method_missing(args ...ruby.Value) ruby.Value {
 	return extract_patch_alias(args, 'BottleSpecification')
 }
 
 // Ruby define_method `define_method(:method_missing) do |*_|` at line 184.
-pub fn ruby_extract_l184_d5_method_missing(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extract_l184_d5_method_missing(args ...ruby.Value) ruby.Value {
 	_ = args
 	return extract_nil()
 }
 
 // Ruby alias_method `send(:alias_method, :old_method_missing, :method_missing)` at line 192.
-pub fn ruby_extract_l192_d6_old_method_missing(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extract_l192_d6_old_method_missing(args ...ruby.Value) ruby.Value {
 	return extract_patch_alias(args, 'Module')
 }
 
 // Ruby define_method `define_method(:method_missing) do |*_|` at line 195.
-pub fn ruby_extract_l195_d7_method_missing(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extract_l195_d7_method_missing(args ...ruby.Value) ruby.Value {
 	_ = args
 	return extract_nil()
 }
 
 // Ruby alias_method `send(:alias_method, :old_method_missing, :method_missing)` at line 203.
-pub fn ruby_extract_l203_d8_old_method_missing(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extract_l203_d8_old_method_missing(args ...ruby.Value) ruby.Value {
 	return extract_patch_alias(args, 'Resource')
 }
 
 // Ruby define_method `define_method(:method_missing) do |*_|` at line 206.
-pub fn ruby_extract_l206_d9_method_missing(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extract_l206_d9_method_missing(args ...ruby.Value) ruby.Value {
 	_ = args
 	return extract_nil()
 }
 
 // Ruby alias_method `send(:alias_method, :old_parse_symbol_spec, :parse_symbol_spec)` at line 214.
-pub fn ruby_extract_l214_d10_old_parse_symbol_spec(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extract_l214_d10_old_parse_symbol_spec(args ...ruby.Value) ruby.Value {
 	return extract_patch_alias(args, 'DependencyCollector')
 }
 
 // Ruby define_method `define_method(:parse_symbol_spec) do |*_|` at line 217.
-pub fn ruby_extract_l217_d11_parse_symbol_spec(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extract_l217_d11_parse_symbol_spec(args ...ruby.Value) ruby.Value {
 	_ = args
 	return extract_nil()
 }
 
 // Ruby alias_method `send(:alias_method, :method_missing, :old_method_missing)` at line 227.
-pub fn ruby_extract_l227_d12_method_missing(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extract_l227_d12_method_missing(args ...ruby.Value) ruby.Value {
 	return extract_patch_restore(args, 'BottleSpecification')
 }
 
 // Ruby alias_method `send(:alias_method, :method_missing, :old_method_missing)` at line 235.
-pub fn ruby_extract_l235_d13_method_missing(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extract_l235_d13_method_missing(args ...ruby.Value) ruby.Value {
 	return extract_patch_restore(args, 'Module')
 }
 
 // Ruby alias_method `send(:alias_method, :method_missing, :old_method_missing)` at line 243.
-pub fn ruby_extract_l243_d14_method_missing(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extract_l243_d14_method_missing(args ...ruby.Value) ruby.Value {
 	return extract_patch_restore(args, 'Resource')
 }
 
 // Ruby alias_method `send(:alias_method, :parse_symbol_spec, :old_parse_symbol_spec)` at line 251.
-pub fn ruby_extract_l251_d15_parse_symbol_spec(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_extract_l251_d15_parse_symbol_spec(args ...ruby.Value) ruby.Value {
 	return extract_patch_restore(args, 'DependencyCollector')
 }
 

@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 import homebrew.utils
 import os
 
@@ -275,12 +275,12 @@ pub fn tap_info_run(context TapInfoContext) TapInfoResult {
 	return tap_info_print_info(taps, context)
 }
 
-pub fn tap_info_tap_value(tap TapInfoTap) brew_runtime.Value {
-	mut hash := map[string]brew_runtime.Value{}
+pub fn tap_info_tap_value(tap TapInfoTap) ruby.Value {
+	mut hash := map[string]ruby.Value{}
 	for key, value in tap.hash {
-		hash[key] = brew_runtime.string_value(value)
+		hash[key] = ruby.string_value(value)
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		type_name: 'Tap'
 		repr: tap.name
 		attributes: {
@@ -297,21 +297,21 @@ pub fn tap_info_tap_value(tap TapInfoTap) brew_runtime.Value {
 			'trusted':          tap.trusted.str()
 		}
 		map_data: {
-			'contents':      brew_runtime.string_array_value(tap.contents)
-			'formula_files': brew_runtime.string_array_value(tap.formula_files)
-			'command_files': brew_runtime.string_array_value(tap.command_files)
-			'formula_names': brew_runtime.string_array_value(tap.formula_names)
-			'cask_tokens':   brew_runtime.string_array_value(tap.cask_tokens)
-			'hash':          brew_runtime.map_value(hash)
+			'contents':      ruby.string_array_value(tap.contents)
+			'formula_files': ruby.string_array_value(tap.formula_files)
+			'command_files': ruby.string_array_value(tap.command_files)
+			'formula_names': ruby.string_array_value(tap.formula_names)
+			'cask_tokens':   ruby.string_array_value(tap.cask_tokens)
+			'hash':          ruby.map_value(hash)
 		}
 	}
 }
 
-fn tap_info_string_array(value brew_runtime.Value, key string) []string {
-	return (value.map_data[key] or { brew_runtime.array_value([]) }).as_array() or { [] }.map(it.as_string())
+fn tap_info_string_array(value ruby.Value, key string) []string {
+	return (value.map_data[key] or { ruby.array_value([]) }).as_array() or { [] }.map(it.as_string())
 }
 
-fn tap_info_tap_from_value(value brew_runtime.Value) TapInfoTap {
+fn tap_info_tap_from_value(value ruby.Value) TapInfoTap {
 	mut hash := map[string]string{}
 	if hash_value := value.map_data['hash'] {
 		for key, item in hash_value.map_data {
@@ -339,7 +339,7 @@ fn tap_info_tap_from_value(value brew_runtime.Value) TapInfoTap {
 	}
 }
 
-fn tap_info_package_from_value(value brew_runtime.Value) TapInfoPackage {
+fn tap_info_package_from_value(value ruby.Value) TapInfoPackage {
 	return TapInfoPackage{
 		outdated: (value.attribute('outdated') or { 'false' }) == 'true'
 		deprecated: (value.attribute('deprecated') or { 'false' }) == 'true'
@@ -348,8 +348,8 @@ fn tap_info_package_from_value(value brew_runtime.Value) TapInfoPackage {
 	}
 }
 
-fn tap_info_result_value(result TapInfoResult) brew_runtime.Value {
-	return brew_runtime.Value{
+fn tap_info_result_value(result TapInfoResult) ruby.Value {
+	return ruby.Value{
 		type_name: if result.usage_error != '' { 'UsageError' } else { 'TapInfoResult' }
 		repr: result.stdout
 		bool_data: result.failed
@@ -362,22 +362,22 @@ fn tap_info_result_value(result TapInfoResult) brew_runtime.Value {
 	}
 }
 
-fn tap_info_context_from_value(value brew_runtime.Value) TapInfoContext {
+fn tap_info_context_from_value(value ruby.Value) TapInfoContext {
 	json_version := value.attribute('json_version') or { '' }
 	console_width := (value.attribute('console_width') or { '80' }).int()
 	mut formulae := map[string]TapInfoPackage{}
-	for name, item in (value.map_data['formulae'] or { brew_runtime.map_value({}) }).map_data {
+	for name, item in (value.map_data['formulae'] or { ruby.map_value({}) }).map_data {
 		formulae[name] = tap_info_package_from_value(item)
 	}
 	mut casks := map[string]TapInfoPackage{}
-	for name, item in (value.map_data['casks'] or { brew_runtime.map_value({}) }).map_data {
+	for name, item in (value.map_data['casks'] or { ruby.map_value({}) }).map_data {
 		casks[name] = tap_info_package_from_value(item)
 	}
 	return TapInfoContext{
 		installed: (value.attribute('installed') or { 'false' }) == 'true'
 		json_version: if json_version != '' { ?string(json_version) } else { none }
-		named_taps: ((value.map_data['named_taps'] or { brew_runtime.array_value([]) }).as_array() or { [] }).map(tap_info_tap_from_value(it))
-		installed_taps: ((value.map_data['installed_taps'] or { brew_runtime.array_value([]) }).as_array() or { [] }).map(tap_info_tap_from_value(it))
+		named_taps: ((value.map_data['named_taps'] or { ruby.array_value([]) }).as_array() or { [] }).map(tap_info_tap_from_value(it))
+		installed_taps: ((value.map_data['installed_taps'] or { ruby.array_value([]) }).as_array() or { [] }).map(tap_info_tap_from_value(it))
 		installed_formulae: tap_info_string_array(value, 'installed_formulae')
 		installed_casks: tap_info_string_array(value, 'installed_casks')
 		formulae: formulae
@@ -391,15 +391,15 @@ fn tap_info_context_from_value(value brew_runtime.Value) TapInfoContext {
 }
 
 // Ruby method `run` at line 25.
-pub fn ruby_tap_info_l25_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tap_info_l25_d1_run(args ...ruby.Value) ruby.Value {
 	context := if args.len > 0 { tap_info_context_from_value(args[0]) } else { TapInfoContext{} }
 	return tap_info_result_value(tap_info_run(context))
 }
 
 // Ruby method `print_tap_info(taps)` at line 44.
-pub fn ruby_tap_info_l44_d2_print_tap_info(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tap_info_l44_d2_print_tap_info(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'print_tap_info requires taps')
+		return ruby.object_value('ArgumentError', 'print_tap_info requires taps')
 	}
 	taps := (args[0].as_array() or { [] }).map(tap_info_tap_from_value(it))
 	context := if args.len > 1 { tap_info_context_from_value(args[1]) } else { TapInfoContext{} }
@@ -407,9 +407,9 @@ pub fn ruby_tap_info_l44_d2_print_tap_info(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `print_tap_listings(tap)` at line 97.
-pub fn ruby_tap_info_l97_d3_print_tap_listings(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tap_info_l97_d3_print_tap_listings(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'print_tap_listings requires a tap')
+		return ruby.object_value('ArgumentError', 'print_tap_listings requires a tap')
 	}
 	tap := tap_info_tap_from_value(args[0])
 	context := if args.len > 1 { tap_info_context_from_value(args[1]) } else { TapInfoContext{} }
@@ -417,43 +417,43 @@ pub fn ruby_tap_info_l97_d3_print_tap_listings(args ...brew_runtime.Value) brew_
 }
 
 // Ruby method `decorate_formula(tap, name, installed:)` at line 123.
-pub fn ruby_tap_info_l123_d4_decorate_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tap_info_l123_d4_decorate_formula(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'decorate_formula requires tap and name')
+		return ruby.object_value('ArgumentError', 'decorate_formula requires tap and name')
 	}
 	installed := if args.len > 2 { args[2].as_bool() or { false } } else { false }
 	mut formulae := map[string]TapInfoPackage{}
 	if args.len > 3 {
 		formulae[args[1].as_string()] = tap_info_package_from_value(args[3])
 	}
-	return brew_runtime.string_value(tap_info_decorate_formula(tap_info_tap_from_value(args[0]), args[1].as_string(), installed, formulae, true))
+	return ruby.string_value(tap_info_decorate_formula(tap_info_tap_from_value(args[0]), args[1].as_string(), installed, formulae, true))
 }
 
 // Ruby method `decorate_cask(tap, token, installed:)` at line 138.
-pub fn ruby_tap_info_l138_d5_decorate_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tap_info_l138_d5_decorate_cask(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'decorate_cask requires tap and token')
+		return ruby.object_value('ArgumentError', 'decorate_cask requires tap and token')
 	}
 	installed := if args.len > 2 { args[2].as_bool() or { false } } else { false }
 	mut casks := map[string]TapInfoPackage{}
 	if args.len > 3 {
 		casks[args[1].as_string()] = tap_info_package_from_value(args[3])
 	}
-	return brew_runtime.string_value(tap_info_decorate_cask(tap_info_tap_from_value(args[0]), args[1].as_string(), installed, casks, true))
+	return ruby.string_value(tap_info_decorate_cask(tap_info_tap_from_value(args[0]), args[1].as_string(), installed, casks, true))
 }
 
 // Ruby method `print_tap_json(taps)` at line 153.
-pub fn ruby_tap_info_l153_d6_print_tap_json(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tap_info_l153_d6_print_tap_json(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_value(tap_info_print_json([]))
+		return ruby.string_value(tap_info_print_json([]))
 	}
-	return brew_runtime.string_value(tap_info_print_json((args[0].as_array() or { [] }).map(tap_info_tap_from_value(it))))
+	return ruby.string_value(tap_info_print_json((args[0].as_array() or { [] }).map(tap_info_tap_from_value(it))))
 }
 
 // Ruby method `print_section(tap, label, all, installed, min_width:, &block)` at line 175.
-pub fn ruby_tap_info_l175_d7_print_section(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tap_info_l175_d7_print_section(args ...ruby.Value) ruby.Value {
 	if args.len < 4 {
-		return brew_runtime.object_value('ArgumentError', 'print_section requires tap, label, all and installed')
+		return ruby.object_value('ArgumentError', 'print_section requires tap, label, all and installed')
 	}
 	all := (args[2].as_array() or { [] }).map(it.as_string())
 	installed := (args[3].as_array() or { [] }).map(it.as_string())

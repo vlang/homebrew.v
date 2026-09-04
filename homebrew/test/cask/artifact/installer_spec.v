@@ -1,6 +1,6 @@
 module artifact
 
-import brew_runtime
+import ruby
 import homebrew.cask.artifact as core
 import os
 import time
@@ -10,7 +10,7 @@ import time
 
 pub struct InstallerSpecRunResult {
 pub:
-	request         brew_runtime.Value
+	request         ruby.Value
 	stdout          string
 	command_called  bool
 	sandbox_created bool
@@ -20,12 +20,12 @@ fn installer_spec_root(label string) string {
 	return os.join_path(os.temp_dir(), 'brew-v-installer-spec-${label}-${os.getpid()}-${time.now().unix_micro()}')
 }
 
-fn installer_spec_cask(staged_path string) brew_runtime.Value {
-	return brew_runtime.Value{
+fn installer_spec_cask(staged_path string) ruby.Value {
+	return ruby.Value{
 		type_name: 'Cask::Cask'
 		repr: 'installer-spec'
 		map_data: {
-			'staged_path': brew_runtime.object_value('Pathname', staged_path)
+			'staged_path': ruby.object_value('Pathname', staged_path)
 		}
 		attributes: {
 			'token': 'installer-spec'
@@ -33,15 +33,15 @@ fn installer_spec_cask(staged_path string) brew_runtime.Value {
 	}
 }
 
-fn installer_spec_arguments(value brew_runtime.Value) map[string]brew_runtime.Value {
+fn installer_spec_arguments(value ruby.Value) map[string]ruby.Value {
 	return if value.type_name == 'Hash' {
 		value.map_data.clone()
 	} else {
-		map[string]brew_runtime.Value{}
+		map[string]ruby.Value{}
 	}
 }
 
-pub fn installer_spec_install(cask brew_runtime.Value, supplied map[string]brew_runtime.Value,
+pub fn installer_spec_install(cask ruby.Value, supplied map[string]ruby.Value,
 	homebrew_prefix string, environment_path string, sandbox_available bool) !InstallerSpecRunResult {
 	installer := core.new_installer_artifact(cask, supplied)!
 	request := installer.install_request(homebrew_prefix, environment_path)
@@ -86,29 +86,29 @@ fn installer_spec_script_scenario(sandbox_available bool) bool {
 }
 
 // Ruby subject `subject(:installer) { described_class.new(cask, **args) }` at line 5.
-pub fn ruby_installer_spec_l5_d1_installer(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_spec_l5_d1_installer(args ...ruby.Value) ruby.Value {
 	cask := if args.len > 0 { args[0] } else { ruby_installer_spec_l8_d3_cask() }
 	supplied := if args.len > 1 {
 		installer_spec_arguments(args[1])
 	} else {
-		map[string]brew_runtime.Value{}
+		map[string]ruby.Value{}
 	}
 	installer := core.new_installer_artifact(cask, supplied) or {
-		return brew_runtime.object_value('CaskInvalidError', err.msg())
+		return ruby.object_value('CaskInvalidError', err.msg())
 	}
 	return core.installer_artifact_value(installer)
 }
 
 // Ruby let `let(:staged_path) { mktmpdir }` at line 7.
-pub fn ruby_installer_spec_l7_d2_staged_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_spec_l7_d2_staged_path(args ...ruby.Value) ruby.Value {
 	label := if args.len > 0 { args[0].as_string() } else { 'staged' }
 	path := installer_spec_root(label)
-	os.mkdir_all(path) or { return brew_runtime.object_value('FileSystemError', err.msg()) }
-	return brew_runtime.object_value('Pathname', path)
+	os.mkdir_all(path) or { return ruby.object_value('FileSystemError', err.msg()) }
+	return ruby.object_value('Pathname', path)
 }
 
 // Ruby let `let(:cask) { instance_double(Cask::Cask, staged_path:) }` at line 8.
-pub fn ruby_installer_spec_l8_d3_cask(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_spec_l8_d3_cask(args ...ruby.Value) ruby.Value {
 	staged_path := if args.len > 0 {
 		args[0].as_string()
 	} else {
@@ -118,68 +118,68 @@ pub fn ruby_installer_spec_l8_d3_cask(args ...brew_runtime.Value) brew_runtime.V
 }
 
 // Ruby let `let(:command) { SystemCommand }` at line 9.
-pub fn ruby_installer_spec_l9_d4_command(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_spec_l9_d4_command(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.object_value('Class<SystemCommand>', 'SystemCommand')
+	return ruby.object_value('Class<SystemCommand>', 'SystemCommand')
 }
 
 // Ruby let `let(:args) { {} }` at line 10.
-pub fn ruby_installer_spec_l10_d5_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_spec_l10_d5_args(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.map_value({})
+	return ruby.map_value({})
 }
 
 // Ruby let `let(:args) { { manual: "installer" } }` at line 14.
-pub fn ruby_installer_spec_l14_d6_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_spec_l14_d6_args(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.map_value({
-		'manual': brew_runtime.string_value('installer')
+	return ruby.map_value({
+		'manual': ruby.string_value('installer')
 	})
 }
 
 // Ruby it `it "shows a message prompting to run the installer manually" do` at line 16.
-pub fn ruby_installer_spec_l16_d7_shows(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_spec_l16_d7_shows(args ...ruby.Value) ruby.Value {
 	root := if args.len > 0 { args[0].as_string() } else { installer_spec_root('manual') }
 	created_root := args.len == 0
 	if created_root {
-		os.mkdir_all(root) or { return brew_runtime.bool_value(false) }
+		os.mkdir_all(root) or { return ruby.bool_value(false) }
 		defer { os.rmdir_all(root) or {} }
 	}
-	result := installer_spec_install(installer_spec_cask(root), installer_spec_arguments(ruby_installer_spec_l14_d6_args()), '/opt/homebrew', os.getenv('PATH'), false) or { return brew_runtime.bool_value(false) }
-	return brew_runtime.bool_value(result.stdout.contains('open ${os.join_path(root, 'installer')}')
+	result := installer_spec_install(installer_spec_cask(root), installer_spec_arguments(ruby_installer_spec_l14_d6_args()), '/opt/homebrew', os.getenv('PATH'), false) or { return ruby.bool_value(false) }
+	return ruby.bool_value(result.stdout.contains('open ${os.join_path(root, 'installer')}')
 		&& !result.command_called && !result.sandbox_created)
 }
 
 // Ruby let `let(:executable) { staged_path/"executable" }` at line 24.
-pub fn ruby_installer_spec_l24_d8_executable(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_spec_l24_d8_executable(args ...ruby.Value) ruby.Value {
 	staged_path := if args.len > 0 {
 		args[0].as_string()
 	} else {
 		ruby_installer_spec_l7_d2_staged_path().as_string()
 	}
-	return brew_runtime.object_value('Pathname', os.join_path(staged_path, 'executable'))
+	return ruby.object_value('Pathname', os.join_path(staged_path, 'executable'))
 }
 
 // Ruby let `let(:args) { { script: { executable: "executable" } } }` at line 25.
-pub fn ruby_installer_spec_l25_d9_args(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_spec_l25_d9_args(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.map_value({
-		'script': brew_runtime.map_value({
-			'executable': brew_runtime.string_value('executable')
+	return ruby.map_value({
+		'script': ruby.map_value({
+			'executable': ruby.string_value('executable')
 		})
 	})
 }
 
 // Ruby it `it "looks for the executable in HOMEBREW_PREFIX" do` at line 31.
-pub fn ruby_installer_spec_l31_d10_looks(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_spec_l31_d10_looks(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(installer_spec_script_scenario(false))
+	return ruby.bool_value(installer_spec_script_scenario(false))
 }
 
 // Ruby it `it "does not sandbox the executable" do` at line 42.
-pub fn ruby_installer_spec_l42_d11_does(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_installer_spec_l42_d11_does(args ...ruby.Value) ruby.Value {
 	_ = args
-	return brew_runtime.bool_value(installer_spec_script_scenario(true))
+	return ruby.bool_value(installer_spec_script_scenario(true))
 }
 
 // Original Ruby source (line-for-line):

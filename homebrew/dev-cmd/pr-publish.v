@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `dev-cmd/pr-publish.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -117,45 +117,45 @@ pub:
 	options PrPublishOptions
 }
 
-pub fn pr_publish_input_boundary(input &PrPublishInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::PrPublish::Input', '', {
+pub fn pr_publish_input_boundary(input &PrPublishInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::PrPublish::Input', '', {
 		'pr_publish_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn pr_publish_input_from_value(value brew_runtime.Value) &PrPublishInput {
+fn pr_publish_input_from_value(value ruby.Value) &PrPublishInput {
 	address := value.attributes['pr_publish_input_address'] or { panic('invalid PrPublish input') }
 	return unsafe { &PrPublishInput(voidptr(address.u64())) }
 }
 
-fn pr_publish_dispatch_value(dispatch PrPublishDispatch) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'user': brew_runtime.string_value(dispatch.user)
-		'repo': brew_runtime.string_value(dispatch.repo)
-		'issue': brew_runtime.string_value(dispatch.issue)
-		'workflow': brew_runtime.string_value(dispatch.workflow)
-		'ref': brew_runtime.string_value(dispatch.ref)
-		'autosquash': brew_runtime.bool_value(dispatch.autosquash)
-		'large_runner': brew_runtime.bool_value(dispatch.large_runner)
-		'message': brew_runtime.string_value(dispatch.message)
+fn pr_publish_dispatch_value(dispatch PrPublishDispatch) ruby.Value {
+	return ruby.map_value({
+		'user': ruby.string_value(dispatch.user)
+		'repo': ruby.string_value(dispatch.repo)
+		'issue': ruby.string_value(dispatch.issue)
+		'workflow': ruby.string_value(dispatch.workflow)
+		'ref': ruby.string_value(dispatch.ref)
+		'autosquash': ruby.bool_value(dispatch.autosquash)
+		'large_runner': ruby.bool_value(dispatch.large_runner)
+		'message': ruby.string_value(dispatch.message)
 	})
 }
 
-fn pr_publish_result_value(result PrPublishResult) brew_runtime.Value {
-	return brew_runtime.map_value({
-		'tap': brew_runtime.string_value(result.tap)
-		'messages': brew_runtime.string_array_value(result.messages)
-		'dispatches': brew_runtime.array_value(result.dispatches.map(pr_publish_dispatch_value(it)))
+fn pr_publish_result_value(result PrPublishResult) ruby.Value {
+	return ruby.map_value({
+		'tap': ruby.string_value(result.tap)
+		'messages': ruby.string_array_value(result.messages)
+		'dispatches': ruby.array_value(result.dispatches.map(pr_publish_dispatch_value(it)))
 	})
 }
 
 // Ruby method `run` at line 37.
-pub fn ruby_pr_publish_l37_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_pr_publish_l37_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'command input is required')
+		return ruby.object_value('ArgumentError', 'command input is required')
 	}
 	return pr_publish_result_value(run_pr_publish(pr_publish_input_from_value(args[0]).options) or {
-		return brew_runtime.object_value('Error', err.msg())
+		return ruby.object_value('Error', err.msg())
 	})
 }
 

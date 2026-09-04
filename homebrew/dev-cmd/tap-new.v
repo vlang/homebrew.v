@@ -1,6 +1,6 @@
 module dev_cmd
 
-import brew_runtime
+import ruby
 import os
 import rand
 
@@ -290,108 +290,108 @@ pub fn run_tap_new(options TapNewOptions) !TapNewResult {
 	}
 }
 
-pub fn tap_new_input_boundary(input &TapNewInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::TapNew::Input', '', {
+pub fn tap_new_input_boundary(input &TapNewInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::TapNew::Input', '', {
 		'tap_new_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn tap_new_input_from_value(value brew_runtime.Value) &TapNewInput {
+fn tap_new_input_from_value(value ruby.Value) &TapNewInput {
 	address := value.attributes['tap_new_input_address'] or { panic('invalid TapNew input') }
 	return unsafe { &TapNewInput(voidptr(address.u64())) }
 }
 
-pub fn tap_new_render_input_boundary(input &TapNewRenderInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::TapNew::RenderInput', '', {
+pub fn tap_new_render_input_boundary(input &TapNewRenderInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::TapNew::RenderInput', '', {
 		'tap_new_render_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn tap_new_render_input_from_value(value brew_runtime.Value) &TapNewRenderInput {
+fn tap_new_render_input_from_value(value ruby.Value) &TapNewRenderInput {
 	address := value.attributes['tap_new_render_input_address'] or {
 		panic('invalid TapNew render input')
 	}
 	return unsafe { &TapNewRenderInput(voidptr(address.u64())) }
 }
 
-pub fn tap_new_write_input_boundary(input &TapNewWriteInput) brew_runtime.Value {
-	return brew_runtime.structured_value('Homebrew::DevCmd::TapNew::WriteInput', '', {
+pub fn tap_new_write_input_boundary(input &TapNewWriteInput) ruby.Value {
+	return ruby.structured_value('Homebrew::DevCmd::TapNew::WriteInput', '', {
 		'tap_new_write_input_address': u64(voidptr(input)).str()
 	})
 }
 
-fn tap_new_write_input_from_value(value brew_runtime.Value) &TapNewWriteInput {
+fn tap_new_write_input_from_value(value ruby.Value) &TapNewWriteInput {
 	address := value.attributes['tap_new_write_input_address'] or {
 		panic('invalid TapNew write input')
 	}
 	return unsafe { &TapNewWriteInput(voidptr(address.u64())) }
 }
 
-fn tap_new_git_command_value(command TapNewGitCommand) brew_runtime.Value {
-	mut environment := map[string]brew_runtime.Value{}
+fn tap_new_git_command_value(command TapNewGitCommand) ruby.Value {
+	mut environment := map[string]ruby.Value{}
 	for key, value in command.environment {
-		environment[key] = brew_runtime.string_value(value)
+		environment[key] = ruby.string_value(value)
 	}
-	return brew_runtime.map_value({
-		'program':           brew_runtime.string_value(command.program)
-		'arguments':         brew_runtime.string_array_value(command.arguments)
-		'working_directory': brew_runtime.string_value(command.working_directory)
-		'environment':       brew_runtime.map_value(environment)
-		'unset_environment': brew_runtime.string_array_value(command.unset_environment)
-		'print_stdout':      brew_runtime.bool_value(command.print_stdout)
-		'run_as_real_uid':   brew_runtime.bool_value(command.run_as_real_uid)
-		'safe':              brew_runtime.bool_value(command.safe)
+	return ruby.map_value({
+		'program':           ruby.string_value(command.program)
+		'arguments':         ruby.string_array_value(command.arguments)
+		'working_directory': ruby.string_value(command.working_directory)
+		'environment':       ruby.map_value(environment)
+		'unset_environment': ruby.string_array_value(command.unset_environment)
+		'print_stdout':      ruby.bool_value(command.print_stdout)
+		'run_as_real_uid':   ruby.bool_value(command.run_as_real_uid)
+		'safe':              ruby.bool_value(command.safe)
 	})
 }
 
-fn tap_new_result_value(result TapNewResult) brew_runtime.Value {
-	mut commands := []brew_runtime.Value{}
+fn tap_new_result_value(result TapNewResult) ruby.Value {
+	mut commands := []ruby.Value{}
 	for command in result.git_commands {
 		commands << tap_new_git_command_value(command)
 	}
-	return brew_runtime.map_value({
-		'tap':                brew_runtime.string_value(result.tap)
-		'path':               brew_runtime.string_value(result.path)
-		'branch':             brew_runtime.string_value(result.branch)
-		'root_url':           brew_runtime.string_value(result.root_url or { '' })
-		'created_files':      brew_runtime.string_array_value(result.created_files)
-		'set_git_name_email': brew_runtime.bool_value(result.set_git_name_email)
-		'setup_git_gpg':      brew_runtime.bool_value(result.setup_git_gpg)
-		'git_commands':       brew_runtime.array_value(commands)
-		'headline':           brew_runtime.string_value(result.headline)
-		'stdout':             brew_runtime.string_value(result.stdout)
+	return ruby.map_value({
+		'tap':                ruby.string_value(result.tap)
+		'path':               ruby.string_value(result.path)
+		'branch':             ruby.string_value(result.branch)
+		'root_url':           ruby.string_value(result.root_url or { '' })
+		'created_files':      ruby.string_array_value(result.created_files)
+		'set_git_name_email': ruby.bool_value(result.set_git_name_email)
+		'setup_git_gpg':      ruby.bool_value(result.setup_git_gpg)
+		'git_commands':       ruby.array_value(commands)
+		'headline':           ruby.string_value(result.headline)
+		'stdout':             ruby.string_value(result.stdout)
 	})
 }
 
 // Ruby method `run` at line 36.
-pub fn ruby_tap_new_l36_d1_run(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tap_new_l36_d1_run(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'command input is required')
+		return ruby.object_value('ArgumentError', 'command input is required')
 	}
 	return tap_new_result_value(run_tap_new(tap_new_input_from_value(args[0]).options) or {
-		return brew_runtime.object_value('FatalError', err.msg())
+		return ruby.object_value('FatalError', err.msg())
 	})
 }
 
 // Ruby method `render_workflow_template(filename, branch:, github_packages:, root_url: nil)` at line 150.
-pub fn ruby_tap_new_l150_d2_render_workflow_template(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tap_new_l150_d2_render_workflow_template(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'render input is required')
+		return ruby.object_value('ArgumentError', 'render input is required')
 	}
 	input := tap_new_render_input_from_value(args[0])
-	return brew_runtime.string_value(render_tap_new_workflow_template(input.filename, input.branch, input.github_packages, input.root_url, input.template, input.hour, input.minute))
+	return ruby.string_value(render_tap_new_workflow_template(input.filename, input.branch, input.github_packages, input.root_url, input.template, input.hour, input.minute))
 }
 
 // Ruby method `write_path(tap, filename, content)` at line 186.
-pub fn ruby_tap_new_l186_d3_write_path(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_tap_new_l186_d3_write_path(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.object_value('ArgumentError', 'write input is required')
+		return ruby.object_value('ArgumentError', 'write input is required')
 	}
 	input := tap_new_write_input_from_value(args[0])
 	path := write_tap_new_path(input.tap, input.filename, input.content) or {
-		return brew_runtime.object_value('FatalError', err.msg())
+		return ruby.object_value('FatalError', err.msg())
 	}
-	return brew_runtime.string_value(path)
+	return ruby.string_value(path)
 }
 
 // Original Ruby source (line-for-line):

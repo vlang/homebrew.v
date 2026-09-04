@@ -1,6 +1,6 @@
 module utils
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `utils/output.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -47,8 +47,8 @@ pub:
 pub fn current_output_options() OutputOptions {
 	return OutputOptions{
 		tty:            current_tty_state()
-		no_emoji:       brew_runtime.environment_value('HOMEBREW_NO_EMOJI') != ''
-		github_actions: brew_runtime.environment_value('GITHUB_ACTIONS') != ''
+		no_emoji:       ruby.environment_value('HOMEBREW_NO_EMOJI') != ''
+		github_actions: ruby.environment_value('GITHUB_ACTIONS') != ''
 	}
 }
 
@@ -320,41 +320,41 @@ pub fn pretty_duration(seconds_value f64) string {
 }
 
 // Ruby method `ohai_title(title)` at line 15.
-pub fn ruby_output_l15_d1_ohai_title(args ...brew_runtime.Value) brew_runtime.Value {
-	if args.len == 0 { return brew_runtime.string_value('') }
-	return brew_runtime.string_value(output_ohai_title(args[0].as_string(),
+pub fn ruby_output_l15_d1_ohai_title(args ...ruby.Value) ruby.Value {
+	if args.len == 0 { return ruby.string_value('') }
+	return ruby.string_value(output_ohai_title(args[0].as_string(),
 		current_output_options()))
 }
 
 // Ruby method `ohai(title, *sput)` at line 27.
-pub fn ruby_output_l27_d2_ohai(args ...brew_runtime.Value) brew_runtime.Value {
-	if args.len == 0 { return brew_runtime.string_value('') }
-	return brew_runtime.string_value(output_ohai(args[0].as_string(),
+pub fn ruby_output_l27_d2_ohai(args ...ruby.Value) ruby.Value {
+	if args.len == 0 { return ruby.string_value('') }
+	return ruby.string_value(output_ohai(args[0].as_string(),
 		args[1..].map(it.as_string()), current_output_options()))
 }
 
 // Ruby method `odebug(title, *sput, always_display: false)` at line 33.
-pub fn ruby_output_l33_d3_odebug(args ...brew_runtime.Value) brew_runtime.Value {
-	if args.len == 0 { return brew_runtime.string_value('') }
-	return brew_runtime.string_value(output_debug(args[0].as_string(),
+pub fn ruby_output_l33_d3_odebug(args ...ruby.Value) ruby.Value {
+	if args.len == 0 { return ruby.string_value('') }
+	return ruby.string_value(output_debug(args[0].as_string(),
 		args[1..].map(it.as_string()), false, current_output_options()))
 }
 
 // Ruby method `oh1_title(title, truncate: :auto)` at line 47.
-pub fn ruby_output_l47_d4_oh1_title(args ...brew_runtime.Value) brew_runtime.Value {
-	if args.len == 0 { return brew_runtime.string_value('') }
-	return brew_runtime.string_value(output_oh1_title(args[0].as_string(), true,
+pub fn ruby_output_l47_d4_oh1_title(args ...ruby.Value) ruby.Value {
+	if args.len == 0 { return ruby.string_value('') }
+	return ruby.string_value(output_oh1_title(args[0].as_string(), true,
 		current_output_options()))
 }
 
 // Ruby method `oh1(title, truncate: :auto)` at line 59.
-pub fn ruby_output_l59_d5_oh1(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_output_l59_d5_oh1(args ...ruby.Value) ruby.Value {
 	return ruby_output_l47_d4_oh1_title(...args)
 }
 
 // Ruby method `opoo(message)` at line 68.
-pub fn ruby_output_l68_d6_opoo(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(output_warning(if args.len > 0 {
+pub fn ruby_output_l68_d6_opoo(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(output_warning(if args.len > 0 {
 		args[0].as_string()
 	} else {
 		''
@@ -362,8 +362,8 @@ pub fn ruby_output_l68_d6_opoo(args ...brew_runtime.Value) brew_runtime.Value {
 }
 
 // Ruby method `opoo_without_github_actions_annotation(message)` at line 80.
-pub fn ruby_output_l80_d7_opoo_without_github_actions_annotation(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(output_warning_without_annotation(if args.len > 0 {
+pub fn ruby_output_l80_d7_opoo_without_github_actions_annotation(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(output_warning_without_annotation(if args.len > 0 {
 		args[0].as_string()
 	} else {
 		''
@@ -371,8 +371,8 @@ pub fn ruby_output_l80_d7_opoo_without_github_actions_annotation(args ...brew_ru
 }
 
 // Ruby method `opoo_outside_github_actions(message)` at line 95.
-pub fn ruby_output_l95_d8_opoo_outside_github_actions(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(output_warning_outside_github_actions(if args.len > 0 {
+pub fn ruby_output_l95_d8_opoo_outside_github_actions(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(output_warning_outside_github_actions(if args.len > 0 {
 		args[0].as_string()
 	} else {
 		''
@@ -380,24 +380,24 @@ pub fn ruby_output_l95_d8_opoo_outside_github_actions(args ...brew_runtime.Value
 }
 
 // Ruby method `onoe(message)` at line 107.
-pub fn ruby_output_l107_d9_onoe(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(output_error(if args.len > 0 { args[0].as_string() } else { '' },
+pub fn ruby_output_l107_d9_onoe(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(output_error(if args.len > 0 { args[0].as_string() } else { '' },
 		current_output_options()))
 }
 
 // Ruby method `ofail(error)` at line 122.
-pub fn ruby_output_l122_d10_ofail(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_output_l122_d10_ofail(args ...ruby.Value) ruby.Value {
 	result := output_fail(if args.len > 0 { args[0].as_string() } else { '' },
 		current_output_options())
-	return brew_runtime.structured_value('OutputFailure', result.message, {
+	return ruby.structured_value('OutputFailure', result.message, {
 		'failed': result.failed.str()
 	})
 }
 
 // Ruby method `issue_reporting_message(issues_url, homebrew: false, read_this: false)` at line 128.
-pub fn ruby_output_l128_d11_issue_reporting_message(args ...brew_runtime.Value) brew_runtime.Value {
-	if args.len == 0 { return brew_runtime.string_value('') }
-	return brew_runtime.string_value(issue_reporting_message(args[0].as_string(), if args.len > 1 { args[1].as_bool() or {
+pub fn ruby_output_l128_d11_issue_reporting_message(args ...ruby.Value) ruby.Value {
+	if args.len == 0 { return ruby.string_value('') }
+	return ruby.string_value(issue_reporting_message(args[0].as_string(), if args.len > 1 { args[1].as_bool() or {
 			false} } else { false }, if args.len > 2 {
 		args[2].as_bool() or { false }
 	} else {
@@ -406,17 +406,17 @@ pub fn ruby_output_l128_d11_issue_reporting_message(args ...brew_runtime.Value) 
 }
 
 // Ruby method `odie(error)` at line 151.
-pub fn ruby_output_l151_d12_odie(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_output_l151_d12_odie(args ...ruby.Value) ruby.Value {
 	message := output_error(if args.len > 0 { args[0].as_string() } else { '' },
 		current_output_options())
-	return brew_runtime.structured_value('SystemExit', message, {
+	return ruby.structured_value('SystemExit', message, {
 		'exit_code': '1'
 	})
 }
 
 // Ruby method `odeprecated(method, replacement = nil,` at line 161.
-pub fn ruby_output_l161_d13_odeprecated(args ...brew_runtime.Value) brew_runtime.Value {
-	if args.len == 0 { return brew_runtime.string_value('') }
+pub fn ruby_output_l161_d13_odeprecated(args ...ruby.Value) ruby.Value {
+	if args.len == 0 { return ruby.string_value('') }
 	replacement := if args.len > 1 && args[1].as_string() != '' {
 		?string(args[1].as_string())
 	} else {
@@ -425,14 +425,14 @@ pub fn ruby_output_l161_d13_odeprecated(args ...brew_runtime.Value) brew_runtime
 	result := output_deprecated(args[0].as_string(), DeprecationOptions{
 		replacement: replacement
 	}, current_output_options()) or {
-		return brew_runtime.structured_value('MethodDeprecatedError', err.msg(), {})
+		return ruby.structured_value('MethodDeprecatedError', err.msg(), {})
 	}
-	return brew_runtime.string_value(result)
+	return ruby.string_value(result)
 }
 
 // Ruby method `odisabled(method, replacement = nil,` at line 244.
-pub fn ruby_output_l244_d14_odisabled(args ...brew_runtime.Value) brew_runtime.Value {
-	if args.len == 0 { return brew_runtime.string_value('') }
+pub fn ruby_output_l244_d14_odisabled(args ...ruby.Value) ruby.Value {
+	if args.len == 0 { return ruby.string_value('') }
 	replacement := if args.len > 1 && args[1].as_string() != '' {
 		?string(args[1].as_string())
 	} else {
@@ -441,14 +441,14 @@ pub fn ruby_output_l244_d14_odisabled(args ...brew_runtime.Value) brew_runtime.V
 	result := output_disabled(args[0].as_string(), DeprecationOptions{
 		replacement: replacement
 	}, current_output_options()) or {
-		return brew_runtime.structured_value('MethodDeprecatedError', err.msg(), {})
+		return ruby.structured_value('MethodDeprecatedError', err.msg(), {})
 	}
-	return brew_runtime.string_value(result)
+	return ruby.string_value(result)
 }
 
 // Ruby method `pretty_installed(string)` at line 255.
-pub fn ruby_output_l255_d15_pretty_installed(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(pretty_installed(if args.len > 0 {
+pub fn ruby_output_l255_d15_pretty_installed(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(pretty_installed(if args.len > 0 {
 		args[0].as_string()
 	} else {
 		''
@@ -456,8 +456,8 @@ pub fn ruby_output_l255_d15_pretty_installed(args ...brew_runtime.Value) brew_ru
 }
 
 // Ruby method `pretty_upgradable(string, bold: true)` at line 266.
-pub fn ruby_output_l266_d16_pretty_upgradable(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(pretty_upgradable(if args.len > 0 {
+pub fn ruby_output_l266_d16_pretty_upgradable(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(pretty_upgradable(if args.len > 0 {
 		args[0].as_string()
 	} else {
 		''
@@ -465,8 +465,8 @@ pub fn ruby_output_l266_d16_pretty_upgradable(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby method `pretty_deprecated(string)` at line 278.
-pub fn ruby_output_l278_d17_pretty_deprecated(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(pretty_deprecated(if args.len > 0 {
+pub fn ruby_output_l278_d17_pretty_deprecated(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(pretty_deprecated(if args.len > 0 {
 		args[0].as_string()
 	} else {
 		''
@@ -474,8 +474,8 @@ pub fn ruby_output_l278_d17_pretty_deprecated(args ...brew_runtime.Value) brew_r
 }
 
 // Ruby method `pretty_disabled(string)` at line 287.
-pub fn ruby_output_l287_d18_pretty_disabled(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(pretty_disabled(if args.len > 0 {
+pub fn ruby_output_l287_d18_pretty_disabled(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(pretty_disabled(if args.len > 0 {
 		args[0].as_string()
 	} else {
 		''
@@ -483,8 +483,8 @@ pub fn ruby_output_l287_d18_pretty_disabled(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby method `pretty_uninstalled(string, bold: true)` at line 298.
-pub fn ruby_output_l298_d19_pretty_uninstalled(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(pretty_uninstalled(if args.len > 0 {
+pub fn ruby_output_l298_d19_pretty_uninstalled(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(pretty_uninstalled(if args.len > 0 {
 		args[0].as_string()
 	} else {
 		''
@@ -492,8 +492,8 @@ pub fn ruby_output_l298_d19_pretty_uninstalled(args ...brew_runtime.Value) brew_
 }
 
 // Ruby method `pretty_unmarked(string, bold: true)` at line 310.
-pub fn ruby_output_l310_d20_pretty_unmarked(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(pretty_unmarked(if args.len > 0 {
+pub fn ruby_output_l310_d20_pretty_unmarked(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(pretty_unmarked(if args.len > 0 {
 		args[0].as_string()
 	} else {
 		''
@@ -501,8 +501,8 @@ pub fn ruby_output_l310_d20_pretty_unmarked(args ...brew_runtime.Value) brew_run
 }
 
 // Ruby method `pretty_warning(string, bold: true)` at line 319.
-pub fn ruby_output_l319_d21_pretty_warning(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(pretty_warning_status(if args.len > 0 {
+pub fn ruby_output_l319_d21_pretty_warning(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(pretty_warning_status(if args.len > 0 {
 		args[0].as_string()
 	} else {
 		''
@@ -510,9 +510,9 @@ pub fn ruby_output_l319_d21_pretty_warning(args ...brew_runtime.Value) brew_runt
 }
 
 // Ruby method `pretty_install_status(string, installed:, warning: false, outdated: false, deprecated: false,` at line 335.
-pub fn ruby_output_l335_d22_pretty_install_status(args ...brew_runtime.Value) brew_runtime.Value {
-	if args.len < 2 { return brew_runtime.string_value('') }
-	return brew_runtime.string_value(pretty_install_status(args[0].as_string(), InstallStatusOptions{
+pub fn ruby_output_l335_d22_pretty_install_status(args ...ruby.Value) ruby.Value {
+	if args.len < 2 { return ruby.string_value('') }
+	return ruby.string_value(pretty_install_status(args[0].as_string(), InstallStatusOptions{
 		installed:        args[1].as_bool() or { false }
 		warning:          if args.len > 2 { args[2].as_bool() or { false } } else { false }
 		outdated:         if args.len > 3 { args[3].as_bool() or { false } } else { false }
@@ -524,8 +524,8 @@ pub fn ruby_output_l335_d22_pretty_install_status(args ...brew_runtime.Value) br
 }
 
 // Ruby method `pretty_duration(seconds)` at line 359.
-pub fn ruby_output_l359_d23_pretty_duration(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(pretty_duration(if args.len > 0 {
+pub fn ruby_output_l359_d23_pretty_duration(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(pretty_duration(if args.len > 0 {
 		args[0].as_float() or { 0.0 }
 	} else {
 		0.0

@@ -1,6 +1,6 @@
 module shared
 
-import brew_runtime
+import ruby
 import regex
 
 // Translated from Homebrew/brew `rubocops/shared/url_helper.rb`.
@@ -555,7 +555,7 @@ pub fn correct_url_problems(source string, problems []UrlProblem) string {
 	return corrected
 }
 
-fn url_node_from_value(value brew_runtime.Value) UrlAuditNode {
+fn url_node_from_value(value ruby.Value) UrlAuditNode {
 	content := value.attributes['content'] or { value.as_string() }
 	source := value.attributes['source'] or { value.as_string() }
 	begin_pos := (value.attributes['begin_pos'] or { '0' }).int()
@@ -565,13 +565,13 @@ fn url_node_from_value(value brew_runtime.Value) UrlAuditNode {
 	return UrlAuditNode{source, content, begin_pos, end_pos, argument_begin, argument_end}
 }
 
-fn url_nodes_from_value(value brew_runtime.Value) []UrlAuditNode {
+fn url_nodes_from_value(value ruby.Value) []UrlAuditNode {
 	items := value.as_array() or { return [] }
 	return items.map(url_node_from_value(it))
 }
 
-fn url_match_value(item UrlAuditMatch) brew_runtime.Value {
-	return brew_runtime.structured_value('MatchData', item.matched, {
+fn url_match_value(item UrlAuditMatch) ruby.Value {
+	return ruby.structured_value('MatchData', item.matched, {
 		'url':       item.url
 		'content':   item.content
 		'index':     item.index.str()
@@ -581,8 +581,8 @@ fn url_match_value(item UrlAuditMatch) brew_runtime.Value {
 	})
 }
 
-pub fn url_problem_value(problem UrlProblem) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cop::Problem', problem.message, {
+pub fn url_problem_value(problem UrlProblem) ruby.Value {
+	return ruby.structured_value('RuboCop::Cop::Problem', problem.message, {
 		'kind':              problem.kind
 		'url':               problem.url
 		'index':             problem.index.str()
@@ -597,15 +597,15 @@ pub fn url_problem_value(problem UrlProblem) brew_runtime.Value {
 }
 
 // Ruby method `audit_urls(urls, regex, &_block)` at line 23.
-pub fn ruby_url_helper_l23_d1_audit_urls(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_url_helper_l23_d1_audit_urls(args ...ruby.Value) ruby.Value {
 	urls := if args.len > 0 { url_nodes_from_value(args[0]) } else { []UrlAuditNode{} }
 	pattern := if args.len > 1 { args[1].as_string() } else { '.*' }
 	url_type := if args.len > 2 { args[2].as_string().trim_left(':') } else { 'formula' }
-	return brew_runtime.array_value(audit_urls_pattern(url_type, urls, pattern).map(url_match_value(it)))
+	return ruby.array_value(audit_urls_pattern(url_type, urls, pattern).map(url_match_value(it)))
 }
 
 // Ruby method `audit_url(type, urls, mirrors, livecheck_urls: [])` at line 52.
-pub fn ruby_url_helper_l52_d2_audit_url(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_url_helper_l52_d2_audit_url(args ...ruby.Value) ruby.Value {
 	url_type := if args.len > 0 { args[0].as_string().trim_left(':') } else { 'formula' }
 	urls := if args.len > 1 { url_nodes_from_value(args[1]) } else { []UrlAuditNode{} }
 	mirrors := if args.len > 2 { url_nodes_from_value(args[2]) } else { []UrlAuditNode{} }
@@ -614,7 +614,7 @@ pub fn ruby_url_helper_l52_d2_audit_url(args ...brew_runtime.Value) brew_runtime
 	} else {
 		[]string{}
 	}
-	return brew_runtime.array_value(audit_url_nodes(url_type, urls, mirrors, livecheck_urls).map(url_problem_value(it)))
+	return ruby.array_value(audit_url_nodes(url_type, urls, mirrors, livecheck_urls).map(url_problem_value(it)))
 }
 
 // Original Ruby source (line-for-line):

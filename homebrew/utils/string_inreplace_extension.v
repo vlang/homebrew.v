@@ -1,21 +1,21 @@
 module utils
 
-import brew_runtime
+import ruby
 import regex
 
 // Translated from Homebrew/brew `utils/string_inreplace_extension.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby attr_accessor `attr_accessor :errors` at line 11.
-pub fn ruby_string_inreplace_extension_l11_d1_errors(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_string_inreplace_extension_l11_d1_errors(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_array_value([])
+		return ruby.string_array_value([])
 	}
-	return brew_runtime.string_array_value(string_inreplace_extension_from_value(args[0]).errors)
+	return ruby.string_array_value(string_inreplace_extension_from_value(args[0]).errors)
 }
 
 // Ruby attr_accessor `attr_accessor :errors` at line 11.
-pub fn ruby_string_inreplace_extension_l11_d2_errors(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_string_inreplace_extension_l11_d2_errors(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return string_inreplace_extension_value(new_string_inreplace_extension(''))
 	}
@@ -27,15 +27,15 @@ pub fn ruby_string_inreplace_extension_l11_d2_errors(args ...brew_runtime.Value)
 }
 
 // Ruby attr_accessor `attr_accessor :inreplace_string` at line 14.
-pub fn ruby_string_inreplace_extension_l14_d3_inreplace_string(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_string_inreplace_extension_l14_d3_inreplace_string(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
-		return brew_runtime.string_value('')
+		return ruby.string_value('')
 	}
-	return brew_runtime.string_value(string_inreplace_extension_from_value(args[0]).inreplace_string)
+	return ruby.string_value(string_inreplace_extension_from_value(args[0]).inreplace_string)
 }
 
 // Ruby attr_accessor `attr_accessor :inreplace_string` at line 14.
-pub fn ruby_string_inreplace_extension_l14_d4_inreplace_string(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_string_inreplace_extension_l14_d4_inreplace_string(args ...ruby.Value) ruby.Value {
 	if args.len == 0 {
 		return string_inreplace_extension_value(new_string_inreplace_extension(''))
 	}
@@ -47,21 +47,21 @@ pub fn ruby_string_inreplace_extension_l14_d4_inreplace_string(args ...brew_runt
 }
 
 // Ruby method `initialize(string)` at line 17.
-pub fn ruby_string_inreplace_extension_l17_d5_initialize(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_string_inreplace_extension_l17_d5_initialize(args ...ruby.Value) ruby.Value {
 	contents := if args.len > 0 { args[0].as_string() } else { '' }
 	return string_inreplace_extension_value(new_string_inreplace_extension(contents))
 }
 
 // Ruby method `sub!(before, after, audit_result: true)` at line 26.
-pub fn ruby_string_inreplace_extension_l26_d6_sub(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_string_inreplace_extension_l26_d6_sub(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
-		return brew_runtime.object_value('ArgumentError', 'before and after are required')
+		return ruby.object_value('ArgumentError', 'before and after are required')
 	}
 	mut extension := string_inreplace_extension_from_value(args[0])
 	audit_result := if args.len > 3 { args[3].as_bool() or { true } } else { true }
 	if args[1].type_name == 'Regexp' {
 		result := extension.sub_regex(args[1].as_string(), args[2].as_string(), audit_result) or {
-			return brew_runtime.object_value('RegexpError', err.msg())
+			return ruby.object_value('RegexpError', err.msg())
 		}
 		if result.replaced {
 			return string_inreplace_mutation_value(extension, result.value)
@@ -72,15 +72,15 @@ pub fn ruby_string_inreplace_extension_l26_d6_sub(args ...brew_runtime.Value) br
 }
 
 // Ruby method `gsub!(before, after, audit_result: true)` at line 42.
-pub fn ruby_string_inreplace_extension_l42_d7_gsub(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_string_inreplace_extension_l42_d7_gsub(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
-		return brew_runtime.object_value('ArgumentError', 'before and after are required')
+		return ruby.object_value('ArgumentError', 'before and after are required')
 	}
 	mut extension := string_inreplace_extension_from_value(args[0])
 	audit_result := if args.len > 3 { args[3].as_bool() or { true } } else { true }
 	if args[1].type_name == 'Regexp' {
 		result := extension.gsub_regex(args[1].as_string(), args[2].as_string(), audit_result) or {
-			return brew_runtime.object_value('RegexpError', err.msg())
+			return ruby.object_value('RegexpError', err.msg())
 		}
 		if result.replaced {
 			return string_inreplace_mutation_value(extension, result.value)
@@ -91,9 +91,9 @@ pub fn ruby_string_inreplace_extension_l42_d7_gsub(args ...brew_runtime.Value) b
 }
 
 // Ruby method `change_make_var!(flag, new_value)` at line 54.
-pub fn ruby_string_inreplace_extension_l54_d8_change_make_var(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_string_inreplace_extension_l54_d8_change_make_var(args ...ruby.Value) ruby.Value {
 	if args.len < 3 {
-		return brew_runtime.object_value('ArgumentError', 'flag and new_value are required')
+		return ruby.object_value('ArgumentError', 'flag and new_value are required')
 	}
 	mut extension := string_inreplace_extension_from_value(args[0])
 	extension.change_make_var(args[1].as_string(), args[2].as_string())
@@ -101,9 +101,9 @@ pub fn ruby_string_inreplace_extension_l54_d8_change_make_var(args ...brew_runti
 }
 
 // Ruby method `remove_make_var!(flags)` at line 66.
-pub fn ruby_string_inreplace_extension_l66_d9_remove_make_var(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_string_inreplace_extension_l66_d9_remove_make_var(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'flags are required')
+		return ruby.object_value('ArgumentError', 'flags are required')
 	}
 	mut extension := string_inreplace_extension_from_value(args[0])
 	extension.remove_make_var(string_inreplace_value_strings(args[1]))
@@ -111,15 +111,15 @@ pub fn ruby_string_inreplace_extension_l66_d9_remove_make_var(args ...brew_runti
 }
 
 // Ruby method `get_make_var(flag)` at line 81.
-pub fn ruby_string_inreplace_extension_l81_d10_get_make_var(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_string_inreplace_extension_l81_d10_get_make_var(args ...ruby.Value) ruby.Value {
 	if args.len < 2 {
-		return brew_runtime.object_value('ArgumentError', 'flag is required')
+		return ruby.object_value('ArgumentError', 'flag is required')
 	}
 	extension := string_inreplace_extension_from_value(args[0])
 	value := extension.get_make_var(args[1].as_string()) or {
-		return brew_runtime.object_value('ArgumentError', err.msg())
+		return ruby.object_value('ArgumentError', err.msg())
 	}
-	return brew_runtime.string_value(value)
+	return ruby.string_value(value)
 }
 
 // StringInreplaceExtension is the concrete mutable counterpart of the Ruby
@@ -248,33 +248,33 @@ fn string_inreplace_regex_replacement(expression regex.RE, contents string,
 	return result
 }
 
-fn string_inreplace_extension_value(extension StringInreplaceExtension) brew_runtime.Value {
-	return brew_runtime.Value{
+fn string_inreplace_extension_value(extension StringInreplaceExtension) ruby.Value {
+	return ruby.Value{
 		type_name: 'StringInreplaceExtension'
 		repr: extension.inreplace_string
 		map_data: {
-			'inreplace_string': brew_runtime.string_value(extension.inreplace_string)
-			'errors':           brew_runtime.string_array_value(extension.errors)
+			'inreplace_string': ruby.string_value(extension.inreplace_string)
+			'errors':           ruby.string_array_value(extension.errors)
 		}
 	}
 }
 
 fn string_inreplace_mutation_value(extension StringInreplaceExtension,
-	result ?string) brew_runtime.Value {
+	result ?string) ruby.Value {
 	mut value := string_inreplace_extension_value(extension)
 	mut values := value.map_data.clone()
 	values['result'] = if replacement := result {
-		brew_runtime.string_value(replacement)
+		ruby.string_value(replacement)
 	} else {
-		brew_runtime.object_value('NilClass', '')
+		ruby.object_value('NilClass', '')
 	}
-	return brew_runtime.Value{
+	return ruby.Value{
 		...value
 		map_data: values
 	}
 }
 
-fn string_inreplace_extension_from_value(value brew_runtime.Value) StringInreplaceExtension {
+fn string_inreplace_extension_from_value(value ruby.Value) StringInreplaceExtension {
 	contents := if nested := value.map_data['inreplace_string'] {
 		nested.as_string()
 	} else {
@@ -291,7 +291,7 @@ fn string_inreplace_extension_from_value(value brew_runtime.Value) StringInrepla
 	}
 }
 
-fn string_inreplace_value_strings(value brew_runtime.Value) []string {
+fn string_inreplace_value_strings(value ruby.Value) []string {
 	if value.type_name == 'String' {
 		return [value.as_string()]
 	}

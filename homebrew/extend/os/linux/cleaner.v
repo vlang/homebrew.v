@@ -1,13 +1,13 @@
 module linux
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `extend/os/linux/cleaner.rb`.
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby method `executable_path?(path)` at line 10.
-pub fn ruby_cleaner_l10_d1_executable_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.bool_value(args.len >= 2 && executable_path(args[0].as_bool() or { false }, args[1].as_bool() or {
+pub fn ruby_cleaner_l10_d1_executable_path(args ...ruby.Value) ruby.Value {
+	return ruby.bool_value(args.len >= 2 && executable_path(args[0].as_bool() or { false }, args[1].as_bool() or {
 		false
 	}))
 }

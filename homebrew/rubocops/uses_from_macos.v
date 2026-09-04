@@ -1,6 +1,6 @@
 module rubocops
 
-import brew_runtime
+import ruby
 
 // Translated from Homebrew/brew `rubocops/uses_from_macos.rb`.
 // The original source is retained below until every stub has a typed V body.
@@ -167,8 +167,8 @@ pub fn audit_uses_from_macos(source string) []UsesFromMacosProblem {
 	return problems
 }
 
-fn uses_from_macos_problem_value(problem UsesFromMacosProblem) brew_runtime.Value {
-	return brew_runtime.structured_value('RuboCop::Cop::Problem', problem.message, {
+fn uses_from_macos_problem_value(problem UsesFromMacosProblem) ruby.Value {
+	return ruby.structured_value('RuboCop::Cop::Problem', problem.message, {
 		'kind':       problem.kind
 		'dependency': problem.dependency
 		'begin_pos':  problem.begin_pos.str()
@@ -178,16 +178,16 @@ fn uses_from_macos_problem_value(problem UsesFromMacosProblem) brew_runtime.Valu
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 62.
-pub fn ruby_uses_from_macos_l62_d1_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uses_from_macos_l62_d1_audit_formula(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
 	formula_name := if args.len > 1 { args[1].as_string() } else { '' }
-	return brew_runtime.array_value(audit_provided_by_macos(source, formula_name).map(uses_from_macos_problem_value(it)))
+	return ruby.array_value(audit_provided_by_macos(source, formula_name).map(uses_from_macos_problem_value(it)))
 }
 
 // Ruby method `audit_formula(formula_nodes)` at line 100.
-pub fn ruby_uses_from_macos_l100_d2_audit_formula(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_uses_from_macos_l100_d2_audit_formula(args ...ruby.Value) ruby.Value {
 	source := if args.len > 0 { args[0].as_string() } else { '' }
-	return brew_runtime.array_value(audit_uses_from_macos(source).map(uses_from_macos_problem_value(it)))
+	return ruby.array_value(audit_uses_from_macos(source).map(uses_from_macos_problem_value(it)))
 }
 
 // Original Ruby source (line-for-line):

@@ -1,6 +1,6 @@
 module cmd
 
-import brew_runtime
+import ruby
 import homebrew.cmd as fetch_cmd
 
 // Translated from Homebrew/brew `test/cmd/fetch_spec.rb`.
@@ -49,7 +49,7 @@ fn fetch_spec_matrix_cask(on_system_blocks_exist bool) fetch_cmd.FetchCask {
 }
 
 // Ruby it `it "uses API bottle metadata before loading simple core formulae" do` at line 10.
-pub fn ruby_fetch_spec_l10_d1_uses(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_fetch_spec_l10_d1_uses(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := fetch_cmd.run_fetch_command(fetch_cmd.FetchCommandRequest{
 		options: fetch_cmd.FetchCommandOptions{
@@ -62,13 +62,13 @@ pub fn ruby_fetch_spec_l10_d1_uses(args ...brew_runtime.Value) brew_runtime.Valu
 			}]
 		}
 	})
-	return brew_runtime.bool_value(result.used_api && result.regular_loads == 0
+	return ruby.bool_value(result.used_api && result.regular_loads == 0
 		&& result.downloads.len == 1 && result.downloads[0].kind == 'bottle'
 		&& result.fetches == 1 && result.shutdowns == 1)
 }
 
 // Ruby it `it "uses API cask metadata before loading simple core casks" do` at line 49.
-pub fn ruby_fetch_spec_l49_d2_uses(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_fetch_spec_l49_d2_uses(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := fetch_cmd.run_fetch_command(fetch_cmd.FetchCommandRequest{
 		options: fetch_cmd.FetchCommandOptions{
@@ -83,13 +83,13 @@ pub fn ruby_fetch_spec_l49_d2_uses(args ...brew_runtime.Value) brew_runtime.Valu
 			}]
 		}
 	})
-	return brew_runtime.bool_value(result.used_api && result.regular_loads == 0
+	return ruby.bool_value(result.used_api && result.regular_loads == 0
 		&& result.downloads.len == 1 && result.downloads[0].kind == 'cask'
 		&& result.fetches == 1 && result.shutdowns == 1)
 }
 
 // Ruby it `it "downloads Formula and Cask URLs concurrently", :cask, :integration_test do` at line 76.
-pub fn ruby_fetch_spec_l76_d3_downloads(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_fetch_spec_l76_d3_downloads(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := fetch_cmd.run_fetch_command(fetch_cmd.FetchCommandRequest{
 		options: fetch_cmd.FetchCommandOptions{
@@ -130,12 +130,12 @@ pub fn ruby_fetch_spec_l76_d3_downloads(args ...brew_runtime.Value) brew_runtime
 		}
 	})
 	fetch_index := result.events.index('fetch')
-	return brew_runtime.bool_value(result.downloads.len == 3 && result.fetches == 1
+	return ruby.bool_value(result.downloads.len == 3 && result.fetches == 1
 		&& result.shutdowns == 1 && fetch_index >= 3 && result.events.last() == 'shutdown')
 }
 
 // Ruby it `it "collects one download per distinct URL across all platforms" do` at line 90.
-pub fn ruby_fetch_spec_l90_d4_collects(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_fetch_spec_l90_d4_collects(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := fetch_cmd.fetch_cask_downloads(fetch_spec_matrix_cask(true), fetch_cmd.FetchCommandOptions{
 		all_platforms: true
@@ -143,12 +143,12 @@ pub fn ruby_fetch_spec_l90_d4_collects(args ...brew_runtime.Value) brew_runtime.
 	})
 	mut basenames := result.downloads.map(it.url.all_after_last('/'))
 	basenames.sort()
-	return brew_runtime.bool_value(basenames == ['caffeine-arm-darwin.zip', 'caffeine-arm-linux.zip',
+	return ruby.bool_value(basenames == ['caffeine-arm-darwin.zip', 'caffeine-arm-linux.zip',
 		'caffeine-intel-darwin.zip', 'caffeine-intel-linux.zip'])
 }
 
 // Ruby it `it "skips arches the cask's depends_on arch excludes" do` at line 98.
-pub fn ruby_fetch_spec_l98_d5_skips(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_fetch_spec_l98_d5_skips(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := fetch_cmd.fetch_cask_downloads(fetch_cmd.FetchCask{
 		token: 'depends-on-arch-arm64'
@@ -163,17 +163,17 @@ pub fn ruby_fetch_spec_l98_d5_skips(args ...brew_runtime.Value) brew_runtime.Val
 	}, fetch_cmd.FetchCommandOptions{
 		os_arch_combinations: [fetch_cmd.FetchSystem{ os: 'macos', arch: 'intel' }]
 	})
-	return brew_runtime.bool_value(result.downloads.len == 0 && result.warnings.len == 1)
+	return ruby.bool_value(result.downloads.len == 0 && result.warnings.len == 1)
 }
 
 // Ruby it `it "collapses to a single download for a cask without on_system blocks" do` at line 103.
-pub fn ruby_fetch_spec_l103_d6_collapses(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_fetch_spec_l103_d6_collapses(args ...ruby.Value) ruby.Value {
 	_ = args
 	result := fetch_cmd.fetch_cask_downloads(fetch_spec_matrix_cask(false), fetch_cmd.FetchCommandOptions{
 		all_platforms: true
 		os_arch_combinations: fetch_spec_systems()
 	})
-	return brew_runtime.bool_value(result.downloads.len == 1)
+	return ruby.bool_value(result.downloads.len == 1)
 }
 
 // Original Ruby source (line-for-line):

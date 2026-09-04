@@ -1,6 +1,6 @@
 module utils
 
-import brew_runtime
+import ruby
 import homebrew.cask.utils as trash_utils
 import homebrew.extend.os.mac.cask.utils as mac_trash
 import os
@@ -17,80 +17,80 @@ fn trash_spec_retry(path string) !string {
 // The original source is retained below until every stub has a typed V body.
 
 // Ruby let `let(:path) { Pathname("/tmp/example") }` at line 8.
-pub fn ruby_trash_spec_l8_d1_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('/tmp/example')
+pub fn ruby_trash_spec_l8_d1_path(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('/tmp/example')
 }
 
 // Ruby let `let(:trashed_path) { "/Users/example/.Trash/example" }` at line 9.
-pub fn ruby_trash_spec_l9_d2_trashed_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('/Users/example/.Trash/example')
+pub fn ruby_trash_spec_l9_d2_trashed_path(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('/Users/example/.Trash/example')
 }
 
 // Ruby it `it "uses the Foundation trash implementation by default" do` at line 11.
-pub fn ruby_trash_spec_l11_d3_uses(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_trash_spec_l11_d3_uses(args ...ruby.Value) ruby.Value {
 	root := trash_spec_root()
 	os.rmdir_all(root) or {}
-	os.mkdir_all(root) or { return brew_runtime.bool_value(false) }
+	os.mkdir_all(root) or { return ruby.bool_value(false) }
 	defer { os.rmdir_all(root) or {} }
 	path := os.join_path(root, 'example')
-	os.write_file(path, 'example') or { return brew_runtime.bool_value(false) }
+	os.write_file(path, 'example') or { return ruby.bool_value(false) }
 	result := mac_trash.mac_trash_paths([path], os.join_path(root, '.Trash'), trash_spec_retry)
-	return brew_runtime.bool_value(result.trashed.len == 1 && result.untrashable.len == 0)
+	return ruby.bool_value(result.trashed.len == 1 && result.untrashable.len == 0)
 }
 
 // Ruby it `it "retries untrashable paths after gaining permissions" do` at line 21.
-pub fn ruby_trash_spec_l21_d4_retries(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_trash_spec_l21_d4_retries(args ...ruby.Value) ruby.Value {
 	result := mac_trash.mac_trash_paths(['/tmp/missing-example'], os.join_path(trash_spec_root(), '.Trash'), trash_spec_retry)
-	return brew_runtime.bool_value(result.trashed == [
+	return ruby.bool_value(result.trashed == [
 		'/Users/example/.Trash/missing-example',
 	] && result.untrashable.len == 0)
 }
 
 // Ruby let `let(:deletion_time) { Time.local(2026, 4, 25, 13, 14, 15) }` at line 39.
-pub fn ruby_trash_spec_l39_d5_deletion_time(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value('2026-04-25T13:14:15')
+pub fn ruby_trash_spec_l39_d5_deletion_time(args ...ruby.Value) ruby.Value {
+	return ruby.string_value('2026-04-25T13:14:15')
 }
 
 // Ruby let `let(:xdg_data_home) { mktmpdir/"xdg-data" }` at line 40.
-pub fn ruby_trash_spec_l40_d6_xdg_data_home(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(os.join_path(trash_spec_root(), 'xdg-data'))
+pub fn ruby_trash_spec_l40_d6_xdg_data_home(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(os.join_path(trash_spec_root(), 'xdg-data'))
 }
 
 // Ruby let `let(:trash_path) { xdg_data_home/"Trash" }` at line 41.
-pub fn ruby_trash_spec_l41_d7_trash_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(trash_utils.home_trash_path(os.join_path(trash_spec_root(), 'xdg-data'), os.home_dir()))
+pub fn ruby_trash_spec_l41_d7_trash_path(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(trash_utils.home_trash_path(os.join_path(trash_spec_root(), 'xdg-data'), os.home_dir()))
 }
 
 // Ruby let `let(:files_path) { trash_path/"files" }` at line 42.
-pub fn ruby_trash_spec_l42_d8_files_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(os.join_path(trash_utils.home_trash_path(os.join_path(trash_spec_root(), 'xdg-data'), os.home_dir()), 'files'))
+pub fn ruby_trash_spec_l42_d8_files_path(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(os.join_path(trash_utils.home_trash_path(os.join_path(trash_spec_root(), 'xdg-data'), os.home_dir()), 'files'))
 }
 
 // Ruby let `let(:info_path) { trash_path/"info" }` at line 43.
-pub fn ruby_trash_spec_l43_d9_info_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(os.join_path(trash_utils.home_trash_path(os.join_path(trash_spec_root(), 'xdg-data'), os.home_dir()), 'info'))
+pub fn ruby_trash_spec_l43_d9_info_path(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(os.join_path(trash_utils.home_trash_path(os.join_path(trash_spec_root(), 'xdg-data'), os.home_dir()), 'info'))
 }
 
 // Ruby let `let(:path) { mktmpdir/"folder with spaces"/"example file.txt" }` at line 44.
-pub fn ruby_trash_spec_l44_d10_path(args ...brew_runtime.Value) brew_runtime.Value {
-	return brew_runtime.string_value(os.join_path(trash_spec_root(), 'folder with spaces', 'example file.txt'))
+pub fn ruby_trash_spec_l44_d10_path(args ...ruby.Value) ruby.Value {
+	return ruby.string_value(os.join_path(trash_spec_root(), 'folder with spaces', 'example file.txt'))
 }
 
 // Ruby it `it "moves files into the XDG trash and writes a trashinfo file" do` at line 54.
-pub fn ruby_trash_spec_l54_d11_moves(args ...brew_runtime.Value) brew_runtime.Value {
+pub fn ruby_trash_spec_l54_d11_moves(args ...ruby.Value) ruby.Value {
 	root := trash_spec_root()
 	os.rmdir_all(root) or {}
 	defer { os.rmdir_all(root) or {} }
 	xdg := os.join_path(root, 'xdg-data')
 	path := os.join_path(root, 'folder with spaces', 'example file.txt')
-	os.mkdir_all(os.dir(path)) or { return brew_runtime.bool_value(false) }
-	os.write_file(path, 'example') or { return brew_runtime.bool_value(false) }
+	os.mkdir_all(os.dir(path)) or { return ruby.bool_value(false) }
+	os.write_file(path, 'example') or { return ruby.bool_value(false) }
 	result := trash_utils.freedesktop_trash([path], xdg, os.home_dir(), '2026-04-25T13:14:15')
 	files_path := os.join_path(xdg, 'Trash', 'files', 'example file.txt')
 	info_path := os.join_path(xdg, 'Trash', 'info', 'example file.txt.trashinfo')
 	contents := os.read_file(files_path) or { '' }
 	info := os.read_file(info_path) or { '' }
-	return brew_runtime.bool_value(!os.exists(path) && result.trashed == [path] && result.untrashable.len == 0 && contents == 'example' && info == '[Trash Info]\nPath=${path.replace(' ', '%20')}\nDeletionDate=2026-04-25T13:14:15\n')
+	return ruby.bool_value(!os.exists(path) && result.trashed == [path] && result.untrashable.len == 0 && contents == 'example' && info == '[Trash Info]\nPath=${path.replace(' ', '%20')}\nDeletionDate=2026-04-25T13:14:15\n')
 }
 
 // Original Ruby source (line-for-line):
