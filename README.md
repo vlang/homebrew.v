@@ -2,15 +2,14 @@
 
 ## Benchmarks: installing and removing Neovim
 
-| Operation | Frontend | Median wall | Range | Median CPU | Peak RSS |
-| --- | --- | ---: | ---: | ---: | ---: |
-| `install neovim` | `brew-v` | **0.76 s** | 0.73–0.76 | 0.66 s | **48.4 MB** |
-| `install neovim` | Ruby `brew` | 1.04 s | 0.79–1.07 | 0.97 s | 150.6 MB |
-| `uninstall neovim` | `brew-v` | **0.19 s** | 0.19–0.20 | 0.18 s | **10.6 MB** |
-| `uninstall neovim` | Ruby `brew` | 0.68 s | 0.51–0.72 | 0.60 s | 98.5 MB |
+| Operation | `brew-v` | Ruby `brew` | |
+| --- | ---: | ---: | --- |
+| `install neovim` | **0.76 s** / **48.4 MB** | 1.04 s / 150.6 MB | 1.4x faster, 3.1x less RAM |
+| `uninstall neovim` | **0.19 s** / **10.6 MB** | 0.68 s / 98.5 MB | 3.6x faster, 9.3x less RAM |
 
-`brew-v` installs 1.4x faster than Ruby Homebrew on 3.1x less memory, and
-uninstalls 3.6x faster on 9.3x less memory.
+Median wall clock and peak RSS over five runs. Wall ranges are 0.73–0.76 against
+0.79–1.07 for install and 0.19–0.20 against 0.51–0.72 for uninstall; median CPU
+is 0.66 s against 0.97 s and 0.18 s against 0.60 s.
 
 Install was 12.70 s before the three fixes below, all of them places where the
 translation reached for a subprocess or the network where the source does not.
