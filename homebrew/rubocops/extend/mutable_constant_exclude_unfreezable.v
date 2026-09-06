@@ -1,7 +1,5 @@
 module extend
 
-import ruby
-
 // Translated from Homebrew/brew `rubocops/extend/mutable_constant_exclude_unfreezable.rb`.
 pub const mutable_constant_exclude_matchers = ['t_let', 't_type_alias?', 'type_member?']
 
@@ -69,13 +67,4 @@ pub fn mutable_constant_assignment(source string) MutableConstantAssignmentResul
 		value: value
 		delegated: true
 	}
-}
-
-fn mutable_constant_result_value(result MutableConstantAssignmentResult) ruby.Value {
-	return ruby.structured_value('RuboCop::Cop::Style::MutableConstant::AssignmentResult', result.value, {
-		'original':  result.original
-		'value':     result.value
-		'delegated': result.delegated.str()
-		'excluded':  result.excluded
-	})
 }

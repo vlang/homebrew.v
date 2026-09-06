@@ -99,27 +99,6 @@ fn cleanup_plan_value(plan CleanupPlan) ruby.Value {
 	})
 }
 
-fn cleanup_value_string(args []ruby.Value, index int, fallback string) string {
-	if index >= args.len {
-		return fallback
-	}
-	return args[index].as_string()
-}
-
-fn cleanup_value_bool(args []ruby.Value, index int, fallback bool) bool {
-	if index >= args.len || args[index].type_name != 'Bool' {
-		return fallback
-	}
-	return args[index].bool_data
-}
-
-fn cleanup_value_strings(args []ruby.Value, index int) []string {
-	if index >= args.len {
-		return []string{}
-	}
-	return args[index].as_string_array() or { return []string{} }
-}
-
 fn cleanup_default_ref(origin_head string) string {
 	ref := origin_head.trim_space()
 	if ref == '' {

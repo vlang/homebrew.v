@@ -1,7 +1,5 @@
 module homebrew
 
-import ruby
-
 // Translated from Homebrew/brew `missing.rb`.
 pub struct MissingDependency {
 pub:
@@ -66,38 +64,4 @@ pub fn missing_dependencies(formulae []MissingFormula, casks []MissingCask, hide
 		}
 	}
 	return missing
-}
-
-fn missing_formulae_from_value(value ruby.Value) []MissingFormula {
-	return value.array_data.map(MissingFormula{
-		full_name: it.attributes['full_name'] or { it.as_string() }
-		display_name: it.attributes['display_name'] or { it.as_string() }
-		missing_dependencies: (it.attributes['missing_dependencies'] or { '' }).split(',').filter(it != '')
-	})
-}
-
-fn missing_cask_from_value(value ruby.Value) MissingCask {
-	mut dependencies := map[string][]MissingDependency{}
-	for dependency_type, list in value.map_data {
-		dependencies[dependency_type] = list.array_data.map(MissingDependency{
-			full_name: it.attributes['full_name'] or { it.as_string() }
-		})
-	}
-	return MissingCask{
-		full_name: value.attributes['full_name'] or { value.as_string() }
-		display_name: value.attributes['display_name'] or { value.as_string() }
-		runtime_dependencies: dependencies
-	}
-}
-
-fn missing_casks_from_value(value ruby.Value) []MissingCask {
-	return value.array_data.map(missing_cask_from_value(it))
-}
-
-fn missing_map_value(values map[string][]string) ruby.Value {
-	mut result := map[string]ruby.Value{}
-	for name, dependencies in values {
-		result[name] = ruby.string_array_value(dependencies)
-	}
-	return ruby.map_value(result)
 }

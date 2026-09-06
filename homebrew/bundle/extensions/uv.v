@@ -1,7 +1,5 @@
 module extensions
 
-import ruby
-
 pub struct UvTool {
 pub:
 	name   string
@@ -16,10 +14,6 @@ pub mut:
 	installed_packages []UvTool
 	output             []string
 	commands           [][]string
-}
-
-fn uv_error(kind string, message string, attributes map[string]string) ruby.Value {
-	return ruby.structured_value(kind, message, attributes)
 }
 
 pub fn uv_definition() ExtensionDefinition {
@@ -153,135 +147,6 @@ pub fn uv_normalized_options(name string, requirements []string, source string) 
 		name: uv_normalize_name(name)
 		with: uv_normalize_with(requirements)
 		source: uv_normalize_source(source)
-	}
-}
-
-pub fn uv_tool_value(tool UvTool) ruby.Value {
-	return ruby.map_value({
-		'name':   ruby.string_value(tool.name)
-		'with':   ruby.string_array_value(tool.with)
-		'source': if tool.source == '' {
-			ruby.object_value('NilClass', '')
-		} else {
-			ruby.string_value(tool.source)
-		}
-	})
-}
-
-pub fn uv_tool_from_value(value ruby.Value) UvTool {
-	values := value.as_map() or { return uv_normalized_options(value.as_string(), [], '') }
-	if 'options' in values {
-		options := values['options'].as_map() or { map[string]ruby.Value{} }
-		return uv_normalized_options(if 'name' in values { values['name'].as_string() } else { '' }, if 'with' in options {
-			options['with'].as_string_array() or { [] }
-		} else {
-			[]
-		}, if 'source' in options && options['source'].type_name != 'NilClass' {
-			options['source'].as_string()
-		} else {
-			''
-		})
-	}
-	return UvTool{
-		name: if 'name' in values { values['name'].as_string() } else { '' }
-		with: if 'with' in values { values['with'].as_string_array() or { [] } } else { [] }
-		source: if 'source' in values && values['source'].type_name != 'NilClass' {
-			values['source'].as_string()
-		} else {
-			''
-		}
-	}
-}
-
-pub fn uv_tools_value(tools []UvTool) ruby.Value {
-	return ruby.array_value(tools.map(uv_tool_value(it)))
-}
-
-pub fn uv_tools_from_value(value ruby.Value) []UvTool {
-	items := value.as_array() or { return [] }
-	return items.map(uv_tool_from_value(it))
-}
-
-pub fn uv_state_value(state UvState) ruby.Value {
-	return ruby.map_value({
-		'_definition':        extension_definition_value(uv_definition())
-		'executable':         if state.executable == '' {
-			ruby.object_value('NilClass', '')
-		} else {
-			ruby.object_value('Pathname', state.executable)
-		}
-		'packages':           uv_tools_value(state.packages)
-		'installed_packages': uv_tools_value(state.installed_packages)
-		'output':             ruby.string_array_value(state.output)
-		'commands':           ruby.array_value(state.commands.map(ruby.string_array_value(it)))
-	})
-}
-
-pub fn uv_state_from_value(value ruby.Value) UvState {
-	values := value.as_map() or { return UvState{} }
-	mut commands := [][]string{}
-	if 'commands' in values {
-		for command in values['commands'].as_array() or { [] } {
-			commands << (command.as_string_array() or { [] })
-		}
-	}
-	return UvState{
-		executable: if 'executable' in values && values['executable'].type_name != 'NilClass' {
-			values['executable'].as_string()
-		} else {
-			''
-		}
-		packages: if 'packages' in values { uv_tools_from_value(values['packages']) } else { [] }
-		installed_packages: if 'installed_packages' in values {
-			uv_tools_from_value(values['installed_packages'])
-		} else {
-			[]
-		}
-		output: if 'output' in values { values['output'].as_string_array() or { [] } } else { [] }
-		commands: commands
-	}
-}
-
-pub fn uv_entry(name string, options map[string]ruby.Value) !ExtensionEntry {
-	mut unknown_options := []string{}
-	for key in options.keys() {
-		if key !in ['with', 'source'] {
-			unknown_options << ':${key}'
-		}
-	}
-	if unknown_options.len > 0 {
-		return error('unknown options([${unknown_options.join(', ')}]) for uv')
-	}
-	mut requirements := []string{}
-	if 'with' in options && options['with'].type_name != 'NilClass' {
-		requirements = options['with'].as_string_array() or {
-			return error('options[:with](${options['with'].repr}) should be an Array of String objects')
-		}
-	}
-	source_value := options['source'] or { ruby.object_value('NilClass', '') }
-	if source_value.type_name !in ['String', 'NilClass'] {
-		return error('options[:source](${source_value.repr}) should be a String object')
-	}
-	source := if source_value.type_name == 'String' {
-		uv_normalize_source(source_value.as_string())
-	} else {
-		''
-	}
-	if source != '' && uv_local_source(source) {
-		return error('options[:source](${source_value.repr}) is local to this machine so cannot be used in a Brewfile')
-	}
-	mut normalized := map[string]ruby.Value{}
-	normalized_with := uv_normalize_with(requirements)
-	if normalized_with.len > 0 {
-		normalized['with'] = ruby.string_array_value(normalized_with)
-	}
-	if source != '' {
-		normalized['source'] = ruby.string_value(source)
-	}
-	return ExtensionEntry{
-		entry_type: 'uv'
-		name: name
-		options: normalized
 	}
 }
 

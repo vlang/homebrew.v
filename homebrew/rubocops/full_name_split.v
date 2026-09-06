@@ -1,7 +1,5 @@
 module rubocops
 
-import ruby
-
 // Translated from Homebrew/brew `rubocops/full_name_split.rb`.
 pub const full_name_split_message = 'Use `Utils.name_from_full_name` instead of splitting formula or cask full names.'
 
@@ -812,30 +810,6 @@ pub fn correct_full_name_split(source string) string {
 		corrected = corrected[..offense.begin_pos] + offense.replacement + corrected[offense.end_pos..]
 	}
 	return corrected
-}
-
-fn full_name_split_offense_value(offense FullNameSplitOffense) ruby.Value {
-	return ruby.structured_value('RuboCop::Cop::Offense', offense.message, {
-		'begin_pos':       offense.begin_pos.str()
-		'end_pos':         offense.end_pos.str()
-		'message':         offense.message
-		'method':          offense.call.method
-		'receiver':        offense.call.receiver
-		'safe_navigation': offense.call.safe_navigation.str()
-		'replacement':     offense.replacement
-	})
-}
-
-fn full_name_split_first_offense(source string, safe_navigation ?bool) ruby.Value {
-	for offense in audit_full_name_split(source) {
-		if navigation := safe_navigation {
-			if offense.call.safe_navigation != navigation {
-				continue
-			}
-		}
-		return full_name_split_offense_value(offense)
-	}
-	return ruby.object_value('NilClass', 'nil')
 }
 
 fn full_name_split_outer_call(source string) ?FullNameSplitOuterCall {

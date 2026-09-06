@@ -103,11 +103,11 @@ pub fn new_state() State {
 	}
 }
 
-pub type SyntaxCompiler = fn(file RubyFile) ![]string
+pub type SyntaxCompiler = fn (file RubyFile) ![]string
 
-pub type FormulaEvaluator = fn(file FormulaFile, bottle_tag string) !FormulaEvaluation
+pub type FormulaEvaluator = fn (file FormulaFile, bottle_tag string) !FormulaEvaluation
 
-pub type CaskEvaluator = fn(file CaskFile, arch SystemArch) !CaskEvaluation
+pub type CaskEvaluator = fn (file CaskFile, arch SystemArch) !CaskEvaluation
 
 pub fn compile_ruby_file(file RubyFile) ![]string {
 	if file.syntax_error != '' {
@@ -421,8 +421,10 @@ pub fn valid_tap(mut state State, tap Tap, options TapValidationOptions) Validat
 		stdout: stdout
 		stderr: stderr
 		worker_count: worker_count_for(tap.formula_files.len + tap.cask_files.len, if options.cores > 0 {
-			options.cores} else {
-			1})
+			options.cores
+		} else {
+			1
+		})
 		processed: processed
 	}
 }

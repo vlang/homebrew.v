@@ -1,7 +1,5 @@
 module dev_cmd
 
-import ruby
-
 // Translated from Homebrew/brew `dev-cmd/pr-publish.rb`.
 
 pub struct PrPublishOptions {
@@ -114,36 +112,4 @@ pub fn run_pr_publish(options PrPublishOptions) !PrPublishResult {
 pub struct PrPublishInput {
 pub:
 	options PrPublishOptions
-}
-
-pub fn pr_publish_input_boundary(input &PrPublishInput) ruby.Value {
-	return ruby.structured_value('Homebrew::DevCmd::PrPublish::Input', '', {
-		'pr_publish_input_address': u64(voidptr(input)).str()
-	})
-}
-
-fn pr_publish_input_from_value(value ruby.Value) &PrPublishInput {
-	address := value.attributes['pr_publish_input_address'] or { panic('invalid PrPublish input') }
-	return unsafe { &PrPublishInput(voidptr(address.u64())) }
-}
-
-fn pr_publish_dispatch_value(dispatch PrPublishDispatch) ruby.Value {
-	return ruby.map_value({
-		'user':         ruby.string_value(dispatch.user)
-		'repo':         ruby.string_value(dispatch.repo)
-		'issue':        ruby.string_value(dispatch.issue)
-		'workflow':     ruby.string_value(dispatch.workflow)
-		'ref':          ruby.string_value(dispatch.ref)
-		'autosquash':   ruby.bool_value(dispatch.autosquash)
-		'large_runner': ruby.bool_value(dispatch.large_runner)
-		'message':      ruby.string_value(dispatch.message)
-	})
-}
-
-fn pr_publish_result_value(result PrPublishResult) ruby.Value {
-	return ruby.map_value({
-		'tap':        ruby.string_value(result.tap)
-		'messages':   ruby.string_array_value(result.messages)
-		'dispatches': ruby.array_value(result.dispatches.map(pr_publish_dispatch_value(it)))
-	})
 }

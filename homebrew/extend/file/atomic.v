@@ -1,6 +1,5 @@
 module file
 
-import ruby
 import os
 import time
 
@@ -20,14 +19,6 @@ fn atomic_file_stat(path string) !AtomicFileStat {
 		gid: int(stat.gid)
 		mode: int(stat.get_mode().bitmask())
 	}
-}
-
-fn atomic_file_stat_value(stat AtomicFileStat) ruby.Value {
-	return ruby.structured_value('File::Stat', 'mode=${stat.mode:o}', {
-		'uid':  stat.uid.str()
-		'gid':  stat.gid.str()
-		'mode': stat.mode.str()
-	})
 }
 
 pub fn probe_stat_in(dir string) ?AtomicFileStat {

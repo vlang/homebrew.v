@@ -1,7 +1,5 @@
 module test_bot
 
-import ruby
-
 pub struct SetupStep {
 pub:
 	command []string

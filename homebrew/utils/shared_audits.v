@@ -248,19 +248,6 @@ fn (state &SharedAuditsState) fetch_json(arguments []string) ?ruby.Value {
 	return ruby.parse_json_value(result.stdout) or { none }
 }
 
-pub fn (mut state SharedAuditsState) eol_data(product string, cycle string) ruby.Value {
-	key := '${product}/${cycle}'
-	if key in state.eol_data_cache {
-		return state.eol_data_cache[key]
-	}
-	data := state.fetch_json([
-		'--location',
-		'https://endoflife.date/api/v1/products/${product}/releases/${cycle}',
-	]) or { shared_audits_nil() }
-	state.eol_data_cache[key] = data
-	return data
-}
-
 fn shared_audits_present(value ruby.Value) bool {
 	return value.type_name != 'NilClass'
 }
@@ -665,84 +652,4 @@ pub fn shared_audits_check_deprecate_disable_reason(subject SharedAuditsDeprecat
 		return '${reason} is not a valid deprecate! or disable! reason'
 	}
 	return none
-}
-
-pub fn shared_audits_state_boundary(state &SharedAuditsState) ruby.Value {
-	return ruby.structured_value('SharedAudits::State', '', {
-		'shared_audits_state_address': u64(voidptr(state)).str()
-	})
-}
-
-fn shared_audits_state_and_offset(args []ruby.Value) (&SharedAuditsState, int) {
-	if args.len > 0 && 'shared_audits_state_address' in args[0].attributes {
-		return unsafe { &SharedAuditsState(voidptr(args[0].attributes['shared_audits_state_address'].u64())) }, 1
-	}
-	return new_shared_audits_state(SharedAuditsConfig{}), 0
-}
-
-pub fn shared_audits_package_value(package SharedAuditsPackage) ruby.Value {
-	mut exceptions := map[string]ruby.Value{}
-	for key, value in package.exceptions {
-		exceptions[key] = ruby.string_value(value)
-	}
-	return ruby.Value{
-		type_name: 'SharedAudits::Package'
-		repr: package.name
-		map_data: exceptions
-		attributes: {
-			'kind':    package.kind.str()
-			'name':    package.name
-			'version': package.version
-		}
-	}
-}
-
-fn shared_audits_package_from_value(value ruby.Value) ?SharedAuditsPackage {
-	if value.type_name == 'NilClass' {
-		return none
-	}
-	mut exceptions := map[string]string{}
-	for key, item in value.map_data {
-		exceptions[key] = item.as_string()
-	}
-	return SharedAuditsPackage{
-		kind: if (value.attributes['kind'] or { 'formula' }) == 'cask' { .cask } else { .formula }
-		name: value.attributes['name'] or { value.as_string() }
-		version: value.attributes['version'] or { '' }
-		exceptions: exceptions
-	}
-}
-
-pub fn shared_audits_deprecate_disable_subject_value(subject SharedAuditsDeprecateDisableSubject) ruby.Value {
-	return ruby.structured_value('SharedAudits::DeprecateDisableSubject', '', {
-		'kind':                         subject.kind.str()
-		'deprecated':                   subject.deprecated.str()
-		'disabled':                     subject.disabled.str()
-		'deprecation_reason':           subject.deprecation_reason
-		'deprecation_reason_is_symbol': subject.deprecation_reason_is_symbol.str()
-		'disable_reason':               subject.disable_reason
-		'disable_reason_is_symbol':     subject.disable_reason_is_symbol.str()
-	})
-}
-
-fn shared_audits_deprecate_disable_subject_from_value(value ruby.Value) SharedAuditsDeprecateDisableSubject {
-	return SharedAuditsDeprecateDisableSubject{
-		kind: if (value.attributes['kind'] or { 'formula' }) == 'cask' { .cask } else { .formula }
-		deprecated: (value.attributes['deprecated'] or { 'false' }) == 'true'
-		disabled: (value.attributes['disabled'] or { 'false' }) == 'true'
-		deprecation_reason: value.attributes['deprecation_reason'] or { '' }
-		deprecation_reason_is_symbol: (value.attributes['deprecation_reason_is_symbol'] or {
-			'false'
-		}) == 'true'
-		disable_reason: value.attributes['disable_reason'] or { '' }
-		disable_reason_is_symbol: (value.attributes['disable_reason_is_symbol'] or { 'false' }) == 'true'
-	}
-}
-
-fn shared_audits_optional_string(value ruby.Value) ?string {
-	return if value.type_name == 'NilClass' { none } else { value.as_string() }
-}
-
-fn shared_audits_optional_value(value ?string) ruby.Value {
-	return ruby.string_value(value or { return shared_audits_nil() })
 }

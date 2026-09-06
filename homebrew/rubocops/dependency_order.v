@@ -1,6 +1,5 @@
 module rubocops
 
-import ruby
 import homebrew.utils
 
 // Translated from Homebrew/brew `rubocops/dependency_order.rb`.
@@ -671,62 +670,7 @@ pub fn analyze_dependency_order(source string) DependencyOrderAnalysis {
 	}
 }
 
-fn dependency_order_problem_value(problem DependencyOrderProblem) ruby.Value {
-	return ruby.structured_value('RuboCop::Cop::Offense', problem.message, {
-		'method':           problem.method
-		'dependency':       problem.dependency
-		'other_dependency': problem.other_dependency
-		'line':             problem.line.str()
-		'other_line':       problem.other_line.str()
-		'begin_pos':        problem.begin_pos.str()
-		'end_pos':          problem.end_pos.str()
-		'message':          problem.message
-		'corrected':        problem.corrected
-	})
-}
-
-fn dependency_order_node_value(node DependencyOrderNode) ruby.Value {
-	return ruby.Value{
-		type_name: 'RuboCop::AST::Node'
-		repr: node.source
-		string_array_data: node.build_with_names.clone()
-		attributes: {
-			'method':    node.method
-			'name':      node.name
-			'tags':      node.tags.join(',')
-			'line':      node.line.str()
-			'column':    node.column.str()
-			'begin_pos': node.begin_pos.str()
-			'end_pos':   node.end_pos.str()
-		}
-	}
-}
-
 fn dependency_order_nodes_from_source(source string) []DependencyOrderNode {
 	body := dependency_order_body(source) or { return []DependencyOrderNode{} }
 	return dependency_order_all_nodes(source, body)
-}
-
-fn dependency_order_nodes_from_args(args []ruby.Value) []DependencyOrderNode {
-	if args.len == 0 {
-		return []DependencyOrderNode{}
-	}
-	mut sources := []string{}
-	if args.len == 1 && args[0].type_name == 'Array' {
-		if args[0].array_data.len > 0 {
-			sources = args[0].array_data.map(it.as_string())
-		} else {
-			sources = args[0].string_array_data.clone()
-		}
-	} else if args.len == 1 && args[0].as_string().contains('\n') {
-		return dependency_order_nodes_from_source(args[0].as_string())
-	} else {
-		sources = args.map(it.as_string())
-	}
-	joined := sources.join('\n')
-	return dependency_order_nodes_from_source(joined)
-}
-
-fn dependency_order_nil_value() ruby.Value {
-	return ruby.object_value('NilClass', 'nil')
 }

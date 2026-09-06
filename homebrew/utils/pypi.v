@@ -1,6 +1,5 @@
 module utils
 
-import ruby
 import x.json2
 
 // Translated from Homebrew/brew `utils/pypi.rb`.
@@ -429,32 +428,6 @@ pub fn plan_python_resources(package_name string, version string, extra_packages
 		excluded_packages: excluded
 		pip_plan: plan
 	}
-}
-
-fn pypi_package_value(package &PypiPackage) ruby.Value {
-	return ruby.structured_value('PyPI::Package', package.package_string, {
-		'pypi_package_address': u64(voidptr(package)).str()
-		'package_string':       package.package_string
-		'is_url':               package.is_url.str()
-		'python_name':          package.python_name
-	})
-}
-
-fn pypi_package_from_value(value ruby.Value) &PypiPackage {
-	address := value.attribute('pypi_package_address') or { panic('invalid PyPI::Package receiver') }
-	return unsafe { &PypiPackage(voidptr(address.u64())) }
-}
-
-fn pypi_nil_value() ruby.Value {
-	return ruby.object_value('NilClass', 'nil')
-}
-
-fn pypi_info_value(lookup PypiInfoLookup) ruby.Value {
-	if !lookup.found {
-		return pypi_nil_value()
-	}
-	return ruby.string_array_value([lookup.info.name, lookup.info.download_url, lookup.info.checksum,
-		lookup.info.version, lookup.info.package_error])
 }
 
 fn pypi_boundary_fetch(_ string) !string {

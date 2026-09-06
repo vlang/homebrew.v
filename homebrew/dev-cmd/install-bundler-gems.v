@@ -1,7 +1,5 @@
 module dev_cmd
 
-import ruby
-
 // Translated from Homebrew/brew `dev-cmd/install-bundler-gems.rb`.
 pub struct InstallBundlerGemsOptions {
 pub:

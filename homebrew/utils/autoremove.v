@@ -116,40 +116,6 @@ pub fn removable_formulae(formulae []AutoremoveFormula, casks []AutoremoveCask) 
 	return unused.filter(!autoremove_intersects(protected, it))
 }
 
-pub fn autoremove_formula_value(formula AutoremoveFormula) ruby.Value {
-	return ruby.Value{
-		type_name: 'Formula'
-		repr: formula.name
-		attributes: {
-			'name':                         formula.name
-			'tab_present':                  formula.tab_present.str()
-			'poured_from_bottle':           formula.tab.poured_from_bottle.str()
-			'installed_on_request_present': formula.tab.installed_on_request_present.str()
-			'installed_on_request':         formula.tab.installed_on_request.str()
-			'runtime_dependencies_present': formula.tab.runtime_dependencies_present.str()
-		}
-		map_data: {
-			'possible_names':                 ruby.string_array_value(autoremove_possible_names(formula))
-			'installed_runtime_dependencies': ruby.string_array_value(formula.installed_runtime_dependencies)
-			'runtime_dependencies':           ruby.string_array_value(formula.tab.runtime_dependencies)
-			'build_dependencies':             ruby.string_array_value(formula.build_dependencies)
-		}
-	}
-}
-
-pub fn autoremove_cask_value(cask AutoremoveCask) ruby.Value {
-	return ruby.Value{
-		type_name: 'Cask'
-		repr: cask.name
-		attributes: {
-			'name': cask.name
-		}
-		map_data: {
-			'formula_dependencies': ruby.string_array_value(cask.formula_dependencies)
-		}
-	}
-}
-
 fn autoremove_strings(value ruby.Value, key string) []string {
 	return if item := value.map_data[key] {
 		item.as_string_array() or { []string{} }
@@ -173,25 +139,4 @@ pub fn autoremove_formula_from_value(value ruby.Value) AutoremoveFormula {
 			installed_on_request: (value.attributes['installed_on_request'] or { 'false' }) == 'true'
 		}
 	}
-}
-
-pub fn autoremove_cask_from_value(value ruby.Value) AutoremoveCask {
-	return AutoremoveCask{
-		name: value.attributes['name'] or { value.as_string() }
-		formula_dependencies: autoremove_strings(value, 'formula_dependencies')
-	}
-}
-
-fn autoremove_formulae_from_boundary(value ruby.Value) []AutoremoveFormula {
-	values := value.as_array() or { return []AutoremoveFormula{} }
-	return values.map(autoremove_formula_from_value(it))
-}
-
-fn autoremove_casks_from_boundary(value ruby.Value) []AutoremoveCask {
-	values := value.as_array() or { return []AutoremoveCask{} }
-	return values.map(autoremove_cask_from_value(it))
-}
-
-fn autoremove_formulae_value(formulae []AutoremoveFormula) ruby.Value {
-	return ruby.array_value(formulae.map(autoremove_formula_value(it)))
 }

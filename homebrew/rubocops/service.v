@@ -1,6 +1,5 @@
 module rubocops
 
-import ruby
 import homebrew.utils
 
 // Translated from Homebrew/brew `rubocops/service.rb`.
@@ -330,17 +329,4 @@ pub fn correct_service_block(source string) string {
 		corrected = corrected[..edit.begin_pos] + edit.replacement + corrected[edit.end_pos..]
 	}
 	return corrected
-}
-
-fn service_offense_value(offense ServiceOffense) ruby.Value {
-	return ruby.structured_value('RuboCop::Cop::Offense', offense.message, {
-		'kind':        offense.kind
-		'method':      offense.method
-		'begin_pos':   offense.begin_pos.str()
-		'end_pos':     offense.end_pos.str()
-		'line':        offense.line.str()
-		'column':      offense.column.str()
-		'message':     offense.message
-		'replacement': offense.replacement
-	})
 }

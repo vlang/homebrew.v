@@ -1,7 +1,5 @@
 module prof
 
-import ruby
-
 // Translated from Homebrew/brew `prof/vernier_fork_guard.rb`.
 
 pub struct VernierForkRequest {
@@ -76,28 +74,4 @@ pub struct VernierForkGuardInput {
 pub:
 	request VernierForkRequest
 	command []string
-}
-
-pub fn vernier_fork_guard_input_boundary(input &VernierForkGuardInput) ruby.Value {
-	return ruby.structured_value('Homebrew::VernierForkGuard::Input', '', {
-		'vernier_fork_guard_input_address': u64(voidptr(input)).str()
-	})
-}
-
-fn vernier_fork_guard_input_from_value(value ruby.Value) &VernierForkGuardInput {
-	address := value.attributes['vernier_fork_guard_input_address'] or {
-		panic('invalid VernierForkGuard input')
-	}
-	return unsafe { &VernierForkGuardInput(voidptr(address.u64())) }
-}
-
-fn vernier_fork_result_value(result VernierForkResult) ruby.Value {
-	return ruby.map_value({
-		'yielded':             ruby.bool_value(result.yielded)
-		'collector_stopped':   ruby.bool_value(result.collector_stopped)
-		'collector_cleared':   ruby.bool_value(result.collector_cleared)
-		'collector_restarted': ruby.bool_value(result.collector_restarted)
-		'has_pid':             ruby.bool_value(result.has_pid)
-		'pid':                 ruby.int_value(result.pid)
-	})
 }

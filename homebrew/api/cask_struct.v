@@ -304,11 +304,6 @@ fn cask_locale_matches(locale string, component string) bool {
 	return locale == component
 }
 
-pub fn cask_struct_deep_remove_placeholders(value ruby.Value, appdir string,
-	paths ApiStructPaths) ruby.Value {
-	return api_struct_deep_replace(value, paths, appdir)
-}
-
 fn cask_artifacts_from_value(value ruby.Value) []CaskArtifact {
 	return api_struct_value_array(value).map(cask_struct_deserialize_artifact_args(api_struct_value_array(it)))
 }

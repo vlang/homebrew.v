@@ -1,7 +1,5 @@
 module cmd
 
-import ruby
-
 // Translated from Homebrew/brew `cmd/untrust.rb`.
 pub enum UntrustEntryType {
 	tap
@@ -163,100 +161,5 @@ pub fn run_untrust(store UntrustStore, targets []UntrustTarget,
 			untrusted_taps: store.untrusted_taps.clone()
 		}
 		messages: messages
-	}
-}
-
-fn untrust_target_from_value(value ruby.Value) UntrustTarget {
-	kind := match value.attribute('kind') or { 'tap' } {
-		'formula' { UntrustEntryType.formula }
-		'cask' { UntrustEntryType.cask }
-		'command' { UntrustEntryType.command }
-		else { UntrustEntryType.tap }
-	}
-	return UntrustTarget{
-		kind: kind
-		name: value.attribute('name') or { value.as_string() }
-		aliases: (value.map_data['aliases'] or { ruby.string_array_value([]) }).as_string_array() or { [] }
-		official: (value.attribute('official') or { 'false' }) == 'true'
-		remote_reference: (value.attribute('remote_reference') or { 'false' }) == 'true'
-	}
-}
-
-pub fn untrust_target_value(target UntrustTarget) ruby.Value {
-	return ruby.Value{
-		type_name: 'UntrustTarget'
-		repr: target.name
-		attributes: {
-			'kind':             untrust_type_key(target.kind)
-			'name':             target.name
-			'official':         target.official.str()
-			'remote_reference': target.remote_reference.str()
-		}
-		map_data: {
-			'aliases': ruby.string_array_value(target.aliases)
-		}
-	}
-}
-
-fn untrust_store_from_value(value ruby.Value) UntrustStore {
-	mut trusted := map[string][]string{}
-	if stored := value.map_data['trusted'] {
-		for key, entries in stored.map_data {
-			trusted[key] = entries.as_string_array() or { [] }
-		}
-	}
-	mut taps := []UntrustedTapSnapshot{}
-	for tap in (value.map_data['untrusted_taps'] or { ruby.array_value([]) }).as_array() or { [] } {
-		taps << UntrustedTapSnapshot{
-			name: tap.attribute('name') or { tap.as_string() }
-			formulae: (tap.map_data['formulae'] or { ruby.string_array_value([]) }).as_string_array() or { [] }
-			casks: (tap.map_data['casks'] or { ruby.string_array_value([]) }).as_string_array() or { [] }
-			commands: (tap.map_data['commands'] or { ruby.string_array_value([]) }).as_string_array() or { [] }
-		}
-	}
-	return UntrustStore{
-		trusted: trusted
-		untrusted_taps: taps
-	}
-}
-
-pub fn untrust_store_value(store UntrustStore) ruby.Value {
-	mut trusted := map[string]ruby.Value{}
-	for key, entries in store.trusted {
-		trusted[key] = ruby.string_array_value(entries)
-	}
-	mut taps := []ruby.Value{}
-	for tap in store.untrusted_taps {
-		taps << ruby.Value{
-			type_name: 'Tap'
-			repr: tap.name
-			attributes: {
-				'name': tap.name
-			}
-			map_data: {
-				'formulae': ruby.string_array_value(tap.formulae)
-				'casks':    ruby.string_array_value(tap.casks)
-				'commands': ruby.string_array_value(tap.commands)
-			}
-		}
-	}
-	return ruby.Value{
-		type_name: 'UntrustStore'
-		repr: 'untrust store'
-		map_data: {
-			'trusted':        ruby.map_value(trusted)
-			'untrusted_taps': ruby.array_value(taps)
-		}
-	}
-}
-
-fn untrust_result_value(result UntrustResult) ruby.Value {
-	return ruby.Value{
-		type_name: 'UntrustResult'
-		repr: '${result.messages.join('\n')}\n'
-		map_data: {
-			'store':    untrust_store_value(result.store)
-			'messages': ruby.string_array_value(result.messages)
-		}
 	}
 }

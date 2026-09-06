@@ -1,7 +1,5 @@
 module cask
 
-import ruby
-
 // Translated from Homebrew/brew `sorbet/tapioca/compilers/cask/dsl.rb`.
 pub const cask_dsl_compiler_ordinary_artifacts = ['installer', 'app', 'app_image', 'artifact',
 	'audio_unit_plugin', 'binary', 'command_wrapper', 'colorpicker', 'dictionary', 'font',
@@ -67,16 +65,4 @@ pub fn cask_dsl_compiler_decoration() CaskDslCompilerDecoration {
 		kind: 'path'
 		methods: methods
 	}
-}
-
-fn cask_dsl_compiler_decoration_value(decoration CaskDslCompilerDecoration) ruby.Value {
-	return ruby.map_value({
-		'constant_name': ruby.string_value(decoration.constant_name)
-		'kind':          ruby.string_value(decoration.kind)
-		'methods':       ruby.array_value(decoration.methods.map(ruby.map_value({
-			'name':        ruby.string_value(it.name)
-			'parameters':  ruby.string_array_value(it.parameters)
-			'return_type': ruby.string_value(it.return_type)
-		})))
-	})
 }

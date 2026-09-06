@@ -1,6 +1,5 @@
 module homebrew
 
-import ruby
 import crypto.sha256
 import os
 
@@ -193,32 +192,4 @@ pub fn (mut download RetryableDownload) fetch(verify_download_integrity bool, ti
 		}
 	}
 	return error('download failed')
-}
-
-fn retryable_downloadable_value(downloadable &RetryableDownloadable) ruby.Value {
-	return ruby.structured_value('Downloadable', downloadable.url_value, {
-		'retryable_downloadable_address': u64(voidptr(downloadable)).str()
-	})
-}
-
-fn retryable_downloadable_from_value(value ruby.Value) &RetryableDownloadable {
-	address := value.attributes['retryable_downloadable_address'] or {
-		panic('invalid retryable downloadable')
-	}
-	return unsafe { &RetryableDownloadable(voidptr(address.u64())) }
-}
-
-pub fn retryable_downloadable_boundary(downloadable &RetryableDownloadable) ruby.Value {
-	return retryable_downloadable_value(downloadable)
-}
-
-fn retryable_download_value(download &RetryableDownload) ruby.Value {
-	return ruby.structured_value('Homebrew::RetryableDownload', '', {
-		'retryable_download_address': u64(voidptr(download)).str()
-	})
-}
-
-fn retryable_download_from_value(value ruby.Value) &RetryableDownload {
-	address := value.attributes['retryable_download_address'] or { panic('invalid retryable download') }
-	return unsafe { &RetryableDownload(voidptr(address.u64())) }
 }

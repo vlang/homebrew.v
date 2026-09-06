@@ -1,6 +1,5 @@
 module subcommand
 
-import ruby
 import x.json2
 
 // Translated from Homebrew/brew `services/subcommand/list.rb`.
@@ -159,65 +158,4 @@ pub fn run_service_list(request ServiceListRequest) !ServiceListResult {
 			service_list_print_table(request.formulae, request.home, request.style)!
 		}
 	}
-}
-
-pub fn service_list_formula_value(formula ServiceListFormula) ruby.Value {
-	mut fields := map[string]ruby.Value{}
-	fields['name'] = ruby.string_value(formula.name)
-	fields['status'] = ruby.object_value('Symbol', formula.status)
-	if formula.user_present {
-		fields['user'] = if formula.user_nil {
-			ruby.object_value('NilClass', '')
-		} else {
-			ruby.string_value(formula.user)
-		}
-	}
-	if formula.file_present {
-		fields['file'] = if formula.file_nil {
-			ruby.object_value('NilClass', '')
-		} else {
-			ruby.object_value('Pathname', formula.file)
-		}
-	}
-	if formula.exit_present {
-		fields['exit_code'] = if formula.exit_nil {
-			ruby.object_value('NilClass', '')
-		} else {
-			ruby.int_value(formula.exit_code)
-		}
-	}
-	fields['loaded'] = ruby.bool_value(formula.loaded)
-	return ruby.map_value(fields)
-}
-
-fn service_list_formula_from_value(value ruby.Value) !ServiceListFormula {
-	fields := value.as_map()!
-	user_value := fields['user'] or { ruby.Value{} }
-	file_value := fields['file'] or { ruby.Value{} }
-	exit_value := fields['exit_code'] or { ruby.Value{} }
-	return ServiceListFormula{
-		name: (fields['name'] or { ruby.string_value('') }).as_string()
-		status: (fields['status'] or { ruby.object_value('Symbol', 'unknown') }).as_string()
-		user: user_value.as_string()
-		user_present: 'user' in fields
-		user_nil: user_value.type_name == 'NilClass'
-		file: file_value.as_string()
-		file_present: 'file' in fields
-		file_nil: file_value.type_name == 'NilClass'
-		exit_code: int(exit_value.as_int() or { 0 })
-		exit_present: 'exit_code' in fields
-		exit_nil: exit_value.type_name == 'NilClass'
-		loaded: (fields['loaded'] or { ruby.bool_value(false) }).as_bool() or { false }
-	}
-}
-
-fn service_list_formulae_from_value(value ruby.Value) ![]ServiceListFormula {
-	return value.as_array()!.map(service_list_formula_from_value(it)!)
-}
-
-fn service_list_result_value(result ServiceListResult) ruby.Value {
-	return ruby.map_value({
-		'stdout': ruby.string_value(result.stdout)
-		'stderr': ruby.string_value(result.stderr)
-	})
 }

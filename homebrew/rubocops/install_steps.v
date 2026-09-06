@@ -1,6 +1,5 @@
 module rubocops
 
-import ruby
 import homebrew.rubocops.@shared as install_steps_shared
 
 // Translated from Homebrew/brew `rubocops/install_steps.rb`.
@@ -378,59 +377,4 @@ pub fn analyze_formula_install_steps(source string, file_path string) FormulaIns
 		}
 	}
 	return FormulaInstallStepsAnalysis{ source: source, file_path: file_path, offenses: offenses, corrected: corrected }
-}
-
-fn formula_install_steps_offense_value(offense FormulaInstallStepsOffense) ruby.Value {
-	return ruby.Value{
-		type_name: 'RuboCop::Cop::Offense'
-		repr: offense.message
-		map_data: {
-			'message': ruby.string_value(offense.message)
-		}
-		attributes: {
-			'begin_pos': offense.begin_pos.str()
-			'end_pos':   offense.end_pos.str()
-		}
-	}
-}
-
-fn formula_install_steps_analysis_value(analysis FormulaInstallStepsAnalysis) ruby.Value {
-	return ruby.Value{
-		type_name: 'RuboCop::Cop::FormulaAudit::InstallSteps::Analysis'
-		repr: analysis.source
-		array_data: analysis.offenses.map(formula_install_steps_offense_value(it))
-		map_data: {
-			'offenses':  ruby.array_value(analysis.offenses.map(formula_install_steps_offense_value(it)))
-			'corrected': ruby.string_value(analysis.corrected)
-		}
-	}
-}
-
-fn formula_install_steps_args(args []ruby.Value) (string, string) {
-	source := if args.len > 0 { args[0].as_string() } else { 'class Foo < Formula\nend\n' }
-	path := if args.len > 1 { args[1].as_string() } else { '' }
-	return source, path
-}
-
-fn formula_install_steps_path_value(path install_steps_shared.InstallStepPath) ruby.Value {
-	return ruby.Value{
-		type_name: 'RuboCop::Cop::InstallStepsHelper::InstallStepPath'
-		repr: install_steps_shared.install_steps_path_source(path)
-		map_data: {
-			'path':   ruby.string_value(path.path)
-			'base':   ruby.string_value(path.base)
-			'source': ruby.string_value(path.source)
-		}
-	}
-}
-
-fn formula_install_steps_path_arg(value ruby.Value) ?install_steps_shared.InstallStepPath {
-	if value.type_name == 'RuboCop::Cop::InstallStepsHelper::InstallStepPath' {
-		return install_steps_shared.InstallStepPath{
-			path: (value.map_data['path'] or { ruby.string_value('') }).as_string()
-			base: (value.map_data['base'] or { ruby.string_value('') }).as_string()
-			source: (value.map_data['source'] or { ruby.string_value('') }).as_string()
-		}
-	}
-	return install_steps_shared.install_steps_parse_path(value.as_string())
 }

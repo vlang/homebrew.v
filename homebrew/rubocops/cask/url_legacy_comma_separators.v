@@ -1,7 +1,5 @@
 module cask
 
-import ruby
-
 // Translated from Homebrew/brew `rubocops/cask/url_legacy_comma_separators.rb`.
 pub const url_legacy_comma_separators_message = 'Use `version.csv.first` instead of `version.before_comma` and `version.csv.second` instead of `version.after_comma`.'
 
@@ -90,13 +88,4 @@ pub fn correct_url_legacy_comma_separators(source string) string {
 		corrected = corrected[..offense.begin_pos] + offense.replacement + corrected[offense.end_pos..]
 	}
 	return corrected
-}
-
-fn url_legacy_comma_separator_value(offense UrlLegacyCommaSeparatorOffense) ruby.Value {
-	return ruby.structured_value('RuboCop::Cop::Offense', offense.message, {
-		'begin_pos':   offense.begin_pos.str()
-		'end_pos':     offense.end_pos.str()
-		'message':     offense.message
-		'replacement': offense.replacement
-	})
 }

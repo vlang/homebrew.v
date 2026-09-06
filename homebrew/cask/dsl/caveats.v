@@ -21,10 +21,6 @@ pub mut:
 	invoked      []string
 }
 
-fn caveats_nil() ruby.Value {
-	return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
-}
-
 pub fn new_cask_caveats(cask ruby.Value) CaskCaveats {
 	return CaskCaveats{ cask: cask }
 }

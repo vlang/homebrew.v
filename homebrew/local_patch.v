@@ -1,6 +1,5 @@
 module homebrew
 
-import ruby
 import os
 
 // Translated from Homebrew/brew `local_patch.rb`.
@@ -146,43 +145,5 @@ pub fn local_patch_from_model(model PatchModel, owner LocalPatchOwner) !LocalPat
 		''
 	})!
 	patch = patch.with_owner(owner)
-	return patch
-}
-
-fn local_patch_value(patch LocalPatch) ruby.Value {
-	return ruby.structured_value('LocalPatch', patch.inspect(), {
-		'strip':              patch.embedded.strip
-		'file':               patch.file
-		'directory':          patch.embedded.directory
-		'resolves':           patch.resolves.join('\x1f')
-		'type':               patch.type_name
-		'has_owner':          patch.has_owner.str()
-		'formula_path':       patch.owner.formula_path
-		'specified_path':     patch.owner.specified_path
-		'tap_path':           patch.owner.tap_path
-		'api_source_root':    patch.owner.api_source_root
-		'cache_downloads':    patch.owner.cache_downloads
-		'is_formula':         patch.owner.is_formula.str()
-		'software_spec_name': patch.owner.software_spec_name
-	})
-}
-
-fn local_patch_from_value(value ruby.Value) !LocalPatch {
-	mut patch := new_local_patch(value.attributes['strip'] or { 'p1' }, value.attributes['file'] or { '' }, value.attributes['directory'] or { '' }, if (value.attributes['resolves'] or { '' }) == '' {
-		[]string{}
-	} else {
-		value.attributes['resolves'].split('\x1f')
-	}, value.attributes['type'] or { '' })!
-	if (value.attributes['has_owner'] or { 'false' }) == 'true' {
-		patch = patch.with_owner(LocalPatchOwner{
-			formula_path: value.attributes['formula_path'] or { '' }
-			specified_path: value.attributes['specified_path'] or { '' }
-			tap_path: value.attributes['tap_path'] or { '' }
-			api_source_root: value.attributes['api_source_root'] or { '' }
-			cache_downloads: value.attributes['cache_downloads'] or { '' }
-			is_formula: (value.attributes['is_formula'] or { 'true' }) == 'true'
-			software_spec_name: value.attributes['software_spec_name'] or { '' }
-		})
-	}
 	return patch
 }

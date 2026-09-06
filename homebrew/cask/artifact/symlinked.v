@@ -1,6 +1,5 @@
 module artifact
 
-import ruby
 import os
 
 // Translated from Homebrew/brew `cask/artifact/symlinked.rb`.
@@ -205,58 +204,4 @@ pub fn summarize_installed_symlink(artifact SymlinkedArtifact) string {
 		return 'Broken Link: ${printable} -> ${link}'
 	}
 	return 'Broken Link: ${printable}'
-}
-
-pub fn symlinked_artifact_to_value(artifact SymlinkedArtifact) ruby.Value {
-	return ruby.map_value({
-		'source':           ruby.string_value(artifact.source)
-		'target':           ruby.string_value(artifact.target)
-		'english_name':     ruby.string_value(artifact.english_name)
-		'link_type_name':   ruby.string_value(artifact.link_type_name)
-		'printable_target': ruby.string_value(artifact.printable_target)
-		'caskroom_path':    ruby.string_value(artifact.caskroom_path)
-		'cellar_root':      ruby.string_value(artifact.cellar_root)
-	})
-}
-
-fn symlinked_artifact_from_value(value ruby.Value) !SymlinkedArtifact {
-	values := value.as_map()!
-	return SymlinkedArtifact{
-		source: (values['source'] or { return error('Symlink source is required') }).as_string()
-		target: (values['target'] or { return error('Symlink target is required') }).as_string()
-		english_name: (values['english_name'] or { ruby.string_value('Artifact') }).as_string()
-		link_type_name: (values['link_type_name'] or { ruby.string_value('Symlink') }).as_string()
-		printable_target: (values['printable_target'] or { ruby.string_value('') }).as_string()
-		caskroom_path: (values['caskroom_path'] or { ruby.string_value('') }).as_string()
-		cellar_root: (values['cellar_root'] or { ruby.string_value('') }).as_string()
-	}
-}
-
-pub fn symlinked_operation_to_value(result SymlinkedOperationResult) ruby.Value {
-	return ruby.map_value({
-		'success':             ruby.bool_value(result.success)
-		'error':               ruby.string_value(result.error)
-		'output':              ruby.string_array_value(result.output)
-		'warnings':            ruby.string_array_value(result.warnings)
-		'linked':              ruby.bool_value(result.linked)
-		'unlinked':            ruby.bool_value(result.unlinked)
-		'skipped':             ruby.bool_value(result.skipped)
-		'conflicting_formula': ruby.string_value(result.conflicting_formula)
-	})
-}
-
-fn symlinked_install_options_from_value(value ruby.Value) SymlinkedInstallOptions {
-	values := value.as_map() or { return SymlinkedInstallOptions{} }
-	return SymlinkedInstallOptions{
-		force: value_bool(values, 'force', false)
-		adopt: value_bool(values, 'adopt', false)
-		target_parent_writable: value_bool(values, 'target_parent_writable', true)
-	}
-}
-
-fn symlinked_adapter_artifact(args []ruby.Value) !SymlinkedArtifact {
-	if args.len == 0 {
-		return error('Symlinked artifact is required')
-	}
-	return symlinked_artifact_from_value(args[0])
 }

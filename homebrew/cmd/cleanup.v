@@ -1,6 +1,5 @@
 module cmd
 
-import ruby
 import os
 
 // Translated from Homebrew/brew `cmd/cleanup.rb`.
@@ -101,19 +100,4 @@ pub fn run_cleanup_command(request CleanupCommandRequest) !CleanupCommandResult 
 		output: output
 		errors: errors
 	}
-}
-
-pub fn cleanup_command_result_to_value(result CleanupCommandResult) ruby.Value {
-	return ruby.map_value({
-		'days':          if value := result.days {
-			ruby.int_value(value)
-		} else {
-			ruby.object_value('NilClass', 'nil')
-		}
-		'removed':       ruby.string_array_value(result.removed)
-		'would_remove':  ruby.string_array_value(result.would_remove)
-		'pruned_prefix': ruby.bool_value(result.pruned_prefix)
-		'output':        ruby.string_array_value(result.output)
-		'errors':        ruby.string_array_value(result.errors)
-	})
 }

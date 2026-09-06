@@ -64,34 +64,6 @@ pub fn livecheck_dsl_value(livecheck LivecheckDSL) ruby.Value {
 	}
 }
 
-pub fn livecheck_dsl_from_value(value ruby.Value) !LivecheckDSL {
-	if value.type_name != 'Livecheck' {
-		return error('expected Livecheck, got ${value.type_name}')
-	}
-	return LivecheckDSL{
-		package_or_resource: value.map_data['package_or_resource'] or { livecheck_nil() }
-		options: livecheck_options.livecheck_options_from_value(value.map_data['options'] or { livecheck_options.livecheck_options_value(livecheck_options.new_livecheck_options({})) })!
-		referenced_cask: value.map_data['cask'] or { livecheck_nil() }
-		referenced_formula: value.map_data['formula'] or { livecheck_nil() }
-		regex: value.map_data['regex'] or { livecheck_nil() }
-		skip: (value.map_data['skip'] or { ruby.bool_value(false) }).as_bool() or { false }
-		skip_msg: value.map_data['skip_msg'] or { livecheck_nil() }
-		strategy: value.map_data['strategy'] or { livecheck_nil() }
-		strategy_block: value.map_data['strategy_block'] or { livecheck_nil() }
-		throttle: value.map_data['throttle'] or { livecheck_nil() }
-		throttle_days: value.map_data['throttle_days'] or { livecheck_nil() }
-		url: value.map_data['url'] or { livecheck_nil() }
-	}
-}
-
-fn livecheck_receiver(args []ruby.Value, method string) ?LivecheckDSL {
-	if args.len == 0 {
-		_ = method
-		return none
-	}
-	return livecheck_dsl_from_value(args[0]) or { return none }
-}
-
 fn livecheck_keywords(args []ruby.Value) map[string]ruby.Value {
 	for index := args.len - 1; index >= 1; index-- {
 		if args[index].type_name == 'Hash' {
@@ -99,8 +71,4 @@ fn livecheck_keywords(args []ruby.Value) map[string]ruby.Value {
 		}
 	}
 	return map[string]ruby.Value{}
-}
-
-fn livecheck_argument_error(method string) ruby.Value {
-	return ruby.object_value('ArgumentError', '${method} requires a Livecheck receiver')
 }

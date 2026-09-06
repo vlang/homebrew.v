@@ -16,10 +16,6 @@ pub:
 	has_raw_line   bool
 }
 
-fn cask_url_nil() ruby.Value {
-	return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
-}
-
 fn cask_url_header(value ruby.Value) ruby.Value {
 	if value.type_name == 'NilClass' {
 		return value
@@ -132,16 +128,4 @@ pub fn (url CaskURL) unversioned(ignore_major_version bool) bool {
 		interpolated = major_expression.replace(interpolated, '')
 	}
 	return !interpolated.contains(r'#{')
-}
-
-fn cask_url_receiver(args []ruby.Value) ?CaskURL {
-	if args.len == 0 {
-		return none
-	}
-	return cask_url_from_value(args[0]) or { return none }
-}
-
-fn cask_url_option(args []ruby.Value, key string) ruby.Value {
-	url := cask_url_receiver(args) or { return cask_url_nil() }
-	return url.options[key] or { cask_url_nil() }
 }

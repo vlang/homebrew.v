@@ -474,34 +474,3 @@ pub fn mcp_run(mut server McpServerState, runner McpCommandRunner) {
 		}
 	}
 }
-
-pub fn mcp_server_state_value(server McpServerState) ruby.Value {
-	return ruby.map_value({
-		'brew_file':         ruby.string_value(server.brew_file)
-		'version':           ruby.string_value(server.version)
-		'debug_logging':     ruby.bool_value(server.debug_logging)
-		'ping_switch':       ruby.bool_value(server.ping_switch)
-		'stdin':             ruby.string_array_value(server.stdin_lines)
-		'stdout':            ruby.string_array_value(server.stdout_lines)
-		'stderr':            ruby.string_array_value(server.stderr_lines)
-		'exit_code':         ruby.int_value(server.exit_code)
-		'interrupt_on_read': ruby.bool_value(server.interrupt_on_read)
-		'read_error':        ruby.string_value(server.read_error)
-	})
-}
-
-fn mcp_server_state_from_value(value ruby.Value) McpServerState {
-	values := value.map_data.clone()
-	return McpServerState{
-		brew_file: (values['brew_file'] or { ruby.string_value('brew') }).as_string()
-		version: (values['version'] or { ruby.string_value('') }).as_string()
-		debug_logging: (values['debug_logging'] or { ruby.bool_value(false) }).bool_data
-		ping_switch: (values['ping_switch'] or { ruby.bool_value(false) }).bool_data
-		stdin_lines: (values['stdin'] or { ruby.string_array_value([]) }).as_string_array() or { []string{} }
-		stdout_lines: (values['stdout'] or { ruby.string_array_value([]) }).as_string_array() or { []string{} }
-		stderr_lines: (values['stderr'] or { ruby.string_array_value([]) }).as_string_array() or { []string{} }
-		exit_code: int((values['exit_code'] or { ruby.int_value(0) }).int_data)
-		interrupt_on_read: (values['interrupt_on_read'] or { ruby.bool_value(false) }).bool_data
-		read_error: (values['read_error'] or { ruby.string_value('') }).as_string()
-	}
-}

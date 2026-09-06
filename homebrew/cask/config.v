@@ -373,33 +373,3 @@ fn cask_config_boundary(config CaskConfig) ruby.Value {
 		'json': config.json()
 	})
 }
-
-fn cask_config_from_boundary(value ruby.Value) CaskConfig {
-	contents := value.attribute('json') or { value.as_string() }
-	return cask_config_from_json(contents, false) or { panic(err) }
-}
-
-fn cask_config_map_boundary(values CaskConfigMap) ruby.Value {
-	mut mapped := map[string]ruby.Value{}
-	for name, value in values {
-		mapped[name] = if value.kind == .languages {
-			ruby.string_array_value(value.values)
-		} else {
-			ruby.object_value('Pathname', value.path)
-		}
-	}
-	return ruby.map_value(mapped)
-}
-
-fn cask_config_map_from_boundary(value ruby.Value) CaskConfigMap {
-	values := value.as_map() or { return CaskConfigMap{} }
-	mut mapped := CaskConfigMap{}
-	for name, item in values {
-		mapped[name] = if item.type_name == 'Array' {
-			cask_config_languages(item.as_string_array() or { [] })
-		} else {
-			cask_config_path(item.as_string())
-		}
-	}
-	return mapped
-}

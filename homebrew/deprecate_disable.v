@@ -1,7 +1,5 @@
 module homebrew
 
-import ruby
-
 // Translated from Homebrew/brew `deprecate_disable.rb`.
 
 pub enum DeprecateDisablePackageKind {
@@ -171,64 +169,4 @@ pub fn deprecate_disable_reason_from_string(value ?string, kind DeprecateDisable
 		}
 	}
 	return none
-}
-
-pub fn deprecate_disable_subject_value(subject DeprecateDisableSubject) ruby.Value {
-	return ruby.structured_value('DeprecateDisableSubject', deprecate_disable_type(subject), {
-		'kind':                subject.kind.str()
-		'deprecated':          subject.deprecated.str()
-		'disabled':            subject.disabled.str()
-		'deprecation_reason':  subject.deprecation_reason
-		'disable_reason':      subject.disable_reason
-		'disable_date':        subject.disable_date
-		'deprecation_date':    subject.deprecation_date
-		'deprecation_formula': subject.deprecation_formula
-		'deprecation_cask':    subject.deprecation_cask
-		'disable_formula':     subject.disable_formula
-		'disable_cask':        subject.disable_cask
-	})
-}
-
-fn deprecate_disable_subject_from_value(value ruby.Value) DeprecateDisableSubject {
-	if value.type_name != 'DeprecateDisableSubject' {
-		panic('expected DeprecateDisableSubject, got ${value.type_name}')
-	}
-	kind := if (value.attribute('kind') or { panic(err) }) == 'cask' {
-		DeprecateDisablePackageKind.cask
-	} else {
-		DeprecateDisablePackageKind.formula
-	}
-	return DeprecateDisableSubject{
-		kind: kind
-		deprecated: (value.attribute('deprecated') or { panic(err) }) == 'true'
-		disabled: (value.attribute('disabled') or { panic(err) }) == 'true'
-		deprecation_reason: value.attribute('deprecation_reason') or { panic(err) }
-		disable_reason: value.attribute('disable_reason') or { panic(err) }
-		disable_date: value.attribute('disable_date') or { panic(err) }
-		deprecation_date: value.attribute('deprecation_date') or { panic(err) }
-		deprecation_formula: value.attribute('deprecation_formula') or { panic(err) }
-		deprecation_cask: value.attribute('deprecation_cask') or { panic(err) }
-		disable_formula: value.attribute('disable_formula') or { panic(err) }
-		disable_cask: value.attribute('disable_cask') or { panic(err) }
-	}
-}
-
-// Ruby method `to_reason_string_or_symbol(string, type:)` at line 122.
-pub fn ruby_deprecate_disable_l122_d4_to_reason_string_or_symbol(args ...ruby.Value) ruby.Value {
-	if args.len == 0 || args[0].type_name == 'NilClass' {
-		return ruby.object_value('NilClass', '')
-	}
-	kind := if args.len > 1 && args[1].as_string().trim_left(':') == 'cask' {
-		DeprecateDisablePackageKind.cask
-	} else {
-		DeprecateDisablePackageKind.formula
-	}
-	reason := deprecate_disable_reason_from_string(args[0].as_string(), kind) or {
-		return ruby.object_value('NilClass', '')
-	}
-	return if reason.is_symbol {
-		ruby.object_value('Symbol', reason.value)
-	} else {
-		ruby.string_value(reason.value)
-	}
 }

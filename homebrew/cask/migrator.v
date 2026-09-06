@@ -150,26 +150,6 @@ fn migrator_from_value(value ruby.Value) Migrator {
 	}
 }
 
-fn migrator_result_value(result MigratorResult) ruby.Value {
-	return ruby.Value{
-		type_name: 'Hash'
-		repr: result.action
-		map_data: {
-			'action':             ruby.string_value(result.action)
-			'dry_run':            ruby.bool_value(result.dry_run)
-			'migrated':           ruby.bool_value(result.migrated)
-			'shared':             ruby.array_value(result.shared.map(migrator_artifact_value(it)))
-			'uninstallable':      ruby.array_value(result.uninstallable.map(migrator_artifact_value(it)))
-			'stdout':             ruby.string_array_value(result.stdout)
-			'warnings':           ruby.string_array_value(result.warnings)
-			'errors':             ruby.string_array_value(result.errors)
-			'old_pin_removed':    ruby.bool_value(result.old_pin_removed)
-			'new_pin_created':    ruby.bool_value(result.new_pin_created)
-			'new_installed_file': ruby.object_value('Pathname', result.new_installed_file)
-		}
-	}
-}
-
 pub fn new_migrator(old_cask MigratorCask, new_cask MigratorCask) !Migrator {
 	if !new_cask.installed {
 		return error('Cask ${new_cask.token} is not installed.')

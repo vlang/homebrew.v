@@ -1,6 +1,5 @@
 module linux
 
-import ruby
 import homebrew.diagnostic
 
 pub enum LinuxSandboxState {
@@ -311,37 +310,6 @@ pub fn linux_check_cask_software_versions(mut context LinuxDiagnosticContext) {
 	if context.verbose {
 		context.info << ['Linux', context.linux_version]
 	}
-}
-
-fn linux_diagnostic_context_value(context &LinuxDiagnosticContext) ruby.Value {
-	return ruby.structured_value('OS::Linux::Diagnostic::Checks', '', {
-		'linux_diagnostic_address': u64(voidptr(context)).str()
-	})
-}
-
-fn linux_diagnostic_context_from_value(value ruby.Value) &LinuxDiagnosticContext {
-	address := value.attributes['linux_diagnostic_address'] or {
-		panic('invalid OS::Linux::Diagnostic::Checks receiver')
-	}
-	return unsafe { &LinuxDiagnosticContext(voidptr(address.u64())) }
-}
-
-pub fn linux_diagnostic_boundary(context &LinuxDiagnosticContext) ruby.Value {
-	return linux_diagnostic_context_value(context)
-}
-
-fn linux_diagnostic_finding_value(result ?diagnostic.Finding) ruby.Value {
-	value := result or { return ruby.object_value('NilClass', 'nil') }
-	mut attributes := {
-		'text':  value.text
-		'tier':  value.tier
-		'links': value.links.join('\n')
-	}
-	if remediation := value.remediation {
-		attributes['remediation_text'] = remediation.text
-		attributes['remediation_commands'] = remediation.commands.join('\n')
-	}
-	return ruby.structured_value('Homebrew::Diagnostic::Finding', value.string(), attributes)
 }
 
 // Translated from Homebrew/brew `extend/os/linux/diagnostic.rb`.

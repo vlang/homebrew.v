@@ -1,7 +1,5 @@
 module mac
 
-import ruby
-
 pub struct MacReadallCask {
 pub:
 	path             string
@@ -54,27 +52,6 @@ pub fn mac_readall_valid_casks(os_name string, current_macos_version int, arch s
 		}
 	}
 	return MacReadallResult{ valid: valid, errors: errors, processed: processed }
-}
-
-fn mac_readall_casks_from_value(value ruby.Value) ![]MacReadallCask {
-	mut casks := []MacReadallCask{}
-	for item in value.as_array()! {
-		values := item.as_map()!
-		mut versions := []int{}
-		if raw := values['macos_versions'] {
-			for version in raw.as_array()! {
-				versions << int(version.as_int()!)
-			}
-		}
-		casks << MacReadallCask{
-			path: (values['path'] or { return error('cask path is required') }).as_string()
-			url_present: (values['url_present'] or { ruby.bool_value(true) }).as_bool()!
-			macos_versions: versions
-			macos_comparator: (values['macos_comparator'] or { ruby.string_value('>=') }).as_string()
-			evaluation_error: (values['evaluation_error'] or { ruby.string_value('') }).as_string()
-		}
-	}
-	return casks
 }
 
 // Translated from Homebrew/brew `extend/os/mac/readall.rb`.

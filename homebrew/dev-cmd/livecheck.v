@@ -90,19 +90,6 @@ pub:
 	sources LivecheckCommandSources
 }
 
-pub fn livecheck_command_input_boundary(input &LivecheckCommandInput) ruby.Value {
-	return ruby.structured_value('Homebrew::DevCmd::LivecheckCmd::Input', '', {
-		'livecheck_command_input_address': u64(voidptr(input)).str()
-	})
-}
-
-fn livecheck_command_input_from_value(value ruby.Value) &LivecheckCommandInput {
-	address := value.attributes['livecheck_command_input_address'] or {
-		panic('invalid Livecheck command input')
-	}
-	return unsafe { &LivecheckCommandInput(voidptr(address.u64())) }
-}
-
 pub fn livecheck_watchlist_path(configured string, working_directory string, user_home string) string {
 	mut expanded := configured
 	if configured == '~' {
@@ -411,23 +398,4 @@ pub fn run_livecheck_command(options LivecheckCommandOptions, sources LivecheckC
 		stderr: stderr
 		show_progress: ran_checks && options.json && !options.quiet && options.stderr_tty
 	}
-}
-
-fn livecheck_command_result_value(result LivecheckCommandResult) ruby.Value {
-	return ruby.map_value({
-		'bundler_groups':          ruby.string_array_value(result.bundler_groups)
-		'selection':               ruby.string_value(result.selection)
-		'eval_all':                ruby.bool_value(result.eval_all)
-		'selected':                ruby.array_value(result.selected.map(livecheck_core.livecheck_package_value(it)))
-		'skipped_autobump':        ruby.bool_value(result.skipped_autobump)
-		'skip_messages':           ruby.string_array_value(result.skip_messages)
-		'run_options':             livecheck_run_options_value(result.run_options)
-		'effective_extract_plist': ruby.bool_value(result.effective_extract_plist)
-		'loaded_strategy_paths':   ruby.string_array_value(result.loaded_strategy_paths)
-		'ran_checks':              ruby.bool_value(result.ran_checks)
-		'checks':                  ruby.array_value(result.checks)
-		'stdout':                  ruby.string_array_value(result.stdout)
-		'stderr':                  ruby.string_array_value(result.stderr)
-		'show_progress':           ruby.bool_value(result.show_progress)
-	})
 }

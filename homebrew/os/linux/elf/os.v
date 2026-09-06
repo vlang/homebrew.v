@@ -1,7 +1,5 @@
 module elf
 
-import ruby
-
 // Translated from Homebrew/brew `os/linux/elf/os.rb`.
 fn elf_token_start(character u8) bool {
 	return character == `_` || (character >= `a` && character <= `z`) || (character >= `A` && character <= `Z`)

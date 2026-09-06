@@ -1,7 +1,5 @@
 module dev_cmd
 
-import ruby
-
 // Translated from Homebrew/brew `dev-cmd/pr-pull.rb`.
 
 pub struct PrPullArgs {
@@ -342,17 +340,6 @@ pub:
 	bottles     PrPullBottlesInput
 	changed     PrPullChangedPackagesInput
 	conflicts   PrPullConflictsInput
-}
-
-pub fn pr_pull_boundary_input(input &PrPullBoundaryInput) ruby.Value {
-	return ruby.structured_value('Homebrew::DevCmd::PrPull::Input', '', {
-		'pr_pull_input_address': u64(voidptr(input)).str()
-	})
-}
-
-fn pr_pull_boundary_input_from_value(value ruby.Value) &PrPullBoundaryInput {
-	address := value.attributes['pr_pull_input_address'] or { panic('invalid PrPull input') }
-	return unsafe { &PrPullBoundaryInput(voidptr(address.u64())) }
 }
 
 fn pr_pull_unique(values []string) []string {
@@ -1339,63 +1326,4 @@ pub fn run_pr_pull(input PrPullRunInput) !PrPullRunResult {
 		}
 	}
 	return result
-}
-
-fn pr_pull_package_value(package PrPullPackage) ruby.Value {
-	return ruby.map_value({
-		'name':     ruby.string_value(package.name)
-		'version':  ruby.string_value(package.version)
-		'revision': ruby.int_value(package.revision)
-		'sha256':   ruby.string_value(package.sha256)
-		'is_cask':  ruby.bool_value(package.is_cask)
-	})
-}
-
-fn pr_pull_effect_value(effect PrPullEffect) ruby.Value {
-	mut details := map[string]ruby.Value{}
-	for key, value in effect.details {
-		details[key] = ruby.string_value(value)
-	}
-	return ruby.map_value({
-		'kind':    ruby.string_value(effect.kind)
-		'argv':    ruby.string_array_value(effect.argv)
-		'details': ruby.map_value(details)
-	})
-}
-
-fn pr_pull_parts_value(parts PrPullCommitParts) ruby.Value {
-	return ruby.string_array_value([parts.subject, parts.body, parts.trailers])
-}
-
-fn pr_pull_rewrite_value(result PrPullRewriteResult) ruby.Value {
-	return ruby.map_value({
-		'subject': ruby.string_value(result.subject)
-		'effects': ruby.array_value(result.effects.map(pr_pull_effect_value(it)))
-	})
-}
-
-fn pr_pull_run_result_value(result PrPullRunResult) ruby.Value {
-	mut environment := map[string]ruby.Value{}
-	for key, value in result.environment {
-		environment[key] = ruby.string_value(value)
-	}
-	mut writes := map[string]ruby.Value{}
-	for key, value in result.output_writes {
-		writes[key] = ruby.string_value(value)
-	}
-	return ruby.map_value({
-		'required_executables': ruby.string_array_value(result.required_executables)
-		'environment':          ruby.map_value(environment)
-		'effects':              ruby.array_value(result.effects.map(pr_pull_effect_value(it)))
-		'downloads':            ruby.array_value(result.downloads.map(ruby.map_value({
-			'url':          ruby.string_value(it.url)
-			'pull_request': ruby.string_value(it.pull_request)
-		})))
-		'ohai':                 ruby.string_array_value(result.ohai)
-		'warnings':             ruby.string_array_value(result.warnings)
-		'debug':                ruby.string_array_value(result.debug)
-		'removed_directories':  ruby.string_array_value(result.removed_directories)
-		'retained_directories': ruby.string_array_value(result.retained_directories)
-		'output_writes':        ruby.map_value(writes)
-	})
 }

@@ -1,6 +1,5 @@
 module hardware
 
-import ruby
 import os
 
 // Translated from Homebrew/brew `extend/os/linux/hardware/cpu.rb`.
@@ -151,19 +150,4 @@ pub fn linux_cpu_sse4(flags []string) bool {
 
 pub fn linux_cpuinfo(path string) !string {
 	return os.read_file(path)
-}
-
-fn linux_cpu_optional_value(value ?string) ruby.Value {
-	return if actual := value {
-		ruby.object_value('Symbol', actual)
-	} else {
-		ruby.object_value('NilClass', 'nil')
-	}
-}
-
-fn linux_cpu_flags_arg(args []ruby.Value, index int) []string {
-	if args.len <= index {
-		return linux_cpu_flags(linux_cpuinfo('/proc/cpuinfo') or { '' })
-	}
-	return args[index].as_string_array() or { linux_cpu_flags(args[index].as_string()) }
 }

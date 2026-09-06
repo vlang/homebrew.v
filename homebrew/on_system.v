@@ -1,7 +1,5 @@
 module homebrew
 
-import ruby
-
 // Translated from Homebrew/brew `on_system.rb`.
 pub const on_system_arch_options = ['intel', 'arm']
 pub const on_system_base_os_options = ['macos', 'linux']
@@ -247,41 +245,4 @@ pub fn on_system_macos_only_definitions() OnSystemDefinitionSet {
 		macos_methods: macos.macos_methods
 		conditional: arch.conditional
 	}
-}
-
-fn on_system_optional_value(result OnSystemBlockResult) ruby.Value {
-	return if result.called {
-		ruby.string_value(result.value)
-	} else {
-		ruby.object_value('NilClass', 'nil')
-	}
-}
-
-fn on_system_context_from_args(args []ruby.Value, offset int) OnSystemContext {
-	return OnSystemContext{
-		current_os: if args.len > offset {
-			args[offset].as_string().trim_left(':')
-		} else {
-			'linux'
-		}
-		current_arch: if args.len > offset + 1 {
-			args[offset + 1].as_string().trim_left(':')
-		} else {
-			'arm'
-		}
-		oldest_allowed: if args.len > offset + 2 {
-			args[offset + 2].as_string().trim_left(':')
-		} else {
-			'catalina'
-		}
-	}
-}
-
-fn on_system_definition_value(definitions OnSystemDefinitionSet) ruby.Value {
-	return ruby.map_value({
-		'arch_methods':    ruby.string_array_value(definitions.arch_methods)
-		'base_os_methods': ruby.string_array_value(definitions.base_os_methods)
-		'macos_methods':   ruby.string_array_value(definitions.macos_methods)
-		'conditional':     ruby.string_array_value(definitions.conditional)
-	})
 }

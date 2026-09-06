@@ -1,7 +1,5 @@
 module compilers
 
-import ruby
-
 // Translated from Homebrew/brew `sorbet/tapioca/compilers/tty.rb`.
 pub const tty_compiler_dynamic_methods = ['red', 'green', 'yellow', 'blue', 'magenta', 'cyan',
 	'default', 'reset', 'bold', 'italic', 'underline', 'strikethrough', 'no_underline', 'up', 'down',

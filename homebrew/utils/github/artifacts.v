@@ -1,7 +1,5 @@
 module github
 
-import ruby
-
 // Translated from Homebrew/brew `utils/github/artifacts.rb`.
 
 pub struct ArtifactDownloadRuntime {
@@ -60,13 +58,4 @@ pub fn download_github_artifact(url string, artifact_id string, token string,
 		fetched: true
 		staged: true
 	}
-}
-
-fn artifact_download_result_value(result ArtifactDownloadResult) ruby.Value {
-	return ruby.structured_value('GitHubArtifactDownloadResult', result.artifact_id, {
-		'url':         result.url
-		'artifact_id': result.artifact_id
-		'fetched':     result.fetched.str()
-		'staged':      result.staged.str()
-	})
 }

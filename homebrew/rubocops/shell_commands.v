@@ -1,7 +1,5 @@
 module rubocops
 
-import ruby
-
 // Translated from Homebrew/brew `rubocops/shell_commands.rb`.
 const shell_command_builtins = ['!', '.', ':', 'break', 'case', 'continue', 'do', 'done', 'elif',
 	'else', 'esac', 'eval', 'exec', 'exit', 'export', 'fi', 'for', 'if', 'in', 'readonly', 'return',
@@ -548,17 +546,4 @@ pub fn analyze_exec_shell_metacharacters(source string) !ShellCommandAnalysis {
 		}
 	}
 	return ShellCommandAnalysis{ offenses: offenses, corrected: source }
-}
-
-pub fn shell_command_analysis_value(analysis ShellCommandAnalysis) ruby.Value {
-	offenses := analysis.offenses.map(ruby.structured_value('RuboCop::Cop::Offense', it.message, {
-		'begin_pos':   it.begin_pos.str()
-		'end_pos':     it.end_pos.str()
-		'message':     it.message
-		'replacement': it.replacement
-	}))
-	return ruby.map_value({
-		'offenses':  ruby.array_value(offenses)
-		'corrected': ruby.string_value(analysis.corrected)
-	})
 }

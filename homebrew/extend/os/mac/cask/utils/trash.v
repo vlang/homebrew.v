@@ -1,6 +1,5 @@
 module utils
 
-import ruby
 import homebrew.cask.utils as base_trash
 import homebrew.os.mac.ffi
 import os

@@ -1,6 +1,5 @@
 module artifact
 
-import ruby
 import os
 
 // Translated from Homebrew/brew `cask/artifact/artifact.rb`.
@@ -39,12 +38,4 @@ pub fn resolve_artifact_target(target string, base_dir ?string) string {
 		return os.join_path(base, target)
 	}
 	return target
-}
-
-pub fn generic_artifact_value(artifact GenericArtifact) ruby.Value {
-	return ruby.structured_value('Cask::Artifact::Artifact', artifact.source, {
-		'cask_token': artifact.cask_token
-		'source':     artifact.source
-		'target':     artifact.target
-	})
 }

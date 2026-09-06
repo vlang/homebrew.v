@@ -1,6 +1,5 @@
 module cask
 
-import ruby
 import net.urllib
 
 // Translated from Homebrew/brew `rubocops/cask/homepage_url_styling.rb`.
@@ -288,15 +287,4 @@ pub fn correct_homepage_url_styling(source string) string {
 		corrected = corrected[..offense.begin_pos] + offense.replacement + corrected[offense.end_pos..]
 	}
 	return corrected
-}
-
-fn homepage_url_styling_value(offense HomepageUrlStylingOffense) ruby.Value {
-	return ruby.structured_value('RuboCop::Cop::Offense', offense.message, {
-		'cask_name':   offense.cask_name
-		'url':         offense.url
-		'begin_pos':   offense.begin_pos.str()
-		'end_pos':     offense.end_pos.str()
-		'message':     offense.message
-		'replacement': offense.replacement
-	})
 }

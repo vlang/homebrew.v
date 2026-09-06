@@ -1,6 +1,5 @@
 module rubocops
 
-import ruby
 import homebrew.rubocops.@shared as api_annotations
 
 // Translated from Homebrew/brew `rubocops/public_api_cookbook.rb`.
@@ -389,15 +388,4 @@ pub fn audit_public_api_cookbook(context PublicApiCookbookContext) PublicApiCook
 	return PublicApiCookbookAnalysis{
 		offenses: offenses
 	}
-}
-
-fn public_api_analysis_value(analysis PublicApiCookbookAnalysis) ruby.Value {
-	return ruby.map_value({
-		'offenses': ruby.array_value(analysis.offenses.map(ruby.structured_value('RuboCop::Cop::Offense', it.message, {
-			'begin_pos': it.begin_pos.str()
-			'end_pos':   it.end_pos.str()
-			'line':      it.line.str()
-			'message':   it.message
-		})))
-	})
 }

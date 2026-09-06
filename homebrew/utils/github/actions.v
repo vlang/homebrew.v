@@ -1,6 +1,5 @@
 module github
 
-import ruby
 import homebrew.utils
 import os
 
@@ -113,55 +112,4 @@ pub fn (annotation ActionsAnnotation) relevant() bool {
 		return true
 	}
 	return !annotation.options.file.starts_with('../') && annotation.options.file != '..'
-}
-
-fn actions_annotation_value(annotation ActionsAnnotation) ruby.Value {
-	return ruby.structured_value('GitHub::Actions::Annotation', annotation.str(), {
-		'kind':           annotation.kind
-		'message':        annotation.message
-		'file':           annotation.options.file
-		'title':          annotation.options.title
-		'line':           annotation.options.line.str()
-		'has_line':       annotation.options.has_line.str()
-		'end_line':       annotation.options.end_line.str()
-		'has_end_line':   annotation.options.has_end_line.str()
-		'column':         annotation.options.column.str()
-		'has_column':     annotation.options.has_column.str()
-		'end_column':     annotation.options.end_column.str()
-		'has_end_column': annotation.options.has_end_column.str()
-	})
-}
-
-fn actions_annotation_from_value(value ruby.Value) ActionsAnnotation {
-	return ActionsAnnotation{
-		kind: value.attributes['kind']
-		message: value.attributes['message']
-		options: ActionsAnnotationOptions{
-			file: value.attributes['file']
-			title: value.attributes['title']
-			line: value.attributes['line'].int()
-			has_line: value.attributes['has_line'] == 'true'
-			end_line: value.attributes['end_line'].int()
-			has_end_line: value.attributes['has_end_line'] == 'true'
-			column: value.attributes['column'].int()
-			has_column: value.attributes['has_column'] == 'true'
-			end_column: value.attributes['end_column'].int()
-			has_end_column: value.attributes['has_end_column'] == 'true'
-		}
-	}
-}
-
-fn actions_optional_string(args []ruby.Value, index int) string {
-	return if index < args.len && args[index].type_name !in ['NilClass', 'Nil'] {
-		args[index].as_string()
-	} else {
-		''
-	}
-}
-
-fn actions_optional_int(args []ruby.Value, index int) (int, bool) {
-	if index >= args.len || args[index].type_name in ['NilClass', 'Nil'] {
-		return 0, false
-	}
-	return int(args[index].as_int() or { 0 }), true
 }

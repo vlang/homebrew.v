@@ -1,6 +1,5 @@
 module compilers
 
-import ruby
 import homebrew.api
 
 // Translated from Homebrew/brew `sorbet/tapioca/compilers/api_structs.rb`.

@@ -1,7 +1,5 @@
 module ffi
 
-import ruby
-
 pub fn core_foundation_autorelease(pointer NativePointer) NativePointer {
 	if pointer.is_null() {
 		return pointer

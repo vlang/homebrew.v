@@ -16,10 +16,3 @@ pub fn new_cask_lock_target(cask_token string, homebrew_prefix string) LockTarge
 		path: ruby.join_path(homebrew_prefix, 'Caskroom/${cask_token}')
 	}
 }
-
-fn lock_target_value(target LockTarget) ruby.Value {
-	return ruby.structured_value('CaskLock', target.path, {
-		'kind': target.kind
-		'path': target.path
-	})
-}

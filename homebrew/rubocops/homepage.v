@@ -1,6 +1,5 @@
 module rubocops
 
-import ruby
 import homebrew.rubocops.@shared as homepage_shared
 
 // Translated from Homebrew/brew `rubocops/homepage.rb`.
@@ -143,15 +142,4 @@ pub fn correct_formula_homepage(source string) string {
 		corrected = corrected[..problem.begin_pos] + problem.replacement + corrected[problem.end_pos..]
 	}
 	return corrected
-}
-
-fn formula_homepage_problem_value(problem homepage_shared.HomepageProblem) ruby.Value {
-	return ruby.structured_value('RuboCop::Cop::Problem', problem.message, {
-		'kind':        problem.kind
-		'content':     problem.content
-		'begin_pos':   problem.begin_pos.str()
-		'end_pos':     problem.end_pos.str()
-		'message':     problem.message
-		'replacement': problem.replacement
-	})
 }

@@ -264,60 +264,11 @@ fn packages_source_fingerprint(stat PackageSourceStat) PackageSourceStat {
 	return stat
 }
 
-fn packages_index_value(index PackagesIndex) ruby.Value {
-	return ruby.map_value({
-		'payload':     ruby.string_value(index.payload)
-		'source_stat': package_source_stat_value(index.source_stat)
-		'top_level':   package_locations_value(index.top_level)
-		'sections':    package_sections_value(index.sections)
-	})
-}
-
-fn packages_index_from_args(args []ruby.Value) PackagesIndex {
-	if args.len == 0 { panic('PackagesIndex receiver required') }
-	value := args[0]
-	return PackagesIndex{
-		payload: (value.map_data['payload'] or { ruby.string_value('') }).as_string()
-		source_stat: package_source_stat_from_value(value.map_data['source_stat'] or { packages_nil_value() })
-		top_level: package_locations_from_value(value.map_data['top_level'] or { packages_nil_value() })
-		sections: package_sections_from_value(value.map_data['sections'] or { packages_nil_value() })
-	}
-}
-
-fn packages_index_data_value(data PackagesIndexData) ruby.Value {
-	return ruby.map_value({
-		'top_level': package_locations_value(data.top_level)
-		'sections':  package_sections_value(data.sections)
-	})
-}
-
-fn package_source_stat_value(stat PackageSourceStat) ruby.Value {
-	return ruby.map_value({
-		'size':     ruby.int_value(stat.size)
-		'mtime_ns': ruby.int_value(stat.mtime_ns)
-	})
-}
-
-fn package_source_stat_from_value(value ruby.Value) PackageSourceStat {
-	return PackageSourceStat{
-		size: (value.map_data['size'] or { ruby.int_value(0) }).int_data
-		mtime_ns: (value.map_data['mtime_ns'] or { ruby.int_value(0) }).int_data
-	}
-}
-
 fn package_location_value(location PackageLocation) ruby.Value {
 	return ruby.array_value([
 		ruby.int_value(location.offset),
 		ruby.int_value(location.bytesize),
 	])
-}
-
-fn package_location_from_value(value ruby.Value) PackageLocation {
-	values := value.as_array() or { []ruby.Value{} }
-	return PackageLocation{
-		offset: if values.len > 0 { int(values[0].int_data) } else { -1 }
-		bytesize: if values.len > 1 { int(values[1].int_data) } else { -1 }
-	}
 }
 
 fn package_locations_value(locations map[string]PackageLocation) ruby.Value {
@@ -326,10 +277,6 @@ fn package_locations_value(locations map[string]PackageLocation) ruby.Value {
 		values[key] = package_location_value(location)
 	}
 	return ruby.map_value(values)
-}
-
-fn package_locations_from_value(value ruby.Value) map[string]PackageLocation {
-	return package_locations_from_value_checked(value) or { map[string]PackageLocation{} }
 }
 
 fn package_locations_from_value_checked(value ruby.Value) !map[string]PackageLocation {
@@ -345,25 +292,6 @@ fn package_locations_from_value_checked(value ruby.Value) !map[string]PackageLoc
 		locations[key] = PackageLocation{ offset: int(values[0].int_data), bytesize: int(values[1].int_data) }
 	}
 	return locations
-}
-
-fn package_sections_value(sections map[string]map[string]PackageLocation) ruby.Value {
-	mut values := map[string]ruby.Value{}
-	for key, locations in sections {
-		values[key] = package_locations_value(locations)
-	}
-	return ruby.map_value(values)
-}
-
-fn package_sections_from_value(value ruby.Value) map[string]map[string]PackageLocation {
-	mut sections := map[string]map[string]PackageLocation{}
-	if value.type_name != 'Hash' {
-		return sections
-	}
-	for key, locations in value.map_data {
-		sections[key] = package_locations_from_value(locations)
-	}
-	return sections
 }
 
 fn packages_nil_value() ruby.Value {

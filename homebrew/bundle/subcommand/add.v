@@ -1,6 +1,5 @@
 module subcommand
 
-import ruby
 import homebrew.bundle
 
 // Translated from Homebrew/brew `bundle/subcommand/add.rb`.
@@ -43,13 +42,4 @@ pub fn run_bundle_add(options BundleAddCommandOptions) !bundle.BundleAddResult {
 		descriptions: options.descriptions
 		taps: options.taps
 	})
-}
-
-fn subcommand_descriptions_from_value(value ruby.Value) map[string]string {
-	values := value.as_map() or { return map[string]string{} }
-	mut descriptions := map[string]string{}
-	for name, description in values {
-		descriptions[name] = description.as_string()
-	}
-	return descriptions
 }

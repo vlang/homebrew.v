@@ -90,33 +90,3 @@ pub fn dump_build_environment(environment map[string]string) []string {
 	}
 	return lines
 }
-
-fn build_environment_boundary_value(environment BuildEnvironment) ruby.Value {
-	return ruby.structured_value('BuildEnvironment', environment.settings.join(','), {
-		'settings': environment.settings.join('\x1f')
-	})
-}
-
-fn build_environment_from_boundary(value ruby.Value) BuildEnvironment {
-	if value.type_name != 'BuildEnvironment' {
-		panic('expected BuildEnvironment, got ${value.type_name}')
-	}
-	settings := value.attribute('settings') or { panic(err) }
-	return if settings == '' {
-		new_build_environment()
-	} else {
-		new_build_environment(...settings.split('\x1f'))
-	}
-}
-
-fn values_as_settings(values []ruby.Value) []string {
-	mut settings := []string{}
-	for value in values {
-		if value.type_name == 'Array' {
-			settings << (value.as_string_array() or { panic(err) })
-		} else {
-			settings << value.as_string()
-		}
-	}
-	return settings
-}

@@ -1,7 +1,5 @@
 module mixin
 
-import ruby
-
 // Translated from Homebrew/brew `rubocops/cask/mixin/cask_help.rb`.
 pub struct CaskHelpDispatch {
 pub:
@@ -111,21 +109,4 @@ pub fn cask_help_tap(file_path string) ?string {
 		return tap
 	}
 	return none
-}
-
-fn cask_help_dispatch_value(dispatch CaskHelpDispatch) ruby.Value {
-	return ruby.structured_value('RuboCop::Cop::Cask::CaskHelpDispatch', if dispatch.accepted {
-		'accepted'
-	} else {
-		'ignored'
-	}, {
-		'accepted':              dispatch.accepted.str()
-		'cask_block':            dispatch.cask_block.str()
-		'on_system_block':       dispatch.on_system_block.str()
-		'file_path':             dispatch.file_path
-		'comment_count':         dispatch.comments.len.str()
-		'stanza_count':          dispatch.stanzas.len.str()
-		'called_stanza_handler': dispatch.called_stanza_handler.str()
-		'called_cask_handler':   dispatch.called_cask_handler.str()
-	})
 }

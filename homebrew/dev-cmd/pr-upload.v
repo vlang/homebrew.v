@@ -52,10 +52,6 @@ pub:
 	options PrUploadOptions
 }
 
-fn pr_upload_error(kind string, message string) ruby.Value {
-	return ruby.object_value(kind, message)
-}
-
 fn pr_upload_nested_map(value ruby.Value, key string) !map[string]ruby.Value {
 	nested := value.map_data[key] or { return error('missing ${key}') }
 	return nested.as_map() or { return error('${key} must be a Hash') }
@@ -342,37 +338,4 @@ pub fn run_pr_upload(options PrUploadOptions) !PrUploadResult {
 		warn_on_upload_failure: options.warn_on_upload_failure
 		returned_before_upload: returned_before_upload
 	}
-}
-
-pub fn pr_upload_input_boundary(input &PrUploadInput) ruby.Value {
-	return ruby.structured_value('Homebrew::DevCmd::PrUpload::Input', '', {
-		'pr_upload_input_address': u64(voidptr(input)).str()
-	})
-}
-
-fn pr_upload_input_from_value(value ruby.Value) !&PrUploadInput {
-	address := value.attributes['pr_upload_input_address'] or {
-		return error('invalid PrUpload input')
-	}
-	return unsafe { &PrUploadInput(voidptr(address.u64())) }
-}
-
-fn pr_upload_result_value(result PrUploadResult) ruby.Value {
-	return ruby.map_value({
-		'json_files':             ruby.string_array_value(result.json_files)
-		'bottles':                ruby.map_value(result.bottles)
-		'bottle_args':            ruby.string_array_value(result.bottle_args)
-		'audit_args':             ruby.string_array_value(result.audit_args)
-		'messages':               ruby.string_array_value(result.messages)
-		'service':                ruby.string_value(result.service)
-		'committer_name':         ruby.string_value(result.committer_name)
-		'committer_email':        ruby.string_value(result.committer_email)
-		'install_bundler_gems':   ruby.bool_value(result.install_bundler_gems)
-		'merge_bottles':          ruby.bool_value(result.merge_bottles)
-		'upload_bottles':         ruby.bool_value(result.upload_bottles)
-		'keep_old':               ruby.bool_value(result.keep_old)
-		'dry_run':                ruby.bool_value(result.dry_run)
-		'warn_on_upload_failure': ruby.bool_value(result.warn_on_upload_failure)
-		'returned_before_upload': ruby.bool_value(result.returned_before_upload)
-	})
 }

@@ -1,6 +1,5 @@
 module dev_cmd
 
-import ruby
 import os
 import time
 
@@ -255,51 +254,4 @@ pub fn run_generate_analytics_api(options GenerateAnalyticsApiOptions) !Generate
 		written_files: written_files
 		worker_count: 4
 	}
-}
-
-pub fn generate_analytics_api_input_boundary(input &GenerateAnalyticsApiInput) ruby.Value {
-	return ruby.structured_value('Homebrew::DevCmd::GenerateAnalyticsApi::Input', '', {
-		'generate_analytics_api_input_address': u64(voidptr(input)).str()
-	})
-}
-
-fn generate_analytics_api_input_from_value(value ruby.Value) &GenerateAnalyticsApiInput {
-	address := value.attributes['generate_analytics_api_input_address'] or {
-		panic('invalid GenerateAnalyticsApi input')
-	}
-	return unsafe { &GenerateAnalyticsApiInput(voidptr(address.u64())) }
-}
-
-pub fn generate_analytics_api_formula_input_boundary(input &GenerateAnalyticsApiFormulaInput) ruby.Value {
-	return ruby.structured_value('Homebrew::DevCmd::GenerateAnalyticsApi::FormulaInput', '', {
-		'generate_analytics_api_formula_input_address': u64(voidptr(input)).str()
-	})
-}
-
-fn generate_analytics_api_formula_input_from_value(value ruby.Value) &GenerateAnalyticsApiFormulaInput {
-	address := value.attributes['generate_analytics_api_formula_input_address'] or {
-		panic('invalid GenerateAnalyticsApi formula input')
-	}
-	return unsafe { &GenerateAnalyticsApiFormulaInput(voidptr(address.u64())) }
-}
-
-fn generate_analytics_api_output_value(output GenerateAnalyticsApiOutput) ruby.Value {
-	return ruby.map_value({
-		'formula_analytics_args': ruby.string_array_value(output.formula_analytics_args)
-		'days':                   ruby.string_value(output.days)
-		'analytics_data_path':    ruby.string_value(output.analytics_data_path)
-		'analytics_api_path':     ruby.string_value(output.analytics_api_path)
-		'category_name':          ruby.string_value(output.category_name)
-		'data_source':            ruby.string_value(output.data_source)
-	})
-}
-
-fn generate_analytics_api_result_value(result GenerateAnalyticsApiResult) ruby.Value {
-	return ruby.map_value({
-		'outputs':       ruby.array_value(result.outputs.map(generate_analytics_api_output_value(it)))
-		'messages':      ruby.string_array_value(result.messages)
-		'retry_delays':  ruby.array_value(result.retry_delays.map(ruby.int_value(i64(it))))
-		'written_files': ruby.string_array_value(result.written_files)
-		'worker_count':  ruby.int_value(result.worker_count)
-	})
 }

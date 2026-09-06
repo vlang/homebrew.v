@@ -1,6 +1,5 @@
 module bundle
 
-import ruby
 import homebrew
 
 // Translated from Homebrew/brew `bundle/trust.rb`.
@@ -230,54 +229,4 @@ pub fn bundle_trust_entries(entries []BrewfileEntry, context BundleTrustContext)
 		}
 	}
 	return targets
-}
-
-pub fn brewfile_entry_value(entry BrewfileEntry) ruby.Value {
-	mut attributes := {
-		'entry_type':   entry.entry_type.str()
-		'name':         entry.name
-		'trusted':      entry.options.trusted.str()
-		'clone_target': entry.options.clone_target
-		'full_name':    entry.options.full_name
-	}
-	for key, items in entry.options.trusted_items {
-		attributes['trusted.${key}'] = items.join('\x1f')
-	}
-	return ruby.structured_value('Homebrew::Bundle::Dsl::Entry', entry.name, attributes)
-}
-
-pub fn brewfile_entry_from_value(value ruby.Value) BrewfileEntry {
-	entry_type := match value.attributes['entry_type'] or { '' } {
-		'tap' { BrewfileEntryType.tap }
-		'brew' { BrewfileEntryType.brew }
-		'cask' { BrewfileEntryType.cask }
-		else { BrewfileEntryType.other }
-	}
-	mut trusted_items := map[string][]string{}
-	for key, items in value.attributes {
-		if key.starts_with('trusted.') {
-			trusted_items[key['trusted.'.len..]] = if items == '' {
-				[]
-			} else {
-				items.split('\x1f')
-			}
-		}
-	}
-	return BrewfileEntry{
-		entry_type: entry_type
-		name: value.attributes['name'] or { value.as_string() }
-		options: BrewfileTrustOptions{
-			trusted: (value.attributes['trusted'] or { 'false' }) == 'true'
-			trusted_items: trusted_items
-			clone_target: value.attributes['clone_target'] or { '' }
-			full_name: value.attributes['full_name'] or { '' }
-		}
-	}
-}
-
-pub fn trust_target_value(target TrustTarget) ruby.Value {
-	return ruby.structured_value('TrustTarget', target.name, {
-		'type': target.target_type.str()
-		'name': target.name
-	})
 }

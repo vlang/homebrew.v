@@ -1,6 +1,5 @@
 module rubocops
 
-import ruby
 import homebrew.utils
 
 // Translated from Homebrew/brew `rubocops/bottle.rb`.
@@ -31,18 +30,6 @@ pub:
 	end_pos         int
 	value_begin_pos int
 	value_end_pos   int
-}
-
-fn bottle_problem_value(problem BottleProblem) ruby.Value {
-	return ruby.structured_value('RuboCop::Cop::Problem', problem.message, {
-		'kind':             problem.kind
-		'begin_pos':        problem.begin_pos.str()
-		'end_pos':          problem.end_pos.str()
-		'message':          problem.message
-		'replacement':      problem.replacement
-		'correction_begin': problem.correction_begin.str()
-		'correction_end':   problem.correction_end.str()
-	})
 }
 
 fn bottle_formula_class(node utils.AstNode) bool {

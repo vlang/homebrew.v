@@ -1,6 +1,5 @@
 module rubocops
 
-import ruby
 import homebrew.rubocops.@shared as conditionals
 import homebrew.utils
 
@@ -1548,55 +1547,4 @@ pub fn audit_lines_rust(context LinesContext) LinesAnalysis {
 		}
 	}
 	return lines_analysis(context, offenses)
-}
-
-fn lines_context_from_values(args []ruby.Value) ?LinesContext {
-	if args.len == 0 {
-		return none
-	}
-	return LinesContext{
-		source: args[0].as_string()
-		tap: if args.len > 1 { args[1].as_string() } else { '' }
-		formula_name: if args.len > 2 { args[2].as_string() } else { '' }
-		make_check_exception: args.len > 3 && args[3].type_name == 'Bool' && args[3].bool_data
-		runtime_cpu_exception: args.len > 4 && args[4].type_name == 'Bool' && args[4].bool_data
-	}
-}
-
-pub fn lines_analysis_value(analysis LinesAnalysis) ruby.Value {
-	offenses := analysis.offenses.map(ruby.structured_value('RuboCop::Cop::Offense', it.message, {
-		'begin_pos':   it.begin_pos.str()
-		'end_pos':     it.end_pos.str()
-		'message':     it.message
-		'replacement': it.replacement
-		'remove':      it.remove.str()
-	}))
-	return ruby.map_value({
-		'offenses':  ruby.array_value(offenses)
-		'corrected': ruby.string_value(analysis.corrected)
-	})
-}
-
-fn lines_audit_adapter(args []ruby.Value, audit fn (LinesContext) LinesAnalysis) ruby.Value {
-	context := lines_context_from_values(args) or { return ruby.object_value('ArgumentError', 'source is required') }
-	return lines_analysis_value(audit(context))
-}
-
-fn lines_calls_value(calls []LinesCall) ruby.Value {
-	return ruby.array_value(calls.map(ruby.structured_value('RuboCop::AST::SendNode', it.source, {
-		'target':    it.target
-		'arguments': it.arguments.join(', ')
-		'begin_pos': it.begin_pos.str()
-		'end_pos':   it.end_pos.str()
-	})))
-}
-
-fn lines_completion_writes_value(nodes []LinesCompletionWrite) ruby.Value {
-	return ruby.array_value(nodes.map(ruby.structured_value('RuboCop::AST::SendNode', it.source, {
-		'base_name':       it.base_name
-		'shell':           it.shell
-		'executable':      it.executable
-		'subcommand':      it.subcommand
-		'shell_parameter': it.shell_parameter
-	})))
 }

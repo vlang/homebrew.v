@@ -171,14 +171,6 @@ pub fn brew_services_failure_reason(name string, no_upgrade bool) string {
 	return 'Service ${name} needs to be started.'
 }
 
-fn brew_services_entry_from_value(value ruby.Value) BundleDslEntry {
-	return BundleDslEntry{
-		entry_type: value.attributes['type'] or { 'brew' }
-		name: value.attributes['name'] or { value.repr }
-		options: value.map_data.clone()
-	}
-}
-
 pub fn brew_services_entry_to_formula(entry BundleDslEntry) BundleBrewInstaller {
 	return bundle_brew_installer(entry.name, bundle_brew_options_from_value(ruby.map_value(entry.options)))
 }
@@ -216,42 +208,4 @@ pub fn (mut state BrewServicesState) installed_and_up_to_date(entry BundleDslEnt
 
 pub fn brew_services_format_checkable(entries []BundleDslEntry) []BundleDslEntry {
 	return entries.filter(it.entry_type == 'brew')
-}
-
-fn brew_services_entries_from_value(value ruby.Value) []BundleDslEntry {
-	return value.as_array() or { [] }.map(brew_services_entry_from_value(it))
-}
-
-fn brew_services_entries_value(entries []BundleDslEntry) ruby.Value {
-	return ruby.array_value(entries.map(bundle_dsl_entry_value(it)))
-}
-
-fn brew_services_state_value(state &BrewServicesState) ruby.Value {
-	return ruby.structured_value('Homebrew::Bundle::Brew::Services', '', {
-		'brew_services_state_address': u64(voidptr(state)).str()
-	})
-}
-
-pub fn brew_services_state_boundary(state &BrewServicesState) ruby.Value {
-	return brew_services_state_value(state)
-}
-
-fn brew_services_state_from_args(args []ruby.Value, method string) &BrewServicesState {
-	if args.len == 0 || 'brew_services_state_address' !in args[0].attributes {
-		panic('Brew::Services.${method} requires translated BrewServices state')
-	}
-	return unsafe { &BrewServicesState(voidptr(args[0].attributes['brew_services_state_address'].u64())) }
-}
-
-fn brew_services_error(type_name string, message string) ruby.Value {
-	return ruby.structured_value(type_name, message, {
-		'message': message
-	})
-}
-
-fn brew_services_optional_string(args []ruby.Value, index int) string {
-	if index >= args.len || args[index].type_name in ['Nil', 'NilClass'] {
-		return ''
-	}
-	return args[index].as_string()
 }

@@ -1,6 +1,5 @@
 module utils
 
-import ruby
 import x.json2
 
 // Translated from Homebrew/brew `utils/cpan.rb`.
@@ -304,33 +303,6 @@ pub fn update_perl_resources(formula CpanFormula, options CpanUpdateOptions,
 	}
 }
 
-fn cpan_package_value(package &CpanPackage) ruby.Value {
-	return ruby.structured_value('CPAN::Package', package.resource_name, {
-		'cpan_package_address': u64(voidptr(package)).str()
-		'resource_name':        package.resource_name
-		'resource_url':         package.resource_url
-	})
-}
-
-fn cpan_package_from_value(value ruby.Value) &CpanPackage {
-	address := value.attribute('cpan_package_address') or { panic('invalid CPAN::Package receiver') }
-	return unsafe { &CpanPackage(voidptr(address.u64())) }
-}
-
 fn cpan_boundary_fetch(_ string) !string {
 	return error('MetaCPAN response was not supplied')
-}
-
-fn cpan_info_value(info CpanInfoLookup) ruby.Value {
-	if info.found {
-		release := info.info
-		return ruby.string_array_value([release.name, release.download_url, release.checksum,
-			release.version])
-	}
-	return ruby.object_value('NilClass', 'nil')
-}
-
-fn cpan_option_bool(values map[string]ruby.Value, name string) bool {
-	value := values[name] or { return false }
-	return value.type_name == 'Bool' && value.bool_data
 }

@@ -1,6 +1,5 @@
 module homebrew
 
-import ruby
 import homebrew.diagnostic as diagnostic_finding
 
 // Translated from Homebrew/brew `diagnostic.rb`.
@@ -135,150 +134,8 @@ pub:
 	output    []string
 }
 
-fn diagnostic_nil() ruby.Value {
-	return ruby.object_value('NilClass', 'nil')
-}
-
-fn diagnostic_strings_value(values []string) ruby.Value {
-	return ruby.array_value(values.map(ruby.string_value(it)))
-}
-
-fn diagnostic_strings(value ruby.Value) []string {
-	return value.as_array() or { return [] }.map(it.as_string())
-}
-
-fn diagnostic_string_map_value(values map[string]string) ruby.Value {
-	mut result := map[string]ruby.Value{}
-	for key, value in values {
-		result[key] = ruby.string_value(value)
-	}
-	return ruby.map_value(result)
-}
-
-fn diagnostic_string_map(value ruby.Value) map[string]string {
-	mut result := map[string]string{}
-	for key, item in value.map_data {
-		result[key] = item.as_string()
-	}
-	return result
-}
-
-pub fn diagnostic_checks_value(checks &DiagnosticChecks) ruby.Value {
-	return ruby.structured_value('Homebrew::Diagnostic::Checks', 'Homebrew::Diagnostic::Checks', {
-		'checks_address': u64(voidptr(checks)).str()
-	})
-}
-
-fn diagnostic_checks_from_value(value ruby.Value) &DiagnosticChecks {
-	address := value.attributes['checks_address'] or { panic('invalid Diagnostic::Checks receiver') }
-	return unsafe { &DiagnosticChecks(voidptr(address.u64())) }
-}
-
-pub fn diagnostic_tap_value(tap DiagnosticTap) ruby.Value {
-	return ruby.Value{
-		type_name: 'Tap'
-		repr: tap.name
-		map_data: {
-			'formula_names':  diagnostic_strings_value(tap.formula_names)
-			'cask_tokens':    diagnostic_strings_value(tap.cask_tokens)
-			'bad_ruby_files': diagnostic_strings_value(tap.bad_ruby_files)
-		}
-		attributes: {
-			'name':                  tap.name
-			'full_name':             tap.full_name
-			'path':                  tap.path
-			'remote':                tap.remote
-			'git_head':              tap.git_head
-			'branch_name':           tap.branch_name
-			'origin_branch_name':    tap.origin_branch_name
-			'default_origin_branch': tap.default_origin_branch.str()
-			'official':              tap.official.str()
-			'core':                  tap.core.str()
-			'core_cask':             tap.core_cask.str()
-			'installed':             tap.installed.str()
-			'cask_count':            tap.cask_count.str()
-			'cask_read_error':       tap.cask_read_error.str()
-		}
-	}
-}
-
-fn diagnostic_tap_from_value(value ruby.Value) DiagnosticTap {
-	return DiagnosticTap{
-		name: value.attributes['name'] or { value.repr }
-		full_name: value.attributes['full_name'] or { value.repr }
-		path: value.attributes['path'] or { '' }
-		remote: value.attributes['remote'] or { '' }
-		git_head: value.attributes['git_head'] or { '' }
-		branch_name: value.attributes['branch_name'] or { '' }
-		origin_branch_name: value.attributes['origin_branch_name'] or { '' }
-		default_origin_branch: (value.attributes['default_origin_branch'] or { 'true' }).bool()
-		official: (value.attributes['official'] or { 'false' }).bool()
-		core: (value.attributes['core'] or { 'false' }).bool()
-		core_cask: (value.attributes['core_cask'] or { 'false' }).bool()
-		installed: (value.attributes['installed'] or { 'true' }).bool()
-		formula_names: diagnostic_strings(value.map_data['formula_names'] or { diagnostic_strings_value([]) })
-		cask_tokens: diagnostic_strings(value.map_data['cask_tokens'] or { diagnostic_strings_value([]) })
-		bad_ruby_files: diagnostic_strings(value.map_data['bad_ruby_files'] or { diagnostic_strings_value([]) })
-		cask_count: (value.attributes['cask_count'] or { '0' }).int()
-		cask_read_error: (value.attributes['cask_read_error'] or { 'false' }).bool()
-	}
-}
-
-pub fn diagnostic_formula_value(formula DiagnosticFormula) ruby.Value {
-	return ruby.Value{
-		type_name: 'Formula'
-		repr: formula.full_name
-		map_data: {
-			'installed_prefixes': diagnostic_strings_value(formula.installed_prefixes)
-			'linked_files':       diagnostic_string_map_value(formula.linked_files)
-		}
-		attributes: {
-			'name':        formula.name
-			'full_name':   formula.full_name
-			'tap':         formula.tap
-			'deprecated':  formula.deprecated.str()
-			'disabled':    formula.disabled.str()
-			'installed':   formula.installed.str()
-			'linked':      formula.linked.str()
-			'keg_only':    formula.keg_only.str()
-			'read_error':  formula.read_error
-			'loadable':    formula.loadable.str()
-			'opt_libexec': formula.opt_libexec
-			'libexec':     formula.libexec
-		}
-	}
-}
-
-fn diagnostic_formula_from_value(value ruby.Value) DiagnosticFormula {
-	return DiagnosticFormula{
-		name: value.attributes['name'] or { value.repr }
-		full_name: value.attributes['full_name'] or { value.repr }
-		tap: value.attributes['tap'] or { '' }
-		deprecated: (value.attributes['deprecated'] or { 'false' }).bool()
-		disabled: (value.attributes['disabled'] or { 'false' }).bool()
-		installed: (value.attributes['installed'] or { 'true' }).bool()
-		linked: (value.attributes['linked'] or { 'false' }).bool()
-		keg_only: (value.attributes['keg_only'] or { 'false' }).bool()
-		read_error: value.attributes['read_error'] or { '' }
-		loadable: (value.attributes['loadable'] or { 'true' }).bool()
-		installed_prefixes: diagnostic_strings(value.map_data['installed_prefixes'] or { diagnostic_strings_value([]) })
-		linked_files: diagnostic_string_map(value.map_data['linked_files'] or { ruby.map_value({}) })
-		opt_libexec: value.attributes['opt_libexec'] or { '' }
-		libexec: value.attributes['libexec'] or { '' }
-	}
-}
-
 fn diagnostic_remediation(text string, commands []string) ?diagnostic_finding.Remediation {
 	return diagnostic_finding.Remediation{ text: text, commands: commands }
-}
-
-fn diagnostic_finding_value(finding ?diagnostic_finding.Finding) ruby.Value {
-	value := finding or { return diagnostic_nil() }
-	return value.to_value()
-}
-
-fn diagnostic_finding_array_value(findings []diagnostic_finding.Finding) ruby.Value {
-	return ruby.array_value(findings.map(it.to_value()))
 }
 
 fn diagnostic_add_info(mut checks DiagnosticChecks, values []string) {
@@ -1682,23 +1539,4 @@ pub fn diagnostic_run_checks(mut checks DiagnosticChecks, checks_type string,
 		exit_code: if failed { 1 } else { 0 }
 		output: output
 	}
-}
-
-fn diagnostic_run_result_value(result DiagnosticRunResult) ruby.Value {
-	return ruby.map_value({
-		'failed':    ruby.bool_value(result.failed)
-		'exit_code': ruby.int_value(result.exit_code)
-		'output':    diagnostic_strings_value(result.output)
-	})
-}
-
-fn diagnostic_receiver(args []ruby.Value) &DiagnosticChecks {
-	if args.len == 0 {
-		panic('Diagnostic::Checks receiver is required')
-	}
-	return diagnostic_checks_from_value(args[0])
-}
-
-fn diagnostic_value_is_nil(value ruby.Value) bool {
-	return value.type_name == 'NilClass'
 }

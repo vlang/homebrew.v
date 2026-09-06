@@ -1,7 +1,5 @@
 module env
 
-import ruby
-
 // Translated from Homebrew/brew `extend/os/linux/extend/ENV/std.rb`.
 pub struct LinuxStdFormula {
 pub:
@@ -49,19 +47,4 @@ pub fn (mut environment LinuxStdEnv) libxml2() {
 	flag := '-I${include_path.trim_right('/')}/libxml2'
 	current := environment.values['CPPFLAGS'] or { '' }
 	environment.values['CPPFLAGS'] = if current == '' { flag } else { '${current} ${flag}' }
-}
-
-fn linux_std_env_value(environment &LinuxStdEnv) ruby.Value {
-	return ruby.structured_value('OS::Linux::Stdenv', '', {
-		'linux_std_env_address': u64(voidptr(environment)).str()
-	})
-}
-
-fn linux_std_env_from_value(value ruby.Value) &LinuxStdEnv {
-	address := value.attributes['linux_std_env_address'] or { panic('invalid Linux Stdenv') }
-	return unsafe { &LinuxStdEnv(voidptr(address.u64())) }
-}
-
-pub fn linux_std_env_boundary(environment &LinuxStdEnv) ruby.Value {
-	return linux_std_env_value(environment)
 }

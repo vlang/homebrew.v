@@ -1,7 +1,5 @@
 module cli
 
-import ruby
-
 // Translated from Homebrew/brew `cli/error.rb`.
 
 fn sentence(items []string, connector string) string {
@@ -58,18 +56,4 @@ pub fn min_named_arguments_error(minimum int, types []string) IError {
 
 pub fn number_of_named_arguments_error(number int, types []string) IError {
 	return error('This command requires exactly ${number} ${argument_types(types)} ${plural_argument(number)}.')
-}
-
-fn cli_error_value(type_name string, value IError) ruby.Value {
-	return ruby.structured_value(type_name, value.msg(), {
-		'message': value.msg()
-	})
-}
-
-fn cli_error_types(args []ruby.Value, index int) []string {
-	return if args.len > index {
-		args[index].as_string_array() or { []string{} }
-	} else {
-		[]string{}
-	}
 }

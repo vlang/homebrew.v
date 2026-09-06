@@ -1,6 +1,5 @@
 module dev_cmd
 
-import ruby
 import os
 import x.json2
 
@@ -123,33 +122,4 @@ pub fn run_generate_cask_api(options GenerateCaskApiOptions) !GenerateCaskApiRes
 pub struct GenerateCaskApiInput {
 pub:
 	options GenerateCaskApiOptions
-}
-
-pub fn generate_cask_api_input_boundary(input &GenerateCaskApiInput) ruby.Value {
-	return ruby.structured_value('Homebrew::DevCmd::GenerateCaskApi::Input', '', {
-		'generate_cask_api_input_address': u64(voidptr(input)).str()
-	})
-}
-
-fn generate_cask_api_input_from_value(value ruby.Value) &GenerateCaskApiInput {
-	address := value.attributes['generate_cask_api_input_address'] or {
-		panic('invalid GenerateCaskApi input')
-	}
-	return unsafe { &GenerateCaskApiInput(voidptr(address.u64())) }
-}
-
-fn generate_cask_api_result_value(result GenerateCaskApiResult) ruby.Value {
-	mut writes := map[string]ruby.Value{}
-	for path, contents in result.writes {
-		writes[path] = ruby.string_value(contents)
-	}
-	return ruby.map_value({
-		'directories':     ruby.string_array_value(result.directories)
-		'writes':          ruby.map_value(writes)
-		'no_api':          ruby.bool_value(result.no_api)
-		'generating_hash': ruby.bool_value(result.generating_hash)
-		'simulated_os':    ruby.object_value('Symbol', result.simulated_os)
-		'simulated_arch':  ruby.object_value('Symbol', result.simulated_arch)
-		'processed_casks': ruby.string_array_value(result.processed_casks)
-	})
 }

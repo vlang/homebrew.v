@@ -1,6 +1,5 @@
 module test_bot
 
-import ruby
 import os
 
 pub struct JunitStep {
@@ -80,27 +79,4 @@ pub fn write_junit(filename string, document string) ! {
 
 fn junit_xml_attribute(value string) string {
 	return value.replace('&', '&amp;').replace("'", '&apos;').replace('<', '&lt;').replace('>', '&gt;').replace('"', '&quot;')
-}
-
-fn junit_tests_from_value(value ruby.Value) []JunitTest {
-	values := value.as_array() or { return [] }
-	mut tests := []JunitTest{cap: values.len}
-	for test_value in values {
-		test_map := test_value.as_map() or { continue }
-		step_values := (test_map['steps'] or { continue }).as_array() or { continue }
-		mut steps := []JunitStep{cap: step_values.len}
-		for step_value in step_values {
-			step := step_value.as_map() or { continue }
-			steps << JunitStep{
-				command_short: (step['command_short'] or { ruby.string_value('') }).as_string()
-				status: (step['status'] or { ruby.string_value('') }).as_string()
-				time: (step['time'] or { ruby.string_value('') }).as_string()
-				start_time: (step['start_time'] or { ruby.string_value('') }).as_string()
-				passed: (step['passed'] or { ruby.bool_value(false) }).bool_data
-				command: (step['command'] or { ruby.string_array_value([]) }).as_string_array() or { [] }
-			}
-		}
-		tests << JunitTest{ steps: steps }
-	}
-	return tests
 }

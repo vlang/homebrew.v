@@ -1,7 +1,5 @@
 module rubocops
 
-import ruby
-
 // Translated from Homebrew/brew `rubocops/version.rb`.
 pub struct VersionAuditOffense {
 pub:

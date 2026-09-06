@@ -1,6 +1,5 @@
 module github
 
-import ruby
 import time
 import x.json2
 
@@ -171,10 +170,6 @@ pub type GitHubApiOpenGraphql = fn (mut GitHubApiState, GitHubApiGraphqlRequest)
 
 pub type GitHubApiGraphqlPage = fn (json2.Any) !GitHubApiPageInfo
 
-fn github_api_nil_value() ruby.Value {
-	return ruby.object_value('NilClass', 'nil')
-}
-
 fn github_api_error_type(kind GitHubApiErrorKind) string {
 	return match kind {
 		.generic { 'GitHub::API::Error' }
@@ -186,101 +181,6 @@ fn github_api_error_type(kind GitHubApiErrorKind) string {
 		.validation_failed { 'GitHub::API::ValidationFailedError' }
 		.json_parser { 'JSON::ParserError' }
 	}
-}
-
-pub fn github_api_error_value(api_error GitHubApiError) ruby.Value {
-	return ruby.structured_value(github_api_error_type(api_error.kind), api_error.message, {
-		'github_message': api_error.github_message
-		'reset':          api_error.reset.str()
-		'resource':       api_error.resource
-		'limit':          api_error.limit.str()
-		'errors':         api_error.validation_errors.str()
-	})
-}
-
-fn github_api_error_from_value(value ruby.Value) GitHubApiError {
-	kind := match value.type_name {
-		'GitHub::API::GitRepositoryIsEmptyError' { GitHubApiErrorKind.git_repository_is_empty }
-		'GitHub::API::HTTPNotFoundError' { GitHubApiErrorKind.http_not_found }
-		'GitHub::API::RateLimitExceededError' { GitHubApiErrorKind.rate_limit_exceeded }
-		'GitHub::API::AuthenticationFailedError' { GitHubApiErrorKind.authentication_failed }
-		'GitHub::API::MissingAuthenticationError' { GitHubApiErrorKind.missing_authentication }
-		'GitHub::API::ValidationFailedError' { GitHubApiErrorKind.validation_failed }
-		'JSON::ParserError' { GitHubApiErrorKind.json_parser }
-		else { GitHubApiErrorKind.generic }
-	}
-	return GitHubApiError{
-		kind: kind
-		message: value.repr
-		github_message: value.attributes['github_message'] or { value.repr }
-		reset: (value.attributes['reset'] or { '0' }).i64()
-		resource: value.attributes['resource'] or { '' }
-		limit: (value.attributes['limit'] or { '0' }).int()
-	}
-}
-
-fn github_api_string_map_from_value(value ruby.Value) map[string]string {
-	mut result := map[string]string{}
-	for key, item in value.map_data {
-		result[key] = item.as_string()
-	}
-	return result
-}
-
-fn github_api_json_from_value(value ruby.Value) json2.Any {
-	return match value.type_name {
-		'NilClass' { json2.Any(json2.null) }
-		'Bool' { json2.Any(value.bool_data) }
-		'Integer' { json2.Any(value.int_data) }
-		'Float' { json2.Any(value.float_data) }
-		'Array' {
-			if value.array_data.len > 0 {
-				json2.Any(value.array_data.map(github_api_json_from_value(it)))
-			} else {
-				json2.Any(value.string_array_data.map(json2.Any(it)))
-			}
-		}
-		'Hash' {
-			mut mapped := map[string]json2.Any{}
-			for key, item in value.map_data {
-				mapped[key] = github_api_json_from_value(item)
-			}
-			json2.Any(mapped)
-		}
-		else { json2.Any(value.as_string()) }
-	}
-}
-
-fn github_api_value_from_json(value json2.Any) ruby.Value {
-	if value is json2.Null {
-		return github_api_nil_value()
-	}
-	if value is bool {
-		return ruby.bool_value(value)
-	}
-	if value is int {
-		return ruby.int_value(value)
-	}
-	if value is i64 {
-		return ruby.int_value(value)
-	}
-	if value is f64 {
-		return ruby.float_value(value)
-	}
-	if value is string {
-		return ruby.string_value(value)
-	}
-	if value is []json2.Any {
-		return ruby.array_value(value.map(github_api_value_from_json(it)))
-	}
-	if value is map[string]json2.Any {
-		mut mapped := map[string]ruby.Value{}
-		for key, item in value {
-			mapped[key] = github_api_value_from_json(item)
-		}
-		return ruby.map_value(mapped)
-	}
-	return ruby.string_value(value.str())
 }
 
 pub fn github_api_pat_blurb(scopes []string) string {

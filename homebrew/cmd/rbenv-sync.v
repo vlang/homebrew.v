@@ -1,6 +1,5 @@
 module cmd
 
-import ruby
 import os
 
 // Translated from Homebrew/brew `cmd/rbenv-sync.rb`.
@@ -95,33 +94,4 @@ pub fn sync_rbenv_versions(rbenv_root string, installed []InstalledRubyVersion, 
 		}
 	}
 	return result
-}
-
-pub fn installed_ruby_version_value(version InstalledRubyVersion) ruby.Value {
-	return ruby.structured_value('InstalledRubyVersion', version.path, {
-		'path':    version.path
-		'version': version.version
-	})
-}
-
-fn installed_ruby_version_from_value(value ruby.Value) InstalledRubyVersion {
-	return InstalledRubyVersion{
-		path: value.attribute('path') or { value.as_string() }
-		version: value.attribute('version') or { '' }
-	}
-}
-
-fn rbenv_sync_result_value(result RbenvSyncResult) ruby.Value {
-	return ruby.Value{
-		type_name: 'RbenvSyncResult'
-		repr: result.created.str()
-		attributes: {
-			'skipped_busy': result.skipped_busy.str()
-		}
-		map_data: {
-			'created': ruby.string_array_value(result.created)
-			'skipped': ruby.string_array_value(result.skipped)
-			'removed': ruby.string_array_value(result.removed)
-		}
-	}
 }

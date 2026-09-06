@@ -1,7 +1,5 @@
 module cmd
 
-import ruby
-
 // Translated from Homebrew/brew `cmd/untap.rb`.
 
 pub struct UntapTap {
@@ -300,74 +298,5 @@ pub fn run_untap_command(input UntapCommandInput) !UntapCommandResult {
 		uninstalled_casks: untap_unique(removed_casks)
 		kegs_by_rack: kegs_by_rack
 		actions: actions
-	}
-}
-
-pub fn untap_command_input_boundary(input &UntapCommandInput) ruby.Value {
-	return ruby.structured_value('Homebrew::Cmd::Untap::Input', '', {
-		'untap_command_input_address': u64(voidptr(input)).str()
-	})
-}
-
-fn untap_command_input_from_value(value ruby.Value) &UntapCommandInput {
-	address := value.attributes['untap_command_input_address'] or { panic('invalid Untap command input') }
-	return unsafe { &UntapCommandInput(voidptr(address.u64())) }
-}
-
-pub fn untap_formula_query_boundary(query &UntapFormulaQuery) ruby.Value {
-	return ruby.structured_value('Homebrew::Cmd::Untap::FormulaQuery', '', {
-		'untap_formula_query_address': u64(voidptr(query)).str()
-	})
-}
-
-fn untap_formula_query_from_value(value ruby.Value) &UntapFormulaQuery {
-	address := value.attributes['untap_formula_query_address'] or { panic('invalid Untap formula query') }
-	return unsafe { &UntapFormulaQuery(voidptr(address.u64())) }
-}
-
-pub fn untap_cask_query_boundary(query &UntapCaskQuery) ruby.Value {
-	return ruby.structured_value('Homebrew::Cmd::Untap::CaskQuery', '', {
-		'untap_cask_query_address': u64(voidptr(query)).str()
-	})
-}
-
-fn untap_cask_query_from_value(value ruby.Value) &UntapCaskQuery {
-	address := value.attributes['untap_cask_query_address'] or { panic('invalid Untap cask query') }
-	return unsafe { &UntapCaskQuery(voidptr(address.u64())) }
-}
-
-fn untap_formula_value(formula UntapFormula) ruby.Value {
-	return ruby.structured_value('Formula', untap_formula_full_name(formula), {
-		'name':      formula.name
-		'full_name': untap_formula_full_name(formula)
-	})
-}
-
-fn untap_cask_value(cask UntapCask) ruby.Value {
-	return ruby.structured_value('Cask::Cask', untap_cask_full_name(cask), {
-		'token':     cask.token
-		'full_name': untap_cask_full_name(cask)
-	})
-}
-
-fn untap_result_value(result UntapCommandResult) ruby.Value {
-	mut racks := map[string]ruby.Value{}
-	for rack, formulae in result.kegs_by_rack {
-		racks[rack] = ruby.string_array_value(formulae)
-	}
-	return ruby.Value{
-		type_name: 'UntapCommandResult'
-		repr: result.stdout
-		bool_data: result.failed
-		map_data: {
-			'stdout':               ruby.string_value(result.stdout)
-			'stderr':               ruby.string_value(result.stderr)
-			'failed':               ruby.bool_value(result.failed)
-			'untapped':             ruby.string_array_value(result.untapped)
-			'uninstalled_formulae': ruby.string_array_value(result.uninstalled_formulae)
-			'uninstalled_casks':    ruby.string_array_value(result.uninstalled_casks)
-			'kegs_by_rack':         ruby.map_value(racks)
-			'actions':              ruby.string_array_value(result.actions)
-		}
 	}
 }

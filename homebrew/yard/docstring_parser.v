@@ -1,7 +1,5 @@
 module yard
 
-import ruby
-
 // Translated from Homebrew/brew `yard/docstring_parser.rb`.
 
 pub struct YardTag {
@@ -238,13 +236,4 @@ pub fn parse_yard_docstring(context YardDocstringContext) YardDocstringResult {
 		directives: directives
 		warnings: warnings
 	}
-}
-
-fn yard_docstring_result_value(result YardDocstringResult) ruby.Value {
-	return ruby.structured_value('YARD::DocstringParser::Result', result.content, {
-		'content':    result.content
-		'tags':       result.tags.map('${it.name}:${it.text}').join('\n')
-		'directives': result.directives.map('${it.name}:${it.text}').join('\n')
-		'warnings':   result.warnings.join('\n')
-	})
 }

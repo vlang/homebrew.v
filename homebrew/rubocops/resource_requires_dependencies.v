@@ -1,7 +1,5 @@
 module rubocops
 
-import ruby
-
 // Translated from Homebrew/brew `rubocops/resource_requires_dependencies.rb`.
 pub const resource_dependency_names = ['bcrypt', 'lxml', 'pynacl', 'pyyaml']
 
@@ -351,15 +349,4 @@ pub fn audit_resource_requires_dependencies(source string) []ResourceRequiresDep
 		}
 	}
 	return problems
-}
-
-fn resource_requires_dependencies_problem_value(problem ResourceRequiresDependenciesProblem) ruby.Value {
-	return ruby.structured_value('RuboCop::Cop::Problem', problem.message, {
-		'resource':              problem.resource
-		'dependency_kind':       problem.dependency_kind
-		'required_dependencies': problem.required_dependencies.join(',')
-		'begin_pos':             problem.begin_pos.str()
-		'end_pos':               problem.end_pos.str()
-		'message':               problem.message
-	})
 }

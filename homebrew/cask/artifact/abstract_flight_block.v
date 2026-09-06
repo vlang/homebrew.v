@@ -1,7 +1,5 @@
 module artifact
 
-import ruby
-
 pub struct FlightBlock {
 pub:
 	cask           string
@@ -75,29 +73,4 @@ pub fn flight_abstract_phase(block FlightBlock, dsl_key string) FlightPhaseResul
 
 pub fn flight_summarize(directive_keys []string) string {
 	return directive_keys.join(', ')
-}
-
-fn flight_block_from_args(args []ruby.Value) FlightBlock {
-	return new_flight_block(if args.len > 0 { args[0].as_string() } else { '' }, if args.len > 1 {
-		args[1].as_string()
-	} else {
-		'Cask::Artifact::AbstractFlightBlock'
-	}, if args.len > 2 { args[2].as_string_array() or { []string{} } } else { []string{} })
-}
-
-fn flight_block_value(block FlightBlock) ruby.Value {
-	return ruby.structured_value(block.class_name, block.cask, {
-		'cask':       block.cask
-		'class_name': block.class_name
-		'directives': block.directive_keys.join(', ')
-	})
-}
-
-fn flight_phase_value(result FlightPhaseResult) ruby.Value {
-	return ruby.map_value({
-		'invoked':  ruby.bool_value(result.invoked)
-		'dsl_key':  ruby.string_value(result.dsl_key)
-		'dsl_type': ruby.string_value(result.dsl_type)
-		'cask':     ruby.string_value(result.cask)
-	})
 }

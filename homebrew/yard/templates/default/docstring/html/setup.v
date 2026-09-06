@@ -1,7 +1,5 @@
 module html
 
-import ruby
-
 // Translated from Homebrew/brew `yard/templates/default/docstring/html/setup.rb`.
 
 pub fn initialize_docstring_html_sections(sections []string) []string {

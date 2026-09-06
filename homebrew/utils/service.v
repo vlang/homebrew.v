@@ -80,12 +80,3 @@ fn service_formula_from_value(value ruby.Value) ServiceFormula {
 		systemd_service_path: value.attributes['systemd_service_path']
 	}
 }
-
-fn service_state_from_value(value ruby.Value) ServiceManagerState {
-	return ServiceManagerState{
-		launchctl_path: value.attributes['launchctl_path']
-		systemctl_path: value.attributes['systemctl_path']
-		launchctl_running: value.attributes['launchctl_running'] == 'true'
-		systemctl_active: value.attributes['systemctl_active'] == 'true'
-	}
-}

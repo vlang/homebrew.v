@@ -1,7 +1,5 @@
 module rubocops
 
-import ruby
-
 // Translated from Homebrew/brew `rubocops/negate_include.rb`.
 pub const negate_include_message = 'Use `.exclude?` and remove the negation part.'
 
@@ -288,28 +286,4 @@ pub fn analyze_negate_includes(source string) NegateIncludeAnalysis {
 		offenses: offenses
 		corrected: corrected
 	}
-}
-
-fn negate_include_call_value(call NegateIncludeCall) ruby.Value {
-	return ruby.structured_value('RuboCop::AST::NodeMatch', call.source, {
-		'receiver':       call.receiver
-		'object':         call.object
-		'begin_pos':      call.begin_pos.str()
-		'end_pos':        call.end_pos.str()
-		'receiver_begin': call.receiver_begin.str()
-		'receiver_end':   call.receiver_end.str()
-		'object_begin':   call.object_begin.str()
-		'object_end':     call.object_end.str()
-	})
-}
-
-fn negate_include_offense_value(offense NegateIncludeOffense) ruby.Value {
-	return ruby.structured_value('RuboCop::Cop::Offense', offense.message, {
-		'receiver':    offense.call.receiver
-		'object':      offense.call.object
-		'begin_pos':   offense.begin_pos.str()
-		'end_pos':     offense.end_pos.str()
-		'message':     offense.message
-		'replacement': offense.replacement
-	})
 }

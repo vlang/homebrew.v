@@ -205,10 +205,6 @@ pub fn quarantine_release(download_path ?string,
 	}
 }
 
-pub fn quarantine_cask(_ ruby.Value, _ ?string, _ bool) ! {
-	return error('NotImplementedError')
-}
-
 fn quarantine_collect_paths(root string) ![]string {
 	mut paths := []string{}
 	mut entries := os.ls(root)!
@@ -287,64 +283,6 @@ fn quarantine_native_runner(command QuarantineCommand) !QuarantineCommandResult 
 	}
 }
 
-fn quarantine_context_from_values(args []ruby.Value) QuarantineContext {
-	mut xattr := quarantine_xattr() or { '' }
-	mut status := ''
-	mut stderr := ''
-	mut exit_code := 0
-	for value in args {
-		if value.type_name == 'Hash' {
-			xattr = value.map_data['xattr'] or { ruby.string_value(xattr) }.as_string()
-			status = value.map_data['status'] or { ruby.string_value(status) }.as_string()
-			stderr = value.map_data['stderr'] or { ruby.string_value(stderr) }.as_string()
-			if raw := value.map_data['exit_code'] {
-				exit_code = int(raw.int_data)
-			}
-		}
-	}
-	return QuarantineContext{
-		xattr: xattr
-		run: fn [status, stderr, exit_code] (command QuarantineCommand) !QuarantineCommandResult {
-			if status != '' && '-p' in command.args {
-				return QuarantineCommandResult{ stdout: status, stderr: stderr, exit_code: exit_code }
-			}
-			return QuarantineCommandResult{ stderr: stderr, exit_code: exit_code }
-		}
-	}
-}
-
-fn quarantine_command_value(command QuarantineCommand) ruby.Value {
-	return ruby.map_value({
-		'executable': ruby.string_value(command.executable)
-		'args':       ruby.string_array_value(command.args)
-		'input':      ruby.string_value(command.input)
-		'sudo':       ruby.bool_value(command.sudo)
-	})
-}
-
-fn quarantine_error_value(message string) ruby.Value {
-	return ruby.structured_value('Error', message, {
-		'message': message
-	})
-}
-
-fn quarantine_argument_string(args []ruby.Value, index int) ?string {
-	mut current := 0
-	for value in args {
-		if value.type_name == 'Hash' {
-			continue
-		}
-		if current == index {
-			if value.type_name == '' || value.type_name == 'NilClass' {
-				return none
-			}
-			return value.as_string()
-		}
-		current++
-	}
-	return none
-}
-
 struct CaskAppManagementPermissionCommand {
 	touch_error string
 	rm_error    string
@@ -370,23 +308,6 @@ fn (command CaskAppManagementPermissionCommand) touch_and_remove_with_sudo(path 
 			return error(remove.stderr)
 		}
 	}
-}
-
-fn cask_app_management_error(message string) ruby.Value {
-	return ruby.structured_value('ErrorDuringExecution', message, {
-		'message': message
-		'stderr':  message
-	})
-}
-
-fn cask_app_management_command_error(value ruby.Value, key string) string {
-	if text := value.attributes[key] {
-		return text
-	}
-	if raw := value.map_data[key] {
-		return raw.as_string()
-	}
-	return ''
 }
 
 // Translated from Homebrew/brew `cask/quarantine.rb`.

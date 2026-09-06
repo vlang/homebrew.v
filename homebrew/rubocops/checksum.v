@@ -1,7 +1,5 @@
 module rubocops
 
-import ruby
-
 // Translated from Homebrew/brew `rubocops/checksum.rb`.
 pub struct FormulaChecksumProblem {
 pub:
@@ -189,15 +187,4 @@ pub fn correct_formula_checksum_case(source string) string {
 		}
 	}
 	return corrected
-}
-
-fn formula_checksum_problem_value(problem FormulaChecksumProblem) ruby.Value {
-	return ruby.structured_value('RuboCop::Cop::Problem', problem.message, {
-		'kind':        problem.kind
-		'checksum':    problem.checksum
-		'begin_pos':   problem.begin_pos.str()
-		'end_pos':     problem.end_pos.str()
-		'message':     problem.message
-		'replacement': problem.replacement
-	})
 }

@@ -134,7 +134,3 @@ fn svn_default_shim() string {
 	}
 	return os.find_abs_path_of_executable('svn') or { 'svn' }
 }
-
-fn svn_nil_value() ruby.Value {
-	return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
-}

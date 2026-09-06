@@ -1,6 +1,5 @@
 module mac
 
-import ruby
 import os
 
 const xcode_default_bundle_path = '/Applications/Xcode.app'
@@ -269,16 +268,6 @@ pub fn clt_detect_version(clang_exists bool, pkgutil_output string, clang_output
 		}
 	}
 	return clt_version_from_clang(clang_output)
-}
-
-fn xcode_value(value string) ruby.Value {
-	return if value == '' {
-		ruby.object_value('NilClass', 'nil')
-	} else {
-		ruby.structured_value('Version', value, {
-			'version': value
-		})
-	}
 }
 
 // Translated from Homebrew/brew `os/mac/xcode.rb`.

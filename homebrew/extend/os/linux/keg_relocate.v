@@ -1,7 +1,5 @@
 module linux
 
-import ruby
-
 // Translated from Homebrew/brew `extend/os/linux/keg_relocate.rb`.
 
 pub struct LinuxElfFile {
@@ -165,17 +163,4 @@ pub fn linux_detect_cxx_stdlibs(context &LinuxKegRelocateContext,
 		}
 	}
 	return results
-}
-
-pub fn linux_keg_relocate_boundary(context &LinuxKegRelocateContext) ruby.Value {
-	return ruby.structured_value('OS::Linux::Keg', context.path, {
-		'linux_keg_relocate_address': u64(voidptr(context)).str()
-	})
-}
-
-fn linux_keg_relocate_from_value(value ruby.Value) &LinuxKegRelocateContext {
-	address := value.attributes['linux_keg_relocate_address'] or {
-		panic('invalid Linux keg relocation receiver')
-	}
-	return unsafe { &LinuxKegRelocateContext(voidptr(address.u64())) }
 }

@@ -1,7 +1,5 @@
 module hash
 
-import ruby
-
 // Translated from Homebrew/brew `extend/hash/keys.rb`.
 pub enum DeepKeyKind {
 	string_key
@@ -194,35 +192,6 @@ pub fn deep_symbolize_keys(object DeepValue) DeepValue {
 	return deep_transform_keys(object, symbolize_deep_key)
 }
 
-fn deep_key_from_runtime(value ruby.Value) DeepKey {
-	return match value.type_name {
-		'Symbol' { symbol_deep_key(value.as_string()) }
-		'Integer' { integer_deep_key(value.int_data) }
-		else { string_deep_key(value.as_string()) }
-	}
-}
-
-fn deep_value_from_runtime(value ruby.Value) DeepValue {
-	return match value.type_name {
-		'Hash' {
-			mut entries := []DeepEntry{}
-			for key, child in value.map_data {
-				entries << DeepEntry{
-					key: string_deep_key(key)
-					value: deep_value_from_runtime(child)
-				}
-			}
-			deep_hash(entries)
-		}
-		'Array' {
-			deep_array((value.as_array() or { []ruby.Value{} }).map(deep_value_from_runtime(it)))
-		}
-		'Integer' { deep_integer(value.int_data) }
-		'NilClass' { DeepValue{} }
-		else { deep_string(value.as_string()) }
-	}
-}
-
 fn deep_key_runtime_name(key DeepKey) string {
 	return match key.kind {
 		.symbol_key { ':${key.text}' }
@@ -239,40 +208,6 @@ fn deep_value_repr(value DeepValue) string {
 		.array_value { '[${value.items.map(deep_value_repr(it)).join(', ')}]' }
 		.hash_value {
 			'{${value.entries.map('\${it.key.inspect()}=>\${deep_value_repr(it.value)}').join(', ')}}'
-		}
-	}
-}
-
-fn deep_value_to_runtime(value DeepValue) ruby.Value {
-	return match value.kind {
-		.null_value { ruby.object_value('NilClass', 'nil') }
-		.string_value { ruby.string_value(value.text) }
-		.integer_value { ruby.int_value(value.integer) }
-		.array_value { ruby.array_value(value.items.map(deep_value_to_runtime(it))) }
-		.hash_value {
-			mut values := map[string]ruby.Value{}
-			for entry in value.entries {
-				values[deep_key_runtime_name(entry.key)] = deep_value_to_runtime(entry.value)
-			}
-			ruby.Value{
-				type_name: 'Hash'
-				repr: deep_value_repr(value)
-				map_data: values
-			}
-		}
-	}
-}
-
-fn deep_transform_from_args(args []ruby.Value) fn (DeepKey) DeepKey {
-	mode := if args.len > 1 { args[1].as_string() } else { 'identity' }
-	return match mode {
-		'string', 'stringify' { stringify_deep_key }
-		'symbol', 'symbolize' { symbolize_deep_key }
-		'upper', 'uppercase' { uppercase_deep_key }
-		else {
-			fn (key DeepKey) DeepKey {
-				return key
-			}
 		}
 	}
 }

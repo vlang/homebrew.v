@@ -14,9 +14,9 @@ pub:
 // new_option translates Option.new(name, description = "").
 pub fn new_option(name string, description ...string) FormulaOption {
 	return FormulaOption{
-		name:        name
+		name: name
 		description: if description.len == 0 { '' } else { description[0] }
-		flag:        '--${name}'
+		flag: '--${name}'
 	}
 }
 

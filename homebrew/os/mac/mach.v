@@ -1,6 +1,5 @@
 module mac
 
-import ruby
 import os
 
 pub struct MachSlice {
@@ -188,17 +187,6 @@ pub fn (mut state MachState) change_install_name(old string, replacement string,
 
 pub fn mach_text_executable(contents string) bool {
 	return contents.starts_with('#!')
-}
-
-fn mach_state_value(state &MachState) ruby.Value {
-	return ruby.structured_value('MachOPathname', state.path, {
-		'mach_address': u64(voidptr(state)).str()
-	})
-}
-
-fn mach_state_from_value(value ruby.Value) &MachState {
-	address := value.attributes['mach_address'] or { panic('invalid MachOPathname receiver') }
-	return unsafe { &MachState(voidptr(address.u64())) }
 }
 
 // Translated from Homebrew/brew `os/mac/mach.rb`.

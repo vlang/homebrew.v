@@ -1,7 +1,5 @@
 module rubocops
 
-import ruby
-
 // Translated from Homebrew/brew `rubocops/keg_only.rb`.
 pub const keg_only_allowlist = ['Apple', 'macOS', 'OS', 'Homebrew', 'Xcode', 'GPG', 'GNOME', 'BSD',
 	'Firefox']
@@ -338,16 +336,4 @@ pub fn autocorrect_keg_only_reason(reason string) string {
 		corrected = corrected[..corrected.len - 1]
 	}
 	return '"${corrected}"'
-}
-
-fn keg_only_problem_value(problem KegOnlyProblem) ruby.Value {
-	return ruby.structured_value('RuboCop::Cop::Problem', problem.message, {
-		'kind':        problem.kind
-		'reason':      problem.reason
-		'first_word':  problem.first_word
-		'begin_pos':   problem.begin_pos.str()
-		'end_pos':     problem.end_pos.str()
-		'message':     problem.message
-		'replacement': problem.replacement
-	})
 }

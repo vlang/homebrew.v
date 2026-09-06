@@ -1,7 +1,5 @@
 module rubocops
 
-import ruby
-
 // Translated from Homebrew/brew `rubocops/no_fileutils_rmrf.rb`.
 pub const no_fileutils_rmrf_message = 'Use `rm` or `rm_r` instead of `rm_rf`, `rm_f`, or `rmtree`.'
 
@@ -283,33 +281,4 @@ pub fn correct_no_fileutils_rmrf(source string) string {
 		corrected = corrected[..offense.begin_pos] + offense.replacement + corrected[offense.end_pos..]
 	}
 	return corrected
-}
-
-fn fileutils_call_argument(args []ruby.Value) ?FileutilsCall {
-	source := if args.len > 0 { args[0].as_string() } else { '' }
-	calls := find_fileutils_calls(source)
-	if calls.len == 0 {
-		return none
-	}
-	return calls[0]
-}
-
-fn fileutils_call_value(call FileutilsCall) ruby.Value {
-	return ruby.structured_value('RuboCop::AST::SendNode', call.method, {
-		'method':       call.method
-		'receiver':     call.receiver
-		'has_receiver': call.has_receiver.str()
-		'argument':     call.argument
-		'begin_pos':    call.begin_pos.str()
-		'end_pos':      call.end_pos.str()
-	})
-}
-
-fn fileutils_offense_value(offense FileutilsRmrfOffense) ruby.Value {
-	return ruby.structured_value('RuboCop::Cop::Offense', offense.message, {
-		'begin_pos':   offense.begin_pos.str()
-		'end_pos':     offense.end_pos.str()
-		'message':     offense.message
-		'replacement': offense.replacement
-	})
 }

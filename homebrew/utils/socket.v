@@ -98,14 +98,6 @@ pub fn connect_unix_socket(path string) !&UnixSocket {
 	}
 }
 
-pub fn open_unix_socket(path string, action UnixSocketAction) !ruby.Value {
-	mut socket := connect_unix_socket(path)!
-	defer {
-		socket.close() or {}
-	}
-	return action(mut socket)
-}
-
 pub fn (mut socket UnixSocket) write(data string) !int {
 	if socket.closed || isnil(socket.connection) {
 		return error('unix socket is closed')
@@ -199,36 +191,4 @@ pub fn unix_server_state(server &UnixServer) UnixSocketState {
 		open: !server.closed
 		listening: !server.closed && !isnil(server.listener)
 	}
-}
-
-pub fn unix_socket_state_value(state UnixSocketState) ruby.Value {
-	return ruby.structured_value('Utils::UNIXSocketState', state.path, {
-		'path':      state.path
-		'role':      state.role.str()
-		'open':      state.open.str()
-		'connected': state.connected.str()
-		'listening': state.listening.str()
-	})
-}
-
-pub fn unix_socket_state_from_value(value ruby.Value) UnixSocketState {
-	role := match value.attributes['role'] or { '' } {
-		'accepted' { UnixSocketRole.accepted }
-		'server' { UnixSocketRole.server }
-		else { UnixSocketRole.client }
-	}
-	return UnixSocketState{
-		path: value.attributes['path'] or { value.as_string() }
-		role: role
-		open: (value.attributes['open'] or { 'false' }) == 'true'
-		connected: (value.attributes['connected'] or { 'false' }) == 'true'
-		listening: (value.attributes['listening'] or { 'false' }) == 'true'
-	}
-}
-
-pub fn unix_sockaddr_value(address UnixSocketAddress) ruby.Value {
-	return ruby.structured_value('Socket::SockaddrUn', address.path, {
-		'path':   address.path
-		'packed': address.packed.hex()
-	})
 }

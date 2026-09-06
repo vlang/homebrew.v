@@ -1,7 +1,5 @@
 module cask
 
-import ruby
-
 // Translated from Homebrew/brew `rubocops/cask/deprecate_disable_unsigned_reason.rb`.
 pub const deprecate_disable_unsigned_reason_message = 'Use `:fails_gatekeeper_check` instead of `:unsigned` for deprecate!/disable! reason.'
 
@@ -181,14 +179,4 @@ pub fn correct_deprecate_disable_unsigned_reason(source string) string {
 		corrected = corrected[..offense.begin_pos] + offense.replacement + corrected[offense.end_pos..]
 	}
 	return corrected
-}
-
-fn deprecate_disable_unsigned_reason_value(offense DeprecateDisableUnsignedReasonOffense) ruby.Value {
-	return ruby.structured_value('RuboCop::Cop::Offense', offense.message, {
-		'stanza':      offense.stanza
-		'begin_pos':   offense.begin_pos.str()
-		'end_pos':     offense.end_pos.str()
-		'message':     offense.message
-		'replacement': offense.replacement
-	})
 }

@@ -1,7 +1,5 @@
 module rubocops
 
-import ruby
-
 // Translated from Homebrew/brew `rubocops/components_redundancy.rb`.
 pub const components_redundancy_head_message = '`head` and `head do` should not be simultaneously present'
 pub const components_redundancy_bottle_message = '`bottle :modifier` and `bottle do` should not be simultaneously present'
@@ -173,13 +171,4 @@ pub fn audit_components_redundancy(source string) []ComponentsRedundancyProblem 
 		problems << components_redundancy_problem('stable_without_head', lines[stable_blocks[0].line_index], components_redundancy_stable_message)
 	}
 	return problems
-}
-
-fn components_redundancy_problem_value(problem ComponentsRedundancyProblem) ruby.Value {
-	return ruby.structured_value('RuboCop::Cop::Problem', problem.message, {
-		'kind':      problem.kind
-		'begin_pos': problem.begin_pos.str()
-		'end_pos':   problem.end_pos.str()
-		'message':   problem.message
-	})
 }

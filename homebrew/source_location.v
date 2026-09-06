@@ -1,7 +1,5 @@
 module homebrew
 
-import ruby
-
 // Translated from Homebrew/brew `source_location.rb`.
 
 // SourceLocation translates a line and optional column in source code.
@@ -35,27 +33,5 @@ pub fn (location SourceLocation) str() string {
 		'${location.line}:${location.column}'
 	} else {
 		location.line.str()
-	}
-}
-
-fn source_location_boundary_value(location SourceLocation) ruby.Value {
-	return ruby.structured_value('SourceLocation', location.str(), {
-		'line':       location.line.str()
-		'has_column': location.has_column.str()
-		'column':     location.column.str()
-	})
-}
-
-fn source_location_from_boundary(value ruby.Value) SourceLocation {
-	if value.type_name != 'SourceLocation' {
-		panic('expected SourceLocation, got ${value.type_name}')
-	}
-	line := (value.attribute('line') or { panic(err) }).int()
-	has_column := (value.attribute('has_column') or { panic(err) }) == 'true'
-	column := (value.attribute('column') or { panic(err) }).int()
-	return SourceLocation{
-		line: line
-		has_column: has_column
-		column: column
 	}
 }

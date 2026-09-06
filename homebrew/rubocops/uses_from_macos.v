@@ -1,7 +1,5 @@
 module rubocops
 
-import ruby
-
 // Translated from Homebrew/brew `rubocops/uses_from_macos.rb`.
 pub const provided_by_macos_formulae = [
 	'apr',
@@ -164,14 +162,4 @@ pub fn audit_uses_from_macos(source string) []UsesFromMacosProblem {
 		}
 	}
 	return problems
-}
-
-fn uses_from_macos_problem_value(problem UsesFromMacosProblem) ruby.Value {
-	return ruby.structured_value('RuboCop::Cop::Problem', problem.message, {
-		'kind':       problem.kind
-		'dependency': problem.dependency
-		'begin_pos':  problem.begin_pos.str()
-		'end_pos':    problem.end_pos.str()
-		'message':    problem.message
-	})
 }

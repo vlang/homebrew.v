@@ -1,7 +1,5 @@
 module cask
 
-import ruby
-
 // Translated from Homebrew/brew `rubocops/cask/no_overrides.rb`.
 pub const no_overrides_message_template = 'Do not use a top-level `%s` stanza as the default. Add it to an `on_{system}` block instead. Use `:or_older` or `:or_newer` to specify a range of macOS versions.'
 pub const no_overrides_macos_message = 'Do not use a `depends_on macos:` stanza inside an `on_{system}` block. Add it once to specify the oldest macOS supported by any version in the cask.'
@@ -320,33 +318,4 @@ pub fn audit_no_overrides(source string) []NoOverridesOffense {
 // NoOverrides does not extend RuboCop's AutoCorrector at the pinned revision.
 pub fn correct_no_overrides(source string) string {
 	return source
-}
-
-fn no_overrides_offense_value(offense NoOverridesOffense) ruby.Value {
-	return ruby.structured_value('RuboCop::Cop::Offense', offense.message, {
-		'stanza':      offense.stanza
-		'begin_pos':   offense.begin_pos.str()
-		'end_pos':     offense.end_pos.str()
-		'message':     offense.message
-		'replacement': offense.replacement
-	})
-}
-
-fn no_overrides_node_ancestry(node ruby.Value) []string {
-	path := if 'ancestry' in node.attributes {
-		node.attributes['ancestry']
-	} else {
-		node.as_string()
-	}
-	return path.split('>').map(it.trim_space()).filter(it != '')
-}
-
-fn no_overrides_single_livecheck_node(node ruby.Value) bool {
-	path := no_overrides_node_ancestry(node)
-	return path.len >= 2 && path[path.len - 2] == 'livecheck'
-}
-
-fn no_overrides_multi_livecheck_node(node ruby.Value) bool {
-	path := no_overrides_node_ancestry(node)
-	return path.len >= 3 && path[path.len - 2] == 'begin' && path[path.len - 3] == 'livecheck'
 }

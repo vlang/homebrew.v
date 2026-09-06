@@ -1,7 +1,5 @@
 module rubocops
 
-import ruby
-
 // Translated from Homebrew/brew `rubocops/conflicts.rb`.
 pub const conflicts_versioned_formula_message = 'Versioned formulae should not use `conflicts_with`. Use `keg_only :versioned_formula` instead.'
 
@@ -162,14 +160,4 @@ pub fn correct_formula_conflicts(source string, formula_name string, versioned_f
 		last_begin = problem.begin_pos
 	}
 	return corrected
-}
-
-fn formula_conflict_problem_value(problem FormulaConflictProblem) ruby.Value {
-	return ruby.structured_value('RuboCop::Cop::Problem', problem.message, {
-		'kind':        problem.kind
-		'begin_pos':   problem.begin_pos.str()
-		'end_pos':     problem.end_pos.str()
-		'message':     problem.message
-		'replacement': problem.replacement
-	})
 }

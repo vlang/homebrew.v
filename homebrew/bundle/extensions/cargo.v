@@ -1,6 +1,5 @@
 module extensions
 
-import ruby
 import os
 
 pub struct CargoCrate {
@@ -17,10 +16,6 @@ pub mut:
 	installed_packages []CargoCrate
 	output             []string
 	commands           [][]string
-}
-
-fn cargo_error(kind string, message string, attributes map[string]string) ruby.Value {
-	return ruby.structured_value(kind, message, attributes)
 }
 
 pub fn cargo_definition() ExtensionDefinition {
@@ -75,134 +70,6 @@ pub fn cargo_crate_record(name string, source string) CargoCrate {
 	return CargoCrate{
 		name: name.trim_space()
 		source: cargo_normalize_source(source)
-	}
-}
-
-pub fn cargo_crate_value(crate CargoCrate) ruby.Value {
-	return ruby.map_value({
-		'name':   ruby.string_value(crate.name)
-		'source': if crate.source == '' {
-			ruby.object_value('NilClass', '')
-		} else {
-			ruby.string_value(crate.source)
-		}
-	})
-}
-
-pub fn cargo_crate_from_value(value ruby.Value) CargoCrate {
-	values := value.as_map() or { return cargo_crate_record(value.as_string(), '') }
-	if 'options' in values {
-		options := values['options'].as_map() or { map[string]ruby.Value{} }
-		return cargo_crate_record(if 'name' in values { values['name'].as_string() } else { '' }, if 'source' in options && options['source'].type_name != 'NilClass' {
-			options['source'].as_string()
-		} else {
-			''
-		})
-	}
-	return CargoCrate{
-		name: if 'name' in values { values['name'].as_string() } else { '' }
-		source: if 'source' in values && values['source'].type_name != 'NilClass' {
-			values['source'].as_string()
-		} else {
-			''
-		}
-	}
-}
-
-pub fn cargo_crates_value(crates []CargoCrate) ruby.Value {
-	return ruby.array_value(crates.map(cargo_crate_value(it)))
-}
-
-pub fn cargo_crates_from_value(value ruby.Value) []CargoCrate {
-	items := value.as_array() or { return [] }
-	return items.map(cargo_crate_from_value(it))
-}
-
-pub fn cargo_state_value(state CargoState) ruby.Value {
-	return ruby.map_value({
-		'_definition':        extension_definition_value(cargo_definition())
-		'executable':         if state.executable == '' {
-			ruby.object_value('NilClass', '')
-		} else {
-			ruby.object_value('Pathname', state.executable)
-		}
-		'executable_exists':  ruby.bool_value(state.executable_exists)
-		'packages':           cargo_crates_value(state.packages)
-		'installed_packages': cargo_crates_value(state.installed_packages)
-		'output':             ruby.string_array_value(state.output)
-		'commands':           ruby.array_value(state.commands.map(ruby.string_array_value(it)))
-	})
-}
-
-pub fn cargo_state_from_value(value ruby.Value) CargoState {
-	values := value.as_map() or { return CargoState{} }
-	mut commands := [][]string{}
-	if 'commands' in values {
-		for command in values['commands'].as_array() or { [] } {
-			commands << (command.as_string_array() or { [] })
-		}
-	}
-	return CargoState{
-		executable: if 'executable' in values && values['executable'].type_name != 'NilClass' {
-			values['executable'].as_string()
-		} else {
-			''
-		}
-		executable_exists: if 'executable_exists' in values {
-			values['executable_exists'].as_bool() or { false }
-		} else {
-			false
-		}
-		packages: if 'packages' in values {
-			cargo_crates_from_value(values['packages'])
-		} else {
-			[]
-		}
-		installed_packages: if 'installed_packages' in values {
-			cargo_crates_from_value(values['installed_packages'])
-		} else {
-			[]
-		}
-		output: if 'output' in values { values['output'].as_string_array() or { [] } } else { [] }
-		commands: commands
-	}
-}
-
-pub fn cargo_entry(name string, options map[string]ruby.Value) !ExtensionEntry {
-	mut unknown := []string{}
-	for key in options.keys() {
-		if key != 'source' {
-			unknown << ':${key}'
-		}
-	}
-	if unknown.len > 0 {
-		return error('unknown options([${unknown.join(', ')}]) for cargo')
-	}
-	source_value := options['source'] or { ruby.object_value('NilClass', '') }
-	if source_value.type_name !in ['String', 'NilClass'] {
-		return error('options[:source](${source_value.repr}) should be a String object')
-	}
-	mut normalized := map[string]ruby.Value{}
-	if source_value.type_name == 'String' && source_value.as_string() != '' {
-		source := cargo_normalize_source(source_value.as_string())
-		if source == '' {
-			return error('options[:source](${source_value.repr}) should be a git URL')
-		}
-		if question := source.index('?') {
-			selector := source[question + 1..]
-			if selector != '' {
-				equals := selector.index('=') or { selector.len }
-				if selector[..equals] !in ['branch', 'tag', 'rev'] {
-					return error('options[:source](${source_value.repr}) should select a branch, tag or rev')
-				}
-			}
-		}
-		normalized['source'] = ruby.string_value(source)
-	}
-	return ExtensionEntry{
-		entry_type: 'cargo'
-		name: name
-		options: normalized
 	}
 }
 

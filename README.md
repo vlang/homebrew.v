@@ -4,8 +4,8 @@
 
 | Operation | `brew-v` | Ruby `brew` | |
 | --- | ---: | ---: | --- |
-| `install neovim` | **0.76 s** / **48.4 MB** | 1.04 s / 150.6 MB | 1.4x faster, 3.1x less RAM |
-| `uninstall neovim` | **0.19 s** / **10.6 MB** | 0.68 s / 98.5 MB | 3.6x faster, 9.3x less RAM |
+| `install neovim` | **0.83 s** / **30.3 MB** | 1.18 s / 148.2 MB | 1.4x faster, 4.9x less RAM |
+| `uninstall neovim` | **0.22 s** / **5.6 MB** | 0.73 s / 99.7 MB | 3.3x faster, 17.7x less RAM |
 
 ## About
 
@@ -18,9 +18,12 @@ Ruby test and vendor trees, or copies of the original Ruby source. Consult the
 recorded upstream revision when source-level context is needed.
 
 Some code still uses the dynamic `ruby.Value` boundary from the
-[`vlang/ruby`](https://github.com/vlang/ruby) compatibility module. Those
-remaining boundaries are kept only when referenced and can be replaced with
-typed V APIs incrementally.
+[`vlang/ruby`](https://github.com/vlang/ruby) compatibility module, in 848
+places across 267 files, down from 3,554. The 2,142 functions that named it and
+were called from nowhere have been removed, and `homebrew/api.v` now carries
+JSON as `x.json2.Any`. What is left is referenced, so each remaining boundary
+needs a concrete V type rather than a mechanical substitution. None of it is on
+the install or uninstall path, which already decodes into typed structs.
 
 Install the external V dependencies once after cloning:
 

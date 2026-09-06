@@ -1,7 +1,5 @@
 module bundle
 
-import ruby
-
 // Translated from Homebrew/brew `extend/os/linux/bundle/brew_services.rb`.
 
 pub struct StartedServicesResult {

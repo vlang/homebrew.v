@@ -1,7 +1,5 @@
 module mac
 
-import ruby
-
 pub struct PkgconfMacState {
 pub:
 	pre_release       bool
@@ -38,21 +36,6 @@ pub fn pkgconf_macos_sdk_mismatch(state PkgconfMacState) ?PkgconfMacMismatch {
 
 pub fn pkgconf_mismatch_warning_message(mismatch PkgconfMacMismatch) string {
 	return 'You have pkgconf installed that was built on macOS ${mismatch.built_on_version},\n        but you are running macOS ${mismatch.current_version}.\n\nThis can cause issues with packages that depend on system libraries, such as libffi.\nTo fix this issue, reinstall pkgconf:\n  brew reinstall pkgconf\n\nFor more information, see: https://github.com/Homebrew/brew/issues/16137\n'
-}
-
-fn pkgconf_state_from_value(value ruby.Value) PkgconfMacState {
-	mut built_on := map[string]string{}
-	for key, item in (value.map_data['built_on'] or { ruby.map_value({}) }).map_data {
-		built_on[key] = item.as_string()
-	}
-	return PkgconfMacState{
-		pre_release: (value.attributes['pre_release'] or { 'false' }).bool()
-		outdated_release: (value.attributes['outdated_release'] or { 'false' }).bool()
-		formula_available: (value.attributes['formula_available'] or { 'true' }).bool()
-		installed: (value.attributes['installed'] or { 'false' }).bool()
-		built_on: built_on
-		current_version: value.attributes['current_version'] or { '' }
-	}
 }
 
 // Translated from Homebrew/brew `extend/os/mac/pkgconf.rb`.

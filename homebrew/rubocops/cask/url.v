@@ -1,6 +1,5 @@
 module cask
 
-import ruby
 import homebrew.rubocops.cask.mixin as cask_mixin
 import homebrew.rubocops.@shared as url_shared
 
@@ -598,18 +597,4 @@ pub fn correct_cask_url(source string, path string) string {
 		}
 	}
 	return corrected
-}
-
-fn cask_url_offense_value(offense CaskUrlOffense) ruby.Value {
-	return ruby.structured_value('RuboCop::Cop::Offense', offense.message, {
-		'kind':              offense.kind
-		'url':               offense.url
-		'begin_pos':         offense.begin_pos.str()
-		'end_pos':           offense.end_pos.str()
-		'message':           offense.message
-		'has_correction':    offense.has_correction.str()
-		'replacement_begin': offense.replacement_begin.str()
-		'replacement_end':   offense.replacement_end.str()
-		'replacement':       offense.replacement
-	})
 }

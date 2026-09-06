@@ -1,7 +1,5 @@
 module rubocops
 
-import ruby
-
 // Translated from Homebrew/brew `rubocops/options.rb`.
 pub const options_deprecated_option_message = 'Formulae in homebrew/core should not use `deprecated_option`.'
 pub const options_option_message = 'Formulae in homebrew/core should not use `option`.'
@@ -125,14 +123,4 @@ pub fn audit_formula_options(source string, formula_tap string, has_optional_or_
 		}
 	}
 	return problems
-}
-
-fn formula_option_problem_value(problem FormulaOptionProblem) ruby.Value {
-	return ruby.structured_value('RuboCop::Cop::Problem', problem.message, {
-		'method':    problem.method
-		'option':    problem.option
-		'begin_pos': problem.begin_pos.str()
-		'end_pos':   problem.end_pos.str()
-		'message':   problem.message
-	})
 }

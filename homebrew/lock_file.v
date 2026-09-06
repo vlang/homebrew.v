@@ -105,11 +105,3 @@ pub fn (mut lock_file LockFile) unlock(unlink bool) ! {
 		ensure_lock_file_exists(lock_file.path)!
 	}
 }
-
-pub fn (mut lock_file LockFile) with_lock(action LockFileAction) !ruby.Value {
-	lock_file.lock()!
-	defer {
-		lock_file.unlock(false) or {}
-	}
-	return action()
-}

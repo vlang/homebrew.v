@@ -53,20 +53,6 @@ pub fn internal_cached_packages_json_file_path(cache_dir string, tag string) str
 	return os.join_path(cache_dir, internal_packages_endpoint(tag))
 }
 
-pub fn internal_formula_struct(name string, hash map[string]ruby.Value, bottle_tag string) !FormulaStruct {
-	if hash.len == 0 {
-		return error('No formula found for ${name}')
-	}
-	return formula_struct_deserialize(hash, internal_effective_tag(bottle_tag), ApiStructPaths{})
-}
-
-pub fn internal_cask_struct(name string, hash map[string]ruby.Value) !CaskStruct {
-	if hash.len == 0 {
-		return error('No cask found for ${name}')
-	}
-	return cask_struct_deserialize(hash, ApiStructPaths{})
-}
-
 pub fn internal_state_formula_struct(mut state InternalApiState, name string) !FormulaStruct {
 	if cached := state.formula_structs[name] {
 		return cached
@@ -294,12 +280,6 @@ pub fn internal_formula_name(mut state InternalApiState, name string) !bool {
 	}
 }
 
-pub fn internal_cask_hashes(mut state InternalApiState) !map[string]ruby.Value {
-	internal_ensure_cask_data(mut state)!
-	if !state.cask_hashes_present { internal_materialize_packages_index(mut state)! }
-	return state.cask_hashes.clone()
-}
-
 pub fn internal_cask_hash(mut state InternalApiState, name string) !PackageValueResult {
 	internal_ensure_cask_data(mut state)!
 	if state.cask_hashes_present {
@@ -359,60 +339,6 @@ fn internal_write_executables(path string, regenerate bool, formulae map[string]
 	os.write_file(path, if lines.len > 0 { '${lines.join('\n')}\n' } else { '' })!
 }
 
-fn internal_state_from_value(value ruby.Value) InternalApiState {
-	values := if value.type_name == 'Hash' {
-		value.map_data.clone()
-	} else {
-		map[string]ruby.Value{}
-	}
-	mut state := InternalApiState{
-		effective_tag: (values['effective_tag'] or { ruby.string_value('') }).as_string()
-		fallback_tag: (values['fallback_tag'] or { ruby.string_value('') }).as_string()
-		cache_dir: (values['cache_dir'] or { ruby.string_value('') }).as_string()
-		fetch_payload: (values['fetch_payload'] or { ruby.string_value('') }).as_string()
-		fetch_updated: (values['fetch_updated'] or { ruby.bool_value(false) }).bool_data
-		fetch_http_status: int((values['fetch_http_status'] or { ruby.int_value(0) }).int_data)
-		sidecar_verified: (values['sidecar_verified'] or { ruby.bool_value(true) }).bool_data
-		values: values.clone()
-	}
-	if formulae := values['formulae'] {
-		state.formula_hashes = internal_value_map(formulae)
-		state.formula_hashes_present = true
-	}
-	if casks := values['casks'] {
-		state.cask_hashes = internal_value_map(casks)
-		state.cask_hashes_present = true
-	}
-	return state
-}
-
-fn internal_state_value(state InternalApiState) ruby.Value {
-	mut values := state.values.clone()
-	values['effective_tag'] = ruby.string_value(state.effective_tag)
-	values['formulae'] = ruby.map_value(state.formula_hashes)
-	values['casks'] = ruby.map_value(state.cask_hashes)
-	values['data_loaded'] = ruby.bool_value(internal_data_loaded(state))
-	return ruby.map_value(values)
-}
-
-// internal_state_value_for_test exposes the same generic adapter used by the
-// retained wrappers while keeping the mutable runtime API fully typed.
-pub fn internal_state_value_for_test(parsed ruby.Value, cache_dir string) ruby.Value {
-	mut values := parsed.map_data.clone()
-	values['cache_dir'] = ruby.string_value(cache_dir)
-	values['effective_tag'] = ruby.string_value('arm64_sonoma')
-	values['fetch_payload'] = ruby.string_value(ruby.json_value_to_string(parsed))
-	return ruby.map_value(values)
-}
-
-fn internal_fetch_result_value(result InternalFetchResult) ruby.Value {
-	return ruby.map_value({
-		'indexed': ruby.bool_value(result.indexed)
-		'updated': ruby.bool_value(result.updated)
-		'parsed':  result.parsed
-	})
-}
-
 fn internal_value_map(value ruby.Value) map[string]ruby.Value {
 	return if value.type_name == 'Hash' {
 		value.map_data.clone()
@@ -429,36 +355,6 @@ fn internal_string_map(value ruby.Value) map[string]string {
 	return result
 }
 
-fn internal_string_map_value(values map[string]string) ruby.Value {
-	mut result := map[string]ruby.Value{}
-	for key, value in values {
-		result[key] = ruby.string_value(value)
-	}
-	return ruby.map_value(result)
-}
-
-fn internal_string_map_boundary(args []ruby.Value, key string) ruby.Value {
-	mut state := internal_state_from_value(args[0] or { ruby.map_value(map[string]ruby.Value{}) })
-	return internal_string_map_value(internal_string_map(internal_packages_value(mut state, key) or { return internal_error_value('RuntimeError', err.msg()) }))
-}
-
-fn internal_string_boundary(args []ruby.Value, key string) ruby.Value {
-	mut state := internal_state_from_value(args[0] or { ruby.map_value(map[string]ruby.Value{}) })
-	return internal_packages_value(mut state, key) or { internal_error_value('RuntimeError', err.msg()) }
-}
-
-fn internal_error_value(kind string, message string) ruby.Value {
-	return ruby.object_value(kind, message)
-}
-
 fn internal_nil_value() ruby.Value {
 	return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
-}
-
-fn formula_struct_value(formula FormulaStruct) ruby.Value {
-	return ruby.map_value(formula.serialize('arm64_sonoma'))
-}
-
-fn cask_struct_value(cask CaskStruct) ruby.Value {
-	return ruby.map_value(cask.serialize())
 }

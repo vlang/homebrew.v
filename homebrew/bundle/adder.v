@@ -72,23 +72,3 @@ pub fn add_bundle_entries(options BundleAddOptions) !BundleAddResult {
 		appended_entries: entries
 	}
 }
-
-fn bundle_add_descriptions_from_value(value ruby.Value) map[string]string {
-	values := value.as_map() or { return map[string]string{} }
-	mut descriptions := map[string]string{}
-	for name, description in values {
-		descriptions[name] = description.as_string()
-	}
-	return descriptions
-}
-
-fn bundle_add_result_value(result BundleAddResult) ruby.Value {
-	return ruby.structured_value('Bundle::Adder::Result', result.path, {
-		'path':             result.path
-		'content':          result.content
-		'ensured_taps':     result.ensured_taps.join(',')
-		'trusted_type':     result.trusted_type
-		'trusted_items':    result.trusted_items.join(',')
-		'appended_entries': result.appended_entries.join('\n')
-	})
-}

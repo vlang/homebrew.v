@@ -1,7 +1,5 @@
 module cmd
 
-import ruby
-
 // Translated from Homebrew/brew `cmd/--prefix.rb`.
 
 const unbrewed_exclude_files = ['.DS_Store']
@@ -109,23 +107,4 @@ pub fn run_prefix(options PrefixOptions) !PrefixResult {
 pub struct PrefixInput {
 pub:
 	options PrefixOptions
-}
-
-pub fn prefix_input_boundary(input &PrefixInput) ruby.Value {
-	return ruby.structured_value('Homebrew::Cmd::Prefix::Input', '', {
-		'prefix_input_address': u64(voidptr(input)).str()
-	})
-}
-
-fn prefix_input_from_value(value ruby.Value) &PrefixInput {
-	address := value.attributes['prefix_input_address'] or { panic('invalid Prefix input') }
-	return unsafe { &PrefixInput(voidptr(address.u64())) }
-}
-
-fn prefix_result_value(result PrefixResult) ruby.Value {
-	return ruby.map_value({
-		'stdout':       ruby.string_value(result.stdout)
-		'working_dir':  ruby.string_value(result.working_dir)
-		'find_command': ruby.string_array_value(result.find_command)
-	})
 }

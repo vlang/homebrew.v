@@ -1,7 +1,5 @@
 module rubocops
 
-import ruby
-
 // Translated from Homebrew/brew `rubocops/safe_navigation_with_blank.rb`.
 pub const safe_navigation_with_blank_message = 'Avoid calling `blank?` with the safe navigation operator in conditionals.'
 
@@ -118,14 +116,4 @@ pub fn correct_safe_navigation_with_blank(source string) string {
 		corrected = corrected[..dot] + '.' + corrected[dot + 2..]
 	}
 	return corrected
-}
-
-fn safe_navigation_blank_value(matched SafeNavigationBlankMatch, type_name string) ruby.Value {
-	return ruby.structured_value(type_name, matched.condition, {
-		'begin_pos': matched.begin_pos.str()
-		'end_pos':   matched.end_pos.str()
-		'dot_pos':   matched.dot_pos.str()
-		'condition': matched.condition
-		'message':   matched.message
-	})
 }

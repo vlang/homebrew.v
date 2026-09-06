@@ -384,7 +384,7 @@ fn keg_file_descriptions(paths []string) map[string]string {
 		// `file --print0` emits `path\0: description`, and prints extra lines for
 		// some files that carry no separator and are skipped.
 		for line in result.output.split_into_lines() {
-			path, description := line.split_once('\0') or { continue }
+			path, description := line.split_once('\x00') or { continue }
 			descriptions[path] = description.trim_left(': ').trim_space()
 		}
 	}
@@ -642,60 +642,4 @@ pub fn keg_text_matches_in_file(file string, needle string, ignores []string,
 		offset += segment.len + 1
 	}
 	return matches
-}
-
-fn relocation_keg_from_value(value ruby.Value) Keg {
-	values := value.map_data.clone()
-	path := (values['path'] or { ruby.string_value(value.as_string()) }).as_string()
-	cellar := (values['cellar'] or { ruby.string_value(os.dir(os.dir(path))) }).as_string()
-	prefix := (values['prefix'] or { ruby.string_value(os.dir(cellar)) }).as_string()
-	return Keg{ path: path, name: (values['name'] or { ruby.string_value(os.base(os.dir(path))) }).as_string(), prefix: prefix, cellar: cellar }
-}
-
-pub fn keg_relocation_keg_value(keg Keg) ruby.Value {
-	return ruby.map_value({
-		'path':   ruby.string_value(keg.path)
-		'name':   ruby.string_value(keg.name)
-		'prefix': ruby.string_value(keg.prefix)
-		'cellar': ruby.string_value(keg.cellar)
-	})
-}
-
-fn keg_relocation_from_value(value ruby.Value) KegRelocation {
-	mut relocation := new_keg_relocation()
-	if value.type_name != 'Hash' {
-		return relocation
-	}
-	for key, entry in value.map_data {
-		if entry.type_name != 'Hash' {
-			continue
-		}
-		values := entry.map_data.clone()
-		relocation.add_replacement_pair_with_path(key, (values['old'] or { ruby.string_value('') }).as_string(), (values['new'] or { ruby.string_value('') }).as_string(), (values['path'] or { ruby.bool_value(false) }).bool_data)
-	}
-	return relocation
-}
-
-pub fn keg_relocation_value(relocation KegRelocation) ruby.Value {
-	return ruby.map_value(keg_replacement_pairs_value(relocation.replacement_map))
-}
-
-fn keg_replacement_pairs_value(pairs map[string]KegReplacementPair) map[string]ruby.Value {
-	mut values := map[string]ruby.Value{}
-	for key, pair in pairs {
-		values[key] = keg_replacement_pair_value(pair)
-	}
-	return values
-}
-
-fn keg_replacement_pair_value(pair KegReplacementPair) ruby.Value {
-	return ruby.map_value({
-		'old':  ruby.string_value(pair.old_value)
-		'new':  ruby.string_value(pair.new_value)
-		'path': ruby.bool_value(pair.path)
-	})
-}
-
-fn keg_relocate_nil() ruby.Value {
-	return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
 }

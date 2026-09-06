@@ -1,7 +1,5 @@
 module subcommand
 
-import ruby
-
 // Translated from Homebrew/brew `bundle/subcommand/edit.rb`.
 
 pub struct BundleEditPlan {

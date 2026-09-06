@@ -1,6 +1,5 @@
 module cask
 
-import ruby
 import homebrew.rubocops as formula_no_autobump_core
 import homebrew.rubocops.@shared as no_autobump_shared
 
@@ -110,27 +109,4 @@ pub fn correct_cask_no_autobump(source string) string {
 		last_begin = problem.begin_pos
 	}
 	return corrected
-}
-
-fn cask_no_autobump_problem_value(problem no_autobump_shared.NoAutobumpReasonProblem) ruby.Value {
-	return ruby.structured_value('RuboCop::Cop::Problem', problem.message, {
-		'kind':        problem.kind
-		'reason':      problem.reason
-		'is_symbol':   problem.is_symbol.str()
-		'begin_pos':   problem.begin_pos.str()
-		'end_pos':     problem.end_pos.str()
-		'message':     problem.message
-		'replacement': problem.replacement
-	})
-}
-
-fn cask_no_autobump_stanza_value(call formula_no_autobump_core.NoAutobumpCall) ruby.Value {
-	return ruby.structured_value('RuboCop::Cask::AST::Stanza', 'no_autobump!', {
-		'name':          'no_autobump!'
-		'begin_pos':     call.begin_pos.str()
-		'end_pos':       call.end_pos.str()
-		'has_reason':    call.has_reason.str()
-		'reason':        call.reason
-		'reason_symbol': call.reason_symbol.str()
-	})
 }

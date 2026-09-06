@@ -1,6 +1,5 @@
 module dev_cmd
 
-import ruby
 import os
 
 // Translated from Homebrew/brew `dev-cmd/rubydoc.rb`.
@@ -34,14 +33,4 @@ pub fn rubydoc_plan(options RubydocOptions) RubydocPlan {
 		command: command
 		browser_url: if options.open { 'file://${output_dir}/index.html' } else { '' }
 	}
-}
-
-fn rubydoc_plan_value(plan RubydocPlan) ruby.Value {
-	return ruby.map_value({
-		'bundler_groups': ruby.string_array_value(plan.bundler_groups)
-		'working_dir':    ruby.string_value(plan.working_dir)
-		'output_dir':     ruby.string_value(plan.output_dir)
-		'command':        ruby.string_array_value(plan.command)
-		'browser_url':    ruby.string_value(plan.browser_url)
-	})
 }

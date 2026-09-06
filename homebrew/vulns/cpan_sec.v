@@ -1,6 +1,5 @@
 module vulns
 
-import ruby
 import homebrew
 import x.json2
 
@@ -466,46 +465,6 @@ fn cpan_sec_advisory_json(advisory CpanSecAdvisory) map[string]json2.Any {
 	return result
 }
 
-pub fn cpan_sec_advisory_value(advisory CpanSecAdvisory) ruby.Value {
-	return ruby.Value{
-		type_name: 'CPANSec::Advisory'
-		repr: json2.encode(cpan_sec_advisory_json(advisory))
-		map_data: {
-			'id':                ruby.string_value(advisory.id)
-			'cves':              ruby.string_array_value(advisory.cves)
-			'affected_versions': ruby.string_array_value(advisory.affected_versions)
-			'fixed_versions':    ruby.string_array_value(advisory.fixed_versions)
-			'severity':          if value := advisory.severity {
-				ruby.string_value(value)
-			} else {
-				ruby.object_value('NilClass', 'nil')
-			}
-			'description':       if value := advisory.description {
-				ruby.string_value(value)
-			} else {
-				ruby.object_value('NilClass', 'nil')
-			}
-			'references':        ruby.string_array_value(advisory.references)
-			'reported':          if value := advisory.reported {
-				ruby.string_value(value)
-			} else {
-				ruby.object_value('NilClass', 'nil')
-			}
-		}
-	}
-}
-
-pub fn cpan_sec_advisory_from_value(value ruby.Value) !CpanSecAdvisory {
-	if value.type_name != 'CPANSec::Advisory' {
-		return error('expected CPANSec::Advisory, got ${value.type_name}')
-	}
-	decoded := json2.decode[json2.Any](value.repr)!
-	if decoded !is map[string]json2.Any {
-		return error('CPANSec advisory value is not a JSON object')
-	}
-	return build_cpan_sec_advisory(decoded.as_map()) or { error('CPANSA advisory has no id') }
-}
-
 fn cpan_sec_database_json(database CpanSecDatabase) map[string]json2.Any {
 	mut dists := map[string]json2.Any{}
 	for distribution in database.distributions() {
@@ -516,58 +475,5 @@ fn cpan_sec_database_json(database CpanSecDatabase) map[string]json2.Any {
 	return {
 		'dists': json2.Any(dists)
 		'meta':  json2.Any(database.meta())
-	}
-}
-
-pub fn cpan_sec_database_value(database CpanSecDatabase) ruby.Value {
-	return ruby.Value{
-		type_name: 'CPANSec'
-		repr: json2.encode(cpan_sec_database_json(database))
-		attributes: {
-			'distributions': database.distributions().join(',')
-		}
-	}
-}
-
-pub fn cpan_sec_database_from_value(value ruby.Value) !CpanSecDatabase {
-	if value.type_name != 'CPANSec' {
-		return error('expected CPANSec, got ${value.type_name}')
-	}
-	return parse_cpan_sec_database(value.repr)
-}
-
-pub fn cpan_sec_range_status_value(status CpanSecRangeStatus) ruby.Value {
-	return ruby.Value{
-		type_name: 'Vulnerability::RangeStatus'
-		repr: status.state.str()
-		attributes: {
-			'state':    status.state.str()
-			'fixed_in': status.fixed_in or { '' }
-		}
-	}
-}
-
-fn cpan_sec_json_from_boundary(value ruby.Value) json2.Any {
-	return match value.type_name {
-		'NilClass' { json2.Any(json2.null) }
-		'String' { json2.Any(value.as_string()) }
-		'Bool' { json2.Any(value.bool_data) }
-		'Integer' { json2.Any(value.int_data) }
-		'Float' { json2.Any(value.float_data) }
-		'Array' {
-			if value.array_data.len > 0 {
-				json2.Any(value.array_data.map(cpan_sec_json_from_boundary(it)))
-			} else {
-				json2.Any(value.string_array_data.map(json2.Any(it)))
-			}
-		}
-		'Hash' {
-			mut result := map[string]json2.Any{}
-			for key, item in value.map_data {
-				result[key] = cpan_sec_json_from_boundary(item)
-			}
-			json2.Any(result)
-		}
-		else { json2.Any(value.as_string()) }
 	}
 }

@@ -1,6 +1,5 @@
 module shared
 
-import ruby
 import regex
 
 // Translated from Homebrew/brew `rubocops/shared/url_helper.rb`.
@@ -552,45 +551,4 @@ pub fn correct_url_problems(source string, problems []UrlProblem) string {
 		}
 	}
 	return corrected
-}
-
-fn url_node_from_value(value ruby.Value) UrlAuditNode {
-	content := value.attributes['content'] or { value.as_string() }
-	source := value.attributes['source'] or { value.as_string() }
-	begin_pos := (value.attributes['begin_pos'] or { '0' }).int()
-	end_pos := (value.attributes['end_pos'] or { (begin_pos + source.len).str() }).int()
-	argument_begin := (value.attributes['argument_begin'] or { begin_pos.str() }).int()
-	argument_end := (value.attributes['argument_end'] or { (argument_begin + content.len).str() }).int()
-	return UrlAuditNode{source, content, begin_pos, end_pos, argument_begin, argument_end}
-}
-
-fn url_nodes_from_value(value ruby.Value) []UrlAuditNode {
-	items := value.as_array() or { return [] }
-	return items.map(url_node_from_value(it))
-}
-
-fn url_match_value(item UrlAuditMatch) ruby.Value {
-	return ruby.structured_value('MatchData', item.matched, {
-		'url':       item.url
-		'content':   item.content
-		'index':     item.index.str()
-		'begin_pos': item.begin_pos.str()
-		'end_pos':   item.end_pos.str()
-		'matched':   item.matched
-	})
-}
-
-pub fn url_problem_value(problem UrlProblem) ruby.Value {
-	return ruby.structured_value('RuboCop::Cop::Problem', problem.message, {
-		'kind':              problem.kind
-		'url':               problem.url
-		'index':             problem.index.str()
-		'begin_pos':         problem.begin_pos.str()
-		'end_pos':           problem.end_pos.str()
-		'message':           problem.message
-		'has_correction':    problem.has_correction.str()
-		'replacement_begin': problem.replacement_begin.str()
-		'replacement_end':   problem.replacement_end.str()
-		'replacement':       problem.replacement
-	})
 }

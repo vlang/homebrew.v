@@ -61,16 +61,6 @@ pub fn new_cask_api_state(cache_directory string, source_cache_directory string)
 	}
 }
 
-fn cask_nil_value() ruby.Value {
-	return ruby.object_value('NilClass', 'nil')
-}
-
-fn cask_error_value(kind string, message string) ruby.Value {
-	return ruby.structured_value(kind, message, {
-		'message': message
-	})
-}
-
 fn cask_value_strings(value ruby.Value) []string {
 	if value.string_array_data.len > 0 {
 		return value.string_array_data.clone()
@@ -203,14 +193,6 @@ pub fn cask_download_and_cache_data(mut state CaskApiState) !bool {
 	return result.updated
 }
 
-pub fn cask_all_casks(mut state CaskApiState) !map[string]map[string]ruby.Value {
-	if !state.casks_loaded {
-		updated := cask_download_and_cache_data(mut state)!
-		cask_write_names(mut state, updated)!
-	}
-	return state.casks.clone()
-}
-
 pub fn cask_tap_migrations(mut state CaskApiState) !map[string]ruby.Value {
 	if !state.tap_migrations_loaded {
 		result := cask_fetch_tap_migrations(mut state, none, false)!
@@ -236,61 +218,6 @@ pub fn cask_write_names(mut state CaskApiState, regenerate bool) ! {
 		contents := if names.len == 0 { '' } else { '${names.join('\n')}\n' }
 		os.write_file(state.names_file, contents)!
 	}
-}
-
-pub fn cask_api_state_boundary(state &CaskApiState) ruby.Value {
-	return ruby.structured_value('Homebrew::API::Cask', '', {
-		'cask_api_state_address': u64(voidptr(state)).str()
-	})
-}
-
-pub fn cask_source_boundary(cask CaskSource) ruby.Value {
-	return ruby.structured_value('Cask::Cask', cask.token, {
-		'token':                cask.token
-		'ruby_source_path':     cask.ruby_source_path
-		'ruby_source_checksum': cask.ruby_source_checksum
-		'tap_git_head':         cask.tap_git_head
-		'tap_full_name':        cask.tap_full_name
-		'config_type':          cask.config.type_name
-		'config_repr':          cask.config.repr
-	})
-}
-
-fn cask_state_from_args(args []ruby.Value, method string) &CaskApiState {
-	if args.len == 0 || 'cask_api_state_address' !in args[0].attributes {
-		panic('API::Cask.${method} requires translated Cask API state')
-	}
-	return unsafe { &CaskApiState(voidptr(args[0].attributes['cask_api_state_address'].u64())) }
-}
-
-fn cask_source_from_value(value ruby.Value) CaskSource {
-	return CaskSource{
-		token: value.attributes['token'] or { value.repr }
-		ruby_source_path: value.attributes['ruby_source_path'] or { '' }
-		ruby_source_checksum: value.attributes['ruby_source_checksum'] or { '' }
-		tap_git_head: value.attributes['tap_git_head'] or { '' }
-		tap_full_name: value.attributes['tap_full_name'] or { '' }
-		config: ruby.object_value(value.attributes['config_type'] or { 'NilClass' }, value.attributes['config_repr'] or { 'nil' })
-	}
-}
-
-fn cask_source_download_value(download SourceDownload) ruby.Value {
-	return ruby.structured_value('Homebrew::API::SourceDownload', download.url, {
-		'url':              download.url
-		'sha256':           download.checksum or { '' }
-		'mirror':           if download.mirrors.len > 0 { download.mirrors[0] } else { '' }
-		'cache':            download.downloader.cache
-		'symlink_location': source_download_strategy_symlink_location(download.downloader)
-	})
-}
-
-fn cask_loaded_source_value(loaded LoadedCaskSource) ruby.Value {
-	return ruby.structured_value('Cask::Cask', loaded.token, {
-		'token':    loaded.token
-		'path':     loaded.path
-		'contents': loaded.contents
-		'config':   loaded.config.repr
-	})
 }
 
 fn cask_map_value(values map[string]map[string]ruby.Value) ruby.Value {

@@ -1,6 +1,5 @@
 module rubocops
 
-import ruby
 import homebrew.rubocops.@shared as api_annotations
 import os
 
@@ -692,16 +691,4 @@ pub fn audit_non_public_api_usage(source string, formula_tap string, homebrew_di
 		return []
 	}
 	return audit_non_public_api_usage_with_methods(source, formula_tap, non_public_api_internal_methods(homebrew_dir), non_public_api_private_methods(homebrew_dir))
-}
-
-fn non_public_api_offense_value(offense NonPublicApiUsageOffense) ruby.Value {
-	return ruby.structured_value('RuboCop::Cop::Offense', offense.message, {
-		'method':    offense.method
-		'receiver':  offense.receiver
-		'begin_pos': offense.begin_pos.str()
-		'end_pos':   offense.end_pos.str()
-		'line':      offense.line.str()
-		'column':    offense.column.str()
-		'message':   offense.message
-	})
 }

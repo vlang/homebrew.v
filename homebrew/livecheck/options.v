@@ -29,13 +29,6 @@ pub fn livecheck_options_value(options LivecheckOptions) ruby.Value {
 	return ruby.Value{ type_name: 'Homebrew::Livecheck::Options', repr: options.values.str(), map_data: options.values }
 }
 
-pub fn livecheck_options_from_value(value ruby.Value) !LivecheckOptions {
-	if value.type_name !in ['Homebrew::Livecheck::Options', 'Hash'] {
-		return error('expected Livecheck::Options or Hash, got ${value.type_name}')
-	}
-	return new_livecheck_options(value.map_data)
-}
-
 pub fn (options LivecheckOptions) url_options() map[string]ruby.Value {
 	mut result := map[string]ruby.Value{}
 	for key in livecheck_option_names {

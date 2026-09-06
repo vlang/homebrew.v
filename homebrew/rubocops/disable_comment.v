@@ -1,7 +1,5 @@
 module rubocops
 
-import ruby
-
 // Translated from Homebrew/brew `rubocops/disable_comment.rb`.
 pub const disable_comment_message = 'Add a clarifying comment to the RuboCop disable comment'
 
@@ -95,14 +93,4 @@ pub fn audit_disable_comments(source string) []DisableCommentOffense {
 		}
 	}
 	return offenses
-}
-
-fn disable_comment_offense_value(offense DisableCommentOffense) ruby.Value {
-	return ruby.structured_value('RuboCop::Cop::Offense', offense.message, {
-		'text':      offense.comment.text
-		'line':      offense.comment.line.str()
-		'begin_pos': offense.begin_pos.str()
-		'end_pos':   offense.end_pos.str()
-		'message':   offense.message
-	})
 }

@@ -47,22 +47,3 @@ pub fn (patch DataPatch) contents() !string {
 	}
 	return ''
 }
-
-fn data_patch_boundary_value(patch DataPatch) ruby.Value {
-	return ruby.structured_value('DATAPatch', patch.filename(), {
-		'strip':    patch.strip
-		'has_path': patch.has_path.str()
-		'path':     patch.path
-	})
-}
-
-fn data_patch_from_boundary(value ruby.Value) DataPatch {
-	if value.type_name != 'DATAPatch' {
-		panic('expected DATAPatch, got ${value.type_name}')
-	}
-	return DataPatch{
-		strip: value.attribute('strip') or { panic(err) }
-		has_path: (value.attribute('has_path') or { panic(err) }) == 'true'
-		path: value.attribute('path') or { panic(err) }
-	}
-}

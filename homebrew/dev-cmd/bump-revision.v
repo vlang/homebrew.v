@@ -94,26 +94,3 @@ pub fn run_bump_revision(options BumpRevisionOptions) !BumpRevisionResult {
 		modified_formulae: modified
 	}
 }
-
-pub fn bump_revision_input_boundary(input &BumpRevisionInput) ruby.Value {
-	return ruby.structured_value('Homebrew::DevCmd::BumpRevision::Input', '', {
-		'bump_revision_input_address': u64(voidptr(input)).str()
-	})
-}
-
-fn bump_revision_input_from_value(value ruby.Value) &BumpRevisionInput {
-	address := value.attributes['bump_revision_input_address'] or {
-		panic('invalid BumpRevision input')
-	}
-	return unsafe { &BumpRevisionInput(voidptr(address.u64())) }
-}
-
-fn bump_revision_result_value(result BumpRevisionResult) ruby.Value {
-	return ruby.map_value({
-		'path':              ruby.string_value(result.path)
-		'bundler_groups':    ruby.string_array_value(result.bundler_groups)
-		'output':            ruby.string_array_value(result.output)
-		'commit_commands':   ruby.array_value(result.commit_commands.map(ruby.string_array_value(it)))
-		'modified_formulae': ruby.string_array_value(result.modified_formulae)
-	})
-}

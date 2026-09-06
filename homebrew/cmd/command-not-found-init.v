@@ -1,7 +1,5 @@
 module cmd
 
-import ruby
-
 // Translated from Homebrew/brew `cmd/command-not-found-init.rb`.
 
 pub struct CommandNotFoundInitOptions {
@@ -72,25 +70,4 @@ pub fn run_command_not_found_init(options CommandNotFoundInitOptions) !CommandNo
 pub struct CommandNotFoundInitInput {
 pub:
 	options CommandNotFoundInitOptions
-}
-
-pub fn command_not_found_init_input_boundary(input &CommandNotFoundInitInput) ruby.Value {
-	return ruby.structured_value('Homebrew::Cmd::CommandNotFoundInit::Input', '', {
-		'command_not_found_init_input_address': u64(voidptr(input)).str()
-	})
-}
-
-fn command_not_found_init_input_from_value(value ruby.Value) &CommandNotFoundInitInput {
-	address := value.attributes['command_not_found_init_input_address'] or {
-		panic('invalid CommandNotFoundInit input')
-	}
-	return unsafe { &CommandNotFoundInitInput(voidptr(address.u64())) }
-}
-
-fn command_not_found_init_result_value(result CommandNotFoundInitResult) ruby.Value {
-	return ruby.map_value({
-		'shell':  ruby.object_value('Symbol', result.shell)
-		'mode':   ruby.object_value('Symbol', result.mode)
-		'stdout': ruby.string_value(result.stdout)
-	})
 }

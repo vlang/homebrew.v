@@ -1,7 +1,5 @@
 module vulns
 
-import ruby
-
 // Translated from Homebrew/brew `vulns/identify.rb`.
 pub struct RegistryPackage {
 pub:
@@ -9,17 +7,6 @@ pub:
 	name      string
 	version   string
 	purl      string
-}
-
-fn identify_nil() ruby.Value {
-	return ruby.object_value('NilClass', 'nil')
-}
-
-fn identify_optional_arg(value ruby.Value) ?string {
-	if value.type_name == 'NilClass' {
-		return none
-	}
-	return value.as_string()
 }
 
 fn identify_unwrap_wayback(raw_url string) string {
@@ -487,13 +474,4 @@ pub fn identify_registry_package(url ?string) ?RegistryPackage {
 		version: purl.version() or { '' }
 		purl: purl.str()
 	}
-}
-
-pub fn identify_registry_package_value(package RegistryPackage) ruby.Value {
-	return ruby.map_value({
-		'ecosystem': ruby.string_value(package.ecosystem)
-		'name':      ruby.string_value(package.name)
-		'version':   ruby.string_value(package.version)
-		'purl':      ruby.string_value(package.purl)
-	})
 }

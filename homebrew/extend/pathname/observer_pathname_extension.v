@@ -1,6 +1,5 @@
 module pathname
 
-import ruby
 import os
 
 // Translated from Homebrew/brew `extend/pathname/observer_pathname_extension.rb`.
@@ -128,34 +127,4 @@ pub fn (mut pathname ObservedPathname) uninstall_info() {
 	if state.verbose_enabled() {
 		state.output << 'uninfo ${pathname.path}'
 	}
-}
-
-fn observer_state_value(state &ObserverPathnameState) ruby.Value {
-	return ruby.structured_value('ObserverPathnameExtension::State', '', {
-		'observer_state_address': u64(voidptr(state)).str()
-	})
-}
-
-fn observer_state_from_value(value ruby.Value) &ObserverPathnameState {
-	address := value.attributes['observer_state_address'] or { panic('invalid observer state') }
-	return unsafe { &ObserverPathnameState(voidptr(address.u64())) }
-}
-
-pub fn observer_pathname_state_boundary(state &ObserverPathnameState) ruby.Value {
-	return observer_state_value(state)
-}
-
-fn observed_pathname_value(pathname &ObservedPathname) ruby.Value {
-	return ruby.structured_value('Pathname', pathname.path, {
-		'observed_pathname_address': u64(voidptr(pathname)).str()
-	})
-}
-
-fn observed_pathname_from_value(value ruby.Value) &ObservedPathname {
-	address := value.attributes['observed_pathname_address'] or { panic('invalid observed pathname') }
-	return unsafe { &ObservedPathname(voidptr(address.u64())) }
-}
-
-pub fn observed_pathname_boundary(pathname &ObservedPathname) ruby.Value {
-	return observed_pathname_value(pathname)
 }

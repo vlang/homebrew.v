@@ -1,6 +1,5 @@
 module cmd
 
-import ruby
 import homebrew.utils
 import os
 
@@ -107,119 +106,6 @@ pub mut:
 	stderr string
 	failed bool
 	error  string
-}
-
-fn list_bool(value ruby.Value, key string) bool {
-	return if item := value.map_data[key] { item.as_bool() or { false } } else { false }
-}
-
-fn list_string(value ruby.Value, key string) string {
-	return if item := value.map_data[key] {
-		item.as_string()
-	} else {
-		value.attributes[key] or { '' }
-	}
-}
-
-fn list_strings(value ruby.Value, key string) []string {
-	if item := value.map_data[key] {
-		return item.as_string_array() or { []string{} }
-	}
-	raw := value.attributes[key] or { return [] }
-	return if raw == '' { [] } else { raw.split('\x1f') }
-}
-
-fn list_formula_from_value(value ruby.Value) ListFormula {
-	name := value.attributes['name'] or { value.repr.all_after_last('/') }
-	return ListFormula{
-		name: name
-		full_name: value.attributes['full_name'] or { value.repr }
-		rack: value.attributes['rack'] or { '' }
-		versions: list_strings(value, 'versions')
-		tap: value.attributes['tap'] or { '' }
-		core_tap: (value.attributes['core_tap'] or { 'false' }) == 'true'
-		receipt_error: (value.attributes['receipt_error'] or { 'false' }) == 'true'
-		installed_on_request: (value.attributes['installed_on_request'] or { 'false' }) == 'true'
-		poured_from_bottle: (value.attributes['poured_from_bottle'] or { 'false' }) == 'true'
-		pin_target: value.attributes['pin_target'] or { '' }
-		mtime: (value.attributes['mtime'] or { '0' }).i64()
-	}
-}
-
-fn list_artifact_from_value(value ruby.Value) ListArtifact {
-	return ListArtifact{
-		class_name: value.attributes['class_name'] or { value.type_name }
-		english_name: value.attributes['english_name'] or { value.type_name }
-		summary: value.attributes['summary'] or { '' }
-		display: value.attributes['display'] or { value.repr }
-	}
-}
-
-fn list_cask_from_value(value ruby.Value) ListCask {
-	artifact_values := (value.map_data['artifacts'] or { ruby.array_value([]) }).as_array() or {
-		[]ruby.Value{}
-	}
-	return ListCask{
-		token: value.attributes['token'] or { value.repr.all_after_last('/') }
-		full_name: value.attributes['full_name'] or { value.repr }
-		caskroom_path: value.attributes['caskroom_path'] or { '' }
-		versions: list_strings(value, 'versions')
-		pin_target: value.attributes['pin_target'] or { '' }
-		installed: (value.attributes['installed'] or { 'true' }) == 'true'
-		artifacts: artifact_values.map(list_artifact_from_value(it))
-	}
-}
-
-fn list_request_from_value(value ruby.Value) ListCommandRequest {
-	formula_values := (value.map_data['formulae'] or { ruby.array_value([]) }).as_array() or {
-		[]ruby.Value{}
-	}
-	cask_values := (value.map_data['casks'] or { ruby.array_value([]) }).as_array() or {
-		[]ruby.Value{}
-	}
-	width := if item := value.map_data['console_width'] { int(item.as_int() or { 80 }) } else { 80 }
-	return ListCommandRequest{
-		formula: list_bool(value, 'formula')
-		cask: list_bool(value, 'cask')
-		full_name: list_bool(value, 'full_name')
-		versions: list_bool(value, 'versions')
-		json: list_bool(value, 'json')
-		multiple: list_bool(value, 'multiple')
-		pinned: list_bool(value, 'pinned')
-		installed_on_request: list_bool(value, 'installed_on_request')
-		no_installed_on_request: list_bool(value, 'no_installed_on_request')
-		installed_as_dependency: list_bool(value, 'installed_as_dependency')
-		poured_from_bottle: list_bool(value, 'poured_from_bottle')
-		built_from_source: list_bool(value, 'built_from_source')
-		one: list_bool(value, 'one')
-		long: list_bool(value, 'long')
-		reverse: list_bool(value, 'reverse')
-		time_sort: list_bool(value, 'time_sort')
-		verbose: list_bool(value, 'verbose')
-		stdout_tty: list_bool(value, 'stdout_tty')
-		console_width: width
-		named: list_strings(value, 'named')
-		formulae: formula_values.map(list_formula_from_value(it))
-		casks: cask_values.map(list_cask_from_value(it))
-		cellar: list_string(value, 'cellar')
-		caskroom: list_string(value, 'caskroom')
-		pinned_kegs: list_string(value, 'pinned_kegs')
-		pinned_casks: list_string(value, 'pinned_casks')
-	}
-}
-
-fn list_result_value(result ListCommandResult) ruby.Value {
-	return ruby.Value{
-		type_name: if result.error == '' { 'ListCommandResult' } else { 'UsageError' }
-		repr: if result.error == '' { result.stdout } else { result.error }
-		bool_data: result.failed
-		attributes: {
-			'stdout': result.stdout
-			'stderr': result.stderr
-			'failed': result.failed.str()
-			'error':  result.error
-		}
-	}
 }
 
 fn list_tap_and_name_compare(left &string, right &string) int {

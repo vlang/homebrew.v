@@ -58,16 +58,3 @@ pub fn build_bundle_install_plan(options BundleInstallCommandOptions) !BundleIns
 		reset_cleanup_before_run: cleanup_requested
 	}
 }
-
-fn bundle_install_plan_value(plan BundleInstallPlan) ruby.Value {
-	return ruby.structured_value('Bundle::InstallSubcommand::Plan', plan.install_exit_code.str(), {
-		'install_exit_code':         plan.install_exit_code.str()
-		'mark_installed_on_request': plan.mark_installed_on_request.str()
-		'cleanup_requested':         plan.cleanup_requested.str()
-		'cleanup_force':             plan.cleanup_force.str()
-		'cleanup_ask':               plan.cleanup_ask.str()
-		'cleanup_zap':               plan.cleanup_zap.str()
-		'reset_cleanup_before_run':  plan.reset_cleanup_before_run.str()
-		'dsl_type':                  plan.dsl.type_name
-	})
-}

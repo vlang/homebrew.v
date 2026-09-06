@@ -1,6 +1,5 @@
 module dev_cmd
 
-import ruby
 import regex
 
 // Translated from Homebrew/brew `dev-cmd/generate-man-completions.rb`.
@@ -67,31 +66,4 @@ pub fn generate_man_completions_plan(options GenerateManCompletionsOptions) Gene
 		message: message
 		failed: status == 'failure' && !options.no_exit_code
 	}
-}
-
-pub fn generate_man_completions_input_boundary(input &GenerateManCompletionsInput) ruby.Value {
-	return ruby.structured_value('Homebrew::DevCmd::GenerateManCompletions::Input', '', {
-		'generate_man_completions_input_address': u64(voidptr(input)).str()
-	})
-}
-
-fn generate_man_completions_input_from_value(value ruby.Value) &GenerateManCompletionsInput {
-	address := value.attributes['generate_man_completions_input_address'] or {
-		panic('invalid GenerateManCompletions input')
-	}
-	return unsafe { &GenerateManCompletionsInput(voidptr(address.u64())) }
-}
-
-fn generate_man_completions_result_value(result GenerateManCompletionsResult) ruby.Value {
-	return ruby.map_value({
-		'bundler_groups':            ruby.string_array_value(result.bundler_groups)
-		'rebuild_internal_commands': ruby.bool_value(result.rebuild_internal_commands)
-		'regenerate_man_pages':      ruby.bool_value(result.regenerate_man_pages)
-		'man_pages_quiet':           ruby.bool_value(result.man_pages_quiet)
-		'update_shell_completions':  ruby.bool_value(result.update_shell_completions)
-		'diff_command':              ruby.string_array_value(result.diff_command)
-		'status':                    ruby.object_value('Symbol', result.status)
-		'message':                   ruby.string_value(result.message)
-		'failed':                    ruby.bool_value(result.failed)
-	})
 }

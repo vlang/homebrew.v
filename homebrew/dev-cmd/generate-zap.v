@@ -99,45 +99,6 @@ pub:
 	stdout       string
 }
 
-pub fn generate_zap_run_input_boundary(input &GenerateZapRunInput) ruby.Value {
-	return ruby.structured_value('Homebrew::DevCmd::GenerateZap::Input', '', {
-		'generate_zap_input_address': u64(voidptr(input)).str()
-	})
-}
-
-pub fn generate_zap_cask_boundary(cask &GenerateZapCask) ruby.Value {
-	return ruby.structured_value('Cask::Cask', cask.token, {
-		'generate_zap_cask_address': u64(voidptr(cask)).str()
-	})
-}
-
-pub fn generate_zap_artifact_boundary(artifact &GenerateZapArtifact) ruby.Value {
-	return ruby.structured_value('Cask::Artifact::App', artifact.target, {
-		'generate_zap_artifact_address': u64(voidptr(artifact)).str()
-	})
-}
-
-fn generate_zap_run_input_from_value(value ruby.Value) &GenerateZapRunInput {
-	address := value.attributes['generate_zap_input_address'] or {
-		panic('invalid GenerateZap run input')
-	}
-	return unsafe { &GenerateZapRunInput(voidptr(address.u64())) }
-}
-
-fn generate_zap_cask_from_value(value ruby.Value) &GenerateZapCask {
-	address := value.attributes['generate_zap_cask_address'] or {
-		panic('invalid GenerateZap cask input')
-	}
-	return unsafe { &GenerateZapCask(voidptr(address.u64())) }
-}
-
-fn generate_zap_artifact_from_value(value ruby.Value) &GenerateZapArtifact {
-	address := value.attributes['generate_zap_artifact_address'] or {
-		panic('invalid GenerateZap artifact input')
-	}
-	return unsafe { &GenerateZapArtifact(voidptr(address.u64())) }
-}
-
 fn generate_zap_home(home string) string {
 	if home != '' {
 		return os.norm_path(home)
@@ -503,23 +464,4 @@ pub fn generate_zap_run(input GenerateZapRunInput) !GenerateZapRunResult {
 		warnings: warnings
 		stdout: stdout
 	}
-}
-
-fn generate_zap_required_argument(args []ruby.Value, index int, name string) ruby.Value {
-	if index >= args.len {
-		panic('GenerateZap `${name}` is missing argument ${index + 1}')
-	}
-	return args[index]
-}
-
-fn generate_zap_result_value(result GenerateZapRunResult) ruby.Value {
-	return ruby.map_value({
-		'patterns': ruby.string_array_value(result.patterns)
-		'trash':    ruby.string_array_value(result.trash_paths)
-		'delete':   ruby.string_array_value(result.delete_paths)
-		'rmdir':    ruby.string_array_value(result.rmdir_paths)
-		'info':     ruby.string_array_value(result.info)
-		'warnings': ruby.string_array_value(result.warnings)
-		'stdout':   ruby.string_value(result.stdout)
-	})
 }

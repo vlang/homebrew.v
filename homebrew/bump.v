@@ -1,7 +1,5 @@
 module homebrew
 
-import ruby
-
 // Translated from Homebrew/brew `bump.rb`.
 pub struct BumpCommit {
 pub:
@@ -170,34 +168,4 @@ pub fn (mut state BumpState) create_pr(info BumpInfo, options BumpCreateOptions)
 	}
 	_ = username
 	return state.pull_request_url
-}
-
-fn bump_state_value(state &BumpState) ruby.Value {
-	return ruby.structured_value('Homebrew::Bump::State', '', {
-		'bump_state_address': u64(voidptr(state)).str()
-	})
-}
-
-fn bump_state_from_value(value ruby.Value) &BumpState {
-	address := value.attributes['bump_state_address'] or { panic('invalid Bump state') }
-	return unsafe { &BumpState(voidptr(address.u64())) }
-}
-
-pub fn bump_state_boundary(state &BumpState) ruby.Value {
-	return bump_state_value(state)
-}
-
-fn bump_info_value(info &BumpInfo) ruby.Value {
-	return ruby.structured_value('Homebrew::Bump::BumpInfo', info.pr_title, {
-		'bump_info_address': u64(voidptr(info)).str()
-	})
-}
-
-fn bump_info_from_value(value ruby.Value) &BumpInfo {
-	address := value.attributes['bump_info_address'] or { panic('invalid BumpInfo') }
-	return unsafe { &BumpInfo(voidptr(address.u64())) }
-}
-
-pub fn bump_info_boundary(info &BumpInfo) ruby.Value {
-	return bump_info_value(info)
 }

@@ -101,12 +101,3 @@ pub fn repology_latest_version(repositories []RepologyRepositoryVersion) string 
 	}
 	return 'no latest version'
 }
-
-fn repology_curl_result_from_value(value ruby.Value) RepologyCurlResult {
-	return RepologyCurlResult{
-		success: (value.map_data['success'] or { ruby.bool_value(false) }).as_bool() or { false }
-		stdout: (value.map_data['stdout'] or { ruby.string_value('') }).as_string()
-		stderr: (value.map_data['stderr'] or { ruby.string_value('') }).as_string()
-		exit_status: int((value.map_data['exit_status'] or { ruby.int_value(0) }).as_int() or { 0 })
-	}
-}

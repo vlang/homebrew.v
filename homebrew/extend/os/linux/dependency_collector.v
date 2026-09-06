@@ -1,7 +1,5 @@
 module linux
 
-import ruby
-
 pub const linux_dependency_collector_glibc = 'glibc'
 pub const linux_dependency_collector_gcc = 'gcc'
 
@@ -185,56 +183,6 @@ pub fn (mut collector LinuxDependencyCollectorState) glibc_dep_if_needed(related
 		name: linux_dependency_collector_glibc
 		tags: [':implicit']
 	}
-}
-
-pub fn linux_dependency_collector_value(collector &LinuxDependencyCollectorState) ruby.Value {
-	return ruby.structured_value('LinuxDependencyCollector', 'DependencyCollector', {
-		'collector_address': u64(voidptr(collector)).str()
-	})
-}
-
-fn linux_dependency_collector_from_value(value ruby.Value) &LinuxDependencyCollectorState {
-	address := value.attributes['collector_address'] or { panic('invalid LinuxDependencyCollector') }
-	return unsafe { &LinuxDependencyCollectorState(voidptr(address.u64())) }
-}
-
-fn linux_dependency_collector_from_args(args []ruby.Value) (&LinuxDependencyCollectorState, int) {
-	if args.len > 0 && args[0].type_name == 'LinuxDependencyCollector' {
-		return linux_dependency_collector_from_value(args[0]), 1
-	}
-	return new_linux_dependency_collector(false, false, map[string]LinuxCollectorFormula{}), 0
-}
-
-fn linux_dependency_collector_names(value ruby.Value) []string {
-	if value.type_name == 'Array' {
-		return value.as_array() or { [] }.map(it.as_string())
-	}
-	if value.type_name in ['String', 'Symbol'] {
-		return [value.as_string()]
-	}
-	return []string{}
-}
-
-fn linux_collector_dependency_value(dependency LinuxCollectorDependency) ruby.Value {
-	return ruby.structured_value('Dependency', dependency.name, {
-		'name': dependency.name
-		'tags': dependency.tags.join(',')
-	})
-}
-
-fn linux_collector_formula_value(formula LinuxCollectorFormula) ruby.Value {
-	return ruby.structured_value('Formula', formula.name, {
-		'name': formula.name
-		'deps': formula.deps.map(it.name).join(',')
-	})
-}
-
-fn linux_global_dep_tree_value(tree map[string][]string) ruby.Value {
-	mut values := map[string]ruby.Value{}
-	for name, dependencies in tree {
-		values[name] = ruby.string_array_value(dependencies)
-	}
-	return ruby.map_value(values)
 }
 
 // Translated from Homebrew/brew `extend/os/linux/dependency_collector.rb`.

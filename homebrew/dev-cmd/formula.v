@@ -1,6 +1,5 @@
 module dev_cmd
 
-import ruby
 import os
 
 // Translated from Homebrew/brew `dev-cmd/formula.rb`.

@@ -1,6 +1,5 @@
 module artifact
 
-import ruby
 import homebrew.cask.artifact as base_artifact
 import os
 

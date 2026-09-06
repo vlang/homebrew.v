@@ -1,6 +1,5 @@
 module ffi
 
-import ruby
 import os
 
 pub fn foundation_trash_item(path string, trash_directory string) !string {

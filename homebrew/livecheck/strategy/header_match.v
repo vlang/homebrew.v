@@ -1,6 +1,5 @@
 module strategy
 
-import ruby
 import json2
 import regex
 

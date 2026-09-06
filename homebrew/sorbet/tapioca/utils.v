@@ -1,7 +1,5 @@
 module tapioca
 
-import ruby
-
 pub struct TapiocaObject {
 pub:
 	kind          string
@@ -55,42 +53,4 @@ pub fn tapioca_named_objects_with_module(objects []TapiocaObject) ![]TapiocaObje
 		}
 	}
 	return output
-}
-
-fn tapioca_object_from_value(value ruby.Value) TapiocaObject {
-	return TapiocaObject{
-		kind: value.type_name
-		name: value.attributes['name'] or { value.as_string() }
-		attached_kind: value.attributes['attached_kind'] or { '' }
-		attached_name: value.attributes['attached_name'] or { '' }
-	}
-}
-
-fn tapioca_object_value(object TapiocaObject) ruby.Value {
-	return ruby.structured_value(object.kind, object.name, {
-		'name':          object.name
-		'attached_kind': object.attached_kind
-		'attached_name': object.attached_name
-	})
-}
-
-fn tapioca_methods_from_value(value ruby.Value) []TapiocaMethod {
-	values := value.as_array() or { return [] }
-	return values.map(TapiocaMethod{
-		name: it.attributes['name'] or { it.as_string() }
-		source_file: it.attributes['source_file'] or { '' }
-		class_method: (it.attributes['class_method'] or { 'false' }) == 'true'
-	})
-}
-
-fn tapioca_method_value(method TapiocaMethod) ruby.Value {
-	return ruby.structured_value(if method.class_method {
-		'Method'
-	} else {
-		'UnboundMethod'
-	}, method.name, {
-		'name':         method.name
-		'source_file':  method.source_file
-		'class_method': method.class_method.str()
-	})
 }

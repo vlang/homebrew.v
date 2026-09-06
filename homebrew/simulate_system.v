@@ -1,7 +1,5 @@
 module homebrew
 
-import ruby
-
 // Translated from Homebrew/brew `simulate_system.rb`.
 
 pub struct SystemSimulation {
@@ -99,33 +97,4 @@ pub fn with_simulation[T](state SystemSimulation, os_value string, arch_value st
 		scoped.set_arch(arch_value)!
 	}
 	return block(scoped)
-}
-
-fn simulation_value(state SystemSimulation) ruby.Value {
-	return ruby.structured_value('Homebrew::SimulateSystem', '', {
-		'os':        state.simulated_os
-		'arch':      state.simulated_arch
-		'host_os':   state.host_os
-		'host_arch': state.host_arch
-	})
-}
-
-fn simulation_from_args(args []ruby.Value) SystemSimulation {
-	if args.len == 0 || args[0].type_name != 'Homebrew::SimulateSystem' {
-		return new_system_simulation('generic', '')
-	}
-	return SystemSimulation{
-		simulated_os: args[0].attributes['os']
-		simulated_arch: args[0].attributes['arch']
-		host_os: args[0].attributes['host_os']
-		host_arch: args[0].attributes['host_arch']
-	}
-}
-
-fn optional_symbol_value(value string) ruby.Value {
-	return if value.len > 0 {
-		ruby.object_value('Symbol', value)
-	} else {
-		ruby.object_value('Nil', '')
-	}
 }

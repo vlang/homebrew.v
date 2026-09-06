@@ -1,6 +1,5 @@
 module homebrew
 
-import ruby
 import os
 import x.json2
 
@@ -161,49 +160,4 @@ pub fn (database ExecutablesDb) save() ! {
 	}
 	contents := if lines.len == 0 { '' } else { '${lines.join('\n')}\n' }
 	os.write_file(database.filename, contents)!
-}
-
-fn executables_hash_value(entries map[string][]string) ruby.Value {
-	mut values := map[string]ruby.Value{}
-	for formula, executables in entries {
-		values[formula] = ruby.string_array_value(executables)
-	}
-	return ruby.map_value(values)
-}
-
-pub fn executables_db_value(database ExecutablesDb) ruby.Value {
-	values := database.entries.clone()
-	mut boundary := {
-		'_filename': ruby.string_value(database.filename)
-		'_warnings': ruby.string_array_value(database.warnings)
-		'_removed':  ruby.string_array_value(database.removed)
-	}
-	for formula, executables in values {
-		boundary[formula] = ruby.string_array_value(executables)
-	}
-	return ruby.map_value(boundary)
-}
-
-pub fn executables_db_from_value(value ruby.Value) ExecutablesDb {
-	values := value.as_map() or { return ExecutablesDb{} }
-	mut database := ExecutablesDb{
-		filename: if '_filename' in values { values['_filename'].as_string() } else { '' }
-		warnings: if '_warnings' in values {
-			values['_warnings'].as_string_array() or { [] }
-		} else {
-			[]
-		}
-		removed: if '_removed' in values {
-			values['_removed'].as_string_array() or { [] }
-		} else {
-			[]
-		}
-	}
-	for formula, executables in values {
-		if formula.starts_with('_') {
-			continue
-		}
-		database.entries[formula] = executables.as_string_array() or { [] }
-	}
-	return database
 }

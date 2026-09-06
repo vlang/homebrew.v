@@ -1,6 +1,5 @@
 module dev_cmd
 
-import ruby
 import time
 
 // Translated from Homebrew/brew `dev-cmd/release.rb`.
@@ -299,80 +298,6 @@ fn release_blog_post_notes(body string) []string {
 	}
 	notes.sort()
 	return notes
-}
-
-fn release_result_value(result ReleaseResult) ruby.Value {
-	return ruby.map_value({
-		'new_version':         ruby.string_value(result.new_version)
-		'latest_version':      ruby.string_value(result.latest_version)
-		'blog_post_notes':     ruby.string_array_value(result.blog_post_notes)
-		'release_notes':       ruby.string_value(result.release_notes)
-		'stdout':              ruby.string_array_value(result.stdout)
-		'warnings':            ruby.string_array_value(result.warnings)
-		'commands':            ruby.array_value(result.commands.map(ruby.string_array_value(it)))
-		'blocking_labels':     ruby.string_array_value(result.blocking_labels)
-		'dispatched':          ruby.bool_value(result.dispatched)
-		'dispatched_tag':      ruby.string_value(result.dispatched_tag)
-		'workflow_attempts':   ruby.int_value(result.workflow_attempts)
-		'workflow_conclusion': ruby.string_value(result.workflow_conclusion)
-		'release_url':         ruby.string_value(result.release_url)
-		'browser_url':         ruby.string_value(result.browser_url)
-	})
-}
-
-fn release_record_value(release ReleaseRecord) ruby.Value {
-	return ruby.map_value({
-		'id':           ruby.int_value(release.id)
-		'name':         if release.name == '' {
-			ruby.object_value('NilClass', 'nil')
-		} else {
-			ruby.string_value(release.name)
-		}
-		'tag_name':     ruby.string_value(release.tag_name)
-		'created_at':   ruby.string_value(release.created_at)
-		'published_at': ruby.string_value(release.published_at)
-		'html_url':     ruby.string_value(release.html_url)
-		'draft':        ruby.bool_value(release.draft)
-	})
-}
-
-pub fn release_run_input_boundary(input &ReleaseRunInput) ruby.Value {
-	return ruby.structured_value('Homebrew::DevCmd::Release::RunInput', '', {
-		'release_run_input_address': u64(voidptr(input)).str()
-	})
-}
-
-fn release_run_input_from_value(value ruby.Value) &ReleaseRunInput {
-	address := value.attributes['release_run_input_address'] or {
-		panic('invalid Release run input')
-	}
-	return unsafe { &ReleaseRunInput(voidptr(address.u64())) }
-}
-
-pub fn release_lookup_input_boundary(input &ReleaseLookupInput) ruby.Value {
-	return ruby.structured_value('Homebrew::DevCmd::Release::LookupInput', '', {
-		'release_lookup_input_address': u64(voidptr(input)).str()
-	})
-}
-
-fn release_lookup_input_from_value(value ruby.Value) &ReleaseLookupInput {
-	address := value.attributes['release_lookup_input_address'] or {
-		panic('invalid Release lookup input')
-	}
-	return unsafe { &ReleaseLookupInput(voidptr(address.u64())) }
-}
-
-pub fn release_urls_input_boundary(input &ReleaseUrlsInput) ruby.Value {
-	return ruby.structured_value('Homebrew::DevCmd::Release::UrlsInput', '', {
-		'release_urls_input_address': u64(voidptr(input)).str()
-	})
-}
-
-fn release_urls_input_from_value(value ruby.Value) &ReleaseUrlsInput {
-	address := value.attributes['release_urls_input_address'] or {
-		panic('invalid Release URLs input')
-	}
-	return unsafe { &ReleaseUrlsInput(voidptr(address.u64())) }
 }
 
 pub fn run_release(options ReleaseOptions) !ReleaseResult {

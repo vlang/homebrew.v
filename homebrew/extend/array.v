@@ -1,7 +1,5 @@
 module extend
 
-import ruby
-
 // Translated from Homebrew/brew `extend/array.rb`.
 
 pub fn array_second[T](values []T) ?T {
@@ -28,17 +26,5 @@ pub fn array_to_sentence(values []string, words_connector string, two_words_conn
 		else {
 			'${values[..values.len - 1].join(words_connector)}${last_word_connector}${values.last()}'
 		}
-	}
-}
-
-fn boundary_array_element(args []ruby.Value, index int, method string) ruby.Value {
-	if args.len == 0 {
-		panic('Array#${method} requires a receiver')
-	}
-	values := args[0].as_string_array() or { panic(err) }
-	return if index < values.len {
-		ruby.string_value(values[index])
-	} else {
-		ruby.object_value('NilClass', '')
 	}
 }

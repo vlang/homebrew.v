@@ -616,15 +616,6 @@ pub fn merge_dependency_temporality(dependencies []Dependency) []DependencyTag {
 	return tags
 }
 
-fn dependency_boundary_value(dependency Dependency) ruby.Value {
-	return ruby.structured_value('Dependency', dependency.inspect(), {
-		'name':            dependency.name
-		'tags':            dependency.tags.map(it.boundary_string()).join('\x1e')
-		'tap':             dependency.tap
-		'uses_from_macos': dependency.uses_from_macos.str()
-	})
-}
-
 fn dependency_from_boundary(value ruby.Value) Dependency {
 	if value.type_name != 'Dependency' {
 		panic('expected Dependency, got ${value.type_name}')
@@ -636,31 +627,6 @@ fn dependency_from_boundary(value ruby.Value) Dependency {
 		return new_uses_from_macos_dependency(name, tags.map(dependency_tag(it)), map[string]string{})
 	}
 	return new_dependency(name, tags)
-}
-
-fn dependable_boundary_receiver(args []ruby.Value, method string) Dependency {
-	if args.len == 0 {
-		panic('Dependable#${method} requires a receiver')
-	}
-	return dependency_from_boundary(args[0])
-}
-
-fn build_options_from_boundary(value ruby.Value) BuildOptions {
-	if value.type_name != 'BuildOptions' {
-		panic('expected BuildOptions, got ${value.type_name}')
-	}
-	argument_text := value.attribute('args') or { '' }
-	option_text := value.attribute('options') or { '' }
-	arguments := if argument_text == '' { []string{} } else { argument_text.split('\x1e') }
-	options := if option_text == '' { []string{} } else { option_text.split('\x1e') }
-	return new_build_options(new_options(...arguments), new_options(...options))
-}
-
-fn dependency_boundary_list(args []ruby.Value) []Dependency {
-	if args.len == 1 && args[0].type_name in ['DependencyArray', 'Array'] {
-		return args[0].string_array_data.map(dependency_from_identity_string(it))
-	}
-	return args.filter(it.type_name == 'Dependency').map(dependency_from_boundary(it))
 }
 
 fn dependency_from_identity_string(identity string) Dependency {
@@ -682,71 +648,4 @@ fn dependency_from_identity_string(identity string) Dependency {
 		}
 	}
 	return new_dependency_with_tags(parts[0], tags)
-}
-
-fn dependency_list_boundary_value(dependencies []Dependency) ruby.Value {
-	return ruby.Value{
-		type_name: 'DependencyArray'
-		repr: dependencies.map(it.inspect()).str()
-		string_array_data: dependencies.map(it.identity_string())
-	}
-}
-
-fn dependency_node_from_boundary(value ruby.Value) DependencyNode {
-	if value.type_name != 'Formula' && value.type_name != 'CaskDependent' && value.type_name != 'DependencyNode' {
-		panic('expected Formula, CaskDependent, or DependencyNode, got ${value.type_name}')
-	}
-	name := value.attribute('name') or { value.as_string() }
-	full_name := value.attribute('full_name') or { name }
-	class_name := if value.type_name == 'DependencyNode' {
-		value.attribute('class_name') or { 'Formula' }
-	} else {
-		value.type_name
-	}
-	args := value.attribute('build_args') or { '' }
-	options := value.attribute('build_options') or { '' }
-	build := build_options_from_boundary(ruby.structured_value('BuildOptions', '', {
-		'args':    args
-		'options': options
-	}))
-	return DependencyNode{
-		name: name
-		full_name: full_name
-		class_name: class_name
-		build: build
-	}
-}
-
-fn dependency_minimum_from_boundary_args(args []ruby.Value) DependencyMinimum {
-	mut version := null_version()
-	mut has_version := false
-	if args.len > 1 && args[1].type_name != 'NilClass' {
-		version = new_version(args[1].as_string()) or { panic(err) }
-		has_version = true
-	}
-	mut revision := 0
-	mut has_revision := false
-	if args.len > 2 && args[2].type_name != 'NilClass' {
-		revision = int(args[2].as_int() or { panic(err) })
-		has_revision = true
-	}
-	mut compatibility_version := 0
-	mut has_compatibility_version := false
-	if args.len > 3 && args[3].type_name != 'NilClass' {
-		compatibility_version = int(args[3].as_int() or { panic(err) })
-		has_compatibility_version = true
-	}
-	mut bottle_os_version := ''
-	if args.len > 4 && args[4].type_name != 'NilClass' {
-		bottle_os_version = args[4].as_string()
-	}
-	return DependencyMinimum{
-		has_version: has_version
-		version: version
-		has_revision: has_revision
-		revision: revision
-		has_compatibility_version: has_compatibility_version
-		compatibility_version: compatibility_version
-		bottle_os_version: bottle_os_version
-	}
 }

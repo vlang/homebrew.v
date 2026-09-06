@@ -207,28 +207,6 @@ fn cleanup_formula_value(formula CleanupFormula) ruby.Value {
 	}
 }
 
-fn cleanup_cask_from_value(value ruby.Value) CleanupCask {
-	return CleanupCask{
-		token: value.attributes['token'] or { value.as_string() }
-		version: value.attributes['version'] or { '' }
-		installed_version: value.attributes['installed_version'] or { '' }
-		latest: cleanup_bool_attr(value, 'latest', false)
-		url: value.attributes['url'] or { '' }
-		caskroom_path: value.attributes['caskroom_path'] or { '' }
-	}
-}
-
-fn cleanup_cask_value(cask CleanupCask) ruby.Value {
-	return ruby.structured_value('Cask::Cask', cask.token, {
-		'token':             cask.token
-		'version':           cask.version
-		'installed_version': cask.installed_version
-		'latest':            cask.latest.str()
-		'url':               cask.url
-		'caskroom_path':     cask.caskroom_path
-	})
-}
-
 fn cleanup_new(arguments []string, dry_run bool, scrub bool, days ?int, cache string) &Cleanup {
 	return &Cleanup{
 		args: arguments.clone()
@@ -264,19 +242,6 @@ fn cleanup_value(cleanup &Cleanup) ruby.Value {
 			'args':              cleanup.args.join('\x1f')
 		}
 	}
-}
-
-fn cleanup_from_value(value ruby.Value) &Cleanup {
-	address := value.attributes['cleanup_address'] or { panic('invalid Cleanup receiver') }
-	return unsafe { &Cleanup(voidptr(address.u64())) }
-}
-
-fn cleanup_output_value(cleanup &Cleanup) ruby.Value {
-	return ruby.string_value(if cleanup.output.len == 0 {
-		''
-	} else {
-		cleanup.output.join('\n') + '\n'
-	})
 }
 
 fn cleanup_remove(path string) {
@@ -557,28 +522,6 @@ pub fn cleanup_path_action(mut cleanup Cleanup, path CleanupPath, recursive bool
 		}
 	}
 	return true
-}
-
-fn cleanup_entries_value(entries []CleanupEntry) ruby.Value {
-	return ruby.array_value(entries.map(cleanup_entry_value(it)))
-}
-
-fn cleanup_values(value ruby.Value) []ruby.Value {
-	return value.as_array() or { [] }
-}
-
-fn cleanup_clone_value(value ruby.Value) ruby.Value {
-	return ruby.Value{
-		type_name: value.type_name
-		repr: value.repr.clone()
-		bool_data: value.bool_data
-		int_data: value.int_data
-		float_data: value.float_data
-		string_array_data: value.string_array_data.clone()
-		array_data: value.array_data.clone()
-		map_data: value.map_data.clone()
-		attributes: value.attributes.clone()
-	}
 }
 
 fn cleanup_disable_message(no_env_hints bool, no_install_cleanup bool) string {

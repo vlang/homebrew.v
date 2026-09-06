@@ -1,7 +1,5 @@
 module cask
 
-import ruby
-
 // Translated from Homebrew/brew `rubocops/cask/shared_filelist_glob.rb`.
 pub const shared_filelist_glob_message = 'Use a glob (*) instead of a specific version (ie. sfl2) for trashing Shared File List paths'
 
@@ -198,13 +196,4 @@ pub fn correct_shared_filelist_glob(source string) string {
 		corrected = corrected[..offense.begin_pos] + offense.replacement + corrected[offense.end_pos..]
 	}
 	return corrected
-}
-
-fn shared_filelist_glob_value(offense SharedFilelistGlobOffense) ruby.Value {
-	return ruby.structured_value('RuboCop::Cop::Offense', offense.message, {
-		'begin_pos':   offense.begin_pos.str()
-		'end_pos':     offense.end_pos.str()
-		'message':     offense.message
-		'replacement': offense.replacement
-	})
 }

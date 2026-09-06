@@ -315,16 +315,3 @@ fn git_homebrew_prefix() string {
 	prefix := os.getenv('HOMEBREW_PREFIX')
 	return if prefix != '' { prefix } else { '/usr/local' }
 }
-
-fn git_client_from_args(args []ruby.Value) GitClient {
-	git := if args.len > 0 && args[0].type_name == 'String' {
-		args[0].as_string()
-	} else {
-		git_default_executable()
-	}
-	return GitClient{ git: git }
-}
-
-fn git_nil_value() ruby.Value {
-	return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
-}

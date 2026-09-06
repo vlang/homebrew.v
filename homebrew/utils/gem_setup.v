@@ -1,6 +1,5 @@
 module utils
 
-import ruby
 import os
 import time
 
@@ -156,14 +155,6 @@ pub:
 	bootsnap_reset_required   bool
 	skipped_for_tests         bool
 	paths_restored            bool
-}
-
-fn gem_setup_nil_value() ruby.Value {
-	return ruby.object_value('NilClass', 'nil')
-}
-
-fn gem_setup_error_value(type_name string, message string) ruby.Value {
-	return ruby.object_value(type_name, message)
 }
 
 pub fn gem_setup_vendor_directory(paths GemSetupPaths) string {
@@ -642,61 +633,5 @@ pub fn install_bundler_gems(config GemSetupBundlerConfig, mut state GemSetupStat
 		vendor_reinstall_required: vendor_reinstall_required
 		bootsnap_reset_required: bootsnap_reset_required
 		paths_restored: !config.setup_path
-	}
-}
-
-fn gem_setup_definition_value(definition GemSetupBundlerDefinition) ruby.Value {
-	return ruby.map_value({
-		'groups':       ruby.string_array_value(definition.groups)
-		'locked_specs': ruby.string_array_value(definition.locked_specs.map(it.full_name))
-	})
-}
-
-fn gem_setup_environment_result_value(result GemSetupEnvironmentResult) ruby.Value {
-	mut environment := map[string]ruby.Value{}
-	for key, value in result.environment {
-		environment[key] = ruby.string_value(value)
-	}
-	mut gem_paths := map[string]ruby.Value{}
-	for key, value in result.gem_paths {
-		gem_paths[key] = ruby.string_value(value)
-	}
-	return ruby.map_value({
-		'environment': ruby.map_value(environment)
-		'gem_paths':   ruby.map_value(gem_paths)
-		'gem_home':    ruby.string_value(result.gem_home)
-		'gem_cache':   ruby.string_value(result.gem_cache)
-	})
-}
-
-fn gem_setup_string_map_from_value(value ruby.Value) map[string]string {
-	mut result := map[string]string{}
-	for key, item in value.map_data {
-		result[key] = item.as_string()
-	}
-	return result
-}
-
-fn gem_setup_paths_from_value(value ruby.Value) GemSetupPaths {
-	values := value.map_data.clone()
-	return GemSetupPaths{
-		library: (values['library'] or { ruby.string_value('') }).as_string()
-		ruby_version: (values['ruby_version'] or { ruby.string_value('') }).as_string()
-		ruby_prefix: (values['ruby_prefix'] or { ruby.string_value('') }).as_string()
-		gem_bindir: (values['gem_bindir'] or { ruby.string_value('') }).as_string()
-		rubygems_version: (values['rubygems_version'] or { ruby.string_value('2.2.0') }).as_string()
-	}
-}
-
-fn gem_setup_definition_from_value(value ruby.Value) GemSetupBundlerDefinition {
-	groups := (value.map_data['groups'] or { ruby.string_array_value([]string{}) }).as_string_array() or {
-		[]string{}
-	}
-	locked := (value.map_data['locked_specs'] or { ruby.string_array_value([]string{}) }).as_string_array() or {
-		[]string{}
-	}
-	return GemSetupBundlerDefinition{
-		groups: groups
-		locked_specs: locked.map(GemSetupLockedSpec{ full_name: it })
 	}
 }

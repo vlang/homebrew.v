@@ -1,7 +1,5 @@
 module cask
 
-import ruby
-
 // Translated from Homebrew/brew `rubocops/cask/sha256_arch_order.rb`.
 pub const sha256_arch_order_message = '`sha256` architecture keys should be ordered: arm, intel (or x86_64), arm64_linux, x86_64_linux'
 pub const sha256_arch_order_stanza_prefix = 'sha256 '
@@ -385,14 +383,4 @@ pub fn correct_sha256_arch_order(source string) string {
 		corrected = corrected[..offense.begin_pos] + offense.replacement + corrected[offense.end_pos..]
 	}
 	return corrected
-}
-
-fn sha256_arch_order_offense_value(offense Sha256ArchOrderOffense) ruby.Value {
-	return ruby.structured_value('RuboCop::Cop::Offense', offense.message, {
-		'begin_pos':             offense.begin_pos.str()
-		'end_pos':               offense.end_pos.str()
-		'message':               offense.message
-		'replacement':           offense.replacement
-		'correction_suppressed': offense.correction_suppressed.str()
-	})
 }

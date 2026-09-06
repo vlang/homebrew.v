@@ -1,7 +1,5 @@
 module rubocops
 
-import ruby
-
 // Translated from Homebrew/brew `rubocops/presence.rb`.
 pub struct PresenceNode {
 pub:
@@ -734,25 +732,4 @@ pub fn analyze_presence(source string) !PresenceAnalysis {
 		offenses: offenses
 		corrected: presence_apply_corrections(source, offenses)
 	}
-}
-
-fn presence_match_value(matched PresenceMatch) ruby.Value {
-	return ruby.map_value({
-		'matched':  ruby.bool_value(matched.matched)
-		'receiver': ruby.string_value(matched.receiver.source)
-		'other':    ruby.string_value(matched.other.source)
-	})
-}
-
-pub fn presence_analysis_value(analysis PresenceAnalysis) ruby.Value {
-	offenses := analysis.offenses.map(ruby.structured_value('RuboCop::Cop::Offense', it.message, {
-		'begin_pos':   it.begin_pos.str()
-		'end_pos':     it.end_pos.str()
-		'message':     it.message
-		'replacement': it.replacement
-	}))
-	return ruby.map_value({
-		'offenses':  ruby.array_value(offenses)
-		'corrected': ruby.string_value(analysis.corrected)
-	})
 }

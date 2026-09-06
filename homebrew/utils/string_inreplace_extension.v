@@ -156,35 +156,3 @@ fn string_inreplace_mutation_value(extension StringInreplaceExtension,
 		map_data: values
 	}
 }
-
-fn string_inreplace_extension_from_value(value ruby.Value) StringInreplaceExtension {
-	contents := if nested := value.map_data['inreplace_string'] {
-		nested.as_string()
-	} else {
-		value.as_string()
-	}
-	errors := if nested := value.map_data['errors'] {
-		string_inreplace_value_strings(nested)
-	} else {
-		[]string{}
-	}
-	return StringInreplaceExtension{
-		inreplace_string: contents
-		errors: errors
-	}
-}
-
-fn string_inreplace_value_strings(value ruby.Value) []string {
-	if value.type_name == 'String' {
-		return [value.as_string()]
-	}
-	if strings := value.as_string_array() {
-		if strings.len > 0 {
-			return strings
-		}
-	}
-	if values := value.as_array() {
-		return values.map(it.as_string())
-	}
-	return []string{}
-}

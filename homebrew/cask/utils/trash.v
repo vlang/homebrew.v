@@ -1,8 +1,6 @@
 module utils
 
-import ruby
 import os
-import time
 
 pub struct TrashResult {
 pub:
@@ -85,41 +83,6 @@ pub fn freedesktop_trash(paths []string, xdg_data_home string, home string,
 		trashed << path
 	}
 	return TrashResult{ trashed: trashed, untrashable: untrashable }
-}
-
-pub fn trash_result_value(result TrashResult) ruby.Value {
-	return ruby.array_value([
-		ruby.string_array_value(result.trashed),
-		ruby.string_array_value(result.untrashable),
-	])
-}
-
-fn trash_boundary_paths(args []ruby.Value) []string {
-	if args.len == 0 {
-		return []string{}
-	}
-	if args[0].type_name == 'Array' {
-		return args[0].as_array() or { []ruby.Value{} }.map(it.as_string())
-	}
-	return args.filter(it.type_name in ['String', 'Pathname']).map(it.as_string())
-}
-
-fn trash_boundary_date(args []ruby.Value) string {
-	for arg in args {
-		if arg.type_name == 'Hash' && 'deletion_date' in arg.map_data {
-			return arg.map_data['deletion_date'].as_string()
-		}
-	}
-	return time.now().format_ss()
-}
-
-fn trash_boundary_xdg(args []ruby.Value) string {
-	for arg in args {
-		if arg.type_name == 'Hash' && 'xdg_data_home' in arg.map_data {
-			return arg.map_data['xdg_data_home'].as_string()
-		}
-	}
-	return os.getenv('XDG_DATA_HOME')
 }
 
 // Translated from Homebrew/brew `cask/utils/trash.rb`.

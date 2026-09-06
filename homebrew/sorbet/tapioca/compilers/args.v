@@ -1,7 +1,5 @@
 module compilers
 
-import ruby
-
 // Translated from Homebrew/brew `sorbet/tapioca/compilers/args.rb`.
 pub const args_compiler_global_options = ['d?', 'debug?', 'q?', 'quiet?', 'v?', 'verbose?', 'h?',
 	'help?']
@@ -100,57 +98,4 @@ pub fn args_compiler_decoration(command ArgsCompilerCommand) ?ArgsCompilerDecora
 			return_type: command.args_class_name
 		}]
 	}
-}
-
-fn args_compiler_methods_value(methods []TapiocaGeneratedMethod) ruby.Value {
-	return ruby.array_value(methods.map(ruby.map_value({
-		'name':         ruby.string_value(it.name)
-		'return_type':  ruby.string_value(it.return_type)
-		'class_method': ruby.bool_value(it.class_method)
-		'parameters':   ruby.string_array_value(it.parameters)
-	})))
-}
-
-fn args_compiler_decoration_value(decoration ArgsCompilerDecoration) ruby.Value {
-	return ruby.map_value({
-		'command_name':         ruby.string_value(decoration.command_name)
-		'args_class_name':      ruby.string_value(decoration.args_class_name)
-		'args_superclass_name': ruby.string_value(decoration.args_superclass_name)
-		'args_methods':         args_compiler_methods_value(decoration.args_methods)
-		'command_methods':      args_compiler_methods_value(decoration.command_methods)
-	})
-}
-
-fn args_compiler_input_value(input &ArgsCompilerInput) ruby.Value {
-	return ruby.structured_value('Tapioca::Compilers::Args::Input', '', {
-		'args_compiler_input_address': u64(voidptr(input)).str()
-	})
-}
-
-fn args_compiler_input_from_value(value ruby.Value) &ArgsCompilerInput {
-	address := value.attributes['args_compiler_input_address'] or {
-		panic('invalid Args compiler input')
-	}
-	return unsafe { &ArgsCompilerInput(voidptr(address.u64())) }
-}
-
-fn args_compiler_parser_value(parser &ArgsCompilerParser) ruby.Value {
-	return ruby.structured_value('Homebrew::CLI::Parser', '', {
-		'args_compiler_parser_address': u64(voidptr(parser)).str()
-	})
-}
-
-fn args_compiler_parser_from_value(value ruby.Value) &ArgsCompilerParser {
-	address := value.attributes['args_compiler_parser_address'] or {
-		panic('invalid Args compiler parser')
-	}
-	return unsafe { &ArgsCompilerParser(voidptr(address.u64())) }
-}
-
-pub fn args_compiler_input_boundary(input &ArgsCompilerInput) ruby.Value {
-	return args_compiler_input_value(input)
-}
-
-pub fn args_compiler_parser_boundary(parser &ArgsCompilerParser) ruby.Value {
-	return args_compiler_parser_value(parser)
 }

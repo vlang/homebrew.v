@@ -456,38 +456,3 @@ pub fn update_report_link_plan(repository string) []string {
 	return ['link completions ${repository} (${command})',
 		'link manpages ${repository} (${command})', 'link docs ${repository} (${command})']
 }
-
-fn update_report_result_value(result UpdateReportResult) ruby.Value {
-	return ruby.map_value({
-		'stdout':       ruby.string_value(result.stdout)
-		'stderr':       ruby.string_value(result.stderr)
-		'actions':      ruby.string_array_value(result.actions)
-		'warnings':     ruby.string_array_value(result.warnings)
-		'updated':      ruby.bool_value(result.updated)
-		'updated_taps': ruby.string_array_value(result.updated_taps)
-		'new_tag':      ruby.string_value(result.new_tag)
-		'prewarm':      ruby.bool_value(result.prewarm)
-	})
-}
-
-fn update_report_context_from_value(value ruby.Value) UpdateReportContext {
-	mut environment := value.attributes.clone()
-	if 'HOMEBREW_UPDATE_BEFORE' !in environment {
-		environment['HOMEBREW_UPDATE_BEFORE'] = 'unchanged'
-	}
-	if 'HOMEBREW_UPDATE_AFTER' !in environment {
-		environment['HOMEBREW_UPDATE_AFTER'] = environment['HOMEBREW_UPDATE_BEFORE']
-	}
-	return UpdateReportContext{
-		environment: environment
-		repository: value.attributes['repository'] or { '.' }
-		caskroom: value.attributes['caskroom'] or { '' }
-		no_install_from_api: (value.attributes['no_install_from_api'] or { 'true' }) == 'true'
-		automatically_no_install_api: (value.attributes['automatically_no_install_api'] or { 'true' }) == 'true'
-		disable_load_formula: (value.attributes['disable_load_formula'] or { 'true' }) == 'true'
-		developer: (value.attributes['developer'] or { 'false' }) == 'true'
-		update_test: (value.attributes['update_test'] or { 'true' }) == 'true'
-		latest_tag: value.attributes['latest_tag'] or { '' }
-		new_tag: value.attributes['new_tag'] or { '' }
-	}
-}

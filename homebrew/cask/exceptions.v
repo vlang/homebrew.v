@@ -134,21 +134,6 @@ fn cask_exception_from_args(args []ruby.Value, default_kind CaskExceptionKind) C
 	}
 }
 
-fn cask_exception_value(exception CaskException) ruby.Value {
-	return ruby.map_value({
-		'kind':             ruby.string_value(exception.kind.str())
-		'token':            ruby.string_value(exception.token)
-		'reason':           ruby.string_value(exception.reason)
-		'message':          ruby.string_value(exception.detail)
-		'conflicting_cask': ruby.string_value(exception.conflicting_cask)
-		'tap':              ruby.string_value(exception.tap)
-		'tap_installed':    ruby.bool_value(exception.tap_installed)
-		'loaders':          ruby.string_array_value(exception.loaders)
-		'errors':           ruby.string_array_value(exception.errors)
-		'path':             ruby.string_value(exception.path)
-	})
-}
-
 fn cask_exception_kind(name string, fallback CaskExceptionKind) CaskExceptionKind {
 	return match name {
 		'multiple' { .multiple }

@@ -1,7 +1,5 @@
 module homebrew
 
-import ruby
-
 // Translated from Homebrew/brew `cxxstdlib.rb`.
 
 // CxxStdlibType translates the two Ruby symbols accepted by CxxStdlib.create.
@@ -55,20 +53,4 @@ pub fn (stdlib CxxStdlib) type_string() string {
 // inspect translates CxxStdlib#inspect.
 pub fn (stdlib CxxStdlib) inspect() string {
 	return '#<CxxStdlib: ${stdlib.compiler} ${stdlib.type_symbol()}>'
-}
-
-fn cxxstdlib_boundary_value(stdlib CxxStdlib) ruby.Value {
-	return ruby.structured_value('CxxStdlib', stdlib.inspect(), {
-		'type':     stdlib.type_symbol()
-		'compiler': stdlib.compiler
-	})
-}
-
-fn cxxstdlib_from_boundary(value ruby.Value) CxxStdlib {
-	if value.type_name != 'CxxStdlib' {
-		panic('expected CxxStdlib, got ${value.type_name}')
-	}
-	type_symbol := value.attribute('type') or { panic(err) }
-	compiler := value.attribute('compiler') or { panic(err) }
-	return create_cxxstdlib(type_symbol, compiler) or { panic(err) }
 }

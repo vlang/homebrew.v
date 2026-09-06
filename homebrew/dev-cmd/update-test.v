@@ -1,6 +1,5 @@
 module dev_cmd
 
-import ruby
 import os
 
 // Translated from Homebrew/brew `dev-cmd/update-test.rb`.
@@ -155,35 +154,4 @@ pub fn run_update_test(options UpdateTestOptions) !UpdateTestResult {
 pub struct UpdateTestInput {
 pub:
 	options UpdateTestOptions
-}
-
-pub fn update_test_input_boundary(input &UpdateTestInput) ruby.Value {
-	return ruby.structured_value('Homebrew::DevCmd::UpdateTest::Input', '', {
-		'update_test_input_address': u64(voidptr(input)).str()
-	})
-}
-
-fn update_test_input_from_value(value ruby.Value) &UpdateTestInput {
-	address := value.attributes['update_test_input_address'] or { panic('invalid UpdateTest input') }
-	return unsafe { &UpdateTestInput(voidptr(address.u64())) }
-}
-
-fn update_test_result_value(result UpdateTestResult) ruby.Value {
-	mut environment := map[string]ruby.Value{}
-	for name, value in result.environment {
-		environment[name] = ruby.string_value(value)
-	}
-	return ruby.map_value({
-		'environment':       ruby.map_value(environment)
-		'unset_environment': ruby.string_array_value(result.unset_environment)
-		'branch':            ruby.string_value(result.branch)
-		'start_commit':      ruby.string_value(result.start_commit)
-		'end_commit':        ruby.string_value(result.end_commit)
-		'stdout':            ruby.string_value(result.stdout)
-		'headings':          ruby.string_array_value(result.headings)
-		'commands':          ruby.array_value(result.commands.map(ruby.string_array_value(it)))
-		'quiet_commands':    ruby.array_value(result.quiet_commands.map(ruby.string_array_value(it)))
-		'update_test_dir':   ruby.string_value(result.update_test_dir)
-		'removed':           ruby.bool_value(result.removed)
-	})
 }

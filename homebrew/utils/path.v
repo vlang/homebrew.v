@@ -128,14 +128,6 @@ pub fn path_trusted_package_root(path string) string {
 	return if os.exists(path) { os.real_path(path) } else { os.norm_path(os.abs_path(path)) }
 }
 
-fn path_names_from_value(value ruby.Value) []string {
-	return if value.type_name == 'Array' {
-		value.as_string_array() or { value.array_data.map(it.as_string()) }
-	} else {
-		[value.as_string()]
-	}
-}
-
 fn path_name_from_full_name(full_name string) string {
 	return full_name.all_after_last('/')
 }

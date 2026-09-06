@@ -1,6 +1,5 @@
 module dev_cmd
 
-import ruby
 import os
 
 // Translated from Homebrew/brew `dev-cmd/debugger.rb`.
@@ -51,26 +50,4 @@ pub fn debugger_plan(options DebuggerOptions) !DebuggerPlan {
 		command: command
 		environment: environment
 	}
-}
-
-pub fn debugger_input_boundary(input &DebuggerInput) ruby.Value {
-	return ruby.structured_value('Homebrew::DevCmd::Debugger::Input', '', {
-		'debugger_input_address': u64(voidptr(input)).str()
-	})
-}
-
-fn debugger_input_from_value(value ruby.Value) &DebuggerInput {
-	address := value.attributes['debugger_input_address'] or { panic('invalid Debugger input') }
-	return unsafe { &DebuggerInput(voidptr(address.u64())) }
-}
-
-fn debugger_plan_value(plan DebuggerPlan) ruby.Value {
-	mut environment := map[string]ruby.Value{}
-	for name, value in plan.environment {
-		environment[name] = ruby.string_value(value)
-	}
-	return ruby.map_value({
-		'command':     ruby.string_array_value(plan.command)
-		'environment': ruby.map_value(environment)
-	})
 }

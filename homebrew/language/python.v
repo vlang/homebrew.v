@@ -5,14 +5,6 @@ import os
 
 // Translated from Homebrew/brew `language/python.rb`.
 
-fn python_error(type_name string, message string) ruby.Value {
-	return ruby.object_value(type_name, message)
-}
-
-fn python_nil() ruby.Value {
-	return ruby.object_value('NilClass', '')
-}
-
 fn python_value_with_map(type_name string, representation string,
 	values map[string]ruby.Value) ruby.Value {
 	return ruby.Value{
@@ -76,71 +68,6 @@ fn python_site_packages(python string, version_output string) string {
 	return 'lib/python${version}/site-packages'
 }
 
-fn python_value_strings(value ruby.Value) []string {
-	if value.type_name == 'NilClass' || value.type_name == '' {
-		return []string{}
-	}
-	if value.type_name == 'String' {
-		return [value.as_string()]
-	}
-	if strings := value.as_string_array() {
-		if strings.len > 0 {
-			return strings
-		}
-	}
-	if values := value.as_array() {
-		return values.map(it.as_string())
-	}
-	return [value.as_string()]
-}
-
-fn python_value_values(value ruby.Value) []ruby.Value {
-	if values := value.as_array() {
-		return values
-	}
-	return []ruby.Value{}
-}
-
-fn python_value_map(value ruby.Value) map[string]ruby.Value {
-	return value.as_map() or { map[string]ruby.Value{} }
-}
-
-fn python_value_field(value ruby.Value, name string) string {
-	if nested := value.map_data[name] {
-		return nested.as_string()
-	}
-	if attribute := value.attributes[name] {
-		return attribute
-	}
-	return ''
-}
-
-fn python_value_bool_field(value ruby.Value, name string, default_value bool) bool {
-	if nested := value.map_data[name] {
-		return nested.as_bool() or { nested.as_string() == 'true' }
-	}
-	if attribute := value.attributes[name] {
-		return attribute == 'true'
-	}
-	return default_value
-}
-
-fn python_iteration_value(python string, version string, pythonpath string) ruby.Value {
-	return python_value_with_map('PythonIteration', python, {
-		'python':     ruby.string_value(python)
-		'version':    if version == '' {
-			python_nil()
-		} else {
-			ruby.object_value('Version', version)
-		}
-		'pythonpath': if pythonpath == '' {
-			python_nil()
-		} else {
-			ruby.string_value(pythonpath)
-		}
-	})
-}
-
 fn python_directory_writable(path string) bool {
 	probe := os.join_path(path, '.brew-v-python-writable-${os.getpid()}')
 	os.write_file(probe, '') or { return false }
@@ -156,52 +83,6 @@ fn python_version_at_least(version string, major int, minor int) bool {
 	return parts[0].int() > major || (parts[0].int() == major && parts[1].int() >= minor)
 }
 
-fn python_virtualenv_value(formula ruby.Value, root string,
-	python string) ruby.Value {
-	return python_value_with_map('Language::Python::Virtualenv::Virtualenv', root, {
-		'formula': ruby.Value{
-			type_name: formula.type_name
-			repr: formula.repr
-			bool_data: formula.bool_data
-			int_data: formula.int_data
-			float_data: formula.float_data
-			string_array_data: formula.string_array_data.clone()
-			array_data: formula.array_data.clone()
-			map_data: formula.map_data.clone()
-			attributes: formula.attributes.clone()
-		}
-		'root':    ruby.string_value(root)
-		'python':  ruby.string_value(python)
-	})
-}
-
-fn python_virtualenv_site_packages(virtualenv ruby.Value) string {
-	root := python_value_field(virtualenv, 'root')
-	python := python_value_field(virtualenv, 'python')
-	version_output := python_value_field(virtualenv, 'python_version_output')
-	return os.join_path(root, python_site_packages(python, version_output))
-}
-
-fn python_dependency_pruned(dependency ruby.Value, formula ruby.Value,
-	python string) bool {
-	if python_value_bool_field(dependency, 'build', false) || python_value_bool_field(dependency, 'test', false) {
-		return true
-	}
-	if python_value_bool_field(dependency, 'uses_from_macos', false) {
-		return true
-	}
-	name := python_value_field(dependency, 'name')
-	if name in python_names([]) {
-		return true
-	}
-	if python_value_bool_field(dependency, 'optional', false) || python_value_bool_field(dependency, 'recommended', false) {
-		formula_map := formula.as_map() or { formula.map_data.clone() }
-		return name !in python_value_strings(formula_map['build_with'] or { python_nil() })
-	}
-	_ = python
-	return false
-}
-
 fn python_name_from_full_name(name string) string {
 	parts := name.split('/')
 	return if parts.len > 0 { parts[parts.len - 1] } else { name }
@@ -215,47 +96,6 @@ fn python_names(formula_names []string) []string {
 		}
 	}
 	return names
-}
-
-fn python_resource_name(resource ruby.Value) string {
-	name := python_value_field(resource, 'name')
-	return if name != '' { name } else { resource.repr }
-}
-
-fn python_slice_resources(resources map[string]ruby.Value,
-	names []string) !(map[string]ruby.Value, []ruby.Value) {
-	mut remaining := resources.clone()
-	mut selected := []ruby.Value{}
-	for name in names {
-		if name !in remaining {
-			return error('Resource "${name}" is not defined in formula or is already used.')
-		}
-		selected << remaining[name]
-		remaining.delete(name)
-	}
-	return remaining, selected
-}
-
-fn python_order_resources(resources []ruby.Value, without []string, start_with []string,
-	end_with []string) ![]ruby.Value {
-	mut resources_hash := map[string]ruby.Value{}
-	mut resource_order := []string{}
-	for resource in resources {
-		name := python_resource_name(resource)
-		resources_hash[name] = resource
-		resource_order << name
-	}
-	remaining_after_without, _ := python_slice_resources(resources_hash, without)!
-	remaining_after_start, start := python_slice_resources(remaining_after_without, start_with)!
-	remaining, end := python_slice_resources(remaining_after_start, end_with)!
-	mut ordered := start.clone()
-	for name in resource_order {
-		if name in remaining {
-			ordered << remaining[name]
-		}
-	}
-	ordered << end
-	return ordered
 }
 
 fn python_robustify_virtualenv(root string, cellar string, prefix string) ! {
@@ -363,13 +203,6 @@ fn python_rewrite_pyvenv_cfg(contents string, cellar string, prefix string) stri
 	return output.join('\n')
 }
 
-fn python_targets(value ruby.Value) []ruby.Value {
-	if value.type_name == 'Array' {
-		return python_value_values(value)
-	}
-	return [value]
-}
-
 fn python_multiline_targets(contents string) []string {
 	mut lines := contents.split('\n')
 	if lines.len > 0 && lines[lines.len - 1] == '' {
@@ -389,16 +222,6 @@ fn python_std_pip_args(build_isolation bool) []string {
 		args << '--no-build-isolation'
 	}
 	return args
-}
-
-fn python_pip_command_value(virtualenv ruby.Value, targets []string,
-	std_args []string) ruby.Value {
-	python := python_value_field(virtualenv, 'python')
-	root := python_value_field(virtualenv, 'root')
-	mut command := [python, '-m', 'pip', '--python=${os.join_path(root, 'bin/python')}', 'install']
-	command << std_args
-	command << targets
-	return ruby.string_array_value(command)
 }
 
 fn python_glob_files(root string, recursive bool) []string {

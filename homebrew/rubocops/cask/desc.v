@@ -1,7 +1,5 @@
 module cask
 
-import ruby
-
 // Translated from Homebrew/brew `rubocops/cask/desc.rb`.
 pub const cask_desc_article_message = "Description shouldn't start with an article."
 pub const cask_desc_name_message = "Description shouldn't start with the cask name."
@@ -866,15 +864,4 @@ pub fn correct_cask_desc(source string) string {
 		corrected_literals[offense.literal_begin_pos] = true
 	}
 	return corrected
-}
-
-fn cask_desc_value(offense CaskDescOffense) ruby.Value {
-	return ruby.structured_value('RuboCop::Cop::Offense', offense.message, {
-		'cask_name':   offense.cask_name
-		'description': offense.description
-		'begin_pos':   offense.begin_pos.str()
-		'end_pos':     offense.end_pos.str()
-		'message':     offense.message
-		'replacement': offense.replacement
-	})
 }

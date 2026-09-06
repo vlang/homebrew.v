@@ -1,6 +1,5 @@
 module dev_cmd
 
-import ruby
 import homebrew
 import homebrew.utils
 import os
@@ -174,31 +173,4 @@ pub fn run_which_update(options WhichUpdateOptions) !WhichUpdateResult {
 		}
 	}
 	return result
-}
-
-pub fn which_update_input_boundary(input &WhichUpdateInput) ruby.Value {
-	return ruby.structured_value('Homebrew::DevCmd::WhichUpdate::Input', '', {
-		'which_update_input_address': u64(voidptr(input)).str()
-	})
-}
-
-fn which_update_input_from_value(value ruby.Value) &WhichUpdateInput {
-	address := value.attributes['which_update_input_address'] or {
-		panic('invalid WhichUpdate command input')
-	}
-	return unsafe { &WhichUpdateInput(voidptr(address.u64())) }
-}
-
-fn which_update_result_value(result WhichUpdateResult) ruby.Value {
-	return ruby.map_value({
-		'source':                ruby.string_value(result.source)
-		'updated':               ruby.bool_value(result.updated)
-		'repository':            ruby.string_value(result.repository)
-		'pull_request_url':      ruby.string_value(result.pull_request_url)
-		'removed_formulae':      ruby.string_array_value(result.removed_formulae)
-		'removed_entries':       ruby.string_array_value(result.removed_entries)
-		'warnings':              ruby.string_array_value(result.warnings)
-		'summary_written':       ruby.bool_value(result.summary_written)
-		'github_output_written': ruby.bool_value(result.github_output_written)
-	})
 }

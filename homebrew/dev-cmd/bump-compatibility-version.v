@@ -91,26 +91,3 @@ pub fn run_bump_compatibility_version(options BumpCompatibilityVersionOptions) !
 		modified_formulae: modified
 	}
 }
-
-pub fn bump_compatibility_version_input_boundary(input &BumpCompatibilityVersionInput) ruby.Value {
-	return ruby.structured_value('Homebrew::DevCmd::BumpCompatibilityVersion::Input', '', {
-		'bump_compatibility_version_input_address': u64(voidptr(input)).str()
-	})
-}
-
-fn bump_compatibility_version_input_from_value(value ruby.Value) &BumpCompatibilityVersionInput {
-	address := value.attributes['bump_compatibility_version_input_address'] or {
-		panic('invalid BumpCompatibilityVersion input')
-	}
-	return unsafe { &BumpCompatibilityVersionInput(voidptr(address.u64())) }
-}
-
-fn bump_compatibility_version_result_value(result BumpCompatibilityVersionResult) ruby.Value {
-	return ruby.map_value({
-		'path':              ruby.string_value(result.path)
-		'bundler_groups':    ruby.string_array_value(result.bundler_groups)
-		'output':            ruby.string_array_value(result.output)
-		'commit_commands':   ruby.array_value(result.commit_commands.map(ruby.string_array_value(it)))
-		'modified_formulae': ruby.string_array_value(result.modified_formulae)
-	})
-}

@@ -1,6 +1,5 @@
 module ast
 
-import ruby
 import homebrew.rubocops.cask.constants as stanza_constants
 import homebrew.rubocops.cask.extend as cask_extend
 
@@ -17,10 +16,6 @@ pub:
 	node         cask_extend.CaskAstNode
 	full_source  string
 	all_comments []CaskAstComment
-}
-
-fn cask_ast_nil() ruby.Value {
-	return ruby.object_value('NilClass', 'nil')
 }
 
 pub fn parse_cask_ast_comments(source string) []CaskAstComment {
@@ -58,35 +53,6 @@ pub fn parse_cask_ast_comments(source string) []CaskAstComment {
 		line_start = line_end + 1
 	}
 	return comments
-}
-
-fn cask_ast_node_value(node cask_extend.CaskAstNode) ruby.Value {
-	type_name := match node.kind {
-		'block' { 'RuboCop::AST::BlockNode' }
-		'send' { 'RuboCop::AST::SendNode' }
-		'lvasgn' { 'RuboCop::AST::LvasgnNode' }
-		'begin' { 'RuboCop::AST::BeginNode' }
-		else { 'RuboCop::AST::Node' }
-	}
-	return ruby.Value{
-		type_name: type_name
-		repr: node.source
-		array_data: node.children.map(cask_ast_node_value(it))
-		attributes: {
-			'kind':         node.kind
-			'method_name':  node.method_name
-			'begin_pos':    node.expression.begin_pos.str()
-			'end_pos':      node.expression.end_pos.str()
-			'has_receiver': node.has_receiver.str()
-		}
-	}
-}
-
-fn cask_ast_comment_values(comments []CaskAstComment) ruby.Value {
-	return ruby.array_value(comments.map(ruby.structured_value('Parser::Source::Comment', it.source, {
-		'begin_pos': it.begin_pos.str()
-		'end_pos':   it.end_pos.str()
-	})))
 }
 
 fn cask_ast_stanza_from_source(source string) ?CaskAstStanza {
@@ -195,24 +161,4 @@ pub fn cask_ast_stanza_range(stanza CaskAstStanza, with_comments bool) (int, int
 		}
 	}
 	return begin_pos, end_pos
-}
-
-fn cask_ast_range_value(stanza CaskAstStanza, with_comments bool) ruby.Value {
-	begin_pos, end_pos := cask_ast_stanza_range(stanza, with_comments)
-	return ruby.structured_value('Parser::Source::Range', stanza.full_source[begin_pos..end_pos], {
-		'begin_pos': begin_pos.str()
-		'end_pos':   end_pos.str()
-		'source':    stanza.full_source[begin_pos..end_pos]
-	})
-}
-
-fn cask_ast_stanza_value(stanza CaskAstStanza) ruby.Value {
-	begin_pos, end_pos := cask_ast_stanza_range(stanza, false)
-	return ruby.structured_value('RuboCop::Cask::AST::Stanza', cask_ast_stanza_name(stanza), {
-		'stanza_name': cask_ast_stanza_name(stanza)
-		'begin_pos':   begin_pos.str()
-		'end_pos':     end_pos.str()
-		'source':      stanza.full_source[begin_pos..end_pos]
-		'comments':    cask_ast_stanza_comments(stanza).map(it.source).join('\n')
-	})
 }

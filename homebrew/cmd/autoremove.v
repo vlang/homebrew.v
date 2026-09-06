@@ -54,20 +54,3 @@ fn autoremove_formula_from_value(value ruby.Value) AutoremoveFormula {
 		installed_on_request: (value.attributes['installed_on_request'] or { 'false' }) == 'true'
 	}
 }
-
-pub fn autoremove_formula_to_value(formula AutoremoveFormula) ruby.Value {
-	return ruby.structured_value('Formula', formula.name, {
-		'name':                 formula.name
-		'installed':            formula.installed.str()
-		'installed_on_request': formula.installed_on_request.str()
-	})
-}
-
-pub fn autoremove_result_to_value(result AutoremoveResult) ruby.Value {
-	return ruby.map_value({
-		'removed':  ruby.string_array_value(result.removed)
-		'retained': ruby.string_array_value(result.retained)
-		'dry_run':  ruby.bool_value(result.dry_run)
-		'output':   ruby.string_value(result.output)
-	})
-}

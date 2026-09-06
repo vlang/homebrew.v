@@ -1,7 +1,5 @@
 module mac
 
-import ruby
-
 pub struct MacSystemConfig {
 pub:
 	clang                string
@@ -98,20 +96,6 @@ pub fn mac_config_sections(config MacSystemConfig) []string {
 	mut sections := config.base_sections.clone()
 	sections << 'macos_config'
 	return sections
-}
-
-fn mac_system_config_value(config &MacSystemConfig) ruby.Value {
-	return ruby.structured_value('SystemConfig', '', {
-		'mac_system_config_address': u64(voidptr(config)).str()
-	})
-}
-
-fn mac_system_config_from_value(value ruby.Value) &MacSystemConfig {
-	return unsafe { &MacSystemConfig(voidptr(value.attributes['mac_system_config_address'].u64())) }
-}
-
-pub fn mac_system_config_boundary(config &MacSystemConfig) ruby.Value {
-	return mac_system_config_value(config)
 }
 
 // Translated from Homebrew/brew `extend/os/mac/system_config.rb`.

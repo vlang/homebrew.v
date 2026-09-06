@@ -1,6 +1,5 @@
 module dependency
 
-import ruby
 import hash.fnv1a
 
 // Translated from Homebrew/brew `dependency/uses_from_macos_dependency.rb`.
@@ -195,82 +194,4 @@ fn (version ComparableMacosVersion) compare(other ComparableMacosVersion) int {
 		}
 	}
 	return 0
-}
-
-fn uses_from_macos_bounds_value(bounds map[string]string) ruby.Value {
-	mut values := map[string]ruby.Value{}
-	for name, value in bounds {
-		values[name] = ruby.object_value('Symbol', value)
-	}
-	return ruby.map_value(values)
-}
-
-fn uses_from_macos_bounds_from_value(value ruby.Value) !map[string]string {
-	values := value.as_map()!
-	mut bounds := map[string]string{}
-	for name, bound in values {
-		bounds[name.trim_string_left(':')] = bound.as_string().trim_string_left(':')
-	}
-	return bounds
-}
-
-fn dependency_tags_from_value(value ruby.Value) ![]string {
-	values := value.as_array()!
-	return values.map(if it.type_name == 'Symbol' { ':${it.as_string()}' } else { it.as_string() })
-}
-
-fn uses_from_macos_dependency_value(dependency UsesFromMacosDependency) ruby.Value {
-	mut tag_values := []ruby.Value{cap: dependency.tags.len}
-	for tag in dependency.tags {
-		tag_values << if tag.starts_with(':') {
-			ruby.object_value('Symbol', tag.trim_string_left(':'))
-		} else {
-			ruby.string_value(tag)
-		}
-	}
-	return ruby.Value{
-		type_name: 'UsesFromMacOSDependency'
-		repr: dependency.inspect()
-		map_data: {
-			'name':   ruby.string_value(dependency.name)
-			'tags':   ruby.array_value(tag_values)
-			'bounds': uses_from_macos_bounds_value(dependency.bounds)
-		}
-	}
-}
-
-fn uses_from_macos_dependency_from_value(value ruby.Value) !UsesFromMacosDependency {
-	if value.type_name != 'UsesFromMacOSDependency' {
-		return error('expected UsesFromMacOSDependency, got ${value.type_name}')
-	}
-	name_value := value.map_data['name'] or { return error('dependency has no name') }
-	tags_value := value.map_data['tags'] or { return error('dependency has no tags') }
-	bounds_value := value.map_data['bounds'] or { return error('dependency has no bounds') }
-	return new_uses_from_macos_dependency(name_value.as_string(), dependency_tags_from_value(tags_value)!, uses_from_macos_bounds_from_value(bounds_value)!)
-}
-
-fn uses_from_macos_dependency_from_args(args []ruby.Value) !UsesFromMacosDependency {
-	if args.len == 0 {
-		return error('missing UsesFromMacOSDependency receiver')
-	}
-	return uses_from_macos_dependency_from_value(args[0])
-}
-
-// Generic adapters pass bottle_os_version, the inherited installed? result,
-// SimulateSystem's macOS predicate, and current_os after the receiver.
-fn uses_from_macos_context_from_args(args []ruby.Value, offset int) UsesFromMacosContext {
-	return UsesFromMacosContext{
-		bottle_os_version: if args.len > offset { args[offset].as_string() } else { '' }
-		inherited_installed: if args.len > offset + 1 {
-			args[offset + 1].as_bool() or { false }
-		} else {
-			false
-		}
-		simulating_or_running_on_macos: if args.len > offset + 2 {
-			args[offset + 2].as_bool() or { false }
-		} else {
-			false
-		}
-		current_os: if args.len > offset + 3 { args[offset + 3].as_string() } else { 'linux' }
-	}
 }

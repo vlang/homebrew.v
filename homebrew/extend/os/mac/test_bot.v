@@ -1,7 +1,6 @@
 module mac
 
 import ruby
-import os
 
 // Translated from Homebrew/brew `extend/os/mac/test_bot.rb`.
 pub struct MacTestBotSystem {
@@ -73,13 +72,6 @@ fn mac_test_bot_system_from_value(value ruby.Value) MacTestBotSystem {
 		pretty_version: value.attributes['pretty_version'] or { value.repr }
 		arch: value.attributes['arch'] or { 'x86_64' }
 	}
-}
-
-fn mac_test_bot_cleanup_value(targets []MacTestBotCleanupTarget) ruby.Value {
-	return ruby.array_value(targets.map(ruby.structured_value('DeleteOrMove', it.paths.str(), {
-		'paths': it.paths.join('\n')
-		'sudo':  it.sudo.str()
-	})))
 }
 
 // Ruby method `runner_os_title` at line 13.

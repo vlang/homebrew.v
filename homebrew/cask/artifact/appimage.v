@@ -1,6 +1,5 @@
 module artifact
 
-import ruby
 import os
 
 // Translated from Homebrew/brew `cask/artifact/appimage.rb`.
@@ -43,21 +42,5 @@ pub fn link_executable_artifact(source string) !ExecutableArtifactLinkResult {
 		source: source
 		chmod_applied: true
 		command_arguments: ['+x', source]
-	}
-}
-
-fn executable_artifact_link_value(result ExecutableArtifactLinkResult) ruby.Value {
-	return ruby.Value{
-		type_name: 'ExecutableArtifactLinkResult'
-		repr: result.source
-		attributes: {
-			'source':             result.source
-			'already_executable': result.already_executable.str()
-			'chmod_applied':      result.chmod_applied.str()
-			'sudo_required':      result.sudo_required.str()
-		}
-		map_data: {
-			'command_arguments': ruby.string_array_value(result.command_arguments)
-		}
 	}
 }

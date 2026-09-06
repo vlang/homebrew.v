@@ -1,7 +1,5 @@
 module dev_cmd
 
-import ruby
-
 // Translated from Homebrew/brew `dev-cmd/pr-automerge.rb`.
 
 pub struct PrAutomergePullRequest {
@@ -119,32 +117,4 @@ pub fn run_pr_automerge(options PrAutomergeOptions) PrAutomergeResult {
 pub struct PrAutomergeInput {
 pub:
 	options PrAutomergeOptions
-}
-
-pub fn pr_automerge_input_boundary(input &PrAutomergeInput) ruby.Value {
-	return ruby.structured_value('Homebrew::DevCmd::PrAutomerge::Input', '', {
-		'pr_automerge_input_address': u64(voidptr(input)).str()
-	})
-}
-
-fn pr_automerge_input_from_value(value ruby.Value) &PrAutomergeInput {
-	address := value.attributes['pr_automerge_input_address'] or {
-		panic('invalid PrAutomerge command input')
-	}
-	return unsafe { &PrAutomergeInput(voidptr(address.u64())) }
-}
-
-fn pr_automerge_result_value(result PrAutomergeResult) ruby.Value {
-	return ruby.map_value({
-		'query':              ruby.string_value(result.query)
-		'debug_messages':     ruby.string_array_value(result.debug_messages)
-		'ohai_messages':      ruby.string_array_value(result.ohai_messages)
-		'pull_request_lines': ruby.string_array_value(result.pull_request_lines)
-		'pr_urls':            ruby.string_array_value(result.pr_urls)
-		'publish_args':       ruby.string_array_value(result.publish_args)
-		'publish_command':    ruby.string_array_value(result.publish_command)
-		'instruction':        ruby.string_value(result.instruction)
-		'published':          ruby.bool_value(result.published)
-		'no_matches':         ruby.bool_value(result.no_matches)
-	})
 }

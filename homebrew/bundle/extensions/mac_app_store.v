@@ -1,6 +1,5 @@
 module extensions
 
-import ruby
 import json2
 
 // Translated from Homebrew/brew `bundle/extensions/mac_app_store.rb`.
@@ -47,20 +46,6 @@ pub fn mac_app_store_definition() ExtensionDefinition {
 		banner_name: 'Mac App Store dependencies'
 		check_label: 'App'
 		cleanup_heading: 'Mac App Store apps'
-	}
-}
-
-pub fn mac_app_store_entry(name string, options map[string]ruby.Value) !ExtensionEntry {
-	id := options['id'] or { return error('options[:id](nil) should be an Integer object') }
-	if id.type_name != 'Integer' {
-		return error('options[:id](${id.repr}) should be an Integer object')
-	}
-	return ExtensionEntry{
-		entry_type: 'mas'
-		name: name
-		options: {
-			'id': id
-		}
 	}
 }
 
@@ -346,91 +331,4 @@ pub fn mac_app_store_full_check(mut state MacAppStoreState,
 		}
 	}
 	return failures
-}
-
-fn mac_app_store_app_value(app MacAppStoreApp) ruby.Value {
-	return ruby.map_value({
-		'id':   ruby.string_value(app.id)
-		'name': ruby.string_value(app.name)
-	})
-}
-
-fn mac_app_store_app_from_value(value ruby.Value) MacAppStoreApp {
-	values := value.map_data.clone()
-	return MacAppStoreApp{ id: (values['id'] or { ruby.string_value('') }).as_string(), name: (values['name'] or { ruby.string_value('') }).as_string() }
-}
-
-pub fn mac_app_store_state_value(state MacAppStoreState) ruby.Value {
-	return ruby.map_value({
-		'brew_file':                ruby.string_value(state.brew_file)
-		'executable':               ruby.string_value(state.executable)
-		'list_output':              ruby.string_value(state.list_output)
-		'outdated_output':          ruby.string_value(state.outdated_output)
-		'apps':                     ruby.array_value(state.apps.map(mac_app_store_app_value(it)))
-		'apps_loaded':              ruby.bool_value(state.apps_loaded)
-		'packages':                 ruby.array_value(state.packages.map(mac_app_store_app_value(it)))
-		'packages_loaded':          ruby.bool_value(state.packages_loaded)
-		'installed_app_ids':        ruby.string_array_value(state.installed_app_ids)
-		'installed_ids_loaded':     ruby.bool_value(state.installed_ids_loaded)
-		'outdated_app_ids':         ruby.string_array_value(state.outdated_app_ids)
-		'outdated_ids_loaded':      ruby.bool_value(state.outdated_ids_loaded)
-		'manager_install_succeeds': ruby.bool_value(state.manager_install_succeeds)
-		'upgrade_succeeds':         ruby.bool_value(state.upgrade_succeeds)
-		'install_succeeds':         ruby.bool_value(state.install_succeeds)
-		'get_succeeds':             ruby.bool_value(state.get_succeeds)
-		'executable_after_install': ruby.string_value(state.executable_after_install)
-		'commands':                 ruby.array_value(state.commands.map(ruby.string_array_value(it)))
-		'output':                   ruby.string_array_value(state.output)
-	})
-}
-
-pub fn mac_app_store_state_from_value(value ruby.Value) MacAppStoreState {
-	values := value.map_data.clone()
-	mut commands := [][]string{}
-	for command in (values['commands'] or { ruby.array_value([]) }).as_array() or { []ruby.Value{} } {
-		commands << (command.as_string_array() or { []string{} })
-	}
-	return MacAppStoreState{
-		brew_file: (values['brew_file'] or { ruby.string_value('brew') }).as_string()
-		executable: (values['executable'] or { ruby.string_value('') }).as_string()
-		list_output: (values['list_output'] or { ruby.string_value('') }).as_string()
-		outdated_output: (values['outdated_output'] or { ruby.string_value('') }).as_string()
-		apps: ((values['apps'] or { ruby.array_value([]) }).as_array() or { []ruby.Value{} }).map(mac_app_store_app_from_value(it))
-		apps_loaded: (values['apps_loaded'] or { ruby.bool_value(false) }).bool_data
-		packages: ((values['packages'] or { ruby.array_value([]) }).as_array() or { []ruby.Value{} }).map(mac_app_store_app_from_value(it))
-		packages_loaded: (values['packages_loaded'] or { ruby.bool_value(false) }).bool_data
-		installed_app_ids: (values['installed_app_ids'] or { ruby.string_array_value([]) }).as_string_array() or { []string{} }
-		installed_ids_loaded: (values['installed_ids_loaded'] or { ruby.bool_value(false) }).bool_data
-		outdated_app_ids: (values['outdated_app_ids'] or { ruby.string_array_value([]) }).as_string_array() or { []string{} }
-		outdated_ids_loaded: (values['outdated_ids_loaded'] or { ruby.bool_value(false) }).bool_data
-		manager_install_succeeds: (values['manager_install_succeeds'] or { ruby.bool_value(false) }).bool_data
-		upgrade_succeeds: (values['upgrade_succeeds'] or { ruby.bool_value(false) }).bool_data
-		install_succeeds: (values['install_succeeds'] or { ruby.bool_value(false) }).bool_data
-		get_succeeds: (values['get_succeeds'] or { ruby.bool_value(false) }).bool_data
-		executable_after_install: (values['executable_after_install'] or { ruby.string_value('') }).as_string()
-		commands: commands
-		output: (values['output'] or { ruby.string_array_value([]) }).as_string_array() or { []string{} }
-	}
-}
-
-fn mac_app_store_apps_value(apps []MacAppStoreApp) ruby.Value {
-	return ruby.array_value(apps.map(mac_app_store_app_value(it)))
-}
-
-fn mac_app_store_checkables_from_value(value ruby.Value) []MacAppStoreCheckable {
-	mut packages := []MacAppStoreCheckable{}
-	for item in value.as_array() or { []ruby.Value{} } {
-		parts := item.as_array() or { continue }
-		if parts.len >= 2 {
-			packages << MacAppStoreCheckable{ id: parts[0].int_data, name: parts[1].as_string() }
-		}
-	}
-	return packages
-}
-
-fn mac_app_store_checkables_value(packages []MacAppStoreCheckable) ruby.Value {
-	return ruby.array_value(packages.map(ruby.array_value([
-		ruby.int_value(it.id),
-		ruby.string_value(it.name),
-	])))
 }

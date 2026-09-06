@@ -466,142 +466,6 @@ pub fn ast_process_source(source string) (ruby.Value, AstNode) {
 	return processed, root
 }
 
-fn ast_range_value(source_range AstRange, source string) ruby.Value {
-	return ruby.structured_value('Parser::Source::Range', source, {
-		'begin_pos': source_range.begin_pos.str()
-		'end_pos':   source_range.end_pos.str()
-		'column':    source_range.column.str()
-	})
-}
-
-fn ast_range_from_value(value ruby.Value) AstRange {
-	return AstRange{
-		begin_pos: (value.attributes['begin_pos'] or { '0' }).int()
-		end_pos: (value.attributes['end_pos'] or { value.repr.len.str() }).int()
-		column: (value.attributes['column'] or { '0' }).int()
-	}
-}
-
-pub fn ast_node_value(node AstNode) ruby.Value {
-	mut pairs := map[string]ruby.Value{}
-	for pair in node.hash_pairs {
-		pairs[pair.key] = pair.value
-	}
-	argument_nodes := node.arguments.map(ruby.Value{
-		type_name: 'Utils::AST::Argument'
-		repr: it.value.repr
-		map_data: {
-			'value': it.value
-			'range': ast_range_value(it.source_range, it.value.repr)
-		}
-		attributes: {
-			'begin_pos': it.source_range.begin_pos.str()
-			'end_pos':   it.source_range.end_pos.str()
-			'column':    it.source_range.column.str()
-		}
-	})
-	hash_pair_nodes := node.hash_pairs.map(ruby.Value{
-		type_name: 'Utils::AST::HashPair'
-		repr: '${it.key}: ${it.value.repr}'
-		map_data: {
-			'key':         ruby.string_value(it.key)
-			'value':       it.value
-			'key_range':   ast_range_value(it.key_range, it.key)
-			'value_range': ast_range_value(it.value_range, it.value.repr)
-		}
-		attributes: {
-			'key':         it.key
-			'key_begin':   it.key_range.begin_pos.str()
-			'key_end':     it.key_range.end_pos.str()
-			'value_begin': it.value_range.begin_pos.str()
-			'value_end':   it.value_range.end_pos.str()
-		}
-	})
-	return ruby.Value{
-		type_name: match node.kind {
-			'method_call' { 'RuboCop::AST::SendNode' }
-			'block_call' { 'RuboCop::AST::BlockNode' }
-			'method_definition' { 'RuboCop::AST::DefNode' }
-			else { 'RuboCop::AST::Node' }
-		}
-		repr: node.source
-		array_data: node.children.map(ast_node_value(it))
-		map_data: {
-			'arguments':       ruby.array_value(argument_nodes)
-			'hash_pairs':      ruby.map_value(pairs)
-			'hash_pair_nodes': ruby.array_value(hash_pair_nodes)
-			'range':           ast_range_value(node.source_range, node.source)
-			'body':            ruby.array_value(node.children.map(ast_node_value(it)))
-		}
-		attributes: {
-			'kind':         node.kind
-			'name':         node.name
-			'begin_pos':    node.source_range.begin_pos.str()
-			'end_pos':      node.source_range.end_pos.str()
-			'column':       node.source_range.column.str()
-			'body_begin':   node.body_range.begin_pos.str()
-			'body_end':     node.body_range.end_pos.str()
-			'has_receiver': node.has_receiver.str()
-		}
-	}
-}
-
-fn ast_node_from_value(value ruby.Value) AstNode {
-	arguments_value := value.map_data['arguments'] or { ruby.array_value([]) }
-	argument_values := arguments_value.as_array() or { [] }
-	mut arguments := []AstArgument{}
-	for argument_value in argument_values {
-		if argument_value.type_name == 'Utils::AST::Argument' {
-			arguments << AstArgument{
-				value: argument_value.map_data['value'] or { argument_value }
-				source_range: AstRange{
-					begin_pos: (argument_value.attributes['begin_pos'] or { '0' }).int()
-					end_pos: (argument_value.attributes['end_pos'] or { '0' }).int()
-					column: (argument_value.attributes['column'] or { '0' }).int()
-				}
-			}
-		} else {
-			arguments << AstArgument{ value: argument_value }
-		}
-	}
-	hash_pair_values := (value.map_data['hash_pair_nodes'] or { ruby.array_value([]) }).as_array() or {
-		[]
-	}
-	mut hash_pairs := []AstHashPair{}
-	for pair_value in hash_pair_values {
-		hash_pairs << AstHashPair{
-			key: pair_value.attributes['key'] or { '' }
-			key_range: AstRange{
-				begin_pos: (pair_value.attributes['key_begin'] or { '0' }).int()
-				end_pos: (pair_value.attributes['key_end'] or { '0' }).int()
-			}
-			value: pair_value.map_data['value'] or { ast_nil() }
-			value_range: AstRange{
-				begin_pos: (pair_value.attributes['value_begin'] or { '0' }).int()
-				end_pos: (pair_value.attributes['value_end'] or { '0' }).int()
-			}
-		}
-	}
-	begin_pos := (value.attributes['begin_pos'] or { '0' }).int()
-	end_pos := (value.attributes['end_pos'] or { value.repr.len.str() }).int()
-	column := (value.attributes['column'] or { '0' }).int()
-	return AstNode{
-		kind: value.attributes['kind'] or { 'method_call' }
-		name: value.attributes['name'] or { '' }
-		source: value.repr
-		source_range: AstRange{ begin_pos: begin_pos, end_pos: end_pos, column: column }
-		body_range: AstRange{
-			begin_pos: (value.attributes['body_begin'] or { end_pos.str() }).int()
-			end_pos: (value.attributes['body_end'] or { end_pos.str() }).int()
-			column: column + 2
-		}
-		arguments: arguments
-		hash_pairs: hash_pairs
-		children: value.array_data.map(ast_node_from_value(it))
-		has_receiver: (value.attributes['has_receiver'] or { 'false' }).bool()
-	}
-}
-
 pub fn ast_body_children(node ?AstNode) []AstNode {
 	value := node or { return [] }
 	return if value.kind == 'begin' { value.children.clone() } else { [value] }
@@ -669,36 +533,6 @@ pub fn ast_call_node_match(node AstNode, name string, node_type ?string) bool {
 		return false
 	}
 	return ast_component_match(node.name, node.kind, name, node_type)
-}
-
-fn ast_formula_value(formula &FormulaAst) ruby.Value {
-	return ruby.structured_value('Utils::AST::FormulaAST', formula.contents, {
-		'formula_ast_address': u64(voidptr(formula)).str()
-	})
-}
-
-fn ast_formula_from_value(value ruby.Value) &FormulaAst {
-	address := value.attributes['formula_ast_address'] or { panic('invalid FormulaAST receiver') }
-	mut formula := unsafe { &FormulaAst(voidptr(address.u64())) }
-	if !formula.contents.contains('class ') && value.repr.contains('class ') {
-		formula.contents = value.repr
-	}
-	return formula
-}
-
-fn ast_cask_value(cask &CaskAst) ruby.Value {
-	return ruby.structured_value('Utils::AST::CaskAST', cask.contents, {
-		'cask_ast_address': u64(voidptr(cask)).str()
-	})
-}
-
-fn ast_cask_from_value(value ruby.Value) &CaskAst {
-	address := value.attributes['cask_ast_address'] or { panic('invalid CaskAST receiver') }
-	mut cask := unsafe { &CaskAst(voidptr(address.u64())) }
-	if !cask.contents.contains('cask ') && value.repr.contains('cask ') {
-		cask.contents = value.repr
-	}
-	return cask
 }
 
 fn ast_replace_range(source string, source_range AstRange, replacement string) string {
@@ -1037,20 +871,6 @@ pub fn ast_formula_remove_stable(mut formula FormulaAst, name string, all bool) 
 		node := AstNode{ source_range: source_range }
 		ast_formula_remove_node(mut formula, node)
 	}
-}
-
-fn ast_stanza_pairs(value ruby.Value) []AstStanzaPair {
-	mut result := []AstStanzaPair{}
-	for item in value.as_array() or { return result } {
-		parts := item.as_array() or { continue }
-		if parts.len >= 2 {
-			result << AstStanzaPair{
-				name: parts[0].as_string()
-				value: parts[1]
-			}
-		}
-	}
-	return result
 }
 
 pub fn ast_formula_add_stanzas_after(mut formula FormulaAst, after_name string,

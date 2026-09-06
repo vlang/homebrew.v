@@ -1,6 +1,5 @@
 module vulns
 
-import ruby
 import math
 
 // Translated from Homebrew/brew `vulns/cvss.rb`.
@@ -289,26 +288,4 @@ pub fn cvss_severity_for_score(score f64) ?CvssSeverity {
 pub fn cvss_severity(vector string) ?CvssSeverity {
 	score := cvss_base_score(vector) or { return none }
 	return cvss_severity_for_score(score)
-}
-
-fn cvss_metrics_value(metrics CvssMetrics) ruby.Value {
-	mut values := map[string]ruby.Value{}
-	for name, value in metrics.values() {
-		values[name] = ruby.string_value(value)
-	}
-	return ruby.map_value(values)
-}
-
-fn cvss_values_from_boundary(value ruby.Value) ?map[string]string {
-	if value.type_name != 'Hash' {
-		return none
-	}
-	mut values := map[string]string{}
-	for name, metric in value.map_data {
-		if metric.type_name != 'String' {
-			return none
-		}
-		values[name] = metric.as_string()
-	}
-	return values
 }

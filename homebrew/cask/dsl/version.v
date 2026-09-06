@@ -278,18 +278,3 @@ pub fn (version CaskVersion) chomp(separator ?string) CaskVersion {
 	}
 	return cask_version_derived(version, text)
 }
-
-fn cask_version_argument(args []ruby.Value, index int) ruby.Value {
-	return if args.len > index { args[index] } else { cask_version_nil() }
-}
-
-fn cask_version_receiver(args []ruby.Value) ?CaskVersion {
-	if args.len == 0 {
-		return none
-	}
-	return cask_version_from_value(args[0]) or { return none }
-}
-
-fn cask_version_error(message string) ruby.Value {
-	return ruby.object_value('TypeError', message)
-}

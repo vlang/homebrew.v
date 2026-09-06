@@ -1,6 +1,5 @@
 module cmd
 
-import ruby
 import os
 
 // Translated from Homebrew/brew `cmd/pyenv-sync.rb`.
@@ -108,34 +107,4 @@ pub fn sync_pyenv_versions(pyenv_root string, installed []InstalledPythonVersion
 		}
 	}
 	return result
-}
-
-pub fn installed_python_version_value(version InstalledPythonVersion) ruby.Value {
-	return ruby.structured_value('InstalledPythonVersion', version.path, {
-		'path':    version.path
-		'version': version.version
-	})
-}
-
-fn installed_python_version_from_value(value ruby.Value) InstalledPythonVersion {
-	return InstalledPythonVersion{
-		path: value.attribute('path') or { value.as_string() }
-		version: value.attribute('version') or { '' }
-	}
-}
-
-fn pyenv_sync_result_value(result PyenvSyncResult) ruby.Value {
-	return ruby.Value{
-		type_name: 'PyenvSyncResult'
-		repr: result.created.str()
-		attributes: {
-			'skipped_busy': result.skipped_busy.str()
-		}
-		map_data: {
-			'created':  ruby.string_array_value(result.created)
-			'skipped':  ruby.string_array_value(result.skipped)
-			'removed':  ruby.string_array_value(result.removed)
-			'warnings': ruby.string_array_value(result.warnings)
-		}
-	}
 }

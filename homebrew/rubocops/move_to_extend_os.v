@@ -1,7 +1,5 @@
 module rubocops
 
-import ruby
-
 // Translated from Homebrew/brew `rubocops/move_to_extend_os.rb`.
 pub const move_to_extend_os_non_extend_message = 'Move `OS.linux?` and `OS.mac?` calls to `extend/os`.'
 
@@ -340,22 +338,4 @@ pub fn audit_move_to_extend_os(source string, file_path string) []MoveToExtendOs
 		}
 	}
 	return offenses
-}
-
-fn move_to_extend_os_call_value(call MoveToExtendOsCall) ruby.Value {
-	return ruby.structured_value('RuboCop::AST::NodeMatch', 'OS.${call.method}?', {
-		'method':    call.method
-		'begin_pos': call.begin_pos.str()
-		'end_pos':   call.end_pos.str()
-	})
-}
-
-fn move_to_extend_os_offense_value(offense MoveToExtendOsOffense) ruby.Value {
-	return ruby.structured_value('RuboCop::Cop::Offense', offense.message, {
-		'method':    offense.method
-		'file_path': offense.file_path
-		'begin_pos': offense.begin_pos.str()
-		'end_pos':   offense.end_pos.str()
-		'message':   offense.message
-	})
 }

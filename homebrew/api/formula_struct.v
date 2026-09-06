@@ -110,10 +110,6 @@ pub fn (formula FormulaStruct) predicate(name string) bool {
 	return formula_struct_predicate(formula, name)
 }
 
-pub fn api_struct_value_equal(left ruby.Value, right ruby.Value) bool {
-	return api_struct_values_equal(left, right)
-}
-
 pub fn formula_struct_from_hash(hash map[string]ruby.Value,
 	paths ApiStructPaths) FormulaStruct {
 	cleaned := api_struct_replace_map(hash, paths, paths.appdir)

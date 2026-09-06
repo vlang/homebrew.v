@@ -1,17 +1,8 @@
 module subcommand
 
-import ruby
 import homebrew.bundle
 
 // Translated from Homebrew/brew `bundle/subcommand/check.rb`.
-
-fn bundle_check_result_value(result BundleCheckCommandResult) ruby.Value {
-	return ruby.structured_value('Bundle::CheckSubcommand::Result', result.exit_code.str(), {
-		'exit_code': result.exit_code.str()
-		'stdout':    result.stdout
-		'stderr':    result.stderr
-	})
-}
 
 pub struct BundleCheckRunOptions {
 pub:

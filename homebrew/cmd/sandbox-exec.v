@@ -1,7 +1,5 @@
 module cmd
 
-import ruby
-
 // Translated from Homebrew/brew `cmd/sandbox-exec.rb`.
 pub struct SandboxExecRequest {
 pub:
@@ -29,12 +27,4 @@ pub fn sandbox_exec_plan(request SandboxExecRequest) !SandboxExecPlan {
 		command: request.command.clone()
 		deny_network: request.deny_network
 	}
-}
-
-pub fn sandbox_exec_plan_to_value(plan SandboxExecPlan) ruby.Value {
-	return ruby.map_value({
-		'writable_path': ruby.string_value(plan.writable_path)
-		'command':       ruby.string_array_value(plan.command)
-		'deny_network':  ruby.bool_value(plan.deny_network)
-	})
 }

@@ -1,7 +1,5 @@
 module shared
 
-import ruby
-
 // Translated from Homebrew/brew `rubocops/shared/no_autobump_helper.rb`.
 pub struct NoAutobumpReasonProblem {
 pub:
@@ -50,16 +48,4 @@ pub fn audit_no_autobump_reason(reason string, is_symbol bool, begin_pos int, en
 		}
 	}
 	return problems
-}
-
-fn no_autobump_reason_problem_value(problem NoAutobumpReasonProblem) ruby.Value {
-	return ruby.structured_value('RuboCop::Cop::Problem', problem.message, {
-		'kind':        problem.kind
-		'reason':      problem.reason
-		'is_symbol':   problem.is_symbol.str()
-		'begin_pos':   problem.begin_pos.str()
-		'end_pos':     problem.end_pos.str()
-		'message':     problem.message
-		'replacement': problem.replacement
-	})
 }

@@ -1,7 +1,5 @@
 module dev_cmd
 
-import ruby
-
 // Translated from Homebrew/brew `dev-cmd/unbottled.rb`.
 
 pub const unbottled_portable_formulae = [
@@ -341,62 +339,4 @@ pub fn run_unbottled(request UnbottledRunRequest) !string {
 
 fn unbottled_split_attribute(value string) []string {
 	return value.split(',').map(it.trim_space()).filter(it != '')
-}
-
-fn unbottled_formula_from_value(value ruby.Value) UnbottledFormula {
-	return UnbottledFormula{
-		name: if value.attributes['name'] != '' {
-			value.attributes['name']
-		} else {
-			value.as_string()
-		}
-		deprecated: value.attributes['deprecated'] == 'true'
-		disabled: value.attributes['disabled'] == 'true'
-		bottled_tags: unbottled_split_attribute(value.attributes['bottled_tags'])
-		dependencies: unbottled_split_attribute(value.attributes['dependencies'])
-		optional_dependencies: unbottled_split_attribute(value.attributes['optional_dependencies'])
-		requires_macos: value.attributes['requires_macos'] == 'true'
-		requires_linux: value.attributes['requires_linux'] == 'true'
-		required_arch: value.attributes['required_arch']
-		macos_supported: value.attributes['macos_supported'] != 'false'
-	}
-}
-
-fn unbottled_formulae_from_value(value ruby.Value) []UnbottledFormula {
-	values := value.as_array() or { return [] }
-	return values.map(unbottled_formula_from_value(it))
-}
-
-fn unbottled_formula_value(formula UnbottledFormula) ruby.Value {
-	return ruby.structured_value('Formula', formula.name, {
-		'name':                  formula.name
-		'deprecated':            formula.deprecated.str()
-		'disabled':              formula.disabled.str()
-		'bottled_tags':          formula.bottled_tags.join(',')
-		'dependencies':          formula.dependencies.join(',')
-		'optional_dependencies': formula.optional_dependencies.join(',')
-		'requires_macos':        formula.requires_macos.str()
-		'requires_linux':        formula.requires_linux.str()
-		'required_arch':         formula.required_arch
-		'macos_supported':       formula.macos_supported.str()
-	})
-}
-
-fn unbottled_formulae_value(formulae []UnbottledFormula) ruby.Value {
-	return ruby.array_value(formulae.map(unbottled_formula_value(it)))
-}
-
-fn unbottled_graph_value(graph UnbottledDependencyGraph) ruby.Value {
-	mut dependencies := map[string]ruby.Value{}
-	mut uses := map[string]ruby.Value{}
-	for name, formulae in graph.dependencies {
-		dependencies[name] = unbottled_formulae_value(formulae)
-	}
-	for name, formulae in graph.uses {
-		uses[name] = unbottled_formulae_value(formulae)
-	}
-	return ruby.map_value({
-		'deps_hash': ruby.map_value(dependencies)
-		'uses_hash': ruby.map_value(uses)
-	})
 }

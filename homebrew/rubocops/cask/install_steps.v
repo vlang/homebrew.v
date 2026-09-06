@@ -1,6 +1,5 @@
 module cask
 
-import ruby
 import homebrew.rubocops.@shared as install_steps_shared
 
 // Translated from Homebrew/brew `rubocops/cask/install_steps.rb`.
@@ -90,13 +89,6 @@ fn cask_install_steps_apply_edits(source string, edits []CaskInstallStepsEdit) s
 		result = result[..edit.begin_pos] + edit.replacement + result[edit.end_pos..]
 	}
 	return result
-}
-
-fn cask_install_steps_nil() ruby.Value {
-	return ruby.Value{
-		type_name: 'NilClass'
-		repr: 'nil'
-	}
 }
 
 fn cask_install_steps_string_literal(source string) ?string {
@@ -615,34 +607,6 @@ fn cask_install_steps_invalid_interpolation(source string, block_name string) ?C
 		}
 	}
 	return none
-}
-
-fn cask_install_steps_offense_value(offense CaskInstallStepsOffense) ruby.Value {
-	return ruby.Value{
-		type_name: 'RuboCop::Cop::Offense'
-		repr: offense.message
-		map_data: {
-			'message':     ruby.string_value(offense.message)
-			'replacement': ruby.string_value(offense.replacement)
-		}
-		attributes: {
-			'begin_pos': offense.begin_pos.str()
-			'end_pos':   offense.end_pos.str()
-		}
-	}
-}
-
-fn cask_install_steps_analysis_value(analysis CaskInstallStepsAnalysis) ruby.Value {
-	values := analysis.offenses.map(cask_install_steps_offense_value(it))
-	return ruby.Value{
-		type_name: 'RuboCop::Cop::Cask::InstallSteps::Analysis'
-		repr: analysis.source
-		array_data: values
-		map_data: {
-			'offenses':  ruby.array_value(values)
-			'corrected': ruby.string_value(analysis.corrected)
-		}
-	}
 }
 
 pub fn analyze_cask_install_steps(source string, file_path string) CaskInstallStepsAnalysis {

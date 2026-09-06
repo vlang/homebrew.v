@@ -1,6 +1,5 @@
 module cmd
 
-import ruby
 import encoding.utf8
 import os
 import time
@@ -79,19 +78,6 @@ pub:
 pub struct GistLogsInput {
 pub:
 	request GistLogsRequest
-}
-
-pub fn gist_logs_input_boundary(input &GistLogsInput) ruby.Value {
-	return ruby.structured_value('Homebrew::Cmd::GistLogs::Input', '', {
-		'gist_logs_input_address': u64(voidptr(input)).str()
-	})
-}
-
-fn gist_logs_input_from_value(value ruby.Value) &GistLogsInput {
-	address := value.attributes['gist_logs_input_address'] or {
-		panic('invalid GistLogs command input')
-	}
-	return unsafe { &GistLogsInput(voidptr(address.u64())) }
 }
 
 // truncate_text_to_approximate_size mirrors the Ruby implementation's byte
@@ -251,38 +237,4 @@ pub fn run_gist_logs(request GistLogsRequest) !GistLogsResult {
 		}
 	}
 	return gistify_logs(request)!
-}
-
-fn gist_logs_files_value(files map[string]GistLogFile) ruby.Value {
-	mut values := map[string]ruby.Value{}
-	for name, file in files {
-		values[name] = ruby.map_value({
-			'content': ruby.string_value(file.content)
-		})
-	}
-	return ruby.map_value(values)
-}
-
-fn gist_logs_result_value(result GistLogsResult) ruby.Value {
-	return ruby.Value{
-		type_name: 'Hash'
-		repr: result.output
-		map_data: {
-			'preinstall_checked':   ruby.bool_value(result.preinstall_checked)
-			'build_source_checked': ruby.bool_value(result.build_source_checked)
-			'has_formula':          ruby.bool_value(result.has_formula)
-			'files':                gist_logs_files_value(result.files)
-			'description':          ruby.string_value(result.description)
-			'private':              ruby.bool_value(result.private)
-			'gist_url':             ruby.string_value(result.gist_url)
-			'issue_url':            ruby.string_value(result.issue_url)
-			'issue_repository':     ruby.string_value(result.issue_repository)
-			'issue_title':          ruby.string_value(result.issue_title)
-			'output':               ruby.string_value(result.output)
-		}
-	}
-}
-
-fn gist_logs_error_value(message string) ruby.Value {
-	return ruby.object_value('SystemExit', message)
 }

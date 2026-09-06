@@ -1,6 +1,5 @@
 module os
 
-import ruby
 import homebrew.os.mac as sdk
 import os
 
@@ -193,31 +192,6 @@ pub fn (mut context MacContext) app_with_bundle_id(ids []string) ?string {
 		}
 	}
 	return newest.path
-}
-
-fn mac_context_value(context &MacContext) ruby.Value {
-	return ruby.structured_value('OS::Mac', context.full_version, {
-		'mac_context_address': u64(voidptr(context)).str()
-	})
-}
-
-fn mac_context_from_args(args []ruby.Value) &MacContext {
-	if args.len > 0 && 'mac_context_address' in args[0].attributes {
-		return unsafe { &MacContext(voidptr(args[0].attributes['mac_context_address'].u64())) }
-	}
-	return default_mac_context()
-}
-
-pub fn mac_context_boundary(context &MacContext) ruby.Value {
-	return mac_context_value(context)
-}
-
-fn mac_sdk_value(value sdk.MacSdk) ruby.Value {
-	return ruby.structured_value('OS::Mac::SDK', value.path, {
-		'version': value.version
-		'path':    value.path
-		'source':  value.source
-	})
 }
 
 // Translated from Homebrew/brew `os/mac.rb`.

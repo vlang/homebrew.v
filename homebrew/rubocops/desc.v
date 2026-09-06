@@ -1,6 +1,5 @@
 module rubocops
 
-import ruby
 import homebrew.rubocops.@shared as desc_shared
 
 // Translated from Homebrew/brew `rubocops/desc.rb`.
@@ -194,19 +193,4 @@ pub fn correct_formula_desc(source string, formula_name string) string {
 		corrected_literals[problem.literal_begin_pos] = true
 	}
 	return corrected
-}
-
-fn formula_desc_problem_value(problem desc_shared.DescProblem) ruby.Value {
-	return ruby.structured_value('RuboCop::Cop::Offense', problem.message, {
-		'kind':          problem.kind
-		'desc_type':     problem.desc_type
-		'name':          problem.name
-		'description':   problem.description
-		'begin_pos':     problem.begin_pos.str()
-		'end_pos':       problem.end_pos.str()
-		'message':       problem.message
-		'replacement':   problem.replacement
-		'literal_begin': problem.literal_begin_pos.str()
-		'literal_end':   problem.literal_end_pos.str()
-	})
 }

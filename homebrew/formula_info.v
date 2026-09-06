@@ -1,6 +1,5 @@
 module homebrew
 
-import ruby
 import x.json2
 
 // Translated from Homebrew/brew `formula_info.rb`.
@@ -122,27 +121,4 @@ pub fn (formula FormulaInfo) revision() int {
 
 pub fn (formula FormulaInfo) pkg_version(spec_type string) !PkgVersion {
 	return new_pkg_version(formula.version(spec_type)!, formula.revision())
-}
-
-fn formula_info_value(formula &FormulaInfo) ruby.Value {
-	return ruby.structured_value('FormulaInfo', json2.encode(json2.Any(formula.info)), {
-		'formula_info_address': u64(voidptr(formula)).str()
-	})
-}
-
-fn formula_info_from_value(value ruby.Value) &FormulaInfo {
-	address := value.attributes['formula_info_address'] or { panic('invalid FormulaInfo') }
-	return unsafe { &FormulaInfo(voidptr(address.u64())) }
-}
-
-pub fn formula_info_boundary(formula &FormulaInfo) ruby.Value {
-	return formula_info_value(formula)
-}
-
-fn formula_info_map_value(values map[string]string) ruby.Value {
-	mut result := map[string]ruby.Value{}
-	for key, value in values {
-		result[key] = ruby.string_value(value)
-	}
-	return ruby.map_value(result)
 }

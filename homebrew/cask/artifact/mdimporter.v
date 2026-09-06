@@ -1,6 +1,5 @@
 module artifact
 
-import ruby
 import os
 
 // Translated from Homebrew/brew `cask/artifact/mdimporter.rb`.
@@ -317,48 +316,4 @@ pub fn summarize_installed_mdimporter(artifact MdimporterArtifact) string {
 		return artifact.target
 	}
 	return 'Missing Spotlight metadata importer: ${artifact.target}'
-}
-
-pub fn mdimporter_artifact_to_value(artifact MdimporterArtifact) ruby.Value {
-	return ruby.map_value({
-		'source': ruby.string_value(artifact.source)
-		'target': ruby.string_value(artifact.target)
-	})
-}
-
-fn mdimporter_artifact_from_value(value ruby.Value) !MdimporterArtifact {
-	values := value.as_map()!
-	return MdimporterArtifact{
-		source: (values['source'] or { return error('Mdimporter source is required') }).as_string()
-		target: (values['target'] or { return error('Mdimporter target is required') }).as_string()
-	}
-}
-
-pub fn mdimporter_operation_to_value(result MdimporterOperationResult) ruby.Value {
-	return ruby.map_value({
-		'success':   ruby.bool_value(result.success)
-		'error':     ruby.string_value(result.error)
-		'moved':     ruby.bool_value(result.moved)
-		'adopted':   ruby.bool_value(result.adopted)
-		'restored':  ruby.bool_value(result.restored)
-		'refreshed': ruby.bool_value(result.refreshed)
-		'commands':  ruby.array_value(result.commands.map(ruby.map_value({
-			'executable': ruby.string_value(it.executable)
-			'args':       ruby.string_array_value(it.args)
-			'sudo':       ruby.bool_value(it.sudo)
-		})))
-	})
-}
-
-fn mdimporter_install_options_from_value(value ruby.Value) MdimporterInstallOptions {
-	values := value.as_map() or { return MdimporterInstallOptions{} }
-	return MdimporterInstallOptions{
-		adopt: value_bool(values, 'adopt', false)
-		auto_updates: value_bool(values, 'auto_updates', false)
-		force: value_bool(values, 'force', false)
-		verbose: value_bool(values, 'verbose', false)
-		predecessor_matches: value_bool(values, 'predecessor_matches', false)
-		reinstall: value_bool(values, 'reinstall', false)
-		target_writable: value_bool(values, 'target_writable', true)
-	}
 }

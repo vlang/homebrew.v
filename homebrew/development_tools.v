@@ -284,18 +284,6 @@ fn development_tools_from_args(args []ruby.Value) (&DevelopmentTools, int) {
 	return new_development_tools(os.getenv('HOMEBREW_PREFIX')), 0
 }
 
-pub fn development_tools_boundary(tools &DevelopmentTools) ruby.Value {
-	return development_tools_value(tools)
-}
-
-fn development_tools_version_value(version string) ruby.Value {
-	return if version == '' {
-		ruby.object_value('Version::NULL', '')
-	} else {
-		ruby.object_value('Version', version)
-	}
-}
-
 // Ruby method `locate(tool)` at line 15.
 pub fn ruby_development_tools_l15_d1_locate(args ...ruby.Value) ruby.Value {
 	mut tools, offset := development_tools_from_args(args)

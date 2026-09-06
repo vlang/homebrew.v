@@ -1,7 +1,5 @@
 module homebrew
 
-import ruby
-
 // Translated from Homebrew/brew `keg_only_reason.rb`.
 
 // KegOnlyReason describes why a formula must not be linked into the shared
@@ -78,30 +76,4 @@ pub fn (reason KegOnlyReason) to_hash() map[string]string {
 		}
 		'explanation': reason.explanation
 	}
-}
-
-fn keg_only_reason_boundary_value(reason KegOnlyReason) ruby.Value {
-	return ruby.structured_value('KegOnlyReason', reason.str(), {
-		'reason':        reason.reason
-		'explanation':   reason.explanation
-		'reason_symbol': reason.reason_symbol.str()
-	})
-}
-
-fn keg_only_reason_from_boundary(value ruby.Value) KegOnlyReason {
-	if value.type_name != 'KegOnlyReason' {
-		panic('expected KegOnlyReason, got ${value.type_name}')
-	}
-	return KegOnlyReason{
-		reason: value.attribute('reason') or { panic(err) }
-		explanation: value.attribute('explanation') or { panic(err) }
-		reason_symbol: (value.attribute('reason_symbol') or { panic(err) }) == 'true'
-	}
-}
-
-fn keg_only_reason_receiver(args []ruby.Value, method string) KegOnlyReason {
-	if args.len == 0 {
-		panic('KegOnlyReason#${method} requires a receiver')
-	}
-	return keg_only_reason_from_boundary(args[0])
 }

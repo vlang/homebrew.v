@@ -219,33 +219,3 @@ pub fn run_generate_internal_api(options GenerateInternalApiOptions) !GenerateIn
 		written_files: written_files
 	}
 }
-
-pub fn generate_internal_api_input_boundary(input &GenerateInternalApiInput) ruby.Value {
-	return ruby.structured_value('Homebrew::DevCmd::GenerateInternalApi::Input', '', {
-		'generate_internal_api_input_address': u64(voidptr(input)).str()
-	})
-}
-
-fn generate_internal_api_input_from_value(value ruby.Value) &GenerateInternalApiInput {
-	address := value.attributes['generate_internal_api_input_address'] or {
-		panic('invalid GenerateInternalApi input')
-	}
-	return unsafe { &GenerateInternalApiInput(voidptr(address.u64())) }
-}
-
-fn generate_internal_api_result_value(result GenerateInternalApiResult) ruby.Value {
-	mut formulae := map[string]ruby.Value{}
-	for name, hash in result.formulae {
-		formulae[name] = ruby.map_value(hash)
-	}
-	mut casks := map[string]ruby.Value{}
-	for token, hash in result.casks {
-		casks[token] = ruby.map_value(hash)
-	}
-	return ruby.map_value({
-		'formulae':      ruby.map_value(formulae)
-		'casks':         ruby.map_value(casks)
-		'packages':      ruby.map_value(result.packages)
-		'written_files': ruby.string_array_value(result.written_files)
-	})
-}

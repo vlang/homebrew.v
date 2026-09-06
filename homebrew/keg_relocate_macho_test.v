@@ -22,15 +22,31 @@ fn thin_header(magic []u8, filetype []u8) []u8 {
 
 fn test_thin_mach_o_file_types() {
 	// Little-endian 64-bit (MH_CIGAM_64) as produced on arm64.
-	executable := mach_o_fixture('executable', thin_header([u8(0xcf), 0xfa, 0xed, 0xfe],
-		[u8(0x02), 0x00, 0x00, 0x00]))
-	dylib := mach_o_fixture('dylib', thin_header([u8(0xcf), 0xfa, 0xed, 0xfe], [u8(0x06),
-		0x00, 0x00, 0x00]))
-	bundle := mach_o_fixture('bundle', thin_header([u8(0xcf), 0xfa, 0xed, 0xfe], [u8(0x08),
-		0x00, 0x00, 0x00]))
+	executable := mach_o_fixture('executable', thin_header([u8(0xcf), 0xfa, 0xed, 0xfe], [
+		u8(0x02),
+		0x00,
+		0x00,
+		0x00,
+	]))
+	dylib := mach_o_fixture('dylib', thin_header([u8(0xcf), 0xfa, 0xed, 0xfe], [
+		u8(0x06),
+		0x00,
+		0x00,
+		0x00,
+	]))
+	bundle := mach_o_fixture('bundle', thin_header([u8(0xcf), 0xfa, 0xed, 0xfe], [
+		u8(0x08),
+		0x00,
+		0x00,
+		0x00,
+	]))
 	// MH_OBJECT and MH_DSYM are Mach-O but are not relocated by the source.
-	object := mach_o_fixture('object', thin_header([u8(0xcf), 0xfa, 0xed, 0xfe], [u8(0x01),
-		0x00, 0x00, 0x00]))
+	object := mach_o_fixture('object', thin_header([u8(0xcf), 0xfa, 0xed, 0xfe], [
+		u8(0x01),
+		0x00,
+		0x00,
+		0x00,
+	]))
 	assert mach_o_relocatable_file(executable)
 	assert mach_o_relocatable_file(dylib)
 	assert mach_o_relocatable_file(bundle)
@@ -39,8 +55,12 @@ fn test_thin_mach_o_file_types() {
 
 fn test_big_endian_thin_mach_o_file() {
 	// MH_MAGIC_64 keeps its fields big-endian, so the file type is read that way.
-	path := mach_o_fixture('big_endian', thin_header([u8(0xfe), 0xed, 0xfa, 0xcf], [u8(0x00),
-		0x00, 0x00, 0x06]))
+	path := mach_o_fixture('big_endian', thin_header([u8(0xfe), 0xed, 0xfa, 0xcf], [
+		u8(0x00),
+		0x00,
+		0x00,
+		0x06,
+	]))
 	assert mach_o_relocatable_file(path)
 }
 

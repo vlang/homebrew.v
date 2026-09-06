@@ -1,6 +1,5 @@
 module reinstall
 
-import ruby
 import os
 
 // Translated from Homebrew/brew `reinstall/reinstall.rb`.
@@ -292,88 +291,4 @@ pub fn reinstall_pkgconf_if_needed(dry_run bool) {
 	// The base implementation at the pinned commit is deliberately a no-op;
 	// macOS provides the platform-specific override.
 	_ = dry_run
-}
-
-fn reinstall_nil_value() ruby.Value {
-	return ruby.object_value('NilClass', 'nil')
-}
-
-fn reinstall_error_value(kind string, message string) ruby.Value {
-	return ruby.structured_value(kind, message, {
-		'message': message
-	})
-}
-
-pub fn reinstall_formula_boundary(formula &ReinstallFormula) ruby.Value {
-	return ruby.structured_value('Formula', formula.full_name, {
-		'reinstall_formula_address': u64(voidptr(formula)).str()
-	})
-}
-
-pub fn reinstall_build_options_boundary(options &BuildInstallContextOptions) ruby.Value {
-	return ruby.structured_value('Hash', options.flags.str(), {
-		'reinstall_build_options_address': u64(voidptr(options)).str()
-	})
-}
-
-pub fn reinstall_keg_boundary(keg &ReinstallKeg) ruby.Value {
-	return ruby.structured_value('Keg', keg.path, {
-		'reinstall_keg_address': u64(voidptr(keg)).str()
-	})
-}
-
-pub fn reinstall_context_boundary(context &InstallationContext) ruby.Value {
-	return ruby.structured_value('Homebrew::Reinstall::InstallationContext', context.formula.full_name, {
-		'reinstall_context_address': u64(voidptr(context)).str()
-		'has_keg':                   context.has_keg.str()
-		'keg':                       context.keg.path
-		'link_keg':                  context.link_keg.str()
-		'options':                   context.options.join(' ')
-	})
-}
-
-fn reinstall_formula_from_boundary(value ruby.Value) !&ReinstallFormula {
-	address := value.attributes['reinstall_formula_address'] or {
-		return error('build_install_context requires a Formula')
-	}
-	if address.u64() == 0 {
-		return error('Formula receiver is invalid')
-	}
-	return unsafe { &ReinstallFormula(voidptr(address.u64())) }
-}
-
-fn reinstall_build_options_from_boundary(args []ruby.Value) BuildInstallContextOptions {
-	if args.len < 2 {
-		return BuildInstallContextOptions{}
-	}
-	if address := args[1].attributes['reinstall_build_options_address'] {
-		if address.u64() != 0 {
-			options := unsafe { &BuildInstallContextOptions(voidptr(address.u64())) }
-			return *options
-		}
-	}
-	flags := args[1].as_string_array() or { []string{} }
-	return BuildInstallContextOptions{
-		flags: flags
-	}
-}
-
-fn reinstall_context_from_boundary(value ruby.Value) !&InstallationContext {
-	address := value.attributes['reinstall_context_address'] or {
-		return error('reinstall_formula requires an InstallationContext')
-	}
-	if address.u64() == 0 {
-		return error('InstallationContext receiver is invalid')
-	}
-	return unsafe { &InstallationContext(voidptr(address.u64())) }
-}
-
-fn reinstall_keg_from_boundary(value ruby.Value) !&ReinstallKeg {
-	address := value.attributes['reinstall_keg_address'] or {
-		return error('a Keg is required')
-	}
-	if address.u64() == 0 {
-		return error('Keg receiver is invalid')
-	}
-	return unsafe { &ReinstallKeg(voidptr(address.u64())) }
 }

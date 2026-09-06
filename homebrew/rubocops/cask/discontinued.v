@@ -1,7 +1,5 @@
 module cask
 
-import ruby
-
 // Translated from Homebrew/brew `rubocops/cask/discontinued.rb`.
 pub const discontinued_message = 'Use `deprecate!` instead of `caveats { discontinued }`.'
 
@@ -191,14 +189,4 @@ pub fn correct_cask_discontinued(source string, today string) string {
 		corrected = corrected[..offense.begin_pos] + offense.replacement + corrected[offense.end_pos..]
 	}
 	return corrected
-}
-
-fn discontinued_offense_value(offense DiscontinuedOffense) ruby.Value {
-	return ruby.structured_value('RuboCop::Cop::Offense', offense.message, {
-		'kind':        offense.kind
-		'begin_pos':   offense.begin_pos.str()
-		'end_pos':     offense.end_pos.str()
-		'message':     offense.message
-		'replacement': offense.replacement
-	})
 }

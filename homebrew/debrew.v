@@ -172,48 +172,6 @@ pub fn (mut state DebrewState) debug(exception DebrewException, inputs []string)
 	return error('input ended before a debugger action completed')
 }
 
-fn debrew_boundary_action(mut state DebrewState) !ruby.Value {
-	return state.boundary_result
-}
-
-pub fn (mut state DebrewState) formula_action(name string, result ruby.Value) ruby.Value {
-	state.formula_invocations << name
-	state.boundary_result = result
-	return state.run(debrew_boundary_action) or {
-		ruby.object_value('RuntimeError', err.msg())
-	}
-}
-
-fn debrew_state_value(state &DebrewState) ruby.Value {
-	return ruby.structured_value('Debrew::State', '', {
-		'debrew_state_address': u64(voidptr(state)).str()
-	})
-}
-
-fn debrew_state_from_value(value ruby.Value) &DebrewState {
-	address := value.attributes['debrew_state_address'] or { panic('invalid Debrew state') }
-	return unsafe { &DebrewState(voidptr(address.u64())) }
-}
-
-pub fn debrew_state_boundary(state &DebrewState) ruby.Value {
-	return debrew_state_value(state)
-}
-
-fn debrew_menu_value(menu &DebrewMenu) ruby.Value {
-	return ruby.structured_value('Debrew::Menu', '', {
-		'debrew_menu_address': u64(voidptr(menu)).str()
-	})
-}
-
-fn debrew_menu_from_value(value ruby.Value) &DebrewMenu {
-	address := value.attributes['debrew_menu_address'] or { panic('invalid Debrew menu') }
-	return unsafe { &DebrewMenu(voidptr(address.u64())) }
-}
-
-pub fn debrew_menu_boundary(menu &DebrewMenu) ruby.Value {
-	return debrew_menu_value(menu)
-}
-
 fn debrew_action_from_string(value string) DebrewMenuAction {
 	return match value.trim_string_left(':') {
 		'ignore' { .ignore }
@@ -221,15 +179,5 @@ fn debrew_action_from_string(value string) DebrewMenuAction {
 		'irb' { .irb }
 		'shell' { .shell }
 		else { .raise_exception }
-	}
-}
-
-fn debrew_exception_from_value(value ruby.Value) DebrewException {
-	return DebrewException{
-		id: value.attributes['id'] or { value.repr }
-		class_name: value.attributes['class_name'] or { value.type_name }
-		message: value.attributes['message'] or { value.repr }
-		backtrace: (value.attributes['backtrace'] or { '' }).split_into_lines()
-		ignorable: value.attributes['ignorable'] == 'true'
 	}
 }

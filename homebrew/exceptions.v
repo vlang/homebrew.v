@@ -80,22 +80,6 @@ fn exception_with_lists(kind string, message string, fields map[string]ruby.Valu
 	}
 }
 
-pub fn brew_exception_value(exception BrewException) ruby.Value {
-	mut data := exception.fields.clone()
-	for key, values in exception.lists {
-		data[key] = ruby.array_value(values)
-	}
-	return ruby.Value{
-		type_name: exception.kind
-		repr: exception.message
-		map_data: data
-		attributes: {
-			'kind':    exception.kind
-			'message': exception.message
-		}
-	}
-}
-
 pub fn brew_exception_from_value(value ruby.Value) BrewException {
 	mut fields := value.map_data.clone()
 	mut lists := map[string][]ruby.Value{}
@@ -115,41 +99,6 @@ pub fn brew_exception_from_value(value ruby.Value) BrewException {
 
 fn exception_nil_value() ruby.Value {
 	return ruby.object_value('NilClass', 'nil')
-}
-
-fn exception_field(value ruby.Value, name string) ruby.Value {
-	return value.map_data[name] or { exception_nil_value() }
-}
-
-fn exception_set_field(value ruby.Value, name string,
-	new_value ruby.Value) ruby.Value {
-	mut exception := brew_exception_from_value(value)
-	exception.fields[name] = new_value
-	return brew_exception_value(exception)
-}
-
-fn exception_string(value ruby.Value) string {
-	return if value.type_name == 'NilClass' { '' } else { value.as_string() }
-}
-
-fn exception_inspect(value ruby.Value) string {
-	return match value.type_name {
-		'String' { '"${value.as_string()}"' }
-		'Symbol' { value.as_string() }
-		'NilClass' { 'nil' }
-		else { value.as_string() }
-	}
-}
-
-fn exception_bool_attribute(value ruby.Value, name string) bool {
-	return value.attribute(name) or { 'false' } == 'true'
-}
-
-fn exception_class_entries(values []ruby.Value) []FormulaClassEntry {
-	return values.map(FormulaClassEntry{
-		name: it.attribute('name') or { it.as_string().split('::').last() }
-		derived_formula: exception_bool_attribute(it, 'derived_formula')
-	})
 }
 
 pub fn usage_exception(reason string) BrewException {
@@ -373,20 +322,6 @@ fn signal_name(signal int) string {
 	}
 }
 
-pub fn build_exception(formula ruby.Value, command ruby.Value,
-	arguments []ruby.Value, environment map[string]ruby.Value) BrewException {
-	pretty := arguments.map(escape_build_argument(it.as_string())).join(' ')
-	message := 'Failed executing: ${command.as_string()} ${pretty}'.trim_space()
-	return exception_with_lists('BuildError', message, {
-		'formula': formula
-		'cmd':     command
-		'env':     ruby.map_value(environment)
-		'options': exception_nil_value()
-	}, {
-		'args': arguments
-	})
-}
-
 pub fn execution_exception(command []string, status ExecutionStatus,
 	output []ExecutionOutputLine, secrets []string) !BrewException {
 	return execution_exception_with_terminal(command, status, output, secrets, ruby.stdout_is_terminal(), os.getenv('HOMEBREW_NO_COLOR') != '', os.getenv('HOMEBREW_COLOR') != '')
@@ -453,30 +388,6 @@ fn execution_status_value(status ExecutionStatus) ruby.Value {
 	})
 }
 
-fn execution_status_from_value(value ruby.Value) ExecutionStatus {
-	if value.type_name == 'Integer' {
-		return ExecutionStatus{ has_exitstatus: true, exitstatus: int(value.int_data) }
-	}
-	if value.type_name == 'Hash' {
-		exit := value.map_data['exitstatus'] or { exception_nil_value() }
-		signal := value.map_data['termsig'] or { exception_nil_value() }
-		return ExecutionStatus{
-			has_exitstatus: exit.type_name != 'NilClass'
-			exitstatus: int(exit.int_data)
-			has_termsig: signal.type_name != 'NilClass'
-			termsig: int(signal.int_data)
-		}
-	}
-	exit := value.attribute('exitstatus') or { '' }
-	signal := value.attribute('termsig') or { '' }
-	return ExecutionStatus{
-		has_exitstatus: exit.len > 0
-		exitstatus: exit.int()
-		has_termsig: signal.len > 0
-		termsig: signal.int()
-	}
-}
-
 pub fn checksum_html_hint(path string, is_path bool, cache string) string {
 	if !is_path || !os.is_file(path) {
 		return ''
@@ -494,13 +405,6 @@ pub fn checksum_html_hint(path string, is_path bool, cache string) string {
 		'rm "${path}"'
 	}
 	return '\nThe start of the downloaded file is HTML/XML, not a binary.\nThe server may have returned a bot-protection, rate-limit or\nerror page instead. Delete the file and retry:\n  ${command}\n'
-}
-
-fn exception_output_lines(value ruby.Value) []ExecutionOutputLine {
-	return value.array_data.map(ExecutionOutputLine{
-		kind: it.attribute('type') or { '' }
-		line: it.as_string()
-	})
 }
 
 // Translated from Homebrew/brew `exceptions.rb`.

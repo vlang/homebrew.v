@@ -1,7 +1,5 @@
 module homebrew
 
-import ruby
-
 // Translated from Homebrew/brew `locale.rb`.
 
 // Locale is the V representation of Homebrew's ordered language, script, and
@@ -118,31 +116,4 @@ fn valid_script(value string) bool {
 fn valid_region(value string) bool {
 	return (value.len == 2 && value.bytes().all(it >= `A` && it <= `Z`))
 		|| (value.len == 3 && value.bytes().all(it >= `0` && it <= `9`))
-}
-
-fn locale_value(locale Locale) ruby.Value {
-	return ruby.structured_value('Locale', locale.str(), {
-		'language': locale.language
-		'script':   locale.script
-		'region':   locale.region
-	})
-}
-
-fn locale_from_value(value ruby.Value) !Locale {
-	if value.type_name == 'Locale' {
-		return new_locale(value.attributes['language'], value.attributes['script'], value.attributes['region'])
-	}
-	return parse_locale(value.as_string())
-}
-
-fn locale_attribute(args []ruby.Value, name string) ruby.Value {
-	if args.len == 0 {
-		return ruby.object_value('Nil', '')
-	}
-	value := args[0].attribute(name) or { '' }
-	return if value.len > 0 {
-		ruby.string_value(value)
-	} else {
-		ruby.object_value('Nil', '')
-	}
 }

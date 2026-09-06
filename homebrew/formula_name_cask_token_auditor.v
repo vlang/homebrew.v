@@ -1,7 +1,5 @@
 module homebrew
 
-import ruby
-
 // Translated from Homebrew/brew `formula_name_cask_token_auditor.rb`.
 
 pub struct FormulaNameCaskTokenAuditor {
@@ -68,17 +66,4 @@ pub fn (auditor FormulaNameCaskTokenAuditor) errors() []string {
 		errors << 'an @ followed by a hyphen'
 	}
 	return errors
-}
-
-fn formula_name_cask_token_auditor_boundary_value(auditor FormulaNameCaskTokenAuditor) ruby.Value {
-	return ruby.structured_value('FormulaNameCaskTokenAuditor', auditor.token, {
-		'token': auditor.token
-	})
-}
-
-fn formula_name_cask_token_auditor_from_boundary(value ruby.Value) FormulaNameCaskTokenAuditor {
-	if value.type_name != 'FormulaNameCaskTokenAuditor' {
-		panic('expected FormulaNameCaskTokenAuditor, got ${value.type_name}')
-	}
-	return new_formula_name_cask_token_auditor(value.attribute('token') or { panic(err) })
 }

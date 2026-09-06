@@ -1,6 +1,5 @@
 module strategy
 
-import ruby
 import regex
 
 // Translated from Homebrew/brew `livecheck/strategy/electron_builder.rb`.
@@ -131,50 +130,5 @@ pub fn electron_builder_find_versions(request ElectronBuilderRequest) !ElectronB
 		regex: request.regex
 		url: request.url
 		cached: true
-	}
-}
-
-pub fn electron_builder_match_data_to_value(data ElectronBuilderMatchData) ruby.Value {
-	mut matches := map[string]ruby.Value{}
-	for version, parsed in data.matches {
-		matches[version] = ruby.object_value('Version', parsed)
-	}
-	regex_value := if value := data.regex {
-		ruby.object_value('Regexp', value)
-	} else {
-		ruby.object_value('NilClass', 'nil')
-	}
-	return ruby.map_value({
-		'matches': ruby.map_value(matches)
-		'regex':   regex_value
-		'url':     ruby.string_value(data.url)
-		'cached':  ruby.bool_value(data.cached)
-	})
-}
-
-fn electron_builder_request_from_value(value ruby.Value) !ElectronBuilderRequest {
-	values := value.as_map()!
-	mut supplied_regex := ?string(none)
-	if regex_value := values['regex'] {
-		if regex_value.type_name != 'NilClass' && regex_value.as_string() != '' {
-			supplied_regex = regex_value.as_string()
-		}
-	}
-	mut content := ?string(none)
-	if content_value := values['content'] {
-		if content_value.type_name != 'NilClass' {
-			content = content_value.as_string()
-		}
-	}
-	selector := match values['selector'] or { ruby.string_value('default_version') }.as_string() {
-		'path_regex' { ElectronBuilderSelector.path_regex }
-		'version_regex' { ElectronBuilderSelector.version_regex }
-		else { ElectronBuilderSelector.default_version }
-	}
-	return ElectronBuilderRequest{
-		url: values['url'] or { ruby.string_value('') }.as_string()
-		regex: supplied_regex
-		content: content
-		selector: selector
 	}
 }

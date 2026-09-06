@@ -1,7 +1,6 @@
 module test_bot
 
 import crypto.sha256
-import ruby
 import json2
 import os
 
@@ -774,53 +773,4 @@ pub fn (mut runner FormulaeRunner) deleted_formula(formula_name string) {
 
 pub fn integration_test_portable_ruby() bool {
 	return true
-}
-
-pub fn formulae_boundary_value(runner &FormulaeRunner) ruby.Value {
-	return ruby.structured_value('Homebrew::TestBot::Formulae', runner.testing_formulae.str(), {
-		'address': u64(voidptr(runner)).str()
-	})
-}
-
-pub fn formulae_boundary_input(input &FormulaeBoundaryInput) ruby.Value {
-	return ruby.structured_value('Homebrew::TestBot::FormulaeBoundaryInput', input.formula_name, {
-		'address': u64(voidptr(input)).str()
-	})
-}
-
-fn formulae_receiver(args []ruby.Value) !&FormulaeRunner {
-	if args.len == 0 || args[0].type_name != 'Homebrew::TestBot::Formulae' {
-		return error('Formulae receiver is required')
-	}
-	address := args[0].attributes['address'] or { return error('Formulae receiver has no address') }
-	if address.u64() == 0 {
-		return error('Formulae receiver has an invalid address')
-	}
-	return unsafe { &FormulaeRunner(voidptr(address.u64())) }
-}
-
-fn formulae_input(args []ruby.Value, index int) &FormulaeBoundaryInput {
-	if args.len <= index || args[index].type_name != 'Homebrew::TestBot::FormulaeBoundaryInput' {
-		return &FormulaeBoundaryInput{}
-	}
-	address := args[index].attributes['address'] or { return &FormulaeBoundaryInput{} }
-	if address.u64() == 0 {
-		return &FormulaeBoundaryInput{}
-	}
-	return unsafe { &FormulaeBoundaryInput(voidptr(address.u64())) }
-}
-
-fn formulae_nil() ruby.Value {
-	return ruby.object_value('NilClass', 'nil')
-}
-
-fn formulae_tags_boundary(tags map[string]FormulaeTagHash) ruby.Value {
-	mut values := map[string]ruby.Value{}
-	for tag, value in tags {
-		values[tag] = ruby.structured_value('Hash', tag, {
-			'cellar': value.cellar
-			'sha256': value.sha256
-		})
-	}
-	return ruby.map_value(values)
 }

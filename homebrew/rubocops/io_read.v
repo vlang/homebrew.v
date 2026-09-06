@@ -1,7 +1,5 @@
 module rubocops
 
-import ruby
-
 // Translated from Homebrew/brew `rubocops/io_read.rb`.
 pub const io_read_message_template = 'The use of `IO.%s` is a security risk.'
 
@@ -332,13 +330,4 @@ pub fn audit_io_reads(source string) []IoReadOffense {
 		}
 	}
 	return offenses
-}
-
-fn io_read_offense_value(offense IoReadOffense) ruby.Value {
-	return ruby.structured_value('RuboCop::Cop::Offense', offense.message, {
-		'method':    offense.method
-		'begin_pos': offense.begin_pos.str()
-		'end_pos':   offense.end_pos.str()
-		'message':   offense.message
-	})
 }

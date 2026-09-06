@@ -1,6 +1,5 @@
 module homebrew
 
-import ruby
 import os
 
 // Translated from Homebrew/brew `test_bot.rb`.
@@ -276,38 +275,4 @@ pub fn test_bot_run(args TestBotArgs, context TestBotRunContext) !TestBotRunResu
 		sandbox: sandbox
 		failed: !context.runner_success
 	}
-}
-
-fn test_bot_args_from_value(value ruby.Value) TestBotArgs {
-	return TestBotArgs{
-		cleanup: (value.attributes['cleanup'] or { 'false' }).bool()
-		local_mode: (value.attributes['local'] or { 'false' }).bool()
-		only_cleanup_before: (value.attributes['only_cleanup_before'] or { 'false' }).bool()
-		only_tap_syntax: (value.attributes['only_tap_syntax'] or { 'false' }).bool()
-		only_formulae_detect: (value.attributes['only_formulae_detect'] or { 'false' }).bool()
-		only_bottles_fetch: (value.attributes['only_bottles_fetch'] or { 'false' }).bool()
-		only_cleanup_after: (value.attributes['only_cleanup_after'] or { 'false' }).bool()
-		only_formulae: (value.attributes['only_formulae'] or { 'false' }).bool()
-		tap: value.attributes['tap'] or { '' }
-		git_name: value.attributes['git_name'] or { '' }
-		git_email: value.attributes['git_email'] or { '' }
-	}
-}
-
-fn test_bot_tap_value(tap ?TestBotTap) ruby.Value {
-	actual := tap or { return ruby.object_value('NilClass', 'nil') }
-	return ruby.structured_value('Tap', actual.name, {
-		'name':      actual.name
-		'full_name': actual.full_name
-		'official':  actual.official.str()
-		'core_tap':  actual.core_tap.str()
-	})
-}
-
-fn test_bot_environment_value(environment map[string]string) ruby.Value {
-	mut values := map[string]ruby.Value{}
-	for key, value in environment {
-		values[key] = ruby.string_value(value)
-	}
-	return ruby.map_value(values)
 }

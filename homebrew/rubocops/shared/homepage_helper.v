@@ -1,7 +1,5 @@
 module shared
 
-import ruby
-
 // Translated from Homebrew/brew `rubocops/shared/homepage_helper.rb`.
 pub struct HomepageProblem {
 pub:
@@ -182,16 +180,4 @@ pub fn audit_homepage_content(homepage_type string, content string, homepage_beg
 		}
 	}
 	return problems
-}
-
-fn homepage_problem_value(problem HomepageProblem) ruby.Value {
-	return ruby.structured_value('RuboCop::Cop::Problem', problem.message, {
-		'kind':          problem.kind
-		'homepage_type': problem.homepage_type
-		'content':       problem.content
-		'begin_pos':     problem.begin_pos.str()
-		'end_pos':       problem.end_pos.str()
-		'message':       problem.message
-		'replacement':   problem.replacement
-	})
 }

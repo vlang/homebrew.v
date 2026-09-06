@@ -1,6 +1,5 @@
 module dev_cmd
 
-import ruby
 import os
 
 // Translated from Homebrew/brew `dev-cmd/style.rb`.
@@ -101,34 +100,4 @@ pub fn run_style_command(options StyleCommandOptions) !StyleCommandResult {
 pub struct StyleCommandInput {
 pub:
 	options StyleCommandOptions
-}
-
-pub fn style_command_input_boundary(input &StyleCommandInput) ruby.Value {
-	return ruby.structured_value('Homebrew::DevCmd::StyleCmd::Input', '', {
-		'style_command_input_address': u64(voidptr(input)).str()
-	})
-}
-
-fn style_command_input_from_value(value ruby.Value) &StyleCommandInput {
-	address := value.attributes['style_command_input_address'] or {
-		panic('invalid StyleCmd input')
-	}
-	return unsafe { &StyleCommandInput(voidptr(address.u64())) }
-}
-
-fn style_command_result_value(result StyleCommandResult) ruby.Value {
-	return ruby.map_value({
-		'bundler_groups': ruby.string_array_value(result.bundler_groups)
-		'target':         ruby.string_array_value(result.target)
-		'fix':            ruby.bool_value(result.fix)
-		'todo':           ruby.bool_value(result.todo)
-		'reset_cache':    ruby.bool_value(result.reset_cache)
-		'debug':          ruby.bool_value(result.debug)
-		'verbose':        ruby.bool_value(result.verbose)
-		'only_cops':      ruby.string_array_value(result.only_cops)
-		'except_cops':    ruby.string_array_value(result.except_cops)
-		'style_checked':  ruby.bool_value(result.style_checked)
-		'warnings':       ruby.string_array_value(result.warnings)
-		'failed':         ruby.bool_value(result.failed)
-	})
 }

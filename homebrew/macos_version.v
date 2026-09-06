@@ -1,7 +1,5 @@
 module homebrew
 
-import ruby
-
 // Translated from Homebrew/brew `macos_version.rb`.
 
 // MacOSVersion keeps the source's stricter macOS input validation while using
@@ -172,30 +170,4 @@ fn title_word(value string) string {
 		return value
 	}
 	return value[..1].to_upper() + value[1..]
-}
-
-fn macos_version_value(version MacOSVersion) ruby.Value {
-	return ruby.structured_value('MacOSVersion', version.str(), {
-		'value': version.str()
-		'null':  version.is_null.str()
-		'sym':   version.to_symbol()
-	})
-}
-
-fn macos_version_from_args(args []ruby.Value) !MacOSVersion {
-	if args.len == 0 {
-		return error('missing MacOSVersion receiver')
-	}
-	return macos_version_from_value(args[0])
-}
-
-fn macos_version_from_value(value ruby.Value) !MacOSVersion {
-	if value.attributes['null'] == 'true' {
-		return null_macos_version()
-	}
-	return new_macos_version(if value.attributes['value'].len > 0 {
-		value.attributes['value']
-	} else {
-		value.as_string()
-	})
 }

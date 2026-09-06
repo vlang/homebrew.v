@@ -78,39 +78,3 @@ pub fn current_bundle_brewfile_path_config(global bool, file ?string) BundleBrew
 		home_brewfile_exists: ruby.path_exists(home_brewfile)
 	}
 }
-
-fn brewfile_path_config_from_value(value ruby.Value) BundleBrewfilePathConfig {
-	file_value := value.attributes['file'] or { '' }
-	return BundleBrewfilePathConfig{
-		global: (value.attributes['global'] or { 'false' }) == 'true'
-		file: if file_value != '' { ?string(file_value) } else { none }
-		working_directory: value.attributes['working_directory'] or { ruby.current_directory() }
-		home_directory: value.attributes['home_directory'] or { '' }
-		env_bundle_file_global: value.attributes['env_bundle_file_global'] or { '' }
-		env_bundle_file: value.attributes['env_bundle_file'] or { '' }
-		user_config_home: value.attributes['user_config_home'] or { '' }
-		user_config_home_exists: (value.attributes['user_config_home_exists'] or { 'false' }) == 'true'
-		user_config_brewfile_exists: (value.attributes['user_config_brewfile_exists'] or { 'false' }) == 'true'
-		home_brewfile_exists: (value.attributes['home_brewfile_exists'] or { 'false' }) == 'true'
-	}
-}
-
-fn brewfile_boundary_config(args []ruby.Value, config_index int) BundleBrewfilePathConfig {
-	if config_index < args.len && args[config_index].type_name == 'BundleBrewfilePathConfig' {
-		return brewfile_path_config_from_value(args[config_index])
-	}
-	global := if config_index < args.len {
-		args[config_index].as_bool() or { false }
-	} else {
-		false
-	}
-	file := if config_index + 1 < args.len && args[config_index + 1].type_name !in [
-		'Nil',
-		'NilClass',
-	] {
-		?string(args[config_index + 1].as_string())
-	} else {
-		none
-	}
-	return current_bundle_brewfile_path_config(global, file)
-}

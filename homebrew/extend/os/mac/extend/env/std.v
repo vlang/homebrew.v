@@ -1,7 +1,5 @@
 module env
 
-import ruby
-
 pub struct MacStdenvConfig {
 pub:
 	homebrew_library  string
@@ -116,13 +114,6 @@ pub fn mac_stdenv_no_fixup_chains(environment map[string]string,
 		return environment.clone()
 	}
 	return mac_env_append(environment, 'LDFLAGS', '-Wl,-no_fixup_chains')
-}
-
-fn mac_std_environment(args []ruby.Value) map[string]string {
-	if args.len == 0 || args[0].type_name != 'Hash' {
-		return map[string]string{}
-	}
-	return mac_string_map_from_value(args[0]) or { map[string]string{} }
 }
 
 // Translated from Homebrew/brew `extend/os/mac/extend/ENV/std.rb`.

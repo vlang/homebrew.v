@@ -1,7 +1,5 @@
 module rubocops
 
-import ruby
-
 // Translated from Homebrew/brew `rubocops/api_name_membership.rb`.
 pub const api_name_membership_message_template = 'Use `Homebrew::API.%s` instead of scanning `Homebrew::API.%s`.'
 
@@ -171,16 +169,4 @@ pub fn correct_api_name_memberships(source string) string {
 		corrected = corrected[..membership.begin_pos] + membership.replacement + corrected[membership.end_pos..]
 	}
 	return corrected
-}
-
-fn api_name_membership_value(membership ApiNameMembershipMatch, type_name string) ruby.Value {
-	return ruby.structured_value(type_name, membership.replacement, {
-		'api':         membership.api
-		'list':        membership.list
-		'argument':    membership.argument
-		'method':      membership.method
-		'predicate':   membership.predicate
-		'message':     membership.message
-		'replacement': membership.replacement
-	})
 }

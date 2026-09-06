@@ -1,7 +1,5 @@
 module cask
 
-import ruby
-
 // Translated from Homebrew/brew `rubocops/cask/empty_arch_argument.rb`.
 pub const empty_arch_argument_message_template = 'Remove the empty `%s:` argument from the `arch` stanza.'
 pub const empty_arch_stanza_message = 'Remove the `arch` stanza as all its arguments are empty.'
@@ -257,14 +255,4 @@ pub fn correct_empty_arch_arguments(source string) string {
 		corrected = corrected[..stanza.content_start] + remaining + corrected[stanza.line_end..]
 	}
 	return corrected
-}
-
-fn empty_arch_offense_value(offense EmptyArchArgumentOffense) ruby.Value {
-	return ruby.structured_value('RuboCop::Cop::Offense', offense.message, {
-		'key':        offense.key
-		'begin_pos':  offense.begin_pos.str()
-		'end_pos':    offense.end_pos.str()
-		'message':    offense.message
-		'whole_line': offense.whole_line.str()
-	})
 }

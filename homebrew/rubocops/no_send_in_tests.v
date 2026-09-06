@@ -1,7 +1,5 @@
 module rubocops
 
-import ruby
-
 // Translated from Homebrew/brew `rubocops/no_send_in_tests.rb`.
 pub const no_send_in_tests_message_template = 'Make the method public and call it directly instead of using `%s` in tests.'
 pub const no_send_in_tests_dynamic_message_template = 'Use `public_send` instead of `%s` in tests; `%s` bypasses method visibility.'
@@ -285,16 +283,4 @@ pub fn audit_no_send_in_tests(source string) []NoSendInTestsOffense {
 		position++
 	}
 	return offenses
-}
-
-fn no_send_in_tests_offense_value(offense NoSendInTestsOffense) ruby.Value {
-	return ruby.structured_value('RuboCop::Cop::Offense', offense.message, {
-		'method':          offense.call.method
-		'begin_pos':       offense.begin_pos.str()
-		'end_pos':         offense.end_pos.str()
-		'message':         offense.message
-		'argument_kind':   offense.call.argument.kind
-		'argument':        offense.call.argument.value
-		'safe_navigation': offense.call.safe_navigation.str()
-	})
 }

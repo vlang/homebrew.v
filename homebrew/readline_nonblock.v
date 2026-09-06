@@ -172,29 +172,3 @@ fn readline_event_value(event ReadlineReadEvent) ruby.Value {
 		.eof { ruby.object_value('EOFError', '') }
 	}
 }
-
-fn readline_events_from_value(value ruby.Value) []ReadlineReadEvent {
-	event_values := if value.type_name == 'Array' { value.array_data } else { value.array_data }
-	return event_values.map(match it.type_name {
-		'IO::WaitReadable' { readline_wait_readable() }
-		'EOFError' { readline_eof() }
-		else { readline_data(it.as_string()) }
-	})
-}
-
-fn readline_nonblock_from_value(value ruby.Value) ReadlineNonblock {
-	return ReadlineNonblock{
-		buffer: value.attributes['buffer'] or { '' }
-		line: value.attributes['line'] or { '' }
-	}
-}
-
-fn readline_nonblock_source_from_value(value ruby.Value) ReadlineNonblockSource {
-	return ReadlineNonblockSource{
-		events: readline_events_from_value(value)
-		cursor: (value.attributes['cursor'] or { '0' }).int()
-		offset: (value.attributes['offset'] or { '0' }).int()
-		read_calls: (value.attributes['read_calls'] or { '0' }).int()
-		last_request_size: (value.attributes['last_request_size'] or { '0' }).int()
-	}
-}

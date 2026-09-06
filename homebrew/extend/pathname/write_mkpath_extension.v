@@ -1,6 +1,5 @@
 module pathname
 
-import ruby
 import os
 
 // Translated from Homebrew/brew `extend/pathname/write_mkpath_extension.rb`.

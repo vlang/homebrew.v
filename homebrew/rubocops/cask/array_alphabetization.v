@@ -1,7 +1,5 @@
 module cask
 
-import ruby
-
 // Translated from Homebrew/brew `rubocops/cask/array_alphabetization.rb`.
 pub const array_alphabetization_single_message = 'Avoid single-element arrays by removing the []'
 pub const array_alphabetization_order_message = 'The array elements should be ordered alphabetically'
@@ -534,13 +532,4 @@ pub fn correct_array_alphabetization(source string) string {
 		corrected = corrected[..offense.begin_pos] + offense.replacement + corrected[offense.end_pos..]
 	}
 	return corrected
-}
-
-fn array_alphabetization_offense_value(offense ArrayAlphabetizationOffense) ruby.Value {
-	return ruby.structured_value('RuboCop::Cop::Offense', offense.message, {
-		'begin_pos':   offense.begin_pos.str()
-		'end_pos':     offense.end_pos.str()
-		'message':     offense.message
-		'replacement': offense.replacement
-	})
 }

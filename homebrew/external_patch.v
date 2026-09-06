@@ -1,6 +1,5 @@
 module homebrew
 
-import ruby
 import crypto.sha256
 import homebrew.unpack_strategy
 import os
@@ -204,22 +203,4 @@ pub fn (patch ExternalPatch) apply(base_dir string, homebrew_prefix string) ![]s
 
 pub fn (patch ExternalPatch) inspect() string {
 	return '#<ExternalPatch: :${patch.strip} "${patch.resource.url}">'
-}
-
-fn external_patch_value(patch ExternalPatch) ruby.Value {
-	model_value := patch_model_value(patch.model())
-	mut attributes := model_value.attributes.clone()
-	attributes['owner'] = patch.owner
-	attributes['has_owner'] = patch.has_owner.str()
-	attributes['version'] = patch.version
-	return ruby.structured_value('ExternalPatch', patch.inspect(), attributes)
-}
-
-fn external_patch_from_value(value ruby.Value) !ExternalPatch {
-	model := patch_model_from_value(value)!
-	mut patch := external_patch_from_model(model)!
-	if (value.attributes['has_owner'] or { 'false' }) == 'true' {
-		patch = patch.with_owner(value.attributes['owner'] or { '' })
-	}
-	return patch
 }

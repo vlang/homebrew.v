@@ -1,6 +1,5 @@
 module cask
 
-import ruby
 import homebrew.cask as brew_cask
 
 // Translated from Homebrew/brew `sorbet/tapioca/compilers/cask/config.rb`.
@@ -27,17 +26,5 @@ pub fn cask_config_compiler_methods() []CaskConfigCompilerMethod {
 			'String'
 		}
 		class_method: false
-	})
-}
-
-fn cask_config_compiler_decoration_value() ruby.Value {
-	return ruby.map_value({
-		'constant_name': ruby.string_value('Cask::Config')
-		'kind':          ruby.string_value('class')
-		'methods':       ruby.array_value(cask_config_compiler_methods().map(ruby.map_value({
-			'name':         ruby.string_value(it.name)
-			'return_type':  ruby.string_value(it.return_type)
-			'class_method': ruby.bool_value(it.class_method)
-		})))
 	})
 }

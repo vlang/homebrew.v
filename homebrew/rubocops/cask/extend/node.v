@@ -1,6 +1,5 @@
 module extend
 
-import ruby
 import homebrew.rubocops.cask.constants as stanza_constants
 import homebrew.utils
 
@@ -31,32 +30,6 @@ pub:
 	location_type   string
 	heredoc_end     CaskNodeRange
 	has_heredoc_end bool
-}
-
-fn node_nil() ruby.Value {
-	return ruby.object_value('NilClass', 'nil')
-}
-
-fn node_kind_from_value(value ruby.Value) string {
-	if kind := value.attributes['kind'] {
-		return match kind {
-			'method_call' { 'send' }
-			'block_call' { 'block' }
-			'begin_node' { 'begin' }
-			'local_assignment' { 'lvasgn' }
-			else { kind }
-		}
-	}
-	return match value.type_name {
-		'RuboCop::AST::SendNode' { 'send' }
-		'RuboCop::AST::BlockNode' { 'block' }
-		'RuboCop::AST::LvasgnNode' { 'lvasgn' }
-		'RuboCop::AST::AsgnNode' {
-			if node_is_assignment(value.repr) { 'lvasgn' } else { 'other' }
-		}
-		'RuboCop::AST::BeginNode' { 'begin' }
-		else { 'other' }
-	}
 }
 
 fn node_method_from_source(source string, assignment bool) (string, bool) {
@@ -196,120 +169,6 @@ pub fn parse_cask_ast_node(source string) CaskAstNode {
 		}
 	}
 	return node
-}
-
-fn node_ancestor_values(value ruby.Value) []CaskNodeAncestor {
-	mut ancestors := []CaskNodeAncestor{}
-	if encoded := value.attributes['ancestors'] {
-		for item in encoded.split('>') {
-			parts := item.split(':')
-			ancestors << CaskNodeAncestor{
-				kind: if parts.len > 1 { parts[0] } else { 'block' }
-				method_name: parts.last()
-			}
-		}
-	} else if encoded := value.attributes['ancestry'] {
-		items := encoded.split('>')
-		limit := if items.len > 0 && items.last() == (value.attributes['name'] or { '' }) {
-			items.len - 1
-		} else {
-			items.len
-		}
-		for item in items[..limit] {
-			ancestors << CaskNodeAncestor{
-				kind: 'block'
-				method_name: item
-			}
-		}
-	}
-	return ancestors
-}
-
-fn node_from_value(value ruby.Value) CaskAstNode {
-	if value.type_name == 'String' {
-		return parse_cask_ast_node(value.as_string())
-	}
-	mut kind := node_kind_from_value(value)
-	mut method_name := value.attributes['method_name'] or {
-		value.attributes['name'] or { '' }
-	}
-	mut has_receiver := (value.attributes['has_receiver'] or { 'false' }).bool()
-	if kind == 'lvasgn' || node_is_assignment(value.repr) {
-		kind = 'lvasgn'
-		if rhs_method := value.attributes['rhs_method_name'] {
-			method_name = rhs_method
-			has_receiver = (value.attributes['rhs_has_receiver'] or { 'false' }).bool()
-		} else {
-			method_name, has_receiver = node_assignment_method(value.repr)
-		}
-	} else if method_name == '' {
-		method_name, has_receiver = node_method_from_source(value.repr, false)
-	}
-	mut child_values := value.array_data.clone()
-	if child_values.len == 0 {
-		if body := value.map_data['body'] {
-			child_values = body.as_array() or { [] }
-		}
-	}
-	mut children := []CaskAstNode{}
-	for child in child_values {
-		children << node_from_value(child)
-	}
-	begin_pos := (value.attributes['begin_pos'] or { '0' }).int()
-	end_pos := (value.attributes['end_pos'] or { value.repr.len.str() }).int()
-	heredoc_begin := (value.attributes['heredoc_end_begin'] or { '0' }).int()
-	heredoc_finish := (value.attributes['heredoc_end_end'] or { '0' }).int()
-	return CaskAstNode{
-		kind: kind
-		method_name: method_name
-		source: value.repr
-		expression: CaskNodeRange{
-			begin_pos: begin_pos
-			end_pos: end_pos
-		}
-		children: children
-		ancestors: node_ancestor_values(value)
-		has_receiver: has_receiver
-		location_type: value.attributes['location_type'] or {
-			value.attributes['loc_type'] or {
-				if value.type_name.contains('Heredoc') { value.type_name } else { '' }
-			}
-		}
-		heredoc_end: CaskNodeRange{
-			begin_pos: heredoc_begin
-			end_pos: heredoc_finish
-		}
-		has_heredoc_end: heredoc_finish > heredoc_begin
-	}
-}
-
-fn node_to_value(node CaskAstNode) ruby.Value {
-	type_name := match node.kind {
-		'send' { 'RuboCop::AST::SendNode' }
-		'block' { 'RuboCop::AST::BlockNode' }
-		'lvasgn' { 'RuboCop::AST::LvasgnNode' }
-		'begin' { 'RuboCop::AST::BeginNode' }
-		else { 'RuboCop::AST::Node' }
-	}
-	ancestor_text := node.ancestors.map('${it.kind}:${it.method_name}').join('>')
-	return ruby.Value{
-		type_name: type_name
-		repr: node.source
-		array_data: node.children.map(node_to_value(it))
-		attributes: {
-			'kind':              node.kind
-			'name':              node.method_name
-			'method_name':       node.method_name
-			'begin_pos':         node.expression.begin_pos.str()
-			'end_pos':           node.expression.end_pos.str()
-			'has_receiver':      node.has_receiver.str()
-			'ancestors':         ancestor_text
-			'location_type':     node.location_type
-			'heredoc_end_begin': node.heredoc_end.begin_pos.str()
-			'heredoc_end_end':   node.heredoc_end.end_pos.str()
-			'has_heredoc_end':   node.has_heredoc_end.str()
-		}
-	}
 }
 
 pub fn method_node(node CaskAstNode) ?CaskAstNode {
@@ -520,19 +379,4 @@ pub fn location_expression(node CaskAstNode) CaskNodeRange {
 		}
 	}
 	return expression
-}
-
-fn node_range_value(source string, source_range CaskNodeRange) ruby.Value {
-	mut relative_begin := source_range.begin_pos
-	mut relative_end := source_range.end_pos
-	if relative_begin < 0 || relative_begin > source.len {
-		relative_begin = 0
-	}
-	if relative_end < relative_begin || relative_end > source.len {
-		relative_end = source.len
-	}
-	return ruby.structured_value('Parser::Source::Range', source[relative_begin..relative_end], {
-		'begin_pos': source_range.begin_pos.str()
-		'end_pos':   source_range.end_pos.str()
-	})
 }

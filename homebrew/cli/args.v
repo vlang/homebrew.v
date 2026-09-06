@@ -1,7 +1,5 @@
 module cli
 
-import ruby
-
 // Translated from Homebrew/brew `cli/args.rb`.
 
 // ArgValueKind preserves the Ruby argument table's switch, scalar flag and
@@ -272,101 +270,4 @@ pub fn (mut args Args) cli_args() []string {
 	args.cli_args_cache = rendered.clone()
 	args.cli_args_loaded = true
 	return rendered
-}
-
-fn args_nil_value() ruby.Value {
-	return ruby.object_value('NilClass', 'nil')
-}
-
-pub fn args_boundary(args &Args) ruby.Value {
-	return ruby.structured_value('Homebrew::CLI::Args', args.options_only.str(), {
-		'args_address': u64(voidptr(args)).str()
-	})
-}
-
-fn args_from_boundary(value ruby.Value) &Args {
-	address := value.attributes['args_address'] or { panic('invalid Homebrew::CLI::Args boundary') }
-	return unsafe { &Args(voidptr(address.u64())) }
-}
-
-fn args_receiver(values []ruby.Value) (&Args, int) {
-	if values.len > 0 && 'args_address' in values[0].attributes {
-		return args_from_boundary(values[0]), 1
-	}
-	return new_args(), 0
-}
-
-fn named_args_boundary(named NamedArgs) ruby.Value {
-	return ruby.Value{
-		type_name: 'Homebrew::CLI::NamedArgs'
-		repr: named.values.str()
-		string_array_data: named.values.clone()
-		attributes: {
-			'cask_options':  named.cask_options.str()
-			'without_api':   named.without_api.str()
-			'force_bottle':  named.force_bottle.str()
-			'override_spec': named.override_spec
-		}
-	}
-}
-
-fn arg_value_from_boundary(value ruby.Value) ArgValue {
-	return match value.type_name {
-		'Bool' {
-			ArgValue{
-				kind: .switch_value
-				enabled: value.bool_data
-			}
-		}
-		'Array' {
-			ArgValue{
-				kind: .comma_array
-				items: value.as_string_array() or { value.array_data.map(it.as_string()) }
-			}
-		}
-		else {
-			ArgValue{
-				kind: .flag_value
-				text: value.as_string()
-			}
-		}
-	}
-}
-
-fn arg_value_boundary(value ArgValue) ruby.Value {
-	return match value.kind {
-		.switch_value { ruby.bool_value(value.enabled) }
-		.flag_value { ruby.string_value(value.text) }
-		.comma_array { ruby.string_array_value(value.items) }
-		.unset { args_nil_value() }
-	}
-}
-
-fn processed_options_from_boundary(value ruby.Value) []ProcessedOption {
-	mut options := []ProcessedOption{}
-	for item in value.as_array() or { []ruby.Value{} } {
-		if item.attributes.len > 0 {
-			options << ProcessedOption{
-				short: item.attributes['short'] or { '' }
-				long: item.attributes['long'] or { '' }
-				description: item.attributes['description'] or { '' }
-				hidden: (item.attributes['hidden'] or { 'false' }).bool()
-			}
-			continue
-		}
-		parts := item.as_array() or { []ruby.Value{} }
-		if parts.len > 0 {
-			options << ProcessedOption{
-				short: if parts[0].type_name == 'NilClass' { '' } else { parts[0].as_string() }
-				long: if parts.len > 1 && parts[1].type_name != 'NilClass' {
-					parts[1].as_string()
-				} else {
-					''
-				}
-				description: if parts.len > 2 { parts[2].as_string() } else { '' }
-				hidden: if parts.len > 3 { parts[3].bool_data } else { false }
-			}
-		}
-	}
-	return options
 }

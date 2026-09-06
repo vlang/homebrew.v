@@ -1,6 +1,5 @@
 module extensions
 
-import ruby
 import os
 
 // Translated from Homebrew/brew `bundle/extensions/go.rb`.
@@ -197,21 +196,4 @@ pub fn (mut state GoState) cleanup(items []string) !int {
 	suffix := if removed == 1 { '' } else { 's' }
 	state.output << 'Uninstalled ${removed} ${go_definition().banner_name}${suffix}'
 	return removed
-}
-
-fn go_state_value(state &GoState) ruby.Value {
-	return ruby.structured_value('Homebrew::Bundle::Go', '', {
-		'go_state_address': u64(voidptr(state)).str()
-	})
-}
-
-fn go_state_from_args(args []ruby.Value, method string) &GoState {
-	if args.len == 0 || 'go_state_address' !in args[0].attributes {
-		panic('Go.${method} requires translated Go state')
-	}
-	return unsafe { &GoState(voidptr(args[0].attributes['go_state_address'].u64())) }
-}
-
-pub fn go_state_boundary(state &GoState) ruby.Value {
-	return go_state_value(state)
 }

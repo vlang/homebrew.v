@@ -1,7 +1,5 @@
 module bundle
 
-import ruby
-
 // Translated from Homebrew/brew `bundle/tap.rb`.
 pub struct BundleTap {
 pub:
@@ -38,18 +36,6 @@ pub:
 	output             []string
 }
 
-fn bundle_tap_bool(value ruby.Value, fallback bool) bool {
-	return value.as_bool() or { fallback }
-}
-
-fn bundle_tap_strings(value ruby.Value) []string {
-	return value.as_string_array() or { [] }
-}
-
-fn bundle_tap_nil() ruby.Value {
-	return ruby.object_value('NilClass', '')
-}
-
 fn bundle_tap_unique(values []string) []string {
 	mut seen := map[string]bool{}
 	mut result := []string{}
@@ -60,121 +46,6 @@ fn bundle_tap_unique(values []string) []string {
 		}
 	}
 	return result
-}
-
-pub fn bundle_tap_value(tap BundleTap) ruby.Value {
-	return ruby.Value{
-		type_name: 'Tap'
-		repr: tap.name
-		map_data: {
-			'name':             ruby.string_value(tap.name)
-			'remote':           if tap.remote == '' {
-				bundle_tap_nil()
-			} else {
-				ruby.string_value(tap.remote)
-			}
-			'default_remote':   ruby.string_value(tap.default_remote)
-			'match_references': ruby.string_array_value(tap.match_references)
-			'installed?':       ruby.bool_value(tap.installed)
-		}
-		attributes: {
-			'name': tap.name
-		}
-	}
-}
-
-pub fn bundle_tap_from_value(value ruby.Value) BundleTap {
-	fields := value.map_data.clone()
-	remote_value := fields['remote'] or { bundle_tap_nil() }
-	return BundleTap{
-		name: (fields['name'] or { ruby.string_value(value.attributes['name'] or { value.repr }) }).as_string()
-		remote: if remote_value.type_name in ['Nil', 'NilClass'] {
-			''
-		} else {
-			remote_value.as_string()
-		}
-		default_remote: (fields['default_remote'] or { ruby.string_value('') }).as_string()
-		match_references: bundle_tap_strings(fields['match_references'] or { ruby.string_array_value([]) })
-		installed: bundle_tap_bool(fields['installed?'] or { ruby.bool_value(true) }, true)
-	}
-}
-
-fn bundle_taps_value(taps []BundleTap) ruby.Value {
-	return ruby.array_value(taps.map(bundle_tap_value(it)))
-}
-
-fn bundle_taps_from_value(value ruby.Value) []BundleTap {
-	return value.as_array() or { [] }.map(bundle_tap_from_value(it))
-}
-
-pub fn bundle_tap_state_value(state BundleTapState) ruby.Value {
-	mut trusted := map[string]ruby.Value{}
-	for entry_type, entries in state.trusted_entries {
-		trusted[entry_type] = ruby.string_array_value(entries)
-	}
-	return ruby.Value{
-		type_name: 'Homebrew::Bundle::Tap::State'
-		array_data: state.taps.map(bundle_tap_value(it))
-		map_data: {
-			'installed_taps':     ruby.string_array_value(state.installed_taps)
-			'installed_override': ruby.bool_value(state.installed_override)
-			'developer':          ruby.bool_value(state.developer)
-			'github_api_token':   ruby.string_value(state.github_api_token)
-			'trusted_entries':    ruby.map_value(trusted)
-			'skipped_taps':       ruby.string_array_value(state.skipped_taps)
-		}
-	}
-}
-
-pub fn bundle_tap_state_from_value(value ruby.Value) BundleTapState {
-	fields := value.map_data.clone()
-	mut trusted := map[string][]string{}
-	for entry_type, entries in (fields['trusted_entries'] or { ruby.map_value({}) }).as_map() or {
-		map[string]ruby.Value{}
-	} {
-		trusted[entry_type] = bundle_tap_strings(entries)
-	}
-	return BundleTapState{
-		taps: value.array_data.map(bundle_tap_from_value(it))
-		installed_taps: bundle_tap_strings(fields['installed_taps'] or { ruby.string_array_value([]) })
-		installed_override: bundle_tap_bool(fields['installed_override'] or { ruby.bool_value(false) }, false)
-		developer: bundle_tap_bool(fields['developer'] or { ruby.bool_value(false) }, false)
-		github_api_token: (fields['github_api_token'] or { ruby.string_value('') }).as_string()
-		trusted_entries: trusted
-		skipped_taps: bundle_tap_strings(fields['skipped_taps'] or { ruby.string_array_value([]) })
-	}
-}
-
-pub fn bundle_tap_effects_value(effects BundleTapEffects) ruby.Value {
-	mut command_results := map[string]ruby.Value{}
-	for command, result in effects.command_results {
-		command_results[command] = ruby.bool_value(result)
-	}
-	return ruby.map_value({
-		'command_results': ruby.map_value(command_results)
-	})
-}
-
-pub fn bundle_tap_effects_from_value(value ruby.Value) BundleTapEffects {
-	fields := value.as_map() or { map[string]ruby.Value{} }
-	mut command_results := map[string]bool{}
-	for command, result in (fields['command_results'] or { ruby.map_value({}) }).as_map() or {
-		map[string]ruby.Value{}
-	} {
-		command_results[command] = bundle_tap_bool(result, false)
-	}
-	return BundleTapEffects{ command_results: command_results }
-}
-
-fn bundle_tap_action_value(result BundleTapActionResult) ruby.Value {
-	return ruby.map_value({
-		'result':             ruby.bool_value(result.success)
-		'state':              bundle_tap_state_value(result.state)
-		'command':            ruby.string_array_value(result.command)
-		'failed_taps':        ruby.string_array_value(result.failed_taps)
-		'cache_cleared_taps': ruby.string_array_value(result.cache_cleared_taps)
-		'output':             ruby.string_array_value(result.output)
-	})
 }
 
 pub fn bundle_tap_reset(state BundleTapState) BundleTapState {
@@ -335,15 +206,6 @@ pub fn bundle_tap_dump(state BundleTapState, dumped_formulae []string, dumped_ca
 	}
 	lines.sort()
 	return bundle_tap_unique(lines).join('\n')
-}
-
-fn bundle_tap_entry_from_value(value ruby.Value) BundleDslEntry {
-	fields := value.as_map() or { map[string]ruby.Value{} }
-	return BundleDslEntry{
-		entry_type: value.attributes['type'] or { (fields['type'] or { ruby.string_value('') }).as_string() }
-		name: value.attributes['name'] or { (fields['name'] or { ruby.string_value(value.repr) }).as_string() }
-		options: (fields['options'] or { ruby.map_value({}) }).as_map() or { value.map_data.clone() }
-	}
 }
 
 pub fn bundle_tap_find_actionable(state BundleTapState, entries []BundleDslEntry) []string {

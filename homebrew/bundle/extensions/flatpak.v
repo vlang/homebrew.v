@@ -1,7 +1,5 @@
 module extensions
 
-import ruby
-
 pub struct FlatpakPackage {
 pub:
 	name       string
@@ -20,12 +18,6 @@ pub mut:
 	commands              [][]string
 }
 
-fn flatpak_error(kind string, message string) ruby.Value {
-	return ruby.structured_value(kind, message, {
-		'message': message
-	})
-}
-
 pub fn flatpak_definition() ExtensionDefinition {
 	return ExtensionDefinition{
 		class_name: 'Homebrew::Bundle::Flatpak'
@@ -33,165 +25,6 @@ pub fn flatpak_definition() ExtensionDefinition {
 		banner_name: 'Flatpak packages'
 		check_label: 'Flatpak'
 		cleanup_heading: 'flatpaks'
-	}
-}
-
-pub fn flatpak_package_value(package FlatpakPackage) ruby.Value {
-	return ruby.map_value({
-		'name':       ruby.string_value(package.name)
-		'remote':     ruby.string_value(package.remote)
-		'remote_url': if package.remote_url == '' {
-			ruby.object_value('NilClass', '')
-		} else {
-			ruby.string_value(package.remote_url)
-		}
-	})
-}
-
-pub fn flatpak_package_from_value(value ruby.Value) FlatpakPackage {
-	values := value.as_map() or {
-		return FlatpakPackage{
-			name: value.as_string()
-			remote: 'flathub'
-		}
-	}
-	if 'options' in values {
-		options := values['options'].as_map() or { map[string]ruby.Value{} }
-		return FlatpakPackage{
-			name: if 'name' in values { values['name'].as_string() } else { '' }
-			remote: if 'remote' in options { options['remote'].as_string() } else { 'flathub' }
-			remote_url: if 'url' in options && options['url'].type_name != 'NilClass' {
-				options['url'].as_string()
-			} else {
-				''
-			}
-		}
-	}
-	return FlatpakPackage{
-		name: if 'name' in values { values['name'].as_string() } else { '' }
-		remote: if 'remote' in values { values['remote'].as_string() } else { 'flathub' }
-		remote_url: if 'remote_url' in values && values['remote_url'].type_name != 'NilClass' {
-			values['remote_url'].as_string()
-		} else {
-			''
-		}
-	}
-}
-
-pub fn flatpak_packages_value(packages []FlatpakPackage) ruby.Value {
-	return ruby.array_value(packages.map(flatpak_package_value(it)))
-}
-
-pub fn flatpak_packages_from_value(value ruby.Value) []FlatpakPackage {
-	items := value.as_array() or { return [] }
-	return items.map(flatpak_package_from_value(it))
-}
-
-fn flatpak_string_map_value(values map[string]string) ruby.Value {
-	mut mapped := map[string]ruby.Value{}
-	for key, value in values {
-		mapped[key] = ruby.string_value(value)
-	}
-	return ruby.map_value(mapped)
-}
-
-fn flatpak_string_map_from_value(value ruby.Value) map[string]string {
-	values := value.as_map() or { return {} }
-	mut mapped := map[string]string{}
-	for key, item in values {
-		mapped[key] = item.as_string()
-	}
-	return mapped
-}
-
-pub fn flatpak_state_value(state FlatpakState) ruby.Value {
-	return ruby.map_value({
-		'_definition':           extension_definition_value(flatpak_definition())
-		'executable':            if state.executable == '' {
-			ruby.object_value('NilClass', '')
-		} else {
-			ruby.object_value('Pathname', state.executable)
-		}
-		'packages':              ruby.string_array_value(state.packages)
-		'packages_with_remotes': flatpak_packages_value(state.packages_with_remotes)
-		'installed_packages':    flatpak_packages_value(state.installed_packages)
-		'remote_urls':           flatpak_string_map_value(state.remote_urls)
-		'output':                ruby.string_array_value(state.output)
-		'commands':              ruby.array_value(state.commands.map(ruby.string_array_value(it)))
-	})
-}
-
-pub fn flatpak_state_from_value(value ruby.Value) FlatpakState {
-	values := value.as_map() or { return FlatpakState{} }
-	mut commands := [][]string{}
-	if 'commands' in values {
-		for command in values['commands'].as_array() or { [] } {
-			commands << (command.as_string_array() or { [] })
-		}
-	}
-	return FlatpakState{
-		executable: if 'executable' in values && values['executable'].type_name != 'NilClass' {
-			values['executable'].as_string()
-		} else {
-			''
-		}
-		packages: if 'packages' in values {
-			values['packages'].as_string_array() or { [] }
-		} else {
-			[]
-		}
-		packages_with_remotes: if 'packages_with_remotes' in values {
-			flatpak_packages_from_value(values['packages_with_remotes'])
-		} else {
-			[]
-		}
-		installed_packages: if 'installed_packages' in values {
-			flatpak_packages_from_value(values['installed_packages'])
-		} else {
-			[]
-		}
-		remote_urls: if 'remote_urls' in values {
-			flatpak_string_map_from_value(values['remote_urls'])
-		} else {
-			map[string]string{}
-		}
-		output: if 'output' in values { values['output'].as_string_array() or { [] } } else { [] }
-		commands: commands
-	}
-}
-
-pub fn flatpak_entry(name string, options map[string]ruby.Value) !ExtensionEntry {
-	mut unknown := []string{}
-	for key in options.keys() {
-		if key !in ['remote', 'url'] {
-			unknown << ':${key}'
-		}
-	}
-	if unknown.len > 0 {
-		return error('unknown options([${unknown.join(', ')}]) for flatpak')
-	}
-	remote_value := options['remote'] or { ruby.object_value('NilClass', '') }
-	url_value := options['url'] or { ruby.object_value('NilClass', '') }
-	if remote_value.type_name !in ['String', 'NilClass'] {
-		return error('options[:remote](${remote_value.repr}) should be a String object')
-	}
-	if url_value.type_name !in ['String', 'NilClass'] {
-		return error('options[:url](${url_value.repr}) should be a String object')
-	}
-	remote := if remote_value.type_name == 'String' { remote_value.as_string() } else { 'flathub' }
-	if url_value.type_name == 'String' && (remote.starts_with('http://') || remote.starts_with('https://')) {
-		return error('url: parameter cannot be used when remote: is already a URL')
-	}
-	mut normalized := {
-		'remote': ruby.string_value(remote)
-	}
-	if url_value.type_name == 'String' {
-		normalized['url'] = ruby.string_value(url_value.as_string())
-	}
-	return ExtensionEntry{
-		entry_type: 'flatpak'
-		name: name
-		options: normalized
 	}
 }
 

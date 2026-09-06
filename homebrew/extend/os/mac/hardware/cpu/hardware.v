@@ -69,15 +69,4 @@ pub fn mac_cpu_intel_family(value u32) string {
 	}
 }
 
-fn mac_cpu_properties_from_args(args []ruby.Value) (MacCpuProperties, int) {
-	if args.len > 0 && args[0].type_name == 'Hash' {
-		mut values := map[string]string{}
-		for name, value in args[0].map_data {
-			values[name] = value.as_string()
-		}
-		return MacCpuProperties{ values: values }, 1
-	}
-	return MacCpuProperties{}, 0
-}
-
 // Translated from Homebrew/brew `extend/os/mac/hardware/cpu/hardware.rb`.

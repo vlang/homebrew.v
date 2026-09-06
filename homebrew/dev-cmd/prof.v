@@ -1,6 +1,5 @@
 module dev_cmd
 
-import ruby
 import os
 
 // Translated from Homebrew/brew `dev-cmd/prof.rb`.
@@ -155,38 +154,4 @@ pub fn prof_plan(options ProfOptions) !ProfPlan {
 pub struct ProfInput {
 pub:
 	options ProfOptions
-}
-
-pub fn prof_input_boundary(input &ProfInput) ruby.Value {
-	return ruby.structured_value('Homebrew::DevCmd::Prof::Input', '', {
-		'prof_input_address': u64(voidptr(input)).str()
-	})
-}
-
-fn prof_input_from_value(value ruby.Value) &ProfInput {
-	address := value.attributes['prof_input_address'] or { panic('invalid Prof input') }
-	return unsafe { &ProfInput(voidptr(address.u64())) }
-}
-
-fn prof_plan_value(plan ProfPlan) ruby.Value {
-	mut environment := map[string]ruby.Value{}
-	for name, value in plan.environment {
-		environment[name] = ruby.string_value(value)
-	}
-	return ruby.map_value({
-		'install_bundler_gems':  ruby.bool_value(plan.install_bundler_gems)
-		'bundler_groups':        ruby.string_array_value(plan.bundler_groups)
-		'setup_gem_environment': ruby.bool_value(plan.setup_gem_environment)
-		'directory':             ruby.string_value(plan.directory)
-		'mode':                  ruby.object_value('Symbol', plan.mode)
-		'environment':           ruby.map_value(environment)
-		'command':               ruby.string_array_value(plan.command)
-		'command_is_safe':       ruby.bool_value(plan.command_is_safe)
-		'post_command':          ruby.string_array_value(plan.post_command)
-		'output_filename':       ruby.string_value(plan.output_filename)
-		'browser_path':          ruby.string_value(plan.browser_path)
-		'messages':              ruby.string_array_value(plan.messages)
-		'invalid_option':        ruby.string_value(plan.invalid_option)
-		'suggestion':            ruby.string_value(plan.suggestion)
-	})
 }

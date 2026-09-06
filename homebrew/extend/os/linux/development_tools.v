@@ -1,6 +1,5 @@
 module linux
 
-import ruby
 import os
 
 // Translated from Homebrew/brew `extend/os/linux/development_tools.rb`.
@@ -106,21 +105,4 @@ pub fn (tools LinuxDevelopmentTools) build_system_info() map[string]string {
 	result['glibc_version'] = tools.glibc_version
 	result['oldest_cpu_family'] = tools.oldest_cpu_family
 	return result
-}
-
-fn linux_development_tools_value(tools &LinuxDevelopmentTools) ruby.Value {
-	return ruby.structured_value('DevelopmentTools', '', {
-		'linux_development_tools_address': u64(voidptr(tools)).str()
-	})
-}
-
-fn linux_development_tools_from_args(args []ruby.Value) (&LinuxDevelopmentTools, int) {
-	if args.len > 0 && 'linux_development_tools_address' in args[0].attributes {
-		return unsafe { &LinuxDevelopmentTools(voidptr(args[0].attributes['linux_development_tools_address'].u64())) }, 1
-	}
-	return new_linux_development_tools(os.getenv('HOMEBREW_PREFIX')), 0
-}
-
-pub fn linux_development_tools_boundary(tools &LinuxDevelopmentTools) ruby.Value {
-	return linux_development_tools_value(tools)
 }

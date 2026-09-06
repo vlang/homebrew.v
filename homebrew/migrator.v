@@ -63,10 +63,6 @@ pub mut:
 	errors   []string
 }
 
-fn migrator_nil_value() ruby.Value {
-	return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
-}
-
 pub fn migrator_migration_needed_message(oldname string, newname string) string {
 	return '${oldname} was renamed to ${newname} and needs to be migrated by running:\n  brew migrate ${oldname}\n'
 }
@@ -502,17 +498,6 @@ fn migrator_formula_from_value(value ruby.Value) MigratorFormulaInfo {
 	}
 }
 
-fn migrator_config_from_value(value ruby.Value) MigratorConfig {
-	return MigratorConfig{
-		cellar: (value.map_data['cellar'] or { ruby.string_value('') }).as_string()
-		prefix: (value.map_data['prefix'] or { ruby.string_value('') }).as_string()
-		pinned_kegs: (value.map_data['pinned_kegs'] or { ruby.string_value('') }).as_string()
-		linked_kegs: (value.map_data['linked_kegs'] or { ruby.string_value('') }).as_string()
-		locks_dir: (value.map_data['locks_dir'] or { ruby.string_value('') }).as_string()
-		force: (value.map_data['force'] or { ruby.bool_value(false) }).bool_data
-	}
-}
-
 pub fn migrator_value(migrator Migrator) ruby.Value {
 	return ruby.Value{
 		type_name: 'Migrator'
@@ -583,15 +568,4 @@ fn migrator_from_value(value ruby.Value) !Migrator {
 		newname_lock: new_lock_file('formula', (value.map_data['new_cellar'] or { ruby.string_value('') }).as_string(), (value.map_data['locks_dir'] or { ruby.string_value('') }).as_string())
 		oldname_lock: new_lock_file('formula', (value.map_data['old_cellar'] or { ruby.string_value('') }).as_string(), (value.map_data['locks_dir'] or { ruby.string_value('') }).as_string())
 	}
-}
-
-fn migrator_receiver(args []ruby.Value) !Migrator {
-	if args.len == 0 {
-		return error('Migrator receiver is required')
-	}
-	return migrator_from_value(args[0])
-}
-
-fn migrator_error_value(message string) ruby.Value {
-	return ruby.Value{ type_name: 'Error', repr: message }
 }

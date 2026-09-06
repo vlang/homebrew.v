@@ -1,7 +1,5 @@
 module rubocops
 
-import ruby
-
 // Translated from Homebrew/brew `rubocops/unreferenced_let.rb`.
 const unreferenced_let_definition_methods = ['let', 'let!', 'subject']
 const unreferenced_let_reserved_names = ['cop_config', 'other_cops', 'cop_options', 'gem_versions']
@@ -474,73 +472,6 @@ pub fn analyze_unreferenced_lets(source string) UnreferencedLetAnalysis {
 		offenses: offenses
 		corrected: unreferenced_let_apply_corrections(source, offenses)
 	}
-}
-
-fn unreferenced_let_nil() ruby.Value {
-	return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
-}
-
-pub fn unreferenced_let_definition_value(definition UnreferencedLetDefinition) ruby.Value {
-	return ruby.Value{
-		type_name: 'RuboCop::AST::BlockNode'
-		repr: definition.name
-		map_data: {
-			'method':          ruby.string_value(definition.method)
-			'name':            ruby.string_value(definition.name)
-			'has_symbol_name': ruby.bool_value(definition.has_symbol_name)
-			'has_block':       ruby.bool_value(definition.has_block)
-			'has_receiver':    ruby.bool_value(definition.has_receiver)
-			'within_shared':   ruby.bool_value(definition.within_shared)
-		}
-		attributes: {
-			'start_line':         definition.start_line.str()
-			'end_line':           definition.end_line.str()
-			'name_begin':         definition.name_begin.str()
-			'name_end':           definition.name_end.str()
-			'preceding_sig_line': definition.preceding_sig_line.str()
-		}
-	}
-}
-
-fn unreferenced_let_range_value(value UnreferencedLetRange) ruby.Value {
-	return ruby.Value{
-		type_name: 'Parser::Source::Range'
-		repr: '${value.begin_pos}...${value.end_pos}'
-		attributes: {
-			'begin_pos':  value.begin_pos.str()
-			'end_pos':    value.end_pos.str()
-			'first_line': (value.first_line + 1).str()
-			'last_line':  (value.last_line + 1).str()
-		}
-	}
-}
-
-fn unreferenced_let_offense_value(offense UnreferencedLetOffense) ruby.Value {
-	return ruby.Value{
-		type_name: 'RuboCop::Cop::Offense'
-		repr: offense.message
-		map_data: {
-			'name':    ruby.string_value(offense.name)
-			'message': ruby.string_value(offense.message)
-			'range':   unreferenced_let_range_value(offense.removal)
-		}
-		attributes: {
-			'selector_begin': offense.selector_begin.str()
-			'selector_end':   offense.selector_end.str()
-		}
-	}
-}
-
-fn unreferenced_let_source(args []ruby.Value) string {
-	for value in args {
-		if value.type_name == 'String' || value.type_name == 'RuboCop::AST::ProcessedSource' {
-			return value.as_string()
-		}
-		if raw := value.map_data['source'] {
-			return raw.as_string()
-		}
-	}
-	return ''
 }
 
 fn unreferenced_let_definition_for(analysis UnreferencedLetAnalysis, name string) ?UnreferencedLetDefinition {

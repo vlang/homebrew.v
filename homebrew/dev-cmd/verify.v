@@ -1,7 +1,5 @@
 module dev_cmd
 
-import ruby
-
 // Translated from Homebrew/brew `dev-cmd/verify.rb`.
 
 pub struct VerifyBottle {
@@ -134,41 +132,4 @@ pub fn run_verify(options VerifyOptions) VerifyResult {
 pub struct VerifyInput {
 pub:
 	options VerifyOptions
-}
-
-pub fn verify_input_boundary(input &VerifyInput) ruby.Value {
-	return ruby.structured_value('Homebrew::DevCmd::Verify::Input', '', {
-		'verify_input_address': u64(voidptr(input)).str()
-	})
-}
-
-fn verify_input_from_value(value ruby.Value) &VerifyInput {
-	address := value.attributes['verify_input_address'] or { panic('invalid Verify input') }
-	return unsafe { &VerifyInput(voidptr(address.u64())) }
-}
-
-fn verify_attempt_value(attempt VerifyAttempt) ruby.Value {
-	return ruby.map_value({
-		'formula':       ruby.string_value(attempt.formula)
-		'os':            ruby.string_value(attempt.os)
-		'arch':          ruby.string_value(attempt.arch)
-		'bottle_tag':    ruby.object_value('Symbol', attempt.bottle_tag)
-		'filename':      ruby.string_value(attempt.filename)
-		'cache_cleared': ruby.bool_value(attempt.cache_cleared)
-		'fetched':       ruby.bool_value(attempt.fetched)
-		'valid':         ruby.bool_value(attempt.valid)
-		'attestation':   ruby.string_value(attempt.attestation)
-	})
-}
-
-fn verify_result_value(result VerifyResult) ruby.Value {
-	return ruby.map_value({
-		'bucket':       ruby.string_array_value(result.bucket)
-		'attempts':     ruby.array_value(result.attempts.map(verify_attempt_value(it)))
-		'json_results': ruby.string_array_value(result.json_results)
-		'stdout':       ruby.string_array_value(result.stdout)
-		'stderr':       ruby.string_array_value(result.stderr)
-		'json_output':  ruby.string_value(result.json_output)
-		'failed':       ruby.bool_value(result.failed)
-	})
 }

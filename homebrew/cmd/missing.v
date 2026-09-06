@@ -1,7 +1,5 @@
 module cmd
 
-import ruby
-
 // Translated from Homebrew/brew `cmd/missing.rb`.
 pub struct MissingCommandResult {
 pub:
@@ -59,12 +57,4 @@ pub fn missing_command(formulae []MissingCommandPackage, casks []MissingCommandP
 		output: if lines.len == 0 { '' } else { lines.join('\n') + '\n' }
 		failed: lines.len > 0
 	}
-}
-
-fn missing_command_packages_from_value(value ruby.Value) []MissingCommandPackage {
-	return value.array_data.map(MissingCommandPackage{
-		full_name: it.attributes['full_name'] or { it.as_string() }
-		display_name: it.attributes['display_name'] or { it.as_string() }
-		missing_dependencies: (it.attributes['missing_dependencies'] or { '' }).split(',').filter(it != '')
-	})
 }

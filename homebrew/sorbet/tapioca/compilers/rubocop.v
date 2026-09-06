@@ -1,7 +1,5 @@
 module compilers
 
-import ruby
-
 // Translated from Homebrew/brew `sorbet/tapioca/compilers/rubocop.rb`.
 pub struct RubocopCompilerMethod {
 pub:
@@ -68,21 +66,4 @@ pub fn rubocop_compiler_decoration(constant_module RubocopCompilerModule) Tapioc
 		kind: 'path'
 		methods: methods
 	}
-}
-
-fn rubocop_compiler_input_value(input &RubocopCompilerInput) ruby.Value {
-	return ruby.structured_value('Tapioca::Compilers::RuboCop::Input', '', {
-		'rubocop_compiler_input_address': u64(voidptr(input)).str()
-	})
-}
-
-fn rubocop_compiler_input_from_value(value ruby.Value) &RubocopCompilerInput {
-	address := value.attributes['rubocop_compiler_input_address'] or {
-		panic('invalid RuboCop compiler input')
-	}
-	return unsafe { &RubocopCompilerInput(voidptr(address.u64())) }
-}
-
-pub fn rubocop_compiler_input_boundary(input &RubocopCompilerInput) ruby.Value {
-	return rubocop_compiler_input_value(input)
 }

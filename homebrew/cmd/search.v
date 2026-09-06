@@ -1,6 +1,5 @@
 module cmd
 
-import ruby
 import net.urllib
 import regex
 
@@ -80,19 +79,6 @@ pub mut:
 pub struct SearchCommandInput {
 pub:
 	request SearchCommandRequest
-}
-
-pub fn search_command_input_boundary(input &SearchCommandInput) ruby.Value {
-	return ruby.structured_value('Homebrew::Cmd::SearchCmd::Input', '', {
-		'search_command_input_address': u64(voidptr(input)).str()
-	})
-}
-
-fn search_command_input_from_value(value ruby.Value) !&SearchCommandInput {
-	address := value.attributes['search_command_input_address'] or {
-		return error('invalid Search command input')
-	}
-	return unsafe { &SearchCommandInput(voidptr(address.u64())) }
 }
 
 fn search_ruby_inspect(value string) string {
@@ -372,26 +358,4 @@ pub fn run_search_command(request SearchCommandRequest) !SearchCommandResult {
 		result.warnings << warning
 	}
 	return result
-}
-
-pub fn search_command_result_value(result SearchCommandResult) ruby.Value {
-	return ruby.Value{
-		type_name: 'SearchCommandResult'
-		repr: result.stdout
-		map_data: {
-			'stdout':                    ruby.string_value(result.stdout)
-			'warnings':                  ruby.string_array_value(result.warnings)
-			'browser_url':               ruby.string_value(result.browser_url)
-			'description_search':        ruby.bool_value(result.description_search)
-			'description_query':         ruby.string_value(result.description_query)
-			'description_query_regex':   ruby.bool_value(result.description_query_regex)
-			'description_show_missing':  ruby.bool_value(result.description_show_missing)
-			'description_calls':         ruby.string_array_value(result.description_calls)
-			'pull_request_search':       ruby.bool_value(result.pull_request_search)
-			'pull_request_query':        ruby.string_value(result.pull_request_query)
-			'pull_request_state_filter': ruby.string_value(result.pull_request_state_filter)
-			'failed':                    ruby.bool_value(result.failed)
-			'error':                     ruby.string_value(result.error)
-		}
-	}
 }

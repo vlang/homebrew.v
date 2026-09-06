@@ -70,19 +70,6 @@ fn extract_plist_item_short_version(item ExtractPlistItem) ?string {
 	return none
 }
 
-pub fn extract_plist_item_to_value(item ExtractPlistItem) ruby.Value {
-	bundle_version := item.bundle_version or {
-		return ruby.map_value({})
-	}
-	mut values := map[string]ruby.Value{}
-	for key, value in bundle_version.to_h() {
-		values[key] = ruby.string_value(value)
-	}
-	return ruby.map_value({
-		'bundle_version': ruby.map_value(values)
-	})
-}
-
 pub fn extract_plist_matches(url string) bool {
 	lower := url.to_lower()
 	return lower.starts_with('http://') || lower.starts_with('https://')
@@ -237,30 +224,4 @@ pub fn extract_plist_find_versions(request ExtractPlistFindVersionsRequest) !Ext
 		}
 	}
 	return match_data
-}
-
-pub fn extract_plist_match_data_to_value(data ExtractPlistMatchData) ruby.Value {
-	mut matches := map[string]ruby.Value{}
-	for version, parsed in data.matches {
-		matches[version] = ruby.object_value('Version', parsed)
-	}
-	mut values := map[string]ruby.Value{}
-	values['matches'] = ruby.map_value(matches)
-	values['regex'] = if regex := data.regex {
-		ruby.object_value('Regexp', regex.pattern)
-	} else {
-		ruby.object_value('NilClass', 'nil')
-	}
-	values['url'] = if url := data.url {
-		ruby.string_value(url)
-	} else {
-		ruby.object_value('NilClass', 'nil')
-	}
-	if data.has_cached {
-		values['cached'] = ruby.bool_value(data.cached)
-	}
-	if data.has_content {
-		values['content'] = ruby.string_value(data.content)
-	}
-	return ruby.map_value(values)
 }

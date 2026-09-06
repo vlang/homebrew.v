@@ -235,33 +235,6 @@ pub fn collector_add_resource(mut collector DependencyCollectorState,
 	return result
 }
 
-pub fn dependency_collector_value(collector &DependencyCollectorState) ruby.Value {
-	return ruby.structured_value('DependencyCollector', 'DependencyCollector', {
-		'collector_address': u64(voidptr(collector)).str()
-	})
-}
-
-fn dependency_collector_from_value(value ruby.Value) &DependencyCollectorState {
-	address := value.attributes['collector_address'] or { panic('invalid DependencyCollector') }
-	return unsafe { &DependencyCollectorState(voidptr(address.u64())) }
-}
-
-fn collector_requirement_value(requirement CollectorRequirement) ruby.Value {
-	return ruby.structured_value('${requirement.name.capitalize()}Requirement', requirement.name, {
-		'name': requirement.name
-		'tags': requirement.tags.join(',')
-	})
-}
-
-fn collector_result_value(result CollectorResult) ruby.Value {
-	return match result.kind {
-		.nil_value { ruby.object_value('NilClass', 'nil') }
-		.dependency { dependency_boundary_value(result.dependency) }
-		.requirement { collector_requirement_value(result.requirement) }
-		.dependencies { dependency_list_boundary_value(result.dependencies) }
-	}
-}
-
 fn collector_tags_from_value(value ruby.Value) []string {
 	if value.type_name == 'Array' {
 		return value.as_array() or { [] }.map(it.as_string())
@@ -270,13 +243,6 @@ fn collector_tags_from_value(value ruby.Value) []string {
 		return [value.as_string()]
 	}
 	return []string{}
-}
-
-fn collector_from_boundary_args(args []ruby.Value) (&DependencyCollectorState, int) {
-	if args.len > 0 && args[0].type_name == 'DependencyCollector' {
-		return dependency_collector_from_value(args[0]), 1
-	}
-	return new_dependency_collector(false, map[string]bool{}), 0
 }
 
 fn collector_build_boundary(mut collector DependencyCollectorState,

@@ -1,7 +1,5 @@
 module parser
 
-import ruby
-
 // Translated from Homebrew/brew `manpages/parser/ronn.rb`.
 pub struct RonnElement {
 pub:
@@ -83,52 +81,4 @@ pub fn (mut parser RonnParser) parse_variable() !int {
 		}
 	}
 	return location
-}
-
-pub fn ronn_parser_value(parser RonnParser) ruby.Value {
-	mut element_values := []ruby.Value{}
-	for element in parser.elements {
-		element_values << ruby.structured_value('Kramdown::Element', element.value, {
-			'kind':     element.kind
-			'value':    element.value
-			'location': element.location.str()
-		})
-	}
-	return ruby.Value{
-		type_name: 'Homebrew::Manpages::Parser::Ronn'
-		repr: parser.source
-		attributes: {
-			'cursor': parser.cursor.str()
-		}
-		map_data: {
-			'block_parsers': ruby.string_array_value(parser.block_parsers)
-			'span_parsers':  ruby.string_array_value(parser.span_parsers)
-			'elements':      ruby.array_value(element_values)
-		}
-	}
-}
-
-pub fn ronn_parser_from_value(value ruby.Value) !RonnParser {
-	if value.type_name != 'Homebrew::Manpages::Parser::Ronn' {
-		return error('expected Ronn parser, got ${value.type_name}')
-	}
-	mut elements := []RonnElement{}
-	for element in (value.map_data['elements'] or { ruby.array_value([]) }).as_array()! {
-		elements << RonnElement{
-			kind: element.attribute('kind')!
-			value: element.attribute('value') or { '' }
-			location: (element.attribute('location') or { '1' }).int()
-		}
-	}
-	return RonnParser{
-		source: value.repr
-		block_parsers: (value.map_data['block_parsers'] or { ruby.string_array_value([]) }).as_string_array()!
-		span_parsers: (value.map_data['span_parsers'] or {
-			ruby.string_array_value([
-				'variable',
-			])
-		}).as_string_array()!
-		cursor: (value.attribute('cursor') or { '0' }).int()
-		elements: elements
-	}
 }

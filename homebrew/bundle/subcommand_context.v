@@ -1,7 +1,5 @@
 module bundle
 
-import ruby
-
 // Translated from Homebrew/brew `bundle/subcommand_context.rb`.
 
 pub struct SubcommandContextArgs {
@@ -90,61 +88,4 @@ pub fn subcommand_selected_types(args SubcommandContextArgs,
 		selected << 'none'
 	}
 	return selected
-}
-
-fn subcommand_context_args_from_value(value ruby.Value) SubcommandContextArgs {
-	mut predicates := map[string]bool{}
-	if value.type_name == 'Hash' {
-		for method, selected in value.map_data {
-			predicates[method] = selected.as_bool() or { false }
-		}
-	} else {
-		for entry in value.attributes['predicates'].split(',') {
-			if entry != '' {
-				predicates[entry] = true
-			}
-		}
-	}
-	return SubcommandContextArgs{ predicates: predicates }
-}
-
-fn subcommand_extension_from_value(value ruby.Value) SubcommandContextExtension {
-	type_name := value.attributes['type']
-	return SubcommandContextExtension{
-		type_name: type_name
-		predicate_method: if value.attributes['predicate_method'] != '' {
-			value.attributes['predicate_method']
-		} else {
-			'${type_name}?'
-		}
-		dump_disable_predicate_method: if value.attributes['dump_disable_predicate_method'] != '' {
-			value.attributes['dump_disable_predicate_method']
-		} else {
-			'no_${type_name}?'
-		}
-		disable_predicate_method: if value.attributes['disable_predicate_method'] != '' {
-			value.attributes['disable_predicate_method']
-		} else {
-			'no_${type_name}?'
-		}
-	}
-}
-
-fn subcommand_type_context_from_value(value ruby.Value) SubcommandTypeContext {
-	mut extensions := []SubcommandContextExtension{}
-	for extension_value in value.array_data {
-		extensions << subcommand_extension_from_value(extension_value)
-	}
-	return SubcommandTypeContext{
-		no_type_args: value.attributes['no_type_args'] == 'true'
-		extensions: extensions
-	}
-}
-
-fn subcommand_bool_map_value(values map[string]bool) ruby.Value {
-	mut result := map[string]ruby.Value{}
-	for name, value in values {
-		result[name] = ruby.bool_value(value)
-	}
-	return ruby.map_value(result)
 }

@@ -95,17 +95,6 @@ pub fn support_tier_message(tier string, nix_managed bool, issues_url string) st
 	return '${message}\nRead the above document before opening any issues or PRs.\n'
 }
 
-fn remediation_value(remediation &Remediation) ruby.Value {
-	return ruby.structured_value('Homebrew::Diagnostic::Finding::Remediation', remediation.string(), {
-		'remediation_address': u64(voidptr(remediation)).str()
-	})
-}
-
-fn remediation_from_value(value ruby.Value) &Remediation {
-	address := value.attributes['remediation_address'] or { panic('invalid Remediation receiver') }
-	return unsafe { &Remediation(voidptr(address.u64())) }
-}
-
 fn finding_value(finding Finding) ruby.Value {
 	mut attributes := {
 		'text':    finding.text
@@ -118,24 +107,6 @@ fn finding_value(finding Finding) ruby.Value {
 		attributes['remediation_commands'] = remediation.commands.join('\n')
 	}
 	return ruby.structured_value('Homebrew::Diagnostic::Finding', finding.string(), attributes)
-}
-
-fn finding_from_value(value ruby.Value) Finding {
-	remediation := if text := value.attributes['remediation_text'] {
-		?Remediation(Remediation{
-			text: text
-			commands: (value.attributes['remediation_commands'] or { '' }).split('\n').filter(it != '')
-		})
-	} else {
-		none
-	}
-	return Finding{
-		text: value.attributes['text'] or { value.repr }
-		tier: value.attributes['tier'] or { '1' }
-		affects: (value.attributes['affects'] or { '' }).split('\n').filter(it != '')
-		links: (value.attributes['links'] or { '' }).split('\n').filter(it != '')
-		remediation: remediation
-	}
 }
 
 // Translated from Homebrew/brew `diagnostic/finding.rb`.

@@ -1,6 +1,5 @@
 module rubocops
 
-import ruby
 import homebrew.rubocops.@shared as no_autobump_shared
 
 // Translated from Homebrew/brew `rubocops/no_autobump.rb`.
@@ -100,16 +99,4 @@ pub fn correct_formula_no_autobump(source string) string {
 		last_begin = problem.begin_pos
 	}
 	return corrected
-}
-
-fn no_autobump_problem_value(problem no_autobump_shared.NoAutobumpReasonProblem) ruby.Value {
-	return ruby.structured_value('RuboCop::Cop::Problem', problem.message, {
-		'kind':        problem.kind
-		'reason':      problem.reason
-		'is_symbol':   problem.is_symbol.str()
-		'begin_pos':   problem.begin_pos.str()
-		'end_pos':     problem.end_pos.str()
-		'message':     problem.message
-		'replacement': problem.replacement
-	})
 }

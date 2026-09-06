@@ -167,34 +167,3 @@ pub fn run_env_command(request EnvCommandRequest) EnvCommandResult {
 pub fn env_command_output(result EnvCommandResult) string {
 	return if result.lines.len == 0 { '' } else { '${result.lines.join('\n')}\n' }
 }
-
-fn env_map_from_value(value ruby.Value) map[string]string {
-	mut environment := map[string]string{}
-	for key, item in value.map_data {
-		environment[key] = item.as_string()
-	}
-	return environment
-}
-
-fn env_shell_from_value(value ruby.Value) ?EnvShell {
-	if value.type_name == 'NilClass' || value.as_string() == '' {
-		return none
-	}
-	return env_shell_from_path(value.as_string())
-}
-
-fn env_command_result_value(result EnvCommandResult) ruby.Value {
-	return ruby.Value{
-		type_name: 'EnvCommandResult'
-		repr: env_command_output(result)
-		attributes: {
-			'shell':                   if shell := result.shell { shell.str() } else { '' }
-			'activated_extensions':    result.activated_extensions.str()
-			'setup_build_environment': result.setup_build_environment.str()
-		}
-		map_data: {
-			'lines':        ruby.string_array_value(result.lines)
-			'dependencies': ruby.string_array_value(result.dependencies)
-		}
-	}
-}

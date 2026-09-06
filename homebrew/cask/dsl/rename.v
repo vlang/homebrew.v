@@ -53,28 +53,3 @@ pub fn cask_rename_value(rename CaskRename) ruby.Value {
 		}
 	}
 }
-
-pub fn cask_rename_from_value(value ruby.Value) !CaskRename {
-	if value.type_name != 'Cask::DSL::Rename' && value.type_name != 'Hash' {
-		return error('expected Cask::DSL::Rename, got ${value.type_name}')
-	}
-	return CaskRename{
-		from: if raw := value.map_data['from'] {
-			raw.as_string()
-		} else {
-			value.attributes['from'] or { '' }
-		}
-		to: if raw := value.map_data['to'] {
-			raw.as_string()
-		} else {
-			value.attributes['to'] or { '' }
-		}
-	}
-}
-
-fn cask_rename_receiver(args []ruby.Value) ?CaskRename {
-	if args.len == 0 {
-		return none
-	}
-	return cask_rename_from_value(args[0]) or { return none }
-}

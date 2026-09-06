@@ -1,7 +1,5 @@
 module rubocops
 
-import ruby
-
 // Translated from Homebrew/brew `rubocops/patches.rb`.
 pub struct FormulaPatchesContext {
 pub:
@@ -510,15 +508,4 @@ pub fn audit_formula_patches(context FormulaPatchesContext) FormulaPatchesAnalys
 		offenses: offenses
 		corrected: formula_patch_apply_edits(source, edits)
 	}
-}
-
-fn formula_patch_analysis_value(analysis FormulaPatchesAnalysis) ruby.Value {
-	return ruby.map_value({
-		'offenses':  ruby.array_value(analysis.offenses.map(ruby.structured_value('RuboCop::Cop::Offense', it.message, {
-			'begin_pos': it.begin_pos.str()
-			'end_pos':   it.end_pos.str()
-			'message':   it.message
-		})))
-		'corrected': ruby.string_value(analysis.corrected)
-	})
 }

@@ -1,7 +1,5 @@
 module rubocops
 
-import ruby
-
 // Translated from Homebrew/brew `rubocops/install_steps_source_independence.rb`.
 pub const install_steps_source_independence_message = 'Install-step runners must use bottled files and API context without loading formula source or resources.'
 
@@ -91,14 +89,4 @@ pub fn audit_install_steps_source_independence(source string) []InstallStepsSour
 		line_start = line_end + 1
 	}
 	return offenses
-}
-
-fn install_steps_source_offense_value(offense InstallStepsSourceOffense) ruby.Value {
-	return ruby.structured_value('RuboCop::Cop::Offense', offense.message, {
-		'kind':       offense.kind
-		'expression': offense.expression
-		'begin_pos':  offense.begin_pos.str()
-		'end_pos':    offense.end_pos.str()
-		'message':    offense.message
-	})
 }

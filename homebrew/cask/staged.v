@@ -1,6 +1,5 @@
 module cask
 
-import ruby
 import os
 
 // Translated from Homebrew/brew `cask/staged.rb`.
@@ -86,27 +85,4 @@ pub fn (mut state StagedState) set_ownership(paths []string, user string, group 
 		args: command_args
 		sudo: true
 	}
-}
-
-fn staged_paths_from_value(value ruby.Value) []string {
-	return if value.type_name == 'Array' {
-		value.as_string_array() or { [] }
-	} else {
-		[value.as_string()]
-	}
-}
-
-fn staged_state_value(state &StagedState) ruby.Value {
-	return ruby.structured_value('Cask::Staged', state.cask, {
-		'staged_state_address': u64(voidptr(state)).str()
-	})
-}
-
-fn staged_state_from_value(value ruby.Value) &StagedState {
-	address := value.attributes['staged_state_address'] or { panic('invalid Cask::Staged state') }
-	return unsafe { &StagedState(voidptr(address.u64())) }
-}
-
-pub fn staged_state_boundary(state &StagedState) ruby.Value {
-	return staged_state_value(state)
 }

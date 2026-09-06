@@ -1,7 +1,5 @@
 module dev_cmd
 
-import ruby
-
 // Translated from Homebrew/brew `dev-cmd/dispatch-build-bottle.rb`.
 
 pub struct DispatchBuildBottleOptions {
@@ -194,51 +192,4 @@ pub fn run_dispatch_build_bottle(options DispatchBuildBottleOptions) !DispatchBu
 		messages: messages
 		dispatches: dispatches
 	}
-}
-
-pub fn dispatch_build_bottle_input_boundary(input &DispatchBuildBottleInput) ruby.Value {
-	return ruby.structured_value('Homebrew::DevCmd::DispatchBuildBottle::Input', '', {
-		'dispatch_build_bottle_input_address': u64(voidptr(input)).str()
-	})
-}
-
-fn dispatch_build_bottle_input_from_value(value ruby.Value) &DispatchBuildBottleInput {
-	address := value.attributes['dispatch_build_bottle_input_address'] or {
-		panic('invalid DispatchBuildBottle input')
-	}
-	return unsafe { &DispatchBuildBottleInput(voidptr(address.u64())) }
-}
-
-fn dispatch_build_bottle_inputs_value(inputs DispatchBuildBottleInputs) ruby.Value {
-	mut values := {
-		'runner':  ruby.string_value(inputs.runner)
-		'formula': ruby.string_value(inputs.formula)
-		'upload':  ruby.bool_value(inputs.upload)
-	}
-	if inputs.has_timeout {
-		values['timeout'] = ruby.string_value(inputs.timeout)
-	}
-	if inputs.has_issue {
-		values['issue'] = ruby.string_value(inputs.issue)
-	}
-	return ruby.map_value(values)
-}
-
-fn dispatch_build_bottle_workflow_value(dispatch DispatchBuildBottleWorkflow) ruby.Value {
-	return ruby.map_value({
-		'user':     ruby.string_value(dispatch.user)
-		'repo':     ruby.string_value(dispatch.repo)
-		'workflow': ruby.string_value(dispatch.workflow)
-		'ref':      ruby.string_value(dispatch.ref)
-		'inputs':   dispatch_build_bottle_inputs_value(dispatch.inputs)
-	})
-}
-
-fn dispatch_build_bottle_result_value(result DispatchBuildBottleResult) ruby.Value {
-	return ruby.map_value({
-		'tap':        ruby.string_value(result.tap)
-		'runners':    ruby.string_array_value(result.runners)
-		'messages':   ruby.string_array_value(result.messages)
-		'dispatches': ruby.array_value(result.dispatches.map(dispatch_build_bottle_workflow_value(it)))
-	})
 }

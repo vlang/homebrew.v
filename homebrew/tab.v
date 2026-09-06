@@ -774,24 +774,3 @@ pub fn remap_tab_deprecated_options(deprecated []DeprecatedOption, options Optio
 	}
 	return result
 }
-
-pub fn tab_boundary_value(tab Tab) ruby.Value {
-	return ruby.structured_value('Tab', tab.to_json(), {
-		'json': tab.to_json()
-	})
-}
-
-pub fn tab_from_boundary(value ruby.Value) Tab {
-	if value.type_name != 'Tab' {
-		panic('expected Tab, got ${value.type_name}')
-	}
-	content := value.attribute('json') or { value.as_string() }
-	return tab_from_json(content, '') or { panic(err) }
-}
-
-fn tab_boundary_receiver(args []ruby.Value, method string) Tab {
-	if args.len == 0 {
-		panic('Tab#${method} requires a receiver')
-	}
-	return tab_from_boundary(args[0])
-}

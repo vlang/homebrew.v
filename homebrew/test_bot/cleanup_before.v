@@ -1,7 +1,5 @@
 module test_bot
 
-import ruby
-
 pub struct CleanupBeforeInput {
 pub:
 	shared             CleanupSharedInput

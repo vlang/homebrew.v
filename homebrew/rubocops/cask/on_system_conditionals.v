@@ -1,7 +1,5 @@
 module cask
 
-import ruby
-import homebrew.rubocops.cask.ast as cask_ast
 import homebrew.rubocops.@shared as conditionals
 import homebrew.utils
 
@@ -41,13 +39,6 @@ struct CaskOnSystemEdit {
 	begin_pos   int
 	end_pos     int
 	replacement string
-}
-
-fn on_system_source(args []ruby.Value) string {
-	if args.len == 0 {
-		return ''
-	}
-	return args[0].attributes['source'] or { args[0].as_string() }
 }
 
 fn on_system_root(source string) ?utils.AstNode {
@@ -420,33 +411,4 @@ pub fn correct_cask_on_system_conditionals(source string) string {
 		corrected = corrected[..edit.begin_pos] + edit.replacement + corrected[edit.end_pos..]
 	}
 	return corrected
-}
-
-fn on_system_problem_value(problem CaskOnSystemProblem) ruby.Value {
-	return ruby.structured_value('RuboCop::Cop::Offense', problem.message, {
-		'kind':              problem.kind
-		'begin_pos':         problem.begin_pos.str()
-		'end_pos':           problem.end_pos.str()
-		'message':           problem.message
-		'replacement':       problem.replacement
-		'replacement_begin': problem.replacement_begin.str()
-		'replacement_end':   problem.replacement_end.str()
-		'remove_begin':      problem.remove_begin.str()
-		'remove_end':        problem.remove_end.str()
-	})
-}
-
-fn on_system_problem_values(problems []CaskOnSystemProblem) ruby.Value {
-	return ruby.array_value(problems.map(on_system_problem_value(it)))
-}
-
-fn on_system_match_value(matched CaskOnSystemArchMatch) ruby.Value {
-	return ruby.structured_value('RuboCop::AST::BlockNode', matched.method, {
-		'method':        matched.method
-		'begin_pos':     matched.begin_pos.str()
-		'end_pos':       matched.end_pos.str()
-		'column':        matched.column.str()
-		'version_value': matched.version_value
-		'sha256_value':  matched.sha256_value
-	})
 }

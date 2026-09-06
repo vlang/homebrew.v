@@ -1,6 +1,5 @@
 module homebrew
 
-import ruby
 import os
 
 // Translated from Homebrew/brew `formula_pin.rb`.
@@ -104,29 +103,4 @@ pub fn (pin FormulaPin) pinned_version() ?PkgVersion {
 	}
 	resolved := os.real_path(pin.path())
 	return parse_pkg_version(os.base(resolved)) or { none }
-}
-
-fn formula_pin_value(pin &FormulaPin) ruby.Value {
-	return ruby.structured_value('FormulaPin', pin.path(), {
-		'formula_pin_address': u64(voidptr(pin)).str()
-		'name':                pin.name
-		'rack':                pin.rack
-		'pinned_kegs':         pin.pinned_kegs
-	})
-}
-
-fn formula_pin_from_value(value ruby.Value) &FormulaPin {
-	if address := value.attributes['formula_pin_address'] {
-		return unsafe { &FormulaPin(voidptr(address.u64())) }
-	}
-	name := value.attributes['name'] or { value.map_data['name'].as_string() }
-	rack := value.attributes['rack'] or { value.map_data['rack'].as_string() }
-	pinned_kegs := value.attributes['pinned_kegs'] or {
-		value.map_data['pinned_kegs'].as_string()
-	}
-	return new_formula_pin(name, rack, pinned_kegs)
-}
-
-pub fn formula_pin_boundary(pin &FormulaPin) ruby.Value {
-	return formula_pin_value(pin)
 }

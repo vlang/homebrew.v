@@ -1,7 +1,5 @@
 module rubocops
 
-import ruby
-
 // Translated from Homebrew/brew `rubocops/install_bundler_gems.rb`.
 pub const install_bundler_gems_message = 'Only use `Homebrew.install_bundler_gems!` in dev-cmd.'
 

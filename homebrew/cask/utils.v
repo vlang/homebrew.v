@@ -323,10 +323,3 @@ pub fn token_from(name string) string {
 	}
 	return filtered.trim('-')
 }
-
-fn cask_utils_void_result(result CaskUtilsPermissionResult) ruby.Value {
-	if result.success {
-		return ruby.object_value('NilClass', 'nil')
-	}
-	return ruby.object_value('CaskError', result.error)
-}

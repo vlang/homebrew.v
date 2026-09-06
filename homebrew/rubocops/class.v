@@ -1,7 +1,5 @@
 module rubocops
 
-import ruby
-
 // Translated from Homebrew/brew `rubocops/class.rb`.
 pub const deprecated_formula_classes = [
 	'GithubGistFormula',
@@ -458,28 +456,4 @@ pub fn audit_formula_test_present(source string) []ClassAuditProblem {
 		end_pos: end_pos
 		message: 'A `test do` test block should be added'
 	}]
-}
-
-fn class_problem_value(problem ClassAuditProblem) ruby.Value {
-	return ruby.structured_value('RuboCop::Cop::Problem', problem.message, {
-		'kind':        problem.kind
-		'call_name':   problem.call_name
-		'begin_pos':   problem.begin_pos.str()
-		'end_pos':     problem.end_pos.str()
-		'message':     problem.message
-		'replacement': problem.replacement
-	})
-}
-
-fn formula_test_call_value(call FormulaTestCall) ruby.Value {
-	return ruby.structured_value('RuboCop::AST::SendNode', call.name, {
-		'name':          call.name
-		'begin_pos':     call.begin_pos.str()
-		'end_pos':       call.end_pos.str()
-		'first_source':  call.first_source
-		'first_content': call.first_content
-		'second_source': call.second_source
-		'second_begin':  call.second_begin.str()
-		'second_end':    call.second_end.str()
-	})
 }

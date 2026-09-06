@@ -1,7 +1,5 @@
 module pathname
 
-import ruby
-
 // Translated from Homebrew/brew `extend/pathname/eager_initialize_extension.rb`.
 pub struct EagerPathname {
 pub:

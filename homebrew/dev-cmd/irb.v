@@ -1,6 +1,5 @@
 module dev_cmd
 
-import ruby
 import os
 
 // Translated from Homebrew/brew `dev-cmd/irb.rb`.
@@ -70,33 +69,4 @@ pub fn irb_plan(options IrbOptions) !IrbPlan {
 pub struct IrbInput {
 pub:
 	options IrbOptions
-}
-
-pub fn irb_input_boundary(input &IrbInput) ruby.Value {
-	return ruby.structured_value('Homebrew::DevCmd::Irb::Input', '', {
-		'irb_input_address': u64(voidptr(input)).str()
-	})
-}
-
-fn irb_input_from_value(value ruby.Value) &IrbInput {
-	address := value.attributes['irb_input_address'] or { panic('invalid Irb input') }
-	return unsafe { &IrbInput(voidptr(address.u64())) }
-}
-
-fn irb_plan_value(plan IrbPlan) ruby.Value {
-	mut environment := map[string]ruby.Value{}
-	for name, value in plan.environment {
-		environment[name] = ruby.string_value(value)
-	}
-	return ruby.map_value({
-		'argv':           ruby.string_array_value(plan.argv)
-		'stdout':         ruby.string_value(plan.stdout)
-		'required_files': ruby.string_array_value(plan.required_files)
-		'heading':        ruby.string_value(plan.heading)
-		'subheading':     ruby.string_value(plan.subheading)
-		'environment':    ruby.map_value(environment)
-		'flush_stdout':   ruby.bool_value(plan.flush_stdout)
-		'flush_stderr':   ruby.bool_value(plan.flush_stderr)
-		'command':        ruby.string_array_value(plan.command)
-	})
 }

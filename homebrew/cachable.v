@@ -1,7 +1,5 @@
 module homebrew
 
-import ruby
-
 // Translated from Homebrew/brew `cachable.rb`.
 
 pub struct CachableCache[K, V] {
@@ -31,19 +29,4 @@ pub fn (cachable Cachable[K, V]) cache() &CachableCache[K, V] {
 pub fn (mut cachable Cachable[K, V]) clear_cache() {
 	mut cache := cachable.cache()
 	cache.entries.clear()
-}
-
-fn cachable_boundary_value(cachable Cachable[string, string]) ruby.Value {
-	cache := cachable.cache()
-	return ruby.structured_value('Cachable', cache.entries.str(), cache.entries)
-}
-
-fn cachable_from_boundary(value ruby.Value) Cachable[string, string] {
-	if value.type_name != 'Cachable' {
-		return new_cachable[string, string]()
-	}
-	mut cachable := new_cachable[string, string]()
-	mut cache := cachable.cache()
-	cache.entries = value.attributes.clone()
-	return cachable
 }

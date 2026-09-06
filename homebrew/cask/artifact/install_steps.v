@@ -31,12 +31,6 @@ pub:
 	plan      CaskInstallStepsSandboxPlan
 }
 
-fn cask_install_steps_error(message string) ruby.Value {
-	return ruby.structured_value('ArgumentError', message, {
-		'message': message
-	})
-}
-
 fn cask_install_steps_string(value ruby.Value) string {
 	if value.type_name == 'Symbol' {
 		return value.as_string().trim_left(':')
@@ -71,54 +65,6 @@ fn cask_install_steps_config_at(cask ruby.Value, key string) string {
 
 fn cask_install_steps_normalise(steps homebrew.InstallSteps) homebrew.InstallSteps {
 	return homebrew.install_steps_normalise(steps.map(ruby.map_value(it)))
-}
-
-pub fn new_cask_install_steps_artifact(cask ruby.Value, steps homebrew.InstallSteps,
-	class_name string) CaskInstallStepsArtifact {
-	return CaskInstallStepsArtifact{
-		cask: cask
-		steps: cask_install_steps_normalise(steps)
-		class_name: if class_name == '' {
-			'Cask::Artifact::AbstractInstallSteps'
-		} else {
-			class_name
-		}
-	}
-}
-
-fn cask_install_steps_artifact_value(artifact CaskInstallStepsArtifact) ruby.Value {
-	return ruby.Value{
-		type_name: artifact.class_name
-		repr: cask_install_steps_summarize(artifact)
-		map_data: {
-			'cask':  artifact.cask
-			'steps': homebrew.install_steps_value(artifact.steps)
-		}
-		attributes: {
-			'class_name': artifact.class_name
-		}
-	}
-}
-
-fn cask_install_steps_artifact_from_value(value ruby.Value) CaskInstallStepsArtifact {
-	class_name := value.attributes['class_name'] or {
-		if value.type_name.starts_with('Cask::Artifact::') {
-			value.type_name
-		} else {
-			'Cask::Artifact::AbstractInstallSteps'
-		}
-	}
-	return new_cask_install_steps_artifact(value.map_data['cask'] or {
-		ruby.object_value('Cask::Cask', '')
-	}, homebrew.install_steps_from_value(value.map_data['steps'] or {
-		ruby.array_value([])
-	}), class_name)
-}
-
-pub fn cask_install_steps_to_args(artifact CaskInstallStepsArtifact) []ruby.Value {
-	return [ruby.map_value({
-		'steps': homebrew.install_steps_value(artifact.steps)
-	})]
 }
 
 pub fn cask_install_steps_summarize(artifact CaskInstallStepsArtifact) string {
@@ -253,63 +199,4 @@ pub fn run_cask_install_steps(artifact CaskInstallStepsArtifact, phase string, s
 		executed: true
 		plan: plan
 	}
-}
-
-fn cask_install_steps_plan_value(plan CaskInstallStepsSandboxPlan) ruby.Value {
-	return ruby.Value{
-		type_name: 'Cask::Artifact::InstallSteps::SandboxPlan'
-		repr: '${plan.phase}: ${plan.allowed_write_paths.len} write paths'
-		map_data: {
-			'phase':                  ruby.string_value(plan.phase)
-			'network_access_allowed': ruby.bool_value(plan.network_access_allowed)
-			'allow_sudo':             ruby.bool_value(plan.allow_sudo)
-			'allowed_write_paths':    ruby.string_array_value(plan.allowed_write_paths)
-			'allowed_read_paths':     ruby.string_array_value(plan.allowed_read_paths)
-			'payload':                ruby.map_value(plan.payload)
-		}
-	}
-}
-
-fn cask_install_steps_run_result_value(result CaskInstallStepsRunResult) ruby.Value {
-	return ruby.Value{
-		type_name: 'Cask::Artifact::InstallSteps::RunResult'
-		repr: result.phase
-		map_data: {
-			'phase':     ruby.string_value(result.phase)
-			'sandboxed': ruby.bool_value(result.sandboxed)
-			'executed':  ruby.bool_value(result.executed)
-			'plan':      cask_install_steps_plan_value(result.plan)
-		}
-	}
-}
-
-fn cask_install_steps_options(args []ruby.Value, start int) map[string]ruby.Value {
-	for index := args.len - 1; index >= start; index-- {
-		if args[index].type_name == 'Hash' {
-			return args[index].map_data.clone()
-		}
-	}
-	return map[string]ruby.Value{}
-}
-
-fn cask_install_steps_run_boundary(args []ruby.Value, default_phase string) ruby.Value {
-	if args.len == 0 {
-		return cask_install_steps_error('install steps require an artifact receiver')
-	}
-	artifact := cask_install_steps_artifact_from_value(args[0])
-	options := cask_install_steps_options(args, 1)
-	phase := if value := options['phase'] {
-		cask_install_steps_string(value)
-	} else {
-		default_phase
-	}
-	sandboxed := cask_install_steps_bool(options['sandboxed'] or {
-		ruby.bool_value(false)
-	}, false)
-	result := run_cask_install_steps(artifact, phase, sandboxed, homebrew.NativeInstallStepsCommandExecutor{}) or {
-		return ruby.structured_value('RuntimeError', err.msg(), {
-			'message': err.msg()
-		})
-	}
-	return cask_install_steps_run_result_value(result)
 }

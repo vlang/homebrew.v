@@ -1,6 +1,5 @@
 module rubocops
 
-import ruby
 import homebrew.utils
 
 // Translated from Homebrew/brew `rubocops/components_order.rb`.
@@ -520,44 +519,5 @@ pub fn analyze_components_order(source string) ComponentsOrderAnalysis {
 		present_components: present
 		offenses: offenses
 		corrected: corrected
-	}
-}
-
-fn components_order_offense_value(offense ComponentsOrderOffense) ruby.Value {
-	return ruby.Value{
-		type_name: 'RuboCop::Cop::Offense'
-		repr: offense.message
-		map_data: {
-			'message':    ruby.string_value(offense.message)
-			'node':       ruby.string_value(offense.node_name)
-			'other':      ruby.string_value(offense.other_name)
-			'line':       ruby.int_value(offense.line)
-			'other_line': ruby.int_value(offense.other_line)
-			'corrected':  ruby.string_value(offense.corrected)
-		}
-		attributes: {
-			'begin_pos': offense.begin_pos.str()
-			'end_pos':   offense.end_pos.str()
-		}
-	}
-}
-
-fn components_order_analysis_value(analysis ComponentsOrderAnalysis) ruby.Value {
-	return ruby.Value{
-		type_name: 'RuboCop::Cop::FormulaAudit::ComponentsOrder::Analysis'
-		repr: analysis.source
-		array_data: analysis.offenses.map(components_order_offense_value(it))
-		map_data: {
-			'offenses':  ruby.array_value(analysis.offenses.map(components_order_offense_value(it)))
-			'corrected': ruby.string_value(analysis.corrected)
-		}
-	}
-}
-
-fn components_order_arg_source(args []ruby.Value) string {
-	return if args.len > 0 {
-		args[0].as_string()
-	} else {
-		'class Foo < Formula\nend\n'
 	}
 }

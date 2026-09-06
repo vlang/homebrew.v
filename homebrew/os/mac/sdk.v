@@ -1,6 +1,5 @@
 module mac
 
-import ruby
 import os
 
 pub struct MacSdk {
@@ -159,33 +158,6 @@ pub fn xcode_sdk_prefix(xcode_prefix string, prefix_exists bool, xcrun_platform_
 
 pub fn clt_sdk_prefix(clt_path string) string {
 	return os.join_path(clt_path, 'SDKs')
-}
-
-fn sdk_value(sdk MacSdk) ruby.Value {
-	return ruby.structured_value('OS::Mac::SDK', sdk.path, {
-		'version': sdk.version
-		'path':    sdk.path
-		'source':  sdk.source
-	})
-}
-
-fn sdk_from_value(value ruby.Value) MacSdk {
-	return MacSdk{
-		version: value.attributes['version'] or { '' }
-		path: value.attributes['path'] or { value.repr }
-		source: value.attributes['source'] or { '' }
-	}
-}
-
-fn sdk_locator_value(locator &SdkLocator) ruby.Value {
-	return ruby.structured_value('OS::Mac::BaseSDKLocator', locator.prefix, {
-		'locator_address': u64(voidptr(locator)).str()
-	})
-}
-
-fn sdk_locator_from_value(value ruby.Value) &SdkLocator {
-	address := value.attributes['locator_address'] or { panic('invalid SDK locator receiver') }
-	return unsafe { &SdkLocator(voidptr(address.u64())) }
 }
 
 // Translated from Homebrew/brew `os/mac/sdk.rb`.

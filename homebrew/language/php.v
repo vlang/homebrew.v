@@ -1,6 +1,5 @@
 module language
 
-import ruby
 import homebrew.utils
 
 // Translated from Homebrew/brew `language/php.rb`.
@@ -28,25 +27,4 @@ pub fn detected_php_shebang(dependencies []PhpDependency, prefix string) !utils.
 	}
 	php_path := '${prefix.trim_right('/')}/opt/${php_dependencies[0].name}/bin/php'
 	return php_shebang_rewrite_info(php_path)
-}
-
-fn php_dependency_from_value(value ruby.Value) PhpDependency {
-	if value.type_name == 'String' {
-		return PhpDependency{ name: value.as_string() }
-	}
-	return PhpDependency{
-		name: value.attribute('name') or { value.as_string() }
-		required: (value.attribute('required') or { 'true' }) == 'true'
-	}
-}
-
-fn php_dependencies_from_value(value ruby.Value) []PhpDependency {
-	values := if value.type_name == 'Array' {
-		value.as_array() or { [] }
-	} else {
-		[
-			value,
-		]
-	}
-	return values.map(php_dependency_from_value(it))
 }

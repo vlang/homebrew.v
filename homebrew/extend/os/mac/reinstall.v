@@ -1,7 +1,5 @@
 module mac
 
-import ruby
-
 pub struct MacPkgconfFormula {
 pub:
 	name string
@@ -131,17 +129,6 @@ pub fn mac_pkgconf_reinstall_fixture(mismatch string, warning string,
 		fetch_formulae: mac_pkgconf_fixture_fetch
 		reinstall: if fail { mac_pkgconf_fixture_failure } else { mac_pkgconf_fixture_reinstall }
 	}
-}
-
-pub fn mac_pkgconf_reinstall_result_value(result MacPkgconfReinstallResult) ruby.Value {
-	return ruby.map_value({
-		'mismatch_found': ruby.bool_value(result.mismatch_found)
-		'dry_run':        ruby.bool_value(result.dry_run)
-		'reinstalled':    ruby.bool_value(result.reinstalled)
-		'warnings':       ruby.string_array_value(result.warnings)
-		'infos':          ruby.string_array_value(result.infos)
-		'failures':       ruby.string_array_value(result.failures)
-	})
 }
 
 // Translated from Homebrew/brew `extend/os/mac/reinstall.rb`.

@@ -286,35 +286,6 @@ pub fn livecheck_status_hash(package LivecheckPackage, status string, messages [
 	return ruby.map_value(values)
 }
 
-pub fn livecheck_url_to_string(url ruby.Value, package LivecheckPackage) !string {
-	if url.type_name == 'String' {
-		return url.as_string()
-	}
-	if url.type_name != 'Symbol' {
-		return error('`url ${url.as_string()}` does not reference a checkable URL')
-	}
-	symbol := url.as_string().trim_left(':')
-	resolved := match symbol {
-		'url' {
-			if package.kind in ['cask', 'resource'] { package.url } else { '' }
-		}
-		'head' {
-			if package.kind == 'formula' { package.head_url } else { '' }
-		}
-		'stable' {
-			if package.kind == 'formula' { package.stable_url } else { '' }
-		}
-		'homepage' {
-			if package.kind != 'resource' { package.homepage } else { '' }
-		}
-		else { '' }
-	}
-	if resolved == '' {
-		return error('`url :${symbol}` does not reference a checkable URL')
-	}
-	return resolved
-}
-
 pub fn livecheck_checkable_urls(package LivecheckPackage) []string {
 	mut urls := []string{}
 	match package.kind {

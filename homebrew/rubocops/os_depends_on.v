@@ -1,7 +1,5 @@
 module rubocops
 
-import ruby
-
 // Translated from Homebrew/brew `rubocops/os_depends_on.rb`.
 pub struct OsDependsOnPair {
 pub:
@@ -539,48 +537,4 @@ fn analyze_os_depends_on_phases(source string, sends bool, missing bool, os_filt
 
 pub fn analyze_os_depends_on(source string) OsDependsOnAnalysis {
 	return analyze_os_depends_on_phases(source, true, true, '')
-}
-
-fn os_depends_on_stanza_value(stanza OsDependsOnStanza) ruby.Value {
-	return ruby.structured_value('RuboCop::AST::SendNode', stanza.source, {
-		'id':        stanza.id.str()
-		'method':    stanza.method
-		'arguments': stanza.arguments
-		'begin_pos': stanza.begin_pos.str()
-		'end_pos':   stanza.end_pos.str()
-		'parent_id': stanza.parent_id.str()
-		'is_block':  stanza.is_block.str()
-	})
-}
-
-fn os_depends_on_pair_value(pair OsDependsOnPair) ruby.Value {
-	return ruby.structured_value('RuboCop::AST::PairNode', pair.source, {
-		'key':           pair.key
-		'key_is_symbol': pair.key_is_symbol.str()
-		'value_kind':    pair.value_kind
-		'value':         pair.value
-		'begin_pos':     pair.begin_pos.str()
-		'end_pos':       pair.end_pos.str()
-	})
-}
-
-fn os_depends_on_analysis_value(analysis OsDependsOnAnalysis) ruby.Value {
-	offenses := analysis.offenses.map(ruby.structured_value('RuboCop::Cop::Offense', it.message, {
-		'begin_pos':      it.begin_pos.str()
-		'end_pos':        it.end_pos.str()
-		'message':        it.message
-		'has_correction': it.has_correction.str()
-		'replacement':    it.replacement
-	}))
-	return ruby.map_value({
-		'offenses':  ruby.array_value(offenses)
-		'corrected': ruby.string_value(analysis.corrected)
-	})
-}
-
-fn os_depends_on_argument_os(args []ruby.Value, index int) string {
-	if args.len <= index {
-		return 'macos'
-	}
-	return args[index].as_string().trim_space().trim_left(':')
 }

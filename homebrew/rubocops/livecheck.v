@@ -1,7 +1,5 @@
 module rubocops
 
-import ruby
-
 // Translated from Homebrew/brew `rubocops/livecheck.rb`.
 pub struct LivecheckProblem {
 pub:
@@ -230,16 +228,6 @@ fn livecheck_regex_literal(source string, call LivecheckCall) ?LivecheckRegexLit
 		cursor++
 	}
 	return none
-}
-
-fn livecheck_problem_value(problem LivecheckProblem) ruby.Value {
-	return ruby.structured_value('RuboCop::Cop::Problem', problem.message, {
-		'kind':        problem.kind
-		'begin_pos':   problem.begin_pos.str()
-		'end_pos':     problem.end_pos.str()
-		'message':     problem.message
-		'replacement': problem.replacement
-	})
 }
 
 fn livecheck_apply(source string, problems []LivecheckProblem) string {

@@ -78,17 +78,6 @@ fn sorted_distinct(values []string) []string {
 	return result
 }
 
-fn string_list_value(values []string) ruby.Value {
-	return ruby.string_array_value(values)
-}
-
-fn option_list_value(options []CommandOption) ruby.Value {
-	return ruby.array_value(options.map(ruby.array_value([
-		ruby.string_value(it.option),
-		ruby.string_value(it.description),
-	])))
-}
-
 fn path_is_within(path string, directory string) bool {
 	if path == '' || directory == '' {
 		return false

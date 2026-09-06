@@ -17,7 +17,7 @@ pub interface OptionNameProvider {
 // new_build_options translates BuildOptions.new(args, options).
 pub fn new_build_options(args Options, options Options) BuildOptions {
 	return BuildOptions{
-		args:    args
+		args: args
 		options: options
 	}
 }

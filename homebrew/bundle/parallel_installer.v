@@ -1,6 +1,5 @@
 module bundle
 
-import ruby
 import os
 
 // Translated from Homebrew/brew `bundle/parallel_installer.rb`.
@@ -328,98 +327,4 @@ pub fn (mut installer ParallelInstaller) run() (int, int) {
 		completed << batch_names
 	}
 	return success, failure
-}
-
-fn parallel_installer_entry_value(entry InstallableEntry) ruby.Value {
-	return ruby.Value{
-		type_name: 'Installer::InstallableEntry'
-		repr: entry.name
-		map_data: {
-			'name':         ruby.string_value(entry.name)
-			'full_name':    ruby.string_value(entry.options.full_name)
-			'verb':         ruby.string_value(entry.verb)
-			'package_kind': ruby.string_value(entry.package_kind.str())
-			'fetchable':    ruby.string_value(entry.fetchable_name)
-			'preinstall':   ruby.bool_value(entry.preinstall)
-			'install':      ruby.bool_value(entry.install)
-		}
-	}
-}
-
-pub fn parallel_installer_entry_boundary(entry InstallableEntry) ruby.Value {
-	return parallel_installer_entry_value(entry)
-}
-
-fn parallel_installer_entry_from_value(value ruby.Value) InstallableEntry {
-	fields := value.map_data.clone()
-	kind_name := (fields['package_kind'] or { ruby.string_value('other') }).as_string()
-	return InstallableEntry{
-		name: (fields['name'] or { ruby.string_value(value.repr) }).as_string()
-		options: InstallerEntryOptions{
-			full_name: (fields['full_name'] or { ruby.string_value('') }).as_string()
-		}
-		verb: (fields['verb'] or { ruby.string_value('Installing') }).as_string()
-		package_kind: match kind_name {
-			'brew' { .brew }
-			'cask' { .cask }
-			'tap' { .tap }
-			else { .other }
-		}
-		fetchable_name: (fields['fetchable'] or { ruby.string_value('') }).as_string()
-		preinstall: (fields['preinstall'] or { ruby.bool_value(true) }).bool_data
-		install: (fields['install'] or { ruby.bool_value(true) }).bool_data
-	}
-}
-
-fn parallel_installer_entries_from_value(value ruby.Value) []InstallableEntry {
-	return (value.as_array() or { panic(err) }).map(parallel_installer_entry_from_value(it))
-}
-
-fn parallel_installer_value(installer &ParallelInstaller) ruby.Value {
-	return ruby.structured_value('Homebrew::Bundle::ParallelInstaller', '', {
-		'parallel_installer_address': u64(voidptr(installer)).str()
-	})
-}
-
-pub fn parallel_installer_boundary(installer &ParallelInstaller) ruby.Value {
-	return parallel_installer_value(installer)
-}
-
-fn parallel_installer_from_args(args []ruby.Value,
-	method string) &ParallelInstaller {
-	if args.len == 0 || args[0].type_name != 'Homebrew::Bundle::ParallelInstaller' {
-		panic('ParallelInstaller#${method} requires a translated receiver')
-	}
-	address := args[0].attributes['parallel_installer_address'] or {
-		panic('ParallelInstaller receiver has no translated state')
-	}
-	return unsafe { &ParallelInstaller(voidptr(address.u64())) }
-}
-
-fn parallel_installer_config_from_value(value ruby.Value) ParallelInstallerConfig {
-	fields := value.map_data.clone()
-	return ParallelInstallerConfig{
-		jobs: int((fields['jobs'] or { ruby.int_value(1) }).int_data)
-		no_upgrade: (fields['no_upgrade'] or { ruby.bool_value(false) }).bool_data
-		verbose: (fields['verbose'] or { ruby.bool_value(false) }).bool_data
-		force: (fields['force'] or { ruby.bool_value(false) }).bool_data
-		quiet: (fields['quiet'] or { ruby.bool_value(false) }).bool_data
-		verify_attestations: (fields['verify_attestations'] or { ruby.bool_value(false) }).bool_data
-		tty_path: (fields['tty_path'] or { ruby.string_value('/dev/tty') }).as_string()
-	}
-}
-
-fn parallel_installer_counts_value(success int, failure int) ruby.Value {
-	return ruby.array_value([
-		ruby.int_value(success),
-		ruby.int_value(failure),
-	])
-}
-
-fn parallel_installer_dependency_map_value(dependencies map[string][]string) ruby.Value {
-	mut result := map[string]ruby.Value{}
-	for name, values in dependencies {
-		result[name] = ruby.string_array_value(values)
-	}
-	return ruby.map_value(result)
 }

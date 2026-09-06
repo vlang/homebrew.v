@@ -1,7 +1,5 @@
 module update_report
 
-import ruby
-
 // Translated from Homebrew/brew `cmd/update_report/reporter_hub.rb`.
 pub struct ReporterHub {
 pub mut:
@@ -217,54 +215,4 @@ pub fn (hub ReporterHub) dump(context ReporterHubDumpContext) string {
 	}
 	pronoun := if formula_count + cask_count == 1 { 'it' } else { 'them' }
 	return output + 'You can upgrade ${pronoun} with brew upgrade\nor list ${pronoun} with brew outdated.\n'
-}
-
-fn reporter_hub_value(hub ReporterHub) ruby.Value {
-	return ruby.Value{
-		type_name: 'ReporterHub'
-		repr: '${hub.reporters.len} reporter(s)'
-		attributes: {
-			'reporter_count': hub.reporters.len.str()
-			'empty':          hub.empty().str()
-		}
-		map_data: {
-			'reporters': ruby.array_value(hub.reporters.map(reporter_to_value(it)))
-			'report':    reporter_report_to_value(hub.report)
-		}
-	}
-}
-
-fn reporter_hub_from_value(value ruby.Value) ReporterHub {
-	mut reporters := []Reporter{}
-	if reporter_values := value.map_data['reporters'] {
-		for reporter_value in reporter_values.array_data {
-			reporters << reporter_from_value(reporter_value)
-		}
-	}
-	return ReporterHub{
-		reporters: reporters
-		report: if report_value := value.map_data['report'] {
-			reporter_report_from_value(report_value)
-		} else {
-			ReporterReport{}
-		}
-	}
-}
-
-fn reporter_hub_context_from_value(value ruby.Value) ReporterHubDumpContext {
-	return ReporterHubDumpContext{
-		auto_update: (value.attributes['auto_update'] or { 'false' }) == 'true'
-		auto_update_quiet: (value.attributes['auto_update_quiet'] or { 'false' }) == 'true'
-		no_update_report_new: (value.attributes['no_update_report_new'] or { 'false' }) == 'true'
-		no_install_from_api: (value.attributes['no_install_from_api'] or { 'false' }) == 'true'
-		any_casks_installed: (value.attributes['any_casks_installed'] or { 'false' }) == 'true'
-		running_on_linux: (value.attributes['running_on_linux'] or { 'false' }) == 'true'
-		auto_update_skip_outdated: (value.attributes['auto_update_skip_outdated'] or { 'false' }) == 'true'
-		installed_formulae: (value.map_data['installed_formulae'] or { ruby.string_array_value([]) }).string_array_data
-		installed_casks: (value.map_data['installed_casks'] or { ruby.string_array_value([]) }).string_array_data
-		outdated_formulae: (value.map_data['outdated_formulae'] or { ruby.string_array_value([]) }).string_array_data
-		outdated_casks: (value.map_data['outdated_casks'] or { ruby.string_array_value([]) }).string_array_data
-		formula_descriptions: value.attributes.clone()
-		cask_descriptions: value.attributes.clone()
-	}
 }

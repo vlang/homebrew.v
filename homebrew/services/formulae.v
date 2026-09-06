@@ -72,12 +72,3 @@ fn service_formula_from_value(value ruby.Value) ServiceFormula {
 		user: value.attribute('user') or { '' }
 	}
 }
-
-pub fn service_formula_status_value(status ServiceFormulaStatus) ruby.Value {
-	return ruby.map_value({
-		'file':   ruby.string_value(status.file)
-		'name':   ruby.string_value(status.name)
-		'status': ruby.string_value(status.status)
-		'user':   ruby.string_value(status.user)
-	})
-}

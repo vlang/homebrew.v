@@ -1,7 +1,5 @@
 module mac
 
-import ruby
-
 pub fn mac_formula_valid_platform(supports_macos bool) bool {
 	return supports_macos
 }

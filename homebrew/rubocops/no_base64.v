@@ -1,7 +1,5 @@
 module rubocops
 
-import ruby
-
 // Translated from Homebrew/brew `rubocops/no_base64.rb`.
 pub const no_base64_message = 'Homebrew no longer includes the `base64` gem; use `String#unpack1` or `Array#pack` instead.'
 
@@ -604,16 +602,4 @@ pub fn correct_no_base64(source string) string {
 		corrected = corrected[..offense.correction_begin] + offense.replacement + corrected[offense.correction_end..]
 	}
 	return corrected
-}
-
-fn no_base64_offense_value(offense NoBase64Offense) ruby.Value {
-	return ruby.structured_value('RuboCop::Cop::Offense', offense.message, {
-		'kind':        offense.kind.str()
-		'begin_pos':   offense.begin_pos.str()
-		'end_pos':     offense.end_pos.str()
-		'message':     offense.message
-		'method':      offense.method
-		'replacement': offense.replacement
-		'correctable': offense.correctable.str()
-	})
 }

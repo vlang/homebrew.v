@@ -1,6 +1,5 @@
 module rubocops
 
-import ruby
 import os
 
 // Translated from Homebrew/brew `rubocops/shell_command_stub.rb`.

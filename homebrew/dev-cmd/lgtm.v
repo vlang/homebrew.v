@@ -1,6 +1,5 @@
 module dev_cmd
 
-import ruby
 import os
 
 // Translated from Homebrew/brew `dev-cmd/lgtm.rb`.
@@ -158,30 +157,4 @@ fn lgtm_append_audit(mut result LgtmCommandResult, brew_file string, audit_args 
 pub struct LgtmCommandInput {
 pub:
 	options LgtmCommandOptions
-}
-
-pub fn lgtm_command_input_boundary(input &LgtmCommandInput) ruby.Value {
-	return ruby.structured_value('Homebrew::DevCmd::Lgtm::Input', '', {
-		'lgtm_command_input_address': u64(voidptr(input)).str()
-	})
-}
-
-fn lgtm_command_input_from_value(value ruby.Value) &LgtmCommandInput {
-	address := value.attributes['lgtm_command_input_address'] or { panic('invalid Lgtm command input') }
-	return unsafe { &LgtmCommandInput(voidptr(address.u64())) }
-}
-
-fn lgtm_command_result_value(result LgtmCommandResult) ruby.Value {
-	return ruby.map_value({
-		'bundler_groups':   ruby.string_array_value(result.bundler_groups)
-		'commands':         ruby.array_value(result.commands.map(ruby.string_array_value(it)))
-		'ohai':             ruby.string_array_value(result.ohai)
-		'warnings':         ruby.string_array_value(result.warnings)
-		'blank_lines':      ruby.int_value(result.blank_lines)
-		'changed_formulae': ruby.string_array_value(result.changed_formulae)
-		'new_formulae':     ruby.string_array_value(result.new_formulae)
-		'changed_casks':    ruby.string_array_value(result.changed_casks)
-		'new_casks':        ruby.string_array_value(result.new_casks)
-		'formulae_to_test': ruby.string_array_value(result.formulae_to_test)
-	})
 }

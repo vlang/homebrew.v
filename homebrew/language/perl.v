@@ -1,6 +1,5 @@
 module language
 
-import ruby
 import homebrew.utils
 
 // Translated from Homebrew/brew `language/perl.rb`.
@@ -33,27 +32,4 @@ pub fn detected_perl_shebang(dependencies []PerlDependency, prefix string,
 		'/usr/bin/perl${preferred_version}'
 	}
 	return perl_shebang_rewrite_info(perl_path)
-}
-
-fn perl_dependency_from_value(value ruby.Value) PerlDependency {
-	if value.type_name == 'String' {
-		return PerlDependency{ name: value.as_string() }
-	}
-	return PerlDependency{
-		name: value.attribute('name') or { value.as_string() }
-		required: (value.attribute('required') or { 'true' }) == 'true'
-		uses_from_macos: (value.attribute('uses_from_macos') or { 'false' }) == 'true'
-		use_macos_install: (value.attribute('use_macos_install') or { 'false' }) == 'true'
-	}
-}
-
-fn perl_dependencies_from_value(value ruby.Value) []PerlDependency {
-	values := if value.type_name == 'Array' {
-		value.as_array() or { [] }
-	} else {
-		[
-			value,
-		]
-	}
-	return values.map(perl_dependency_from_value(it))
 }

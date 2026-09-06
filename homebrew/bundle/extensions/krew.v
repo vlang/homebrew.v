@@ -1,6 +1,5 @@
 module extensions
 
-import ruby
 import os
 
 // Translated from Homebrew/brew `bundle/extensions/krew.rb`.
@@ -160,21 +159,4 @@ pub fn (mut state KrewState) cleanup(items []string) {
 	}
 	suffix := if items.len == 1 { '' } else { 's' }
 	state.output << 'Uninstalled ${items.len} ${krew_definition().banner_name}${suffix}'
-}
-
-fn krew_state_value(state &KrewState) ruby.Value {
-	return ruby.structured_value('Homebrew::Bundle::Krew', '', {
-		'krew_state_address': u64(voidptr(state)).str()
-	})
-}
-
-fn krew_state_from_args(args []ruby.Value, method string) &KrewState {
-	if args.len == 0 || 'krew_state_address' !in args[0].attributes {
-		panic('Krew.${method} requires translated Krew state')
-	}
-	return unsafe { &KrewState(voidptr(args[0].attributes['krew_state_address'].u64())) }
-}
-
-pub fn krew_state_boundary(state &KrewState) ruby.Value {
-	return krew_state_value(state)
 }

@@ -626,45 +626,4 @@ fn resource_auditor_default_branch_detector(url string) ?string {
 	return rest[..end]
 }
 
-fn resource_auditor_resource_value(resource &ResourceAuditorResource) ruby.Value {
-	return ruby.structured_value('Resource', resource.name, {
-		'resource_auditor_resource_address': u64(voidptr(resource)).str()
-	})
-}
-
-pub fn resource_auditor_resource_boundary(resource &ResourceAuditorResource) ruby.Value {
-	return resource_auditor_resource_value(resource)
-}
-
-fn resource_auditor_resource_from_value(value ruby.Value) ResourceAuditorResource {
-	address := value.attributes['resource_auditor_resource_address'] or {
-		panic('ResourceAuditor#initialize requires a translated Resource receiver')
-	}
-	return unsafe { *&ResourceAuditorResource(voidptr(address.u64())) }
-}
-
-fn resource_auditor_value(auditor &ResourceAuditor) ruby.Value {
-	return ruby.structured_value('Homebrew::ResourceAuditor', '#<Homebrew::ResourceAuditor>', {
-		'resource_auditor_address': u64(voidptr(auditor)).str()
-	})
-}
-
-pub fn resource_auditor_boundary(auditor &ResourceAuditor) ruby.Value {
-	return resource_auditor_value(auditor)
-}
-
-fn resource_auditor_from_args(args []ruby.Value, method string) &ResourceAuditor {
-	if args.len == 0 || args[0].type_name != 'Homebrew::ResourceAuditor' {
-		panic('ResourceAuditor#${method} requires a translated receiver')
-	}
-	address := args[0].attributes['resource_auditor_address'] or {
-		panic('ResourceAuditor receiver has no translated state')
-	}
-	return unsafe { &ResourceAuditor(voidptr(address.u64())) }
-}
-
-fn resource_auditor_nil() ruby.Value {
-	return ruby.object_value('NilClass', 'nil')
-}
-
 // Translated from Homebrew/brew `resource_auditor.rb`.

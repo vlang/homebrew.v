@@ -206,27 +206,6 @@ fn mac_keg_walk_including_links(path string) []string {
 	return files
 }
 
-fn mac_keg_result_value(result MacKegCodesignResult) ruby.Value {
-	return ruby.structured_value('MacKegCodesignResult', result.signed.str(), {
-		'attempted':  result.attempted.str()
-		'signed':     result.signed.str()
-		'used_macho': result.used_macho.str()
-		'workaround': result.workaround.str()
-		'error':      result.error
-	})
-}
-
-pub fn mac_keg_mach_state_value(state &mach.MachState) ruby.Value {
-	return ruby.structured_value('MachOPathname', state.path, {
-		'mach_address': u64(voidptr(state)).str()
-	})
-}
-
-fn mac_keg_mach_state_from_value(value ruby.Value) &mach.MachState {
-	address := value.attributes['mach_address'] or { panic('invalid MachOPathname receiver') }
-	return unsafe { &mach.MachState(voidptr(address.u64())) }
-}
-
 fn mac_keg_default_runner(command string, arguments []string) MacKegCommandResult {
 	result := ruby.run_command(command, arguments)
 	return MacKegCommandResult{ success: result.exit_code == 0, stderr: result.output }

@@ -1,6 +1,5 @@
 module dev_cmd
 
-import ruby
 import os
 
 // Translated from Homebrew/brew `dev-cmd/typecheck.rb`.
@@ -128,13 +127,6 @@ pub:
 	start_line int
 	end_line   int
 	keep       bool
-}
-
-fn typecheck_value_string(value ruby.Value, name string) !string {
-	if value.type_name != 'String' && value.type_name != 'Pathname' {
-		return error('${name} must be a String or Pathname')
-	}
-	return value.as_string()
 }
 
 fn typecheck_take_option_value(argv []string, position int, option string) !(string, int) {
@@ -600,50 +592,4 @@ pub fn trim_typecheck_rubocop_rbi(path_pattern string) !TypecheckTrimResult {
 pub struct TypecheckInput {
 pub:
 	options TypecheckOptions
-}
-
-pub fn typecheck_input_boundary(input &TypecheckInput) ruby.Value {
-	return ruby.structured_value('Homebrew::DevCmd::Typecheck::Input', '', {
-		'typecheck_input_address': u64(voidptr(input)).str()
-	})
-}
-
-fn typecheck_input_from_value(value ruby.Value) &TypecheckInput {
-	address := value.attributes['typecheck_input_address'] or { panic('invalid Typecheck input') }
-	return unsafe { &TypecheckInput(voidptr(address.u64())) }
-}
-
-fn typecheck_commands_value(commands []TypecheckCommand) ruby.Value {
-	return ruby.array_value(commands.map(ruby.map_value({
-		'arguments':         ruby.string_array_value(it.arguments)
-		'working_directory': ruby.string_value(it.working_directory)
-		'safe':              ruby.bool_value(it.safe)
-	})))
-}
-
-fn typecheck_plan_value(plan TypecheckRunPlan) ruby.Value {
-	return ruby.map_value({
-		'mode':              ruby.string_value(plan.mode)
-		'bundler_groups':    ruby.string_array_value(plan.bundler_groups)
-		'commands':          typecheck_commands_value(plan.commands)
-		'headings':          ruby.string_array_value(plan.headings)
-		'trim_rubocop_rbi':  ruby.bool_value(plan.trim_rubocop_rbi)
-		'change_privilege':  ruby.bool_value(plan.environment.change_privilege)
-		'privilege_target':  ruby.int_value(plan.environment.privilege_target)
-		'command_directory': ruby.string_value(plan.environment.command_directory)
-		'failed':            ruby.bool_value(plan.failed)
-		'stderr':            ruby.string_value(plan.stderr)
-	})
-}
-
-fn typecheck_trim_result_value(result TypecheckTrimResult) ruby.Value {
-	return ruby.map_value({
-		'path':            ruby.string_value(result.path)
-		'found':           ruby.bool_value(result.found)
-		'parsed':          ruby.bool_value(result.parsed)
-		'written':         ruby.bool_value(result.written)
-		'trimmed_content': ruby.string_value(result.trimmed_content)
-		'kept_names':      ruby.string_array_value(result.kept_names)
-		'removed_names':   ruby.string_array_value(result.removed_names)
-	})
 }

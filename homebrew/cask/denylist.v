@@ -1,7 +1,5 @@
 module cask
 
-import ruby
-
 // Translated from Homebrew/brew `cask/denylist.rb`.
 
 // denylist_reason returns Homebrew's source-defined reason for casks that are

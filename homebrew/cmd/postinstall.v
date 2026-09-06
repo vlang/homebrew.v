@@ -1,7 +1,5 @@
 module cmd
 
-import ruby
-
 // Translated from Homebrew/brew `cmd/postinstall.rb`.
 pub struct PostinstallFormula {
 pub:
@@ -40,27 +38,4 @@ pub fn run_postinstall_command(formulae []PostinstallFormula, options Postinstal
 		actions: actions
 		warnings: warnings
 	}
-}
-
-pub fn postinstall_formula_to_value(formula PostinstallFormula) ruby.Value {
-	return ruby.structured_value('Formula', formula.name, {
-		'name':                       formula.name
-		'post_install_steps_defined': formula.post_install_steps_defined.str()
-		'post_install_defined':       formula.post_install_defined.str()
-	})
-}
-
-fn postinstall_formula_from_value(value ruby.Value) PostinstallFormula {
-	return PostinstallFormula{
-		name: value.attributes['name'] or { value.as_string() }
-		post_install_steps_defined: (value.attributes['post_install_steps_defined'] or { 'false' }) == 'true'
-		post_install_defined: (value.attributes['post_install_defined'] or { 'false' }) == 'true'
-	}
-}
-
-pub fn postinstall_result_to_value(result PostinstallResult) ruby.Value {
-	return ruby.map_value({
-		'actions':  ruby.string_array_value(result.actions)
-		'warnings': ruby.string_array_value(result.warnings)
-	})
 }

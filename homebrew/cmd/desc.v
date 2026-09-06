@@ -1,7 +1,5 @@
 module cmd
 
-import ruby
-
 // Translated from Homebrew/brew `cmd/desc.rb`.
 pub enum DescSearchField {
 	name
@@ -84,41 +82,4 @@ pub fn run_desc_command(request DescCommandRequest) !DescCommandResult {
 		output: if lines.len > 0 { lines.join('\n') + '\n' } else { '' }
 		search_field: search_field
 	}
-}
-
-pub fn desc_item_to_value(item DescItem) ruby.Value {
-	mut attributes := {
-		'kind':      item.kind.str()
-		'full_name': item.full_name
-		'names':     item.names.join(', ')
-		'installed': item.installed.str()
-	}
-	if description := item.description {
-		attributes['description'] = description
-	}
-	return ruby.structured_value('DescItem', item.full_name, attributes)
-}
-
-fn desc_item_from_value(value ruby.Value) DescItem {
-	description := if text := value.attributes['description'] { ?string(text) } else { none }
-	return DescItem{
-		kind: if (value.attributes['kind'] or { 'formula' }) == 'cask' {
-			DescItemKind.cask
-		} else {
-			DescItemKind.formula
-		}
-		full_name: value.attributes['full_name'] or { value.as_string() }
-		names: (value.attributes['names'] or { '' }).split(', ').filter(it != '')
-		description: description
-		installed: (value.attributes['installed'] or { 'false' }) == 'true'
-	}
-}
-
-pub fn desc_result_to_value(result DescCommandResult) ruby.Value {
-	return ruby.map_value({
-		'output':       ruby.string_value(result.output)
-		'searched':     ruby.bool_value(result.searched)
-		'search_query': ruby.string_value(result.search_query)
-		'search_field': ruby.string_value(result.search_field.str())
-	})
 }

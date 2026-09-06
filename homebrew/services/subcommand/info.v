@@ -164,22 +164,3 @@ pub fn run_service_info(request ServiceInfoRequest) !string {
 	}
 	return output
 }
-
-pub fn service_info_target_value(target map[string]ruby.Value) ruby.Value {
-	return ruby.map_value(target)
-}
-
-fn service_info_targets_from_value(value ruby.Value) ![]map[string]ruby.Value {
-	mut targets := []map[string]ruby.Value{}
-	for item in value.as_array()! {
-		targets << item.as_map()!
-	}
-	return targets
-}
-
-fn service_info_tty(request map[string]ruby.Value, key string) bool {
-	if value := request[key] {
-		return value.as_bool() or { false }
-	}
-	return ruby.stdout_is_terminal()
-}

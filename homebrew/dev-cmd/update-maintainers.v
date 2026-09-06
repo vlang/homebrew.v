@@ -1,6 +1,5 @@
 module dev_cmd
 
-import ruby
 import encoding.utf8
 import os
 
@@ -118,32 +117,4 @@ pub fn run_update_maintainers(options UpdateMaintainersOptions) !UpdateMaintaine
 pub struct UpdateMaintainersInput {
 pub:
 	options UpdateMaintainersOptions
-}
-
-pub fn update_maintainers_input_boundary(input &UpdateMaintainersInput) ruby.Value {
-	return ruby.structured_value('Homebrew::DevCmd::UpdateMaintainers::Input', '', {
-		'update_maintainers_input_address': u64(voidptr(input)).str()
-	})
-}
-
-fn update_maintainers_input_from_value(value ruby.Value) &UpdateMaintainersInput {
-	address := value.attributes['update_maintainers_input_address'] or {
-		panic('invalid UpdateMaintainers input')
-	}
-	return unsafe { &UpdateMaintainersInput(voidptr(address.u64())) }
-}
-
-fn update_maintainers_result_value(result UpdateMaintainersResult) ruby.Value {
-	return ruby.map_value({
-		'bundler_groups':       ruby.string_array_value(result.bundler_groups)
-		'lead_sentence':        ruby.string_value(result.lead_sentence)
-		'maintainers_sentence': ruby.string_value(result.maintainers_sentence)
-		'readme_path':          ruby.string_value(result.readme_path)
-		'diff_command':         ruby.string_array_value(result.diff_command)
-		'regenerate_manpages':  ruby.bool_value(result.regenerate_manpages)
-		'manpages_quiet':       ruby.bool_value(result.manpages_quiet)
-		'stdout':               ruby.string_value(result.stdout)
-		'stderr':               ruby.string_value(result.stderr)
-		'failed':               ruby.bool_value(result.failed)
-	})
 }

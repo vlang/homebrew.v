@@ -1,6 +1,5 @@
 module subcommand
 
-import ruby
 import homebrew.bundle
 
 // Translated from Homebrew/brew `bundle/subcommand/dump.rb`.

@@ -140,26 +140,3 @@ pub fn run_determine_test_runners(options DetermineTestRunnersOptions) !Determin
 		github_output_wrote: github_output_wrote
 	}
 }
-
-pub fn determine_test_runners_input_boundary(input &DetermineTestRunnersInput) ruby.Value {
-	return ruby.structured_value('Homebrew::DevCmd::DetermineTestRunners::Input', '', {
-		'determine_test_runners_input_address': u64(voidptr(input)).str()
-	})
-}
-
-fn determine_test_runners_input_from_value(value ruby.Value) &DetermineTestRunnersInput {
-	address := value.attributes['determine_test_runners_input_address'] or {
-		panic('invalid DetermineTestRunners input')
-	}
-	return unsafe { &DetermineTestRunnersInput(voidptr(address.u64())) }
-}
-
-fn determine_test_runners_result_value(result DetermineTestRunnersResult) ruby.Value {
-	return ruby.map_value({
-		'runners':             determine_test_runners_json_value(result.runners)
-		'runners_json':        ruby.string_value(result.runners_json)
-		'stdout':              ruby.string_value(result.stdout)
-		'github_output':       ruby.string_value(result.github_output)
-		'github_output_wrote': ruby.bool_value(result.github_output_wrote)
-	})
-}

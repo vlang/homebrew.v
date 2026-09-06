@@ -1,6 +1,5 @@
 module ast
 
-import ruby
 import homebrew.rubocops.cask.extend as cask_extend
 
 // Translated from Homebrew/brew `rubocops/cask/ast/cask_block.rb`.
@@ -72,19 +71,5 @@ pub fn cask_ast_block_stanzas(block CaskAstStanzaBlock, all_descendants bool) []
 		node: it
 		full_source: block.full_source
 		all_comments: block.comments.clone()
-	})
-}
-
-fn cask_ast_stanzas_value(stanzas []CaskAstStanza) ruby.Value {
-	return ruby.array_value(stanzas.map(cask_ast_stanza_value(it)))
-}
-
-fn cask_ast_block_value(block CaskAstStanzaBlock, type_name string) ruby.Value {
-	return ruby.structured_value(type_name, block.block_node.source, {
-		'kind':        block.block_node.kind
-		'method_name': block.block_node.method_name
-		'begin_pos':   block.block_node.expression.begin_pos.str()
-		'end_pos':     block.block_node.expression.end_pos.str()
-		'comments':    block.comments.map(it.source).join('\n')
 	})
 }

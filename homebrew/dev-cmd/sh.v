@@ -1,6 +1,5 @@
 module dev_cmd
 
-import ruby
 import os
 
 // Translated from Homebrew/brew `dev-cmd/sh.rb`.
@@ -80,17 +79,6 @@ pub:
 pub struct ShInput {
 pub:
 	options ShOptions
-}
-
-pub fn sh_input_boundary(input &ShInput) ruby.Value {
-	return ruby.structured_value('Homebrew::DevCmd::Sh::Input', '', {
-		'sh_input_address': u64(voidptr(input)).str()
-	})
-}
-
-fn sh_input_from_value(value ruby.Value) &ShInput {
-	address := value.attributes['sh_input_address'] or { panic('invalid Sh input') }
-	return unsafe { &ShInput(voidptr(address.u64())) }
 }
 
 fn sh_optional_string(value ?string) string {
@@ -268,36 +256,4 @@ pub fn run_sh_command(options ShOptions) ShCommandPlan {
 		safe: false
 		prompt: prompt
 	}
-}
-
-fn sh_environment_plan_value(plan ShEnvironmentPlan) ruby.Value {
-	mut environment := map[string]ruby.Value{}
-	for name, value in plan.environment {
-		environment[name] = ruby.string_value(value)
-	}
-	return ruby.map_value({
-		'prompt':                  ruby.string_value(plan.prompt)
-		'notice':                  ruby.string_value(sh_optional_string(plan.notice))
-		'install_bundler_gems':    ruby.bool_value(plan.install_bundler_gems)
-		'setup_path':              ruby.bool_value(plan.setup_path)
-		'activated_extension':     ruby.string_value(plan.activated_extension)
-		'dependencies':            ruby.string_array_value(plan.dependencies)
-		'setup_build_environment': ruby.bool_value(plan.setup_build_environment)
-		'environment':             ruby.map_value(environment)
-	})
-}
-
-fn sh_command_plan_value(plan ShCommandPlan) ruby.Value {
-	return ruby.map_value({
-		'environment':    sh_environment_plan_value(plan.environment)
-		'preferred_path': ruby.string_value(plan.preferred_path)
-		'mode':           ruby.object_value('Symbol', plan.mode)
-		'program':        ruby.string_value(plan.program)
-		'arguments':      ruby.string_array_value(plan.arguments)
-		'safe':           ruby.bool_value(plan.safe)
-		'prompt_command': ruby.string_value(plan.prompt.command)
-		'prompt_notice':  ruby.string_value(sh_optional_string(plan.prompt.notice))
-		'prompt_shell':   ruby.string_value(plan.prompt.shell)
-		'prompt_zdotdir': ruby.string_value(plan.prompt.zdotdir)
-	})
 }

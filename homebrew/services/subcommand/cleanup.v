@@ -1,7 +1,5 @@
 module subcommand
 
-import ruby
-
 // Translated from Homebrew/brew `services/subcommand/cleanup.rb`.
 pub struct ServiceSubcommandTarget {
 pub:
@@ -151,65 +149,4 @@ pub fn service_restart(request ServiceSubcommandRequest) !ServiceSubcommandResul
 		file: request.file
 		verbose: request.verbose
 	}
-}
-
-pub fn service_subcommand_request_from_args(args []ruby.Value) !ServiceSubcommandRequest {
-	if args.len == 0 {
-		return ServiceSubcommandRequest{}
-	}
-	values := args[0].as_map()!
-	target_values := if value := values['targets'] {
-		value.as_array() or { []ruby.Value{} }
-	} else {
-		[]ruby.Value{}
-	}
-	mut targets := []ServiceSubcommandTarget{}
-	for value in target_values {
-		targets << ServiceSubcommandTarget{
-			name: value.attributes['name'] or { value.as_string() }
-			loaded: (value.attributes['loaded'] or { 'false' }) == 'true'
-			service_file_present: (value.attributes['service_file_present'] or { 'true' }) == 'true'
-		}
-	}
-	mut file := ?string(none)
-	if value := values['file'] {
-		if value.type_name != 'NilClass' && value.as_string() != '' {
-			file = value.as_string()
-		}
-	}
-	return ServiceSubcommandRequest{
-		targets: targets
-		file: file
-		verbose: if value := values['verbose'] { value.as_bool() or { false } } else { false }
-		no_wait: if value := values['no_wait'] { value.as_bool() or { false } } else { false }
-		max_wait: if value := values['max_wait'] { value.as_float() or { 60.0 } } else { 60.0 }
-		keep: if value := values['keep'] { value.as_bool() or { false } } else { false }
-		root: if value := values['root'] { value.as_bool() or { false } } else { false }
-		orphaned: if value := values['orphaned'] {
-			value.as_string_array() or { []string{} }
-		} else {
-			[]string{}
-		}
-		unused: if value := values['unused'] {
-			value.as_string_array() or { []string{} }
-		} else {
-			[]string{}
-		}
-	}
-}
-
-pub fn service_subcommand_result_to_value(result ServiceSubcommandResult) ruby.Value {
-	return ruby.map_value({
-		'operation': ruby.string_value(result.operation)
-		'checked':   ruby.string_array_value(result.checked)
-		'cleaned':   ruby.string_array_value(result.cleaned)
-		'stopped':   ruby.string_array_value(result.stopped)
-		'started':   ruby.string_array_value(result.started)
-		'ran':       ruby.string_array_value(result.ran)
-		'killed':    ruby.string_array_value(result.killed)
-		'output':    ruby.string_value(result.output)
-		'no_wait':   ruby.bool_value(result.no_wait)
-		'max_wait':  ruby.float_value(result.max_wait)
-		'keep':      ruby.bool_value(result.keep)
-	})
 }

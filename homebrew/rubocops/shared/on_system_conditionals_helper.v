@@ -1,7 +1,5 @@
 module shared
 
-import ruby
-
 // Translated from Homebrew/brew `rubocops/shared/on_system_conditionals_helper.rb`.
 pub const on_system_arch_options = ['arm', 'intel']
 pub const on_system_base_os_options = ['macos', 'linux']
@@ -497,27 +495,4 @@ pub fn if_macos_version_matches(source string, version string) []OnSystemMatch {
 		}
 	}
 	return matches
-}
-
-fn on_system_analysis_value(analysis OnSystemAnalysis) ruby.Value {
-	findings := analysis.findings.map(ruby.structured_value('RuboCop::Cop::Offense', it.message, {
-		'begin_pos':   it.begin_pos.str()
-		'end_pos':     it.end_pos.str()
-		'message':     it.message
-		'replacement': it.replacement
-	}))
-	return ruby.map_value({
-		'offenses':  ruby.array_value(findings)
-		'corrected': ruby.string_value(analysis.corrected)
-	})
-}
-
-fn on_system_matches_value(matches []OnSystemMatch) ruby.Value {
-	return ruby.array_value(matches.map(ruby.structured_value('RuboCop::AST::Node', it.source, {
-		'method':      it.method
-		'argument':    it.argument
-		'operator':    it.operator
-		'version':     it.version
-		'else_source': it.else_source
-	})))
 }

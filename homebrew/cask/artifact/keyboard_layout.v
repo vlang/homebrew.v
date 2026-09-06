@@ -1,7 +1,5 @@
 module artifact
 
-import ruby
-
 // Translated from Homebrew/brew `cask/artifact/keyboard_layout.rb`.
 fn run_refresh_command(command ArtifactCommand, runner ArtifactCommandRunner,
 	mut result MovedOperationResult) {

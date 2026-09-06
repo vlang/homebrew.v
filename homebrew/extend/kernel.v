@@ -113,12 +113,6 @@ pub fn with_environment(changes map[string]EnvironmentValue, action KernelAction
 	return action()
 }
 
-pub fn with_homebrew_path(original_paths string, action KernelAction) !ruby.Value {
-	return with_environment({
-		'PATH': environment_setting(original_paths)
-	}, action)
-}
-
 fn default_command_delegate(plan KernelCommandPlan) !bool {
 	result := with_environment(plan.environment, fn [plan] () !ruby.Value {
 		command := ruby.run_command(plan.program, plan.arguments)
@@ -379,38 +373,10 @@ pub fn run_interactive_shell(formula_prefix string, formula_name string, shell s
 	}
 }
 
-pub fn ignore_interrupts(action KernelAction) !ruby.Value {
-	// V cannot close over state in a signal handler. The typed boundary still
-	// guarantees that the action's success or error is returned unchanged.
-	return action()
-}
-
 pub fn redirect_plan(target string) RedirectPlan {
 	return RedirectPlan{
 		target: target
 	}
-}
-
-pub fn redirect_stdout(target string, action KernelAction) !ruby.Value {
-	mut file := os.open_file(target, 'w')!
-	saved_stdout := os.fd_dup(1)
-	if saved_stdout < 0 {
-		file.close()
-		return error('unable to duplicate stdout')
-	}
-	flush_stdout()
-	if os.fd_dup2(file.fd, 1) < 0 {
-		os.fd_close(saved_stdout)
-		file.close()
-		return error('unable to redirect stdout')
-	}
-	defer {
-		flush_stdout()
-		os.fd_dup2(saved_stdout, 1)
-		os.fd_close(saved_stdout)
-		file.close()
-	}
-	return action()
 }
 
 pub fn executable_resolution(name string, formula_name string, current_path string,
@@ -451,41 +417,4 @@ pub fn ensure_executable(name string, formula_name string, current_path string,
 		return resolution.path
 	}
 	return installer(resolution.request)
-}
-
-fn command_plan_from_values(args []ruby.Value) KernelCommandPlan {
-	if args.len == 0 {
-		return KernelCommandPlan{}
-	}
-	mut offset := 1
-	mut argv0 := ''
-	if args.len > 1 {
-		if args[1].type_name in ['Nil', 'NilClass'] {
-			offset = 2
-		} else {
-			argv0 = args[1].as_string()
-			offset = 2
-		}
-	}
-	return KernelCommandPlan{
-		program: args[0].as_string()
-		argv0: argv0
-		arguments: if offset < args.len { args[offset..].map(it.as_string()) } else { []string{} }
-	}
-}
-
-fn environment_changes_from_value(value ruby.Value) map[string]EnvironmentValue {
-	mut changes := map[string]EnvironmentValue{}
-	for name, setting in value.map_data {
-		changes[name] = if setting.type_name in ['Nil', 'NilClass'] {
-			unset_environment_setting()
-		} else {
-			environment_setting(setting.as_string())
-		}
-	}
-	return changes
-}
-
-fn nil_kernel_value() ruby.Value {
-	return ruby.object_value('NilClass', 'nil')
 }

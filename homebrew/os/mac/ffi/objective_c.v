@@ -1,7 +1,5 @@
 module ffi
 
-import ruby
-
 pub fn objective_c_class_get(name string) NativePointer {
 	if name == '' {
 		return NativePointer{}

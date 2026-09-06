@@ -106,16 +106,6 @@ pub fn (mut runtime BundleRuntime) is_cask_installed() bool {
 	return runtime.cask_installed
 }
 
-pub fn (mut runtime BundleRuntime) exchange_uid_if_needed_value(block_result ruby.Value) ruby.Value {
-	if runtime.config.euid != runtime.config.uid {
-		// The Ruby process temporarily exchanges IDs around the block. V callers
-		// keep process credentials unchanged and expose the exchange as state so
-		// privileged launchers can perform it at their process boundary.
-		runtime.uid_exchange_count++
-	}
-	return block_result
-}
-
 fn bundle_formula_environment_name(formula_name string) string {
 	return formula_name.to_upper().replace('@', 'AT').replace('+', 'X').replace('-', '_')
 }
@@ -205,56 +195,5 @@ pub fn (mut runtime BundleRuntime) mark_as_installed_on_request(entries []Bundle
 				}
 			}
 		}
-	}
-}
-
-fn bundle_runtime_value(runtime &BundleRuntime) ruby.Value {
-	return ruby.structured_value('Homebrew::Bundle', '', {
-		'bundle_runtime_address': u64(voidptr(runtime)).str()
-	})
-}
-
-pub fn bundle_runtime_boundary(runtime &BundleRuntime) ruby.Value {
-	return bundle_runtime_value(runtime)
-}
-
-fn bundle_runtime_from_args(args []ruby.Value, method string) &BundleRuntime {
-	if args.len == 0 || args[0].type_name != 'Homebrew::Bundle' {
-		panic('Homebrew::Bundle.${method} requires a translated runtime')
-	}
-	address := args[0].attributes['bundle_runtime_address'] or {
-		panic('Homebrew::Bundle runtime has no translated state')
-	}
-	return unsafe { &BundleRuntime(voidptr(address.u64())) }
-}
-
-fn bundle_string_map_value(values map[string]string) ruby.Value {
-	mut mapped := map[string]ruby.Value{}
-	for key, value in values {
-		mapped[key] = ruby.string_value(value)
-	}
-	return ruby.map_value(mapped)
-}
-
-fn bundle_string_map_from_value(value ruby.Value) map[string]string {
-	mut mapped := map[string]string{}
-	for key, item in value.as_map() or { return mapped } {
-		mapped[key] = item.as_string()
-	}
-	return mapped
-}
-
-pub fn bundle_entry_boundary(entry BundleEntry) ruby.Value {
-	return ruby.map_value({
-		'type': ruby.string_value(entry.entry_type)
-		'name': ruby.string_value(entry.name)
-	})
-}
-
-fn bundle_entry_from_value(value ruby.Value) BundleEntry {
-	fields := value.map_data.clone()
-	return BundleEntry{
-		entry_type: (fields['type'] or { ruby.string_value('') }).as_string()
-		name: (fields['name'] or { ruby.string_value('') }).as_string()
 	}
 }

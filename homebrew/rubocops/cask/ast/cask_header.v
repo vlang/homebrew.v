@@ -1,7 +1,5 @@
 module ast
 
-import ruby
-
 // Translated from Homebrew/brew `rubocops/cask/ast/cask_header.rb`.
 pub struct CaskHeader {
 pub:
@@ -139,21 +137,4 @@ pub fn parse_cask_header(source string) ?CaskHeader {
 		line_start = line_end + 1
 	}
 	return none
-}
-
-fn cask_header_value(header CaskHeader) ruby.Value {
-	return ruby.structured_value('RuboCop::Cask::AST::CaskHeader', header.cask_token, {
-		'method_source': header.method_source
-		'begin_pos':     header.begin_pos.str()
-		'end_pos':       header.end_pos.str()
-		'cask_token':    header.cask_token
-		'hash_source':   header.hash_source
-		'hash_begin':    header.hash_begin.str()
-		'hash_end':      header.hash_end.str()
-	})
-}
-
-fn cask_header_argument(args []ruby.Value) ?CaskHeader {
-	source := if args.len > 0 { args[0].as_string() } else { '' }
-	return parse_cask_header(source)
 }

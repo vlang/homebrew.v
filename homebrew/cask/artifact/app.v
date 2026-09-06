@@ -1,6 +1,5 @@
 module artifact
 
-import ruby
 import os
 
 // Translated from Homebrew/brew `cask/artifact/app.rb`.
@@ -374,31 +373,4 @@ pub fn reinstall_app(artifact AppArtifact, preserve_directory bool, root_owned b
 		reinstalled: install_result.success
 		commands: uninstall_result.commands
 	}
-}
-
-pub fn app_artifact_value(artifact AppArtifact) ruby.Value {
-	return ruby.structured_value('Cask::Artifact::App', artifact.source, {
-		'source': artifact.source
-		'target': artifact.target
-	})
-}
-
-pub fn app_artifact_from_value(value ruby.Value) AppArtifact {
-	return AppArtifact{
-		source: value.attributes['source'] or { value.as_string() }
-		target: value.attributes['target'] or { '' }
-	}
-}
-
-pub fn app_operation_value(result AppOperationResult) ruby.Value {
-	return ruby.map_value({
-		'success':     ruby.bool_value(result.success)
-		'error':       ruby.string_value(result.error)
-		'stdout':      ruby.string_value(result.stdout)
-		'stderr':      ruby.string_value(result.stderr)
-		'adopted':     ruby.bool_value(result.adopted)
-		'overwritten': ruby.bool_value(result.overwritten)
-		'reused':      ruby.bool_value(result.reused)
-		'commands':    ruby.string_array_value(result.commands.map('${it.executable} ${it.args.join(' ')} sudo=${it.sudo}'))
-	})
 }

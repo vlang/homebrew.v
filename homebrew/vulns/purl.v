@@ -1,7 +1,5 @@
 module vulns
 
-import ruby
-
 // Translated from Homebrew/brew `vulns/purl.rb`.
 pub struct PackageUrlConfig {
 pub:
@@ -340,91 +338,6 @@ pub fn (purl PackageUrl) hash() i64 {
 	return i64(hash)
 }
 
-pub fn purl_value(purl PackageUrl) ruby.Value {
-	mut qualifier_values := map[string]ruby.Value{}
-	for key, value in purl.qualifiers() {
-		qualifier_values[key] = ruby.string_value(value)
-	}
-	return ruby.Value{
-		type_name: 'Purl'
-		repr: purl.str()
-		map_data: qualifier_values
-		attributes: {
-			'type':      purl.package_type()
-			'name':      purl.name()
-			'namespace': purl.namespace() or { '' }
-			'version':   purl.version() or { '' }
-			'subpath':   purl.subpath() or { '' }
-		}
-	}
-}
-
-pub fn purl_from_value(value ruby.Value) !PackageUrl {
-	if value.type_name != 'Purl' {
-		return error('expected Purl, got ${value.type_name}')
-	}
-	return parse_package_url(value.repr)
-}
-
 struct PurlOptionalString {
 	value ?string
-}
-
-fn purl_optional_string(value ruby.Value) !PurlOptionalString {
-	if value.type_name == 'NilClass' {
-		return PurlOptionalString{}
-	}
-	if value.type_name != 'String' {
-		return error('expected String or nil, got ${value.type_name}')
-	}
-	return PurlOptionalString{
-		value: value.as_string()
-	}
-}
-
-fn purl_config_from_args(args []ruby.Value) !PackageUrlConfig {
-	if args.len == 1 && args[0].type_name == 'Hash' {
-		values := args[0].map_data.clone()
-		package_type := values['type'] or { values['package_type'] or { return error('type is required') } }
-		name := values['name'] or { return error('name is required') }
-		mut qualifiers := map[string]string{}
-		if raw_qualifiers := values['qualifiers'] {
-			if raw_qualifiers.type_name != 'Hash' {
-				return error('qualifiers must be a Hash')
-			}
-			for key, value in raw_qualifiers.map_data {
-				qualifiers[key] = value.as_string()
-			}
-		}
-		return PackageUrlConfig{
-			package_type: package_type.as_string()
-			name: name.as_string()
-			namespace: purl_optional_string(values['namespace'] or {
-				ruby.object_value('NilClass', 'nil')
-			})!.value
-			version: purl_optional_string(values['version'] or {
-				ruby.object_value('NilClass', 'nil')
-			})!.value
-			qualifiers: qualifiers
-			subpath: purl_optional_string(values['subpath'] or {
-				ruby.object_value('NilClass', 'nil')
-			})!.value
-		}
-	}
-	if args.len < 2 {
-		return error('PURL initialize requires type and name')
-	}
-	return PackageUrlConfig{
-		package_type: args[0].as_string()
-		name: args[1].as_string()
-		namespace: if args.len > 2 { purl_optional_string(args[2])!.value } else { none }
-		version: if args.len > 3 { purl_optional_string(args[3])!.value } else { none }
-	}
-}
-
-fn purl_boundary_receiver(args []ruby.Value) !PackageUrl {
-	if args.len == 0 {
-		return error('missing Purl receiver')
-	}
-	return purl_from_value(args[0])
 }

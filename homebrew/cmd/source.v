@@ -1,6 +1,5 @@
 module cmd
 
-import ruby
 import net.http
 import x.json2
 
@@ -334,54 +333,6 @@ pub fn plan_source_command(formulae []SourceFormula, fetcher SourceHttpGetter) S
 		messages: messages
 		warnings: warnings
 		repo_urls: repo_urls
-	}
-}
-
-pub fn source_formula_value(formula SourceFormula) ruby.Value {
-	return ruby.structured_value('Formula', formula.name, {
-		'name':       formula.name
-		'head_url':   formula.head_url
-		'stable_url': formula.stable_url
-		'homepage':   formula.homepage
-	})
-}
-
-fn source_formula_from_value(value ruby.Value) SourceFormula {
-	return SourceFormula{
-		name: value.attributes['name'] or { value.as_string() }
-		head_url: value.attributes['head_url'] or { '' }
-		stable_url: value.attributes['stable_url'] or { '' }
-		homepage: value.attributes['homepage'] or { '' }
-	}
-}
-
-pub fn source_command_plan_value(plan SourceCommandPlan) ruby.Value {
-	return ruby.Value{
-		type_name: 'SourceCommandPlan'
-		repr: plan.repo_urls.join(' ')
-		map_data: {
-			'messages':  ruby.string_array_value(plan.messages)
-			'warnings':  ruby.string_array_value(plan.warnings)
-			'repo_urls': ruby.string_array_value(plan.repo_urls)
-		}
-	}
-}
-
-fn source_nil() ruby.Value {
-	return ruby.object_value('NilClass', 'nil')
-}
-
-fn source_optional_string_value(value ?string) ruby.Value {
-	if result := value {
-		return ruby.string_value(result)
-	}
-	return source_nil()
-}
-
-fn source_boundary_http_result(value ruby.Value) SourceHttpResult {
-	return SourceHttpResult{
-		body: value.attributes['body'] or { value.as_string() }
-		success: (value.attributes['success'] or { 'true' }) == 'true'
 	}
 }
 

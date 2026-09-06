@@ -1,6 +1,5 @@
 module pathname
 
-import ruby
 import homebrew.utils as hb_utils
 import os
 

@@ -167,14 +167,6 @@ pub fn mktemp_chmod_rm_rf(path string) {
 	}
 }
 
-fn mktemp_value(stage &Mktemp) ruby.Value {
-	return ruby.structured_value('Mktemp', stage.str(), {
-		'mktemp_address': u64(voidptr(stage)).str()
-		'prefix':         stage.prefix
-		'tmpdir':         stage.tmpdir
-	})
-}
-
 fn mktemp_from_args(args []ruby.Value, method string) &Mktemp {
 	if args.len == 0 || args[0].type_name != 'Mktemp' {
 		panic('Mktemp#${method} requires a translated Mktemp receiver')
@@ -183,14 +175,6 @@ fn mktemp_from_args(args []ruby.Value, method string) &Mktemp {
 		panic('Mktemp receiver has no translated state')
 	}
 	return unsafe { &Mktemp(voidptr(address.u64())) }
-}
-
-pub fn mktemp_boundary(stage &Mktemp) ruby.Value {
-	return mktemp_value(stage)
-}
-
-fn mktemp_boundary_action(mut stage Mktemp) !ruby.Value {
-	return stage.boundary_result
 }
 
 // Ruby method `retain!` at line 27.

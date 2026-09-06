@@ -1,7 +1,5 @@
 module vulns
 
-import ruby
-
 // Translated from Homebrew/brew `vulns/semver.rb`.
 pub struct SemverIdentifier {
 pub:
@@ -214,49 +212,4 @@ pub fn (interval SemverRange) contains(version string) ?bool {
 		return comparison < 0
 	}
 	return true
-}
-
-pub fn semver_value(version SemverVersion) ruby.Value {
-	mut representation := '${version.major}.${version.minor}.${version.patch}'
-	if version.prerelease.len > 0 {
-		representation += '-${version.prerelease.map(it.value).join('.')}'
-	}
-	if version.build.len > 0 {
-		representation += '+${version.build.join('.')}'
-	}
-	return ruby.Value{
-		type_name: 'Semver'
-		repr: representation
-		map_data: {
-			'core':       ruby.string_array_value([version.major, version.minor, version.patch])
-			'prerelease': ruby.string_array_value(version.prerelease.map(it.value))
-			'build':      ruby.string_array_value(version.build)
-		}
-	}
-}
-
-pub fn semver_from_value(value ruby.Value) ?SemverVersion {
-	if value.type_name != 'Semver' {
-		return none
-	}
-	return parse_semver(value.repr)
-}
-
-fn semver_identifiers_from_value(value ruby.Value) ![]SemverIdentifier {
-	items := value.as_array()!
-	mut identifiers := []SemverIdentifier{cap: items.len}
-	for item in items {
-		if item.type_name != 'String' {
-			return error('SemVer prerelease identifiers must be Strings')
-		}
-		text := item.as_string()
-		if text == '' || !text.bytes().all(semver_identifier_char(it)) {
-			return error('invalid SemVer prerelease identifier `${text}`')
-		}
-		identifiers << SemverIdentifier{
-			value: text
-			numeric: semver_ascii_digits(text)
-		}
-	}
-	return identifiers
 }

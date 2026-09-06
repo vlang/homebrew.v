@@ -1,6 +1,5 @@
 module test_bot
 
-import ruby
 import os
 
 // Translated from Homebrew/brew `test_bot/formulae_detect.rb`.
@@ -95,42 +94,6 @@ pub fn new_formulae_detect(argument string, config FormulaeDetectConfig) &Formul
 		command_outputs: config.command_outputs.clone()
 		command_errors: config.command_errors.clone()
 		bottles_equal_at_revision: config.bottles_equal_at_revision.clone()
-	}
-}
-
-fn formulae_detect_nil_value() ruby.Value {
-	return ruby.object_value('NilClass', 'nil')
-}
-
-fn formulae_detect_error_value(kind string, message string) ruby.Value {
-	return ruby.structured_value(kind, message, {
-		'message': message
-	})
-}
-
-pub fn formulae_detect_boundary(detector &FormulaeDetect) ruby.Value {
-	return ruby.structured_value('Homebrew::TestBot::FormulaeDetect', detector.argument, {
-		'formulae_detect_address': u64(voidptr(detector)).str()
-	})
-}
-
-fn formulae_detect_receiver(args []ruby.Value) !&FormulaeDetect {
-	if args.len == 0 || 'formulae_detect_address' !in args[0].attributes {
-		return error('FormulaeDetect receiver is required')
-	}
-	address := args[0].attributes['formulae_detect_address'].u64()
-	if address == 0 {
-		return error('FormulaeDetect receiver is invalid')
-	}
-	return unsafe { &FormulaeDetect(voidptr(address)) }
-}
-
-fn formulae_detect_args_from_value(value ruby.Value) FormulaeDetectArgs {
-	return FormulaeDetectArgs{
-		dry_run: value.attributes['dry_run'] or { 'false' } == 'true'
-		debug: value.attributes['debug'] or { 'false' } == 'true'
-		test_default_formula: value.attributes['test_default_formula'] or { 'false' } == 'true'
-		only_formulae_detect: value.attributes['only_formulae_detect'] or { 'false' } == 'true'
 	}
 }
 

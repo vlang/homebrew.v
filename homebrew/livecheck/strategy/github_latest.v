@@ -1,7 +1,5 @@
 module strategy
 
-import ruby
-
 // Translated from Homebrew/brew `livecheck/strategy/github_latest.rb`.
 pub const github_latest_priority = 0
 

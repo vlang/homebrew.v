@@ -1,7 +1,5 @@
 module rubocops
 
-import ruby
-
 // Translated from Homebrew/brew `rubocops/compact_blank.rb`.
 pub const compact_blank_message_template = 'Use `%s` instead.'
 
@@ -430,27 +428,4 @@ pub fn analyze_compact_blank(source string) CompactBlankAnalysis {
 		offenses: audit_compact_blank(source)
 		corrected: correct_compact_blank(source)
 	}
-}
-
-fn compact_blank_call_value(call CompactBlankCall, type_name string) ruby.Value {
-	return ruby.structured_value(type_name, call.source, {
-		'method':            call.method
-		'kind':              call.kind
-		'arguments':         call.arguments.join(',')
-		'receiver_in_block': call.receiver_in_block
-		'begin_pos':         call.selector_begin.str()
-		'selector_end':      call.selector_end.str()
-		'end_pos':           call.end_pos.str()
-		'preferred_method':  call.preferred_method
-	})
-}
-
-fn compact_blank_offense_value(offense CompactBlankOffense) ruby.Value {
-	return ruby.structured_value('RuboCop::Cop::Offense', offense.message, {
-		'method':      offense.call.method
-		'begin_pos':   offense.begin_pos.str()
-		'end_pos':     offense.end_pos.str()
-		'message':     offense.message
-		'replacement': offense.replacement
-	})
 }

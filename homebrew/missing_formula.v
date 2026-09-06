@@ -1,7 +1,5 @@
 module homebrew
 
-import ruby
-
 pub struct MissingFormulaReason {
 pub:
 	present bool
@@ -229,13 +227,6 @@ pub fn missing_formula_reason(name string, silent bool, show_info bool,
 		return missing_formula_deleted_reason(record)
 	}
 	return MissingFormulaReason{}
-}
-
-pub fn missing_formula_reason_value(reason MissingFormulaReason) ruby.Value {
-	if !reason.present {
-		return ruby.object_value('NilClass', 'nil')
-	}
-	return ruby.string_value(reason.text)
 }
 
 // Translated from Homebrew/brew `missing_formula.rb`.

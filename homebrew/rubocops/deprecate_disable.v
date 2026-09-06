@@ -1,6 +1,5 @@
 module rubocops
 
-import ruby
 import time
 
 // Translated from Homebrew/brew `rubocops/deprecate_disable.rb`.
@@ -588,27 +587,4 @@ pub fn analyze_deprecate_disable_reasons(source string) DeprecateDisableAnalysis
 		offenses: offenses
 		corrected: deprecate_disable_apply_edits(source, edits)
 	}
-}
-
-fn deprecate_disable_argument_value(node DeprecateDisableArgumentNode) ruby.Value {
-	return ruby.structured_value('RuboCop::AST::Node', node.source, {
-		'key':       node.key
-		'kind':      node.kind
-		'content':   node.content
-		'begin_pos': node.begin_pos.str()
-		'end_pos':   node.end_pos.str()
-	})
-}
-
-fn deprecate_disable_analysis_value(analysis DeprecateDisableAnalysis) ruby.Value {
-	offenses := analysis.offenses.map(ruby.structured_value('RuboCop::Cop::Offense', it.message, {
-		'begin_pos':   it.begin_pos.str()
-		'end_pos':     it.end_pos.str()
-		'message':     it.message
-		'replacement': it.replacement
-	}))
-	return ruby.map_value({
-		'offenses':  ruby.array_value(offenses)
-		'corrected': ruby.string_value(analysis.corrected)
-	})
 }

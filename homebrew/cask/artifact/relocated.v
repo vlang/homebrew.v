@@ -53,13 +53,6 @@ pub:
 
 pub type RelocatedCommandRunner = fn (RelocatedCommand) !RelocatedCommandResult
 
-fn relocated_nil() ruby.Value {
-	return ruby.Value{
-		type_name: 'NilClass'
-		repr: 'nil'
-	}
-}
-
 fn relocated_cask_string(cask ruby.Value, key string) string {
 	if value := cask.map_data[key] {
 		return value.as_string()
@@ -84,48 +77,6 @@ fn relocated_url_only_path(cask ruby.Value) string {
 		}
 	}
 	return url.attributes['only_path'] or { '' }
-}
-
-fn relocated_target_base_dir(cask ruby.Value) string {
-	dirmethod := relocated_cask_string(cask, 'dirmethod')
-	if dirmethod != '' {
-		if direct := cask.map_data[dirmethod] {
-			return direct.as_string()
-		}
-		if config := cask.map_data['config'] {
-			if direct := config.map_data[dirmethod] {
-				return direct.as_string()
-			}
-			if direct := config.attributes[dirmethod] {
-				return direct
-			}
-		}
-	}
-	if direct := cask.map_data['base_dir'] {
-		return direct.as_string()
-	}
-	return cask.attributes['base_dir'] or { '' }
-}
-
-fn relocated_home(cask ruby.Value) string {
-	home := relocated_cask_string(cask, 'home')
-	return if home == '' { os.home_dir() } else { home }
-}
-
-pub fn new_relocated_artifact_with_context(cask ruby.Value, source string, target string,
-	base_dir string, home string) RelocatedArtifact {
-	return RelocatedArtifact{
-		cask: cask
-		source_string: source
-		target_string: target
-		base_dir: base_dir
-		home: if home == '' { os.home_dir() } else { home }
-	}
-}
-
-pub fn new_relocated_artifact(cask ruby.Value, source string,
-	target string) RelocatedArtifact {
-	return new_relocated_artifact_with_context(cask, source, target, relocated_target_base_dir(cask), relocated_home(cask))
 }
 
 pub fn resolve_relocated_target(target string, base_dir string, home string) string {
@@ -196,37 +147,6 @@ pub fn (artifact RelocatedArtifact) printable_target() string {
 	return target
 }
 
-pub fn relocated_artifact_to_value(artifact RelocatedArtifact) ruby.Value {
-	return ruby.Value{
-		type_name: 'Cask::Artifact::Relocated'
-		repr: artifact.summarize()
-		map_data: {
-			'cask':          artifact.cask
-			'source_string': ruby.string_value(artifact.source_string)
-			'target_string': ruby.string_value(artifact.target_string)
-			'base_dir':      ruby.string_value(artifact.base_dir)
-			'home':          ruby.string_value(artifact.home)
-		}
-	}
-}
-
-pub fn relocated_artifact_from_value(value ruby.Value) !RelocatedArtifact {
-	if !value.type_name.starts_with('Cask::Artifact::') && value.type_name != 'Hash' {
-		return error('expected Cask::Artifact::Relocated, got ${value.type_name}')
-	}
-	return new_relocated_artifact_with_context(value.map_data['cask'] or {
-		ruby.object_value('Cask::Cask', '')
-	}, (value.map_data['source_string'] or {
-		return error('Relocated source is required')
-	}).as_string(), (value.map_data['target_string'] or {
-		ruby.string_value('')
-	}).as_string(), (value.map_data['base_dir'] or {
-		ruby.string_value('')
-	}).as_string(), (value.map_data['home'] or {
-		ruby.string_value(os.home_dir())
-	}).as_string())
-}
-
 fn relocated_normalize_alternate_names(stdout string) string {
 	if stdout.starts_with('(') && stdout.ends_with(')') {
 		return stdout[1..stdout.len - 1]
@@ -294,30 +214,4 @@ pub fn add_relocated_altname_metadata(file RelocatedFile, altname string,
 		last_result: runner(result.commands[2])!
 	}
 	return result
-}
-
-fn relocated_file_from_value(value ruby.Value) RelocatedFile {
-	path := value.as_string()
-	return RelocatedFile{
-		path: path
-		basename: (value.map_data['basename'] or { ruby.string_value(os.file_name(path)) }).as_string()
-		real_path: (value.map_data['real_path'] or { ruby.string_value(path) }).as_string()
-		writable: (value.map_data['writable'] or { ruby.bool_value(true) }).as_bool() or { true }
-		real_path_writable: (value.map_data['real_path_writable'] or { ruby.bool_value(true) }).as_bool() or { true }
-	}
-}
-
-fn relocated_metadata_value(result RelocatedMetadataResult) ruby.Value {
-	return ruby.map_value({
-		'no_op':           ruby.bool_value(result.no_op)
-		'alternate_names': ruby.string_value(result.alternate_names)
-		'commands':        ruby.array_value(result.commands.map(ruby.map_value({
-			'executable':   ruby.string_value(it.executable)
-			'args':         ruby.string_array_value(it.args)
-			'print_stderr': ruby.bool_value(it.print_stderr)
-			'sudo':         ruby.bool_value(it.sudo)
-			'must_succeed': ruby.bool_value(it.must_succeed)
-		})))
-		'stdout':          ruby.string_value(result.last_result.stdout)
-	})
 }

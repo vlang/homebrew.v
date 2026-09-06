@@ -96,10 +96,6 @@ fn development_tools_from_value(value ruby.Value) &MacDevelopmentTools {
 	return unsafe { &MacDevelopmentTools(voidptr(value.attributes['mac_development_tools_address'].u64())) }
 }
 
-pub fn mac_development_tools_boundary(tools &MacDevelopmentTools) ruby.Value {
-	return development_tools_value(tools)
-}
-
 // Translated from Homebrew/brew `extend/os/mac/development_tools.rb`.
 
 // Ruby method `locate(tool)` at line 15.

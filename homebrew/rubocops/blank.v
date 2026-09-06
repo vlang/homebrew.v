@@ -1,7 +1,5 @@
 module rubocops
 
-import ruby
-
 // Translated from Homebrew/brew `rubocops/blank.rb`.
 pub const blank_message_template = 'Use `%s` instead of `%s`.'
 
@@ -513,25 +511,4 @@ pub fn correct_blank(source string) string {
 		corrected = corrected[..offense.begin_pos] + offense.replacement + corrected[offense.end_pos..]
 	}
 	return corrected
-}
-
-fn blank_match_value(matched BlankMatch, type_name string) ruby.Value {
-	return ruby.structured_value(type_name, matched.source, {
-		'variable1':   if matched.variable1.has_source { matched.variable1.source } else { 'nil' }
-		'variable2':   if matched.variable2.has_source { matched.variable2.source } else { 'nil' }
-		'begin_pos':   matched.begin_pos.str()
-		'end_pos':     matched.end_pos.str()
-		'operator':    matched.operator
-		'message':     matched.message
-		'replacement': matched.replacement
-	})
-}
-
-fn blank_offense_value(offense BlankOffense) ruby.Value {
-	return ruby.structured_value('RuboCop::Cop::Offense', offense.message, {
-		'begin_pos':   offense.begin_pos.str()
-		'end_pos':     offense.end_pos.str()
-		'message':     offense.message
-		'replacement': offense.replacement
-	})
 }

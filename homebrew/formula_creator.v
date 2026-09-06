@@ -1,6 +1,5 @@
 module homebrew
 
-import ruby
 import os
 
 // Translated from Homebrew/brew `formula_creator.rb`.
@@ -355,72 +354,4 @@ pub fn write_formula(mut creator FormulaCreator, path string, downloaded_content
 	os.mkdir_all(os.dir(path))!
 	os.write_file(path, formula_creator_template(creator, formula_names))!
 	return path
-}
-
-fn formula_creator_boundary_value(creator FormulaCreator) ruby.Value {
-	return ruby.structured_value('Homebrew::FormulaCreator', creator.name, {
-		'name':                      creator.name
-		'version':                   creator.version
-		'url':                       creator.url
-		'head':                      creator.head.str()
-		'tap':                       creator.tap
-		'mode':                      creator.mode
-		'fetch':                     creator.fetch.str()
-		'version_detected_from_url': creator.version_detected_from_url.str()
-		'github_user':               creator.github_user
-		'github_repository':         creator.github_repository
-		'desc':                      creator.desc
-		'homepage':                  creator.homepage
-		'license':                   creator.license
-		'tap_installed':             creator.tap_installed.str()
-		'sha256':                    creator.sha256
-	})
-}
-
-fn formula_creator_from_boundary(value ruby.Value) FormulaCreator {
-	return FormulaCreator{
-		name: value.attributes['name']
-		version: value.attributes['version']
-		url: value.attributes['url']
-		head: value.attributes['head'] == 'true'
-		tap: value.attributes['tap']
-		mode: value.attributes['mode']
-		fetch: value.attributes['fetch'] == 'true'
-		version_detected_from_url: value.attributes['version_detected_from_url'] == 'true'
-		github_user: value.attributes['github_user']
-		github_repository: value.attributes['github_repository']
-		desc: value.attributes['desc']
-		homepage: value.attributes['homepage']
-		license: value.attributes['license']
-		tap_installed: value.attributes['tap_installed'] != 'false'
-		sha256: value.attributes['sha256']
-	}
-}
-
-fn formula_creator_options_from_args(args []ruby.Value) FormulaCreatorOptions {
-	if args.len > 0 && args[0].type_name == 'Hash' {
-		values := args[0].as_map() or { map[string]ruby.Value{} }
-		return FormulaCreatorOptions{
-			url: (values['url'] or { ruby.string_value('') }).as_string()
-			name: (values['name'] or { ruby.string_value('') }).as_string()
-			version: (values['version'] or { ruby.string_value('') }).as_string()
-			tap: (values['tap'] or { ruby.string_value('homebrew/core') }).as_string()
-			mode: (values['mode'] or { ruby.string_value('') }).as_string()
-			license: (values['license'] or { ruby.string_value('') }).as_string()
-			fetch: (values['fetch'] or { ruby.bool_value(false) }).as_bool() or { false }
-			head: (values['head'] or { ruby.bool_value(false) }).as_bool() or { false }
-			latest_release: (values['latest_release'] or { ruby.string_value('') }).as_string()
-		}
-	}
-	return FormulaCreatorOptions{
-		url: if args.len > 0 { args[0].as_string() } else { '' }
-		name: if args.len > 1 { args[1].as_string() } else { '' }
-		version: if args.len > 2 { args[2].as_string() } else { '' }
-		tap: if args.len > 3 { args[3].as_string() } else { 'homebrew/core' }
-		mode: if args.len > 4 { args[4].as_string() } else { '' }
-		license: if args.len > 5 { args[5].as_string() } else { '' }
-		fetch: if args.len > 6 { args[6].as_bool() or { false } } else { false }
-		head: if args.len > 7 { args[7].as_bool() or { false } } else { false }
-		latest_release: if args.len > 8 { args[8].as_string() } else { '' }
-	}
 }

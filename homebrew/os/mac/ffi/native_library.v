@@ -1,6 +1,5 @@
 module ffi
 
-import ruby
 import os
 
 pub struct NativePointer {
@@ -109,28 +108,6 @@ pub fn (mut library NativeLibrary) load_constant(name string, dereference bool) 
 	}
 	library.constants[key] = pointer
 	return pointer
-}
-
-fn native_library_value(library &NativeLibrary) ruby.Value {
-	return ruby.structured_value('NativeLibrary', library.path, {
-		'native_library_address': u64(voidptr(library)).str()
-	})
-}
-
-fn native_library_from_value(value ruby.Value) &NativeLibrary {
-	return unsafe { &NativeLibrary(voidptr(value.attributes['native_library_address'].u64())) }
-}
-
-fn native_pointer_value(pointer NativePointer) ruby.Value {
-	return ruby.structured_value('Fiddle::Pointer', pointer.value, {
-		'address':     pointer.address.str()
-		'value':       pointer.value
-		'free_symbol': pointer.free_symbol
-	})
-}
-
-pub fn native_library_boundary(library &NativeLibrary) ruby.Value {
-	return native_library_value(library)
 }
 
 // Translated from Homebrew/brew `os/mac/ffi/native_library.rb`.

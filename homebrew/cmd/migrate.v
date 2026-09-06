@@ -1,7 +1,5 @@
 module cmd
 
-import ruby
-
 // Translated from Homebrew/brew `cmd/migrate.rb`.
 pub enum MigratePackageKind {
 	formula
@@ -48,34 +46,4 @@ pub fn run_migrate_command(packages []MigratePackage, options MigrateOptions) Mi
 		output: output
 		dry_run: options.dry_run
 	}
-}
-
-pub fn migrate_package_to_value(package MigratePackage) ruby.Value {
-	return ruby.structured_value('MigratePackage', package.old_name, {
-		'kind':      package.kind.str()
-		'old_name':  package.old_name
-		'new_name':  package.new_name
-		'installed': package.installed.str()
-	})
-}
-
-fn migrate_package_from_value(value ruby.Value) MigratePackage {
-	return MigratePackage{
-		kind: if (value.attributes['kind'] or { 'formula' }) == 'cask' {
-			MigratePackageKind.cask
-		} else {
-			MigratePackageKind.formula
-		}
-		old_name: value.attributes['old_name'] or { value.as_string() }
-		new_name: value.attributes['new_name'] or { value.as_string() }
-		installed: (value.attributes['installed'] or { 'true' }) == 'true'
-	}
-}
-
-pub fn migrate_result_to_value(result MigrateResult) ruby.Value {
-	return ruby.map_value({
-		'migrated': ruby.string_array_value(result.migrated)
-		'output':   ruby.string_array_value(result.output)
-		'dry_run':  ruby.bool_value(result.dry_run)
-	})
 }

@@ -1,7 +1,5 @@
 module test_bot
 
-import ruby
-
 pub struct PkillInput {
 pub:
 	homebrew_cellar      string
@@ -80,14 +78,6 @@ pub fn cleanup_after_plan(input CleanupAfterInput) CleanupAfterPlan {
 		actions: actions
 		paths_to_purge: shared_plan.paths_to_purge
 	}
-}
-
-fn cleanup_after_plan_value(plan CleanupAfterPlan) ruby.Value {
-	return ruby.map_value({
-		'skipped':        ruby.bool_value(plan.skipped)
-		'actions':        cleanup_actions_value(plan.actions)
-		'paths_to_purge': ruby.string_array_value(plan.paths_to_purge)
-	})
 }
 
 // Translated from Homebrew/brew `test_bot/cleanup_after.rb`.

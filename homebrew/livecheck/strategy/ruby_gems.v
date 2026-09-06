@@ -1,6 +1,5 @@
 module strategy
 
-import ruby
 import homebrew.livecheck
 import homebrew.utils
 import x.json2

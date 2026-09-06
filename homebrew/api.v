@@ -18,7 +18,7 @@ pub:
 
 pub struct ApiFetchConfig {
 pub mut:
-	cache map[string]ruby.Value
+	cache map[string]json2.Any
 pub:
 	api_domain     string = api_default_domain
 	default_domain string = api_default_domain
@@ -52,7 +52,7 @@ pub:
 
 pub struct ApiFetchJsonResult {
 pub:
-	data    ruby.Value
+	data    json2.Any
 	updated bool
 }
 
@@ -64,32 +64,11 @@ pub:
 	shutdown    bool
 }
 
-fn api_nil_value() ruby.Value {
-	return ruby.Value{
-		type_name: 'NilClass'
-		repr: 'nil'
-	}
+pub fn api_parse_json(contents string) !json2.Any {
+	return json2.decode[json2.Any](contents)!
 }
 
-fn api_error_value(kind string, message string) ruby.Value {
-	return ruby.structured_value(kind, message, {
-		'message': message
-	})
-}
-
-pub fn api_value_from_json(value json2.Any) ruby.Value {
-	return ruby.json_value_from_any(value)
-}
-
-pub fn api_value_to_json(value ruby.Value) json2.Any {
-	return ruby.json_any_from_value(value)
-}
-
-pub fn api_parse_json(contents string) !ruby.Value {
-	return ruby.parse_json_value(contents)
-}
-
-pub fn api_fetch(endpoint string, mut config ApiFetchConfig) !ruby.Value {
+pub fn api_fetch(endpoint string, mut config ApiFetchConfig) !json2.Any {
 	if cached := config.cache[endpoint] {
 		return cached
 	}
@@ -107,48 +86,6 @@ pub fn api_fetch(endpoint string, mut config ApiFetchConfig) !ruby.Value {
 	return parsed
 }
 
-fn api_fetch_config_from_value(value ruby.Value) ApiFetchConfig {
-	mut config := ApiFetchConfig{}
-	if value.type_name != 'Hash' {
-		return config
-	}
-	values := value.map_data.clone()
-	if domain := values['api_domain'] {
-		config = ApiFetchConfig{
-			...config
-			api_domain: domain.as_string()
-		}
-	}
-	if domain := values['default_domain'] {
-		config = ApiFetchConfig{
-			...config
-			default_domain: domain.as_string()
-		}
-	}
-	if cached := values['cache'] {
-		config.cache = cached.map_data.clone()
-	}
-	if primary := values['primary'] {
-		config = ApiFetchConfig{
-			...config
-			primary: ApiCurlOutput{
-				stdout: primary.map_data['stdout'] or { api_nil_value() }.as_string()
-				success: (primary.map_data['success'] or { ruby.bool_value(false) }).bool_data
-			}
-		}
-	}
-	if fallback := values['fallback'] {
-		config = ApiFetchConfig{
-			...config
-			fallback: ApiCurlOutput{
-				stdout: fallback.map_data['stdout'] or { api_nil_value() }.as_string()
-				success: (fallback.map_data['success'] or { ruby.bool_value(false) }).bool_data
-			}
-		}
-	}
-	return config
-}
-
 pub fn api_skip_download(target string, stale_seconds ?i64, running_as_root bool, now i64) bool {
 	if running_as_root {
 		return true
@@ -158,40 +95,6 @@ pub fn api_skip_download(target string, stale_seconds ?i64, running_as_root bool
 	}
 	seconds := stale_seconds or { return true }
 	return now - seconds < os.file_last_mod_unix(target)
-}
-
-fn api_fetch_json_config_from_value(endpoint string, value ruby.Value) ApiFetchJsonConfig {
-	values := value.map_data.clone()
-	mut attempts := []ApiDownloadAttempt{}
-	attempt_values := values['download_attempts'] or { api_nil_value() }
-	for attempt in attempt_values.array_data {
-		attempts << ApiDownloadAttempt{
-			url: (attempt.map_data['url'] or { ruby.string_value('') }).as_string()
-			stdout: (attempt.map_data['stdout'] or { ruby.string_value('') }).as_string()
-			success: (attempt.map_data['success'] or { ruby.bool_value(false) }).bool_data
-		}
-	}
-	return ApiFetchJsonConfig{
-		api_domain: (values['api_domain'] or { ruby.string_value(api_default_domain) }).as_string()
-		default_domain: (values['default_domain'] or { ruby.string_value(api_default_domain) }).as_string()
-		target: (values['target'] or { ruby.string_value(api_cache_path(endpoint)) }).as_string()
-		stale_seconds: if stale := values['stale_seconds'] {
-			if stale.type_name == 'Integer' { ?i64(stale.int_data) } else { none }
-		} else {
-			none
-		}
-		now: (values['now'] or { ruby.int_value(time.now().unix()) }).int_data
-		running_as_root: (values['running_as_root'] or { ruby.bool_value(false) }).bool_data
-		insecure_download: (values['insecure_download'] or { ruby.bool_value(false) }).bool_data
-		enqueue: (values['enqueue'] or { ruby.bool_value(false) }).bool_data
-		download_attempts: attempts
-		curl_retries: int((values['curl_retries'] or { ruby.int_value(0) }).int_data)
-		signature_verified: (values['signature_verified'] or { ruby.bool_value(true) }).bool_data
-		payload_cache_signature_verified: (values['payload_cache_signature_verified'] or {
-			ruby.bool_value(true)
-		}).bool_data
-		has_signature_result: (values['has_signature_result'] or { ruby.bool_value(true) }).bool_data
-	}
 }
 
 fn api_cache_root() string {
@@ -214,13 +117,6 @@ fn api_cache_path(endpoint string) string {
 	return os.join_path(api_cache_root(), endpoint)
 }
 
-fn api_fetch_json_result_value(result ApiFetchJsonResult) ruby.Value {
-	return ruby.array_value([
-		result.data,
-		ruby.bool_value(result.updated),
-	])
-}
-
 pub fn api_fetch_json_api_file(endpoint string, config ApiFetchJsonConfig) !ApiFetchJsonResult {
 	target := config.target
 	url := '${config.api_domain}/${endpoint}'
@@ -230,7 +126,7 @@ pub fn api_fetch_json_api_file(endpoint string, config ApiFetchJsonConfig) !ApiF
 	skip_download := api_skip_download(target, config.stale_seconds, config.running_as_root, config.now)
 	if config.enqueue {
 		return ApiFetchJsonResult{
-			data: ruby.map_value({})
+			data: json2.Any(map[string]json2.Any{})
 		}
 	}
 	mut download_succeeded := false
@@ -309,40 +205,51 @@ pub fn api_fetch_json_api_file(endpoint string, config ApiFetchJsonConfig) !ApiF
 }
 
 // Ruby method `self.merge_variations(json, bottle_tag: T.unsafe(nil))` at line 194.
-pub fn ruby_api_l194_d4_self_merge_variations(args ...ruby.Value) ruby.Value {
-	if args.len == 0 || args[0].type_name != 'Hash' {
-		return api_nil_value()
-	}
-	mut json := args[0].map_data.clone()
-	variations := json['variations'] or { return args[0] }
-	tag := if args.len > 1 { args[1].as_string() } else { api_current_tag() }
-	if variation := variations.map_data[tag] {
-		if variation.map_data.len > 0 {
-			for key, value in variation.map_data {
-				json[key] = value
-			}
+pub fn api_merge_variations(json map[string]json2.Any, bottle_tag string) map[string]json2.Any {
+	mut merged := json.clone()
+	variations := merged['variations'] or { return merged }
+	tag := if bottle_tag != '' { bottle_tag } else { api_current_tag() }
+	if variation := variations.as_map()[tag] {
+		for key, value in variation.as_map() {
+			merged[key] = value
 		}
 	}
-	json.delete('variations')
-	return ruby.map_value(json)
+	merged.delete('variations')
+	return merged
 }
 
 fn api_current_tag() string {
 	return ruby.environment_value('HOMEBREW_SIMULATE_TAG')
 }
 
-pub fn api_fetch_files_result(config map[string]ruby.Value) ApiFetchFilesResult {
-	target := (config['target'] or { ruby.string_value(api_cache_path('internal/packages.json')) }).as_string()
-	stale := if value := config['stale_seconds'] {
-		if value.type_name == 'Integer' { ?i64(value.int_data) } else { none }
-	} else if (config['api_updated'] or { ruby.bool_value(false) }).bool_data || (config['no_auto_update'] or { ruby.bool_value(false) }).bool_data {
-		none
+pub struct ApiFetchFilesConfig {
+pub:
+	target            string
+	stale_seconds     i64
+	has_stale_seconds bool
+	api_updated       bool
+	no_auto_update    bool
+	running_as_root   bool
+	now               i64
+	fetch_succeeded   bool = true
+}
+
+pub fn api_fetch_files_result(config ApiFetchFilesConfig) ApiFetchFilesResult {
+	target := if config.target != '' {
+		config.target
+	} else {
+		api_cache_path('internal/packages.json')
+	}
+	stale := if config.has_stale_seconds {
+		?i64(config.stale_seconds)
+	} else if config.api_updated || config.no_auto_update {
+		?i64(none)
 	} else {
 		?i64(api_default_stale_seconds)
 	}
-	root := (config['running_as_root'] or { ruby.bool_value(false) }).bool_data
-	now := (config['now'] or { ruby.int_value(time.now().unix()) }).int_data
-	if os.exists(target) && os.file_size(target) > 0 && api_skip_download(target, stale, root, now) {
+	now := if config.now != 0 { config.now } else { time.now().unix() }
+	if os.exists(target) && os.file_size(target) > 0
+		&& api_skip_download(target, stale, config.running_as_root, now) {
 		return ApiFetchFilesResult{
 			api_updated: true
 		}
@@ -350,7 +257,7 @@ pub fn api_fetch_files_result(config map[string]ruby.Value) ApiFetchFilesResult 
 	return ApiFetchFilesResult{
 		api_updated: true
 		enqueued: true
-		fetched: (config['fetch_succeeded'] or { ruby.bool_value(true) }).bool_data
+		fetched: config.fetch_succeeded
 		shutdown: true
 	}
 }
@@ -377,16 +284,16 @@ fn api_write_lines_file(path string, regenerate bool, lines []string) !bool {
 	return true
 }
 
-pub fn api_write_executables_file(target string, source string, regenerate bool, formulae map[string]ruby.Value) !bool {
+pub fn api_write_executables_file(target string, source string, regenerate bool, formulae map[string]json2.Any) !bool {
 	if !regenerate && os.exists(target) && os.exists(source) && os.file_last_mod_unix(source) <= os.file_last_mod_unix(target) {
 		return false
 	}
 	mut lines := []string{}
 	for name, formula in formulae {
-		executables_value := formula.map_data['executables'] or { continue }
-		executables := executables_value.as_array() or { continue }
+		executables_value := formula.as_map()['executables'] or { continue }
+		executables := executables_value.as_array()
 		if executables.len > 0 {
-			lines << '${name}:${executables.map(it.as_string()).join(' ')}'
+			lines << '${name}:${executables.map(it.str()).join(' ')}'
 		}
 	}
 	if lines.len == 0 {
@@ -402,22 +309,22 @@ pub fn api_write_executables_file(target string, source string, regenerate bool,
 	return true
 }
 
-fn api_homebrew_jws_signature(json_data ruby.Value) ?ruby.Value {
-	signatures := (json_data.map_data['signatures'] or { return none }).as_array() or { return none }
+fn api_homebrew_jws_signature(json_data json2.Any) ?json2.Any {
+	signatures := (json_data.as_map()['signatures'] or { return none }).as_array()
 	for signature in signatures {
-		header := signature.map_data['header'] or { continue }
-		if (header.map_data['kid'] or { api_nil_value() }).as_string() == 'homebrew-1' {
+		header := signature.as_map()['header'] or { continue }
+		if (header.as_map()['kid'] or { continue }).str() == 'homebrew-1' {
 			return signature
 		}
 	}
 	return none
 }
 
-fn api_verify_and_parse_jws(json_data ruby.Value, signature_verified bool, has_signature_result bool) !ruby.Value {
+fn api_verify_and_parse_jws(json_data json2.Any, signature_verified bool, has_signature_result bool) !json2.Any {
 	signature := api_homebrew_jws_signature(json_data) or { return error('key not found') }
-	payload := (json_data.map_data['payload'] or { ruby.string_value('') }).as_string()
-	protected := (signature.map_data['protected'] or { ruby.string_value('') }).as_string()
-	signature_b64 := (signature.map_data['signature'] or { ruby.string_value('') }).as_string()
+	payload := (json_data.as_map()['payload'] or { json2.Any('') }).str()
+	protected := (signature.as_map()['protected'] or { json2.Any('') }).str()
+	signature_b64 := (signature.as_map()['signature'] or { json2.Any('') }).str()
 	error_message := api_verify_jws_signature(protected, signature_b64, payload, signature_verified, has_signature_result) or { err.msg() }
 	if error_message != '' {
 		return error(error_message)
@@ -429,7 +336,10 @@ fn api_verify_jws_signature(protected_b64 string, signature_b64 string, payload 
 	_ = signature_b64
 	_ = payload
 	header_value := api_parse_json(api_urlsafe_decode64(protected_b64)!)!
-	if header_value.type_name != 'Hash' || (header_value.map_data['alg'] or { api_nil_value() }).as_string() != 'PS512' || (header_value.map_data['b64'] or { ruby.bool_value(true) }).type_name != 'Bool' || (header_value.map_data['b64'] or { ruby.bool_value(true) }).bool_data {
+	header_map := header_value.as_map()
+	b64 := header_map['b64'] or { json2.Any(true) }
+	if header_value !is map[string]json2.Any || (header_map['alg'] or { json2.Any('') }).str() != 'PS512'
+		|| b64 !is bool || b64.bool() {
 		return 'invalid algorithm'
 	}
 	if !has_signature_result || !signature_verified {
@@ -443,15 +353,20 @@ fn api_jws_payload_cacheable(target string, cache_root string) bool {
 	return os.norm_path(os.dir(target)) == os.norm_path(os.join_path(cache_root, 'internal')) && name.starts_with('packages.') && name.ends_with('.jws.json')
 }
 
-fn api_jws_source_fingerprint(target string) !ruby.Value {
-	stat := os.stat(target)!
-	return ruby.map_value({
-		'source_size':     ruby.int_value(stat.size)
-		'source_mtime_ns': ruby.int_value(stat.mtime * 1_000_000_000)
-	})
+struct ApiJwsSourceFingerprint {
+	source_size     i64
+	source_mtime_ns i64
 }
 
-fn api_cached_jws_payload(target string, signature_verified bool, has_signature_result bool) ?ruby.Value {
+fn api_jws_source_fingerprint(target string) !ApiJwsSourceFingerprint {
+	stat := os.stat(target)!
+	return ApiJwsSourceFingerprint{
+		source_size: i64(stat.size)
+		source_mtime_ns: stat.mtime * 1_000_000_000
+	}
+}
+
+fn api_cached_jws_payload(target string, signature_verified bool, has_signature_result bool) ?json2.Any {
 	payload := api_cached_jws_payload_string(target, signature_verified, has_signature_result) or {
 		return none
 	}
@@ -467,50 +382,50 @@ fn api_cached_jws_payload_string(target string, signature_verified bool, has_sig
 	contents := os.read_file('${target}.payload') or { return none }
 	newline := contents.index('\n') or { return none }
 	header := api_parse_json(contents[..newline]) or { return none }
-	if header.type_name != 'Hash' {
+	if header !is map[string]json2.Any {
 		return none
 	}
-	for key in ['source_size', 'source_mtime_ns'] {
-		if (header.map_data[key] or { api_nil_value() }).int_data != (expected.map_data[key] or {
-			api_nil_value()
-		}).int_data {
-			return none
-		}
+	header_map := header.as_map()
+	if (header_map['source_size'] or { return none }).i64() != expected.source_size
+		|| (header_map['source_mtime_ns'] or { return none }).i64() != expected.source_mtime_ns {
+		return none
 	}
-	protected := header.map_data['protected'] or { return none }
-	signature := header.map_data['signature'] or { return none }
-	if protected.type_name != 'String' || signature.type_name != 'String' {
+	protected := header_map['protected'] or { return none }
+	signature := header_map['signature'] or { return none }
+	if protected !is string || signature !is string {
 		return none
 	}
 	payload := contents[newline + 1..]
-	verification := api_verify_jws_signature(protected.as_string(), signature.as_string(), payload, signature_verified, has_signature_result) or { return none }
+	verification := api_verify_jws_signature(protected.str(), signature.str(), payload, signature_verified, has_signature_result) or { return none }
 	if verification != '' {
 		return none
 	}
 	return payload
 }
 
-fn api_write_jws_payload_cache(target string, json_data ruby.Value, running_as_root bool) ! {
+fn api_write_jws_payload_cache(target string, json_data json2.Any, running_as_root bool) ! {
 	root := os.dir(os.dir(target))
-	if !api_jws_payload_cacheable(target, root) || running_as_root || json_data.type_name != 'Hash' {
+	if !api_jws_payload_cacheable(target, root) || running_as_root
+		|| json_data !is map[string]json2.Any {
 		return
 	}
 	signature := api_homebrew_jws_signature(json_data) or { return }
-	payload := json_data.map_data['payload'] or { return }
-	protected := signature.map_data['protected'] or { return }
-	signature_b64 := signature.map_data['signature'] or { return }
-	if payload.type_name != 'String' || protected.type_name != 'String' || signature_b64.type_name != 'String' {
+	payload := json_data.as_map()['payload'] or { return }
+	signature_map := signature.as_map()
+	protected := signature_map['protected'] or { return }
+	signature_b64 := signature_map['signature'] or { return }
+	if payload !is string || protected !is string || signature_b64 !is string {
 		return
 	}
 	fingerprint := api_jws_source_fingerprint(target)!
 	header := json2.encode(json2.Any({
-		'protected':       json2.Any(protected.as_string())
-		'signature':       json2.Any(signature_b64.as_string())
-		'source_size':     json2.Any(fingerprint.map_data['source_size'].int_data)
-		'source_mtime_ns': json2.Any(fingerprint.map_data['source_mtime_ns'].int_data)
+		'protected':       json2.Any(protected.str())
+		'signature':       json2.Any(signature_b64.str())
+		'source_size':     json2.Any(fingerprint.source_size)
+		'source_mtime_ns': json2.Any(fingerprint.source_mtime_ns)
 	}))
 	temporary := '${target}.payload.tmp'
-	os.write_file(temporary, '${header}\n${payload.as_string()}')!
+	os.write_file(temporary, '${header}\n${payload.str()}')!
 	os.mv(temporary, '${target}.payload')!
 }
 
@@ -521,7 +436,7 @@ pub fn api_urlsafe_decode64(value string) !string {
 	return base64.url_decode_str(value)
 }
 
-pub fn api_with_no_api_env_value(no_install_from_api bool, block fn () ruby.Value) ruby.Value {
+pub fn api_with_no_api_env[T](no_install_from_api bool, block fn () T) T {
 	if no_install_from_api {
 		return block()
 	}

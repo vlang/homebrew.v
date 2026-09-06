@@ -1,6 +1,5 @@
 module homebrew
 
-import ruby
 import homebrew.extend
 import homebrew.extend.file
 import homebrew.language
@@ -36,35 +35,6 @@ pub fn new_cleaner(formula Formula) &Cleaner {
 	return &Cleaner{
 		formula: formula
 	}
-}
-
-fn cleaner_boundary_value(cleaner &Cleaner) ruby.Value {
-	return ruby.structured_value('Cleaner', '#<Cleaner: ${cleaner.formula.full_name()}>', {
-		'cleaner_address': u64(voidptr(cleaner)).str()
-		'formula':         cleaner.formula.full_name()
-		'prefix':          cleaner.formula.prefix()
-	})
-}
-
-fn cleaner_from_args(args []ruby.Value, method string) &Cleaner {
-	if args.len == 0 {
-		panic('Cleaner#${method} requires a receiver')
-	}
-	if args[0].type_name != 'Cleaner' {
-		panic('expected Cleaner, got ${args[0].type_name}')
-	}
-	address := args[0].attribute('cleaner_address') or {
-		panic('Cleaner receiver has no translated state')
-	}
-	return unsafe { &Cleaner(voidptr(address.u64())) }
-}
-
-fn cleaner_nil() ruby.Value {
-	return ruby.object_value('NilClass', 'nil')
-}
-
-fn cleaner_error(err IError) ruby.Value {
-	return ruby.object_value('IOError', err.msg())
 }
 
 fn (cleaner Cleaner) prefix_path(parts ...string) string {

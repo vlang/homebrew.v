@@ -1,6 +1,5 @@
 module dev_cmd
 
-import ruby
 import os
 
 // Translated from Homebrew/brew `dev-cmd/edit.rb`.
@@ -524,66 +523,4 @@ pub fn run_edit(options EditOptions) !EditResult {
 		stderr: options.editor_stderr
 		hint: hint
 	}
-}
-
-pub fn edit_input_boundary(input &EditInput) ruby.Value {
-	return ruby.structured_value('Homebrew::DevCmd::Edit::Input', '', {
-		'edit_input_address': u64(voidptr(input)).str()
-	})
-}
-
-fn edit_input_from_value(value ruby.Value) &EditInput {
-	address := value.attributes['edit_input_address'] or { panic('invalid Edit input') }
-	return unsafe { &EditInput(voidptr(address.u64())) }
-}
-
-pub fn edit_missing_path_input_boundary(input &EditMissingPathInput) ruby.Value {
-	return ruby.structured_value('Homebrew::DevCmd::Edit::MissingPathInput', '', {
-		'edit_missing_path_input_address': u64(voidptr(input)).str()
-	})
-}
-
-fn edit_missing_path_input_from_value(value ruby.Value) &EditMissingPathInput {
-	address := value.attributes['edit_missing_path_input_address'] or {
-		panic('invalid Edit missing-path input')
-	}
-	return unsafe { &EditMissingPathInput(voidptr(address.u64())) }
-}
-
-fn edit_tap_install_value(install EditTapInstall) ruby.Value {
-	return ruby.map_value({
-		'name':           ruby.string_value(install.name)
-		'force':          ruby.bool_value(install.force)
-		'requested_name': ruby.string_value(install.requested_name)
-	})
-}
-
-fn edit_result_value(result EditResult) ruby.Value {
-	mut environment := map[string]ruby.Value{}
-	for name, value in result.environment {
-		environment[name] = ruby.string_value(value)
-	}
-	return ruby.map_value({
-		'paths':             ruby.string_array_value(result.paths)
-		'selected_editor':   ruby.string_value(result.selected_editor)
-		'editor_command':    ruby.string_array_value(result.editor_command)
-		'editor_invoked':    ruby.bool_value(result.editor_invoked)
-		'tap_installs':      ruby.array_value(result.tap_installs.map(edit_tap_install_value(it)))
-		'environment':       ruby.map_value(environment)
-		'unset_environment': ruby.string_array_value(result.unset_environment)
-		'stdout':            ruby.string_value(result.stdout)
-		'stderr':            ruby.string_value(result.stderr)
-		'hint':              ruby.string_value(result.hint)
-	})
-}
-
-fn edit_boundary_error(edit_error EditCommandError) ruby.Value {
-	type_name := match edit_error.kind {
-		.option_constraint { 'Homebrew::CLI::OptionConstraintError' }
-		.fatal { 'FatalError' }
-		.tap_unavailable { 'TapUnavailableError' }
-		.usage { 'UsageError' }
-		.editor { 'ErrorDuringExecution' }
-	}
-	return ruby.object_value(type_name, edit_error.message)
 }

@@ -1,7 +1,5 @@
 module dev_cmd
 
-import ruby
-
 // Translated from Homebrew/brew `dev-cmd/linkage.rb`.
 pub struct LinkageCommandKeg {
 pub:
@@ -69,28 +67,4 @@ pub fn run_linkage_command(options LinkageCommandOptions) LinkageCommandResult {
 		cached: options.cached
 		failed: failed
 	}
-}
-
-pub fn linkage_command_input_boundary(input &LinkageCommandInput) ruby.Value {
-	return ruby.structured_value('Homebrew::DevCmd::Linkage::Input', '', {
-		'linkage_command_input_address': u64(voidptr(input)).str()
-	})
-}
-
-fn linkage_command_input_from_value(value ruby.Value) &LinkageCommandInput {
-	address := value.attributes['linkage_command_input_address'] or {
-		panic('invalid Linkage command input')
-	}
-	return unsafe { &LinkageCommandInput(voidptr(address.u64())) }
-}
-
-fn linkage_command_result_value(result LinkageCommandResult) ruby.Value {
-	return ruby.map_value({
-		'kegs':       ruby.string_array_value(result.kegs)
-		'output':     ruby.string_array_value(result.output)
-		'mode':       ruby.object_value('Symbol', result.mode)
-		'cache_name': ruby.object_value('Symbol', result.cache_name)
-		'cached':     ruby.bool_value(result.cached)
-		'failed':     ruby.bool_value(result.failed)
-	})
 }

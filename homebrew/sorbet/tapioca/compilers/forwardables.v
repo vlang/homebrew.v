@@ -1,7 +1,5 @@
 module compilers
 
-import ruby
-
 // Translated from Homebrew/brew `sorbet/tapioca/compilers/forwardables.rb`.
 pub const forwardable_compiler_array_methods = ['to_a', 'to_ary']
 pub const forwardable_compiler_hash_methods = ['to_h', 'to_hash']
@@ -73,21 +71,4 @@ pub fn forwardables_compiler_decoration(constant_module ForwardableCompilerModul
 		kind: 'path'
 		methods: methods
 	}
-}
-
-fn forwardables_compiler_input_value(input &ForwardablesCompilerInput) ruby.Value {
-	return ruby.structured_value('Tapioca::Compilers::Forwardables::Input', '', {
-		'forwardables_compiler_input_address': u64(voidptr(input)).str()
-	})
-}
-
-fn forwardables_compiler_input_from_value(value ruby.Value) &ForwardablesCompilerInput {
-	address := value.attributes['forwardables_compiler_input_address'] or {
-		panic('invalid Forwardables compiler input')
-	}
-	return unsafe { &ForwardablesCompilerInput(voidptr(address.u64())) }
-}
-
-pub fn forwardables_compiler_input_boundary(input &ForwardablesCompilerInput) ruby.Value {
-	return forwardables_compiler_input_value(input)
 }

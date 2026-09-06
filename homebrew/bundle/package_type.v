@@ -1,6 +1,5 @@
 module bundle
 
-import ruby
 import homebrew.bundle.extensions
 
 // Translated from Homebrew/brew `bundle/package_type.rb`.
@@ -21,97 +20,6 @@ pub struct PackageTypeCheckResult {
 pub:
 	errors   []string
 	warnings []string
-}
-
-fn package_type_nil() ruby.Value {
-	return ruby.object_value('NilClass', '')
-}
-
-fn package_type_error(type_name string, message string) ruby.Value {
-	return ruby.structured_value(type_name, message, {
-		'message': message
-	})
-}
-
-pub fn package_type_context_value(context PackageTypeContext) ruby.Value {
-	mut skipped := map[string]ruby.Value{}
-	for entry_type, names in context.skipper.skipped_entries {
-		skipped[entry_type] = ruby.string_array_value(names)
-	}
-	return ruby.map_value({
-		'definition':       extensions.extension_definition_value(context.definition)
-		'upgrade_formulae': ruby.string_array_value(context.upgrade_formulae)
-		'failed_taps':      ruby.string_array_value(context.skipper.failed_taps)
-		'skipped_entries':  ruby.map_value(skipped)
-	})
-}
-
-pub fn package_type_context_from_value(value ruby.Value) PackageTypeContext {
-	fields := value.as_map() or { map[string]ruby.Value{} }
-	mut skipped := map[string][]string{}
-	for entry_type, names in (fields['skipped_entries'] or { ruby.map_value({}) }).as_map() or {
-		map[string]ruby.Value{}
-	} {
-		skipped[entry_type] = names.as_string_array() or { [] }
-	}
-	return PackageTypeContext{
-		definition: extensions.extension_definition_from_value(fields['definition'] or { value })
-		upgrade_formulae: (fields['upgrade_formulae'] or { ruby.string_array_value([]) }).as_string_array() or { [] }
-		skipper: BundleSkipper{
-			failed_taps: (fields['failed_taps'] or { ruby.string_array_value([]) }).as_string_array() or { [] }
-			skipped_entries: skipped
-			initialized: true
-		}
-	}
-}
-
-fn package_type_entry_from_value(value ruby.Value) BundleDslEntry {
-	if value.attributes.len > 0 {
-		return BundleDslEntry{
-			entry_type: value.attributes['type'] or { '' }
-			name: value.attributes['name'] or { value.repr }
-			options: value.map_data.clone()
-		}
-	}
-	fields := value.as_map() or { map[string]ruby.Value{} }
-	return BundleDslEntry{
-		entry_type: (fields['type'] or { ruby.string_value('') }).as_string()
-		name: (fields['name'] or { ruby.string_value(value.repr) }).as_string()
-		options: (fields['options'] or { ruby.map_value({}) }).as_map() or { map[string]ruby.Value{} }
-	}
-}
-
-fn package_type_entries_from_value(value ruby.Value) []BundleDslEntry {
-	return value.as_array() or { [] }.map(package_type_entry_from_value(it))
-}
-
-fn package_type_entries_value(result PackageTypeEntriesResult) ruby.Value {
-	return ruby.Value{
-		type_name: 'Array'
-		array_data: result.entries.map(bundle_dsl_entry_value(it))
-		map_data: {
-			'warnings': ruby.string_array_value(result.warnings)
-		}
-	}
-}
-
-fn package_type_check_value(result PackageTypeCheckResult) ruby.Value {
-	return ruby.Value{
-		type_name: 'Array'
-		array_data: result.errors.map(ruby.string_value(it))
-		map_data: {
-			'warnings': ruby.string_array_value(result.warnings)
-		}
-	}
-}
-
-fn package_type_statuses_from_value(value ruby.Value) map[string]bool {
-	fields := value.as_map() or { map[string]ruby.Value{} }
-	mut statuses := map[string]bool{}
-	for name, status in fields {
-		statuses[name] = status.as_bool() or { false }
-	}
-	return statuses
 }
 
 fn package_type_status(statuses map[string]bool, name string, no_upgrade bool) !bool {

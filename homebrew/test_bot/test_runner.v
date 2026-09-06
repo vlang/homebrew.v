@@ -1,6 +1,5 @@
 module test_bot
 
-import ruby
 import os
 
 // Translated from Homebrew/brew `test_bot/test_runner.rb`.
@@ -226,83 +225,5 @@ pub fn run_test_runner(args TestRunnerArgs) !TestRunnerResult {
 		output_paths: output_paths
 		junit_written: junit_written
 		junit_filters: if junit_written { ['audit', 'test'] } else { [] }
-	}
-}
-
-fn test_runner_args_from_value(value ruby.Value) TestRunnerArgs {
-	attributes := value.attributes.clone()
-	return TestRunnerArgs{
-		named: attributes['named'].split(',').filter(it != '')
-		working_directory: if attributes['working_directory'] != '' {
-			attributes['working_directory']
-		} else {
-			'.'
-		}
-		bottle_tag: if attributes['bottle_tag'] != '' {
-			attributes['bottle_tag']
-		} else {
-			'all'
-		}
-		skip_setup: attributes['skip_setup'] == 'true'
-		only_cleanup_before: attributes['only_cleanup_before'] == 'true'
-		only_setup: attributes['only_setup'] == 'true'
-		only_tap_syntax: attributes['only_tap_syntax'] == 'true'
-		only_formulae: attributes['only_formulae'] == 'true'
-		only_formulae_detect: attributes['only_formulae_detect'] == 'true'
-		only_formulae_dependents: attributes['only_formulae_dependents'] == 'true'
-		only_bottles_fetch: attributes['only_bottles_fetch'] == 'true'
-		only_cleanup_after: attributes['only_cleanup_after'] == 'true'
-		skip_dependents: attributes['skip_dependents'] == 'true'
-		cleanup: attributes['cleanup'] != 'false'
-		junit: attributes['junit'] == 'true'
-		testing_formulae_set: attributes['testing_formulae_set'] == 'true'
-		added_formulae_set: attributes['added_formulae_set'] == 'true'
-		deleted_formulae_set: attributes['deleted_formulae_set'] == 'true'
-		testing_formulae: attributes['testing_formulae'].split(',').filter(it != '')
-		added_formulae: attributes['added_formulae'].split(',').filter(it != '')
-		deleted_formulae: attributes['deleted_formulae'].split(',').filter(it != '')
-		detected_testing_formulae: attributes['detected_testing_formulae'].split(',').filter(it != '')
-		detected_added_formulae: attributes['detected_added_formulae'].split(',').filter(it != '')
-		detected_deleted_formulae: attributes['detected_deleted_formulae'].split(',').filter(it != '')
-		skipped_or_failed_formulae: attributes['skipped_or_failed_formulae'].split(',').filter(it != '')
-		formulae_skipped_or_failed: attributes['formulae_skipped_or_failed'].split(',').filter(it != '')
-		tested_formulae: attributes['tested_formulae'].split(',').filter(it != '')
-	}
-}
-
-fn test_runner_plan_value(plan TestRunnerBuildPlan) ruby.Value {
-	mut enabled := []string{}
-	for name, selected in {
-		'setup':               plan.setup
-		'tap_syntax':          plan.tap_syntax
-		'formulae_detect':     plan.formulae_detect
-		'formulae':            plan.formulae
-		'formulae_dependents': plan.formulae_dependents
-		'cleanup_before':      plan.cleanup_before
-		'cleanup_after':       plan.cleanup_after
-		'bottles_fetch':       plan.bottles_fetch
-	} {
-		if selected {
-			enabled << name
-		}
-	}
-	return ruby.structured_value('TestRunnerTypes', plan.argument, {
-		'argument': plan.argument
-		'enabled':  enabled.join(',')
-	})
-}
-
-fn test_runner_plan_from_value(value ruby.Value) TestRunnerBuildPlan {
-	enabled := value.attributes['enabled'].split(',')
-	return TestRunnerBuildPlan{
-		argument: value.attributes['argument']
-		setup: 'setup' in enabled
-		tap_syntax: 'tap_syntax' in enabled
-		formulae_detect: 'formulae_detect' in enabled
-		formulae: 'formulae' in enabled
-		formulae_dependents: 'formulae_dependents' in enabled
-		cleanup_before: 'cleanup_before' in enabled
-		cleanup_after: 'cleanup_after' in enabled
-		bottles_fetch: 'bottles_fetch' in enabled
 	}
 }

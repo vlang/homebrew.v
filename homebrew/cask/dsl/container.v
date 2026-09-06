@@ -12,13 +12,6 @@ pub mut:
 	has_kind   bool
 }
 
-fn cask_container_nil() ruby.Value {
-	return ruby.Value{
-		type_name: 'NilClass'
-		repr: 'nil'
-	}
-}
-
 pub fn new_cask_container(nested ?string, kind ?string) !CaskContainer {
 	mut container := CaskContainer{}
 	if value := nested {
@@ -54,19 +47,6 @@ pub fn cask_container_value(container CaskContainer) ruby.Value {
 	}
 }
 
-pub fn cask_container_from_value(value ruby.Value) !CaskContainer {
-	if value.type_name != 'Cask::DSL::Container' && value.type_name != 'Hash' {
-		return error('expected Cask::DSL::Container, got ${value.type_name}')
-	}
-	nested := if raw := value.map_data['nested'] { ?string(raw.as_string()) } else { none }
-	kind := if raw := value.map_data['type'] { ?string(raw.as_string()) } else { none }
-	return new_cask_container(nested, kind)
-}
-
-pub fn cask_container_pairs(container CaskContainer) map[string]ruby.Value {
-	return cask_container_value(container).map_data.clone()
-}
-
 fn cask_container_inspect(container CaskContainer) string {
 	mut pairs := []string{}
 	if container.has_nested {
@@ -76,11 +56,4 @@ fn cask_container_inspect(container CaskContainer) string {
 		pairs << ':type=>:${container.kind}'
 	}
 	return '{${pairs.join(', ')}}'
-}
-
-fn cask_container_from_args(args []ruby.Value) ?CaskContainer {
-	if args.len == 0 {
-		return none
-	}
-	return cask_container_from_value(args[0]) or { return none }
 }

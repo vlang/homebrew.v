@@ -101,73 +101,6 @@ pub:
 	error_message string
 }
 
-pub fn extract_input_boundary(input &ExtractInput) ruby.Value {
-	return ruby.structured_value('Homebrew::DevCmd::Extract::Input', '', {
-		'extract_input_address': u64(voidptr(input)).str()
-	})
-}
-
-fn extract_input_from_value(value ruby.Value) !&ExtractInput {
-	address := value.attributes['extract_input_address'] or {
-		return error('invalid Extract input')
-	}
-	return unsafe { &ExtractInput(voidptr(address.u64())) }
-}
-
-pub fn extract_formula_revision_input_boundary(input &ExtractFormulaRevisionInput) ruby.Value {
-	return ruby.structured_value('Homebrew::DevCmd::Extract::FormulaRevisionInput', '', {
-		'extract_formula_revision_input_address': u64(voidptr(input)).str()
-	})
-}
-
-fn extract_formula_revision_input_from_value(value ruby.Value) !&ExtractFormulaRevisionInput {
-	address := value.attributes['extract_formula_revision_input_address'] or {
-		return error('invalid Extract formula revision input')
-	}
-	return unsafe { &ExtractFormulaRevisionInput(voidptr(address.u64())) }
-}
-
-pub fn extract_monkey_patch_input_boundary(input &ExtractMonkeyPatchInput) ruby.Value {
-	return ruby.structured_value('Homebrew::DevCmd::Extract::MonkeyPatchInput', '', {
-		'extract_monkey_patch_input_address': u64(voidptr(input)).str()
-	})
-}
-
-fn extract_monkey_patch_input_from_value(value ruby.Value) !&ExtractMonkeyPatchInput {
-	address := value.attributes['extract_monkey_patch_input_address'] or {
-		return error('invalid Extract monkey patch input')
-	}
-	return unsafe { &ExtractMonkeyPatchInput(voidptr(address.u64())) }
-}
-
-fn extract_nil() ruby.Value {
-	return ruby.object_value('NilClass', 'nil')
-}
-
-fn extract_formula_value(formula ExtractFormula) ruby.Value {
-	return ruby.map_value({
-		'name':     ruby.string_value(formula.name)
-		'path':     ruby.object_value('Pathname', formula.path)
-		'version':  ruby.string_value(formula.version)
-		'contents': ruby.string_value(formula.contents)
-	})
-}
-
-fn extract_result_value(result ExtractResult) ruby.Value {
-	return ruby.map_value({
-		'name':                      ruby.string_value(result.name)
-		'version':                   ruby.string_value(result.version)
-		'formula_version':           ruby.string_value(result.formula_version)
-		'revision':                  ruby.string_value(result.revision)
-		'path':                      ruby.object_value('Pathname', result.path)
-		'contents':                  ruby.string_value(result.contents)
-		'stdout':                    ruby.string_array_value(result.stdout)
-		'debug':                     ruby.string_array_value(result.debug)
-		'destination_tap_installed': ruby.bool_value(result.destination_tap_installed)
-		'overwrote':                 ruby.bool_value(result.overwrote)
-	})
-}
-
 pub fn extract_class_name(name string) string {
 	if name == '' {
 		return ''
@@ -371,17 +304,6 @@ pub fn end_extract_monkey_patch(mut state ExtractMonkeyPatchState) {
 	state.resource_method_missing_adapter = state.saved_resource_adapter
 	state.dependency_symbol_adapter = state.saved_dependency_adapter
 	state.dependency_cache_clears++
-}
-
-pub fn with_extract_monkey_patch(mut state ExtractMonkeyPatchState, result ruby.Value,
-	error_message string) !ruby.Value {
-	begin_extract_monkey_patch(mut state)
-	if error_message != '' {
-		end_extract_monkey_patch(mut state)
-		return error(error_message)
-	}
-	end_extract_monkey_patch(mut state)
-	return result
 }
 
 pub fn extract_formula_at_revision(mut state ExtractMonkeyPatchState, repo string, name string,
@@ -600,62 +522,4 @@ pub fn run_extract(options ExtractOptions) !ExtractResult {
 		destination_tap_installed: true
 		overwrote: overwrote
 	}
-}
-
-fn extract_patch_alias(args []ruby.Value, target string) ruby.Value {
-	if args.len == 0 {
-		return ruby.object_value('ArgumentError', 'monkey patch input is required')
-	}
-	mut input := extract_monkey_patch_input_from_value(args[0]) or {
-		return ruby.object_value('ArgumentError', err.msg())
-	}
-	match target {
-		'BottleSpecification' {
-			input.patch_state.saved_bottle_adapter = input.patch_state.bottle_method_missing_adapter
-			input.patch_state.bottle_method_missing_adapter = true
-		}
-		'Module' {
-			input.patch_state.saved_module_adapter = input.patch_state.module_method_missing_adapter
-			input.patch_state.module_method_missing_adapter = true
-		}
-		'Resource' {
-			input.patch_state.saved_resource_adapter = input.patch_state.resource_method_missing_adapter
-			input.patch_state.resource_method_missing_adapter = true
-		}
-		else {
-			input.patch_state.saved_dependency_adapter = input.patch_state.dependency_symbol_adapter
-			input.patch_state.dependency_symbol_adapter = true
-		}
-	}
-	return ruby.structured_value('AliasMethod', target, {
-		'target': target
-		'action': 'save'
-	})
-}
-
-fn extract_patch_restore(args []ruby.Value, target string) ruby.Value {
-	if args.len == 0 {
-		return ruby.object_value('ArgumentError', 'monkey patch input is required')
-	}
-	mut input := extract_monkey_patch_input_from_value(args[0]) or {
-		return ruby.object_value('ArgumentError', err.msg())
-	}
-	match target {
-		'BottleSpecification' {
-			input.patch_state.bottle_method_missing_adapter = input.patch_state.saved_bottle_adapter
-		}
-		'Module' {
-			input.patch_state.module_method_missing_adapter = input.patch_state.saved_module_adapter
-		}
-		'Resource' {
-			input.patch_state.resource_method_missing_adapter = input.patch_state.saved_resource_adapter
-		}
-		else {
-			input.patch_state.dependency_symbol_adapter = input.patch_state.saved_dependency_adapter
-		}
-	}
-	return ruby.structured_value('AliasMethod', target, {
-		'target': target
-		'action': 'restore'
-	})
 }

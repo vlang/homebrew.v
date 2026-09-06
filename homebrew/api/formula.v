@@ -218,12 +218,6 @@ fn formula_nil_value() ruby.Value {
 	return ruby.object_value('NilClass', 'nil')
 }
 
-fn formula_error_value(kind string, message string) ruby.Value {
-	return ruby.structured_value(kind, message, {
-		'message': message
-	})
-}
-
 fn formula_value_strings(value ruby.Value) []string {
 	if value.string_array_data.len > 0 {
 		return value.string_array_data.clone()
@@ -246,16 +240,6 @@ fn formula_fetch_json_api_file(mut state FormulaApiState, endpoint string, stale
 	return FormulaApiFetchResult{
 		data: ruby.parse_json_value(os.read_file(path)!)!
 	}
-}
-
-pub fn formula_json_from_state(mut state FormulaApiState, name string) !map[string]ruby.Value {
-	if cached := state.formula_json_cache[name] {
-		return cached.clone()
-	}
-	formula_fetch_formula_json(mut state, name)!
-	return (state.formula_json_cache[name] or {
-		return error('No formula JSON found for ${name}')
-	}).clone()
 }
 
 pub fn formula_fetch_formula_json(mut state FormulaApiState, name string) ! {
@@ -511,14 +495,6 @@ pub fn formula_write_names_and_aliases(mut state FormulaApiState, regenerate boo
 	}
 	formula_write_lines(aliases_path, regenerate, alias_lines, false)!
 	formula_write_executables(executables_path, regenerate, state.formulae)!
-}
-
-pub fn formula_all_formulae(mut state FormulaApiState) !map[string]map[string]ruby.Value {
-	if !state.formulae_loaded {
-		updated := formula_download_and_cache_data(mut state)!
-		formula_write_names_and_aliases(mut state, updated)!
-	}
-	return state.formulae.clone()
 }
 
 pub fn formula_all_aliases(mut state FormulaApiState) !map[string]string {
@@ -792,97 +768,4 @@ pub fn resolve_formula_reference(name string, config FormulaLookupConfig) !Packa
 		}
 	}
 	return reference
-}
-
-pub fn formula_api_state_boundary(state &FormulaApiState) ruby.Value {
-	return ruby.structured_value('Homebrew::API::Formula', '', {
-		'formula_api_state_address': u64(voidptr(state)).str()
-	})
-}
-
-pub fn formula_source_boundary(formula FormulaSource) ruby.Value {
-	return ruby.structured_value('Formula', formula.name, {
-		'name':                 formula.name
-		'full_name':            formula.full_name
-		'ruby_source_path':     formula.ruby_source_path
-		'ruby_source_checksum': formula.ruby_source_checksum
-		'tap_git_head':         formula.tap_git_head
-		'tap_full_name':        formula.tap_full_name
-		'active_spec':          formula.active_spec
-		'alias_path':           formula.alias_path
-		'build_flags':          formula.build_flags.join('\x1f')
-	})
-}
-
-fn formula_state_from_args(args []ruby.Value, method string) &FormulaApiState {
-	if args.len == 0 || 'formula_api_state_address' !in args[0].attributes {
-		panic('API::Formula.${method} requires translated Formula API state')
-	}
-	return unsafe {
-		&FormulaApiState(voidptr(args[0].attributes['formula_api_state_address'].u64()))
-	}
-}
-
-fn formula_source_from_value(value ruby.Value) FormulaSource {
-	return FormulaSource{
-		name: value.attributes['name'] or { value.repr }
-		full_name: value.attributes['full_name'] or { value.repr }
-		ruby_source_path: value.attributes['ruby_source_path'] or { '' }
-		ruby_source_checksum: value.attributes['ruby_source_checksum'] or { '' }
-		tap_git_head: value.attributes['tap_git_head'] or { '' }
-		tap_full_name: value.attributes['tap_full_name'] or { '' }
-		active_spec: value.attributes['active_spec'] or { '' }
-		alias_path: value.attributes['alias_path'] or { '' }
-		build_flags: if (value.attributes['build_flags'] or { '' }) == '' {
-			[]string{}
-		} else {
-			value.attributes['build_flags'].split('\x1f')
-		}
-	}
-}
-
-fn formula_download_value(download SourceDownload) ruby.Value {
-	return ruby.structured_value('Homebrew::API::SourceDownload', download.url, {
-		'url':              download.url
-		'sha256':           download.checksum or { '' }
-		'cache':            download.downloader.cache
-		'symlink_location': source_download_strategy_symlink_location(download.downloader)
-	})
-}
-
-fn loaded_formula_value(formula LoadedFormulaSource) ruby.Value {
-	mut patches := map[string]ruby.Value{}
-	for path, contents in formula.local_patches {
-		patches[path] = ruby.string_value(contents)
-	}
-	return ruby.Value{
-		type_name: 'Formula'
-		repr: formula.name
-		map_data: patches
-		attributes: {
-			'name':        formula.name
-			'full_name':   formula.full_name
-			'path':        formula.path
-			'contents':    formula.contents
-			'active_spec': formula.active_spec
-			'alias_path':  formula.alias_path
-			'build_flags': formula.build_flags.join('\x1f')
-		}
-	}
-}
-
-fn formulae_map_value(values map[string]map[string]ruby.Value) ruby.Value {
-	mut result := map[string]ruby.Value{}
-	for key, value in values {
-		result[key] = ruby.map_value(value)
-	}
-	return ruby.map_value(result)
-}
-
-fn formula_string_map_value(values map[string]string) ruby.Value {
-	mut result := map[string]ruby.Value{}
-	for key, value in values {
-		result[key] = ruby.string_value(value)
-	}
-	return ruby.map_value(result)
 }

@@ -1,7 +1,5 @@
 module rubocops
 
-import ruby
-
 // Translated from Homebrew/brew `rubocops/public_api_documentation.rb`.
 pub const public_api_documentation_message = '`@api public` methods must have a descriptive YARD comment, not just the annotation.'
 pub const public_api_documentation_missing_include_template = '`%s` contains `@api public` but is missing from `Style/Documentation.Include`.'
@@ -338,17 +336,4 @@ pub fn audit_public_api_documentation(context PublicApiDocumentationContext) []P
 		}
 	}
 	return offenses
-}
-
-fn public_api_documentation_offense_value(offense PublicApiDocumentationOffense) ruby.Value {
-	return ruby.structured_value('RuboCop::Cop::Offense', offense.message, {
-		'kind':          offense.kind
-		'comment':       offense.comment
-		'line':          offense.line.str()
-		'file_path':     offense.file_path
-		'relative_path': offense.relative_path
-		'begin_pos':     offense.begin_pos.str()
-		'end_pos':       offense.end_pos.str()
-		'message':       offense.message
-	})
 }

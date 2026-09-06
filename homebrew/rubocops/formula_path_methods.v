@@ -1,7 +1,5 @@
 module rubocops
 
-import ruby
-
 // Translated from Homebrew/brew `rubocops/formula_path_methods.rb`.
 pub struct FormulaPathProblem {
 pub:
@@ -31,13 +29,6 @@ pub:
 
 struct FormulaPathContext {
 	kind string
-}
-
-fn formula_path_nil() ruby.Value {
-	return ruby.Value{
-		type_name: 'NilClass'
-		repr: 'nil'
-	}
 }
 
 fn formula_path_identifier(character u8) bool {
@@ -476,15 +467,4 @@ pub fn correct_formula_path_methods(source string) string {
 		corrected = corrected[..problem.begin_pos] + problem.replacement + corrected[problem.end_pos..]
 	}
 	return corrected
-}
-
-fn formula_path_problem_value(problem FormulaPathProblem) ruby.Value {
-	return ruby.structured_value('RuboCop::Cop::Offense', problem.message, {
-		'begin_pos':   problem.begin_pos.str()
-		'end_pos':     problem.end_pos.str()
-		'current':     problem.current
-		'preferred':   problem.preferred
-		'message':     problem.message
-		'replacement': problem.replacement
-	})
 }

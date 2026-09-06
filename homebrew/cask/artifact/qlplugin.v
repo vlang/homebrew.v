@@ -1,7 +1,5 @@
 module artifact
 
-import ruby
-
 // Translated from Homebrew/brew `cask/artifact/qlplugin.rb`.
 pub fn reload_quicklook_with_command(runner ArtifactCommandRunner,
 	mut result MovedOperationResult) {

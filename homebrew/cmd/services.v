@@ -1,7 +1,5 @@
 module cmd
 
-import ruby
-
 // Translated from Homebrew/brew `cmd/services.rb`.
 pub struct ServicesCommandResult {
 pub:
@@ -73,17 +71,4 @@ pub fn run_services_command(argv []string) !ServicesCommandResult {
 		named: named
 		options: options
 	}
-}
-
-pub fn services_result_to_value(result ServicesCommandResult) ruby.Value {
-	mut options := map[string]ruby.Value{}
-	for name, value in result.options {
-		options[name] = ruby.string_value(value)
-	}
-	return ruby.map_value({
-		'subcommand': ruby.string_value(result.subcommand)
-		'named':      ruby.string_array_value(result.named)
-		'options':    ruby.map_value(options)
-		'output':     ruby.string_value(result.output)
-	})
 }

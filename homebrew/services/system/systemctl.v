@@ -118,27 +118,3 @@ pub fn systemctl_run(mut state SystemctlState, arguments []string,
 	mode SystemctlMode) !SystemctlCommandResult {
 	return systemctl_run_with(mut state, arguments, mode, native_systemctl_runner)
 }
-
-pub fn systemctl_state_boundary(state &SystemctlState) ruby.Value {
-	return ruby.structured_value('Homebrew::Services::System::Systemctl', 'Systemctl', {
-		'systemctl_state_address': u64(voidptr(state)).str()
-	})
-}
-
-fn systemctl_state_from_args(args []ruby.Value) (&SystemctlState, int) {
-	if args.len > 0 && args[0].type_name == 'Homebrew::Services::System::Systemctl' {
-		address := args[0].attributes['systemctl_state_address'] or {
-			panic('translated Systemctl state is missing')
-		}
-		return unsafe { &SystemctlState(voidptr(address.u64())) }, 1
-	}
-	return new_systemctl_state('', os.geteuid() == 0), 0
-}
-
-fn systemctl_boundary_result(result SystemctlCommandResult, mode SystemctlMode) ruby.Value {
-	return match mode {
-		.read { ruby.string_value(result.stdout) }
-		.quiet { ruby.bool_value(result.success) }
-		.default_mode { ruby.Value{ type_name: 'NilClass', repr: 'nil' } }
-	}
-}

@@ -1,6 +1,5 @@
 module compilers
 
-import ruby
 import homebrew
 
 // Translated from Homebrew/brew `sorbet/tapioca/compilers/env_config.rb`.

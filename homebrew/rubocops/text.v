@@ -1,7 +1,5 @@
 module rubocops
 
-import ruby
-
 // Translated from Homebrew/brew `rubocops/text.rb`.
 pub struct FormulaTextContext {
 pub:
@@ -491,23 +489,4 @@ pub fn audit_formula_text_strict(context FormulaTextContext) LinesAnalysis {
 		}
 	}
 	return lines_analysis(formula_text_lines_context(context), offenses)
-}
-
-fn formula_text_context_from_args(args []ruby.Value) ?FormulaTextContext {
-	if args.len == 0 {
-		return none
-	}
-	return FormulaTextContext{
-		source: args[0].as_string()
-		tap: if args.len > 1 { args[1].as_string() } else { '' }
-		formula_name: if args.len > 2 { args[2].as_string() } else { '' }
-	}
-}
-
-fn formula_text_matches_value(matches []FormulaTextPathMatch) ruby.Value {
-	return ruby.array_value(matches.map(ruby.structured_value('RuboCop::AST::Node', it.source, {
-		'path':      it.path
-		'begin_pos': it.begin_pos.str()
-		'end_pos':   it.end_pos.str()
-	})))
 }

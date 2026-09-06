@@ -236,29 +236,3 @@ pub fn tty_special_code(name string, stream_is_tty bool) string {
 	}
 	return '\x1b[${code}'
 }
-
-fn tty_state_value(state TtyState) ruby.Value {
-	return ruby.structured_value('Tty', state.current_escape_sequence(), {
-		'stream_is_tty':   state.stream_is_tty.str()
-		'no_color':        state.no_color.str()
-		'force_color':     state.force_color.str()
-		'escape_sequence': state.escape_sequence.map(it.str()).join(',')
-	})
-}
-
-fn tty_state_from_value(value ruby.Value) TtyState {
-	if value.type_name != 'Tty' {
-		return current_tty_state()
-	}
-	codes_text := value.attribute('escape_sequence') or { '' }
-	mut codes := []int{}
-	if codes_text != '' {
-		codes = codes_text.split(',').map(it.int())
-	}
-	return TtyState{
-		stream_is_tty: (value.attribute('stream_is_tty') or { 'false' }) == 'true'
-		no_color: (value.attribute('no_color') or { 'false' }) == 'true'
-		force_color: (value.attribute('force_color') or { 'false' }) == 'true'
-		escape_sequence: codes
-	}
-}

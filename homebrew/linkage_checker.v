@@ -582,23 +582,6 @@ pub fn (mut checker LinkageChecker) resolve_formula(keg Keg) ?Formula {
 	return formula
 }
 
-fn linkage_checker_value(checker &LinkageChecker) ruby.Value {
-	return ruby.structured_value('LinkageChecker', checker.keg.path, {
-		'linkage_checker_address': u64(voidptr(checker)).str()
-	})
-}
-
-fn linkage_checker_from_value(value ruby.Value) &LinkageChecker {
-	address := value.attributes['linkage_checker_address'] or {
-		panic('invalid LinkageChecker receiver')
-	}
-	return unsafe { &LinkageChecker(voidptr(address.u64())) }
-}
-
-pub fn linkage_checker_boundary(checker &LinkageChecker) ruby.Value {
-	return linkage_checker_value(checker)
-}
-
 pub fn linkage_checker_keg_boundary(keg Keg,
 	config &LinkageCheckerConfig) ruby.Value {
 	return ruby.structured_value('Keg', keg.path, {
@@ -608,42 +591,4 @@ pub fn linkage_checker_keg_boundary(keg Keg,
 		'name':                           keg.name
 		'linkage_checker_config_address': u64(voidptr(config)).str()
 	})
-}
-
-fn linkage_checker_keg_from_value(value ruby.Value) Keg {
-	path := value.attribute('path') or { value.as_string() }
-	prefix := value.attribute('prefix') or { ruby.environment_value('HOMEBREW_PREFIX') }
-	cellar := value.attribute('cellar') or { os.join_path(prefix, 'Cellar') }
-	return new_keg_with_paths(path, cellar, prefix) or { panic(err) }
-}
-
-fn linkage_config_from_keg_value(value ruby.Value) LinkageCheckerConfig {
-	address := value.attributes['linkage_checker_config_address'] or {
-		return LinkageCheckerConfig{}
-	}
-	return unsafe { *&LinkageCheckerConfig(voidptr(address.u64())) }
-}
-
-fn linkage_checker_keg_value(keg Keg) ruby.Value {
-	return ruby.structured_value('Keg', keg.path, {
-		'path':   keg.path
-		'prefix': keg.prefix
-		'cellar': keg.cellar
-		'name':   keg.name
-	})
-}
-
-fn linkage_string_map_value(values map[string][]string) ruby.Value {
-	mut mapped := map[string]ruby.Value{}
-	for key, entries in values {
-		mapped[key] = ruby.string_array_value(entries)
-	}
-	return ruby.map_value(mapped)
-}
-
-fn linkage_bool_argument(args []ruby.Value, index int, fallback bool) bool {
-	if index >= args.len {
-		return fallback
-	}
-	return args[index].as_bool() or { args[index].as_string() == 'true' }
 }

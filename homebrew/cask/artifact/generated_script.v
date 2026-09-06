@@ -1,6 +1,5 @@
 module artifact
 
-import ruby
 import os
 
 // Translated from Homebrew/brew `cask/artifact/generated_script.rb`.
@@ -48,13 +47,4 @@ pub fn install_generated_script(artifact GeneratedScriptArtifact) ! {
 	}
 	os.write_file(artifact.path, artifact.content)!
 	os.chmod(artifact.path, 0o755)!
-}
-
-pub fn generated_script_to_args(artifact GeneratedScriptArtifact) ruby.Value {
-	return ruby.array_value([
-		ruby.string_value(artifact.path_string),
-		ruby.map_value({
-			'content': ruby.string_value(artifact.content)
-		}),
-	])
 }

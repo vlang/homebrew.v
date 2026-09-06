@@ -64,29 +64,3 @@ pub struct UpdatePortableRubyInput {
 pub:
 	options UpdatePortableRubyOptions
 }
-
-pub fn update_portable_ruby_input_boundary(input &UpdatePortableRubyInput) ruby.Value {
-	return ruby.structured_value('Homebrew::DevCmd::UpdatePortableRuby::Input', '', {
-		'update_portable_ruby_input_address': u64(voidptr(input)).str()
-	})
-}
-
-fn update_portable_ruby_input_from_value(value ruby.Value) &UpdatePortableRubyInput {
-	address := value.attributes['update_portable_ruby_input_address'] or {
-		panic('invalid UpdatePortableRuby input')
-	}
-	return unsafe { &UpdatePortableRubyInput(voidptr(address.u64())) }
-}
-
-fn update_portable_ruby_result_value(result UpdatePortableRubyResult) ruby.Value {
-	mut writes := map[string]ruby.Value{}
-	for path, contents in result.writes {
-		writes[path] = ruby.string_value(contents)
-	}
-	return ruby.map_value({
-		'formula_name': ruby.string_value(result.formula_name)
-		'no_api':       ruby.bool_value(result.no_api)
-		'writes':       ruby.map_value(writes)
-		'commands':     ruby.array_value(result.commands.map(ruby.string_array_value(it)))
-	})
-}

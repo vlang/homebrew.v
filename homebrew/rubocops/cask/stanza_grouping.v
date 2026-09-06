@@ -1,6 +1,5 @@
 module cask
 
-import ruby
 import homebrew.rubocops.cask.constants as stanza_constants
 
 // Translated from Homebrew/brew `rubocops/cask/stanza_grouping.rb`.
@@ -528,56 +527,4 @@ pub fn correct_stanza_grouping(source string) string {
 		corrected = corrected[..offense.replacement_begin] + offense.replacement + corrected[offense.replacement_end..]
 	}
 	return corrected
-}
-
-fn stanza_grouping_source(args []ruby.Value) string {
-	if args.len == 0 {
-		return ''
-	}
-	if args[0].type_name == 'Array' && args[0].array_data.len > 0 {
-		return args[0].array_data[0].attributes['document_source'] or { args[0].as_string() }
-	}
-	return args[0].attributes['document_source'] or {
-		args[0].attributes['source'] or { args[0].as_string() }
-	}
-}
-
-fn stanza_grouping_stanza_value(source string, stanza StanzaGroupingStanza) ruby.Value {
-	return ruby.structured_value('RuboCop::Cask::AST::Stanza', source[stanza.begin_pos..stanza.end_pos], {
-		'name':            stanza.name
-		'begin_pos':       stanza.begin_pos.str()
-		'end_pos':         stanza.end_pos.str()
-		'last_line':       stanza.last_line.str()
-		'is_block':        stanza.is_block.str()
-		'is_assignment':   stanza.is_assignment.str()
-		'document_source': source
-	})
-}
-
-fn stanza_grouping_stanza_from_value(value ruby.Value) StanzaGroupingStanza {
-	return StanzaGroupingStanza{
-		name: value.attributes['name'] or { stanza_grouping_stanza_name(value.as_string()) }
-		begin_pos: (value.attributes['begin_pos'] or { '0' }).int()
-		end_pos: (value.attributes['end_pos'] or { value.as_string().len.str() }).int()
-		last_line: (value.attributes['last_line'] or { value.as_string().count('\n').str() }).int()
-		is_block: (value.attributes['is_block'] or { 'false' }).bool()
-		is_assignment: (value.attributes['is_assignment'] or { 'false' }).bool()
-	}
-}
-
-fn stanza_grouping_offense_value(offense StanzaGroupingOffense) ruby.Value {
-	return ruby.structured_value('RuboCop::Cop::Offense', offense.message, {
-		'kind':              offense.kind
-		'line_index':        offense.line_index.str()
-		'begin_pos':         offense.begin_pos.str()
-		'end_pos':           offense.end_pos.str()
-		'message':           offense.message
-		'replacement_begin': offense.replacement_begin.str()
-		'replacement_end':   offense.replacement_end.str()
-		'replacement':       offense.replacement
-	})
-}
-
-fn stanza_grouping_offense_values(offenses []StanzaGroupingOffense) ruby.Value {
-	return ruby.array_value(offenses.map(stanza_grouping_offense_value(it)))
 }

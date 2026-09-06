@@ -205,84 +205,6 @@ pub fn cask_core_value(cask CaskCore) ruby.Value {
 	}
 }
 
-fn cask_value_bool(values map[string]ruby.Value, key string, fallback bool) bool {
-	value := values[key] or { return fallback }
-	return value.as_bool() or { fallback }
-}
-
-fn cask_value_string(values map[string]ruby.Value, key string) string {
-	value := values[key] or { return '' }
-	return if value.type_name == 'NilClass' { '' } else { value.as_string() }
-}
-
-pub fn cask_core_from_value(value ruby.Value) !CaskCore {
-	if value.type_name != 'Cask::Cask' {
-		return error('expected Cask::Cask, got ${value.type_name}')
-	}
-	values := value.map_data.clone()
-	config_value := values['config'] or { cask_nil() }
-	config := if config_value.type_name == 'Cask::Config' {
-		cask_config_from_boundary(config_value)
-	} else {
-		new_cask_config(CaskConfigOptions{})!
-	}
-	mut tags := []homebrew.BottleTag{}
-	for raw in (values['valid_tags'] or { ruby.array_value([]) }).as_array() or { []ruby.Value{} } {
-		tags << homebrew.new_bottle_tag(raw.attributes['system'] or { 'linux' }, raw.attributes['arch'] or { 'x86_64' })
-	}
-	mut core := new_cask_core(CaskCoreConfig{
-		token: cask_value_string(values, 'token')
-		sourcefile_path: cask_value_string(values, 'sourcefile_path')
-		source: cask_value_string(values, 'source')
-		tap_name: cask_value_string(values, 'tap_name')
-		tap_path: cask_value_string(values, 'tap_path')
-		tap_core: cask_value_bool(values, 'tap_core', false)
-		tap_official: cask_value_bool(values, 'tap_official', false)
-		tap_git_head: cask_value_string(values, 'tap_git_head')
-		loaded_from_api: cask_value_bool(values, 'loaded_from_api', false)
-		loaded_from_internal_api: cask_value_bool(values, 'loaded_from_internal_api', false)
-		api_source: (values['api_source'] or { ruby.map_value({}) }).map_data.clone()
-		config: config
-		has_config: true
-		allow_reassignment: cask_value_bool(values, 'allow_reassignment', false)
-		loader: values['loader'] or { cask_nil() }
-		caskroom_root: cask_value_string(values, 'caskroom_root')
-		pinned_root: cask_value_string(values, 'pinned_root')
-		system_os: cask_value_string(values, 'system_os')
-		system_arch: cask_value_string(values, 'system_arch')
-		valid_tags: tags
-	}, cask_noop_block)!
-	if raw := values['default_config'] {
-		if raw.type_name == 'Cask::Config' {
-			core.default_config = cask_config_from_boundary(raw)
-		}
-	}
-	if raw := values['dsl'] {
-		core.dsl = cask_dsl_from_value(raw)!
-	}
-	core.download = cask_value_string(values, 'download')
-	core.tap_migration_oldnames = (values['tap_migration_oldnames'] or { ruby.string_array_value([]) }).as_string_array() or { []string{} }
-	core.tap_reverse_renames = (values['tap_reverse_renames'] or { ruby.string_array_value([]) }).as_string_array() or { []string{} }
-	core.language_variations_available = cask_value_bool(values, 'language_variations_available', false)
-	core.api_languages = (values['api_languages'] or { ruby.string_array_value([]) }).as_string_array() or { []string{} }
-	for key, result in (values['api_language_results'] or { ruby.map_value({}) }).map_data {
-		core.api_language_results[key] = result.as_string()
-	}
-	core.ruby_source_path_value = cask_value_string(values, 'ruby_source_path_value')
-	core.ruby_source_checksum_value = cask_value_string(values, 'ruby_source_checksum_value')
-	core.installed_file_override = cask_value_string(values, 'installed_file_override')
-	core.installed_version_override = cask_value_string(values, 'installed_version_override')
-	core.has_installed_version_override = cask_value_bool(values, 'has_installed_version_override', false)
-	core.new_download_sha_value = cask_value_string(values, 'new_download_sha')
-	core.upgrade_auto_updates_casks = cask_value_bool(values, 'upgrade_auto_updates_casks', false)
-	core.bundle_short_override = cask_value_string(values, 'bundle_short_override')
-	core.has_bundle_short_override = cask_value_bool(values, 'has_bundle_short_override', false)
-	core.bundle_long_override = cask_value_string(values, 'bundle_long_override')
-	core.has_bundle_long_override = cask_value_bool(values, 'has_bundle_long_override', false)
-	core.generating_hash = cask_value_bool(values, 'generating_hash', false)
-	return core
-}
-
 pub fn new_cask_core(options CaskCoreConfig, block CaskBlock) !CaskCore {
 	default_config := if options.has_config {
 		options.config
@@ -834,25 +756,6 @@ pub fn (cask CaskCore) languages() []string {
 	return result
 }
 
-pub fn (mut cask CaskCore) populate_from_api(source map[string]ruby.Value,
-	tap_git_head string) ! {
-	if !cask.loaded_from_api {
-		return error('Expected cask to be loaded from the API')
-	}
-	cask.api_languages = (source['languages'] or { ruby.string_array_value([]) }).as_string_array() or { []string{} }
-	variations := (source['language_variations'] or { ruby.array_value([]) }).as_array() or { []ruby.Value{} }
-	cask.language_variations_available = variations.len > 0
-	for variation in variations {
-		languages := (variation.map_data['languages'] or { ruby.string_array_value([]) }).as_string_array() or { []string{} }
-		result := (variation.map_data['value'] or { cask_nil() }).as_string()
-		cask.api_language_results[languages.join(',')] = result
-	}
-	cask.tap_git_head_value = tap_git_head
-	cask.ruby_source_path_value = (source['ruby_source_path'] or { cask_nil() }).as_string().replace('nil', '')
-	checksum := source['ruby_source_checksum'] or { ruby.map_value({}) }
-	cask.ruby_source_checksum_value = (checksum.map_data['sha256'] or { cask_nil() }).as_string().replace('nil', '')
-}
-
 fn cask_value_array_strings(values []string) ruby.Value {
 	return ruby.array_value(values.map(ruby.string_value(it)))
 }
@@ -1103,58 +1006,6 @@ pub fn (mut cask CaskCore) to_h() map[string]ruby.Value {
 	}
 }
 
-fn cask_value_string_equal(left ruby.Value, right ruby.Value) bool {
-	return left.as_string() == right.as_string()
-}
-
-pub fn (mut cask CaskCore) to_h_with_language_variations() !map[string]ruby.Value {
-	if cask.dsl.language_blocks.len == 0 {
-		return cask.to_h()
-	}
-	mut default_group := []string{}
-	for block in cask.dsl.language_blocks {
-		if block.is_default {
-			default_group = block.languages.clone()
-		}
-	}
-	if default_group.len == 0 {
-		return error('No default language specified.')
-	}
-	original_config := cask.config
-	mut hashes := map[string]map[string]ruby.Value{}
-	mut values := map[string]string{}
-	for block in cask.dsl.language_blocks {
-		mut localised := original_config
-		localised.explicit_values = original_config.explicit_values.clone()
-		localised.set_languages([block.languages[0]])
-		cask.set_config(localised)!
-		hashes[block.languages.join('\x00')] = cask.to_h()
-		values[block.languages.join('\x00')] = cask.dsl.language_eval_value
-	}
-	default_key := default_group.join('\x00')
-	mut result := hashes[default_key].clone()
-	mut variations := []ruby.Value{}
-	for block in cask.dsl.language_blocks {
-		key := block.languages.join('\x00')
-		language_hash := hashes[key].clone()
-		mut variation := {
-			'languages': ruby.string_array_value(block.languages)
-			'default':   ruby.bool_value(key == default_key)
-			'value':     ruby.string_value(values[key])
-		}
-		for name, language_value in language_hash {
-			if name in cask_hash_keys_to_skip || cask_value_string_equal(language_value, result[name] or { cask_nil() }) {
-				continue
-			}
-			variation[name] = language_value
-		}
-		variations << ruby.map_value(variation)
-	}
-	result['language_variations'] = ruby.array_value(variations)
-	cask.set_config(original_config)!
-	return result
-}
-
 pub fn (cask CaskCore) platform_supported(tag homebrew.BottleTag) bool {
 	if (tag.linux() && !cask.supports_linux()) || (tag.macos() && !cask.supports_macos()) || cask.version_text() == '' || !cask.dsl.has_sha256 || cask.dsl.sha256_value.as_string() == '' || !cask.dsl.has_url || cask.dsl.url_value.uri == '' || !cask.installable_artifact() {
 		return false
@@ -1188,53 +1039,6 @@ pub fn (cask CaskCore) platform_supported(tag homebrew.BottleTag) bool {
 	return true
 }
 
-pub fn (mut cask CaskCore) to_hash_with_variations() !map[string]ruby.Value {
-	if cask.loaded_from_internal_api {
-		return error('Cannot call #to_hash_with_variations on casks loaded from the internal API')
-	}
-	if cask.loaded_from_api && cask.api_source.len > 0 && ruby.environment_value('HOMEBREW_NO_INSTALL_FROM_API') == '' {
-		return cask.api_to_local_hash(cask.api_source)
-	}
-	mut base := cask.to_h_with_language_variations()!
-	mut variations := map[string]ruby.Value{}
-	mut supported := []string{}
-	original_os := cask.system_os
-	original_arch := cask.system_arch
-	if cask.dsl.on_system_blocks_exist {
-		for tag in cask.valid_tags {
-			cask.system_os = tag.system
-			cask.system_arch = tag.arch
-			cask.refresh() or { continue }
-			if cask.platform_supported(tag) {
-				supported << tag.symbol()
-			}
-			current := cask.to_h_with_language_variations()!
-			mut variation := map[string]ruby.Value{}
-			for key, value in current {
-				if key in cask_hash_keys_to_skip || cask_value_string_equal(value, base[key] or { cask_nil() }) {
-					continue
-				}
-				variation[key] = value
-			}
-			if variation.len > 0 {
-				variations[tag.symbol()] = ruby.map_value(variation)
-			}
-		}
-		cask.system_os = original_os
-		cask.system_arch = original_arch
-		cask.refresh()!
-	} else {
-		for tag in cask.valid_tags {
-			if cask.platform_supported(tag) {
-				supported << tag.symbol()
-			}
-		}
-	}
-	base['variations'] = ruby.map_value(variations)
-	base['supported_platforms'] = ruby.string_array_value(supported)
-	return base
-}
-
 pub fn (cask CaskCore) to_installed_json_hash() map[string]ruby.Value {
 	if !cask.dsl.has_url {
 		return map[string]ruby.Value{}
@@ -1250,36 +1054,6 @@ pub fn (cask CaskCore) to_installed_json_hash() map[string]ruby.Value {
 	}
 }
 
-pub fn (mut cask CaskCore) api_to_local_hash(source map[string]ruby.Value) map[string]ruby.Value {
-	mut result := source.clone()
-	result['token'] = ruby.string_value(cask.token)
-	result['installed'] = cask_map_value(cask.installed_version())
-	result['pinned'] = ruby.bool_value(cask.pinned())
-	result['pinned_version'] = cask_map_value(cask.pinned_version())
-	result['outdated'] = ruby.bool_value(cask.outdated(CaskOutdatedOptions{}))
-	return result
-}
-
-fn cask_receiver(args []ruby.Value, method string) !CaskCore {
-	if args.len == 0 {
-		return error('${method} requires a Cask receiver')
-	}
-	return cask_core_from_value(args[0])
-}
-
 fn cask_error(kind string, message string) ruby.Value {
 	return ruby.object_value(kind, message)
-}
-
-fn cask_keyword_args(args []ruby.Value) map[string]ruby.Value {
-	for index := args.len - 1; index >= 0; index-- {
-		if args[index].type_name == 'Hash' {
-			return args[index].map_data.clone()
-		}
-	}
-	return map[string]ruby.Value{}
-}
-
-fn cask_keyword_bool(args []ruby.Value, key string, fallback bool) bool {
-	return cask_value_bool(cask_keyword_args(args), key, fallback)
 }

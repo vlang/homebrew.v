@@ -59,15 +59,6 @@ fn cask_requirement_value(requirement requirements.MacOSRequirement) ruby.Value 
 	}
 }
 
-fn cask_requirement_from_value(value ruby.Value) !requirements.MacOSRequirement {
-	comparator := (value.map_data['comparator'] or { ruby.string_value('>=') }).as_string()
-	versions := (value.map_data['versions'] or { ruby.string_array_value([]) }).as_string_array()!
-	if versions.len == 0 {
-		return requirements.new_macos_requirement([]string{}, comparator)
-	}
-	return requirements.new_macos_requirement(versions, comparator)
-}
-
 pub fn cask_depends_on_value(depends CaskDependsOn) ruby.Value {
 	mut values := {
 		'arch':                        ruby.array_value(depends.arch.map(cask_arch_value(it)))
@@ -100,44 +91,6 @@ pub fn cask_depends_on_value(depends CaskDependsOn) ruby.Value {
 		repr: values.str()
 		map_data: values
 	}
-}
-
-fn cask_depends_bool(value ruby.Value, key string) bool {
-	return (value.map_data[key] or { ruby.bool_value(false) }).as_bool() or { false }
-}
-
-pub fn cask_depends_on_from_value(value ruby.Value) !CaskDependsOn {
-	if value.type_name != 'Cask::DSL::DependsOn' {
-		return error('expected Cask::DSL::DependsOn, got ${value.type_name}')
-	}
-	mut result := CaskDependsOn{
-		casks: (value.map_data['cask'] or { ruby.string_array_value([]) }).as_string_array()!
-		formulae: (value.map_data['formula'] or { ruby.string_array_value([]) }).as_string_array()!
-		loaded_keys: (value.map_data['loaded_keys'] or { ruby.string_array_value([]) }).as_string_array()!
-		linux: (value.map_data['linux'] or { cask_depends_nil() }).type_name != 'NilClass'
-		macos_required: cask_depends_bool(value, 'macos_required')
-		macos_bare_set_top_level: cask_depends_bool(value, 'macos_bare_set_top_level')
-		macos_version_set_top_level: cask_depends_bool(value, 'macos_version_set_top_level')
-		maximum_macos_set_top_level: cask_depends_bool(value, 'maximum_macos_set_top_level')
-		linux_set_top_level: cask_depends_bool(value, 'linux_set_top_level')
-	}
-	for raw in (value.map_data['arch'] or { ruby.array_value([]ruby.Value{}) }).as_array()! {
-		result.arch << CaskDependencyArch{
-			kind: (raw.map_data['type'] or { ruby.string_value('') }).as_string()
-			bits: int((raw.map_data['bits'] or { ruby.int_value(64) }).as_int() or { 64 })
-		}
-	}
-	if raw := value.map_data['macos'] {
-		if raw.type_name != 'NilClass' {
-			result.macos = cask_requirement_from_value(raw)!
-		}
-	}
-	if raw := value.map_data['maximum_macos'] {
-		if raw.type_name != 'NilClass' {
-			result.maximum_macos = cask_requirement_from_value(raw)!
-		}
-	}
-	return result
 }
 
 fn (mut depends CaskDependsOn) record_macos(requirement requirements.MacOSRequirement,
@@ -242,15 +195,4 @@ pub fn (mut depends CaskDependsOn) load(pairs map[string]ruby.Value,
 			depends.loaded_keys << key
 		}
 	}
-}
-
-fn cask_depends_receiver(args []ruby.Value) ?CaskDependsOn {
-	if args.len == 0 {
-		return none
-	}
-	return cask_depends_on_from_value(args[0]) or { return none }
-}
-
-fn cask_depends_error(message string) ruby.Value {
-	return ruby.object_value('RuntimeError', message)
 }

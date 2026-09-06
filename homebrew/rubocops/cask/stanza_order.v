@@ -1,6 +1,5 @@
 module cask
 
-import ruby
 import homebrew.rubocops.cask.ast as cask_ast
 import homebrew.rubocops.cask.constants as stanza_constants
 
@@ -200,14 +199,4 @@ fn stanza_order_correct_scope(source string) string {
 
 pub fn correct_cask_stanza_order(source string) string {
 	return stanza_order_correct_scope(source)
-}
-
-fn stanza_order_problem_value(problem StanzaOrderProblem) ruby.Value {
-	return ruby.structured_value('RuboCop::Cop::Offense', problem.message, {
-		'stanza':      problem.stanza
-		'begin_pos':   problem.begin_pos.str()
-		'end_pos':     problem.end_pos.str()
-		'message':     problem.message
-		'replacement': problem.replacement
-	})
 }

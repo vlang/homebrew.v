@@ -1,6 +1,5 @@
 module artifact
 
-import ruby
 import os
 
 // Translated from Homebrew/brew `cask/artifact/zap.rb`.
@@ -54,25 +53,4 @@ pub fn zap_phase(artifact ZapArtifact) !ZapResult {
 		removed: removed
 		skipped: skipped
 	}
-}
-
-pub fn zap_artifact_to_value(artifact ZapArtifact) ruby.Value {
-	return ruby.map_value({
-		'rmdir': ruby.string_array_value(artifact.rmdir)
-	})
-}
-
-fn zap_artifact_from_value(value ruby.Value) !ZapArtifact {
-	values := value.as_map()!
-	rmdir_value := values['rmdir'] or { ruby.string_array_value([]string{}) }
-	return ZapArtifact{
-		rmdir: rmdir_value.as_string_array()!
-	}
-}
-
-pub fn zap_result_to_value(result ZapResult) ruby.Value {
-	return ruby.map_value({
-		'removed': ruby.string_array_value(result.removed)
-		'skipped': ruby.string_array_value(result.skipped)
-	})
 }

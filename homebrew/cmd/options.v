@@ -1,6 +1,5 @@
 module cmd
 
-import ruby
 import homebrew.options as option_types
 
 // Translated from Homebrew/brew `cmd/options.rb`.
@@ -86,41 +85,5 @@ pub fn run_options_command(request OptionsCommandRequest) !string {
 		.none {
 			return error('`brew options` needs a formula, `HOMEBREW_REQUIRE_TAP_TRUST=1` or `HOMEBREW_NO_REQUIRE_TAP_TRUST=1` set!')
 		}
-	}
-}
-
-pub fn options_formula_value(formula OptionsFormula) ruby.Value {
-	mut values := []ruby.Value{}
-	for option in formula.install_options {
-		values << ruby.structured_value('Option', option.flag, {
-			'name':        option.name
-			'flag':        option.flag
-			'description': option.description
-		})
-	}
-	return ruby.Value{
-		type_name: 'Formula'
-		repr: formula.full_name
-		attributes: {
-			'full_name': formula.full_name
-			'has_head':  formula.has_head.str()
-		}
-		map_data: {
-			'options': ruby.array_value(values)
-		}
-	}
-}
-
-fn command_option_from_value(value ruby.Value) option_types.FormulaOption {
-	name := value.attribute('name') or { value.as_string().trim_left('-') }
-	return option_types.new_option(name, value.attribute('description') or { '' })
-}
-
-fn options_formula_from_value(value ruby.Value) OptionsFormula {
-	option_values := (value.map_data['options'] or { ruby.array_value([]) }).as_array() or { [] }
-	return OptionsFormula{
-		full_name: value.attribute('full_name') or { value.as_string() }
-		install_options: option_values.map(command_option_from_value(it))
-		has_head: (value.attribute('has_head') or { 'false' }) == 'true'
 	}
 }

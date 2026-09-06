@@ -1,7 +1,5 @@
 module mac
 
-import ruby
-
 pub struct MacCellarMachFile {
 pub:
 	path             string
@@ -35,81 +33,6 @@ pub struct MacCellarCheck {
 pub:
 	present bool
 	output  string
-}
-
-fn mac_cellar_check_value(check MacCellarCheck) ruby.Value {
-	if !check.present {
-		return ruby.object_value('NilClass', 'nil')
-	}
-	return ruby.string_value(check.output)
-}
-
-fn mac_cellar_string(value ruby.Value, key string) string {
-	if key in value.map_data {
-		return value.map_data[key].as_string()
-	}
-	return ''
-}
-
-fn mac_cellar_bool(value ruby.Value, key string) bool {
-	if key in value.map_data {
-		return value.map_data[key].as_bool() or { false }
-	}
-	return false
-}
-
-fn mac_cellar_strings(value ruby.Value, key string) []string {
-	if key in value.map_data {
-		return value.map_data[key].as_string_array() or { []string{} }
-	}
-	return []string{}
-}
-
-fn mac_cellar_mach_files(value ruby.Value, key string) []MacCellarMachFile {
-	if key !in value.map_data {
-		return []MacCellarMachFile{}
-	}
-	mut files := []MacCellarMachFile{}
-	for item in value.map_data[key].as_array() or { []ruby.Value{} } {
-		mut slices := []bool{}
-		if 'two_level_slices' in item.map_data {
-			for slice in item.map_data['two_level_slices'].as_array() or { []ruby.Value{} } {
-				slices << (slice.as_bool() or { false })
-			}
-		}
-		files << MacCellarMachFile{
-			path: mac_cellar_string(item, 'path')
-			dylib: mac_cellar_bool(item, 'dylib')
-			linked_libraries: mac_cellar_strings(item, 'linked_libraries')
-			two_level_slices: slices
-		}
-	}
-	return files
-}
-
-pub fn mac_formula_cellar_state_from_value(value ruby.Value) !MacFormulaCellarState {
-	if value.type_name != 'Hash' {
-		return error('expected Hash cellar state, got ${value.type_name}')
-	}
-	return MacFormulaCellarState{
-		name: mac_cellar_string(value, 'name')
-		prefix: mac_cellar_string(value, 'prefix')
-		include_path: mac_cellar_string(value, 'include_path')
-		lib_path: mac_cellar_string(value, 'lib_path')
-		keg_only: mac_cellar_bool(value, 'keg_only')
-		prefix_exists: mac_cellar_bool(value, 'prefix_exists')
-		include_exists: mac_cellar_bool(value, 'include_exists')
-		include_headers: mac_cellar_strings(value, 'include_headers')
-		system_headers: mac_cellar_strings(value, 'system_headers')
-		mach_files: mac_cellar_mach_files(value, 'mach_files')
-		python_modules: mac_cellar_mach_files(value, 'python_modules')
-		broken_library_linkage: mac_cellar_bool(value, 'broken_library_linkage')
-		linkage_display: mac_cellar_string(value, 'linkage_display')
-		poured_from_bottle: mac_cellar_bool(value, 'poured_from_bottle')
-		tap_issues_url: mac_cellar_string(value, 'tap_issues_url')
-		flat_namespace_allowlisted: mac_cellar_bool(value, 'flat_namespace_allowlisted')
-		base_library_extensions: mac_cellar_strings(value, 'base_library_extensions')
-	}
 }
 
 fn mac_cellar_join_paths(paths []string) string {

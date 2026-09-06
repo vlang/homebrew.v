@@ -430,20 +430,6 @@ pub fn mac_check_quarantine(context MacDiagnosticContext) ?finding.Finding {
 	return diagnostic_finding(message, '1', remediation)
 }
 
-fn mac_diagnostic_context_value(context &MacDiagnosticContext) ruby.Value {
-	return ruby.structured_value('OS::Mac::Diagnostic::Checks', '', {
-		'mac_diagnostic_address': u64(voidptr(context)).str()
-	})
-}
-
-fn mac_diagnostic_context_from_value(value ruby.Value) &MacDiagnosticContext {
-	return unsafe { &MacDiagnosticContext(voidptr(value.attributes['mac_diagnostic_address'].u64())) }
-}
-
-pub fn mac_diagnostic_boundary(context &MacDiagnosticContext) ruby.Value {
-	return mac_diagnostic_context_value(context)
-}
-
 fn finding_value(result ?finding.Finding) ruby.Value {
 	value := result or { return ruby.object_value('NilClass', 'nil') }
 	return ruby.structured_value('Homebrew::Diagnostic::Finding', value.string(), {

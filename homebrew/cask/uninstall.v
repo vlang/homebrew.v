@@ -1,6 +1,5 @@
 module cask
 
-import ruby
 import homebrew
 import os
 
@@ -269,75 +268,4 @@ pub fn check_dependent_casks(casks []CaskUninstallCask, caskroom []homebrew.Cask
 		dependents: dependents
 		stderr: message.output()
 	}
-}
-
-pub fn cask_uninstall_cask_value(cask CaskUninstallCask) ruby.Value {
-	mut values := {
-		'core':                     cask_core_value(cask.core)
-		'installed':                ruby.bool_value(cask.installed)
-		'pinned':                   ruby.bool_value(cask.pinned)
-		'installed_versions':       ruby.string_array_value(cask.installed_versions)
-		'artifact_paths':           ruby.string_array_value(cask.artifact_paths)
-		'uninstall_script':         ruby.string_value(cask.uninstall_script)
-		'uninstall_script_missing': ruby.bool_value(cask.uninstall_script_missing)
-		'incomplete_metadata':      ruby.bool_value(cask.incomplete_metadata)
-		'upgrade':                  ruby.bool_value(cask.upgrade)
-		'installer_messages':       ruby.string_array_value(cask.installer_messages)
-	}
-	if failure := cask.installer_failure {
-		values['installer_failure'] = ruby.structured_value(failure.type_name, failure.message, {
-			'message': failure.message
-		})
-	}
-	return ruby.Value{
-		type_name: 'Cask::Uninstall::CaskState'
-		repr: cask_uninstall_name(cask)
-		map_data: values
-	}
-}
-
-fn cask_uninstall_cask_from_value(value ruby.Value) !CaskUninstallCask {
-	if value.type_name != 'Cask::Uninstall::CaskState' && value.type_name != 'Hash' {
-		return error('expected Cask::Uninstall::CaskState, got ${value.type_name}')
-	}
-	failure := if raw := value.map_data['installer_failure'] {
-		?CaskUninstallFailure(CaskUninstallFailure{
-			type_name: raw.type_name
-			message: (raw.map_data['message'] or { ruby.string_value(raw.as_string()) }).as_string()
-		})
-	} else {
-		none
-	}
-	return CaskUninstallCask{
-		core: cask_core_from_value(value.map_data['core'] or { return error('core is required') })!
-		installed: (value.map_data['installed'] or { ruby.bool_value(false) }).as_bool()!
-		pinned: (value.map_data['pinned'] or { ruby.bool_value(false) }).as_bool()!
-		installed_versions: (value.map_data['installed_versions'] or { ruby.string_array_value([]) }).as_string_array()!
-		artifact_paths: (value.map_data['artifact_paths'] or { ruby.string_array_value([]) }).as_string_array()!
-		uninstall_script: (value.map_data['uninstall_script'] or { ruby.string_value('') }).as_string()
-		uninstall_script_missing: (value.map_data['uninstall_script_missing'] or { ruby.bool_value(false) }).as_bool()!
-		incomplete_metadata: (value.map_data['incomplete_metadata'] or { ruby.bool_value(false) }).as_bool()!
-		upgrade: (value.map_data['upgrade'] or { ruby.bool_value(false) }).as_bool()!
-		installer_messages: (value.map_data['installer_messages'] or { ruby.string_array_value([]) }).as_string_array()!
-		installer_failure: failure
-	}
-}
-
-fn cask_uninstall_result_value(result CaskUninstallResult) ruby.Value {
-	mut values := {
-		'casks':         ruby.array_value(result.casks.map(cask_uninstall_cask_value(it)))
-		'stdout':        ruby.string_value(result.stdout)
-		'stderr':        ruby.string_value(result.stderr)
-		'uninstalled':   ruby.string_array_value(result.uninstalled)
-		'removed_paths': ruby.string_array_value(result.removed_paths)
-		'errors':        ruby.array_value(result.errors.map(ruby.structured_value(it.type_name, it.message, {
-			'message': it.message
-		})))
-	}
-	if failure := result.final_failure {
-		values['final_failure'] = ruby.structured_value(failure.type_name, failure.message, {
-			'message': failure.message
-		})
-	}
-	return ruby.map_value(values)
 }

@@ -1,6 +1,5 @@
 module cask
 
-import ruby
 import homebrew.rubocops.cask.constants as stanza_constants
 
 // Translated from Homebrew/brew `rubocops/cask/uninstall_methods_order.rb`.
@@ -648,22 +647,4 @@ pub fn correct_uninstall_methods_order(source string) string {
 		corrected = corrected[..correction.replacement_begin] + correction.replacement + corrected[correction.replacement_end..]
 	}
 	return corrected
-}
-
-fn uninstall_methods_order_problem_value(problem UninstallMethodsOrderProblem) ruby.Value {
-	return ruby.structured_value('RuboCop::Cop::Offense', problem.message, {
-		'kind':              problem.kind
-		'method':            problem.method
-		'begin_pos':         problem.begin_pos.str()
-		'end_pos':           problem.end_pos.str()
-		'message':           problem.message
-		'has_correction':    problem.has_correction.str()
-		'replacement_begin': problem.replacement_begin.str()
-		'replacement_end':   problem.replacement_end.str()
-		'replacement':       problem.replacement
-	})
-}
-
-fn uninstall_methods_order_problem_values(problems []UninstallMethodsOrderProblem) ruby.Value {
-	return ruby.array_value(problems.map(uninstall_methods_order_problem_value(it)))
 }

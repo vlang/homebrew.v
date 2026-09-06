@@ -1,7 +1,5 @@
 module dev_cmd
 
-import ruby
-
 // Translated from Homebrew/brew `dev-cmd/test.rb`.
 
 pub struct FormulaTestTarget {
@@ -188,45 +186,4 @@ pub fn run_formula_tests(options FormulaTestOptions) FormulaTestResult {
 pub struct FormulaTestInput {
 pub:
 	options FormulaTestOptions
-}
-
-pub fn formula_test_input_boundary(input &FormulaTestInput) ruby.Value {
-	return ruby.structured_value('Homebrew::DevCmd::Test::Input', '', {
-		'formula_test_input_address': u64(voidptr(input)).str()
-	})
-}
-
-fn formula_test_input_from_value(value ruby.Value) &FormulaTestInput {
-	address := value.attributes['formula_test_input_address'] or { panic('invalid Test input') }
-	return unsafe { &FormulaTestInput(voidptr(address.u64())) }
-}
-
-fn formula_test_attempt_value(attempt FormulaTestAttempt) ruby.Value {
-	return ruby.map_value({
-		'formula':              ruby.string_value(attempt.formula)
-		'heading':              ruby.string_value(attempt.heading)
-		'exec_args':            ruby.string_array_value(attempt.exec_args)
-		'step':                 ruby.string_value(attempt.step)
-		'sandbox_log':          ruby.string_value(attempt.sandbox_log)
-		'optional_write_paths': ruby.string_array_value(attempt.optional_write_paths)
-		'deny_read_home':       ruby.bool_value(attempt.deny_read_home)
-		'deny_network':         ruby.bool_value(attempt.deny_network)
-		'attempts':             ruby.int_value(attempt.attempts)
-		'cache_cleared':        ruby.bool_value(attempt.cache_cleared)
-		'rust_backtrace':       ruby.string_value(attempt.rust_backtrace)
-		'environment_restored': ruby.bool_value(attempt.environment_restored)
-		'success':              ruby.bool_value(attempt.success)
-		'error':                ruby.string_value(attempt.error)
-	})
-}
-
-fn formula_test_result_value(result FormulaTestResult) ruby.Value {
-	return ruby.map_value({
-		'bundler_groups': ruby.string_array_value(result.bundler_groups)
-		'setup_path':     ruby.bool_value(result.setup_path)
-		'required_files': ruby.string_array_value(result.required_files)
-		'attempts':       ruby.array_value(result.attempts.map(formula_test_attempt_value(it)))
-		'errors':         ruby.string_array_value(result.errors)
-		'failed':         ruby.bool_value(result.failed)
-	})
 }

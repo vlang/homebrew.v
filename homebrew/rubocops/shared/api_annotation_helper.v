@@ -1,6 +1,5 @@
 module shared
 
-import ruby
 import os
 
 // Translated from Homebrew/brew `rubocops/shared/api_annotation_helper.rb`.

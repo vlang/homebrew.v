@@ -1,6 +1,5 @@
 module strategy
 
-import ruby
 import homebrew.livecheck
 import homebrew.utils
 
@@ -110,28 +109,4 @@ fn sourceforge_empty_fetcher(_ livecheck.StrategyCurlRequest) !utils.CurlCommand
 	return utils.CurlCommandResult{
 		exit_status: 1
 	}
-}
-
-fn sourceforge_match_data_value(result PageMatchData) ruby.Value {
-	mut matches := map[string]ruby.Value{}
-	for version in result.matches.keys() {
-		matches[version] = ruby.object_value('Version', version)
-	}
-	regex_value := result.regex or { PageMatchRegex{} }
-	mut values := {
-		'matches': ruby.map_value(matches)
-		'regex':   if regex_value.pattern == '' {
-			ruby.object_value('NilClass', 'nil')
-		} else {
-			ruby.object_value('Regexp', regex_value.pattern)
-		}
-		'url':     ruby.string_value(result.url)
-	}
-	if result.has_cached {
-		values['cached'] = ruby.bool_value(result.cached)
-	}
-	if result.has_content {
-		values['content'] = ruby.string_value(result.content)
-	}
-	return ruby.map_value(values)
 }

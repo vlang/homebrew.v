@@ -1,6 +1,5 @@
 module rubocops
 
-import ruby
 import homebrew.rubocops.@shared as url_shared
 import homebrew.rubocops.extend as formula_cop
 
@@ -19,10 +18,6 @@ pub:
 	corrected string
 }
 
-fn formula_urls_nil() ruby.Value {
-	return ruby.object_value('NilClass', 'nil')
-}
-
 fn formula_urls_tap(value string) string {
 	if value == 'homebrew-core' || value.contains('/homebrew-core/') {
 		return 'homebrew-core'
@@ -31,20 +26,6 @@ fn formula_urls_tap(value string) string {
 		return 'homebrew-cask'
 	}
 	return value.trim('/')
-}
-
-fn formula_urls_context(args []ruby.Value) FormulaUrlsContext {
-	source := if args.len > 0 { args[0].as_string() } else { '' }
-	mut tap := if args.len > 1 { formula_urls_tap(args[1].as_string()) } else { '' }
-	mut formula_name := if args.len > 2 { args[2].as_string() } else { '' }
-	file_path := if args.len > 3 { args[3].as_string() } else { '' }
-	if tap == '' && file_path != '' {
-		tap = formula_cop.formula_cop_tap(file_path) or { '' }
-	}
-	if formula_name == '' && file_path != '' {
-		formula_name = file_path.all_after_last('/').trim_string_right('.rb')
-	}
-	return FormulaUrlsContext{source, tap, formula_name, file_path}
 }
 
 fn formula_urls_collect_calls(node url_shared.HelperNode, name string) []url_shared.HelperNode {
@@ -371,8 +352,4 @@ pub fn audit_formula_git_urls(context FormulaUrlsContext) FormulaUrlsAnalysis {
 
 pub fn audit_formula_git_strict_urls(context FormulaUrlsContext) FormulaUrlsAnalysis {
 	return audit_formula_git_key(context, 'tag', true)
-}
-
-fn formula_urls_analysis_value(analysis FormulaUrlsAnalysis) ruby.Value {
-	return ruby.array_value(analysis.offenses.map(url_shared.url_problem_value(it)))
 }

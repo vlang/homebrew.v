@@ -50,17 +50,6 @@ pub fn linux_hosted_runner_cleanup_plan() LinuxTestBotCleanupPlan {
 	}
 }
 
-fn linux_test_bot_formula_from_value(value ruby.Value) LinuxTestBotFormula {
-	return LinuxTestBotFormula{
-		name: if value.attributes['name'] != '' {
-			value.attributes['name']
-		} else {
-			value.as_string()
-		}
-		requires_linux: value.attributes['requires_linux'] == 'true'
-	}
-}
-
 // Ruby method `runner_os_title` at line 13.
 pub fn ruby_test_bot_l13_d1_runner_os_title(args ...ruby.Value) ruby.Value {
 	name := if args.len > 0 { args[0].as_string() } else { ruby.kernel_info().name }

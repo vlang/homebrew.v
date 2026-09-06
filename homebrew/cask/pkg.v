@@ -1,6 +1,5 @@
 module cask
 
-import ruby
 import os
 
 // Translated from Homebrew/brew `cask/pkg.rb`.
@@ -233,38 +232,4 @@ pub fn (pkg &Pkg) uninstall() {
 		pkg.rmdir([root])
 	}
 	pkg.forget()
-}
-
-fn pkg_info_value(info PkgInfo) ruby.Value {
-	return ruby.map_value({
-		'volume':           ruby.string_value(info.volume)
-		'install-location': ruby.string_value(info.install_location)
-		'paths':            ruby.string_array_value(info.paths)
-	})
-}
-
-fn pkg_command_value(command &PkgCommand) ruby.Value {
-	return ruby.structured_value('SystemCommand', '', {
-		'pkg_command_address': u64(voidptr(command)).str()
-	})
-}
-
-fn pkg_command_from_value(value ruby.Value) &PkgCommand {
-	address := value.attributes['pkg_command_address'] or { panic('invalid Pkg command') }
-	return unsafe { &PkgCommand(voidptr(address.u64())) }
-}
-
-pub fn pkg_command_boundary(command &PkgCommand) ruby.Value {
-	return pkg_command_value(command)
-}
-
-fn pkg_value(pkg &Pkg) ruby.Value {
-	return ruby.structured_value('Cask::Pkg', pkg.package_id, {
-		'pkg_address': u64(voidptr(pkg)).str()
-	})
-}
-
-fn pkg_from_value(value ruby.Value) &Pkg {
-	address := value.attributes['pkg_address'] or { panic('invalid Cask::Pkg') }
-	return unsafe { &Pkg(voidptr(address.u64())) }
 }

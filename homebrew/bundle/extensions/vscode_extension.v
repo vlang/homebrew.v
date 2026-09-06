@@ -1,6 +1,5 @@
 module extensions
 
-import ruby
 import os
 
 // Translated from Homebrew/brew `bundle/extensions/vscode_extension.rb`.
@@ -208,21 +207,4 @@ pub fn (mut state VscodeExtensionState) cleanup(extensions []string) {
 	for extension in extensions {
 		state.commands << [executable, '--uninstall-extension', extension]
 	}
-}
-
-fn vscode_state_value(state &VscodeExtensionState) ruby.Value {
-	return ruby.structured_value('Homebrew::Bundle::VscodeExtension', '', {
-		'vscode_state_address': u64(voidptr(state)).str()
-	})
-}
-
-fn vscode_state_from_args(args []ruby.Value, method string) &VscodeExtensionState {
-	if args.len == 0 || 'vscode_state_address' !in args[0].attributes {
-		panic('VscodeExtension.${method} requires translated state')
-	}
-	return unsafe { &VscodeExtensionState(voidptr(args[0].attributes['vscode_state_address'].u64())) }
-}
-
-pub fn vscode_extension_state_boundary(state &VscodeExtensionState) ruby.Value {
-	return vscode_state_value(state)
 }

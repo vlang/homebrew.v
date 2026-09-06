@@ -374,21 +374,4 @@ pub fn new_linux_system_config() &LinuxSystemConfig {
 	}
 }
 
-fn linux_system_config_value(config &LinuxSystemConfig) ruby.Value {
-	return ruby.structured_value('SystemConfig', '', {
-		'linux_system_config_address': u64(voidptr(config)).str()
-	})
-}
-
-fn linux_system_config_from_args(args []ruby.Value) (&LinuxSystemConfig, int) {
-	if args.len > 0 && 'linux_system_config_address' in args[0].attributes {
-		return unsafe { &LinuxSystemConfig(voidptr(args[0].attributes['linux_system_config_address'].u64())) }, 1
-	}
-	return new_linux_system_config(), 0
-}
-
-pub fn linux_system_config_boundary(config &LinuxSystemConfig) ruby.Value {
-	return linux_system_config_value(config)
-}
-
 // Translated from Homebrew/brew `extend/os/linux/system_config.rb`.

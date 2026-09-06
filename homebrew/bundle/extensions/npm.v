@@ -1,6 +1,5 @@
 module extensions
 
-import ruby
 import homebrew.language
 import os
 import x.json2
@@ -172,21 +171,4 @@ pub fn (mut state NpmState) install(name string, preinstall bool, verbose bool, 
 
 pub fn (mut state NpmState) uninstall(name string, executable string) {
 	state.commands << npm_uninstall_command(executable, name)
-}
-
-fn npm_state_value(state &NpmState) ruby.Value {
-	return ruby.structured_value('Homebrew::Bundle::Npm', '', {
-		'npm_state_address': u64(voidptr(state)).str()
-	})
-}
-
-fn npm_state_from_args(args []ruby.Value, method string) &NpmState {
-	if args.len == 0 || 'npm_state_address' !in args[0].attributes {
-		panic('Npm.${method} requires translated Npm state')
-	}
-	return unsafe { &NpmState(voidptr(args[0].attributes['npm_state_address'].u64())) }
-}
-
-pub fn npm_state_boundary(state &NpmState) ruby.Value {
-	return npm_state_value(state)
 }

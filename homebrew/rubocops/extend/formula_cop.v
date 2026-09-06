@@ -1,8 +1,6 @@
 module extend
 
-import ruby
 import os
-import regex
 import x.json2
 import homebrew.rubocops.cask.constants as cask_constants
 
@@ -13,10 +11,6 @@ pub:
 	dep_type string
 	required bool
 	source   string
-}
-
-fn formula_cop_nil() ruby.Value {
-	return ruby.object_value('NilClass', 'nil')
 }
 
 fn formula_cop_string_at(source string, start int) ?(string, int, int) {

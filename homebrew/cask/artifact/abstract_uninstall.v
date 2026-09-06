@@ -138,27 +138,6 @@ pub fn new_abstract_uninstall_artifact(cask_token string, stanza string,
 	}
 }
 
-pub fn abstract_uninstall_to_value(artifact AbstractUninstallArtifact) ruby.Value {
-	return ruby.map_value({
-		'cask_token':           ruby.string_value(artifact.cask_token)
-		'stanza':               ruby.string_value(artifact.stanza)
-		'directives':           ruby.map_value(artifact.directives)
-		'bundle_ids_to_reopen': ruby.string_array_value(artifact.bundle_ids_to_reopen)
-	})
-}
-
-fn abstract_uninstall_from_value(value ruby.Value) !AbstractUninstallArtifact {
-	values := value.as_map()!
-	directives := (values['directives'] or { ruby.map_value({}) }).as_map()!
-	mut artifact := new_abstract_uninstall_artifact((values['cask_token'] or {
-		ruby.string_value('test-cask')
-	}).as_string(), (values['stanza'] or { ruby.string_value('uninstall') }).as_string(), directives)!
-	artifact.bundle_ids_to_reopen = (values['bundle_ids_to_reopen'] or {
-		ruby.string_array_value([])
-	}).as_string_array() or { [] }
-	return artifact
-}
-
 pub fn summarize_abstract_uninstall(artifact AbstractUninstallArtifact) string {
 	mut parts := []string{}
 	for key in [...abstract_uninstall_ordered_directives, 'on_upgrade'] {
@@ -647,62 +626,4 @@ pub fn dispatch_abstract_uninstall_with_command(mut artifact AbstractUninstallAr
 pub fn dispatch_abstract_uninstall(mut artifact AbstractUninstallArtifact,
 	options AbstractUninstallOptions) AbstractUninstallResult {
 	return dispatch_abstract_uninstall_with_command(mut artifact, options, default_uninstall_runner)
-}
-
-pub fn abstract_uninstall_result_to_value(result AbstractUninstallResult) ruby.Value {
-	return ruby.map_value({
-		'success':              ruby.bool_value(result.success)
-		'error':                ruby.string_value(result.error)
-		'output':               ruby.string_array_value(result.output)
-		'warnings':             ruby.string_array_value(result.warnings)
-		'directive_order':      ruby.string_array_value(result.directive_order)
-		'removed':              ruby.string_array_value(result.removed)
-		'trashed':              ruby.string_array_value(result.trashed)
-		'untrashable':          ruby.string_array_value(result.untrashable)
-		'packages':             ruby.string_array_value(result.packages)
-		'bundle_ids_to_reopen': ruby.string_array_value(result.bundle_ids_to_reopen)
-	})
-}
-
-fn adapter_artifact(args []ruby.Value) AbstractUninstallArtifact {
-	if args.len > 0 {
-		return abstract_uninstall_from_value(args[0]) or {
-			return AbstractUninstallArtifact{
-				cask_token: 'test-cask'
-				directives: {}
-			}
-		}
-	}
-	return AbstractUninstallArtifact{
-		cask_token: 'test-cask'
-		directives: {}
-	}
-}
-
-fn adapter_options(args []ruby.Value, index int) AbstractUninstallOptions {
-	if args.len <= index {
-		return AbstractUninstallOptions{}
-	}
-	values := args[index].as_map() or { return AbstractUninstallOptions{} }
-	return AbstractUninstallOptions{
-		home: (values['home'] or { ruby.string_value('') }).as_string()
-		gui: value_bool(values, 'gui', true)
-		upgrade: value_bool(values, 'upgrade', false)
-		reinstall: value_bool(values, 'reinstall', false)
-		signal_on_upgrade: value_bool(values, 'signal_on_upgrade', false)
-		force: value_bool(values, 'force', false)
-		launchctl_list: (values['launchctl_list'] or { ruby.string_value('') }).as_string()
-		trash_directory: (values['trash_directory'] or { ruby.string_value('') }).as_string()
-		undeletable: value_strings(values['undeletable'] or { ruby.string_array_value([]) })
-	}
-}
-
-fn dispatch_adapter_directive(name string, value ruby.Value,
-	options AbstractUninstallOptions) ruby.Value {
-	mut artifact := new_abstract_uninstall_artifact('test-cask', 'uninstall', {
-		name: value
-	}) or {
-		return ruby.object_value('CaskInvalidError', err.msg())
-	}
-	return abstract_uninstall_result_to_value(dispatch_abstract_uninstall(mut artifact, options))
 }

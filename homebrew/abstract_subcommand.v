@@ -115,28 +115,6 @@ pub struct AbstractSubcommand {
 	cleanup_value bool
 }
 
-fn abstract_subcommand_nil() ruby.Value {
-	return ruby.object_value('NilClass', 'nil')
-}
-
-pub fn new_abstract_subcommand(args ruby.Value, options AbstractSubcommandInitOptions) AbstractSubcommand {
-	return AbstractSubcommand{
-		args_value: args
-		context_value: if options.context.type_name == '' {
-			abstract_subcommand_nil()
-		} else {
-			options.context
-		}
-		targets_value: if options.targets.type_name == '' {
-			abstract_subcommand_nil()
-		} else {
-			options.targets
-		}
-		quiet_value: options.quiet
-		cleanup_value: options.cleanup
-	}
-}
-
 pub fn (subcommand AbstractSubcommand) args() ruby.Value {
 	return subcommand.args_value
 }

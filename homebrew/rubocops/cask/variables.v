@@ -1,7 +1,5 @@
 module cask
 
-import ruby
-
 // Translated from Homebrew/brew `rubocops/cask/variables.rb`.
 pub struct CaskVariableAssignment {
 pub:
@@ -212,24 +210,4 @@ pub fn correct_cask_variables(source string) string {
 		corrected = corrected[..offense.begin_pos] + offense.replacement + corrected[offense.end_pos..]
 	}
 	return corrected
-}
-
-fn cask_variable_offense_value(offense CaskVariableOffense) ruby.Value {
-	return ruby.structured_value('RuboCop::Cop::Offense', offense.message, {
-		'begin_pos':   offense.begin_pos.str()
-		'end_pos':     offense.end_pos.str()
-		'message':     offense.message
-		'replacement': offense.replacement
-	})
-}
-
-fn cask_variable_assignment_value(assignment CaskVariableAssignment) ruby.Value {
-	return ruby.structured_value('RuboCop::AST::LocalVariableAssignmentNode', assignment.source, {
-		'variable':       assignment.variable
-		'arch_condition': assignment.arch_condition
-		'true_source':    assignment.true_source
-		'false_source':   assignment.false_source
-		'begin_pos':      assignment.begin_pos.str()
-		'end_pos':        assignment.end_pos.str()
-	})
 }

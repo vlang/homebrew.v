@@ -1,7 +1,5 @@
 module artifact
 
-import ruby
-
 // Translated from Homebrew/brew `cask/artifact/stage_only.rb`.
 
 pub struct StageOnly {

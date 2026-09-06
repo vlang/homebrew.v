@@ -314,10 +314,10 @@ pub fn detect(path string, options DetectOptions) Strategy {
 		}
 	}
 	return Strategy{
-		kind:         selected or { StrategyKind.uncompressed }
-		path:         absolute
-		ref_type:     options.ref_type
-		ref:          options.ref
+		kind: selected or { StrategyKind.uncompressed }
+		path: absolute
+		ref_type: options.ref_type
+		ref: options.ref
 		merge_xattrs: options.merge_xattrs
 	}
 }
@@ -407,8 +407,7 @@ pub fn (strategy Strategy) extract(options ExtractOptions) ! {
 			cab_extract_to_dir(strategy.path, destination, basename, options.verbose)!
 		}
 		.git, .cvs, .directory {
-			directory_extract_to_dir(strategy.path, destination, basename, options.verbose,
-				strategy.move)!
+			directory_extract_to_dir(strategy.path, destination, basename, options.verbose, strategy.move)!
 		}
 		.bazaar {
 			bazaar_extract_to_dir(strategy.path, destination, basename, options.verbose)!
@@ -464,8 +463,8 @@ pub fn (strategy Strategy) extract_nestedly(options ExtractOptions) ! {
 	}
 	strategy.extract(ExtractOptions{
 		destination: temporary
-		basename:    options.basename
-		verbose:     options.verbose
+		basename: options.basename
+		verbose: options.verbose
 	})!
 	mut children := os.ls(temporary)!
 	children.sort()
@@ -476,8 +475,8 @@ pub fn (strategy Strategy) extract_nestedly(options ExtractOptions) ! {
 				prioritize_extension: options.prioritize_extension
 			})
 			nested.extract_nestedly(ExtractOptions{
-				destination:          destination
-				verbose:              options.verbose
+				destination: destination
+				verbose: options.verbose
 				prioritize_extension: options.prioritize_extension
 			})!
 			return
@@ -497,8 +496,7 @@ pub fn (strategy Strategy) extract_nestedly(options ExtractOptions) ! {
 
 fn make_temporary_directory(parent string) !string {
 	for attempt in 0 .. 100 {
-		candidate := os.join_path(parent,
-			'.brew-v-unpack-${os.getpid()}-${time.now().unix_nano()}-${attempt}')
+		candidate := os.join_path(parent, '.brew-v-unpack-${os.getpid()}-${time.now().unix_nano()}-${attempt}')
 		if !os.exists(candidate) {
 			os.mkdir(candidate)!
 			return candidate
@@ -645,7 +643,7 @@ fn checked_command_in_directory(program string, arguments []string, directory st
 	process.wait()
 	result := ruby.CommandResult{
 		exit_code: process.code
-		output:    output
+		output: output
 	}
 	process.close()
 	if result.exit_code != 0 {
@@ -684,9 +682,13 @@ fn file_has_bytes_at(path string, offset int, magic []u8) bool {
 
 fn file_prefix_contains(path string, magic []u8) bool {
 	bytes := read_file_prefix(path, 4096) or { return false }
-	if bytes.len < magic.len { return false }
+	if bytes.len < magic.len {
+		return false
+	}
 	for index in 0 .. bytes.len - magic.len + 1 {
-		if bytes[index..index + magic.len] == magic { return true }
+		if bytes[index..index + magic.len] == magic {
+			return true
+		}
 	}
 	return false
 }

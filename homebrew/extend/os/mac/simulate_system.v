@@ -1,7 +1,5 @@
 module mac
 
-import ruby
-
 // Translated from Homebrew/brew `extend/os/mac/simulate_system.rb`.
 
 pub fn simulating_or_running_on_macos(simulated_os string) bool {

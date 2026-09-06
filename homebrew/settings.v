@@ -111,10 +111,3 @@ fn (mut settings Settings) all(repository string) map[string]string {
 	cache.entries[repository] = values.clone()
 	return values
 }
-
-fn settings_boundary_repository(args []ruby.Value, index int) string {
-	if args.len > index {
-		return args[index].as_string()
-	}
-	return ruby.real_path('.')
-}

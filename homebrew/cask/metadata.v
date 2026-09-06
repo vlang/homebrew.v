@@ -1,6 +1,5 @@
 module cask
 
-import ruby
 import os
 import time
 
@@ -87,27 +86,5 @@ pub fn cask_metadata_leaf_subdir(leaf string, version ?string, timestamp string,
 	return CaskMetadataPath{
 		present: true
 		path: subdir
-	}
-}
-
-fn cask_metadata_optional_version(value ruby.Value) ?string {
-	if value.type_name in ['NilClass', 'Nil'] {
-		return none
-	}
-	return value.as_string()
-}
-
-fn cask_metadata_timestamp_value(value ruby.Value) string {
-	if value.type_name == 'Symbol' {
-		return ':${value.as_string().trim_left(':')}'
-	}
-	return value.as_string()
-}
-
-fn cask_metadata_path_value(result CaskMetadataPath) ruby.Value {
-	return if result.present {
-		ruby.object_value('Pathname', result.path)
-	} else {
-		ruby.object_value('NilClass', 'nil')
 	}
 }

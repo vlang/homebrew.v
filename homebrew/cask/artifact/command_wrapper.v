@@ -1,6 +1,5 @@
 module artifact
 
-import ruby
 import homebrew.extend as pathname_extension
 import os
 
@@ -130,27 +129,4 @@ pub fn install_command_wrapper_with_command(artifact CommandWrapperArtifact, for
 
 pub fn install_command_wrapper(artifact CommandWrapperArtifact, force bool, adopt bool) ! {
 	install_command_wrapper_with_command(artifact, force, adopt, default_artifact_command_runner)!
-}
-
-pub fn command_wrapper_to_args(artifact CommandWrapperArtifact) ruby.Value {
-	mut options := map[string]ruby.Value{}
-	if artifact.content != '' {
-		options['content'] = ruby.string_value(artifact.content)
-	} else {
-		options['executable'] = ruby.string_value(artifact.executable)
-		if artifact.args.len > 0 {
-			options['args'] = ruby.string_array_value(artifact.args)
-		}
-		if artifact.env.len > 0 {
-			mut environment := map[string]ruby.Value{}
-			for key, value in artifact.env {
-				environment[key] = ruby.string_value(value)
-			}
-			options['env'] = ruby.map_value(environment)
-		}
-	}
-	return ruby.array_value([
-		ruby.string_value(artifact.name),
-		ruby.map_value(options),
-	])
 }

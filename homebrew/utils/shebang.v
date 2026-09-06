@@ -1,6 +1,5 @@
 module utils
 
-import ruby
 import os
 import regex
 
@@ -23,21 +22,6 @@ pub fn new_shebang_rewrite_info(pattern string, max_length int,
 		max_length: max_length
 		replacement: replacement
 	}
-}
-
-pub fn rewrite_info_value(info RewriteInfo) ruby.Value {
-	return ruby.structured_value('Utils::Shebang::RewriteInfo', info.replacement, {
-		'regex':       info.regex
-		'max_length':  info.max_length.str()
-		'replacement': info.replacement
-	})
-}
-
-pub fn rewrite_info_from_value(value ruby.Value) !RewriteInfo {
-	if value.type_name != 'Utils::Shebang::RewriteInfo' {
-		return error('expected Utils::Shebang::RewriteInfo, got ${value.type_name}')
-	}
-	return new_shebang_rewrite_info(value.attribute('regex')!, value.attribute('max_length')!.int(), value.attribute('replacement')!)
 }
 
 fn bounded_first_line(path string, max_length int) !string {
@@ -133,26 +117,4 @@ pub fn rewrite_shebang(info RewriteInfo, paths []string) !int {
 		rewritten_count++
 	}
 	return rewritten_count
-}
-
-fn shebang_boundary_info(args []ruby.Value) ?RewriteInfo {
-	if args.len == 0 {
-		return none
-	}
-	return rewrite_info_from_value(args[0]) or { none }
-}
-
-fn shebang_boundary_paths(args []ruby.Value) []string {
-	if args.len < 2 {
-		return []
-	}
-	mut paths := []string{}
-	for argument in args[1..] {
-		if argument.type_name == 'Array' {
-			paths << argument.as_array() or { [] }.map(it.as_string())
-		} else {
-			paths << argument.as_string()
-		}
-	}
-	return paths
 }

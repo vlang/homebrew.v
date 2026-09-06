@@ -356,28 +356,3 @@ fn parse_dsl_value(raw string) !ruby.Value {
 	}
 	return error('unsupported value `${text}`')
 }
-
-pub fn bundle_dsl_entry_value(entry BundleDslEntry) ruby.Value {
-	return ruby.Value{
-		type_name: 'Homebrew::Bundle::Dsl::Entry'
-		repr: entry.name
-		map_data: entry.options.clone()
-		attributes: {
-			'type': entry.entry_type
-			'name': entry.name
-		}
-	}
-}
-
-pub fn bundle_dsl_value(dsl BundleDsl) ruby.Value {
-	return ruby.Value{
-		type_name: 'Homebrew::Bundle::Dsl'
-		repr: dsl.path
-		array_data: dsl.entries.map(bundle_dsl_entry_value(it))
-		map_data: dsl.cask_arguments.clone()
-		attributes: {
-			'path':  dsl.path
-			'input': dsl.input
-		}
-	}
-}

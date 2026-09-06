@@ -1,6 +1,5 @@
 module ffi
 
-import ruby
 import os
 
 pub fn security_retained_pointer(status int, pointer NativePointer) ?NativePointer {

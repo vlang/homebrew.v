@@ -225,7 +225,3 @@ fn shell_homebrew_library_path() string {
 	value := os.getenv('HOMEBREW_LIBRARY_PATH')
 	return if value != '' { value } else { os.join_path(os.getwd(), 'homebrew') }
 }
-
-fn shell_nil_value() ruby.Value {
-	return ruby.Value{ type_name: 'NilClass', repr: 'nil' }
-}

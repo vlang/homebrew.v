@@ -182,67 +182,8 @@ pub fn safe_popen_write(argv []string, input string, options PopenOptions) !stri
 	return result.stdout
 }
 
-pub fn popen_options_value(options PopenOptions, safe bool) ruby.Value {
-	return ruby.structured_value('Utils::PopenOptions', options.input, {
-		'input':  options.input
-		'chdir':  options.chdir
-		'stderr': options.stderr.str()
-		'safe':   safe.str()
-	})
-}
-
-fn popen_options_from_value(value ruby.Value) PopenOptions {
-	stderr := match value.attributes['stderr'] or { '' } {
-		'capture' { PopenStderr.capture }
-		'stdout', 'out' { PopenStderr.stdout }
-		'inherit', 'err' { PopenStderr.inherit }
-		else { PopenStderr.discard }
-	}
-	return PopenOptions{
-		input: value.attributes['input'] or { '' }
-		chdir: value.attributes['chdir'] or { '' }
-		stderr: stderr
-	}
-}
-
 struct PopenBoundaryRequest {
 	argv    []string
 	options PopenOptions
 	safe    bool
-}
-
-fn popen_boundary_request(args []ruby.Value) PopenBoundaryRequest {
-	mut argv := []string{}
-	mut environment := map[string]string{}
-	mut options := PopenOptions{}
-	mut safe := false
-	for argument in args {
-		if argument.type_name == 'Utils::PopenOptions' {
-			options = popen_options_from_value(argument)
-			safe = (argument.attributes['safe'] or { 'false' }) == 'true'
-		} else if argument.type_name == 'Hash' {
-			for name, value in argument.as_map() or { map[string]ruby.Value{} } {
-				environment[name] = value.as_string()
-			}
-		} else if argument.type_name == 'Array' {
-			argv << argument.as_array() or { [] }.map(it.as_string())
-		} else {
-			argv << argument.as_string()
-		}
-	}
-	options = PopenOptions{
-		...options
-		environment: environment
-	}
-	return PopenBoundaryRequest{
-		argv: argv
-		options: options
-		safe: safe
-	}
-}
-
-fn popen_execution_error_value(execution_error IError) ruby.Value {
-	return ruby.structured_value('ErrorDuringExecution', execution_error.msg(), {
-		'exit_code': execution_error.code().str()
-	})
 }

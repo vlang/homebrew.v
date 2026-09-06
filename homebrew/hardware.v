@@ -139,25 +139,4 @@ pub fn hardware_zig_cpu(arch string) string {
 	}
 }
 
-pub fn hardware_cpu_value(cpu &HardwareCpu) ruby.Value {
-	return ruby.structured_value('Hardware::CPU', hardware_cpu_arch(*cpu), {
-		'cpu_address': u64(voidptr(cpu)).str()
-	})
-}
-
-fn hardware_cpu_from_args(args []ruby.Value) (&HardwareCpu, int) {
-	if args.len > 0 && args[0].type_name == 'Hardware::CPU' {
-		address := args[0].attributes['cpu_address'] or { panic('invalid Hardware::CPU') }
-		return unsafe { &HardwareCpu(voidptr(address.u64())) }, 1
-	}
-	return current_hardware_cpu(), 0
-}
-
-fn hardware_optional_value(value ?string) ruby.Value {
-	if item := value {
-		return ruby.string_value(item)
-	}
-	return ruby.object_value('NilClass', 'nil')
-}
-
 // Translated from Homebrew/brew `hardware.rb`.

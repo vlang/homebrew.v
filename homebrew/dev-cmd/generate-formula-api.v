@@ -212,28 +212,3 @@ pub fn run_generate_formula_api(options GenerateFormulaApiOptions) !GenerateForm
 		written_files: written_files
 	}
 }
-
-pub fn generate_formula_api_input_boundary(input &GenerateFormulaApiInput) ruby.Value {
-	return ruby.structured_value('Homebrew::DevCmd::GenerateFormulaApi::Input', '', {
-		'generate_formula_api_input_address': u64(voidptr(input)).str()
-	})
-}
-
-fn generate_formula_api_input_from_value(value ruby.Value) &GenerateFormulaApiInput {
-	address := value.attributes['generate_formula_api_input_address'] or {
-		panic('invalid GenerateFormulaApi input')
-	}
-	return unsafe { &GenerateFormulaApiInput(voidptr(address.u64())) }
-}
-
-fn generate_formula_api_result_value(result GenerateFormulaApiResult) ruby.Value {
-	mut formulae := map[string]ruby.Value{}
-	for name, hash in result.formulae {
-		formulae[name] = ruby.map_value(hash)
-	}
-	return ruby.map_value({
-		'formulae':      ruby.map_value(formulae)
-		'warnings':      ruby.string_array_value(result.warnings)
-		'written_files': ruby.string_array_value(result.written_files)
-	})
-}

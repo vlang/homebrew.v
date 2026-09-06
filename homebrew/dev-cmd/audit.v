@@ -1,7 +1,5 @@
 module dev_cmd
 
-import ruby
-
 // Translated from Homebrew/brew `dev-cmd/audit.rb`.
 
 pub struct AuditSystem {
@@ -189,106 +187,6 @@ pub:
 pub struct AuditFormatProblemsInput {
 pub:
 	problems []AuditProblem
-}
-
-pub fn audit_run_input_boundary(input &AuditRunInput) ruby.Value {
-	return ruby.structured_value('Homebrew::DevCmd::Audit::RunInput', '', {
-		'audit_run_input_address': u64(voidptr(input)).str()
-	})
-}
-
-pub fn audit_cask_for_audit_input_boundary(input &AuditCaskForAuditInput) ruby.Value {
-	return ruby.structured_value('Homebrew::DevCmd::Audit::CaskForAuditInput', '', {
-		'audit_cask_for_audit_input_address': u64(voidptr(input)).str()
-	})
-}
-
-pub fn audit_print_problems_input_boundary(input &AuditPrintProblemsInput) ruby.Value {
-	return ruby.structured_value('Homebrew::DevCmd::Audit::PrintProblemsInput', '', {
-		'audit_print_problems_input_address': u64(voidptr(input)).str()
-	})
-}
-
-pub fn audit_format_problems_input_boundary(input &AuditFormatProblemsInput) ruby.Value {
-	return ruby.structured_value('Homebrew::DevCmd::Audit::FormatProblemsInput', '', {
-		'audit_format_problems_input_address': u64(voidptr(input)).str()
-	})
-}
-
-fn audit_run_input_from_value(value ruby.Value) !&AuditRunInput {
-	address := value.attributes['audit_run_input_address'] or {
-		return error('invalid Audit command input')
-	}
-	return unsafe { &AuditRunInput(voidptr(address.u64())) }
-}
-
-fn audit_cask_for_audit_input_from_value(value ruby.Value) !&AuditCaskForAuditInput {
-	address := value.attributes['audit_cask_for_audit_input_address'] or {
-		return error('invalid Audit cask input')
-	}
-	return unsafe { &AuditCaskForAuditInput(voidptr(address.u64())) }
-}
-
-fn audit_print_problems_input_from_value(value ruby.Value) !&AuditPrintProblemsInput {
-	address := value.attributes['audit_print_problems_input_address'] or {
-		return error('invalid Audit print input')
-	}
-	return unsafe { &AuditPrintProblemsInput(voidptr(address.u64())) }
-}
-
-fn audit_format_problems_input_from_value(value ruby.Value) !&AuditFormatProblemsInput {
-	address := value.attributes['audit_format_problems_input_address'] or {
-		return error('invalid Audit format input')
-	}
-	return unsafe { &AuditFormatProblemsInput(voidptr(address.u64())) }
-}
-
-fn audit_problem_value(problem AuditProblem) ruby.Value {
-	return ruby.map_value({
-		'message':      ruby.string_value(problem.message)
-		'corrected':    ruby.bool_value(problem.corrected)
-		'has_location': ruby.bool_value(problem.location.has_location)
-		'line':         ruby.int_value(problem.location.line)
-		'column':       ruby.int_value(problem.location.column)
-	})
-}
-
-fn audit_cask_value(cask AuditCask) ruby.Value {
-	return ruby.structured_value('Cask::Cask', cask.full_name, {
-		'full_name':    cask.full_name
-		'path':         cask.path
-		'refreshed_os': cask.refreshed_os
-	})
-}
-
-fn audit_run_result_value(result AuditRunResult) ruby.Value {
-	return ruby.map_value({
-		'stdout':                  ruby.string_array_value(result.stdout)
-		'stderr':                  ruby.string_array_value(result.stderr)
-		'gem_groups':              ruby.string_array_value(result.gem_groups)
-		'selected_formulae':       ruby.string_array_value(result.selected_formulae)
-		'selected_casks':          ruby.string_array_value(result.selected_casks)
-		'strict':                  ruby.bool_value(result.strict)
-		'online':                  ruby.bool_value(result.online)
-		'tap_audit':               ruby.bool_value(result.tap_audit)
-		'skip_style':              ruby.bool_value(result.skip_style)
-		'no_named_args':           ruby.bool_value(result.no_named_args)
-		'style_files':             ruby.string_array_value(result.style_files)
-		'style_only_cops':         ruby.string_array_value(result.style_only_cops)
-		'style_except_cops':       ruby.string_array_value(result.style_except_cops)
-		'formula_only':            ruby.string_array_value(result.formula_only)
-		'api_access_enabled':      ruby.bool_value(result.api_access_enabled_during_external_audit)
-		'tap_problem_count':       ruby.int_value(result.tap_problem_count)
-		'formula_problem_count':   ruby.int_value(result.formula_problem_count)
-		'cask_problem_count':      ruby.int_value(result.cask_problem_count)
-		'corrected_problem_count': ruby.int_value(result.corrected_problem_count)
-		'annotations':             ruby.array_value(result.annotations.map(ruby.map_value({
-			'message': ruby.string_value(it.message)
-			'file':    ruby.string_value(it.file)
-			'line':    ruby.int_value(it.line)
-			'column':  ruby.int_value(it.column)
-		})))
-	})
 }
 
 fn audit_ruby_chomp(value string) string {

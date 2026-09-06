@@ -1,6 +1,5 @@
 module dev_cmd
 
-import ruby
 import os
 import rand
 
@@ -287,77 +286,4 @@ pub fn run_tap_new(options TapNewOptions) !TapNewResult {
 		headline: 'Created ${name}'
 		stdout: stdout
 	}
-}
-
-pub fn tap_new_input_boundary(input &TapNewInput) ruby.Value {
-	return ruby.structured_value('Homebrew::DevCmd::TapNew::Input', '', {
-		'tap_new_input_address': u64(voidptr(input)).str()
-	})
-}
-
-fn tap_new_input_from_value(value ruby.Value) &TapNewInput {
-	address := value.attributes['tap_new_input_address'] or { panic('invalid TapNew input') }
-	return unsafe { &TapNewInput(voidptr(address.u64())) }
-}
-
-pub fn tap_new_render_input_boundary(input &TapNewRenderInput) ruby.Value {
-	return ruby.structured_value('Homebrew::DevCmd::TapNew::RenderInput', '', {
-		'tap_new_render_input_address': u64(voidptr(input)).str()
-	})
-}
-
-fn tap_new_render_input_from_value(value ruby.Value) &TapNewRenderInput {
-	address := value.attributes['tap_new_render_input_address'] or {
-		panic('invalid TapNew render input')
-	}
-	return unsafe { &TapNewRenderInput(voidptr(address.u64())) }
-}
-
-pub fn tap_new_write_input_boundary(input &TapNewWriteInput) ruby.Value {
-	return ruby.structured_value('Homebrew::DevCmd::TapNew::WriteInput', '', {
-		'tap_new_write_input_address': u64(voidptr(input)).str()
-	})
-}
-
-fn tap_new_write_input_from_value(value ruby.Value) &TapNewWriteInput {
-	address := value.attributes['tap_new_write_input_address'] or {
-		panic('invalid TapNew write input')
-	}
-	return unsafe { &TapNewWriteInput(voidptr(address.u64())) }
-}
-
-fn tap_new_git_command_value(command TapNewGitCommand) ruby.Value {
-	mut environment := map[string]ruby.Value{}
-	for key, value in command.environment {
-		environment[key] = ruby.string_value(value)
-	}
-	return ruby.map_value({
-		'program':           ruby.string_value(command.program)
-		'arguments':         ruby.string_array_value(command.arguments)
-		'working_directory': ruby.string_value(command.working_directory)
-		'environment':       ruby.map_value(environment)
-		'unset_environment': ruby.string_array_value(command.unset_environment)
-		'print_stdout':      ruby.bool_value(command.print_stdout)
-		'run_as_real_uid':   ruby.bool_value(command.run_as_real_uid)
-		'safe':              ruby.bool_value(command.safe)
-	})
-}
-
-fn tap_new_result_value(result TapNewResult) ruby.Value {
-	mut commands := []ruby.Value{}
-	for command in result.git_commands {
-		commands << tap_new_git_command_value(command)
-	}
-	return ruby.map_value({
-		'tap':                ruby.string_value(result.tap)
-		'path':               ruby.string_value(result.path)
-		'branch':             ruby.string_value(result.branch)
-		'root_url':           ruby.string_value(result.root_url or { '' })
-		'created_files':      ruby.string_array_value(result.created_files)
-		'set_git_name_email': ruby.bool_value(result.set_git_name_email)
-		'setup_git_gpg':      ruby.bool_value(result.setup_git_gpg)
-		'git_commands':       ruby.array_value(commands)
-		'headline':           ruby.string_value(result.headline)
-		'stdout':             ruby.string_value(result.stdout)
-	})
 }

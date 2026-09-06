@@ -1,6 +1,5 @@
 module dev_cmd
 
-import ruby
 import homebrew
 import os
 
@@ -61,17 +60,6 @@ pub mut:
 pub struct CreateInput {
 pub:
 	options CreateOptions
-}
-
-pub fn create_input_boundary(input &CreateInput) ruby.Value {
-	return ruby.structured_value('Homebrew::DevCmd::Create::Input', '', {
-		'create_input_address': u64(voidptr(input)).str()
-	})
-}
-
-fn create_input_from_value(value ruby.Value) &CreateInput {
-	address := value.attributes['create_input_address'] or { panic('invalid Create input') }
-	return unsafe { &CreateInput(voidptr(address.u64())) }
 }
 
 fn create_mode(options CreateOptions) string {
@@ -283,35 +271,4 @@ pub fn run_create(options CreateOptions) !CreateResult {
 	mut result := if options.cask { create_cask(options)! } else { create_formula(options)! }
 	result.editor_path = result.path
 	return result
-}
-
-fn create_result_value(result CreateResult) ruby.Value {
-	return ruby.map_value({
-		'path':                     ruby.object_value('Pathname', result.path)
-		'name':                     ruby.string_value(result.name)
-		'token':                    ruby.string_value(result.token)
-		'version':                  ruby.string_value(result.version)
-		'content':                  ruby.string_value(result.content)
-		'mode':                     ruby.string_value(result.mode)
-		'tap':                      ruby.string_value(result.tap)
-		'stdout':                   ruby.string_array_value(result.stdout)
-		'prompts':                  ruby.string_array_value(result.prompts)
-		'editor_path':              ruby.object_value('Pathname', result.editor_path)
-		'python_resources_updated': ruby.bool_value(result.python_resources_updated)
-	})
-}
-
-fn create_error_value(err IError) ruby.Value {
-	message := err.msg()
-	if message.starts_with('TapUnavailableError:') {
-		return ruby.object_value('TapUnavailableError', message)
-	}
-	if message.starts_with('CaskAlreadyCreatedError:') {
-		return ruby.object_value('Cask::CaskAlreadyCreatedError', message)
-	}
-	if message.contains('is not allowed to be created') || message.contains('is already aliased to')
-		|| message.starts_with('Version cannot be determined') {
-		return ruby.object_value('SystemExit', message)
-	}
-	return ruby.object_value('RuntimeError', message)
 }

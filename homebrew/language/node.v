@@ -178,34 +178,3 @@ fn compose_std_npm_install_args(libexec string, working_directory string, pack s
 	}
 	return args
 }
-
-fn node_environment_state_value(state NodeEnvironmentState) ruby.Value {
-	return ruby.structured_value('NodeEnvironmentState', state.env_set.str(), {
-		'env_set':                state.env_set.str()
-		'node_formula_available': state.node_formula_available.str()
-		'node_opt_libexec':       state.node_opt_libexec
-		'path_entries':           state.path_entries.join(':')
-		'prepend_calls':          state.prepend_calls.str()
-	})
-}
-
-fn node_environment_state_from_value(value ruby.Value) NodeEnvironmentState {
-	if value.type_name != 'NodeEnvironmentState' {
-		return NodeEnvironmentState{}
-	}
-	entries := value.attributes['path_entries'] or { '' }
-	return NodeEnvironmentState{
-		env_set: (value.attributes['env_set'] or { 'false' }) == 'true'
-		node_formula_available: (value.attributes['node_formula_available'] or { 'false' }) == 'true'
-		node_opt_libexec: value.attributes['node_opt_libexec'] or { '' }
-		path_entries: if entries.len > 0 { entries.split(':') } else { [] }
-		prepend_calls: (value.attributes['prepend_calls'] or { '0' }).int()
-	}
-}
-
-fn node_dependencies_from_value(value ruby.Value) []NodeDependency {
-	return value.array_data.map(NodeDependency{
-		name: it.attributes['name'] or { it.as_string() }
-		required: (it.attributes['required'] or { 'true' }) == 'true'
-	})
-}

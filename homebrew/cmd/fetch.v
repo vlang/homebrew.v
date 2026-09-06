@@ -1,7 +1,5 @@
 module cmd
 
-import ruby
-
 // Translated from Homebrew/brew `cmd/fetch.rb`.
 
 const fetch_max_tries = 5
@@ -185,58 +183,6 @@ pub mut:
 	retries_value       int
 	queue_initialized   bool
 	queue               FetchDownloadQueue
-}
-
-pub fn fetch_command_input_boundary(input &FetchCommandInput) ruby.Value {
-	return ruby.structured_value('Homebrew::Cmd::FetchCmd::Input', '', {
-		'fetch_command_input_address': u64(voidptr(input)).str()
-	})
-}
-
-pub fn fetch_cask_downloads_input_boundary(input &FetchCaskDownloadsInput) ruby.Value {
-	return ruby.structured_value('Homebrew::Cmd::FetchCmd::CaskDownloadsInput', '', {
-		'fetch_cask_downloads_input_address': u64(voidptr(input)).str()
-	})
-}
-
-pub fn fetch_api_names_input_boundary(input &FetchApiNamesInput) ruby.Value {
-	return ruby.structured_value('Homebrew::Cmd::FetchCmd::ApiNamesInput', '', {
-		'fetch_api_names_input_address': u64(voidptr(input)).str()
-	})
-}
-
-pub fn fetch_command_state_boundary(state &FetchCommandState) ruby.Value {
-	return ruby.structured_value('Homebrew::Cmd::FetchCmd::State', '', {
-		'fetch_command_state_address': u64(voidptr(state)).str()
-	})
-}
-
-fn fetch_command_input_from_value(value ruby.Value) !&FetchCommandInput {
-	address := value.attributes['fetch_command_input_address'] or {
-		return error('invalid Fetch command input')
-	}
-	return unsafe { &FetchCommandInput(voidptr(address.u64())) }
-}
-
-fn fetch_cask_downloads_input_from_value(value ruby.Value) !&FetchCaskDownloadsInput {
-	address := value.attributes['fetch_cask_downloads_input_address'] or {
-		return error('invalid Fetch cask downloads input')
-	}
-	return unsafe { &FetchCaskDownloadsInput(voidptr(address.u64())) }
-}
-
-fn fetch_api_names_input_from_value(value ruby.Value) !&FetchApiNamesInput {
-	address := value.attributes['fetch_api_names_input_address'] or {
-		return error('invalid Fetch API names input')
-	}
-	return unsafe { &FetchApiNamesInput(voidptr(address.u64())) }
-}
-
-fn fetch_command_state_from_value(value ruby.Value) !&FetchCommandState {
-	address := value.attributes['fetch_command_state_address'] or {
-		return error('invalid Fetch command state')
-	}
-	return unsafe { &FetchCommandState(voidptr(address.u64())) }
 }
 
 fn fetch_unique_lower(values []string) []string {
@@ -675,36 +621,4 @@ pub fn fetch_download_queue(mut state FetchCommandState) &FetchDownloadQueue {
 		state.queue_initialized = true
 	}
 	return &state.queue
-}
-
-fn fetch_download_value(download FetchDownload) ruby.Value {
-	return ruby.structured_value('FetchDownload', download.url, {
-		'kind':        download.kind
-		'name':        download.name
-		'url':         download.url
-		'os':          download.os
-		'arch':        download.arch
-		'language':    download.language
-		'require_sha': download.require_sha.str()
-	})
-}
-
-fn fetch_result_value(result FetchCommandResult) ruby.Value {
-	return ruby.Value{
-		type_name: 'FetchCommandResult'
-		repr: result.stdout
-		map_data: {
-			'downloads':     ruby.array_value(result.downloads.map(fetch_download_value(it)))
-			'stdout':        ruby.string_value(result.stdout)
-			'stderr':        ruby.string_value(result.stderr)
-			'warnings':      ruby.string_array_value(result.warnings)
-			'events':        ruby.string_array_value(result.events)
-			'used_api':      ruby.bool_value(result.used_api)
-			'regular_loads': ruby.int_value(result.regular_loads)
-			'fetches':       ruby.int_value(result.fetches)
-			'shutdowns':     ruby.int_value(result.shutdowns)
-			'failed':        ruby.bool_value(result.failed)
-			'error':         ruby.string_value(result.error)
-		}
-	}
 }

@@ -45,7 +45,7 @@ const bottle_macos_versions = {
 pub fn new_bottle_tag(system string, arch string) BottleTag {
 	return BottleTag{
 		system: system
-		arch:   arch
+		arch: arch
 	}
 }
 
@@ -237,9 +237,9 @@ pub fn (mut collector BottleTagCollector) add(tag BottleTag, checksum Checksum,
 		collector.order << symbol
 	}
 	collector.tag_specs[symbol] = BottleTagSpecification{
-		tag:      tag
+		tag: tag
 		checksum: checksum
-		cellar:   cellar
+		cellar: cellar
 	}
 }
 

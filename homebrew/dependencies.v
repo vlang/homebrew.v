@@ -1,7 +1,5 @@
 module homebrew
 
-import ruby
-
 // Translated from Homebrew/brew `dependencies.rb`.
 
 // Dependencies is the ordered Array delegate used by Homebrew. Keeping the
@@ -110,34 +108,4 @@ pub fn (dependencies Dependencies) dup_without_system_deps() Dependencies {
 
 pub fn (dependencies Dependencies) inspect() string {
 	return '#<Dependencies: [${dependencies.items.map(it.inspect()).join(', ')}]>'
-}
-
-fn dependencies_boundary_value(dependencies Dependencies) ruby.Value {
-	return ruby.Value{
-		type_name: 'Dependencies'
-		repr: dependencies.inspect()
-		array_data: dependencies.items.map(dependency_boundary_value(it))
-	}
-}
-
-fn dependency_array_boundary_value(dependencies []Dependency) ruby.Value {
-	return ruby.Value{
-		type_name: 'Array'
-		repr: '[${dependencies.map(it.inspect()).join(', ')}]'
-		array_data: dependencies.map(dependency_boundary_value(it))
-	}
-}
-
-fn dependencies_from_boundary(value ruby.Value) Dependencies {
-	if value.type_name == 'Dependencies' || value.type_name == 'Array' {
-		return new_dependencies(...value.array_data.filter(it.type_name == 'Dependency').map(dependency_from_boundary(it)))
-	}
-	panic('expected Dependencies, got ${value.type_name}')
-}
-
-fn dependencies_boundary_receiver(args []ruby.Value, method string) Dependencies {
-	if args.len == 0 {
-		panic('Dependencies#${method} requires a receiver')
-	}
-	return dependencies_from_boundary(args[0])
 }

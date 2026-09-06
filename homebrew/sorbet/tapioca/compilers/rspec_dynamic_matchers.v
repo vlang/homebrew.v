@@ -1,6 +1,5 @@
 module compilers
 
-import ruby
 import os
 import regex
 
@@ -152,13 +151,5 @@ pub fn rspec_dynamic_matchers_decoration(test_root string,
 			name: it
 			parameters: ['*args: T.untyped', '&block: T.untyped']
 		})
-	}
-}
-
-fn rspec_matcher_roots(args []ruby.Value) (string, string) {
-	return if args.len > 0 { args[0].as_string() } else { 'homebrew/test' }, if args.len > 1 {
-		args[1].as_string()
-	} else {
-		'homebrew/sorbet/rbi/gems'
 	}
 }

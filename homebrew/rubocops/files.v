@@ -1,6 +1,5 @@
 module rubocops
 
-import ruby
 import os
 
 // Translated from Homebrew/brew `rubocops/files.rb`.
@@ -53,13 +52,4 @@ pub fn audit_formula_file_permissions(file_path string, codespaces bool) ![]File
 	}
 	actual_mode := int(os.stat(file_path)!.get_mode().bitmask())
 	return audit_file_permission_mode(file_path, actual_mode)
-}
-
-fn file_permission_problem_value(problem FilePermissionProblem) ruby.Value {
-	return ruby.structured_value('RuboCop::Cop::Problem', problem.message, {
-		'actual':  problem.actual.str()
-		'wanted':  problem.wanted
-		'path':    problem.path
-		'message': problem.message
-	})
 }

@@ -1,6 +1,5 @@
 module cmd
 
-import ruby
 import x.json2
 
 // Translated from Homebrew/brew `cmd/trust.rb`.
@@ -428,43 +427,6 @@ pub:
 	options TrustCommandOptions
 	store   TrustCommandStore
 	taps    []TrustCommandTap
-}
-
-pub fn trust_command_input_boundary(input &TrustCommandInput) ruby.Value {
-	return ruby.structured_value('Homebrew::Cmd::Trust::Input', '', {
-		'trust_command_input_address': u64(voidptr(input)).str()
-	})
-}
-
-fn trust_command_input_from_value(value ruby.Value) &TrustCommandInput {
-	address := value.attributes['trust_command_input_address'] or { panic('invalid Trust command input') }
-	return unsafe { &TrustCommandInput(voidptr(address.u64())) }
-}
-
-fn trust_command_result_value(result TrustCommandResult) ruby.Value {
-	mut entries := map[string]ruby.Value{}
-	for key, values in result.store.entries {
-		entries[key] = ruby.string_array_value(values)
-	}
-	return ruby.Value{
-		type_name: 'TrustCommandResult'
-		repr: result.stdout
-		map_data: {
-			'store':    ruby.map_value(entries)
-			'messages': ruby.string_array_value(result.messages)
-			'stdout':   ruby.string_value(result.stdout)
-		}
-	}
-}
-
-fn trust_command_error_value(message string) ruby.Value {
-	for type_name in ['Homebrew::CLI::OptionConstraintError', 'OptionParser::MissingArgument',
-		'UsageError'] {
-		if message.starts_with('${type_name}:') {
-			return ruby.object_value(type_name, message.all_after(':').trim_space())
-		}
-	}
-	return ruby.object_value('UsageError', message)
 }
 
 fn trust_entry_type_from_string(value string) !TrustEntryType {

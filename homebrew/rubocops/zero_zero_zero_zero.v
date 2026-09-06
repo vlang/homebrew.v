@@ -1,7 +1,5 @@
 module rubocops
 
-import ruby
-
 // Translated from Homebrew/brew `rubocops/zero_zero_zero_zero.rb`.
 pub const zero_zero_zero_zero_message = 'Do not use 0.0.0.0 as it can be a security risk.'
 
@@ -407,15 +405,4 @@ pub fn audit_zero_zero_zero_zero(source string, formula_tap string) []ZeroZeroZe
 		}
 	}
 	return offenses
-}
-
-fn zero_zero_zero_zero_offense_value(offense ZeroZeroZeroZeroOffense) ruby.Value {
-	return ruby.structured_value('RuboCop::Cop::Offense', offense.message, {
-		'content':   offense.content
-		'begin_pos': offense.begin_pos.str()
-		'end_pos':   offense.end_pos.str()
-		'line':      offense.line.str()
-		'column':    offense.column.str()
-		'message':   offense.message
-	})
 }

@@ -1,6 +1,5 @@
 module dev_cmd
 
-import ruby
 import homebrew.vulns
 import os
 import time
@@ -274,69 +273,4 @@ pub fn run_generate_vulns_advisories(mut command GenerateVulnsAdvisoriesCommand)
 	}
 	result.messages << '${result.written_files.len} records written to ${options.directory}'
 	return result
-}
-
-pub fn generate_vulns_advisories_input_boundary(input &GenerateVulnsAdvisoriesInput) ruby.Value {
-	return ruby.structured_value('Homebrew::DevCmd::GenerateVulnsAdvisories::Input', '', {
-		'generate_vulns_advisories_input_address': u64(voidptr(input)).str()
-	})
-}
-
-fn generate_vulns_advisories_input_from_value(value ruby.Value) &GenerateVulnsAdvisoriesInput {
-	address := value.attributes['generate_vulns_advisories_input_address'] or {
-		panic('invalid GenerateVulnsAdvisories input')
-	}
-	return unsafe { &GenerateVulnsAdvisoriesInput(voidptr(address.u64())) }
-}
-
-pub fn generate_vulns_formula_input_boundary(input &GenerateVulnsFormulaInput) ruby.Value {
-	return ruby.structured_value('Homebrew::DevCmd::GenerateVulnsAdvisories::FormulaInput', '', {
-		'generate_vulns_formula_input_address': u64(voidptr(input)).str()
-	})
-}
-
-fn generate_vulns_formula_input_from_value(value ruby.Value) &GenerateVulnsFormulaInput {
-	address := value.attributes['generate_vulns_formula_input_address'] or {
-		panic('invalid GenerateVulnsAdvisories formula input')
-	}
-	return unsafe { &GenerateVulnsFormulaInput(voidptr(address.u64())) }
-}
-
-pub fn generate_vulns_first_fixed_input_boundary(input &GenerateVulnsFirstFixedInput) ruby.Value {
-	return ruby.structured_value('Homebrew::DevCmd::GenerateVulnsAdvisories::FirstFixedInput', '', {
-		'generate_vulns_first_fixed_input_address': u64(voidptr(input)).str()
-	})
-}
-
-fn generate_vulns_first_fixed_input_from_value(value ruby.Value) &GenerateVulnsFirstFixedInput {
-	address := value.attributes['generate_vulns_first_fixed_input_address'] or {
-		panic('invalid GenerateVulnsAdvisories first-fixed input')
-	}
-	return unsafe { &GenerateVulnsFirstFixedInput(voidptr(address.u64())) }
-}
-
-fn generate_vulns_patch_value(patch vulns.OsvExportPatch) ruby.Value {
-	mut resolves := []ruby.Value{}
-	for resolve in patch.resolves {
-		resolves << ruby.map_value({
-			'type': ruby.string_value(resolve.resolve_type)
-			'id':   ruby.string_value(resolve.id)
-		})
-	}
-	return ruby.map_value({
-		'type':     ruby.string_value(patch.patch_type)
-		'url':      ruby.string_value(patch.url)
-		'file':     ruby.string_value(patch.file)
-		'apply':    ruby.string_array_value(patch.apply)
-		'resolves': ruby.array_value(resolves)
-	})
-}
-
-fn generate_vulns_result_value(result GenerateVulnsAdvisoriesResult) ruby.Value {
-	return ruby.map_value({
-		'annotated_count': ruby.int_value(result.annotated_count)
-		'output_lines':    ruby.string_array_value(result.output_lines)
-		'messages':        ruby.string_array_value(result.messages)
-		'written_files':   ruby.string_array_value(result.written_files)
-	})
 }

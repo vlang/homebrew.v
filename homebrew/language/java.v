@@ -1,7 +1,5 @@
 module language
 
-import ruby
-
 // Translated from Homebrew/brew `language/java.rb`.
 pub struct OpenJdkFormula {
 pub:
@@ -105,51 +103,4 @@ pub fn overridable_java_home_env(version string, formulae []OpenJdkFormula,
 	return {
 		'JAVA_HOME': '\${JAVA_HOME:-${java_home_shell(version, formulae, compose)}}'
 	}
-}
-
-fn openjdk_formulae_from_value(value ruby.Value) []OpenJdkFormula {
-	return value.array_data.map(OpenJdkFormula{
-		name: it.attributes['name'] or { it.as_string() }
-		installed: (it.attributes['installed'] or { 'false' }) == 'true'
-		installed_version: it.attributes['installed_version'] or { '' }
-		opt_libexec: it.attributes['opt_libexec'] or { '' }
-	})
-}
-
-fn openjdk_formula_value(formula OpenJdkFormula) ruby.Value {
-	return ruby.structured_value('Formula', formula.name, {
-		'name':              formula.name
-		'installed':         formula.installed.str()
-		'installed_version': formula.installed_version
-		'opt_libexec':       formula.opt_libexec
-	})
-}
-
-fn java_environment_value(environment map[string]string) ruby.Value {
-	mut values := map[string]ruby.Value{}
-	for name, value in environment {
-		values[name] = ruby.string_value(value)
-	}
-	return ruby.map_value(values)
-}
-
-fn java_boundary_version(args []ruby.Value) string {
-	if args.len == 0 || args[0].type_name == 'NilClass' {
-		return ''
-	}
-	return args[0].as_string()
-}
-
-fn java_boundary_formulae(args []ruby.Value) []OpenJdkFormula {
-	if args.len < 2 {
-		return []
-	}
-	return openjdk_formulae_from_value(args[1])
-}
-
-fn java_boundary_composer(args []ruby.Value) JavaHomeComposer {
-	if args.len > 2 && (args[2].as_bool() or { false }) {
-		return java_macos_home
-	}
-	return java_portable_home
 }

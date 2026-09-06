@@ -1,7 +1,5 @@
 module rubocops
 
-import ruby
-
 // Translated from Homebrew/brew `rubocops/no_instance_variable_access_in_tests.rb`.
 pub const no_instance_variable_access_message_template = 'Use a public `attr_reader`/`attr_writer` (or an existing accessor) instead of `%s` in tests.'
 
@@ -34,13 +32,4 @@ pub fn audit_instance_variable_access(source string) []InstanceVariableAccessOff
 	}
 	offenses.sort(a.begin_pos < b.begin_pos)
 	return offenses
-}
-
-fn instance_variable_access_value(offense InstanceVariableAccessOffense) ruby.Value {
-	return ruby.structured_value('RuboCop::Cop::Offense', offense.message, {
-		'method':    offense.method
-		'begin_pos': offense.begin_pos.str()
-		'end_pos':   offense.end_pos.str()
-		'message':   offense.message
-	})
 }

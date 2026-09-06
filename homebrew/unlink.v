@@ -1,6 +1,5 @@
 module homebrew
 
-import ruby
 import os
 
 // Translated from Homebrew/brew `unlink.rb`.
@@ -92,39 +91,4 @@ pub fn unlink_link_overwrite_formulae(formula UnlinkFormula, verbose bool,
 		}
 	}
 	return results
-}
-
-fn unlink_keg_from_value(value ruby.Value) UnlinkKeg {
-	return UnlinkKeg{
-		name: value.attributes['name'] or { value.as_string() }
-		path: value.attributes['path'] or { value.as_string() }
-		linked: (value.attributes['linked'] or { 'true' }).bool()
-		installed: (value.attributes['installed'] or { 'true' }).bool()
-		directory: (value.attributes['directory'] or { 'true' }).bool()
-		symlinks: (value.attributes['symlinks'] or { '' }).split('|').filter(it != '')
-	}
-}
-
-fn unlink_formula_from_value(value ruby.Value) UnlinkFormula {
-	mut overwrite_formulae := []LinkOverwriteFormula{}
-	for overwrite in value.array_data {
-		overwrite_formulae << LinkOverwriteFormula{
-			name: overwrite.attributes['name'] or { overwrite.as_string() }
-			keg_only: (overwrite.attributes['keg_only'] or { 'false' }).bool()
-			kegs: overwrite.array_data.map(unlink_keg_from_value(it))
-		}
-	}
-	return UnlinkFormula{
-		name: value.attributes['name'] or { value.as_string() }
-		keg_only: (value.attributes['keg_only'] or { 'false' }).bool()
-		link_overwrite_formulae: overwrite_formulae
-	}
-}
-
-fn unlink_results_value(results []UnlinkResult) ruby.Value {
-	return ruby.array_value(results.map(ruby.structured_value('UnlinkResult', it.output, {
-		'keg_name': it.keg_name
-		'count':    it.count.str()
-		'output':   it.output
-	})))
 }

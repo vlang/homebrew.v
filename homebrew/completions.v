@@ -47,10 +47,6 @@ pub:
 const completion_shells = ['bash', 'fish', 'zsh']
 const completions_exclusion_list = ['instal', 'uninstal', 'update-report']
 
-fn completion_nil_value() ruby.Value {
-	return ruby.object_value('NilClass', 'nil')
-}
-
 fn completion_sorted_distinct(values []string) []string {
 	mut result := []string{}
 	mut seen := map[string]bool{}
@@ -62,13 +58,6 @@ fn completion_sorted_distinct(values []string) []string {
 	}
 	result.sort()
 	return result
-}
-
-fn completion_taps_from_value(value ruby.Value) []CompletionTap {
-	return value.array_data.map(CompletionTap{
-		path: it.attributes['path'] or { it.as_string() }
-		official: (it.attributes['official'] or { 'false' }) == 'true'
-	})
 }
 
 pub fn completion_installed_taps(tap_directory string) []CompletionTap {
@@ -331,85 +320,6 @@ pub fn completion_commands_from_names(names []string) []CompletionCommand {
 	return result
 }
 
-fn completion_subcommands_from_value(value ruby.Value) []CompletionSubcommand {
-	if value.array_data.len == 0 && value.string_array_data.len > 0 {
-		return value.string_array_data.map(CompletionSubcommand{
-			name: it
-		})
-	}
-	return value.array_data.map(CompletionSubcommand{
-		name: it.attributes['name'] or { it.as_string() }
-		aliases: (it.attributes['aliases'] or { '' }).split(',').filter(it != '')
-		description: it.attributes['description'] or { '' }
-		default: (it.attributes['default'] or { 'false' }) == 'true'
-	})
-}
-
-fn completion_options_from_value(value ruby.Value) []CompletionOption {
-	if value.map_data.len > 0 {
-		mut names := value.map_data.keys()
-		names.sort()
-		return names.map(CompletionOption{
-			name: it
-			description: value.map_data[it].as_string()
-		})
-	}
-	if value.array_data.len == 0 && value.string_array_data.len > 0 {
-		return value.string_array_data.map(CompletionOption{
-			name: it
-		})
-	}
-	return value.array_data.map(CompletionOption{
-		name: it.attributes['name'] or { it.as_string() }
-		description: it.attributes['description'] or { '' }
-	})
-}
-
-fn completion_named_args_from_value(value ruby.Value) []CompletionNamedArgument {
-	raw := value.array_data.clone()
-	if raw.len == 0 && value.string_array_data.len > 0 {
-		return value.string_array_data.map(CompletionNamedArgument{
-			value: it
-			is_symbol: true
-		})
-	}
-	return raw.map(CompletionNamedArgument{
-		value: it.as_string()
-		is_symbol: it.type_name == 'Symbol'
-	})
-}
-
-fn completion_command_from_values(args []ruby.Value, index int) CompletionCommand {
-	if args.len <= index {
-		return CompletionCommand{}
-	}
-	value := args[index]
-	name := value.attributes['name'] or { value.as_string() }
-	if command := completion_command_from_name(name) {
-		return command
-	}
-	return CompletionCommand{
-		name: name
-		description: value.attributes['description'] or { '' }
-		hidden: (value.attributes['hidden'] or { 'false' }) == 'true'
-		options: if args.len > index + 1 {
-			completion_options_from_value(args[index + 1])
-		} else {
-			[]
-		}
-		subcommands: if args.len > index + 2 {
-			completion_subcommands_from_value(args[index + 2])
-		} else {
-			[]
-		}
-		named_args: if args.len > index + 3 {
-			completion_named_args_from_value(args[index + 3])
-		} else {
-			[]
-		}
-	}
-}
-
 fn completion_command_with_subcommands(command CompletionCommand,
 	subcommands []CompletionSubcommand) CompletionCommand {
 	return CompletionCommand{
@@ -421,41 +331,6 @@ fn completion_command_with_subcommands(command CompletionCommand,
 		named_args: command.named_args
 		conflicts: command.conflicts
 	}
-}
-
-fn completion_commands_from_value(value ruby.Value) []CompletionCommand {
-	if value.array_data.len > 0 {
-		return value.array_data.map(completion_command_from_values([it], 0))
-	}
-	return completion_commands_from_names(value.string_array_data)
-}
-
-fn completion_boundary_repository(args []ruby.Value, index int) string {
-	if args.len > index && args[index].as_string() != '' {
-		return args[index].as_string()
-	}
-	repository := ruby.environment_value('HOMEBREW_REPOSITORY')
-	return if repository == '' { ruby.real_path('.') } else { repository }
-}
-
-fn completion_boundary_prefix(args []ruby.Value, index int, repository string) string {
-	if args.len > index && args[index].as_string() != '' {
-		return args[index].as_string()
-	}
-	prefix := ruby.environment_value('HOMEBREW_PREFIX')
-	return if prefix == '' { repository } else { prefix }
-}
-
-fn completion_boundary_taps(args []ruby.Value, index int,
-	repository string) []CompletionTap {
-	if args.len > index {
-		return completion_taps_from_value(args[index])
-	}
-	mut tap_directory := ruby.environment_value('HOMEBREW_TAP_DIRECTORY')
-	if tap_directory == '' {
-		tap_directory = os.join_path(repository, 'Library', 'Taps')
-	}
-	return completion_installed_taps(tap_directory)
 }
 
 fn completion_sorted_option_names(options []CompletionOption) []string {

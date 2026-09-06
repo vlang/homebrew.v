@@ -1,7 +1,5 @@
 module shared
 
-import ruby
-
 // Translated from Homebrew/brew `rubocops/shared/desc_helper.rb`.
 pub const desc_max_length = 80
 pub const desc_article_message = "Description shouldn't start with an article."
@@ -814,19 +812,4 @@ pub fn audit_desc(desc_type string, name string, call DescCall, has_desc bool, m
 		problems << desc_call_problem(call, desc_type, name, 'too_long', message)
 	}
 	return problems
-}
-
-fn desc_problem_value(problem DescProblem) ruby.Value {
-	return ruby.structured_value('RuboCop::Cop::Offense', problem.message, {
-		'kind':          problem.kind
-		'desc_type':     problem.desc_type
-		'name':          problem.name
-		'description':   problem.description
-		'begin_pos':     problem.begin_pos.str()
-		'end_pos':       problem.end_pos.str()
-		'message':       problem.message
-		'replacement':   problem.replacement
-		'literal_begin': problem.literal_begin_pos.str()
-		'literal_end':   problem.literal_end_pos.str()
-	})
 }

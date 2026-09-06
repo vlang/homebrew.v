@@ -1,6 +1,5 @@
 module dev_cmd
 
-import ruby
 import os
 
 // Translated from Homebrew/brew `dev-cmd/cat.rb`.
@@ -83,30 +82,4 @@ pub fn run_cat(options CatOptions) !CatResult {
 		stdout: stdout
 		success: true
 	}
-}
-
-pub fn cat_input_boundary(input &CatInput) ruby.Value {
-	return ruby.structured_value('Homebrew::DevCmd::Cat::Input', '', {
-		'cat_input_address': u64(voidptr(input)).str()
-	})
-}
-
-fn cat_input_from_value(value ruby.Value) &CatInput {
-	address := value.attributes['cat_input_address'] or { panic('invalid Cat input') }
-	return unsafe { &CatInput(voidptr(address.u64())) }
-}
-
-fn cat_result_value(result CatResult) ruby.Value {
-	mut environment := map[string]ruby.Value{}
-	for name, value in result.environment {
-		environment[name] = ruby.string_value(value)
-	}
-	return ruby.map_value({
-		'command':     ruby.string_array_value(result.command)
-		'working_dir': ruby.string_value(result.working_dir)
-		'environment': ruby.map_value(environment)
-		'stdout':      ruby.string_value(result.stdout)
-		'stderr':      ruby.string_value(result.stderr)
-		'success':     ruby.bool_value(result.success)
-	})
 }

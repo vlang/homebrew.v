@@ -1,7 +1,5 @@
 module rubocops
 
-import ruby
-
 // Translated from Homebrew/brew `rubocops/caveats.rb`.
 pub struct CaveatsProblem {
 pub:
@@ -138,13 +136,4 @@ pub fn audit_formula_caveats(source string, formula_tap string) []CaveatsProblem
 		}
 	}
 	return problems
-}
-
-fn caveats_problem_value(problem CaveatsProblem) ruby.Value {
-	return ruby.structured_value('RuboCop::Cop::Problem', problem.message, {
-		'kind':      problem.kind
-		'begin_pos': problem.begin_pos.str()
-		'end_pos':   problem.end_pos.str()
-		'message':   problem.message
-	})
 }

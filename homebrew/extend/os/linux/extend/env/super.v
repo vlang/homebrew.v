@@ -1,6 +1,5 @@
 module env
 
-import ruby
 import homebrew.extend.env as base_env
 import os
 
@@ -100,15 +99,4 @@ pub fn linux_superenv_setup_build_environment(mut state base_env.SuperenvState,
 	if context.gcc_version >= 9 {
 		state.append_cccfg('b')
 	}
-}
-
-pub fn linux_superenv_state_boundary(state &base_env.SuperenvState) ruby.Value {
-	return ruby.structured_value('OS::Linux::Superenv', '', {
-		'linux_superenv_address': u64(voidptr(state)).str()
-	})
-}
-
-fn linux_superenv_state_from_value(value ruby.Value) &base_env.SuperenvState {
-	address := value.attributes['linux_superenv_address'] or { panic('invalid Linux Superenv') }
-	return unsafe { &base_env.SuperenvState(voidptr(address.u64())) }
 }

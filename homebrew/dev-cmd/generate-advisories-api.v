@@ -195,24 +195,3 @@ pub fn run_generate_advisories_api(options GenerateAdvisoriesApiOptions) !Genera
 		contents: contents
 	}
 }
-
-pub fn generate_advisories_api_input_boundary(input &GenerateAdvisoriesApiInput) ruby.Value {
-	return ruby.structured_value('Homebrew::DevCmd::GenerateAdvisoriesApi::Input', '', {
-		'generate_advisories_api_input_address': u64(voidptr(input)).str()
-	})
-}
-
-fn generate_advisories_api_input_from_value(value ruby.Value) !&GenerateAdvisoriesApiInput {
-	address := value.attributes['generate_advisories_api_input_address'] or {
-		return error('invalid GenerateAdvisoriesApi input')
-	}
-	return unsafe { &GenerateAdvisoriesApiInput(voidptr(address.u64())) }
-}
-
-fn generate_advisories_api_result_value(result GenerateAdvisoriesApiResult) ruby.Value {
-	return ruby.map_value({
-		'data':        ruby.map_value(result.data)
-		'output_path': ruby.string_value(result.output_path)
-		'contents':    ruby.string_value(result.contents)
-	})
-}

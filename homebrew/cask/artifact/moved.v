@@ -1,6 +1,5 @@
 module artifact
 
-import ruby
 import os
 
 // Translated from Homebrew/brew `cask/artifact/moved.rb`.
@@ -406,78 +405,4 @@ pub fn summarize_installed_moved(artifact MovedArtifact) string {
 		return '${printable} (${moved_path_size(artifact.target)}B)'
 	}
 	return 'Missing ${artifact.english_name}: ${printable}'
-}
-
-pub fn moved_artifact_to_value(artifact MovedArtifact) ruby.Value {
-	return ruby.map_value({
-		'source':           ruby.string_value(artifact.source)
-		'target':           ruby.string_value(artifact.target)
-		'english_name':     ruby.string_value(artifact.english_name)
-		'printable_target': ruby.string_value(artifact.printable_target)
-	})
-}
-
-fn moved_artifact_from_value(value ruby.Value) !MovedArtifact {
-	values := value.as_map()!
-	return MovedArtifact{
-		source: (values['source'] or { return error('Moved source is required') }).as_string()
-		target: (values['target'] or { return error('Moved target is required') }).as_string()
-		english_name: (values['english_name'] or { ruby.string_value('Artifact') }).as_string()
-		printable_target: (values['printable_target'] or { ruby.string_value('') }).as_string()
-	}
-}
-
-pub fn moved_operation_to_value(result MovedOperationResult) ruby.Value {
-	return ruby.map_value({
-		'success':          ruby.bool_value(result.success)
-		'error':            ruby.string_value(result.error)
-		'output':           ruby.string_array_value(result.output)
-		'warnings':         ruby.string_array_value(result.warnings)
-		'moved':            ruby.bool_value(result.moved)
-		'adopted':          ruby.bool_value(result.adopted)
-		'reused':           ruby.bool_value(result.reused)
-		'restored':         ruby.bool_value(result.restored)
-		'removed':          ruby.string_array_value(result.removed)
-		'altname_metadata': ruby.string_value(result.altname_metadata)
-		'commands':         ruby.array_value(result.commands.map(ruby.map_value({
-			'executable':   ruby.string_value(it.executable)
-			'args':         ruby.string_array_value(it.args)
-			'sudo':         ruby.bool_value(it.sudo)
-			'sudo_as_root': ruby.bool_value(it.sudo_as_root)
-		})))
-	})
-}
-
-fn moved_install_options_from_value(value ruby.Value) MovedInstallOptions {
-	values := value.as_map() or { return MovedInstallOptions{} }
-	return MovedInstallOptions{
-		adopt: value_bool(values, 'adopt', false)
-		auto_updates: value_bool(values, 'auto_updates', false)
-		force: value_bool(values, 'force', false)
-		verbose: value_bool(values, 'verbose', false)
-		predecessor_matches: value_bool(values, 'predecessor_matches', false)
-		successor_matches: value_bool(values, 'successor_matches', false)
-		reinstall: value_bool(values, 'reinstall', false)
-		target_parent_writable: value_bool(values, 'target_parent_writable', true)
-		target_app_management: value_bool(values, 'target_app_management', false)
-	}
-}
-
-fn moved_uninstall_options_from_value(value ruby.Value) MovedUninstallOptions {
-	values := value.as_map() or { return MovedUninstallOptions{} }
-	return MovedUninstallOptions{
-		skip: value_bool(values, 'skip', false)
-		force: value_bool(values, 'force', false)
-		adopt: value_bool(values, 'adopt', false)
-		successor_matches: value_bool(values, 'successor_matches', false)
-		source_parent_writable: value_bool(values, 'source_parent_writable', true)
-		target_app_management: value_bool(values, 'target_app_management', false)
-	}
-}
-
-fn moved_adapter_artifact(args []ruby.Value) !MovedArtifact {
-	if args.len == 0 {
-		return error('Moved artifact is required')
-	}
-	return moved_artifact_from_value(args[0])
 }

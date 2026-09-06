@@ -1,7 +1,5 @@
 module cmd
 
-import ruby
-
 // Translated from Homebrew/brew `cmd/reinstall.rb`.
 pub enum ReinstallCommandItemKind {
 	formula
@@ -161,45 +159,4 @@ pub fn run_reinstall_command(items []ReinstallCommandItem,
 		queue_shutdown: queue_shutdown
 		casks_prefetched: casks_prefetched
 	}
-}
-
-pub fn reinstall_command_item_to_value(item ReinstallCommandItem) ruby.Value {
-	mut attributes := {
-		'kind':    item.kind.str()
-		'name':    item.name
-		'pinned':  item.pinned.str()
-		'bottled': item.bottled.str()
-	}
-	if failure := item.fail_message {
-		attributes['fail_message'] = failure
-	}
-	return ruby.structured_value('ReinstallItem', item.name, attributes)
-}
-
-fn reinstall_command_item_from_value(value ruby.Value) ReinstallCommandItem {
-	failure := if message := value.attributes['fail_message'] { ?string(message) } else { none }
-	return ReinstallCommandItem{
-		kind: match value.attributes['kind'] or { 'formula' } {
-			'cask' { ReinstallCommandItemKind.cask }
-			'unavailable' { ReinstallCommandItemKind.unavailable }
-			else { ReinstallCommandItemKind.formula }
-		}
-		name: value.attributes['name'] or { value.as_string() }
-		pinned: (value.attributes['pinned'] or { 'false' }) == 'true'
-		bottled: (value.attributes['bottled'] or { 'false' }) == 'true'
-		fail_message: failure
-	}
-}
-
-pub fn reinstall_command_result_to_value(result ReinstallCommandResult) ruby.Value {
-	return ruby.map_value({
-		'events':               ruby.string_array_value(result.events)
-		'formulae_reinstalled': ruby.string_array_value(result.formulae_reinstalled)
-		'casks_reinstalled':    ruby.string_array_value(result.casks_reinstalled)
-		'errors':               ruby.string_array_value(result.errors)
-		'failed':               ruby.bool_value(result.failed)
-		'queue_created':        ruby.bool_value(result.queue_created)
-		'queue_shutdown':       ruby.bool_value(result.queue_shutdown)
-		'casks_prefetched':     ruby.bool_value(result.casks_prefetched)
-	})
 }

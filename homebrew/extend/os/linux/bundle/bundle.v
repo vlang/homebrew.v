@@ -1,7 +1,5 @@
 module bundle
 
-import ruby
-
 // Translated from Homebrew/brew `extend/os/linux/bundle/bundle.rb`.
 
 pub fn prepend_pkgconf_path_if_needed(current_path string, pkgconf_opt_bin string,

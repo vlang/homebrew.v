@@ -1,6 +1,5 @@
 module cmd
 
-import ruby
 import os
 
 // Translated from Homebrew/brew `cmd/nodenv-sync.rb`.
@@ -83,33 +82,4 @@ pub fn sync_nodenv_versions(nodenv_root string, installed []InstalledNodeVersion
 		}
 	}
 	return result
-}
-
-pub fn installed_node_version_value(version InstalledNodeVersion) ruby.Value {
-	return ruby.structured_value('InstalledNodeVersion', version.path, {
-		'path':    version.path
-		'version': version.version
-	})
-}
-
-fn installed_node_version_from_value(value ruby.Value) InstalledNodeVersion {
-	return InstalledNodeVersion{
-		path: value.attribute('path') or { value.as_string() }
-		version: value.attribute('version') or { '' }
-	}
-}
-
-fn nodenv_sync_result_value(result NodenvSyncResult) ruby.Value {
-	return ruby.Value{
-		type_name: 'NodenvSyncResult'
-		repr: result.created.str()
-		attributes: {
-			'skipped_busy': result.skipped_busy.str()
-		}
-		map_data: {
-			'created': ruby.string_array_value(result.created)
-			'skipped': ruby.string_array_value(result.skipped)
-			'removed': ruby.string_array_value(result.removed)
-		}
-	}
 }

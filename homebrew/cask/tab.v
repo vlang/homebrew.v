@@ -3,7 +3,6 @@ module cask
 import homebrew
 import json2
 import os
-import time
 
 // Translated from Homebrew/brew `cask/tab.rb`.
 pub enum CaskTabDependencyKind {

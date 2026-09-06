@@ -1,7 +1,5 @@
 module mac
 
-import ruby
-
 pub type MacDyldSharedCacheContains = fn (string) bool
 
 pub fn mac_dylib_found_in_shared_cache(dylib string, macos_major int,

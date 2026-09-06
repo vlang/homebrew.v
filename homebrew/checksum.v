@@ -1,7 +1,5 @@
 module homebrew
 
-import ruby
-
 // Translated from Homebrew/brew `checksum.rb`.
 
 // Checksum is the translated value object used for formula and cask digests.
@@ -59,11 +57,4 @@ pub fn (checksum Checksum) equals_string(other string) bool {
 // equals translates the Checksum branch of Checksum#==.
 pub fn (checksum Checksum) equals(other Checksum) bool {
 	return checksum.hexdigest == other.hexdigest
-}
-
-fn checksum_from_boundary(arguments []ruby.Value, method string) Checksum {
-	if arguments.len == 0 {
-		panic('Checksum#${method} requires a receiver')
-	}
-	return new_checksum(arguments[0].as_string())
 }

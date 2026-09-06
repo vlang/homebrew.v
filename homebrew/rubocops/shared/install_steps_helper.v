@@ -1,7 +1,5 @@
 module shared
 
-import ruby
-
 // Translated from Homebrew/brew `rubocops/shared/install_steps_helper.rb`.
 pub const install_steps_explicit_bases = ['HOMEBREW_PREFIX', 'HOMEBREW_CELLAR', 'prefix', 'opt_prefix',
 	'bin', 'sbin', 'lib', 'libexec', 'share', 'pkgshare', 'var', 'etc', 'pkgetc', 'rack',
@@ -769,58 +767,4 @@ pub fn install_steps_compatibility_analysis(source string, block_name string,
 		}
 	}
 	return InstallStepHelperAnalysis{ source: source, offenses: offenses, corrected: corrected }
-}
-
-fn install_step_path_value(path InstallStepPath) ruby.Value {
-	return ruby.Value{
-		type_name: 'RuboCop::Cop::InstallStepsHelper::InstallStepPath'
-		repr: install_steps_path_source(path)
-		map_data: {
-			'path':   ruby.string_value(path.path)
-			'base':   ruby.string_value(path.base)
-			'source': ruby.string_value(path.source)
-		}
-	}
-}
-
-fn install_step_path_from_value(value ruby.Value) ?InstallStepPath {
-	if value.type_name == 'RuboCop::Cop::InstallStepsHelper::InstallStepPath' {
-		return InstallStepPath{
-			path: (value.map_data['path'] or { ruby.string_value('') }).as_string()
-			base: (value.map_data['base'] or { ruby.string_value('') }).as_string()
-			source: (value.map_data['source'] or { ruby.string_value('') }).as_string()
-		}
-	}
-	return install_steps_parse_path(value.as_string())
-}
-
-fn install_step_offense_value(offense InstallStepOffense) ruby.Value {
-	return ruby.Value{
-		type_name: 'RuboCop::Cop::Offense'
-		repr: offense.message
-		map_data: {
-			'message':     ruby.string_value(offense.message)
-			'replacement': ruby.string_value(offense.replacement)
-		}
-		attributes: {
-			'begin_pos': offense.begin_pos.str()
-			'end_pos':   offense.end_pos.str()
-		}
-	}
-}
-
-fn install_step_analysis_value(analysis InstallStepHelperAnalysis) ruby.Value {
-	return ruby.Value{
-		type_name: 'RuboCop::Cop::InstallStepsHelper::Analysis'
-		repr: analysis.source
-		array_data: analysis.offenses.map(install_step_offense_value(it))
-		map_data: {
-			'offenses':  ruby.array_value(analysis.offenses.map(install_step_offense_value(it)))
-			'corrected': ruby.string_value(analysis.corrected)
-		}
-	}
-}
-
-fn install_steps_helper_source(args []ruby.Value) string {
-	return if args.len > 0 { args[0].as_string() } else { '' }
 }

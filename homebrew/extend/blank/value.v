@@ -45,7 +45,3 @@ pub fn value_is_blank(value ruby.Value) bool {
 pub fn value_is_present(value ruby.Value) bool {
 	return !value_is_blank(value)
 }
-
-pub fn value_presence(value ruby.Value) ruby.Value {
-	return if value_is_present(value) { value } else { ruby.object_value('NilClass', '') }
-}

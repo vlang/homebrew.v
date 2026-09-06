@@ -1,6 +1,5 @@
 module homebrew
 
-import ruby
 import os
 
 // Translated from Homebrew/brew `PATH.rb`.
@@ -113,23 +112,4 @@ pub fn (path BrewPath) existing_with(predicate PathPredicate) ?BrewPath {
 
 pub fn (path BrewPath) existing() ?BrewPath {
 	return path.existing_with(os.is_dir)
-}
-
-pub fn brew_path_value(path BrewPath) ruby.Value {
-	return ruby.structured_value('PATH', path.str(), {
-		'paths': path.paths.join(os.path_delimiter)
-	})
-}
-
-pub fn brew_path_equals_value(path BrewPath, other ruby.Value) bool {
-	if other.type_name == 'Array' {
-		return path.paths == (other.as_string_array() or { return false })
-	}
-	if other.type_name == 'PATH' {
-		return path.str() == (other.attributes['paths'] or { other.as_string() })
-	}
-	if other.type_name in ['String', 'Pathname'] {
-		return path.str() == other.as_string()
-	}
-	return false
 }

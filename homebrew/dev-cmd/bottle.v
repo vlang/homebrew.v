@@ -1081,21 +1081,6 @@ pub fn run_bottle_command(command BottleCommand) !BottleCommandResult {
 	return BottleCommandResult{ bundler_groups: ['bottle'], bottles: results }
 }
 
-pub fn bottle_boundary_input(input &BottleBoundaryInput) ruby.Value {
-	return ruby.structured_value('Homebrew::DevCmd::Bottle::Input', '', {
-		'bottle_input_address': u64(voidptr(input)).str()
-	})
-}
-
-fn bottle_boundary_from_value(value ruby.Value) &BottleBoundaryInput {
-	address := value.attributes['bottle_input_address'] or { panic('invalid Bottle input') }
-	return unsafe { &BottleBoundaryInput(voidptr(address.u64())) }
-}
-
-fn bottle_cellar_from_value(value ruby.Value) BottleCellar {
-	return BottleCellar{ value: value.as_string(), is_symbol: value.type_name == 'Symbol' }
-}
-
 fn bottle_checksum_value(checksum BottleChecksum) ruby.Value {
 	return ruby.map_value({
 		'tag':    ruby.string_value(checksum.tag)
@@ -1113,44 +1098,5 @@ fn bottle_specification_value(specification BottleSpecification) ruby.Value {
 		'root_url':  ruby.string_value(specification.root_url)
 		'rebuild':   ruby.int_value(specification.rebuild)
 		'checksums': ruby.array_value(specification.checksums.map(bottle_checksum_value(it)))
-	})
-}
-
-fn bottle_formula_result_value(result BottleFormulaResult) ruby.Value {
-	return ruby.map_value({
-		'formula_name':    ruby.string_value(result.formula_name)
-		'bottle_path':     ruby.string_value(result.bottle_path)
-		'json_path':       ruby.string_value(result.json_path)
-		'output':          ruby.string_value(result.output)
-		'specification':   bottle_specification_value(result.specification)
-		'relocatable':     ruby.bool_value(result.relocatable)
-		'skip_relocation': ruby.bool_value(result.skip_relocation)
-	})
-}
-
-fn bottle_merge_result_value(result BottleMergeResult) ruby.Value {
-	return ruby.map_value({
-		'formula_name': ruby.string_value(result.formula_name)
-		'output':       ruby.string_value(result.output)
-		'formula_path': ruby.string_value(result.formula_path)
-		'updated':      ruby.bool_value(result.updated)
-		'all_bottle':   ruby.bool_value(result.all_bottle)
-		'commit':       ruby.string_array_value(result.commit)
-	})
-}
-
-fn bottle_command_result_value(result BottleCommandResult) ruby.Value {
-	return ruby.map_value({
-		'bundler_groups': ruby.string_array_value(result.bundler_groups)
-		'bottles':        ruby.array_value(result.bottles.map(bottle_formula_result_value(it)))
-		'merged':         ruby.array_value(result.merged.map(bottle_merge_result_value(it)))
-	})
-}
-
-fn bottle_inspection_value(result BottleKegInspection) ruby.Value {
-	return ruby.map_value({
-		'contains': ruby.bool_value(result.contains)
-		'files':    ruby.string_array_value(result.files)
-		'output':   ruby.string_array_value(result.output)
 	})
 }

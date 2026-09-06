@@ -1,6 +1,5 @@
 module os
 
-import ruby
 import os as system_os
 
 pub struct LinuxRuntime {

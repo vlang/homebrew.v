@@ -18,21 +18,6 @@ struct ParallelValueResult {
 	error_message string
 }
 
-fn run_parallel_value(index int, item ruby.Value, operation ParallelValueOperation,
-	results chan ParallelValueResult) {
-	value := operation(item) or {
-		results <- ParallelValueResult{
-			index: index
-			error_message: err.msg()
-		}
-		return
-	}
-	results <- ParallelValueResult{
-		index: index
-		value: value
-	}
-}
-
 pub fn deconstantize(path string) string {
 	index := path.last_index('::') or { return '' }
 	return path[..index]
@@ -66,30 +51,6 @@ pub fn tap_from_full_name(full_name string) ?string {
 
 pub fn is_full_name(full_name string) bool {
 	return full_name.count('/') == 2
-}
-
-pub fn parallel_map_values(items []ruby.Value,
-	operation ParallelValueOperation) ![]ruby.Value {
-	if items.len == 0 {
-		return []ruby.Value{}
-	}
-	results := chan ParallelValueResult{ cap: items.len }
-	for index, item in items {
-		spawn run_parallel_value(index, item, operation, results)
-	}
-	mut ordered := []ruby.Value{len: items.len}
-	mut errors := []string{len: items.len}
-	for _ in 0 .. items.len {
-		result := <-results
-		ordered[result.index] = result.value
-		errors[result.index] = result.error_message
-	}
-	for message in errors {
-		if message.len > 0 {
-			return error(message)
-		}
-	}
-	return ordered
 }
 
 pub fn pluralize(stem string, count i64, plural_suffix string, singular_suffix string,
@@ -180,72 +141,6 @@ pub fn is_safe_filename(basename string) bool {
 	return safe_filename_part(basename) == basename
 }
 
-pub fn convert_to_string_or_symbol(input string) ruby.Value {
-	if input.starts_with(':') {
-		return ruby.object_value('Symbol', input[1..])
-	}
-	return ruby.string_value(input)
-}
-
-pub fn deep_stringify_symbols(obj ruby.Value) ruby.Value {
-	if obj.type_name == 'String' {
-		return ruby.string_value(if obj.repr.starts_with(':') || obj.repr.starts_with('\\') {
-			'\\${obj.repr}'
-		} else {
-			obj.repr
-		})
-	}
-	if obj.type_name == 'Symbol' {
-		return ruby.string_value(':${obj.repr}')
-	}
-	if obj.type_name == 'Array' {
-		return ruby.array_value(obj.array_data.map(deep_stringify_symbols(it)))
-	}
-	if obj.type_name == 'Hash' {
-		mut mapped := map[string]ruby.Value{}
-		for key, value in obj.map_data {
-			// Value maps encode Ruby Symbol keys with their leading `:`. Preserve
-			// that source type while String keys still use the normal escaping.
-			stringified_key := if key.starts_with(':') {
-				key
-			} else {
-				deep_stringify_symbols(ruby.string_value(key)).repr
-			}
-			mapped[stringified_key] = deep_stringify_symbols(value)
-		}
-		return ruby.map_value(mapped)
-	}
-	return obj
-}
-
-pub fn deep_unstringify_symbols(obj ruby.Value) ruby.Value {
-	if obj.type_name == 'String' {
-		if obj.repr.starts_with('\\') {
-			return ruby.string_value(obj.repr[1..])
-		}
-		if obj.repr.starts_with(':') {
-			return ruby.object_value('Symbol', obj.repr[1..])
-		}
-		return obj
-	}
-	if obj.type_name == 'Array' {
-		return ruby.array_value(obj.array_data.map(deep_unstringify_symbols(it)))
-	}
-	if obj.type_name == 'Hash' {
-		mut mapped := map[string]ruby.Value{}
-		for key, value in obj.map_data {
-			converted_key := deep_unstringify_symbols(ruby.string_value(key))
-			mapped[if converted_key.type_name == 'Symbol' {
-				':${converted_key.repr}'
-			} else {
-				converted_key.repr
-			}] = deep_unstringify_symbols(value)
-		}
-		return ruby.map_value(mapped)
-	}
-	return obj
-}
-
 fn value_is_blank(value ruby.Value, compact_zero bool, compact_false bool) bool {
 	if value.type_name == 'NilClass' {
 		return true
@@ -263,34 +158,4 @@ fn value_is_blank(value ruby.Value, compact_zero bool, compact_false bool) bool 
 		return value.repr.trim_space().len == 0
 	}
 	return (value.type_name == 'Array' && value.array_data.len == 0) || (value.type_name == 'Hash' && value.map_data.len == 0)
-}
-
-pub fn deep_compact_blank(obj ruby.Value, compact_zero bool,
-	compact_false bool) ?ruby.Value {
-	mut compacted := obj
-	if obj.type_name == 'Array' {
-		mut values := []ruby.Value{}
-		for value in obj.array_data {
-			if kept := deep_compact_blank(value, compact_zero, compact_false) {
-				values << kept
-			}
-		}
-		compacted = ruby.array_value(values)
-	} else if obj.type_name == 'Hash' {
-		mut values := map[string]ruby.Value{}
-		for key, value in obj.map_data {
-			if kept := deep_compact_blank(value, compact_zero, compact_false) {
-				values[key] = kept
-			}
-		}
-		compacted = ruby.map_value(values)
-	}
-	if value_is_blank(compacted, compact_zero, compact_false) {
-		return none
-	}
-	return compacted
-}
-
-fn nil_boundary_value() ruby.Value {
-	return ruby.object_value('NilClass', 'nil')
 }
