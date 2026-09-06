@@ -180,8 +180,12 @@ fn execute_install_dispatch(arguments []string) ! {
 				bottle_tab := installer.fetch_bottle_tab_plan(true)!
 				mut manifest := bottle_tab.bottle.new_manifest_resource()!
 				mut download_queue := new_download_queue(0, false, true)
-				download_queue.enqueue(mut manifest.resource, false, false)!
-				download_queue.fetch(?ResourceKind(.bottle_manifest), none, false)!
+				// FormulaInstaller#fetch_bottle_tab enqueues a manifest only when it is
+				// not already cached and parseable, so a warm cache costs no request.
+				if !manifest.downloaded_and_valid() {
+					download_queue.enqueue(mut manifest.resource, false, false)!
+					download_queue.fetch(?ResourceKind(.bottle_manifest), none, false)!
+				}
 				manifest.verify_download_integrity('')!
 				tab_attributes := manifest.tab()!
 				resolution := FormulaDependencyResolutionConfig{

@@ -44,24 +44,34 @@ pub fn (mut strategy AbstractFileDownloadStrategy) cached_location() string {
 	return strategy.cached_location_with_basename(basename)
 }
 
+// cached_download_match returns the single already-cached download for this URL.
+// The source consults this before asking for a resolved basename, so a resource
+// that is already in the cache costs no request.
+pub fn (strategy &AbstractFileDownloadStrategy) cached_download_match() ?string {
+	digest := sha256.sum256(strategy.base.url.bytes()).hex()
+	downloads_directory := os.join_path(strategy.base.cache, 'downloads')
+	if !os.is_dir(downloads_directory) {
+		return none
+	}
+	mut matches := []string{}
+	for entry in os.ls(downloads_directory) or { [] } {
+		if entry.starts_with('${digest}--') && !entry.ends_with('.incomplete') {
+			matches << os.join_path(downloads_directory, entry)
+		}
+	}
+	if matches.len != 1 {
+		return none
+	}
+	return matches[0]
+}
+
 pub fn (mut strategy AbstractFileDownloadStrategy) cached_location_with_basename(resolved_basename string) string {
 	if strategy.cached_location_value != '' {
 		return strategy.cached_location_value
 	}
-	digest := sha256.sum256(strategy.base.url.bytes()).hex()
-	downloads_directory := os.join_path(strategy.base.cache, 'downloads')
-	mut matches := []string{}
-	if os.is_dir(downloads_directory) {
-		for entry in os.ls(downloads_directory) or { [] } {
-			if entry.starts_with('${digest}--') && !entry.ends_with('.incomplete') {
-				matches << os.join_path(downloads_directory, entry)
-			}
-		}
-	}
-	strategy.cached_location_value = if matches.len == 1 {
-		matches[0]
-	} else {
-		os.join_path(downloads_directory, '${digest}--${safe_filename(resolved_basename)}')
+	strategy.cached_location_value = strategy.cached_download_match() or {
+		digest := sha256.sum256(strategy.base.url.bytes()).hex()
+		os.join_path(strategy.base.cache, 'downloads', '${digest}--${safe_filename(resolved_basename)}')
 	}
 	return strategy.cached_location_value
 }

@@ -123,18 +123,114 @@ fn keg_regular_files(keg Keg) []string {
 	return keg.find().filter(ruby.is_file(it) && !ruby.is_link(it))
 }
 
-fn keg_file_description(path string) string {
-	file_program := ruby.find_executable('file') or { return '' }
-	result := ruby.run_command(file_program, ['-b', path])
-	return if result.exit_code == 0 { result.output.trim_space() } else { '' }
+// Mach-O magic numbers and file types from `ruby-macho`'s `MachO::Headers`. The
+// source reaches its `dylib?`/`mach_o_bundle?`/`mach_o_executable?` predicates
+// through ruby-macho's header parse, so the same classification is made here by
+// reading the header rather than forking `file` once per keg file.
+const mach_o_fat_magic = u32(0xcafebabe)
+const mach_o_fat_magic_64 = u32(0xcafebabf)
+const mach_o_magic = u32(0xfeedface)
+const mach_o_cigam = u32(0xcefaedfe)
+const mach_o_magic_64 = u32(0xfeedfacf)
+const mach_o_cigam_64 = u32(0xcffaedfe)
+
+// Java class files share FAT_MAGIC and encode their version where a fat header
+// keeps `nfat_arch`; the lowest such version is 43, so ruby-macho treats a
+// header claiming more than 30 slices as a class file instead.
+const mach_o_max_fat_arch = u32(30)
+
+const mach_o_filetype_execute = u32(0x2)
+const mach_o_filetype_dylib = u32(0x6)
+const mach_o_filetype_bundle = u32(0x8)
+
+const mach_o_fat_arch_size = 20
+const mach_o_fat_arch_64_size = 32
+
+fn mach_o_read_u32(bytes []u8, offset int, big_endian bool) ?u32 {
+	if offset < 0 || offset + 4 > bytes.len {
+		return none
+	}
+	first := u32(bytes[offset])
+	second := u32(bytes[offset + 1])
+	third := u32(bytes[offset + 2])
+	fourth := u32(bytes[offset + 3])
+	// V binds `|` tighter than `<<`, so each shifted byte needs its own parentheses.
+	return if big_endian {
+		(first << 24) | (second << 16) | (third << 8) | fourth
+	} else {
+		(fourth << 24) | (third << 16) | (second << 8) | first
+	}
+}
+
+// mach_o_slice_relocatable reports whether the thin Mach-O header at `offset`
+// carries one of the file types Keg#mach_o_files selects.
+fn mach_o_slice_relocatable(file &os.File, offset u64) bool {
+	header := file.read_bytes_at(16, offset)
+	magic := mach_o_read_u32(header, 0, true) or { return false }
+	big_endian := magic == mach_o_magic || magic == mach_o_magic_64
+	if !big_endian && magic != mach_o_cigam && magic != mach_o_cigam_64 {
+		return false
+	}
+	filetype := mach_o_read_u32(header, 12, big_endian) or { return false }
+	return filetype in [mach_o_filetype_execute, mach_o_filetype_dylib, mach_o_filetype_bundle]
+}
+
+// mach_o_relocatable_file answers the source's
+// `dylib? || mach_o_bundle? || mach_o_executable?` for one path. Fat headers are
+// always big-endian, and any slice of a matching type makes the whole file one.
+fn mach_o_relocatable_file(path string) bool {
+	mut file := os.open(path) or { return false }
+	defer {
+		file.close()
+	}
+	header := file.read_bytes_at(8, 0)
+	magic := mach_o_read_u32(header, 0, true) or { return false }
+	if magic != mach_o_fat_magic && magic != mach_o_fat_magic_64 {
+		return mach_o_slice_relocatable(file, 0)
+	}
+	count := mach_o_read_u32(header, 4, true) or { return false }
+	if count == 0 || count > mach_o_max_fat_arch {
+		return false
+	}
+	entry_size := if magic == mach_o_fat_magic {
+		mach_o_fat_arch_size
+	} else {
+		mach_o_fat_arch_64_size
+	}
+	architectures := file.read_bytes_at(entry_size * int(count), 8)
+	for index := 0; index < int(count); index++ {
+		base := index * entry_size
+		slice_offset := if magic == mach_o_fat_magic {
+			u64(mach_o_read_u32(architectures, base + 8, true) or { continue })
+		} else {
+			high := mach_o_read_u32(architectures, base + 8, true) or { continue }
+			low := mach_o_read_u32(architectures, base + 12, true) or { continue }
+			(u64(high) << 32) | u64(low)
+		}
+		if mach_o_slice_relocatable(file, slice_offset) {
+			return true
+		}
+	}
+	return false
 }
 
 pub fn (keg Keg) mach_o_files() []string {
 	mut files := []string{}
+	mut seen_inodes := map[string]bool{}
 	for path in keg_regular_files(keg) {
-		if keg_file_description(path).contains('Mach-O') {
-			files << path
+		if !mach_o_relocatable_file(path) {
+			continue
 		}
+		// Hardlinks share a device and inode. The source keeps only the first name
+		// of each so that a binary is never relocated more than once.
+		if information := os.stat(path) {
+			key := '${information.dev}:${information.inode}'
+			if key in seen_inodes {
+				continue
+			}
+			seen_inodes[key] = true
+		}
+		files << path
 	}
 	return files
 }
@@ -261,9 +357,48 @@ pub fn (mut keg Keg) relocate_dynamic_linkage(relocation KegRelocation) ![]strin
 	return changed
 }
 
-fn keg_text_file(path string) bool {
-	description := keg_file_description(path).to_lower()
-	return description.contains('text') || description.contains('script') || path.ends_with('.la')
+// The source classifies a keg's files with a single
+// `xargs -0 file --no-dereference --print0` pass. Batching the same way keeps
+// `file`'s own classification while spawning one process per chunk instead of
+// one per file; chunking keeps the argument vector clear of `ARG_MAX`.
+const keg_file_description_batch = 512
+
+fn keg_file_descriptions(paths []string) map[string]string {
+	mut descriptions := map[string]string{}
+	if paths.len == 0 {
+		return descriptions
+	}
+	file_program := ruby.find_executable('file') or { return descriptions }
+	for start := 0; start < paths.len; start += keg_file_description_batch {
+		end := if start + keg_file_description_batch < paths.len {
+			start + keg_file_description_batch
+		} else {
+			paths.len
+		}
+		mut arguments := ['--no-dereference', '--print0']
+		arguments << paths[start..end]
+		result := ruby.run_command(file_program, arguments)
+		if result.exit_code != 0 {
+			continue
+		}
+		// `file --print0` emits `path\0: description`, and prints extra lines for
+		// some files that carry no separator and are skipped.
+		for line in result.output.split_into_lines() {
+			path, description := line.split_once('\0') or { continue }
+			descriptions[path] = description.trim_left(': ').trim_space()
+		}
+	}
+	return descriptions
+}
+
+fn keg_text_description(description string, path string) bool {
+	lowered := description.to_lower()
+	return lowered.contains('text') || lowered.contains('script') || path.ends_with('.la')
+}
+
+fn keg_text_files_among(paths []string) []string {
+	descriptions := keg_file_descriptions(paths)
+	return paths.filter(keg_text_description(descriptions[it] or { '' }, it))
 }
 
 pub fn (keg Keg) replace_text_in_files(relocation KegRelocation,
@@ -271,7 +406,7 @@ pub fn (keg Keg) replace_text_in_files(relocation KegRelocation,
 	mut candidates := if selected_files.len > 0 {
 		selected_files.map(if os.is_abs_path(it) { it } else { keg.join(it) })
 	} else {
-		keg_regular_files(keg).filter(keg_text_file(it))
+		keg_text_files_among(keg_regular_files(keg))
 	}
 	candidates.sort()
 	mut changed := []string{}
@@ -461,7 +596,10 @@ pub fn keg_binary_file(file string) bool {
 }
 
 pub fn keg_text_files(keg Keg) []string {
-	return keg.find().filter(os.is_file(it) && !os.is_link(it) && (keg_text_file(it) || os.base(it) == 'orig-prefix.txt'))
+	candidates := keg.find().filter(os.is_file(it) && !os.is_link(it))
+	descriptions := keg_file_descriptions(candidates)
+	return candidates.filter(keg_text_description(descriptions[it] or { '' }, it)
+		|| os.base(it) == 'orig-prefix.txt')
 }
 
 pub fn keg_libtool_files(keg Keg) []string {

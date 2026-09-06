@@ -3,6 +3,7 @@ module api
 import ruby
 import net.http
 import os
+import time
 import x.json2
 
 // Translated from Homebrew/brew `api/formula.rb`.
@@ -635,20 +636,96 @@ pub fn decode_local_formula_metadata(contents string, path string) !PackageRefer
 	}
 }
 
+// The source answers formula metadata out of `HOMEBREW_CACHE/api`, refreshing an
+// entry only once it is older than HOMEBREW_API_AUTO_UPDATE_SECS and never while
+// HOMEBREW_NO_AUTO_UPDATE is set. Resolving without that cache reached the
+// network once per formula in a dependency graph.
+const formula_api_auto_update_default_seconds = i64(450)
+
+// formula_api_cache_root resolves the same directory `HOMEBREW_API_CACHE` names
+// for the source, falling back to Homebrew's own default cache location.
+fn formula_api_cache_root(cache_directory string) string {
+	if cache_directory.len > 0 {
+		return cache_directory
+	}
+	if configured := non_empty_environment_value('HOMEBREW_API_CACHE') {
+		return configured
+	}
+	if cache := non_empty_environment_value('HOMEBREW_CACHE') {
+		return os.join_path(cache, 'api')
+	}
+	home := os.home_dir()
+	if home.len == 0 {
+		return ''
+	}
+	$if macos {
+		return os.join_path(home, 'Library', 'Caches', 'Homebrew', 'api')
+	} $else {
+		base := non_empty_environment_value('XDG_CACHE_HOME') or { os.join_path(home, '.cache') }
+		return os.join_path(base, 'Homebrew', 'api')
+	}
+}
+
+fn non_empty_environment_value(name string) ?string {
+	value := ruby.environment_value(name)
+	return if value.len > 0 { value } else { none }
+}
+
+fn formula_api_auto_update_seconds() i64 {
+	if ruby.environment_value('HOMEBREW_NO_AUTO_UPDATE').len > 0 {
+		return -1
+	}
+	configured := ruby.environment_value('HOMEBREW_API_AUTO_UPDATE_SECS')
+	if configured.len == 0 {
+		return formula_api_auto_update_default_seconds
+	}
+	return configured.i64()
+}
+
+// formula_api_cache_fresh applies the source's staleness window. A negative
+// window means auto-update is off and any cached entry is served.
+fn formula_api_cache_fresh(path string) bool {
+	window := formula_api_auto_update_seconds()
+	if window < 0 {
+		return true
+	}
+	information := os.stat(path) or { return false }
+	age := time.now().unix() - information.mtime
+	return age >= 0 && age < window
+}
+
 fn cached_formula_json_path(name string, cache_directory string) ?string {
-	if cache_directory.len == 0 {
+	root := formula_api_cache_root(cache_directory)
+	if root.len == 0 {
 		return none
 	}
 	candidates := [
-		os.join_path(cache_directory, 'formula', '${name}.json'),
-		os.join_path(cache_directory, '${name}.json'),
+		os.join_path(root, 'formula', '${name}.json'),
+		os.join_path(root, '${name}.json'),
 	]
 	for candidate in candidates {
-		if os.is_file(candidate) {
+		if os.is_file(candidate) && formula_api_cache_fresh(candidate) {
 			return candidate
 		}
 	}
 	return none
+}
+
+// write_cached_formula_json stores a fetched response where the source's own API
+// cache keeps it, so a later run and the rest of this one are served from disk.
+fn write_cached_formula_json(name string, cache_directory string, contents string) {
+	root := formula_api_cache_root(cache_directory)
+	if root.len == 0 {
+		return
+	}
+	directory := os.join_path(root, 'formula')
+	os.mkdir_all(directory) or { return }
+	target := os.join_path(directory, '${name}.json')
+	// Write through a temporary name so a concurrent reader never sees a partial
+	// response at the cached path.
+	temporary := '${target}.${os.getpid()}.incomplete'
+	os.write_file(temporary, contents) or { return }
+	os.mv(temporary, target) or { os.rm(temporary) or {} }
 }
 
 fn fetch_formula_endpoint(name string, config FormulaLookupConfig) !string {
@@ -657,6 +734,7 @@ fn fetch_formula_endpoint(name string, config FormulaLookupConfig) !string {
 	if response.status_code != 200 {
 		return error('formula API request failed for `${name}`: HTTP ${response.status_code}')
 	}
+	write_cached_formula_json(name, config.cache_directory, response.body)
 	return response.body
 }
 

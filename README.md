@@ -4,42 +4,55 @@
 
 | Operation | Frontend | Median wall | Range | Median CPU | Peak RSS |
 | --- | --- | ---: | ---: | ---: | ---: |
-| `install neovim` | `brew-v` | 13.12 s | 12.49–13.76 | 8.35 s | 92.1 MB |
-| `install neovim` | Ruby `brew` | 1.04 s | 0.79–1.07 | 0.97 s | 146.6 MB |
-| `uninstall neovim` | `brew-v` | 0.19 s | 0.19–0.19 | 0.18 s | 10.6 MB |
-| `uninstall neovim` | Ruby `brew` | 0.66 s | 0.49–0.69 | 0.59 s | 99.9 MB |
+| `install neovim` | `brew-v` | **0.76 s** | 0.73–0.76 | 0.66 s | **48.4 MB** |
+| `install neovim` | Ruby `brew` | 1.04 s | 0.79–1.07 | 0.97 s | 150.6 MB |
+| `uninstall neovim` | `brew-v` | **0.19 s** | 0.19–0.20 | 0.18 s | **10.6 MB** |
+| `uninstall neovim` | Ruby `brew` | 0.68 s | 0.51–0.72 | 0.60 s | 98.5 MB |
 
-`brew-v uninstall` is 3.5x faster than Ruby Homebrew and holds 9.4x less memory,
-with no run-to-run spread at all. `brew-v install` is 12.6x slower while holding
-1.6x less memory, for two reasons that a `/usr/bin/sample` profile of a single
-install attributes 84% of the run to:
+`brew-v` installs 1.4x faster than Ruby Homebrew on 3.1x less memory, and
+uninstalls 3.6x faster on 9.3x less memory.
 
-- `Keg.relocate_dynamic_linkage` reaches `mach_o_files`, and `keg_file_description`
-  (`homebrew/keg_relocate.v`) forks `file -b` once per regular file: 2,112 processes
-  for one Neovim keg, 66% of the run. Ruby Homebrew reads the Mach-O header instead
-  of shelling out. Reading the magic bytes in V, and caching the `find_executable`
-  lookup that repeats per file, removes this.
-- `api.fetch_formula_endpoint` (`homebrew/api/formula.v`) issues one live HTTPS GET
-  to `formulae.brew.sh/api/formula/<name>.json` per formula in the dependency graph,
-  18% of the run and nearly all of it blocked on the network. Ruby Homebrew answers
-  the same queries from the 29 MB `~/Library/Caches/Homebrew/api` bundle it already
-  has on disk. This is why a `brew-v install` of an already-installed Neovim still
-  costs 5.19 s wall for only 0.39 s of CPU.
+Install was 12.70 s before the three fixes below, all of them places where the
+translation reached for a subprocess or the network where the source does not.
+None of them changed what gets installed: the resulting keg is byte-identical to
+the one the pre-fix executable produced.
 
-Neither cost is inherent to the V implementation: startup is already 0.00 s and
-4.3 MB against Ruby's 0.03 s and 5.8 MB, and the same-work `uninstall` path shows
-what the install path reaches once per-file subprocesses and uncached metadata
-fetches are gone.
+- **2,112 `file` forks per keg.** `Keg#mach_o_files` classified every regular
+  file by forking `file -b`, re-scanning `PATH` for `file` each time, to find the
+  12 Mach-O files in Neovim. The source reads the Mach-O header through
+  ruby-macho instead, so `mach_o_relocatable_file` now parses the magic, fat
+  slices and file type directly (`homebrew/keg_relocate.v`). Checked against
+  `file` over 79,873 files in `/opt/homebrew/Cellar`, `/usr/bin` and
+  `/opt/homebrew/bin`: zero disagreements. `Keg#text_files` had the same shape and
+  now batches one `file` invocation per 512 paths, as the source's
+  `xargs -0 file` pass does. This was 66% of the old run.
+- **One HTTPS GET per formula.** `API::Formula` fetched
+  `formulae.brew.sh/api/formula/<name>.json` for every formula in the dependency
+  graph on every run, 11 sequential round trips for Neovim, because nothing ever
+  wrote the cache that `cached_formula_json_path` reads. Responses are now stored
+  in `HOMEBREW_CACHE/api/formula`, where the source keeps them, and served back
+  under the same `HOMEBREW_API_AUTO_UPDATE_SECS` staleness window
+  (`homebrew/api/formula.v`).
+- **A `curl` round trip per cached download.** `CurlDownloadStrategy#cached_location`
+  resolved the URL over the network before consulting the cache, and the bottle
+  manifest was enqueued even when already cached and parseable.
+  `AbstractFileDownloadStrategy#cached_location` globs `<sha256 of url>--*` first
+  and only resolves a basename on a miss, and `FormulaInstaller#fetch_bottle_tab`
+  enqueues only what is not `downloaded_and_valid?`; both orders are restored
+  (`homebrew/download_strategy/`, `homebrew/brew.v`).
+
+One gap remains. On a cold metadata cache — a formula graph never resolved
+before, or one older than the staleness window with auto-update on — the 11
+sequential formula requests still cost 4.72 s. The source pays that cost once for
+the whole 29 MB `formula.jws.json` bundle rather than per formula.
 
 ### Method
 
 Measured on 2026-09-06, Apple arm64 (18-core), macOS 26.5, V 0.5.2 (`b98993c`),
 against Homebrew 6.0.22-67-g29b882c on portable Ruby 4.0.6. `brew-v` is an
-optimized `v -prod -o brew-v .` build; a default non-`-prod` build runs the same
-install in 13.94 s, because this workload is bound by subprocess spawns and
-network round trips rather than by generated code. Harness: `bench/bench.sh`
-(5 recorded iterations, one warm-up, tool order rotated each iteration, raw rows
-in `bench/results.tsv`).
+optimized `v -prod -o brew-v .` build. Harness: `bench/bench.sh` (5 recorded
+iterations, one warm-up, tool order rotated each iteration, raw rows in
+`bench/results.tsv`).
 
 Both frontends run the same operation from the same starting state: Neovim 0.12.5_1
 absent with all ten dependencies present and the bottle and manifest already in

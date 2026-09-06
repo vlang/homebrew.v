@@ -63,6 +63,13 @@ pub fn (mut strategy CurlDownloadStrategy) cached_location() string {
 	if strategy.file.cached_location_value != '' {
 		return strategy.file.cached_location_value
 	}
+	// AbstractFileDownloadStrategy#cached_location only asks for a resolved
+	// basename once the cache holds no single match for this URL. Resolving first
+	// instead spent a curl round trip per resource on every warm-cache install.
+	if cached := strategy.file.cached_download_match() {
+		strategy.file.cached_location_value = cached
+		return cached
+	}
 	metadata := strategy.resolve_url_basename_time_file_size(strategy.file.base.url, none)
 	return strategy.file.cached_location_with_basename(metadata.basename)
 }
